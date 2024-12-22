@@ -4,6 +4,7 @@ import type { OasOperation } from '../../oas/operation/Operation.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
+import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 
 export type OperationInsertableArgs = {
   context: GenerateContext
@@ -16,6 +17,7 @@ export type ToOperationInsertableArgs = {
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
   isSupported?: (operation: OasOperation) => boolean
+  toEnrichmentRequests?: (operation: OasOperation) => EnrichmentRequest[]
   pinnable?: boolean
 }
 

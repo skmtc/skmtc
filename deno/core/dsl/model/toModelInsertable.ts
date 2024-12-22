@@ -4,7 +4,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
-
+import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 export type ModelInsertableArgs = {
   context: GenerateContext
   settings: ContentSettings
@@ -15,6 +15,7 @@ export type ModelConfig = {
   id: string
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
+  toEnrichmentRequests?: (refName: RefName) => EnrichmentRequest[]
 }
 
 export const toModelInsertable = (config: ModelConfig) => {

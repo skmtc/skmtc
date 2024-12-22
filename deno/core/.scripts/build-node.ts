@@ -1,5 +1,5 @@
 import { build, emptyDir } from 'jsr:@deno/dnt@0.41.3'
-import denoJson from "../deno.json" with { type: "json" };
+import denoJson from '../deno.json' with { type: 'json' }
 
 await emptyDir('../../packages/core')
 
@@ -15,12 +15,13 @@ await build({
     { name: './Results', path: './types/Results.ts' },
     { name: './toResolvedArtifactPath', path: './helpers/toResolvedArtifactPath.ts' },
     { name: './strings', path: './helpers/strings.ts' },
-    { name: './Settings', path: './types/Settings.ts' }
+    { name: './Settings', path: './types/Settings.ts' },
+    { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' }
   ],
   outDir: '../../packages/core',
   test: false,
   compilerOptions: {
-    lib: ['DOM', "ESNext"]
+    lib: ['DOM', 'ESNext']
   },
   shims: {
     // see JS docs for overview and more options
@@ -31,7 +32,7 @@ await build({
     name: '@skmtc/core',
     version: denoJson.version,
     scripts: {
-      "test": "exit 0"
+      test: 'exit 0'
     },
     devDependencies: {
       '@types/lodash-es': '4.17.12'

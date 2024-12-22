@@ -1,11 +1,11 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.319",
+  "version": "0.0.320",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.472"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.473"
   },
   "tasks": {
     "publish": "deno task build:npm && deno task publish:deno && deno task publish:npm",

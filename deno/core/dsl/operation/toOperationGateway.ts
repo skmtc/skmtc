@@ -1,12 +1,14 @@
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import { GatewayBase, type OperationGatewayArgs } from '../GatewayBase.ts'
 import type { Identifier } from '../Identifier.ts'
+import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 
 export type ToOperationGatewayArgs = {
   id: string
   toIdentifier: () => Identifier
   toExportPath: () => string
   isSupported?: (operation: OasOperation) => boolean
+  toEnrichmentRequests?: (operation: OasOperation) => EnrichmentRequest[]
 }
 
 export const toOperationGateway = (config: ToOperationGatewayArgs) => {
