@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.472",
+  "version": "0.0.473",
   "main": "./script/mod.js",
   "module": "./esm/mod.js",
   "exports": {
@@ -47,6 +47,10 @@
     "./Settings": {
       "import": "./esm/types/Settings.js",
       "require": "./script/types/Settings.js"
+    },
+    "./EnrichmentRequest": {
+      "import": "./esm/types/EnrichmentRequest.js",
+      "require": "./script/types/EnrichmentRequest.js"
     }
   },
   "scripts": {

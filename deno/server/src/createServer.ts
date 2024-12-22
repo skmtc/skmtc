@@ -3,13 +3,17 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
 import { clientSettings as settingsSchema, transform, CoreContext, toSettings } from '@skmtc/core'
-import type { OperationGateway, ParseReturn } from '@skmtc/core'
+import type { OperationGateway, ParseReturn, RefName } from '@skmtc/core'
 import type { OperationInsertable, ModelInsertable, GeneratedValue } from '@skmtc/core'
 
 const postSettingsBody = z.object({
   defaultSelected: z.boolean().optional(),
   schema: z.string(),
   clientSettings: settingsSchema.optional()
+})
+
+const postEnrichmentsBody = z.object({
+  schema: z.string()
 })
 
 const postGenerateBody = z.object({
@@ -77,6 +81,37 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
 
   app.get('/generators', c => {
     return Sentry.startSpan({ name: 'GET /generators' }, () => c.json({ generators }))
+  })
+
+  app.post('/enrichments', async c => {
+    return await Sentry.startSpan({ name: 'POST /enrichments' }, async span => {
+      const body = await c.req.json()
+
+      const { schema } = postEnrichmentsBody.parse(body)
+
+      const { oasDocument } = toOasDocument({
+        schema,
+        spanId: span.spanContext().spanId
+      })
+
+      const operationEnrichmentRequests = generators
+        .filter(generator => generator.type === 'operation')
+        .flatMap(generator => {
+          return oasDocument.operations.flatMap(operation => {
+            return generator.toEnrichmentRequests?.(operation)
+          })
+        })
+
+      const modelEnrichmentRequests = generators
+        .filter(generator => generator.type === 'model')
+        .flatMap(generator => {
+          return Object.entries(oasDocument.components?.schemas ?? {}).flatMap(
+            ([refName, schema]) => {
+              return generator.toEnrichmentRequests?.(refName as RefName)
+            }
+          )
+        })
+    })
   })
 
   app.post('/settings', async c => {

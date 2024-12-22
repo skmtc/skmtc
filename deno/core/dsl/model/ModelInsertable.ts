@@ -2,6 +2,7 @@ import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import type { RefName } from '../../types/RefName.ts'
 import type { Identifier } from '../Identifier.ts'
+import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 
 type ModelInsertableConstructorArgs = {
   context: GenerateContext
@@ -22,7 +23,7 @@ export type ModelInsertable<V> = { prototype: V } & {
 
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-
+  toEnrichmentRequests?: (refName: RefName) => EnrichmentRequest[]
   isSupported: () => boolean
 
   pinnable: boolean

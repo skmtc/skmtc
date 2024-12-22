@@ -1,0 +1,55 @@
+import { GoogleGenerativeAI } from 'npm:@google/generative-ai'
+import type { ResponseSchema } from 'npm:@google/generative-ai'
+
+const apiKey = Deno.env.get('GEMINI_API_KEY')
+
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY is not set')
+}
+
+const genAI = new GoogleGenerativeAI(apiKey)
+
+const model = genAI.getGenerativeModel({
+  model: 'gemini-1.5-flash'
+})
+
+type RunArgs = {
+  prompt: string
+  content: string
+  responseSchema: ResponseSchema
+}
+
+export const run = async ({ prompt, content, responseSchema }: RunArgs) => {
+  const chatSession = model.startChat({
+    generationConfig: {
+      temperature: 1,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: 8192,
+      responseMimeType: 'application/json',
+      responseSchema
+    },
+    history: [
+      {
+        role: 'user',
+        parts: [
+          {
+            text: "Below is part of an openapi schema.\\n- Does the provided endpoint return paginated data\\n- If it does, please provide an object path to access the response list\n\nPaginatedAbilitySummaryList:\n      type: object\n      properties:\n        count:\n          type: integer\n          example: 123\n        next:\n          type: string\n          nullable: true\n          format: uri\n          example: http://api.example.org/accounts/?offset=400&limit=100\n        previous:\n          type: string\n          nullable: true\n          format: uri\n          example: http://api.example.org/accounts/?offset=200&limit=100\n        results:\n          type: array\n          items:\n            $ref: '#/components/schemas/AbilitySummary'"
+          }
+        ]
+      },
+      {
+        role: 'model',
+        parts: [
+          { text: '```json\n' },
+          { text: '{"isPaginated": true, "pathToList": "results"}' },
+          { text: '\n```' }
+        ]
+      }
+    ]
+  })
+
+  const result = await chatSession.sendMessage(`${prompt}\n\n${content}`)
+
+  return result.response.text()
+}
