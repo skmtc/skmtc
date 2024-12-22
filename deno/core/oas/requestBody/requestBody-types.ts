@@ -3,7 +3,7 @@ import {
   type OasMediaTypeData,
   oasMediaTypeData
 } from '../mediaType/mediaType-types.ts'
-import { z } from 'npm:zod@3.23.4'
+import { z } from 'npm:zod@3.24.1'
 
 export type OasRequestBodyData = {
   oasType: 'requestBody'

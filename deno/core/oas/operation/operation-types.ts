@@ -23,7 +23,7 @@ import {
   type OasResponseData,
   oasResponseData
 } from '../response/response-types.ts'
-import { z } from 'npm:zod@3.23.4'
+import { z } from 'npm:zod@3.24.1'
 
 export type OasOperationData = {
   oasType: 'operation'

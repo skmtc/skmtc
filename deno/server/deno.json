@@ -5,7 +5,7 @@
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.471"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.472"
   },
   "tasks": {
     "publish": "deno task build:npm && deno task publish:deno && deno task publish:npm",

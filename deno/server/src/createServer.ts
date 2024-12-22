@@ -7,7 +7,7 @@ import { clientSettings as settingsSchema, transform, CoreContext } from '@skmtc
 import type { OperationGateway, OasDocument, ParseReturn } from '@skmtc/core'
 import type {
   Method,
-  OperationInsertable,
+  OperationInsertable, 
   ModelInsertable,
   GeneratedValue,
   ClientGeneratorSettings

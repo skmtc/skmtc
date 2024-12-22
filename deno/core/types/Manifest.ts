@@ -1,6 +1,6 @@
 import { isGeneratorKey } from './GeneratorKeys.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
-import { z } from 'npm:zod@3.23.4'
+import { z } from 'npm:zod@3.24.1'
 import { resultsItem, type ResultsItem } from './Results.ts'
 
 export type ManifestEntry = {

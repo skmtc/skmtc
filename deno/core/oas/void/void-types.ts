@@ -1,4 +1,4 @@
-import { z } from 'npm:zod@3.23.4'
+import { z } from 'npm:zod@3.24.1'
 
 // Not an actual OAS type, but adding it here to
 // transform to a void type during transform

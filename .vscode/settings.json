@@ -1,6 +1,6 @@
 {
   "deno.enable": false,
-  "deno.enablePaths": ["./deno/core", "./deno/server"],
+  "deno.enablePaths": ["./deno"],
   "deno.suggest.imports.autoDiscover": true,
   "deno.lint": true,
   "eslint.enable": false,

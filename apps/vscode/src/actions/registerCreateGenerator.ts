@@ -174,14 +174,14 @@ const createOperationConfigContent = (generatorName: string) => {
 export const OperationInsertable = toOperationInsertable({
   id: '${generatorName}',
 
-  toIdentifier({ operation, baseSettings }): Identifier {
-    const name = baseSettings.name || \`\${operation.method}\${camelCase( operation.path, {upperFirst: true})}\`;
+  toIdentifier(operation): Identifier {
+    const name = \`\${operation.method}\${camelCase( operation.path, {upperFirst: true})}\`;
 
     return Identifier.createVariable(name);
   },
 
-  toExportPath({ operation, baseSettings }): string {
-    return baseSettings.exportPath || \`\${this.toIdentifier({ operation, baseSettings })}.ts\`;
+  toExportPath( operation ): string {
+    return \`\${this.toIdentifier( operation )}.ts\`;
   }
 });
 `;
@@ -193,14 +193,14 @@ const createOperationGatewayConfigContent = (generatorName: string) => {
 export const OperationGateway = toOperationGateway({
   id: '${generatorName}',
 
-  toIdentifier(baseSettings): Identifier {
-    const name = baseSettings.name || 'gateway';
+  toIdentifier(): Identifier {
+    const name = 'gateway';
 
     return Identifier.createVariable(name);
   },
 
-  toExportPath(baseSettings): string {
-    return baseSettings.exportPath || 'gateway.ts';
+  toExportPath(): string {
+    return 'gateway.ts';
   }
 });
 `;
@@ -236,14 +236,14 @@ const createModelConfigContent = (generatorName: string) => {
 export const ModelInsertable = toModelInsertable({
   id: '${generatorName}',
 
-  toIdentifier({ operation, baseSettings }): Identifier {
-    const name = baseSettings.name || \`\${operation.method}\${camelCase(operation.path, {upperFirst: true})}\`;
+  toIdentifier(operation): Identifier {
+    const name = \`\${operation.method}\${camelCase(operation.path, {upperFirst: true})}\`;
 
     return Identifier.createVariable(name);
   },
 
-  toExportPath({ operation, baseSettings }): string {
-    return baseSettings.exportPath || \`\${this.toIdentifier({ operation, baseSettings })}.ts\`;
+  toExportPath(operation): string {
+    return \`\${this.toIdentifier(operation)}.ts\`;
   }
 });
 `;

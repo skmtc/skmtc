@@ -1,4 +1,4 @@
-import { z } from 'npm:zod@3.23.4'
+import { z } from 'npm:zod@3.24.1'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
 import { type OasSchemaRefData, oasSchemaRefData } from '../ref/ref-types.ts'
 

@@ -14,7 +14,7 @@ import {
   oasSchemaRefData
 } from '../ref/ref-types.ts'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
-import { z } from 'npm:zod@3.23.4'
+import { z } from 'npm:zod@3.24.1'
 
 export type OasParameterLocation = 'query' | 'header' | 'path' | 'cookie'
 
