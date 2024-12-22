@@ -1,0 +1,37 @@
+---
+title: Stringable
+description: Represent any object as a string
+---
+
+A **Stringable** is any object that implements a custom `toString()` method to output itself
+as a string. CodeSquared uses this pattern to specify how to convert a value into output code.
+
+For example, let's say we have an [OasOperation](/open-api/operation) object and we want to 
+use to generate an HTML form. We can do it using Stringables by doing something like `Form`
+code below.
+
+```js
+class Form {
+  path: string;
+
+  constructor(operation: OasOperation){
+    this.path = operation.path;
+    this.method = operation.method;
+  }
+
+  toString() {
+    return `<form action="${this.operation.path}" method="${this.operation.method}">
+      <button type="submit">Submit</button>
+    </form>`
+  }
+}
+```
+
+Using Stringables gives several benefits
+
+- They are **easy to read** since each template looks similar to the code it will output.
+- They are **unopinionated** and let you decide how to you structure your data or your outputs.
+- Object properties remain accessible. For example, we can easily get the values of `path` and `method`
+from a Form instance. Had we converted the operation to a string
+- Stringables can be nested inside each other allowing us to compose complex code structures
+- Fast

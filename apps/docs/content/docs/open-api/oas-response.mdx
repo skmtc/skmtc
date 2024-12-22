@@ -1,0 +1,76 @@
+---
+title: OasResponse
+description: OpenAPI response
+---
+
+OasResponse is an object representing an OpenAPI response.
+
+## Properties
+
+| Property | Type | Description |
+| -------- | -------- | -------- |
+| **oasType** | `'response'` | Static value representing the OpenAPI response type. |
+| **description** | `string \| undefined` | Optional description of the response. |
+| **headers** | `Record<string, OasHeader \| OasRef<'header'>> \| undefined` | Optional map of response headers. |
+| **content** | `Record<string, OasMediaType \| OasRef<'mediaType'>> \| undefined` | Optional map of response content by the media type. |
+| **extensionFields** | `Record<string, unknown> \| undefined` | Optional map of custom fields defined by OpenAPI extensions. Keys are strings beginning with `x-` and values are of any valid JSON type. |
+
+## Methods
+
+### toSchema
+
+Returns the `content` property for the given media type.
+
+```js
+response.toSchema( mediaType = 'application/json' )
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Parameter | Type | Description |
+| --------- | -------- | -------- |
+| mediaType | `string` | The media type to get the schema for. Defaults to `'application/json'`. |
+
+</details>
+
+
+**Return value**
+
+An [OasSchema](/open-api/oas-schema) or [OasRef](/open-api/oas-ref) object.
+
+### isRef
+
+Returns `false` indicating that the response is not a reference.
+
+```js
+response.isRef()
+```
+
+**Return value**
+
+`false`
+
+### resolve
+
+Returns the response object itself.
+
+```js
+response.resolve()
+```
+
+**Return value**
+
+Returns the response object itself.
+
+### resolveOnce
+
+Returns the response object itself.
+
+```js
+response.resolveOnce()
+```
+
+**Return value**
+
+Returns the response object itself.

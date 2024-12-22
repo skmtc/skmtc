@@ -1,0 +1,35 @@
+---
+title: File
+description: Object representing an output file prior to render
+---
+
+A File is an object used during code generation to represent an output file.
+
+It is produced during the [**generate**](/generation-process#generate) phase and serves as an input to the 
+[**render**](/generation-process#render) phase where it is converted into a string.
+
+## Constructor
+
+```js
+new File(path)
+```
+<details className="mt-5">
+<summary>**Constructor parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **path**        | `string`            | Absolute file path with output root folder represented as `@` |
+
+</details>
+
+**Return value**
+  
+A new **File** object
+
+## Properties
+
+| Property      | Type | Description                               |
+| ------------- |----- | ----------------------------------------- |
+| **path**          | `string`                    | Absolute file path with output root folder represented as `@` |
+| **imports**       | `Map<string, Set<string>>`  | Imported external modules. Map keys is a module name and value is a Set of import name strings |
+| **definitions**   | `Map<string, Definition>`   | Definitions in file. Map key is variable or type name and value is a Definition |

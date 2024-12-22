@@ -1,0 +1,58 @@
+---
+title: OasInteger
+description: Object representing an OpenAPI integer schema
+---
+
+OasInteger is an object representing an OpenAPI integer schema.
+
+## Properties
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **oasType**     | `'schema'`            | Static value representing the OpenAPI schema type. |
+| **type**        | `'integer'`            | Static value representing the OpenAPI integer schema type. |
+| **title**       | `string \| undefined` | Optional title of the integer. |
+| **description** | `string \| undefined` | Optional description of the integer. |
+| **format**      | `'int32' \| 'int64' \| undefined` | Optional format of the integer. |
+| **enums**       | `number[] \| undefined` | Optional array of allowed integer values. |
+| **nullable**    | `boolean \| undefined` | Optional flag indicating whether the integer can be `null`. |
+| **example**     | `number \| undefined` | Optional example value for the integer. |
+| **extensionFields**  | `Record<string, unknown> \| undefined` | Optional map of custom fields defined by OpenAPI extensions. Keys are strings beginning with `x-` and values are of any valid JSON type. |
+
+## Methods
+
+### isRef
+
+Returns `false` indicating that the integer is not a reference.
+
+```js
+integer.isRef()
+```
+
+**Return value**
+
+`false`
+
+### resolve
+
+Returns the integer itself.
+
+```js
+integer.resolve()
+```
+
+**Return value**
+
+The integer itself.
+
+### resolveOnce
+
+Returns the integer itself.
+
+```js
+integer.resolveOnce()
+```
+
+**Return value**
+
+The integer itself.

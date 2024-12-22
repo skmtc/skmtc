@@ -1,0 +1,28 @@
+<CodeWithTabs>
+
+```js !!tabs getProducts.ts
+import { product } from '@/models/products';
+import { z } from 'zod';
+
+const productsResponse = z.array(product);
+
+export const getProducts = async () => {
+  const response = await fetch('/products');
+  const data = await response.json();
+  return productsResponse.parse(data);
+}
+```
+
+```js !!tabs CreateProductForm.ts
+import { StringInput, MoneyInput } from '@/components/inputs';
+
+export const CreateProductForm = () => (
+  <Form action="/products" method="post">
+    <StringInput name="name" validate="required">
+    <StringInput name="description">
+    <MoneyInput name="price" validate="required">
+    <button type="submit">Submit</button>
+  </Form>
+)
+```
+</CodeWithTabs>

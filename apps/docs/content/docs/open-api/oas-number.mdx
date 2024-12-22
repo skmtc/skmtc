@@ -1,0 +1,59 @@
+---
+title: OasNumber
+description: OpenAPI number schema object
+---
+
+OasNumber is a type that extends `OasInteger` and represents an OpenAPI number schema object.
+
+## Properties
+
+| Property | Type | Description |
+| -------- | -------- | -------- |
+| **oasType** | `'schema'` | Static value representing the OpenAPI schema type. |
+| **type** | `'number'` | Static value representing the OpenAPI number schema type. |
+| **title** | `string \| undefined` | Optional title of the number. |
+| **description** | `string \| undefined` | Optional description of the number. |
+| **nullable** | `boolean \| undefined` | Optional flag indicating whether the number can be `null`. |
+| **example** | `number \| undefined` | Optional example value for the number. |
+| **extensionFields** | `Record<string, unknown> \| undefined` | Optional map of custom fields defined by OpenAPI extensions. Keys are strings beginning with `x-` and values are of any valid JSON type. |
+
+
+## Methods
+
+### isRef
+
+Returns `false` indicating that the number is not a reference.
+
+```js
+number.isRef()
+```
+
+**Return value**
+
+`false`
+
+
+### resolve
+
+Returns the number itself.
+
+```js
+number.resolve()
+```
+
+**Return value**
+
+The number itself.
+
+### resolveOnce
+
+Returns the number itself.
+
+```js
+number.resolveOnce()
+```
+
+**Return value**
+
+The number itself.
+

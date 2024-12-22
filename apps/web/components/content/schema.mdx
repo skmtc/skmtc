@@ -1,0 +1,25 @@
+<CodeWithTabs>
+
+```js !!tabs schema.tsp
+@tag("Product")
+@route("/products")
+interface Products {
+  create(@body createProduct:CreateProduct): Product;
+  list(): Product[];
+}
+
+model CreateProduct {
+  name: string;
+  description?: string;
+  price: Money;
+}
+
+model Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: Money;
+  createdAt: utcDateTime;
+}
+```
+</CodeWithTabs>

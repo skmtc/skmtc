@@ -1,0 +1,57 @@
+---
+title: OasRef
+description: OpenAPI reference
+---
+
+OasRef is an object representing a reference in an OpenAPI document. It is used to share and reuse objects within the document.
+
+## Properties
+
+| Property | Type | Description |
+| -------- | -------- | -------- |
+| **oasType** | `'ref'` | Static value representing the OpenAPI reference type. |
+| **type** | `'ref'` | Static 'ref' string indicating the object is a reference. |
+| **refType** | `'schema' \| 'response' \| 'parameter' \| 'example' \| 'requestBody' \| 'header'` | Flag indicating the type of object being referenced. |
+| **$ref** | `string` | Uri reference identifier, for example `"#/components/schemas/Pet"` |
+| **summary** | `string \| undefined` | Optional summary of the referenced object. |
+| **description** | `string \| undefined` | Optional description of the referenced object. |
+
+## Methods
+
+### isRef
+
+Returns `true` indicating that the object is a reference.
+
+```js
+ref.isRef()
+```
+
+**Return value**
+
+`true`
+
+### resolve
+
+Returns the referenced object.
+
+```js
+ref.resolve()
+```
+
+**Return value**
+
+The referenced object.
+
+### resolveOnce
+
+Returns the referenced object.
+
+```js
+ref.resolveOnce()
+```
+
+**Return value**
+
+The referenced object.
+
+

@@ -1,0 +1,81 @@
+---
+title: OasHeader
+description: OpenAPI header
+---
+
+OasHeader is an object representing the OpenAPI header object.
+
+## Properties
+
+| Property | Type | Description |
+| -------- | -------- | -------- |
+| **oasType** | `'header'` | Static value representing the OpenAPI header type. |
+| **description** | `string \| undefined` | Optional description of the header. |
+| **required** | `boolean \| undefined` | Optional flag indicating whether the header is required. |
+| **deprecated** | `boolean \| undefined` | Optional flag indicating whether the header is deprecated. |
+| **schema** | `OasSchema \| undefined` | Optional schema for the header. |
+| **content** | `Record<string, OasMediaType> \| undefined` | Optional map of media types for the header. |
+| **examples** | `Record<string, OasExample> \| undefined` | Optional map of examples for the header. |
+| **extensionFields** | `Record<string, unknown> \| undefined` | Optional map of custom fields defined by OpenAPI extensions. Keys are strings beginning with `x-` and values are of any valid JSON type. |
+
+## Methods
+
+### toSchema
+
+Returns the header as a schema.
+
+```js
+header.toSchema( mediaType = 'application/json' )
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Parameter | Type | Description |
+| -------- | -------- | -------- |
+| mediaType | `string` | The media type to convert to a schema. |
+
+</details>
+
+**Return value**
+
+An [OasSchema](/open-api/oas-schema) or [OasRef](/open-api/oas-ref) object.
+
+### isRef
+
+Returns `false` indicating that the header is not a reference.
+
+```js
+header.isRef()
+```
+
+**Return value**
+
+`false`
+
+### resolve
+
+Returns the header itself.
+
+```js
+header.resolve()
+```
+
+**Return value**
+
+The header itself.
+
+### resolveOnce
+
+Returns the header itself.
+
+```js
+header.resolveOnce()
+```
+
+**Return value**
+
+The header itself.
+
+
+

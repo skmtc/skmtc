@@ -1,0 +1,18 @@
+---
+title: OasInfo
+description: OpenAPI info
+---
+
+OasInfo is an object representing the OpenAPI info object.
+
+## Properties
+
+| Property | Type | Description |
+| -------- | -------- | -------- |
+| **oasType** | `'info'` | Static value representing the OpenAPI info type. |
+| **description** | `string \| undefined` | An optional description of the API. |
+| **termsOfService** | `string \| undefined` | Optional Terms of Service for the API. |
+| **contact** | `OasContact \| undefined` | Optional [OasContact](/open-api/oas-contact) contact information for the API. |
+| **license** | `OasLicense \| undefined` | Optional [OasLicense](/open-api/oas-license) license information for the API. |
+| **version** | `string` | The version of the API. |
+| **extensionFields** | `Record<string, unknown> \| undefined` | Optional map of custom fields defined by OpenAPI extensions. Keys are strings beginning with `x-` and values are of any valid JSON type. |

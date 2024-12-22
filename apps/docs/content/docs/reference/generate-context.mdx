@@ -1,0 +1,270 @@
+---
+title: GenerateContext
+description: Internal object controlling the generate phase. Provides access to inputs and receives generated code.
+---
+
+GenerateContext is an internal object controlling the generate phase. It provides access to schema data and settings inputs. It also receives generated code and writes to [File](/file) objects.
+
+## Properties
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **oasDocument**      | `OasDocument` | Document representing the OpenAPI schema input |
+| **logger**           | `Logger`        | Deno Logger for logging messages |
+
+
+## Methods
+
+### createAndRegisterDefinition
+
+Generates a [TypeSystemValue](/type-system-value) from `schema` using `schemaToValueFn` and creates a new [Definition](/definition) using the provided `identifier`. It then registers the new definition in [File](/file) object at `destinationPath`.
+
+If a definition with the name provided by `identifier` already exists at `destinationPath`, the existing definition will be retrieved and returned instead of creating a new one.
+
+```js
+context.createAndRegisterDefinition({
+  schema,
+  identifier,
+  destinationPath,
+  schemaToValueFn
+})
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **schema**     | `SchemaType`   | Input schema which `schemaToValueFn` will convert to a [TypeSystemValue](/type-system-value) |
+| **identifier** | `Identifier` | [Identifier](/identifier) representing a variable or type declaration  |
+| **destinationPath** | `string` | Path to the file where the generated code will be written. |
+| **schemaToValueFn** | `(schema: SchemaType) => TypeSystemValue` | Function that takes a [SchemaType](/schema-type) object and returns a [TypeSystemValue](/type-system-value) value. |
+</details>
+
+**Return value**
+
+A **Definition** object with the output of `schemaToValueFn` function assigned to its `value` property.
+
+### defineAndRegister
+
+Creates a new [Definition](/definition) using the provided `identifier` and registers it in [File](/file) object at `destinationPath`.
+
+If a definition with the name provided by `identifier` already exists at `destinationPath`, the existing definition will be retrieved and returned instead of creating a new one.
+
+```js
+context.defineAndRegister({
+  identifier,
+  value,
+  destinationPath,
+})
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **identifier**  | `Identifier`        | [Identifier](/identifier) representing a variable or type declaration  |
+| **value**       | `Stringable`        | [Stringable](/stringable) value |
+| **destinationPath** | `string` | File path for the generated code |
+</details>
+
+**Return value**
+
+A **Definition** object with the provided `value` assigned to its `value` property.
+
+### register
+
+Insert supplied `imports` and `definitions` into [File](/file) at `destinationPath`.
+
+If an import from a specified module already exists in the file, the import names are appended to the existing module.
+
+Any definitions with with a name that has already been registered at `destinationPath` will be not be added.
+
+```js
+context.register({ imports, definitions })
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **imports**     | `Record<string, ImportName[]> \| undefined` | An optional object where each key is a module name and value is an array of [ImportName](/import-name) objects. |
+| **definitions** | `Definition[] \| undefined`      | An optional array of [Definition](/definition) objects |
+</details>
+
+**Return value**
+
+Void
+
+
+### insertOperation
+
+Transforms an `operation` into a [Definition](/definition) using `insertable` and registers it.
+
+If a [Definition](/definition) with same name already exists at same path, it will be reused.
+
+If [Definition](/definition) is declared outside of `destinationPath`, it will also get imported to `destinationPath`.
+
+```js
+context.insertOperation({
+  insertable,
+  operation,
+  generation,
+  destinationPath,
+})
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **insertable** | `OperationInsertable` | [OperationInsertable](/operation-insertable) that converts an [Operation](/operation) to code. |
+| **operation** | `OasOperation` | Object representing the OpenAPI operation |
+| **generation** | `'regular' \| 'force' \| undefined` | Optional flag to force generation even if it is not selected. This option is used internally to generate dependency code. |
+| **destinationPath** | `string` | Path to the file where the generated code is used. |
+</details>
+
+**Return value**
+
+A new [Inserted](/inserted) object.
+
+### insertModel
+
+Looks up model by `refName`, transforms it into a [Definition](/definition) using `insertable` and registers it.
+
+If a [Definition](/definition) with same name already exists at same path, it will be reused.
+
+If [Definition](/definition) is declared outside of `destinationPath`, it will also get imported to `destinationPath`.
+
+```js
+context.insertModel({
+  insertable,
+  refName,
+  generation,
+  destinationPath
+})
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **insertable** | `ModelInsertable` | [ModelInsertable](/model-insertable) that converts an [Model](/model) to code. |
+| **refName** | `RefName` | [RefName](/ref-name) of the model to transform and insert. |
+| **generation** | `'regular' \| 'force' \| undefined` | Optional flag to force generation even if it is not selected. This option is used internally to generate dependency code. |
+| **destinationPath** | `string` | Path to the file where the generated code is used. |
+</details>
+
+**Return value**
+
+A new [Inserted](/inserted) object.
+
+### toOperationContentSettings
+
+Creates a new [ContentSettings](/content-settings) object from settings loaded at runtime and static config methods on `insertable` object.
+
+```js
+context.toOperationContentSettings({ operation, insertable })
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **operation** | `OasOperation` | Object representing the OpenAPI operation |
+| **insertable** | `OperationInsertable` | [OperationInsertable](/operation-insertable) that converts an [OasOperation](/oas-operation) to code. |
+</details>
+
+**Return value**
+
+A new [ContentSettings](/content-settings) object.
+
+### toModelContentSettings
+
+Creates a new [ContentSettings](/content-settings) object from settings loaded at runtime and static config methods on `insertable` object.
+
+```js
+context.toModelContentSettings({ refName, insertable })
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **refName** | `RefName` | [RefName](/ref-name) of the model to transform and insert. |
+| **insertable** | `ModelInsertable` | [ModelInsertable](/model-insertable) that converts an [Model](/model) to code. |
+</details>
+
+**Return value**
+
+A new [ContentSettings](/content-settings) object.
+
+
+### toGatewayContentSettings
+
+Creates a new [ContentSettings](/content-settings) object from settings loaded at runtime and static config methods on `gateway` object.
+
+```js
+context.toGatewayContentSettings(gateway)
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **gateway** | `OperationGateway | ModelGateway` | [Gateway](/gateway) object |
+</details>
+
+**Return value**
+
+A new [ContentSettings](/content-settings) object.
+
+### resolveSchemaRefOnce
+
+Look up an [OasSchema](/oas-schema) reference by `refName` and return its value.
+
+```js
+context.resolveSchemaRefOnce( refName )
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **refName** | `RefName` | [RefName](/ref-name) of the schema to resolve |
+</details>
+
+**Throws** if schema with `refName` is not found.
+
+**Return value**
+
+A [OasSchema](/oas-schema) or [OasRef](/oas-ref) object.
+
+### findDefinition
+
+Look up a [Definition](/definition) by `name` at `exportPath`.
+
+```js
+context.findDefinition({ name, exportPath })
+```
+
+<details className="mt-5">
+<summary>**Parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **name** | `string` | Name of the definition to find |
+| **exportPath** | `string` | Path to the file where the definition is declared |
+</details>
+
+**Return value** 
+
+A [Definition](/definition) object or `undefined` if not found.

@@ -1,0 +1,62 @@
+---
+title: OasUnion
+description: Object representing a union type as expressed in OpenAPI as `oneOf` or `anyOf`
+---
+
+OasUnion is an object representing a union type as expressed in OpenAPI as `oneOf` or `anyOf`.
+
+## Properties
+
+| Property | Type | Description |
+| -------- | -------- | -------- |
+| **oasType** | `'schema'` | Static value representing the OpenAPI union type. |
+| **type** | `'union'` | Static value indicating `union` type. |
+| **title** | `string \| undefined` | Optional title of the union type. |
+| **description** | `string \| undefined` | Optional description of the union type. |
+| **nullable** | `boolean \| undefined` | Optional flag indicating if the union type is nullable. |
+| **example** | `unknown \| undefined` | Optional example value for the union type. |
+| **discriminator** | `OasDiscriminator \| undefined` | Optional [Discriminator](/open-api/oas-discriminator) object used to tag member types and make the union a tagged union. | 
+| **members** | `OasSchema \| OasRef<'schema'>`  | Union members types. |
+| **extensionFields** | `Record<string, unknown> \| undefined` | Optional map of custom fields defined by OpenAPI extensions. Keys are strings beginning with `x-` and values are of any valid JSON type. |
+
+## Methods
+
+### isRef
+
+Returns `false` indicating that the union is not a reference.
+
+```js
+union.isRef()
+```
+
+**Return value**
+
+`false`
+
+### resolve 
+
+Returns the union object itself.
+
+```js
+union.resolve()
+```
+
+**Return value**
+
+The union object itself.
+
+### resolveOnce
+
+Returns the union object itself.
+
+```js
+union.resolveOnce()
+```
+
+**Return value**
+
+The union object itself.
+
+
+
+

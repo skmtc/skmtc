@@ -1,0 +1,53 @@
+---
+title: Identifier
+description: Object representing a variable or type definition
+---
+
+An Identifier represents a variable or TypeScript type declaration in generated code.
+
+## Identifier.createVariable
+
+```js
+Identifier.createVariable(name)
+Identifier.createVariable(name, typeName)
+```
+
+Create a new [Identifier](/identifier) representing a variable using `name` and optionally providing a `typeName`.
+
+**Parameters**
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **name**        | `string`            | Name of the variable |
+| **typeName**    | `string \| undefined`| Optional type name. If provided, the variable will be typed as this name. |
+
+**Return value**
+
+A new [Identifier](/identifier) object
+
+## Identifier.createType
+
+Create a new [Identifier](/identifier) representing a type using `name`.
+
+```js
+Identifier.createType(name)
+```
+
+**Parameters**
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **name**        | `string`            | Name of the type |
+
+**Return value**
+
+A new [Identifier](/identifier) object
+
+
+## Properties
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **name**        | `string`            | Name of the variable or type |
+| **typeName**    | `string \| undefined`| Optional type name in use when creating a typed variable |
+| **entityType**  | `EntityType`        | [EntityType](/entity-type) object denoting whether identifier is a variable or type |

@@ -1,0 +1,56 @@
+---
+title: OasExample
+description: OpenAPI example
+---
+
+OasExample is an object representing the OpenAPI example object.
+
+## Properties
+
+| Property | Type | Description |
+| -------- | -------- | -------- |
+| **oasType** | `'example'` | Static value representing the OpenAPI example type. |
+| **summary** | `string \| undefined` | Optional short description for the example. |
+| **description** | `string \| undefined` | Optional long description for the example. |
+| **value** | `unknown` | Example value. |
+| **extensionFields** | `Record<string, unknown> \| undefined` | Optional map of custom fields defined by OpenAPI extensions. Keys are strings beginning with `x-` and values are of any valid JSON type. |
+
+## Methods
+
+### isRef
+
+Returns `false` indicating that the example is not a reference.
+
+```js
+example.isRef()
+```
+
+**Return value**
+
+`false`
+
+### resolve
+
+Returns the example itself.
+
+```js
+example.resolve()
+```
+
+**Return value**
+
+The example itself.
+
+### resolveOnce
+
+Returns the example itself.
+
+```js
+example.resolveOnce()
+```
+
+**Return value**
+
+The example itself.
+  
+

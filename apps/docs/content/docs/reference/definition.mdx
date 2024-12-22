@@ -1,0 +1,40 @@
+---
+title: Definition
+description: Object representing a variable or type declaration with an assigned value
+---
+
+A Definition is an object used to represent generated code as an [Identifier](/identifier) and [Stringable](/stringable) value
+
+## Constructor
+
+```js
+new Definition({ context, description, identifier, value })
+```
+
+<details className="mt-5">
+<summary>**Constructor parameters**</summary>
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **context**     | `GenerateContext`   | [GenerateContext](/generate-context) |
+| **description** | `string \| undefined`| Optional description. If Definition is generated from external schema with a description, it will be added here. |
+| **identifier**  | `Identifier`        | [Identifier](/identifier) representing a variable or type declaration  |
+| **value**       | `Stringable`        | [Stringable](/stringable) value |
+
+</details>
+
+**Return value**
+
+A new **Definition** object
+
+
+
+
+## Properties
+
+| Property        | Type                | Description  |
+| --------------- |-------------------- | ------------ |
+| **context**     | `GenerateContext`   | [GenerateContext](/generate-context) |
+| **description** | `string \| undefined`| Optional description. If Definition is generated from external schema with a description, it will be added here. |
+| **identifier**  | `Identifier`        | [Identifier](/identifier) representing a variable or type declaration  |
+| **value**       | `Stringable`        | [Stringable](/stringable) value |

@@ -1,0 +1,51 @@
+<CodeWithTabs>
+
+```js !!tabs get-fetch.js
+export class GetFetch extends OperationInsertable {
+  constructor({ context, operation, settings }: OperationInsertableArgs) {
+    super({ context, operation, settings })
+
+    this.createAndRegisterDefinition({
+      identifier: Identifier.createVariable(`${settings.identifier.name}Response`),
+      schema: operation.toSuccessResponse().resolve().toSchema(),
+      schemaToValueFn: toZodValue
+    })
+  }
+
+  toString() {
+    return `async () => {
+      const response = await fetch('${this.operation.path}');
+      const data = await response.json();
+      return ${this.settings.identifier.name}Response.parse(data);
+    }`
+  }
+}
+```
+
+```js !!tabs basic-form.js
+export class BasicForm extends OperationInsertable {
+  fields: ListLines<Stringable>
+  constructor({ context, operation, settings }: OperationInsertableArgs) {
+    super({ context, operation, settings })
+
+    this.fields = operation.toRequestBody(({ schema }) => {
+      return List.fromEntries(schema.resolve().properties).toLines(([name, schema]) => {
+        switch (schema.type) {
+          case 'string': return new StringInput({ context, name, schema })
+          case 'ref': return new CustomInput({ context, name, ref: schema.ref })
+        }
+      })
+    })
+  }
+
+  toString() {
+    return `() => (
+      <Form action="${this.operation.path}" method="${this.operation.method}">
+        ${this.fields}
+        <button type="submit">Submit</button>
+      </Form>
+    )`
+  }
+}
+```
+</CodeWithTabs>
