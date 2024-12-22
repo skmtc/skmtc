@@ -1,0 +1,21 @@
+import type { OpenAPIV3 } from 'openapi-types'
+import type { ParseContext } from '../../context/ParseContext.js'
+import { toParameterListV3 } from '../parameter/toParameterV3.js'
+import { OasPathItem } from './PathItem.js'
+import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.js'
+
+type ToPathItemV3Args = {
+  pathItem: OpenAPIV3.PathItemObject
+  context: ParseContext
+}
+
+export const toPathItemV3 = ({ pathItem, context }: ToPathItemV3Args): OasPathItem => {
+  const { summary, description, parameters, ...skipped } = pathItem
+
+  return new OasPathItem({
+    summary,
+    description,
+    parameters: context.trace('parameters', () => toParameterListV3({ parameters, context })),
+    extensionFields: toSpecificationExtensionsV3({ skipped, context })
+  })
+}

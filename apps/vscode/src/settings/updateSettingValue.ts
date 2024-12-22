@@ -94,8 +94,6 @@ const updateFromStackTrail = ({
       );
 
       if (generatorSettings) {
-        generatorSettings.selected = value;
-
         updateClientConfig({
           clientConfig: clientConfig,
           settingPanel: store.settingPanel,
