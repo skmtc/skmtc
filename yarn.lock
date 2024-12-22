@@ -789,11 +789,6 @@
 "@sentry/core@8.47.0":
   version "8.47.0"
 
-"@sentry/deno@^8.47.0":
-  version "8.47.0"
-  dependencies:
-    "@sentry/core" "8.47.0"
-
 "@sentry/deno@8.26.0":
   version "8.26.0"
   resolved "https://registry.npmjs.org/@sentry/deno/-/deno-8.26.0.tgz"

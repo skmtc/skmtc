@@ -1,14 +1,9 @@
 import { match } from 'ts-pattern'
-import type {
-  Method,
-  OasDocument,
-  OperationGateway,
-  ClientSettings,
-  ClientGeneratorSettings,
-  OperationInsertable,
-  GeneratedValue,
-  ModelInsertable
-} from '@skmtc/core'
+import type { Method } from '../types/Method.ts'
+import type { OasDocument } from '../oas/document/Document.ts'
+import type { ClientSettings, ClientGeneratorSettings } from '../types/Settings.ts'
+import type { OperationInsertable, OperationGateway } from '../dsl/operation/OperationInsertable.ts'
+import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
 
 type GeneratorsType = (
   | OperationGateway
