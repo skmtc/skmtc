@@ -59,7 +59,7 @@
     "Models": {
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/definitions/BaseSettings"
+        "type": "boolean"
       }
     },
     "OperationsGenerator": {
@@ -113,32 +113,8 @@
     "ModelsObject": {
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/definitions/BaseSettings"
+        "type": "boolean"
       }
-    },
-    "BaseSettings": {
-      "type": "object",
-      "properties": {
-        "selected": {
-          "type": "boolean",
-          "description": "Switch to enable/disable code generation for this operation or model."
-        },
-        "name": {
-          "type": "string",
-          "description": "Manual override for variable name applied to generated code."
-        },
-        "exportPath": {
-          "type": "string",
-          "description": "Manual override for export path applied to generated code. It will be prefixed with path from generator settings."
-        },
-        "importFrom": {
-          "type": "string",
-          "description": "Import generated code from this path. This setting provides a way to ignore generated code and import it from another location. This enables manual code edits to be applied to generated code without being overwritten by subsequent generations."
-        }
-      },
-      "required": [
-        "selected"
-      ]
     },
     "PathsObject": {
       "type": "object",
@@ -153,28 +129,28 @@
         "type": "object",
         "properties": {
           "get": {
-            "$ref": "#/definitions/BaseSettings"
+            "type": "boolean"
           },
           "post": {
-            "$ref": "#/definitions/BaseSettings"
+            "type": "boolean"
           },
           "put": {
-            "$ref": "#/definitions/BaseSettings"
+            "type": "boolean"
           },
           "delete": {
-            "$ref": "#/definitions/BaseSettings"
+            "type": "boolean"
           },
           "patch": {
-            "$ref": "#/definitions/BaseSettings"
+            "type": "boolean"
           },
           "options": {
-            "$ref": "#/definitions/BaseSettings"
+            "type": "boolean"
           },
           "head": {
-            "$ref": "#/definitions/BaseSettings"
+            "type": "boolean"
           },
           "trace": {
-            "$ref": "#/definitions/BaseSettings"
+            "type": "boolean"
           }
         }
       },
