@@ -4,6 +4,7 @@ import type { OasDocument } from '../oas/document/Document.ts'
 import type { ClientSettings, ClientGeneratorSettings } from '../types/Settings.ts'
 import type { OperationInsertable, OperationGateway } from '../dsl/operation/OperationInsertable.ts'
 import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
+import type { GeneratedValue } from '../types/GeneratedValue.ts'
 
 type GeneratorsType = (
   | OperationGateway
