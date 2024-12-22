@@ -1,7 +1,7 @@
 import type { OasRefData } from './ref-types.ts'
 import { toRefName } from '../../helpers/refFns.ts'
 import { match } from 'npm:ts-pattern@5.6.0'
-import type { OasSchema } from '../schema/Schema.ts'
+import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OasResponse } from '../response/Response.ts'
 import type { OasParameter } from '../parameter/Parameter.ts'
 import type { OasExample } from '../example/Example.ts'
@@ -9,6 +9,7 @@ import type { OasRequestBody } from '../requestBody/RequestBody.ts'
 import type { OasHeader } from '../header/Header.ts'
 import type { OasDocument } from '../document/Document.ts'
 import type { RefName } from '../../types/RefName.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 const MAX_LOOKUPS = 10
 
@@ -103,6 +104,22 @@ export class OasRef<T extends OasRefData['refType']> {
 
   get oasDocument(): OasDocument {
     return this.#oasDocument
+  }
+
+  toJsonSchema({
+    resolve
+  }: ToJsonSchemaOptions): OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject {
+    const resolved = this.resolve()
+
+    if (!('toJsonSchema' in resolved) || typeof resolved.toJsonSchema !== 'function') {
+      throw new Error('Cannot convert non-schema ref to JSON Schema')
+    }
+
+    return resolve
+      ? resolved.toJsonSchema({ resolve })
+      : {
+          $ref: `#/components/schemas/${this.toRefName()}`
+        }
   }
 }
 

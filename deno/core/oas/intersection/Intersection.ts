@@ -1,6 +1,7 @@
+import type { OpenAPIV3 } from 'openapi-types'
 import type { OasDiscriminator } from '../discriminator/Discriminator.ts'
 import type { OasRef } from '../ref/Ref.ts'
-import type { OasSchema } from '../schema/Schema.ts'
+import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 
 export type IntersectionFields = {
   title?: string
@@ -43,5 +44,15 @@ export class OasIntersection {
 
   resolveOnce(): OasIntersection {
     return this
+  }
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+    return {
+      allOf: this.members.map(member => member.toJsonSchema(options)),
+      title: this.title,
+      description: this.description,
+      nullable: this.nullable,
+      example: this.example
+    }
   }
 }

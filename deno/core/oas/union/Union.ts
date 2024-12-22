@@ -1,6 +1,8 @@
 import type { OasDiscriminator } from '../discriminator/Discriminator.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
+import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 export type UnionFields = {
   title?: string
@@ -79,5 +81,15 @@ export class OasUnion {
 
   resolveOnce(): OasUnion {
     return this
+  }
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+    return {
+      title: this.title,
+      description: this.description,
+      nullable: this.nullable,
+      example: this.example,
+      oneOf: this.members.map(member => member.toJsonSchema(options))
+    }
   }
 }

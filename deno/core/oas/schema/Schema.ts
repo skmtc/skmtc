@@ -18,3 +18,7 @@ export type OasSchema =
   | OasUnknown
   | OasUnion
   | OasIntersection
+
+export type ToJsonSchemaOptions = {
+  resolve: boolean
+}

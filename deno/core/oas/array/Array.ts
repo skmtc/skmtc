@@ -1,5 +1,6 @@
-import type { OasSchema } from '../schema/Schema.ts'
+import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 export type ArrayFields = {
   items: OasSchema | OasRef<'schema'>
@@ -74,5 +75,16 @@ export class OasArray {
 
   resolveOnce(): OasArray {
     return this
+  }
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+    return {
+      type: 'array',
+      items: this.items.toJsonSchema(options),
+      title: this.title,
+      description: this.description,
+      nullable: this.nullable,
+      example: this.example
+    }
   }
 }

@@ -1,5 +1,6 @@
 import type { OasRef } from '../ref/Ref.ts'
-
+import type { OpenAPIV3 } from 'openapi-types'
+import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 export type IntegerFields = {
   title?: string
   description?: string
@@ -67,5 +68,18 @@ export class OasInteger {
 
   resolveOnce(): OasInteger {
     return this
+  }
+
+  // deno-lint-ignore no-unused-vars
+  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+    return {
+      type: 'integer',
+      title: this.title,
+      description: this.description,
+      nullable: this.nullable,
+      format: this.format,
+      enum: this.enums,
+      example: this.example
+    }
   }
 }

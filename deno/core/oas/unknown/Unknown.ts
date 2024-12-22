@@ -1,4 +1,6 @@
+import type { OpenAPIV3 } from 'openapi-types'
 import type { OasRef } from '../ref/Ref.ts'
+import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 
 export type UnknownFields = {
   title?: string
@@ -55,5 +57,13 @@ export class OasUnknown {
 
   resolveOnce(): OasUnknown {
     return this
+  }
+
+  toJsonSchema(_options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+    return {
+      title: this.title,
+      description: this.description,
+      example: this.example
+    }
   }
 }

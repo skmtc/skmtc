@@ -1,17 +1,10 @@
 import * as Sentry from '@sentry/deno'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { match } from 'ts-pattern'
 import { z } from 'zod'
-import { clientSettings as settingsSchema, transform, CoreContext } from '@skmtc/core'
-import type { OperationGateway, OasDocument, ParseReturn } from '@skmtc/core'
-import type {
-  Method,
-  OperationInsertable, 
-  ModelInsertable,
-  GeneratedValue,
-  ClientGeneratorSettings
-} from '@skmtc/core'
+import { clientSettings as settingsSchema, transform, CoreContext, toSettings } from '@skmtc/core'
+import type { OperationGateway, ParseReturn } from '@skmtc/core'
+import type { OperationInsertable, ModelInsertable, GeneratedValue } from '@skmtc/core'
 
 const postSettingsBody = z.object({
   defaultSelected: z.boolean().optional(),
@@ -97,114 +90,14 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
         spanId: span.spanContext().spanId
       })
 
-      const out: ClientGeneratorSettings[] = generators.map(generator => {
-        const generatorSettings = clientSettings?.generators.find(({ id }) => id === generator.id)
-
-        const generatorType = generator.type
-
-        return match(generatorType)
-          .with('operation', () => {
-            if (!generatorSettings) {
-              return {
-                id: generator.id,
-                operations: toOperations({
-                  generator: generator as OperationGateway,
-                  oasDocument,
-                  defaultSelected,
-                  operationsSettings: undefined
-                })
-              }
-            }
-
-            return {
-              ...generatorSettings,
-              id: generator.id,
-              operations: toOperations({
-                generator: generator as OperationGateway,
-                oasDocument,
-                defaultSelected,
-                operationsSettings:
-                  'operations' in generatorSettings ? generatorSettings.operations : undefined
-              })
-            }
-          })
-          .with('model', () => {
-            if (!generatorSettings) {
-              return {
-                id: generator.id,
-                models: toModels({
-                  oasDocument,
-                  defaultSelected,
-                  modelsSettings: undefined
-                })
-              }
-            }
-
-            return {
-              ...generatorSettings,
-              id: generator.id,
-              models: toModels({
-                oasDocument,
-                defaultSelected,
-                modelsSettings: 'models' in generatorSettings ? generatorSettings.models : undefined
-              })
-            }
-          })
-          .otherwise(matched => {
-            throw new Error(`Invalid generator type: '${matched}' for ${generator.id}`)
-          })
+      return c.json({
+        generators: toSettings({ generators, clientSettings, defaultSelected, oasDocument }),
+        extensions
       })
-
-      return c.json({ generators: out, extensions })
     })
   })
 
   return app
-}
-
-type ToModelsArgs = {
-  defaultSelected: boolean
-  oasDocument: OasDocument
-  modelsSettings: Record<string, boolean> | undefined
-}
-
-const toModels = ({ defaultSelected, oasDocument, modelsSettings }: ToModelsArgs) => {
-  return Object.fromEntries(
-    Object.keys(oasDocument.components?.schemas ?? {}).map(refName => [
-      refName,
-      modelsSettings?.[refName] ? modelsSettings?.[refName] : defaultSelected
-    ])
-  )
-}
-
-type ToOperationsArgs = {
-  generator: OperationGateway
-  oasDocument: OasDocument
-  defaultSelected: boolean
-  operationsSettings: Record<string, Partial<Record<Method, boolean>>> | undefined
-}
-
-type OperationSettings = Record<string, Record<Method, boolean>>
-
-const toOperations = ({
-  generator,
-  oasDocument,
-  operationsSettings,
-  defaultSelected
-}: ToOperationsArgs) => {
-  return Object.values(oasDocument.operations)
-    .filter(operation => generator.isSupported(operation))
-    .reduce<OperationSettings>((acc, operation) => {
-      const { path, method } = operation
-
-      acc[path] = acc[path] ?? {}
-
-      acc[path][method] = operationsSettings?.[path]?.[method]
-        ? operationsSettings?.[path]?.[method]
-        : defaultSelected
-
-      return acc
-    }, {})
 }
 
 type ToOasDocumentArgs = {

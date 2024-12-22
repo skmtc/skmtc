@@ -1,6 +1,8 @@
 import type { OasRef } from '../ref/Ref.ts'
-import type { OasSchema } from '../schema/Schema.ts'
+import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { CustomValue } from '../../types/CustomValue.ts'
+import type { OpenAPIV3 } from 'openapi-types'
+import { match, P } from 'ts-pattern'
 
 export type OasObjectFields = {
   title?: string
@@ -149,5 +151,28 @@ export class OasObject {
 
   resolveOnce(): OasObject {
     return this
+  }
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+    return {
+      type: 'object',
+      title: this.title,
+      description: this.description,
+      nullable: this.nullable,
+      example: this.example,
+      properties: Object.fromEntries(
+        Object.entries(this.properties ?? {})
+          .filter(([_key, value]) => value.type !== 'custom')
+          .map(([key, value]) => [
+            key,
+            (value as OasRef<'schema'> | OasSchema).toJsonSchema(options)
+          ])
+      ),
+      required: this.required,
+      additionalProperties: match(this.additionalProperties)
+        .with(P.nullish, () => false)
+        .with(P.boolean, value => value)
+        .otherwise(value => value.toJsonSchema(options))
+    }
   }
 }
