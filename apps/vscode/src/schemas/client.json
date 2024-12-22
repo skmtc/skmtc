@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft-04/schema",
+  "$id": "https://schemas.skmtc.dev/client.json",
+  "title": "Settings",
+  "description": "Client settings for Skmtc code generation",
+  "type": "object",
+  "properties": {
+    "serverName": {
+      "type": "string",
+      "description": "Name of server where the generator is running. The initial value is your Github username."
+    },
+    "stackName": {
+      "type": "string",
+      "description": "Name of the generator stack to use for code generation."
+    },
+    "deploymentId": {
+      "type": "string",
+      "description": "Id of stack deployment on server."
+    },
+    "settings": {
+      "$ref": "#/definitions/ClientSettings"
+    }
+  },
+  "required": [
+    "settings"
+  ],
+  "definitions": {
+    "ClientSettings": {
+      "properties": {
+        "basePath": {
+          "type": "string",
+          "description": "Base path for generated code. Defaults to 'dist'."
+        },
+        "generators": {
+          "$ref": "#/definitions/Generators"
+        }
+      },
+      "required": [
+        "generators"
+      ]
+    },
+    "Generators": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Generator"
+      },
+      "description": "Array of generator settings."
+    },
+    "Generator": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/OperationsGenerator"
+        },
+        {
+          "$ref": "#/definitions/ModelsGenerator"
+        }
+      ]
+    },
+    "Models": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/BaseSettings"
+      }
+    },
+    "OperationsGenerator": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id of operation generator. For example '@skmtc/rtk-query'."
+        },
+        "exportPath": {
+          "type": "string",
+          "description": "Optional path prefix for operation 'exportPath' setting. Useful for grouping all code from a generator together."
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief generator description"
+        },
+        "operations": {
+          "$ref": "#/definitions/PathsObject"
+        }
+      },
+      "required": [
+        "id",
+        "operations"
+      ]
+    },
+    "ModelsGenerator": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id of model generator. For example '@skmtc/zod'."
+        },
+        "exportPath": {
+          "type": "string",
+          "description": "Optional path prefix for model 'exportPath' setting. Useful for grouping all code from a generator together."
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief generator description"
+        },
+        "models": {
+          "$ref": "#/definitions/ModelsObject"
+        }
+      },
+      "required": [
+        "id",
+        "models"
+      ]
+    },
+    "ModelsObject": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/BaseSettings"
+      }
+    },
+    "BaseSettings": {
+      "type": "object",
+      "properties": {
+        "selected": {
+          "type": "boolean",
+          "description": "Switch to enable/disable code generation for this operation or model."
+        },
+        "name": {
+          "type": "string",
+          "description": "Manual override for variable name applied to generated code."
+        },
+        "exportPath": {
+          "type": "string",
+          "description": "Manual override for export path applied to generated code. It will be prefixed with path from generator settings."
+        },
+        "importFrom": {
+          "type": "string",
+          "description": "Import generated code from this path. This setting provides a way to ignore generated code and import it from another location. This enables manual code edits to be applied to generated code without being overwritten by subsequent generations."
+        }
+      },
+      "required": [
+        "selected"
+      ]
+    },
+    "PathsObject": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/MethodsObject"
+      },
+      "description": "Record which maps API paths to its methods."
+    },
+    "MethodsObject": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "get": {
+            "$ref": "#/definitions/BaseSettings"
+          },
+          "post": {
+            "$ref": "#/definitions/BaseSettings"
+          },
+          "put": {
+            "$ref": "#/definitions/BaseSettings"
+          },
+          "delete": {
+            "$ref": "#/definitions/BaseSettings"
+          },
+          "patch": {
+            "$ref": "#/definitions/BaseSettings"
+          },
+          "options": {
+            "$ref": "#/definitions/BaseSettings"
+          },
+          "head": {
+            "$ref": "#/definitions/BaseSettings"
+          },
+          "trace": {
+            "$ref": "#/definitions/BaseSettings"
+          }
+        }
+      },
+      "description": "Record which maps API methods to their respective operation settings."
+    }
+  }
+}

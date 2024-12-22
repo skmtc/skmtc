@@ -1,0 +1,33 @@
+import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
+import type { ParseContext } from '../../context/ParseContext.ts'
+import { toSchemaV3 } from '../schema/toSchemasV3.ts'
+import type { OasSchema } from '../schema/Schema.ts'
+import type { OasRef } from '../ref/Ref.ts'
+
+type ToAdditionalPropertiesV3Args = {
+  additionalProperties:
+    | boolean
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.SchemaObject
+    | undefined
+  context: ParseContext
+}
+
+export const toAdditionalPropertiesV3 = ({
+  additionalProperties,
+  context
+}: ToAdditionalPropertiesV3Args):
+  | OasSchema
+  | OasRef<'schema'>
+  | boolean
+  | undefined => {
+  if (typeof additionalProperties === 'boolean') {
+    return additionalProperties
+  }
+
+  if (additionalProperties === undefined) {
+    return undefined
+  }
+
+  return toSchemaV3({ schema: additionalProperties, context })
+}

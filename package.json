@@ -10,14 +10,14 @@
   "devDependencies": {
     "prettier": "^3.2.5",
     "turbo": "^2.3.3",
-    "typescript": "5.5.4"
+    "typescript": "5.7.2"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.14.0"
   },
-  "packageManager": "yarn@1.22.19",
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "packageManager": "yarn@4.5.3"
 }

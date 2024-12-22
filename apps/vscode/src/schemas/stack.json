@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft-04/schema",
+  "$id": "https://schemas.skmtc.dev/client.json",
+  "title": "Settings",
+  "description": "Client settings for Skmtc code generation",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the generator stack."
+    },
+    "generators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Names of generators in stack"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the generator stack."
+    }
+  },
+  "required": [
+    "name",
+    "generators"
+  ]
+}

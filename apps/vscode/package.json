@@ -1,0 +1,267 @@
+{
+  "name": "skmtc-vscode",
+  "publisher": "skmtc",
+  "displayName": "CodeSquared",
+  "description": "Generate TypeScript from OpenAPI",
+  "version": "0.0.16",
+  "engines": {
+    "vscode": ">=1.93.0",
+    "cursor": ">=0.42.0",
+    "node": ">=22"
+  },
+  "repository": "https://github.com/skmtc/skmtc-vscode",
+  "main": "./out/extension.js",
+  "icon": "images/icon.png",
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Other"
+  ],
+  "license": "UNLICENSED",
+  "keywords": [
+    "openapi",
+    "swagger",
+    "typescript",
+    "codegen",
+    "api"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "skmtc-vscode.webviewDemo",
+        "title": "Webview demo",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.deployStack",
+        "title": "Deploy generator stack",
+        "enablement": "skmtc-vscode.withSchema",
+        "category": "Skmtc",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "skmtc-vscode.createSettings",
+        "title": "Refresh settings",
+        "enablement": "skmtc-vscode.withDeployment",
+        "category": "Skmtc",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "skmtc-vscode.addOpenApiSchema",
+        "title": "Add OpenAPI schema",
+        "enablement": "skmtc-vscode.withGenerator",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.deleteArtifacts",
+        "title": "Delete artifacts",
+        "category": "Skmtc",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "skmtc-vscode.signIn",
+        "title": "Sign in with Github",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.signOut",
+        "title": "Sign out",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.createProject",
+        "title": "Create new project",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.createArtifacts",
+        "title": "Generate artifacts",
+        "enablement": "skmtc-vscode.withSettings",
+        "category": "Skmtc",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "skmtc-vscode.selectAll",
+        "title": "Select all",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.selectNone",
+        "title": "Select none",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.pinArtifact",
+        "title": "Pin artifact",
+        "category": "Skmtc",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "skmtc-vscode.unpinArtifact",
+        "title": "Unpin artifact",
+        "category": "Skmtc",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "skmtc-vscode.createGenerator",
+        "title": "Create new generator",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.addExternalGenerator",
+        "title": "Add external generator",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.addGenerator",
+        "title": "Add generator",
+        "enablement": "skmtc-vscode.withProject",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.startBlinkMode",
+        "title": "Start Blink mode",
+        "category": "Skmtc",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "skmtc-vscode.stopBlinkMode",
+        "title": "Stop Blink mode",
+        "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.downloadGenerator",
+        "title": "Download generator",
+        "category": "Skmtc"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "skmtc-vscode.settingsTree",
+          "name": "CodeSquared settings",
+          "type": "tree",
+          "visibility": "visible",
+          "icon": "$(checklist)"
+        },
+        {
+          "id": "skmtc-vscode.resultsTree",
+          "name": "CodeSquared results",
+          "type": "tree",
+          "visibility": "visible",
+          "when": "skmtc-vscode.withArtifacts",
+          "icon": "$(list-tree)"
+        },
+        {
+          "id": "skmtc-vscode.milestonesTree",
+          "name": "CodeSquared setup",
+          "type": "tree",
+          "when": "!skmtc-vscode.withArtifacts",
+          "visibility": "visible",
+          "icon": "$(check-all)"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "skmtc-vscode.resultsTree",
+        "contents": "Artifacts generation results and will be displayed here after first run."
+      }
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "skmtc-vscode.pinArtifact",
+          "when": "viewItem == pinnable-item",
+          "group": "inline"
+        },
+        {
+          "command": "skmtc-vscode.unpinArtifact",
+          "when": "viewItem == pinned-item",
+          "group": "inline"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "skmtc-vscode.deployStack",
+          "when": "view == skmtc-vscode.settingsTree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "skmtc-vscode.createArtifacts",
+          "when": "view == skmtc-vscode.settingsTree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "skmtc-vscode.createSettings",
+          "when": "view == skmtc-vscode.settingsTree"
+        },
+        {
+          "command": "skmtc-vscode.deleteArtifacts",
+          "when": "view == skmtc-vscode.settingsTree"
+        },
+        {
+          "command": "skmtc-vscode.selectAll",
+          "when": "view == skmtc-vscode.settingsTree"
+        },
+        {
+          "command": "skmtc-vscode.selectNone",
+          "when": "view == skmtc-vscode.settingsTree"
+        }
+      ]
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": ".codesquared/.settings/client.json",
+        "url": "./src/schemas/client.json"
+      },
+      {
+        "fileMatch": ".codesquared/.settings/stack.json",
+        "url": "./src/schemas/stack.json"
+      },
+      {
+        "fileMatch": ".codesquared/schema.json",
+        "url": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.0/schema.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node ./esbuild.js",
+    "package": "NODE_ENV=production node ./esbuild.js",
+    "watch": "node ./esbuild.js --watch",
+    "lint": "eslint src --ext ts",
+    "types": "tsc --noEmit --skipLibCheck"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/glob": "^8.0.0",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "16.x",
+    "@types/uuid": "^9.0.0",
+    "@types/vscode": "^1.93.0",
+    "@types/vscode-webview": "^1.57.0",
+    "@typescript-eslint/eslint-plugin": "^5.42.0",
+    "@typescript-eslint/parser": "^5.42.0",
+    "esbuild": "^0.16.10",
+    "esbuild-plugin-copy": "^2.0.1",
+    "eslint": "^8.26.0",
+    "glob": "^8.0.3",
+    "typescript": "5.7.2"
+  },
+  "dependencies": {
+    "@sentry/browser": "^8.26.0",
+    "@skmtc/core": "0.0.472",
+    "@supabase/supabase-js": "^2.45.4",
+    "@vscode-elements/elements": "^1.7.0",
+    "can-ndjson-stream": "^1.0.2",
+    "fs-extra": "^11.2.0",
+    "lodash-es": "^4.17.21",
+    "openapi-types": "^12.1.3",
+    "prettier": "^3.3.3",
+    "tiny-invariant": "^1.3.3",
+    "ts-pattern": "5.1.0",
+    "uuid": "^9.0.0",
+    "zod": "3.23.4"
+  }
+}
