@@ -17,7 +17,7 @@ export type ToOperationInsertableArgs = {
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
   isSupported?: (operation: OasOperation) => boolean
-  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest
+  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest | undefined
   pinnable?: boolean
 }
 

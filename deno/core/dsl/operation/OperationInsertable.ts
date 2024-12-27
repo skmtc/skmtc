@@ -27,7 +27,7 @@ export type OperationGateway = {
 
   toIdentifier: () => Identifier
   toExportPath: () => string
-  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest
+  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest | undefined
   isSupported: (operation: OasOperation) => boolean
 
   pinnable: boolean

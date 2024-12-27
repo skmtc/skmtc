@@ -8,7 +8,7 @@ export type ToOperationGatewayArgs = {
   toIdentifier: () => Identifier
   toExportPath: () => string
   isSupported?: (operation: OasOperation) => boolean
-  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest
+  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest | undefined
 }
 
 export const toOperationGateway = (config: ToOperationGatewayArgs) => {

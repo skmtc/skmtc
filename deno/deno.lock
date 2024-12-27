@@ -146,7 +146,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.480"
+          "jsr:@skmtc/core@^0.0.481"
         ]
       }
     }

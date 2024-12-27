@@ -15,7 +15,7 @@ export type ModelConfig = {
   id: string
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest
+  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest | undefined
 }
 
 export const toModelInsertable = (config: ModelConfig) => {

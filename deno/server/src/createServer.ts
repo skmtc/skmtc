@@ -99,14 +99,20 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
         oasDocument
       })
 
+      console.log('GENERATOR SETTINGS', JSON.stringify(generatorSettings, null, 2))
+
       const enrichments = await toEnrichments({
         generators,
         oasDocument
       })
 
+      console.log('ENRICHMENTS', JSON.stringify(enrichments, null, 2))
+
       Object.entries(enrichments).forEach(([key, value]) => {
         set(generatorSettings, key, value)
       })
+
+      console.log('ENRICHED SETTINGS', JSON.stringify(generatorSettings, null, 2))
 
       return c.json({
         generators: generatorSettings,

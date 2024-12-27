@@ -119,8 +119,6 @@ const toOperations = ({
   return Object.values(oasDocument.operations)
     .filter(operation => generator.isSupported(operation))
     .reduce<OperationSettings>((acc, operation) => {
-      const enrichmentRequests = generator.toEnrichmentRequest?.(operation)
-
       const { path, method } = operation
 
       acc[path] = acc[path] ?? {}
