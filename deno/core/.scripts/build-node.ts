@@ -20,6 +20,7 @@ await build({
   ],
   outDir: '../../packages/core',
   test: false,
+  packageManager: 'yarn',
   compilerOptions: {
     lib: ['DOM', 'ESNext']
   },

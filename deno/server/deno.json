@@ -1,11 +1,11 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.324",
+  "version": "0.0.325",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.476",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.477",
     "@google/generative-ai": "npm:@google/generative-ai@^0.21.0"
   },
   "tasks": {

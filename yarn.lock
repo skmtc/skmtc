@@ -1083,7 +1083,7 @@
   integrity sha512-79QfK1393x9Ho60QFyLti+QfdJzRQCVLFb97kOIV7Eo9vQU/roINgk7m24uv0a7AUvN//RDH36FLjjK48v0s9g==
 
 "@skmtc/core@^0.0.476", "@skmtc/core@file:/Users/dmitrigrabov/workspace/codesquared/packages/core":
-  version "0.0.476"
+  version "0.0.477"
   resolved "file:packages/core"
   dependencies:
     "@apiture/openapi-down-convert" "0.14.0"
