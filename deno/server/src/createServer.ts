@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { clientSettings as settingsSchema, transform, CoreContext, toSettings } from '@skmtc/core'
 import type { OperationGateway, ParseReturn, RefName } from '@skmtc/core'
 import type { OperationInsertable, ModelInsertable, GeneratedValue } from '@skmtc/core'
+import { handleEnrichment, type HandleEnrichmentArgs } from './handleEnrichment.ts'
 
 const postSettingsBody = z.object({
   defaultSelected: z.boolean().optional(),
@@ -111,6 +112,16 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
             }
           )
         })
+
+      const enrichmentRequests = [...operationEnrichmentRequests, ...modelEnrichmentRequests]
+
+      const enrichmentResponses = await Promise.all(
+        enrichmentRequests
+          .filter(request => request !== undefined)
+          .map(request => handleEnrichment(request as HandleEnrichmentArgs))
+      )
+
+      return c.json({ enrichmentResponses })
     })
   })
 

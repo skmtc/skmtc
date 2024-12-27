@@ -199,7 +199,7 @@ export const fileNodes: FileSystemTree = {
             "@radix-ui/react-checkbox": "latest",
             "@radix-ui/react-radio-group": "latest",
             "lucide-react": "latest",
-            "zod": "latest",
+            "zod": "^3.24.1",
             "@radix-ui/react-select": "latest",
             "@radix-ui/react-separator": "latest",
             "@radix-ui/react-tooltip": "latest",

@@ -1,11 +1,12 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.321",
+  "version": "0.0.324",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.474"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.476",
+    "@google/generative-ai": "npm:@google/generative-ai@^0.21.0"
   },
   "tasks": {
     "publish": "deno task build:npm && deno task publish:deno && deno task publish:npm",

@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.474", 
+  "version": "0.0.476", 
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.9",
     "@std/testing": "jsr:@std/testing@^1.0.4",
@@ -24,9 +24,9 @@
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",
     "build": "deno run -A .scripts/build-node.ts",
     "publish:deno": "deno publish --allow-slow-types --allow-dirty",
-    "publish:npm": "cd .npm && npm publish"
+    "publish:npm": "cd ../../packages/core && npm publish"
   },
   "test": {
-    "exclude": [".scripts/", ".npm/"]
+    "exclude": [".scripts/"]
   }
 }
