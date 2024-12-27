@@ -1,7 +1,7 @@
 import { match } from 'ts-pattern'
 import type { Method } from '../types/Method.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
-import type { ClientSettings, ClientGeneratorSettings } from '../types/Settings.ts'
+import type { ClientSettings, ClientGeneratorSettings, EnrichedSetting } from '../types/Settings.ts'
 import type { OperationInsertable, OperationGateway } from '../dsl/operation/OperationInsertable.ts'
 import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
 import type { GeneratedValue } from '../types/GeneratedValue.ts'
@@ -89,14 +89,14 @@ export const toSettings = ({
 type ToModelsArgs = {
   defaultSelected: boolean
   oasDocument: OasDocument
-  modelsSettings: Record<string, boolean> | undefined
+  modelsSettings: Record<string, EnrichedSetting> | undefined
 }
 
 const toModels = ({ defaultSelected, oasDocument, modelsSettings }: ToModelsArgs) => {
   return Object.fromEntries(
     Object.keys(oasDocument.components?.schemas ?? {}).map(refName => [
       refName,
-      modelsSettings?.[refName] ? modelsSettings?.[refName] : defaultSelected
+      modelsSettings?.[refName] ? modelsSettings?.[refName] : { selected: defaultSelected }
     ])
   )
 }
@@ -105,10 +105,10 @@ type ToOperationsArgs = {
   generator: OperationGateway
   oasDocument: OasDocument
   defaultSelected: boolean
-  operationsSettings: Record<string, Partial<Record<Method, boolean>>> | undefined
+  operationsSettings: Record<string, Partial<Record<Method, EnrichedSetting>>> | undefined
 }
 
-type OperationSettings = Record<string, Record<Method, boolean>>
+type OperationSettings = Record<string, Record<Method, EnrichedSetting>>
 
 const toOperations = ({
   generator,
@@ -119,13 +119,15 @@ const toOperations = ({
   return Object.values(oasDocument.operations)
     .filter(operation => generator.isSupported(operation))
     .reduce<OperationSettings>((acc, operation) => {
+      const enrichmentRequests = generator.toEnrichmentRequest?.(operation)
+
       const { path, method } = operation
 
       acc[path] = acc[path] ?? {}
 
       acc[path][method] = operationsSettings?.[path]?.[method]
         ? operationsSettings?.[path]?.[method]
-        : defaultSelected
+        : { selected: defaultSelected }
 
       return acc
     }, {})

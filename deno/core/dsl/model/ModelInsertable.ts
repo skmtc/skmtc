@@ -23,7 +23,7 @@ export type ModelInsertable<V> = { prototype: V } & {
 
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichmentRequests?: (refName: RefName) => EnrichmentRequest[]
+  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest
   isSupported: () => boolean
 
   pinnable: boolean

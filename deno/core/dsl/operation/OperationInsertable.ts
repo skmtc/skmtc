@@ -27,7 +27,7 @@ export type OperationGateway = {
 
   toIdentifier: () => Identifier
   toExportPath: () => string
-  toEnrichmentRequests?: (operation: OasOperation) => EnrichmentRequest[]
+  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest
   isSupported: (operation: OasOperation) => boolean
 
   pinnable: boolean
@@ -40,7 +40,7 @@ export type OperationInsertable<V> = { prototype: V } & {
   _class: 'OperationInsertable'
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
-  toEnrichmentRequests?: (operation: OasOperation) => EnrichmentRequest[]
+  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest
   isSupported: (operation: OasOperation) => boolean
 
   pinnable: boolean

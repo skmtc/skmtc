@@ -620,7 +620,7 @@ export class GenerateContext {
     generatorId,
     path,
     method
-  }: GetOperationSettingsArgs): boolean | undefined {
+  }: GetOperationSettingsArgs): Record<string, unknown> | undefined {
     const generatorSettings = this.toGeneratorSettings(generatorId)
 
     const operationSettings =
@@ -631,7 +631,10 @@ export class GenerateContext {
     return operationSettings
   }
 
-  toModelSelected({ generatorId, refName }: GetModelSettingsArgs): boolean | undefined {
+  toModelSelected({
+    generatorId,
+    refName
+  }: GetModelSettingsArgs): Record<string, unknown> | undefined {
     const generatorSettings = this.toGeneratorSettings(generatorId)
 
     const modelSettings =

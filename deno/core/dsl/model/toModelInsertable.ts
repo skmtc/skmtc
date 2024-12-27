@@ -15,7 +15,7 @@ export type ModelConfig = {
   id: string
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichmentRequests?: (refName: RefName) => EnrichmentRequest[]
+  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest
 }
 
 export const toModelInsertable = (config: ModelConfig) => {
@@ -26,6 +26,7 @@ export const toModelInsertable = (config: ModelConfig) => {
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
+    static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
 
     static isSupported = () => true
 

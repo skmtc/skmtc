@@ -1,5 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import type { ResponseSchema } from '@google/generative-ai'
+import { GoogleGenerativeAI } from 'npm:@google/generative-ai'
+import type { EnrichmentRequest } from '../types/EnrichmentRequest.ts'
 
 const apiKey = Deno.env.get('GEMINI_API_KEY')
 
@@ -13,17 +13,11 @@ const model = genAI.getGenerativeModel({
   model: 'gemini-1.5-flash'
 })
 
-export type HandleEnrichmentArgs = {
-  prompt: string
-  content: string
-  responseSchema: ResponseSchema
-}
+export const handleEnrichment = async ({ prompt, content, responseSchema }: EnrichmentRequest) => {
+  console.log('PROMPT', prompt)
+  console.log('CONTENT', content)
+  console.log('RESPONSE SCHEMA', responseSchema)
 
-export const handleEnrichment = async ({
-  prompt,
-  content,
-  responseSchema
-}: HandleEnrichmentArgs) => {
   const chatSession = model.startChat({
     generationConfig: {
       temperature: 1,
@@ -54,6 +48,8 @@ export const handleEnrichment = async ({
   })
 
   const result = await chatSession.sendMessage(`${prompt}\n\n${content}`)
+
+  console.log('RESULT', result)
 
   return result.response.text()
 }

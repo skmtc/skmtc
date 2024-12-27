@@ -17,7 +17,7 @@ export type ToOperationInsertableArgs = {
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
   isSupported?: (operation: OasOperation) => boolean
-  toEnrichmentRequests?: (operation: OasOperation) => EnrichmentRequest[]
+  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest
   pinnable?: boolean
 }
 
@@ -29,6 +29,7 @@ export const toOperationInsertable = (config: ToOperationInsertableArgs) => {
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
+    static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
 
     static isSupported = config.isSupported ?? (() => true)
 

@@ -1,30 +1,40 @@
 import { type Method, method } from './Method.ts'
 import { z } from 'npm:zod@3.24.1'
 
+export const enrichedSetting = z.object({
+  selected: z.boolean(),
+  enrichments: z.record(z.unknown()).optional()
+})
+
+export type EnrichedSetting = {
+  selected: boolean
+  enrichments?: Record<string, unknown>
+}
+
 export const operationsGeneratorSettings = z.object({
   id: z.string(),
   description: z.string().optional(),
-  operations: z.record(z.record(method, z.boolean()))
+  operations: z.record(z.record(method, enrichedSetting))
 })
 
 export type OperationsGeneratorSettings = {
   id: string
   description?: string
-  operations: Record<string, Partial<Record<Method, boolean>>>
+  operations: Record<string, Partial<Record<Method, EnrichedSetting>>>
 }
 
 export const modelsGeneratorSettings = z.object({
   id: z.string(),
   exportPath: z.string().optional(),
   description: z.string().optional(),
-  models: z.record(z.boolean())
+  models: z.record(enrichedSetting)
 })
 
 export type ModelsGeneratorSettings = {
   id: string
   exportPath?: string
   description?: string
-  models: Record<string, boolean>
+  models: Record<string, EnrichedSetting>
 }
 
 export const clientGeneratorSettings = z.union([

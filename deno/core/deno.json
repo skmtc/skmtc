@@ -1,11 +1,12 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.477", 
+  "version": "0.0.480", 
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.9",
     "@std/testing": "jsr:@std/testing@^1.0.4",
     "@types/lodash-es": "npm:@types/lodash-es@4.17.12",
-    "lodash-es": "npm:lodash-es@4.17.21"
+    "lodash-es": "npm:lodash-es@4.17.21",
+    "npm:@google/generative-ai": "npm:@google/generative-ai@^0.21.0"
   },
   "exports": {
     ".": "./mod.ts",
