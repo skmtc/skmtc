@@ -1,7 +1,6 @@
-import { toSettings, enrichSettings, CoreContext } from '@skmtc/core'
+import { toSettings, enrichSettings, CoreContext, toEnrichments } from '@skmtc/core'
 import type { GeneratorsType } from './types.ts'
 import type { ClientSettings, ParseReturn } from '@skmtc/core'
-import * as core from '@skmtc/core'
 
 type GenerateSettingsArgs = {
   generators: GeneratorsType
@@ -27,9 +26,7 @@ export const generateSettings = async ({
     oasDocument
   })
 
-  console.log('TO ENRICHMENTS', core.toEnrichments)
-
-  const enrichments = await core.toEnrichments({ generators, oasDocument })
+  const enrichments = await toEnrichments({ generators, oasDocument })
 
   console.log('ENRICHMENTS X', JSON.stringify(enrichments, null, 2))
 

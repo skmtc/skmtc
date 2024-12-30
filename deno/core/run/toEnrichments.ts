@@ -15,8 +15,13 @@ type ToEnrichmentsArgs = {
   oasDocument: OasDocument
 }
 
+export type EnrichmentItem = {
+  key: string[]
+  value: unknown
+}
+
 export const toEnrichments = async ({ generators, oasDocument }: ToEnrichmentsArgs) => {
-  const output: Record<string, Record<string, unknown>> = {}
+  const output: Record<string, EnrichmentItem[]> = {}
 
   for (const generator of generators) {
     if (generator.type === 'operation') {
@@ -25,9 +30,15 @@ export const toEnrichments = async ({ generators, oasDocument }: ToEnrichmentsAr
 
         if (enrichmentRequest) {
           const enrichmentResponse = await handleEnrichment(enrichmentRequest)
-          const key = `operations.${operation.path}.${operation.method}.enrichments`
 
-          output[generator.id][key] = JSON.parse(enrichmentResponse)
+          if (!output[generator.id]) {
+            output[generator.id] = []
+          }
+
+          output[generator.id].push({
+            key: ['operations', operation.path, operation.method, 'enrichments'],
+            value: JSON.parse(enrichmentResponse)
+          })
         }
       }
     } else if (generator.type === 'model') {
@@ -36,13 +47,21 @@ export const toEnrichments = async ({ generators, oasDocument }: ToEnrichmentsAr
 
         if (enrichmentRequest) {
           const enrichmentResponse = await handleEnrichment(enrichmentRequest)
-          const key = `models.${refName}.enrichments`
 
-          output[generator.id][key] = JSON.parse(enrichmentResponse)
+          if (!output[generator.id]) {
+            output[generator.id] = []
+          }
+
+          output[generator.id].push({
+            key: ['models', refName, 'enrichments'],
+            value: JSON.parse(enrichmentResponse)
+          })
         }
       }
     }
   }
+
+  console.log('OUTPUT', output)
 
   return output
 }
