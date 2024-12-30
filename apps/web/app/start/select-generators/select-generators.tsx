@@ -44,7 +44,7 @@ export const GeneratorMenu = () => {
     event.preventDefault()
     setSubmitting(true)
 
-    const response = await fetch('https://windy-frog-48-6gh0rq9w9x61.deno.dev/artifacts', {
+    const response = await fetch('https://windy-frog-48-n83f7gkkrqpf.deno.dev/artifacts', {
       method: 'POST',
       body: JSON.stringify({
         clientSettings,
