@@ -505,8 +505,6 @@ export class GenerateContext {
       }
 
       this.#previews[group][name] = destinationPath
-
-      console.log('PREVIEW 1', this.#previews)
     })
   }
 

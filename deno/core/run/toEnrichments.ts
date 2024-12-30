@@ -13,11 +13,17 @@ export type EnrichmentItem = {
   value: unknown
 }
 
+type EnrichmentOutput = {
+  generatorId: string
+  key: string[]
+  value: Promise<string>
+}
+
 export const toEnrichments = async <EnrichmentType>({
   generators,
   oasDocument
 }: ToEnrichmentsArgs<EnrichmentType>) => {
-  const output: Record<string, EnrichmentItem[]> = {}
+  const responses: EnrichmentOutput[] = []
 
   for (const generator of generators) {
     if (generator.type === 'operation') {
@@ -25,15 +31,12 @@ export const toEnrichments = async <EnrichmentType>({
         const enrichmentRequest = generator.toEnrichmentRequest?.(operation)
 
         if (enrichmentRequest) {
-          const enrichmentResponse = await handleEnrichment(enrichmentRequest)
+          const enrichmentResponse = handleEnrichment(enrichmentRequest)
 
-          if (!output[generator.id]) {
-            output[generator.id] = []
-          }
-
-          output[generator.id].push({
+          responses.push({
+            generatorId: generator.id,
             key: ['operations', operation.path, operation.method, 'enrichments'],
-            value: JSON.parse(enrichmentResponse)
+            value: enrichmentResponse
           })
         }
       }
@@ -42,22 +45,39 @@ export const toEnrichments = async <EnrichmentType>({
         const enrichmentRequest = generator.toEnrichmentRequest?.(refName as RefName)
 
         if (enrichmentRequest) {
-          const enrichmentResponse = await handleEnrichment(enrichmentRequest)
+          const enrichmentResponse = handleEnrichment(enrichmentRequest)
 
-          if (!output[generator.id]) {
-            output[generator.id] = []
-          }
-
-          output[generator.id].push({
+          responses.push({
+            generatorId: generator.id,
             key: ['models', refName, 'enrichments'],
-            value: JSON.parse(enrichmentResponse)
+            value: enrichmentResponse
           })
         }
       }
     }
   }
 
-  console.log('OUTPUT', output)
+  const items = await Promise.all(
+    responses.map(async response => {
+      return {
+        generatorId: response.generatorId,
+        key: response.key,
+        value: await response.value
+      }
+    })
+  )
 
-  return output
+  return items.reduce<Record<string, EnrichmentItem[]>>(
+    (acc, { generatorId, key, value }) => {
+      acc[generatorId] = acc[generatorId] || []
+
+      acc[generatorId].push({
+        key,
+        value: JSON.parse(value)
+      })
+
+      return acc
+    },
+    {} as Record<string, EnrichmentItem[]>
+  )
 }

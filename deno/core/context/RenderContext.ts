@@ -64,8 +64,6 @@ export class RenderContext {
     this.logger = logger
     this.#stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
-
-    console.log('PREVIEW 2', previews)
   }
 
   render(): Omit<RenderResult, 'results'> {

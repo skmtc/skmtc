@@ -168,8 +168,6 @@ export class CoreContext {
 
       this.logger.debug(`${files.size} files generated`)
 
-      console.log('PREVIEW 3', previews)
-
       const renderOutput = this.trace('render', () => {
         this.#phase = this.#setupRenderPhase({
           files,
