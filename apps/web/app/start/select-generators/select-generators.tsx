@@ -40,7 +40,6 @@ export const GeneratorMenu = () => {
   const router = useRouter()
 
   const schema = useWatch({ name: 'schema' })
-
   const handleSubmit = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
     setSubmitting(true)
