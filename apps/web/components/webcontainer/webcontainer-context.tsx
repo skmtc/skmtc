@@ -37,10 +37,10 @@ const WebcontainerProvider = ({ children }: WebcontainerProviderProps) => {
   const [url, setUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    return () => {
-      console.log('PROVIDER READY')
+    // return () => {
+    //   console.log('PROVIDER READY')
       setReady(true)
-    }
+    //}
   }, [])
 
   useEffect(() => {
