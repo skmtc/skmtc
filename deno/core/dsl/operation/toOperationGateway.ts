@@ -8,18 +8,19 @@ export type ToOperationGatewayArgs<EnrichmentType> = {
   id: string
   toIdentifier: () => Identifier
   toExportPath: () => string
-  isSupported?: ({ operation, enrichments }: IsSupportedOperationArgs<EnrichmentType>) => boolean
-  toEnrichmentRequest?: ({
+  isSupported?: ({
     operation,
-    enrichments
-  }: IsSupportedOperationArgs<EnrichmentType>) => EnrichmentRequest<EnrichmentType> | undefined
+    enrichments,
+    context
+  }: IsSupportedOperationArgs<EnrichmentType>) => boolean
+  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined
   toEnrichments?: (operation: OasOperation) => EnrichmentType | undefined
 }
 
 export const toOperationGateway = <EnrichmentType>(
   config: ToOperationGatewayArgs<EnrichmentType>
 ) => {
-  const OperationGateway = class extends GatewayBase<EnrichmentType> {
+  const OperationGateway = class extends GatewayBase {
     static id = config.id
     static type = 'operation' as const
     static _class = 'OperationGateway' as const
@@ -32,7 +33,7 @@ export const toOperationGateway = <EnrichmentType>(
 
     static pinnable = false
 
-    constructor({ context, settings }: OperationGatewayArgs<EnrichmentType>) {
+    constructor({ context, settings }: OperationGatewayArgs) {
       super({ context, settings })
     }
   }

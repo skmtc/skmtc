@@ -118,7 +118,7 @@ export type InsertReturn<
 
 type RunOperationGeneratorArgs<EnrichmentType> = {
   oasDocument: OasDocument
-  generator: OperationGateway<EnrichmentType> | OperationInsertable<GeneratedValue, EnrichmentType>
+  generator: OperationGateway<undefined> | OperationInsertable<GeneratedValue, EnrichmentType>
 }
 
 type RunModelGeneratorArgs<EnrichmentType> = {
@@ -232,20 +232,21 @@ export class GenerateContext {
         const { path, method } = operation
 
         this.trace([path, method], () => {
+          if (
+            !generator.isSupported({
+              operation,
+              enrichments: generator.toEnrichments({ operation, context: this }),
+              context: this
+            })
+          ) {
+            return this.captureCurrentResult('notSupported')
+          }
+
           const settings = this.toOperationSettings({
             generatorId: generator.id,
             path,
             method
           })
-
-          if (
-            !generator.isSupported({
-              operation,
-              enrichments: generator.toEnrichments()
-            })
-          ) {
-            return this.captureCurrentResult('notSupported')
-          }
 
           if (!settings) {
             return this.captureCurrentResult('notSelected')
@@ -277,20 +278,21 @@ export class GenerateContext {
         const { path, method } = operation
 
         this.trace([path, method], () => {
+          if (
+            !generator.isSupported({
+              operation,
+              enrichments: generator.toEnrichments({ operation, context: this }),
+              context: this
+            })
+          ) {
+            return this.captureCurrentResult('notSupported')
+          }
+
           const settings = this.toOperationSettings({
             generatorId: generator.id,
             path,
             method
           })
-
-          if (
-            !generator.isSupported({
-              operation,
-              enrichments: generator.toEnrichments(settings.enrichments)
-            })
-          ) {
-            return this.captureCurrentResult('notSupported')
-          }
 
           if (!settings) {
             return this.captureCurrentResult('notSelected')
@@ -595,7 +597,7 @@ export class GenerateContext {
       selected: Boolean(settings),
       identifier: insertable.toIdentifier(operation),
       exportPath: insertable.toExportPath(operation),
-      enrichments: insertable.toEnrichments(settings.enrichments)
+      enrichments: insertable.toEnrichments({ operation, context: this })
     })
   }
 
@@ -621,7 +623,7 @@ export class GenerateContext {
       identifier: insertable.toIdentifier(refName),
       selected: Boolean(selected),
       exportPath: insertable.toExportPath(refName),
-      enrichments: insertable.toEnrichments(refName)
+      enrichments: insertable.toEnrichments({ refName, context: this })
     })
   }
 
@@ -635,12 +637,12 @@ export class GenerateContext {
    */
   toGatewayContentSetting<EnrichmentType>(
     gateway: OperationGateway<EnrichmentType>
-  ): ContentSettings<EnrichmentType> {
-    return new ContentSettings<EnrichmentType>({
+  ): ContentSettings<undefined> {
+    return new ContentSettings<undefined>({
       identifier: gateway.toIdentifier(),
       selected: true,
       exportPath: gateway.toExportPath(),
-      enrichments: gateway.toEnrichments()
+      enrichments: undefined
     })
   }
 

@@ -5,10 +5,17 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
+import type { z } from 'zod'
+
 export type ModelInsertableArgs<EnrichmentType> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
   refName: RefName
+}
+
+type ToEnrichmentsArgs = {
+  refName: RefName
+  context: GenerateContext
 }
 
 export type ModelConfig<EnrichmentType> = {
@@ -16,7 +23,7 @@ export type ModelConfig<EnrichmentType> = {
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
   toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest<EnrichmentType> | undefined
-  toEnrichments?: (value: unknown) => EnrichmentType
+  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
 }
 
 export const toModelInsertable = <EnrichmentType>(config: ModelConfig<EnrichmentType>) => {
@@ -28,7 +35,14 @@ export const toModelInsertable = <EnrichmentType>(config: ModelConfig<Enrichment
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
     static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
-    static toEnrichments = config.toEnrichments?.bind(config)
+    static toEnrichments = ({ refName, context }: ToEnrichmentsArgs): EnrichmentType => {
+      const generatorSettings = context.toModelContentSettings({
+        refName,
+        insertable: this
+      })
+
+      return config.toEnrichmentSchema().parse(generatorSettings.enrichments)
+    }
     static isSupported = () => true
 
     static pinnable = false

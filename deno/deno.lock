@@ -268,7 +268,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.496",
+          "jsr:@skmtc/core@^0.0.498",
           "npm:@sentry/deno@^8.47.0"
         ]
       }
