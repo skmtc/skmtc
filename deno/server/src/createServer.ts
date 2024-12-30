@@ -3,8 +3,8 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
 import { clientSettings as settingsSchema, transform } from '@skmtc/core'
-import type { GeneratorsType } from './types.ts'
 import { generateSettings } from './generateSettings.ts'
+import type { GeneratorType } from '@skmtc/core'
 
 const postSettingsBody = z.object({
   defaultSelected: z.boolean().optional(),

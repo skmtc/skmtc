@@ -15,7 +15,7 @@ export type WithTransformModel = {
   transformModel: (refName: RefName) => void
 }
 
-export type ModelInsertable<V> = { prototype: V } & {
+export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
   new ({ context, refName, settings, destinationPath }: ModelInsertableConstructorArgs): V
   id: string
   type: 'model'
@@ -23,7 +23,7 @@ export type ModelInsertable<V> = { prototype: V } & {
 
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest | undefined
+  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest<EnrichmentType> | undefined
   isSupported: () => boolean
 
   pinnable: boolean

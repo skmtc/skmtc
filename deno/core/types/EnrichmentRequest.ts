@@ -1,7 +1,7 @@
-import type { ResponseSchema } from '@google/generative-ai'
+import type { z } from 'npm:zod@3.24.1'
 
-export type EnrichmentRequest = {
+export type EnrichmentRequest<EnrichmentType> = {
   prompt: string
-  responseSchema: ResponseSchema
+  responseSchema: z.ZodType<EnrichmentType>
   content: string
 }

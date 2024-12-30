@@ -1,5 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI, type ResponseSchema } from '@google/generative-ai'
 import type { EnrichmentRequest } from '../types/EnrichmentRequest.ts'
+import { zodToJsonSchema } from 'npm:zod-to-json-schema@3.24.1'
 
 const apiKey = Deno.env.get('GEMINI_API_KEY')
 
@@ -13,7 +14,11 @@ const model = genAI.getGenerativeModel({
   model: 'gemini-1.5-flash'
 })
 
-export const handleEnrichment = async ({ prompt, content, responseSchema }: EnrichmentRequest) => {
+export const handleEnrichment = async <EnrichmentType>({
+  prompt,
+  content,
+  responseSchema
+}: EnrichmentRequest<EnrichmentType>) => {
   const chatSession = model.startChat({
     generationConfig: {
       temperature: 1,
@@ -21,7 +26,7 @@ export const handleEnrichment = async ({ prompt, content, responseSchema }: Enri
       topK: 40,
       maxOutputTokens: 8192,
       responseMimeType: 'application/json',
-      responseSchema
+      responseSchema: zodToJsonSchema(responseSchema) as ResponseSchema
     },
     history: [
       {
