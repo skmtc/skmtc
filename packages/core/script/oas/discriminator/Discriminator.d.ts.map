@@ -1,0 +1,1 @@
+{"version":3,"file":"Discriminator.d.ts","sourceRoot":"","sources":["../../../src/oas/discriminator/Discriminator.ts"],"names":[],"mappings":"AAAA,MAAM,MAAM,mBAAmB,GAAG;IAChC,YAAY,EAAE,MAAM,CAAA;CACrB,CAAA;AAED,qBAAa,gBAAgB;IAC3B,OAAO,EAAE,eAAe,CAAkB;IAC1C,YAAY,EAAE,MAAM,CAAA;gBAER,MAAM,EAAE,mBAAmB;CAGxC"}
