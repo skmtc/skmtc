@@ -70,7 +70,7 @@
     "@types/file-saver": "^2",
     "@types/lodash": "^4",
     "@types/mdx": "^2.0.10",
-    "@types/node": "^20",
+    "@types/node": "^22.10.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",

@@ -2045,7 +2045,7 @@ __metadata:
     "@radix-ui/react-tabs": "npm:^1.1.1"
     "@radix-ui/react-tooltip": "npm:^1.1.2"
     "@types/mdx": "npm:^2.0.13"
-    "@types/node": "npm:20.14.9"
+    "@types/node": "npm:^22.10.2"
     "@types/react": "npm:^18.3.3"
     "@types/react-dom": "npm:^18.3.0"
     autoprefixer: "npm:^10.4.19"
@@ -2102,7 +2102,7 @@ __metadata:
     "@types/file-saver": "npm:^2"
     "@types/lodash": "npm:^4"
     "@types/mdx": "npm:^2.0.10"
-    "@types/node": "npm:^20"
+    "@types/node": "npm:^22.10.2"
     "@types/object-hash": "npm:^3.0.6"
     "@types/react": "npm:^18"
     "@types/react-dom": "npm:^18"
@@ -2510,7 +2510,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*":
+"@types/node@npm:*, @types/node@npm:^22.10.2":
   version: 22.10.2
   resolution: "@types/node@npm:22.10.2"
   dependencies:
@@ -2519,23 +2519,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:16.x":
-  version: 16.18.122
-  resolution: "@types/node@npm:16.18.122"
-  checksum: 10c0/1ff9f559b0b33a041cd41899a550af4bffb09e7f21ed8bff9a19f3b8c41411eefac85da126e31286239a355d2de07bd4504b24532f4ab898bf58d409eeddfcd8
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:20.14.9":
-  version: 20.14.9
-  resolution: "@types/node@npm:20.14.9"
-  dependencies:
-    undici-types: "npm:~5.26.4"
-  checksum: 10c0/911ffa444dc032897f4a23ed580c67903bd38ea1c5ec99b1d00fa10b83537a3adddef8e1f29710cbdd8e556a61407ed008e06537d834e48caf449ce59f87d387
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^20, @types/node@npm:^20.9.0":
+"@types/node@npm:^20.9.0":
   version: 20.17.10
   resolution: "@types/node@npm:20.17.10"
   dependencies:
@@ -7135,7 +7119,7 @@ __metadata:
     "@types/fs-extra": "npm:^11.0.4"
     "@types/glob": "npm:^8.0.0"
     "@types/lodash-es": "npm:^4.17.12"
-    "@types/node": "npm:16.x"
+    "@types/node": "npm:^22.10.2"
     "@types/uuid": "npm:^9.0.0"
     "@types/vscode": "npm:^1.93.0"
     "@types/vscode-webview": "npm:^1.57.0"
@@ -7746,13 +7730,6 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/e3333f887c6829dfe0ab6c1dbe0dd1e3e2aeb56c66460cb85c5440c566f900c833d370ca34eb47558c0c69e78ced4bfe09b8f4f98b6de7afed9b84b8d1dd06a1
-  languageName: node
-  linkType: hard
-
-"undici-types@npm:~5.26.4":
-  version: 5.26.5
-  resolution: "undici-types@npm:5.26.5"
-  checksum: 10c0/bb673d7876c2d411b6eb6c560e0c571eef4a01c1c19925175d16e3a30c4c428181fb8d7ae802a261f283e4166a0ac435e2f505743aa9e45d893f9a3df017b501
   languageName: node
   linkType: hard
 
