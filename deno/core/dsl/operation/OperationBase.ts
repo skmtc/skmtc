@@ -38,10 +38,10 @@ export class OperationBase<EnrichmentType> extends ValueBase {
     this.settings = settings
   }
 
-  insertOperation<V extends GeneratedValue, EnrichmentType>(
-    insertable: OperationInsertable<V, EnrichmentType>,
+  insertOperation<V extends GeneratedValue, ET>(
+    insertable: OperationInsertable<V, ET>,
     operation: OasOperation
-  ): Inserted<V, 'force', EnrichmentType> {
+  ): Inserted<V, 'force', ET> {
     return this.context.insertOperation({
       insertable,
       operation,
@@ -50,10 +50,10 @@ export class OperationBase<EnrichmentType> extends ValueBase {
     })
   }
 
-  insertModel<V extends GeneratedValue, EnrichmentType>(
-    insertable: ModelInsertable<V, EnrichmentType>,
+  insertModel<V extends GeneratedValue, ET>(
+    insertable: ModelInsertable<V, ET>,
     refName: RefName
-  ): Inserted<V, 'force', EnrichmentType> {
+  ): Inserted<V, 'force', ET> {
     return this.context.insertModel({
       insertable,
       refName,

@@ -87,7 +87,7 @@ export type AddRenderDependencyArgs = {
   dependencies: string[]
 }
 
-export type GetModelSettingsArgs = {
+export type ToModelSettingsArgs = {
   generatorId: string
   refName: RefName
 }
@@ -320,7 +320,7 @@ export class GenerateContext {
           return this.captureCurrentResult('notSupported')
         }
 
-        const selected = this.toModelSelected({
+        const selected = this.toModelSettings({
           generatorId: generator.id,
           refName
         })
@@ -524,12 +524,12 @@ export class GenerateContext {
    *    insertable's driver
    * @mutates this.files
    */
-  insertOperation<V extends GeneratedValue, T extends GenerationType, EnrichmentType>({
+  insertOperation<V extends GeneratedValue, T extends GenerationType, ET>({
     insertable,
     operation,
     generation,
     destinationPath
-  }: InsertOperationArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
+  }: InsertOperationArgs<V, T, ET>): Inserted<V, T, ET> {
     const { settings, definition } = new OperationDriver({
       context: this,
       insertable,
@@ -614,7 +614,7 @@ export class GenerateContext {
     refName,
     insertable
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
-    const selected = this.toModelSelected({
+    const selected = this.toModelSettings({
       generatorId: insertable.id,
       refName
     })
@@ -662,7 +662,7 @@ export class GenerateContext {
     return operationSettings ?? { selected: false, enrichments: undefined }
   }
 
-  toModelSelected({ generatorId, refName }: GetModelSettingsArgs): EnrichedSetting {
+  toModelSettings({ generatorId, refName }: ToModelSettingsArgs): EnrichedSetting {
     const generatorSettings = this.toGeneratorSettings(generatorId)
 
     const modelSettings =

@@ -5,7 +5,7 @@ import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { z } from 'zod'
 
-type OperationInsertableConstructorArgs<EnrichmentType> = {
+export type OperationInsertableArgs<EnrichmentType> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
@@ -40,7 +40,7 @@ export type OperationGateway<EnrichmentType> = {
   toIdentifier: () => Identifier
   toExportPath: () => string
   toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined
-  toResponseSchema: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
   toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType
   isSupported: ({
     operation,
@@ -52,14 +52,14 @@ export type OperationGateway<EnrichmentType> = {
 }
 
 export type OperationInsertable<V, EnrichmentType> = { prototype: V } & {
-  new ({ context, settings, operation }: OperationInsertableConstructorArgs<EnrichmentType>): V
+  new ({ context, settings, operation }: OperationInsertableArgs<EnrichmentType>): V
   id: string
   type: 'operation'
   _class: 'OperationInsertable'
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
   toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined
-  toResponseSchema: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
   toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType
   isSupported: ({
     operation,

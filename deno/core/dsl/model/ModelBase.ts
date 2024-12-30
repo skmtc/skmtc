@@ -27,10 +27,10 @@ export class ModelBase<EnrichmentType> extends ValueBase {
     this.settings = settings
   }
 
-  insertModel<V extends GeneratedValue, EnrichmentType>(
-    insertable: ModelInsertable<V, EnrichmentType>,
+  insertModel<V extends GeneratedValue, ET>(
+    insertable: ModelInsertable<V, ET>,
     refName: RefName
-  ): Inserted<V, 'force', EnrichmentType> {
+  ): Inserted<V, 'force', ET> {
     return this.context.insertModel({
       insertable,
       refName,

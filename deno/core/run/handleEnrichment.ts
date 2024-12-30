@@ -17,8 +17,14 @@ const model = genAI.getGenerativeModel({
 export const handleEnrichment = async <EnrichmentType>({
   prompt,
   content,
-  responseSchema
+  responseSchema: zodResponseSchema
 }: EnrichmentRequest<EnrichmentType>) => {
+  const responseSchema = zodToJsonSchema(zodResponseSchema, {
+    target: 'openApi3'
+  }) as ResponseSchema
+
+  console.log('RESPONSE SCHEMA', responseSchema)
+
   const chatSession = model.startChat({
     generationConfig: {
       temperature: 1,
@@ -26,7 +32,7 @@ export const handleEnrichment = async <EnrichmentType>({
       topK: 40,
       maxOutputTokens: 8192,
       responseMimeType: 'application/json',
-      responseSchema: zodToJsonSchema(responseSchema) as ResponseSchema
+      responseSchema: removeProperties(responseSchema, 'additionalProperties')
     },
     history: [
       {
@@ -53,4 +59,35 @@ export const handleEnrichment = async <EnrichmentType>({
   console.log('RESULT', result)
 
   return result.response.text()
+}
+
+// deno-lint-ignore no-explicit-any
+export function removeProperties<T extends Record<string, any>>(
+  obj: T,
+  propertyName: string
+): Partial<T> {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj
+  }
+
+  // deno-lint-ignore ban-ts-comment
+  // @ts-ignore
+  const result: Partial<T> = Array.isArray(obj) ? [] : {}
+
+  for (const key in obj) {
+    if (key === propertyName) {
+      continue
+    }
+
+    const value = obj[key]
+    if (typeof value === 'object' && value !== null) {
+      // deno-lint-ignore ban-ts-comment
+      // @ts-ignore
+      result[key] = removeProperties(value, propertyName)
+    } else {
+      result[key] = value
+    }
+  }
+
+  return result
 }

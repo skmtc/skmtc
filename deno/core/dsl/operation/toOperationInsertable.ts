@@ -1,18 +1,11 @@
 import { toOperationGeneratorKey } from '../../types/GeneratorKeys.ts'
 import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
-import type { ContentSettings } from '../ContentSettings.ts'
 import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
-import type { IsSupportedOperationArgs } from './OperationInsertable.ts'
+import type { IsSupportedOperationArgs, OperationInsertableArgs } from './OperationInsertable.ts'
 import type { z } from 'zod'
-
-export type OperationInsertableArgs<EnrichmentType> = {
-  context: GenerateContext
-  settings: ContentSettings<EnrichmentType>
-  operation: OasOperation
-}
 
 export type ToOperationInsertableArgs<EnrichmentType> = {
   id: string
@@ -44,6 +37,7 @@ export const toOperationInsertable = <EnrichmentType>(
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
     static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
+    static toEnrichmentSchema = config.toEnrichmentSchema.bind(config)
 
     static toEnrichments = ({ operation, context }: ToEnrichmentsArgs): EnrichmentType => {
       const generatorSettings = context.toOperationSettings({

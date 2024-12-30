@@ -35,10 +35,12 @@ export const toModelInsertable = <EnrichmentType>(config: ModelConfig<Enrichment
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
     static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
+    static toEnrichmentSchema = config.toEnrichmentSchema.bind(config)
+
     static toEnrichments = ({ refName, context }: ToEnrichmentsArgs): EnrichmentType => {
-      const generatorSettings = context.toModelContentSettings({
+      const generatorSettings = context.toModelSettings({
         refName,
-        insertable: this
+        generatorId: config.id
       })
 
       return config.toEnrichmentSchema().parse(generatorSettings.enrichments)
