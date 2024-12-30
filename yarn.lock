@@ -2015,48 +2015,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@skmtc/core@npm:^0.0.491":
-  version: 0.0.491
-  resolution: "@skmtc/core@npm:0.0.491"
-  dependencies:
-    "@apiture/openapi-down-convert": "npm:0.14.0"
-    "@babel/helper-validator-identifier": "npm:7.22.20"
-    "@deno/shim-deno": "npm:~0.18.0"
-    "@sentry/deno": "npm:8.47.0"
-    "@types/babel__helper-validator-identifier": "npm:7.15.2"
-    "@types/lodash-es": "npm:4.17.12"
-    lodash-es: "npm:4.17.21"
-    openapi-types: "npm:12.1.3"
-    tiny-invariant: "npm:1.3.3"
-    ts-pattern: "npm:5.6.0"
-    zod: "npm:3.24.1"
-    zod-to-json-schema: "npm:3.24.1"
-  checksum: 10c0/00bdcde8f1ce77182eb8ee47b5ac7b3e0fad3215d3f03bd8cae938c0a43e6eb03e1af6cca7754fa903c7596439a994dca1a88abb81ae28ab229a456759af8999
-  languageName: node
-  linkType: hard
-
-"@skmtc/core@npm:^0.0.492":
-  version: 0.0.492
-  resolution: "@skmtc/core@npm:0.0.492"
-  dependencies:
-    "@apiture/openapi-down-convert": "npm:0.14.0"
-    "@babel/helper-validator-identifier": "npm:7.22.20"
-    "@deno/shim-deno": "npm:~0.18.0"
-    "@google/generative-ai": "npm:^0.21.0"
-    "@sentry/deno": "npm:8.47.0"
-    "@types/babel__helper-validator-identifier": "npm:7.15.2"
-    "@types/lodash-es": "npm:4.17.12"
-    lodash-es: "npm:4.17.21"
-    openapi-types: "npm:12.1.3"
-    tiny-invariant: "npm:1.3.3"
-    ts-pattern: "npm:5.6.0"
-    zod: "npm:3.24.1"
-    zod-to-json-schema: "npm:3.24.1"
-  checksum: 10c0/222687c53d3af57d6693b06dc686f882b35966cd65c0c3eff4926bd24ee3aaae64e70b8f754759e5de774d4b3ab8688aa0f6ef768455b43724bf7213ed9bd50d
-  languageName: node
-  linkType: hard
-
-"@skmtc/core@workspace:packages/core":
+"@skmtc/core@npm:^0.0.509, @skmtc/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@skmtc/core@workspace:packages/core"
   dependencies:
@@ -2135,7 +2094,7 @@ __metadata:
     "@radix-ui/react-tabs": "npm:^1.1.1"
     "@radix-ui/react-toast": "npm:^1.2.2"
     "@radix-ui/react-tooltip": "npm:^1.1.4"
-    "@skmtc/core": "npm:^0.0.491"
+    "@skmtc/core": "npm:^0.0.509"
     "@tailwindcss/forms": "npm:^0.5.9"
     "@tailwindcss/typography": "npm:^0.5.10"
     "@tanstack/react-query": "npm:^5.60.2"
@@ -7171,7 +7130,7 @@ __metadata:
   resolution: "skmtc-vscode@workspace:apps/vscode"
   dependencies:
     "@sentry/browser": "npm:^8.26.0"
-    "@skmtc/core": "npm:^0.0.492"
+    "@skmtc/core": "npm:^0.0.509"
     "@supabase/supabase-js": "npm:^2.45.4"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/glob": "npm:^8.0.0"
