@@ -2,11 +2,9 @@ import * as Sentry from '@sentry/deno'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
-import { clientSettings as settingsSchema, transform, CoreContext, toSettings } from '@skmtc/core'
-import type { OperationGateway, ParseReturn } from '@skmtc/core'
-import type { OperationInsertable, ModelInsertable, GeneratedValue } from '@skmtc/core'
-import { toEnrichments } from '@skmtc/core'
-import { set } from 'lodash-es'
+import { clientSettings as settingsSchema, transform } from '@skmtc/core'
+import type { GeneratorsType } from './types.ts'
+import { generateSettings } from './generateSettings.ts'
 
 const postSettingsBody = z.object({
   defaultSelected: z.boolean().optional(),
@@ -19,12 +17,6 @@ const postGenerateBody = z.object({
   clientSettings: settingsSchema.optional(),
   prettier: z.record(z.unknown()).optional()
 })
-
-type GeneratorsType = (
-  | OperationGateway
-  | OperationInsertable<GeneratedValue>
-  | ModelInsertable<GeneratedValue>
-)[]
 
 type CreateServerArgs = {
   generators: GeneratorsType
@@ -87,50 +79,17 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
 
       const { clientSettings, defaultSelected = false, schema } = postSettingsBody.parse(body)
 
-      const { oasDocument, extensions } = toOasDocument({
+      const { enrichedSettings, extensions } = await generateSettings({
+        generators,
         schema,
+        clientSettings,
+        defaultSelected,
         spanId: span.spanContext().spanId
       })
 
-      const generatorSettings = toSettings({
-        generators,
-        clientSettings,
-        defaultSelected,
-        oasDocument
-      })
-
-      console.log('GENERATOR SETTINGS', JSON.stringify(generatorSettings, null, 2))
-
-      const enrichments = await toEnrichments({
-        generators,
-        oasDocument
-      })
-
-      console.log('ENRICHMENTS', JSON.stringify(enrichments, null, 2))
-
-      Object.entries(enrichments).forEach(([key, value]) => {
-        set(generatorSettings, key, value)
-      })
-
-      console.log('ENRICHED SETTINGS', JSON.stringify(generatorSettings, null, 2))
-
-      return c.json({
-        generators: generatorSettings,
-        extensions
-      })
+      return c.json({ generators: enrichedSettings, extensions })
     })
   })
 
   return app
-}
-
-type ToOasDocumentArgs = {
-  schema: string
-  spanId: string
-}
-
-const toOasDocument = ({ schema, spanId }: ToOasDocumentArgs): ParseReturn => {
-  const context = new CoreContext({ spanId })
-
-  return context.parse(schema)
 }

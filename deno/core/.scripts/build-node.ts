@@ -24,6 +24,7 @@ await build({
   compilerOptions: {
     lib: ['DOM', 'ESNext']
   },
+  scriptModule: false,
   shims: {
     // see JS docs for overview and more options
     deno: true

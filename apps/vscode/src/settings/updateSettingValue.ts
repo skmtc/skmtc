@@ -1,37 +1,37 @@
-import { match, P } from 'ts-pattern';
-import { updateClientConfig } from './updateClientConfig';
-import { readClientConfig } from '../utilities/readClientConfig';
-import { SkmtcClientConfig } from '@skmtc/core/Settings';
-import { ExtensionContext } from 'vscode';
-import { ExtensionStore } from '../types/ExtensionStore';
-import { Method } from '@skmtc/core/Method';
-import { Extensions } from '@skmtc/core/Extensions';
-import { readExtensions } from '../utilities/readExtensions';
-import { updateExtensionsConfig } from './updateExtensionsConfig';
-const { setWith } = require('lodash-es');
+import { match, P } from 'ts-pattern'
+import { updateClientConfig } from './updateClientConfig'
+import { readClientConfig } from '../utilities/readClientConfig'
+import { SkmtcClientConfig } from '@skmtc/core/Settings'
+import { ExtensionContext } from 'vscode'
+import { ExtensionStore } from '../types/ExtensionStore'
+import { Method } from '@skmtc/core/Method'
+import { Extensions } from '@skmtc/core/Extensions'
+import { readExtensions } from '../utilities/readExtensions'
+import { updateExtensionsConfig } from './updateExtensionsConfig'
+import { setWith } from 'lodash'
 
 type UpdateSettingValueArgs = {
-  stackTrail: string;
-  value: boolean;
-  fromForm: boolean;
-  store: ExtensionStore;
-  context: ExtensionContext;
-};
+  stackTrail: string
+  value: boolean
+  fromForm: boolean
+  store: ExtensionStore
+  context: ExtensionContext
+}
 
 export const updateSettingValue = ({
   store,
   context,
   stackTrail,
   value,
-  fromForm,
+  fromForm
 }: UpdateSettingValueArgs) => {
-  const clientConfig = readClientConfig({ notifyIfMissing: true });
+  const clientConfig = readClientConfig({ notifyIfMissing: true })
 
   if (!clientConfig) {
-    return;
+    return
   }
 
-  const extensions = readExtensions() ?? {};
+  const extensions = readExtensions() ?? {}
 
   updateFromStackTrail({
     stackTrail,
@@ -40,19 +40,19 @@ export const updateSettingValue = ({
     clientConfig,
     extensions,
     value,
-    fromForm,
-  });
-};
+    fromForm
+  })
+}
 
 type GetStackTrailFromNameArgs = {
-  stackTrail: string;
-  store: ExtensionStore;
-  context: ExtensionContext;
-  clientConfig: SkmtcClientConfig;
-  extensions: Extensions;
-  value:  boolean;
-  fromForm: boolean;
-};
+  stackTrail: string
+  store: ExtensionStore
+  context: ExtensionContext
+  clientConfig: SkmtcClientConfig
+  extensions: Extensions
+  value: boolean
+  fromForm: boolean
+}
 
 const updateFromStackTrail = ({
   stackTrail,
@@ -61,97 +61,97 @@ const updateFromStackTrail = ({
   clientConfig,
   extensions,
   value,
-  fromForm,
+  fromForm
 }: GetStackTrailFromNameArgs) => {
-  const chunks = stackTrail.split(':');
+  const chunks = stackTrail.split(':')
 
-  const name = chunks.pop();
+  const name = chunks.pop()
 
   if (!name) {
-    throw new Error('No name');
+    throw new Error('No name')
   }
 
   match(chunks)
     .with(['generators'], () => {
       match(name)
         .with('basePath', () => {
-          clientConfig.settings.basePath = String(value);
+          clientConfig.settings.basePath = String(value)
 
           updateClientConfig({
             clientConfig: clientConfig,
             settingPanel: store.settingPanel,
             extensionUri: context.extensionUri,
-            fromForm,
-          });
+            fromForm
+          })
         })
         .otherwise(() => {
-          throw new Error('No match');
-        });
+          throw new Error('No match')
+        })
     })
     .with(['generators', P._], ([_, generatorId]) => {
       const generatorSettings = clientConfig.settings.generators.find(
         ({ id }) => id === generatorId
-      );
+      )
 
       if (generatorSettings) {
         updateClientConfig({
           clientConfig: clientConfig,
           settingPanel: store.settingPanel,
           extensionUri: context.extensionUri,
-          fromForm,
-        });
+          fromForm
+        })
       }
     })
     .with(['generators', P._, P._], ([_, generatorId, refName]) => {
       const generatorSettings = clientConfig.settings.generators.find(
         ({ id }) => id === generatorId
-      );
+      )
 
       if (generatorSettings && 'models' in generatorSettings) {
-        generatorSettings.models[refName] = value;
+        generatorSettings.models[refName] = value
 
         updateClientConfig({
           clientConfig: clientConfig,
           settingPanel: store.settingPanel,
           extensionUri: context.extensionUri,
-          fromForm,
-        });
+          fromForm
+        })
       }
     })
     .with(['generators', P._, P._, P._], ([_, generatorId, path, method]) => {
       const generatorSettings = clientConfig.settings.generators.find(
         ({ id }) => id === generatorId
-      );
+      )
 
       if (generatorSettings && 'operations' in generatorSettings) {
-        generatorSettings.operations[path][method as Method] = value;
+        generatorSettings.operations[path][method as Method] = value
 
         updateClientConfig({
           clientConfig: clientConfig,
           settingPanel: store.settingPanel,
           extensionUri: context.extensionUri,
-          fromForm,
-        });
+          fromForm
+        })
       }
     })
-    .with(['schema', ...P.array()], (matched) => {
+    .with(['schema', ...P.array()], matched => {
       setWith(
         extensions,
         matched.slice(1).concat('__x__', 'extensionFields', name),
         value,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         Object
-      );
+      )
 
       updateExtensionsConfig({
         extensions,
         extensionUri: context.extensionUri,
         settingPanel: store.settingPanel,
-        fromForm,
-      });
+        fromForm
+      })
     })
-    .otherwise((value) => {
-      console.log('NO MATCH', value);
-      throw new Error('No match');
-    });
-};
+    .otherwise(value => {
+      console.log('NO MATCH', value)
+      throw new Error('No match')
+    })
+}

@@ -1,4 +1,4 @@
-import * as Sentry from 'npm:@sentry/deno@8.26.0'
+import * as Sentry from 'npm:@sentry/deno@8.47.0'
 import type { PrettierConfigType } from '../types/prettierConfig.ts'
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { AddGeneratorKeyArgs, FilesRenderResult, RenderResult } from './types.ts'

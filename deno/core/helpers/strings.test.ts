@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert@^1.0.9'
+import { assertEquals } from 'jsr:@std/assert@^1.0.10'
 import { camelCase } from './strings.ts'
 
 Deno.test('camelCase removes trailing non-alphanumeric characters', () => {

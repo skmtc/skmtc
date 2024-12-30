@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert@^1.0.9'
+import { assertEquals } from 'jsr:@std/assert@^1.0.10'
 import { normaliseModuleName } from './File.ts'
 
 Deno.test('Uses appRoot for internal imports when provided', () => {

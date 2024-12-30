@@ -1,7 +1,7 @@
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { setWith } from 'npm:lodash-es@4.17.21'
 import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
-import * as Sentry from 'npm:@sentry/deno@8.26.0'
+import * as Sentry from 'npm:@sentry/deno@8.47.0'
 import { parse as parseYaml } from 'jsr:@std/yaml@0.215.0'
 import { toDocumentFieldsV3 } from '../oas/document/toDocumentFieldsV3.ts'
 import { OasDocument } from '../oas/document/Document.ts'

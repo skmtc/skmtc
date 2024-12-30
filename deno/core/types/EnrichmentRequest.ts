@@ -1,4 +1,4 @@
-import type { ResponseSchema } from 'npm:@google/generative-ai'
+import type { ResponseSchema } from '@google/generative-ai'
 
 export type EnrichmentRequest = {
   prompt: string

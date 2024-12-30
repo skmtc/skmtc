@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from 'npm:@google/generative-ai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { EnrichmentRequest } from '../types/EnrichmentRequest.ts'
 
 const apiKey = Deno.env.get('GEMINI_API_KEY')
@@ -14,10 +14,6 @@ const model = genAI.getGenerativeModel({
 })
 
 export const handleEnrichment = async ({ prompt, content, responseSchema }: EnrichmentRequest) => {
-  console.log('PROMPT', prompt)
-  console.log('CONTENT', content)
-  console.log('RESPONSE SCHEMA', responseSchema)
-
   const chatSession = model.startChat({
     generationConfig: {
       temperature: 1,

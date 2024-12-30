@@ -1,0 +1,782 @@
+{
+  "@skmtc/tanstack-query-zod": {
+    "operations": {
+      "/api/v2/ability/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/ability/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/berry/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/berry/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/berry-firmness/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/berry-firmness/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/berry-flavor/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/berry-flavor/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/characteristic/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/characteristic/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/contest-type/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/contest-type/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/contest-effect/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/contest-effect/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/egg-group/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/egg-group/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/encounter-method/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/encounter-method/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/encounter-condition/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/encounter-condition/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/encounter-condition-value/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/encounter-condition-value/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/evolution-chain/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/evolution-chain/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/evolution-trigger/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/evolution-trigger/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/generation/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/generation/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/gender/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/gender/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/growth-rate/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/growth-rate/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/item/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/item/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/item-category/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/item-category/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/item-attribute/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/item-attribute/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/item-fling-effect/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/item-fling-effect/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/item-pocket/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/item-pocket/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/language/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/language/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/location/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/location/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/location-area/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/location-area/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/machine/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/machine/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/move/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/move/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/move-ailment/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/move-ailment/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/move-battle-style/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/move-battle-style/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/move-category/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/move-category/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/move-damage-class/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/move-damage-class/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/move-learn-method/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/move-learn-method/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/move-target/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/move-target/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/nature/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/nature/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pal-park-area/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pal-park-area/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokedex/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pokedex/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokemon/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pokemon/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokemon-color/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pokemon-color/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokemon-form/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pokemon-form/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokemon-habitat/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pokemon-habitat/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokemon-shape/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pokemon-shape/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokemon-species/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pokemon-species/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokeathlon-stat/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/pokeathlon-stat/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/region/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/region/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/stat/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/stat/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/super-contest-effect/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/super-contest-effect/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/type/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/type/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/version/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/version/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/version-group/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": true,
+            "pathToList": "results"
+          }
+        }
+      },
+      "/api/v2/version-group/{id}/": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      },
+      "/api/v2/pokemon/{pokemon_id}/encounters": {
+        "get": {
+          "enrichments": {
+            "isPaginated": false,
+            "pathToList": null
+          }
+        }
+      }
+    }
+  }
+}

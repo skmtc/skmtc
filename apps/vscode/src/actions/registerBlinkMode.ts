@@ -86,7 +86,7 @@ export const registerBlinkMode = ({ store, context }: RegisterStartBlinkModeArgs
     blinkSkmtcServerTerminal.show();
 
     blinkSkmtcServerTerminal.sendText(
-      `deno run --allow-read=./.codesquared --allow-write=${basePath},./.codesquared --allow-env=NODE_ENV,SKMTC_LOGS_PATH,DENO_DEPLOYMENT_ID,DENO_REGION --allow-net=${BLINK_HOST} --watch .codesquared/mod.ts`
+      `deno run --allow-read=./.codesquared --allow-write=${basePath},./.codesquared --allow-env=NODE_ENV,SKMTC_LOGS_PATH,DENO_DEPLOYMENT_ID,DENO_REGION,GEMINI_API_KEY --allow-net=${BLINK_HOST},generativelanguage.googleapis.com:443 --watch .codesquared/mod.ts`
     );
 
     const createSettingsAndArtifactsDisposables = watchSchemaAndCreateSettingsAndArtifacts(store);

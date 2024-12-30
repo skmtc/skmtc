@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert@^1.0.9'
+import { assertEquals } from 'jsr:@std/assert@^1.0.10'
 import { mockParseContext } from '../../test/mockParseContext.ts'
 import { toOperationsV3 } from './toOperationsV3.ts'
 import { mockPaths } from './mocks.ts'

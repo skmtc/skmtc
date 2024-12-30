@@ -40,7 +40,7 @@ export type OperationInsertable<V> = { prototype: V } & {
   _class: 'OperationInsertable'
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
-  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest
+  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest | undefined
   isSupported: (operation: OasOperation) => boolean
 
   pinnable: boolean

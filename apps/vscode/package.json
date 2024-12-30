@@ -227,7 +227,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "node ./esbuild.js",
+    "vscode:build": "node ./esbuild.js",
     "package": "NODE_ENV=production node ./esbuild.js",
     "watch": "node ./esbuild.js --watch",
     "lint": "eslint src --ext ts",
@@ -251,7 +251,7 @@
   },
   "dependencies": {
     "@sentry/browser": "^8.26.0",
-    "@skmtc/core": "^0.0.481",
+    "@skmtc/core": "^0.0.482",
     "@supabase/supabase-js": "^2.45.4",
     "@vscode-elements/elements": "^1.7.0",
     "can-ndjson-stream": "^1.0.2",

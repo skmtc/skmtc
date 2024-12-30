@@ -1,56 +1,43 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.481",
-  "main": "./script/mod.js",
+  "version": "0.0.486",
   "module": "./esm/mod.js",
   "exports": {
     ".": {
-      "import": "./esm/mod.js",
-      "require": "./script/mod.js"
+      "import": "./esm/mod.js"
     },
     "./Brand": {
-      "import": "./esm/types/Brand.js",
-      "require": "./script/types/Brand.js"
+      "import": "./esm/types/Brand.js"
     },
     "./GeneratorKeys": {
-      "import": "./esm/types/GeneratorKeys.js",
-      "require": "./script/types/GeneratorKeys.js"
+      "import": "./esm/types/GeneratorKeys.js"
     },
     "./Manifest": {
-      "import": "./esm/types/Manifest.js",
-      "require": "./script/types/Manifest.js"
+      "import": "./esm/types/Manifest.js"
     },
     "./Extensions": {
-      "import": "./esm/types/Extensions.js",
-      "require": "./script/types/Extensions.js"
+      "import": "./esm/types/Extensions.js"
     },
     "./Method": {
-      "import": "./esm/types/Method.js",
-      "require": "./script/types/Method.js"
+      "import": "./esm/types/Method.js"
     },
     "./RefName": {
-      "import": "./esm/types/RefName.js",
-      "require": "./script/types/RefName.js"
+      "import": "./esm/types/RefName.js"
     },
     "./Results": {
-      "import": "./esm/types/Results.js",
-      "require": "./script/types/Results.js"
+      "import": "./esm/types/Results.js"
     },
     "./toResolvedArtifactPath": {
-      "import": "./esm/helpers/toResolvedArtifactPath.js",
-      "require": "./script/helpers/toResolvedArtifactPath.js"
+      "import": "./esm/helpers/toResolvedArtifactPath.js"
     },
     "./strings": {
-      "import": "./esm/helpers/strings.js",
-      "require": "./script/helpers/strings.js"
+      "import": "./esm/helpers/strings.js"
     },
     "./Settings": {
-      "import": "./esm/types/Settings.js",
-      "require": "./script/types/Settings.js"
+      "import": "./esm/types/Settings.js"
     },
     "./EnrichmentRequest": {
-      "import": "./esm/types/EnrichmentRequest.js",
-      "require": "./script/types/EnrichmentRequest.js"
+      "import": "./esm/types/EnrichmentRequest.js"
     }
   },
   "scripts": {
@@ -60,8 +47,7 @@
     "@apiture/openapi-down-convert": "0.14.0",
     "@babel/helper-validator-identifier": "7.22.20",
     "@deno/shim-deno": "~0.18.0",
-    "@google/generative-ai": "*",
-    "@sentry/deno": "8.26.0",
+    "@sentry/deno": "8.47.0",
     "@types/babel__helper-validator-identifier": "7.15.2",
     "@types/lodash-es": "4.17.12",
     "lodash-es": "4.17.21",

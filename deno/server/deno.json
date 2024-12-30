@@ -1,16 +1,14 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.331",
+  "version": "0.0.339",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.481"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.487",
+    "@sentry/deno": "npm:@sentry/deno@^8.47.0"
   },
   "tasks": {
-    "publish": "deno task build:npm && deno task publish:deno && deno task publish:npm",
-    "build:npm": "deno run -A .scripts/build-node.ts",
-    "publish:deno": "deno publish --allow-slow-types --allow-dirty",
-    "publish:npm": "cd .npm && npm publish"
+    "publish": "deno publish --allow-slow-types --allow-dirty"
   }
 }
