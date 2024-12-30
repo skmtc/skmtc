@@ -4,10 +4,10 @@ import type { RefName } from '../../types/RefName.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 
-type ModelInsertableConstructorArgs = {
+type ModelInsertableConstructorArgs<EnrichmentType> = {
   context: GenerateContext
   refName: RefName
-  settings: ContentSettings
+  settings: ContentSettings<EnrichmentType>
   destinationPath: string
 }
 
@@ -16,7 +16,12 @@ export type WithTransformModel = {
 }
 
 export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
-  new ({ context, refName, settings, destinationPath }: ModelInsertableConstructorArgs): V
+  new ({
+    context,
+    refName,
+    settings,
+    destinationPath
+  }: ModelInsertableConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
   _class: 'ModelInsertable'
@@ -24,6 +29,7 @@ export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
   toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest<EnrichmentType> | undefined
+  toEnrichments: (refName: RefName) => EnrichmentType
   isSupported: () => boolean
 
   pinnable: boolean

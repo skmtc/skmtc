@@ -5,21 +5,22 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
-export type ModelInsertableArgs = {
+export type ModelInsertableArgs<EnrichmentType> = {
   context: GenerateContext
-  settings: ContentSettings
+  settings: ContentSettings<EnrichmentType>
   refName: RefName
 }
 
-export type ModelConfig = {
+export type ModelConfig<EnrichmentType> = {
   id: string
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest | undefined
+  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest<EnrichmentType> | undefined
+  toEnrichments?: (value: unknown) => EnrichmentType
 }
 
-export const toModelInsertable = (config: ModelConfig) => {
-  const ModelInsertable = class extends ModelBase {
+export const toModelInsertable = <EnrichmentType>(config: ModelConfig<EnrichmentType>) => {
+  const ModelInsertable = class extends ModelBase<EnrichmentType> {
     static id = config.id
     static type = 'model' as const
     static _class = 'ModelInsertable' as const
@@ -27,12 +28,12 @@ export const toModelInsertable = (config: ModelConfig) => {
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
     static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
-
+    static toEnrichments = config.toEnrichments?.bind(config)
     static isSupported = () => true
 
     static pinnable = false
 
-    constructor(args: ModelInsertableArgs) {
+    constructor(args: ModelInsertableArgs<EnrichmentType>) {
       super({
         ...args,
         generatorKey: toModelGeneratorKey({

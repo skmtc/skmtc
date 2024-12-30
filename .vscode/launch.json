@@ -10,6 +10,7 @@
       "request": "launch",
       "name": "CodeSquared VSCode Extension",
       "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "${defaultBuildTask}",
       "args": [
         "--extensionDevelopmentPath=${workspaceRoot}/apps/vscode"
       ],

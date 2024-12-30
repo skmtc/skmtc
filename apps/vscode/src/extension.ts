@@ -4,13 +4,13 @@ import {
   getDefaultIntegrations,
   makeFetchTransport,
   Scope,
-  browserTracingIntegration,
-} from '@sentry/browser';
+  browserTracingIntegration
+} from '@sentry/browser'
 
 // filter integrations that use the global variable
-const integrations = getDefaultIntegrations({}).filter((defaultIntegration) => {
-  return !['BrowserApiErrors', 'Breadcrumbs', 'GlobalHandlers'].includes(defaultIntegration.name);
-});
+const integrations = getDefaultIntegrations({}).filter(defaultIntegration => {
+  return !['BrowserApiErrors', 'Breadcrumbs', 'GlobalHandlers'].includes(defaultIntegration.name)
+})
 
 const sentryClient = new BrowserClient({
   dsn: 'https://7a355019ba7b35638851a843ea1b548b@o4508018789646336.ingest.de.sentry.io/4508018833555536',
@@ -19,60 +19,58 @@ const sentryClient = new BrowserClient({
   integrations: [...integrations, browserTracingIntegration()],
   tracesSampleRate: 1.0,
   _experiments: {
-    maxSpans: 2000,
+    maxSpans: 2000
   },
-  normalizeMaxBreadth: 2000,
-});
+  normalizeMaxBreadth: 2000
+})
 
-const scope = new Scope();
-scope.setClient(sentryClient);
+const scope = new Scope()
+scope.setClient(sentryClient)
 
-sentryClient.init(); // initializing has to be done after setting the sentryClient on the scope
-import { ExtensionContext, window } from 'vscode';
-import { SettingsDataProvider } from './providers/SettingsDataProvider';
-import { ExtensionStore } from './types/ExtensionStore';
-import { handleCheckboxStateChange } from './settings/handleCheckboxStateChange';
-import { readClientConfig } from './utilities/readClientConfig';
-import { registerCreateDeployment } from './actions/registerCreateDeployment';
-import { SupabaseAuthenticationProvider } from './auth/supabaseAuthenticationProviderRemote';
-import { registerCreateArtifacts } from './actions/registerCreateArtifacts';
-import { registerCreateSettings } from './actions/registerCreateSettings';
-import { registerDeleteArtifacts } from './actions/registerDeleteArtifacts';
-import { readManifest } from './utilities/readManifest';
-import { createWatchers } from './create/createWatchers';
-import { registerAuth } from './actions/registerAuth';
-import { registerSelectAll } from './actions/registerSelectAll';
-import { registerSelectNone } from './actions/registerSelectNone';
-import { ResultsDataProvider } from './providers/ResultsDataProvider';
-import { createSettingsView } from './create/createSettingsView';
-import { registerSettingsTreeItemClicked } from './actions/registerSettingsTreeItemClicked';
-import { registerResultsTreeItemClicked } from './actions/registerResultsTreeItemClicked';
-import { createStatusBarItem } from './create/createStatusBarItem';
-import { registerShowProjectName } from './actions/registerShowProjectName';
-import { createResultsView } from './create/createResultsView';
-import { registerCreateGenerator } from './actions/registerCreateGenerator';
-import { registerAddExternalGenerator } from './actions/registerAddExternalGenerator';
-import { registerBlinkMode } from './actions/registerBlinkMode';
-import { registerCreateBlinkServer } from './actions/registerCreateBlinkServer';
-import { toRootPath } from './utilities/getRootPath';
-import { join } from 'node:path';
-import { registerDownloadGenerator } from './actions/registerDownloadGenerator';
-import { registerCreateProject } from './actions/registerCreateProject';
-import { MilestonesDataProvider } from './providers/MilestonesDataProvider';
-import { createMilestonesView } from './create/createMilestonesView';
-import { registerAddGenerator } from './actions/registerAddGenerator';
-import { registerAddOpenApiSchema } from './actions/registerAddOpenApiSchema';
-import { readExtensions } from './utilities/readExtensions';
+sentryClient.init() // initializing has to be done after setting the sentryClient on the scope
+import { ExtensionContext, window } from 'vscode'
+import { SettingsDataProvider } from './providers/SettingsDataProvider'
+import { ExtensionStore } from './types/ExtensionStore'
+import { handleCheckboxStateChange } from './settings/handleCheckboxStateChange'
+import { readClientConfig } from './utilities/readClientConfig'
+import { registerCreateDeployment } from './actions/registerCreateDeployment'
+import { SupabaseAuthenticationProvider } from './auth/supabaseAuthenticationProviderRemote'
+import { registerCreateArtifacts } from './actions/registerCreateArtifacts'
+import { registerCreateSettings } from './actions/registerCreateSettings'
+import { registerDeleteArtifacts } from './actions/registerDeleteArtifacts'
+import { readManifest } from './utilities/readManifest'
+import { createWatchers } from './create/createWatchers'
+import { registerAuth } from './actions/registerAuth'
+import { registerSelectAll } from './actions/registerSelectAll'
+import { registerSelectNone } from './actions/registerSelectNone'
+import { ResultsDataProvider } from './providers/ResultsDataProvider'
+import { createSettingsView } from './create/createSettingsView'
+import { registerSettingsTreeItemClicked } from './actions/registerSettingsTreeItemClicked'
+import { registerResultsTreeItemClicked } from './actions/registerResultsTreeItemClicked'
+import { createStatusBarItem } from './create/createStatusBarItem'
+import { registerShowProjectName } from './actions/registerShowProjectName'
+import { createResultsView } from './create/createResultsView'
+import { registerCreateGenerator } from './actions/registerCreateGenerator'
+import { registerAddExternalGenerator } from './actions/registerAddExternalGenerator'
+import { registerBlinkMode } from './actions/registerBlinkMode'
+import { registerCreateBlinkServer } from './actions/registerCreateBlinkServer'
+import { toRootPath } from './utilities/getRootPath'
+import { join } from 'node:path'
+import { registerDownloadGenerator } from './actions/registerDownloadGenerator'
+import { registerCreateProject } from './actions/registerCreateProject'
+import { MilestonesDataProvider } from './providers/MilestonesDataProvider'
+import { createMilestonesView } from './create/createMilestonesView'
+import { registerAddGenerator } from './actions/registerAddGenerator'
+import { registerAddOpenApiSchema } from './actions/registerAddOpenApiSchema'
+import { readExtensions } from './utilities/readExtensions'
 
 export async function activate(context: ExtensionContext) {
   try {
-    console.log('STARTING');
+    const clientConfig = readClientConfig({ notifyIfMissing: false })
 
-    const clientConfig = readClientConfig({ notifyIfMissing: false });
+    const manifest = readManifest()
 
-    const manifest = readManifest();
-
-    const extensions = readExtensions();
+    const extensions = readExtensions()
 
     const store: ExtensionStore = {
       sentryClient: sentryClient,
@@ -90,38 +88,38 @@ export async function activate(context: ExtensionContext) {
       localRuntimeLogs: window.createOutputChannel('Skmtc local logs', { log: true }),
       settingsDataProvider: new SettingsDataProvider({ clientConfig, extensions }),
       resultsDataProvider: new ResultsDataProvider({ manifest }),
-      milestonesDataProvider: new MilestonesDataProvider(),
-    };
+      milestonesDataProvider: new MilestonesDataProvider()
+    }
 
-    console.log('settingsDataProvider', store.settingsDataProvider);
+    console.log('settingsDataProvider', store.settingsDataProvider)
 
-    store.localRuntimeLogs.info('Skmtc extension activated');
+    store.localRuntimeLogs.info('Skmtc extension activated')
 
-    const authProvider = new SupabaseAuthenticationProvider(context);
-    const authDisposables = registerAuth(authProvider);
+    const authProvider = new SupabaseAuthenticationProvider(context)
+    const authDisposables = registerAuth(authProvider)
 
     if (clientConfig?.serverName && clientConfig?.deploymentId) {
-      store.deploymentId = clientConfig.deploymentId;
-      store.serverName = clientConfig.serverName;
+      store.deploymentId = clientConfig.deploymentId
+      store.serverName = clientConfig.serverName
 
       // subscriptions.push(store.deploymentLogDisposable);
     }
 
     // Create a tree view to contain settings items
-    const settingsTreeView = createSettingsView({ store, clientConfig });
+    const settingsTreeView = createSettingsView({ store, clientConfig })
 
-    const resultsTreeView = createResultsView({ store });
+    const resultsTreeView = createResultsView({ store })
 
-    const milestonesTreeView = createMilestonesView({ store });
+    const milestonesTreeView = createMilestonesView({ store })
 
-    const watcherDisposables = createWatchers({ store, settingsTreeView });
+    const watcherDisposables = createWatchers({ store, settingsTreeView })
 
     // create a new status bar item that we can now manage
-    store.statusBarItem = createStatusBarItem({ store });
+    store.statusBarItem = createStatusBarItem({ store })
 
     const checkBoxDisposable = settingsTreeView.onDidChangeCheckboxState(
       handleCheckboxStateChange({ store, context })
-    );
+    )
 
     // Add commands to the extension context
     context.subscriptions.push(
@@ -150,9 +148,9 @@ export async function activate(context: ExtensionContext) {
       registerSelectNone(),
       authProvider,
       checkBoxDisposable
-    );
+    )
   } catch (error) {
-    console.error('ERROR', error);
-    scope.captureException(error);
+    console.error('ERROR', error)
+    scope.captureException(error)
   }
 }

@@ -9,9 +9,9 @@ import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { RefName } from '../../types/RefName.ts'
 import { toModelGeneratorKey } from '../../types/GeneratorKeys.ts'
 
-type CreateModelArgs<V extends GeneratedValue, T extends GenerationType> = {
+type CreateModelArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
   context: GenerateContext
-  insertable: ModelInsertable<V>
+  insertable: ModelInsertable<V, EnrichmentType>
   refName: RefName
   generation?: T
   destinationPath?: string
@@ -26,11 +26,11 @@ type GetDefinitionArgs = {
   exportPath: string
 }
 
-export class ModelDriver<V extends GeneratedValue, T extends GenerationType> {
+export class ModelDriver<V extends GeneratedValue, T extends GenerationType, EnrichmentType> {
   context: GenerateContext
-  insertable: ModelInsertable<V>
+  insertable: ModelInsertable<V, EnrichmentType>
   refName: RefName
-  settings: ContentSettings
+  settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V, T>
   constructor({
@@ -39,7 +39,7 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType> {
     refName,
     generation,
     destinationPath
-  }: CreateModelArgs<V, T>) {
+  }: CreateModelArgs<V, T, EnrichmentType>) {
     this.context = context
     this.insertable = insertable
     this.refName = refName

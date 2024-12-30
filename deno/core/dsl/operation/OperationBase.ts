@@ -12,9 +12,9 @@ import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/ModelInsertable.ts'
 import type { RefName } from '../../types/RefName.ts'
 
-export type OperationBaseArgs = {
+export type OperationBaseArgs<EnrichmentType> = {
   context: GenerateContext
-  settings: ContentSettings
+  settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   operation: OasOperation
 }
@@ -25,12 +25,12 @@ type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   schemaToValueFn: SchemaToValueFn
 }
 
-export class OperationBase extends ValueBase {
-  settings: ContentSettings
+export class OperationBase<EnrichmentType> extends ValueBase {
+  settings: ContentSettings<EnrichmentType>
   operation: OasOperation
   override generatorKey: GeneratorKey
 
-  constructor({ context, generatorKey, settings, operation }: OperationBaseArgs) {
+  constructor({ context, generatorKey, settings, operation }: OperationBaseArgs<EnrichmentType>) {
     super({ context })
 
     this.generatorKey = generatorKey
@@ -38,10 +38,10 @@ export class OperationBase extends ValueBase {
     this.settings = settings
   }
 
-  insertOperation<V extends GeneratedValue>(
-    insertable: OperationInsertable<V>,
+  insertOperation<V extends GeneratedValue, EnrichmentType>(
+    insertable: OperationInsertable<V, EnrichmentType>,
     operation: OasOperation
-  ): Inserted<V, 'force'> {
+  ): Inserted<V, 'force', EnrichmentType> {
     return this.context.insertOperation({
       insertable,
       operation,
@@ -50,10 +50,10 @@ export class OperationBase extends ValueBase {
     })
   }
 
-  insertModel<V extends GeneratedValue>(
-    insertable: ModelInsertable<V>,
+  insertModel<V extends GeneratedValue, EnrichmentType>(
+    insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName
-  ): Inserted<V, 'force'> {
+  ): Inserted<V, 'force', EnrichmentType> {
     return this.context.insertModel({
       insertable,
       refName,

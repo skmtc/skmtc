@@ -2,15 +2,15 @@ import type { GenerateContext, RegisterArgs } from '../context/GenerateContext.t
 import type { ContentSettings } from './ContentSettings.ts'
 import { ValueBase } from './ValueBase.ts'
 
-export type OperationGatewayArgs = {
+export type OperationGatewayArgs<EnrichmentType> = {
   context: GenerateContext
-  settings: ContentSettings
+  settings: ContentSettings<EnrichmentType>
 }
 
-export class GatewayBase extends ValueBase {
-  settings: ContentSettings
+export class GatewayBase<EnrichmentType> extends ValueBase {
+  settings: ContentSettings<EnrichmentType>
 
-  constructor({ context, settings }: OperationGatewayArgs) {
+  constructor({ context, settings }: OperationGatewayArgs<EnrichmentType>) {
     super({ context })
 
     this.settings = settings

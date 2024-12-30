@@ -324,7 +324,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@google/generative-ai@npm:*":
+"@google/generative-ai@npm:^0.21.0":
   version: 0.21.0
   resolution: "@google/generative-ai@npm:0.21.0"
   checksum: 10c0/cff5946c5964f2380e5097d82bd563d79be27a1a5ac604aaaad3f9ba3382992e4f0a371bd255baabfba4e5bdf296d8ce1410cbd65424afa98e64b2590fe49f3b
@@ -1924,31 +1924,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sentry/core@npm:8.26.0":
-  version: 8.26.0
-  resolution: "@sentry/core@npm:8.26.0"
-  dependencies:
-    "@sentry/types": "npm:8.26.0"
-    "@sentry/utils": "npm:8.26.0"
-  checksum: 10c0/ef843551f10ff2336dc0b048f2681c61e27473b1bc91f7fe578b362c2e8a4a4b07e81959ba38ce170a94d68bec84460c9e2f11e89f21efea4eadead11b57233f
-  languageName: node
-  linkType: hard
-
 "@sentry/core@npm:8.47.0":
   version: 8.47.0
   resolution: "@sentry/core@npm:8.47.0"
   checksum: 10c0/64fc9c89e96f2989b63bd6e776afd09993ce59caca9d4003033a12ea2b938ba28b588a9d171462605467ebe18b75a465ca875faf10f69f00ef2cc5d7d05df43a
-  languageName: node
-  linkType: hard
-
-"@sentry/deno@npm:8.26.0":
-  version: 8.26.0
-  resolution: "@sentry/deno@npm:8.26.0"
-  dependencies:
-    "@sentry/core": "npm:8.26.0"
-    "@sentry/types": "npm:8.26.0"
-    "@sentry/utils": "npm:8.26.0"
-  checksum: 10c0/0c1d2bab3fcbf8ad3e0e1d4072c9c218204d56505b1c6ba3f0c4973b8295fb025f66111748c945bc0986e183408608d8044f10da09dce90f716d20ad138b1dd4
   languageName: node
   linkType: hard
 
@@ -1958,22 +1937,6 @@ __metadata:
   dependencies:
     "@sentry/core": "npm:8.47.0"
   checksum: 10c0/1c7755e90382ff6413d92e491f3b1995942450a70429373099c246c4f7bfa1515b18c907196604b4332b8d5d7f16aa1e638c9b81253aef717038aca88f8cac71
-  languageName: node
-  linkType: hard
-
-"@sentry/types@npm:8.26.0":
-  version: 8.26.0
-  resolution: "@sentry/types@npm:8.26.0"
-  checksum: 10c0/9bc198e31354d8473d77726b282dd0044c26faa4257b362eda1ae132cfeadb75bb29cdfb624dbd6d8f1b8f1862d3c04631a266d5e2bf4b6c79a916bb79562c78
-  languageName: node
-  linkType: hard
-
-"@sentry/utils@npm:8.26.0":
-  version: 8.26.0
-  resolution: "@sentry/utils@npm:8.26.0"
-  dependencies:
-    "@sentry/types": "npm:8.26.0"
-  checksum: 10c0/26a426f4c98e767edbf8ce10c2428c8380faa671133c86496ef696e3995914540ce6d4d92c1f0d7797157acd043f89ac1e463c98a30ea4a1bdd4a89ac83b40d5
   languageName: node
   linkType: hard
 
@@ -2052,14 +2015,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@skmtc/core@npm:^0.0.478":
-  version: 0.0.478
-  resolution: "@skmtc/core@npm:0.0.478"
+"@skmtc/core@npm:^0.0.491":
+  version: 0.0.491
+  resolution: "@skmtc/core@npm:0.0.491"
   dependencies:
     "@apiture/openapi-down-convert": "npm:0.14.0"
     "@babel/helper-validator-identifier": "npm:7.22.20"
     "@deno/shim-deno": "npm:~0.18.0"
-    "@sentry/deno": "npm:8.26.0"
+    "@sentry/deno": "npm:8.47.0"
     "@types/babel__helper-validator-identifier": "npm:7.15.2"
     "@types/lodash-es": "npm:4.17.12"
     lodash-es: "npm:4.17.21"
@@ -2067,19 +2030,20 @@ __metadata:
     tiny-invariant: "npm:1.3.3"
     ts-pattern: "npm:5.6.0"
     zod: "npm:3.24.1"
-  checksum: 10c0/88ffa5bab8b666b66ad80b0224711e879d7da0699162749c677dfede3b075b509de0a6f2cd2e6ac11aa47d95f81fd179c05bb4be1478effa2dd6b1d0f5a8b05d
+    zod-to-json-schema: "npm:3.24.1"
+  checksum: 10c0/00bdcde8f1ce77182eb8ee47b5ac7b3e0fad3215d3f03bd8cae938c0a43e6eb03e1af6cca7754fa903c7596439a994dca1a88abb81ae28ab229a456759af8999
   languageName: node
   linkType: hard
 
-"@skmtc/core@npm:^0.0.482":
-  version: 0.0.482
-  resolution: "@skmtc/core@npm:0.0.482"
+"@skmtc/core@npm:^0.0.492":
+  version: 0.0.492
+  resolution: "@skmtc/core@npm:0.0.492"
   dependencies:
     "@apiture/openapi-down-convert": "npm:0.14.0"
     "@babel/helper-validator-identifier": "npm:7.22.20"
     "@deno/shim-deno": "npm:~0.18.0"
-    "@google/generative-ai": "npm:*"
-    "@sentry/deno": "npm:8.26.0"
+    "@google/generative-ai": "npm:^0.21.0"
+    "@sentry/deno": "npm:8.47.0"
     "@types/babel__helper-validator-identifier": "npm:7.15.2"
     "@types/lodash-es": "npm:4.17.12"
     lodash-es: "npm:4.17.21"
@@ -2087,7 +2051,8 @@ __metadata:
     tiny-invariant: "npm:1.3.3"
     ts-pattern: "npm:5.6.0"
     zod: "npm:3.24.1"
-  checksum: 10c0/92ff614ed051f7e09ce8c0c3ed682664eb998756e1d7759bfef5799312218d69091257562f90cf2ef24ddf42aa998e7d9a247ea201e0919d0cae7f2c10ba5902
+    zod-to-json-schema: "npm:3.24.1"
+  checksum: 10c0/222687c53d3af57d6693b06dc686f882b35966cd65c0c3eff4926bd24ee3aaae64e70b8f754759e5de774d4b3ab8688aa0f6ef768455b43724bf7213ed9bd50d
   languageName: node
   linkType: hard
 
@@ -2098,6 +2063,7 @@ __metadata:
     "@apiture/openapi-down-convert": "npm:0.14.0"
     "@babel/helper-validator-identifier": "npm:7.22.20"
     "@deno/shim-deno": "npm:~0.18.0"
+    "@google/generative-ai": "npm:^0.21.0"
     "@sentry/deno": "npm:8.47.0"
     "@types/babel__helper-validator-identifier": "npm:7.15.2"
     "@types/lodash-es": "npm:4.17.12"
@@ -2169,7 +2135,7 @@ __metadata:
     "@radix-ui/react-tabs": "npm:^1.1.1"
     "@radix-ui/react-toast": "npm:^1.2.2"
     "@radix-ui/react-tooltip": "npm:^1.1.4"
-    "@skmtc/core": "npm:^0.0.478"
+    "@skmtc/core": "npm:^0.0.491"
     "@tailwindcss/forms": "npm:^0.5.9"
     "@tailwindcss/typography": "npm:^0.5.10"
     "@tanstack/react-query": "npm:^5.60.2"
@@ -6680,12 +6646,12 @@ __metadata:
   linkType: hard
 
 "react-medium-image-zoom@npm:^5.2.9":
-  version: 5.2.12
-  resolution: "react-medium-image-zoom@npm:5.2.12"
+  version: 5.2.13
+  resolution: "react-medium-image-zoom@npm:5.2.13"
   peerDependencies:
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/23b87da1661e68cd2f55c589afee9559be6a59594b3639df76c9c84e43ae50b4043452d8aa243a07ce3732bde34494eaf17d5c62de478b6b3801af86be68979f
+  checksum: 10c0/db4a992d41d00866b4f73b1961c26eac66cc828c78be987005a423c43eee8d5e51d5bbb3cffe1e91fee8818fd134f5901f28fb5305323b972d72dc996221fbe7
   languageName: node
   linkType: hard
 
@@ -7205,7 +7171,7 @@ __metadata:
   resolution: "skmtc-vscode@workspace:apps/vscode"
   dependencies:
     "@sentry/browser": "npm:^8.26.0"
-    "@skmtc/core": "npm:^0.0.482"
+    "@skmtc/core": "npm:^0.0.492"
     "@supabase/supabase-js": "npm:^2.45.4"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/glob": "npm:^8.0.0"

@@ -4,7 +4,7 @@ import { cors } from 'hono/cors'
 import { z } from 'zod'
 import { clientSettings as settingsSchema, transform } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
-import type { GeneratorType } from '@skmtc/core'
+import type { GeneratorsMap, GeneratorType } from '@skmtc/core'
 
 const postSettingsBody = z.object({
   defaultSelected: z.boolean().optional(),
@@ -19,11 +19,14 @@ const postGenerateBody = z.object({
 })
 
 type CreateServerArgs = {
-  generators: GeneratorsType
+  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
+    GeneratorType<EnrichmentType>,
+    EnrichmentType
+  >
   logsPath?: string
 }
 
-export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono => {
+export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): Hono => {
   const app = new Hono()
 
   app.use(
@@ -45,10 +48,6 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
       )
 
       return Sentry.startSpan({ name: 'Generate' }, () => {
-        const generatorsMap = Object.fromEntries(
-          generators.map(generator => [generator.id, generator])
-        )
-
         const { traceId, spanId } = span.spanContext()
 
         const { artifacts, manifest } = transform({
@@ -58,7 +57,7 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
           schema,
           prettier,
           settings: clientSettings,
-          generatorsMap,
+          toGeneratorsMap,
           logsPath
         })
 
@@ -70,7 +69,9 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
   })
 
   app.get('/generators', c => {
-    return Sentry.startSpan({ name: 'GET /generators' }, () => c.json({ generators }))
+    return Sentry.startSpan({ name: 'GET /generators' }, () =>
+      c.json({ generators: Object.values(toGeneratorsMap()) })
+    )
   })
 
   app.post('/settings', async c => {
@@ -80,7 +81,7 @@ export const createServer = ({ generators, logsPath }: CreateServerArgs): Hono =
       const { clientSettings, defaultSelected = false, schema } = postSettingsBody.parse(body)
 
       const { enrichedSettings, extensions } = await generateSettings({
-        generators,
+        toGeneratorsMap,
         schema,
         clientSettings,
         defaultSelected,

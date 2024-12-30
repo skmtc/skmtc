@@ -7,19 +7,19 @@ import type { ModelInsertable } from './ModelInsertable.ts'
 import { ValueBase } from '../ValueBase.ts'
 import type { Inserted } from '../Inserted.ts'
 
-export type ModelBaseArgs = {
+export type ModelBaseArgs<EnrichmentType> = {
   context: GenerateContext
-  settings: ContentSettings
+  settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   refName: RefName
 }
 
-export class ModelBase extends ValueBase {
-  settings: ContentSettings
+export class ModelBase<EnrichmentType> extends ValueBase {
+  settings: ContentSettings<EnrichmentType>
   refName: RefName
 
   override generatorKey: GeneratorKey
-  constructor({ context, settings, generatorKey, refName }: ModelBaseArgs) {
+  constructor({ context, settings, generatorKey, refName }: ModelBaseArgs<EnrichmentType>) {
     super({ context })
 
     this.generatorKey = generatorKey
@@ -27,10 +27,10 @@ export class ModelBase extends ValueBase {
     this.settings = settings
   }
 
-  insertModel<V extends GeneratedValue>(
-    insertable: ModelInsertable<V>,
+  insertModel<V extends GeneratedValue, EnrichmentType>(
+    insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName
-  ): Inserted<V, 'force'> {
+  ): Inserted<V, 'force', EnrichmentType> {
     return this.context.insertModel({
       insertable,
       refName,

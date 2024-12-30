@@ -1,17 +1,10 @@
-import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
-import type { OperationGateway, OperationInsertable } from '../dsl/operation/OperationInsertable.ts'
-import type { GeneratedValue } from '../types/GeneratedValue.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
+import type { GeneratorType } from '../types/GeneratorType.ts'
 import type { RefName } from '../types/RefName.ts'
 import { handleEnrichment } from './handleEnrichment.ts'
 
-type GeneratorsType =
-  | OperationGateway
-  | OperationInsertable<GeneratedValue>
-  | ModelInsertable<GeneratedValue>
-
-type ToEnrichmentsArgs = {
-  generators: GeneratorsType[]
+type ToEnrichmentsArgs<EnrichmentType> = {
+  generators: GeneratorType<EnrichmentType>[]
   oasDocument: OasDocument
 }
 
@@ -20,7 +13,10 @@ export type EnrichmentItem = {
   value: unknown
 }
 
-export const toEnrichments = async ({ generators, oasDocument }: ToEnrichmentsArgs) => {
+export const toEnrichments = async <EnrichmentType>({
+  generators,
+  oasDocument
+}: ToEnrichmentsArgs<EnrichmentType>) => {
   const output: Record<string, EnrichmentItem[]> = {}
 
   for (const generator of generators) {

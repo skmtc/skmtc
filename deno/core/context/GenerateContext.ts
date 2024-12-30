@@ -6,7 +6,7 @@ import type { OasDocument } from '../oas/document/Document.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { GetFileOptions } from './types.ts'
-import type { ClientGeneratorSettings, ClientSettings } from '../types/Settings.ts'
+import type { ClientGeneratorSettings, ClientSettings, EnrichedSetting } from '../types/Settings.ts'
 import type { Method } from '../types/Method.ts'
 import type { OperationInsertable, OperationGateway } from '../dsl/operation/OperationInsertable.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
@@ -27,6 +27,7 @@ import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../types/Typ
 import { Inserted } from '../dsl/Inserted.ts'
 import { File } from '../dsl/File.ts'
 import invariant from 'tiny-invariant'
+import type { GeneratorsMap, GeneratorType } from '../types/GeneratorType.ts'
 
 type ConstructorArgs = {
   oasDocument: OasDocument
@@ -35,9 +36,9 @@ type ConstructorArgs = {
   callback: (generatorKey: GeneratorKey) => void
   stackTrail: StackTrail
   captureCurrentResult: (result: ResultType) => void
-  generatorsMap: Record<
-    string,
-    OperationGateway | OperationInsertable<GeneratedValue> | ModelInsertable<GeneratedValue>
+  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
+    GeneratorType<EnrichmentType>,
+    EnrichmentType
   >
 }
 
@@ -91,40 +92,48 @@ export type GetModelSettingsArgs = {
   refName: RefName
 }
 
-export type InsertOperationArgs<V extends GeneratedValue, T extends GenerationType> = {
-  insertable: OperationInsertable<V>
+export type InsertOperationArgs<
+  V extends GeneratedValue,
+  T extends GenerationType,
+  EnrichmentType
+> = {
+  insertable: OperationInsertable<V, EnrichmentType>
   operation: OasOperation
   generation?: T
   destinationPath?: string
 }
 
-export type InsertModelArgs<V extends GeneratedValue, T extends GenerationType> = {
-  insertable: ModelInsertable<V>
+export type InsertModelArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
+  insertable: ModelInsertable<V, EnrichmentType>
   refName: RefName
   generation?: T
   destinationPath?: string
 }
 
-export type InsertReturn<V extends GeneratedValue, T extends GenerationType> = Inserted<V, T>
+export type InsertReturn<
+  V extends GeneratedValue,
+  T extends GenerationType,
+  EnrichmentType
+> = Inserted<V, T, EnrichmentType>
 
-type RunOperationGeneratorArgs = {
+type RunOperationGeneratorArgs<EnrichmentType> = {
   oasDocument: OasDocument
-  generator: OperationGateway | OperationInsertable<GeneratedValue>
+  generator: OperationGateway<EnrichmentType> | OperationInsertable<GeneratedValue, EnrichmentType>
 }
 
-type RunModelGeneratorArgs = {
+type RunModelGeneratorArgs<EnrichmentType> = {
   oasDocument: OasDocument
-  generator: ModelInsertable<GeneratedValue>
+  generator: ModelInsertable<GeneratedValue, EnrichmentType>
 }
 
-type ToOperationSettingsArgs<V> = {
+type ToOperationSettingsArgs<V, EnrichmentType> = {
   operation: OasOperation
-  insertable: OperationInsertable<V>
+  insertable: OperationInsertable<V, EnrichmentType>
 }
 
-type BuildModelSettingsArgs<V> = {
+type BuildModelSettingsArgs<V, EnrichmentType> = {
   refName: RefName
-  insertable: ModelInsertable<V>
+  insertable: ModelInsertable<V, EnrichmentType>
 }
 
 type GenerateResult = {
@@ -140,9 +149,9 @@ export class GenerateContext {
   logger: log.Logger
   callback: (generatorKey: GeneratorKey) => void
   captureCurrentResult: (result: ResultType) => void
-  generatorsMap: Record<
-    string,
-    OperationGateway | OperationInsertable<GeneratedValue> | ModelInsertable<GeneratedValue>
+  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
+    GeneratorType<EnrichmentType>,
+    EnrichmentType
   >
 
   #stackTrail: StackTrail
@@ -154,7 +163,7 @@ export class GenerateContext {
     callback,
     captureCurrentResult,
     stackTrail,
-    generatorsMap
+    toGeneratorsMap
   }: ConstructorArgs) {
     this.logger = logger
     this.#files = new Map()
@@ -164,14 +173,14 @@ export class GenerateContext {
     this.callback = callback
     this.#stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
-    this.generatorsMap = generatorsMap
+    this.toGeneratorsMap = toGeneratorsMap
   }
 
   /**
    * @internal
    */
   generate(): GenerateResult {
-    const generators = Object.values(this.generatorsMap)
+    const generators = Object.values(this.toGeneratorsMap())
 
     Sentry.startSpan({ name: 'Generate operations' }, () =>
       generators
@@ -199,7 +208,10 @@ export class GenerateContext {
     }
   }
 
-  #runOperationGenerator({ oasDocument, generator }: RunOperationGeneratorArgs) {
+  #runOperationGenerator<EnrichmentType>({
+    oasDocument,
+    generator
+  }: RunOperationGeneratorArgs<EnrichmentType>) {
     if (generator._class === 'OperationGateway') {
       const gatewaySettings = this.toGatewayContentSetting(generator)
 
@@ -220,17 +232,22 @@ export class GenerateContext {
         const { path, method } = operation
 
         this.trace([path, method], () => {
-          if (!generator.isSupported(operation)) {
-            return this.captureCurrentResult('notSupported')
-          }
-
-          const selected = this.toOperationSelected({
+          const settings = this.toOperationSettings({
             generatorId: generator.id,
             path,
             method
           })
 
-          if (!selected) {
+          if (
+            !generator.isSupported({
+              operation,
+              enrichments: generator.toEnrichments()
+            })
+          ) {
+            return this.captureCurrentResult('notSupported')
+          }
+
+          if (!settings) {
             return this.captureCurrentResult('notSelected')
           }
 
@@ -260,17 +277,22 @@ export class GenerateContext {
         const { path, method } = operation
 
         this.trace([path, method], () => {
-          if (!generator.isSupported(operation)) {
-            return this.captureCurrentResult('notSupported')
-          }
-
-          const selected = this.toOperationSelected({
+          const settings = this.toOperationSettings({
             generatorId: generator.id,
             path,
             method
           })
 
-          if (!selected) {
+          if (
+            !generator.isSupported({
+              operation,
+              enrichments: generator.toEnrichments(settings.enrichments)
+            })
+          ) {
+            return this.captureCurrentResult('notSupported')
+          }
+
+          if (!settings) {
             return this.captureCurrentResult('notSelected')
           }
 
@@ -284,7 +306,10 @@ export class GenerateContext {
     throw new Error(`Unknown generator type`)
   }
 
-  #runModelGenerator({ oasDocument, generator }: RunModelGeneratorArgs) {
+  #runModelGenerator<EnrichmentType>({
+    oasDocument,
+    generator
+  }: RunModelGeneratorArgs<EnrichmentType>) {
     const refNames = oasDocument.components?.toSchemasRefNames() ?? []
 
     return refNames.forEach(refName => {
@@ -497,12 +522,12 @@ export class GenerateContext {
    *    insertable's driver
    * @mutates this.files
    */
-  insertOperation<V extends GeneratedValue, T extends GenerationType>({
+  insertOperation<V extends GeneratedValue, T extends GenerationType, EnrichmentType>({
     insertable,
     operation,
     generation,
     destinationPath
-  }: InsertOperationArgs<V, T>): Inserted<V, T> {
+  }: InsertOperationArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new OperationDriver({
       context: this,
       insertable,
@@ -529,12 +554,12 @@ export class GenerateContext {
    * @mutates this.files
    */
 
-  insertModel<V extends GeneratedValue, T extends GenerationType>({
+  insertModel<V extends GeneratedValue, T extends GenerationType, EnrichmentType>({
     insertable,
     refName,
     generation,
     destinationPath
-  }: InsertModelArgs<V, T>): Inserted<V, T> {
+  }: InsertModelArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new ModelDriver({
       context: this,
       insertable,
@@ -556,20 +581,21 @@ export class GenerateContext {
    * @param { operation, insertable }
    * @returns
    */
-  toOperationContentSettings<V>({
+  toOperationContentSettings<V, EnrichmentType>({
     operation,
     insertable
-  }: ToOperationSettingsArgs<V>): ContentSettings {
-    const selected = this.toOperationSelected({
+  }: ToOperationSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
+    const settings = this.toOperationSettings({
       generatorId: insertable.id,
       path: operation.path,
       method: operation.method
     })
 
-    return new ContentSettings({
-      selected: Boolean(selected),
+    return new ContentSettings<EnrichmentType>({
+      selected: Boolean(settings),
       identifier: insertable.toIdentifier(operation),
-      exportPath: insertable.toExportPath(operation)
+      exportPath: insertable.toExportPath(operation),
+      enrichments: insertable.toEnrichments(settings.enrichments)
     })
   }
 
@@ -582,16 +608,20 @@ export class GenerateContext {
    * @param { refName, insertable }
    * @returns Content settings for model
    */
-  toModelContentSettings<V>({ refName, insertable }: BuildModelSettingsArgs<V>): ContentSettings {
+  toModelContentSettings<V, EnrichmentType>({
+    refName,
+    insertable
+  }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
     const selected = this.toModelSelected({
       generatorId: insertable.id,
       refName
     })
 
-    return new ContentSettings({
+    return new ContentSettings<EnrichmentType>({
       identifier: insertable.toIdentifier(refName),
       selected: Boolean(selected),
-      exportPath: insertable.toExportPath(refName)
+      exportPath: insertable.toExportPath(refName),
+      enrichments: insertable.toEnrichments(refName)
     })
   }
 
@@ -603,11 +633,14 @@ export class GenerateContext {
    * @param gateway
    * @returns Content settings for model
    */
-  toGatewayContentSetting(gateway: OperationGateway): ContentSettings {
-    return new ContentSettings({
+  toGatewayContentSetting<EnrichmentType>(
+    gateway: OperationGateway<EnrichmentType>
+  ): ContentSettings<EnrichmentType> {
+    return new ContentSettings<EnrichmentType>({
       identifier: gateway.toIdentifier(),
       selected: true,
-      exportPath: gateway.toExportPath()
+      exportPath: gateway.toExportPath(),
+      enrichments: gateway.toEnrichments()
     })
   }
 
@@ -616,11 +649,7 @@ export class GenerateContext {
    * @param { generatorId, path, method }
    * @returns Base settings for operation
    */
-  toOperationSelected({
-    generatorId,
-    path,
-    method
-  }: GetOperationSettingsArgs): Record<string, unknown> | undefined {
+  toOperationSettings({ generatorId, path, method }: GetOperationSettingsArgs): EnrichedSetting {
     const generatorSettings = this.toGeneratorSettings(generatorId)
 
     const operationSettings =
@@ -628,13 +657,10 @@ export class GenerateContext {
         ? generatorSettings.operations[path]?.[method]
         : undefined
 
-    return operationSettings
+    return operationSettings ?? { selected: false, enrichments: undefined }
   }
 
-  toModelSelected({
-    generatorId,
-    refName
-  }: GetModelSettingsArgs): Record<string, unknown> | undefined {
+  toModelSelected({ generatorId, refName }: GetModelSettingsArgs): EnrichedSetting {
     const generatorSettings = this.toGeneratorSettings(generatorId)
 
     const modelSettings =
@@ -642,7 +668,7 @@ export class GenerateContext {
         ? generatorSettings.models[refName]
         : undefined
 
-    return modelSettings
+    return modelSettings ?? { selected: false, enrichments: undefined }
   }
 
   toGeneratorSettings(generatorId: string): ClientGeneratorSettings | undefined {

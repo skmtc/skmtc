@@ -56,7 +56,7 @@ const expectedEnrichedSettings = [
 
 Deno.test('enrichSettings', () => {
   const result = enrichSettings({
-    generatorSettings: mockSettingsPokemon.generators as ClientGeneratorSettings[],
+    generatorSettings: mockSettingsPokemon.generators as unknown as ClientGeneratorSettings[],
     enrichments: mockEnrichmentsPokemon
   })
 

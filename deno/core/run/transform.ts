@@ -1,21 +1,19 @@
 import type { ClientSettings } from '../types/Settings.ts'
 import type { PrettierConfigType } from '../types/prettierConfig.ts'
 import { CoreContext } from '../context/CoreContext.ts'
-import type { OperationGateway, OperationInsertable } from '../dsl/operation/OperationInsertable.ts'
-import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
-import type { GeneratedValue } from '../types/GeneratedValue.ts'
+import type { GeneratorsMap, GeneratorType } from '../types/GeneratorType.ts'
 
 type TransformArgs = {
   traceId: string
   spanId: string
   schema: string
-  settings?: ClientSettings
+  settings: ClientSettings | undefined
   prettier?: PrettierConfigType
   logsPath?: string
-  generatorsMap: Record<
-    string,
-    OperationGateway | OperationInsertable<GeneratedValue> | ModelInsertable<GeneratedValue>
+  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
+    GeneratorType<EnrichmentType>,
+    EnrichmentType
   >
   startAt: number
 }
@@ -26,7 +24,7 @@ export const transform = ({
   schema,
   settings,
   prettier,
-  generatorsMap,
+  toGeneratorsMap,
   logsPath,
   startAt
 }: TransformArgs) => {
@@ -34,7 +32,7 @@ export const transform = ({
 
   const { artifacts, files, previews, pinnable, results } = context.transform({
     settings,
-    generatorsMap,
+    toGeneratorsMap,
     prettier,
     schema
   })

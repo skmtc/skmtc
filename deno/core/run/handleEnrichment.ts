@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, type ResponseSchema } from '@google/generative-ai'
+import { GoogleGenerativeAI, type ResponseSchema } from 'npm:@google/generative-ai@^0.21.0'
 import type { EnrichmentRequest } from '../types/EnrichmentRequest.ts'
 import { zodToJsonSchema } from 'npm:zod-to-json-schema@3.24.1'
 

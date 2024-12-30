@@ -1,9 +1,11 @@
 import { toSettings, enrichSettings, CoreContext, toEnrichments } from '@skmtc/core'
-import type { GeneratorsType } from './types.ts'
-import type { ClientSettings, ParseReturn } from '@skmtc/core'
+import type { ClientSettings, GeneratorsMap, GeneratorType, ParseReturn } from '@skmtc/core'
 
 type GenerateSettingsArgs = {
-  generators: GeneratorsType
+  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
+    GeneratorType<EnrichmentType>,
+    EnrichmentType
+  >
   schema: string
   clientSettings: ClientSettings | undefined
   defaultSelected: boolean
@@ -11,7 +13,7 @@ type GenerateSettingsArgs = {
 }
 
 export const generateSettings = async ({
-  generators,
+  toGeneratorsMap,
   schema,
   clientSettings,
   defaultSelected,
@@ -20,15 +22,16 @@ export const generateSettings = async ({
   const { oasDocument, extensions } = toOasDocument({ schema, spanId })
 
   const generatorSettings = toSettings({
-    generators,
+    generators: Object.values(toGeneratorsMap()),
     clientSettings,
     defaultSelected,
     oasDocument
   })
 
-  const enrichments = await toEnrichments({ generators, oasDocument })
-
-  console.log('ENRICHMENTS X', JSON.stringify(enrichments, null, 2))
+  const enrichments = await toEnrichments({
+    generators: Object.values(toGeneratorsMap()),
+    oasDocument
+  })
 
   const enrichedSettings = enrichSettings({ generatorSettings, enrichments })
 

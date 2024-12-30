@@ -7,3 +7,7 @@ export type GeneratorType<EnrichmentType> =
   | OperationGateway<EnrichmentType>
   | OperationInsertable<GeneratedValue, EnrichmentType>
   | ModelInsertable<GeneratedValue, EnrichmentType>
+
+export type GeneratorsMap<G extends GeneratorType<EnrichmentType>, EnrichmentType> = {
+  [K in keyof G]: G[K]
+}

@@ -4,8 +4,6 @@ import { ParseContext } from './ParseContext.ts'
 import type { PrettierConfigType } from '../types/prettierConfig.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
 import type { ClientSettings } from '../types/Settings.ts'
-import type { OperationGateway, OperationInsertable } from '../dsl/operation/OperationInsertable.ts'
-import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
 import type { ResultType } from '../types/Results.ts'
 import * as log from 'jsr:@std/log@^0.224.6'
 import { ResultsHandler } from './ResultsHandler.ts'
@@ -14,9 +12,9 @@ import type { GeneratorKey } from '../types/GeneratorKeys.ts'
 import { tracer } from '../helpers/tracer.ts'
 import { ResultsLog } from '../helpers/ResultsLog.ts'
 import * as Sentry from 'npm:@sentry/deno@8.47.0'
-import type { GeneratedValue } from '../types/GeneratedValue.ts'
 import type { File } from '../dsl/File.ts'
 import { join } from 'jsr:@std/path@1.0.6'
+import type { GeneratorType, GeneratorsMap } from '../types/GeneratorType.ts'
 
 export type ParsePhase = {
   type: 'parse'
@@ -39,9 +37,9 @@ type GenerateArgs = {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   callback: (generatorKey: GeneratorKey) => void
-  generatorsMap: Record<
-    string,
-    OperationGateway | OperationInsertable<GeneratedValue> | ModelInsertable<GeneratedValue>
+  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
+    GeneratorType<EnrichmentType>,
+    EnrichmentType
   >
 }
 
@@ -61,9 +59,9 @@ type RenderArgs = {
 type TransformArgs = {
   schema: string
   settings: ClientSettings | undefined
-  generatorsMap: Record<
-    string,
-    OperationGateway | OperationInsertable<GeneratedValue> | ModelInsertable<GeneratedValue>
+  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
+    GeneratorType<EnrichmentType>,
+    EnrichmentType
   >
   prettier?: PrettierConfigType
 }
@@ -141,7 +139,7 @@ export class CoreContext {
     }
   }
 
-  transform({ schema, settings, generatorsMap, prettier }: TransformArgs) {
+  transform({ schema, settings, toGeneratorsMap, prettier }: TransformArgs) {
     // Temp workaround to extract generator keys during
     // 'render' by invoking a callback passed during 'generate'
     try {
@@ -159,7 +157,7 @@ export class CoreContext {
 
       const { files, previews } = this.trace('generate', () => {
         this.#phase = this.#setupGeneratePhase({
-          generatorsMap,
+          toGeneratorsMap,
           oasDocument,
           settings,
           callback
@@ -176,7 +174,7 @@ export class CoreContext {
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
-          pinnableGenerators: Object.values(generatorsMap)
+          pinnableGenerators: Object.values(toGeneratorsMap())
             .map(({ id, pinnable }) => (pinnable ? id : null))
             .filter(generatorId => generatorId !== null),
           prettier,
@@ -231,7 +229,7 @@ export class CoreContext {
     oasDocument,
     settings,
     callback,
-    generatorsMap
+    toGeneratorsMap
   }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
       oasDocument,
@@ -240,7 +238,7 @@ export class CoreContext {
       callback,
       stackTrail: this.#stackTrail,
       captureCurrentResult: this.captureCurrentResult.bind(this),
-      generatorsMap
+      toGeneratorsMap
     })
 
     return { type: 'generate', context: generateContext }

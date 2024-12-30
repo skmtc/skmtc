@@ -5,28 +5,31 @@ type EmptyArgs = {
   identifier: Identifier
 }
 
-type CreateArgs = {
+type CreateArgs<EnrichmentType> = {
   identifier: Identifier
   selected: boolean
   exportPath: string
+  enrichments: EnrichmentType
 }
 
-export class ContentSettings {
+export class ContentSettings<EnrichmentType> {
   identifier: Identifier
   selected: boolean
   exportPath: string
-
-  constructor({ identifier, selected, exportPath }: CreateArgs) {
+  enrichments: EnrichmentType
+  constructor({ identifier, selected, exportPath, enrichments }: CreateArgs<EnrichmentType>) {
     this.identifier = identifier
     this.selected = selected
     this.exportPath = exportPath
+    this.enrichments = enrichments
   }
 
-  static empty({ identifier, exportPath }: EmptyArgs): ContentSettings {
+  static empty({ identifier, exportPath }: EmptyArgs): ContentSettings<undefined> {
     return new ContentSettings({
       selected: true,
       identifier,
-      exportPath
+      exportPath,
+      enrichments: undefined
     })
   }
 }

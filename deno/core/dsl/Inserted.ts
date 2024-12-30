@@ -6,15 +6,15 @@ import type {
 import type { ContentSettings } from './ContentSettings.ts'
 import type { Identifier } from './Identifier.ts'
 
-type ConstructorArgs<V extends GeneratedValue, T extends GenerationType> = {
-  settings: ContentSettings
+type ConstructorArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
+  settings: ContentSettings<EnrichmentType>
   definition: GeneratedDefinition<V, T>
 }
 
-export class Inserted<V extends GeneratedValue, T extends GenerationType> {
-  settings: ContentSettings
+export class Inserted<V extends GeneratedValue, T extends GenerationType, EnrichmentType> {
+  settings: ContentSettings<EnrichmentType>
   definition: GeneratedDefinition<V, T>
-  constructor({ settings, definition }: ConstructorArgs<V, T>) {
+  constructor({ settings, definition }: ConstructorArgs<V, T, EnrichmentType>) {
     this.settings = settings
     this.definition = definition
   }

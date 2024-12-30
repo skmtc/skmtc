@@ -1,172 +1,172 @@
-import { commands, window, workspace } from 'vscode';
-import { match } from 'ts-pattern';
-import { join } from 'node:path';
-import { toRootPath } from '../utilities/getRootPath';
-import { existsSync, writeFileSync } from 'node:fs';
-import { readStackConfig } from '../utilities/readStackConfig';
-import { writeStackConfig } from '../utilities/writeStackConfig';
-import { getSession } from '../auth/getSession';
-import { ensureFileSync } from 'fs-extra';
-import { readDenoJson } from '../utilities/readDenoJson';
-import { camelCase } from '@skmtc/core/strings';
-import { SkmtcStackConfig } from '@skmtc/core/Settings';
+import { commands, window, workspace } from 'vscode'
+import { match } from 'ts-pattern'
+import { join } from 'node:path'
+import { toRootPath } from '../utilities/getRootPath'
+import { existsSync, writeFileSync } from 'node:fs'
+import { readStackConfig } from '../utilities/readStackConfig'
+import { writeStackConfig } from '../utilities/writeStackConfig'
+import { getSession } from '../auth/getSession'
+import { ensureFileSync } from 'fs-extra'
+import { readDenoJson } from '../utilities/readDenoJson'
+import { camelCase } from '@skmtc/core/strings'
+import { SkmtcStackConfig } from '@skmtc/core/Settings'
 
-const generatorTypes = ['operation', 'operation-gateway', 'model'] as const;
+const generatorTypes = ['operation', 'operation-gateway', 'model'] as const
 
 export const registerCreateGenerator = () => {
   return commands.registerCommand('skmtc-vscode.createGenerator', async () => {
-    const session = await getSession({ createIfNone: true });
+    const session = await getSession({ createIfNone: true })
 
     if (!session) {
-      return;
+      return
     }
 
-    const serverName = session.account.label;
+    const serverName = session.account.label
 
     const generatorType = await window.showQuickPick(generatorTypes, {
-      placeHolder: 'Select generator type',
-    });
+      placeHolder: 'Select generator type'
+    })
 
     if (
       generatorType !== 'operation' &&
       generatorType !== 'model' &&
       generatorType !== 'operation-gateway'
     ) {
-      return;
+      return
     }
 
-    const stackConfig = readStackConfig({ applyDefault: true });
+    const stackConfig = readStackConfig({ applyDefault: true })
 
-    const existingNames = stackConfig.generators.map((generator) => {
-      const [_scope, name] = generator.split('/');
+    const existingNames = stackConfig.generators.map(generator => {
+      const [_scope, name] = generator.split('/')
 
-      return name;
-    });
+      return name
+    })
 
-    const initialGeneratorName = `@${serverName}/`;
+    const initialGeneratorName = `@${serverName}/`
 
     const name = await window.showInputBox({
       value: `@${serverName}/`,
       valueSelection: [initialGeneratorName.length, initialGeneratorName.length],
-      validateInput: (value) => {
+      validateInput: value => {
         if (!value.startsWith(initialGeneratorName)) {
-          return `Generator name must start with '${initialGeneratorName}'`;
+          return `Generator name must start with '${initialGeneratorName}'`
         }
 
-        const packageName = value.substring(initialGeneratorName.length);
+        const packageName = value.substring(initialGeneratorName.length)
 
         if (existingNames.includes(packageName)) {
-          return `Package '${packageName}' already exists`;
+          return `Package '${packageName}' already exists`
         }
 
         if (packageName.length < 2) {
-          return 'Package name must be at least 2 characters long';
+          return 'Package name must be at least 2 characters long'
         }
 
         if (packageName.length > 20) {
-          return 'Package name must be less than 20 characters long';
+          return 'Package name must be less than 20 characters long'
         }
 
         if (!/^[a-z0-9-]+$/.test(packageName)) {
-          return 'Package name must only contain lowercase letters, numbers and hyphens';
+          return 'Package name must only contain lowercase letters, numbers and hyphens'
         }
 
         if (packageName.startsWith('-')) {
-          return 'Package name cannot start with a hyphen';
+          return 'Package name cannot start with a hyphen'
         }
 
         if (packageName.endsWith('-')) {
-          return 'Package name cannot end with a hyphen';
+          return 'Package name cannot end with a hyphen'
         }
 
-        return null;
-      },
-    });
+        return null
+      }
+    })
 
     if (!name) {
-      return;
+      return
     }
 
     const transformerPath = await createGenerator({
       serverName,
       packageName: name.substring(initialGeneratorName.length),
-      generatorType,
-    });
+      generatorType
+    })
 
     if (!transformerPath) {
-      return;
+      return
     }
 
-    const doc = await workspace.openTextDocument(transformerPath);
+    const doc = await workspace.openTextDocument(transformerPath)
 
-    await window.showTextDocument(doc, { preview: false });
-  });
-};
+    await window.showTextDocument(doc, { preview: false })
+  })
+}
 
 type CreateGeneratorArgs = {
-  serverName: string;
-  packageName: string;
-  generatorType: 'operation' | 'model' | 'operation-gateway';
-};
+  serverName: string
+  packageName: string
+  generatorType: 'operation' | 'model' | 'operation-gateway'
+}
 
 const createGenerator = async ({ serverName, packageName, generatorType }: CreateGeneratorArgs) => {
-  const skmtcPath = join(toRootPath(), '.codesquared');
+  const skmtcPath = join(toRootPath(), '.codesquared')
 
-  const generatorFolderPath = join(skmtcPath, packageName);
+  const generatorFolderPath = join(skmtcPath, packageName)
 
   if (existsSync(generatorFolderPath)) {
-    window.showErrorMessage(`Generator folder '${generatorFolderPath}' already exists`);
-    return false;
+    window.showErrorMessage(`Generator folder '${generatorFolderPath}' already exists`)
+    return false
   }
 
-  const srcFolderPath = join(generatorFolderPath, 'src');
+  const srcFolderPath = join(generatorFolderPath, 'src')
 
-  const generatorName = `@${serverName}/${packageName}`;
-  const transformerName = camelCase(packageName, { upperFirst: true });
+  const generatorName = `@${serverName}/${packageName}`
+  const transformerName = camelCase(packageName, { upperFirst: true })
 
-  const generatorConfigPath = join(srcFolderPath, 'config.ts');
-  const transformerPath = join(srcFolderPath, `${transformerName}.ts`);
+  const generatorConfigPath = join(srcFolderPath, 'config.ts')
+  const transformerPath = join(srcFolderPath, `${transformerName}.ts`)
 
   const { configContent, transformerContent } = match(generatorType)
     .with('operation', () => ({
       configContent: createOperationConfigContent(generatorName),
-      transformerContent: createOperationTransformerContent(transformerName),
+      transformerContent: createOperationTransformerContent(transformerName)
     }))
     .with('model', () => ({
       configContent: createModelConfigContent(generatorName),
-      transformerContent: createModelTransformerContent(transformerName),
+      transformerContent: createModelTransformerContent(transformerName)
     }))
     .with('operation-gateway', () => ({
       configContent: createOperationGatewayConfigContent(generatorName),
-      transformerContent: createOperationGatewayTransformerContent(transformerName),
+      transformerContent: createOperationGatewayTransformerContent(transformerName)
     }))
-    .exhaustive();
+    .exhaustive()
 
-  ensureFileSync(generatorConfigPath);
-  writeFileSync(generatorConfigPath, configContent);
+  ensureFileSync(generatorConfigPath)
+  writeFileSync(generatorConfigPath, configContent)
 
-  ensureFileSync(transformerPath);
-  writeFileSync(transformerPath, transformerContent);
+  ensureFileSync(transformerPath)
+  writeFileSync(transformerPath, transformerContent)
 
-  const denoJsonPath = join(generatorFolderPath, 'deno.json');
+  const denoJsonPath = join(generatorFolderPath, 'deno.json')
 
-  ensureFileSync(denoJsonPath);
-  writeFileSync(denoJsonPath, createDenoJsonContent({ generatorName }));
+  ensureFileSync(denoJsonPath)
+  writeFileSync(denoJsonPath, createDenoJsonContent({ generatorName }))
 
-  const modTsPath = join(generatorFolderPath, 'mod.ts');
+  const modTsPath = join(generatorFolderPath, 'mod.ts')
 
-  writeFileSync(modTsPath, createModTsContent({ transformerName }));
+  writeFileSync(modTsPath, createModTsContent({ transformerName }))
 
-  updateStackConfig(generatorName);
+  updateStackConfig(generatorName)
 
-  const rootDenoJsonPath = join(skmtcPath, 'deno.json');
+  const rootDenoJsonPath = join(skmtcPath, 'deno.json')
 
-  await updateRootDenoJson({ generatorName, rootDenoJsonPath, packageName });
+  await updateRootDenoJson({ generatorName, rootDenoJsonPath, packageName })
 
-  window.showInformationMessage(`Generator '${generatorName}' created`);
+  window.showInformationMessage(`Generator '${generatorName}' created`)
 
-  return transformerPath;
-};
+  return transformerPath
+}
 
 const createOperationConfigContent = (generatorName: string) => {
   return `import { camelCase, Identifier, toOperationInsertable } from '@skmtc/core';
@@ -184,8 +184,8 @@ export const OperationInsertable = toOperationInsertable({
     return \`\${this.toIdentifier( operation )}.ts\`;
   }
 });
-`;
-};
+`
+}
 
 const createOperationGatewayConfigContent = (generatorName: string) => {
   return `import { Identifier, toOperationGateway } from '@skmtc/core';
@@ -203,8 +203,8 @@ export const OperationGateway = toOperationGateway({
     return 'gateway.ts';
   }
 });
-`;
-};
+`
+}
 
 const createOperationGatewayTransformerContent = (transformerName: string) => {
   return `import type { OperationGatewayArgs, OasOperation, Stringable, ListArray } from '@skmtc/core';
@@ -227,8 +227,8 @@ export class ${transformerName} extends OperationGateway {
   override toString(): string {
     return this.list.toString();
   }
-}`;
-};
+}`
+}
 
 const createModelConfigContent = (generatorName: string) => {
   return `import { camelCase, Identifier, toModelInsertable } from '@skmtc/core';
@@ -246,8 +246,8 @@ export const ModelInsertable = toModelInsertable({
     return \`\${this.toIdentifier(operation)}.ts\`;
   }
 });
-`;
-};
+`
+}
 
 const createOperationTransformerContent = (transformerName: string) => {
   return `import type { OperationInsertableArgs } from '@skmtc/core';
@@ -261,8 +261,8 @@ export class ${transformerName} extends OperationInsertable {
   override toString(): string {
     return \`console.log("Let's do this!")\`;
   }
-}`;
-};
+}`
+}
 
 const createModelTransformerContent = (transformerName: string) => {
   return `import type { ModelInsertableArgs } from '@skmtc/core';
@@ -276,12 +276,12 @@ export class ${transformerName} extends ModelInsertable {
   override toString(): string {
     return \`console.log("Let's do this!")\`;
   }
-}`;
-};
+}`
+}
 
 type CreateDenoJsonContentArgs = {
-  generatorName: string;
-};
+  generatorName: string
+}
 
 const createDenoJsonContent = ({ generatorName }: CreateDenoJsonContentArgs) => {
   return `{
@@ -289,44 +289,44 @@ const createDenoJsonContent = ({ generatorName }: CreateDenoJsonContentArgs) => 
     "version": "0.0.1",
     "exports": "./mod.ts"
   }
-`;
-};
+`
+}
 
 type CreateModTsContentArgs = {
-  transformerName: string;
-};
+  transformerName: string
+}
 
 const createModTsContent = ({ transformerName }: CreateModTsContentArgs) => {
   return `export { ${transformerName}, ${transformerName} as default } from './src/${transformerName}.ts'
-  `;
-};
+  `
+}
 
 const updateStackConfig = (generatorName: string) => {
   const stackConfig: SkmtcStackConfig = readStackConfig({
-    applyDefault: true,
-  });
+    applyDefault: true
+  })
 
-  stackConfig.generators.push(generatorName);
+  stackConfig.generators.push(generatorName)
 
-  writeStackConfig(stackConfig);
-};
+  writeStackConfig(stackConfig)
+}
 
 type UpdateRootDenoJsonArgs = {
-  generatorName: string;
-  rootDenoJsonPath: string;
-  packageName: string;
-};
+  generatorName: string
+  rootDenoJsonPath: string
+  packageName: string
+}
 
 const updateRootDenoJson = async ({
   generatorName,
   rootDenoJsonPath,
-  packageName,
+  packageName
 }: UpdateRootDenoJsonArgs) => {
-  const denoJsonObject = await readDenoJson(rootDenoJsonPath);
+  const denoJsonObject = await readDenoJson(rootDenoJsonPath)
 
-  denoJsonObject.imports[generatorName] = `./${packageName}/mod.ts`;
+  denoJsonObject.imports[generatorName] = `./${packageName}/mod.ts`
 
-  denoJsonObject.workspace.push(`./${packageName}`);
+  denoJsonObject.workspace.push(`./${packageName}`)
 
-  writeFileSync(rootDenoJsonPath, JSON.stringify(denoJsonObject, null, 2));
-};
+  writeFileSync(rootDenoJsonPath, JSON.stringify(denoJsonObject, null, 2))
+}

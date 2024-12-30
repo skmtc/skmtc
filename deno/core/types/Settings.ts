@@ -3,12 +3,12 @@ import { z } from 'npm:zod@3.24.1'
 
 export const enrichedSetting = z.object({
   selected: z.boolean(),
-  enrichments: z.record(z.unknown()).optional()
+  enrichments: z.unknown().optional()
 })
 
 export type EnrichedSetting = {
   selected: boolean
-  enrichments?: Record<string, unknown>
+  enrichments?: unknown
 }
 
 export const operationsGeneratorSettings = z.object({
@@ -73,16 +73,12 @@ export type SkmtcClientConfig = {
   settings: ClientSettings
 }
 
-export const skmtcClientConfig: z.ZodType<SkmtcClientConfig> = z.object({
+export const skmtcClientConfig = z.object({
   serverName: z.string().optional(),
   stackName: z.string().optional(),
   deploymentId: z.string().optional(),
   settings: clientSettings
 })
-
-export const generatorType = z.enum(['operation', 'model'])
-
-export type GeneratorType = 'operation' | 'model'
 
 export const skmtcStackConfig = z.object({
   name: z.string().optional(),
