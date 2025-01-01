@@ -83,7 +83,7 @@ export class OasUnion {
     return this
   }
 
-  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject {
     return {
       title: this.title,
       description: this.description,

@@ -43,6 +43,6 @@ export declare class OasNumber {
     isRef(): this is OasRef<'schema'>;
     resolve(): OasNumber;
     resolveOnce(): OasNumber;
-    toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject;
+    toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject;
 }
 //# sourceMappingURL=Number.d.ts.map

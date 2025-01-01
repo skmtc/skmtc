@@ -25,6 +25,6 @@ export declare class OasIntersection {
     isRef(): this is OasRef<'schema'>;
     resolve(): OasIntersection;
     resolveOnce(): OasIntersection;
-    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject;
+    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject;
 }
 //# sourceMappingURL=Intersection.d.ts.map

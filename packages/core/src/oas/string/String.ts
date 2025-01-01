@@ -90,7 +90,7 @@ export class OasString {
   }
 
   // deno-lint-ignore no-unused-vars
-  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject {
     return {
       type: 'string',
       title: this.title,

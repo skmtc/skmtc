@@ -1,4 +1,6 @@
 import type { OasRef } from '../ref/Ref.js';
+import type { ToJsonSchemaOptions } from '../schema/Schema.js';
+import type { OpenAPIV3 } from 'openapi-types';
 export type ExampleFields = {
     summary: string | undefined;
     description: string | undefined;
@@ -24,5 +26,6 @@ export declare class OasExample {
     /** Returns itself */
     resolve(): OasExample;
     resolveOnce(): OasExample;
+    toJsonSchema(_options: ToJsonSchemaOptions): OpenAPIV3.ExampleObject;
 }
 //# sourceMappingURL=Example.d.ts.map

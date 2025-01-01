@@ -63,7 +63,7 @@ export class OasBoolean {
   }
 
   // deno-lint-ignore no-unused-vars
-  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject {
     return {
       type: 'boolean',
       title: this.title,

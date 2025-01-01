@@ -7,6 +7,8 @@ import type { OasParameterLocation } from '../parameter/parameter-types.js';
 import type { OasSchema } from '../schema/Schema.js';
 import type { OasRef } from '../ref/Ref.js';
 import { OasObject } from '../object/Object.js';
+import type { ToJsonSchemaOptions } from '../schema/Schema.js';
+import type { OpenAPIV3 } from 'openapi-types';
 export type OperationFields = {
     path: string;
     method: Method;
@@ -51,6 +53,7 @@ export declare class OasOperation {
      */
     toParams(filter?: OasParameterLocation[]): OasParameter[];
     toParametersObject(filter?: OasParameterLocation[]): OasObject;
+    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject;
 }
 export {};
 //# sourceMappingURL=Operation.d.ts.map

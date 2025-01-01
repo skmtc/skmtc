@@ -53,6 +53,6 @@ export declare class OasArray {
     isRef(): this is OasRef<'schema'>;
     resolve(): OasArray;
     resolveOnce(): OasArray;
-    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject;
+    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ArraySchemaObject;
 }
 //# sourceMappingURL=Array.d.ts.map

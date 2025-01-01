@@ -1,6 +1,8 @@
 import type { OasMediaType } from '../mediaType/MediaType.js';
 import type { OasRef } from '../ref/Ref.js';
 import type { OasSchema } from '../schema/Schema.js';
+import type { ToJsonSchemaOptions } from '../schema/Schema.js';
+import type { OpenAPIV3 } from 'openapi-types';
 export type RequestBodyFields = {
     description?: string | undefined;
     content: Record<string, OasMediaType>;
@@ -18,5 +20,6 @@ export declare class OasRequestBody {
     resolve(): OasRequestBody;
     resolveOnce(): OasRequestBody;
     toSchema(mediaType?: string): OasSchema | OasRef<'schema'> | undefined;
+    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.RequestBodyObject;
 }
 //# sourceMappingURL=RequestBody.d.ts.map

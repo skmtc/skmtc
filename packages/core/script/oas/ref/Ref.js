@@ -91,15 +91,21 @@ class OasRef {
         return __classPrivateFieldGet(this, _OasRef_oasDocument, "f");
     }
     toJsonSchema({ resolve }) {
-        const resolved = this.resolve();
-        if (!('toJsonSchema' in resolved) || typeof resolved.toJsonSchema !== 'function') {
-            throw new Error('Cannot convert non-schema ref to JSON Schema');
+        if (resolve) {
+            const resolved = this.resolve().toJsonSchema({ resolve });
+            return resolved;
         }
-        return resolve
-            ? resolved.toJsonSchema({ resolve })
-            : {
-                $ref: `#/components/schemas/${this.toRefName()}`
-            };
+        const ref = {
+            $ref: `#/components/${(0, ts_pattern_1.match)(this.refType)
+                .with('schema', () => 'schemas')
+                .with('requestBody', () => 'requestBodies')
+                .with('parameter', () => 'parameters')
+                .with('response', () => 'responses')
+                .with('example', () => 'examples')
+                .with('header', () => 'headers')
+                .exhaustive()}/${this.toRefName()}`
+        };
+        return ref;
     }
 }
 exports.OasRef = OasRef;

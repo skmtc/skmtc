@@ -3,6 +3,8 @@ import type { OasMediaType } from '../mediaType/MediaType.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasExample } from '../example/Example.ts'
 import type { OasSchema } from '../schema/Schema.ts'
+import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 // @TODO It might be a good idea to set up separate classes for
 // path, query, header, and cookie parameters
@@ -80,5 +82,27 @@ export class OasParameter {
     }
 
     return schema
+  }
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ParameterObject {
+    return {
+      name: this.name,
+      in: this.location,
+      description: this.description,
+      required: this.required,
+      deprecated: this.deprecated,
+      allowEmptyValue: this.allowEmptyValue,
+      allowReserved: this.allowReserved,
+      schema: this.schema?.toJsonSchema(options),
+      examples: this.examples,
+      content: Object.fromEntries(
+        Object.entries(this.content ?? {}).map(([mediaType, mediaTypeObject]) => [
+          mediaType,
+          mediaTypeObject.toJsonSchema(options)
+        ])
+      ),
+      style: this.style,
+      explode: this.explode
+    }
   }
 }

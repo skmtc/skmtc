@@ -40,6 +40,6 @@ export declare class OasUnknown {
     isRef(): this is OasRef<'schema'>;
     resolve(): OasUnknown;
     resolveOnce(): OasUnknown;
-    toJsonSchema(_options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject;
+    toJsonSchema(_options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject | OpenAPIV3.ArraySchemaObject;
 }
 //# sourceMappingURL=Unknown.d.ts.map

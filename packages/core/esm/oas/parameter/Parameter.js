@@ -119,4 +119,23 @@ export class OasParameter {
         }
         return schema;
     }
+    toJsonSchema(options) {
+        return {
+            name: this.name,
+            in: this.location,
+            description: this.description,
+            required: this.required,
+            deprecated: this.deprecated,
+            allowEmptyValue: this.allowEmptyValue,
+            allowReserved: this.allowReserved,
+            schema: this.schema?.toJsonSchema(options),
+            examples: this.examples,
+            content: Object.fromEntries(Object.entries(this.content ?? {}).map(([mediaType, mediaTypeObject]) => [
+                mediaType,
+                mediaTypeObject.toJsonSchema(options)
+            ])),
+            style: this.style,
+            explode: this.explode
+        };
+    }
 }

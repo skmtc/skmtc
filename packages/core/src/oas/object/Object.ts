@@ -153,7 +153,7 @@ export class OasObject {
     return this
   }
 
-  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject {
     return {
       type: 'object',
       title: this.title,

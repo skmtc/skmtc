@@ -6,6 +6,9 @@ import { Header } from '@/components/ui/Header'
 import { WebcontainerProvider } from '@/components/webcontainer/webcontainer-context'
 import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
 
 type GenerationForm = {
   schema: string
@@ -32,25 +35,27 @@ const Layout = ({ children, ...props }: LayoutProps) => {
   }, [form.watch])
 
   return (
-    <WebcontainerProvider>
-      <ArtifactsProvider>
-        <FormProvider {...form}>
-          <div className="flex flex-col w-screen px-4">
-            <Header />
+    <QueryClientProvider client={queryClient}>
+      <WebcontainerProvider>
+        <ArtifactsProvider>
+          <FormProvider {...form}>
+            <div className="flex flex-col h-screen w-screen px-4">
+              <Header />
 
-            <div className="flex flex-col flex-1 p-6 lg:px-8">
-              <div className="h-16" />
+              <div className="flex flex-col flex-1 p-6 lg:px-8">
+                <div className="h-16" />
 
-              <Steps />
+                <Steps />
 
-              <div className="h-16" />
+                <div className="h-16" />
 
-              {children}
+                {children}
+              </div>
             </div>
-          </div>
-        </FormProvider>
-      </ArtifactsProvider>
-    </WebcontainerProvider>
+          </FormProvider>
+        </ArtifactsProvider>
+      </WebcontainerProvider>
+    </QueryClientProvider>
   )
 }
 

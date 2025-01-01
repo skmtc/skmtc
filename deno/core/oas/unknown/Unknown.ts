@@ -59,7 +59,9 @@ export class OasUnknown {
     return this
   }
 
-  toJsonSchema(_options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+  toJsonSchema(
+    _options?: ToJsonSchemaOptions
+  ): OpenAPIV3.NonArraySchemaObject | OpenAPIV3.ArraySchemaObject {
     return {
       title: this.title,
       description: this.description,

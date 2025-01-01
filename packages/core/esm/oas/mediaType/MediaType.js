@@ -35,4 +35,10 @@ export class OasMediaType {
         this.examples = fields.examples;
         this.extensionFields = fields.extensionFields;
     }
+    toJsonSchema(options) {
+        return {
+            schema: this.schema?.toJsonSchema(options),
+            examples: this.examples
+        };
+    }
 }

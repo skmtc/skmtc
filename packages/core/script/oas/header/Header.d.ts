@@ -2,6 +2,8 @@ import type { OasMediaType } from '../mediaType/MediaType.js';
 import type { OasRef } from '../ref/Ref.js';
 import type { OasExample } from '../example/Example.js';
 import type { OasSchema } from '../schema/Schema.js';
+import type { ToJsonSchemaOptions } from '../schema/Schema.js';
+import type { OpenAPIV3 } from 'openapi-types';
 export type HeaderFields = {
     description: string | undefined;
     required: boolean | undefined;
@@ -41,5 +43,6 @@ export declare class OasHeader {
      * @param mediaType - Optional media type to get schema for. Defaults to `application/json`
      */
     toSchema(mediaType?: string): OasSchema | OasRef<'schema'>;
+    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.HeaderObject;
 }
 //# sourceMappingURL=Header.d.ts.map

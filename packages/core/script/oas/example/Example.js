@@ -54,6 +54,13 @@ class OasExample {
     resolveOnce() {
         return this;
     }
+    toJsonSchema(_options) {
+        return {
+            summary: this.summary,
+            description: this.description,
+            value: this.value
+        };
+    }
 }
 exports.OasExample = OasExample;
 _OasExample_fields = new WeakMap();

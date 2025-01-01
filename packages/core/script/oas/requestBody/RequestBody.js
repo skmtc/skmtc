@@ -50,5 +50,15 @@ class OasRequestBody {
     toSchema(mediaType = 'application/json') {
         return this.content?.[mediaType]?.schema;
     }
+    toJsonSchema(options) {
+        return {
+            description: this.description,
+            content: Object.fromEntries(Object.entries(this.content).map(([mediaType, mediaTypeObject]) => [
+                mediaType,
+                mediaTypeObject.toJsonSchema(options)
+            ])),
+            required: this.required
+        };
+    }
 }
 exports.OasRequestBody = OasRequestBody;

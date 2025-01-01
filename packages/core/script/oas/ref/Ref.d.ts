@@ -28,10 +28,12 @@ export declare class OasRef<T extends OasRefData['refType']> {
     get summary(): string | undefined;
     get description(): string | undefined;
     get oasDocument(): OasDocument;
-    toJsonSchema({ resolve }: ToJsonSchemaOptions): OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject;
+    toJsonSchema({ resolve }: ToJsonSchemaOptions): OpenAPIV3.ReferenceObject | ResolvedRefJsonType<T>;
 }
+type ResolvedRefJsonType<T extends OasRefData['refType']> = ReturnType<ResolvedRef<T>['toJsonSchema']>;
 export type OasComponentType = OasSchema | OasResponse | OasParameter | OasExample | OasRequestBody | OasHeader;
 export type ResolvedRef<T extends OasRefData['refType']> = Extract<OasComponentType, {
     oasType: T;
 }>;
+export {};
 //# sourceMappingURL=Ref.d.ts.map

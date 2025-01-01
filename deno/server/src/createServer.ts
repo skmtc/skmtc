@@ -69,9 +69,9 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): H
   })
 
   app.get('/generators', c => {
-    return Sentry.startSpan({ name: 'GET /generators' }, () =>
-      c.json({ generators: Object.values(toGeneratorsMap()) })
-    )
+    return Sentry.startSpan({ name: 'GET /generators' }, () => {
+      return c.json({ generators: Object.keys(toGeneratorsMap()) })
+    })
   })
 
   app.post('/settings', async c => {

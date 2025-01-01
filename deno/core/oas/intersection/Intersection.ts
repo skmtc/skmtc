@@ -46,7 +46,7 @@ export class OasIntersection {
     return this
   }
 
-  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject {
     return {
       allOf: this.members.map(member => member.toJsonSchema(options)),
       title: this.title,

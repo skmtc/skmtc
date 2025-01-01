@@ -3,6 +3,8 @@ import type { OasMediaType } from '../mediaType/MediaType.js';
 import type { OasRef } from '../ref/Ref.js';
 import type { OasExample } from '../example/Example.js';
 import type { OasSchema } from '../schema/Schema.js';
+import type { ToJsonSchemaOptions } from '../schema/Schema.js';
+import type { OpenAPIV3 } from 'openapi-types';
 export type ParameterFields = {
     name: string;
     location: OasParameterLocation;
@@ -38,5 +40,6 @@ export declare class OasParameter {
     resolve(): OasParameter;
     resolveOnce(): OasParameter;
     toSchema(mediaType?: string): OasSchema | OasRef<'schema'>;
+    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ParameterObject;
 }
 //# sourceMappingURL=Parameter.d.ts.map

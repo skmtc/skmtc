@@ -1,4 +1,6 @@
 import type { OasRef } from '../ref/Ref.ts'
+import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 export type ExampleFields = {
   summary: string | undefined
@@ -50,5 +52,13 @@ export class OasExample {
 
   resolveOnce(): OasExample {
     return this
+  }
+
+  toJsonSchema(_options: ToJsonSchemaOptions): OpenAPIV3.ExampleObject {
+    return {
+      summary: this.summary,
+      description: this.description,
+      value: this.value
+    }
   }
 }

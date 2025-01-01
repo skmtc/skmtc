@@ -118,7 +118,7 @@ class OasOperation {
     toParams(filter) {
         return (this.parameters
             ?.map(param => param.resolve())
-            .filter(param => filter?.length ? filter.includes(param.location) : true) ?? []);
+            .filter(param => (filter?.length ? filter.includes(param.location) : true)) ?? []);
     }
     toParametersObject(filter) {
         const parameters = this.toParams(filter);
@@ -129,6 +129,18 @@ class OasOperation {
                 required: parameter.required
             });
         }, Object_js_1.OasObject.empty());
+    }
+    toJsonSchema(options) {
+        return {
+            tags: this.tags,
+            summary: this.summary,
+            description: this.description,
+            operationId: this.operationId,
+            parameters: this.parameters?.map(param => param.toJsonSchema(options)),
+            requestBody: this.requestBody?.toJsonSchema(options),
+            responses: Object.fromEntries(Object.entries(this.responses).map(([key, value]) => [key, value.toJsonSchema(options)])),
+            deprecated: this.deprecated
+        };
     }
 }
 exports.OasOperation = OasOperation;

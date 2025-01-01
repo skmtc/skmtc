@@ -76,5 +76,14 @@ export class OasHeader {
         }
         return schema;
     }
+    toJsonSchema(options) {
+        return {
+            description: this.description,
+            required: this.required ?? false,
+            deprecated: this.deprecated ?? false,
+            schema: this.schema?.toJsonSchema(options),
+            examples: this.examples
+        };
+    }
 }
 _OasHeader_fields = new WeakMap();

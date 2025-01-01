@@ -7,6 +7,8 @@ import type { OasParameterLocation } from '../parameter/parameter-types.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { OasObject } from '../object/Object.ts'
+import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 export type OperationFields = {
   path: string
@@ -90,9 +92,7 @@ export class OasOperation {
     return (
       this.parameters
         ?.map(param => param.resolve())
-        .filter(param =>
-          filter?.length ? filter.includes(param.location) : true
-        ) ?? []
+        .filter(param => (filter?.length ? filter.includes(param.location) : true)) ?? []
     )
   }
 
@@ -106,5 +106,20 @@ export class OasOperation {
         required: parameter.required
       })
     }, OasObject.empty())
+  }
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject {
+    return {
+      tags: this.tags,
+      summary: this.summary,
+      description: this.description,
+      operationId: this.operationId,
+      parameters: this.parameters?.map(param => param.toJsonSchema(options)),
+      requestBody: this.requestBody?.toJsonSchema(options),
+      responses: Object.fromEntries(
+        Object.entries(this.responses).map(([key, value]) => [key, value.toJsonSchema(options)])
+      ),
+      deprecated: this.deprecated
+    }
   }
 }

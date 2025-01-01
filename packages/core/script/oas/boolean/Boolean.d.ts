@@ -43,6 +43,6 @@ export declare class OasBoolean {
     isRef(): this is OasRef<'schema'>;
     resolve(): OasBoolean;
     resolveOnce(): OasBoolean;
-    toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject;
+    toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject;
 }
 //# sourceMappingURL=Boolean.d.ts.map

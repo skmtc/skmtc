@@ -2,6 +2,8 @@ import type { OasHeader } from '../header/Header.js'
 import type { OasMediaType } from '../mediaType/MediaType.js'
 import type { OasRef } from '../ref/Ref.js'
 import type { OasSchema } from '../schema/Schema.js'
+import type { ToJsonSchemaOptions } from '../schema/Schema.js'
+import type { OpenAPIV3 } from 'openapi-types'
 
 export type ResponseFields = {
   description?: string | undefined
@@ -35,9 +37,25 @@ export class OasResponse {
     return this
   }
 
-  toSchema(
-    mediaType: string = 'application/json'
-  ): OasSchema | OasRef<'schema'> | undefined {
+  toSchema(mediaType: string = 'application/json'): OasSchema | OasRef<'schema'> | undefined {
     return this.content?.[mediaType]?.schema
+  }
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ResponseObject {
+    return {
+      description: this.description ?? '',
+      headers: Object.fromEntries(
+        Object.entries(this.headers ?? {}).map(([header, headerObject]) => [
+          header,
+          headerObject.toJsonSchema(options)
+        ])
+      ),
+      content: Object.fromEntries(
+        Object.entries(this.content ?? {}).map(([mediaType, mediaTypeObject]) => [
+          mediaType,
+          mediaTypeObject.toJsonSchema(options)
+        ])
+      )
+    }
   }
 }

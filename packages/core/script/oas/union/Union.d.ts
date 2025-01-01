@@ -61,6 +61,6 @@ export declare class OasUnion {
     isRef(): this is OasRef<'schema'>;
     resolve(): OasUnion;
     resolveOnce(): OasUnion;
-    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject;
+    toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject;
 }
 //# sourceMappingURL=Union.d.ts.map

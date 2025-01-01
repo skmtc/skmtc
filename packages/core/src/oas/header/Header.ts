@@ -2,6 +2,8 @@ import type { OasMediaType } from '../mediaType/MediaType.js'
 import type { OasRef } from '../ref/Ref.js'
 import type { OasExample } from '../example/Example.js'
 import type { OasSchema } from '../schema/Schema.js'
+import type { ToJsonSchemaOptions } from '../schema/Schema.js'
+import type { OpenAPIV3 } from 'openapi-types'
 
 export type HeaderFields = {
   description: string | undefined
@@ -88,5 +90,15 @@ export class OasHeader {
     }
 
     return schema
+  }
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.HeaderObject {
+    return {
+      description: this.description,
+      required: this.required ?? false,
+      deprecated: this.deprecated ?? false,
+      schema: this.schema?.toJsonSchema(options),
+      examples: this.examples
+    }
   }
 }

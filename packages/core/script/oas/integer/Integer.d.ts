@@ -50,6 +50,6 @@ export declare class OasInteger {
     isRef(): this is OasRef<'schema'>;
     resolve(): OasInteger;
     resolveOnce(): OasInteger;
-    toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject;
+    toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject;
 }
 //# sourceMappingURL=Integer.d.ts.map

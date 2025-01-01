@@ -77,7 +77,7 @@ export class OasArray {
     return this
   }
 
-  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.SchemaObject {
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ArraySchemaObject {
     return {
       type: 'array',
       items: this.items.toJsonSchema(options),

@@ -108,20 +108,31 @@ export class OasRef<T extends OasRefData['refType']> {
 
   toJsonSchema({
     resolve
-  }: ToJsonSchemaOptions): OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject {
-    const resolved = this.resolve()
+  }: ToJsonSchemaOptions): OpenAPIV3.ReferenceObject | ResolvedRefJsonType<T> {
+    if (resolve) {
+      const resolved = this.resolve().toJsonSchema({ resolve })
 
-    if (!('toJsonSchema' in resolved) || typeof resolved.toJsonSchema !== 'function') {
-      throw new Error('Cannot convert non-schema ref to JSON Schema')
+      return resolved as ResolvedRefJsonType<T>
     }
 
-    return resolve
-      ? resolved.toJsonSchema({ resolve })
-      : {
-          $ref: `#/components/schemas/${this.toRefName()}`
-        }
+    const ref: OpenAPIV3.ReferenceObject = {
+      $ref: `#/components/${match(this.refType)
+        .with('schema', () => 'schemas')
+        .with('requestBody', () => 'requestBodies')
+        .with('parameter', () => 'parameters')
+        .with('response', () => 'responses')
+        .with('example', () => 'examples')
+        .with('header', () => 'headers')
+        .exhaustive()}/${this.toRefName()}`
+    }
+
+    return ref
   }
 }
+
+type ResolvedRefJsonType<T extends OasRefData['refType']> = ReturnType<
+  ResolvedRef<T>['toJsonSchema']
+>
 
 export type OasComponentType =
   | OasSchema

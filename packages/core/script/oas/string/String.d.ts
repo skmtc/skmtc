@@ -61,6 +61,6 @@ export declare class OasString {
     isRef(): this is OasRef<'schema'>;
     resolve(): OasString;
     resolveOnce(): OasString;
-    toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.SchemaObject;
+    toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject;
 }
 //# sourceMappingURL=String.d.ts.map
