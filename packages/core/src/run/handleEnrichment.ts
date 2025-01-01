@@ -24,10 +24,6 @@ export const handleEnrichment = async <EnrichmentType>({
     target: 'openApi3'
   }) as ResponseSchema
 
-  console.log('RESPONSE SCHEMA', responseSchema)
-  console.log('PROMPT', prompt)
-  console.log('CONTENT', content)
-
   const chatSession = model.startChat({
     generationConfig: {
       temperature: 1,

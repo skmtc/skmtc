@@ -47,6 +47,14 @@ export class OasDocument {
     return this.#fields.info
   }
 
+  get servers(): OasServer[] | undefined {
+    if (!this.#fields) {
+      throw new Error(`Accessing 'servers' before fields are set`)
+    }
+
+    return this.#fields.servers
+  }
+
   /** List of all operations for the API */
   get operations(): OasOperation[] {
     if (!this.#fields) {

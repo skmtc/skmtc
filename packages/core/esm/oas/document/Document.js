@@ -41,6 +41,12 @@ export class OasDocument {
         }
         return __classPrivateFieldGet(this, _OasDocument_fields, "f").info;
     }
+    get servers() {
+        if (!__classPrivateFieldGet(this, _OasDocument_fields, "f")) {
+            throw new Error(`Accessing 'servers' before fields are set`);
+        }
+        return __classPrivateFieldGet(this, _OasDocument_fields, "f").servers;
+    }
     /** List of all operations for the API */
     get operations() {
         if (!__classPrivateFieldGet(this, _OasDocument_fields, "f")) {

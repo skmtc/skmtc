@@ -2,10 +2,12 @@ import type { OasTag } from '../tag/Tag.js'
 import type { OasComponents } from '../components/Components.js'
 import type { OasOperation } from '../operation/Operation.js'
 import type { OasInfo } from '../info/Info.js'
+import type { OasServer } from '../server/Server.js'
 
 export type DocumentFields = {
   openapi: string
   info: OasInfo
+  servers?: OasServer[] | undefined
   operations: OasOperation[]
   components?: OasComponents | undefined
   tags?: OasTag[] | undefined
@@ -43,6 +45,14 @@ export class OasDocument {
     }
 
     return this.#fields.info
+  }
+
+  get servers(): OasServer[] | undefined {
+    if (!this.#fields) {
+      throw new Error(`Accessing 'servers' before fields are set`)
+    }
+
+    return this.#fields.servers
   }
 
   /** List of all operations for the API */

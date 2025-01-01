@@ -13,9 +13,6 @@ export const handleEnrichment = async ({ prompt, content, responseSchema: zodRes
     const responseSchema = zodToJsonSchema(zodResponseSchema, {
         target: 'openApi3'
     });
-    console.log('RESPONSE SCHEMA', responseSchema);
-    console.log('PROMPT', prompt);
-    console.log('CONTENT', content);
     const chatSession = model.startChat({
         generationConfig: {
             temperature: 1,
