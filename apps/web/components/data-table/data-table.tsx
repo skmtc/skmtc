@@ -3,14 +3,13 @@
 import {
   ColumnDef,
   VisibilityState,
-  ColumnFiltersState,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
   getSortedRowModel,
   SortingState,
-  useReactTable
+  useReactTable,
+  PaginationState,
+  OnChangeFn
 } from '@tanstack/react-table'
 
 import {
@@ -29,10 +28,13 @@ import { Input } from '@/components/ui/input'
 
 interface DataTableProps<TData, TValue> {
   search?: string
-  setSearch?: (search: string) => void
+  setSearch?: OnChangeFn<string>
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   addButton?: React.ReactNode
+  pagination?: PaginationState
+  setPagination?: OnChangeFn<PaginationState>
+  rowCount?: number
 }
 
 export function DataTable<TData, TValue>({
@@ -40,29 +42,34 @@ export function DataTable<TData, TValue>({
   setSearch,
   columns,
   data,
-  addButton
+  addButton,
+  pagination,
+  setPagination,
+  rowCount
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
     data,
     columns,
+    rowCount: rowCount,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    onPaginationChange: setPagination,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
+    onGlobalFilterChange: setSearch,
+    manualFiltering: true,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
-      columnFilters,
+      globalFilter: search,
       columnVisibility,
-      rowSelection
+      rowSelection,
+      pagination
     }
   })
 

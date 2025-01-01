@@ -22,6 +22,7 @@ export const operationGeneratorSettingsType = z.object({
           .object({
             isPaginated: z.boolean(),
             pathToList: z.string().nullable(),
+            pathToItemCount: z.string().nullable(),
             pageNumberParameter: z.string().nullable(),
             pageSizeParameter: z.string().nullable(),
             searchParameter: z.string().nullable()
