@@ -1,7 +1,7 @@
 import { toRefV31 } from '../ref/toRefV31.ts'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { isRef } from '../../helpers/refFns.ts'
-import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
+import type { OpenAPIV3 } from 'openapi-types'
 import { match, P } from 'npm:ts-pattern@5.6.0'
 import type { OasSchema } from './Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'

@@ -1,4 +1,4 @@
-import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
+import type { OpenAPIV3 } from 'openapi-types'
 import type { Method } from '../../types/Method.ts'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { toRequestBodyV3 } from '../requestBody/toRequestBodiesV3.ts'

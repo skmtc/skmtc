@@ -50,14 +50,18 @@ export class OasResponse {
     toJsonSchema(options) {
         return {
             description: this.description ?? '',
-            headers: Object.fromEntries(Object.entries(this.headers ?? {}).map(([header, headerObject]) => [
-                header,
-                headerObject.toJsonSchema(options)
-            ])),
-            content: Object.fromEntries(Object.entries(this.content ?? {}).map(([mediaType, mediaTypeObject]) => [
-                mediaType,
-                mediaTypeObject.toJsonSchema(options)
-            ]))
+            headers: this.headers
+                ? Object.fromEntries(Object.entries(this.headers).map(([header, headerObject]) => [
+                    header,
+                    headerObject.toJsonSchema(options)
+                ]))
+                : undefined,
+            content: this.content
+                ? Object.fromEntries(Object.entries(this.content).map(([mediaType, mediaTypeObject]) => [
+                    mediaType,
+                    mediaTypeObject.toJsonSchema(options)
+                ]))
+                : undefined
         };
     }
 }

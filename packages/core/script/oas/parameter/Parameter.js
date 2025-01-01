@@ -133,10 +133,12 @@ class OasParameter {
             allowReserved: this.allowReserved,
             schema: this.schema?.toJsonSchema(options),
             examples: this.examples,
-            content: Object.fromEntries(Object.entries(this.content ?? {}).map(([mediaType, mediaTypeObject]) => [
-                mediaType,
-                mediaTypeObject.toJsonSchema(options)
-            ])),
+            content: this.content
+                ? Object.fromEntries(Object.entries(this.content).map(([mediaType, mediaTypeObject]) => [
+                    mediaType,
+                    mediaTypeObject.toJsonSchema(options)
+                ]))
+                : undefined,
             style: this.style,
             explode: this.explode
         };

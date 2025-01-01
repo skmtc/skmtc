@@ -1,4 +1,4 @@
-import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
+import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasTag } from './Tag.ts'
 import type { TagFields } from './Tag.ts'

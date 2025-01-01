@@ -2015,9 +2015,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@skmtc/core@npm:^0.0.509":
-  version: 0.0.509
-  resolution: "@skmtc/core@npm:0.0.509"
+"@skmtc/core@npm:^0.0.510":
+  version: 0.0.510
+  resolution: "@skmtc/core@npm:0.0.510"
   dependencies:
     "@apiture/openapi-down-convert": "npm:0.14.0"
     "@babel/helper-validator-identifier": "npm:7.22.20"
@@ -2032,7 +2032,7 @@ __metadata:
     ts-pattern: "npm:5.6.0"
     zod: "npm:3.24.1"
     zod-to-json-schema: "npm:3.24.1"
-  checksum: 10c0/25142de2ae0c5c9cbd42e3569fb09cb770fea6a26a240264f37e8a7ccffbdc245e2f200d165fba6b038ffb11521fa5856d0e02cc30f83ca8d901b376447958a6
+  checksum: 10c0/cdb57d392da7147bb756daf23fb4fa8d73ec3293e3c3b49703f73f696081bd2b376a430cc0faaa6a34f3dd16eec7d1310ee49c50416ce5de197c3e6c8386a9bd
   languageName: node
   linkType: hard
 
@@ -2115,7 +2115,7 @@ __metadata:
     "@radix-ui/react-tabs": "npm:^1.1.1"
     "@radix-ui/react-toast": "npm:^1.2.2"
     "@radix-ui/react-tooltip": "npm:^1.1.4"
-    "@skmtc/core": "npm:^0.0.509"
+    "@skmtc/core": "npm:^0.0.510"
     "@tailwindcss/forms": "npm:^0.5.9"
     "@tailwindcss/typography": "npm:^0.5.10"
     "@tanstack/react-query": "npm:^5.62.11"
@@ -7135,7 +7135,7 @@ __metadata:
   resolution: "skmtc-vscode@workspace:apps/vscode"
   dependencies:
     "@sentry/browser": "npm:^8.26.0"
-    "@skmtc/core": "npm:^0.0.509"
+    "@skmtc/core": "npm:^0.0.510"
     "@supabase/supabase-js": "npm:^2.45.4"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/glob": "npm:^8.0.0"

@@ -1,4 +1,4 @@
-import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
+import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { isRef } from '../../helpers/refFns.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'

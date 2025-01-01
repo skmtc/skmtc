@@ -6,7 +6,7 @@ import {
   type OasParameterLocation,
   type OasParameterStyle
 } from './parameter-types.ts'
-import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
+import type { OpenAPIV3 } from 'openapi-types'
 import { toExamplesV3 } from '../example/toExamplesV3.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'
 import { toOptionalSchemaV3 } from '../schema/toSchemasV3.ts'

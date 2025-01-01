@@ -176,12 +176,14 @@ export class OasObject {
             description: this.description,
             nullable: this.nullable,
             example: this.example,
-            properties: Object.fromEntries(Object.entries(this.properties ?? {})
-                .filter(([_key, value]) => value.type !== 'custom')
-                .map(([key, value]) => [
-                key,
-                value.toJsonSchema(options)
-            ])),
+            properties: this.properties
+                ? Object.fromEntries(Object.entries(this.properties)
+                    .filter(([_key, value]) => value.type !== 'custom')
+                    .map(([key, value]) => [
+                    key,
+                    value.toJsonSchema(options)
+                ]))
+                : undefined,
             required: this.required,
             additionalProperties: match(this.additionalProperties)
                 .with(P.nullish, () => false)

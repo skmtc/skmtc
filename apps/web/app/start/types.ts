@@ -21,7 +21,10 @@ export const operationGeneratorSettingsType = z.object({
         enrichments: z
           .object({
             isPaginated: z.boolean(),
-            pathToList: z.string().nullable()
+            pathToList: z.string().nullable(),
+            pageNumberParameter: z.string().nullable(),
+            pageSizeParameter: z.string().nullable(),
+            searchParameter: z.string().nullable()
           })
           .optional()
       })

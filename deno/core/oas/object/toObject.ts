@@ -1,4 +1,4 @@
-import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
+import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasObject, type OasObjectFields } from './Object.ts'
 import { toOptionalSchemasV3 } from '../schema/toSchemasV3.ts'

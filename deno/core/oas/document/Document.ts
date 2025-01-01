@@ -2,10 +2,12 @@ import type { OasTag } from '../tag/Tag.ts'
 import type { OasComponents } from '../components/Components.ts'
 import type { OasOperation } from '../operation/Operation.ts'
 import type { OasInfo } from '../info/Info.ts'
+import type { OasServer } from '../server/Server.ts'
 
 export type DocumentFields = {
   openapi: string
   info: OasInfo
+  servers?: OasServer[] | undefined
   operations: OasOperation[]
   components?: OasComponents | undefined
   tags?: OasTag[] | undefined
