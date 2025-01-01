@@ -15,7 +15,6 @@ interface DataTableColumnHeaderProps<TData, TValue> extends React.HTMLAttributes
   column: Column<TData, TValue>
   title: string
 }
-
 export function DataTableColumnHeader<TData, TValue>({
   column,
   title,
