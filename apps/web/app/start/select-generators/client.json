@@ -1,22 +1,5 @@
 {
-  "basePath": "./",
-  "alias": {
-    "@/": "/"
-  },
-  "packages": [
-    {
-      "rootPath": "@/apps/dashboard/src",
-      "moduleName": "skmtc-dashboard"
-    },
-    {
-      "rootPath": "@/packages/models/src",
-      "moduleName": "dashboard-models"
-    },
-    {
-      "rootPath": "@/apps/server/src",
-      "moduleName": "dashboard-mock-server"
-    }
-  ],
+  "basePath": "./src",
   "generators": [
   ]
 }

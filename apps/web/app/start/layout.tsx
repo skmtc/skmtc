@@ -1,62 +1,16 @@
-'use client'
+'use server'
 
-import { Steps } from '@/app/start/steps'
-import { ArtifactsProvider } from '@/components/artifacts/artifacts-context'
-import { Header } from '@/components/ui/Header'
-import { WebcontainerProvider } from '@/components/webcontainer/webcontainer-context'
-import { useEffect } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-
-const queryClient = new QueryClient()
-
-type GenerationForm = {
-  schema: string
-  generators: string[]
-}
+import Section from '@/app/start/section'
+import { toFileTree } from '@/lib/toFileTree'
 
 type LayoutProps = {
   children: React.ReactNode
 }
 
 const Layout = ({ children, ...props }: LayoutProps) => {
-  const form = useForm<GenerationForm>({
-    defaultValues: {
-      schema: '',
-      generators: []
-    }
-  })
+  const fileTree = toFileTree('./app/reapit-files')
 
-  useEffect(() => {
-    const { unsubscribe } = form.watch(value => {
-      console.log(value)
-    })
-    return () => unsubscribe()
-  }, [form.watch])
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <WebcontainerProvider>
-        <ArtifactsProvider>
-          <FormProvider {...form}>
-            <div className="flex flex-col h-screen w-screen px-4">
-              <Header />
-
-              <div className="flex flex-col flex-1 p-6 lg:px-8">
-                <div className="h-16" />
-
-                <Steps />
-
-                <div className="h-16" />
-
-                {children}
-              </div>
-            </div>
-          </FormProvider>
-        </ArtifactsProvider>
-      </WebcontainerProvider>
-    </QueryClientProvider>
-  )
+  return <Section fileNodes={fileTree}>{children}</Section>
 }
 
 export default Layout

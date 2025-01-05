@@ -10,10 +10,10 @@ import {
   useState
 } from 'react'
 import { FileSystemTree, WebContainer } from '@webcontainer/api'
-import { fileNodes } from '@/components/viewer/contents'
 import hash from 'object-hash'
 
 type WebcontainerProviderProps = {
+  fileNodes: FileSystemTree
   children: ReactNode
 }
 
@@ -28,7 +28,7 @@ const WebcontainerStateContext = createContext<
 
 type WebcontainerStatus = 'empty' | 'remounting' | 'ready'
 
-const WebcontainerProvider = ({ children }: WebcontainerProviderProps) => {
+const WebcontainerProvider = ({ fileNodes, children }: WebcontainerProviderProps) => {
   const [ready, setReady] = useState(false)
   const webContainerRef = useRef<WebContainer | null>(null)
   const webContainerHashRef = useRef<string | null>(null)
@@ -39,7 +39,7 @@ const WebcontainerProvider = ({ children }: WebcontainerProviderProps) => {
   useEffect(() => {
     // return () => {
     //   console.log('PROVIDER READY')
-      setReady(true)
+    setReady(true)
     //}
   }, [])
 
@@ -65,7 +65,15 @@ const WebcontainerProvider = ({ children }: WebcontainerProviderProps) => {
       .then(async webContainer => {
         console.log('INSTALLING')
 
-        const installProcess = await webContainer.spawn('pnpm', ['install'])
+        const installProcess = await webContainer.spawn('pnpm', ['install'], {
+          env: {
+            VITE_APP_ENV: 'local',
+            VITE_CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
+            VITE_CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
+            VITE_CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
+            VITE_PLATFORM_API_URL: 'https://platform.reapit.cloud'
+          }
+        })
 
         const installExitCode = await installProcess.exit
 
@@ -108,7 +116,17 @@ const WebcontainerProvider = ({ children }: WebcontainerProviderProps) => {
 
         await webContainer.mount(fileTree)
 
-        const buildProcess = await webContainer.spawn('pnpm', ['build'])
+        // @TODO: Get these from the environment
+
+        const buildProcess = await webContainer.spawn('pnpm', ['build'], {
+          env: {
+            VITE_APP_ENV: 'local',
+            VITE_CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
+            VITE_CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
+            VITE_CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
+            VITE_PLATFORM_API_URL: 'https://platform.reapit.cloud'
+          }
+        })
 
         buildProcess.output.pipeTo(
           new WritableStream({
@@ -124,7 +142,15 @@ const WebcontainerProvider = ({ children }: WebcontainerProviderProps) => {
           throw new Error('Unable to run pnpm build')
         }
 
-        const startProcess = await webContainer.spawn('pnpm', ['start'])
+        const startProcess = await webContainer.spawn('pnpm', ['start'], {
+          env: {
+            VITE_APP_ENV: 'local',
+            VITE_CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
+            VITE_CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
+            VITE_CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
+            VITE_PLATFORM_API_URL: 'https://platform.reapit.cloud'
+          }
+        })
 
         startProcess.output.pipeTo(
           new WritableStream({
