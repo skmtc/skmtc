@@ -3,7 +3,7 @@ import { isGeneratorKey } from './GeneratorKeys.js'
 import type { GeneratorKey } from './GeneratorKeys.js'
 import { z } from 'zod'
 import { resultsItem, type ResultsItem } from './Results.js'
-
+import { preview, type Preview } from './Preview.js'
 export type ManifestEntry = {
   numberOfLines: number
   numberOfCharacters: number
@@ -36,7 +36,7 @@ export type ManifestContent = {
   spanId: string
   region?: string
   files: Record<string, ManifestEntry>
-  previews: Record<string, Record<string, string>>
+  previews: Record<string, Record<string, Preview>>
   pinnable: Partial<Record<GeneratorKey, string>>
   results: ResultsItem
   startAt: number
@@ -49,7 +49,7 @@ export const manifestContent = z.object({
   spanId: z.string(),
   region: z.string().optional(),
   files: z.record(manifestEntry),
-  previews: z.record(z.string(), z.record(z.string())),
+  previews: z.record(z.string(), z.record(preview)),
   pinnable: z.record(z.string().refine(isGeneratorKey), z.string()),
   results: resultsItem,
   startAt: z.number(),

@@ -2,6 +2,7 @@ import "../_dnt.polyfills.js";
 import type { GeneratorKey } from './GeneratorKeys.js';
 import { z } from 'zod';
 import { type ResultsItem } from './Results.js';
+import { type Preview } from './Preview.js';
 export type ManifestEntry = {
     numberOfLines: number;
     numberOfCharacters: number;
@@ -48,7 +49,7 @@ export type ManifestContent = {
     spanId: string;
     region?: string;
     files: Record<string, ManifestEntry>;
-    previews: Record<string, Record<string, string>>;
+    previews: Record<string, Record<string, Preview>>;
     pinnable: Partial<Record<GeneratorKey, string>>;
     results: ResultsItem;
     startAt: number;
@@ -78,7 +79,22 @@ export declare const manifestContent: z.ZodObject<{
         generatorKeys: string[];
         destinationPath: string;
     }>>;
-    previews: z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodString>>;
+    previews: z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodObject<{
+        importName: z.ZodString;
+        importPath: z.ZodString;
+        group: z.ZodString;
+        route: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        importName: string;
+        importPath: string;
+        group: string;
+        route?: string | undefined;
+    }, {
+        importName: string;
+        importPath: string;
+        group: string;
+        route?: string | undefined;
+    }>>>;
     pinnable: z.ZodRecord<z.ZodEffects<z.ZodString, GeneratorKey, string>, z.ZodString>;
     results: z.ZodType<ResultsItem, z.ZodTypeDef, ResultsItem>;
     startAt: z.ZodNumber;
@@ -94,7 +110,12 @@ export declare const manifestContent: z.ZodObject<{
         generatorKeys: GeneratorKey[];
         destinationPath: string;
     }>;
-    previews: Record<string, Record<string, string>>;
+    previews: Record<string, Record<string, {
+        importName: string;
+        importPath: string;
+        group: string;
+        route?: string | undefined;
+    }>>;
     pinnable: Partial<Record<GeneratorKey, string>>;
     results: ResultsItem;
     startAt: number;
@@ -111,7 +132,12 @@ export declare const manifestContent: z.ZodObject<{
         generatorKeys: string[];
         destinationPath: string;
     }>;
-    previews: Record<string, Record<string, string>>;
+    previews: Record<string, Record<string, {
+        importName: string;
+        importPath: string;
+        group: string;
+        route?: string | undefined;
+    }>>;
     pinnable: Record<string, string>;
     results: ResultsItem;
     startAt: number;

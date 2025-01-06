@@ -8,6 +8,7 @@ import type { ResultType } from '../types/Results.js';
 import * as log from '../deps/jsr.io/@std/log/0.224.8/mod.js';
 import type { GeneratorKey } from '../types/GeneratorKeys.js';
 import type { GeneratorType, GeneratorsMap } from '../types/GeneratorType.js';
+import { Preview } from '../types/Preview.js';
 export type ParsePhase = {
     type: 'parse';
     context: ParseContext;
@@ -42,7 +43,7 @@ export declare class CoreContext {
     transform({ schema, settings, toGeneratorsMap, prettier }: TransformArgs): {
         results: import("../types/Results.js").ResultsItem;
         files: Record<string, import("../types/Manifest.js").ManifestEntry>;
-        previews: Record<string, Record<string, string>>;
+        previews: Record<string, Record<string, Preview>>;
         pinnable: Partial<Record<GeneratorKey, string>>;
         artifacts: Record<string, string>;
     };

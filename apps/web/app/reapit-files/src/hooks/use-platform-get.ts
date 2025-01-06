@@ -5,12 +5,12 @@ import {
   handleReapitError,
   getUrl,
   RC_SESSION_MISSING_ERROR,
-  NETWORK_ERROR,
+  NETWORK_ERROR
 } from './utils'
 import { useSnack } from '@reapit/elements'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios, { AxiosError } from 'axios'
-import { NavigateFunction, useNavigate } from 'react-router'
+import { NavigateFunction, useNavigate } from 'react-router-dom'
 import { reapitConnectBrowserSession } from '../core/connect-session'
 
 export type PlatformGet<DataType> = [
@@ -19,7 +19,7 @@ export type PlatformGet<DataType> = [
   error: string | null,
   refresh: (queryParams?: Object) => void,
   refreshing: boolean,
-  clearCache: () => void,
+  clearCache: () => void
 ]
 
 export interface UsePlatformGetParams {
@@ -41,7 +41,7 @@ export const handleError =
     errorSnack: (text: string, timeout?: number | undefined) => void,
     navigate: NavigateFunction,
     errorMessage?: string,
-    onError?: (message: string) => void,
+    onError?: (message: string) => void
   ) =>
   () => {
     if (isError && error) {
@@ -63,7 +63,7 @@ export const handleSuccess =
     isSuccess: boolean,
     successSnack: (text: string, timeout?: number | undefined) => void,
     successMessage?: string,
-    onSuccess?: (message: string) => void,
+    onSuccess?: (message: string) => void
   ) =>
   () => {
     if (isSuccess) {
@@ -81,7 +81,7 @@ export const usePlatformGet = <DataType>({
   fetchWhenTrue,
   onSuccess,
   onError,
-  retry,
+  retry
 }: UsePlatformGetParams): PlatformGet<DataType> => {
   const { success: successSnack, error: errorSnack } = useSnack()
   const navigate = useNavigate()
@@ -93,7 +93,10 @@ export const usePlatformGet = <DataType>({
 
   const url = useMemo(getUrl(path, queryParams), [path, queryParams])
 
-  const { data, error, isLoading, isSuccess, isError, isRefetching, refetch } = useQuery<DataType, AxiosError<any>>({
+  const { data, error, isLoading, isSuccess, isError, isRefetching, refetch } = useQuery<
+    DataType,
+    AxiosError<any>
+  >({
     queryKey: [url],
     queryFn: async () => {
       const reqHeaders = await getMergedHeaders(reapitConnectBrowserSession, headers)
@@ -101,20 +104,20 @@ export const usePlatformGet = <DataType>({
       if (!reqHeaders) throw new Error(RC_SESSION_MISSING_ERROR)
 
       const req = await axios.get<DataType>(url, {
-        headers: reqHeaders,
+        headers: reqHeaders
       })
       return req.data
     },
     retry: retry === undefined ? 1 : retry,
     refetchOnWindowFocus: false,
-    enabled: isEnabled,
+    enabled: isEnabled
   })
 
   useEffect(handleSuccess(isSuccess, successSnack, successMessage, onSuccess), [
     isSuccess,
     successMessage,
     onSuccess,
-    successSnack,
+    successSnack
   ])
 
   useEffect(handleError(isError, error, errorSnack, navigate, errorMessage, onError), [
@@ -123,7 +126,7 @@ export const usePlatformGet = <DataType>({
     errorMessage,
     onError,
     errorSnack,
-    navigate,
+    navigate
   ])
 
   const result = data ? data : null

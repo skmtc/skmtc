@@ -6,5 +6,5 @@ export const Routes = {
   HOME: '/',
   ...LOGIN_ROUTES,
   ...CONTACTS_ROUTES,
-  ...NEW_ROUTES,
+  ...NEW_ROUTES
 }

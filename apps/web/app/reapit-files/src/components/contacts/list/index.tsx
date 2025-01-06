@@ -19,12 +19,16 @@ import {
   useDrawer,
   PageHeader,
   FlexContainer,
-  elMb5,
+  elMb5
 } from '@reapit/elements'
 import debounce from 'just-debounce-it'
 import { useForm, UseFormWatch } from 'react-hook-form'
-import { ContactModel, ContactModelPagedResult, UpdateContactModel } from '@reapit/foundations-ts-definitions'
-import { useNavigate } from 'react-router'
+import {
+  ContactModel,
+  ContactModelPagedResult,
+  UpdateContactModel
+} from '@reapit/foundations-ts-definitions'
+import { useNavigate } from 'react-router-dom'
 import { UpdateFunction, usePlatformGet, usePlatformUpdate } from '../../../hooks'
 import { combineAddress } from '../../../utils/combine-address'
 import { combineName } from '../../../utils/combine-name'
@@ -43,7 +47,7 @@ export const handleOpenModal =
   (
     openModal: () => void,
     contact: ContactModel,
-    setContactToToggleActive: Dispatch<SetStateAction<ContactModel | null>>,
+    setContactToToggleActive: Dispatch<SetStateAction<ContactModel | null>>
   ) =>
   () => {
     openModal()
@@ -54,7 +58,7 @@ export const handleOpenDrawer =
   (
     openDrawer: () => void,
     contact: ContactModel,
-    setContactToQuickView: Dispatch<SetStateAction<ContactModel | null>>,
+    setContactToQuickView: Dispatch<SetStateAction<ContactModel | null>>
   ) =>
   () => {
     openDrawer()
@@ -67,7 +71,7 @@ export const handleToggleActiveContact =
     contactsRefresh: () => void,
     toggleActiveContact: UpdateFunction<UpdateContactModel, boolean>,
     setContactToToggleActive: Dispatch<SetStateAction<ContactModel | null>>,
-    active?: boolean,
+    active?: boolean
   ) =>
   async () => {
     const deleted = await toggleActiveContact({ active: !active })
@@ -80,7 +84,10 @@ export const handleToggleActiveContact =
   }
 
 export const handleSetContactsFilters =
-  (setContactFilters: Dispatch<SetStateAction<ContactFilterValues>>, watch: UseFormWatch<ContactFilterValues>) =>
+  (
+    setContactFilters: Dispatch<SetStateAction<ContactFilterValues>>,
+    watch: UseFormWatch<ContactFilterValues>
+  ) =>
   () => {
     const subscription = watch(debounce(setContactFilters, 500))
     return () => subscription.unsubscribe()
@@ -96,7 +103,7 @@ export const ContactsList: FC = () => {
   const [Drawer, openDrawer, closeDrawer] = useDrawer()
 
   const { register, watch } = useForm<ContactFilterValues>({
-    mode: 'onChange',
+    mode: 'onChange'
   })
 
   useEffect(handleSetContactsFilters(setContactFilters, watch), [])
@@ -106,17 +113,20 @@ export const ContactsList: FC = () => {
     queryParams: {
       ...contactFilters,
       pageNumber,
-      pageSize: 12,
-    },
+      pageSize: 12
+    }
   })
 
-  const [toggleActiveContact, toggleActiveContactLoading] = usePlatformUpdate<UpdateContactModel, boolean>({
+  const [toggleActiveContact, toggleActiveContactLoading] = usePlatformUpdate<
+    UpdateContactModel,
+    boolean
+  >({
     path: `/contacts/${contactToToggleActive?.id}`,
     method: 'PATCH',
     headers: {
-      'if-match': contactToToggleActive?._eTag ?? '',
+      'if-match': contactToToggleActive?._eTag ?? ''
     },
-    successMessage: `Contact successfully ${contactToToggleActive?.active ? 'deactivated' : 'activated'}`,
+    successMessage: `Contact successfully ${contactToToggleActive?.active ? 'deactivated' : 'activated'}`
   })
 
   return (
@@ -125,15 +135,15 @@ export const ContactsList: FC = () => {
         hasMaxWidth
         pageTitle={{
           children: 'Contacts',
-          hasBoldText: true,
+          hasBoldText: true
         }}
         buttons={[
           {
             children: 'New Contact',
             intent: 'primary',
             className: elMb5,
-            onClick: navigateRoute(navigate, '/contacts/new'),
-          },
+            onClick: navigateRoute(navigate, '/contacts/new')
+          }
         ]}
       />
       <FlexContainer hasMaxWidth isFlexColumn>
@@ -178,20 +188,20 @@ export const ContactsList: FC = () => {
                         id: 'option-active-all',
                         value: '',
                         text: 'All',
-                        isChecked: true,
+                        isChecked: true
                       },
                       {
                         id: 'option-active-true',
                         value: 'true',
                         text: 'Active',
-                        isChecked: false,
+                        isChecked: false
                       },
                       {
                         id: 'option-active-false',
                         value: 'false',
                         text: 'Inactive',
-                        isChecked: false,
-                      },
+                        isChecked: false
+                      }
                     ]}
                   />
                 </InputGroup>
@@ -203,8 +213,17 @@ export const ContactsList: FC = () => {
             <>
               <Table
                 className={elMb8}
-                rows={contacts._embedded.map((contact) => {
-                  const { id, title, forename, surname, email, primaryAddress, mobilePhone, active } = contact
+                rows={contacts._embedded.map(contact => {
+                  const {
+                    id,
+                    title,
+                    forename,
+                    surname,
+                    email,
+                    primaryAddress,
+                    mobilePhone,
+                    active
+                  } = contact
                   return {
                     cells: [
                       {
@@ -213,44 +232,45 @@ export const ContactsList: FC = () => {
                         icon: 'contact',
                         cellHasDarkText: true,
                         narrowTable: {
-                          showLabel: true,
-                        },
+                          showLabel: true
+                        }
                       },
                       {
                         label: 'Contact Email',
                         icon: 'email',
                         value: email ?? '-',
                         narrowTable: {
-                          showLabel: true,
-                        },
+                          showLabel: true
+                        }
                       },
                       {
                         label: 'Contact Mobile Phone',
                         icon: 'phone',
                         value: mobilePhone ?? '-',
                         narrowTable: {
-                          showLabel: true,
-                        },
+                          showLabel: true
+                        }
                       },
                       {
                         label: 'Contact Address',
                         icon: 'property',
                         value: combineAddress(primaryAddress),
                         narrowTable: {
-                          showLabel: true,
-                        },
+                          showLabel: true
+                        }
                       },
                       {
                         label: 'Contact Active',
                         value: (
                           <>
-                            <StatusIndicator intent={active ? 'success' : 'danger'} /> {active ? 'Active' : 'Inactive'}
+                            <StatusIndicator intent={active ? 'success' : 'danger'} />{' '}
+                            {active ? 'Active' : 'Inactive'}
                           </>
                         ),
                         narrowTable: {
-                          showLabel: true,
-                        },
-                      },
+                          showLabel: true
+                        }
+                      }
                     ],
                     expandableContent: {
                       content: (
@@ -262,22 +282,32 @@ export const ContactsList: FC = () => {
                             >
                               Quick View Contact
                             </Button>
-                            <Button onClick={navigateRoute(navigate, `/contacts/${id}/view`)} intent="default">
+                            <Button
+                              onClick={navigateRoute(navigate, `/contacts/${id}/view`)}
+                              intent="default"
+                            >
                               Full Contact
                             </Button>
-                            <Button onClick={navigateRoute(navigate, `/contacts/${id}/personal`)} intent="primary">
+                            <Button
+                              onClick={navigateRoute(navigate, `/contacts/${id}/personal`)}
+                              intent="primary"
+                            >
                               Edit Contact
                             </Button>
                             <Button
-                              onClick={handleOpenModal(openModal, contact, setContactToToggleActive)}
+                              onClick={handleOpenModal(
+                                openModal,
+                                contact,
+                                setContactToToggleActive
+                              )}
                               intent={active ? 'danger' : 'primary'}
                             >
                               {active ? 'Deactivate' : 'Activate'}
                             </Button>
                           </ButtonGroup>
                         </>
-                      ),
-                    },
+                      )
+                    }
                   }
                 })}
               />
@@ -296,7 +326,8 @@ export const ContactsList: FC = () => {
                   isInline
                   intent={contactToToggleActive?.active ? 'danger' : 'primary'}
                 >
-                  Are you sure you want to {contactToToggleActive?.active ? 'deactivate' : 'activate'} this contact?
+                  Are you sure you want to{' '}
+                  {contactToToggleActive?.active ? 'deactivate' : 'activate'} this contact?
                 </PersistentNotification>
                 <ButtonGroup alignment="center">
                   <Button onClick={closeModal} intent="default">
@@ -308,7 +339,7 @@ export const ContactsList: FC = () => {
                       contactsRefresh,
                       toggleActiveContact,
                       setContactToToggleActive,
-                      contactToToggleActive?.active,
+                      contactToToggleActive?.active
                     )}
                     disabled={toggleActiveContactLoading}
                     intent={contactToToggleActive?.active ? 'danger' : 'primary'}
@@ -332,7 +363,13 @@ export const ContactsList: FC = () => {
               )}
             </>
           ) : !contactsLoading && contacts && !contacts._embedded?.length ? (
-            <PersistentNotification className={elMb8} isInline isExpanded isFullWidth intent="primary">
+            <PersistentNotification
+              className={elMb8}
+              isInline
+              isExpanded
+              isFullWidth
+              intent="primary"
+            >
               No contacts found for your search terms, please try again.
             </PersistentNotification>
           ) : null}

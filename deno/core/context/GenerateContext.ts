@@ -28,6 +28,7 @@ import { Inserted } from '../dsl/Inserted.ts'
 import { File } from '../dsl/File.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorsMap, GeneratorType } from '../types/GeneratorType.ts'
+import type { Preview } from '../types/Preview.ts'
 
 type ConstructorArgs = {
   oasDocument: OasDocument
@@ -52,12 +53,17 @@ export type ApplyPackageImportsArgs = {
   exportPath: string
 }
 
+export type RegisterPreviewArgs = {
+  name: string
+  route?: string
+}
+
 export type RegisterArgs = {
   imports?: Record<string, ImportNameArg[]>
   reExports?: Record<string, Identifier[]>
   definitions?: (Definition | undefined)[]
   preview?: {
-    [group: string]: string
+    [group: string]: RegisterPreviewArgs
   }
   destinationPath: string
 }
@@ -138,12 +144,12 @@ type BuildModelSettingsArgs<V, EnrichmentType> = {
 
 type GenerateResult = {
   files: Map<string, File>
-  previews: Record<string, Record<string, string>>
+  previews: Record<string, Record<string, Preview>>
 }
 
 export class GenerateContext {
   #files: Map<string, File>
-  #previews: Record<string, Record<string, string>>
+  #previews: Record<string, Record<string, Preview>>
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   logger: log.Logger
@@ -499,12 +505,12 @@ export class GenerateContext {
       }
     })
 
-    Object.entries(preview ?? {}).forEach(([group, name]) => {
+    Object.entries(preview ?? {}).forEach(([group, { name, route }]) => {
       if (!this.#previews[group]) {
         this.#previews[group] = {}
       }
 
-      this.#previews[group][name] = destinationPath
+      this.#previews[group][name] = { importName: name, importPath: destinationPath, group, route }
     })
   }
 

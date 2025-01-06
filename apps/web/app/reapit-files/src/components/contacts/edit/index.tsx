@@ -7,12 +7,19 @@ import {
   PersistentNotification,
   PageHeader,
   FlexContainer,
-  Tile,
+  Tile
 } from '@reapit/elements'
 import { useForm, UseFormReset, UseFormTrigger } from 'react-hook-form'
 import { ContactModel, UpdateContactModel } from '@reapit/foundations-ts-definitions'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { NavigateFunction, Route, Routes, useLocation, useNavigate, useParams } from 'react-router'
+import {
+  NavigateFunction,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams
+} from 'react-router-dom'
 import { CONTACTS_ROUTES } from '../routes'
 import { ContactFormSchema, contactsValidationSchema } from '../form/contacts-validation-schema'
 import { ContactsPersonal } from '../form/contacts-personal-details'
@@ -51,7 +58,7 @@ export const handleChangeTab =
           'communicationPreferenceEmail',
           'communicationPreferencePhone',
           'communicationPreferenceLetter',
-          'communicationPreferenceSMS',
+          'communicationPreferenceSMS'
         ])
       }
 
@@ -83,8 +90,8 @@ export const handleSubmitContact =
       officeIds: officeIds?.split(',').filter(Boolean),
       source: {
         id: source?.split('-')[0],
-        type: source?.split('-')[1],
-      },
+        type: source?.split('-')[1]
+      }
     }
 
     const result = await updateContact(updateContactParams)
@@ -94,31 +101,35 @@ export const handleSubmitContact =
     }
   }
 
-export const handleResetForm = (contact: ContactModel | null, reset: UseFormReset<ContactFormSchema>) => () => {
-  if (contact) {
-    const santisedContact = nonNullableObject<ContactModel, ContactFormSchema>(contact)
-    const primaryAddress = nonNullableObject<ContactModel['primaryAddress'], ContactFormSchema['primaryAddress']>(
-      santisedContact?.primaryAddress,
-    )
-    const secondaryAddress = nonNullableObject<ContactModel['secondaryAddress'], ContactFormSchema['secondaryAddress']>(
-      santisedContact?.primaryAddress,
-    )
-    const workAddress = nonNullableObject<ContactModel['workAddress'], ContactFormSchema['workAddress']>(
-      santisedContact?.primaryAddress,
-    )
+export const handleResetForm =
+  (contact: ContactModel | null, reset: UseFormReset<ContactFormSchema>) => () => {
+    if (contact) {
+      const santisedContact = nonNullableObject<ContactModel, ContactFormSchema>(contact)
+      const primaryAddress = nonNullableObject<
+        ContactModel['primaryAddress'],
+        ContactFormSchema['primaryAddress']
+      >(santisedContact?.primaryAddress)
+      const secondaryAddress = nonNullableObject<
+        ContactModel['secondaryAddress'],
+        ContactFormSchema['secondaryAddress']
+      >(santisedContact?.primaryAddress)
+      const workAddress = nonNullableObject<
+        ContactModel['workAddress'],
+        ContactFormSchema['workAddress']
+      >(santisedContact?.primaryAddress)
 
-    reset({
-      ...santisedContact,
-      primaryAddress,
-      secondaryAddress,
-      workAddress,
-      source: contact?.source ? `${contact.source.id}-${contact.source.type}` : '',
-      categoryIds: contact?.categoryIds?.join(','),
-      negotiatorIds: contact?.negotiatorIds?.join(','),
-      officeIds: contact?.officeIds?.join(','),
-    })
+      reset({
+        ...santisedContact,
+        primaryAddress,
+        secondaryAddress,
+        workAddress,
+        source: contact?.source ? `${contact.source.id}-${contact.source.type}` : '',
+        categoryIds: contact?.categoryIds?.join(','),
+        negotiatorIds: contact?.negotiatorIds?.join(','),
+        officeIds: contact?.officeIds?.join(',')
+      })
+    }
   }
-}
 
 export const ContactsEdit: FC = () => {
   const navigate = useNavigate()
@@ -130,28 +141,28 @@ export const ContactsEdit: FC = () => {
     path: `/contacts/${contactId}`,
     fetchWhenTrue: [contactId],
     queryParams: {
-      embed: ['offices', 'negotiators', 'source'],
-    },
+      embed: ['offices', 'negotiators', 'source']
+    }
   })
 
   const [updateContact, updateContactLoading] = usePlatformUpdate<UpdateContactModel, boolean>({
     path: `/contacts/${contactId}`,
     method: 'PATCH',
     headers: {
-      'if-match': contact?._eTag ?? '',
+      'if-match': contact?._eTag ?? ''
     },
-    successMessage: 'Contact updated successfully',
+    successMessage: 'Contact updated successfully'
   })
 
   const form = useForm<ContactFormSchema>({
-    resolver: yupResolver(contactsValidationSchema),
+    resolver: yupResolver(contactsValidationSchema)
   })
 
   const {
     handleSubmit,
     trigger,
     reset,
-    formState: { isValid, isValidating },
+    formState: { isValid, isValidating }
   } = form
   const { title, forename, surname } = contact ?? {}
   const name = combineName(title, forename, surname)
@@ -164,19 +175,19 @@ export const ContactsEdit: FC = () => {
         hasMaxWidth
         pageTitle={{
           children: `Contact ${name !== 'Unknown' ? name : ''}`,
-          hasBoldText: true,
+          hasBoldText: true
         }}
         buttons={[
           {
             children: 'Back To List',
             intent: 'default',
-            onClick: navigateRoute(navigate, '/contacts/list'),
+            onClick: navigateRoute(navigate, '/contacts/list')
           },
           {
             children: 'New Contact',
             intent: 'primary',
-            onClick: navigateRoute(navigate, '/contacts/new'),
-          },
+            onClick: navigateRoute(navigate, '/contacts/new')
+          }
         ]}
         tabs={{
           hasNoBorder: true,
@@ -187,33 +198,33 @@ export const ContactsEdit: FC = () => {
               id: 'view',
               value: 'view',
               text: 'Overview',
-              isChecked: pathname.includes('view'),
+              isChecked: pathname.includes('view')
             },
             {
               id: 'personal',
               value: 'personal',
               text: 'Personal',
-              isChecked: pathname.includes('personal'),
+              isChecked: pathname.includes('personal')
             },
             {
               id: 'communications',
               value: 'communications',
               text: 'Communications',
-              isChecked: pathname.includes('communications'),
+              isChecked: pathname.includes('communications')
             },
             {
               id: 'addresses',
               value: 'addresses',
               text: 'Addresses',
-              isChecked: pathname.includes('addresses'),
+              isChecked: pathname.includes('addresses')
             },
             {
               id: 'office',
               value: 'office',
               text: 'Office Details',
-              isChecked: pathname.includes('office'),
-            },
-          ],
+              isChecked: pathname.includes('office')
+            }
+          ]
         }}
       />
       <FlexContainer hasMaxWidth isFlexColumn>
@@ -226,13 +237,22 @@ export const ContactsEdit: FC = () => {
                 <Route path="personal" element={<ContactsPersonal form={form} />} />
                 <Route path="communications" element={<ContactsComsDetails form={form} />} />
                 <Route path="addresses" element={<ContactsAddresses form={form} />} />
-                <Route path="office" element={<ContactsOfficeDetails form={form} contact={contact} />} />
+                <Route
+                  path="office"
+                  element={<ContactsOfficeDetails form={form} contact={contact} />}
+                />
               </Routes>
             </div>
             {!isValid && !isValidating && !pathname.includes('view') && contact && (
-              <PersistentNotification className={elMb7} isExpanded isFullWidth isInline intent="danger">
-                There are one or more errors in the form that are preventing you from saving the contact. Please check
-                each section to proceeed.
+              <PersistentNotification
+                className={elMb7}
+                isExpanded
+                isFullWidth
+                isInline
+                intent="danger"
+              >
+                There are one or more errors in the form that are preventing you from saving the
+                contact. Please check each section to proceeed.
               </PersistentNotification>
             )}
             {!pathname.includes('view') && (

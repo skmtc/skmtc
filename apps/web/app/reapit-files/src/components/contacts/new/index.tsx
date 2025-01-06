@@ -9,12 +9,12 @@ import {
   PageHeader,
   StepsVertical,
   Tile,
-  useMediaQuery,
+  useMediaQuery
 } from '@reapit/elements'
 import { useForm, UseFormTrigger } from 'react-hook-form'
 import { CreateContactModel } from '@reapit/foundations-ts-definitions'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { NavigateFunction, useNavigate } from 'react-router'
+import { NavigateFunction, useNavigate } from 'react-router-dom'
 import { CONTACTS_ROUTES } from '../routes'
 import { ContactFormSchema, contactsValidationSchema } from '../form/contacts-validation-schema'
 import { ContactsPersonal } from '../form/contacts-personal-details'
@@ -31,7 +31,7 @@ export const handleSwitchStep =
     step: string,
     selectedStep: string,
     trigger: UseFormTrigger<ContactFormSchema>,
-    setSelectedStep: Dispatch<SetStateAction<string>>,
+    setSelectedStep: Dispatch<SetStateAction<string>>
   ) =>
   () => {
     const validateStep = async () => {
@@ -51,7 +51,7 @@ export const handleSwitchStep =
             'communicationPreferenceEmail',
             'communicationPreferencePhone',
             'communicationPreferenceLetter',
-            'communicationPreferenceSMS',
+            'communicationPreferenceSMS'
           ])
           break
         case '3':
@@ -81,8 +81,8 @@ export const handleSubmitContact =
       officeIds: officeIds?.split(',').filter(Boolean),
       source: {
         id: source?.split('-')[0],
-        type: source?.split('-')[1],
-      },
+        type: source?.split('-')[1]
+      }
     }
 
     const result = await createContact(createContactParams)
@@ -98,14 +98,14 @@ export const ContactsNew: FC = () => {
   const { isTablet, isMobile } = useMediaQuery()
 
   const form = useForm<ContactFormSchema>({
-    resolver: yupResolver(contactsValidationSchema),
+    resolver: yupResolver(contactsValidationSchema)
   })
 
   const { handleSubmit, trigger } = form
 
   const [createContact, createContactLoading] = usePlatformUpdate<CreateContactModel, boolean>({
     path: '/contacts',
-    successMessage: 'Contact created successfully',
+    successMessage: 'Contact created successfully'
   })
 
   const nextStep = String(Number(selectedStep) + 1)
@@ -116,15 +116,15 @@ export const ContactsNew: FC = () => {
         hasMaxWidth
         pageTitle={{
           children: 'New Contact',
-          hasBoldText: true,
+          hasBoldText: true
         }}
         buttons={[
           {
             children: 'Back To List',
             intent: 'default',
             className: elMb5,
-            onClick: navigateRoute(navigate, '/contacts/list'),
-          },
+            onClick: navigateRoute(navigate, '/contacts/list')
+          }
         ]}
       />
       <FlexContainer isFlexColumn hasMaxWidth>
@@ -134,20 +134,20 @@ export const ContactsNew: FC = () => {
               steps={[
                 {
                   item: '1',
-                  content: <ContactsPersonal form={form} />,
+                  content: <ContactsPersonal form={form} />
                 },
                 {
                   item: '2',
-                  content: <ContactsComsDetails form={form} />,
+                  content: <ContactsComsDetails form={form} />
                 },
                 {
                   item: '3',
-                  content: <ContactsAddresses form={form} />,
+                  content: <ContactsAddresses form={form} />
                 },
                 {
                   item: '4',
-                  content: <ContactsOfficeDetails form={form} />,
-                },
+                  content: <ContactsOfficeDetails form={form} />
+                }
               ]}
               selectedStep={selectedStep}
               onStepClick={setSelectedStep}

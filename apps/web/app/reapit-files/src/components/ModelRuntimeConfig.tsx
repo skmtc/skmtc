@@ -1,7 +1,6 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { type FieldValues, type FieldPath, PathValue } from 'react-hook-form'
 import { ChangeEvent, ComponentType, ReactNode } from 'react'
-import Box from '@mui/joy/Box'
 import { IconNames } from '@reapit/elements'
 
 export type ColumnsMap<Model> = {
@@ -23,7 +22,7 @@ export type FixedUiConfig<Model extends FieldValues> = RestoreOptional<UiConfig<
 export const fieldsConfig = <Model extends FieldValues>(formFields: FixedUiConfig<Model>) => {
   return Object.keys(formFields)
     .filter((fieldName): fieldName is keyof FixedUiConfig<Model> => fieldName in formFields)
-    .filter((fieldName) => formFields[fieldName])
+    .filter(fieldName => formFields[fieldName])
 }
 
 export type KeysOf<T> = (keyof T)[]
@@ -36,7 +35,8 @@ export type RequiredKeys<T> = keyof {
   [P in keyof T as T[P] extends Required<T>[P] ? P : never]: T[P]
 }
 
-export type RestoreOptional<T, KeySource> = Partial<Pick<T, OptionalKeys<KeySource>>> & Pick<T, RequiredKeys<KeySource>>
+export type RestoreOptional<T, KeySource> = Partial<Pick<T, OptionalKeys<KeySource>>> &
+  Pick<T, RequiredKeys<KeySource>>
 
 export type KeyPath<T extends FieldValues> = Extract<FieldPath<T>, keyof T>
 
@@ -64,7 +64,7 @@ type FieldParentProps<Model extends FieldValues, Key extends KeyPath<Model>> = {
 
 export const FieldParent = <Model extends FieldValues, Key extends KeyPath<Model>>({
   fieldName,
-  fieldConfig,
+  fieldConfig
 }: FieldParentProps<Model, Key>) => {
   const { Input } = fieldConfig
   return <Input fieldName={fieldName} fieldConfig={fieldConfig} />
@@ -75,7 +75,7 @@ export type ContextInputProps<Model extends FieldValues, Key extends KeyPath<Mod
   fieldConfig: ModelConfig<Model>[Key]
 }
 
-export const NotImplemented = () => <Box>Not implemented</Box>
+export const NotImplemented = () => <div>Not implemented</div>
 
 export type Option = {
   name: string

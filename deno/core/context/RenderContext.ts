@@ -13,10 +13,11 @@ import { tracer } from '../helpers/tracer.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type * as log from 'jsr:@std/log@^0.224.6'
 import type { File } from '../dsl/File.ts'
+import type { Preview } from '../types/Preview.ts'
 
 type ConstructorArgs = {
   files: Map<string, File>
-  previews: Record<string, Record<string, string>>
+  previews: Record<string, Record<string, Preview>>
   prettier?: PrettierConfigType
   basePath: string | undefined
   pinnableGenerators: string[]
@@ -37,7 +38,7 @@ type FileObject = {
 
 export class RenderContext {
   files: Map<string, File>
-  previews: Record<string, Record<string, string>>
+  previews: Record<string, Record<string, Preview>>
   private prettier?: PrettierConfigType
   basePath: string | undefined
   currentDestinationPath: string | 'PRE_RENDER' | 'POST_RENDER'

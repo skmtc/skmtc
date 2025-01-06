@@ -20,6 +20,7 @@ import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../types/Typ
 import { Inserted } from '../dsl/Inserted.js';
 import { File } from '../dsl/File.js';
 import type { GeneratorsMap, GeneratorType } from '../types/GeneratorType.js';
+import type { Preview } from '../types/Preview.js';
 type ConstructorArgs = {
     oasDocument: OasDocument;
     settings: ClientSettings | undefined;
@@ -37,12 +38,16 @@ export type ApplyPackageImportsArgs = {
     destinationPath: string;
     exportPath: string;
 };
+export type RegisterPreviewArgs = {
+    name: string;
+    route?: string;
+};
 export type RegisterArgs = {
     imports?: Record<string, ImportNameArg[]>;
     reExports?: Record<string, Identifier[]>;
     definitions?: (Definition | undefined)[];
     preview?: {
-        [group: string]: string;
+        [group: string]: RegisterPreviewArgs;
     };
     destinationPath: string;
 };
@@ -94,7 +99,7 @@ type BuildModelSettingsArgs<V, EnrichmentType> = {
 };
 type GenerateResult = {
     files: Map<string, File>;
-    previews: Record<string, Record<string, string>>;
+    previews: Record<string, Record<string, Preview>>;
 };
 export declare class GenerateContext {
     #private;

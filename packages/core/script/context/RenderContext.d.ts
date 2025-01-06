@@ -6,9 +6,10 @@ import type { ResultType } from '../types/Results.js';
 import type { StackTrail } from './StackTrail.js';
 import type * as log from '../deps/jsr.io/@std/log/0.224.8/mod.js';
 import type { File } from '../dsl/File.js';
+import type { Preview } from '../types/Preview.js';
 type ConstructorArgs = {
     files: Map<string, File>;
-    previews: Record<string, Record<string, string>>;
+    previews: Record<string, Record<string, Preview>>;
     prettier?: PrettierConfigType;
     basePath: string | undefined;
     pinnableGenerators: string[];
@@ -19,7 +20,7 @@ type ConstructorArgs = {
 export declare class RenderContext {
     #private;
     files: Map<string, File>;
-    previews: Record<string, Record<string, string>>;
+    previews: Record<string, Record<string, Preview>>;
     private prettier?;
     basePath: string | undefined;
     currentDestinationPath: string | 'PRE_RENDER' | 'POST_RENDER';

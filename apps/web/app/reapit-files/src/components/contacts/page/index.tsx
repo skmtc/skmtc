@@ -1,5 +1,5 @@
 import { FC } from 'react'
-import { Navigate, Routes as Router } from 'react-router'
+import { Navigate, Routes as Router } from 'react-router-dom'
 import { Route } from 'react-router-dom'
 import { FlexContainer, PageContainer } from '@reapit/elements'
 

@@ -1,6 +1,6 @@
 import { FC } from 'react'
 import { FlexContainer, PageContainer } from '@reapit/elements'
-import { Routes as Router } from 'react-router'
+import { Routes as Router } from 'react-router-dom'
 import { Route } from 'react-router-dom'
 import Wrapper from './wrapper'
 

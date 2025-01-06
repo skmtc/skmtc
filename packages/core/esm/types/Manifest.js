@@ -2,6 +2,7 @@ import "../_dnt.polyfills.js";
 import { isGeneratorKey } from './GeneratorKeys.js';
 import { z } from 'zod';
 import { resultsItem } from './Results.js';
+import { preview } from './Preview.js';
 export const manifestEntry = z.object({
     numberOfLines: z.number(),
     numberOfCharacters: z.number(),
@@ -19,7 +20,7 @@ export const manifestContent = z.object({
     spanId: z.string(),
     region: z.string().optional(),
     files: z.record(manifestEntry),
-    previews: z.record(z.string(), z.record(z.string())),
+    previews: z.record(z.string(), z.record(preview)),
     pinnable: z.record(z.string().refine(isGeneratorKey), z.string()),
     results: resultsItem,
     startAt: z.number(),
