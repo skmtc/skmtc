@@ -1,4 +1,4 @@
-import { reapitConnectBrowserSession } from '@/lib/connectSession'
+// import { reapitConnectBrowserSession } from '@/lib/connectSession'
 
 export interface ReapitErrorField {
   field?: string
@@ -42,10 +42,10 @@ export const handleReapitError = (error: ReapitError, defaultMessage?: string): 
 export const getMergedHeaders = async (
   headers?: Record<string, string | undefined>
 ): Promise<HeadersInit | undefined> => {
-  const connectSession = await reapitConnectBrowserSession.connectSession()
-  const accessToken = connectSession?.accessToken
+  // const connectSession = await reapitConnectBrowserSession.connectSession()
+  // const accessToken = connectSession?.accessToken
 
-  // const accessToken = import.meta.env.VITE_AUTH_TOKEN
+  const accessToken = import.meta.env.VITE_AUTH_TOKEN
 
   return accessToken
     ? {

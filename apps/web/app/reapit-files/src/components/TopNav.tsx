@@ -1,38 +1,40 @@
-import { reapitConnectBrowserSession } from '@/lib/connectSession'
-import { getAvatarInitials } from '@/lib/getAvatarInitials'
-import { useReapitConnect } from '@reapit/connect-session'
+// import { reapitConnectBrowserSession } from '@/lib/connectSession'
+//import { getAvatarInitials } from '@/lib/getAvatarInitials'
+// import { useReapitConnect } from '@reapit/connect-session'
 import { NavResponsive } from '@reapit/elements'
 
 export const TopNav = () => {
-  const { connectLogoutRedirect, connectIsDesktop, connectSession } = useReapitConnect(reapitConnectBrowserSession)
+  // const { connectLogoutRedirect, connectIsDesktop, connectSession } = useReapitConnect(
+  //   reapitConnectBrowserSession
+  // )
   return (
     <NavResponsive
       defaultNavIndex={1}
       appSwitcherOptions={[
         {
           text: 'AppMarket',
-          callback: () => console.log('Navigating'),
+          callback: () => console.log('Navigating')
         },
         {
           text: 'DevPortal',
-          callback: () => console.log('Navigating'),
-        },
+          callback: () => console.log('Navigating')
+        }
       ]}
-      avatarText={getAvatarInitials(connectSession)}
-      avatarOptions={
-        !connectIsDesktop
-          ? [
-              {
-                callback: connectLogoutRedirect,
-                text: 'Logout',
-              },
-            ]
-          : undefined
-      }
+      // avatarText={getAvatarInitials(connectSession)}
+      // avatarOptions={
+      //   !connectIsDesktop
+      //     ? [
+      //         {
+      //           callback: connectLogoutRedirect,
+      //           text: 'Logout'
+      //         }
+      //       ]
+      //     : undefined
+      // }
       options={[
         {
           itemIndex: 0,
-          callback: () => console.log('Navigating'),
+          callback: () => console.log('Navigating')
         },
         {
           itemIndex: 1,
@@ -42,14 +44,14 @@ export const TopNav = () => {
             {
               itemIndex: 0,
               callback: () => console.log('Navigating'),
-              text: 'App List',
+              text: 'App List'
             },
             {
               itemIndex: 1,
               callback: () => console.log('Navigating'),
-              text: 'Create App',
-            },
-          ],
+              text: 'Create App'
+            }
+          ]
         },
         {
           itemIndex: 2,
@@ -59,20 +61,20 @@ export const TopNav = () => {
             {
               itemIndex: 2,
               callback: () => console.log('Navigating'),
-              text: 'Hits Per Day',
+              text: 'Hits Per Day'
             },
             {
               itemIndex: 3,
               callback: () => console.log('Navigating'),
-              text: 'Weekly Hits',
-            },
-          ],
+              text: 'Weekly Hits'
+            }
+          ]
         },
         {
           itemIndex: 3,
           href: '/contacts',
-          text: 'Contacts',
-        },
+          text: 'Contacts'
+        }
       ]}
     />
   )

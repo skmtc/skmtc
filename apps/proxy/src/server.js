@@ -1,0 +1,37 @@
+import express from 'express'
+import proxy from 'express-http-proxy'
+import cors from 'cors'
+const app = express()
+const port = 3030
+
+app.use(cors({
+  origin: '*',
+  credentials: true
+}))
+
+
+
+app.get('/test', (req, res) => {
+  res.send('Testing')
+})
+
+app.use('/api', (req, res, next) => {
+  console.log("URL", req.url)
+  console.log("REQ HEADERs", req.headers)
+
+  proxy('platform.reapit.cloud', {
+    https: true,
+    proxyReqOptDecorator: function(proxyReqOpts, srcReq) {
+      console.log("SOURCE HEADERS", srcReq.headers);
+      // you can update headers
+      proxyReqOpts.headers['Authorization'] = `Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdYWl9lTENtcjF6Z1dOa2czdUZHNiJ9.eyJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ1c2VybmFtZSI6ImQuZ3JhYm92QGdtYWlsLmNvbSIsImlzcyI6Imh0dHBzOi8vY29ubmVjdC5yZWFwaXQuY2xvdWQvIiwic3ViIjoiYXV0aDB8ZXUtd2VzdC0yX2VRN2RyZU56SnxmMzhiN2Y4Yi02ZDEzLTRiYWYtYjE4ZS03OTM5MWNiNmMxNGQiLCJhdWQiOlsiaHR0cHM6Ly9wbGF0Zm9ybS5yZWFwaXQuY2xvdWQiLCJodHRwczovL3JjdWstNzd4dTQ4eXJqMWljbjhtbnNrOWF1bHgybTVlM2Y2LnVrLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3MzYyNDk3MjgsImV4cCI6MTczNjI1MzMyOCwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCBvZmZsaW5lX2FjY2VzcyBhZ2VuY3lDbG91ZC9hcHBsaWNhbnRzLnJlYWQgYWdlbmN5Q2xvdWQvYXBwbGljYW50cy53cml0ZSBhZ2VuY3lDbG91ZC9hcHBvaW50bWVudHMucmVhZCBhZ2VuY3lDbG91ZC9hcHBvaW50bWVudHMud3JpdGUgYWdlbmN5Q2xvdWQvYXJlYXMud3JpdGUgYWdlbmN5Q2xvdWQvY29tcGFuaWVzLnJlYWQgYWdlbmN5Q2xvdWQvY29tcGFuaWVzLndyaXRlIGFnZW5jeUNsb3VkL2NvbnRhY3RzLnJlYWQgYWdlbmN5Q2xvdWQvY29udGFjdHMud3JpdGUgYWdlbmN5Q2xvdWQvY29udmV5YW5jaW5nLnJlYWQgYWdlbmN5Q2xvdWQvY29udmV5YW5jaW5nLndyaXRlIGFnZW5jeUNsb3VkL2RvY3VtZW50cy5yZWFkIGFnZW5jeUNsb3VkL2RvY3VtZW50cy53cml0ZSBhZ2VuY3lDbG91ZC9lbnF1aXJpZXMucmVhZCBhZ2VuY3lDbG91ZC9lbnF1aXJpZXMud3JpdGUgYWdlbmN5Q2xvdWQvaWRlbnRpdHljaGVja3MucmVhZCBhZ2VuY3lDbG91ZC9pZGVudGl0eWNoZWNrcy53cml0ZSBhZ2VuY3lDbG91ZC9pbnZvaWNlcy5yZWFkIGFnZW5jeUNsb3VkL2pvdXJuYWxlbnRyaWVzLnJlYWQgYWdlbmN5Q2xvdWQvam91cm5hbGVudHJpZXMud3JpdGUgYWdlbmN5Q2xvdWQva2V5cy5yZWFkIGFnZW5jeUNsb3VkL2tleXMud3JpdGUgYWdlbmN5Q2xvdWQvbGFuZGxvcmRzLnJlYWQgYWdlbmN5Q2xvdWQvbGFuZGxvcmRzLndyaXRlIGFnZW5jeUNsb3VkL25lZ290aWF0b3JzLnJlYWQgYWdlbmN5Q2xvdWQvbmVnb3RpYXRvcnMud3JpdGUgYWdlbmN5Q2xvdWQvb2ZmZXJzLnJlYWQgYWdlbmN5Q2xvdWQvb2ZmZXJzLndyaXRlIGFnZW5jeUNsb3VkL29mZmljZXMucmVhZCBhZ2VuY3lDbG91ZC9vZmZpY2VzLndyaXRlIGFnZW5jeUNsb3VkL3Byb3BlcnRpZXMucmVhZCBhZ2VuY3lDbG91ZC9wcm9wZXJ0aWVzLndyaXRlIGFnZW5jeUNsb3VkL3JlZmVycmFscy5yZWFkIGFnZW5jeUNsb3VkL3JlZmVycmFscy53cml0ZSBhZ2VuY3lDbG91ZC9zb3VyY2VzLndyaXRlIGFnZW5jeUNsb3VkL3Rhc2tzLnJlYWQgYWdlbmN5Q2xvdWQvdGFza3Mud3JpdGUgYWdlbmN5Q2xvdWQvdGVuYW5jaWVzLnJlYWQgYWdlbmN5Q2xvdWQvdGVuYW5jaWVzLndyaXRlIGFnZW5jeUNsb3VkL3RyYW5zYWN0aW9ucy5yZWFkIGFnZW5jeUNsb3VkL3RyYW5zYWN0aW9ucy53cml0ZSBhZ2VuY3lDbG91ZC92ZW5kb3JzLnJlYWQgYWdlbmN5Q2xvdWQvdmVuZG9ycy53cml0ZSBhZ2VuY3lDbG91ZC93b3Jrc29yZGVycy5yZWFkIGFnZW5jeUNsb3VkL3dvcmtzb3JkZXJzLndyaXRlIiwiYXpwIjoiNGo3dTQ5Ym5pcDhnc2Y0dWp0ZXU3b2prb3EifQ.iAvkyP-JLsuoZ1oiwx6oI5QJytf2LE_PCTeXRVrxSNsM8nJ64uFsjVKjtvWSUE2zeOQTiqys6Ztc92VvtOnKDzKX-8rJsUSpMAemtaV8Diyw9eyQTRIsT9oCCxA4iFlrZrmKXkHLe0GpM3kiDxrvXkSC54ppVYLLpp0Gc8KpwFdFv1PQjK4FUaC9EOJ9Qlf5lRsCBC0XWY2N5xB0XCi1xa4XOBANCu5tWVWi9YrSsc5fMyByAD0bzdlBnBivWNpXxdqP3JTsZdLEJT9kiF8gcYTNTHJZ60h-YPzqFRfRXx4OPeHazdap4T2cHhmOjPkhgvOblgP4KKfrPqQ0tWSMpw`;
+      proxyReqOpts.headers['api-version'] = 'latest'
+      // you can change the method
+      return proxyReqOpts;
+    }
+  })(req, res, next)
+})
+
+app.listen(port, () => {
+  console.log(`App is live at http://localhost:${port}`)
+})

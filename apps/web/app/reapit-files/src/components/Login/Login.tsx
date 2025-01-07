@@ -1,10 +1,18 @@
 import { FC } from 'react'
-import { Button, ButtonGroup, Subtitle, FlexContainer, Icon, elMb7, BodyText } from '@reapit/elements'
+import {
+  Button,
+  ButtonGroup,
+  Subtitle,
+  FlexContainer,
+  Icon,
+  elMb7,
+  BodyText
+} from '@reapit/elements'
 import { LoginContainer, LoginContentWrapper } from './styles'
-import { reapitConnectBrowserSession } from '@/lib/connectSession'
+// import { reapitConnectBrowserSession } from '@/lib/connectSession'
 
 export const handleLoginClick = () => {
-  reapitConnectBrowserSession.connectLoginRedirect()
+  // reapitConnectBrowserSession.connectLoginRedirect()
 }
 
 export const LoginModule: FC = () => {
