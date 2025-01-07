@@ -11,8 +11,7 @@ export default defineConfig({
       '@': '/src',
     },
   },
-  server: {
-    host: true,
-    port: 8080,
-  },
+  build: {
+    outDir: 'build',
+  }
 })

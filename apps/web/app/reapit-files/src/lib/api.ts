@@ -23,22 +23,24 @@ export const handleReapitError = (error: ReapitError, defaultMessage?: string): 
   const messageString = description
     ? description
     : title
-    ? title
-    : message
-    ? message
-    : error?.message
-    ? error.message
-    : defaultMessage
-    ? defaultMessage
-    : 'An unknown error has occurred, please refresh the page and try again.'
-  const fieldErrors = Array.isArray(errors) ? errors?.map(({ field, message }) => `"${field}: ${message}"`) : null
+      ? title
+      : message
+        ? message
+        : error?.message
+          ? error.message
+          : defaultMessage
+            ? defaultMessage
+            : 'An unknown error has occurred, please refresh the page and try again.'
+  const fieldErrors = Array.isArray(errors)
+    ? errors?.map(({ field, message }) => `"${field}: ${message}"`)
+    : null
   const fieldString = fieldErrors ? fieldErrors.join(', ') : ''
 
   return `${messageString} ${fieldString}`
 }
 
 export const getMergedHeaders = async (
-  headers?: Record<string, string | undefined>,
+  headers?: Record<string, string | undefined>
 ): Promise<HeadersInit | undefined> => {
   const connectSession = await reapitConnectBrowserSession.connectSession()
   const accessToken = connectSession?.accessToken
@@ -50,7 +52,7 @@ export const getMergedHeaders = async (
         Authorization: `Bearer ${accessToken}`,
         'api-version': 'latest',
         'Content-Type': 'application/json',
-        ...Object.fromEntries(Object.entries(headers ?? {}).filter(([, value]) => value)),
+        ...Object.fromEntries(Object.entries(headers ?? {}).filter(([, value]) => value))
       }
     : undefined
 }
