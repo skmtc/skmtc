@@ -90,9 +90,14 @@ const Page = () => {
                 </TabsList>
                 <TabsContent
                   value="preview"
-                  className="bg-white rounded-sm border border-gray-300 gap-4 flex-1 data-[state=active]:rounded-tl-none"
+                  className="flex bg-white rounded-sm border border-gray-300 gap-4 flex-1 data-[state=active]:rounded-tl-none"
                 >
                   <iframe className="w-full h-full" src={`${webContainerUrl}${route}`} />
+                  <div className="flex w-[300px] flex-col gap-4">
+                    <div>item 1</div>
+                    <div>item 2</div>
+                    <div>item 3</div>
+                  </div>
                 </TabsContent>
                 <TabsContent
                   value="code"

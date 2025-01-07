@@ -60,7 +60,5 @@ Deno.test('enrichSettings', () => {
     enrichments: mockEnrichmentsPokemon
   })
 
-  console.log('RESULT', result)
-
   assertEquals(result, expectedEnrichedSettings)
 })
