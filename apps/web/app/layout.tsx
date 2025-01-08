@@ -15,7 +15,7 @@ const RootLayout = ({
   children: React.ReactNode
 }>) => {
   return (
-    <html lang="en" className="light prose prose-invert max-w-7xl bg-[#fbf7f0]">
+    <html lang="en" className="light prose prose-invert min-w-full bg-[#fbf7f0]">
       <head>
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />

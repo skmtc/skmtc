@@ -9,8 +9,12 @@ const config: Config = {
   ],
   theme: {
   	fontFamily: {
-  		display: ['var(--font-geist-sans)'],
-  		body: ['var(--font-geist-mono)']
+  		display: [
+  			'var(--font-geist-sans)'
+  		],
+  		body: [
+  			'var(--font-geist-mono)'
+  		]
   	},
   	extend: {
   		backgroundImage: {

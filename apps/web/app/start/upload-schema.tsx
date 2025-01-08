@@ -37,9 +37,6 @@ export const UploadSchema = () => {
               {...field}
             />
           </div>
-          <div className="flex flex-col flex-1 mt-2">
-            <PathInput />
-          </div>
 
           <div className="flex mt-8 mb-12 justify-end ">
             <Button

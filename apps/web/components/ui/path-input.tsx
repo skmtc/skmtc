@@ -4,58 +4,34 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Fragment, useEffect, useState } from 'react'
 import { match } from 'ts-pattern'
+import { OpenAPIV3 } from 'openapi-types'
+import invariant from 'tiny-invariant'
 
-const schema = {
-  type: 'object',
-  properties: {
-    name: {
-      type: 'string'
-    },
-    age: {
-      type: 'number'
-    },
-    skills: {
-      type: 'object',
-      properties: {
-        juggling: {
-          type: 'boolean'
-        },
-        programming: {
-          type: 'boolean'
-        },
-        cooking: {
-          type: 'boolean'
-        },
-        reading: {
-          type: 'boolean'
-        }
-      }
-    },
-    address: {
-      type: 'object',
-      properties: {
-        street: {
-          type: 'string'
-        },
-        city: {
-          type: 'string'
-        }
-      }
-    }
-  }
+type PathInputProps = {
+  schema: OpenAPIV3.SchemaObject
 }
 
-export const PathInput = () => {
+export const PathInput = ({ schema }: PathInputProps) => {
+  invariant(schema.type === 'object', 'Schema must be an object')
+
   const [showAutocomplete, setShowAutocomplete] = useState(false)
   const [selectedItems, setSelectedItems] = useState<string[]>([])
-  const [options, setOptions] = useState<string[]>(Object.keys(schema.properties))
+  const [options, setOptions] = useState<string[]>(Object.keys(schema.properties ?? {}))
   const [highlightedItem, setHighlightedItem] = useState<number>(0)
   const [inputValue, setInputValue] = useState('')
 
   useEffect(() => {
-    const currentSchema = selectedItems.reduce((acc, item) => {
-      if (acc?.properties && item in acc.properties) {
-        return acc.properties[item]
+    const currentSchema = selectedItems.reduce<
+      OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | undefined
+    >((acc, item) => {
+      if (
+        acc &&
+        'type' in acc &&
+        acc.type === 'object' &&
+        acc.properties &&
+        item in acc.properties
+      ) {
+        return acc.properties?.[item as keyof typeof acc.properties]
       }
 
       return undefined
@@ -63,8 +39,8 @@ export const PathInput = () => {
 
     console.log('CURRENT SCHEMA', currentSchema)
 
-    if (currentSchema?.type === 'object') {
-      setOptions(Object.keys(currentSchema.properties))
+    if (currentSchema && 'type' in currentSchema && currentSchema.type === 'object') {
+      setOptions(Object.keys(currentSchema.properties ?? {}))
     } else {
       setOptions([])
     }
@@ -76,15 +52,17 @@ export const PathInput = () => {
     <div className="flex bg-white rounded-sm shadow-sm ring-1 ring-inset ring-gray-300 p-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600">
       {selectedItems.map((item, index) => (
         <Fragment key={item}>
-          <Badge variant="secondary" className="mr-2 text-sm">
+          <Badge variant="secondary" className="text-sm bg-transparent p-0">
             {item}
           </Badge>
-          <span>.</span>
+          {index < selectedItems.length - 1 && <span>.</span>}
         </Fragment>
       ))}
 
+      {options.length > 0 && selectedItems.length > 0 && <span>.</span>}
+
       <Popover
-        open={showAutocomplete && filteredOptions.length > 0}
+        open={showAutocomplete}
         onOpenChange={open => {
           console.log('SET OPEN', open)
           setShowAutocomplete(open)
@@ -92,10 +70,9 @@ export const PathInput = () => {
       >
         <PopoverAnchor className="flex flex-1">
           <Input
-            className=" bg-transparent border-none outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
+            className="h-auto px-0 bg-transparent shadow-none border-none outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
             onFocus={() => setShowAutocomplete(true)}
             onBlur={() => setShowAutocomplete(false)}
-            placeholder="Enter a topic"
             value={inputValue}
             onChange={event => {
               if (options.length > 0) {
@@ -138,7 +115,7 @@ export const PathInput = () => {
         <PopoverContent
           align="start"
           onOpenAutoFocus={e => e.preventDefault()}
-          className="p-1 w-fit"
+          className={`p-1 w-fit ${filteredOptions.length > 0 ? 'block' : 'hidden'}`}
         >
           <div className="flex flex-col">
             {filteredOptions.map((option, index) => (
