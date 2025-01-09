@@ -1,5 +1,99 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { match } from 'ts-pattern'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { useState } from 'react'
+
+type Formatter = {
+  schema: OpenAPIV3.SchemaObject
+  label: string
+}
+
+const numberFormatter: Formatter = {
+  schema: {
+    type: 'number'
+  },
+  label: 'Number'
+}
+
+const textFormatter: Formatter = {
+  schema: {
+    type: 'string'
+  },
+  label: 'Text'
+}
+
+const nameFormatter: Formatter = {
+  schema: {
+    type: 'object',
+    properties: {
+      title: { type: 'string' },
+      forename: { type: 'string' },
+      surname: { type: 'string' }
+    }
+  },
+  label: 'Name'
+}
+
+const addressFormatter: Formatter = {
+  schema: {
+    type: 'object',
+    properties: {
+      buildingName: { type: 'string' },
+      buildingNumber: { type: 'string' },
+      line1: { type: 'string' },
+      line2: { type: 'string' },
+      line3: { type: 'string' },
+      line4: { type: 'string' },
+      postcode: { type: 'string' },
+      country: { type: 'string' }
+    }
+  },
+  label: 'Address'
+}
+
+const formatters: Formatter[] = [numberFormatter, textFormatter, nameFormatter, addressFormatter]
+
+type FormatterSelectProps = {
+  selectedSchema: OpenAPIV3.SchemaObject | null
+}
+
+export const FormatterSelect = ({ selectedSchema }: FormatterSelectProps) => {
+  const formatterOptions = selectedSchema
+    ? formatters
+        .filter(formatter => {
+          return isSchemaSubset({
+            parentSchema: selectedSchema,
+            childSchema: formatter.schema,
+            topSchema: selectedSchema
+          })
+        })
+        .map(formatter => ({
+          value: formatter.label,
+          label: formatter.label
+        }))
+    : []
+
+  return (
+    <Select disabled={!selectedSchema}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Format" />
+      </SelectTrigger>
+      <SelectContent>
+        {formatterOptions.map(option => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
 
 type CompareSchemaArgs = {
   parentSchema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject

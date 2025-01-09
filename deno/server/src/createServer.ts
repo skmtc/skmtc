@@ -2,9 +2,11 @@ import * as Sentry from '@sentry/deno'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
-import { clientSettings as settingsSchema, transform } from '@skmtc/core'
+import { clientSettings as settingsSchema, transform, method } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
-import type { GeneratorsMap, GeneratorType } from '@skmtc/core'
+import type { GeneratorsMap, GeneratorType, OasRef, OasSchema } from '@skmtc/core'
+import { toOasDocument } from './toOasDocument.ts'
+import { json } from 'jsr:@std/yaml@0.215.0/schema/json'
 
 const postSettingsBody = z.object({
   defaultSelected: z.boolean().optional(),
@@ -16,6 +18,14 @@ const postGenerateBody = z.object({
   schema: z.string(),
   clientSettings: settingsSchema.optional(),
   prettier: z.record(z.unknown()).optional()
+})
+
+const postArtifactConfigBody = z.object({
+  schema: z.string(),
+  path: z.string(),
+  method: method,
+  generatorId: z.string(),
+  clientSettings: settingsSchema
 })
 
 type CreateServerArgs = {
@@ -71,6 +81,41 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): H
   app.get('/generators', c => {
     return Sentry.startSpan({ name: 'GET /generators' }, () => {
       return c.json({ generators: Object.keys(toGeneratorsMap()) })
+    })
+  })
+
+  app.post('/artifact-config', async c => {
+    return await Sentry.startSpan({ name: 'POST /settings' }, async span => {
+      const body = await c.req.json()
+
+      const { schema, path, method, generatorId } = postArtifactConfigBody.parse(body)
+
+      const { oasDocument } = toOasDocument({
+        schema,
+        spanId: span.spanContext().spanId
+      })
+
+      const operation = oasDocument.operations.find(operation => {
+        return operation.method === method && operation.path === path
+      })
+
+      const generators = toGeneratorsMap()
+
+      console.log('GENERATORS', generators)
+
+      // deno-lint-ignore ban-ts-comment
+      // @ts-expect-error
+      console.log('GENERATOR', JSON.stringify(generators[generatorId], null, 2))
+
+      // deno-lint-ignore ban-ts-comment
+      // @ts-expect-error
+      const listItem = generators[generatorId]?.toListItem(operation) as
+        | OasSchema
+        | OasRef<'schema'>
+
+      const listItemJson = listItem.toJsonSchema({ resolve: true })
+
+      return c.json({ listItemJson })
     })
   })
 

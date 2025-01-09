@@ -45,11 +45,11 @@ const Section = ({ children, fileNodes }: SectionProps) => {
               <Header />
 
               <div className="flex flex-col flex-1 min-h-0 p-6 lg:px-8">
-                <div className="flex flex-none h-16" />
+                <div className="flex flex-none h-8" />
 
                 <Steps />
 
-                <div className="flex flex-none h-16" />
+                <div className="flex flex-none h-8" />
 
                 {children}
               </div>

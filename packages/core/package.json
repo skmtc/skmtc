@@ -48,6 +48,10 @@
       "import": "./esm/types/Settings.js",
       "require": "./script/types/Settings.js"
     },
+    "./Preview": {
+      "import": "./esm/types/Preview.js",
+      "require": "./script/types/Preview.js"
+    },
     "./EnrichmentRequest": {
       "import": "./esm/types/EnrichmentRequest.js",
       "require": "./script/types/EnrichmentRequest.js"

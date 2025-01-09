@@ -9,9 +9,10 @@ import invariant from 'tiny-invariant'
 
 type PathInputProps = {
   schema: OpenAPIV3.SchemaObject
+  setSelectedSchema: (schema: OpenAPIV3.SchemaObject) => void
 }
 
-export const PathInput = ({ schema }: PathInputProps) => {
+export const PathInput = ({ schema, setSelectedSchema }: PathInputProps) => {
   invariant(schema.type === 'object', 'Schema must be an object')
 
   const [showAutocomplete, setShowAutocomplete] = useState(false)
@@ -19,6 +20,14 @@ export const PathInput = ({ schema }: PathInputProps) => {
   const [options, setOptions] = useState<string[]>(Object.keys(schema.properties ?? {}))
   const [highlightedItem, setHighlightedItem] = useState<number>(0)
   const [inputValue, setInputValue] = useState('')
+
+  const filteredOptions = options.filter(option => option.includes(inputValue))
+
+  useEffect(() => {
+    if (highlightedItem > filteredOptions.length - 1) {
+      setHighlightedItem(filteredOptions.length - 1)
+    }
+  }, [filteredOptions])
 
   useEffect(() => {
     const currentSchema = selectedItems.reduce<
@@ -37,19 +46,18 @@ export const PathInput = ({ schema }: PathInputProps) => {
       return undefined
     }, schema)
 
-    console.log('CURRENT SCHEMA', currentSchema)
-
     if (currentSchema && 'type' in currentSchema && currentSchema.type === 'object') {
       setOptions(Object.keys(currentSchema.properties ?? {}))
     } else {
       setOptions([])
     }
+
+    // TODO: This is a hack to get the schema to update when the selected items change
+    setSelectedSchema(currentSchema as OpenAPIV3.SchemaObject)
   }, [selectedItems])
 
-  const filteredOptions = options.filter(option => option.includes(inputValue))
-
   return (
-    <div className="flex bg-white rounded-sm shadow-sm ring-1 ring-inset ring-gray-300 p-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600">
+    <div className="flex bg-white rounded-sm shadow-sm ring-1 ring-inset ring-gray-300 p-1 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600">
       {selectedItems.map((item, index) => (
         <Fragment key={item}>
           <Badge variant="secondary" className="text-sm bg-transparent p-0">
@@ -64,13 +72,12 @@ export const PathInput = ({ schema }: PathInputProps) => {
       <Popover
         open={showAutocomplete}
         onOpenChange={open => {
-          console.log('SET OPEN', open)
           setShowAutocomplete(open)
         }}
       >
         <PopoverAnchor className="flex flex-1">
           <Input
-            className="h-auto px-0 bg-transparent shadow-none border-none outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
+            className="h-auto p-0 bg-transparent shadow-none border-none outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
             onFocus={() => setShowAutocomplete(true)}
             onBlur={() => setShowAutocomplete(false)}
             value={inputValue}
@@ -82,14 +89,14 @@ export const PathInput = ({ schema }: PathInputProps) => {
             onKeyDown={event => {
               match(event)
                 .with({ key: 'Enter' }, () => {
-                  if (options[highlightedItem]) {
-                    setSelectedItems(prev => [...prev, options[highlightedItem]])
+                  if (filteredOptions[highlightedItem]) {
+                    setSelectedItems(prev => [...prev, filteredOptions[highlightedItem]])
                     setInputValue('')
                     setHighlightedItem(0)
                   }
                 })
                 .with({ key: 'ArrowDown' }, () => {
-                  if (highlightedItem < options.length - 1) {
+                  if (highlightedItem < filteredOptions.length - 1) {
                     setHighlightedItem(highlightedItem + 1)
                   } else {
                     setHighlightedItem(0)
@@ -99,7 +106,7 @@ export const PathInput = ({ schema }: PathInputProps) => {
                   if (highlightedItem > 0) {
                     setHighlightedItem(highlightedItem - 1)
                   } else {
-                    setHighlightedItem(options.length - 1)
+                    setHighlightedItem(filteredOptions.length - 1)
                   }
                 })
                 .with({ key: 'Escape' }, () => {

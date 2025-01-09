@@ -1,20 +1,7 @@
 import * as React from 'react'
-import { Calendars } from '@/components/calendars'
-import { DatePicker } from '@/components/date-picker'
-import { NavUser } from '@/components/nav-user'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-  SidebarSeparator
-} from '@/components/ui/sidebar'
-import { PlusIcon } from '@radix-ui/react-icons'
-
+import { ArtifactConfig } from '@/components/artifact-config'
+import { Sidebar, SidebarContent } from '@/components/ui/sidebar'
+import { OpenAPIV3 } from 'openapi-types'
 // This is sample data.
 const data = {
   user: {
@@ -38,18 +25,22 @@ const data = {
   ]
 }
 
-export function SidebarRight({ ...props }: React.ComponentProps<typeof Sidebar>) {
+type SidebarRightProps = {
+  configSchema: OpenAPIV3.SchemaObject | null
+} & React.ComponentProps<typeof Sidebar>
+
+export function SidebarRight({ configSchema, ...props }: SidebarRightProps) {
+  console.log('CONFIG SCHEMA', configSchema)
+
   return (
     <Sidebar collapsible="none" className="sticky hidden lg:flex top-0 border-l" {...props}>
-      <SidebarHeader className="h-16 border-b border-sidebar-border">
+      {/* <SidebarHeader className="h-16 border-b border-sidebar-border">
         <NavUser user={data.user} />
-      </SidebarHeader>
-      <SidebarContent>
-        <DatePicker />
-        <SidebarSeparator className="mx-0" />
-        <Calendars calendars={data.calendars} />
+      </SidebarHeader> */}
+      <SidebarContent className="pt-2">
+        <ArtifactConfig configSchema={configSchema} />
       </SidebarContent>
-      <SidebarFooter>
+      {/* <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton>
@@ -58,7 +49,7 @@ export function SidebarRight({ ...props }: React.ComponentProps<typeof Sidebar>)
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   )
 }

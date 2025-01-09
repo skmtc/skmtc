@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.preview = void 0;
+require("../_dnt.polyfills.js");
 const zod_1 = require("zod");
 exports.preview = zod_1.z.object({
     importName: zod_1.z.string(),

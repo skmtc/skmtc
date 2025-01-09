@@ -4,8 +4,6 @@ import { useFormContext, Controller } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import exampleSchema from './example-schema.json'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { PathInput } from '@/components/ui/path-input'
 
 export const UploadSchema = () => {
   const { control } = useFormContext()
@@ -29,7 +27,7 @@ export const UploadSchema = () => {
               Use example schema
             </Button>
           </div>
-          <div className="flex flex-col flex-none mt-2">
+          <div className="flex flex-col flex-1 mt-2">
             <textarea
               id="schema"
               rows={10}

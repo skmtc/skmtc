@@ -1,3 +1,4 @@
+import "../_dnt.polyfills.js";
 import { z } from 'zod';
 export type Preview = {
     importName: string;

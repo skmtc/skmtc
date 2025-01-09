@@ -5,7 +5,7 @@ import { CodeView } from '@/components/viewer/code-view'
 
 export const ArtifactsCodeView = () => {
   return (
-    <SidebarProvider className="h-full">
+    <SidebarProvider className="h-full" style={{ '--sidebar-width': '100%' }}>
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel className="flex relative" defaultSize={20}>
           <ArtifactsSidebar variant="inset" />

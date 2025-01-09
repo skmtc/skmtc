@@ -1,5 +1,6 @@
-import { toSettings, enrichSettings, CoreContext, toEnrichments } from '@skmtc/core'
-import type { ClientSettings, GeneratorsMap, GeneratorType, ParseReturn } from '@skmtc/core'
+import { toSettings, enrichSettings, toEnrichments } from '@skmtc/core'
+import type { ClientSettings, GeneratorsMap, GeneratorType } from '@skmtc/core'
+import { toOasDocument } from './toOasDocument.ts'
 
 type GenerateSettingsArgs = {
   toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
@@ -36,15 +37,4 @@ export const generateSettings = async ({
   const enrichedSettings = enrichSettings({ generatorSettings, enrichments })
 
   return { enrichedSettings, extensions }
-}
-
-type ToOasDocumentArgs = {
-  schema: string
-  spanId: string
-}
-
-const toOasDocument = ({ schema, spanId }: ToOasDocumentArgs): ParseReturn => {
-  const context = new CoreContext({ spanId })
-
-  return context.parse(schema)
 }
