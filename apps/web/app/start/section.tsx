@@ -41,7 +41,7 @@ const Section = ({ children, fileNodes }: SectionProps) => {
       <WebcontainerProvider fileNodes={fileNodes}>
         <ArtifactsProvider>
           <FormProvider {...form}>
-            <div className="flex flex-col h-screen w-screen px-4">
+            <div className="flex flex-col h-screen w-screen px-4 not-prose">
               <Header />
 
               <div className="flex flex-col flex-1 min-h-0 p-6 lg:px-8">

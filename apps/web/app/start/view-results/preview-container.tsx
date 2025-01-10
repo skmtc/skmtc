@@ -22,6 +22,7 @@ export const PreviewContainer = () => {
   const { webContainerUrl } = useWebcontainer()
   const { state } = useArtifacts()
   const [configSchema, setConfigSchema] = useState<OpenAPIV3.SchemaObject | null>(null)
+  const [listItemName, setListItemName] = useState<string | null>(null)
 
   const schema = useWatch({ name: 'schema' })
 
@@ -40,7 +41,10 @@ export const PreviewContainer = () => {
         })
       })
         .then(res => res.json())
-        .then(data => setConfigSchema(data.listItemJson as OpenAPIV3.SchemaObject))
+        .then(data => {
+          setConfigSchema(data.listItemJson as OpenAPIV3.SchemaObject)
+          setListItemName(data.listItemName)
+        })
     }
   })
 
@@ -71,7 +75,7 @@ export const PreviewContainer = () => {
           ) : null}
         </div>
       </SidebarInset>
-      <SidebarRight configSchema={configSchema} />
+      <SidebarRight configSchema={configSchema} listItemName={listItemName} />
     </SidebarProvider>
   )
 }

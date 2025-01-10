@@ -2,34 +2,13 @@ import * as React from 'react'
 import { ArtifactConfig } from '@/components/artifact-config'
 import { Sidebar, SidebarContent } from '@/components/ui/sidebar'
 import { OpenAPIV3 } from 'openapi-types'
-// This is sample data.
-const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg'
-  },
-  calendars: [
-    {
-      name: 'My Calendars',
-      items: ['Personal', 'Work', 'Family']
-    },
-    {
-      name: 'Favorites',
-      items: ['Holidays', 'Birthdays']
-    },
-    {
-      name: 'Other',
-      items: ['Travel', 'Reminders', 'Deadlines']
-    }
-  ]
-}
 
 type SidebarRightProps = {
   configSchema: OpenAPIV3.SchemaObject | null
+  listItemName: string | null
 } & React.ComponentProps<typeof Sidebar>
 
-export function SidebarRight({ configSchema, ...props }: SidebarRightProps) {
+export function SidebarRight({ configSchema, listItemName, ...props }: SidebarRightProps) {
   console.log('CONFIG SCHEMA', configSchema)
 
   return (
@@ -38,7 +17,7 @@ export function SidebarRight({ configSchema, ...props }: SidebarRightProps) {
         <NavUser user={data.user} />
       </SidebarHeader> */}
       <SidebarContent className="pt-2">
-        <ArtifactConfig configSchema={configSchema} />
+        <ArtifactConfig configSchema={configSchema} listItemName={listItemName} />
       </SidebarContent>
       {/* <SidebarFooter>
         <SidebarMenu>

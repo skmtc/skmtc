@@ -113,9 +113,11 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): H
         | OasSchema
         | OasRef<'schema'>
 
+      const refName = listItem.isRef() ? listItem.toRefName() : null
+
       const listItemJson = listItem.toJsonSchema({ resolve: true })
 
-      return c.json({ listItemJson })
+      return c.json({ listItemJson, listItemName: refName })
     })
   })
 
