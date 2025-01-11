@@ -3,6 +3,7 @@ import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
 import { Toaster } from '@/components/ui/sonner'
+import { z } from '@hono/zod-openapi'
 
 export const metadata: Metadata = {
   title: 'CodeSquared - Generate TypeScript from OpenAPI',

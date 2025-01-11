@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { type OasArrayData } from '../array/array-types.js';
 import { type OasBooleanData } from '../boolean/boolean-types.js';
 import { type OasNullData } from '../null/null-types.js';

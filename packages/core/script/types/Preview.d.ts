@@ -19,6 +19,35 @@ export type Preview = {
     group: string;
     source: OperationPreview | ModelPreview;
 };
+export declare const operationPreview: z.ZodObject<{
+    type: z.ZodLiteral<"operation">;
+    generatorId: z.ZodString;
+    operationPath: z.ZodString;
+    operationMethod: z.ZodType<Method, z.ZodTypeDef, Method>;
+}, "strip", z.ZodTypeAny, {
+    type: "operation";
+    generatorId: string;
+    operationPath: string;
+    operationMethod: Method;
+}, {
+    type: "operation";
+    generatorId: string;
+    operationPath: string;
+    operationMethod: Method;
+}>;
+export declare const modelPreview: z.ZodObject<{
+    type: z.ZodLiteral<"model">;
+    generatorId: z.ZodString;
+    refName: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    type: "model";
+    generatorId: string;
+    refName: string;
+}, {
+    type: "model";
+    generatorId: string;
+    refName: string;
+}>;
 export declare const preview: z.ZodObject<{
     name: z.ZodString;
     exportPath: z.ZodString;

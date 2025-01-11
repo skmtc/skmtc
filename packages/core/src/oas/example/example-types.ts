@@ -1,5 +1,5 @@
 import { markdown } from '../markdown/markdown-types.js'
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 export type OasExampleData = {
   oasType: 'example'

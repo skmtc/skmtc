@@ -1,6 +1,6 @@
 import "../_dnt.polyfills.js";
 import { type Method, method } from './Method.js'
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 export const enrichedSetting = z
   .object({

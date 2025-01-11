@@ -1,19 +1,10 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 import { oasArrayData, type OasArrayData } from '../array/array-types.js'
-import {
-  oasBooleanData,
-  type OasBooleanData
-} from '../boolean/boolean-types.js'
+import { oasBooleanData, type OasBooleanData } from '../boolean/boolean-types.js'
 import { oasNullData, type OasNullData } from '../null/null-types.js'
-import {
-  oasUnknownData,
-  type OasUnknownData
-} from '../unknown/unknown-types.js'
+import { oasUnknownData, type OasUnknownData } from '../unknown/unknown-types.js'
 import { oasUnionData, type OasUnionData } from '../union/union-types.js'
-import {
-  oasIntegerData,
-  type OasIntegerData
-} from '../integer/integer-types.js'
+import { oasIntegerData, type OasIntegerData } from '../integer/integer-types.js'
 import { oasNumberData, type OasNumberData } from '../number/number-types.js'
 import {
   oasIntersectionData,

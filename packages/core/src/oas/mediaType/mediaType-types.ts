@@ -1,7 +1,4 @@
-import {
-  type OasExampleData,
-  oasExampleData
-} from '../example/example-types.js'
+import { type OasExampleData, oasExampleData } from '../example/example-types.js'
 import {
   type OasExampleRefData,
   type OasSchemaRefData,
@@ -9,7 +6,7 @@ import {
   oasSchemaRefData
 } from '../ref/ref-types.js'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.js'
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 export type OasMediaTypeData = {
   oasType: 'mediaType'

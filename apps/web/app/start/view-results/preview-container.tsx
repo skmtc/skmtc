@@ -19,21 +19,21 @@ export const PreviewContainer = () => {
   const [preview, setPreview] = useState<Preview | null>(null)
   const { webContainerUrl } = useWebcontainer()
   const { state: artifactsState } = useArtifacts()
+
   const [configSchema, setConfigSchema] = useState<OpenAPIV3.SchemaObject | null>(null)
   const [listItemName, setListItemName] = useState<string | null>(null)
 
-  const generatorsResponse = useGetArtifactsConfig({
+  useGetArtifactsConfig({
     schema: artifactsState.schema,
     clientSettings: artifactsState.clientSettings,
-    path: preview?.route ?? null,
-    generatorId: '@skmtc/elements-table', // TODO: make this dynamic - ideally add to preview object
-    method: 'get', // TODO: make this dynamic - ideally add to preview object
     preview: preview,
     onSuccess: data => {
       setConfigSchema(data.listItemJson as OpenAPIV3.SchemaObject)
       setListItemName(data.listItemName)
     }
   })
+
+  console.log('ARTIFACTS STATE', artifactsState)
 
   return (
     <SidebarProvider className="h-full">
@@ -47,7 +47,7 @@ export const PreviewContainer = () => {
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem>
-                    <BreadcrumbPage className="line-clamp-1">{preview.importName}</BreadcrumbPage>
+                    <BreadcrumbPage className="line-clamp-1">{preview.name}</BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
@@ -56,6 +56,7 @@ export const PreviewContainer = () => {
             )}
           </div>
         </header>
+
         <div className="flex flex-1 flex-col gap-4 p-4">
           {preview ? (
             <iframe className="w-full h-full" src={`${webContainerUrl}${preview.route}`} />

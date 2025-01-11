@@ -2,7 +2,7 @@ import { type OasExampleData } from '../example/example-types.js';
 import { type OasMediaTypeData } from '../mediaType/mediaType-types.js';
 import { type OasExampleRefData, type OasSchemaRefData } from '../ref/ref-types.js';
 import { type OasSchemaData } from '../schema/schema-types.js';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export type OasParameterLocation = 'query' | 'header' | 'path' | 'cookie';
 export declare const oasParameterLocation: z.ZodType<OasParameterLocation>;
 export type OasParameterStyle = 'matrix' | 'label' | 'form' | 'simple' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject';

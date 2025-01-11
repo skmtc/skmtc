@@ -10,6 +10,9 @@ export const useCreateSettings = ({ onSuccess }: UseCreateSettingsArgs) => {
     mutationFn: (schema: string) => {
       return fetch(`${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/settings`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           schema,
           defaultSelected: true

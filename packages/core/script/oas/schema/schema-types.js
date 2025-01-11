@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.oasSchemaData = void 0;
-const zod_1 = require("zod");
+const zod_openapi_1 = require("@hono/zod-openapi");
 const array_types_js_1 = require("../array/array-types.js");
 const boolean_types_js_1 = require("../boolean/boolean-types.js");
 const null_types_js_1 = require("../null/null-types.js");
@@ -12,7 +12,7 @@ const number_types_js_1 = require("../number/number-types.js");
 const intersection_types_js_1 = require("../intersection/intersection-types.js");
 const string_types_js_1 = require("../string/string-types.js");
 const object_types_js_1 = require("../object/object-types.js");
-exports.oasSchemaData = zod_1.z.union([
+exports.oasSchemaData = zod_openapi_1.z.union([
     object_types_js_1.oasObjectData,
     array_types_js_1.oasArrayData,
     boolean_types_js_1.oasBooleanData,

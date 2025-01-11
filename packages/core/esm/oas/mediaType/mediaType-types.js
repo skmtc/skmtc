@@ -1,7 +1,7 @@
 import { oasExampleData } from '../example/example-types.js';
 import { oasExampleRefData, oasSchemaRefData } from '../ref/ref-types.js';
 import { oasSchemaData } from '../schema/schema-types.js';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export const oasMediaTypeData = z.object({
     oasType: z.literal('mediaType'),
     mediaType: z.string(),

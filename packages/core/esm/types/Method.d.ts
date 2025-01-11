@@ -1,5 +1,5 @@
 import "../_dnt.polyfills.js";
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export declare const methodValues: readonly ["get", "put", "post", "delete", "options", "head", "patch", "trace"];
 export declare const methodValuesNoTrace: string[];
 export declare const method: z.ZodType<Method>;

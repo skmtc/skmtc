@@ -3,7 +3,7 @@ import { markdown } from '../markdown/markdown-types.js';
 import { oasMediaTypeData } from '../mediaType/mediaType-types.js';
 import { oasExampleRefData, oasSchemaRefData } from '../ref/ref-types.js';
 import { oasSchemaData } from '../schema/schema-types.js';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export const oasParameterLocation = z.enum([
     'query',
     'header',

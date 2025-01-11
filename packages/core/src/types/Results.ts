@@ -1,5 +1,5 @@
 import "../_dnt.polyfills.js";
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 export type ResultType = 'success' | 'warning' | 'error' | 'notSelected' | 'notSupported'

@@ -23,14 +23,14 @@ export type Preview = {
   source: OperationPreview | ModelPreview
 }
 
-const operationPreview = z.object({
+export const operationPreview = z.object({
   type: z.literal('operation'),
   generatorId: z.string(),
   operationPath: z.string(),
   operationMethod: method
 })
 
-const modelPreview = z.object({
+export const modelPreview = z.object({
   type: z.literal('model'),
   generatorId: z.string(),
   refName: z.string()

@@ -1,9 +1,6 @@
 import { markdown } from '../markdown/markdown-types.ts'
-import {
-  type OasMediaTypeData,
-  oasMediaTypeData
-} from '../mediaType/mediaType-types.ts'
-import { z } from 'npm:zod@3.24.1'
+import { type OasMediaTypeData, oasMediaTypeData } from '../mediaType/mediaType-types.ts'
+import { z } from '@hono/zod-openapi'
 
 export type OasRequestBodyData = {
   oasType: 'requestBody'

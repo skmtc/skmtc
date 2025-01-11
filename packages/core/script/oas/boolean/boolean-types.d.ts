@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export declare const oasBooleanData: z.ZodType<OasBooleanData>;
 export type OasBooleanData = {
     oasType: 'schema';

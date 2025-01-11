@@ -77,6 +77,7 @@ __exportStar(require("./types/GeneratorType.js"), exports);
 __exportStar(require("./types/Method.js"), exports);
 __exportStar(require("./types/Modifiers.js"), exports);
 __exportStar(require("./types/prettierConfig.js"), exports);
+__exportStar(require("./types/Preview.js"), exports);
 __exportStar(require("./types/RefName.js"), exports);
 __exportStar(require("./types/Settings.js"), exports);
 __exportStar(require("./types/TypeSystem.js"), exports);

@@ -61,6 +61,7 @@ export * from './types/GeneratorType.js';
 export * from './types/Method.js';
 export * from './types/Modifiers.js';
 export * from './types/prettierConfig.js';
+export * from './types/Preview.js';
 export * from './types/RefName.js';
 export * from './types/Settings.js';
 export * from './types/TypeSystem.js';

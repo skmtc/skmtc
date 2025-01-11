@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export declare const oasUnknownData: z.ZodType<OasUnknownData>;
 export type OasUnknownData = {
     oasType: 'schema';

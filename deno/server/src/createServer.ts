@@ -1,17 +1,21 @@
 import * as Sentry from '@sentry/deno'
 import { cors } from 'hono/cors'
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
-import { clientSettings as settingsSchema, transform, method } from '@skmtc/core'
+import { clientSettings as settingsSchema, transform } from '@skmtc/core'
+import { operationPreview, modelPreview } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
 import type { GeneratorsMap, GeneratorType, OasRef, OasSchema } from '@skmtc/core'
 import { toOasDocument } from './toOasDocument.ts'
 import { manifestContent } from '@skmtc/core/Manifest'
+import invariant from 'tiny-invariant'
 
-const postSettingsBody = z.object({
-  defaultSelected: z.boolean().optional(),
-  schema: z.string(),
-  clientSettings: settingsSchema.optional()
-})
+const postSettingsBody = z
+  .object({
+    defaultSelected: z.boolean().optional(),
+    schema: z.string(),
+    clientSettings: settingsSchema.optional()
+  })
+  .openapi('PostSettingsRequestBody')
 
 const postArtifactsBody = z
   .object({
@@ -21,13 +25,13 @@ const postArtifactsBody = z
   })
   .openapi('PostArtifactsRequestBody')
 
-const postArtifactConfigBody = z.object({
-  schema: z.string(),
-  path: z.string(),
-  method: method,
-  generatorId: z.string(),
-  clientSettings: settingsSchema
-})
+const postArtifactConfigBody = z
+  .object({
+    schema: z.string(),
+    clientSettings: settingsSchema,
+    source: z.discriminatedUnion('type', [operationPreview, modelPreview])
+  })
+  .openapi('PostArtifactConfigRequestBody')
 
 type CreateServerArgs = {
   toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
@@ -65,6 +69,37 @@ const postArtifacts = createRoute({
   }
 })
 
+const getGenerators = createRoute({
+  method: 'get',
+  path: '/generators',
+  responses: {
+    200: {
+      description: 'Generators list',
+      content: {
+        'application/json': {
+          schema: z.object({
+            generators: z.array(z.string())
+          })
+        }
+      }
+    }
+  }
+})
+
+const postArtifactConfig = createRoute({
+  method: 'post',
+  path: '/artifact-config',
+  request: {
+    body: { content: { 'application/json': { schema: postArtifactConfigBody } } }
+  },
+  responses: {
+    200: {
+      description: 'Artifact config',
+      content: { 'application/json': { schema: z.object({}) } }
+    }
+  }
+})
+
 export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): OpenAPIHono => {
   const app = new OpenAPIHono()
 
@@ -74,11 +109,9 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
     const startAt = Date.now()
 
     const result = await Sentry.startSpan({ name: 'POST /artifacts' }, async span => {
-      const body = await Sentry.startSpan({ name: 'Parse JSON' }, () => c.req.json())
-
       const { schema, clientSettings, prettier } = await Sentry.startSpan(
-        { name: 'Validate request content' },
-        () => postArtifactsBody.parseAsync(body)
+        { name: 'Parse JSON' },
+        () => c.req.valid('json')
       )
 
       return Sentry.startSpan({ name: 'Generate' }, () => {
@@ -102,17 +135,17 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
     return c.json(result, 200)
   })
 
-  app.get('/generators', c => {
+  app.openapi(getGenerators, c => {
     return Sentry.startSpan({ name: 'GET /generators' }, () => {
       return c.json({ generators: Object.keys(toGeneratorsMap()) })
     })
   })
 
-  app.post('/artifact-config', async c => {
-    return await Sentry.startSpan({ name: 'POST /settings' }, async span => {
-      const body = await c.req.json()
+  app.openapi(postArtifactConfig, async c => {
+    return await Sentry.startSpan({ name: 'POST /artifact-config' }, span => {
+      const { schema, source } = c.req.valid('json')
 
-      const { schema, path, method, generatorId } = postArtifactConfigBody.parse(body)
+      invariant(source.type === 'operation', 'Source must be an operation')
 
       const { oasDocument } = toOasDocument({
         schema,
@@ -120,7 +153,9 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
       })
 
       const operation = oasDocument.operations.find(operation => {
-        return operation.method === method && operation.path === path
+        return (
+          operation.method === source.operationMethod && operation.path === source.operationPath
+        )
       })
 
       const generators = toGeneratorsMap()

@@ -23,9 +23,9 @@ export function ArtifactsPreviewNav({ previews, setPreview }: ArtifactsPreviewNa
           <SidebarGroupLabel className="uppercase">{group}</SidebarGroupLabel>
           <SidebarMenu>
             {Object.values(items ?? {}).map(preview => (
-              <SidebarMenuItem key={`${preview.importName}-${preview.importPath}`}>
+              <SidebarMenuItem key={`${preview.name}-${preview.exportPath}`}>
                 <SidebarMenuButton onClick={() => setPreview(preview)}>
-                  {preview.importName}
+                  {preview.name}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { oasSchemaData } from '../schema/schema-types.js';
 import { oasSchemaRefData } from '../ref/ref-types.js';
 export const oasObjectData = z.object({

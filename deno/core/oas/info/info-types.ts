@@ -1,13 +1,7 @@
-import {
-  type OasLicenseData,
-  oasLicenseData
-} from '../license/license-types.ts'
-import {
-  type OasContactData,
-  oasContactData
-} from '../contact/contact-types.ts'
+import { type OasLicenseData, oasLicenseData } from '../license/license-types.ts'
+import { type OasContactData, oasContactData } from '../contact/contact-types.ts'
 import { markdown } from '../markdown/markdown-types.ts'
-import { z } from 'npm:zod@3.24.1'
+import { z } from '@hono/zod-openapi'
 
 export type OasInfoData = {
   oasType: 'info'

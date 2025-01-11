@@ -1,13 +1,7 @@
 import { type OasTagData, oasTagData } from '../tag/tag-types.ts'
-import {
-  type OasOperationData,
-  oasOperationData
-} from '../operation/operation-types.ts'
-import { z } from 'npm:zod@3.24.1'
-import {
-  type OasComponentsData,
-  oasComponentsData
-} from '../components/components-types.ts'
+import { type OasOperationData, oasOperationData } from '../operation/operation-types.ts'
+import { z } from '@hono/zod-openapi'
+import { type OasComponentsData, oasComponentsData } from '../components/components-types.ts'
 import { type OasInfoData, oasInfoData } from '../info/info-types.ts'
 
 export type OasDocumentData = {

@@ -25,6 +25,9 @@ export const useCreateArtifacts = ({
     mutationFn: () => {
       return fetch(`${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/artifacts`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           clientSettings: {
             ...clientSettings,
@@ -35,8 +38,12 @@ export const useCreateArtifacts = ({
       }).then(res => res.json())
     },
     onSuccess: data => {
+      console.log('RECEIVED ARTIFACTS', data.artifacts)
+      console.log('RECEIVED MANIFEST', data.manifest)
+
       dispatch({ type: 'set-artifacts', payload: data.artifacts })
       dispatch({ type: 'set-manifest', payload: data.manifest })
+
       router.push('/start/view-results')
     },
     onError: () => {

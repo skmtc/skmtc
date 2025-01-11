@@ -1,5 +1,5 @@
 import { markdown } from '../markdown/markdown-types.ts'
-import { z } from 'npm:zod@3.24.1'
+import { z } from '@hono/zod-openapi'
 
 export type OasSchemaRefData = {
   oasType: 'ref'
@@ -73,15 +73,13 @@ export type OasRequestBodyRefData = {
   description?: string
 }
 
-export const oasRequestBodyRefData: z.ZodType<OasRequestBodyRefData> = z.object(
-  {
-    oasType: z.literal('ref'),
-    refType: z.enum(['requestBody']),
-    $ref: z.string(),
-    summary: z.string().optional(),
-    description: markdown.optional()
-  }
-)
+export const oasRequestBodyRefData: z.ZodType<OasRequestBodyRefData> = z.object({
+  oasType: z.literal('ref'),
+  refType: z.enum(['requestBody']),
+  $ref: z.string(),
+  summary: z.string().optional(),
+  description: markdown.optional()
+})
 export type OasHeaderRefData = {
   oasType: 'ref'
   refType: 'header'

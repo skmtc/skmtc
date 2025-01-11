@@ -1,5 +1,5 @@
 import "../_dnt.polyfills.js";
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export type ResultType = 'success' | 'warning' | 'error' | 'notSelected' | 'notSupported';
 export type WarningError = 'warning' | 'error';
 export declare const resultType: z.ZodEnum<["success", "warning", "error", "notSelected", "notSupported"]>;

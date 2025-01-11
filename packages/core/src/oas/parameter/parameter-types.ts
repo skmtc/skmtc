@@ -1,12 +1,6 @@
-import {
-  type OasExampleData,
-  oasExampleData
-} from '../example/example-types.js'
+import { type OasExampleData, oasExampleData } from '../example/example-types.js'
 import { markdown } from '../markdown/markdown-types.js'
-import {
-  type OasMediaTypeData,
-  oasMediaTypeData
-} from '../mediaType/mediaType-types.js'
+import { type OasMediaTypeData, oasMediaTypeData } from '../mediaType/mediaType-types.js'
 import {
   type OasExampleRefData,
   type OasSchemaRefData,
@@ -14,7 +8,7 @@ import {
   oasSchemaRefData
 } from '../ref/ref-types.js'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.js'
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 export type OasParameterLocation = 'query' | 'header' | 'path' | 'cookie'
 

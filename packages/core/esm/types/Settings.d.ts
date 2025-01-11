@@ -1,6 +1,6 @@
 import "../_dnt.polyfills.js";
 import { type Method } from './Method.js';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export declare const enrichedSetting: z.ZodObject<{
     selected: z.ZodBoolean;
     enrichments: z.ZodOptional<z.ZodUnknown>;

@@ -47,7 +47,7 @@ export const ArtifactsPreview = () => {
   const { artifacts } = state
 
   useEffect(() => {
-    if (!Object.keys(artifacts).length || status !== 'ready') return
+    if (!Object.keys(artifacts ?? {}).length || status !== 'ready') return
 
     const fileTree = mungeFileTree({ ...artifacts })
 
@@ -73,7 +73,7 @@ export const ArtifactsPreview = () => {
                 Code
               </TabsTrigger>
               <div className="flex flex-1 justify-end">
-                {Object.keys(state.artifacts).length > 0 && (
+                {Object.keys(state?.artifacts ?? {}).length > 0 && (
                   <Button
                     onClick={() => downloadArtifacts(state.artifacts)}
                     variant="link"

@@ -1,5 +1,5 @@
 import "../_dnt.polyfills.js";
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 export const methodValues = [
   'get',

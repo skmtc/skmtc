@@ -1,5 +1,5 @@
 import { type Method, method } from './Method.ts'
-import { z } from 'npm:zod@3.24.1'
+import { z } from '@hono/zod-openapi'
 
 export const enrichedSetting = z
   .object({

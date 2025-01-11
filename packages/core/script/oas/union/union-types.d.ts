@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { type OasSchemaData } from '../schema/schema-types.js';
 import { type OasSchemaRefData } from '../ref/ref-types.js';
 import { type OasDiscriminatorData } from '../discriminator/discriminator-types.js';

@@ -1,10 +1,7 @@
 import { type OasHeaderData, oasHeaderData } from '../header/header-types.ts'
-import {
-  type OasMediaTypeData,
-  oasMediaTypeData
-} from '../mediaType/mediaType-types.ts'
+import { type OasMediaTypeData, oasMediaTypeData } from '../mediaType/mediaType-types.ts'
 import { type OasHeaderRefData, oasHeaderRefData } from '../ref/ref-types.ts'
-import { z } from 'npm:zod@3.24.1'
+import { z } from '@hono/zod-openapi'
 
 export type OasResponseData = {
   oasType: 'response'

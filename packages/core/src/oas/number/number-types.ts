@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 export const oasNumberData: z.ZodType<OasNumberData> = z.object({
   oasType: z.literal('schema'),

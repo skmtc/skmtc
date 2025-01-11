@@ -6,6 +6,7 @@ import exampleSchema from './example-schema.json'
 import { useRouter } from 'next/navigation'
 import { useArtifacts } from '@/components/artifacts/artifacts-context'
 import { useGetGeneratorIds } from '@/services/use-get-generator-ids'
+import { useEffect } from 'react'
 
 type SchemaForm = {
   schema: string
@@ -22,14 +23,18 @@ export const UploadSchema = () => {
 
   const router = useRouter()
 
-  useGetGeneratorIds({
-    onSuccess: generators => {
+  const generatorIdsResponse = useGetGeneratorIds()
+
+  useEffect(() => {
+    if (generatorIdsResponse.isSuccess) {
+      const { generators } = generatorIdsResponse.data
+
       dispatch({
         type: 'set-selected-generators',
         payload: Object.fromEntries(generators.map(generator => [generator, true]))
       })
     }
-  })
+  }, [generatorIdsResponse.data])
 
   return (
     <Controller

@@ -1,5 +1,5 @@
 import { markdown } from '../markdown/markdown-types.js';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export const oasSchemaRefData = z.object({
     oasType: z.literal('ref'),
     refType: z.enum(['schema']),

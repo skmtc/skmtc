@@ -1,4 +1,4 @@
-import { z } from 'npm:zod@3.24.1'
+import { z } from '@hono/zod-openapi'
 
 export const stringFormat = z.enum([
   'date-time',

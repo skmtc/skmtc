@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 export declare const oasIntegerData: z.ZodType<OasIntegerData>;
 export type OasIntegerData = {
     title?: string;

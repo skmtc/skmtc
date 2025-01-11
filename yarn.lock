@@ -2071,27 +2071,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@skmtc/core@npm:^0.0.518":
-  version: 0.0.518
-  resolution: "@skmtc/core@npm:0.0.518"
-  dependencies:
-    "@apiture/openapi-down-convert": "npm:0.14.0"
-    "@babel/helper-validator-identifier": "npm:7.22.20"
-    "@deno/shim-deno": "npm:~0.18.0"
-    "@google/generative-ai": "npm:^0.21.0"
-    "@sentry/deno": "npm:8.47.0"
-    "@types/babel__helper-validator-identifier": "npm:7.15.2"
-    "@types/lodash-es": "npm:4.17.12"
-    lodash-es: "npm:4.17.21"
-    openapi-types: "npm:12.1.3"
-    tiny-invariant: "npm:1.3.3"
-    ts-pattern: "npm:5.6.0"
-    zod: "npm:3.24.1"
-    zod-to-json-schema: "npm:3.24.1"
-  checksum: 10c0/f0a03e57f08e1157ef6a5e285b54b59bcf927861e1e8e440ade5f16dad4c4f689aa3d487cf9c748b6288c75b26ff94005d61da3847e750e720e54f3f6e4e5a90
-  languageName: node
-  linkType: hard
-
 "@skmtc/core@npm:^0.0.523":
   version: 0.0.523
   resolution: "@skmtc/core@npm:0.0.523"
@@ -2110,6 +2089,28 @@ __metadata:
     zod: "npm:3.24.1"
     zod-to-json-schema: "npm:3.24.1"
   checksum: 10c0/456e146c5a16e0ae5b78323b3f03ac53902cdc7e69e3417f3c14b3663c7a77b2bd79152da86f36fcfad36c3b331bfeef16ae4e7bde33403a6d446b8496168aa2
+  languageName: node
+  linkType: hard
+
+"@skmtc/core@npm:^0.0.528":
+  version: 0.0.528
+  resolution: "@skmtc/core@npm:0.0.528"
+  dependencies:
+    "@apiture/openapi-down-convert": "npm:0.14.0"
+    "@babel/helper-validator-identifier": "npm:7.22.20"
+    "@deno/shim-deno": "npm:~0.18.0"
+    "@google/generative-ai": "npm:^0.21.0"
+    "@hono/zod-openapi": "npm:^0.18.3"
+    "@sentry/deno": "npm:8.47.0"
+    "@types/babel__helper-validator-identifier": "npm:7.15.2"
+    "@types/lodash-es": "npm:4.17.12"
+    lodash-es: "npm:4.17.21"
+    openapi-types: "npm:12.1.3"
+    tiny-invariant: "npm:1.3.3"
+    ts-pattern: "npm:5.6.0"
+    zod: "npm:3.24.1"
+    zod-to-json-schema: "npm:3.24.1"
+  checksum: 10c0/143eb790b961ae52b477ac7da4622d8da203e64ee610fe595b0a34851871232e42a26730fa7d6970f2b1b2a3ed0730a831138bbdd07ec1386234c8a34ff7923c
   languageName: node
   linkType: hard
 
@@ -2185,6 +2186,7 @@ __metadata:
   dependencies:
     "@headlessui/react": "npm:^2.1.8"
     "@heroicons/react": "npm:^2.1.5"
+    "@hono/zod-openapi": "npm:^0.18.3"
     "@hookform/resolvers": "npm:^3.9.1"
     "@mdx-js/loader": "npm:^3.0.0"
     "@mdx-js/react": "npm:^3.0.0"
@@ -2205,7 +2207,7 @@ __metadata:
     "@radix-ui/react-tabs": "npm:^1.1.1"
     "@radix-ui/react-toast": "npm:^1.2.2"
     "@radix-ui/react-tooltip": "npm:^1.1.6"
-    "@skmtc/core": "npm:^0.0.518"
+    "@skmtc/core": "npm:^0.0.528"
     "@tailwindcss/forms": "npm:^0.5.9"
     "@tailwindcss/typography": "npm:^0.5.10"
     "@tanstack/react-query": "npm:^5.62.11"
@@ -2229,6 +2231,7 @@ __metadata:
     file-saver: "npm:^2.0.5"
     framer-motion: "npm:^11.9.0"
     geist: "npm:^1.3.1"
+    hono: "npm:^4.6.16"
     jszip: "npm:^3.10.1"
     lodash: "npm:^4.17.21"
     lucide-react: "npm:^0.469.0"
@@ -4996,6 +4999,13 @@ __metadata:
   dependencies:
     "@types/hast": "npm:^3.0.0"
   checksum: 10c0/b898bc9fe27884b272580d15260b6bbdabe239973a147e97fa98c45fa0ffec967a481aaa42291ec34fb56530dc2d484d473d7e2bae79f39c83f3762307edfea8
+  languageName: node
+  linkType: hard
+
+"hono@npm:^4.6.16":
+  version: 4.6.16
+  resolution: "hono@npm:4.6.16"
+  checksum: 10c0/3d7bf6e19dd2bf1fff38c92fb714da8ef501c90a54e0efd1e8e47fd9d386a88523b39002add8a71c2b8fd2c2f7107837a08ca31580778cba312575d6c72d6da2
   languageName: node
   linkType: hard
 

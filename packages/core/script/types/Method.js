@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isMethod = exports.methods = exports.method = exports.methodValuesNoTrace = exports.methodValues = void 0;
 require("../_dnt.polyfills.js");
-const zod_1 = require("zod");
+const zod_openapi_1 = require("@hono/zod-openapi");
 exports.methodValues = [
     'get',
     'put',
@@ -14,10 +14,10 @@ exports.methodValues = [
     'trace'
 ];
 exports.methodValuesNoTrace = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch'];
-exports.method = zod_1.z
+exports.method = zod_openapi_1.z
     .enum(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'])
     .openapi('Method');
-exports.methods = zod_1.z.array(exports.method);
+exports.methods = zod_openapi_1.z.array(exports.method);
 const isMethod = (arg) => {
     return exports.method.safeParse(arg).success;
 };
