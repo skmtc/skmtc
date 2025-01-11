@@ -1,12 +1,11 @@
 import * as Sentry from '@sentry/deno'
-import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { z } from 'zod'
+import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { clientSettings as settingsSchema, transform, method } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
 import type { GeneratorsMap, GeneratorType, OasRef, OasSchema } from '@skmtc/core'
 import { toOasDocument } from './toOasDocument.ts'
-import { json } from 'jsr:@std/yaml@0.215.0/schema/json'
+import { manifestContent } from '@skmtc/core/Manifest'
 
 const postSettingsBody = z.object({
   defaultSelected: z.boolean().optional(),
@@ -14,7 +13,7 @@ const postSettingsBody = z.object({
   clientSettings: settingsSchema.optional()
 })
 
-const postGenerateBody = z.object({
+const postArtifactsBody = z.object({
   schema: z.string(),
   clientSettings: settingsSchema.optional(),
   prettier: z.record(z.unknown()).optional()
@@ -36,17 +35,40 @@ type CreateServerArgs = {
   logsPath?: string
 }
 
-export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): Hono => {
-  const app = new Hono()
+const postArtifacts = createRoute({
+  method: 'post',
+  path: '/artifacts',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: postArtifactsBody.openapi('PostArtifactsRequestBody')
+        }
+      },
+      required: true
+    }
+  },
+  responses: {
+    200: {
+      description: 'Artifacts generated',
+      content: {
+        'application/json': {
+          schema: z.object({
+            artifacts: z.record(z.string()).openapi('Artifacts'),
+            manifest: manifestContent.openapi('Manifest')
+          })
+        }
+      }
+    }
+  }
+})
 
-  app.use(
-    '*',
-    cors({
-      origin: '*'
-    })
-  )
+export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): OpenAPIHono => {
+  const app = new OpenAPIHono()
 
-  app.post('/artifacts', async c => {
+  app.use('*', cors({ origin: '*' }))
+
+  app.openapi(postArtifacts, async c => {
     const startAt = Date.now()
 
     const result = await Sentry.startSpan({ name: 'POST /artifacts' }, async span => {
@@ -54,7 +76,7 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): H
 
       const { schema, clientSettings, prettier } = await Sentry.startSpan(
         { name: 'Validate request content' },
-        () => postGenerateBody.parseAsync(body)
+        () => postArtifactsBody.parseAsync(body)
       )
 
       return Sentry.startSpan({ name: 'Generate' }, () => {
@@ -75,7 +97,7 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): H
       })
     })
 
-    return c.json(result)
+    return c.json(result, 200)
   })
 
   app.get('/generators', c => {
@@ -137,6 +159,14 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): H
 
       return c.json({ generators: enrichedSettings, extensions })
     })
+  })
+
+  app.doc('/openapi', {
+    openapi: '3.0.3',
+    info: {
+      title: 'SKMTC API',
+      version: '0.0.1'
+    }
   })
 
   return app

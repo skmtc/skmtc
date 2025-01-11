@@ -12,45 +12,32 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
 import { useState } from 'react'
 import { Preview } from '@skmtc/core/Preview'
-import { useQuery } from '@tanstack/react-query'
-import clientSettings from '../select-generators/client.json'
-import { useWatch } from 'react-hook-form'
 import { OpenAPIV3 } from 'openapi-types'
+import { useGetArtifactsConfig } from '@/services/use-get-artifacts-config'
 
 export const PreviewContainer = () => {
   const [preview, setPreview] = useState<Preview | null>(null)
   const { webContainerUrl } = useWebcontainer()
-  const { state } = useArtifacts()
+  const { state: artifactsState } = useArtifacts()
   const [configSchema, setConfigSchema] = useState<OpenAPIV3.SchemaObject | null>(null)
   const [listItemName, setListItemName] = useState<string | null>(null)
 
-  const schema = useWatch({ name: 'schema' })
-
-  const generatorsResponse = useQuery({
-    queryKey: ['artifact-config', preview?.route, 'get'],
-    enabled: Boolean(preview),
-    queryFn: () => {
-      return fetch(`${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/artifact-config`, {
-        method: 'POST',
-        body: JSON.stringify({
-          schema: schema,
-          clientSettings,
-          path: preview?.route,
-          generatorId: '@skmtc/elements-table', // TODO: make this dynamic - ideally add to preview object
-          method: 'get' // TODO: make this dynamic - ideally add to preview object
-        })
-      })
-        .then(res => res.json())
-        .then(data => {
-          setConfigSchema(data.listItemJson as OpenAPIV3.SchemaObject)
-          setListItemName(data.listItemName)
-        })
+  const generatorsResponse = useGetArtifactsConfig({
+    schema: artifactsState.schema,
+    clientSettings: artifactsState.clientSettings,
+    path: preview?.route ?? null,
+    generatorId: '@skmtc/elements-table', // TODO: make this dynamic - ideally add to preview object
+    method: 'get', // TODO: make this dynamic - ideally add to preview object
+    preview: preview,
+    onSuccess: data => {
+      setConfigSchema(data.listItemJson as OpenAPIV3.SchemaObject)
+      setListItemName(data.listItemName)
     }
   })
 
   return (
     <SidebarProvider className="h-full">
-      <ArtifactsSidebar previews={state.manifest?.previews} setPreview={setPreview} />
+      <ArtifactsSidebar previews={artifactsState.manifest?.previews} setPreview={setPreview} />
       <SidebarInset>
         <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 bg-background">
           <div className="flex flex-1 items-center gap-2 px-3">

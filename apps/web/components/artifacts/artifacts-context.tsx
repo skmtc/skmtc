@@ -1,11 +1,16 @@
 'use client'
 
 import { RawCode } from 'codehike/code'
-import { createContext, ReactNode, useContext, useReducer } from 'react'
+import { createContext, Dispatch, ReactNode, useContext, useEffect } from 'react'
 import { match } from 'ts-pattern'
 import { ManifestContent } from '@skmtc/core/Manifest'
+import clientSettingsInitial from './client.json'
+import { ClientSettings } from '@skmtc/core/Settings'
+import { useThunkReducer } from '@/hooks/use-thunk-reducer'
+import { useCreateSettings } from '@/services/use-create-settings'
+import { Preview } from '@skmtc/core/Preview'
 
-type Action =
+export type ArtifactsAction =
   | {
       type: 'set-artifacts'
       payload: Record<string, string>
@@ -18,55 +23,109 @@ type Action =
       type: 'set-manifest'
       payload: ManifestContent
     }
+  | {
+      type: 'set-schema'
+      payload: string
+    }
+  | {
+      type: 'set-selected-generators'
+      payload: Record<string, boolean>
+    }
+  | {
+      type: 'set-client-settings'
+      payload: ClientSettings
+    }
+  | {
+      type: 'set-preview'
+      payload: Preview | null
+    }
 
-type Dispatch = (action: Action) => void
+export type ArtifactsDispatch = Dispatch<ArtifactsAction>
 
-type State = {
+export type ArtifactsState = {
   artifacts: Record<string, string>
   selectedArtifact: RawCode
   manifest: ManifestContent | undefined
+  clientSettings: ClientSettings
+  schema: string
+  selectedGenerators: Record<string, boolean>
+  preview: Preview | null
 }
 
 type ArtifactsProviderProps = {
   children: ReactNode
 }
 
-const ArtifactsStateContext = createContext<{ state: State; dispatch: Dispatch } | undefined>(
-  undefined
-)
+export const ArtifactsStateContext = createContext<
+  | {
+      state: ArtifactsState
+      dispatch: ArtifactsDispatch
+    }
+  | undefined
+>(undefined)
 
-const artifactsReducer = (state: State, action: Action) => {
+const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
   return match(action)
-    .with({ type: 'set-artifacts' }, ({ payload }) => {
-      console.log('SET ARTIFACTS', payload)
-      return {
-        ...state,
-        artifacts: payload
-      }
-    })
-    .with({ type: 'set-selected-artifact' }, ({ payload }) => {
-      console.log('SET SELECTED ARTIFACT', payload)
-      return {
-        ...state,
-        selectedArtifact: payload
-      }
-    })
-    .with({ type: 'set-manifest' }, ({ payload }) => {
-      console.log('SET MANIFEST', payload)
-      return {
-        ...state,
-        manifest: payload
-      }
-    })
+    .with({ type: 'set-artifacts' }, ({ payload }) => ({
+      ...state,
+      artifacts: payload
+    }))
+    .with({ type: 'set-selected-artifact' }, ({ payload }) => ({
+      ...state,
+      selectedArtifact: payload
+    }))
+    .with({ type: 'set-manifest' }, ({ payload }) => ({
+      ...state,
+      manifest: payload
+    }))
+    .with({ type: 'set-schema' }, ({ payload }) => ({
+      ...state,
+      schema: payload
+    }))
+    .with({ type: 'set-selected-generators' }, ({ payload }) => ({
+      ...state,
+      selectedGenerators: payload
+    }))
+    .with({ type: 'set-client-settings' }, ({ payload }) => ({
+      ...state,
+      clientSettings: payload
+    }))
+    .with({ type: 'set-preview' }, ({ payload }) => ({
+      ...state,
+      preview: payload
+    }))
     .exhaustive()
 }
 
 const ArtifactsProvider = ({ children }: ArtifactsProviderProps) => {
-  const [state, dispatch] = useReducer(artifactsReducer, {
+  const [state, dispatch] = useThunkReducer(artifactsReducer, {
     artifacts: {},
     selectedArtifact: { value: '', lang: 'js', meta: '' },
-    manifest: undefined
+    manifest: undefined,
+    clientSettings: clientSettingsInitial,
+    schema: '',
+    selectedGenerators: {},
+    preview: null
   })
+
+  const createSettingsMutation = useCreateSettings({
+    onSuccess: generatorsSettings => {
+      dispatch({
+        type: 'set-client-settings',
+        payload: {
+          ...state.clientSettings,
+          ...generatorsSettings
+        }
+      })
+    }
+  })
+
+  useEffect(() => {
+    if (state.schema && createSettingsMutation.isIdle) {
+      createSettingsMutation.mutate(state.schema)
+    }
+  }, [state.schema])
+
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context
   const value = { state, dispatch }

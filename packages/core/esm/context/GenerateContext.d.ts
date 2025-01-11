@@ -38,16 +38,20 @@ export type ApplyPackageImportsArgs = {
     destinationPath: string;
     exportPath: string;
 };
-export type RegisterPreviewArgs = {
-    name: string;
-    route?: string;
+export type BaseRegisterArgs = {
+    imports?: Record<string, ImportNameArg[]>;
+    reExports?: Record<string, Identifier[]>;
+    definitions?: (Definition | undefined)[];
+    preview?: {
+        [group: string]: Omit<Preview, 'group' | 'exportPath' | 'source'>;
+    };
 };
 export type RegisterArgs = {
     imports?: Record<string, ImportNameArg[]>;
     reExports?: Record<string, Identifier[]>;
     definitions?: (Definition | undefined)[];
     preview?: {
-        [group: string]: RegisterPreviewArgs;
+        [group: string]: Omit<Preview, 'group' | 'exportPath'>;
     };
     destinationPath: string;
 };

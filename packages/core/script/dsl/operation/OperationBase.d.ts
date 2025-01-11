@@ -1,7 +1,7 @@
 import type { OperationInsertable } from './OperationInsertable.js';
 import type { OasOperation } from '../../oas/operation/Operation.js';
 import type { ContentSettings } from '../ContentSettings.js';
-import type { GenerateContext, RegisterArgs } from '../../context/GenerateContext.js';
+import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.js';
 import type { GeneratedValue } from '../../types/GeneratedValue.js';
 import type { GeneratorKey } from '../../types/GeneratorKeys.js';
 import { ValueBase } from '../ValueBase.js';
@@ -30,7 +30,7 @@ export declare class OperationBase<EnrichmentType> extends ValueBase {
     insertOperation<V extends GeneratedValue, ET>(insertable: OperationInsertable<V, ET>, operation: OasOperation): Inserted<V, 'force', ET>;
     insertModel<V extends GeneratedValue, ET>(insertable: ModelInsertable<V, ET>, refName: RefName): Inserted<V, 'force', ET>;
     createAndRegisterDefinition<Schema extends SchemaType>({ schema, identifier, schemaToValueFn }: CreateAndRegisterDefinition<Schema>): Definition<TypeSystemOutput<Schema['type']>>;
-    register(args: Omit<RegisterArgs, 'destinationPath'>): void;
+    register(args: BaseRegisterArgs): void;
 }
 export {};
 //# sourceMappingURL=OperationBase.d.ts.map

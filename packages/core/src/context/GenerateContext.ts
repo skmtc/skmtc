@@ -53,9 +53,13 @@ export type ApplyPackageImportsArgs = {
   exportPath: string
 }
 
-export type RegisterPreviewArgs = {
-  name: string
-  route?: string
+export type BaseRegisterArgs = {
+  imports?: Record<string, ImportNameArg[]>
+  reExports?: Record<string, Identifier[]>
+  definitions?: (Definition | undefined)[]
+  preview?: {
+    [group: string]: Omit<Preview, 'group' | 'exportPath' | 'source'>
+  }
 }
 
 export type RegisterArgs = {
@@ -63,7 +67,7 @@ export type RegisterArgs = {
   reExports?: Record<string, Identifier[]>
   definitions?: (Definition | undefined)[]
   preview?: {
-    [group: string]: RegisterPreviewArgs
+    [group: string]: Omit<Preview, 'group' | 'exportPath'>
   }
   destinationPath: string
 }
@@ -505,12 +509,18 @@ export class GenerateContext {
       }
     })
 
-    Object.entries(preview ?? {}).forEach(([group, { name, route }]) => {
+    Object.entries(preview ?? {}).forEach(([group, { name, route, source }]) => {
       if (!this.#previews[group]) {
         this.#previews[group] = {}
       }
 
-      this.#previews[group][name] = { importName: name, importPath: destinationPath, group, route }
+      this.#previews[group][name] = {
+        name,
+        exportPath: destinationPath,
+        group,
+        route,
+        source
+      }
     })
   }
 

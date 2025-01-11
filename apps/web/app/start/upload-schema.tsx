@@ -1,13 +1,35 @@
 'use client'
 
-import { useFormContext, Controller } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import exampleSchema from './example-schema.json'
 import { useRouter } from 'next/navigation'
+import { useArtifacts } from '@/components/artifacts/artifacts-context'
+import { useGetGeneratorIds } from '@/services/use-get-generator-ids'
+
+type SchemaForm = {
+  schema: string
+}
 
 export const UploadSchema = () => {
-  const { control } = useFormContext()
+  const { state: artifactsState, dispatch } = useArtifacts()
+
+  const { control } = useForm<SchemaForm>({
+    defaultValues: {
+      schema: artifactsState.schema
+    }
+  })
+
   const router = useRouter()
+
+  useGetGeneratorIds({
+    onSuccess: generators => {
+      dispatch({
+        type: 'set-selected-generators',
+        payload: Object.fromEntries(generators.map(generator => [generator, true]))
+      })
+    }
+  })
 
   return (
     <Controller
@@ -27,6 +49,7 @@ export const UploadSchema = () => {
               Use example schema
             </Button>
           </div>
+
           <div className="flex flex-col flex-1 mt-2">
             <textarea
               id="schema"
@@ -42,6 +65,9 @@ export const UploadSchema = () => {
               className="bg-indigo-600 hover:bg-indigo-600/90 no-underline"
               onClick={event => {
                 event.preventDefault()
+
+                dispatch({ type: 'set-schema', payload: field.value })
+
                 router.push('/start/select-generators')
               }}
             >

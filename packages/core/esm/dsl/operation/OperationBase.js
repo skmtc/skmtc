@@ -1,4 +1,5 @@
 import { ValueBase } from '../ValueBase.js';
+import invariant from 'tiny-invariant';
 export class OperationBase extends ValueBase {
     constructor({ context, generatorKey, settings, operation }) {
         super({ context });
@@ -49,8 +50,24 @@ export class OperationBase extends ValueBase {
         });
     }
     register(args) {
+        const preview = Object.keys(args.preview ?? {}).length
+            ? Object.fromEntries(Object.entries(args.preview ?? {}).map(([group, preview]) => {
+                invariant('id' in this && typeof this.id === 'string', 'OperationBase.id is required');
+                const previewWithSource = {
+                    ...preview,
+                    source: {
+                        type: 'operation',
+                        generatorId: this.id,
+                        operationPath: this.operation.path,
+                        operationMethod: this.operation.method
+                    }
+                };
+                return [group, previewWithSource];
+            }))
+            : undefined;
         this.context.register({
             ...args,
+            preview,
             destinationPath: this.settings.exportPath
         });
     }

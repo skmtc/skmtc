@@ -66,7 +66,7 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
             <ChevronRightIcon className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
-        <Separator className="mt-1 mb-2" />
+        <Separator className="my-1 mb-2" />
         <CollapsibleContent>
           <SidebarGroupContent>
             <SidebarMenu>

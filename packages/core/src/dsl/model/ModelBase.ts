@@ -1,4 +1,4 @@
-import type { GenerateContext, RegisterArgs } from '../../context/GenerateContext.js'
+import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.js'
 import type { GeneratedValue } from '../../types/GeneratedValue.js'
 import type { GeneratorKey } from '../../types/GeneratorKeys.js'
 import type { RefName } from '../../types/RefName.js'
@@ -6,6 +6,7 @@ import type { ContentSettings } from '../ContentSettings.js'
 import type { ModelInsertable } from './ModelInsertable.js'
 import { ValueBase } from '../ValueBase.js'
 import type { Inserted } from '../Inserted.js'
+import invariant from 'tiny-invariant'
 
 export type ModelBaseArgs<EnrichmentType> = {
   context: GenerateContext
@@ -39,9 +40,29 @@ export class ModelBase<EnrichmentType> extends ValueBase {
     })
   }
 
-  override register(args: Omit<RegisterArgs, 'destinationPath'>): void {
+  override register(args: BaseRegisterArgs): void {
+    const preview = Object.keys(args.preview ?? {}).length
+      ? Object.fromEntries(
+          Object.entries(args.preview ?? {}).map(([group, preview]) => {
+            invariant('id' in this && typeof this.id === 'string', 'ModelBase.id is required')
+
+            const previewWithSource = {
+              ...preview,
+              source: {
+                type: 'model' as const,
+                generatorId: this.id,
+                refName: this.refName
+              }
+            }
+
+            return [group, previewWithSource]
+          })
+        )
+      : undefined
+
     this.context.register({
       ...args,
+      preview,
       destinationPath: this.settings.exportPath
     })
   }

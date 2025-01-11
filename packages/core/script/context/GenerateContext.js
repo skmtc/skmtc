@@ -244,11 +244,17 @@ class GenerateContext {
                 currentFile.definitions.set(name, definition);
             }
         });
-        Object.entries(preview ?? {}).forEach(([group, { name, route }]) => {
+        Object.entries(preview ?? {}).forEach(([group, { name, route, source }]) => {
             if (!__classPrivateFieldGet(this, _GenerateContext_previews, "f")[group]) {
                 __classPrivateFieldGet(this, _GenerateContext_previews, "f")[group] = {};
             }
-            __classPrivateFieldGet(this, _GenerateContext_previews, "f")[group][name] = { importName: name, importPath: destinationPath, group, route };
+            __classPrivateFieldGet(this, _GenerateContext_previews, "f")[group][name] = {
+                name,
+                exportPath: destinationPath,
+                group,
+                route,
+                source
+            };
         });
     }
     /**

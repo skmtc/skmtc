@@ -80,19 +80,67 @@ export declare const manifestContent: z.ZodObject<{
         destinationPath: string;
     }>>;
     previews: z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodObject<{
-        importName: z.ZodString;
-        importPath: z.ZodString;
+        name: z.ZodString;
+        exportPath: z.ZodString;
         group: z.ZodString;
         route: z.ZodOptional<z.ZodString>;
+        source: z.ZodUnion<[z.ZodObject<{
+            type: z.ZodLiteral<"operation">;
+            generatorId: z.ZodString;
+            operationPath: z.ZodString;
+            operationMethod: z.ZodType<import("./Method.js").Method, z.ZodTypeDef, import("./Method.js").Method>;
+        }, "strip", z.ZodTypeAny, {
+            type: "operation";
+            generatorId: string;
+            operationPath: string;
+            operationMethod: import("./Method.js").Method;
+        }, {
+            type: "operation";
+            generatorId: string;
+            operationPath: string;
+            operationMethod: import("./Method.js").Method;
+        }>, z.ZodObject<{
+            type: z.ZodLiteral<"model">;
+            generatorId: z.ZodString;
+            refName: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            type: "model";
+            generatorId: string;
+            refName: string;
+        }, {
+            type: "model";
+            generatorId: string;
+            refName: string;
+        }>]>;
     }, "strip", z.ZodTypeAny, {
-        importName: string;
-        importPath: string;
+        name: string;
+        exportPath: string;
         group: string;
+        source: {
+            type: "operation";
+            generatorId: string;
+            operationPath: string;
+            operationMethod: import("./Method.js").Method;
+        } | {
+            type: "model";
+            generatorId: string;
+            refName: string;
+        };
         route?: string | undefined;
     }, {
-        importName: string;
-        importPath: string;
+        name: string;
+        exportPath: string;
         group: string;
+        source: {
+            type: "operation";
+            generatorId: string;
+            operationPath: string;
+            operationMethod: import("./Method.js").Method;
+        } | {
+            type: "model";
+            generatorId: string;
+            refName: string;
+        };
         route?: string | undefined;
     }>>>;
     pinnable: z.ZodRecord<z.ZodEffects<z.ZodString, GeneratorKey, string>, z.ZodString>;
@@ -111,9 +159,19 @@ export declare const manifestContent: z.ZodObject<{
         destinationPath: string;
     }>;
     previews: Record<string, Record<string, {
-        importName: string;
-        importPath: string;
+        name: string;
+        exportPath: string;
         group: string;
+        source: {
+            type: "operation";
+            generatorId: string;
+            operationPath: string;
+            operationMethod: import("./Method.js").Method;
+        } | {
+            type: "model";
+            generatorId: string;
+            refName: string;
+        };
         route?: string | undefined;
     }>>;
     pinnable: Partial<Record<GeneratorKey, string>>;
@@ -133,9 +191,19 @@ export declare const manifestContent: z.ZodObject<{
         destinationPath: string;
     }>;
     previews: Record<string, Record<string, {
-        importName: string;
-        importPath: string;
+        name: string;
+        exportPath: string;
         group: string;
+        source: {
+            type: "operation";
+            generatorId: string;
+            operationPath: string;
+            operationMethod: import("./Method.js").Method;
+        } | {
+            type: "model";
+            generatorId: string;
+            refName: string;
+        };
         route?: string | undefined;
     }>>;
     pinnable: Record<string, string>;

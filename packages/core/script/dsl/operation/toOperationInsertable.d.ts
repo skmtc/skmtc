@@ -29,7 +29,7 @@ export declare const toOperationInsertable: <EnrichmentType>(config: ToOperation
             identifier: Identifier;
             schemaToValueFn: import("../../mod.js").SchemaToValueFn;
         }): import("../Definition.js").Definition<import("../../mod.js").TypeSystemOutput<Schema["type"]>>;
-        register(args: Omit<import("../../context/GenerateContext.js").RegisterArgs, "destinationPath">): void;
+        register(args: import("../../context/GenerateContext.js").BaseRegisterArgs): void;
         context: GenerateContext;
         skipped: boolean;
     };

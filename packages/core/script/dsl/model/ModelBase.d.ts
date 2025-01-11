@@ -1,4 +1,4 @@
-import type { GenerateContext, RegisterArgs } from '../../context/GenerateContext.js';
+import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.js';
 import type { GeneratedValue } from '../../types/GeneratedValue.js';
 import type { GeneratorKey } from '../../types/GeneratorKeys.js';
 import type { RefName } from '../../types/RefName.js';
@@ -18,6 +18,6 @@ export declare class ModelBase<EnrichmentType> extends ValueBase {
     generatorKey: GeneratorKey;
     constructor({ context, settings, generatorKey, refName }: ModelBaseArgs<EnrichmentType>);
     insertModel<V extends GeneratedValue, ET>(insertable: ModelInsertable<V, ET>, refName: RefName): Inserted<V, 'force', ET>;
-    register(args: Omit<RegisterArgs, 'destinationPath'>): void;
+    register(args: BaseRegisterArgs): void;
 }
 //# sourceMappingURL=ModelBase.d.ts.map

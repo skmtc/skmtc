@@ -3,6 +3,7 @@ import { OpenAPIV3 } from 'openapi-types'
 import { ColumnConfig, type ColumnConfigItem } from '@/components/column-config'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
+import { SidebarGroupContent } from '@/components/ui/sidebar'
 
 type ArtifactConfigProps = {
   configSchema: OpenAPIV3.SchemaObject | null
@@ -33,13 +34,15 @@ export function ArtifactConfig({ configSchema, listItemName }: ArtifactConfigPro
           listItemName={listItemName}
         />
       ))}
-      <Button
-        variant="ghost"
-        className="px-2 py-1 text-indigo-600 w-min"
-        onClick={() => setColumns(prev => [...prev, { path: [], format: '', title: '' }])}
-      >
-        Add column
-      </Button>
+      <SidebarGroupContent>
+        <Button
+          variant="ghost"
+          className="h-auto px-2 py-1 text-indigo-600 w-min"
+          onClick={() => setColumns(prev => [...prev, { path: [], format: '', title: '' }])}
+        >
+          Add column
+        </Button>
+      </SidebarGroupContent>
     </>
   )
 }

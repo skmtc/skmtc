@@ -1,12 +1,13 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.376",
+  "version": "0.0.381",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.518",
-    "@sentry/deno": "npm:@sentry/deno@^8.47.0"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.521",
+    "@sentry/deno": "npm:@sentry/deno@^8.47.0",
+    "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.18.3"
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty"

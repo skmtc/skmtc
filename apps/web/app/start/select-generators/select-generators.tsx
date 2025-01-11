@@ -2,109 +2,59 @@
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Controller, useFormContext, useWatch } from 'react-hook-form'
-import clientSettings from './client.json'
-import { toast } from 'sonner'
+import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/artifacts/artifacts-context'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { generatorsType, generatorSettingsType } from '@/app/start/types'
 import { match, P } from 'ts-pattern'
 import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
+import { useCreateArtifacts } from '@/services/use-create-artifacts'
+
+type GeneratorsForm = {
+  selectedGenerators: Record<string, boolean>
+}
 
 export const GeneratorMenu = () => {
-  const { control } = useFormContext()
+  const { dispatch, state: artifactsState } = useArtifacts()
+
+  const { control } = useForm<GeneratorsForm>({
+    defaultValues: {
+      selectedGenerators: artifactsState.selectedGenerators
+    }
+  })
+
   const [submitting, setSubmitting] = useState(false)
-  const { dispatch } = useArtifacts()
-  const router = useRouter()
+
   const { status } = useWebcontainer()
 
-  const schema = useWatch({ name: 'schema' })
-
-  const generatorsResponse = useQuery({
-    queryKey: ['generators'],
-    queryFn: () => {
-      return fetch(`${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/generators`)
-        .then(res => res.json())
-        .then(data => generatorsType.parse(data))
-    }
-  })
-
-  const settingsMutation = useMutation({
-    mutationFn: (schemaArg: string) => {
-      return fetch(`${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/settings`, {
-        method: 'POST',
-        body: JSON.stringify({
-          schema: schemaArg,
-          defaultSelected: true
-        })
-      })
-        .then(res => res.json())
-        .then(data => generatorSettingsType.parse(data))
-    }
-  })
-
-  useEffect(() => {
-    if (schema && settingsMutation.isIdle) {
-      settingsMutation.mutate(schema)
-    }
-  }, [schema])
-
-  const artifactsMutation = useMutation({
-    mutationFn: () => {
-      return fetch(`${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/artifacts`, {
-        method: 'POST',
-        body: JSON.stringify({
-          clientSettings: {
-            ...clientSettings,
-            generators: settingsMutation.data?.generators
-          },
-          schema
-        })
-      }).then(res => res.json())
-    },
-    onSuccess: data => {
-      dispatch({ type: 'set-artifacts', payload: data.artifacts })
-      dispatch({ type: 'set-manifest', payload: data.manifest })
-      router.push('/start/view-results')
-    },
-    onError: () => {
-      toast('Failed to generate artifacts')
-    },
-    onMutate: () => {
-      setSubmitting(true)
-    },
-    onSettled: () => {
-      setSubmitting(false)
-    }
+  const createArtifactsMutation = useCreateArtifacts({
+    clientSettings: artifactsState.clientSettings,
+    schema: artifactsState.schema,
+    generatorSettings: artifactsState.clientSettings.generators,
+    dispatch,
+    setSubmitting
   })
 
   return (
     <div className="flex flex-col flex-1">
       <div className="-space-y-px rounded-sm bg-white">
-        {generatorsResponse.data?.generators.map((generatorId, generatorIndex) => (
+        {Object.keys(artifactsState.selectedGenerators).map((generatorId, generatorIndex) => (
           <Controller
             key={generatorId}
-            name={generatorId}
+            name={`selectedGenerators.${generatorId}`}
             control={control}
-            render={({ field }) => {
-              const settings = settingsMutation.data?.generators.find(
+            render={({ field: { value, onChange, ...field } }) => {
+              const settings = artifactsState.clientSettings.generators.find(
                 ({ id }) => id === generatorId
               )
-
-              console.log('SETTINGS', settings)
 
               return (
                 <label
                   key={generatorId}
-                  // value={setting}
                   aria-label={generatorId}
-                  // aria-description={setting.description}
                   className={cn(
                     generatorIndex === 0 ? 'rounded-tl-sm rounded-tr-sm' : '',
-                    generatorIndex === generatorsResponse.data.generators.length - 1
+                    generatorIndex === Object.keys(artifactsState.selectedGenerators).length - 1
                       ? 'rounded-bl-sm rounded-br-sm'
                       : '',
                     'has-[:disabled]bg-gray-50 has-[:disabled]:text-gray-500 has-[:disabled]:bg-gray-100 has-[:disabled]:border-gray-300 has-[:disabled]:shadow-none',
@@ -118,12 +68,13 @@ export const GeneratorMenu = () => {
                     <div className="flex h-6 items-center">
                       <input
                         id="comments"
-                        disabled={generatorId === '@skmtc/tanstack-query-zod'}
                         type="checkbox"
                         aria-describedby="comments-description"
                         className="size-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-600 disabled:text-gray-500"
-                        checked={field.value}
-                        {...field}
+                        checked={value}
+                        onChange={event => {
+                          onChange(event.target.checked)
+                        }}
                       />
                     </div>
                   </span>
@@ -152,10 +103,14 @@ export const GeneratorMenu = () => {
       </div>
       <div className="flex mt-8 mb-12 justify-end ">
         <Button
-          disabled={submitting || !settingsMutation.data || status !== 'ready'}
+          disabled={
+            submitting ||
+            artifactsState.clientSettings.generators.length === 0 ||
+            status !== 'ready'
+          }
           onClick={event => {
             event.preventDefault()
-            artifactsMutation.mutate()
+            createArtifactsMutation.mutate()
           }}
           className="bg-indigo-600 hover:bg-indigo-600/90 no-underline w-[200px]"
         >

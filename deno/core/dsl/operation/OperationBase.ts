@@ -1,7 +1,7 @@
 import type { OperationInsertable } from './OperationInsertable.ts'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
-import type { GenerateContext, RegisterArgs } from '../../context/GenerateContext.ts'
+import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
 import { ValueBase } from '../ValueBase.ts'
@@ -11,6 +11,7 @@ import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../../types/
 import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/ModelInsertable.ts'
 import type { RefName } from '../../types/RefName.ts'
+import invariant from 'tiny-invariant'
 
 export type OperationBaseArgs<EnrichmentType> = {
   context: GenerateContext
@@ -75,9 +76,30 @@ export class OperationBase<EnrichmentType> extends ValueBase {
     })
   }
 
-  override register(args: Omit<RegisterArgs, 'destinationPath'>) {
+  override register(args: BaseRegisterArgs) {
+    const preview = Object.keys(args.preview ?? {}).length
+      ? Object.fromEntries(
+          Object.entries(args.preview ?? {}).map(([group, preview]) => {
+            invariant('id' in this && typeof this.id === 'string', 'OperationBase.id is required')
+
+            const previewWithSource = {
+              ...preview,
+              source: {
+                type: 'operation' as const,
+                generatorId: this.id,
+                operationPath: this.operation.path,
+                operationMethod: this.operation.method
+              }
+            }
+
+            return [group, previewWithSource]
+          })
+        )
+      : undefined
+
     this.context.register({
       ...args,
+      preview,
       destinationPath: this.settings.exportPath
     })
   }

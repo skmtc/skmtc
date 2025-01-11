@@ -26,7 +26,7 @@ export declare const toModelInsertable: <EnrichmentType>(config: ModelConfig<Enr
         refName: RefName;
         generatorKey: import("../../types/GeneratorKeys.js").GeneratorKey;
         insertModel<V extends import("../../mod.js").GeneratedValue, ET>(insertable: import("./ModelInsertable.js").ModelInsertable<V, ET>, refName: RefName): import("../Inserted.js").Inserted<V, "force", ET>;
-        register(args: Omit<import("../../context/GenerateContext.js").RegisterArgs, "destinationPath">): void;
+        register(args: import("../../context/GenerateContext.js").BaseRegisterArgs): void;
         context: GenerateContext;
         skipped: boolean;
     };
