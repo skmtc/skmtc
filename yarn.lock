@@ -25,6 +25,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@asteasolutions/zod-to-openapi@npm:^7.1.0":
+  version: 7.3.0
+  resolution: "@asteasolutions/zod-to-openapi@npm:7.3.0"
+  dependencies:
+    openapi3-ts: "npm:^4.1.2"
+  peerDependencies:
+    zod: ^3.20.2
+  checksum: 10c0/f0a68a89929cdeaa3e21d2027489689f982824d676a9332c680e119f60881dd39b571324b24ad4837fda49bf6fe7c3e2af2199268b281bf1aec923d7a7cbfc40
+  languageName: node
+  linkType: hard
+
 "@babel/helper-validator-identifier@npm:7.22.20":
   version: 7.22.20
   resolution: "@babel/helper-validator-identifier@npm:7.22.20"
@@ -352,6 +363,29 @@ __metadata:
   peerDependencies:
     react: ">= 16 || ^19.0.0-rc"
   checksum: 10c0/f8d3cf689b56716339c91df3542f3948115042d1e70e6bc940a3f3e347c0bc78b56aa563917fbd7ce097fe2f38ebb21bffb0db39be914cbc545a754bddae9ab4
+  languageName: node
+  linkType: hard
+
+"@hono/zod-openapi@npm:^0.18.3":
+  version: 0.18.3
+  resolution: "@hono/zod-openapi@npm:0.18.3"
+  dependencies:
+    "@asteasolutions/zod-to-openapi": "npm:^7.1.0"
+    "@hono/zod-validator": "npm:^0.4.1"
+  peerDependencies:
+    hono: ">=4.3.6"
+    zod: 3.*
+  checksum: 10c0/ddd917056299b654f2f5e71496db7635f1fa94fb35988db5fc2adb52414bb059e8c986635c82ec546404ec11598fb32b071b4c51b2baf320e1af4b8e73cbb16c
+  languageName: node
+  linkType: hard
+
+"@hono/zod-validator@npm:^0.4.1":
+  version: 0.4.2
+  resolution: "@hono/zod-validator@npm:0.4.2"
+  peerDependencies:
+    hono: ">=3.9.0"
+    zod: ^3.19.1
+  checksum: 10c0/f9235d4aebcb0f9dc942d4a168a61f2752f16b7273665efd15ee92042d7118c7e5efd1e031339e09d2dace5c04e945f7b8edc8d5d3d36e827a4f3d0fe2448538
   languageName: node
   linkType: hard
 
@@ -2058,6 +2092,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@skmtc/core@npm:^0.0.523":
+  version: 0.0.523
+  resolution: "@skmtc/core@npm:0.0.523"
+  dependencies:
+    "@apiture/openapi-down-convert": "npm:0.14.0"
+    "@babel/helper-validator-identifier": "npm:7.22.20"
+    "@deno/shim-deno": "npm:~0.18.0"
+    "@google/generative-ai": "npm:^0.21.0"
+    "@sentry/deno": "npm:8.47.0"
+    "@types/babel__helper-validator-identifier": "npm:7.15.2"
+    "@types/lodash-es": "npm:4.17.12"
+    lodash-es: "npm:4.17.21"
+    openapi-types: "npm:12.1.3"
+    tiny-invariant: "npm:1.3.3"
+    ts-pattern: "npm:5.6.0"
+    zod: "npm:3.24.1"
+    zod-to-json-schema: "npm:3.24.1"
+  checksum: 10c0/456e146c5a16e0ae5b78323b3f03ac53902cdc7e69e3417f3c14b3663c7a77b2bd79152da86f36fcfad36c3b331bfeef16ae4e7bde33403a6d446b8496168aa2
+  languageName: node
+  linkType: hard
+
 "@skmtc/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@skmtc/core@workspace:packages/core"
@@ -2066,6 +2121,7 @@ __metadata:
     "@babel/helper-validator-identifier": "npm:7.22.20"
     "@deno/shim-deno": "npm:~0.18.0"
     "@google/generative-ai": "npm:^0.21.0"
+    "@hono/zod-openapi": "npm:^0.18.3"
     "@sentry/deno": "npm:8.47.0"
     "@types/babel__helper-validator-identifier": "npm:7.15.2"
     "@types/lodash-es": "npm:4.17.12"
@@ -6721,6 +6777,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"openapi3-ts@npm:^4.1.2":
+  version: 4.4.0
+  resolution: "openapi3-ts@npm:4.4.0"
+  dependencies:
+    yaml: "npm:^2.5.0"
+  checksum: 10c0/900b834279fc8a43c545728ad75ec7c26934ec5344225b60d1e1c0df44d742d7e7379aea18d9034e03031f079d3308ba5a68600682eece3ed41cdbdd10346a9e
+  languageName: node
+  linkType: hard
+
 "optionator@npm:^0.9.3":
   version: 0.9.4
   resolution: "optionator@npm:0.9.4"
@@ -7756,7 +7821,7 @@ __metadata:
   resolution: "skmtc-vscode@workspace:apps/vscode"
   dependencies:
     "@sentry/browser": "npm:^8.26.0"
-    "@skmtc/core": "npm:^0.0.518"
+    "@skmtc/core": "npm:^0.0.523"
     "@supabase/supabase-js": "npm:^2.45.4"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/glob": "npm:^8.0.0"
@@ -8825,6 +8890,15 @@ __metadata:
   bin:
     yaml: bin.mjs
   checksum: 10c0/aebf07f61c72b38c74d2b60c3a3ccf89ee4da45bcd94b2bfb7899ba07a5257625a7c9f717c65a6fc511563d48001e01deb1d9e55f0133f3e2edf86039c8c1be7
+  languageName: node
+  linkType: hard
+
+"yaml@npm:^2.5.0":
+  version: 2.7.0
+  resolution: "yaml@npm:2.7.0"
+  bin:
+    yaml: bin.mjs
+  checksum: 10c0/886a7d2abbd70704b79f1d2d05fe9fb0aa63aefb86e1cb9991837dced65193d300f5554747a872b4b10ae9a12bc5d5327e4d04205f70336e863e35e89d8f4ea9
   languageName: node
   linkType: hard
 

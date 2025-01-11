@@ -13,25 +13,10 @@ exports.methodValues = [
     'patch',
     'trace'
 ];
-exports.methodValuesNoTrace = [
-    'get',
-    'put',
-    'post',
-    'delete',
-    'options',
-    'head',
-    'patch'
-];
-exports.method = zod_1.z.enum([
-    'get',
-    'put',
-    'post',
-    'delete',
-    'options',
-    'head',
-    'patch',
-    'trace'
-]);
+exports.methodValuesNoTrace = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch'];
+exports.method = zod_1.z
+    .enum(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'])
+    .openapi('Method');
 exports.methods = zod_1.z.array(exports.method);
 const isMethod = (arg) => {
     return exports.method.safeParse(arg).success;

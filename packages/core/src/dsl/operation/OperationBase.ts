@@ -3,7 +3,7 @@ import type { OasOperation } from '../../oas/operation/Operation.js'
 import type { ContentSettings } from '../ContentSettings.js'
 import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.js'
 import type { GeneratedValue } from '../../types/GeneratedValue.js'
-import type { GeneratorKey } from '../../types/GeneratorKeys.js'
+import { toGeneratorId, type GeneratorKey } from '../../types/GeneratorKeys.js'
 import { ValueBase } from '../ValueBase.js'
 import type { Definition } from '../Definition.js'
 import type { Identifier } from '../Identifier.js'
@@ -11,7 +11,6 @@ import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../../types/
 import type { Inserted } from '../Inserted.js'
 import type { ModelInsertable } from '../model/ModelInsertable.js'
 import type { RefName } from '../../types/RefName.js'
-import invariant from 'tiny-invariant'
 
 export type OperationBaseArgs<EnrichmentType> = {
   context: GenerateContext
@@ -80,13 +79,11 @@ export class OperationBase<EnrichmentType> extends ValueBase {
     const preview = Object.keys(args.preview ?? {}).length
       ? Object.fromEntries(
           Object.entries(args.preview ?? {}).map(([group, preview]) => {
-            invariant('id' in this && typeof this.id === 'string', 'OperationBase.id is required')
-
             const previewWithSource = {
               ...preview,
               source: {
                 type: 'operation' as const,
-                generatorId: this.id,
+                generatorId: toGeneratorId(this.generatorKey),
                 operationPath: this.operation.path,
                 operationMethod: this.operation.method
               }

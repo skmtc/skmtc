@@ -9,7 +9,6 @@ await build({
     { name: './Brand', path: './types/Brand.ts' },
     { name: './GeneratorKeys', path: './types/GeneratorKeys.ts' },
     { name: './Manifest', path: './types/Manifest.ts' },
-    { name: './Extensions', path: './types/Extensions.ts' },
     { name: './Method', path: './types/Method.ts' },
     { name: './RefName', path: './types/RefName.ts' },
     { name: './Results', path: './types/Results.ts' },
@@ -35,6 +34,9 @@ await build({
     version: denoJson.version,
     scripts: {
       test: 'exit 0'
+    },
+    dependencies: {
+      '@hono/zod-openapi': '^0.18.3'
     },
     devDependencies: {
       '@types/lodash-es': '4.17.12'

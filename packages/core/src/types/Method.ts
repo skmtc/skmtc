@@ -12,36 +12,13 @@ export const methodValues = [
   'trace'
 ] as const
 
-export const methodValuesNoTrace = [
-  'get',
-  'put',
-  'post',
-  'delete',
-  'options',
-  'head',
-  'patch'
-]
+export const methodValuesNoTrace = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch']
 
-export const method: z.ZodType<Method> = z.enum([
-  'get',
-  'put',
-  'post',
-  'delete',
-  'options',
-  'head',
-  'patch',
-  'trace'
-])
+export const method: z.ZodType<Method> = z
+  .enum(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'])
+  .openapi('Method')
 
-export type Method =
-  | 'get'
-  | 'put'
-  | 'post'
-  | 'delete'
-  | 'options'
-  | 'head'
-  | 'patch'
-  | 'trace'
+export type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
 
 type Methods = Method[]
 

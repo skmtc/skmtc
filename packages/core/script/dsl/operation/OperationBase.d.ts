@@ -3,7 +3,7 @@ import type { OasOperation } from '../../oas/operation/Operation.js';
 import type { ContentSettings } from '../ContentSettings.js';
 import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.js';
 import type { GeneratedValue } from '../../types/GeneratedValue.js';
-import type { GeneratorKey } from '../../types/GeneratorKeys.js';
+import { type GeneratorKey } from '../../types/GeneratorKeys.js';
 import { ValueBase } from '../ValueBase.js';
 import type { Definition } from '../Definition.js';
 import type { Identifier } from '../Identifier.js';

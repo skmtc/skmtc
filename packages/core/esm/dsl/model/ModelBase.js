@@ -1,5 +1,5 @@
 import { ValueBase } from '../ValueBase.js';
-import invariant from 'tiny-invariant';
+import { toGeneratorId } from '../../types/GeneratorKeys.js';
 export class ModelBase extends ValueBase {
     constructor({ context, settings, generatorKey, refName }) {
         super({ context });
@@ -36,12 +36,11 @@ export class ModelBase extends ValueBase {
     register(args) {
         const preview = Object.keys(args.preview ?? {}).length
             ? Object.fromEntries(Object.entries(args.preview ?? {}).map(([group, preview]) => {
-                invariant('id' in this && typeof this.id === 'string', 'ModelBase.id is required');
                 const previewWithSource = {
                     ...preview,
                     source: {
                         type: 'model',
-                        generatorId: this.id,
+                        generatorId: toGeneratorId(this.generatorKey),
                         refName: this.refName
                     }
                 };

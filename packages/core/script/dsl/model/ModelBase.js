@@ -1,11 +1,8 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelBase = void 0;
 const ValueBase_js_1 = require("../ValueBase.js");
-const tiny_invariant_1 = __importDefault(require("tiny-invariant"));
+const GeneratorKeys_js_1 = require("../../types/GeneratorKeys.js");
 class ModelBase extends ValueBase_js_1.ValueBase {
     constructor({ context, settings, generatorKey, refName }) {
         super({ context });
@@ -42,12 +39,11 @@ class ModelBase extends ValueBase_js_1.ValueBase {
     register(args) {
         const preview = Object.keys(args.preview ?? {}).length
             ? Object.fromEntries(Object.entries(args.preview ?? {}).map(([group, preview]) => {
-                (0, tiny_invariant_1.default)('id' in this && typeof this.id === 'string', 'ModelBase.id is required');
                 const previewWithSource = {
                     ...preview,
                     source: {
                         type: 'model',
-                        generatorId: this.id,
+                        generatorId: (0, GeneratorKeys_js_1.toGeneratorId)(this.generatorKey),
                         refName: this.refName
                     }
                 };

@@ -1,4 +1,5 @@
 import { z } from 'npm:zod@3.24.1'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 
 export type ResultType = 'success' | 'warning' | 'error' | 'notSelected' | 'notSupported'
 
@@ -13,3 +14,9 @@ export interface ResultsItem {
 export const resultsItem: z.ZodType<ResultsItem> = z.record(
   z.lazy(() => z.union([resultsItem, resultType, z.array(resultsItem.nullable())]))
 )
+
+export const resultsItemJsonSchema = zodToJsonSchema(resultsItem, {
+  basePath: [`#/components/schemas/ResultsItem`],
+  target: 'openApi3',
+  strictUnions: true
+})

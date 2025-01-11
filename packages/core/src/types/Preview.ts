@@ -36,10 +36,12 @@ const modelPreview = z.object({
   refName: z.string()
 })
 
-export const preview = z.object({
-  name: z.string(),
-  exportPath: z.string(),
-  group: z.string(),
-  route: z.string().optional(),
-  source: z.union([operationPreview, modelPreview])
-})
+export const preview = z
+  .object({
+    name: z.string(),
+    exportPath: z.string(),
+    group: z.string(),
+    route: z.string().optional(),
+    source: z.discriminatedUnion('type', [operationPreview, modelPreview])
+  })
+  .openapi('Preview')

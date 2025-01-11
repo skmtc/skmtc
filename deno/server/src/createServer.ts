@@ -13,11 +13,13 @@ const postSettingsBody = z.object({
   clientSettings: settingsSchema.optional()
 })
 
-const postArtifactsBody = z.object({
-  schema: z.string(),
-  clientSettings: settingsSchema.optional(),
-  prettier: z.record(z.unknown()).optional()
-})
+const postArtifactsBody = z
+  .object({
+    schema: z.string(),
+    clientSettings: settingsSchema.optional(),
+    prettier: z.record(z.unknown()).optional()
+  })
+  .openapi('PostArtifactsRequestBody')
 
 const postArtifactConfigBody = z.object({
   schema: z.string(),
@@ -42,7 +44,7 @@ const postArtifacts = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: postArtifactsBody.openapi('PostArtifactsRequestBody')
+          schema: postArtifactsBody
         }
       },
       required: true
@@ -55,7 +57,7 @@ const postArtifacts = createRoute({
         'application/json': {
           schema: z.object({
             artifacts: z.record(z.string()).openapi('Artifacts'),
-            manifest: manifestContent.openapi('Manifest')
+            manifest: manifestContent
           })
         }
       }

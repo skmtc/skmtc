@@ -15,10 +15,12 @@ const modelPreview = zod_1.z.object({
     generatorId: zod_1.z.string(),
     refName: zod_1.z.string()
 });
-exports.preview = zod_1.z.object({
+exports.preview = zod_1.z
+    .object({
     name: zod_1.z.string(),
     exportPath: zod_1.z.string(),
     group: zod_1.z.string(),
     route: zod_1.z.string().optional(),
-    source: zod_1.z.union([operationPreview, modelPreview])
-});
+    source: zod_1.z.discriminatedUnion('type', [operationPreview, modelPreview])
+})
+    .openapi('Preview');

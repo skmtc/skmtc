@@ -6,8 +6,7 @@ import type { ContentSettings } from '../ContentSettings.js'
 import type { ModelInsertable } from './ModelInsertable.js'
 import { ValueBase } from '../ValueBase.js'
 import type { Inserted } from '../Inserted.js'
-import invariant from 'tiny-invariant'
-
+import { toGeneratorId } from '../../types/GeneratorKeys.js'
 export type ModelBaseArgs<EnrichmentType> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
@@ -44,13 +43,11 @@ export class ModelBase<EnrichmentType> extends ValueBase {
     const preview = Object.keys(args.preview ?? {}).length
       ? Object.fromEntries(
           Object.entries(args.preview ?? {}).map(([group, preview]) => {
-            invariant('id' in this && typeof this.id === 'string', 'ModelBase.id is required')
-
             const previewWithSource = {
               ...preview,
               source: {
                 type: 'model' as const,
-                generatorId: this.id,
+                generatorId: toGeneratorId(this.generatorKey),
                 refName: this.refName
               }
             }

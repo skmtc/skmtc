@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.521",
+  "version": "0.0.527",
   "main": "./script/mod.js",
   "module": "./esm/mod.js",
   "exports": {
@@ -19,10 +19,6 @@
     "./Manifest": {
       "import": "./esm/types/Manifest.js",
       "require": "./script/types/Manifest.js"
-    },
-    "./Extensions": {
-      "import": "./esm/types/Extensions.js",
-      "require": "./script/types/Extensions.js"
     },
     "./Method": {
       "import": "./esm/types/Method.js",
@@ -65,6 +61,7 @@
     "@babel/helper-validator-identifier": "7.22.20",
     "@deno/shim-deno": "~0.18.0",
     "@google/generative-ai": "^0.21.0",
+    "@hono/zod-openapi": "^0.18.3",
     "@sentry/deno": "8.47.0",
     "@types/babel__helper-validator-identifier": "7.15.2",
     "@types/lodash-es": "4.17.12",

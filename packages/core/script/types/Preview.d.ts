@@ -24,7 +24,7 @@ export declare const preview: z.ZodObject<{
     exportPath: z.ZodString;
     group: z.ZodString;
     route: z.ZodOptional<z.ZodString>;
-    source: z.ZodUnion<[z.ZodObject<{
+    source: z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
         type: z.ZodLiteral<"operation">;
         generatorId: z.ZodString;
         operationPath: z.ZodString;

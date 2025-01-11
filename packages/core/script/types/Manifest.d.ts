@@ -1,6 +1,6 @@
 import "../_dnt.polyfills.js";
 import type { GeneratorKey } from './GeneratorKeys.js';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { type ResultsItem } from './Results.js';
 import { type Preview } from './Preview.js';
 export type ManifestEntry = {
@@ -84,7 +84,7 @@ export declare const manifestContent: z.ZodObject<{
         exportPath: z.ZodString;
         group: z.ZodString;
         route: z.ZodOptional<z.ZodString>;
-        source: z.ZodUnion<[z.ZodObject<{
+        source: z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
             type: z.ZodLiteral<"operation">;
             generatorId: z.ZodString;
             operationPath: z.ZodString;
