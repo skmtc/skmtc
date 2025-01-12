@@ -33,7 +33,9 @@ export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
 
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest<EnrichmentType> | undefined
+  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
+    refName: RefName
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichments: ({ refName, context }: ToEnrichmentsArgs) => EnrichmentType
   isSupported: () => boolean
 

@@ -33,8 +33,6 @@ export const PreviewContainer = () => {
     }
   })
 
-  console.log('ARTIFACTS STATE', artifactsState)
-
   return (
     <SidebarProvider className="h-full">
       <ArtifactsSidebar previews={artifactsState.manifest?.previews} setPreview={setPreview} />

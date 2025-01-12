@@ -16,10 +16,14 @@ export type OperationOperationGatewayArgs<EnrichmentType> = {
     context: GenerateContext;
     settings: ContentSettings<EnrichmentType>;
 };
-export type IsSupportedOperationArgs<EnrichmentType> = {
+export type IsSupportedOperationConfigArgs<EnrichmentType> = {
+    context: GenerateContext;
     operation: OasOperation;
     enrichments: EnrichmentType;
+};
+export type IsSupportedOperationArgs = {
     context: GenerateContext;
+    operation: OasOperation;
 };
 type ToEnrichmentsArgs = {
     operation: OasOperation;
@@ -32,10 +36,10 @@ export type OperationGateway<EnrichmentType> = {
     _class: 'OperationGateway';
     toIdentifier: () => Identifier;
     toExportPath: () => string;
-    toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined;
+    toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(operation: OasOperation) => EnrichmentRequest<RequestedEnrichment> | undefined;
     toEnrichmentSchema: () => z.ZodType<EnrichmentType>;
     toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType;
-    isSupported: ({ operation, enrichments, context }: IsSupportedOperationArgs<EnrichmentType>) => boolean;
+    isSupported: ({ context, operation }: IsSupportedOperationArgs) => boolean;
     pinnable: boolean;
 };
 export type OperationInsertable<V, EnrichmentType> = {
@@ -47,10 +51,10 @@ export type OperationInsertable<V, EnrichmentType> = {
     _class: 'OperationInsertable';
     toIdentifier: (operation: OasOperation) => Identifier;
     toExportPath: (operation: OasOperation) => string;
-    toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined;
+    toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(operation: OasOperation) => EnrichmentRequest<RequestedEnrichment> | undefined;
     toEnrichmentSchema: () => z.ZodType<EnrichmentType>;
     toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType;
-    isSupported: ({ operation, enrichments, context }: IsSupportedOperationArgs<EnrichmentType>) => boolean;
+    isSupported: ({ operation, context }: IsSupportedOperationArgs) => boolean;
     pinnable: boolean;
 } & Function;
 export {};

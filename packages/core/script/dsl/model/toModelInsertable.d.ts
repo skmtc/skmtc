@@ -17,7 +17,7 @@ export type ModelConfig<EnrichmentType> = {
     id: string;
     toIdentifier: (refName: RefName) => Identifier;
     toExportPath: (refName: RefName) => string;
-    toEnrichmentRequest?: (refName: RefName) => EnrichmentRequest<EnrichmentType> | undefined;
+    toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(refName: RefName) => EnrichmentRequest<RequestedEnrichment> | undefined;
     toEnrichmentSchema: () => z.ZodType<EnrichmentType>;
 };
 export declare const toModelInsertable: <EnrichmentType>(config: ModelConfig<EnrichmentType>) => {
@@ -35,7 +35,7 @@ export declare const toModelInsertable: <EnrichmentType>(config: ModelConfig<Enr
     _class: "ModelInsertable";
     toIdentifier: (refName: RefName) => Identifier;
     toExportPath: (refName: RefName) => string;
-    toEnrichmentRequest: ((refName: RefName) => EnrichmentRequest<EnrichmentType> | undefined) | undefined;
+    toEnrichmentRequest: (<RequestedEnrichment extends EnrichmentType>(refName: RefName) => EnrichmentRequest<RequestedEnrichment> | undefined) | undefined;
     toEnrichmentSchema: () => z.ZodType<EnrichmentType>;
     toEnrichments: ({ refName, context }: ToEnrichmentsArgs) => EnrichmentType;
     isSupported: () => boolean;

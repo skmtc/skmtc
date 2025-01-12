@@ -245,7 +245,7 @@ export class GenerateContext {
           if (
             !generator.isSupported({
               operation,
-              enrichments: generator.toEnrichments({ operation, context: this }),
+
               context: this
             })
           ) {
@@ -288,13 +288,7 @@ export class GenerateContext {
         const { path, method } = operation
 
         this.trace([path, method], () => {
-          if (
-            !generator.isSupported({
-              operation,
-              enrichments: generator.toEnrichments({ operation, context: this }),
-              context: this
-            })
-          ) {
+          if (!generator.isSupported({ operation, context: this })) {
             return this.captureCurrentResult('notSupported')
           }
 

@@ -2,7 +2,10 @@ import type { OasOperation } from '../../oas/operation/Operation.js'
 import { GatewayBase, type OperationGatewayArgs } from '../GatewayBase.js'
 import type { Identifier } from '../Identifier.js'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.js'
-import type { IsSupportedOperationArgs } from './OperationInsertable.js'
+import type {
+  IsSupportedOperationConfigArgs,
+  IsSupportedOperationArgs
+} from './OperationInsertable.js'
 import type { GenerateContext } from '../../context/GenerateContext.js'
 import type { z } from 'zod'
 
@@ -11,11 +14,13 @@ export type ToOperationGatewayArgs<EnrichmentType> = {
   toIdentifier: () => Identifier
   toExportPath: () => string
   isSupported?: ({
+    context,
     operation,
-    enrichments,
-    context
-  }: IsSupportedOperationArgs<EnrichmentType>) => boolean
-  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined
+    enrichments
+  }: IsSupportedOperationConfigArgs<EnrichmentType>) => boolean
+  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
+    operation: OasOperation
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichmentSchema: () => z.ZodType<EnrichmentType>
 }
 
@@ -48,7 +53,16 @@ export const toOperationGateway = <EnrichmentType>(
 
       return responseSchema?.parse(generatorSettings.enrichments)
     }
-    static isSupported = config.isSupported ?? (() => true)
+
+    static isSupported = ({ context, operation }: IsSupportedOperationArgs) => {
+      if (typeof config.isSupported !== 'function') {
+        return true
+      }
+
+      const enrichments = OperationGateway.toEnrichments({ operation, context })
+
+      return config.isSupported({ context, operation, enrichments })
+    }
 
     static pinnable = false
 

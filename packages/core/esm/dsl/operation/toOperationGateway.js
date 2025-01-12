@@ -71,7 +71,13 @@ export const toOperationGateway = (config) => {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: config.isSupported ?? (() => true)
+            value: ({ context, operation }) => {
+                if (typeof config.isSupported !== 'function') {
+                    return true;
+                }
+                const enrichments = OperationGateway.toEnrichments({ operation, context });
+                return config.isSupported({ context, operation, enrichments });
+            }
         }),
         Object.defineProperty(_a, "pinnable", {
             enumerable: true,

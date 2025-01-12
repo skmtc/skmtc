@@ -8,7 +8,6 @@ import clientSettingsInitial from './client.json'
 import { ClientSettings } from '@skmtc/core/Settings'
 import { useThunkReducer } from '@/hooks/use-thunk-reducer'
 import { useCreateSettings } from '@/services/use-create-settings'
-import { Preview } from '@skmtc/core/Preview'
 
 export type ArtifactsAction =
   | {
@@ -35,10 +34,6 @@ export type ArtifactsAction =
       type: 'set-client-settings'
       payload: ClientSettings
     }
-  | {
-      type: 'set-preview'
-      payload: Preview | null
-    }
 
 export type ArtifactsDispatch = Dispatch<ArtifactsAction>
 
@@ -49,7 +44,6 @@ export type ArtifactsState = {
   clientSettings: ClientSettings
   schema: string
   selectedGenerators: Record<string, boolean>
-  preview: Preview | null
 }
 
 type ArtifactsProviderProps = {
@@ -90,10 +84,6 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
       ...state,
       clientSettings: payload
     }))
-    .with({ type: 'set-preview' }, ({ payload }) => ({
-      ...state,
-      preview: payload
-    }))
     .exhaustive()
 }
 
@@ -104,8 +94,7 @@ const ArtifactsProvider = ({ children }: ArtifactsProviderProps) => {
     manifest: undefined,
     clientSettings: clientSettingsInitial,
     schema: '',
-    selectedGenerators: {},
-    preview: null
+    selectedGenerators: {}
   })
 
   const createSettingsMutation = useCreateSettings({

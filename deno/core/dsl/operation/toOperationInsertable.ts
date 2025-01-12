@@ -4,7 +4,11 @@ import type { OasOperation } from '../../oas/operation/Operation.ts'
 import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
-import type { IsSupportedOperationArgs, OperationInsertableArgs } from './OperationInsertable.ts'
+import type {
+  IsSupportedOperationConfigArgs,
+  OperationInsertableArgs,
+  IsSupportedOperationArgs
+} from './OperationInsertable.ts'
 import type { z } from 'zod'
 
 export type ToOperationInsertableArgs<EnrichmentType> = {
@@ -12,11 +16,13 @@ export type ToOperationInsertableArgs<EnrichmentType> = {
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
   isSupported?: ({
+    context,
     operation,
-    enrichments,
-    context
-  }: IsSupportedOperationArgs<EnrichmentType>) => boolean
-  toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined
+    enrichments
+  }: IsSupportedOperationConfigArgs<EnrichmentType>) => boolean
+  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
+    operation: OasOperation
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichmentSchema: () => z.ZodType<EnrichmentType>
   pinnable?: boolean
 }
@@ -51,7 +57,15 @@ export const toOperationInsertable = <EnrichmentType>(
       return responseSchema?.parse(generatorSettings.enrichments)
     }
 
-    static isSupported = config.isSupported ?? (() => true)
+    static isSupported = ({ context, operation }: IsSupportedOperationArgs) => {
+      if (typeof config.isSupported !== 'function') {
+        return true
+      }
+
+      const enrichments = OperationInsertable.toEnrichments({ operation, context })
+
+      return config.isSupported({ context, operation, enrichments })
+    }
 
     static pinnable = config.pinnable ?? false
 

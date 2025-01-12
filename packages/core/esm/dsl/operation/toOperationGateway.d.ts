@@ -2,15 +2,15 @@ import type { OasOperation } from '../../oas/operation/Operation.js';
 import { type OperationGatewayArgs } from '../GatewayBase.js';
 import type { Identifier } from '../Identifier.js';
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.js';
-import type { IsSupportedOperationArgs } from './OperationInsertable.js';
+import type { IsSupportedOperationConfigArgs, IsSupportedOperationArgs } from './OperationInsertable.js';
 import type { GenerateContext } from '../../context/GenerateContext.js';
 import type { z } from 'zod';
 export type ToOperationGatewayArgs<EnrichmentType> = {
     id: string;
     toIdentifier: () => Identifier;
     toExportPath: () => string;
-    isSupported?: ({ operation, enrichments, context }: IsSupportedOperationArgs<EnrichmentType>) => boolean;
-    toEnrichmentRequest?: (operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined;
+    isSupported?: ({ context, operation, enrichments }: IsSupportedOperationConfigArgs<EnrichmentType>) => boolean;
+    toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(operation: OasOperation) => EnrichmentRequest<RequestedEnrichment> | undefined;
     toEnrichmentSchema: () => z.ZodType<EnrichmentType>;
 };
 type ToEnrichmentsArgs = {
@@ -30,10 +30,10 @@ export declare const toOperationGateway: <EnrichmentType>(config: ToOperationGat
     _class: "OperationGateway";
     toIdentifier: () => Identifier;
     toExportPath: () => string;
-    toEnrichmentRequest: ((operation: OasOperation) => EnrichmentRequest<EnrichmentType> | undefined) | undefined;
+    toEnrichmentRequest: (<RequestedEnrichment extends EnrichmentType>(operation: OasOperation) => EnrichmentRequest<RequestedEnrichment> | undefined) | undefined;
     toEnrichmentSchema: () => z.ZodType<EnrichmentType>;
     toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType;
-    isSupported: ({ operation, enrichments, context }: IsSupportedOperationArgs<EnrichmentType>) => boolean;
+    isSupported: ({ context, operation }: IsSupportedOperationArgs) => boolean;
     pinnable: boolean;
 };
 export {};

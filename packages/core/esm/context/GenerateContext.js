@@ -401,7 +401,6 @@ _GenerateContext_files = new WeakMap(), _GenerateContext_previews = new WeakMap(
             this.trace([path, method], () => {
                 if (!generator.isSupported({
                     operation,
-                    enrichments: generator.toEnrichments({ operation, context: this }),
                     context: this
                 })) {
                     return this.captureCurrentResult('notSupported');
@@ -435,11 +434,7 @@ _GenerateContext_files = new WeakMap(), _GenerateContext_previews = new WeakMap(
             // https://linear.app/skmtc/issue/SKM-32/generic-models-operations
             const { path, method } = operation;
             this.trace([path, method], () => {
-                if (!generator.isSupported({
-                    operation,
-                    enrichments: generator.toEnrichments({ operation, context: this }),
-                    context: this
-                })) {
+                if (!generator.isSupported({ operation, context: this })) {
                     return this.captureCurrentResult('notSupported');
                 }
                 const settings = this.toOperationSettings({
