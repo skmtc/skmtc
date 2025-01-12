@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.395",
+  "version": "0.0.396",
   "exports": {
     ".": "./mod.ts"
   },

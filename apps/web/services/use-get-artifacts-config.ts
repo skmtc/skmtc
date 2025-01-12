@@ -36,9 +36,12 @@ export const useGetArtifactsConfig = ({
         body: JSON.stringify({
           schema: schema,
           clientSettings: clientSettings,
-          path: operationPath,
-          generatorId: generatorId,
-          method: operationMethod
+          source: {
+            type: 'operation',
+            operationPath: operationPath,
+            generatorId: generatorId,
+            operationMethod: operationMethod
+          }
         })
       })
         .then(res => res.json())

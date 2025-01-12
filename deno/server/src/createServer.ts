@@ -164,11 +164,11 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
 
       // deno-lint-ignore ban-ts-comment
       // @ts-expect-error
-      console.log('GENERATOR', JSON.stringify(generators[generatorId], null, 2))
+      console.log('GENERATOR', JSON.stringify(generators[source.generatorId], null, 2))
 
       // deno-lint-ignore ban-ts-comment
       // @ts-expect-error
-      const listItem = generators[generatorId]?.toListItem(operation) as
+      const listItem = generators[source.generatorId]?.toListItem(operation) as
         | OasSchema
         | OasRef<'schema'>
 
