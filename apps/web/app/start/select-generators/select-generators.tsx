@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/artifacts/artifacts-context'
-import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { match, P } from 'ts-pattern'
 import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
@@ -23,8 +22,6 @@ export const GeneratorMenu = () => {
     }
   })
 
-  const [submitting, setSubmitting] = useState(false)
-
   const { status } = useWebcontainer()
 
   const createArtifactsMutation = useCreateArtifacts({
@@ -32,7 +29,7 @@ export const GeneratorMenu = () => {
     schema: artifactsState.schema,
     generatorSettings: artifactsState.clientSettings.generators,
     dispatch,
-    setSubmitting
+    enrichments: artifactsState.enrichments
   })
 
   return (
@@ -104,7 +101,7 @@ export const GeneratorMenu = () => {
       <div className="flex mt-8 mb-12 justify-end ">
         <Button
           disabled={
-            submitting ||
+            createArtifactsMutation.isPending ||
             artifactsState.clientSettings.generators.length === 0 ||
             status !== 'ready'
           }
@@ -114,7 +111,11 @@ export const GeneratorMenu = () => {
           }}
           className="bg-indigo-600 hover:bg-indigo-600/90 no-underline w-[200px]"
         >
-          {submitting ? <Loader2 className="animate-spin" /> : 'Next: view results'}
+          {createArtifactsMutation.isPending ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            'Next: view results'
+          )}
         </Button>
       </div>
     </div>

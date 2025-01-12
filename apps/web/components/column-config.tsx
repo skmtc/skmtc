@@ -25,9 +25,9 @@ type ColumnConfigProps = {
 }
 
 export type ColumnConfigItem = {
-  path: string[]
-  format: string
-  title: string
+  accessorPath: string[]
+  formatter: string
+  label: string
 }
 
 export function ColumnConfig({ configSchema, listItemName, column, setColumn }: ColumnConfigProps) {
@@ -37,9 +37,9 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
 
   const { control, ...form } = useForm<ColumnConfigItem>({
     defaultValues: {
-      path: column.path,
-      format: column.format,
-      title: column.title
+      accessorPath: column.accessorPath,
+      formatter: column.formatter,
+      label: column.label
     }
   })
 
@@ -74,7 +74,7 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
           className="group/label w-full text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <CollapsibleTrigger>
-            {column.title || 'New column'}
+            {column.label || 'New column'}
             <ChevronRightIcon className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
@@ -85,7 +85,7 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
               <SidebarMenuItem>
                 <div className="flex flex-col gap-2">
                   <Controller
-                    name="title"
+                    name="label"
                     control={control}
                     render={({ field }) => (
                       <div className="flex flex-col gap-[2px]">
@@ -97,7 +97,7 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
                     )}
                   />
                   <Controller
-                    name="path"
+                    name="accessorPath"
                     control={control}
                     render={({ field }) => (
                       <div className="flex flex-col gap-[2px]">
@@ -115,7 +115,7 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
                     )}
                   />
                   <Controller
-                    name="format"
+                    name="formatter"
                     control={control}
                     render={({ field }) => (
                       <div className="flex flex-col gap-[2px]">

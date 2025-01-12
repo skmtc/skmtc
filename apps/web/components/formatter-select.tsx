@@ -19,14 +19,14 @@ const numberFormatter: Formatter = {
   schema: {
     type: 'number'
   },
-  label: 'Number'
+  label: 'NumberFormatter'
 }
 
 const textFormatter: Formatter = {
   schema: {
     type: 'string'
   },
-  label: 'Text'
+  label: 'TextFormatter'
 }
 
 const nameFormatter: Formatter = {
@@ -38,7 +38,7 @@ const nameFormatter: Formatter = {
       surname: { type: 'string' }
     }
   },
-  label: 'Name'
+  label: 'NameFormatter'
 }
 
 const addressFormatter: Formatter = {
@@ -55,7 +55,7 @@ const addressFormatter: Formatter = {
       country: { type: 'string' }
     }
   },
-  label: 'Address'
+  label: 'AddressFormatter'
 }
 
 const formatters: Formatter[] = [numberFormatter, textFormatter, nameFormatter, addressFormatter]

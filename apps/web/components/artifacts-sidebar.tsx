@@ -9,10 +9,9 @@ import { ArtifactsPreviewNav } from '@/components/artifacts-preview-nav'
 
 type ArtifactsSidebarProps = {
   previews: Record<string, Record<string, Preview>> | undefined
-  setPreview: (preview: Preview) => void
 } & React.ComponentProps<typeof Sidebar>
 
-export function ArtifactsSidebar({ previews, setPreview, ...props }: ArtifactsSidebarProps) {
+export function ArtifactsSidebar({ previews, ...props }: ArtifactsSidebarProps) {
   return (
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
@@ -27,7 +26,7 @@ export function ArtifactsSidebar({ previews, setPreview, ...props }: ArtifactsSi
         />
       </SidebarHeader>
       <SidebarContent>
-        <ArtifactsPreviewNav previews={previews} setPreview={setPreview} />
+        <ArtifactsPreviewNav previews={previews} />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>

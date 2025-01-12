@@ -1,23 +1,24 @@
 import { useMutation } from '@tanstack/react-query'
 import { ClientGeneratorSettings, ClientSettings } from '@skmtc/core/Settings'
-import { ArtifactsDispatch } from '@/components/artifacts/artifacts-context'
+import { ArtifactsDispatch, GeneratorEnrichments } from '@/components/artifacts/artifacts-context'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { match, P } from 'ts-pattern'
 
 type UseCreateArtifactsArgs = {
   clientSettings: ClientSettings
   generatorSettings: ClientGeneratorSettings[] | undefined
   schema: string
   dispatch: ArtifactsDispatch
-  setSubmitting: (submitting: boolean) => void
+  enrichments: GeneratorEnrichments
 }
 
 export const useCreateArtifacts = ({
   clientSettings,
+  enrichments,
   schema,
   generatorSettings,
-  dispatch,
-  setSubmitting
+  dispatch
 }: UseCreateArtifactsArgs) => {
   const router = useRouter()
 
@@ -31,7 +32,47 @@ export const useCreateArtifacts = ({
         body: JSON.stringify({
           clientSettings: {
             ...clientSettings,
-            generators: generatorSettings ?? []
+            generators:
+              generatorSettings?.map(item => {
+                return match(item)
+                  .with({ operations: P.nonNullable }, operationSettings => {
+                    const enrichedOperations = Object.fromEntries(
+                      Object.entries(operationSettings.operations).map(([path, methods]) => {
+                        const enrichedMethods = Object.fromEntries(
+                          Object.entries(methods).map(([method, setting]) => {
+                            const enrichedSetting = enrichments?.[item.id]?.[path]?.[method]
+
+                            return [
+                              method,
+                              enrichedSetting
+                                ? {
+                                    ...setting,
+                                    enrichments: {
+                                      columns: enrichedSetting
+                                        // Filter out placeholder enrichments - @todo: these should not be in context
+                                        .filter(item => Boolean(item.enrichmentItem.formatter))
+                                        .map(item => item.enrichmentItem)
+                                    }
+                                  }
+                                : setting
+                            ]
+                          })
+                        )
+
+                        return [path, enrichedMethods]
+                      })
+                    )
+
+                    return {
+                      ...operationSettings,
+                      operations: enrichedOperations
+                    }
+                  })
+                  .with({ models: P.nonNullable }, modelSettings => {
+                    return modelSettings
+                  })
+                  .exhaustive()
+              }) ?? []
           },
           schema
         })
@@ -48,12 +89,6 @@ export const useCreateArtifacts = ({
     },
     onError: () => {
       toast('Failed to generate artifacts')
-    },
-    onMutate: () => {
-      setSubmitting(true)
-    },
-    onSettled: () => {
-      setSubmitting(false)
     }
   })
 }

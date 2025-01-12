@@ -9,7 +9,7 @@ import { ClientSettings } from '@skmtc/core/Settings'
 import { useThunkReducer } from '@/hooks/use-thunk-reducer'
 import { useCreateSettings } from '@/services/use-create-settings'
 import { ColumnConfigItem } from '@/components/column-config'
-import { OperationPreview } from '@skmtc/core/Preview'
+import { OperationPreview, Preview } from '@skmtc/core/Preview'
 import { set } from 'lodash'
 
 export type ArtifactsAction =
@@ -41,6 +41,10 @@ export type ArtifactsAction =
       type: 'set-enrichment'
       payload: SetEnrichmentPayload
     }
+  | {
+      type: 'set-preview'
+      payload: Preview
+    }
 
 type SetEnrichmentPayload = {
   source: OperationPreview
@@ -55,7 +59,7 @@ type SourcedEnrichmentItem = {
 }
 type MethodEnrichments = Record<string, SourcedEnrichmentItem[]>
 type PathEnrichments = Record<string, MethodEnrichments>
-type GeneratorEnrichments = Record<string, PathEnrichments>
+export type GeneratorEnrichments = Record<string, PathEnrichments>
 
 export type ArtifactsState = {
   artifacts: Record<string, string>
@@ -65,6 +69,7 @@ export type ArtifactsState = {
   schema: string
   selectedGenerators: Record<string, boolean>
   enrichments: GeneratorEnrichments
+  preview: Preview | null
 }
 
 type ArtifactsProviderProps = {
@@ -105,6 +110,10 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
       ...state,
       clientSettings: payload
     }))
+    .with({ type: 'set-preview' }, ({ payload }) => ({
+      ...state,
+      preview: payload
+    }))
     .with({ type: 'set-enrichment' }, ({ payload }) => {
       console.log('PAYLOAD', payload)
 
@@ -134,7 +143,8 @@ const ArtifactsProvider = ({ children }: ArtifactsProviderProps) => {
     clientSettings: clientSettingsInitial,
     schema: '',
     selectedGenerators: {},
-    enrichments: {}
+    enrichments: {},
+    preview: null
   })
 
   const createSettingsMutation = useCreateSettings({

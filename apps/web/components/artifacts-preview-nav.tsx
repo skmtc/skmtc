@@ -1,5 +1,6 @@
 'use client'
 
+import { useArtifacts } from '@/components/artifacts/artifacts-context'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -12,10 +13,11 @@ import { Fragment } from 'react'
 
 type ArtifactsPreviewNavProps = {
   previews: Record<string, Record<string, Preview>> | undefined
-  setPreview: (preview: Preview) => void
 }
 
-export function ArtifactsPreviewNav({ previews, setPreview }: ArtifactsPreviewNavProps) {
+export function ArtifactsPreviewNav({ previews }: ArtifactsPreviewNavProps) {
+  const { dispatch } = useArtifacts()
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       {Object.entries(previews ?? {}).map(([group, items]) => (
@@ -24,7 +26,9 @@ export function ArtifactsPreviewNav({ previews, setPreview }: ArtifactsPreviewNa
           <SidebarMenu>
             {Object.values(items ?? {}).map(preview => (
               <SidebarMenuItem key={`${preview.name}-${preview.exportPath}`}>
-                <SidebarMenuButton onClick={() => setPreview(preview)}>
+                <SidebarMenuButton
+                  onClick={() => dispatch({ type: 'set-preview', payload: preview })}
+                >
                   {preview.name}
                 </SidebarMenuButton>
               </SidebarMenuItem>

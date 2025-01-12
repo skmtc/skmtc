@@ -53,7 +53,7 @@ export function ArtifactConfig({ configSchema, listItemName, source }: ArtifactC
                 source,
                 enrichmentItem: [
                   ...sourcedEnrichments,
-                  { source, enrichmentItem: { path: [], format: '', title: '' } }
+                  { source, enrichmentItem: { accessorPath: [], formatter: '', label: '' } }
                 ]
               }
             })

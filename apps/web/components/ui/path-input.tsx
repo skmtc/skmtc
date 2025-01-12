@@ -32,6 +32,8 @@ export const PathInput = ({
 }: PathInputProps) => {
   invariant(schema.type === 'object', 'Schema must be an object')
 
+  console.log('PATH', path)
+
   const [showAutocomplete, setShowAutocomplete] = useState(false)
   const [selectedItems, setSelectedItems] = useState<PropertyOption[]>(pathToOptions(path, schema))
   const [options, setOptions] = useState<PropertyOption[]>(schemaToOptions(schema))

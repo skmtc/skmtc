@@ -11,6 +11,7 @@ import { useEffect } from 'react'
 import { FileSystemTree } from '@webcontainer/api'
 import { set } from 'lodash'
 import { PreviewContainer } from '@/app/start/view-results/preview-container'
+import { useCreateArtifacts } from '@/services/use-create-artifacts'
 
 const downloadArtifacts = async (artifacts: Record<string, string>) => {
   const zip = new JSZip()
@@ -42,9 +43,17 @@ const mungeFileTree = (fileTree: Record<string, string>): FileSystemTree => {
 }
 
 export const ArtifactsPreview = () => {
-  const { state } = useArtifacts()
+  const { state: artifactsState, dispatch } = useArtifacts()
   const { remount, status } = useWebcontainer()
-  const { artifacts } = state
+  const { artifacts } = artifactsState
+
+  const createArtifactsMutation = useCreateArtifacts({
+    clientSettings: artifactsState.clientSettings,
+    schema: artifactsState.schema,
+    generatorSettings: artifactsState.clientSettings.generators,
+    dispatch,
+    enrichments: artifactsState.enrichments
+  })
 
   useEffect(() => {
     if (!Object.keys(artifacts ?? {}).length || status !== 'ready') return
@@ -53,6 +62,10 @@ export const ArtifactsPreview = () => {
 
     remount(fileTree)
   }, [artifacts, status])
+
+  useEffect(() => {
+    createArtifactsMutation.mutate()
+  }, [artifactsState.enrichments])
 
   return (
     <div className="relative flex flex-col bg-background min-h-0">
@@ -73,9 +86,9 @@ export const ArtifactsPreview = () => {
                 Code
               </TabsTrigger>
               <div className="flex flex-1 justify-end">
-                {Object.keys(state?.artifacts ?? {}).length > 0 && (
+                {Object.keys(artifactsState?.artifacts ?? {}).length > 0 && (
                   <Button
-                    onClick={() => downloadArtifacts(state.artifacts)}
+                    onClick={() => downloadArtifacts(artifactsState.artifacts)}
                     variant="link"
                     className="text-indigo-600 no-underline hover:underline px-1"
                   >
