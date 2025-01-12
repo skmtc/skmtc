@@ -8,6 +8,9 @@ import clientSettingsInitial from './client.json'
 import { ClientSettings } from '@skmtc/core/Settings'
 import { useThunkReducer } from '@/hooks/use-thunk-reducer'
 import { useCreateSettings } from '@/services/use-create-settings'
+import { ColumnConfigItem } from '@/components/column-config'
+import { OperationPreview } from '@skmtc/core/Preview'
+import { set } from 'lodash'
 
 export type ArtifactsAction =
   | {
@@ -34,8 +37,25 @@ export type ArtifactsAction =
       type: 'set-client-settings'
       payload: ClientSettings
     }
+  | {
+      type: 'set-enrichment'
+      payload: SetEnrichmentPayload
+    }
+
+type SetEnrichmentPayload = {
+  source: OperationPreview
+  enrichmentItem: SourcedEnrichmentItem[]
+}
 
 export type ArtifactsDispatch = Dispatch<ArtifactsAction>
+
+type SourcedEnrichmentItem = {
+  source: OperationPreview
+  enrichmentItem: ColumnConfigItem
+}
+type MethodEnrichments = Record<string, SourcedEnrichmentItem[]>
+type PathEnrichments = Record<string, MethodEnrichments>
+type GeneratorEnrichments = Record<string, PathEnrichments>
 
 export type ArtifactsState = {
   artifacts: Record<string, string>
@@ -44,6 +64,7 @@ export type ArtifactsState = {
   clientSettings: ClientSettings
   schema: string
   selectedGenerators: Record<string, boolean>
+  enrichments: GeneratorEnrichments
 }
 
 type ArtifactsProviderProps = {
@@ -84,6 +105,24 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
       ...state,
       clientSettings: payload
     }))
+    .with({ type: 'set-enrichment' }, ({ payload }) => {
+      console.log('PAYLOAD', payload)
+
+      const { generatorId, operationPath, operationMethod } = payload.source
+
+      const enrichments = set(
+        state.enrichments,
+        [generatorId, operationPath, operationMethod],
+        payload.enrichmentItem
+      )
+
+      return {
+        ...state,
+        enrichments: {
+          ...enrichments
+        }
+      }
+    })
     .exhaustive()
 }
 
@@ -94,7 +133,8 @@ const ArtifactsProvider = ({ children }: ArtifactsProviderProps) => {
     manifest: undefined,
     clientSettings: clientSettingsInitial,
     schema: '',
-    selectedGenerators: {}
+    selectedGenerators: {},
+    enrichments: {}
   })
 
   const createSettingsMutation = useCreateSettings({

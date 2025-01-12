@@ -61,7 +61,13 @@ export const PreviewContainer = () => {
           ) : null}
         </div>
       </SidebarInset>
-      <SidebarRight configSchema={configSchema} listItemName={listItemName} />
+      {preview?.source?.type === 'operation' && (
+        <SidebarRight
+          configSchema={configSchema}
+          listItemName={listItemName}
+          source={preview?.source}
+        />
+      )}
     </SidebarProvider>
   )
 }

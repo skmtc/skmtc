@@ -7,8 +7,8 @@ import { match } from 'ts-pattern'
 import { OpenAPIV3 } from 'openapi-types'
 import invariant from 'tiny-invariant'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { schemaToType } from '@/lib/schemaFns'
-import { standardInput, wrappedInput } from '@/lib/classes'
+import { isRef, schemaToType } from '@/lib/schemaFns'
+import { wrappedInput } from '@/lib/classes'
 
 type PropertyOption = {
   name: string
@@ -16,16 +16,24 @@ type PropertyOption = {
 }
 
 type PathInputProps = {
+  path: string[]
+  setPath: (path: string[]) => void
   parentName: string | null
   schema: OpenAPIV3.SchemaObject
   setSelectedSchema: (schema: OpenAPIV3.SchemaObject) => void
 }
 
-export const PathInput = ({ parentName, schema, setSelectedSchema }: PathInputProps) => {
+export const PathInput = ({
+  path,
+  setPath,
+  parentName,
+  schema,
+  setSelectedSchema
+}: PathInputProps) => {
   invariant(schema.type === 'object', 'Schema must be an object')
 
   const [showAutocomplete, setShowAutocomplete] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<PropertyOption[]>([])
+  const [selectedItems, setSelectedItems] = useState<PropertyOption[]>(pathToOptions(path, schema))
   const [options, setOptions] = useState<PropertyOption[]>(schemaToOptions(schema))
   const [highlightedItem, setHighlightedItem] = useState<number>(0)
   const [inputValue, setInputValue] = useState('')
@@ -110,7 +118,10 @@ export const PathInput = ({ parentName, schema, setSelectedSchema }: PathInputPr
             ref={inputRef}
             className="h-auto min-w-4 p-0 pl-[2px] bg-transparent shadow-none border-none outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
             onFocus={() => setShowAutocomplete(true)}
-            onBlur={() => setShowAutocomplete(false)}
+            onBlur={() => {
+              setShowAutocomplete(false)
+              setPath(selectedItems.map(item => item.name))
+            }}
             value={inputValue}
             onChange={event => {
               if (options.length > 0) {
@@ -187,4 +198,38 @@ export const PathInput = ({ parentName, schema, setSelectedSchema }: PathInputPr
 
 const schemaToOptions = (schema: OpenAPIV3.SchemaObject) => {
   return Object.entries(schema.properties ?? {}).map(([name, schema]) => ({ name, schema }))
+}
+
+type PathOptionsAcc = {
+  schema: OpenAPIV3.SchemaObject
+  options: PropertyOption[]
+}
+
+const pathToOptions = (path: string[], schema: OpenAPIV3.SchemaObject) => {
+  const { options } = path.reduce<PathOptionsAcc>(
+    (acc, pathItem) => {
+      const pathItemSchema = acc.schema.properties?.[pathItem as keyof typeof acc.schema.properties]
+
+      if (!pathItemSchema) {
+        throw new Error(`Path item ${pathItem} not found in schema`)
+      }
+
+      if (isRef(pathItemSchema)) {
+        throw new Error(`Unexpected reference object in path ${path.join('.')}: ${pathItem}`)
+      }
+
+      const option = {
+        name: pathItem,
+        schema: pathItemSchema
+      }
+
+      return {
+        schema: pathItemSchema,
+        options: [...acc.options, option]
+      }
+    },
+    { schema, options: [] }
+  )
+
+  return options
 }

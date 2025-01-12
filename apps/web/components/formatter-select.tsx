@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/standard-select'
 import { isSchemaSubset } from '@/lib/isSchemaSubset'
 import { standardInput } from '@/lib/classes'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type Formatter = {
   schema: OpenAPIV3.SchemaObject
@@ -62,9 +62,11 @@ const formatters: Formatter[] = [numberFormatter, textFormatter, nameFormatter, 
 
 type FormatterSelectProps = {
   selectedSchema: OpenAPIV3.SchemaObject | null
+  value: string | undefined
+  setValue: (value: string) => void
 }
 
-export const FormatterSelect = ({ selectedSchema }: FormatterSelectProps) => {
+export const FormatterSelect = ({ selectedSchema, value, setValue }: FormatterSelectProps) => {
   const formatterOptions = selectedSchema
     ? formatters
         .filter(formatter => {
@@ -80,9 +82,12 @@ export const FormatterSelect = ({ selectedSchema }: FormatterSelectProps) => {
         }))
     : []
 
-  const [value, setValue] = useState<string | undefined>(
-    formatterOptions?.length === 1 ? formatterOptions[0]?.value : undefined
-  )
+  // If no value is set and there is only one formatter, set the value to the formatter
+  useEffect(() => {
+    if (!value && formatterOptions.length === 1) {
+      setValue(formatterOptions[0].value)
+    }
+  }, [])
 
   return (
     <Select disabled={!selectedSchema} value={value} onValueChange={setValue}>

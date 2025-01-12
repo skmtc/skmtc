@@ -15,12 +15,13 @@ import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/standard-input'
 import { standardInput } from '@/lib/classes'
 import { useEffect } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 
 type ColumnConfigProps = {
   configSchema: OpenAPIV3.SchemaObject | null
   listItemName: string | null
   column: ColumnConfigItem
-  setColumn: (value: ColumnConfigItem | null) => void
+  setColumn: (value: ColumnConfigItem) => void
 }
 
 export type ColumnConfigItem = {
@@ -31,15 +32,26 @@ export type ColumnConfigItem = {
 
 export function ColumnConfig({ configSchema, listItemName, column, setColumn }: ColumnConfigProps) {
   const [selectedSchema, setSelectedSchema] = React.useState<OpenAPIV3.SchemaObject | null>(null)
-  const [title, setTitle] = React.useState<string>()
   const [open, setOpen] = React.useState<boolean>(true)
   const [focus, setFocus] = React.useState<boolean>(false)
 
-  useEffect(() => {
-    if (!open && column.path.length === 0 && column.format === '' && column.title === '') {
-      setColumn(null)
+  const { control, ...form } = useForm<ColumnConfigItem>({
+    defaultValues: {
+      path: column.path,
+      format: column.format,
+      title: column.title
     }
-  }, [open])
+  })
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!focus) {
+        setColumn(form.getValues())
+      }
+    }, 50)
+
+    return () => clearTimeout(timeout)
+  }, [focus])
 
   if (!configSchema) {
     return null
@@ -62,7 +74,7 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
           className="group/label w-full text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <CollapsibleTrigger>
-            {title || 'New column'}
+            {column.title || 'New column'}
             <ChevronRightIcon className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
@@ -72,32 +84,52 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
             <SidebarMenu>
               <SidebarMenuItem>
                 <div className="flex flex-col gap-2">
-                  <div className="flex flex-col gap-[2px]">
-                    <label htmlFor="path-input" className="text-xs font-normal text-foreground">
-                      Label
-                    </label>
-                    <Input
-                      className={standardInput}
-                      value={title}
-                      onChange={e => setTitle(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-[2px]">
-                    <label htmlFor="path-input" className="text-xs font-normal text-foreground">
-                      Content
-                    </label>
-                    <PathInput
-                      parentName={listItemName}
-                      schema={configSchema}
-                      setSelectedSchema={setSelectedSchema}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-[2px]">
-                    <label htmlFor="path-input" className="text-xs font-normal text-foreground">
-                      Format
-                    </label>
-                    <FormatterSelect selectedSchema={selectedSchema} />
-                  </div>
+                  <Controller
+                    name="title"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="flex flex-col gap-[2px]">
+                        <label htmlFor="path-input" className="text-xs font-normal text-foreground">
+                          Label
+                        </label>
+                        <Input className={standardInput} {...field} />
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    name="path"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="flex flex-col gap-[2px]">
+                        <label htmlFor="path-input" className="text-xs font-normal text-foreground">
+                          Content
+                        </label>
+                        <PathInput
+                          path={field.value}
+                          setPath={field.onChange}
+                          parentName={listItemName}
+                          schema={configSchema}
+                          setSelectedSchema={setSelectedSchema}
+                        />
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    name="format"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="flex flex-col gap-[2px]">
+                        <label htmlFor="path-input" className="text-xs font-normal text-foreground">
+                          Format
+                        </label>
+                        <FormatterSelect
+                          selectedSchema={selectedSchema}
+                          value={field.value}
+                          setValue={field.onChange}
+                        />
+                      </div>
+                    )}
+                  />
                 </div>
               </SidebarMenuItem>
             </SidebarMenu>

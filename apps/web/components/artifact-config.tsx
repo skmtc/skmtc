@@ -1,32 +1,40 @@
 import * as React from 'react'
 import { OpenAPIV3 } from 'openapi-types'
-import { ColumnConfig, type ColumnConfigItem } from '@/components/column-config'
+import { ColumnConfig } from '@/components/column-config'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
 import { SidebarGroupContent } from '@/components/ui/sidebar'
+import { OperationPreview } from '@skmtc/core/Preview'
+import { useArtifacts } from '@/components/artifacts/artifacts-context'
 
 type ArtifactConfigProps = {
   configSchema: OpenAPIV3.SchemaObject | null
   listItemName: string | null
+  source: OperationPreview
 }
 
-export function ArtifactConfig({ configSchema, listItemName }: ArtifactConfigProps) {
-  const [columns, setColumns] = useState<ColumnConfigItem[]>([])
+export function ArtifactConfig({ configSchema, listItemName, source }: ArtifactConfigProps) {
+  const { state, dispatch } = useArtifacts()
+
+  const { generatorId, operationPath, operationMethod } = source
+
+  const sourcedEnrichments =
+    state.enrichments[generatorId]?.[operationPath]?.[operationMethod] ?? []
 
   return (
     <>
-      {columns.map((column, index) => (
+      {sourcedEnrichments.map((sourcedEnrichment, index) => (
         <ColumnConfig
-          column={column}
-          setColumn={value => {
-            setColumns(prev => {
-              if (value) {
-                prev[index] = value
-              } else {
-                prev.splice(index, 1)
-              }
+          column={sourcedEnrichment.enrichmentItem}
+          setColumn={enrichmentItem => {
+            const newEnrichments = [...sourcedEnrichments]
+            newEnrichments[index] = { source, enrichmentItem }
 
-              return prev
+            dispatch({
+              type: 'set-enrichment',
+              payload: {
+                source,
+                enrichmentItem: newEnrichments
+              }
             })
           }}
           key={index}
@@ -38,7 +46,18 @@ export function ArtifactConfig({ configSchema, listItemName }: ArtifactConfigPro
         <Button
           variant="ghost"
           className="h-auto px-2 py-1 text-indigo-600 w-min"
-          onClick={() => setColumns(prev => [...prev, { path: [], format: '', title: '' }])}
+          onClick={() => {
+            dispatch({
+              type: 'set-enrichment',
+              payload: {
+                source,
+                enrichmentItem: [
+                  ...sourcedEnrichments,
+                  { source, enrichmentItem: { path: [], format: '', title: '' } }
+                ]
+              }
+            })
+          }}
         >
           Add column
         </Button>
