@@ -14,9 +14,10 @@
   "scripts": {
     "start": "node src/server.js",
     "build": "vite build",
+    "dev": "nodemon --watch './' src/server.js",
     "check": "tsc --noEmit --skipLibCheck",
     "upgrade:deps": "yarn upgrade-interactive"
-  },
+  }, 
   "dependencies": {
     "express": "4.21.2",
     "express-http-proxy": "^2.1.1",
@@ -51,6 +52,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "@wyw-in-js/vite": "^0.5.0",
     "mockdate": "^3.0.5",
+    "nodemon": "^3.1.9",
     "vite": "^5.2.9"
   },
   "packageManager": "yarn@4.1.1"

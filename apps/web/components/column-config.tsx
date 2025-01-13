@@ -44,6 +44,10 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
   })
 
   useEffect(() => {
+    if (focus) {
+      return
+    }
+
     const timeout = setTimeout(() => {
       if (!focus) {
         setColumn(form.getValues())

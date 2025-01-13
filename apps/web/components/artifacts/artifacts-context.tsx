@@ -115,21 +115,19 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
       preview: payload
     }))
     .with({ type: 'set-enrichment' }, ({ payload }) => {
-      console.log('PAYLOAD', payload)
+      console.log('SET ENRICHMENT PAYLOAD', payload)
 
       const { generatorId, operationPath, operationMethod } = payload.source
 
-      const enrichments = set(
-        state.enrichments,
-        [generatorId, operationPath, operationMethod],
-        payload.enrichmentItem
-      )
+      const enrichmentsCopy = structuredClone(state.enrichments)
 
       return {
         ...state,
-        enrichments: {
-          ...enrichments
-        }
+        enrichments: set(
+          enrichmentsCopy,
+          [generatorId, operationPath, operationMethod],
+          payload.enrichmentItem
+        )
       }
     })
     .exhaustive()
