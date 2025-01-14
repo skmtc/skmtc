@@ -49,20 +49,20 @@ export const PreviewContainer = () => {
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
-            ) : (
-              <div>Loading...</div>
-            )}
+            ) : null}
           </div>
         </header>
 
         <div className="flex flex-1 flex-col gap-4 p-4">
-          {preview ? (
+          {preview && webContainerUrl ? (
             <iframe
               className="w-full h-full"
               ref={iframeRef}
               src={`${webContainerUrl}${preview.route}`}
             />
-          ) : null}
+          ) : (
+            <div>Loading...</div>
+          )}
         </div>
       </SidebarInset>
       {preview?.source?.type === 'operation' && (

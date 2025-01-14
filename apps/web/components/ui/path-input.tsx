@@ -51,6 +51,10 @@ export const PathInput = ({
   }, [filteredOptions])
 
   useEffect(() => {
+    setPath(selectedItems.map(item => item.name))
+  }, [selectedItems])
+
+  useEffect(() => {
     const currentSchema = selectedItems.reduce<
       OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | undefined
     >((acc, item) => {
@@ -120,7 +124,6 @@ export const PathInput = ({
             onFocus={() => setShowAutocomplete(true)}
             onBlur={() => {
               setShowAutocomplete(false)
-              setPath(selectedItems.map(item => item.name))
             }}
             value={inputValue}
             onChange={event => {
@@ -132,6 +135,8 @@ export const PathInput = ({
               match(event)
                 .with({ key: 'Enter' }, () => {
                   if (filteredOptions[highlightedItem]) {
+                    event.preventDefault()
+
                     setSelectedItems(prev => [...prev, filteredOptions[highlightedItem]])
                     setInputValue('')
                     setHighlightedItem(0)

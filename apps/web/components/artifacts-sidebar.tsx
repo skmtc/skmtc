@@ -18,7 +18,7 @@ export function ArtifactsSidebar({ previews, ...props }: ArtifactsSidebarProps) 
         <TeamSwitcher
           teams={[
             {
-              name: 'Acme Inc',
+              name: 'Foundations Interactive API Explorer',
               logo: Command,
               plan: 'Enterprise'
             }

@@ -8,9 +8,9 @@ import clientSettingsInitial from './client.json'
 import { ClientSettings } from '@skmtc/core/Settings'
 import { useThunkReducer } from '@/hooks/use-thunk-reducer'
 import { useCreateSettings } from '@/services/use-create-settings'
-import { ColumnConfigItem } from '@/components/column-config'
+import { ColumnConfigItem } from '@/components/config/column-config-form'
 import { OperationPreview, Preview } from '@skmtc/core/Preview'
-import { set } from 'lodash'
+import { set, get } from 'lodash'
 
 export type ArtifactsAction =
   | {
@@ -38,26 +38,31 @@ export type ArtifactsAction =
       payload: ClientSettings
     }
   | {
-      type: 'set-enrichment'
-      payload: SetEnrichmentPayload
+      type: 'add-column-config'
+      payload: AddColumnConfigPayload
+    }
+  | {
+      type: 'delete-column-config'
+      payload: DeleteColumnConfigPayload
     }
   | {
       type: 'set-preview'
       payload: Preview
     }
 
-type SetEnrichmentPayload = {
+type AddColumnConfigPayload = {
   source: OperationPreview
-  enrichmentItem: SourcedEnrichmentItem[]
+  columnConfig: ColumnConfigItem
+}
+
+type DeleteColumnConfigPayload = {
+  source: OperationPreview
+  index: number
 }
 
 export type ArtifactsDispatch = Dispatch<ArtifactsAction>
 
-type SourcedEnrichmentItem = {
-  source: OperationPreview
-  enrichmentItem: ColumnConfigItem
-}
-type MethodEnrichments = Record<string, SourcedEnrichmentItem[]>
+type MethodEnrichments = Record<string, ColumnConfigItem[]>
 type PathEnrichments = Record<string, MethodEnrichments>
 export type GeneratorEnrichments = Record<string, PathEnrichments>
 
@@ -114,19 +119,41 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
       ...state,
       preview: payload
     }))
-    .with({ type: 'set-enrichment' }, ({ payload }) => {
-      console.log('SET ENRICHMENT PAYLOAD', payload)
+    .with({ type: 'add-column-config' }, ({ payload }) => {
+      const { source, columnConfig } = payload
+      const { generatorId, operationPath, operationMethod } = source
 
-      const { generatorId, operationPath, operationMethod } = payload.source
+      console.log('ADD COLUMN CONFIG', payload.columnConfig)
 
       const enrichmentsCopy = structuredClone(state.enrichments)
+
+      const methodEnrichments =
+        get(enrichmentsCopy, [generatorId, operationPath, operationMethod]) ?? []
 
       return {
         ...state,
         enrichments: set(
           enrichmentsCopy,
           [generatorId, operationPath, operationMethod],
-          payload.enrichmentItem
+          methodEnrichments.concat(columnConfig)
+        )
+      }
+    })
+    .with({ type: 'delete-column-config' }, ({ payload }) => {
+      const { source, index } = payload
+      const { generatorId, operationPath, operationMethod } = source
+
+      const enrichmentsCopy = structuredClone(state.enrichments)
+
+      const methodEnrichments =
+        get(enrichmentsCopy, [generatorId, operationPath, operationMethod]) ?? []
+
+      return {
+        ...state,
+        enrichments: set(
+          enrichmentsCopy,
+          [generatorId, operationPath, operationMethod],
+          methodEnrichments.filter((_, i) => i !== index)
         )
       }
     })

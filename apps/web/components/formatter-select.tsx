@@ -85,9 +85,11 @@ export const FormatterSelect = ({ selectedSchema, value, setValue }: FormatterSe
   // If no value is set and there is only one formatter, set the value to the formatter
   useEffect(() => {
     if (!value && formatterOptions.length === 1) {
+      console.log('SETTING VALUE', formatterOptions[0].value)
+
       setValue(formatterOptions[0].value)
     }
-  }, [])
+  }, [formatterOptions, value])
 
   return (
     <Select disabled={!selectedSchema} value={value} onValueChange={setValue}>

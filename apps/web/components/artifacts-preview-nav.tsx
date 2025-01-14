@@ -9,14 +9,29 @@ import {
   SidebarMenuItem
 } from '@/components/ui/sidebar'
 import { Preview } from '@skmtc/core/Preview'
-import { Fragment } from 'react'
+import { Fragment, useEffect } from 'react'
 
 type ArtifactsPreviewNavProps = {
   previews: Record<string, Record<string, Preview>> | undefined
 }
 
 export function ArtifactsPreviewNav({ previews }: ArtifactsPreviewNavProps) {
-  const { dispatch } = useArtifacts()
+  const { state: artifactsState, dispatch } = useArtifacts()
+
+  useEffect(() => {
+    if (!artifactsState.preview) {
+      const items = Object.values(previews ?? {}).at(0)
+      if (!items) {
+        return
+      }
+
+      const preview = Object.values(items ?? {}).at(0)
+
+      if (preview) {
+        dispatch({ type: 'set-preview', payload: preview })
+      }
+    }
+  }, [previews, artifactsState.preview])
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">

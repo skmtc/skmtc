@@ -40,18 +40,15 @@ export const useCreateArtifacts = ({
                       Object.entries(operationSettings.operations).map(([path, methods]) => {
                         const enrichedMethods = Object.fromEntries(
                           Object.entries(methods).map(([method, setting]) => {
-                            const enrichedSetting = enrichments?.[item.id]?.[path]?.[method]
+                            const columnConfigs = enrichments?.[item.id]?.[path]?.[method]
 
                             return [
                               method,
-                              enrichedSetting
+                              columnConfigs?.length
                                 ? {
                                     ...setting,
                                     enrichments: {
-                                      columns: enrichedSetting
-                                        // Filter out placeholder enrichments - @todo: these should not be in context
-                                        .filter(item => Boolean(item.enrichmentItem.formatter))
-                                        .map(item => item.enrichmentItem)
+                                      columns: columnConfigs
                                     }
                                   }
                                 : setting
@@ -87,7 +84,9 @@ export const useCreateArtifacts = ({
 
       router.push('/start/view-results')
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error('ERROR', error)
+      debugger
       toast('Failed to generate artifacts')
     }
   })
