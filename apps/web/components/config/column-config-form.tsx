@@ -4,10 +4,9 @@ import { OpenAPIV3 } from 'openapi-types'
 import { FormatterSelect } from '@/components/formatter-select'
 import { Input } from '@/components/ui/standard-input'
 import { standardInput } from '@/lib/classes'
-import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
-import { useArtifacts } from '@/components/artifacts/artifacts-context'
+import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
 
 export type ColumnConfigItem = {
@@ -51,8 +50,6 @@ export function ColumnConfigForm({
     <form
       className="flex flex-col gap-2 px-2 pt-2"
       onSubmit={handleSubmit(values => {
-        console.log('SUBMIT', values)
-
         dispatch({
           type: 'add-column-config',
           payload: {

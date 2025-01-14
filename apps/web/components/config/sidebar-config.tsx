@@ -14,7 +14,7 @@ import {
 import { OpenAPIV3 } from 'openapi-types'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { MoreHorizontal, Pencil, Plus } from 'lucide-react'
-import { useArtifacts } from '@/components/artifacts/artifacts-context'
+import { useArtifacts } from '@/components/preview/artifacts-context'
 import { useState } from 'react'
 import { ColumnConfigForm } from '@/components/config/column-config-form'
 import { get } from 'lodash'

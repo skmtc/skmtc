@@ -176,7 +176,7 @@ export const PathInput = ({
               <Button
                 key={option.name}
                 tabIndex={-1}
-                variant="menu"
+                variant="ghost"
                 className={`w-full justify-start px-2 rounded-sm ${highlightedItem === index ? 'bg-accent' : ''}`}
                 onMouseMove={() => setHighlightedItem(index)}
                 onClick={() => {

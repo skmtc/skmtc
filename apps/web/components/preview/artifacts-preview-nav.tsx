@@ -1,6 +1,6 @@
 'use client'
 
-import { useArtifacts } from '@/components/artifacts/artifacts-context'
+import { useArtifacts } from '@/components/preview/artifacts-context'
 import {
   SidebarGroup,
   SidebarGroupLabel,

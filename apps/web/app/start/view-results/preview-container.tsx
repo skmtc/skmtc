@@ -1,6 +1,6 @@
-import { useArtifacts } from '@/components/artifacts/artifacts-context'
-import { ArtifactsSidebar } from '@/components/artifacts-sidebar'
-import { SidebarRight } from '@/components/sidebar-right'
+import { useArtifacts } from '@/components/preview/artifacts-context'
+import { ArtifactsSidebar } from '@/components/preview/artifacts-sidebar'
+import { SidebarRight } from '@/components/preview/sidebar-right'
 import {
   Breadcrumb,
   BreadcrumbItem,

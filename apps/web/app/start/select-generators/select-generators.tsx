@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Controller, useForm } from 'react-hook-form'
-import { useArtifacts } from '@/components/artifacts/artifacts-context'
+import { useArtifacts } from '@/components/preview/artifacts-context'
 import { Loader2 } from 'lucide-react'
 import { match, P } from 'ts-pattern'
 import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'

@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import reapitSchema from './reapit-schema.json'
 import { useRouter } from 'next/navigation'
-import { useArtifacts } from '@/components/artifacts/artifacts-context'
+import { useArtifacts } from '@/components/preview/artifacts-context'
 import { useGetGeneratorIds } from '@/services/use-get-generator-ids'
 import { useEffect } from 'react'
 
