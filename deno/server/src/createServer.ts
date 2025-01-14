@@ -86,6 +86,20 @@ const getGenerators = createRoute({
   }
 })
 
+const schemaItem = z
+  .object({
+    schema: z.object({}).passthrough(),
+    name: z.string().nullable(),
+    type: z.enum(['list-item', 'form-item'])
+  })
+  .openapi('SchemaItem')
+
+const postArtifactConfigResponse = z
+  .object({
+    schemaItem: schemaItem.nullable()
+  })
+  .openapi('PostArtifactConfigResponse')
+
 const postArtifactConfig = createRoute({
   method: 'post',
   path: '/artifact-config',
@@ -95,10 +109,15 @@ const postArtifactConfig = createRoute({
   responses: {
     200: {
       description: 'Artifact config',
-      content: { 'application/json': { schema: z.object({}) } }
+      content: { 'application/json': { schema: postArtifactConfigResponse } }
     }
   }
 })
+
+type OperationSchemaItem = {
+  schema: OasSchema | OasRef<'schema'>
+  type: 'list-item' | 'form-item'
+}
 
 export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): OpenAPIHono => {
   const app = new OpenAPIHono()
@@ -141,8 +160,8 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
     })
   })
 
-  app.openapi(postArtifactConfig, async c => {
-    return await Sentry.startSpan({ name: 'POST /artifact-config' }, span => {
+  app.openapi(postArtifactConfig, c => {
+    return Sentry.startSpan({ name: 'POST /artifact-config' }, span => {
       const { schema, source } = c.req.valid('json')
 
       invariant(source.type === 'operation', 'Source must be an operation')
@@ -160,23 +179,33 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
 
       const generators = toGeneratorsMap()
 
-      console.log('GENERATORS', generators)
-
       // deno-lint-ignore ban-ts-comment
       // @ts-expect-error
-      console.log('GENERATOR', JSON.stringify(generators[source.generatorId], null, 2))
+      const operationSchemaItem = generators[source.generatorId]?.toSchemaItem(
+        operation
+      ) as OperationSchemaItem
 
-      // deno-lint-ignore ban-ts-comment
-      // @ts-expect-error
-      const listItem = generators[source.generatorId]?.toListItem(operation) as
-        | OasSchema
-        | OasRef<'schema'>
+      if (!operationSchemaItem) {
+        return c.json({ schemaItem: null }, 200)
+      }
 
-      const refName = listItem.isRef() ? listItem.toRefName() : null
+      const refName = operationSchemaItem.schema.isRef()
+        ? operationSchemaItem.schema.toRefName()
+        : null
 
-      const listItemJson = listItem.toJsonSchema({ resolve: true })
-
-      return c.json({ listItemJson, listItemName: refName })
+      return c.json(
+        {
+          schemaItem: {
+            schema: operationSchemaItem.schema.toJsonSchema({ resolve: true }) as Record<
+              string,
+              unknown
+            >,
+            name: refName,
+            type: operationSchemaItem.type
+          }
+        },
+        200
+      )
     })
   })
 

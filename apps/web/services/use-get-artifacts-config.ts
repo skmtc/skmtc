@@ -1,18 +1,13 @@
+import { SchemaItem } from '@/components/config/types'
 import { OperationPreview, Preview } from '@skmtc/core/Preview'
 import { ClientSettings } from '@skmtc/core/Settings'
 import { useQuery } from '@tanstack/react-query'
-import { OpenAPIV3 } from 'openapi-types'
-
-type Response = {
-  listItemJson: OpenAPIV3.SchemaObject
-  listItemName: string
-}
 
 type UseGetArtifactsConfigArgs = {
   schema: string
   clientSettings: ClientSettings
   preview: Preview | null
-  onSuccess: (data: Response) => void
+  onSuccess: (data: SchemaItem) => void
 }
 
 export const useGetArtifactsConfig = ({
@@ -45,7 +40,7 @@ export const useGetArtifactsConfig = ({
         })
       })
         .then(res => res.json())
-        .then(data => onSuccess(data))
+        .then(data => onSuccess(data.schemaItem))
     }
   })
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArtifactsCodeView } from '@/app/start/artifacts-code-view'
+import { ArtifactsCodeView } from '@/components/code-view/artifacts-code-view'
 import { Button } from '@/components/ui/button'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
@@ -10,7 +10,7 @@ import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
 import { useEffect } from 'react'
 import { FileSystemTree } from '@webcontainer/api'
 import { set } from 'lodash'
-import { PreviewContainer } from '@/app/start/view-results/preview-container'
+import { PreviewContainer } from '@/components/preview/preview-container'
 import { useCreateArtifacts } from '@/services/use-create-artifacts'
 
 const downloadArtifacts = async (artifacts: Record<string, string>) => {

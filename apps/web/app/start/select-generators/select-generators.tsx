@@ -55,7 +55,7 @@ export const GeneratorMenu = () => {
                       ? 'rounded-bl-sm rounded-br-sm'
                       : '',
                     'has-[:disabled]bg-gray-50 has-[:disabled]:text-gray-500 has-[:disabled]:bg-gray-100 has-[:disabled]:border-gray-300 has-[:disabled]:shadow-none',
-                    'group relative flex cursor-pointer border border-gray-300 p-4 focus:outline-none has-[:checked]:z-10 has-[:checked]:border-indigo-200 has-[:checked]:bg-indigo-50'
+                    'group relative flex cursor-pointer border border-gray-300 px-4 py-2 focus:outline-none has-[:checked]:z-10 has-[:checked]:border-indigo-200 has-[:checked]:bg-indigo-50'
                   )}
                 >
                   <span
@@ -75,7 +75,7 @@ export const GeneratorMenu = () => {
                       />
                     </div>
                   </span>
-                  <span className="ml-3 flex flex-col">
+                  <span className="ml-3 flex flex-col gap-1">
                     <span className="block text-sm font-medium text-gray-900 group-data-[checked]:text-indigo-900">
                       {generatorId}
                     </span>

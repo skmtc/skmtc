@@ -9,6 +9,7 @@ import invariant from 'tiny-invariant'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { isRef, schemaToType } from '@/lib/schemaFns'
 import { wrappedInput } from '@/lib/classes'
+import { SchemaItem } from '@/components/config/types'
 
 type PropertyOption = {
   name: string
@@ -18,31 +19,36 @@ type PropertyOption = {
 type PathInputProps = {
   path: string[]
   setPath: (path: string[]) => void
-  parentName: string | null
-  schema: OpenAPIV3.SchemaObject
+  schemaItem: SchemaItem
   setSelectedSchema: (schema: OpenAPIV3.SchemaObject) => void
 }
 
-export const PathInput = ({
-  path,
-  setPath,
-  parentName,
-  schema,
-  setSelectedSchema
-}: PathInputProps) => {
-  invariant(schema.type === 'object', 'Schema must be an object')
+export const PathInput = ({ path, setPath, schemaItem, setSelectedSchema }: PathInputProps) => {
+  console.log('SCHEMA ITEM', JSON.stringify(schemaItem, null, 2))
+
+  if (!schemaItem?.schema?.type) {
+    debugger
+  }
+
+  invariant(schemaItem.schema.type === 'object', 'Schema must be an object')
 
   const [showAutocomplete, setShowAutocomplete] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<PropertyOption[]>(pathToOptions(path, schema))
-  const [options, setOptions] = useState<PropertyOption[]>(schemaToOptions(schema))
+  const [selectedItems, setSelectedItems] = useState<PropertyOption[]>(
+    pathToOptions(path, schemaItem.schema)
+  )
+  const [options, setOptions] = useState<PropertyOption[]>(schemaToOptions(schemaItem.schema))
   const [highlightedItem, setHighlightedItem] = useState<number>(0)
   const [inputValue, setInputValue] = useState('')
   const highlightedItemRef = useRef<HTMLButtonElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  const filteredOptions = options.filter(option =>
-    option.name.includes(inputValue.replace('.', ''))
-  )
+  const normalizedInputValue = inputValue.toLowerCase().replace('.', '')
+
+  const filteredOptions = options.filter(option => {
+    const lowerCaseName = option.name.toLowerCase()
+
+    return lowerCaseName.includes(normalizedInputValue)
+  })
 
   useEffect(() => {
     if (highlightedItem > filteredOptions.length - 1) {
@@ -69,7 +75,7 @@ export const PathInput = ({
       }
 
       return undefined
-    }, schema)
+    }, schemaItem.schema)
 
     if (currentSchema && 'type' in currentSchema && currentSchema.type === 'object') {
       setOptions(schemaToOptions(currentSchema))
@@ -94,7 +100,7 @@ export const PathInput = ({
         className="text-sm bg-transparent p-0 border-none font-normal text-[--sidebar-foreground] hover:bg-transparent"
         onClick={() => inputRef.current?.focus()}
       >
-        {parentName}
+        {schemaItem.name}
       </Badge>
       {selectedItems.map(item => (
         <Fragment key={item.name}>

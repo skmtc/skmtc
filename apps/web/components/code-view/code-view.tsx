@@ -1,7 +1,7 @@
 import { HighlightedCode, Pre, RawCode, highlight } from 'codehike/code'
 import { useEffect, useState } from 'react'
 import { lineNumbers } from './line-numbers'
-import { CopyButton } from '@/components/viewer/copy-button'
+import { CopyButton } from '@/components/code-view/copy-button'
 import { File } from 'lucide-react'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 
@@ -17,7 +17,7 @@ export const CodeView = () => {
 
   return highlighted ? (
     <div className="flex flex-col flex-1 relative text-sm" style={highlighted.style}>
-      <div className="flex justify-between items-center pl-4 pr-2 border-b">
+      <div className="flex justify-between items-center pl-4 pr-2 border-b sticky top-0 bg-white z-10">
         <div className="flex h-12 items-center gap-2 text-sm font-medium">
           <File className="size-4" />
           {selectedArtifact.meta}

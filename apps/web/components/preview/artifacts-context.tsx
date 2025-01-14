@@ -8,9 +8,9 @@ import clientSettingsInitial from './client.json'
 import { ClientSettings } from '@skmtc/core/Settings'
 import { useThunkReducer } from '@/hooks/use-thunk-reducer'
 import { useCreateSettings } from '@/services/use-create-settings'
-import { ColumnConfigItem } from '@/components/config/column-config-form'
 import { OperationPreview, Preview } from '@skmtc/core/Preview'
 import { set, get } from 'lodash'
+import { FormFieldItem, ColumnConfigItem, FormSectionItem } from '@/components/config/types'
 
 export type ArtifactsAction =
   | {
@@ -42,12 +42,28 @@ export type ArtifactsAction =
       payload: AddColumnConfigPayload
     }
   | {
+      type: 'add-form-section'
+      payload: AddFormSectionPayload
+    }
+  | {
       type: 'delete-column-config'
       payload: DeleteColumnConfigPayload
     }
   | {
+      type: 'delete-form-section'
+      payload: DeleteFormSectionPayload
+    }
+  | {
       type: 'set-preview'
       payload: Preview
+    }
+  | {
+      type: 'add-form-field'
+      payload: AddFormFieldPayload
+    }
+  | {
+      type: 'delete-form-field'
+      payload: DeleteFormFieldPayload
     }
 
 type AddColumnConfigPayload = {
@@ -60,9 +76,36 @@ type DeleteColumnConfigPayload = {
   index: number
 }
 
+type AddFormSectionPayload = {
+  source: OperationPreview
+  formSection: FormSectionItem
+}
+
+type DeleteFormSectionPayload = {
+  source: OperationPreview
+  sectionIndex: number
+}
+
+type AddFormFieldPayload = {
+  source: OperationPreview
+  sectionIndex: number
+  formField: FormFieldItem
+}
+
+type DeleteFormFieldPayload = {
+  source: OperationPreview
+  sectionIndex: number
+  fieldIndex: number
+}
+
 export type ArtifactsDispatch = Dispatch<ArtifactsAction>
 
-type MethodEnrichments = Record<string, ColumnConfigItem[]>
+type OperationEnrichments = {
+  columns: ColumnConfigItem[]
+  formSections: FormSectionItem[]
+}
+
+type MethodEnrichments = Record<string, OperationEnrichments>
 type PathEnrichments = Record<string, MethodEnrichments>
 export type GeneratorEnrichments = Record<string, PathEnrichments>
 
@@ -123,37 +166,111 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
       const { source, columnConfig } = payload
       const { generatorId, operationPath, operationMethod } = source
 
-      console.log('ADD COLUMN CONFIG', payload.columnConfig)
+      const columnsPath = [generatorId, operationPath, operationMethod, 'columns']
 
       const enrichmentsCopy = structuredClone(state.enrichments)
 
-      const methodEnrichments =
-        get(enrichmentsCopy, [generatorId, operationPath, operationMethod]) ?? []
+      const methodEnrichments = get(enrichmentsCopy, columnsPath) ?? []
 
       return {
         ...state,
-        enrichments: set(
-          enrichmentsCopy,
-          [generatorId, operationPath, operationMethod],
-          methodEnrichments.concat(columnConfig)
-        )
+        enrichments: set(enrichmentsCopy, columnsPath, methodEnrichments.concat(columnConfig))
       }
     })
     .with({ type: 'delete-column-config' }, ({ payload }) => {
       const { source, index } = payload
       const { generatorId, operationPath, operationMethod } = source
+      const columnsPath = [generatorId, operationPath, operationMethod, 'columns']
 
       const enrichmentsCopy = structuredClone(state.enrichments)
 
-      const methodEnrichments =
-        get(enrichmentsCopy, [generatorId, operationPath, operationMethod]) ?? []
+      const methodEnrichments = get(enrichmentsCopy, columnsPath) ?? []
 
       return {
         ...state,
         enrichments: set(
           enrichmentsCopy,
-          [generatorId, operationPath, operationMethod],
+          columnsPath,
           methodEnrichments.filter((_, i) => i !== index)
+        )
+      }
+    })
+    .with({ type: 'add-form-section' }, ({ payload }) => {
+      const { source, formSection } = payload
+      const { generatorId, operationPath, operationMethod } = source
+      const formSectionsPath = [generatorId, operationPath, operationMethod, 'formSections']
+
+      const enrichmentsCopy = structuredClone(state.enrichments)
+
+      const methodEnrichments = get(enrichmentsCopy, formSectionsPath) ?? []
+
+      return {
+        ...state,
+        enrichments: set(enrichmentsCopy, formSectionsPath, methodEnrichments.concat(formSection))
+      }
+    })
+    .with({ type: 'delete-form-section' }, ({ payload }) => {
+      const { source, sectionIndex } = payload
+      const { generatorId, operationPath, operationMethod } = source
+      const formSectionsPath = [generatorId, operationPath, operationMethod, 'formSections']
+
+      const enrichmentsCopy = structuredClone(state.enrichments)
+
+      const methodEnrichments = get(enrichmentsCopy, formSectionsPath) ?? []
+
+      return {
+        ...state,
+        enrichments: set(
+          enrichmentsCopy,
+          formSectionsPath,
+          methodEnrichments.filter((_, i) => i !== sectionIndex)
+        )
+      }
+    })
+    .with({ type: 'add-form-field' }, ({ payload }) => {
+      const { source, sectionIndex, formField } = payload
+      const { generatorId, operationPath, operationMethod } = source
+      const formFieldsPath = [
+        generatorId,
+        operationPath,
+        operationMethod,
+        'formSections',
+        sectionIndex,
+        'fields'
+      ]
+
+      const enrichmentsCopy = structuredClone(state.enrichments)
+
+      const methodEnrichments = get(enrichmentsCopy, formFieldsPath) ?? []
+
+      return {
+        ...state,
+        enrichments: set(enrichmentsCopy, formFieldsPath, methodEnrichments.concat(formField))
+      }
+    })
+    .with({ type: 'delete-form-field' }, ({ payload }) => {
+      const { source, sectionIndex, fieldIndex } = payload
+      const { generatorId, operationPath, operationMethod } = source
+      const formFieldsPath = [
+        generatorId,
+        operationPath,
+        operationMethod,
+        'formSections',
+        sectionIndex,
+        'fields',
+        fieldIndex
+      ]
+
+      const enrichmentsCopy = structuredClone(state.enrichments)
+
+      const methodEnrichments = get(enrichmentsCopy, formFieldsPath) ?? []
+
+      return {
+        ...state,
+        enrichments: set(
+          enrichmentsCopy,
+          formFieldsPath,
+          methodEnrichments.filter((_, i) => i !== fieldIndex)
         )
       }
     })

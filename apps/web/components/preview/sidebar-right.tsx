@@ -1,20 +1,25 @@
 import * as React from 'react'
 import { Sidebar, SidebarSeparator } from '@/components/ui/sidebar'
-import { OpenAPIV3 } from 'openapi-types'
 import { OperationPreview } from '@skmtc/core/Preview'
-import { SidebarConfig } from '@/components/config/sidebar-config'
+import { ColumnConfig } from '@/components/config/column-config'
+import { FormConfig } from '@/components/config/form-config'
+import { SchemaItem } from '@/components/config/types'
 
 type SidebarRightProps = {
-  configSchema: OpenAPIV3.SchemaObject | null
-  listItemName: string | null
+  schemaItem: SchemaItem | null
   source: OperationPreview
 } & React.ComponentProps<typeof Sidebar>
 
-export function SidebarRight({ configSchema, listItemName, source, ...props }: SidebarRightProps) {
+export function SidebarRight({ schemaItem, source, ...props }: SidebarRightProps) {
+  if (!schemaItem) {
+    return null
+  }
+
   return (
     <Sidebar collapsible="none" className="sticky hidden lg:flex top-0 border-l" {...props}>
-      <SidebarConfig source={source} configSchema={configSchema} listItemName={listItemName} />
+      <ColumnConfig source={source} schemaItem={schemaItem} />
       <SidebarSeparator />
+      <FormConfig source={source} schemaItem={schemaItem} />
     </Sidebar>
   )
 }

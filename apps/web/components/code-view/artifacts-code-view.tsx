@@ -1,7 +1,7 @@
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import ArtifactsSidebar from '@/app/start/view-results/artifacts-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { CodeView } from '@/components/viewer/code-view'
+import { CodeView } from '@/components/code-view/code-view'
 
 export const ArtifactsCodeView = () => {
   return (
@@ -11,7 +11,7 @@ export const ArtifactsCodeView = () => {
           <ArtifactsSidebar variant="inset" />
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel>
+        <ResizablePanel style={{ overflowY: 'scroll' }}>
           <SidebarInset>
             <CodeView />
           </SidebarInset>

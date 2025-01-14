@@ -40,18 +40,12 @@ export const useCreateArtifacts = ({
                       Object.entries(operationSettings.operations).map(([path, methods]) => {
                         const enrichedMethods = Object.fromEntries(
                           Object.entries(methods).map(([method, setting]) => {
-                            const columnConfigs = enrichments?.[item.id]?.[path]?.[method]
-
                             return [
                               method,
-                              columnConfigs?.length
-                                ? {
-                                    ...setting,
-                                    enrichments: {
-                                      columns: columnConfigs
-                                    }
-                                  }
-                                : setting
+                              {
+                                ...setting,
+                                enrichments: enrichments?.[item.id]?.[path]?.[method]
+                              }
                             ]
                           })
                         )

@@ -1,32 +1,41 @@
 import * as React from 'react'
-import { PathInput } from '@/components/ui/path-input'
 import { OpenAPIV3 } from 'openapi-types'
 import { Input } from '@/components/ui/standard-input'
 import { standardInput } from '@/lib/classes'
 import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
-import { FormatterSelect } from '@/components/config/formatter-select'
-import { ColumnConfigItem, SchemaItem } from '@/components/config/types'
+import { PathInput } from '@/components/ui/path-input'
+import { InputSelect } from '@/components/config/input-select'
+import { FormFieldItem, SchemaItem } from '@/components/config/types'
 import { ConfigFormContainer } from '@/components/config/config-form-container'
 
-type ColumnConfigFormProps = {
+type FormFieldFormProps = {
+  section?: FormFieldItem
   schemaItem: SchemaItem
-  column?: ColumnConfigItem
+  sectionIndex: number
   close: () => void
   source: OperationPreview
 }
 
-export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnConfigFormProps) {
+export function FormFieldForm({
+  section,
+  schemaItem,
+  sectionIndex,
+  close,
+  source
+}: FormFieldFormProps) {
   const { state, dispatch } = useArtifacts()
 
   const [selectedSchema, setSelectedSchema] = React.useState<OpenAPIV3.SchemaObject | null>(null)
 
-  const { control, handleSubmit } = useForm<ColumnConfigItem>({
-    defaultValues: column ?? {
+  const { control, handleSubmit } = useForm<FormFieldItem>({
+    defaultValues: section ?? {
+      label: '',
       accessorPath: [],
-      formatter: '',
-      label: ''
+      input: 'TextInput',
+      placeholder: '',
+      wrapper: 'InputWrap'
     }
   })
 
@@ -39,10 +48,11 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
       onCancel={close}
       onSubmit={handleSubmit(values => {
         dispatch({
-          type: 'add-column-config',
+          type: 'add-form-field',
           payload: {
             source,
-            columnConfig: values
+            formField: values,
+            sectionIndex: sectionIndex
           }
         })
 
@@ -67,14 +77,14 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
         )}
       />
       <Controller
-        name="formatter"
+        name="input"
         control={control}
         render={({ field }) => (
           <div className="flex flex-col gap-1">
             <label htmlFor="path-input" className="text-xs font-normal text-foreground">
-              Format
+              Input
             </label>
-            <FormatterSelect
+            <InputSelect
               selectedSchema={selectedSchema}
               value={field.value}
               setValue={field.onChange}
@@ -89,6 +99,30 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
           <div className="flex flex-col gap-1">
             <label htmlFor="path-input" className="text-xs font-normal text-foreground">
               Label
+            </label>
+            <Input className={standardInput} {...field} />
+          </div>
+        )}
+      />
+      <Controller
+        name="placeholder"
+        control={control}
+        render={({ field }) => (
+          <div className="flex flex-col gap-1">
+            <label htmlFor="path-input" className="text-xs font-normal text-foreground">
+              Placeholder
+            </label>
+            <Input className={standardInput} {...field} />
+          </div>
+        )}
+      />
+      <Controller
+        name="wrapper"
+        control={control}
+        render={({ field }) => (
+          <div className="flex flex-col gap-1">
+            <label htmlFor="path-input" className="text-xs font-normal text-foreground">
+              Wrapper
             </label>
             <Input className={standardInput} {...field} />
           </div>

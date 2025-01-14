@@ -11,15 +11,14 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
 import { useState } from 'react'
-import { OpenAPIV3 } from 'openapi-types'
 import { useGetArtifactsConfig } from '@/services/use-get-artifacts-config'
+import { SchemaItem } from '@/components/config/types'
 
 export const PreviewContainer = () => {
   const { webContainerUrl, iframeRef } = useWebcontainer()
   const { state: artifactsState } = useArtifacts()
 
-  const [configSchema, setConfigSchema] = useState<OpenAPIV3.SchemaObject | null>(null)
-  const [listItemName, setListItemName] = useState<string | null>(null)
+  const [schemaItem, setSchemaItem] = useState<SchemaItem | null>(null)
 
   const { preview } = artifactsState
 
@@ -27,10 +26,7 @@ export const PreviewContainer = () => {
     schema: artifactsState.schema,
     clientSettings: artifactsState.clientSettings,
     preview: preview,
-    onSuccess: data => {
-      setConfigSchema(data.listItemJson as OpenAPIV3.SchemaObject)
-      setListItemName(data.listItemName)
-    }
+    onSuccess: data => setSchemaItem(data)
   })
 
   return (
@@ -66,11 +62,7 @@ export const PreviewContainer = () => {
         </div>
       </SidebarInset>
       {preview?.source?.type === 'operation' && (
-        <SidebarRight
-          configSchema={configSchema}
-          listItemName={listItemName}
-          source={preview?.source}
-        />
+        <SidebarRight schemaItem={schemaItem} source={preview?.source} />
       )}
     </SidebarProvider>
   )

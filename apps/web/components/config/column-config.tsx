@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar'
 import { OpenAPIV3 } from 'openapi-types'
 import { OperationPreview } from '@skmtc/core/Preview'
-import { MoreHorizontal, Pencil, Plus } from 'lucide-react'
+import { MoreHorizontal, Plus } from 'lucide-react'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { useState } from 'react'
 import { ColumnConfigForm } from '@/components/config/column-config-form'
@@ -24,31 +24,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { SchemaItem } from '@/components/config/types'
 
-type SidebarConfigProps = {
-  configSchema: OpenAPIV3.SchemaObject | null
-  listItemName: string | null
+type ColumnConfigProps = {
+  schemaItem: SchemaItem
   source: OperationPreview
 } & React.ComponentProps<typeof Sidebar>
 
-export function SidebarConfig({
-  configSchema,
-  listItemName,
-  source,
-  ...props
-}: SidebarConfigProps) {
+export function ColumnConfig({ schemaItem, source, ...props }: ColumnConfigProps) {
   const { state: artifactsState, dispatch } = useArtifacts()
   const [open, setOpen] = useState(false)
 
   const { generatorId, operationPath, operationMethod } = source
   const { enrichments } = artifactsState
 
-  const columnConfigs = get(enrichments, [generatorId, operationPath, operationMethod]) ?? []
+  const columnConfigs =
+    get(enrichments, [generatorId, operationPath, operationMethod, 'columns']) ?? []
 
   return (
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Columns</SidebarGroupLabel>
+        <SidebarGroupLabel className="uppercase">Columns</SidebarGroupLabel>
         <SidebarGroupAction title="Add column" disabled={open} onClick={() => setOpen(true)}>
           <Plus /> <span className="sr-only">Add column</span>
         </SidebarGroupAction>
@@ -56,8 +52,7 @@ export function SidebarConfig({
           {open ? (
             <ColumnConfigForm
               close={() => setOpen(false)}
-              configSchema={configSchema}
-              listItemName={listItemName}
+              schemaItem={schemaItem}
               source={source}
             />
           ) : (

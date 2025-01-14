@@ -1,25 +1,29 @@
 import { z } from 'zod'
 
-type NameFormatterProps = {
+type Name = {
   title?: string
   forename?: string
   surname?: string
 }
 
-const nameSchema = z
-  .object({
-    title: z.string().optional(),
-    forename: z.string().optional(),
-    surname: z.string().optional()
-  })
-  .optional()
+const nameSchema = z.object({
+  title: z.string().optional(),
+  forename: z.string().optional(),
+  surname: z.string().optional()
+})
 
-export const NameFormatter = ({ title, forename, surname }: NameFormatterProps) => {
-  const parsed = nameSchema.safeParse({ title, forename, surname })
+type NameFormatterProps = {
+  value: Name
+}
 
-  return (
-    <>
-      {[parsed.data?.title, parsed.data?.forename, parsed.data?.surname].filter(Boolean).join(' ')}
-    </>
-  )
+export const NameFormatter = ({ value }: NameFormatterProps) => {
+  const parsed = nameSchema.safeParse(value)
+
+  if (!parsed.success) {
+    return <> - </>
+  }
+
+  const { title, forename, surname } = parsed.data
+
+  return <>{[title, forename, surname].filter(Boolean).join(' ')}</>
 }
