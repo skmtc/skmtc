@@ -75,11 +75,11 @@ export function ColumnConfig({ configSchema, listItemName, column, setColumn }: 
       >
         <SidebarGroupLabel
           asChild
-          className="group/label w-full text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="group/label px-0 w-full text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <CollapsibleTrigger>
+            <ChevronRightIcon className="mr-2 transition-transform group-data-[state=open]/collapsible:rotate-90" />
             {column.label || 'New column'}
-            <ChevronRightIcon className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
         <Separator className="my-1 mb-2" />

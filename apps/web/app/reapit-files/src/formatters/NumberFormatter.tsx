@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
-type TextFormatterProps = {
+type NumberFormatterProps = {
   value?: string
 }
 
-const valueSchema = z.string().optional()
+const valueSchema = z.number().optional()
 
-export const TextFormatter = ({ value }: TextFormatterProps) => {
+export const NumberFormatter = ({ value }: NumberFormatterProps) => {
   const parsed = valueSchema.safeParse(value)
   return <>{parsed.success ? parsed.data : '-'}</>
 }

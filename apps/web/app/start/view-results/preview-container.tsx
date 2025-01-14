@@ -15,7 +15,7 @@ import { OpenAPIV3 } from 'openapi-types'
 import { useGetArtifactsConfig } from '@/services/use-get-artifacts-config'
 
 export const PreviewContainer = () => {
-  const { webContainerUrl } = useWebcontainer()
+  const { webContainerUrl, iframeRef } = useWebcontainer()
   const { state: artifactsState } = useArtifacts()
 
   const [configSchema, setConfigSchema] = useState<OpenAPIV3.SchemaObject | null>(null)
@@ -57,7 +57,11 @@ export const PreviewContainer = () => {
 
         <div className="flex flex-1 flex-col gap-4 p-4">
           {preview ? (
-            <iframe className="w-full h-full" src={`${webContainerUrl}${preview.route}`} />
+            <iframe
+              className="w-full h-full"
+              ref={iframeRef}
+              src={`${webContainerUrl}${preview.route}`}
+            />
           ) : null}
         </div>
       </SidebarInset>

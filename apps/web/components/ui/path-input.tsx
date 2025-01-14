@@ -211,7 +211,8 @@ const pathToOptions = (path: string[], schema: OpenAPIV3.SchemaObject) => {
       const pathItemSchema = acc.schema.properties?.[pathItem as keyof typeof acc.schema.properties]
 
       if (!pathItemSchema) {
-        throw new Error(`Path item ${pathItem} not found in schema`)
+        console.error(`Path item ${pathItem} not found in schema`)
+        return acc
       }
 
       if (isRef(pathItemSchema)) {

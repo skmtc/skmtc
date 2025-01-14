@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 export type AddressFormatterProps = {
   buildingName?: string
   buildingNumber?: string
@@ -9,6 +11,19 @@ export type AddressFormatterProps = {
   country?: string
 }
 
+const addressSchema = z
+  .object({
+    buildingName: z.string().optional(),
+    buildingNumber: z.string().optional(),
+    line1: z.string().optional(),
+    line2: z.string().optional(),
+    line3: z.string().optional(),
+    line4: z.string().optional(),
+    postcode: z.string().optional(),
+    country: z.string().optional()
+  })
+  .optional()
+
 export const AddressFormatter = ({
   buildingName,
   buildingNumber,
@@ -17,7 +32,33 @@ export const AddressFormatter = ({
   line3,
   line4,
   postcode,
-  country,
+  country
 }: AddressFormatterProps) => {
-  return <>{[buildingName, buildingNumber, line1, line2, line3, line4, postcode, country].filter(Boolean).join(', ')}</>
+  const parsed = addressSchema.safeParse({
+    buildingName,
+    buildingNumber,
+    line1,
+    line2,
+    line3,
+    line4,
+    postcode,
+    country
+  })
+
+  return (
+    <>
+      {[
+        parsed.data?.buildingName,
+        parsed.data?.buildingNumber,
+        parsed.data?.line1,
+        parsed.data?.line2,
+        parsed.data?.line3,
+        parsed.data?.line4,
+        parsed.data?.postcode,
+        parsed.data?.country
+      ]
+        .filter(Boolean)
+        .join(', ')}
+    </>
+  )
 }

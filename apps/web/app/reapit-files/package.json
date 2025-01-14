@@ -13,8 +13,9 @@
   "main": "./src/index.ts",
   "scripts": {
     "start": "node src/server.js",
+    "start:watch": "nodemon --watch './build' ./src/server.js",
     "build": "vite build",
-    "dev": "nodemon --watch './' src/server.js",
+    "build:watch": "vite build --watch",
     "check": "tsc --noEmit --skipLibCheck",
     "upgrade:deps": "yarn upgrade-interactive"
   }, 

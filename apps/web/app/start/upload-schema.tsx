@@ -2,7 +2,7 @@
 
 import { useForm, Controller } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
-import exampleSchema from './example-schema.json'
+import reapitSchema from './reapit-schema.json'
 import { useRouter } from 'next/navigation'
 import { useArtifacts } from '@/components/artifacts/artifacts-context'
 import { useGetGeneratorIds } from '@/services/use-get-generator-ids'
@@ -47,7 +47,7 @@ export const UploadSchema = () => {
               OpenAPI Schema
             </label>
             <Button
-              onClick={() => field.onChange(JSON.stringify(exampleSchema, null, 2))}
+              onClick={() => field.onChange(JSON.stringify(reapitSchema, null, 2))}
               variant="link"
               className="text-indigo-600 no-underline hover:underline px-1"
             >

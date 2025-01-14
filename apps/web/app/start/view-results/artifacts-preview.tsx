@@ -56,6 +56,8 @@ export const ArtifactsPreview = () => {
   })
 
   useEffect(() => {
+    console.log('ARTIFACTS OR STATUS CHANGED', status)
+
     if (!Object.keys(artifacts ?? {}).length || status !== 'ready') return
 
     const fileTree = mungeFileTree({ ...artifacts })

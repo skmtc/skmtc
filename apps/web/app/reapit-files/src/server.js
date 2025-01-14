@@ -27,6 +27,28 @@ app.use('/api', (req, res, next) => {
 
 app.get('*', (req, res) => res.sendFile(path.resolve('build', 'index.html')))
 
-app.listen(port, () => {
+console.log('Starting server...')
+
+const server = app.listen(port, () => {
   console.log(`App is live at http://localhost:${port}`)
 })
+
+
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received.');
+  server.close(() => {
+    console.log('Closed out remaining connections');
+    // Additional cleanup tasks go here, e.g., close database connection
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received.');
+  server.close(() => {
+    console.log('Closed out remaining connections');
+    // Additional cleanup tasks go here, e.g., close database connection
+    process.exit(0);
+  });
+});
