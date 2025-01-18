@@ -122,7 +122,30 @@ type OperationSchemaItem = {
 export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): OpenAPIHono => {
   const app = new OpenAPIHono()
 
-  app.use('*', cors({ origin: '*' }))
+  app.use(
+    '*',
+    cors({
+      origin: '*',
+      allowHeaders: ['api-version', 'authorization', 'content-type'],
+      allowMethods: ['*'],
+      credentials: true,
+      exposeHeaders: ['api-version', 'authorization', 'content-type']
+    })
+  )
+
+  app.use('/proxy/*', async c => {
+    // const response = await fetch('https://example.com')
+    // // clone the response to return a response with modifiable headers
+    // const newResponse = new Response(response.body, response)
+    // return newResponse
+    const { pathname } = new URL(c.req.url)
+    const url = `https://platform.reapit.cloud${pathname.replace(/^\/proxy/i, '')}`
+
+    console.log('URL', url)
+    console.log('HEADERS', c.req.header())
+
+    return await fetch(url, { headers: c.req.header() })
+  })
 
   app.openapi(postArtifacts, async c => {
     const startAt = Date.now()
