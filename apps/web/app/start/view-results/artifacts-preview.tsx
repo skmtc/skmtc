@@ -12,6 +12,8 @@ import { FileSystemTree } from '@webcontainer/api'
 import { set } from 'lodash'
 import { PreviewContainer } from '@/components/preview/preview-container'
 import { useCreateArtifacts } from '@/services/use-create-artifacts'
+import { useRouter } from 'next/navigation'
+import { StatusBar } from '@/components/webcontainer/status-bar'
 
 const downloadArtifacts = async (artifacts: Record<string, string>) => {
   const zip = new JSZip()
@@ -47,6 +49,18 @@ export const ArtifactsPreview = () => {
   const { remount, status } = useWebcontainer()
   const { artifacts } = artifactsState
 
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!artifactsState.schema) {
+      router.push('/start')
+    }
+
+    if (artifactsState.clientSettings.generators.length === 0) {
+      router.push('/start/select-generators')
+    }
+  }, [artifactsState])
+
   const createArtifactsMutation = useCreateArtifacts({
     clientSettings: artifactsState.clientSettings,
     schema: artifactsState.schema,
@@ -56,8 +70,6 @@ export const ArtifactsPreview = () => {
   })
 
   useEffect(() => {
-    console.log('ARTIFACTS OR STATUS CHANGED', status)
-
     if (!Object.keys(artifacts ?? {}).length || status !== 'ready') return
 
     const fileTree = mungeFileTree({ ...artifacts })
@@ -70,49 +82,48 @@ export const ArtifactsPreview = () => {
   }, [artifactsState.enrichments])
 
   return (
-    <div className="relative flex flex-col bg-background min-h-0">
-      <div className="themes-wrapper bg-background flex flex-1 min-h-0 w-full">
-        <div className="flex flex-col gap-16 min-h-0 w-full">
-          <Tabs defaultValue="preview" className="flex flex-col h-screen pt-16 min-h-0">
-            <TabsList className="justify-start">
-              <TabsTrigger
-                value="preview"
-                className="text-sm border-t border-x border-transparent data-[state=active]:border-gray-300 z-10"
-              >
-                Preview
-              </TabsTrigger>
-              <TabsTrigger
-                value="code"
-                className="text-sm border-t border-x border-transparent data-[state=active]:border-gray-300 z-10"
-              >
-                Code
-              </TabsTrigger>
-              <div className="flex flex-1 justify-end">
-                {Object.keys(artifactsState?.artifacts ?? {}).length > 0 && (
-                  <Button
-                    onClick={() => downloadArtifacts(artifactsState.artifacts)}
-                    variant="link"
-                    className="text-indigo-600 no-underline hover:underline px-1"
-                  >
-                    Download artifacts
-                  </Button>
-                )}
-              </div>
-            </TabsList>
-            <TabsContent
+    <div className="relative flex flex-col bg-background min-h-0 pt-16">
+      <div className="flex flex-col min-h-0 w-full shadow-sm rounded-sm">
+        <Tabs defaultValue="preview" className="flex flex-col h-screen min-h-0">
+          <TabsList className="justify-start">
+            <TabsTrigger
               value="preview"
-              className="min-h-0 bg-white rounded-sm border border-gray-300 gap-4 flex-1 data-[state=active]:rounded-tl-none relative overflow-x-hidden"
+              className="text-sm border-t border-x border-transparent data-[state=active]:border-gray-300 z-10"
             >
-              <PreviewContainer />
-            </TabsContent>
-            <TabsContent
+              Preview
+            </TabsTrigger>
+            <TabsTrigger
               value="code"
-              className="min-h-0 bg-white rounded-sm border border-gray-300 gap-4 flex-1 relative"
+              className="text-sm border-t border-x border-transparent data-[state=active]:border-gray-300 z-10"
             >
-              <ArtifactsCodeView />
-            </TabsContent>
-          </Tabs>
-        </div>
+              Code
+            </TabsTrigger>
+            <div className="flex flex-1 justify-end">
+              {Object.keys(artifactsState?.artifacts ?? {}).length > 0 && (
+                <Button
+                  onClick={() => downloadArtifacts(artifactsState.artifacts)}
+                  variant="link"
+                  className="text-indigo-600 no-underline hover:underline px-1"
+                >
+                  Download artifacts
+                </Button>
+              )}
+            </div>
+          </TabsList>
+          <TabsContent
+            value="preview"
+            className="min-h-0 bg-white rounded-sm rounded-b-none border border-gray-300 gap-4 flex-1 data-[state=active]:rounded-tl-none relative overflow-x-hidden"
+          >
+            <PreviewContainer />
+          </TabsContent>
+          <TabsContent
+            value="code"
+            className="min-h-0 bg-white rounded-sm rounded-b-none border border-gray-300 gap-4 flex-1 relative"
+          >
+            <ArtifactsCodeView />
+          </TabsContent>
+        </Tabs>
+        <StatusBar />
       </div>
     </div>
   )

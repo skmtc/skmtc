@@ -5,7 +5,11 @@ import path from 'path'
 const app = express()
 const port = 3111
 
-app.use(cors())
+app.use(cors({
+  origin: '*',
+  allowedHeaders: ['Authorization', 'api-version'],
+  credentials: true
+}))
 
 app.use(express.static('build'))
 

@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { OpenAPIV3 } from 'openapi-types'
 import { Input } from '@/components/ui/standard-input'
-import { standardInput } from '@/lib/classes'
 import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
@@ -9,6 +8,9 @@ import { PathInput } from '@/components/ui/path-input'
 import { InputSelect } from '@/components/config/input-select'
 import { FormFieldItem, SchemaItem } from '@/components/config/types'
 import { ConfigFormContainer } from '@/components/config/config-form-container'
+import { inputEdgeClasses } from '@/lib/classes'
+import { inputClasses } from '@/lib/classes'
+import { cn } from '@/lib/utils'
 
 type FormFieldFormProps = {
   section?: FormFieldItem
@@ -100,7 +102,7 @@ export function FormFieldForm({
             <label htmlFor="path-input" className="text-xs font-normal text-foreground">
               Label
             </label>
-            <Input className={standardInput} {...field} />
+            <Input className={cn(inputClasses, inputEdgeClasses)} {...field} />
           </div>
         )}
       />
@@ -112,7 +114,7 @@ export function FormFieldForm({
             <label htmlFor="path-input" className="text-xs font-normal text-foreground">
               Placeholder
             </label>
-            <Input className={standardInput} {...field} />
+            <Input className={cn(inputClasses, inputEdgeClasses)} {...field} />
           </div>
         )}
       />
@@ -124,7 +126,7 @@ export function FormFieldForm({
             <label htmlFor="path-input" className="text-xs font-normal text-foreground">
               Wrapper
             </label>
-            <Input className={standardInput} {...field} />
+            <Input className={cn(inputClasses, inputEdgeClasses)} {...field} />
           </div>
         )}
       />

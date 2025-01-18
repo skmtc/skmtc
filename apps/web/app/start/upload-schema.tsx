@@ -7,6 +7,9 @@ import { useRouter } from 'next/navigation'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { useGetGeneratorIds } from '@/services/use-get-generator-ids'
 import { useEffect } from 'react'
+import { StatusBar } from '@/components/webcontainer/status-bar'
+import { cn } from '@/lib/utils'
+import { inputClasses } from '@/lib/classes'
 
 type SchemaForm = {
   schema: string
@@ -55,13 +58,19 @@ export const UploadSchema = () => {
             </Button>
           </div>
 
-          <div className="flex flex-col flex-1 mt-2">
+          <div className="flex flex-col flex-1 rounded-b-sm shadow-sm">
             <textarea
+              placeholder="Paste your OpenAPI schema here..."
               id="schema"
               rows={10}
-              className="flex flex-col flex-1 w-full rounded-sm border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm/6"
+              className={cn(
+                inputClasses,
+                'flex-1 w-full rounded-b-none resize-none pt-2',
+                'border-none shadow-none ring-1 ring-inset ring-gray-300  focus:ring-2 focus:ring-inset focus:ring-indigo-600'
+              )}
               {...field}
             />
+            <StatusBar />
           </div>
 
           <div className="flex mt-8 mb-12 justify-end ">

@@ -32,8 +32,8 @@ export const Steps = () => {
             index + 1 < currentStep
               ? ('complete' as const)
               : index + 1 === currentStep
-              ? ('current' as const)
-              : ('upcoming' as const)
+                ? ('current' as const)
+                : ('upcoming' as const)
 
           return (
             <li key={step.name} className="md:flex-1">

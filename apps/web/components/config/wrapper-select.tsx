@@ -1,4 +1,3 @@
-import type { OpenAPIV3 } from 'openapi-types'
 import {
   Select,
   SelectContent,
@@ -6,8 +5,10 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/standard-select'
-import { standardInput } from '@/lib/classes'
 import { InputWrapper } from '@/components/config/types'
+import { inputClasses } from '@/lib/classes'
+import { inputEdgeClasses } from '@/lib/classes'
+import { cn } from '@/lib/utils'
 
 const wrappers: InputWrapper[] = [
   'InputWrap',
@@ -30,7 +31,7 @@ export const InputSelect = ({ value, setValue }: InputSelectProps) => {
 
   return (
     <Select value={value} onValueChange={setValue}>
-      <SelectTrigger className={standardInput}>
+      <SelectTrigger className={cn(inputClasses, inputEdgeClasses)}>
         <SelectValue placeholder="Format" />
       </SelectTrigger>
       <SelectContent>

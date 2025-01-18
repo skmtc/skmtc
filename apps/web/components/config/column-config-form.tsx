@@ -2,13 +2,14 @@ import * as React from 'react'
 import { PathInput } from '@/components/ui/path-input'
 import { OpenAPIV3 } from 'openapi-types'
 import { Input } from '@/components/ui/standard-input'
-import { standardInput } from '@/lib/classes'
+import { inputClasses, inputEdgeClasses } from '@/lib/classes'
 import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { FormatterSelect } from '@/components/config/formatter-select'
 import { ColumnConfigItem, SchemaItem } from '@/components/config/types'
 import { ConfigFormContainer } from '@/components/config/config-form-container'
+import { cn } from '@/lib/utils'
 
 type ColumnConfigFormProps = {
   schemaItem: SchemaItem
@@ -90,7 +91,7 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
             <label htmlFor="path-input" className="text-xs font-normal text-foreground">
               Label
             </label>
-            <Input className={standardInput} {...field} />
+            <Input className={cn(inputClasses, inputEdgeClasses)} {...field} />
           </div>
         )}
       />

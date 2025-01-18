@@ -8,8 +8,9 @@ import { OpenAPIV3 } from 'openapi-types'
 import invariant from 'tiny-invariant'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { isRef, schemaToType } from '@/lib/schemaFns'
-import { wrappedInput } from '@/lib/classes'
 import { SchemaItem } from '@/components/config/types'
+import { inputClasses, inputWrapperEdgeClasses } from '@/lib/classes'
+import { cn } from '@/lib/utils'
 
 type PropertyOption = {
   name: string
@@ -94,7 +95,13 @@ export const PathInput = ({ path, setPath, schemaItem, setSelectedSchema }: Path
   }, [highlightedItem])
 
   return (
-    <div className={`flex bg-white overflow-x-scroll no-scrollbar ${wrappedInput}`}>
+    <div
+      className={cn(
+        `flex bg-white overflow-x-scroll no-scrollbar`,
+        inputClasses,
+        inputWrapperEdgeClasses
+      )}
+    >
       <Badge
         variant="secondary"
         className="text-sm bg-transparent p-0 border-none font-normal text-[--sidebar-foreground] hover:bg-transparent"

@@ -7,8 +7,10 @@ import {
   SelectValue
 } from '@/components/ui/standard-select'
 import { isSchemaSubset } from '@/lib/isSchemaSubset'
-import { standardInput } from '@/lib/classes'
 import { useEffect, useState } from 'react'
+import { inputClasses } from '@/lib/classes'
+import { cn } from '@/lib/utils'
+import { inputEdgeClasses } from '@/lib/classes'
 
 type Formatter = {
   schema: OpenAPIV3.SchemaObject
@@ -93,7 +95,7 @@ export const FormatterSelect = ({ selectedSchema, value, setValue }: FormatterSe
 
   return (
     <Select disabled={!selectedSchema} value={value} onValueChange={setValue}>
-      <SelectTrigger className={standardInput}>
+      <SelectTrigger className={cn(inputClasses, inputEdgeClasses)}>
         <SelectValue placeholder="Format" />
       </SelectTrigger>
       <SelectContent>

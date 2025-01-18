@@ -8,6 +8,9 @@ import { Loader2 } from 'lucide-react'
 import { match, P } from 'ts-pattern'
 import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
 import { useCreateArtifacts } from '@/services/use-create-artifacts'
+import { StatusBar } from '@/components/webcontainer/status-bar'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 type GeneratorsForm = {
   selectedGenerators: Record<string, boolean>
@@ -15,6 +18,13 @@ type GeneratorsForm = {
 
 export const GeneratorMenu = () => {
   const { dispatch, state: artifactsState } = useArtifacts()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!artifactsState.schema) {
+      router.push('/start')
+    }
+  }, [artifactsState])
 
   const { control } = useForm<GeneratorsForm>({
     defaultValues: {
@@ -51,9 +61,6 @@ export const GeneratorMenu = () => {
                   aria-label={generatorId}
                   className={cn(
                     generatorIndex === 0 ? 'rounded-tl-sm rounded-tr-sm' : '',
-                    generatorIndex === Object.keys(artifactsState.selectedGenerators).length - 1
-                      ? 'rounded-bl-sm rounded-br-sm'
-                      : '',
                     'has-[:disabled]bg-gray-50 has-[:disabled]:text-gray-500 has-[:disabled]:bg-gray-100 has-[:disabled]:border-gray-300 has-[:disabled]:shadow-none',
                     'group relative flex cursor-pointer border border-gray-300 px-4 py-2 focus:outline-none has-[:checked]:z-10 has-[:checked]:border-indigo-200 has-[:checked]:bg-indigo-50'
                   )}
@@ -98,6 +105,7 @@ export const GeneratorMenu = () => {
           />
         ))}
       </div>
+      <StatusBar />
       <div className="flex mt-8 mb-12 justify-end ">
         <Button
           disabled={

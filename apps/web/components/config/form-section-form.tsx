@@ -1,11 +1,13 @@
 import * as React from 'react'
 import { Input } from '@/components/ui/standard-input'
-import { standardInput } from '@/lib/classes'
 import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { FormSectionItem, SchemaItem } from '@/components/config/types'
 import { ConfigFormContainer } from '@/components/config/config-form-container'
+import { inputClasses } from '@/lib/classes'
+import { cn } from '@/lib/utils'
+import { inputEdgeClasses } from '@/lib/classes'
 
 type FormSectionFormProps = {
   schemaItem: SchemaItem
@@ -51,7 +53,7 @@ export function FormSectionForm({ schemaItem, section, close, source }: FormSect
             <label htmlFor="path-input" className="text-xs font-normal text-foreground">
               Title
             </label>
-            <Input className={standardInput} {...field} />
+            <Input className={cn(inputClasses, inputEdgeClasses)} {...field} />
           </div>
         )}
       />
