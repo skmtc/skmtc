@@ -8,7 +8,7 @@ import { OpenAPIV3 } from 'openapi-types'
 import invariant from 'tiny-invariant'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { isRef, schemaToType } from '@/lib/schemaFns'
-import { SchemaItem } from '@/components/config/types'
+import { SchemaItem, SelectedSchemaType } from '@/components/config/types'
 import { inputClasses, inputWrapperEdgeClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 
@@ -22,7 +22,7 @@ type PathInputProps = {
   path: string[]
   setPath: (path: string[]) => void
   schemaItem: SchemaItem
-  setSelectedSchema: (schema: OpenAPIV3.SchemaObject) => void
+  setSelectedSchema: (schema: SelectedSchemaType | null) => void
   showRequired?: boolean
 }
 
@@ -68,30 +68,41 @@ export const PathInput = ({
   }, [selectedItems])
 
   useEffect(() => {
-    const currentSchema = selectedItems.reduce<
-      OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | undefined
-    >((acc, item) => {
-      if (
-        acc &&
-        'type' in acc &&
-        acc.type === 'object' &&
-        acc.properties &&
-        item.name in acc.properties
-      ) {
-        return acc.properties?.[item.name as keyof typeof acc.properties]
-      }
+    const currentSelectedSchema = selectedItems.reduce<SelectedSchemaType | null>(
+      (acc, item) => {
+        if (
+          acc?.schema &&
+          'type' in acc.schema &&
+          acc.schema.type === 'object' &&
+          acc.schema.properties &&
+          item.name in acc.schema.properties
+        ) {
+          const mySchema = acc.schema.properties?.[item.name as keyof typeof acc.schema.properties]
 
-      return undefined
-    }, schemaItem.schema)
+          invariant(!('$ref' in mySchema), 'Property must be an object and not a reference object')
 
-    if (currentSchema && 'type' in currentSchema && currentSchema.type === 'object') {
-      setOptions(schemaToOptions(currentSchema))
+          return {
+            schema: mySchema,
+            name: item.name
+          }
+        }
+
+        return null
+      },
+      { schema: schemaItem.schema, name: schemaItem.name }
+    )
+
+    if (
+      currentSelectedSchema &&
+      'type' in currentSelectedSchema.schema &&
+      currentSelectedSchema.schema.type === 'object'
+    ) {
+      setOptions(schemaToOptions(currentSelectedSchema.schema))
     } else {
       setOptions([])
     }
 
-    // TODO: This is a hack to get the schema to update when the selected items change
-    setSelectedSchema(currentSchema as OpenAPIV3.SchemaObject)
+    setSelectedSchema(currentSelectedSchema)
   }, [selectedItems, schemaItem.schema])
 
   useEffect(() => {

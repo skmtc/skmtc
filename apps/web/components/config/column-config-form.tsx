@@ -1,13 +1,12 @@
 import * as React from 'react'
 import { PathInput } from '@/components/ui/path-input'
-import { OpenAPIV3 } from 'openapi-types'
 import { Input } from '@/components/ui/standard-input'
 import { inputClasses, inputEdgeClasses } from '@/lib/classes'
 import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { FormatterSelect } from '@/components/config/formatter-select'
-import { ColumnConfigItem, SchemaItem } from '@/components/config/types'
+import { ColumnConfigItem, SchemaItem, SelectedSchemaType } from '@/components/config/types'
 import { ConfigFormContainer } from '@/components/config/config-form-container'
 import { cn } from '@/lib/utils'
 
@@ -21,7 +20,7 @@ type ColumnConfigFormProps = {
 export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnConfigFormProps) {
   const { state, dispatch } = useArtifacts()
 
-  const [selectedSchema, setSelectedSchema] = React.useState<OpenAPIV3.SchemaObject | null>(null)
+  const [selectedSchema, setSelectedSchema] = React.useState<SelectedSchemaType | null>(null)
 
   const { control, handleSubmit } = useForm<ColumnConfigItem>({
     defaultValues: column ?? {
@@ -53,19 +52,21 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
       <Controller
         name="accessorPath"
         control={control}
-        render={({ field }) => (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="path-input" className="text-xs font-normal text-foreground">
-              Content
-            </label>
-            <PathInput
-              path={field.value}
-              setPath={field.onChange}
-              schemaItem={schemaItem}
-              setSelectedSchema={setSelectedSchema}
-            />
-          </div>
-        )}
+        render={({ field }) => {
+          return (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="path-input" className="text-xs font-normal text-foreground">
+                Content
+              </label>
+              <PathInput
+                path={field.value}
+                setPath={field.onChange}
+                schemaItem={schemaItem}
+                setSelectedSchema={setSelectedSchema}
+              />
+            </div>
+          )
+        }}
       />
       <Controller
         name="formatter"

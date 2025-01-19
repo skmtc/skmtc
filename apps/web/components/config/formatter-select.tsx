@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 import { inputEdgeClasses } from '@/lib/classes'
+import { SelectedSchemaType } from '@/components/config/types'
 
 type Formatter = {
   schema: OpenAPIV3.SchemaObject
@@ -63,7 +64,7 @@ const addressFormatter: Formatter = {
 const formatters: Formatter[] = [numberFormatter, textFormatter, nameFormatter, addressFormatter]
 
 type FormatterSelectProps = {
-  selectedSchema: OpenAPIV3.SchemaObject | null
+  selectedSchema: SelectedSchemaType | null
   value: string | undefined
   setValue: (value: string) => void
 }
@@ -73,9 +74,9 @@ export const FormatterSelect = ({ selectedSchema, value, setValue }: FormatterSe
     ? formatters
         .filter(formatter => {
           return isSchemaSubset({
-            parentSchema: selectedSchema,
+            parentSchema: selectedSchema.schema,
             childSchema: formatter.schema,
-            topSchema: selectedSchema
+            topSchema: selectedSchema.schema
           })
         })
         .map(formatter => ({

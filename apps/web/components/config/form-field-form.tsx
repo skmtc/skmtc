@@ -6,7 +6,7 @@ import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { PathInput } from '@/components/ui/path-input'
 import { InputSelect } from '@/components/config/input-select'
-import { FormFieldItem, SchemaItem } from '@/components/config/types'
+import { FormFieldItem, SchemaItem, SelectedSchemaType } from '@/components/config/types'
 import { ConfigFormContainer } from '@/components/config/config-form-container'
 import { inputEdgeClasses } from '@/lib/classes'
 import { inputClasses } from '@/lib/classes'
@@ -29,7 +29,7 @@ export function FormFieldForm({
 }: FormFieldFormProps) {
   const { state, dispatch } = useArtifacts()
 
-  const [selectedSchema, setSelectedSchema] = React.useState<OpenAPIV3.SchemaObject | null>(null)
+  const [selectedSchema, setSelectedSchema] = React.useState<SelectedSchemaType | null>(null)
 
   const { control, handleSubmit } = useForm<FormFieldItem>({
     defaultValues: section ?? {

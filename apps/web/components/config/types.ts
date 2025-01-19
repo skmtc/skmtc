@@ -30,3 +30,7 @@ export type SchemaItem = {
   name: string
   type: 'list-item' | 'form-item'
 }
+export type SelectedSchemaType = {
+  schema: OpenAPIV3.SchemaObject
+  name: string
+}

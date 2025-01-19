@@ -11,10 +11,12 @@ import { useEffect, useState } from 'react'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 import { inputEdgeClasses } from '@/lib/classes'
+import { SelectedSchemaType } from '@/components/config/types'
 
 type Input = {
   schema: OpenAPIV3.SchemaObject
   label: string
+  name?: string
 }
 
 const numberInput: Input = {
@@ -60,23 +62,39 @@ const addressInput: Input = {
   label: 'AddressInput'
 }
 
-const formatters: Input[] = [numberInput, textInput, nameInput, addressInput]
+const officeIdsInput: Input = {
+  schema: {
+    type: 'array',
+    items: {
+      type: 'string'
+    }
+  },
+  label: 'OfficeIdsInput',
+  name: 'officeIds'
+}
+
+const inputs: Input[] = [numberInput, textInput, nameInput, addressInput, officeIdsInput]
 
 type InputSelectProps = {
-  selectedSchema: OpenAPIV3.SchemaObject | null
+  selectedSchema: SelectedSchemaType | null
   value: string | undefined
   setValue: (value: string) => void
 }
 
 export const InputSelect = ({ selectedSchema, value, setValue }: InputSelectProps) => {
+  console.log('selectedSchema', selectedSchema)
   const formatterOptions = selectedSchema
-    ? formatters
-        .filter(formatter => {
-          return isSchemaSubset({
-            parentSchema: selectedSchema,
-            childSchema: formatter.schema,
-            topSchema: selectedSchema
+    ? inputs
+        .filter(input => {
+          const schemaMatches = isSchemaSubset({
+            parentSchema: selectedSchema.schema,
+            childSchema: input.schema,
+            topSchema: selectedSchema.schema
           })
+
+          const nameMatches = input.name ? input.name === selectedSchema.name : true
+
+          return schemaMatches && nameMatches
         })
         .map(formatter => ({
           value: formatter.label,
