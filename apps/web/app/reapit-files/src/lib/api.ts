@@ -47,8 +47,6 @@ export const getMergedHeaders = async (
 
   const accessHeader = import.meta.env.VITE_AUTH_HEADER
 
-  console.log('ACCESS TOKEN', accessHeader)
-
   return accessHeader
     ? {
         Authorization: accessHeader,

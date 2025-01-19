@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 type PropertyOption = {
   name: string
   schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
+  required: boolean
 }
 
 type PathInputProps = {
@@ -22,11 +23,16 @@ type PathInputProps = {
   setPath: (path: string[]) => void
   schemaItem: SchemaItem
   setSelectedSchema: (schema: OpenAPIV3.SchemaObject) => void
+  showRequired?: boolean
 }
 
-export const PathInput = ({ path, setPath, schemaItem, setSelectedSchema }: PathInputProps) => {
-  console.log('SCHEMA ITEM', JSON.stringify(schemaItem, null, 2))
-
+export const PathInput = ({
+  path,
+  setPath,
+  schemaItem,
+  setSelectedSchema,
+  showRequired
+}: PathInputProps) => {
   if (!schemaItem?.schema?.type) {
     debugger
   }
@@ -86,7 +92,7 @@ export const PathInput = ({ path, setPath, schemaItem, setSelectedSchema }: Path
 
     // TODO: This is a hack to get the schema to update when the selected items change
     setSelectedSchema(currentSchema as OpenAPIV3.SchemaObject)
-  }, [selectedItems])
+  }, [selectedItems, schemaItem.schema])
 
   useEffect(() => {
     if (highlightedItemRef.current) {
@@ -121,8 +127,6 @@ export const PathInput = ({ path, setPath, schemaItem, setSelectedSchema }: Path
           </Badge>
         </Fragment>
       ))}
-
-      {options.length > 0 && selectedItems.length > 0 && <span>.</span>}
 
       <Popover
         open={showAutocomplete}
@@ -205,6 +209,9 @@ export const PathInput = ({ path, setPath, schemaItem, setSelectedSchema }: Path
               >
                 {option.name}
                 <span className="text-xs text-muted-foreground">{schemaToType(option.schema)}</span>
+                {showRequired && option.required ? (
+                  <span className="text-xs text-muted-foreground">*</span>
+                ) : null}
               </Button>
             ))}
           </ScrollArea>
@@ -214,8 +221,12 @@ export const PathInput = ({ path, setPath, schemaItem, setSelectedSchema }: Path
   )
 }
 
-const schemaToOptions = (schema: OpenAPIV3.SchemaObject) => {
-  return Object.entries(schema.properties ?? {}).map(([name, schema]) => ({ name, schema }))
+const schemaToOptions = (objectSchema: OpenAPIV3.SchemaObject) => {
+  return Object.entries(objectSchema.properties ?? {}).map(([name, schema]) => ({
+    name,
+    schema,
+    required: objectSchema.required?.includes(name) ?? false
+  }))
 }
 
 type PathOptionsAcc = {
@@ -239,7 +250,8 @@ const pathToOptions = (path: string[], schema: OpenAPIV3.SchemaObject) => {
 
       const option = {
         name: pathItem,
-        schema: pathItemSchema
+        schema: pathItemSchema,
+        required: pathItemSchema.required?.includes(pathItem) ?? false
       }
 
       return {

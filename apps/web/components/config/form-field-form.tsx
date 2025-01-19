@@ -74,6 +74,7 @@ export function FormFieldForm({
               setPath={field.onChange}
               schemaItem={schemaItem}
               setSelectedSchema={setSelectedSchema}
+              showRequired={true}
             />
           </div>
         )}

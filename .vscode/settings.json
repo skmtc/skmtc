@@ -26,5 +26,8 @@
     "**/Thumbs.db": true,
     "**/.npm": true
   },
-  "docwriter.style": "JSDoc"
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true
+  }
 }

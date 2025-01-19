@@ -14,11 +14,10 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem
 } from '@/components/ui/sidebar'
-import { OpenAPIV3 } from 'openapi-types'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import { useArtifacts } from '@/components/preview/artifacts-context'
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { FormSectionForm } from '@/components/config/form-section-form'
 import { get } from 'lodash'
 import {
@@ -81,7 +80,11 @@ export function FormConfig({ schemaItem, source }: FormConfigProps) {
                   return (
                     <SidebarMenuItem key={title}>
                       <SidebarMenuButton asChild>
-                        <span>{title}</span>
+                        {title ? (
+                          <span>{title}</span>
+                        ) : (
+                          <span className="text-sidebar-foreground/70">[Untitled]</span>
+                        )}
                       </SidebarMenuButton>
                       <FormSectionMenu
                         source={source}
@@ -92,13 +95,17 @@ export function FormConfig({ schemaItem, source }: FormConfigProps) {
                       />
                       <SidebarMenuSub>
                         {fields?.map((field, fieldIndex) => {
+                          console.log('FIELD', field.label, field.accessorPath.join('.'))
+
                           return (
                             <SidebarMenuSubItem
                               key={`${field.label}-${field.accessorPath.join('.')}`}
+                              className="relative"
                             >
                               <SidebarMenuSubButton>
                                 <span>{field.label}</span>
                               </SidebarMenuSubButton>
+
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <SidebarMenuAction>

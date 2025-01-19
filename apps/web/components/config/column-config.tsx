@@ -11,7 +11,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { OpenAPIV3 } from 'openapi-types'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import { useArtifacts } from '@/components/preview/artifacts-context'

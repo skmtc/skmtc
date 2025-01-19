@@ -17,7 +17,6 @@ import { SchemaItem } from '@/components/config/types'
 export const PreviewContainer = () => {
   const { webContainerUrl, iframeRef } = useWebcontainer()
   const { state: artifactsState } = useArtifacts()
-
   const [schemaItem, setSchemaItem] = useState<SchemaItem | null>(null)
 
   const { preview } = artifactsState
@@ -33,23 +32,7 @@ export const PreviewContainer = () => {
     <SidebarProvider className="h-full">
       <ArtifactsSidebar previews={artifactsState.manifest?.previews} />
       <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 bg-background">
-          <div className="flex flex-1 items-center gap-2 px-3">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            {preview ? (
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="line-clamp-1">{preview.name}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            ) : null}
-          </div>
-        </header>
-
-        <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex flex-1 flex-col">
           {preview && webContainerUrl ? (
             <iframe
               className="w-full h-full"
