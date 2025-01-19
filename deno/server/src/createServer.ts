@@ -133,7 +133,7 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
     })
   )
 
-  app.use('/proxy/*', async c => {
+  app.all('/proxy/*', async c => {
     // const response = await fetch('https://example.com')
     // // clone the response to return a response with modifiable headers
     // const newResponse = new Response(response.body, response)

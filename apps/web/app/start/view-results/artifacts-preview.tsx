@@ -88,13 +88,13 @@ export const ArtifactsPreview = () => {
           <TabsList className="justify-start">
             <TabsTrigger
               value="preview"
-              className="text-sm border-t border-x border-transparent data-[state=active]:border-gray-300 z-10"
+              className="text-sm border-t border-x border-transparent data-[state=active]:border-gray-300 data-[state=active]:bg-sidebar z-10"
             >
               Preview
             </TabsTrigger>
             <TabsTrigger
               value="code"
-              className="text-sm border-t border-x border-transparent data-[state=active]:border-gray-300 z-10"
+              className="text-sm border-t border-x border-transparent data-[state=active]:border-gray-300 data-[state=active]:bg-sidebar z-10"
             >
               Code
             </TabsTrigger>

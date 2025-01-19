@@ -2,7 +2,13 @@
 
 import * as React from 'react'
 import { TeamSwitcher } from '@/components/team-switcher'
-import { Sidebar, SidebarContent, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarRail,
+  SidebarSeparator
+} from '@/components/ui/sidebar'
 import { Preview } from '@skmtc/core/Preview'
 import { Command } from 'lucide-react'
 import { ArtifactsPreviewNav } from '@/components/preview/artifacts-preview-nav'
@@ -25,6 +31,7 @@ export function ArtifactsSidebar({ previews, ...props }: ArtifactsSidebarProps) 
           ]}
         />
       </SidebarHeader>
+      <SidebarSeparator className="mb-2" />
       <SidebarContent>
         <ArtifactsPreviewNav previews={previews} />
       </SidebarContent>

@@ -34,10 +34,12 @@ export function ArtifactsPreviewNav({ previews }: ArtifactsPreviewNavProps) {
   }, [previews, artifactsState.preview])
 
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+    <SidebarGroup className="group-data-[collapsible=icon]:hidden pt-0">
       {Object.entries(previews ?? {}).map(([group, items]) => (
         <Fragment key={group}>
-          <SidebarGroupLabel className="uppercase">{group}</SidebarGroupLabel>
+          <SidebarGroupLabel className="uppercase sticky top-0 bg-sidebar rounded-none z-10">
+            {group}
+          </SidebarGroupLabel>
           <SidebarMenu>
             {Object.values(items ?? {}).map(preview => (
               <SidebarMenuItem key={`${preview.name}-${preview.exportPath}`}>

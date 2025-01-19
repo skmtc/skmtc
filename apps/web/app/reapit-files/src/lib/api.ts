@@ -45,13 +45,13 @@ export const getMergedHeaders = async (
   // const connectSession = await reapitConnectBrowserSession.connectSession()
   // const accessToken = connectSession?.accessToken
 
-  const accessToken = import.meta.env.VITE_AUTH_TOKEN
+  const accessHeader = import.meta.env.VITE_AUTH_HEADER
 
-  console.log('ACCESS TOKEN', accessToken)
+  console.log('ACCESS TOKEN', accessHeader)
 
-  return accessToken
+  return accessHeader
     ? {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: accessHeader,
         'api-version': 'latest',
         'Content-Type': 'application/json',
         ...Object.fromEntries(Object.entries(headers ?? {}).filter(([, value]) => value))
