@@ -39,7 +39,8 @@ await build({
       '@hono/zod-openapi': '^0.18.3'
     },
     devDependencies: {
-      '@types/lodash-es': '4.17.12'
+      '@types/lodash-es': '4.17.12',
+      'openapi-types': '12.1.3'
     }
   }
 })

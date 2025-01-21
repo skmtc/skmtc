@@ -78,7 +78,7 @@ class ParseContext {
     }
     parse() {
         const documentObject = __classPrivateFieldGet(this, _ParseContext_instances, "m", _ParseContext_parseSchema).call(this);
-        if (documentObject.openapi.startsWith('3.1')) {
+        if (documentObject?.openapi?.startsWith('3.1')) {
             const options = {
                 verbose: false,
                 deleteExampleWithId: false,

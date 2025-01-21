@@ -1,14 +1,7 @@
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { ArtifactsSidebar } from '@/components/preview/artifacts-sidebar'
 import { SidebarRight } from '@/components/preview/sidebar-right'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage
-} from '@/components/ui/breadcrumb'
-import { Separator } from '@/components/ui/separator'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
 import { useState } from 'react'
 import { useGetArtifactsConfig } from '@/services/use-get-artifacts-config'

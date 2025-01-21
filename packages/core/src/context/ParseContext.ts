@@ -45,7 +45,7 @@ export class ParseContext {
   parse() {
     const documentObject = this.#parseSchema()
 
-    if (documentObject.openapi.startsWith('3.1')) {
+    if (documentObject?.openapi?.startsWith('3.1')) {
       const options: ConverterOptions = {
         verbose: false,
         deleteExampleWithId: false,

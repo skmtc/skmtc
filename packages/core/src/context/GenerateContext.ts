@@ -503,7 +503,7 @@ export class GenerateContext {
       }
     })
 
-    Object.entries(preview ?? {}).forEach(([group, { name, route, source }]) => {
+    Object.entries(preview ?? {}).forEach(([group, { name, route, source, input, formatter }]) => {
       if (!this.#previews[group]) {
         this.#previews[group] = {}
       }
@@ -513,7 +513,9 @@ export class GenerateContext {
         exportPath: destinationPath,
         group,
         route,
-        source
+        source,
+        ...(input ? { input } : {}),
+        ...(formatter ? { formatter } : {})
       }
     })
   }

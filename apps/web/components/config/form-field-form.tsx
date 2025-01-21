@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { OpenAPIV3 } from 'openapi-types'
 import { Input } from '@/components/ui/standard-input'
 import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/preview/artifacts-context'
@@ -27,7 +26,7 @@ export function FormFieldForm({
   close,
   source
 }: FormFieldFormProps) {
-  const { state, dispatch } = useArtifacts()
+  const { dispatch } = useArtifacts()
 
   const [selectedSchema, setSelectedSchema] = React.useState<SelectedSchemaType | null>(null)
 

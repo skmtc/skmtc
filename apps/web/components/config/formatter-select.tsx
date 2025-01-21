@@ -1,4 +1,3 @@
-import type { OpenAPIV3 } from 'openapi-types'
 import {
   Select,
   SelectContent,
@@ -7,32 +6,28 @@ import {
   SelectValue
 } from '@/components/ui/standard-select'
 import { isSchemaSubset } from '@/lib/isSchemaSubset'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 import { inputEdgeClasses } from '@/lib/classes'
 import { SelectedSchemaType } from '@/components/config/types'
+import type { FormatterOption } from '@skmtc/core/Preview'
 
-type Formatter = {
-  schema: OpenAPIV3.SchemaObject
-  label: string
-}
-
-const numberFormatter: Formatter = {
+const numberFormatter: FormatterOption = {
   schema: {
     type: 'number'
   },
   label: 'NumberFormatter'
 }
 
-const textFormatter: Formatter = {
+const textFormatter: FormatterOption = {
   schema: {
     type: 'string'
   },
   label: 'TextFormatter'
 }
 
-const nameFormatter: Formatter = {
+const nameFormatter: FormatterOption = {
   schema: {
     type: 'object',
     properties: {
@@ -44,7 +39,7 @@ const nameFormatter: Formatter = {
   label: 'NameFormatter'
 }
 
-const addressFormatter: Formatter = {
+const addressFormatter: FormatterOption = {
   schema: {
     type: 'object',
     properties: {
@@ -61,7 +56,12 @@ const addressFormatter: Formatter = {
   label: 'AddressFormatter'
 }
 
-const formatters: Formatter[] = [numberFormatter, textFormatter, nameFormatter, addressFormatter]
+const formatters: FormatterOption[] = [
+  numberFormatter,
+  textFormatter,
+  nameFormatter,
+  addressFormatter
+]
 
 type FormatterSelectProps = {
   selectedSchema: SelectedSchemaType | null

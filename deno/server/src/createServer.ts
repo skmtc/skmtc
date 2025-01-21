@@ -6,7 +6,7 @@ import { operationPreview, modelPreview } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
 import type { GeneratorsMap, GeneratorType, OasRef, OasSchema } from '@skmtc/core'
 import { toOasDocument } from './toOasDocument.ts'
-import { manifestContent } from '@skmtc/core/Manifest'
+import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import invariant from 'tiny-invariant'
 
 const postSettingsBody = z
@@ -88,7 +88,7 @@ const getGenerators = createRoute({
 
 const schemaItem = z
   .object({
-    schema: z.object({}).passthrough(),
+    schema: z.record(z.unknown()),
     name: z.string().nullable(),
     type: z.enum(['list-item', 'form-item'])
   })
@@ -141,20 +141,16 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
     const { pathname } = new URL(c.req.url)
     const url = `https://platform.reapit.cloud${pathname.replace(/^\/proxy/i, '')}`
 
-    console.log('URL', url)
-    console.log('HEADERS', c.req.header())
-
     return await fetch(url, { headers: c.req.header() })
   })
 
-  app.openapi(postArtifacts, async c => {
+  app.post('/artifacts', async c => {
     const startAt = Date.now()
 
     const result = await Sentry.startSpan({ name: 'POST /artifacts' }, async span => {
-      const { schema, clientSettings, prettier } = await Sentry.startSpan(
-        { name: 'Parse JSON' },
-        () => c.req.valid('json')
-      )
+      const body = await c.req.json()
+
+      const { schema, clientSettings, prettier } = postArtifactsBody.parse(body)
 
       return Sentry.startSpan({ name: 'Generate' }, () => {
         const { traceId, spanId } = span.spanContext()
@@ -169,6 +165,8 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
           toGeneratorsMap,
           logsPath
         })
+
+        console.log('INPUTS', JSON.stringify(manifest.previews?.inputs, null, 2))
 
         return { artifacts, manifest }
       })

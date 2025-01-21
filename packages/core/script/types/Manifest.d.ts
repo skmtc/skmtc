@@ -84,6 +84,29 @@ export declare const manifestContent: z.ZodObject<{
         exportPath: z.ZodString;
         group: z.ZodString;
         route: z.ZodOptional<z.ZodString>;
+        input: z.ZodOptional<z.ZodObject<{
+            schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+            label: z.ZodString;
+            name: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            schema: Record<string, unknown>;
+            label: string;
+            name?: string | undefined;
+        }, {
+            schema: Record<string, unknown>;
+            label: string;
+            name?: string | undefined;
+        }>>;
+        formatter: z.ZodOptional<z.ZodObject<{
+            schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+            label: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            schema: Record<string, unknown>;
+            label: string;
+        }, {
+            schema: Record<string, unknown>;
+            label: string;
+        }>>;
         source: z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
             type: z.ZodLiteral<"operation">;
             generatorId: z.ZodString;
@@ -127,6 +150,15 @@ export declare const manifestContent: z.ZodObject<{
             refName: string;
         };
         route?: string | undefined;
+        input?: {
+            schema: Record<string, unknown>;
+            label: string;
+            name?: string | undefined;
+        } | undefined;
+        formatter?: {
+            schema: Record<string, unknown>;
+            label: string;
+        } | undefined;
     }, {
         name: string;
         exportPath: string;
@@ -142,6 +174,15 @@ export declare const manifestContent: z.ZodObject<{
             refName: string;
         };
         route?: string | undefined;
+        input?: {
+            schema: Record<string, unknown>;
+            label: string;
+            name?: string | undefined;
+        } | undefined;
+        formatter?: {
+            schema: Record<string, unknown>;
+            label: string;
+        } | undefined;
     }>>>;
     pinnable: z.ZodRecord<z.ZodEffects<z.ZodString, GeneratorKey, string>, z.ZodString>;
     results: z.ZodType<ResultsItem, z.ZodTypeDef, ResultsItem>;
@@ -173,6 +214,15 @@ export declare const manifestContent: z.ZodObject<{
             refName: string;
         };
         route?: string | undefined;
+        input?: {
+            schema: Record<string, unknown>;
+            label: string;
+            name?: string | undefined;
+        } | undefined;
+        formatter?: {
+            schema: Record<string, unknown>;
+            label: string;
+        } | undefined;
     }>>;
     pinnable: Partial<Record<GeneratorKey, string>>;
     results: ResultsItem;
@@ -205,6 +255,15 @@ export declare const manifestContent: z.ZodObject<{
             refName: string;
         };
         route?: string | undefined;
+        input?: {
+            schema: Record<string, unknown>;
+            label: string;
+            name?: string | undefined;
+        } | undefined;
+        formatter?: {
+            schema: Record<string, unknown>;
+            label: string;
+        } | undefined;
     }>>;
     pinnable: Record<string, string>;
     results: ResultsItem;

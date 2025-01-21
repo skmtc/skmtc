@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.534", 
+  "version": "0.0.540", 
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.10",
     "@std/testing": "jsr:@std/testing@^1.0.8",
@@ -20,7 +20,8 @@
     "./toResolvedArtifactPath": "./helpers/toResolvedArtifactPath.ts",
     "./strings": "./helpers/strings.ts",
     "./Settings": "./types/Settings.ts",
-    "./EnrichmentRequest": "./types/EnrichmentRequest.ts"
+    "./EnrichmentRequest": "./types/EnrichmentRequest.ts",
+    "./Preview": "./types/Preview.ts"
   },
   "tasks": {
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",

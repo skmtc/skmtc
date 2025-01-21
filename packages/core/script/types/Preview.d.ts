@@ -1,6 +1,39 @@
 import "../_dnt.polyfills.js";
 import { z } from 'zod';
 import { type Method } from './Method.js';
+import type { OpenAPIV3 } from 'openapi-types';
+export type InputOption = {
+    schema: OpenAPIV3.SchemaObject;
+    label: string;
+    name?: string;
+};
+export declare const inputOption: z.ZodObject<{
+    schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    label: z.ZodString;
+    name: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    schema: Record<string, unknown>;
+    label: string;
+    name?: string | undefined;
+}, {
+    schema: Record<string, unknown>;
+    label: string;
+    name?: string | undefined;
+}>;
+export type FormatterOption = {
+    schema: OpenAPIV3.SchemaObject;
+    label: string;
+};
+export declare const formatterOption: z.ZodObject<{
+    schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    label: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    schema: Record<string, unknown>;
+    label: string;
+}, {
+    schema: Record<string, unknown>;
+    label: string;
+}>;
 export type OperationPreview = {
     type: 'operation';
     generatorId: string;
@@ -17,6 +50,8 @@ export type Preview = {
     route?: string;
     exportPath: string;
     group: string;
+    input?: InputOption;
+    formatter?: FormatterOption;
     source: OperationPreview | ModelPreview;
 };
 export declare const operationPreview: z.ZodObject<{
@@ -53,6 +88,29 @@ export declare const preview: z.ZodObject<{
     exportPath: z.ZodString;
     group: z.ZodString;
     route: z.ZodOptional<z.ZodString>;
+    input: z.ZodOptional<z.ZodObject<{
+        schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+        label: z.ZodString;
+        name: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        schema: Record<string, unknown>;
+        label: string;
+        name?: string | undefined;
+    }, {
+        schema: Record<string, unknown>;
+        label: string;
+        name?: string | undefined;
+    }>>;
+    formatter: z.ZodOptional<z.ZodObject<{
+        schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+        label: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        schema: Record<string, unknown>;
+        label: string;
+    }, {
+        schema: Record<string, unknown>;
+        label: string;
+    }>>;
     source: z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
         type: z.ZodLiteral<"operation">;
         generatorId: z.ZodString;
@@ -96,6 +154,15 @@ export declare const preview: z.ZodObject<{
         refName: string;
     };
     route?: string | undefined;
+    input?: {
+        schema: Record<string, unknown>;
+        label: string;
+        name?: string | undefined;
+    } | undefined;
+    formatter?: {
+        schema: Record<string, unknown>;
+        label: string;
+    } | undefined;
 }, {
     name: string;
     exportPath: string;
@@ -111,5 +178,14 @@ export declare const preview: z.ZodObject<{
         refName: string;
     };
     route?: string | undefined;
+    input?: {
+        schema: Record<string, unknown>;
+        label: string;
+        name?: string | undefined;
+    } | undefined;
+    formatter?: {
+        schema: Record<string, unknown>;
+        label: string;
+    } | undefined;
 }>;
 //# sourceMappingURL=Preview.d.ts.map

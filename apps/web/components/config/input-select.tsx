@@ -1,4 +1,3 @@
-import type { OpenAPIV3 } from 'openapi-types'
 import {
   Select,
   SelectContent,
@@ -7,33 +6,29 @@ import {
   SelectValue
 } from '@/components/ui/standard-select'
 import { isSchemaSubset } from '@/lib/isSchemaSubset'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 import { inputEdgeClasses } from '@/lib/classes'
 import { SelectedSchemaType } from '@/components/config/types'
+import type { InputOption } from '@skmtc/core/Preview'
+import { useArtifacts } from '@/components/preview/artifacts-context'
 
-type Input = {
-  schema: OpenAPIV3.SchemaObject
-  label: string
-  name?: string
-}
-
-const numberInput: Input = {
+const numberInput: InputOption = {
   schema: {
     type: 'number'
   },
   label: 'NumberInput'
 }
 
-const textInput: Input = {
+const textInput: InputOption = {
   schema: {
     type: 'string'
   },
   label: 'TextInput'
 }
 
-const nameInput: Input = {
+const nameInput: InputOption = {
   schema: {
     type: 'object',
     properties: {
@@ -45,7 +40,7 @@ const nameInput: Input = {
   label: 'NameInput'
 }
 
-const addressInput: Input = {
+const addressInput: InputOption = {
   schema: {
     type: 'object',
     properties: {
@@ -62,7 +57,7 @@ const addressInput: Input = {
   label: 'AddressInput'
 }
 
-const officeIdsInput: Input = {
+const officeIdsInput: InputOption = {
   schema: {
     type: 'array',
     items: {
@@ -73,7 +68,7 @@ const officeIdsInput: Input = {
   name: 'officeIds'
 }
 
-const inputs: Input[] = [numberInput, textInput, nameInput, addressInput, officeIdsInput]
+const inputs: InputOption[] = [numberInput, textInput, nameInput, addressInput, officeIdsInput]
 
 type InputSelectProps = {
   selectedSchema: SelectedSchemaType | null
@@ -82,9 +77,19 @@ type InputSelectProps = {
 }
 
 export const InputSelect = ({ selectedSchema, value, setValue }: InputSelectProps) => {
-  console.log('selectedSchema', selectedSchema)
+  const { state: artifactsState } = useArtifacts()
+  const { manifest } = artifactsState
+
+  const inputOptions = Object.values(manifest?.previews ?? {})
+    .flatMap(previewGroup => Object.values(previewGroup))
+    .map(({ input }) => input)
+    .filter(input => typeof input !== 'undefined')
+
+  console.log('inputOptions', inputOptions)
+
   const formatterOptions = selectedSchema
-    ? inputs
+    ? inputOptions
+        .concat(inputs)
         .filter(input => {
           const schemaMatches = isSchemaSubset({
             parentSchema: selectedSchema.schema,

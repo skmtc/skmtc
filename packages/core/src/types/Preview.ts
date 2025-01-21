@@ -1,6 +1,29 @@
 import "../_dnt.polyfills.js";
 import { z } from 'zod'
 import { method, type Method } from './Method.js'
+import type { OpenAPIV3 } from 'openapi-types'
+
+export type InputOption = {
+  schema: OpenAPIV3.SchemaObject
+  label: string
+  name?: string
+}
+
+export const inputOption = z.object({
+  schema: z.record(z.unknown()),
+  label: z.string(),
+  name: z.string().optional()
+})
+
+export type FormatterOption = {
+  schema: OpenAPIV3.SchemaObject
+  label: string
+}
+
+export const formatterOption = z.object({
+  schema: z.record(z.unknown()),
+  label: z.string()
+})
 
 export type OperationPreview = {
   type: 'operation'
@@ -20,6 +43,8 @@ export type Preview = {
   route?: string
   exportPath: string
   group: string
+  input?: InputOption
+  formatter?: FormatterOption
   source: OperationPreview | ModelPreview
 }
 
@@ -42,6 +67,8 @@ export const preview = z
     exportPath: z.string(),
     group: z.string(),
     route: z.string().optional(),
+    input: inputOption.optional(),
+    formatter: formatterOption.optional(),
     source: z.discriminatedUnion('type', [operationPreview, modelPreview])
   })
   .openapi('Preview')
