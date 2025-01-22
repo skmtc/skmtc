@@ -57,18 +57,7 @@ const addressInput: InputOption = {
   label: 'AddressInput'
 }
 
-const officeIdsInput: InputOption = {
-  schema: {
-    type: 'array',
-    items: {
-      type: 'string'
-    }
-  },
-  label: 'OfficeIdsInput',
-  name: 'officeIds'
-}
-
-const inputs: InputOption[] = [numberInput, textInput, nameInput, addressInput, officeIdsInput]
+const inputs: InputOption[] = [numberInput, textInput, nameInput, addressInput]
 
 type InputSelectProps = {
   selectedSchema: SelectedSchemaType | null

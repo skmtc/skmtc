@@ -4,10 +4,18 @@ import wyw from '@wyw-in-js/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), wyw(), {
+  plugins: [react(), wyw({
+    include: ['**/*.{ts,tsx}'],
+    babelOptions: {
+      presets: ['@babel/preset-typescript', '@babel/preset-react'],
+    },
+  }), {
     name: 'post-build',
     buildStart() {
       console.log('SKMTC BUILD START')
+    },
+    buildEnd(error) {
+      console.log('SKMTC BUILD END', error)
     },
     closeBundle() {
       console.log('SKMTC CLOSE BUNDLE')

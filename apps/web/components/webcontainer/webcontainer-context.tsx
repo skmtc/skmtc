@@ -297,6 +297,8 @@ const launchBuildProcess = async ({
             reloadPreview(iframeRef.current)
           }
         }
+
+        console.log(`[BUILD] ${dataString}`)
       }
     })
   )
