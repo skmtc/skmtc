@@ -10,6 +10,7 @@ import { ConfigFormContainer } from '@/components/config/config-form-container'
 import { inputEdgeClasses } from '@/lib/classes'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
+import { WrapperSelect } from '@/components/config/wrapper-select'
 
 type FormFieldFormProps = {
   section?: FormFieldItem
@@ -121,12 +122,12 @@ export function FormFieldForm({
       <Controller
         name="wrapper"
         control={control}
-        render={({ field }) => (
+        render={({ field: { value, onChange, ...field } }) => (
           <div className="flex flex-col gap-1">
             <label htmlFor="path-input" className="text-xs font-normal text-foreground">
               Wrapper
             </label>
-            <Input className={cn(inputClasses, inputEdgeClasses)} {...field} />
+            <WrapperSelect value={value} setValue={onChange} {...field} />
           </div>
         )}
       />

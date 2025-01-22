@@ -57,7 +57,21 @@ const addressInput: InputOption = {
   label: 'AddressInput'
 }
 
-const inputs: InputOption[] = [numberInput, textInput, nameInput, addressInput]
+const marketingConsentInput: InputOption = {
+  schema: {
+    type: 'string'
+  },
+  name: 'marketingConsent',
+  label: 'MarketingConsentInput'
+}
+
+const inputs: InputOption[] = [
+  numberInput,
+  textInput,
+  nameInput,
+  addressInput,
+  marketingConsentInput
+]
 
 type InputSelectProps = {
   selectedSchema: SelectedSchemaType | null

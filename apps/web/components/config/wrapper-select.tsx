@@ -18,12 +18,12 @@ const wrappers: InputWrapper[] = [
   'InputWrapHalf'
 ]
 
-type InputSelectProps = {
+type WrapperSelectProps = {
   value: string | undefined
   setValue: (value: string) => void
 }
 
-export const InputSelect = ({ value, setValue }: InputSelectProps) => {
+export const WrapperSelect = ({ value, setValue }: WrapperSelectProps) => {
   const formatterOptions = wrappers.map(wrapper => ({
     value: wrapper,
     label: wrapper

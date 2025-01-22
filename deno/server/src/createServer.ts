@@ -6,7 +6,7 @@ import { operationPreview, modelPreview } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
 import type { GeneratorsMap, GeneratorType, OasRef, OasSchema } from '@skmtc/core'
 import { toOasDocument } from './toOasDocument.ts'
-import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
+import { manifestContent } from '@skmtc/core/Manifest'
 import invariant from 'tiny-invariant'
 
 const postSettingsBody = z
@@ -133,15 +133,24 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
     })
   )
 
-  app.all('/proxy/*', async c => {
+  app.all('/proxy/*', c => {
     // const response = await fetch('https://example.com')
     // // clone the response to return a response with modifiable headers
     // const newResponse = new Response(response.body, response)
     // return newResponse
-    const { pathname } = new URL(c.req.url)
-    const url = `https://platform.reapit.cloud${pathname.replace(/^\/proxy/i, '')}`
+    const url = new URL(c.req.url)
+    url.pathname = url.pathname.replace(/^\/proxy/i, '')
+    url.host = 'platform.reapit.cloud'
 
-    return await fetch(url, { headers: c.req.header() })
+    const req = new Request(url, {
+      method: c.req.method,
+      headers: c.req.header(),
+      body: c.req.raw.body
+    })
+
+    console.log('REQ', req)
+
+    return fetch(req)
   })
 
   app.post('/artifacts', async c => {

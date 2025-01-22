@@ -126,11 +126,6 @@ const WebcontainerProvider = ({ fileNodes, children }: WebcontainerProviderProps
   }, [ready])
 
   useEffect(() => {
-    console.log('STATUS', status)
-    console.log('AUTH HEADER', authHeader)
-    console.log('CURRENT AUTH HEADER', currentAuthHeaderRef.current)
-    console.log('WEB CONTAINER REF', webContainerRef.current)
-
     if (
       status !== 'ready' ||
       !authHeader ||
