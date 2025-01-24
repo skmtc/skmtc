@@ -21,7 +21,6 @@
   }, 
   "dependencies": {
     "express": "4.21.2",
-    "express-http-proxy": "^2.1.1",
     "cors": "2.8.5",
     "@hookform/resolvers": "^3.3.4",
     "@linaria/core": "^6.1.0",
