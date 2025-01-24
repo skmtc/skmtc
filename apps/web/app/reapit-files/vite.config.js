@@ -22,14 +22,13 @@ export default defineConfig({
     }
   }],
   resolve: {
-    extensions: ['.ts', '.tsx', '.generated.ts', '.generated.tsx', '.example.ts', '.example.tsx'],
     alias: {
       '@': '/src',
     },
   },
   build: {
     outDir: 'build',
-    minify: false,
+    emptyOutDir: false,
     rollupOptions: {
       onLog(level, log, handler) {
         handler(level, log);
