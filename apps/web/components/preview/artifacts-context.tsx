@@ -251,14 +251,14 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
     .with({ type: 'delete-form-field' }, ({ payload }) => {
       const { source, sectionIndex, fieldIndex } = payload
       const { generatorId, operationPath, operationMethod } = source
+
       const formFieldsPath = [
         generatorId,
         operationPath,
         operationMethod,
         'formSections',
         sectionIndex,
-        'fields',
-        fieldIndex
+        'fields'
       ]
 
       const enrichmentsCopy = structuredClone(state.enrichments)
