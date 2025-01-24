@@ -84,7 +84,7 @@ export const InputSelect = ({ selectedSchema, value, setValue }: InputSelectProp
   const { manifest } = artifactsState
 
   const inputOptions = Object.values(manifest?.previews ?? {})
-    .flatMap(previewGroup => Object.values(previewGroup))
+    .flatMap(previewGroup => Object.values(previewGroup ?? {}))
     .map(({ input }) => input)
     .filter(input => typeof input !== 'undefined')
 
@@ -112,16 +112,17 @@ export const InputSelect = ({ selectedSchema, value, setValue }: InputSelectProp
 
   // If no value is set and there is only one formatter, set the value to the formatter
   useEffect(() => {
-    if (!value && formatterOptions.length === 1) {
-      console.log('SETTING VALUE', formatterOptions[0].value)
-
+    if (
+      (!value || !formatterOptions.some(option => option.value === value)) &&
+      formatterOptions.length === 1
+    ) {
       setValue(formatterOptions[0].value)
     }
   }, [formatterOptions, value])
 
   return (
     <Select disabled={!selectedSchema} value={value} onValueChange={setValue}>
-      <SelectTrigger className={cn(inputClasses, inputEdgeClasses)}>
+      <SelectTrigger className={cn(inputClasses, inputEdgeClasses, 'h-7')}>
         <SelectValue placeholder="Format" />
       </SelectTrigger>
       <SelectContent>
@@ -133,7 +134,7 @@ export const InputSelect = ({ selectedSchema, value, setValue }: InputSelectProp
           ))
         ) : (
           <SelectItem disabled value="none">
-            No formatters found
+            No inputs found
           </SelectItem>
         )}
       </SelectContent>

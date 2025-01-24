@@ -29,6 +29,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
+    minify: false,
     rollupOptions: {
       onLog(level, log, handler) {
         handler(level, log);

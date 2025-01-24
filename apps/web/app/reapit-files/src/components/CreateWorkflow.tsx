@@ -1,7 +1,16 @@
 import { ComponentType, Dispatch, ReactNode, SetStateAction, useState } from 'react'
-import { Button, ButtonGroup, elMb8, elMl8, FlexContainer, StepsVertical, Tile, useMediaQuery } from '@reapit/elements'
+import {
+  Button,
+  ButtonGroup,
+  elMb8,
+  elMl8,
+  FlexContainer,
+  StepsVertical,
+  Tile,
+  useMediaQuery
+} from '@reapit/elements'
 import { cx } from '@linaria/core'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ErrorBoundary } from '@/utils/error-boundary'
 import { WorkflowStep } from '@/components/WorkflowStep'
 import { FieldValues, useFormContext, UseFormTrigger } from 'react-hook-form'
 import { FieldParent, KeyPath, ModelConfig } from '@/components/ModelRuntimeConfig'
@@ -19,7 +28,7 @@ export const handleSwitchStep =
     selectedStep,
     trigger,
     setSelectedStep,
-    fieldsList,
+    fieldsList
   }: HandleSwitchStepArgs<Model, Key>) =>
   (event: MouseEvent) => {
     const validate = async () => {
@@ -67,7 +76,7 @@ export const CreateWorkflow = <Model extends FieldValues, Key extends KeyPath<Mo
   children,
   sections,
   fieldConfig,
-  FormContainer,
+  FormContainer
 }: CreateWorkflowProps<Model, Key>) => {
   const [selectedStep, setSelectedStep] = useState(0)
 
@@ -84,10 +93,10 @@ export const CreateWorkflow = <Model extends FieldValues, Key extends KeyPath<Mo
                   <WorkflowStep title={title}>
                     <CreateFields fieldNames={fields} fieldConfig={fieldConfig} />
                   </WorkflowStep>
-                ),
+                )
               }))}
               selectedStep={`${selectedStep + 1}`}
-              onStepClick={(stringStep) => setSelectedStep(parseInt(stringStep) - 1)}
+              onStepClick={stringStep => setSelectedStep(parseInt(stringStep) - 1)}
             />
             <Buttons
               selectedStep={selectedStep}
@@ -110,7 +119,7 @@ type ButtonsProps<Model extends FieldValues, Key extends KeyPath<Model>> = {
 const Buttons = <Model extends FieldValues, Key extends KeyPath<Model>>({
   selectedStep,
   setSelectedStep,
-  fieldsList,
+  fieldsList
 }: ButtonsProps<Model, Key>) => {
   const { isTablet, isMobile } = useMediaQuery()
   const { trigger, formState } = useFormContext<Model>()
@@ -125,7 +134,12 @@ const Buttons = <Model extends FieldValues, Key extends KeyPath<Model>>({
     <ButtonGroup className={cx(elMb8, !isTablet && !isMobile && elMl8)} alignment="left">
       <Button
         intent="primary"
-        onClick={handleSwitchStep<Model, Key>({ selectedStep, trigger, setSelectedStep, fieldsList })}
+        onClick={handleSwitchStep<Model, Key>({
+          selectedStep,
+          trigger,
+          setSelectedStep,
+          fieldsList
+        })}
         type={isLast ? 'submit' : 'button'}
         disabled={busy}
         loading={busy}
@@ -138,13 +152,13 @@ const Buttons = <Model extends FieldValues, Key extends KeyPath<Model>>({
 
 export const CreateFields = <Model extends FieldValues, Key extends KeyPath<Model>>({
   fieldNames,
-  fieldConfig,
+  fieldConfig
 }: {
   fieldNames: Key[]
   fieldConfig: ModelConfig<Model>
 }) => (
   <>
-    {fieldNames.map((fieldName) => (
+    {fieldNames.map(fieldName => (
       <FieldParent key={fieldName} fieldName={fieldName} fieldConfig={fieldConfig[fieldName]} />
     ))}
   </>

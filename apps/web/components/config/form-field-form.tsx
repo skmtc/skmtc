@@ -11,6 +11,7 @@ import { inputEdgeClasses } from '@/lib/classes'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 import { WrapperSelect } from '@/components/config/wrapper-select'
+import { get } from 'lodash'
 
 type FormFieldFormProps = {
   section?: FormFieldItem
@@ -27,9 +28,23 @@ export function FormFieldForm({
   close,
   source
 }: FormFieldFormProps) {
-  const { dispatch } = useArtifacts()
+  const { dispatch, state: artifactsState } = useArtifacts()
 
   const [selectedSchema, setSelectedSchema] = React.useState<SelectedSchemaType | null>(null)
+
+  console.log('SELECTED SCHEMA', selectedSchema)
+
+  const { generatorId, operationPath, operationMethod } = source
+  const formFieldsPath = [
+    generatorId,
+    operationPath,
+    operationMethod,
+    'formSections',
+    sectionIndex,
+    'fields'
+  ]
+
+  const formFields: FormFieldItem[] = get(artifactsState.enrichments, formFieldsPath) ?? []
 
   const { control, handleSubmit } = useForm<FormFieldItem>({
     defaultValues: section ?? {
@@ -75,6 +90,7 @@ export function FormFieldForm({
               schemaItem={schemaItem}
               setSelectedSchema={setSelectedSchema}
               showRequired={true}
+              disabledPaths={formFields.map(field => field.accessorPath)}
             />
           </div>
         )}

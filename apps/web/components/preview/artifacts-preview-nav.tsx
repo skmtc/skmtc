@@ -5,10 +5,12 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem
 } from '@/components/ui/sidebar'
 import { Preview } from '@skmtc/core/Preview'
+import { SquareChevronRight } from 'lucide-react'
 import { Fragment, useEffect } from 'react'
 
 type ArtifactsPreviewNavProps = {
@@ -48,6 +50,9 @@ export function ArtifactsPreviewNav({ previews }: ArtifactsPreviewNavProps) {
                 >
                   {preview.name}
                 </SidebarMenuButton>
+                {/* <SidebarMenuAction showOnHover>
+                  <SquareChevronRight className="w-4 h-4" />
+                </SidebarMenuAction> */}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

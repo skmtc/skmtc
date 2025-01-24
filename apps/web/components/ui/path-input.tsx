@@ -24,6 +24,7 @@ type PathInputProps = {
   schemaItem: SchemaItem
   setSelectedSchema: (schema: SelectedSchemaType | null) => void
   showRequired?: boolean
+  disabledPaths?: string[][]
 }
 
 export const PathInput = ({
@@ -31,11 +32,14 @@ export const PathInput = ({
   setPath,
   schemaItem,
   setSelectedSchema,
-  showRequired
+  showRequired,
+  disabledPaths
 }: PathInputProps) => {
   if (!schemaItem?.schema?.type) {
     debugger
   }
+
+  const disabledPathsJoined = disabledPaths?.map(path => path.join('.')) ?? []
 
   invariant(schemaItem.schema.type === 'object', 'Schema must be an object')
 
@@ -165,12 +169,14 @@ export const PathInput = ({
                   if (filteredOptions[highlightedItem]) {
                     event.preventDefault()
 
+                    //@todo: check if the path is disabled
                     setSelectedItems(prev => [...prev, filteredOptions[highlightedItem]])
                     setInputValue('')
                     setHighlightedItem(0)
                   }
                 })
                 .with({ key: 'ArrowDown' }, () => {
+                  //@todo: skip disabled paths
                   if (highlightedItem < filteredOptions.length - 1) {
                     setHighlightedItem(highlightedItem + 1)
                   } else {
@@ -178,6 +184,7 @@ export const PathInput = ({
                   }
                 })
                 .with({ key: 'ArrowUp' }, () => {
+                  //@todo: skip disabled paths
                   if (highlightedItem > 0) {
                     setHighlightedItem(highlightedItem - 1)
                   } else {
@@ -200,31 +207,43 @@ export const PathInput = ({
           className={`mt-[2px] p-0 border-none w-fit ${filteredOptions.length > 0 ? 'block' : 'hidden'}`}
         >
           <ScrollArea className="flex flex-col h-[200px] w-min rounded-sm border p-1">
-            {filteredOptions.map((option, index) => (
-              <Button
-                key={option.name}
-                tabIndex={-1}
-                variant="ghost"
-                className={`w-full justify-start px-2 rounded-sm ${highlightedItem === index ? 'bg-accent' : ''}`}
-                onMouseMove={() => setHighlightedItem(index)}
-                onClick={() => {
-                  setSelectedItems(prev => [...prev, option])
-                  setInputValue('')
-                  setHighlightedItem(0)
-                }}
-                ref={ref => {
-                  if (highlightedItem === index) {
-                    highlightedItemRef.current = ref
-                  }
-                }}
-              >
-                {option.name}
-                <span className="text-xs text-muted-foreground">{schemaToType(option.schema)}</span>
-                {showRequired && option.required ? (
-                  <span className="text-xs text-muted-foreground">*</span>
-                ) : null}
-              </Button>
-            ))}
+            {filteredOptions.map((option, index) => {
+              const isDisabled = disabledPathsJoined.includes(
+                selectedItems
+                  .map(item => item.name)
+                  .concat(option.name)
+                  .join('.')
+              )
+
+              return (
+                <Button
+                  key={option.name}
+                  tabIndex={-1}
+                  variant="ghost"
+                  className={`w-full justify-start px-2 rounded-sm ${highlightedItem === index ? 'bg-accent' : ''}`}
+                  onMouseMove={() => setHighlightedItem(index)}
+                  onClick={() => {
+                    setSelectedItems(prev => [...prev, option])
+                    setInputValue('')
+                    setHighlightedItem(0)
+                  }}
+                  disabled={isDisabled}
+                  ref={ref => {
+                    if (highlightedItem === index) {
+                      highlightedItemRef.current = ref
+                    }
+                  }}
+                >
+                  {option.name}
+                  <span className="text-xs text-muted-foreground">
+                    {schemaToType(option.schema)}
+                  </span>
+                  {showRequired && option.required ? (
+                    <span className="text-xs text-muted-foreground">*</span>
+                  ) : null}
+                </Button>
+              )
+            })}
           </ScrollArea>
         </PopoverContent>
       </Popover>

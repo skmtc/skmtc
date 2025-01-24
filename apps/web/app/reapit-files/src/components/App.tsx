@@ -1,11 +1,11 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { routes } from '@/routes.generated'
+import { routes } from '@/core/routes.generated'
 import '@reapit/elements/dist/index.css'
 import { z } from 'zod'
 import LoginModule from '@/components/Login/Login'
 import { StrictMode } from 'react'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ErrorBoundary } from '@/utils/error-boundary'
 import {
   Loader,
   MainContainer,

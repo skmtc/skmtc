@@ -66,7 +66,7 @@ const formatters: FormatterOption[] = [
 type FormatterSelectProps = {
   selectedSchema: SelectedSchemaType | null
   value: string | undefined
-  setValue: (value: string) => void
+  setValue: (value: string | undefined) => void
 }
 
 export const FormatterSelect = ({ selectedSchema, value, setValue }: FormatterSelectProps) => {
@@ -87,17 +87,25 @@ export const FormatterSelect = ({ selectedSchema, value, setValue }: FormatterSe
 
   // If no value is set and there is only one formatter, set the value to the formatter
   useEffect(() => {
-    if (!value && formatterOptions.length === 1) {
-      console.log('SETTING VALUE', formatterOptions[0].value)
-
+    if (
+      (!value || !formatterOptions.some(option => option.value === value)) &&
+      formatterOptions.length === 1
+    ) {
       setValue(formatterOptions[0].value)
+    }
+
+    if (formatterOptions.length === 0) {
+      setValue(undefined)
     }
   }, [formatterOptions, value])
 
   return (
     <Select disabled={!selectedSchema} value={value} onValueChange={setValue}>
-      <SelectTrigger className={cn(inputClasses, inputEdgeClasses)}>
-        <SelectValue placeholder="Format" />
+      <SelectTrigger
+        className={cn(inputClasses, inputEdgeClasses, 'h-7')}
+        disabled={!formatterOptions?.length}
+      >
+        <SelectValue placeholder={!formatterOptions?.length ? 'No formatters found' : 'Format'} />
       </SelectTrigger>
       <SelectContent>
         {formatterOptions?.length ? (

@@ -1,6 +1,6 @@
 import { elMb5, PageHeader } from '@reapit/elements'
 import { useNavigate } from 'react-router-dom'
-import { navigateRoute } from '@/lib/navigate'
+import { navigateRoute } from '@/utils/navigate'
 import { CreateWorkflow } from '@/components/CreateWorkflow'
 import { CreateContactsForm } from '@/sections/Contacts/forms/CreateContactsForm.generated'
 import { createContactsConfig } from '@/sections/Contacts/config/createContactsConfig.example'

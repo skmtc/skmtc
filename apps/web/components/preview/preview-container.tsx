@@ -6,6 +6,7 @@ import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
 import { useState } from 'react'
 import { useGetArtifactsConfig } from '@/services/use-get-artifacts-config'
 import { SchemaItem } from '@/components/config/types'
+import { LinkIcon } from 'lucide-react'
 
 export const PreviewContainer = () => {
   const { webContainerUrl, iframeRef } = useWebcontainer()
@@ -26,6 +27,10 @@ export const PreviewContainer = () => {
       <ArtifactsSidebar previews={artifactsState.manifest?.previews} />
       <SidebarInset>
         <div className="flex flex-1 flex-col">
+          <div className="flex flex-none items-center gap-2 text-sm  p-2 w-full bg-sidebar border-sidebar-border border-b-[1px] ">
+            <LinkIcon className="w-4 h-4 text-sidebar-foreground/70" />
+            {preview && webContainerUrl ? preview.route : ''}
+          </div>
           {preview && webContainerUrl ? (
             <iframe
               className="w-full h-full"

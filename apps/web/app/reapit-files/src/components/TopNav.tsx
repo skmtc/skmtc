@@ -69,11 +69,6 @@ export const TopNav = () => {
               text: 'Weekly Hits'
             }
           ]
-        },
-        {
-          itemIndex: 3,
-          href: '/contacts',
-          text: 'Contacts'
         }
       ]}
     />
