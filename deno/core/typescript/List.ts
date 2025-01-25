@@ -6,6 +6,8 @@ export type ListLines<V extends Stringable> = List<V[], '\n', 'none'>
 export type ListArray<V extends Stringable> = List<V[], ', ', '[]'>
 export type ListParams<V extends Stringable> = List<V[], ', ', '()'>
 
+export type SkipEmptyOption = { skipEmpty?: boolean }
+
 export type ListKeyValue<Key extends Stringable, Value extends Stringable> = List<
   [Key, Value],
   ': ',
@@ -17,6 +19,7 @@ type BookendsType = '[]' | '{}' | '()' | '<>' | 'none'
 type ConstructorOptions<Separator extends string = ', ', Bookends extends BookendsType = 'none'> = {
   separator?: Separator
   bookends?: Bookends
+  skipEmpty?: boolean
 }
 
 type ExtractArrayItem<ArrayOf> = ArrayOf extends Array<infer Item> ? Item : never
@@ -39,17 +42,23 @@ export class List<
   values: ExtractArrayItem<Values>[]
   separator: Separator
   bookends: Bookends
+  skipEmpty: boolean
   constructor(
     values: (ExtractArrayItem<Values> | undefined)[],
-    { separator, bookends }: ConstructorOptions<Separator, Bookends> = {}
+    { separator, bookends, skipEmpty }: ConstructorOptions<Separator, Bookends> = {}
   ) {
     this.values = values.filter(value => value !== undefined)
 
     this.separator = separator ?? (', ' as Separator)
     this.bookends = bookends ?? ('none' as Bookends)
+    this.skipEmpty = skipEmpty ?? false
   }
 
   toString(): string {
+    if (this.skipEmpty && this.values.length === 0) {
+      return ''
+    }
+
     const joined = this.values.join(this.separator)
 
     return match(this.bookends satisfies BookendsType)
@@ -161,8 +170,11 @@ export class List<
    * @param values
    * @returns `values` joined with `, ` as separator and wrapped in `{` and `}`
    */
-  static toObject = <V extends Stringable>(values: (V | undefined)[]): ListObject<V> => {
-    return new List(values, { bookends: '{}' })
+  static toObject = <V extends Stringable>(
+    values: (V | undefined)[],
+    { skipEmpty }: SkipEmptyOption = {}
+  ): ListObject<V> => {
+    return new List(values, { bookends: '{}', skipEmpty })
   }
 
   /**
@@ -265,8 +277,14 @@ export class KeyList {
     this.keys = keys
   }
 
-  toObject<V extends Stringable>(mapFn: KeyMapFn<V>): ListObject<V> {
-    return List.toObject(this.keys.map((key, index) => mapFn(key, index)))
+  toObject<V extends Stringable>(
+    mapFn: KeyMapFn<V>,
+    { skipEmpty }: SkipEmptyOption = {}
+  ): ListObject<V> {
+    return List.toObject(
+      this.keys.map((key, index) => mapFn(key, index)),
+      { skipEmpty }
+    )
   }
 
   toObjectPlain(): ListObject<string> {
