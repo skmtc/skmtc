@@ -1,11 +1,12 @@
 import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '../types/TypeSystem.js';
 import type { Definition } from '../dsl/Definition.js';
 import { List } from './List.js';
-type CreateArgs = {
+type FunctionParameterArgs = {
     name?: string;
     typeDefinition: Definition<TypeSystemObject | TypeSystemVoid>;
     destructure?: boolean;
     required?: boolean;
+    skipEmpty?: boolean;
 };
 type ParameterProperties = VoidParameter | DestructuredParameter | RegularParameter;
 type VoidParameter = {
@@ -24,7 +25,8 @@ type RegularParameter = {
 };
 export declare class FunctionParameter {
     properties: ParameterProperties;
-    constructor(args: CreateArgs);
+    skipEmpty?: boolean;
+    constructor(args: FunctionParameterArgs);
     hasProperty(name: string): boolean;
     toPropertyList(): List;
     toInbound(): string;

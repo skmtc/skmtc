@@ -3,26 +3,20 @@ import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.22.20
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { camelCase } from 'npm:lodash-es@4.17.21'
 import { match, P } from 'npm:ts-pattern@5.6.0'
-import type {
-  TypeSystemObject,
-  TypeSystemValue,
-  TypeSystemVoid
-} from '../types/TypeSystem.ts'
+import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '../types/TypeSystem.ts'
 import type { Definition } from '../dsl/Definition.ts'
 import { List } from './List.ts'
 import type { Stringable } from '../dsl/Stringable.ts'
 
-type CreateArgs = {
+type FunctionParameterArgs = {
   name?: string
   typeDefinition: Definition<TypeSystemObject | TypeSystemVoid>
   destructure?: boolean
   required?: boolean
+  skipEmpty?: boolean
 }
 
-type ParameterProperties =
-  | VoidParameter
-  | DestructuredParameter
-  | RegularParameter
+type ParameterProperties = VoidParameter | DestructuredParameter | RegularParameter
 
 type VoidParameter = {
   type: 'void'
@@ -43,8 +37,11 @@ type RegularParameter = {
 
 export class FunctionParameter {
   properties: ParameterProperties
+  skipEmpty?: boolean
 
-  constructor(args: CreateArgs) {
+  constructor(args: FunctionParameterArgs) {
+    this.skipEmpty = args.skipEmpty
+
     if (args.typeDefinition.value.type === 'object') {
       this.properties = match(args)
         .with(
@@ -74,9 +71,7 @@ export class FunctionParameter {
       .with({ type: 'void' }, () => false)
       .with({ type: 'regular' }, ({ typeDefinition }) => {
         const { value } = typeDefinition
-        return Boolean(
-          value.type === 'object' && value.objectProperties?.properties[name]
-        )
+        return Boolean(value.type === 'object' && value.objectProperties?.properties[name])
       })
       .with({ type: 'destructured' }, ({ typeDefinition }) => {
         return Boolean(typeDefinition.value.objectProperties?.properties[name])
@@ -89,9 +84,7 @@ export class FunctionParameter {
       .with({ type: 'void' }, () => List.toEmpty())
       .with({ type: 'regular' }, ({ name }) => List.toSingle(name))
       .with({ type: 'destructured' }, ({ typeDefinition }) => {
-        return List.fromKeys(
-          typeDefinition.value.objectProperties?.properties
-        ).toObjectPlain()
+        return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObjectPlain()
       })
       .exhaustive()
   }
@@ -113,6 +106,15 @@ export class FunctionParameter {
         return `${name}${required ? '' : '?'}: ${typeDefinition.identifier}`
       })
       .with({ type: 'destructured' }, ({ typeDefinition }) => {
+        if (this.skipEmpty) {
+          const isEmpty =
+            Object.keys(typeDefinition.value.objectProperties?.properties ?? {}).length === 0
+
+          if (isEmpty) {
+            return ''
+          }
+        }
+
         return List.toKeyValue(
           toDestructured(typeDefinition).toString(),
           typeDefinition.identifier
@@ -125,9 +127,7 @@ export class FunctionParameter {
 const toDestructured = (
   typeDefinition: Definition<TypeSystemObject>
 ): List<Stringable[], ', ', '{}'> => {
-  return List.fromKeys(
-    typeDefinition.value.objectProperties?.properties
-  ).toObject(key => {
+  return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(key => {
     return isIdentifierName(key) ? key : List.toKeyValue(key, camelCase(key))
   })
 }

@@ -10,6 +10,13 @@ export class FunctionParameter {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "skipEmpty", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        this.skipEmpty = args.skipEmpty;
         if (args.typeDefinition.value.type === 'object') {
             this.properties = match(args)
                 .with({ destructure: true, required: true }, ({ typeDefinition, required }) => ({
@@ -68,6 +75,12 @@ export class FunctionParameter {
             return `${name}${required ? '' : '?'}: ${typeDefinition.identifier}`;
         })
             .with({ type: 'destructured' }, ({ typeDefinition }) => {
+            if (this.skipEmpty) {
+                const isEmpty = Object.keys(typeDefinition.value.objectProperties?.properties ?? {}).length === 0;
+                if (isEmpty) {
+                    return '';
+                }
+            }
             return List.toKeyValue(toDestructured(typeDefinition).toString(), typeDefinition.identifier).toString();
         })
             .exhaustive();
