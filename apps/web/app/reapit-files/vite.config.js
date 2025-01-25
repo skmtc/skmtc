@@ -35,7 +35,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
-    emptyOutDir: false,
+    emptyOutDir: true,
     rollupOptions: {
       onLog(level, log, handler) {
         handler(level, log);

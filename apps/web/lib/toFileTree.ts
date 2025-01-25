@@ -44,3 +44,28 @@ export const toFileTree = (path: string): FileSystemTree => {
 
   return tree
 }
+
+export const toFlatFileTree = (
+  path: string,
+  tree: Record<string, string>
+): Record<string, string> => {
+  try {
+    const entries = readdirSync(path, { withFileTypes: true })
+
+    for (const entry of entries) {
+      const fullPath = join(path, entry.name)
+
+      if (entry.isDirectory()) {
+        toFlatFileTree(fullPath, tree)
+      } else if (entry.isFile()) {
+        const contents = readFileSync(fullPath, 'utf8')
+        tree[fullPath] = contents
+      }
+    }
+  } catch (error) {
+    console.error(`Error reading path ${path}:`, error)
+    throw error
+  }
+
+  return tree
+}

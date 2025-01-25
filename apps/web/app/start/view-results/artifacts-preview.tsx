@@ -15,8 +15,17 @@ import { useCreateArtifacts } from '@/services/use-create-artifacts'
 import { useRouter } from 'next/navigation'
 import { StatusBar } from '@/components/webcontainer/status-bar'
 
-const downloadArtifacts = async (artifacts: Record<string, string>) => {
+type DownloadArtifactsArgs = {
+  artifacts: Record<string, string>
+  downloadFileTree: Record<string, string>
+}
+
+const downloadArtifacts = async ({ artifacts, downloadFileTree }: DownloadArtifactsArgs) => {
   const zip = new JSZip()
+
+  Object.entries(downloadFileTree).forEach(([name, content]) => {
+    zip.file(name, content)
+  })
 
   Object.entries(artifacts).forEach(([name, content]) => {
     zip.file(name, content)
@@ -101,7 +110,12 @@ export const ArtifactsPreview = () => {
             <div className="flex flex-1 justify-end">
               {Object.keys(artifactsState?.artifacts ?? {}).length > 0 && (
                 <Button
-                  onClick={() => downloadArtifacts(artifactsState.artifacts)}
+                  onClick={() =>
+                    downloadArtifacts({
+                      artifacts: artifactsState.artifacts,
+                      downloadFileTree: artifactsState.downloadFileTree
+                    })
+                  }
                   variant="link"
                   className="text-indigo-600 no-underline hover:underline px-1"
                 >

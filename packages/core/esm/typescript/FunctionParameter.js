@@ -75,6 +75,12 @@ export class FunctionParameter {
             return `${name}${required ? '' : '?'}: ${typeDefinition.identifier}`;
         })
             .with({ type: 'destructured' }, ({ typeDefinition }) => {
+            if (this.skipEmpty) {
+                const isEmpty = Object.keys(typeDefinition.value.objectProperties?.properties ?? {}).length === 0;
+                if (isEmpty) {
+                    return '';
+                }
+            }
             return List.toKeyValue(toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString(), typeDefinition.identifier).toString();
         })
             .exhaustive();

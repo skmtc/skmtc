@@ -1,0 +1,10 @@
+export * from './inputs.generated'
+
+export * from './DateInput'
+export * from './MarketingConsentInput'
+export * from './NumberInput'
+export * from './StringInput'
+export * from './Switch'
+export * from './Textarea'
+export * from './TextInput'
+export * from './TitleInput'

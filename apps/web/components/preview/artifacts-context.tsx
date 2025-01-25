@@ -118,10 +118,12 @@ export type ArtifactsState = {
   selectedGenerators: Record<string, boolean>
   enrichments: GeneratorEnrichments
   preview: Preview | null
+  downloadFileTree: Record<string, string>
 }
 
 type ArtifactsProviderProps = {
   children: ReactNode
+  downloadFileTree: Record<string, string>
 }
 
 export const ArtifactsStateContext = createContext<
@@ -277,7 +279,7 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
     .exhaustive()
 }
 
-const ArtifactsProvider = ({ children }: ArtifactsProviderProps) => {
+const ArtifactsProvider = ({ children, downloadFileTree }: ArtifactsProviderProps) => {
   const [state, dispatch] = useThunkReducer(artifactsReducer, {
     artifacts: {},
     selectedArtifact: { value: '', lang: 'js', meta: '' },
@@ -286,7 +288,8 @@ const ArtifactsProvider = ({ children }: ArtifactsProviderProps) => {
     schema: '',
     selectedGenerators: {},
     enrichments: {},
-    preview: null
+    preview: null,
+    downloadFileTree
   })
 
   const createSettingsMutation = useCreateSettings({

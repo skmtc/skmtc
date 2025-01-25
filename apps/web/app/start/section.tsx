@@ -12,13 +12,14 @@ const queryClient = new QueryClient()
 type SectionProps = {
   fileNodes: FileSystemTree
   children: React.ReactNode
+  downloadFileTree: Record<string, string>
 }
 
-const Section = ({ children, fileNodes }: SectionProps) => {
+const Section = ({ children, fileNodes, downloadFileTree }: SectionProps) => {
   return (
     <QueryClientProvider client={queryClient}>
       <WebcontainerProvider fileNodes={fileNodes}>
-        <ArtifactsProvider>
+        <ArtifactsProvider downloadFileTree={downloadFileTree}>
           <div className="flex flex-col h-screen w-screen px-4 not-prose">
             <Header />
 

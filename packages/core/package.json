@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.542",
+  "version": "0.0.543",
   "main": "./script/mod.js",
   "module": "./esm/mod.js",
   "exports": {
