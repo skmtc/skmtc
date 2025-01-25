@@ -76,7 +76,7 @@ export const UploadSchema = () => {
           <div className="flex mt-8 mb-12 justify-end ">
             <Button
               disabled={!field.value}
-              className="bg-indigo-600 hover:bg-indigo-600/90 no-underline"
+              className="bg-indigo-600 hover:bg-indigo-600/90 no-underline rounded-sm"
               onClick={event => {
                 event.preventDefault()
 

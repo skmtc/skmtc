@@ -1,11 +1,11 @@
-export type VITE_APP_ENV = 'local' | 'development' | 'production'
+export type APP_ENV = 'local' | 'development' | 'production'
 
 export type Config = {
-  VITE_APP_ENV: VITE_APP_ENV | string
-  VITE_CONNECT_CLIENT_ID: string
-  VITE_CONNECT_OAUTH_URL: string
-  VITE_CONNECT_USER_POOL_ID: string
-  VITE_PLATFORM_API_URL: string
+  APP_ENV: APP_ENV | string
+  CONNECT_CLIENT_ID: string
+  CONNECT_OAUTH_URL: string
+  CONNECT_USER_POOL_ID: string
+  PLATFORM_API_URL: string
 }
 
 declare global {

@@ -117,7 +117,7 @@ export const GeneratorMenu = () => {
             event.preventDefault()
             createArtifactsMutation.mutate()
           }}
-          className="bg-indigo-600 hover:bg-indigo-600/90 no-underline w-[200px]"
+          className="bg-indigo-600 hover:bg-indigo-600/90 no-underline w-[200px] rounded-sm"
         >
           {createArtifactsMutation.isPending ? (
             <Loader2 className="animate-spin" />

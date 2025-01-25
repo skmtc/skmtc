@@ -92,11 +92,11 @@ const WebcontainerProvider = ({ fileNodes, children }: WebcontainerProviderProps
 
         const installProcess = await webContainer.spawn('pnpm', ['install'], {
           env: {
-            VITE_APP_ENV: 'local',
-            VITE_CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
-            VITE_CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
-            VITE_CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
-            VITE_PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`
+            APP_ENV: 'local',
+            CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
+            CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
+            CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
+            PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`
           }
         })
 
@@ -107,7 +107,6 @@ const WebcontainerProvider = ({ fileNodes, children }: WebcontainerProviderProps
           throw new Error('Unable to run pnpm install')
         }
 
-        console.log('SET READY 3')
         sharedStatusRef.current = 'ready'
 
         webContainerRef.current = webContainer
@@ -265,11 +264,11 @@ const launchBuildProcess = async ({
   // @TODO: Get these from the environment
   const buildProcess = await webContainer.spawn('pnpm', ['build:watch'], {
     env: {
-      VITE_APP_ENV: 'local',
-      VITE_CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
-      VITE_CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
-      VITE_CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
-      VITE_PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`,
+      APP_ENV: 'local',
+      CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
+      CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
+      CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
+      PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`,
       ...(authHeader ? { VITE_AUTH_HEADER: authHeader } : {})
     }
   })
@@ -311,11 +310,11 @@ type LaunchServerProcessProps = {
 const launchServerProcess = async ({ webContainer, authHeader }: LaunchServerProcessProps) => {
   const serverProcess = await webContainer.spawn('pnpm', ['start:watch'], {
     env: {
-      VITE_APP_ENV: 'local',
-      VITE_CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
-      VITE_CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
-      VITE_CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
-      VITE_PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`,
+      APP_ENV: 'local',
+      CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
+      CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
+      CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
+      PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`,
       ...(authHeader ? { VITE_AUTH_HEADER: authHeader } : {})
     }
   })
