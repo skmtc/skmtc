@@ -3,6 +3,9 @@ export type ListObject<V extends Stringable> = List<V[], ', ', '{}'>;
 export type ListLines<V extends Stringable> = List<V[], '\n', 'none'>;
 export type ListArray<V extends Stringable> = List<V[], ', ', '[]'>;
 export type ListParams<V extends Stringable> = List<V[], ', ', '()'>;
+export type SkipEmptyOption = {
+    skipEmpty?: boolean;
+};
 export type ListKeyValue<Key extends Stringable, Value extends Stringable> = List<[
     Key,
     Value
@@ -11,6 +14,7 @@ type BookendsType = '[]' | '{}' | '()' | '<>' | 'none';
 type ConstructorOptions<Separator extends string = ', ', Bookends extends BookendsType = 'none'> = {
     separator?: Separator;
     bookends?: Bookends;
+    skipEmpty?: boolean;
 };
 type ExtractArrayItem<ArrayOf> = ArrayOf extends Array<infer Item> ? Item : never;
 type ToFilteredKeyValueReturn<Value extends undefined | Stringable | Stringable[] | List> = Value extends undefined ? undefined : List<[string, Stringable | Stringable[] | List], ': ', 'none'>;
@@ -19,7 +23,8 @@ export declare class List<Values extends Stringable[] = Stringable[], Separator 
     values: ExtractArrayItem<Values>[];
     separator: Separator;
     bookends: Bookends;
-    constructor(values: (ExtractArrayItem<Values> | undefined)[], { separator, bookends }?: ConstructorOptions<Separator, Bookends>);
+    skipEmpty: boolean;
+    constructor(values: (ExtractArrayItem<Values> | undefined)[], { separator, bookends, skipEmpty }?: ConstructorOptions<Separator, Bookends>);
     toString(): string;
     /**
      * Create an empty List that will render as an empty string ''
@@ -75,7 +80,7 @@ export declare class List<Values extends Stringable[] = Stringable[], Separator 
      * @param values
      * @returns `values` joined with `, ` as separator and wrapped in `{` and `}`
      */
-    static toObject: <V extends Stringable>(values: (V | undefined)[]) => ListObject<V>;
+    static toObject: <V extends Stringable>(values: (V | undefined)[], { skipEmpty }?: SkipEmptyOption) => ListObject<V>;
     /**
      * Join `values` using `, ` as separator and wrap in `[` and `]`
      * @param values
@@ -129,7 +134,7 @@ type KeyMapFn<V extends Stringable> = (key: string, index: number) => V;
 export declare class KeyList {
     keys: string[];
     constructor(keys: string[]);
-    toObject<V extends Stringable>(mapFn: KeyMapFn<V>): ListObject<V>;
+    toObject<V extends Stringable>(mapFn: KeyMapFn<V>, { skipEmpty }?: SkipEmptyOption): ListObject<V>;
     toObjectPlain(): ListObject<string>;
     toLines<V extends Stringable>(mapFn: KeyMapFn<V>): ListLines<V>;
     toLinesPlain(): ListLines<string>;

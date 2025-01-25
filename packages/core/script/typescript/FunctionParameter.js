@@ -67,7 +67,7 @@ class FunctionParameter {
             .with({ type: 'void' }, () => '')
             .with({ type: 'regular' }, ({ name }) => `${name}`)
             .with({ type: 'destructured' }, ({ typeDefinition }) => {
-            return toDestructured(typeDefinition).toString();
+            return toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString();
         })
             .exhaustive();
     }
@@ -78,20 +78,16 @@ class FunctionParameter {
             return `${name}${required ? '' : '?'}: ${typeDefinition.identifier}`;
         })
             .with({ type: 'destructured' }, ({ typeDefinition }) => {
-            if (this.skipEmpty) {
-                const isEmpty = Object.keys(typeDefinition.value.objectProperties?.properties ?? {}).length === 0;
-                if (isEmpty) {
-                    return '';
-                }
-            }
-            return List_js_1.List.toKeyValue(toDestructured(typeDefinition).toString(), typeDefinition.identifier).toString();
+            return List_js_1.List.toKeyValue(toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString(), typeDefinition.identifier).toString();
         })
             .exhaustive();
     }
 }
 exports.FunctionParameter = FunctionParameter;
-const toDestructured = (typeDefinition) => {
+const toDestructured = (typeDefinition, { skipEmpty } = {}) => {
     return List_js_1.List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(key => {
         return (0, helper_validator_identifier_1.isIdentifierName)(key) ? key : List_js_1.List.toKeyValue(key, (0, lodash_es_1.camelCase)(key));
+    }, {
+        skipEmpty
     });
 };

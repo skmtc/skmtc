@@ -5,7 +5,7 @@ import { camelCase } from 'lodash-es'
 import { match, P } from 'ts-pattern'
 import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '../types/TypeSystem.js'
 import type { Definition } from '../dsl/Definition.js'
-import { List } from './List.js'
+import { List, type SkipEmptyOption } from './List.js'
 import type { Stringable } from '../dsl/Stringable.js'
 
 type FunctionParameterArgs = {
@@ -94,7 +94,7 @@ export class FunctionParameter {
       .with({ type: 'void' }, () => '')
       .with({ type: 'regular' }, ({ name }) => `${name}`)
       .with({ type: 'destructured' }, ({ typeDefinition }) => {
-        return toDestructured(typeDefinition).toString()
+        return toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString()
       })
       .exhaustive()
   }
@@ -106,17 +106,8 @@ export class FunctionParameter {
         return `${name}${required ? '' : '?'}: ${typeDefinition.identifier}`
       })
       .with({ type: 'destructured' }, ({ typeDefinition }) => {
-        if (this.skipEmpty) {
-          const isEmpty =
-            Object.keys(typeDefinition.value.objectProperties?.properties ?? {}).length === 0
-
-          if (isEmpty) {
-            return ''
-          }
-        }
-
         return List.toKeyValue(
-          toDestructured(typeDefinition).toString(),
+          toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString(),
           typeDefinition.identifier
         ).toString()
       })
@@ -125,9 +116,15 @@ export class FunctionParameter {
 }
 
 const toDestructured = (
-  typeDefinition: Definition<TypeSystemObject>
+  typeDefinition: Definition<TypeSystemObject>,
+  { skipEmpty }: SkipEmptyOption = {}
 ): List<Stringable[], ', ', '{}'> => {
-  return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(key => {
-    return isIdentifierName(key) ? key : List.toKeyValue(key, camelCase(key))
-  })
+  return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(
+    key => {
+      return isIdentifierName(key) ? key : List.toKeyValue(key, camelCase(key))
+    },
+    {
+      skipEmpty
+    }
+  )
 }

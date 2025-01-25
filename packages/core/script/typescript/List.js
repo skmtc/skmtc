@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EntryList = exports.KeyList = exports.List = void 0;
 const ts_pattern_1 = require("ts-pattern");
 class List {
-    constructor(values, { separator, bookends } = {}) {
+    constructor(values, { separator, bookends, skipEmpty } = {}) {
         Object.defineProperty(this, "values", {
             enumerable: true,
             configurable: true,
@@ -22,11 +22,21 @@ class List {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "skipEmpty", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.values = values.filter(value => value !== undefined);
         this.separator = separator ?? ', ';
         this.bookends = bookends ?? 'none';
+        this.skipEmpty = skipEmpty ?? false;
     }
     toString() {
+        if (this.skipEmpty && this.values.length === 0) {
+            return '';
+        }
         const joined = this.values.join(this.separator);
         return (0, ts_pattern_1.match)(this.bookends)
             .with('[]', () => `[${joined}]`)
@@ -154,8 +164,8 @@ Object.defineProperty(List, "toObject", {
     enumerable: true,
     configurable: true,
     writable: true,
-    value: (values) => {
-        return new List(values, { bookends: '{}' });
+    value: (values, { skipEmpty } = {}) => {
+        return new List(values, { bookends: '{}', skipEmpty });
     }
 });
 /**
@@ -275,8 +285,8 @@ class KeyList {
         });
         this.keys = keys;
     }
-    toObject(mapFn) {
-        return List.toObject(this.keys.map((key, index) => mapFn(key, index)));
+    toObject(mapFn, { skipEmpty } = {}) {
+        return List.toObject(this.keys.map((key, index) => mapFn(key, index)), { skipEmpty });
     }
     toObjectPlain() {
         return List.toObject(this.keys);

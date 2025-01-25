@@ -64,7 +64,7 @@ export class FunctionParameter {
             .with({ type: 'void' }, () => '')
             .with({ type: 'regular' }, ({ name }) => `${name}`)
             .with({ type: 'destructured' }, ({ typeDefinition }) => {
-            return toDestructured(typeDefinition).toString();
+            return toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString();
         })
             .exhaustive();
     }
@@ -75,19 +75,15 @@ export class FunctionParameter {
             return `${name}${required ? '' : '?'}: ${typeDefinition.identifier}`;
         })
             .with({ type: 'destructured' }, ({ typeDefinition }) => {
-            if (this.skipEmpty) {
-                const isEmpty = Object.keys(typeDefinition.value.objectProperties?.properties ?? {}).length === 0;
-                if (isEmpty) {
-                    return '';
-                }
-            }
-            return List.toKeyValue(toDestructured(typeDefinition).toString(), typeDefinition.identifier).toString();
+            return List.toKeyValue(toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString(), typeDefinition.identifier).toString();
         })
             .exhaustive();
     }
 }
-const toDestructured = (typeDefinition) => {
+const toDestructured = (typeDefinition, { skipEmpty } = {}) => {
     return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(key => {
         return isIdentifierName(key) ? key : List.toKeyValue(key, camelCase(key));
+    }, {
+        skipEmpty
     });
 };
