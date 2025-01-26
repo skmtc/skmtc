@@ -2,9 +2,6 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArtifactsCodeView } from '@/components/code-view/artifacts-code-view'
-import { Button } from '@/components/ui/button'
-import JSZip from 'jszip'
-import { saveAs } from 'file-saver'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
 import { useEffect } from 'react'
@@ -14,26 +11,7 @@ import { PreviewContainer } from '@/components/preview/preview-container'
 import { useCreateArtifacts } from '@/services/use-create-artifacts'
 import { useRouter } from 'next/navigation'
 import { StatusBar } from '@/components/webcontainer/status-bar'
-
-type DownloadArtifactsArgs = {
-  artifacts: Record<string, string>
-  downloadFileTree: Record<string, string>
-}
-
-const downloadArtifacts = async ({ artifacts, downloadFileTree }: DownloadArtifactsArgs) => {
-  const zip = new JSZip()
-
-  Object.entries(downloadFileTree).forEach(([name, content]) => {
-    zip.file(name, content)
-  })
-
-  Object.entries(artifacts).forEach(([name, content]) => {
-    zip.file(name, content)
-  })
-
-  const content = await zip.generateAsync({ type: 'blob' })
-  saveAs(content, 'artifacts.zip')
-}
+import { ArtifactsDownload } from '@/app/start/view-results/artifacts-download'
 
 const mungeFileTree = (fileTree: Record<string, string>): FileSystemTree => {
   const fileNodesAcc: FileSystemTree = {}
@@ -56,7 +34,7 @@ const mungeFileTree = (fileTree: Record<string, string>): FileSystemTree => {
 export const ArtifactsPreview = () => {
   const { state: artifactsState, dispatch } = useArtifacts()
   const { remount, status } = useWebcontainer()
-  const { artifacts } = artifactsState
+  const { artifacts, downloadFileTree } = artifactsState
 
   const router = useRouter()
 
@@ -108,20 +86,7 @@ export const ArtifactsPreview = () => {
               Code
             </TabsTrigger>
             <div className="flex flex-1 justify-end">
-              {Object.keys(artifactsState?.artifacts ?? {}).length > 0 && (
-                <Button
-                  onClick={() =>
-                    downloadArtifacts({
-                      artifacts: artifactsState.artifacts,
-                      downloadFileTree: artifactsState.downloadFileTree
-                    })
-                  }
-                  variant="link"
-                  className="text-indigo-600 no-underline hover:underline px-1"
-                >
-                  Download artifacts
-                </Button>
-              )}
+              <ArtifactsDownload artifacts={artifacts} downloadFileTree={downloadFileTree} />
             </div>
           </TabsList>
           <TabsContent
