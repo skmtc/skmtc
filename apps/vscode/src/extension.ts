@@ -91,8 +91,6 @@ export async function activate(context: ExtensionContext) {
       milestonesDataProvider: new MilestonesDataProvider()
     }
 
-    console.log('settingsDataProvider', store.settingsDataProvider)
-
     store.localRuntimeLogs.info('Skmtc extension activated')
 
     const authProvider = new SupabaseAuthenticationProvider(context)

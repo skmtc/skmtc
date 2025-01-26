@@ -1,4 +1,4 @@
-import { ContextInputProps, KeyPath } from '@/components/ModelRuntimeConfig'
+import { ContextInputProps, KeyPath } from '@/utils/types/modelConfig'
 import { InputError, InputGroup } from '@reapit/elements'
 import { FieldValues, useFormContext } from 'react-hook-form'
 

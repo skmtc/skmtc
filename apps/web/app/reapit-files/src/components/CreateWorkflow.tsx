@@ -13,7 +13,7 @@ import { cx } from '@linaria/core'
 import { ErrorBoundary } from '@/utils/error-boundary'
 import { WorkflowStep } from '@/components/WorkflowStep'
 import { FieldValues, useFormContext, UseFormTrigger } from 'react-hook-form'
-import { FieldParent, KeyPath, ModelConfig } from '@/components/ModelRuntimeConfig'
+import { KeyPath, ModelConfig } from '@/utils/types/modelConfig'
 import { MouseEvent } from 'react'
 
 type HandleSwitchStepArgs<Model extends FieldValues, Key extends KeyPath<Model>> = {
@@ -91,7 +91,8 @@ export const CreateWorkflow = <Model extends FieldValues, Key extends KeyPath<Mo
                 item: `${index + 1}`,
                 content: (
                   <WorkflowStep title={title}>
-                    <CreateFields fieldNames={fields} fieldConfig={fieldConfig} />
+                    <div>placeholder</div>
+                    {/* <CreateFields fieldNames={fields} fieldConfig={fieldConfig} /> */}
                   </WorkflowStep>
                 )
               }))}
@@ -150,16 +151,16 @@ const Buttons = <Model extends FieldValues, Key extends KeyPath<Model>>({
   )
 }
 
-export const CreateFields = <Model extends FieldValues, Key extends KeyPath<Model>>({
-  fieldNames,
-  fieldConfig
-}: {
-  fieldNames: Key[]
-  fieldConfig: ModelConfig<Model>
-}) => (
-  <>
-    {fieldNames.map(fieldName => (
-      <FieldParent key={fieldName} fieldName={fieldName} fieldConfig={fieldConfig[fieldName]} />
-    ))}
-  </>
-)
+// export const CreateFields = <Model extends FieldValues, Key extends KeyPath<Model>>({
+//   fieldNames,
+//   fieldConfig
+// }: {
+//   fieldNames: Key[]
+//   fieldConfig: ModelConfig<Model>
+// }) => (
+//   <>
+//     {fieldNames.map(fieldName => (
+//       <FieldParent key={fieldName} fieldName={fieldName} fieldConfig={fieldConfig[fieldName]} />
+//     ))}
+//   </>
+// )

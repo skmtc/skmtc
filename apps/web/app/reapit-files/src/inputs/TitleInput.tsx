@@ -1,4 +1,4 @@
-import { ContextInputProps, KeyPath } from '@/components/ModelRuntimeConfig'
+import { ContextInputProps, KeyPath } from '@/utils/types/modelConfig'
 import { InputError, InputGroup, Label, Select } from '@reapit/elements'
 import { FieldValues, useFormContext } from 'react-hook-form'
 
@@ -6,7 +6,7 @@ export const TITLE_OPTIONS = ['Mr', 'Mrs', 'Ms', 'Miss', 'Mx', 'Dr', 'Prof']
 
 export const TitleInput = <Model extends FieldValues, Key extends KeyPath<Model>>({
   fieldName,
-  fieldConfig,
+  fieldConfig
 }: ContextInputProps<Model, Key>) => {
   const { label } = fieldConfig
 
@@ -22,7 +22,7 @@ export const TitleInput = <Model extends FieldValues, Key extends KeyPath<Model>
         <option key="default-option" value="">
           None selected
         </option>
-        {TITLE_OPTIONS.map((option) => (
+        {TITLE_OPTIONS.map(option => (
           <option key={option} value={option}>
             {option}
           </option>

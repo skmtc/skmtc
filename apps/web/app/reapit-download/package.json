@@ -18,7 +18,7 @@
     "test:ci": "jest --colors --silent --ci --forceExit --detectOpenHandles --runInBand --passWithNoTests",
     "lint": "eslint --cache --ext=ts,tsx,js src",
     "check": "tsc --noEmit --skipLibCheck",
-    "format": "prettier --write .",
+    "format": "prettier --write ./src",
     "upgrade:deps": "yarn upgrade-interactive"
   },
   "dependencies": {

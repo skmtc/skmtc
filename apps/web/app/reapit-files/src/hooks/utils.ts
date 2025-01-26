@@ -1,4 +1,3 @@
-import { ReapitConnectBrowserSession } from '@reapit/connect-session'
 import { AxiosError } from 'axios'
 import qs from 'qs'
 
@@ -24,19 +23,15 @@ export interface ReapitError {
   title?: string
 }
 
-export const getMergedHeaders = async (
-  reapitConnectBrowserSession: ReapitConnectBrowserSession,
-  headers?: StringMap,
-): Promise<StringMap | null> => {
-  const connectSession = await reapitConnectBrowserSession.connectSession()
-  const accessToken = connectSession?.accessToken
+export const getMergedHeaders = async (headers?: StringMap): Promise<StringMap | null> => {
+  const accessToken = import.meta.env.VITE_AUTH_HEADER
 
   return accessToken
     ? {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: accessToken,
         'api-version': 'latest',
         'Content-Type': 'application/json',
-        ...headers,
+        ...headers
       }
     : null
 }
@@ -55,7 +50,9 @@ export const handleReapitError = (error: AxiosError<any>, defaultMessage?: strin
           : defaultMessage
             ? defaultMessage
             : 'An unknown error has occurred, please refresh the page and try again.'
-  const fieldErrors = Array.isArray(errors) ? errors?.map(({ field, message }) => `"${field}: ${message}"`) : null
+  const fieldErrors = Array.isArray(errors)
+    ? errors?.map(({ field, message }) => `"${field}: ${message}"`)
+    : null
   const fieldString = fieldErrors ? fieldErrors.join(', ') : ''
 
   return `${messageString} ${fieldString}`
@@ -71,7 +68,9 @@ export const stringListToBatchQuery = (list: (string | number)[], queryKey: stri
 
 // Where you have an object of filters with a mixture of arrays and strings / boolean / numeric values and
 // you need a string map returned for useReapitGet
-export const objectToQuery = <QueryObjectType extends {}>(queryObject: QueryObjectType): StringMap =>
+export const objectToQuery = <QueryObjectType extends {}>(
+  queryObject: QueryObjectType
+): StringMap =>
   Object.keys(queryObject).reduce((currentQuery: StringMap, nextItem: string) => {
     const objectItem = queryObject[nextItem]
 
@@ -89,5 +88,6 @@ export const getUrl = (path: string, queryParams?: Object) => (): string => {
   const normalisedQuery = objectToQuery(queryParams ?? {})
   const query = qs.stringify(normalisedQuery, { encode: false })
   const url = `${api}${path}${query ? `?${query}` : ''}`
+
   return url
 }

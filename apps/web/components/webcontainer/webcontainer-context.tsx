@@ -91,13 +91,7 @@ const WebcontainerProvider = ({ fileNodes, children }: WebcontainerProviderProps
         sharedStatusRef.current = 'installing'
 
         const installProcess = await webContainer.spawn('pnpm', ['install'], {
-          env: {
-            APP_ENV: 'local',
-            CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
-            CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
-            CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
-            PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`
-          }
+          env: toEnvVars({ authHeader })
         })
 
         const installExitCode = await installProcess.exit
@@ -263,14 +257,7 @@ const launchBuildProcess = async ({
 }: LaunchBuildProcessProps) => {
   // @TODO: Get these from the environment
   const buildProcess = await webContainer.spawn('pnpm', ['build:watch'], {
-    env: {
-      APP_ENV: 'local',
-      CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
-      CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
-      CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
-      PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`,
-      ...(authHeader ? { VITE_AUTH_HEADER: authHeader } : {})
-    }
+    env: toEnvVars({ authHeader })
   })
 
   buildProcess.output.pipeTo(
@@ -309,14 +296,7 @@ type LaunchServerProcessProps = {
 
 const launchServerProcess = async ({ webContainer, authHeader }: LaunchServerProcessProps) => {
   const serverProcess = await webContainer.spawn('pnpm', ['start:watch'], {
-    env: {
-      APP_ENV: 'local',
-      CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
-      CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
-      CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
-      PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`,
-      ...(authHeader ? { VITE_AUTH_HEADER: authHeader } : {})
-    }
+    env: toEnvVars({ authHeader })
   })
 
   serverProcess.output.pipeTo(
@@ -341,3 +321,22 @@ const useWebcontainer = () => {
 }
 
 export { WebcontainerProvider, useWebcontainer }
+
+type toEnvVarsArgs = {
+  authHeader: string | null
+}
+
+const toEnvVars = ({ authHeader }: toEnvVarsArgs) => {
+  const envVars = {
+    APP_ENV: 'local',
+    CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
+    CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
+    CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
+    PLATFORM_API_URL: `${process.env.NEXT_PUBLIC_SKMTC_SERVER_ORIGIN}/proxy`,
+    ...(authHeader ? { VITE_AUTH_HEADER: authHeader } : {})
+  }
+
+  console.log('envVars', envVars)
+
+  return envVars
+}

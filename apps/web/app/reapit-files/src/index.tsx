@@ -1,12 +1,10 @@
-import { createRoot } from 'react-dom/client'
-import App from './core/app'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from '@/core/app'
+import '@reapit/elements/dist/index.css'
 
-try {
-  const rootElement = document.querySelector('#root') || document.body
-
-  if (rootElement) {
-    createRoot(rootElement).render(<App />)
-  }
-} catch (error) {
-  console.error('App Crashed', error)
-}
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+)

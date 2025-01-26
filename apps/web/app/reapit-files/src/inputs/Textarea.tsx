@@ -1,10 +1,10 @@
-import { ContextInputProps, KeyPath } from '@/components/ModelRuntimeConfig'
+import { ContextInputProps, KeyPath } from '@/utils/types/modelConfig'
 import { Icon, InputError, InputGroup, Label, TextArea } from '@reapit/elements'
 import { FieldValues, useFormContext } from 'react-hook-form'
 
 export const Textarea = <Model extends FieldValues, Key extends KeyPath<Model>>({
   fieldName,
-  fieldConfig,
+  fieldConfig
 }: ContextInputProps<Model, Key>) => {
   const { icon, label, placeholder } = fieldConfig
 

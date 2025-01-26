@@ -21,16 +21,16 @@ export default defineConfig(({ mode }) => ({
     wyw({
       include: ['**/*.{ts,tsx}'],
       babelOptions: {
-        presets: ['@babel/preset-typescript', '@babel/preset-react'],
-      },
+        presets: ['@babel/preset-typescript', '@babel/preset-react']
+      }
     }),
     mode === 'development' &&
       checker({
         typescript: true,
         overlay: false,
         eslint: {
-          lintCommand: 'eslint "./src/**/*.{ts,tsx}"',
-        },
+          lintCommand: 'eslint "./src/**/*.{ts,tsx}"'
+        }
       }),
     VitePWA({
       registerType: 'autoUpdate',
@@ -45,48 +45,48 @@ export default defineConfig(({ mode }) => ({
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png',
+            type: 'image/png'
           },
           {
             src: 'pwa-152x152.png',
             sizes: '152x152',
-            type: 'image/png',
+            type: 'image/png'
           },
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable',
-          },
-        ],
-      },
+            purpose: 'any maskable'
+          }
+        ]
+      }
     }),
     EnvironmentPlugin({
       APP_ENV: 'local',
-      CONNECT_CLIENT_ID: '4j7u49bnip8gsf4ujteu7ojkoq',
+      CONNECT_CLIENT_ID: '',
       CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
       CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
-      PLATFORM_API_URL: 'https://platform.reapit.cloud',
-    }),
+      PLATFORM_API_URL: 'https://platform.reapit.cloud'
+    })
   ],
   build: {
     outDir: 'build',
     rollupOptions: {
       output: {
         manualChunks: {
-          elements: ['@reapit/elements'],
-        },
-      },
-    },
+          elements: ['@reapit/elements']
+        }
+      }
+    }
   },
   resolve: {
     alias: {
-      '@': '/src',
-    },
+      '@': '/src'
+    }
   },
   server: {
     host: true,
-    port: 8080,
+    port: 8080
   },
-  customLogger,
+  customLogger
 }))

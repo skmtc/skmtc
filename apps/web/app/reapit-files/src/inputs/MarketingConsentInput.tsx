@@ -1,16 +1,16 @@
-import { ContextInputProps, KeyPath } from '@/components/ModelRuntimeConfig'
+import { ContextInputProps, KeyPath } from '@/utils/types/modelConfig'
 import { InputError, InputGroup, Label, Select } from '@reapit/elements'
 import { FieldValues, useFormContext } from 'react-hook-form'
 
 export const MARKETING_OPTIONS = [
   { value: 'grant', name: 'Granted' },
   { value: 'deny', name: 'Denied' },
-  { value: 'notAsked', name: 'Not Asked' },
+  { value: 'notAsked', name: 'Not Asked' }
 ]
 
 export const MarketingConsentInput = <Model extends FieldValues, Key extends KeyPath<Model>>({
   fieldName,
-  fieldConfig,
+  fieldConfig
 }: ContextInputProps<Model, Key>) => {
   const { label } = fieldConfig
 
