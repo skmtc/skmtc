@@ -5,14 +5,14 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/standard-select'
-import { isSchemaSubset } from '@/lib/isSchemaSubset'
+import { isAssignable } from '@/lib/isAssignable'
 import { useEffect } from 'react'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 import { inputEdgeClasses } from '@/lib/classes'
 import { SelectedSchemaType } from '@/components/config/types'
 import type { FormatterOption } from '@skmtc/core/Preview'
-
+import type { OpenAPIV3 } from 'openapi-types'
 const numberFormatter: FormatterOption = {
   schema: {
     type: 'number'
@@ -66,17 +66,24 @@ const formatters: FormatterOption[] = [
 type FormatterSelectProps = {
   selectedSchema: SelectedSchemaType | null
   value: string | undefined
+  fullSchema: OpenAPIV3.Document
   setValue: (value: string | undefined) => void
 }
 
-export const FormatterSelect = ({ selectedSchema, value, setValue }: FormatterSelectProps) => {
+export const FormatterSelect = ({
+  selectedSchema,
+  fullSchema,
+  value,
+  setValue
+}: FormatterSelectProps) => {
   const formatterOptions = selectedSchema
     ? formatters
         .filter(formatter => {
-          return isSchemaSubset({
-            parentSchema: selectedSchema.schema,
-            childSchema: formatter.schema,
-            topSchema: selectedSchema.schema
+          return isAssignable({
+            to: formatter.schema,
+            from: selectedSchema.schema,
+            path: [],
+            fullSchema
           })
         })
         .map(formatter => ({

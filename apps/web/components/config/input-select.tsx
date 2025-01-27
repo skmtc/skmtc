@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/standard-select'
-import { isSchemaSubset } from '@/lib/isSchemaSubset'
+import { isAssignable } from '@/lib/isAssignable'
 import { useEffect } from 'react'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
@@ -13,7 +13,7 @@ import { inputEdgeClasses } from '@/lib/classes'
 import { SelectedSchemaType } from '@/components/config/types'
 import type { InputOption } from '@skmtc/core/Preview'
 import { useArtifacts } from '@/components/preview/artifacts-context'
-
+import type { OpenAPIV3 } from 'openapi-types'
 const numberInput: InputOption = {
   schema: {
     type: 'number'
@@ -76,28 +76,28 @@ const inputs: InputOption[] = [
 type InputSelectProps = {
   selectedSchema: SelectedSchemaType | null
   value: string | undefined
+  fullSchema: OpenAPIV3.Document
   setValue: (value: string) => void
 }
 
-export const InputSelect = ({ selectedSchema, value, setValue }: InputSelectProps) => {
+export const InputSelect = ({ selectedSchema, fullSchema, value, setValue }: InputSelectProps) => {
   const { state: artifactsState } = useArtifacts()
   const { manifest } = artifactsState
 
-  const inputOptions = Object.values(manifest?.previews ?? {})
+  const allInputOptions = Object.values(manifest?.previews ?? {})
     .flatMap(previewGroup => Object.values(previewGroup ?? {}))
     .map(({ input }) => input)
     .filter(input => typeof input !== 'undefined')
 
-  console.log('inputOptions', inputOptions)
-
-  const formatterOptions = selectedSchema
-    ? inputOptions
+  const inputOptions = selectedSchema
+    ? allInputOptions
         .concat(inputs)
         .filter(input => {
-          const schemaMatches = isSchemaSubset({
-            parentSchema: selectedSchema.schema,
-            childSchema: input.schema,
-            topSchema: selectedSchema.schema
+          const schemaMatches = isAssignable({
+            to: input.schema,
+            from: selectedSchema.schema,
+            path: [],
+            fullSchema
           })
 
           const nameMatches = input.name ? input.name === selectedSchema.name : true
@@ -113,12 +113,12 @@ export const InputSelect = ({ selectedSchema, value, setValue }: InputSelectProp
   // If no value is set and there is only one formatter, set the value to the formatter
   useEffect(() => {
     if (
-      (!value || !formatterOptions.some(option => option.value === value)) &&
-      formatterOptions.length === 1
+      (!value || !inputOptions.some(option => option.value === value)) &&
+      inputOptions.length === 1
     ) {
-      setValue(formatterOptions[0].value)
+      setValue(inputOptions[0].value)
     }
-  }, [formatterOptions, value])
+  }, [inputOptions, value])
 
   return (
     <Select disabled={!selectedSchema} value={value} onValueChange={setValue}>
@@ -126,8 +126,8 @@ export const InputSelect = ({ selectedSchema, value, setValue }: InputSelectProp
         <SelectValue placeholder="Format" />
       </SelectTrigger>
       <SelectContent>
-        {formatterOptions?.length ? (
-          formatterOptions.map(option => (
+        {inputOptions?.length ? (
+          inputOptions.map(option => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>

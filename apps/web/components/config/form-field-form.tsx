@@ -107,6 +107,8 @@ export function FormFieldForm({
               selectedSchema={selectedSchema}
               value={field.value}
               setValue={field.onChange}
+              // @todo: pre-parse the schema
+              fullSchema={JSON.parse(artifactsState.schema)}
             />
           </div>
         )}

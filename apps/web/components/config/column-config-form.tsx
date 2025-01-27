@@ -18,7 +18,7 @@ type ColumnConfigFormProps = {
 }
 
 export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnConfigFormProps) {
-  const { state, dispatch } = useArtifacts()
+  const { state: artifactsState, dispatch } = useArtifacts()
 
   const [selectedSchema, setSelectedSchema] = React.useState<SelectedSchemaType | null>(null)
 
@@ -80,6 +80,8 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
               selectedSchema={selectedSchema}
               value={field.value}
               setValue={field.onChange}
+              // @todo: pre-parse the schema
+              fullSchema={JSON.parse(artifactsState.schema)}
             />
           </div>
         )}

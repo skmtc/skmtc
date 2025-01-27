@@ -16,17 +16,19 @@ export const toRefNames = ({ $ref }: OpenAPIV3.ReferenceObject) => {
   return refPath.split('/').filter(Boolean)
 }
 
-export const resolveRef = (ref: OpenAPIV3.ReferenceObject, topSchema: OpenAPIV3.SchemaObject) => {
+export const resolveRef = (ref: OpenAPIV3.ReferenceObject, fullSchema: OpenAPIV3.Document) => {
   const refNames = toRefNames(ref)
 
-  return refNames.reduce((acc, refName) => {
+  const resolvedSchema = refNames.reduce((acc, refName) => {
     if (!(refName in acc)) {
       throw new Error(`Reference "${ref.$ref}" not found in schema`)
     }
     // deno-lint-ignore ban-ts-comment
     // @ts-expect-error
-    return acc[refName] as unknown as OpenAPIV3.SchemaObject
-  }, topSchema)
+    return acc[refName]
+  }, fullSchema)
+
+  return resolvedSchema
 }
 
 export const schemaToType = (schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject) => {
