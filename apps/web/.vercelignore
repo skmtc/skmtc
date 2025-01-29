@@ -1,2 +1,2 @@
-app/reapit-files/*
-app/reapit-download/*
+./app/reapit-files/**/*
+./app/reapit-download/**/*
