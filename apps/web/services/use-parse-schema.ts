@@ -5,7 +5,6 @@ import type { OpenAPIV3 } from 'openapi-types'
 type UseParseSchemaArgs = {
   onSuccess: (schema: OpenAPIV3.Document) => void
 }
-
 export const useParseSchema = ({ onSuccess }: UseParseSchemaArgs) => {
   return useMutation({
     mutationFn: (schema: string) => {
