@@ -2,10 +2,11 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import ArtifactsSidebar from '@/app/start/view-results/artifacts-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { CodeView } from '@/components/code-view/code-view'
+import { CSSProperties } from 'react'
 
 export const ArtifactsCodeView = () => {
   return (
-    <SidebarProvider className="h-full" style={{ '--sidebar-width': '100%' }}>
+    <SidebarProvider className="h-full" style={{ '--sidebar-width': '100%' } as CSSProperties}>
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel className="flex relative" defaultSize={20}>
           <ArtifactsSidebar variant="inset" />
