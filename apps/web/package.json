@@ -10,6 +10,9 @@
     "types": "tsc --noEmit",
     "test": "vitest"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.5",
