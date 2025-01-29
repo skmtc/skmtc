@@ -1,7 +1,6 @@
 'use server'
 
 import Section from '@/app/start/section'
-import { toFileTree, toFlatFileTree } from '@/lib/toFileTree'
 import fileTree from '@/app/reapit-files.json'
 import downloadFileTree from '@/app/reapit-download.json'
 
