@@ -22,8 +22,6 @@ export const PreviewContainer = () => {
     onSuccess: data => setSchemaItem(data)
   })
 
-  console.log(JSON.stringify(schemaItem, null, 2))
-
   return (
     <SidebarProvider className="h-full">
       <ArtifactsSidebar previews={artifactsState.manifest?.previews} />

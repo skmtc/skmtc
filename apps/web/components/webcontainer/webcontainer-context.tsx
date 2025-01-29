@@ -336,7 +336,5 @@ const toEnvVars = ({ authHeader }: toEnvVarsArgs) => {
     ...(authHeader ? { VITE_AUTH_HEADER: authHeader } : {})
   }
 
-  console.log('envVars', envVars)
-
   return envVars
 }

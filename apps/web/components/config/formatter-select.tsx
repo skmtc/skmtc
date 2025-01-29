@@ -86,11 +86,6 @@ export const FormatterSelect = ({
             fullSchema
           })
 
-          if (result.matched === false) {
-            console.log(`${formatter.label} does not match`)
-            console.log(result.reason, result.path)
-          }
-
           return result.matched
         })
         .map(formatter => ({
@@ -98,9 +93,6 @@ export const FormatterSelect = ({
           label: formatter.label
         }))
     : []
-
-  console.log('FORMATTER OPTIONS', formatterOptions)
-  console.log('FORMATTERS', formatters)
 
   // If no value is set and there is only one formatter, set the value to the formatter
   useEffect(() => {
@@ -127,8 +119,6 @@ export const FormatterSelect = ({
       <SelectContent>
         {formatterOptions?.length ? (
           formatterOptions.map(option => {
-            console.log('VALUE', option.value)
-
             return (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}

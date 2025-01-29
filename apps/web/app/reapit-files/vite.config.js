@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react-swc'
 import wyw from '@wyw-in-js/vite'
 import EnvironmentPlugin from 'vite-plugin-environment'
 
@@ -35,7 +35,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
-    emptyOutDir: true,
+    emptyOutDir: false,
     rollupOptions: {
       onLog(level, log, handler) {
         handler(level, log);

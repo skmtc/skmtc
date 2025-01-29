@@ -1,7 +1,5 @@
 import * as React from 'react'
 import { PathInput } from '@/components/ui/path-input'
-import { Input } from '@/components/ui/standard-input'
-import { inputClasses, inputEdgeClasses } from '@/lib/classes'
 import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
