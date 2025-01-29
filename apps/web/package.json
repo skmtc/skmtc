@@ -78,7 +78,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
     "@types/file-saver": "^2",
-    "@types/lodash": "^4",
+    "@types/lodash": "^4.17.15",
     "@types/mdx": "^2.0.10",
     "@types/node": "^22.10.2",
     "@types/react": "^18",

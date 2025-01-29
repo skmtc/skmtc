@@ -18,6 +18,7 @@ import {
 } from '@/components/config/types'
 import { useParseSchema } from '@/services/use-parse-schema'
 import type { OpenAPIV3 } from 'openapi-types'
+
 export type ArtifactsAction =
   | {
       type: 'set-artifacts'
@@ -207,7 +208,7 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
 
       const enrichmentsCopy = structuredClone(state.enrichments)
 
-      const methodEnrichments = get(enrichmentsCopy, columnsPath) ?? []
+      const methodEnrichments: unknown[] = get(enrichmentsCopy, columnsPath) ?? []
 
       return {
         ...state,
@@ -239,7 +240,7 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
 
       const enrichmentsCopy = structuredClone(state.enrichments)
 
-      const methodEnrichments = get(enrichmentsCopy, formSectionsPath) ?? []
+      const methodEnrichments: unknown[] = get(enrichmentsCopy, formSectionsPath) ?? []
 
       return {
         ...state,
@@ -256,8 +257,6 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
       const inputOptionsPath = [generatorId, operationPath, operationMethod, 'optionLabel']
 
       const enrichmentsCopy = structuredClone(state.enrichments)
-
-      const methodEnrichments = get(enrichmentsCopy, inputOptionsPath) ?? []
 
       return {
         ...state,
@@ -300,7 +299,7 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
 
       const enrichmentsCopy = structuredClone(state.enrichments)
 
-      const methodEnrichments = get(enrichmentsCopy, formFieldsPath) ?? []
+      const methodEnrichments: unknown[] = get(enrichmentsCopy, formFieldsPath) ?? []
 
       return {
         ...state,
