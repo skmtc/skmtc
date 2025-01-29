@@ -16,6 +16,7 @@ import type { File } from '../dsl/File.ts'
 import { join } from 'jsr:@std/path@1.0.6'
 import type { GeneratorType, GeneratorsMap } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 export type ParsePhase = {
   type: 'parse'
@@ -58,7 +59,7 @@ type RenderArgs = {
 }
 
 type TransformArgs = {
-  schema: string
+  documentObject: OpenAPIV3.Document
   settings: ClientSettings | undefined
   toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
     GeneratorType<EnrichmentType>,
@@ -127,8 +128,8 @@ export class CoreContext {
     return log.getLogger(spanId)
   }
 
-  parse(schema: string) {
-    this.#phase = this.#setupParsePhase(schema)
+  parse(documentObject: OpenAPIV3.Document) {
+    this.#phase = this.#setupParsePhase(documentObject)
 
     const oasDocument = this.#phase.context.parse()
 
@@ -140,7 +141,7 @@ export class CoreContext {
     }
   }
 
-  transform({ schema, settings, toGeneratorsMap, prettier }: TransformArgs) {
+  transform({ documentObject, settings, toGeneratorsMap, prettier }: TransformArgs) {
     // Temp workaround to extract generator keys during
     // 'render' by invoking a callback passed during 'generate'
     try {
@@ -151,7 +152,7 @@ export class CoreContext {
       }
 
       const oasDocument = this.trace('parse', () => {
-        this.#phase = this.#setupParsePhase(schema)
+        this.#phase = this.#setupParsePhase(documentObject)
 
         return this.#phase.context.parse()
       })
@@ -214,9 +215,9 @@ export class CoreContext {
     return tracer(this.#stackTrail, token, fn)
   }
 
-  #setupParsePhase(schema: string): ParsePhase {
+  #setupParsePhase(documentObject: OpenAPIV3.Document): ParsePhase {
     const parseContext = new ParseContext({
-      schema,
+      documentObject,
       logger: this.logger,
       stackTrail: this.#stackTrail
     })

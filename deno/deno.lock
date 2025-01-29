@@ -546,7 +546,8 @@
           "npm:@google/generative-ai@0.21",
           "npm:@sentry/deno@8.47.0",
           "npm:@types/lodash-es@4.17.12",
-          "npm:lodash-es@4.17.21"
+          "npm:lodash-es@4.17.21",
+          "npm:openapi-types@12.1.3"
         ]
       },
       "server": {

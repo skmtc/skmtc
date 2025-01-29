@@ -1,4 +1,4 @@
-import type { OpenAPIV3_1 } from 'npm:openapi-types@12.1.3'
+import type { OpenAPIV3_1 } from 'openapi-types'
 import type { OasRefData } from './ref-types.ts'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasRef } from './Ref.ts'

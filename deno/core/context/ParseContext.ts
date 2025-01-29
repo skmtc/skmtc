@@ -1,17 +1,15 @@
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { setWith } from 'npm:lodash-es@4.17.21'
-import type { OpenAPIV3 } from 'npm:openapi-types@12.1.3'
-import * as Sentry from 'npm:@sentry/deno@8.47.0'
+import type { OpenAPIV3 } from 'openapi-types'
 import { parse as parseYaml } from 'jsr:@std/yaml@0.215.0'
 import { toDocumentFieldsV3 } from '../oas/document/toDocumentFieldsV3.ts'
 import { OasDocument } from '../oas/document/Document.ts'
 import type * as log from 'jsr:@std/log@^0.224.6'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
-import { Converter, type ConverterOptions } from 'npm:@apiture/openapi-down-convert@0.14.0'
 
 type ConstructorArgs = {
-  schema: string
+  documentObject: OpenAPIV3.Document
   logger: log.Logger
   stackTrail: StackTrail
 }
@@ -28,14 +26,14 @@ type RegisterExtensionArgs = {
 }
 
 export class ParseContext {
-  schema: string
+  documentObject: OpenAPIV3.Document
   logger: log.Logger
   oasDocument: OasDocument
   stackTrail: StackTrail
   extentions: Record<string, unknown>
 
-  constructor({ schema, logger, stackTrail }: ConstructorArgs) {
-    this.schema = schema
+  constructor({ documentObject, logger, stackTrail }: ConstructorArgs) {
+    this.documentObject = documentObject
     this.logger = logger
     this.stackTrail = stackTrail
     this.extentions = {}
@@ -43,49 +41,16 @@ export class ParseContext {
   }
 
   parse() {
-    const documentObject = this.#parseSchema()
-
-    if (documentObject?.openapi?.startsWith('3.1')) {
-      const options: ConverterOptions = {
-        verbose: false,
-        deleteExampleWithId: false,
-        allOfTransform: true
-      }
-
-      const converter = new Converter(documentObject, options)
-
-      const oas30Document = converter.convert() as OpenAPIV3.Document
-
-      return this.#parseDocument(oas30Document)
-    }
-
-    return this.#parseDocument(documentObject)
-  }
-
-  #parseSchema(): OpenAPIV3.Document {
-    const documentObject: OpenAPIV3.Document = Sentry.startSpan(
-      { name: 'Parse string schema to object' },
-      () => parseSchema(this.schema)
-    )
-
-    return documentObject
-  }
-
-  trace<T>(token: string | string[], fn: () => T): T {
-    return tracer(this.stackTrail, token, fn)
-  }
-
-  #parseDocument(documentObject: OpenAPIV3.Document): OasDocument {
-    if (!documentObject.openapi.startsWith('3.0.')) {
-      throw new Error('Only OpenAPI v3 is supported')
-    }
-
     this.oasDocument.fields = toDocumentFieldsV3({
-      documentObject,
+      documentObject: this.documentObject,
       context: this
     })
 
     return this.oasDocument
+  }
+
+  trace<T>(token: string | string[], fn: () => T): T {
+    return tracer(this.stackTrail, token, fn)
   }
 
   registerExtension({ extensionFields, stackTrail, type }: RegisterExtensionArgs): void {

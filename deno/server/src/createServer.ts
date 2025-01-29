@@ -8,7 +8,7 @@ import type { GeneratorsMap, GeneratorType, OasRef, OasSchema } from '@skmtc/cor
 import { toOasDocument } from './toOasDocument.ts'
 import { manifestContent } from '@skmtc/core/Manifest'
 import invariant from 'tiny-invariant'
-import { stringToSchema, toV3Document } from './toOasV3.ts'
+import { stringToSchema, toV3Document } from './toV3Document.ts'
 
 const postSettingsBody = z
   .object({
@@ -162,6 +162,8 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
 
       const { schema, clientSettings, prettier } = postArtifactsBody.parse(body)
 
+      const documentObject = await toV3Document(stringToSchema(schema))
+
       return Sentry.startSpan({ name: 'Generate' }, () => {
         const { traceId, spanId } = span.spanContext()
 
@@ -169,7 +171,7 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
           traceId,
           spanId,
           startAt,
-          schema,
+          documentObject,
           prettier,
           settings: clientSettings,
           toGeneratorsMap,
@@ -191,14 +193,16 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
     })
   })
 
-  app.openapi(postArtifactConfig, c => {
-    return Sentry.startSpan({ name: 'POST /artifact-config' }, span => {
+  app.openapi(postArtifactConfig, async c => {
+    return await Sentry.startSpan({ name: 'POST /artifact-config' }, async span => {
       const { schema, source } = c.req.valid('json')
 
       invariant(source.type === 'operation', 'Source must be an operation')
 
+      const documentObject = await toV3Document(stringToSchema(schema))
+
       const { oasDocument } = toOasDocument({
-        schema,
+        documentObject,
         spanId: span.spanContext().spanId
       })
 
