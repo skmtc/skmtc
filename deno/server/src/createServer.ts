@@ -8,6 +8,7 @@ import type { GeneratorsMap, GeneratorType, OasRef, OasSchema } from '@skmtc/cor
 import { toOasDocument } from './toOasDocument.ts'
 import { manifestContent } from '@skmtc/core/Manifest'
 import invariant from 'tiny-invariant'
+import { stringToSchema, toV3Document } from './toOasV3.ts'
 
 const postSettingsBody = z
   .object({
@@ -236,6 +237,18 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
         },
         200
       )
+    })
+  })
+
+  app.post('/to-v3-json', async c => {
+    return await Sentry.startSpan({ name: 'POST /to-v3-json' }, async () => {
+      const body = await c.req.json()
+
+      const { schema } = z.object({ schema: z.string() }).parse(body)
+
+      const oas30Document = await toV3Document(stringToSchema(schema))
+
+      return c.json({ schema: oas30Document })
     })
   })
 

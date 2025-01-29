@@ -8,7 +8,7 @@ type Address = {
   line3?: string
   line4?: string
   postcode?: string
-  country?: string
+  countryId?: string
 }
 
 export type AddressFormatterProps = {
@@ -23,7 +23,7 @@ const addressSchema = z.object({
   line3: z.string().optional(),
   line4: z.string().optional(),
   postcode: z.string().optional(),
-  country: z.string().optional()
+  countryId: z.string().optional()
 })
 
 export const AddressFormatter = ({ value }: AddressFormatterProps) => {
@@ -33,12 +33,12 @@ export const AddressFormatter = ({ value }: AddressFormatterProps) => {
     return <> - </>
   }
 
-  const { buildingName, buildingNumber, line1, line2, line3, line4, postcode, country } =
+  const { buildingName, buildingNumber, line1, line2, line3, line4, postcode, countryId } =
     parsed.data
 
   return (
     <>
-      {[buildingName, buildingNumber, line1, line2, line3, line4, postcode, country]
+      {[buildingName, buildingNumber, line1, line2, line3, line4, postcode, countryId]
         .filter(Boolean)
         .join(', ')}
     </>

@@ -7,8 +7,8 @@ import { match } from 'ts-pattern'
 import { OpenAPIV3 } from 'openapi-types'
 import invariant from 'tiny-invariant'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { isRef, schemaToType } from '@/lib/schemaFns'
-import { SchemaItem, SelectedSchemaType } from '@/components/config/types'
+import { isRef, resolveRef, resolveSchemaItem, schemaToType } from '@/lib/schemaFns'
+import { ResolvedSchemaItem, SelectedSchemaType } from '@/components/config/types'
 import { inputClasses, inputWrapperEdgeClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 
@@ -21,10 +21,11 @@ type PropertyOption = {
 type PathInputProps = {
   path: string[]
   setPath: (path: string[]) => void
-  schemaItem: SchemaItem
+  schemaItem: ResolvedSchemaItem
   setSelectedSchema: (schema: SelectedSchemaType | null) => void
   showRequired?: boolean
   disabledPaths?: string[][]
+  parsedSchema: OpenAPIV3.Document
 }
 
 export const PathInput = ({
@@ -33,19 +34,16 @@ export const PathInput = ({
   schemaItem,
   setSelectedSchema,
   showRequired,
-  disabledPaths
+  disabledPaths,
+  parsedSchema
 }: PathInputProps) => {
-  if (!schemaItem?.schema?.type) {
-    debugger
-  }
-
   const disabledPathsJoined = disabledPaths?.map(path => path.join('.')) ?? []
 
   invariant(schemaItem.schema.type === 'object', 'Schema must be an object')
 
   const [showAutocomplete, setShowAutocomplete] = useState(false)
   const [selectedItems, setSelectedItems] = useState<PropertyOption[]>(
-    pathToOptions(path, schemaItem.schema)
+    pathToOptions({ path, schema: schemaItem.schema, parsedSchema })
   )
   const [options, setOptions] = useState<PropertyOption[]>(schemaToOptions(schemaItem.schema))
   const [highlightedItem, setHighlightedItem] = useState<number>(0)
@@ -81,14 +79,14 @@ export const PathInput = ({
           acc.schema.properties &&
           item.name in acc.schema.properties
         ) {
-          const mySchema = acc.schema.properties?.[item.name as keyof typeof acc.schema.properties]
-
-          invariant(!('$ref' in mySchema), 'Property must be an object and not a reference object')
-
-          return {
-            schema: mySchema,
-            name: item.name
-          }
+          return resolveSchemaItem({
+            schemaItem: {
+              schema: acc.schema.properties?.[item.name as keyof typeof acc.schema.properties],
+              name: item.name,
+              type: schemaItem.type
+            },
+            parsedSchema
+          })
         }
 
         return null
@@ -264,7 +262,13 @@ type PathOptionsAcc = {
   options: PropertyOption[]
 }
 
-const pathToOptions = (path: string[], schema: OpenAPIV3.SchemaObject) => {
+type PathToOptionsArgs = {
+  path: string[]
+  schema: OpenAPIV3.SchemaObject
+  parsedSchema: OpenAPIV3.Document
+}
+
+const pathToOptions = ({ path, schema, parsedSchema }: PathToOptionsArgs) => {
   const { options } = path.reduce<PathOptionsAcc>(
     (acc, pathItem) => {
       const pathItemSchema = acc.schema.properties?.[pathItem as keyof typeof acc.schema.properties]
@@ -274,18 +278,18 @@ const pathToOptions = (path: string[], schema: OpenAPIV3.SchemaObject) => {
         return acc
       }
 
-      if (isRef(pathItemSchema)) {
-        throw new Error(`Unexpected reference object in path ${path.join('.')}: ${pathItem}`)
-      }
+      const resolvedSchema = isRef(pathItemSchema)
+        ? resolveRef(pathItemSchema, parsedSchema)
+        : pathItemSchema
 
       const option = {
         name: pathItem,
-        schema: pathItemSchema,
-        required: pathItemSchema.required?.includes(pathItem) ?? false
+        schema: resolvedSchema,
+        required: schema.required?.includes(pathItem) ?? false
       }
 
       return {
-        schema: pathItemSchema,
+        schema: resolvedSchema,
         options: [...acc.options, option]
       }
     },

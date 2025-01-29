@@ -5,6 +5,7 @@ import { ColumnConfig } from '@/components/config/column-config'
 import { FormConfig } from '@/components/config/form-config'
 import { SchemaItem } from '@/components/config/types'
 import { useArtifacts } from '@/components/preview/artifacts-context'
+import { InputConfig } from '@/components/config/input-config'
 
 type SidebarRightProps = {
   schemaItem: SchemaItem | null
@@ -36,6 +37,7 @@ export function SidebarRight({ schemaItem, source, ...props }: SidebarRightProps
       <SidebarSeparator />
       {preview?.group === 'tables' && <ColumnConfig source={source} schemaItem={schemaItem} />}
       {preview?.group === 'forms' && <FormConfig source={source} schemaItem={schemaItem} />}
+      {preview?.group === 'inputs' && <InputConfig source={source} schemaItem={schemaItem} />}
     </Sidebar>
   )
 }

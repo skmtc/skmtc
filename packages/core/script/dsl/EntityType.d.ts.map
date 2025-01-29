@@ -1,1 +1,0 @@
-{"version":3,"file":"EntityType.d.ts","sourceRoot":"","sources":["../../src/dsl/EntityType.ts"],"names":[],"mappings":"AAEA,qBAAa,UAAU;IACrB,IAAI,EAAE,UAAU,GAAG,MAAM,CAAA;gBACb,IAAI,EAAE,UAAU,GAAG,MAAM;IAIrC,QAAQ,IAAI,MAAM;CAMnB"}

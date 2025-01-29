@@ -15,7 +15,7 @@ import * as Sentry from 'npm:@sentry/deno@8.47.0'
 import type { File } from '../dsl/File.ts'
 import { join } from 'jsr:@std/path@1.0.6'
 import type { GeneratorType, GeneratorsMap } from '../types/GeneratorType.ts'
-import { Preview } from '../types/Preview.ts'
+import type { Preview } from '../types/Preview.ts'
 
 export type ParsePhase = {
   type: 'parse'

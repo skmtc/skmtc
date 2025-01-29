@@ -1,1 +1,0 @@
-{"version":3,"file":"EnrichmentRequest.d.ts","sourceRoot":"","sources":["../../src/types/EnrichmentRequest.ts"],"names":[],"mappings":"AAAA,OAAO,sBAAsB,CAAC;AAC9B,OAAO,KAAK,EAAE,CAAC,EAAE,MAAM,KAAK,CAAA;AAE5B,MAAM,MAAM,iBAAiB,CAAC,cAAc,IAAI;IAC9C,MAAM,EAAE,MAAM,CAAA;IACd,cAAc,EAAE,CAAC,CAAC,OAAO,CAAC,cAAc,CAAC,CAAA;IACzC,OAAO,EAAE,MAAM,CAAA;CAChB,CAAA"}

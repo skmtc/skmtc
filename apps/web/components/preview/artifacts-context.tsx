@@ -10,8 +10,14 @@ import { useThunkReducer } from '@/hooks/use-thunk-reducer'
 import { useCreateSettings } from '@/services/use-create-settings'
 import { OperationPreview, Preview } from '@skmtc/core/Preview'
 import { set, get } from 'lodash'
-import { FormFieldItem, ColumnConfigItem, FormSectionItem } from '@/components/config/types'
-
+import {
+  FormFieldItem,
+  ColumnConfigItem,
+  FormSectionItem,
+  InputOptionConfigItem
+} from '@/components/config/types'
+import { useParseSchema } from '@/services/use-parse-schema'
+import type { OpenAPIV3 } from 'openapi-types'
 export type ArtifactsAction =
   | {
       type: 'set-artifacts'
@@ -65,6 +71,14 @@ export type ArtifactsAction =
       type: 'delete-form-field'
       payload: DeleteFormFieldPayload
     }
+  | {
+      type: 'set-parsed-schema'
+      payload: OpenAPIV3.Document
+    }
+  | {
+      type: 'add-input-option'
+      payload: AddInputOptionPayload
+    }
 
 type AddColumnConfigPayload = {
   source: OperationPreview
@@ -98,11 +112,17 @@ type DeleteFormFieldPayload = {
   fieldIndex: number
 }
 
+type AddInputOptionPayload = {
+  source: OperationPreview
+  inputOption: InputOptionConfigItem
+}
+
 export type ArtifactsDispatch = Dispatch<ArtifactsAction>
 
 type OperationEnrichments = {
   columns: ColumnConfigItem[]
   formSections: FormSectionItem[]
+  optionLabel: InputOptionConfigItem
 }
 
 type MethodEnrichments = Record<string, OperationEnrichments>
@@ -115,6 +135,7 @@ export type ArtifactsState = {
   manifest: ManifestContent | undefined
   clientSettings: ClientSettings
   schema: string
+  parsedSchema: OpenAPIV3.Document | null
   selectedGenerators: Record<string, boolean>
   enrichments: GeneratorEnrichments
   preview: Preview | null
@@ -229,6 +250,20 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
         )
       }
     })
+    .with({ type: 'add-input-option' }, ({ payload }) => {
+      const { source, inputOption } = payload
+      const { generatorId, operationPath, operationMethod } = source
+      const inputOptionsPath = [generatorId, operationPath, operationMethod, 'optionLabel']
+
+      const enrichmentsCopy = structuredClone(state.enrichments)
+
+      const methodEnrichments = get(enrichmentsCopy, inputOptionsPath) ?? []
+
+      return {
+        ...state,
+        enrichments: set(enrichmentsCopy, inputOptionsPath, inputOption)
+      }
+    })
     .with({ type: 'add-form-field' }, ({ payload }) => {
       const { source, sectionIndex, formField } = payload
       const { generatorId, operationPath, operationMethod } = source
@@ -276,6 +311,10 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
         )
       }
     })
+    .with({ type: 'set-parsed-schema' }, ({ payload }) => ({
+      ...state,
+      parsedSchema: payload
+    }))
     .exhaustive()
 }
 
@@ -286,6 +325,7 @@ const ArtifactsProvider = ({ children, downloadFileTree }: ArtifactsProviderProp
     manifest: undefined,
     clientSettings: clientSettingsInitial,
     schema: '',
+    parsedSchema: null,
     selectedGenerators: {},
     enrichments: {},
     preview: null,
@@ -304,9 +344,22 @@ const ArtifactsProvider = ({ children, downloadFileTree }: ArtifactsProviderProp
     }
   })
 
+  const parseSchemaMutation = useParseSchema({
+    onSuccess: parsedSchema => {
+      dispatch({
+        type: 'set-parsed-schema',
+        payload: parsedSchema
+      })
+    }
+  })
+
   useEffect(() => {
     if (state.schema && createSettingsMutation.isIdle) {
       createSettingsMutation.mutate(state.schema)
+    }
+
+    if (state.schema && parseSchemaMutation.isIdle) {
+      parseSchemaMutation.mutate(state.schema)
     }
   }, [state.schema])
 

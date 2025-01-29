@@ -21,8 +21,6 @@ Deno.test('Parse operations', () => {
     context: mockParseContext as ParseContext
   })
 
-  console.log('OPERATIONS', JSON.stringify(operations, null, 2))
-
   assertEquals(
     JSON.stringify(operations, null, 2),
     JSON.stringify(

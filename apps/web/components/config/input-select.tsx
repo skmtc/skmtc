@@ -28,34 +28,34 @@ const textInput: InputOption = {
   label: 'TextInput'
 }
 
-const nameInput: InputOption = {
-  schema: {
-    type: 'object',
-    properties: {
-      title: { type: 'string' },
-      forename: { type: 'string' },
-      surname: { type: 'string' }
-    }
-  },
-  label: 'NameInput'
-}
+// const nameInput: InputOption = {
+//   schema: {
+//     type: 'object',
+//     properties: {
+//       title: { type: 'string' },
+//       forename: { type: 'string' },
+//       surname: { type: 'string' }
+//     }
+//   },
+//   label: 'NameInput'
+// }
 
-const addressInput: InputOption = {
-  schema: {
-    type: 'object',
-    properties: {
-      buildingName: { type: 'string' },
-      buildingNumber: { type: 'string' },
-      line1: { type: 'string' },
-      line2: { type: 'string' },
-      line3: { type: 'string' },
-      line4: { type: 'string' },
-      postcode: { type: 'string' },
-      country: { type: 'string' }
-    }
-  },
-  label: 'AddressInput'
-}
+// const addressInput: InputOption = {
+//   schema: {
+//     type: 'object',
+//     properties: {
+//       buildingName: { type: 'string' },
+//       buildingNumber: { type: 'string' },
+//       line1: { type: 'string' },
+//       line2: { type: 'string' },
+//       line3: { type: 'string' },
+//       line4: { type: 'string' },
+//       postcode: { type: 'string' },
+//       country: { type: 'string' }
+//     }
+//   },
+//   label: 'AddressInput'
+// }
 
 const marketingConsentInput: InputOption = {
   schema: {
@@ -65,13 +65,7 @@ const marketingConsentInput: InputOption = {
   label: 'MarketingConsentInput'
 }
 
-const inputs: InputOption[] = [
-  numberInput,
-  textInput,
-  nameInput,
-  addressInput,
-  marketingConsentInput
-]
+const inputs: InputOption[] = [numberInput, textInput, marketingConsentInput]
 
 type InputSelectProps = {
   selectedSchema: SelectedSchemaType | null
@@ -93,16 +87,24 @@ export const InputSelect = ({ selectedSchema, fullSchema, value, setValue }: Inp
     ? allInputOptions
         .concat(inputs)
         .filter(input => {
-          const schemaMatches = isAssignable({
+          const result = isAssignable({
             to: input.schema,
             from: selectedSchema.schema,
             path: [],
             fullSchema
           })
 
+          if (result.matched === false) {
+            console.log('RESULT', result.reason, result.path)
+          }
+
           const nameMatches = input.name ? input.name === selectedSchema.name : true
 
-          return schemaMatches && nameMatches
+          if (!nameMatches) {
+            console.log('NAME MATCHES', input.name, selectedSchema.name)
+          }
+
+          return result.matched && nameMatches
         })
         .map(formatter => ({
           value: formatter.label,

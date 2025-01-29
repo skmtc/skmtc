@@ -1,4 +1,6 @@
+import { ResolvedSchemaItem, SchemaItem } from '@/components/config/types'
 import type { OpenAPIV3 } from 'openapi-types'
+import invariant from 'tiny-invariant'
 
 export const isRef = (
   schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
@@ -21,6 +23,8 @@ export const resolveRef = (ref: OpenAPIV3.ReferenceObject, fullSchema: OpenAPIV3
 
   const resolvedSchema = refNames.reduce((acc, refName) => {
     if (!(refName in acc)) {
+      console.log('ACC', acc)
+
       throw new Error(`Reference "${ref.$ref}" not found in schema`)
     }
     // deno-lint-ignore ban-ts-comment
@@ -28,10 +32,12 @@ export const resolveRef = (ref: OpenAPIV3.ReferenceObject, fullSchema: OpenAPIV3
     return acc[refName]
   }, fullSchema)
 
-  return resolvedSchema
+  return resolvedSchema as OpenAPIV3.SchemaObject
 }
 
-export const schemaToType = (schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject) => {
+export const schemaToType = (
+  schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
+): string => {
   if (isRef(schema)) {
     return toRefNames(schema).pop() ?? 'unknown'
   }
@@ -45,4 +51,26 @@ export const schemaToType = (schema: OpenAPIV3.SchemaObject | OpenAPIV3.Referenc
   }
 
   return schema.type
+}
+
+type ResolveSchemaItemArgs = {
+  parsedSchema: OpenAPIV3.Document
+  schemaItem: SchemaItem
+}
+
+export const resolveSchemaItem = ({
+  parsedSchema,
+  schemaItem
+}: ResolveSchemaItemArgs): ResolvedSchemaItem => {
+  const { schema } = schemaItem
+
+  const name = isRef(schema) ? toRefNames(schema).pop() : schemaItem.name
+
+  invariant(name, 'Name is required')
+
+  return {
+    ...schemaItem,
+    name,
+    schema: isRef(schema) ? resolveRef(schema, parsedSchema) : schema
+  }
 }

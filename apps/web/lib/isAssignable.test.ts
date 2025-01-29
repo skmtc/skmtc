@@ -9,6 +9,7 @@ import {
   isStringAssignable
 } from './isAssignable'
 import type { OpenAPIV3 } from 'openapi-types'
+
 test('number is assignable to number', () => {
   expect(
     isNumberAssignable({
@@ -17,7 +18,7 @@ test('number is assignable to number', () => {
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('integer is assignable to number', () => {
@@ -28,7 +29,7 @@ test('integer is assignable to number', () => {
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('integer is assignable to integer', () => {
@@ -39,7 +40,7 @@ test('integer is assignable to integer', () => {
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('string is assignable to string', () => {
@@ -50,7 +51,7 @@ test('string is assignable to string', () => {
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('boolean is assignable to boolean', () => {
@@ -61,7 +62,7 @@ test('boolean is assignable to boolean', () => {
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('object is assignable to matching object', () => {
@@ -72,7 +73,7 @@ test('object is assignable to matching object', () => {
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('optional object property is not assignable to required object property', () => {
@@ -83,7 +84,11 @@ test('optional object property is not assignable to required object property', (
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(false)
+  ).toStrictEqual({
+    matched: false,
+    path: [],
+    reason: `Property 'a' is required in destination but is optional in source`
+  })
 })
 
 test('required object property is assignable to optional object property', () => {
@@ -94,7 +99,7 @@ test('required object property is assignable to optional object property', () =>
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('from object without all properties in to object is not assignable', () => {
@@ -105,7 +110,7 @@ test('from object without all properties in to object is not assignable', () => 
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(false)
+  ).toStrictEqual({ matched: false, path: [], reason: `Property 'b' is not defined in source` })
 })
 
 test('from object may contain extra properties that are not in to object', () => {
@@ -116,7 +121,7 @@ test('from object may contain extra properties that are not in to object', () =>
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('array of strings is assignable to array of strings', () => {
@@ -127,7 +132,7 @@ test('array of strings is assignable to array of strings', () => {
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })
 
 test('array of strings is not assignable to array of numbers', () => {
@@ -138,7 +143,11 @@ test('array of strings is not assignable to array of numbers', () => {
       path: [],
       fullSchema: {} as OpenAPIV3.Document
     })
-  ).toBe(false)
+  ).toStrictEqual({
+    matched: false,
+    path: ['items'],
+    reason: `Type 'string' is not assignable to 'number'`
+  })
 })
 
 test('boolean ref is assignable to boolean', () => {
@@ -155,5 +164,5 @@ test('boolean ref is assignable to boolean', () => {
         }
       } as unknown as OpenAPIV3.Document
     })
-  ).toBe(true)
+  ).toStrictEqual({ matched: true, path: null, reason: null })
 })

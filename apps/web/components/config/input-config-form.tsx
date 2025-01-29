@@ -6,20 +6,20 @@ import { Controller, useForm } from 'react-hook-form'
 import { useArtifacts } from '@/components/preview/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { FormatterSelect } from '@/components/config/formatter-select'
-import { ColumnConfigItem, SchemaItem, SelectedSchemaType } from '@/components/config/types'
+import { InputOptionConfigItem, SchemaItem, SelectedSchemaType } from '@/components/config/types'
 import { ConfigFormContainer } from '@/components/config/config-form-container'
 import { cn } from '@/lib/utils'
 import invariant from 'tiny-invariant'
 import { resolveSchemaItem } from '@/lib/schemaFns'
 
-type ColumnConfigFormProps = {
+type InputConfigFormProps = {
   schemaItem: SchemaItem
-  column?: ColumnConfigItem
+  column?: InputOptionConfigItem
   close: () => void
   source: OperationPreview
 }
 
-export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnConfigFormProps) {
+export function InputConfigForm({ schemaItem, column, close, source }: InputConfigFormProps) {
   const { state: artifactsState, dispatch } = useArtifacts()
 
   const { parsedSchema } = artifactsState
@@ -28,11 +28,10 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
 
   const [selectedSchema, setSelectedSchema] = React.useState<SelectedSchemaType | null>(null)
 
-  const { control, handleSubmit } = useForm<ColumnConfigItem>({
+  const { control, handleSubmit } = useForm<InputOptionConfigItem>({
     defaultValues: column ?? {
       accessorPath: [],
-      formatter: '',
-      label: ''
+      formatter: ''
     }
   })
 
@@ -45,10 +44,10 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
       onCancel={close}
       onSubmit={handleSubmit(values => {
         dispatch({
-          type: 'add-column-config',
+          type: 'add-input-option',
           payload: {
             source,
-            columnConfig: values
+            inputOption: values
           }
         })
 
@@ -89,18 +88,6 @@ export function ColumnConfigForm({ schemaItem, column, close, source }: ColumnCo
               setValue={field.onChange}
               fullSchema={parsedSchema}
             />
-          </div>
-        )}
-      />
-      <Controller
-        name="label"
-        control={control}
-        render={({ field }) => (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="path-input" className="text-xs font-normal text-foreground">
-              Label
-            </label>
-            <Input className={cn(inputClasses, inputEdgeClasses)} {...field} />
           </div>
         )}
       />

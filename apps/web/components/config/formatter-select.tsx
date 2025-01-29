@@ -50,7 +50,7 @@ const addressFormatter: FormatterOption = {
       line3: { type: 'string' },
       line4: { type: 'string' },
       postcode: { type: 'string' },
-      country: { type: 'string' }
+      countryId: { type: 'string' }
     }
   },
   label: 'AddressFormatter'
@@ -79,18 +79,28 @@ export const FormatterSelect = ({
   const formatterOptions = selectedSchema
     ? formatters
         .filter(formatter => {
-          return isAssignable({
+          const result = isAssignable({
             to: formatter.schema,
             from: selectedSchema.schema,
             path: [],
             fullSchema
           })
+
+          if (result.matched === false) {
+            console.log(`${formatter.label} does not match`)
+            console.log(result.reason, result.path)
+          }
+
+          return result.matched
         })
         .map(formatter => ({
           value: formatter.label,
           label: formatter.label
         }))
     : []
+
+  console.log('FORMATTER OPTIONS', formatterOptions)
+  console.log('FORMATTERS', formatters)
 
   // If no value is set and there is only one formatter, set the value to the formatter
   useEffect(() => {
@@ -116,11 +126,15 @@ export const FormatterSelect = ({
       </SelectTrigger>
       <SelectContent>
         {formatterOptions?.length ? (
-          formatterOptions.map(option => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))
+          formatterOptions.map(option => {
+            console.log('VALUE', option.value)
+
+            return (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            )
+          })
         ) : (
           <SelectItem disabled value="none">
             No formatters found

@@ -25,11 +25,24 @@ export type ColumnConfigItem = {
   formatter: string
   label: string
 }
+
+export type InputOptionConfigItem = {
+  accessorPath: string[]
+  formatter: string
+}
+
 export type SchemaItem = {
+  schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
+  name: string
+  type: 'list-item' | 'form-item'
+}
+
+export type ResolvedSchemaItem = {
   schema: OpenAPIV3.SchemaObject
   name: string
   type: 'list-item' | 'form-item'
 }
+
 export type SelectedSchemaType = {
   schema: OpenAPIV3.SchemaObject
   name: string

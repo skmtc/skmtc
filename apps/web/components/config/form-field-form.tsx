@@ -12,6 +12,8 @@ import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
 import { WrapperSelect } from '@/components/config/wrapper-select'
 import { get } from 'lodash'
+import invariant from 'tiny-invariant'
+import { resolveSchemaItem } from '@/lib/schemaFns'
 
 type FormFieldFormProps = {
   section?: FormFieldItem
@@ -32,7 +34,9 @@ export function FormFieldForm({
 
   const [selectedSchema, setSelectedSchema] = React.useState<SelectedSchemaType | null>(null)
 
-  console.log('SELECTED SCHEMA', selectedSchema)
+  const { parsedSchema } = artifactsState
+
+  invariant(parsedSchema, 'Parsed schema is not set')
 
   const { generatorId, operationPath, operationMethod } = source
   const formFieldsPath = [
@@ -87,7 +91,8 @@ export function FormFieldForm({
             <PathInput
               path={field.value}
               setPath={field.onChange}
-              schemaItem={schemaItem}
+              schemaItem={resolveSchemaItem({ parsedSchema, schemaItem })}
+              parsedSchema={parsedSchema}
               setSelectedSchema={setSelectedSchema}
               showRequired={true}
               disabledPaths={formFields.map(field => field.accessorPath)}
@@ -107,8 +112,7 @@ export function FormFieldForm({
               selectedSchema={selectedSchema}
               value={field.value}
               setValue={field.onChange}
-              // @todo: pre-parse the schema
-              fullSchema={JSON.parse(artifactsState.schema)}
+              fullSchema={parsedSchema}
             />
           </div>
         )}
