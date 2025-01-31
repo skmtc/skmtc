@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { ClientGeneratorSettings, ClientSettings } from '@skmtc/core/Settings'
-import { ArtifactsDispatch, GeneratorEnrichments } from '@/components/preview/artifacts-context'
+import { ArtifactsDispatch, GeneratorEnrichments } from '@/components/artifacts-context'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { match, P } from 'ts-pattern'
@@ -70,9 +70,6 @@ export const useCreateArtifacts = ({
       }).then(res => res.json())
     },
     onSuccess: data => {
-      console.log('RECEIVED ARTIFACTS', data.artifacts)
-      console.log('RECEIVED MANIFEST', data.manifest)
-
       dispatch({ type: 'set-artifacts', payload: data.artifacts })
       dispatch({ type: 'set-manifest', payload: data.manifest })
 

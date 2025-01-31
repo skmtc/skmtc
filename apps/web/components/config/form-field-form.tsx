@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Input } from '@/components/ui/standard-input'
 import { Controller, useForm } from 'react-hook-form'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { PathInput } from '@/components/ui/path-input'
 import { InputSelect } from '@/components/config/input-select'

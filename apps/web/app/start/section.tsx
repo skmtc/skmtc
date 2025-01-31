@@ -1,9 +1,9 @@
 'use client'
 
 import { Steps } from '@/app/start/steps'
-import { ArtifactsProvider } from '@/components/preview/artifacts-context'
+import { ArtifactsProvider } from '@/components/artifacts-context'
 import { Header } from '@/components/ui/Header'
-import { WebcontainerProvider } from '@/components/webcontainer/webcontainer-context'
+import { WebcontainerProvider } from '@/components/webcontainer-context'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FileSystemTree } from '@webcontainer/api'
 

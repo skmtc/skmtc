@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { MoreHorizontal, Plus } from 'lucide-react'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 import { useState } from 'react'
 import { InputConfigForm } from '@/components/config/input-config-form'
 import { get } from 'lodash'

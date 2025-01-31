@@ -4,7 +4,7 @@ import { RawCode } from 'codehike/code'
 import { createContext, Dispatch, ReactNode, useContext, useEffect } from 'react'
 import { match } from 'ts-pattern'
 import { ManifestContent } from '@skmtc/core/Manifest'
-import clientSettingsInitial from './client.json'
+import clientSettingsInitial from '../preview/client.json'
 import { ClientSettings } from '@skmtc/core/Settings'
 import { useThunkReducer } from '@/hooks/use-thunk-reducer'
 import { useCreateSettings } from '@/services/use-create-settings'
@@ -61,7 +61,11 @@ export type ArtifactsAction =
       payload: DeleteFormSectionPayload
     }
   | {
-      type: 'set-preview'
+      type: 'set-preview-route'
+      payload: string
+    }
+  | {
+      type: 'set-component-preview'
       payload: Preview
     }
   | {
@@ -130,6 +134,16 @@ type MethodEnrichments = Record<string, OperationEnrichments>
 type PathEnrichments = Record<string, MethodEnrichments>
 export type GeneratorEnrichments = Record<string, PathEnrichments>
 
+export type PreviewItem =
+  | {
+      type: 'component'
+      preview: Preview
+    }
+  | {
+      type: 'app'
+      route: string
+    }
+
 export type ArtifactsState = {
   artifacts: Record<string, string>
   selectedArtifact: RawCode
@@ -139,7 +153,7 @@ export type ArtifactsState = {
   parsedSchema: OpenAPIV3.Document | null
   selectedGenerators: Record<string, boolean>
   enrichments: GeneratorEnrichments
-  preview: Preview | null
+  previewItem: PreviewItem | null
   downloadFileTree: Record<string, string>
 }
 
@@ -182,9 +196,19 @@ const artifactsReducer = (state: ArtifactsState, action: ArtifactsAction) => {
       ...state,
       clientSettings: payload
     }))
-    .with({ type: 'set-preview' }, ({ payload }) => ({
+    .with({ type: 'set-preview-route' }, ({ payload }) => ({
       ...state,
-      preview: payload
+      previewItem: {
+        type: 'app' as const,
+        route: payload
+      }
+    }))
+    .with({ type: 'set-component-preview' }, ({ payload }) => ({
+      ...state,
+      previewItem: {
+        type: 'component' as const,
+        preview: payload
+      }
     }))
     .with({ type: 'add-column-config' }, ({ payload }) => {
       const { source, columnConfig } = payload
@@ -327,7 +351,7 @@ const ArtifactsProvider = ({ children, downloadFileTree }: ArtifactsProviderProp
     parsedSchema: null,
     selectedGenerators: {},
     enrichments: {},
-    preview: null,
+    previewItem: null,
     downloadFileTree
   })
 

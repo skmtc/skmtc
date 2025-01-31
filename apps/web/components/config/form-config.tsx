@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { MoreHorizontal, Plus } from 'lucide-react'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 import { useState } from 'react'
 import { FormSectionForm } from '@/components/config/form-section-form'
 import { get } from 'lodash'

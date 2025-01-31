@@ -4,7 +4,7 @@ import { OperationPreview } from '@skmtc/core/Preview'
 import { ColumnConfig } from '@/components/config/column-config'
 import { FormConfig } from '@/components/config/form-config'
 import { SchemaItem } from '@/components/config/types'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 import { InputConfig } from '@/components/config/input-config'
 
 type SidebarRightProps = {
@@ -18,11 +18,13 @@ export function SidebarRight({ schemaItem, source, ...props }: SidebarRightProps
   }
 
   const { state: artifactsState } = useArtifacts()
-  const { preview } = artifactsState
+  const { previewItem } = artifactsState
 
-  if (!preview) {
+  if (previewItem?.type !== 'component') {
     return null
   }
+
+  const { preview } = previewItem
 
   return (
     <Sidebar
@@ -35,9 +37,9 @@ export function SidebarRight({ schemaItem, source, ...props }: SidebarRightProps
         <span className="font-semibold px-2 text-sm">{preview.name}</span>
       </SidebarHeader>
       <SidebarSeparator />
-      {preview?.group === 'tables' && <ColumnConfig source={source} schemaItem={schemaItem} />}
-      {preview?.group === 'forms' && <FormConfig source={source} schemaItem={schemaItem} />}
-      {preview?.group === 'inputs' && <InputConfig source={source} schemaItem={schemaItem} />}
+      {preview.group === 'tables' && <ColumnConfig source={source} schemaItem={schemaItem} />}
+      {preview.group === 'forms' && <FormConfig source={source} schemaItem={schemaItem} />}
+      {preview.group === 'inputs' && <InputConfig source={source} schemaItem={schemaItem} />}
     </Sidebar>
   )
 }

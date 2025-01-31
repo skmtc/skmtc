@@ -2,15 +2,15 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArtifactsCodeView } from '@/components/code-view/artifacts-code-view'
-import { useArtifacts } from '@/components/preview/artifacts-context'
-import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
+import { useArtifacts } from '@/components/artifacts-context'
+import { useWebcontainer } from '@/components/webcontainer-context'
 import { useEffect } from 'react'
 import { FileSystemTree } from '@webcontainer/api'
 import { set } from 'lodash'
 import { PreviewContainer } from '@/components/preview/preview-container'
 import { useCreateArtifacts } from '@/services/use-create-artifacts'
 import { useRouter } from 'next/navigation'
-import { StatusBar } from '@/components/webcontainer/status-bar'
+import { StatusBar } from '@/components/webcontainer-context/status-bar'
 import { ArtifactsDownload } from '@/app/start/view-results/artifacts-download'
 
 const mungeFileTree = (fileTree: Record<string, string>): FileSystemTree => {

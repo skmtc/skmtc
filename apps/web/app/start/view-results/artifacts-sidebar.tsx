@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarMenuSub
 } from '@/components/ui/sidebar'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 import { useEffect, useState } from 'react'
 import { set } from 'lodash'
 

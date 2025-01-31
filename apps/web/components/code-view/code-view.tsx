@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { lineNumbers } from './line-numbers'
 import { CopyButton } from '@/components/code-view/copy-button'
 import { File } from 'lucide-react'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 
 export const CodeView = () => {
   const [highlighted, setHighlighted] = useState<HighlightedCode | null>(null)

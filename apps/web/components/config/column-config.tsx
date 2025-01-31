@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { MoreHorizontal, Plus } from 'lucide-react'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 import { useState } from 'react'
 import { ColumnConfigForm } from '@/components/config/column-config-form'
 import { get } from 'lodash'

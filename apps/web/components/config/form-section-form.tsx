@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Input } from '@/components/ui/standard-input'
 import { Controller, useForm } from 'react-hook-form'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 import { OperationPreview } from '@skmtc/core/Preview'
 import { FormSectionItem, SchemaItem } from '@/components/config/types'
 import { ConfigFormContainer } from '@/components/config/config-form-container'

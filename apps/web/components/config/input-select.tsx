@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 import { inputEdgeClasses } from '@/lib/classes'
 import { SelectedSchemaType } from '@/components/config/types'
 import type { InputOption } from '@skmtc/core/Preview'
-import { useArtifacts } from '@/components/preview/artifacts-context'
+import { useArtifacts } from '@/components/artifacts-context'
 import type { OpenAPIV3 } from 'openapi-types'
 const numberInput: InputOption = {
   schema: {

@@ -1,4 +1,4 @@
-import { useWebcontainer } from '@/components/webcontainer/webcontainer-context'
+import { useWebcontainer } from '@/components/webcontainer-context'
 import { inputEdgeClasses } from '@/lib/classes'
 import { inputClasses } from '@/lib/classes'
 import { cn } from '@/lib/utils'
