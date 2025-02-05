@@ -1,29 +1,53 @@
-import express from 'express'
-import cors from 'cors'
+import { Hono } from 'hono'
 import path from 'path'
 import fs from 'fs'
-const app = express()
-const port = 3111
+import { cors } from 'hono/cors'
+import { serve } from '@hono/node-server'
+import { logger } from 'hono/logger'
+import { serveStatic } from '@hono/node-server/serve-static'
+import { mockServer } from './core/mock-server.generated.js'
 
+const app = new Hono()
+app.use(logger())
 app.use(cors({
   origin: '*',
   allowedHeaders: ['Authorization', 'api-version'],
   credentials: true
 }))
 
-app.use(express.static('build'))
+app.route('/api', mockServer)
 
-app.get('/test', (req, res) => {
-  res.send('Testing')
-})
+app.get('/assets/*', serveStatic({ root: './build' }))
 
-app.get('*', (req, res) => {
+app.get('*', c => {
   const resolvedPath = path.resolve('build', 'index.html')
+
   try {
     const file = fs.readFileSync(resolvedPath, 'utf8')
-    return res.send(file)
+
+    if(resolvedPath.endsWith('.html')) {
+      return c.html(file)
+    }
+
+    if(resolvedPath.endsWith('.js')) {
+      c.header('Content-Type', 'text/javascript')
+      return c.text(file)
+    }
+
+    if(resolvedPath.endsWith('.css')) {
+      c.header('Content-Type', 'text/css')
+      return c.text(file)
+    }
+
+    if(resolvedPath.endsWith('.json')) {
+      c.header('Content-Type', 'application/json')
+      return c.json(file)
+    }
+
+    throw new Error(`Unknown file type: '${resolvedPath}'`)
+
   } catch (error) {
-    return res.send(`<!doctype html>
+    return c.html(`<!doctype html>
       <html lang="en">
         <head>
           <meta charset="utf-8" />
@@ -42,11 +66,7 @@ app.get('*', (req, res) => {
   }
 })
 
-console.log('Starting server...')
-
-app.listen(port, () => {
-  console.log(`App is live at http://localhost:${port}`)
-})
+serve({fetch: app.fetch,port: 3111})
 
 
 

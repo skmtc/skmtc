@@ -1,6 +1,7 @@
 'use client'
 
 import { useArtifacts } from '@/components/artifacts-context'
+import { setPreviewApp } from '@/components/preview/set-preview-app'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -20,21 +21,7 @@ export function ArtifactsPreviewNav({ previews }: ArtifactsPreviewNavProps) {
 
   useEffect(() => {
     if (artifactsState.previewItem === null) {
-      const items = Object.values(previews ?? {}).at(0)
-
-      if (!items) {
-        return
-      }
-
-      const preview = Object.values(items ?? {}).at(0)
-
-      if (preview?.route) {
-        // @todo: preview app should have static home page
-        dispatch({
-          type: 'set-preview-route',
-          payload: preview.route
-        })
-      }
+      setPreviewApp({ dispatch, previews })
     }
   }, [previews, artifactsState.previewItem])
 

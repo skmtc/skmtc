@@ -26,6 +26,14 @@ export interface ReapitError {
 export const getMergedHeaders = async (headers?: StringMap): Promise<StringMap | null> => {
   const accessToken = import.meta.env.VITE_AUTH_HEADER
 
+  if (isPreview()) {
+    return {
+      'api-version': 'latest',
+      'Content-Type': 'application/json',
+      ...headers
+    }
+  }
+
   return accessToken
     ? {
         Authorization: accessToken,
@@ -84,10 +92,18 @@ export const objectToQuery = <QueryObjectType extends {}>(
   }, {} as StringMap)
 
 export const getUrl = (path: string, queryParams?: Object) => (): string => {
-  const api = process.env.PLATFORM_API_URL
+  const api = isPreview() ? `/api` : process.env.PLATFORM_API_URL
+
   const normalisedQuery = objectToQuery(queryParams ?? {})
   const query = qs.stringify(normalisedQuery, { encode: false })
+
   const url = `${api}${path}${query ? `?${query}` : ''}`
 
   return url
+}
+
+const isPreview = () => {
+  const { pathname } = window.location
+
+  return pathname?.startsWith('/_preview/')
 }

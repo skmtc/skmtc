@@ -20,7 +20,12 @@ export const PreviewContainer = () => {
     schema: artifactsState.schema,
     clientSettings: artifactsState.clientSettings,
     preview: previewItem?.type === 'component' ? previewItem.preview : null,
-    onSuccess: data => setSchemaItem(data)
+    onSuccess: data => {
+      // @TODO use return value, not callback
+      //hook.js:608 Query data cannot be undefined. Please make sure to return a value other than undefined from your query function.
+      setSchemaItem(data)
+      return data
+    }
   })
 
   const previewRoute = toPreviewRoute(previewItem)
@@ -55,6 +60,6 @@ export const PreviewContainer = () => {
 const toPreviewRoute = (previewItem: PreviewItem | null) => {
   return match(previewItem)
     .with({ type: 'app' }, ({ route }) => route)
-    .with({ type: 'component' }, ({ preview }) => preview.route)
+    .with({ type: 'component' }, ({ preview }) => `/_preview/${preview.name}`)
     .otherwise(() => null)
 }

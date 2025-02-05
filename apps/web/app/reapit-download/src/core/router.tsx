@@ -10,11 +10,11 @@ export const RoutesComponent: FC = () => (
   <>
     <Routes>
       <Route path={RoutePaths.LOGIN} element={<LoginModule />} />
-      {routes.map(({path, element}) => (
+      {routes.map(({ path, element }) => (
         <Route
           key={path}
           path={path}
-          element={element}
+          element={<PrivateRouteWrapper>{element}</PrivateRouteWrapper>}
         />
       ))}
       <Route

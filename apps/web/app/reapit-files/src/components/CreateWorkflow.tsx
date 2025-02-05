@@ -150,17 +150,3 @@ const Buttons = <Model extends FieldValues, Key extends KeyPath<Model>>({
     </ButtonGroup>
   )
 }
-
-// export const CreateFields = <Model extends FieldValues, Key extends KeyPath<Model>>({
-//   fieldNames,
-//   fieldConfig
-// }: {
-//   fieldNames: Key[]
-//   fieldConfig: ModelConfig<Model>
-// }) => (
-//   <>
-//     {fieldNames.map(fieldName => (
-//       <FieldParent key={fieldName} fieldName={fieldName} fieldConfig={fieldConfig[fieldName]} />
-//     ))}
-//   </>
-// )

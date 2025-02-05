@@ -19,7 +19,7 @@ export const useGetArtifactsConfig = ({
   const { generatorId, operationPath, operationMethod } = (preview?.source ??
     {}) as OperationPreview
 
-  return useQuery({
+  useQuery({
     queryKey: ['artifact-config', operationPath, operationMethod],
     enabled: Boolean(preview),
     queryFn: () => {
@@ -40,7 +40,10 @@ export const useGetArtifactsConfig = ({
         })
       })
         .then(res => res.json())
-        .then(data => onSuccess(data.schemaItem))
+        .then(data => {
+          onSuccess(data.schemaItem)
+          return data.schemaItem
+        })
     }
   })
 }
