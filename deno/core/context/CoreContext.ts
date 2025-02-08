@@ -55,7 +55,6 @@ type RenderArgs = {
   previews: Record<string, Record<string, Preview>>
   prettier?: PrettierConfigType
   basePath: string | undefined
-  pinnableGenerators: string[]
 }
 
 type TransformArgs = {
@@ -174,9 +173,6 @@ export class CoreContext {
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
-          pinnableGenerators: Object.values(toGeneratorsMap())
-            .map(({ id, pinnable }) => (pinnable ? id : null))
-            .filter(generatorId => generatorId !== null),
           prettier,
           basePath: settings?.basePath
         })
@@ -199,7 +195,6 @@ export class CoreContext {
         artifacts: {},
         files: {},
         previews: {},
-        pinnable: {},
         results: this.#results.toTree()
       }
     } finally {
@@ -248,19 +243,12 @@ export class CoreContext {
     this.#results.capture(this.#stackTrail.toString(), result)
   }
 
-  #setupRenderPhase({
-    files,
-    previews,
-    prettier,
-    basePath,
-    pinnableGenerators
-  }: RenderArgs): RenderPhase {
+  #setupRenderPhase({ files, previews, prettier, basePath }: RenderArgs): RenderPhase {
     const renderContext = new RenderContext({
       files,
       previews,
       prettier,
       basePath,
-      pinnableGenerators,
       logger: this.logger,
       stackTrail: this.#stackTrail,
       captureCurrentResult: this.captureCurrentResult.bind(this)

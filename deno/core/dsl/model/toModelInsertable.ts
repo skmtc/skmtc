@@ -49,8 +49,6 @@ export const toModelInsertable = <EnrichmentType>(config: ModelConfig<Enrichment
     }
     static isSupported = () => true
 
-    static pinnable = false
-
     constructor(args: ModelInsertableArgs<EnrichmentType>) {
       super({
         ...args,

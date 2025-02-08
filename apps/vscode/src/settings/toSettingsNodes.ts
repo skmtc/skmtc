@@ -9,37 +9,6 @@ type ToSettingsNodesArgs = {
 }
 
 export const toSettingsNodes = ({ clientConfig }: ToSettingsNodesArgs): SettingsNode[] => {
-  const generateNodes = toGenerateNodes(clientConfig)
-
-  return generateNodes
-
-  // const schemaNode = new SettingsNode({
-  //   nodeId: 'schema',
-  //   nodeLabel: 'Enrich schema',
-  //   collapsibleState: TreeItemCollapsibleState.Collapsed,
-  //   children: extensions ? toSchemaNodes({ extensions, stackTrail: ['schema'] }) : undefined,
-  //   selectCount: 0,
-  //   editCount: 0,
-  // });
-
-  // const generatorsNode = new SettingsNode({
-  //   nodeId: 'generators',
-  //   nodeLabel: 'Generators',
-  //   collapsibleState: TreeItemCollapsibleState.Collapsed,
-  //   children: generateNodes,
-  //   meta: {
-  //     type: 'generators',
-  //   },
-  //   selectCount: generateNodes.reduce((acc, node) => {
-  //     return node.checkboxState === TreeItemCheckboxState.Checked ? acc + 1 : acc;
-  //   }, 0),
-  //   editCount: generateNodes.reduce((acc, node) => node.editCount + acc, 0),
-  // });
-
-  // return [schemaNode, generatorsNode];
-}
-
-export const toGenerateNodes = (clientConfig: SkmtcClientConfig): SettingsNode[] => {
   return clientConfig.settings.generators.map(generatorSettings => {
     const children = toGeneratorNodes(generatorSettings)
 

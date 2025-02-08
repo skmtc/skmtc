@@ -6,7 +6,6 @@ import { normalize } from 'jsr:@std/path@1.0.6'
 import type { Definition } from '../dsl/Definition.ts'
 import type { PickArgs } from './GenerateContext.ts'
 import type { GeneratorKey } from '../types/GeneratorKeys.ts'
-import type { ManifestEntry } from '../types/Manifest.ts'
 import type { ResultType } from '../types/Results.ts'
 import { toResolvedArtifactPath } from '../helpers/toResolvedArtifactPath.ts'
 import { tracer } from '../helpers/tracer.ts'
@@ -20,7 +19,6 @@ type ConstructorArgs = {
   previews: Record<string, Record<string, Preview>>
   prettier?: PrettierConfigType
   basePath: string | undefined
-  pinnableGenerators: string[]
   stackTrail: StackTrail
   logger: log.Logger
   captureCurrentResult: (result: ResultType) => void
@@ -42,7 +40,6 @@ export class RenderContext {
   private prettier?: PrettierConfigType
   basePath: string | undefined
   currentDestinationPath: string | 'PRE_RENDER' | 'POST_RENDER'
-  pinnableGenerators: string[]
   logger: log.Logger
   #stackTrail: StackTrail
   captureCurrentResult: (result: ResultType) => void
@@ -51,7 +48,6 @@ export class RenderContext {
     previews,
     prettier,
     basePath,
-    pinnableGenerators,
     logger,
     stackTrail,
     captureCurrentResult
@@ -61,7 +57,6 @@ export class RenderContext {
     this.previews = previews
     this.prettier = prettier
     this.basePath = basePath
-    this.pinnableGenerators = pinnableGenerators
     this.logger = logger
     this.#stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
@@ -73,18 +68,10 @@ export class RenderContext {
         return this.collate()
       })
 
-      const pinnable = Sentry.startSpan({ name: 'Generate pinnable' }, () => {
-        return generatePinnable({
-          pinnableGenerators: this.pinnableGenerators,
-          files: result.files
-        })
-      })
-
       const rendered: Omit<RenderResult, 'results'> = {
         artifacts: result.artifacts,
         files: result.files,
-        previews: this.previews,
-        pinnable
+        previews: this.previews
       }
 
       return rendered
@@ -137,8 +124,7 @@ export class RenderContext {
       }),
       {
         artifacts: {},
-        files: {},
-        pinnable: {}
+        files: {}
       }
     )
   }
@@ -198,44 +184,4 @@ const renderFile = ({
     generatorKeys,
     hash: 'PLACEHOLDER'
   }
-}
-
-type GeneratePinnableArgs = {
-  pinnableGenerators: string[]
-  files: Record<string, ManifestEntry>
-}
-
-const generatePinnable = ({
-  pinnableGenerators,
-  files
-}: GeneratePinnableArgs): Record<GeneratorKey, string> => {
-  const output: Record<GeneratorKey, string[]> = {}
-  Object.values(files).forEach(entry => {
-    entry.generatorKeys.forEach(generatorKey => {
-      if (!output[generatorKey]) {
-        output[generatorKey] = []
-      }
-      output[generatorKey].push(entry.destinationPath)
-    })
-  })
-
-  const pinnableEntries = Object.entries(output)
-    .map(([generatorKey, files]) => {
-      if (files.length !== 1) {
-        return null
-      }
-
-      const isPinnable = pinnableGenerators.reduce((acc, pinnableGenerator) => {
-        if (generatorKey.startsWith(pinnableGenerator)) {
-          return true
-        }
-
-        return acc
-      }, false)
-
-      return isPinnable ? [generatorKey, files[0]] : null
-    })
-    .filter((generatorKey): generatorKey is [GeneratorKey, string] => generatorKey !== null)
-
-  return Object.fromEntries(pinnableEntries)
 }

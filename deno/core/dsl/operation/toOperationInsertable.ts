@@ -24,7 +24,6 @@ export type ToOperationInsertableArgs<EnrichmentType> = {
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichmentSchema: () => z.ZodType<EnrichmentType>
-  pinnable?: boolean
 }
 
 type ToEnrichmentsArgs = {
@@ -66,8 +65,6 @@ export const toOperationInsertable = <EnrichmentType>(
 
       return config.isSupported({ context, operation, enrichments })
     }
-
-    static pinnable = config.pinnable ?? false
 
     constructor(args: OperationInsertableArgs<EnrichmentType>) {
       super({

@@ -31,7 +31,7 @@ export const transform = ({
 }: TransformArgs) => {
   const context = new CoreContext({ spanId, logsPath })
 
-  const { artifacts, files, previews, pinnable, results } = context.transform({
+  const { artifacts, files, previews, results } = context.transform({
     settings,
     toGeneratorsMap,
     prettier,
@@ -41,7 +41,6 @@ export const transform = ({
   const manifest: ManifestContent = {
     files,
     previews,
-    pinnable,
     traceId,
     spanId,
     results,

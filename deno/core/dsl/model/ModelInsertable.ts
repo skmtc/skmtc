@@ -39,7 +39,5 @@ export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
   toEnrichments: ({ refName, context }: ToEnrichmentsArgs) => EnrichmentType
   isSupported: () => boolean
 
-  pinnable: boolean
-
   // deno-lint-ignore ban-types
 } & Function

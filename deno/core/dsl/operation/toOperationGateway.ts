@@ -64,8 +64,6 @@ export const toOperationGateway = <EnrichmentType>(
       return config.isSupported({ context, operation, enrichments })
     }
 
-    static pinnable = false
-
     constructor({ context, settings }: OperationGatewayArgs) {
       super({ context, settings })
     }

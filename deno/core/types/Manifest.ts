@@ -40,7 +40,6 @@ export type ManifestContent = {
   region?: string
   files: Record<string, ManifestEntry>
   previews: Record<string, Record<string, Preview>>
-  pinnable: Partial<Record<GeneratorKey, string>>
   results: ResultsItem
   startAt: number
   endAt: number
@@ -54,7 +53,6 @@ export const manifestContent = z
     region: z.string().optional(),
     files: z.record(manifestEntry),
     previews: z.record(z.record(preview)),
-    pinnable: z.record(z.string().refine(isGeneratorKey), z.string()),
     results: resultsItem.openapi('ResultsItem', resultsItemJsonSchema as Record<string, unknown>),
     startAt: z.number(),
     endAt: z.number()

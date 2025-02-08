@@ -50,8 +50,6 @@ export type OperationGateway<EnrichmentType> = {
   toEnrichmentSchema: () => z.ZodType<EnrichmentType>
   toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType
   isSupported: ({ context, operation }: IsSupportedOperationArgs) => boolean
-
-  pinnable: boolean
 }
 
 export type OperationInsertable<V, EnrichmentType> = { prototype: V } & {
@@ -67,8 +65,5 @@ export type OperationInsertable<V, EnrichmentType> = { prototype: V } & {
   toEnrichmentSchema: () => z.ZodType<EnrichmentType>
   toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType
   isSupported: ({ operation, context }: IsSupportedOperationArgs) => boolean
-
-  pinnable: boolean
-
   // deno-lint-ignore ban-types
 } & Function

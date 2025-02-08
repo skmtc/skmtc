@@ -111,9 +111,7 @@ export async function activate(context: ExtensionContext) {
     // create a new status bar item that we can now manage
     store.statusBarItem = createStatusBarItem({ store })
 
-    const checkBoxDisposable = settingsTreeView.onDidChangeCheckboxState(
-      handleCheckboxStateChange({ store, context })
-    )
+    const checkBoxDisposable = settingsTreeView.onDidChangeCheckboxState(handleCheckboxStateChange)
 
     // Add commands to the extension context
     context.subscriptions.push(

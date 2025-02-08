@@ -17,14 +17,12 @@ export type AddGeneratorKeyArgs = {
 export type FilesRenderResult = {
   artifacts: Record<string, string>
   files: Record<string, ManifestEntry>
-  pinnable: Partial<Record<GeneratorKey, string>>
 }
 
 export type RenderResult = {
   artifacts: Record<string, string>
   files: Record<string, ManifestEntry>
   previews: Record<string, Record<string, Preview>>
-  pinnable: Partial<Record<GeneratorKey, string>>
   results: Record<string, ResultType>
 }
 

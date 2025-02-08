@@ -10,7 +10,7 @@ export const toOperations = (generatorSettings: OperationsGeneratorSettings): Se
   }
 
   return Object.entries(generatorSettings.operations).flatMap(([path, methodSettings]) => {
-    return Object.entries(methodSettings).map(([method, selected]) => {
+    return Object.entries(methodSettings).map(([method, { selected }]) => {
       return new SettingsNode({
         nodeId: toOperationItemId({
           generatorId: generatorSettings.id,
@@ -25,6 +25,7 @@ export const toOperations = (generatorSettings: OperationsGeneratorSettings): Se
           method: method as Method,
           generatorId: generatorSettings.id
         },
+        selected,
         selectCount: 0,
         editCount: 0
       })

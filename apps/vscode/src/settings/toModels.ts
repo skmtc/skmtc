@@ -5,7 +5,7 @@ import { SettingsNode } from './SettingsNode'
 
 export const toModels = (generatorSettings: ModelsGeneratorSettings): SettingsNode[] => {
   const models = Object.fromEntries(
-    Object.entries(generatorSettings?.models ?? {}).map(([refName, selected]) => {
+    Object.entries(generatorSettings?.models ?? {}).map(([refName, { selected }]) => {
       return [
         refName,
         new SettingsNode({
@@ -17,7 +17,7 @@ export const toModels = (generatorSettings: ModelsGeneratorSettings): SettingsNo
             refName: refName,
             generatorId: generatorSettings.id
           },
-          selected: Boolean(selected),
+          selected,
           selectCount: 0,
           editCount: 0
         })

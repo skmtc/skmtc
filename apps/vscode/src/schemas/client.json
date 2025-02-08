@@ -113,7 +113,16 @@
     "ModelsObject": {
       "type": "object",
       "additionalProperties": {
-        "type": "boolean"
+        "$ref": "#/definitions/EnrichedSetting"
+      }
+    },
+    "EnrichedSetting": {
+      "type": "object",
+      "properties": {
+        "selected": {
+          "type": "boolean"
+        },
+        "enrichments": {}
       }
     },
     "PathsObject": {
@@ -129,28 +138,28 @@
         "type": "object",
         "properties": {
           "get": {
-            "type": "boolean"
+            "$ref": "#/definitions/EnrichedSetting"
           },
           "post": {
-            "type": "boolean"
+            "$ref": "#/definitions/EnrichedSetting"
           },
           "put": {
-            "type": "boolean"
+            "$ref": "#/definitions/EnrichedSetting"
           },
           "delete": {
-            "type": "boolean"
+            "$ref": "#/definitions/EnrichedSetting"
           },
           "patch": {
-            "type": "boolean"
+            "$ref": "#/definitions/EnrichedSetting"
           },
           "options": {
-            "type": "boolean"
+            "$ref": "#/definitions/EnrichedSetting"
           },
           "head": {
-            "type": "boolean"
+            "$ref": "#/definitions/EnrichedSetting"
           },
           "trace": {
-            "type": "boolean"
+            "$ref": "#/definitions/EnrichedSetting"
           }
         }
       },

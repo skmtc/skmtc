@@ -28,11 +28,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "skmtc-vscode.webviewDemo",
-        "title": "Webview demo",
-        "category": "Skmtc"
-      },
-      {
         "command": "skmtc-vscode.deployStack",
         "title": "Deploy generator stack",
         "enablement": "skmtc-vscode.withSchema",
@@ -228,7 +223,7 @@
   },
   "dependencies": {
     "@sentry/browser": "^8.26.0",
-    "@skmtc/core": "^0.0.554",
+    "@skmtc/core": "^0.0.555",
     "@supabase/supabase-js": "^2.48.1",
     "@vscode-elements/elements": "^1.7.0",
     "can-ndjson-stream": "^1.0.2",
