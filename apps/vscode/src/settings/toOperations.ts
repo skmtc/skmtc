@@ -1,12 +1,12 @@
-import { OperationsGeneratorSettings } from '@skmtc/core/Settings';
-import { Method } from '@skmtc/core/Method';
-import { SettingsNode } from './SettingsNode';
-import { toOperationItemId } from './toItemId';
-import { TreeItemCollapsibleState } from 'vscode';
+import { OperationsGeneratorSettings } from '@skmtc/core/Settings'
+import { Method } from '@skmtc/core/Method'
+import { SettingsNode } from './SettingsNode'
+import { toOperationItemId } from './toItemId'
+import { TreeItemCollapsibleState } from 'vscode'
 
 export const toOperations = (generatorSettings: OperationsGeneratorSettings): SettingsNode[] => {
   if (!('operations' in generatorSettings)) {
-    return [];
+    return []
   }
 
   return Object.entries(generatorSettings.operations).flatMap(([path, methodSettings]) => {
@@ -15,7 +15,7 @@ export const toOperations = (generatorSettings: OperationsGeneratorSettings): Se
         nodeId: toOperationItemId({
           generatorId: generatorSettings.id,
           path,
-          method: method as Method,
+          method: method as Method
         }),
         nodeLabel: `${method.toUpperCase()} ${path}`,
         collapsibleState: TreeItemCollapsibleState.None,
@@ -23,15 +23,11 @@ export const toOperations = (generatorSettings: OperationsGeneratorSettings): Se
           type: 'operation',
           path: path,
           method: method as Method,
-          generatorId: generatorSettings.id,
-        },
-        command: {
-          command: 'vscode-skmtc.treeItemClicked',
-          title: 'Operation settings',
+          generatorId: generatorSettings.id
         },
         selectCount: 0,
-        editCount: 0,
-      });
-    });
-  });
-};
+        editCount: 0
+      })
+    })
+  })
+}

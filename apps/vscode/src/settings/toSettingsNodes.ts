@@ -52,10 +52,6 @@ export const toGenerateNodes = (clientConfig: SkmtcClientConfig): SettingsNode[]
         type: 'generator',
         generatorId: generatorSettings.id
       },
-      command: {
-        command: 'vscode-skmtc.treeItemClicked',
-        title: 'Generator settings'
-      },
       selectCount: children.reduce((acc, node) => {
         return node.checkboxState === TreeItemCheckboxState.Checked ? acc + 1 : acc
       }, 0),

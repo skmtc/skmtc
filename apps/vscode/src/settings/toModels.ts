@@ -1,7 +1,7 @@
-import { TreeItemCollapsibleState } from 'vscode';
-import { ModelsGeneratorSettings } from '@skmtc/core/Settings';
-import { toModelItemId } from './toItemId';
-import { SettingsNode } from './SettingsNode';
+import { TreeItemCollapsibleState } from 'vscode'
+import { ModelsGeneratorSettings } from '@skmtc/core/Settings'
+import { toModelItemId } from './toItemId'
+import { SettingsNode } from './SettingsNode'
 
 export const toModels = (generatorSettings: ModelsGeneratorSettings): SettingsNode[] => {
   const models = Object.fromEntries(
@@ -15,19 +15,15 @@ export const toModels = (generatorSettings: ModelsGeneratorSettings): SettingsNo
           meta: {
             type: 'model',
             refName: refName,
-            generatorId: generatorSettings.id,
-          },
-          command: {
-            command: 'vscode-skmtc.treeItemClicked',
-            title: 'Model settings',
+            generatorId: generatorSettings.id
           },
           selected: Boolean(selected),
           selectCount: 0,
-          editCount: 0,
-        }),
-      ];
+          editCount: 0
+        })
+      ]
     })
-  );
+  )
 
-  return Object.values(models);
-};
+  return Object.values(models)
+}
