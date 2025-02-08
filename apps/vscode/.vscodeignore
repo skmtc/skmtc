@@ -12,3 +12,7 @@ vsc-extension-quickstart.md
 **/*.ts
 .yarn
 .yarnrc.yml
+.turbo
+.envrc
+.prettierignore
+.nvmrc

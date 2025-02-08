@@ -1,48 +1,47 @@
-import { Event, EventEmitter, ProviderResult, TreeDataProvider, TreeItem } from 'vscode';
-import { SettingsNode } from '../settings/SettingsNode';
-import { SkmtcClientConfig } from '@skmtc/core/Settings';
-import { lookupTreeItem, LookupTreeItemArgs } from '../settings/toItemId';
-import { toSettingsNodes } from '../settings/toSettingsNodes';
-import { Extensions } from '@skmtc/core/Extensions';
-type TreeDataOnChangeEvent = SettingsNode | undefined | null | void;
+import { Event, EventEmitter, ProviderResult, TreeDataProvider, TreeItem } from 'vscode'
+import { SettingsNode } from '../settings/SettingsNode'
+import { SkmtcClientConfig } from '@skmtc/core/Settings'
+import { lookupTreeItem, LookupTreeItemArgs } from '../settings/toItemId'
+import { toSettingsNodes } from '../settings/toSettingsNodes'
+
+type TreeDataOnChangeEvent = SettingsNode | undefined | null | void
 
 type SettingsDataProviderArgs = {
-  clientConfig: SkmtcClientConfig | undefined;
-  extensions: Extensions | undefined;
-};
+  clientConfig: SkmtcClientConfig | undefined
+}
 
 export class SettingsDataProvider implements TreeDataProvider<SettingsNode> {
-  private _onDidChangeTreeData = new EventEmitter<TreeDataOnChangeEvent>();
-  readonly onDidChangeTreeData: Event<TreeDataOnChangeEvent> = this._onDidChangeTreeData.event;
+  private _onDidChangeTreeData = new EventEmitter<TreeDataOnChangeEvent>()
+  readonly onDidChangeTreeData: Event<TreeDataOnChangeEvent> = this._onDidChangeTreeData.event
 
-  data: SettingsNode[];
-  itemsById: Record<string, SettingsNode> = {};
+  data: SettingsNode[]
+  itemsById: Record<string, SettingsNode> = {}
 
-  constructor({ clientConfig, extensions }: SettingsDataProviderArgs) {
-    this.data = clientConfig ? toSettingsNodes({ clientConfig, extensions }) : [];
+  constructor({ clientConfig }: SettingsDataProviderArgs) {
+    this.data = clientConfig ? toSettingsNodes({ clientConfig }) : []
   }
 
-  refresh({ clientConfig, extensions }: SettingsDataProviderArgs): void {
-    this.data = clientConfig ? toSettingsNodes({ clientConfig, extensions }) : [];
-    this._onDidChangeTreeData.fire();
+  refresh({ clientConfig }: SettingsDataProviderArgs): void {
+    this.data = clientConfig ? toSettingsNodes({ clientConfig }) : []
+    this._onDidChangeTreeData.fire()
   }
 
   getTreeItem(element: SettingsNode): TreeItem | Thenable<TreeItem> {
-    return element;
+    return element
   }
 
   getChildren(element?: SettingsNode | undefined): ProviderResult<SettingsNode[]> {
     if (element === undefined) {
-      return this.data;
+      return this.data
     }
-    return element.children;
+    return element.children
   }
 
   getParent() {
-    return null;
+    return null
   }
 
   lookupTreeItemBy(args: LookupTreeItemArgs): SettingsNode | undefined {
-    return lookupTreeItem(this.data, args);
+    return lookupTreeItem(this.data, args)
   }
 }

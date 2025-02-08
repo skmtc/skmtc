@@ -204,7 +204,7 @@ export const PathInput = ({
           onOpenAutoFocus={e => e.preventDefault()}
           className={`mt-[2px] p-0 border-none w-fit ${filteredOptions.length > 0 ? 'block' : 'hidden'}`}
         >
-          <ScrollArea className="flex flex-col h-[200px] w-min rounded-sm border p-1">
+          <ScrollArea className="flex flex-col h-[350px] w-min rounded-sm border p-1">
             {filteredOptions.map((option, index) => {
               const isDisabled = disabledPathsJoined.includes(
                 selectedItems

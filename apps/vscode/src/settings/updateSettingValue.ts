@@ -1,14 +1,10 @@
 import { match, P } from 'ts-pattern'
-import { updateClientConfig } from './updateClientConfig'
 import { readClientConfig } from '../utilities/readClientConfig'
 import { SkmtcClientConfig } from '@skmtc/core/Settings'
 import { ExtensionContext } from 'vscode'
 import { ExtensionStore } from '../types/ExtensionStore'
 import { Method } from '@skmtc/core/Method'
-import { Extensions } from '@skmtc/core/Extensions'
-import { readExtensions } from '../utilities/readExtensions'
-import { updateExtensionsConfig } from './updateExtensionsConfig'
-import { setWith } from 'lodash'
+import { writeClientConfig } from '../utilities/writeClientConfig'
 
 type UpdateSettingValueArgs = {
   stackTrail: string
@@ -31,14 +27,11 @@ export const updateSettingValue = ({
     return
   }
 
-  const extensions = readExtensions() ?? {}
-
   updateFromStackTrail({
     stackTrail,
     store,
     context,
     clientConfig,
-    extensions,
     value,
     fromForm
   })
@@ -49,7 +42,6 @@ type GetStackTrailFromNameArgs = {
   store: ExtensionStore
   context: ExtensionContext
   clientConfig: SkmtcClientConfig
-  extensions: Extensions
   value: boolean
   fromForm: boolean
 }
@@ -59,7 +51,6 @@ const updateFromStackTrail = ({
   store,
   context,
   clientConfig,
-  extensions,
   value,
   fromForm
 }: GetStackTrailFromNameArgs) => {
@@ -77,12 +68,7 @@ const updateFromStackTrail = ({
         .with('basePath', () => {
           clientConfig.settings.basePath = String(value)
 
-          updateClientConfig({
-            clientConfig: clientConfig,
-            settingPanel: store.settingPanel,
-            extensionUri: context.extensionUri,
-            fromForm
-          })
+          writeClientConfig(clientConfig)
         })
         .otherwise(() => {
           throw new Error('No match')
@@ -94,12 +80,7 @@ const updateFromStackTrail = ({
       )
 
       if (generatorSettings) {
-        updateClientConfig({
-          clientConfig: clientConfig,
-          settingPanel: store.settingPanel,
-          extensionUri: context.extensionUri,
-          fromForm
-        })
+        writeClientConfig(clientConfig)
       }
     })
     .with(['generators', P._, P._], ([_, generatorId, refName]) => {
@@ -108,14 +89,9 @@ const updateFromStackTrail = ({
       )
 
       if (generatorSettings && 'models' in generatorSettings) {
-        generatorSettings.models[refName] = value
+        generatorSettings.models[refName].selected = value
 
-        updateClientConfig({
-          clientConfig: clientConfig,
-          settingPanel: store.settingPanel,
-          extensionUri: context.extensionUri,
-          fromForm
-        })
+        writeClientConfig(clientConfig)
       }
     })
     .with(['generators', P._, P._, P._], ([_, generatorId, path, method]) => {
@@ -124,31 +100,13 @@ const updateFromStackTrail = ({
       )
 
       if (generatorSettings && 'operations' in generatorSettings) {
-        generatorSettings.operations[path][method as Method] = value
+        generatorSettings.operations[path][method as Method] = {
+          ...generatorSettings.operations[path][method as Method],
+          selected: value
+        }
 
-        updateClientConfig({
-          clientConfig: clientConfig,
-          settingPanel: store.settingPanel,
-          extensionUri: context.extensionUri,
-          fromForm
-        })
+        writeClientConfig(clientConfig)
       }
-    })
-    .with(['schema', ...P.array()], matched => {
-      setWith(
-        extensions,
-        matched.slice(1).concat('__x__', 'extensionFields', name),
-        value,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        Object
-      )
-
-      updateExtensionsConfig({
-        extensions,
-        extensionUri: context.extensionUri,
-        settingPanel: store.settingPanel,
-        fromForm
-      })
     })
     .otherwise(value => {
       console.log('NO MATCH', value)

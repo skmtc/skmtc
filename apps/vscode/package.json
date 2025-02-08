@@ -3,7 +3,7 @@
   "publisher": "skmtc",
   "displayName": "CodeSquared",
   "description": "Generate TypeScript from OpenAPI",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "engines": {
     "vscode": ">=1.93.0",
     "cursor": ">=0.42.0",
@@ -91,18 +91,6 @@
         "category": "Skmtc"
       },
       {
-        "command": "skmtc-vscode.pinArtifact",
-        "title": "Pin artifact",
-        "category": "Skmtc",
-        "icon": "$(pin)"
-      },
-      {
-        "command": "skmtc-vscode.unpinArtifact",
-        "title": "Unpin artifact",
-        "category": "Skmtc",
-        "icon": "$(pinned)"
-      },
-      {
         "command": "skmtc-vscode.createGenerator",
         "title": "Create new generator",
         "category": "Skmtc"
@@ -169,18 +157,6 @@
       }
     ],
     "menus": {
-      "view/item/context": [
-        {
-          "command": "skmtc-vscode.pinArtifact",
-          "when": "viewItem == pinnable-item",
-          "group": "inline"
-        },
-        {
-          "command": "skmtc-vscode.unpinArtifact",
-          "when": "viewItem == pinned-item",
-          "group": "inline"
-        }
-      ],
       "view/title": [
         {
           "command": "skmtc-vscode.deployStack",
@@ -247,22 +223,22 @@
     "esbuild-plugin-copy": "^2.0.1",
     "eslint": "^8.26.0",
     "glob": "^8.0.3",
+    "openapi-types": "^12.1.3",
     "typescript": "5.7.2"
   },
   "dependencies": {
     "@sentry/browser": "^8.26.0",
-    "@skmtc/core": "^0.0.523",
-    "@supabase/supabase-js": "^2.45.4",
+    "@skmtc/core": "^0.0.554",
+    "@supabase/supabase-js": "^2.48.1",
     "@vscode-elements/elements": "^1.7.0",
     "can-ndjson-stream": "^1.0.2",
     "fs-extra": "^11.2.0",
     "lodash-es": "^4.17.21",
-    "openapi-types": "^12.1.3",
     "prettier": "^3.3.3",
     "tiny-invariant": "^1.3.3",
     "ts-pattern": "5.6.0",
     "uuid": "^9.0.0",
     "zod": "^3.24.1"
   },
-  "packageManager": "yarn@4.5.3"
+  "packageManager": "yarn@4.6.0"
 }

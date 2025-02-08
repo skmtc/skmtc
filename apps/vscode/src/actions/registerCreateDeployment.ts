@@ -12,6 +12,7 @@ import { getDeploymentLogs } from '../api/getDeploymentLogs'
 import { ExtensionStore } from '../types/ExtensionStore'
 import * as Sentry from '@sentry/browser'
 import { setCannonicalDeploymentDomainName } from '../api/setCannonicalDeploymentDomainName'
+import invariant from 'tiny-invariant'
 
 type RegisterDeployStackArgs = {
   context: ExtensionContext
@@ -163,10 +164,10 @@ const toAssets = async (skmtcPath: string): Promise<Record<string, DenoFile>> =>
   const skmtcRoot = path.join(toRootPath(), skmtcPath)
 
   const fileEntries = fs
-    // @TODO - Recursive read is showing up as error. Could be due to dodgy node version types
-    // @ts-expect-error
     .readdirSync(skmtcRoot, { recursive: true })
     .map((filePath): AssetEntry | undefined => {
+      invariant(typeof filePath === 'string', 'expected filePath to be a string')
+
       const resolvedFilePath = path.join(skmtcRoot, filePath)
 
       if (resolvedFilePath.includes('.DS_Store') || resolvedFilePath.includes('.prettierrc.json')) {

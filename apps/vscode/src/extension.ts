@@ -45,7 +45,6 @@ import { registerSelectAll } from './actions/registerSelectAll'
 import { registerSelectNone } from './actions/registerSelectNone'
 import { ResultsDataProvider } from './providers/ResultsDataProvider'
 import { createSettingsView } from './create/createSettingsView'
-import { registerSettingsTreeItemClicked } from './actions/registerSettingsTreeItemClicked'
 import { registerResultsTreeItemClicked } from './actions/registerResultsTreeItemClicked'
 import { createStatusBarItem } from './create/createStatusBarItem'
 import { registerShowProjectName } from './actions/registerShowProjectName'
@@ -62,15 +61,12 @@ import { MilestonesDataProvider } from './providers/MilestonesDataProvider'
 import { createMilestonesView } from './create/createMilestonesView'
 import { registerAddGenerator } from './actions/registerAddGenerator'
 import { registerAddOpenApiSchema } from './actions/registerAddOpenApiSchema'
-import { readExtensions } from './utilities/readExtensions'
 
 export async function activate(context: ExtensionContext) {
   try {
     const clientConfig = readClientConfig({ notifyIfMissing: false })
 
     const manifest = readManifest()
-
-    const extensions = readExtensions()
 
     const store: ExtensionStore = {
       sentryClient: sentryClient,
@@ -82,11 +78,11 @@ export async function activate(context: ExtensionContext) {
       deploymentLogDisposable: undefined,
       statusBarItem: undefined,
       blinkMode: undefined,
-      blinkLogsPath: join(toRootPath(), '.codesquared', 'logs'),
+      blinkLogsPath: join(toRootPath(), '.codesquared', '.logs'),
       remoteRuntimeLogs: window.createOutputChannel('Skmtc runtime logs', { log: true }),
       remoteDeploymentLogs: window.createOutputChannel('Skmtc deployment logs', { log: true }),
       localRuntimeLogs: window.createOutputChannel('Skmtc local logs', { log: true }),
-      settingsDataProvider: new SettingsDataProvider({ clientConfig, extensions }),
+      settingsDataProvider: new SettingsDataProvider({ clientConfig }),
       resultsDataProvider: new ResultsDataProvider({ manifest }),
       milestonesDataProvider: new MilestonesDataProvider()
     }
@@ -138,7 +134,6 @@ export async function activate(context: ExtensionContext) {
       registerShowProjectName({ store }),
       registerDownloadGenerator(store),
       registerDeleteArtifacts({ store, settingsTreeView }),
-      registerSettingsTreeItemClicked({ store, context }),
       registerResultsTreeItemClicked({ resultsTreeView, store }),
       registerCreateDeployment({ context, store }),
       registerCreateSettings(store),
