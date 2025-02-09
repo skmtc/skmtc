@@ -4,6 +4,7 @@ import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { z } from 'zod'
+import type { SchemaItem } from '../../types/SchemaItem.ts'
 
 export type OperationInsertableArgs<EnrichmentType> = {
   context: GenerateContext
@@ -41,16 +42,25 @@ export type OperationInsertable<V, EnrichmentType> = { prototype: V } & {
   new ({ context, settings, operation }: OperationInsertableArgs<EnrichmentType>): V
   id: string
   type: 'operation'
-
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
-  transform: <Acc>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
+  toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType
+  // deno-lint-ignore ban-types
+} & Function
 
+export type IsSupportedArgs = {
+  context: GenerateContext
+  operation: OasOperation
+}
+
+export type OperationConfig<EnrichmentType> = {
+  id: string
+  type: 'operation'
+  transform: <Acc = void>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
+  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
+  isSupported: ({ context, operation }: IsSupportedArgs) => boolean
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
-  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
-  toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType
-  isSupported: ({ operation, context }: IsSupportedOperationArgs) => boolean
-  // deno-lint-ignore ban-types
-} & Function
+  toSchemaItem?: (operation: OasOperation) => SchemaItem
+}

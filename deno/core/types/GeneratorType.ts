@@ -1,11 +1,15 @@
-import type { OperationInsertable } from '../dsl/operation/OperationInsertable.ts'
-import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
-import type { GeneratedValue } from './GeneratedValue.ts'
+import type { OperationConfig } from '../dsl/operation/types.ts'
+import type { ModelConfig } from '../dsl/model/types.ts'
 
-export type GeneratorType<EnrichmentType> =
-  | OperationInsertable<GeneratedValue, EnrichmentType>
-  | ModelInsertable<GeneratedValue, EnrichmentType>
+export type GeneratorConfig<EnrichmentType> =
+  | OperationConfig<EnrichmentType>
+  | ModelConfig<EnrichmentType>
 
-export type GeneratorsMap<G extends GeneratorType<EnrichmentType>, EnrichmentType> = {
+export type GeneratorsMap<G extends GeneratorConfig<EnrichmentType>, EnrichmentType> = {
   [K in keyof G]: G[K]
 }
+
+export type GeneratorsMapContainer<EnrichmentType> = GeneratorsMap<
+  GeneratorConfig<EnrichmentType>,
+  EnrichmentType
+>

@@ -2,7 +2,7 @@ import type { ClientSettings } from '../types/Settings.ts'
 import type { PrettierConfigType } from '../types/prettierConfig.ts'
 import { CoreContext } from '../context/CoreContext.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
-import type { GeneratorsMap, GeneratorType } from '../types/GeneratorType.ts'
+import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
 type TransformArgs = {
@@ -12,10 +12,7 @@ type TransformArgs = {
   settings: ClientSettings | undefined
   prettier?: PrettierConfigType
   logsPath?: string
-  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
-    GeneratorType<EnrichmentType>,
-    EnrichmentType
-  >
+  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
   startAt: number
 }
 
@@ -25,7 +22,7 @@ export const transform = ({
   documentObject,
   settings,
   prettier,
-  toGeneratorsMap,
+  toGeneratorConfigMap,
   logsPath,
   startAt
 }: TransformArgs) => {
@@ -33,7 +30,7 @@ export const transform = ({
 
   const { artifacts, files, previews, results } = context.transform({
     settings,
-    toGeneratorsMap,
+    toGeneratorConfigMap,
     prettier,
     documentObject
   })

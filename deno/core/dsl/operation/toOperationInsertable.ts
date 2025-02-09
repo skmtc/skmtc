@@ -3,28 +3,13 @@ import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
-import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
-import type {
-  IsSupportedOperationConfigArgs,
-  OperationInsertableArgs,
-  IsSupportedOperationArgs,
-  TransformOperationArgs
-} from './OperationInsertable.ts'
+import type { OperationInsertableArgs } from './types.ts'
 import type { z } from 'zod'
 
-export type ToOperationInsertableArgs<EnrichmentType> = {
+export type BaseOperationConfig<EnrichmentType> = {
   id: string
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
-  transform: <Acc>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
-  isSupported?: ({
-    context,
-    operation,
-    enrichments
-  }: IsSupportedOperationConfigArgs<EnrichmentType>) => boolean
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    operation: OasOperation
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichmentSchema: () => z.ZodType<EnrichmentType>
 }
 
@@ -34,7 +19,7 @@ type ToEnrichmentsArgs = {
 }
 
 export const toOperationInsertable = <EnrichmentType>(
-  config: ToOperationInsertableArgs<EnrichmentType>
+  config: BaseOperationConfig<EnrichmentType>
 ) => {
   const OperationInsertable = class extends OperationBase<EnrichmentType> {
     static id = config.id
@@ -42,10 +27,6 @@ export const toOperationInsertable = <EnrichmentType>(
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
-    static transform = config.transform.bind(config)
-
-    static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
-    static toEnrichmentSchema = config.toEnrichmentSchema.bind(config)
 
     static toEnrichments = ({ operation, context }: ToEnrichmentsArgs): EnrichmentType => {
       const generatorSettings = context.toOperationSettings({
@@ -54,19 +35,7 @@ export const toOperationInsertable = <EnrichmentType>(
         method: operation.method
       })
 
-      const enrichmentSchema = config.toEnrichmentSchema?.()
-
-      return enrichmentSchema?.parse(generatorSettings.enrichments)
-    }
-
-    static isSupported = ({ context, operation }: IsSupportedOperationArgs) => {
-      if (typeof config.isSupported !== 'function') {
-        return true
-      }
-
-      const enrichments = OperationInsertable.toEnrichments({ operation, context })
-
-      return config.isSupported({ context, operation, enrichments })
+      return config.toEnrichmentSchema().parse(generatorSettings.enrichments)
     }
 
     constructor(args: OperationInsertableArgs<EnrichmentType>) {

@@ -4,9 +4,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
-import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { z } from 'zod'
-import type { TransformModelArgs } from '../model/ModelInsertable.ts'
 
 export type ModelInsertableArgs<EnrichmentType> = {
   context: GenerateContext
@@ -19,29 +17,20 @@ type ToEnrichmentsArgs = {
   context: GenerateContext
 }
 
-export type ModelConfig<EnrichmentType> = {
+export type BaseModelConfig<EnrichmentType> = {
   id: string
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  transform: <Acc>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    refName: RefName
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichmentSchema: () => z.ZodType<EnrichmentType>
 }
 
-export const toModelInsertable = <EnrichmentType>(config: ModelConfig<EnrichmentType>) => {
+export const toModelInsertable = <EnrichmentType>(config: BaseModelConfig<EnrichmentType>) => {
   const ModelInsertable = class extends ModelBase<EnrichmentType> {
     static id = config.id
     static type = 'model' as const
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
-    static transform = config.transform.bind(config)
-
-    static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
-    static toEnrichmentSchema = config.toEnrichmentSchema.bind(config)
-
     static toEnrichments = ({ refName, context }: ToEnrichmentsArgs): EnrichmentType => {
       const generatorSettings = context.toModelSettings({
         refName,

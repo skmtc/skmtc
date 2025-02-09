@@ -1,10 +1,10 @@
 import type { OasDocument } from '../oas/document/Document.ts'
-import type { GeneratorType } from '../types/GeneratorType.ts'
+import type { GeneratorConfig } from '../types/GeneratorType.ts'
 import type { RefName } from '../types/RefName.ts'
 import { handleEnrichment } from './handleEnrichment.ts'
 
 type ToEnrichmentsArgs<EnrichmentType> = {
-  generators: GeneratorType<EnrichmentType>[]
+  generators: GeneratorConfig<EnrichmentType>[]
   oasDocument: OasDocument
 }
 
@@ -41,7 +41,7 @@ export const toEnrichments = async <EnrichmentType>({
         }
       }
     } else if (generator.type === 'model') {
-      for (const [refName, schema] of Object.entries(oasDocument.components?.schemas ?? {})) {
+      for (const [refName] of Object.entries(oasDocument.components?.schemas ?? {})) {
         const enrichmentRequest = generator.toEnrichmentRequest?.(refName as RefName)
 
         if (enrichmentRequest) {

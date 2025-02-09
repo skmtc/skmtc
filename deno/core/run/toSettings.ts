@@ -2,10 +2,10 @@ import { match } from 'ts-pattern'
 import type { Method } from '../types/Method.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
 import type { ClientSettings, ClientGeneratorSettings, EnrichedSetting } from '../types/Settings.ts'
-import type { GeneratorType } from '../types/GeneratorType.ts'
+import type { GeneratorConfig } from '../types/GeneratorType.ts'
 
 type ToSettingsArgs<EnrichmentType> = {
-  generators: GeneratorType<EnrichmentType>[]
+  generators: GeneratorConfig<EnrichmentType>[]
   clientSettings: ClientSettings | undefined
   defaultSelected: boolean
   oasDocument: OasDocument

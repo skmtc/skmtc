@@ -16,7 +16,8 @@ await build({
     { name: './strings', path: './helpers/strings.ts' },
     { name: './Settings', path: './types/Settings.ts' },
     { name: './Preview', path: './types/Preview.ts' },
-    { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' }
+    { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' },
+    { name: './SchemaItem', path: './types/SchemaItem.ts' }
   ],
   outDir: '../../packages/core',
   test: false,

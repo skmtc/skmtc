@@ -55,7 +55,7 @@ ${imports.join('\n')}
 Deno.serve({
     onListen: ({hostname, port}) => console.log(\`Server started on http://\${hostname}:\${port}\`)
   },
-  createServer({ toGeneratorsMap: () => Object.fromEntries([${generators.join(', ')}].map(g => [g.id, g])), logsPath: Deno.env.get('SKMTC_LOGS_PATH') }).fetch
+  createServer({ toGeneratorConfigMap: () => Object.fromEntries([${generators.join(', ')}].map(g => [g.id, g])), logsPath: Deno.env.get('SKMTC_LOGS_PATH') }).fetch
 );
 `
 }

@@ -14,7 +14,7 @@ import { ResultsLog } from '../helpers/ResultsLog.ts'
 import * as Sentry from 'npm:@sentry/deno@8.47.0'
 import type { File } from '../dsl/File.ts'
 import { join } from 'jsr:@std/path@1.0.6'
-import type { GeneratorType, GeneratorsMap } from '../types/GeneratorType.ts'
+import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
@@ -39,10 +39,7 @@ type GenerateArgs = {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   callback: (generatorKey: GeneratorKey) => void
-  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
-    GeneratorType<EnrichmentType>,
-    EnrichmentType
-  >
+  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
 }
 
 type CoreContextArgs = {
@@ -60,10 +57,7 @@ type RenderArgs = {
 type TransformArgs = {
   documentObject: OpenAPIV3.Document
   settings: ClientSettings | undefined
-  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
-    GeneratorType<EnrichmentType>,
-    EnrichmentType
-  >
+  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
   prettier?: PrettierConfigType
 }
 
@@ -140,7 +134,7 @@ export class CoreContext {
     }
   }
 
-  transform({ documentObject, settings, toGeneratorsMap, prettier }: TransformArgs) {
+  transform({ documentObject, settings, toGeneratorConfigMap, prettier }: TransformArgs) {
     // Temp workaround to extract generator keys during
     // 'render' by invoking a callback passed during 'generate'
     try {
@@ -158,7 +152,7 @@ export class CoreContext {
 
       const { files, previews } = this.trace('generate', () => {
         this.#phase = this.#setupGeneratePhase({
-          toGeneratorsMap,
+          toGeneratorConfigMap,
           oasDocument,
           settings,
           callback
@@ -224,7 +218,7 @@ export class CoreContext {
     oasDocument,
     settings,
     callback,
-    toGeneratorsMap
+    toGeneratorConfigMap
   }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
       oasDocument,
@@ -233,7 +227,7 @@ export class CoreContext {
       callback,
       stackTrail: this.#stackTrail,
       captureCurrentResult: this.captureCurrentResult.bind(this),
-      toGeneratorsMap
+      toGeneratorConfigMap
     })
 
     return { type: 'generate', context: generateContext }

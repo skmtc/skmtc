@@ -3,6 +3,8 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import type { RefName } from '../../types/RefName.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
+import type { z } from 'zod'
+import type { SchemaItem } from '../../types/SchemaItem.ts'
 
 type ModelInsertableConstructorArgs<EnrichmentType> = {
   context: GenerateContext
@@ -38,13 +40,18 @@ export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
 
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  transform: <Acc>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
+  toEnrichments: ({ refName, context }: ToEnrichmentsArgs) => EnrichmentType
+  // deno-lint-ignore ban-types
+} & Function
 
+export type ModelConfig<EnrichmentType> = {
+  id: string
+  type: 'model'
+  transform: <Acc = void>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
+  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
-  toEnrichments: ({ refName, context }: ToEnrichmentsArgs) => EnrichmentType
-  isSupported: () => boolean
 
-  // deno-lint-ignore ban-types
-} & Function
+  toSchemaItem?: (refName: RefName) => SchemaItem
+}

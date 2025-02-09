@@ -8,9 +8,9 @@ import type { OasRef } from '../oas/ref/Ref.ts'
 import type { GetFileOptions } from './types.ts'
 import type { ClientSettings, EnrichedSetting } from '../types/Settings.ts'
 import type { Method } from '../types/Method.ts'
-import type { OperationInsertable } from '../dsl/operation/OperationInsertable.ts'
+import type { OperationConfig, OperationInsertable } from '../dsl/operation/types.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
-import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
+import type { ModelConfig, ModelInsertable } from '../dsl/model/types.ts'
 import { OperationDriver } from '../dsl/operation/OperationDriver.ts'
 import { ModelDriver } from '../dsl/model/ModelDriver.ts'
 import type { GenerationType, GeneratedValue } from '../types/GeneratedValue.ts'
@@ -27,7 +27,7 @@ import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../types/Typ
 import { Inserted } from '../dsl/Inserted.ts'
 import { File } from '../dsl/File.ts'
 import invariant from 'tiny-invariant'
-import type { GeneratorsMap, GeneratorType } from '../types/GeneratorType.ts'
+import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
 import { match } from 'ts-pattern'
 
@@ -38,10 +38,7 @@ type ConstructorArgs = {
   callback: (generatorKey: GeneratorKey) => void
   stackTrail: StackTrail
   captureCurrentResult: (result: ResultType) => void
-  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
-    GeneratorType<EnrichmentType>,
-    EnrichmentType
-  >
+  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
 }
 
 export type PickArgs = {
@@ -129,12 +126,12 @@ export type InsertReturn<
 
 type RunOperationGeneratorArgs<EnrichmentType> = {
   oasDocument: OasDocument
-  generator: OperationInsertable<GeneratedValue, EnrichmentType>
+  generatorConfig: OperationConfig<EnrichmentType>
 }
 
 type RunModelGeneratorArgs<EnrichmentType> = {
   oasDocument: OasDocument
-  generator: ModelInsertable<GeneratedValue, EnrichmentType>
+  generatorConfig: ModelConfig<EnrichmentType>
 }
 
 type ToOperationSettingsArgs<V, EnrichmentType> = {
@@ -160,10 +157,7 @@ export class GenerateContext {
   logger: log.Logger
   callback: (generatorKey: GeneratorKey) => void
   captureCurrentResult: (result: ResultType) => void
-  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
-    GeneratorType<EnrichmentType>,
-    EnrichmentType
-  >
+  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
 
   #stackTrail: StackTrail
 
@@ -174,7 +168,7 @@ export class GenerateContext {
     callback,
     captureCurrentResult,
     stackTrail,
-    toGeneratorsMap
+    toGeneratorConfigMap
   }: ConstructorArgs) {
     this.logger = logger
     this.#files = new Map()
@@ -184,27 +178,27 @@ export class GenerateContext {
     this.callback = callback
     this.#stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
-    this.toGeneratorsMap = toGeneratorsMap
+    this.toGeneratorConfigMap = toGeneratorConfigMap
   }
 
   /**
    * @internal
    */
   generate(): GenerateResult {
-    const generators = Object.values(this.toGeneratorsMap())
+    const generators = Object.values(this.toGeneratorConfigMap())
 
     Sentry.startSpan({ name: 'Generate' }, () =>
-      generators.forEach(generator => {
-        this.trace(generator.id, () => {
-          match(generator.type)
+      generators.forEach(generatorConfig => {
+        this.trace(generatorConfig.id, () => {
+          match(generatorConfig.type)
             .with('operation', () =>
-              this.#runOperationGenerator({ oasDocument: this.oasDocument, generator })
+              this.#runOperationGenerator({ oasDocument: this.oasDocument, generatorConfig })
             )
             .with('model', () =>
-              this.#runModelGenerator({ oasDocument: this.oasDocument, generator })
+              this.#runModelGenerator({ oasDocument: this.oasDocument, generatorConfig })
             )
             .otherwise(matched => {
-              throw new Error(`Invalid generator type: '${matched}' on ${generator.id}`)
+              throw new Error(`Invalid generator type: '${matched}' on ${generatorConfig.id}`)
             })
         })
       })
@@ -218,16 +212,16 @@ export class GenerateContext {
 
   #runOperationGenerator<EnrichmentType>({
     oasDocument,
-    generator
+    generatorConfig
   }: RunOperationGeneratorArgs<EnrichmentType>) {
     return oasDocument.operations.reduce((acc, operation) => {
       return this.trace([operation.path, operation.method], () => {
-        if (!generator.isSupported({ operation, context: this })) {
+        if (!generatorConfig.isSupported({ operation, context: this })) {
           this.captureCurrentResult('notSupported')
           return acc
         }
 
-        const result = generator.transform({ context: this, operation, acc })
+        const result = generatorConfig.transform({ context: this, operation, acc })
 
         this.captureCurrentResult('success')
 
@@ -238,19 +232,19 @@ export class GenerateContext {
 
   #runModelGenerator<EnrichmentType>({
     oasDocument,
-    generator
+    generatorConfig
   }: RunModelGeneratorArgs<EnrichmentType>) {
     const refNames = oasDocument.components?.toSchemasRefNames() ?? []
 
     return refNames.reduce((acc, refName) => {
       return this.trace(refName, () => {
-        if (!generator.isSupported()) {
-          this.captureCurrentResult('notSupported')
+        // if (!generatorConfig.isSupported()) {
+        //   this.captureCurrentResult('notSupported')
 
-          return acc
-        }
+        //   return acc
+        // }
 
-        const result = generator.transform({ context: this, refName, acc })
+        const result = generatorConfig.transform({ context: this, refName, acc })
 
         this.captureCurrentResult('success')
 

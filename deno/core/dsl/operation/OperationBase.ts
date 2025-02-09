@@ -1,4 +1,4 @@
-import type { OperationInsertable } from './OperationInsertable.ts'
+import type { OperationInsertable } from './types.ts'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.ts'
@@ -9,7 +9,7 @@ import type { Definition } from '../Definition.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
 import type { Inserted } from '../Inserted.ts'
-import type { ModelInsertable } from '../model/ModelInsertable.ts'
+import type { ModelInsertable } from '../model/types.ts'
 import type { RefName } from '../../types/RefName.ts'
 
 export type OperationBaseArgs<EnrichmentType> = {

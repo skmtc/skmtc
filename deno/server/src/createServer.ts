@@ -4,7 +4,7 @@ import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { clientSettings as settingsSchema, transform } from '@skmtc/core'
 import { operationPreview, modelPreview } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
-import type { GeneratorsMap, GeneratorType, OasRef, OasSchema } from '@skmtc/core'
+import type { GeneratorsMapContainer, OasRef, OasSchema } from '@skmtc/core'
 import { toOasDocument } from './toOasDocument.ts'
 import { manifestContent } from '@skmtc/core/Manifest'
 import invariant from 'tiny-invariant'
@@ -35,10 +35,7 @@ const postArtifactConfigBody = z
   .openapi('PostArtifactConfigRequestBody')
 
 type CreateServerArgs = {
-  toGeneratorsMap: <EnrichmentType>() => GeneratorsMap<
-    GeneratorType<EnrichmentType>,
-    EnrichmentType
-  >
+  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
   logsPath?: string
 }
 
@@ -120,7 +117,7 @@ type OperationSchemaItem = {
   type: 'list-item' | 'form-item'
 }
 
-export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): OpenAPIHono => {
+export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArgs): OpenAPIHono => {
   const app = new OpenAPIHono()
 
   app.use(
@@ -174,7 +171,7 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
           documentObject,
           prettier,
           settings: clientSettings,
-          toGeneratorsMap,
+          toGeneratorConfigMap,
           logsPath
         })
 
@@ -189,7 +186,7 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
 
   app.openapi(getGenerators, c => {
     return Sentry.startSpan({ name: 'GET /generators' }, () => {
-      return c.json({ generators: Object.keys(toGeneratorsMap()) })
+      return c.json({ generators: Object.keys(toGeneratorConfigMap()) })
     })
   })
 
@@ -212,11 +209,9 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
         )
       })
 
-      const generators = toGeneratorsMap()
-
       // deno-lint-ignore ban-ts-comment
       // @ts-expect-error
-      const operationSchemaItem = generators[source.generatorId]?.toSchemaItem(
+      const operationSchemaItem = toGeneratorConfigMap()[source.generatorId]?.toSchemaItem(
         operation
       ) as OperationSchemaItem
 
@@ -263,7 +258,7 @@ export const createServer = ({ toGeneratorsMap, logsPath }: CreateServerArgs): O
       const { clientSettings, defaultSelected = false, schema } = postSettingsBody.parse(body)
 
       const { enrichedSettings, extensions } = await generateSettings({
-        toGeneratorsMap,
+        toGeneratorConfigMap,
         schema,
         clientSettings,
         defaultSelected,

@@ -2642,7 +2642,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@skmtc/core@npm:^0.0.560, @skmtc/core@workspace:packages/core":
+"@skmtc/core@npm:^0.0.566, @skmtc/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@skmtc/core@workspace:packages/core"
   dependencies:
@@ -8788,7 +8788,7 @@ __metadata:
   resolution: "skmtc-vscode@workspace:apps/vscode"
   dependencies:
     "@sentry/browser": "npm:^8.26.0"
-    "@skmtc/core": "npm:^0.0.560"
+    "@skmtc/core": "npm:^0.0.566"
     "@supabase/supabase-js": "npm:^2.48.1"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/glob": "npm:^8.0.0"

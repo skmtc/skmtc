@@ -1,4 +1,4 @@
-import type { OperationInsertable } from './OperationInsertable.ts'
+import type { OperationInsertable } from './types.ts'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import { normalize } from 'jsr:@std/path@1.0.6'
