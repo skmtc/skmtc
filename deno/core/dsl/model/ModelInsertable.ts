@@ -20,6 +20,12 @@ type ToEnrichmentsArgs = {
   context: GenerateContext
 }
 
+export type TransformModelArgs<Acc> = {
+  context: GenerateContext
+  refName: RefName
+  acc: Acc | undefined
+}
+
 export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
   new ({
     context,
@@ -29,10 +35,11 @@ export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
   }: ModelInsertableConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
-  _class: 'ModelInsertable'
 
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
+  transform: <Acc>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
+
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined

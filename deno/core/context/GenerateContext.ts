@@ -220,35 +220,20 @@ export class GenerateContext {
     oasDocument,
     generator
   }: RunOperationGeneratorArgs<EnrichmentType>) {
-    return oasDocument.operations.forEach(operation => {
-      // TODO If we make OasOperation generic, for example by
-      // adding a `method` type, we could make isSupported
-      // a type guard which could help us narrow down the
-      // exact operation type that a generator receives.
-      // This would allow us to remove some type checks
-      // in the generator implementations
-      // https://linear.app/skmtc/issue/SKM-32/generic-models-operations
-
-      this.trace([operation.path, operation.method], () => {
+    return oasDocument.operations.reduce((acc, operation) => {
+      return this.trace([operation.path, operation.method], () => {
         if (!generator.isSupported({ operation, context: this })) {
-          return this.captureCurrentResult('notSupported')
+          this.captureCurrentResult('notSupported')
+          return acc
         }
 
-        const settings = this.toOperationSettings({
-          generatorId: generator.id,
-          path: operation.path,
-          method: operation.method
-        })
-
-        if (!settings) {
-          return this.captureCurrentResult('notSelected')
-        }
-
-        this.insertOperation({ insertable: generator, operation })
+        const result = generator.transform({ context: this, operation, acc })
 
         this.captureCurrentResult('success')
+
+        return result
       })
-    })
+    }, undefined)
   }
 
   #runModelGenerator<EnrichmentType>({
@@ -257,26 +242,21 @@ export class GenerateContext {
   }: RunModelGeneratorArgs<EnrichmentType>) {
     const refNames = oasDocument.components?.toSchemasRefNames() ?? []
 
-    return refNames.forEach(refName => {
-      this.trace(refName, () => {
+    return refNames.reduce((acc, refName) => {
+      return this.trace(refName, () => {
         if (!generator.isSupported()) {
-          return this.captureCurrentResult('notSupported')
+          this.captureCurrentResult('notSupported')
+
+          return acc
         }
 
-        const selected = this.toModelSettings({
-          generatorId: generator.id,
-          refName
-        })
-
-        if (!selected) {
-          return this.captureCurrentResult('notSelected')
-        }
-
-        this.insertModel({ insertable: generator, refName })
+        const result = generator.transform({ context: this, refName, acc })
 
         this.captureCurrentResult('success')
+
+        return result
       })
-    })
+    }, undefined)
   }
 
   trace<T>(token: string | string[], fn: () => T): T {

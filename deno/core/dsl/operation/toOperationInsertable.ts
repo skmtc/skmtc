@@ -7,7 +7,8 @@ import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type {
   IsSupportedOperationConfigArgs,
   OperationInsertableArgs,
-  IsSupportedOperationArgs
+  IsSupportedOperationArgs,
+  TransformOperationArgs
 } from './OperationInsertable.ts'
 import type { z } from 'zod'
 
@@ -15,6 +16,7 @@ export type ToOperationInsertableArgs<EnrichmentType> = {
   id: string
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
+  transform: <Acc>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
   isSupported?: ({
     context,
     operation,
@@ -37,10 +39,11 @@ export const toOperationInsertable = <EnrichmentType>(
   const OperationInsertable = class extends OperationBase<EnrichmentType> {
     static id = config.id
     static type = 'operation' as const
-    static _class = 'OperationInsertable' as const
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
+    static transform = config.transform.bind(config)
+
     static toEnrichmentRequest = config.toEnrichmentRequest?.bind(config)
     static toEnrichmentSchema = config.toEnrichmentSchema.bind(config)
 

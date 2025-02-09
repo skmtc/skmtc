@@ -11,6 +11,12 @@ export type OperationInsertableArgs<EnrichmentType> = {
   operation: OasOperation
 }
 
+export type TransformOperationArgs<Acc> = {
+  context: GenerateContext
+  operation: OasOperation
+  acc: Acc | undefined
+}
+
 export type WithTransformOperation = {
   transformOperation: (operation: OasOperation) => void
 }
@@ -35,9 +41,11 @@ export type OperationInsertable<V, EnrichmentType> = { prototype: V } & {
   new ({ context, settings, operation }: OperationInsertableArgs<EnrichmentType>): V
   id: string
   type: 'operation'
-  _class: 'OperationInsertable'
+
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
+  transform: <Acc>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
+
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
