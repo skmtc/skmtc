@@ -3,7 +3,7 @@
   "publisher": "skmtc",
   "displayName": "CodeSquared",
   "description": "Generate TypeScript from OpenAPI",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "engines": {
     "vscode": ">=1.93.0",
     "cursor": ">=0.42.0",
@@ -223,7 +223,7 @@
   },
   "dependencies": {
     "@sentry/browser": "^8.26.0",
-    "@skmtc/core": "^0.0.555",
+    "@skmtc/core": "^0.0.557",
     "@supabase/supabase-js": "^2.48.1",
     "@vscode-elements/elements": "^1.7.0",
     "can-ndjson-stream": "^1.0.2",

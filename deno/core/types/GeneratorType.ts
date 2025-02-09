@@ -1,10 +1,8 @@
-import type { OperationGateway } from '../dsl/operation/OperationInsertable.ts'
 import type { OperationInsertable } from '../dsl/operation/OperationInsertable.ts'
 import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
 import type { GeneratedValue } from './GeneratedValue.ts'
 
 export type GeneratorType<EnrichmentType> =
-  | OperationGateway<EnrichmentType>
   | OperationInsertable<GeneratedValue, EnrichmentType>
   | ModelInsertable<GeneratedValue, EnrichmentType>
 

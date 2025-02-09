@@ -5,18 +5,16 @@ import { resultsItem, resultsItemJsonSchema, type ResultsItem } from './Results.
 import { preview, type Preview } from './Preview.ts'
 
 export type ManifestEntry = {
-  numberOfLines: number
-  numberOfCharacters: number
-  hash: string
+  lines: number
+  characters: number
   generatorKeys: GeneratorKey[]
   destinationPath: string
 }
 
 export const manifestEntry = z
   .object({
-    numberOfLines: z.number(),
-    numberOfCharacters: z.number(),
-    hash: z.string(),
+    lines: z.number(),
+    characters: z.number(),
     generatorKeys: z.array(z.string().refine(isGeneratorKey)),
     destinationPath: z.string()
   })

@@ -15,11 +15,6 @@ export type WithTransformOperation = {
   transformOperation: (operation: OasOperation) => void
 }
 
-export type OperationOperationGatewayArgs<EnrichmentType> = {
-  context: GenerateContext
-  settings: ContentSettings<EnrichmentType>
-}
-
 export type IsSupportedOperationConfigArgs<EnrichmentType> = {
   context: GenerateContext
   operation: OasOperation
@@ -34,22 +29,6 @@ export type IsSupportedOperationArgs = {
 type ToEnrichmentsArgs = {
   operation: OasOperation
   context: GenerateContext
-}
-
-export type OperationGateway<EnrichmentType> = {
-  new ({ context, settings }: OperationOperationGatewayArgs<EnrichmentType>): WithTransformOperation
-  id: string
-  type: 'operation'
-  _class: 'OperationGateway'
-
-  toIdentifier: () => Identifier
-  toExportPath: () => string
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    operation: OasOperation
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
-  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
-  toEnrichments: ({ operation, context }: ToEnrichmentsArgs) => EnrichmentType
-  isSupported: ({ context, operation }: IsSupportedOperationArgs) => boolean
 }
 
 export type OperationInsertable<V, EnrichmentType> = { prototype: V } & {

@@ -11,7 +11,7 @@ import { readDenoJson } from '../utilities/readDenoJson'
 import { camelCase } from '@skmtc/core/strings'
 import { SkmtcStackConfig } from '@skmtc/core/Settings'
 
-const generatorTypes = ['operation', 'operation-gateway', 'model'] as const
+const generatorTypes = ['operation', 'model'] as const
 
 export const registerCreateGenerator = () => {
   return commands.registerCommand('skmtc-vscode.createGenerator', async () => {
@@ -27,11 +27,7 @@ export const registerCreateGenerator = () => {
       placeHolder: 'Select generator type'
     })
 
-    if (
-      generatorType !== 'operation' &&
-      generatorType !== 'model' &&
-      generatorType !== 'operation-gateway'
-    ) {
+    if (generatorType !== 'operation' && generatorType !== 'model') {
       return
     }
 
@@ -106,7 +102,7 @@ export const registerCreateGenerator = () => {
 type CreateGeneratorArgs = {
   serverName: string
   packageName: string
-  generatorType: 'operation' | 'model' | 'operation-gateway'
+  generatorType: 'operation' | 'model'
 }
 
 const createGenerator = async ({ serverName, packageName, generatorType }: CreateGeneratorArgs) => {
@@ -135,10 +131,6 @@ const createGenerator = async ({ serverName, packageName, generatorType }: Creat
     .with('model', () => ({
       configContent: createModelConfigContent(generatorName),
       transformerContent: createModelTransformerContent(transformerName)
-    }))
-    .with('operation-gateway', () => ({
-      configContent: createOperationGatewayConfigContent(generatorName),
-      transformerContent: createOperationGatewayTransformerContent(transformerName)
     }))
     .exhaustive()
 
@@ -170,6 +162,10 @@ const createGenerator = async ({ serverName, packageName, generatorType }: Creat
 
 const createOperationConfigContent = (generatorName: string) => {
   return `import { camelCase, Identifier, toOperationInsertable } from '@skmtc/core';
+import { z } from '@hono/zod-openapi'
+
+const enrichmentSchema = z.undefined()
+export type EnrichmentSchema = z.infer<typeof enrichmentSchema>
 
 export const OperationInsertable = toOperationInsertable({
   id: '${generatorName}',
@@ -182,56 +178,21 @@ export const OperationInsertable = toOperationInsertable({
 
   toExportPath( operation ): string {
     return \`\${this.toIdentifier( operation )}.ts\`;
-  }
-});
-`
-}
-
-const createOperationGatewayConfigContent = (generatorName: string) => {
-  return `import { Identifier, toOperationGateway } from '@skmtc/core';
-
-export const OperationGateway = toOperationGateway({
-  id: '${generatorName}',
-
-  toIdentifier(): Identifier {
-    const name = 'gateway';
-
-    return Identifier.createVariable(name);
   },
 
-  toExportPath(): string {
-    return 'gateway.ts';
+  toEnrichmentSchema() {
+    return enrichmentSchema
   }
 });
 `
-}
-
-const createOperationGatewayTransformerContent = (transformerName: string) => {
-  return `import type { OperationGatewayArgs, OasOperation, Stringable, ListArray } from '@skmtc/core';
-import { List } from '@skmtc/core';
-import { OperationGateway } from './config.ts';
-
-export class ${transformerName} extends OperationGateway {
-  list: ListArray<Stringable>;
-
-  constructor({ context, settings }: OperationGatewayArgs) {
-    super({ context, settings })
-
-    this.list = List.toArray([])
-  }
-
-  tranformOperation(operation: OasOperation): void {
-    this.list.values.push('console.log("Implement list item!")')
-  }
-
-  override toString(): string {
-    return this.list.toString();
-  }
-}`
 }
 
 const createModelConfigContent = (generatorName: string) => {
   return `import { camelCase, Identifier, toModelInsertable } from '@skmtc/core';
+import { z } from '@hono/zod-openapi'
+
+export const enrichmentSchema = z.undefined()
+export type EnrichmentSchema = z.infer<typeof enrichmentSchema>
 
 export const ModelInsertable = toModelInsertable({
   id: '${generatorName}',
@@ -244,6 +205,10 @@ export const ModelInsertable = toModelInsertable({
 
   toExportPath(operation): string {
     return \`\${this.toIdentifier(operation)}.ts\`;
+  },
+
+  toEnrichmentSchema() {
+    return enrichmentSchema
   }
 });
 `

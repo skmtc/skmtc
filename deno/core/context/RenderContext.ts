@@ -27,10 +27,9 @@ type ConstructorArgs = {
 type FileObject = {
   content: string
   path: string
-  hash: 'PLACEHOLDER'
   destinationPath: string
-  numberOfLines: number
-  numberOfCharacters: number
+  lines: number
+  characters: number
   generatorKeys: GeneratorKey[]
 }
 
@@ -179,9 +178,8 @@ const renderFile = ({
     content,
     path: toResolvedArtifactPath({ basePath, destinationPath }),
     destinationPath,
-    numberOfLines: content.split('\n').length,
-    numberOfCharacters: content.length,
-    generatorKeys,
-    hash: 'PLACEHOLDER'
+    lines: content.split('\n').length,
+    characters: content.length,
+    generatorKeys
   }
 }

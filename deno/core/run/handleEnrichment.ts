@@ -17,9 +17,9 @@ const model = genAI.getGenerativeModel({
 export const handleEnrichment = async <EnrichmentType>({
   prompt,
   content,
-  responseSchema: zodResponseSchema
+  enrichmentSchema: zodResponseSchema
 }: EnrichmentRequest<EnrichmentType>) => {
-  const responseSchema = zodToJsonSchema(zodResponseSchema, {
+  const enrichmentSchema = zodToJsonSchema(zodResponseSchema, {
     target: 'openApi3'
   }) as ResponseSchema
 
@@ -30,7 +30,7 @@ export const handleEnrichment = async <EnrichmentType>({
       topK: 40,
       maxOutputTokens: 8192,
       responseMimeType: 'application/json',
-      responseSchema: removeProperties(responseSchema, 'additionalProperties')
+      responseSchema: removeProperties(enrichmentSchema, 'additionalProperties')
     }
   })
 

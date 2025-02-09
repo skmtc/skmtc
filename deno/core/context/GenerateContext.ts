@@ -6,9 +6,9 @@ import type { OasDocument } from '../oas/document/Document.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { GetFileOptions } from './types.ts'
-import type { ClientGeneratorSettings, ClientSettings, EnrichedSetting } from '../types/Settings.ts'
+import type { ClientSettings, EnrichedSetting } from '../types/Settings.ts'
 import type { Method } from '../types/Method.ts'
-import type { OperationInsertable, OperationGateway } from '../dsl/operation/OperationInsertable.ts'
+import type { OperationInsertable } from '../dsl/operation/OperationInsertable.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
 import type { ModelInsertable } from '../dsl/model/ModelInsertable.ts'
 import { OperationDriver } from '../dsl/operation/OperationDriver.ts'
@@ -29,6 +29,7 @@ import { File } from '../dsl/File.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorsMap, GeneratorType } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
+import { match } from 'ts-pattern'
 
 type ConstructorArgs = {
   oasDocument: OasDocument
@@ -128,7 +129,7 @@ export type InsertReturn<
 
 type RunOperationGeneratorArgs<EnrichmentType> = {
   oasDocument: OasDocument
-  generator: OperationGateway<undefined> | OperationInsertable<GeneratedValue, EnrichmentType>
+  generator: OperationInsertable<GeneratedValue, EnrichmentType>
 }
 
 type RunModelGeneratorArgs<EnrichmentType> = {
@@ -192,25 +193,22 @@ export class GenerateContext {
   generate(): GenerateResult {
     const generators = Object.values(this.toGeneratorsMap())
 
-    Sentry.startSpan({ name: 'Generate operations' }, () =>
-      generators
-        .filter(generator => generator.type === 'operation')
-        .forEach(generator => {
-          this.trace(generator.id, () => {
-            this.#runOperationGenerator({ oasDocument: this.oasDocument, generator })
-          })
+    Sentry.startSpan({ name: 'Generate' }, () =>
+      generators.forEach(generator => {
+        this.trace(generator.id, () => {
+          match(generator.type)
+            .with('operation', () =>
+              this.#runOperationGenerator({ oasDocument: this.oasDocument, generator })
+            )
+            .with('model', () =>
+              this.#runModelGenerator({ oasDocument: this.oasDocument, generator })
+            )
+            .otherwise(matched => {
+              throw new Error(`Invalid generator type: '${matched}' on ${generator.id}`)
+            })
         })
+      })
     )
-
-    Sentry.startSpan({ name: 'Generate models' }, () => {
-      generators
-        .filter(generator => generator.type === 'model')
-        .forEach(generator => {
-          this.trace(generator.id, () => {
-            this.#runModelGenerator({ oasDocument: this.oasDocument, generator })
-          })
-        })
-    })
 
     return {
       files: this.#files,
@@ -222,94 +220,35 @@ export class GenerateContext {
     oasDocument,
     generator
   }: RunOperationGeneratorArgs<EnrichmentType>) {
-    if (generator._class === 'OperationGateway') {
-      const gatewaySettings = this.toGatewayContentSetting(generator)
+    return oasDocument.operations.forEach(operation => {
+      // TODO If we make OasOperation generic, for example by
+      // adding a `method` type, we could make isSupported
+      // a type guard which could help us narrow down the
+      // exact operation type that a generator receives.
+      // This would allow us to remove some type checks
+      // in the generator implementations
+      // https://linear.app/skmtc/issue/SKM-32/generic-models-operations
 
-      const gatewayInstance = new generator({
-        context: this,
-        settings: gatewaySettings
-      })
+      this.trace([operation.path, operation.method], () => {
+        if (!generator.isSupported({ operation, context: this })) {
+          return this.captureCurrentResult('notSupported')
+        }
 
-      oasDocument.operations.forEach(operation => {
-        // TODO If we make OasOperation generic, for example by
-        // adding a `method` type, we could make isSupported
-        // a type guard which could help us narrow down the
-        // exact operation type that a generator receives.
-        // This would allow us to remove some type checks
-        // in the generator implementations
-        // https://linear.app/skmtc/issue/SKM-32/generic-models-operations
-
-        const { path, method } = operation
-
-        this.trace([path, method], () => {
-          if (
-            !generator.isSupported({
-              operation,
-
-              context: this
-            })
-          ) {
-            return this.captureCurrentResult('notSupported')
-          }
-
-          const settings = this.toOperationSettings({
-            generatorId: generator.id,
-            path,
-            method
-          })
-
-          if (!settings) {
-            return this.captureCurrentResult('notSelected')
-          }
-
-          gatewayInstance.transformOperation(operation)
-
-          this.captureCurrentResult('success')
+        const settings = this.toOperationSettings({
+          generatorId: generator.id,
+          path: operation.path,
+          method: operation.method
         })
+
+        if (!settings) {
+          return this.captureCurrentResult('notSelected')
+        }
+
+        this.insertOperation({ insertable: generator, operation })
+
+        this.captureCurrentResult('success')
       })
-
-      return this.defineAndRegister({
-        identifier: gatewaySettings.identifier,
-        value: gatewayInstance,
-        destinationPath: gatewaySettings.exportPath
-      })
-    }
-
-    if (generator._class === 'OperationInsertable') {
-      return oasDocument.operations.forEach(operation => {
-        // TODO If we make OasOperation generic, for example by
-        // adding a `method` type, we could make isSupported
-        // a type guard which could help us narrow down the
-        // exact operation type that a generator receives.
-        // This would allow us to remove some type checks
-        // in the generator implementations
-        // https://linear.app/skmtc/issue/SKM-32/generic-models-operations
-
-        const { path, method } = operation
-
-        this.trace([path, method], () => {
-          if (!generator.isSupported({ operation, context: this })) {
-            return this.captureCurrentResult('notSupported')
-          }
-
-          const settings = this.toOperationSettings({
-            generatorId: generator.id,
-            path,
-            method
-          })
-
-          if (!settings) {
-            return this.captureCurrentResult('notSelected')
-          }
-
-          this.insertOperation({ insertable: generator, operation })
-
-          this.captureCurrentResult('success')
-        })
-      })
-    }
-
-    throw new Error(`Unknown generator type`)
+    })
   }
 
   #runModelGenerator<EnrichmentType>({
@@ -638,31 +577,12 @@ export class GenerateContext {
   }
 
   /**
-   * Generate and return content settings for a gateway
-   *
-   * Content settings are produced by passing base settings
-   * through toIdentifier, toExportPath methods on the gateway
-   * @param gateway
-   * @returns Content settings for model
-   */
-  toGatewayContentSetting<EnrichmentType>(
-    gateway: OperationGateway<EnrichmentType>
-  ): ContentSettings<undefined> {
-    return new ContentSettings<undefined>({
-      identifier: gateway.toIdentifier(),
-      selected: true,
-      exportPath: gateway.toExportPath(),
-      enrichments: undefined
-    })
-  }
-
-  /**
    * Look up operation settings for a given generatorId, path and method.
    * @param { generatorId, path, method }
    * @returns Base settings for operation
    */
   toOperationSettings({ generatorId, path, method }: GetOperationSettingsArgs): EnrichedSetting {
-    const generatorSettings = this.toGeneratorSettings(generatorId)
+    const generatorSettings = this.settings?.generators?.find(({ id }) => id === generatorId)
 
     const operationSettings =
       generatorSettings && 'operations' in generatorSettings
@@ -673,7 +593,7 @@ export class GenerateContext {
   }
 
   toModelSettings({ generatorId, refName }: ToModelSettingsArgs): EnrichedSetting {
-    const generatorSettings = this.toGeneratorSettings(generatorId)
+    const generatorSettings = this.settings?.generators?.find(({ id }) => id === generatorId)
 
     const modelSettings =
       generatorSettings && 'models' in generatorSettings
@@ -681,10 +601,6 @@ export class GenerateContext {
         : undefined
 
     return modelSettings ?? { selected: false, enrichments: undefined }
-  }
-
-  toGeneratorSettings(generatorId: string): ClientGeneratorSettings | undefined {
-    return this.settings?.generators?.find(({ id }) => id === generatorId)
   }
 
   #addFile(normalisedPath: string): File {

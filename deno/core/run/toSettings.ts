@@ -2,7 +2,6 @@ import { match } from 'ts-pattern'
 import type { Method } from '../types/Method.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
 import type { ClientSettings, ClientGeneratorSettings, EnrichedSetting } from '../types/Settings.ts'
-import type { OperationGateway } from '../dsl/operation/OperationInsertable.ts'
 import type { GeneratorType } from '../types/GeneratorType.ts'
 
 type ToSettingsArgs<EnrichmentType> = {
@@ -25,55 +24,34 @@ export const toSettings = <EnrichmentType>({
 
     return match(generatorType)
       .with('operation', () => {
-        if (!generatorSettings) {
-          return {
-            id: generator.id,
-            operations: toOperations({
-              generator: generator as OperationGateway<EnrichmentType>,
-              oasDocument,
-              defaultSelected,
-              operationsSettings: undefined
-            })
-          }
-        }
-
         return {
           ...generatorSettings,
           id: generator.id,
           operations: toOperations({
-            generator: generator as OperationGateway<EnrichmentType>,
             oasDocument,
             defaultSelected,
             operationsSettings:
-              'operations' in generatorSettings ? generatorSettings.operations : undefined
+              generatorSettings && 'operations' in generatorSettings
+                ? generatorSettings.operations
+                : undefined
           })
         }
       })
       .with('model', () => {
-        if (!generatorSettings) {
-          return {
-            id: generator.id,
-            models: toModels({
-              oasDocument,
-              defaultSelected,
-              modelsSettings: undefined
-            })
-          }
-        }
-
         return {
           ...generatorSettings,
           id: generator.id,
           models: toModels({
             oasDocument,
             defaultSelected,
-            modelsSettings: 'models' in generatorSettings ? generatorSettings.models : undefined
+            modelsSettings:
+              generatorSettings && 'models' in generatorSettings
+                ? generatorSettings.models
+                : undefined
           })
         }
       })
-      .otherwise(matched => {
-        throw new Error(`Invalid generator type: '${matched}' for ${generator.id}`)
-      })
+      .exhaustive()
   })
 
   return generatorsSettings
@@ -96,8 +74,7 @@ const toModels = ({ defaultSelected, oasDocument, modelsSettings }: ToModelsArgs
   )
 }
 
-type ToOperationsArgs<EnrichmentType> = {
-  generator: OperationGateway<EnrichmentType>
+type ToOperationsArgs = {
   oasDocument: OasDocument
   defaultSelected: boolean
   operationsSettings: Record<string, Partial<Record<Method, EnrichedSetting>>> | undefined
@@ -105,11 +82,7 @@ type ToOperationsArgs<EnrichmentType> = {
 
 type OperationSettings = Record<string, Record<Method, EnrichedSetting>>
 
-const toOperations = <EnrichmentType>({
-  oasDocument,
-  operationsSettings,
-  defaultSelected
-}: ToOperationsArgs<EnrichmentType>) => {
+const toOperations = ({ oasDocument, operationsSettings, defaultSelected }: ToOperationsArgs) => {
   return Object.values(oasDocument.operations).reduce<OperationSettings>((acc, operation) => {
     const { path, method } = operation
 

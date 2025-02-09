@@ -51,9 +51,9 @@ export const toOperationInsertable = <EnrichmentType>(
         method: operation.method
       })
 
-      const responseSchema = config.toEnrichmentSchema?.()
+      const enrichmentSchema = config.toEnrichmentSchema?.()
 
-      return responseSchema?.parse(generatorSettings.enrichments)
+      return enrichmentSchema?.parse(generatorSettings.enrichments)
     }
 
     static isSupported = ({ context, operation }: IsSupportedOperationArgs) => {
