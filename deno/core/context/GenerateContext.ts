@@ -510,14 +510,14 @@ export class GenerateContext {
     operation,
     insertable
   }: ToOperationSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
-    const settings = this.toOperationSettings({
+    const { selected } = this.toOperationSettings({
       generatorId: insertable.id,
       path: operation.path,
       method: operation.method
     })
 
     return new ContentSettings<EnrichmentType>({
-      selected: Boolean(settings),
+      selected,
       identifier: insertable.toIdentifier(operation),
       exportPath: insertable.toExportPath(operation),
       enrichments: insertable.toEnrichments({ operation, context: this })
@@ -537,14 +537,14 @@ export class GenerateContext {
     refName,
     insertable
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
-    const selected = this.toModelSettings({
+    const { selected } = this.toModelSettings({
       generatorId: insertable.id,
       refName
     })
 
     return new ContentSettings<EnrichmentType>({
+      selected,
       identifier: insertable.toIdentifier(refName),
-      selected: Boolean(selected),
       exportPath: insertable.toExportPath(refName),
       enrichments: insertable.toEnrichments({ refName, context: this })
     })

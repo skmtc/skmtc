@@ -150,7 +150,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.567",
+          "jsr:@skmtc/core@^0.0.568",
           "npm:@asteasolutions/zod-to-openapi@^7.3.0",
           "npm:@hono/zod-openapi@~0.18.3",
           "npm:@sentry/deno@^8.47.0"

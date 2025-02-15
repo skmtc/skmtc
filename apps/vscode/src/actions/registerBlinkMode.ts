@@ -1,99 +1,107 @@
-import { workspace, commands, ExtensionContext, window, Disposable } from 'vscode';
-import { ExtensionStore } from '../types/ExtensionStore';
-import { toRootPath } from '../utilities/getRootPath';
-import { join } from 'node:path';
-import { existsSync } from 'node:fs';
-import { toSettingsPath } from '../utilities/toSettingsPath';
-import { ensureDirSync } from 'fs-extra';
-import { readClientConfig } from '../utilities/readClientConfig';
+import { workspace, commands, ExtensionContext, window, Disposable } from 'vscode'
+import { ExtensionStore } from '../types/ExtensionStore'
+import { toRootPath } from '../utilities/getRootPath'
+import { join, resolve } from 'node:path'
+import { homedir } from 'node:os'
+import { existsSync } from 'node:fs'
+import { toSettingsPath } from '../utilities/toSettingsPath'
+import { ensureDirSync } from 'fs-extra'
+import { readClientConfig } from '../utilities/readClientConfig'
+import { SkmtcClientConfig } from '@skmtc/core/Settings'
 
 type RegisterStartBlinkModeArgs = {
-  store: ExtensionStore;
-  context: ExtensionContext;
-};
+  store: ExtensionStore
+  context: ExtensionContext
+}
 
 type LocalStore = {
-  disposables: Disposable[];
-};
+  disposables: Disposable[]
+}
 
-const SERVER_TERMINAL_NAME = 'Blink mode: skmtc';
-const BLINK_HOST = '0.0.0.0:8000';
+const SERVER_TERMINAL_NAME = 'Blink mode: skmtc'
+const BLINK_HOST = '0.0.0.0:8000'
+
+const ALLOWED_ENV_VARS = [
+  'NODE_ENV',
+  'SKMTC_LOGS_PATH',
+  'NODE_DISABLE_COLORS',
+  'DENO_DEPLOYMENT_ID',
+  'DENO_REGION',
+  'GEMINI_API_KEY',
+  'DENO_TRACE_PERMISSIONS'
+]
 
 export const registerBlinkMode = ({ store, context }: RegisterStartBlinkModeArgs) => {
   const localStore: LocalStore = {
-    disposables: [],
-  };
+    disposables: []
+  }
 
   const start = commands.registerCommand('skmtc-vscode.startBlinkMode', async () => {
     if (store.blinkMode) {
-      window.showErrorMessage('Blink mode is already running');
-      return;
+      window.showErrorMessage('Blink mode is already running')
+      return
     }
 
     store.blinkMode = {
-      url: `http://${BLINK_HOST}`,
-    };
+      url: `http://${BLINK_HOST}`
+    }
 
     if (!existsSync(join(toRootPath(), '.codesquared', 'mod.ts'))) {
-      await commands.executeCommand('skmtc-vscode.createBlinkServer');
+      await commands.executeCommand('skmtc-vscode.createBlinkServer')
     }
 
     if (!existsSync(join(toSettingsPath(), 'client.json'))) {
-      await commands.executeCommand('skmtc-vscode.createSettings');
+      await commands.executeCommand('skmtc-vscode.createSettings')
     }
 
-    const clientConfig = readClientConfig({ notifyIfMissing: false });
+    const clientConfig = readClientConfig({ notifyIfMissing: false })
 
-    const basePath = clientConfig?.settings?.basePath ?? './dist';
-
-    ensureDirSync(store.blinkLogsPath);
+    ensureDirSync(store.blinkLogsPath)
 
     const blinkSkmtcServerTerminal = window.createTerminal({
       name: SERVER_TERMINAL_NAME,
       isTransient: true,
       env: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        SKMTC_LOGS_PATH: store.blinkLogsPath,
-      },
-    });
+        SKMTC_LOGS_PATH: store.blinkLogsPath
+      }
+    })
 
-    const termSub = window.onDidStartTerminalShellExecution(async (event) => {
+    const termSub = window.onDidStartTerminalShellExecution(async event => {
       if (event.terminal.name !== SERVER_TERMINAL_NAME) {
-        return;
+        return
       }
 
-      let restart = false;
+      let restart = false
 
       for await (const data of event.execution.read()) {
-        store.localRuntimeLogs.info(data);
+        store.localRuntimeLogs.info(data)
 
         if (data.toString().includes('File change detected! Restarting!')) {
-          restart = true;
+          restart = true
         }
 
         if (restart && data.toString().includes('Server started')) {
-          store.localRuntimeLogs.info('SERVER RESTARTED');
-          console.log('SERVER RESTARTED');
+          store.localRuntimeLogs.info('SERVER RESTARTED')
+          console.log('SERVER RESTARTED')
 
-          store.localRuntimeLogs.info(data.toString());
-          console.log(data.toString());
+          store.localRuntimeLogs.info(data.toString())
+          console.log(data.toString())
 
-          await commands.executeCommand('skmtc-vscode.createArtifacts');
+          await commands.executeCommand('skmtc-vscode.createArtifacts')
         }
       }
-    });
+    })
 
-    blinkSkmtcServerTerminal.show();
+    blinkSkmtcServerTerminal.show()
 
-    blinkSkmtcServerTerminal.sendText(
-      `deno run --allow-read=./.codesquared --allow-write=${basePath},./.codesquared --allow-env=NODE_ENV,SKMTC_LOGS_PATH,DENO_DEPLOYMENT_ID,DENO_REGION,GEMINI_API_KEY --allow-net=${BLINK_HOST},generativelanguage.googleapis.com:443 --watch .codesquared/mod.ts`
-    );
+    blinkSkmtcServerTerminal.sendText(`deno run ${toDenoLaunchParams({ clientConfig })}`)
 
-    const createSettingsAndArtifactsDisposables = watchSchemaAndCreateSettingsAndArtifacts(store);
+    const createSettingsAndArtifactsDisposables = watchSchemaAndCreateSettingsAndArtifacts(store)
 
-    const createBlinkServerDisposables = watchStackConfigAndUpdateServer(store);
+    const createBlinkServerDisposables = watchStackConfigAndUpdateServer(store)
 
-    const clientConfigDisposables = watchClientConfigAndCreateArtifacts(store);
+    const clientConfigDisposables = watchClientConfigAndCreateArtifacts(store)
 
     localStore.disposables.push(
       termSub,
@@ -101,85 +109,107 @@ export const registerBlinkMode = ({ store, context }: RegisterStartBlinkModeArgs
       ...createSettingsAndArtifactsDisposables,
       ...clientConfigDisposables,
       ...createBlinkServerDisposables
-    );
+    )
 
-    context.subscriptions.push(...localStore.disposables);
-  });
+    context.subscriptions.push(...localStore.disposables)
+  })
 
   const stop = commands.registerCommand('skmtc-vscode.stopBlinkMode', () => {
-    localStore.disposables.forEach((disposable) => {
-      disposable.dispose();
-    });
+    localStore.disposables.forEach(disposable => {
+      disposable.dispose()
+    })
 
-    store.blinkMode = undefined;
-  });
+    store.blinkMode = undefined
+  })
 
-  return [start, stop, ...localStore.disposables];
-};
+  return [start, stop, ...localStore.disposables]
+}
+
+type ToDenoLaunchParamsArgs = {
+  clientConfig: SkmtcClientConfig | undefined
+}
+
+const toDenoLaunchParams = ({ clientConfig }: ToDenoLaunchParamsArgs) => {
+  const basePath = clientConfig?.settings?.basePath ?? './dist'
+
+  const denoCachePaths = [
+    join(homedir(), 'Library', 'Caches', 'deno', 'node_modules'),
+    join(homedir(), 'Library', 'Caches', 'node_modules'),
+    join(homedir(), 'Library', 'node_modules'),
+    join(homedir(), 'node_modules'),
+    join('/Users', 'node_modules'),
+    '/node_modules'
+  ]
+
+  const allowRead = ['./.codesquared', ...denoCachePaths].join(',')
+  const allowWrite = [basePath, './.codesquared'].join(',')
+  const allowEnv = ALLOWED_ENV_VARS.join(',')
+  const allowNet = [BLINK_HOST, 'generativelanguage.googleapis.com:443'].join(',')
+
+  return `--allow-read=${allowRead} --allow-write=${allowWrite} --allow-env=${allowEnv} --allow-net=${allowNet} --watch .codesquared/mod.ts`
+}
 
 const watchGeneratorsAndCreateArtifacts = (store: ExtensionStore) => {
-  const skmtcPath = join(toRootPath(), '.codesquared');
-  const skmtcWatcher = workspace.createFileSystemWatcher(`${skmtcPath}/**/*`);
+  const skmtcPath = join(toRootPath(), '.codesquared')
+  const skmtcWatcher = workspace.createFileSystemWatcher(`${skmtcPath}/**/*`)
 
-  const skmtcWatcherDisposable = skmtcWatcher.onDidChange(async (url) => {
-    store.localRuntimeLogs.info(`./.codesquared changed: ${url}`);
+  const skmtcWatcherDisposable = skmtcWatcher.onDidChange(async url => {
+    store.localRuntimeLogs.info(`./.codesquared changed: ${url}`)
 
     setTimeout(async () => {
-      await commands.executeCommand('skmtc-vscode.createArtifacts');
-    }, 50);
-  });
+      await commands.executeCommand('skmtc-vscode.createArtifacts')
+    }, 50)
+  })
 
-  return [skmtcWatcher, skmtcWatcherDisposable];
-};
+  return [skmtcWatcher, skmtcWatcherDisposable]
+}
 
 const watchSchemaAndCreateSettingsAndArtifacts = (store: ExtensionStore) => {
   const schemaWatcher = workspace.createFileSystemWatcher(
     join(toRootPath(), '.codesquared', 'schema.json')
-  );
+  )
 
   const schemaWatcherDisposable = schemaWatcher.onDidChange(async () => {
-    console.log('Create blink artifacts');
+    console.log('Create blink artifacts')
 
-    store.localRuntimeLogs.info('Create blink settings');
+    store.localRuntimeLogs.info('Create blink settings')
 
-    await commands.executeCommand('skmtc-vscode.createSettings');
+    await commands.executeCommand('skmtc-vscode.createSettings')
 
-    store.localRuntimeLogs.info('Create blink artifacts');
+    store.localRuntimeLogs.info('Create blink artifacts')
 
-    await commands.executeCommand('skmtc-vscode.createArtifacts');
+    await commands.executeCommand('skmtc-vscode.createArtifacts')
 
-    store.localRuntimeLogs.info('Blink artifacts created');
-  });
+    store.localRuntimeLogs.info('Blink artifacts created')
+  })
 
-  return [schemaWatcher, schemaWatcherDisposable];
-};
+  return [schemaWatcher, schemaWatcherDisposable]
+}
 
 const watchClientConfigAndCreateArtifacts = (store: ExtensionStore) => {
-  const schemaWatcher = workspace.createFileSystemWatcher(join(toSettingsPath(), 'client.json'));
+  const schemaWatcher = workspace.createFileSystemWatcher(join(toSettingsPath(), 'client.json'))
 
   const schemaWatcherDisposable = schemaWatcher.onDidChange(async () => {
-    console.log('Create blink artifacts');
+    console.log('Create blink artifacts')
 
-    store.localRuntimeLogs.info('Create blink artifacts');
+    store.localRuntimeLogs.info('Create blink artifacts')
 
-    await commands.executeCommand('skmtc-vscode.createArtifacts');
+    await commands.executeCommand('skmtc-vscode.createArtifacts')
 
-    store.localRuntimeLogs.info('Blink artifacts created');
-  });
+    store.localRuntimeLogs.info('Blink artifacts created')
+  })
 
-  return [schemaWatcher, schemaWatcherDisposable];
-};
+  return [schemaWatcher, schemaWatcherDisposable]
+}
 
 const watchStackConfigAndUpdateServer = (store: ExtensionStore) => {
-  const stackConfigWatcher = workspace.createFileSystemWatcher(
-    join(toSettingsPath(), 'stack.json')
-  );
+  const stackConfigWatcher = workspace.createFileSystemWatcher(join(toSettingsPath(), 'stack.json'))
 
   const createBlinkServerDisposable = stackConfigWatcher.onDidChange(async () => {
-    store.localRuntimeLogs.info('stack.json changed');
+    store.localRuntimeLogs.info('stack.json changed')
 
-    await commands.executeCommand('skmtc-vscode.createBlinkServer');
-  });
+    await commands.executeCommand('skmtc-vscode.createBlinkServer')
+  })
 
-  return [stackConfigWatcher, createBlinkServerDisposable];
-};
+  return [stackConfigWatcher, createBlinkServerDisposable]
+}
