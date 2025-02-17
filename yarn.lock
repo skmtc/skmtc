@@ -2642,7 +2642,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@skmtc/core@npm:^0.0.568, @skmtc/core@workspace:packages/core":
+"@skmtc/core@npm:^0.0.568":
+  version: 0.0.568
+  resolution: "@skmtc/core@npm:0.0.568"
+  dependencies:
+    "@babel/helper-validator-identifier": "npm:7.22.20"
+    "@deno/shim-deno": "npm:~0.18.0"
+    "@google/generative-ai": "npm:^0.21.0"
+    "@hono/zod-openapi": "npm:^0.18.3"
+    "@sentry/deno": "npm:8.47.0"
+    "@types/babel__helper-validator-identifier": "npm:7.15.2"
+    "@types/lodash-es": "npm:4.17.12"
+    lodash-es: "npm:4.17.21"
+    tiny-invariant: "npm:1.3.3"
+    ts-pattern: "npm:5.6.0"
+    zod: "npm:3.24.1"
+    zod-to-json-schema: "npm:3.24.1"
+  checksum: 10c0/60cd64f40e9875ce933758eddb25119bc8c585ab87350bf3f09c90593a11f013b04e42f54194b9f628d25a69afb6f3c6492cbabd91b05bf450f725d9a758de6a
+  languageName: node
+  linkType: hard
+
+"@skmtc/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@skmtc/core@workspace:packages/core"
   dependencies:

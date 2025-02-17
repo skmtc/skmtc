@@ -18,7 +18,6 @@ import { ContentSettings } from '../dsl/ContentSettings.ts'
 import type { RefName } from '../types/RefName.ts'
 import * as Sentry from 'npm:@sentry/deno@8.47.0'
 import type * as log from 'jsr:@std/log@^0.224.6'
-import type { GeneratorKey } from '../types/GeneratorKeys.ts'
 import type { ResultType } from '../types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
@@ -35,7 +34,6 @@ type ConstructorArgs = {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   logger: log.Logger
-  callback: (generatorKey: GeneratorKey) => void
   stackTrail: StackTrail
   captureCurrentResult: (result: ResultType) => void
   toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
@@ -155,7 +153,6 @@ export class GenerateContext {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   logger: log.Logger
-  callback: (generatorKey: GeneratorKey) => void
   captureCurrentResult: (result: ResultType) => void
   toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
 
@@ -165,7 +162,6 @@ export class GenerateContext {
     oasDocument,
     settings,
     logger,
-    callback,
     captureCurrentResult,
     stackTrail,
     toGeneratorConfigMap
@@ -175,7 +171,6 @@ export class GenerateContext {
     this.#previews = {}
     this.oasDocument = oasDocument
     this.settings = settings
-    this.callback = callback
     this.#stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap

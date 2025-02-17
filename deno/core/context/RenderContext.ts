@@ -1,11 +1,10 @@
 import * as Sentry from 'npm:@sentry/deno@8.47.0'
 import type { PrettierConfigType } from '../types/prettierConfig.ts'
 import invariant from 'npm:tiny-invariant@1.3.3'
-import type { AddGeneratorKeyArgs, FilesRenderResult, RenderResult } from './types.ts'
+import type { FilesRenderResult, RenderResult } from './types.ts'
 import { normalize } from 'jsr:@std/path@1.0.6'
 import type { Definition } from '../dsl/Definition.ts'
 import type { PickArgs } from './GenerateContext.ts'
-import type { GeneratorKey } from '../types/GeneratorKeys.ts'
 import type { ResultType } from '../types/Results.ts'
 import { toResolvedArtifactPath } from '../helpers/toResolvedArtifactPath.ts'
 import { tracer } from '../helpers/tracer.ts'
@@ -30,7 +29,6 @@ type FileObject = {
   destinationPath: string
   lines: number
   characters: number
-  generatorKeys: GeneratorKey[]
 }
 
 export class RenderContext {
@@ -38,7 +36,6 @@ export class RenderContext {
   previews: Record<string, Record<string, Preview>>
   private prettier?: PrettierConfigType
   basePath: string | undefined
-  currentDestinationPath: string | 'PRE_RENDER' | 'POST_RENDER'
   logger: log.Logger
   #stackTrail: StackTrail
   captureCurrentResult: (result: ResultType) => void
@@ -51,7 +48,6 @@ export class RenderContext {
     stackTrail,
     captureCurrentResult
   }: ConstructorArgs) {
-    this.currentDestinationPath = 'PRE_RENDER'
     this.files = files
     this.previews = previews
     this.prettier = prettier
@@ -83,16 +79,8 @@ export class RenderContext {
     const fileObjects: FileObject[] = fileEntries
       .map(([destinationPath, file]) => {
         return this.trace(destinationPath, () => {
-          // Set the current destination path to be used by
-          // addGeneratorKey method to apply generator keys
-          // to Correct file
-
-          // @TODO: Could this be combined with the tracer call above?
-          this.currentDestinationPath = destinationPath
-
           const renderedFile: FileObject = renderFile({
             content: file.toString(),
-            generatorKeys: Array.from(file.generatorKeys).filter(Boolean),
             destinationPath,
             basePath: this.basePath,
             prettier: this.prettier
@@ -104,8 +92,6 @@ export class RenderContext {
         })
       })
       .filter(fileObject => fileObject !== undefined)
-
-    this.currentDestinationPath = 'POST_RENDER'
 
     return fileObjects.reduce<FilesRenderResult>(
       (acc, { content, path, ...fileMeta }) => ({
@@ -142,19 +128,6 @@ export class RenderContext {
     return currentFile
   }
 
-  addGeneratorKey({ generatorKey }: AddGeneratorKeyArgs) {
-    const path = this.currentDestinationPath
-
-    invariant(
-      !['PRE_RENDER', 'POST_RENDER'].includes(path),
-      `Cannot add generator key during ${path} phase`
-    )
-
-    const currentFile = this.getFile(path)
-
-    currentFile.generatorKeys.add(generatorKey)
-  }
-
   pick({ name, exportPath }: PickArgs): Definition | undefined {
     return this.getFile(exportPath).definitions.get(name)
   }
@@ -162,24 +135,17 @@ export class RenderContext {
 
 type RenderFileArgs = {
   content: string
-  generatorKeys: GeneratorKey[]
   destinationPath: string
   basePath?: string
   prettier?: PrettierConfigType
 }
 
-const renderFile = ({
-  content,
-  generatorKeys,
-  destinationPath,
-  basePath
-}: RenderFileArgs): FileObject => {
+const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {
   return {
     content,
     path: toResolvedArtifactPath({ basePath, destinationPath }),
     destinationPath,
     lines: content.split('\n').length,
-    characters: content.length,
-    generatorKeys
+    characters: content.length
   }
 }

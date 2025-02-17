@@ -8,7 +8,6 @@ import type { ResultType } from '../types/Results.ts'
 import * as log from 'jsr:@std/log@^0.224.6'
 import { ResultsHandler } from './ResultsHandler.ts'
 import { StackTrail } from './StackTrail.ts'
-import type { GeneratorKey } from '../types/GeneratorKeys.ts'
 import { tracer } from '../helpers/tracer.ts'
 import { ResultsLog } from '../helpers/ResultsLog.ts'
 import * as Sentry from 'npm:@sentry/deno@8.47.0'
@@ -38,7 +37,6 @@ export type ExecutionPhase = ParsePhase | GeneratePhase | RenderPhase
 type GenerateArgs = {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
-  callback: (generatorKey: GeneratorKey) => void
   toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
 }
 
@@ -135,15 +133,7 @@ export class CoreContext {
   }
 
   transform({ documentObject, settings, toGeneratorConfigMap, prettier }: TransformArgs) {
-    // Temp workaround to extract generator keys during
-    // 'render' by invoking a callback passed during 'generate'
     try {
-      const callback = (generatorKey: GeneratorKey) => {
-        if (this.#phase?.type === 'render') {
-          this.#phase.context.addGeneratorKey({ generatorKey })
-        }
-      }
-
       const oasDocument = this.trace('parse', () => {
         this.#phase = this.#setupParsePhase(documentObject)
 
@@ -154,8 +144,7 @@ export class CoreContext {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           oasDocument,
-          settings,
-          callback
+          settings
         })
 
         return this.#phase.context.generate()
@@ -217,14 +206,12 @@ export class CoreContext {
   #setupGeneratePhase({
     oasDocument,
     settings,
-    callback,
     toGeneratorConfigMap
   }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
       oasDocument,
       settings,
       logger: this.logger,
-      callback,
       stackTrail: this.#stackTrail,
       captureCurrentResult: this.captureCurrentResult.bind(this),
       toGeneratorConfigMap

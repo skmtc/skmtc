@@ -1,6 +1,5 @@
 import { Import } from './Import.ts'
 import type { Definition } from './Definition.ts'
-import type { GeneratorKey } from '../types/GeneratorKeys.ts'
 import type { ClientSettings, ModulePackage } from '../types/Settings.ts'
 
 type FileArgs = {
@@ -13,7 +12,6 @@ export class File {
   reExports: Map<string, Record<string, Set<string>>>
   imports: Map<string, Set<string>>
   definitions: Map<string, Definition>
-  #generatorKeys: Set<GeneratorKey>
   packages: ModulePackage[] | undefined
 
   constructor({ path, settings }: FileArgs) {
@@ -21,12 +19,7 @@ export class File {
     this.reExports = new Map()
     this.imports = new Map()
     this.definitions = new Map()
-    this.#generatorKeys = new Set()
     this.packages = settings?.packages
-  }
-
-  get generatorKeys() {
-    return this.#generatorKeys
   }
 
   toString() {

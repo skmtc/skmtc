@@ -1,5 +1,3 @@
-import { isGeneratorKey } from './GeneratorKeys.ts'
-import type { GeneratorKey } from './GeneratorKeys.ts'
 import { z } from '@hono/zod-openapi'
 import { resultsItem, resultsItemJsonSchema, type ResultsItem } from './Results.ts'
 import { preview, type Preview } from './Preview.ts'
@@ -7,7 +5,6 @@ import { preview, type Preview } from './Preview.ts'
 export type ManifestEntry = {
   lines: number
   characters: number
-  generatorKeys: GeneratorKey[]
   destinationPath: string
 }
 
@@ -15,7 +12,6 @@ export const manifestEntry = z
   .object({
     lines: z.number(),
     characters: z.number(),
-    generatorKeys: z.array(z.string().refine(isGeneratorKey)),
     destinationPath: z.string()
   })
   .openapi('ManifestEntry')
