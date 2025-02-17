@@ -87,8 +87,8 @@ export const registerCreateArtifacts = (store: ExtensionStore) => {
           return
         }
 
-        const stackUrl = store.blinkMode?.url
-          ? `${store.blinkMode.url}/artifacts`
+        const stackUrl = store.devMode?.url
+          ? `${store.devMode.url}/artifacts`
           : toServerUrl({ serverName, deploymentId })
 
         console.log('STACK URL', stackUrl)

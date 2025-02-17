@@ -6,8 +6,8 @@ import { writeFileSync } from 'node:fs'
 import { toRootPath } from '../utilities/getRootPath'
 import { camelCase } from '@skmtc/core/strings'
 
-export const registerCreateBlinkServer = (store: ExtensionStore) => {
-  return commands.registerCommand('skmtc-vscode.createBlinkServer', () => {
+export const registerCreateDevServer = (store: ExtensionStore) => {
+  return commands.registerCommand('skmtc-vscode.createDevServer', () => {
     const stackConfig = readStackConfig({ notifyIfMissing: true })
 
     if (!stackConfig) {
@@ -22,7 +22,7 @@ export const registerCreateBlinkServer = (store: ExtensionStore) => {
 
     writeFileSync(join(toRootPath(), '.codesquared', 'mod.ts'), mod)
 
-    store.localRuntimeLogs.info('Blink server created')
+    store.localRuntimeLogs.info('Dev server created')
   })
 }
 

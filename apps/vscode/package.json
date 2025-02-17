@@ -102,14 +102,14 @@
         "category": "Skmtc"
       },
       {
-        "command": "skmtc-vscode.startBlinkMode",
-        "title": "Start Blink mode",
+        "command": "skmtc-vscode.startDevMode",
+        "title": "Start dev mode",
         "category": "Skmtc",
-        "icon": "$(eye)"
+        "icon": "$(wrench)"
       },
       {
-        "command": "skmtc-vscode.stopBlinkMode",
-        "title": "Stop Blink mode",
+        "command": "skmtc-vscode.stopDevMode",
+        "title": "Stop dev mode",
         "category": "Skmtc"
       },
       {

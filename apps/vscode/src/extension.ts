@@ -51,8 +51,8 @@ import { registerShowProjectName } from './actions/registerShowProjectName'
 import { createResultsView } from './create/createResultsView'
 import { registerCreateGenerator } from './actions/registerCreateGenerator'
 import { registerAddExternalGenerator } from './actions/registerAddExternalGenerator'
-import { registerBlinkMode } from './actions/registerBlinkMode'
-import { registerCreateBlinkServer } from './actions/registerCreateBlinkServer'
+import { registerDevMode } from './actions/registerDevMode'
+import { registerCreateDevServer } from './actions/registerCreateDevServer'
 import { toRootPath } from './utilities/getRootPath'
 import { join } from 'node:path'
 import { registerDownloadGenerator } from './actions/registerDownloadGenerator'
@@ -77,8 +77,8 @@ export async function activate(context: ExtensionContext) {
       deploymentId: clientConfig?.deploymentId,
       deploymentLogDisposable: undefined,
       statusBarItem: undefined,
-      blinkMode: undefined,
-      blinkLogsPath: join(toRootPath(), '.codesquared', '.logs'),
+      devMode: undefined,
+      devLogsPath: join(toRootPath(), '.codesquared', '.logs'),
       remoteRuntimeLogs: window.createOutputChannel('Skmtc runtime logs', { log: true }),
       remoteDeploymentLogs: window.createOutputChannel('Skmtc deployment logs', { log: true }),
       localRuntimeLogs: window.createOutputChannel('Skmtc local logs', { log: true }),
@@ -124,9 +124,9 @@ export async function activate(context: ExtensionContext) {
       registerAddOpenApiSchema(),
       registerAddGenerator(store),
       registerCreateProject(store),
-      registerCreateBlinkServer(store),
+      registerCreateDevServer(store),
       registerCreateArtifacts(store),
-      ...registerBlinkMode({ store, context }),
+      ...registerDevMode({ store, context }),
       registerCreateGenerator(),
       registerAddExternalGenerator(store),
       registerShowProjectName({ store }),

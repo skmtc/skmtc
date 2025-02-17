@@ -68,14 +68,14 @@ const callCreateSettings = async (store: ExtensionStore) => {
     return
   }
 
-  const serverUrl = store.blinkMode?.url ?? toServerUrl({ serverName })
+  const serverUrl = store.devMode?.url ?? toServerUrl({ serverName })
 
   const res = await createSettings({
     store,
     serverUrl,
     schema,
     clientSettings: clientConfig.settings,
-    defaultSelected: Boolean(store.blinkMode?.url)
+    defaultSelected: Boolean(store.devMode?.url)
   })
 
   const { generators, extensions } = createSettingsRespose.parse(res)
