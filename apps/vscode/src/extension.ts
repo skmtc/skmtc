@@ -46,7 +46,6 @@ import { registerSelectNone } from './actions/registerSelectNone'
 import { ResultsDataProvider } from './providers/ResultsDataProvider'
 import { createSettingsView } from './create/createSettingsView'
 import { registerResultsTreeItemClicked } from './actions/registerResultsTreeItemClicked'
-import { createStatusBarItem } from './create/createStatusBarItem'
 import { registerShowProjectName } from './actions/registerShowProjectName'
 import { createResultsView } from './create/createResultsView'
 import { registerCreateGenerator } from './actions/registerCreateGenerator'
@@ -56,15 +55,16 @@ import { registerCreateDevServer } from './actions/registerCreateDevServer'
 import { toRootPath } from './utilities/getRootPath'
 import { join } from 'node:path'
 import { registerDownloadGenerator } from './actions/registerDownloadGenerator'
-import { registerCreateProject } from './actions/registerCreateProject'
+import { registerCreateStack } from './actions/registerCreateStack'
 import { MilestonesDataProvider } from './providers/MilestonesDataProvider'
 import { createMilestonesView } from './create/createMilestonesView'
 import { registerAddGenerator } from './actions/registerAddGenerator'
 import { registerAddOpenApiSchema } from './actions/registerAddOpenApiSchema'
-
+import { readStackConfig } from './utilities/readStackConfig'
 export async function activate(context: ExtensionContext) {
   try {
     const clientConfig = readClientConfig({ notifyIfMissing: false })
+    const stackConfig = readStackConfig({ notifyIfMissing: false })
 
     const manifest = readManifest()
 
@@ -72,11 +72,7 @@ export async function activate(context: ExtensionContext) {
       sentryClient: sentryClient,
       settingPanel: undefined,
       pluginPanel: undefined,
-      stackName: clientConfig?.stackName,
-      serverName: clientConfig?.serverName,
-      deploymentId: clientConfig?.deploymentId,
       deploymentLogDisposable: undefined,
-      statusBarItem: undefined,
       devMode: undefined,
       devLogsPath: join(toRootPath(), '.codesquared', '.logs'),
       remoteRuntimeLogs: window.createOutputChannel('Skmtc runtime logs', { log: true }),
@@ -92,24 +88,18 @@ export async function activate(context: ExtensionContext) {
     const authProvider = new SupabaseAuthenticationProvider(context)
     const authDisposables = registerAuth(authProvider)
 
-    if (clientConfig?.serverName && clientConfig?.deploymentId) {
-      store.deploymentId = clientConfig.deploymentId
-      store.serverName = clientConfig.serverName
-
-      // subscriptions.push(store.deploymentLogDisposable);
-    }
-
     // Create a tree view to contain settings items
-    const settingsTreeView = createSettingsView({ store, clientConfig })
+    const settingsTreeView = createSettingsView({
+      store,
+      accountName: clientConfig?.accountName,
+      stackName: stackConfig?.name
+    })
 
     const resultsTreeView = createResultsView({ store })
 
     const milestonesTreeView = createMilestonesView({ store })
 
     const watcherDisposables = createWatchers({ store, settingsTreeView })
-
-    // create a new status bar item that we can now manage
-    store.statusBarItem = createStatusBarItem({ store })
 
     const checkBoxDisposable = settingsTreeView.onDidChangeCheckboxState(handleCheckboxStateChange)
 
@@ -120,16 +110,15 @@ export async function activate(context: ExtensionContext) {
       settingsTreeView,
       resultsTreeView,
       milestonesTreeView,
-      store.statusBarItem,
       registerAddOpenApiSchema(),
       registerAddGenerator(store),
-      registerCreateProject(store),
+      registerCreateStack(store),
       registerCreateDevServer(store),
       registerCreateArtifacts(store),
       ...registerDevMode({ store, context }),
       registerCreateGenerator(),
       registerAddExternalGenerator(store),
-      registerShowProjectName({ store }),
+      registerShowProjectName(),
       registerDownloadGenerator(store),
       registerDeleteArtifacts({ store, settingsTreeView }),
       registerResultsTreeItemClicked({ resultsTreeView, store }),

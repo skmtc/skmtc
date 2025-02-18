@@ -1,15 +1,13 @@
-import { commands, QuickPickItemKind, window } from 'vscode';
-import { ExtensionStore } from '../types/ExtensionStore';
+import { commands, QuickPickItemKind, window } from 'vscode'
+import { readClientConfig } from '../utilities/readClientConfig'
 
-type RegisterShowProjectNameArgs = {
-  store: ExtensionStore;
-};
-
-export const registerShowProjectName = ({ store }: RegisterShowProjectNameArgs) => {
+export const registerShowProjectName = () => {
   return commands.registerCommand('skmtc-vscode.showProjectName', () => {
+    const clientConfig = readClientConfig({ notifyIfMissing: false })
+
     return window.showQuickPick([
       { label: 'status', kind: QuickPickItemKind.Separator },
-      { label: `Current version: ${store.deploymentId}` },
-    ]);
-  });
-};
+      { label: `Current deployment: ${clientConfig?.deploymentId}` }
+    ])
+  })
+}

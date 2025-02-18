@@ -17,6 +17,7 @@ import { ManifestContent } from '@skmtc/core/Manifest'
 import { ExtensionStore } from '../types/ExtensionStore'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
+import { readStackConfig } from '../utilities/readStackConfig'
 
 export type PrettierConfigType = {
   printWidth?: number
@@ -51,10 +52,16 @@ export const registerCreateArtifacts = (store: ExtensionStore) => {
       return
     }
 
+    const stackConfig = readStackConfig({ notifyIfMissing: true })
+
+    if (!stackConfig) {
+      return
+    }
+
     window.withProgress(
       {
         location: ProgressLocation.Notification,
-        title: `${clientConfig.stackName}`,
+        title: `${stackConfig.name}`,
         cancellable: false
       },
       async (progress, token) => {
@@ -64,20 +71,10 @@ export const registerCreateArtifacts = (store: ExtensionStore) => {
 
         progress.report({ message: 'generating artifacts' })
 
-        const { stackName, serverName, deploymentId } = clientConfig
+        const { name: stackName } = stackConfig
 
         if (!stackName) {
-          window.showErrorMessage(`client.json is missing a 'stackName' field`)
-          return
-        }
-
-        if (!serverName) {
-          window.showErrorMessage(`client.json is missing a 'serverName' field`)
-          return
-        }
-
-        if (!deploymentId) {
-          window.showErrorMessage(`client.json is missing a 'deploymentId' field`)
+          window.showErrorMessage(`stack.json is missing a 'name' field`)
           return
         }
 
@@ -87,19 +84,13 @@ export const registerCreateArtifacts = (store: ExtensionStore) => {
           return
         }
 
-        const stackUrl = store.devMode?.url
-          ? `${store.devMode.url}/artifacts`
-          : toServerUrl({ serverName, deploymentId })
-
-        console.log('STACK URL', stackUrl)
-
         return new Promise<void>(async resolvePromise => {
           const res = await createArtifacts({
             store,
-            stackUrl,
             schema: schema,
-            clientSettings: clientConfig.settings,
-            prettier: undefined
+            clientConfig,
+            prettier: undefined,
+            stackName
           })
 
           if (!res) {

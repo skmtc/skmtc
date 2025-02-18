@@ -28,11 +28,15 @@
     "jsr:@std/yaml@0.215.0": "0.215.0",
     "jsr:@ts-morph/bootstrap@0.24": "0.24.0",
     "jsr:@ts-morph/common@0.24": "0.24.0",
+    "npm:@apiture/openapi-down-convert@0.14.0": "0.14.0",
     "npm:@google/generative-ai@0.21": "0.21.0",
     "npm:@hono/zod-openapi@~0.18.3": "0.18.4_hono@4.7.0_zod@3.24.1",
     "npm:@sentry/deno@8.47.0": "8.47.0",
+    "npm:@sentry/deno@^8.47.0": "8.47.0",
     "npm:@types/babel__helper-validator-identifier@7.15.2": "7.15.2",
     "npm:@types/lodash-es@4.17.12": "4.17.12",
+    "npm:@types/swagger2openapi@7.0.4": "7.0.4",
+    "npm:hono@4.6.16": "4.6.16",
     "npm:lodash-es@4.17.21": "4.17.21",
     "npm:openapi-types@12.1.3": "12.1.3",
     "npm:tiny-invariant@1.3.3": "1.3.3",
@@ -162,6 +166,14 @@
     }
   },
   "npm": {
+    "@apiture/openapi-down-convert@0.14.0": {
+      "integrity": "sha512-rfK+T1+Jd+j/blzKbiQQc68a8dNUtn1FD3Edf0m7wm8bX4tzpVRGp3D0UpwH4EWHNYqLA/NMlNS8QAOBF17rVQ==",
+      "dependencies": [
+        "commander",
+        "js-yaml",
+        "typescript"
+      ]
+    },
     "@asteasolutions/zod-to-openapi@7.3.0_zod@3.24.1": {
       "integrity": "sha512-7tE/r1gXwMIvGnXVUdIqUhCU1RevEFC4Jk6Bussa0fk1ecbnnINkZzj1EOAJyE/M3AI25DnHT/zKQL1/FPFi8Q==",
       "dependencies": [
@@ -177,14 +189,14 @@
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
         "@hono/zod-validator",
-        "hono",
+        "hono@4.7.0",
         "zod"
       ]
     },
     "@hono/zod-validator@0.4.2_hono@4.7.0_zod@3.24.1": {
       "integrity": "sha512-1rrlBg+EpDPhzOV4hT9pxr5+xDVmKuz6YJl+la7VCwK6ass5ldyKm5fD+umJdV2zhHD6jROoCCv8NbTwyfhT0g==",
       "dependencies": [
-        "hono",
+        "hono@4.7.0",
         "zod"
       ]
     },
@@ -209,8 +221,36 @@
     "@types/lodash@4.17.15": {
       "integrity": "sha512-w/P33JFeySuhN6JLkysYUK2gEmy9kHHFN7E8ro0tkfmlDOgxBDzWEZ/J8cWA+fHqFevpswDTFZnDx+R9lbL6xw=="
     },
+    "@types/node@22.5.4": {
+      "integrity": "sha512-FDuKUJQm/ju9fT/SeX/6+gBzoPzlVCzfzmGkwKvRHQVxi4BntVbyIwf6a4Xn62mrvndLiml6z/UBXIdEVjQLXg==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
+    "@types/swagger2openapi@7.0.4": {
+      "integrity": "sha512-ffMqzciTDihOKH4Q//9Ond1yb5JP1P5FC/aFPsLK4blea1Fwk2aYctiNCkAh5etDYFswFXS+5LV/vuGkf+PU6A==",
+      "dependencies": [
+        "@types/node",
+        "openapi-types"
+      ]
+    },
+    "argparse@2.0.1": {
+      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="
+    },
+    "commander@9.5.0": {
+      "integrity": "sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ=="
+    },
+    "hono@4.6.16": {
+      "integrity": "sha512-iE6xOPwDYlfnZFwk6BfIMMIH4WZm3pPhz6rc1uJM/OPew0pjG5K6p8WTLaMBY1/szF/T0TaEjprMpwn16BA0NQ=="
+    },
     "hono@4.7.0": {
       "integrity": "sha512-hV97aIR4WYbG30k234sD9B3VNr1ZWdQRmrVF76LKFlmI7O9Yo70mG9+mFwyQ6Sjrz4wH71GfnBxv6CPjcx3QNw=="
+    },
+    "js-yaml@4.1.0": {
+      "integrity": "sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==",
+      "dependencies": [
+        "argparse"
+      ]
     },
     "lodash-es@4.17.21": {
       "integrity": "sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw=="
@@ -229,6 +269,12 @@
     },
     "ts-pattern@5.6.0": {
       "integrity": "sha512-SL8u60X5+LoEy9tmQHWCdPc2hhb2pKI6I1tU5Jue3v8+iRqZdcT3mWPwKKJy1fMfky6uha82c8ByHAE8PMhKHw=="
+    },
+    "typescript@4.9.5": {
+      "integrity": "sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g=="
+    },
+    "undici-types@6.19.8": {
+      "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
     },
     "yaml@2.7.0": {
       "integrity": "sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA=="
@@ -279,7 +325,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.569",
+          "jsr:@skmtc/core@^0.0.570",
           "npm:@asteasolutions/zod-to-openapi@^7.3.0",
           "npm:@hono/zod-openapi@~0.18.3",
           "npm:@sentry/deno@^8.47.0"

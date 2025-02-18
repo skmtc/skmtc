@@ -64,8 +64,8 @@
         "category": "Skmtc"
       },
       {
-        "command": "skmtc-vscode.createProject",
-        "title": "Create new project",
+        "command": "skmtc-vscode.createStack",
+        "title": "Create new generator stack",
         "category": "Skmtc"
       },
       {
@@ -223,7 +223,7 @@
   },
   "dependencies": {
     "@sentry/browser": "^8.26.0",
-    "@skmtc/core": "^0.0.569",
+    "@skmtc/core": "^0.0.570",
     "@supabase/supabase-js": "^2.48.1",
     "@vscode-elements/elements": "^1.7.0",
     "can-ndjson-stream": "^1.0.2",

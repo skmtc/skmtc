@@ -1,24 +1,21 @@
-import { SkmtcClientConfig } from '@skmtc/core/Settings';
-import { ExtensionStore } from '../types/ExtensionStore';
-import { window } from 'vscode';
+import { ExtensionStore } from '../types/ExtensionStore'
+import { window } from 'vscode'
 
 type CreateSettingsViewArgs = {
-  store: ExtensionStore;
-  clientConfig?: SkmtcClientConfig;
-};
+  store: ExtensionStore
+  accountName: string | undefined
+  stackName: string | undefined
+}
 
-export const createSettingsView = ({ store, clientConfig }: CreateSettingsViewArgs) => {
+export const createSettingsView = ({ store, accountName, stackName }: CreateSettingsViewArgs) => {
   // Create a tree view to contain settings items
   const settingsTreeView = window.createTreeView('skmtc-vscode.settingsTree', {
     treeDataProvider: store.settingsDataProvider,
     showCollapseAll: false,
-    manageCheckboxStateManually: true,
-  });
+    manageCheckboxStateManually: true
+  })
 
-  settingsTreeView.description =
-    clientConfig?.serverName && clientConfig?.stackName
-      ? `${clientConfig.serverName}/${clientConfig.stackName}`
-      : '';
+  settingsTreeView.description = accountName && stackName ? `${accountName}/${stackName}` : ''
 
-  return settingsTreeView;
-};
+  return settingsTreeView
+}

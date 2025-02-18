@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { readClientConfig } from '../utilities/readClientConfig'
 import { readManifest } from '../utilities/readManifest'
 import { toSettingsPath } from '../utilities/toSettingsPath'
+import { readStackConfig } from '../utilities/readStackConfig'
 
 type CreateWatchersArgs = {
   store: ExtensionStore
@@ -123,28 +124,14 @@ type FilesUpdatedArgs = {
 
 export const filesUpdated = async ({ store, settingsTreeView }: FilesUpdatedArgs) => {
   const clientConfig = readClientConfig({ notifyIfMissing: false })
+  const stackConfig = readStackConfig({ notifyIfMissing: false })
 
   store.settingsDataProvider.refresh({ clientConfig })
 
-  if (
-    store.statusBarItem &&
-    clientConfig?.stackName &&
-    store.stackName !== clientConfig.stackName
-  ) {
-    store.statusBarItem.text = `$(github-action) ${clientConfig.stackName}`
-    store.statusBarItem.show()
-  }
+  const stackName = stackConfig?.name
+  const accountName = clientConfig?.accountName
 
-  store.stackName = clientConfig?.stackName
-
-  settingsTreeView.description = clientConfig?.stackName
-
-  if (store.deploymentId !== clientConfig?.deploymentId) {
-    store.remoteRuntimeLogs.clear()
-    store.deploymentLogDisposable?.dispose()
-  }
-
-  store.deploymentId = clientConfig?.deploymentId
+  settingsTreeView.description = stackName && accountName ? `${accountName}/${stackName}` : ''
 
   if (!clientConfig) {
     return
@@ -165,9 +152,9 @@ const clientConfigCreated = ({ store }: ClientConfigCreatedArgs) => {
     return
   }
 
-  const { deploymentId, serverName } = clientConfig
+  const { deploymentId } = clientConfig
 
-  if (!deploymentId || !serverName) {
+  if (!deploymentId) {
     return
   }
 

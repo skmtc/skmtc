@@ -14,26 +14,33 @@ export type Plugin = {
 type CreateDeploymentArgs = {
   assets: DenoFiles
   stackConfig: SkmtcStackConfig
+  stackName: string
 }
 
 const denoDeployment = z.object({
   id: z.string(),
-  serverName: z.string(),
+  stackName: z.string(),
   projectId: z.string(),
   status: z.enum(['pending', 'success', 'failed']),
   createdAt: z.string()
 })
 
-export const createDeployment = async ({ assets, stackConfig }: CreateDeploymentArgs) => {
+export const createDeployment = async ({
+  assets,
+  stackConfig,
+  stackName
+}: CreateDeploymentArgs) => {
   const session = await getSession({ createIfNone: true })
 
   if (!session) {
     return
   }
 
-  console.log('SKMTC_API', SKMTC_API)
+  const url = `${SKMTC_API}/servers/${session.account.label}/${stackName}`
 
-  const res = await fetch(`${SKMTC_API}/servers`, {
+  console.log('URL', url)
+
+  const res = await fetch(url, {
     method: 'POST',
     body: JSON.stringify({
       assets,
@@ -47,11 +54,13 @@ export const createDeployment = async ({ assets, stackConfig }: CreateDeployment
     }
   })
 
-  const body = await res.json()
-
   if (!res.ok) {
-    throw new Error(`Failed to deploy stack: ${body.message}`)
+    const content = await res.text()
+
+    throw new Error(`Failed to deploy stack: ${content}`)
   }
+
+  const body = await res.json()
 
   return denoDeployment.parse(body)
 }

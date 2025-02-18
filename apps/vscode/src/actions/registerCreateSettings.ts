@@ -1,12 +1,12 @@
 import { commands, ProgressLocation, window } from 'vscode'
 import { readSchemaFile } from '../utilities/readSchemaFile'
 import { readClientConfig } from '../utilities/readClientConfig'
-import { toServerUrl } from '../utilities/toServerUrl'
 import { z } from 'zod'
 import { clientGeneratorSettings } from '@skmtc/core/Settings'
 import { createSettings } from '../api/createSettings'
 import { writeClientConfig } from '../utilities/writeClientConfig'
 import { ExtensionStore } from '../types/ExtensionStore'
+import { readStackConfig } from '../utilities/readStackConfig'
 
 export const registerCreateSettings = (store: ExtensionStore) => {
   return commands.registerCommand('skmtc-vscode.createSettings', ({ selectAll } = {}) => {
@@ -55,10 +55,9 @@ const callCreateSettings = async (store: ExtensionStore) => {
     return
   }
 
-  const { serverName } = clientConfig
+  const stackConfig = readStackConfig({ notifyIfMissing: true })
 
-  if (!serverName) {
-    window.showErrorMessage(`client.json is missing a 'serverName' field`)
+  if (!stackConfig?.name) {
     return
   }
 
@@ -68,17 +67,14 @@ const callCreateSettings = async (store: ExtensionStore) => {
     return
   }
 
-  const serverUrl = store.devMode?.url ?? toServerUrl({ serverName })
-
   const res = await createSettings({
     store,
-    serverUrl,
     schema,
-    clientSettings: clientConfig.settings,
-    defaultSelected: Boolean(store.devMode?.url)
+    clientConfig,
+    stackName: stackConfig.name
   })
 
-  const { generators, extensions } = createSettingsRespose.parse(res)
+  const { generators } = createSettingsRespose.parse(res)
 
   clientConfig.settings.generators = generators
 

@@ -76,16 +76,14 @@ export type ClientSettings = {
 }
 
 export type SkmtcClientConfig = {
-  serverName?: string
-  stackName?: string
+  accountName?: string
   deploymentId?: string
   settings: ClientSettings
 }
 
 export const skmtcClientConfig = z
   .object({
-    serverName: z.string().optional(),
-    stackName: z.string().optional(),
+    accountName: z.string().optional(),
     deploymentId: z.string().optional(),
     settings: clientSettings
   })

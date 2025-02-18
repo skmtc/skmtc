@@ -1,4 +1,4 @@
-import { WebviewPanel, LogOutputChannel, StatusBarItem } from 'vscode'
+import { WebviewPanel, LogOutputChannel } from 'vscode'
 import { SettingsDataProvider } from '../providers/SettingsDataProvider'
 import { BrowserClient } from '@sentry/browser'
 import { ResultsDataProvider } from '../providers/ResultsDataProvider'
@@ -15,10 +15,6 @@ export type ExtensionStore = {
   remoteRuntimeLogs: LogOutputChannel
   remoteDeploymentLogs: LogOutputChannel
   localRuntimeLogs: LogOutputChannel
-  deploymentId: string | undefined
-  serverName: string | undefined
-  stackName: string | undefined
-  statusBarItem: StatusBarItem | undefined
   settingsDataProvider: SettingsDataProvider
   resultsDataProvider: ResultsDataProvider
   milestonesDataProvider: MilestonesDataProvider

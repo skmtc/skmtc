@@ -1,56 +1,90 @@
-import { getSession } from '../auth/getSession';
-import { window } from 'vscode';
-import { ClientSettings } from '@skmtc/core/Settings';
-import { createArtifactsResponse } from '../types/generationResponse';
-import { ExtensionStore } from '../types/ExtensionStore';
+import { getSession } from '../auth/getSession'
+import { window } from 'vscode'
+import { SkmtcClientConfig } from '@skmtc/core/Settings'
+import { createArtifactsResponse } from '../types/generationResponse'
+import { ExtensionStore } from '../types/ExtensionStore'
+import { toServerUrl } from '../utilities/toServerUrl'
 
 type GenerateArgs = {
-  store: ExtensionStore;
-  stackUrl: string;
-  schema: string;
-  prettier: string | undefined;
-  clientSettings: ClientSettings | undefined;
-};
+  store: ExtensionStore
+  schema: string
+  prettier: string | undefined
+  clientConfig: SkmtcClientConfig
+  stackName: string
+}
 
 export const createArtifacts = async ({
   store,
-  stackUrl,
   schema,
   prettier,
-  clientSettings,
+  clientConfig,
+  stackName
 }: GenerateArgs) => {
   try {
-    const session = await getSession({ createIfNone: true });
+    const reqParams = await getStackUrl({ store, clientConfig, stackName })
 
-    if (!session) {
-      return;
+    if (!reqParams) {
+      return null
     }
 
-    const res = await fetch(stackUrl, {
+    const res = await fetch(reqParams.url, {
       method: 'POST',
       body: JSON.stringify({
         schema,
-        clientSettings,
-        prettier,
+        clientSettings: clientConfig.settings,
+        prettier
       }),
       headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         'Content-Type': 'application/json',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        'Authorization': `Bearer ${session.accessToken}`,
-      },
-    });
+        ...(reqParams.accessToken ? { Authorization: `Bearer ${reqParams.accessToken}` } : null)
+      }
+    })
 
-    const json = await res.json();
+    const json = await res.json()
 
-    return createArtifactsResponse.parse(json);
+    return createArtifactsResponse.parse(json)
   } catch (error) {
-    store.sentryClient.captureException(error);
+    store.sentryClient.captureException(error)
 
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
 
-    window.showErrorMessage(`Failed to run stack: ${errorMessage}`);
+    window.showErrorMessage(`Failed to run stack: ${errorMessage}`)
 
-    return null;
+    return null
   }
-};
+}
+
+type GetStackUrlArgs = {
+  store: ExtensionStore
+  clientConfig: SkmtcClientConfig
+  stackName: string
+}
+
+const getStackUrl = async ({ store, clientConfig, stackName }: GetStackUrlArgs) => {
+  if (store.devMode?.url) {
+    return {
+      url: `${store.devMode.url}/artifacts`,
+      accessToken: undefined
+    }
+  }
+
+  const { deploymentId } = clientConfig
+
+  if (!deploymentId) {
+    window.showErrorMessage(`client.json is missing a 'deploymentId' field`)
+    return
+  }
+
+  const session = await getSession({ createIfNone: true })
+
+  if (!session) {
+    return
+  }
+
+  const url = toServerUrl({ accountName: session.account.label, stackName, deploymentId })
+
+  return {
+    url,
+    accessToken: session.accessToken
+  }
+}

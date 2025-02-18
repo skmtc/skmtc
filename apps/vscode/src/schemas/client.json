@@ -5,13 +5,9 @@
   "description": "Client settings for Skmtc code generation",
   "type": "object",
   "properties": {
-    "serverName": {
+    "accountName": {
       "type": "string",
-      "description": "Name of server where the generator is running. The initial value is your Github username."
-    },
-    "stackName": {
-      "type": "string",
-      "description": "Name of the generator stack to use for code generation."
+      "description": "Name of account where the generator stack is running."
     },
     "deploymentId": {
       "type": "string",

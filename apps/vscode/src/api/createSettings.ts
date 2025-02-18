@@ -1,61 +1,79 @@
 import { getSession } from '../auth/getSession'
 import { window } from 'vscode'
-import type { ClientSettings } from '@skmtc/core/Settings'
+import type { SkmtcClientConfig } from '@skmtc/core/Settings'
 import { ExtensionStore } from '../types/ExtensionStore'
+import { toServerUrl } from '../utilities/toServerUrl'
 
 type CreateSettingsArgs = {
   store: ExtensionStore
-  serverUrl: string
   schema: string
-  clientSettings: ClientSettings | undefined
-  defaultSelected?: boolean
+  clientConfig: SkmtcClientConfig
+  stackName: string
 }
 
 export const createSettings = async ({
   store,
-  serverUrl,
   schema,
-  clientSettings,
-  defaultSelected
+  clientConfig,
+  stackName
 }: CreateSettingsArgs) => {
+  const reqParams = await getSettingsUrl({ store, stackName })
+
+  if (!reqParams) {
+    return
+  }
+
+  store.localRuntimeLogs.info(`Creating settings on ${reqParams.url}`)
+
+  const res = await fetch(reqParams.url, {
+    method: 'POST',
+    body: JSON.stringify({
+      schema,
+      clientSettings: clientConfig.settings,
+      defaultSelected: reqParams.defaultSelected
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(reqParams.accessToken ? { Authorization: `Bearer ${reqParams.accessToken}` } : null)
+    }
+  })
+
+  if (!res.ok) {
+    const data = await res.text()
+
+    window.showErrorMessage(`Failed to generate setttings 1: ${data}`)
+  } else {
+    const data = await res.json()
+
+    return data
+  }
+}
+
+type GetSettingsUrlArgs = {
+  store: ExtensionStore
+  stackName: string
+}
+
+const getSettingsUrl = async ({ store, stackName }: GetSettingsUrlArgs) => {
+  if (store.devMode?.url) {
+    return {
+      url: `${store.devMode.url}/settings`,
+      accessToken: undefined,
+      defaultSelected: true
+    }
+  }
+
   const session = await getSession({ createIfNone: true })
 
   if (!session) {
     return
   }
 
-  store.localRuntimeLogs.info(`Creating settings on ${serverUrl}`)
+  const serverUrl = toServerUrl({ accountName: session.account.label, stackName })
 
-  const url = `${serverUrl}/settings`
-
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({
-      schema,
-      clientSettings,
-      defaultSelected: defaultSelected ?? false
-    }),
-    headers: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      'Content-Type': 'application/json',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      Authorization: `Bearer ${session.accessToken}`
-    }
-  })
-
-  console.log('res', res)
-
-  if (!res.ok) {
-    const data = await res.text()
-
-    console.log('data', data)
-
-    window.showErrorMessage(`Failed to generate setttings 1: ${data}`)
-  } else {
-    const data = await res.json()
-
-    console.log('data', data)
-
-    return data
+  return {
+    url: `${serverUrl}/settings`,
+    accessToken: session.accessToken,
+    defaultSelected: false
   }
 }

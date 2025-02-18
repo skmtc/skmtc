@@ -24,6 +24,12 @@ type AssetEntry = [string, DenoFile]
 export const registerCreateDeployment = ({ store }: RegisterDeployStackArgs) => {
   return commands.registerCommand('skmtc-vscode.deployStack', async () => {
     return await Sentry.startSpan({ name: 'Collate content' }, async () => {
+      if (store.devMode?.url) {
+        // @todo: disable deploy command in dev mode
+        window.showErrorMessage(`Cannot deploy in dev mode`)
+        return
+      }
+
       const stackConfig = readStackConfig({ notifyIfMissing: true })
 
       if (!stackConfig) {
@@ -55,7 +61,8 @@ export const registerCreateDeployment = ({ store }: RegisterDeployStackArgs) => 
           try {
             const res = await createDeployment({
               assets,
-              stackConfig
+              stackConfig,
+              stackName
             })
 
             if (res) {
@@ -65,14 +72,13 @@ export const registerCreateDeployment = ({ store }: RegisterDeployStackArgs) => 
                 pollForStatus({
                   resolve,
                   stackName,
-                  serverName: res.serverName,
                   deploymentId: res.id,
                   store
                 })
               })
             }
           } catch (error) {
-            console.error('FAILED TO DEPLOY', error)
+            store.sentryClient.captureException(error)
 
             await handleDeploymentFailure({ stackName, store, deploymentId: undefined })
           }
@@ -85,18 +91,11 @@ export const registerCreateDeployment = ({ store }: RegisterDeployStackArgs) => 
 type PollForStatusArgs = {
   resolve: (value: string | PromiseLike<string>) => void
   stackName: string
-  serverName: string
   deploymentId: string
   store: ExtensionStore
 }
 
-const pollForStatus = ({
-  resolve,
-  stackName,
-  serverName,
-  deploymentId,
-  store
-}: PollForStatusArgs) => {
+const pollForStatus = ({ resolve, stackName, deploymentId, store }: PollForStatusArgs) => {
   const interval = setInterval(async () => {
     try {
       const res = await getDeployment({ deploymentId })
@@ -116,7 +115,7 @@ const pollForStatus = ({
 
         clearInterval(interval)
 
-        await completeDeployment({ deploymentId, stackName, serverName })
+        await completeDeployment({ deploymentId, stackName })
 
         setTimeout(() => resolve('SUCCESS'), 0)
       }
@@ -135,14 +134,9 @@ const pollForStatus = ({
 type CompleteDeploymentArgs = {
   deploymentId: string
   stackName: string
-  serverName: string
 }
 
-const completeDeployment = async ({
-  deploymentId,
-  stackName,
-  serverName
-}: CompleteDeploymentArgs) => {
+const completeDeployment = async ({ deploymentId, stackName }: CompleteDeploymentArgs) => {
   const clientConfig = readClientConfig({ notifyIfMissing: false }) ?? {
     settings: {
       generators: []
@@ -154,8 +148,6 @@ const completeDeployment = async ({
   window.showInformationMessage(message)
 
   clientConfig.deploymentId = deploymentId
-  clientConfig.serverName = serverName
-  clientConfig.stackName = stackName
 
   writeClientConfig(clientConfig)
 }

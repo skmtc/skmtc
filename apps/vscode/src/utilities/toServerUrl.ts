@@ -1,11 +1,12 @@
-import { SKMTC_API } from '../api/constants';
+import { SKMTC_API } from '../api/constants'
 
 type ToServerUrlArgs = {
-  serverName: string;
-  deploymentId?: string;
-};
+  accountName: string
+  stackName: string
+  deploymentId?: string
+}
 
-export const toServerUrl = ({ serverName, deploymentId }: ToServerUrlArgs) => {
-  const base = `${SKMTC_API}/servers/${serverName}`;
-  return deploymentId ? `${base}/${deploymentId}` : base;
-};
+export const toServerUrl = ({ accountName, stackName, deploymentId }: ToServerUrlArgs) => {
+  const base = `${SKMTC_API}/${accountName}/servers/${stackName}`
+  return deploymentId ? `${base}/${deploymentId}` : base
+}

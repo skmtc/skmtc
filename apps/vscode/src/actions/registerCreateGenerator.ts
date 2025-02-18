@@ -15,13 +15,9 @@ const generatorTypes = ['operation', 'model'] as const
 
 export const registerCreateGenerator = () => {
   return commands.registerCommand('skmtc-vscode.createGenerator', async () => {
-    const session = await getSession({ createIfNone: true })
+    const session = await getSession({ createIfNone: false })
 
-    if (!session) {
-      return
-    }
-
-    const serverName = session.account.label
+    const accountName = session ? session.account.label : 'account-name'
 
     const generatorType = await window.showQuickPick(generatorTypes, {
       placeHolder: 'Select generator type'
@@ -39,10 +35,10 @@ export const registerCreateGenerator = () => {
       return name
     })
 
-    const initialGeneratorName = `@${serverName}/`
+    const initialGeneratorName = `@${accountName}/`
 
     const name = await window.showInputBox({
-      value: `@${serverName}/`,
+      value: `@${accountName}/`,
       valueSelection: [initialGeneratorName.length, initialGeneratorName.length],
       validateInput: value => {
         if (!value.startsWith(initialGeneratorName)) {
@@ -84,7 +80,7 @@ export const registerCreateGenerator = () => {
     }
 
     const transformerPath = await createGenerator({
-      serverName,
+      accountName,
       packageName: name.substring(initialGeneratorName.length),
       generatorType
     })
@@ -100,12 +96,16 @@ export const registerCreateGenerator = () => {
 }
 
 type CreateGeneratorArgs = {
-  serverName: string
+  accountName: string
   packageName: string
   generatorType: 'operation' | 'model'
 }
 
-const createGenerator = async ({ serverName, packageName, generatorType }: CreateGeneratorArgs) => {
+const createGenerator = async ({
+  accountName,
+  packageName,
+  generatorType
+}: CreateGeneratorArgs) => {
   const skmtcPath = join(toRootPath(), '.codesquared')
 
   const generatorFolderPath = join(skmtcPath, packageName)
@@ -117,7 +117,7 @@ const createGenerator = async ({ serverName, packageName, generatorType }: Creat
 
   const srcFolderPath = join(generatorFolderPath, 'src')
 
-  const generatorName = `@${serverName}/${packageName}`
+  const generatorName = `@${accountName}/${packageName}`
   const transformerName = camelCase(packageName, { upperFirst: true })
 
   const generatorConfigPath = join(srcFolderPath, 'config.ts')
