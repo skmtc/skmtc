@@ -79,5 +79,14 @@ export const normaliseModuleName = ({
 
   const { rootPath, moduleName } = matchingModule
 
-  return destinationPath.startsWith(rootPath) ? exportPath.replace(rootPath, '@') : moduleName
+  // When importing from within same package, truncate the root path and denote root with '@'
+  if (destinationPath.startsWith(rootPath)) {
+    return exportPath.replace(rootPath, '@')
+  }
+
+  if (!moduleName) {
+    throw new Error(`Module name is not set for ${rootPath}`)
+  }
+
+  return moduleName
 }

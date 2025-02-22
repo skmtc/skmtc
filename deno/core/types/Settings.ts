@@ -52,13 +52,13 @@ export type ClientGeneratorSettings = OperationsGeneratorSettings | ModelsGenera
 export const modulePackage = z
   .object({
     rootPath: z.string(),
-    moduleName: z.string()
+    moduleName: z.string().optional()
   })
   .openapi('ModulePackage')
 
 export type ModulePackage = {
   rootPath: string
-  moduleName: string
+  moduleName?: string
 }
 
 export const clientSettings = z

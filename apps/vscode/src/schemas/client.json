@@ -27,12 +27,33 @@
           "type": "string",
           "description": "Base path for generated code. Defaults to 'dist'."
         },
+        "packages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ModulePackage"
+          }
+        },
         "generators": {
           "$ref": "#/definitions/Generators"
         }
       },
       "required": [
         "generators"
+      ]
+    },
+    "ModulePackage": {
+      "properties": {
+        "rootPath": {
+          "type": "string",
+          "description": "Root path of the package. When importing from within same package, root path is trucated and '@' is used to denote root."
+        },
+        "moduleName": {
+          "type": "string",
+          "description": "Optional module name for the package used for external imports."
+        }
+      },
+      "required": [
+        "rootPath"
       ]
     },
     "Generators": {
