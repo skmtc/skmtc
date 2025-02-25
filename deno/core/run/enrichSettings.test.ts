@@ -1,7 +1,12 @@
 import { enrichSettings } from './enrichSettings.ts'
 import type { ClientGeneratorSettings } from '../types/Settings.ts'
 import { assertEquals } from '@std/assert'
-import type { EnrichmentItem } from './toEnrichments.ts'
+// import type { EnrichmentItem } from './toEnrichments.ts'
+
+export type EnrichmentItem = {
+  key: string[]
+  value: unknown
+}
 
 const mockSettingsPokemon = {
   generators: [

@@ -1,4 +1,4 @@
-import { toSettings, enrichSettings, toEnrichments } from '@skmtc/core'
+import { toSettings, enrichSettings } from '@skmtc/core'
 import type { ClientSettings, GeneratorsMapContainer } from '@skmtc/core'
 import { toOasDocument } from './toOasDocument.ts'
 import { toV3Document, stringToSchema } from './toV3Document.ts'
@@ -28,12 +28,7 @@ export const generateSettings = async ({
     oasDocument
   })
 
-  const enrichments = await toEnrichments({
-    generators: Object.values(toGeneratorConfigMap()),
-    oasDocument
-  })
-
-  const enrichedSettings = enrichSettings({ generatorSettings, enrichments })
+  const enrichedSettings = enrichSettings({ generatorSettings, enrichments: {} })
 
   return { enrichedSettings, extensions }
 }

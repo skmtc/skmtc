@@ -1,7 +1,11 @@
 import { set } from 'lodash-es'
 import type { ClientGeneratorSettings } from '../types/Settings.ts'
-import type { EnrichmentItem } from './toEnrichments.ts'
+// import type { EnrichmentItem } from './toEnrichments.ts'
 
+export type EnrichmentItem = {
+  key: string[]
+  value: unknown
+}
 type EnrichSettingsArgs = {
   generatorSettings: ClientGeneratorSettings[]
   enrichments: Record<string, EnrichmentItem[]>
