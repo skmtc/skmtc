@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 import { method, type Method } from './Method.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 

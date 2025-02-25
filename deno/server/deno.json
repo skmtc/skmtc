@@ -1,11 +1,11 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.455",
+  "version": "0.0.456",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.575",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.576",
     "@sentry/deno": "npm:@sentry/deno@^8.47.0",
     "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.18.4",
     "@asteasolutions/zod-to-openapi": "npm:@asteasolutions/zod-to-openapi@^7.3.0"
