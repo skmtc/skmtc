@@ -36,7 +36,7 @@ type ConstructorArgs = {
   logger: log.Logger
   stackTrail: StackTrail
   captureCurrentResult: (result: ResultType) => void
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
 
 export type PickArgs = {
@@ -122,12 +122,12 @@ export type InsertReturn<
   EnrichmentType
 > = Inserted<V, T, EnrichmentType>
 
-type RunOperationGeneratorArgs<EnrichmentType> = {
+type RunOperationGeneratorArgs<EnrichmentType = undefined> = {
   oasDocument: OasDocument
   generatorConfig: OperationConfig<EnrichmentType>
 }
 
-type RunModelGeneratorArgs<EnrichmentType> = {
+type RunModelGeneratorArgs<EnrichmentType = undefined> = {
   oasDocument: OasDocument
   generatorConfig: ModelConfig<EnrichmentType>
 }
@@ -154,7 +154,7 @@ export class GenerateContext {
   settings: ClientSettings | undefined
   logger: log.Logger
   captureCurrentResult: (result: ResultType) => void
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 
   #stackTrail: StackTrail
 
@@ -205,7 +205,7 @@ export class GenerateContext {
     }
   }
 
-  #runOperationGenerator<EnrichmentType>({
+  #runOperationGenerator<EnrichmentType = undefined>({
     oasDocument,
     generatorConfig
   }: RunOperationGeneratorArgs<EnrichmentType>) {
@@ -225,7 +225,7 @@ export class GenerateContext {
     }, undefined)
   }
 
-  #runModelGenerator<EnrichmentType>({
+  #runModelGenerator<EnrichmentType = undefined>({
     oasDocument,
     generatorConfig
   }: RunModelGeneratorArgs<EnrichmentType>) {

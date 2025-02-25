@@ -6,7 +6,7 @@ import type { Identifier } from '../Identifier.ts'
 import type { OperationInsertableArgs } from './types.ts'
 import type { z } from 'zod'
 
-export type BaseOperationConfig<EnrichmentType> = {
+export type BaseOperationConfig<EnrichmentType = undefined> = {
   id: string
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
@@ -18,7 +18,7 @@ type ToEnrichmentsArgs = {
   context: GenerateContext
 }
 
-export const toOperationInsertable = <EnrichmentType>(
+export const toOperationInsertable = <EnrichmentType = undefined>(
   config: BaseOperationConfig<EnrichmentType>
 ) => {
   const OperationInsertable = class extends OperationBase<EnrichmentType> {

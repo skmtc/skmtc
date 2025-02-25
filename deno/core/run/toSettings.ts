@@ -4,14 +4,14 @@ import type { OasDocument } from '../oas/document/Document.ts'
 import type { ClientSettings, ClientGeneratorSettings, EnrichedSetting } from '../types/Settings.ts'
 import type { GeneratorConfig } from '../types/GeneratorType.ts'
 
-type ToSettingsArgs<EnrichmentType> = {
+type ToSettingsArgs<EnrichmentType = undefined> = {
   generators: GeneratorConfig<EnrichmentType>[]
   clientSettings: ClientSettings | undefined
   defaultSelected: boolean
   oasDocument: OasDocument
 }
 
-export const toSettings = <EnrichmentType>({
+export const toSettings = <EnrichmentType = undefined>({
   generators,
   clientSettings,
   defaultSelected,

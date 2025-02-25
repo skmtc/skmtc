@@ -4,7 +4,7 @@ import { toOasDocument } from './toOasDocument.ts'
 import { toV3Document, stringToSchema } from './toV3Document.ts'
 
 type GenerateSettingsArgs = {
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   schema: string
   clientSettings: ClientSettings | undefined
   defaultSelected: boolean

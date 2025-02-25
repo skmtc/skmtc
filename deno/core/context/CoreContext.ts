@@ -37,7 +37,7 @@ export type ExecutionPhase = ParsePhase | GeneratePhase | RenderPhase
 type GenerateArgs = {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
 
 type CoreContextArgs = {
@@ -55,7 +55,7 @@ type RenderArgs = {
 type TransformArgs = {
   documentObject: OpenAPIV3.Document
   settings: ClientSettings | undefined
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   prettier?: PrettierConfigType
 }
 

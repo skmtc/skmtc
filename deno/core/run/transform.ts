@@ -12,7 +12,7 @@ type TransformArgs = {
   settings: ClientSettings | undefined
   prettier?: PrettierConfigType
   logsPath?: string
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   startAt: number
 }
 

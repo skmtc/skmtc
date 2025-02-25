@@ -5,14 +5,14 @@ type EmptyArgs = {
   identifier: Identifier
 }
 
-type CreateArgs<EnrichmentType> = {
+type CreateArgs<EnrichmentType = undefined> = {
   identifier: Identifier
   selected: boolean
   exportPath: string
   enrichments: EnrichmentType
 }
 
-export class ContentSettings<EnrichmentType> {
+export class ContentSettings<EnrichmentType = undefined> {
   identifier: Identifier
   selected: boolean
   exportPath: string

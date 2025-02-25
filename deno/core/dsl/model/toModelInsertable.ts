@@ -6,7 +6,7 @@ import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { z } from 'zod'
 
-export type ModelInsertableArgs<EnrichmentType> = {
+export type ModelInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
   refName: RefName
@@ -17,14 +17,16 @@ type ToEnrichmentsArgs = {
   context: GenerateContext
 }
 
-export type BaseModelConfig<EnrichmentType> = {
+export type BaseModelConfig<EnrichmentType = undefined> = {
   id: string
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
   toEnrichmentSchema: () => z.ZodType<EnrichmentType>
 }
 
-export const toModelInsertable = <EnrichmentType>(config: BaseModelConfig<EnrichmentType>) => {
+export const toModelInsertable = <EnrichmentType = undefined>(
+  config: BaseModelConfig<EnrichmentType>
+) => {
   const ModelInsertable = class extends ModelBase<EnrichmentType> {
     static id = config.id
     static type = 'model' as const

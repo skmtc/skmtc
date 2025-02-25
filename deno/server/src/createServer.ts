@@ -35,7 +35,7 @@ const postArtifactConfigBody = z
   .openapi('PostArtifactConfigRequestBody')
 
 type CreateServerArgs = {
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   logsPath?: string
 }
 

@@ -12,7 +12,7 @@ import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/types.ts'
 import type { RefName } from '../../types/RefName.ts'
 
-export type OperationBaseArgs<EnrichmentType> = {
+export type OperationBaseArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
@@ -25,7 +25,7 @@ type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   schemaToValueFn: SchemaToValueFn
 }
 
-export class OperationBase<EnrichmentType> extends ValueBase {
+export class OperationBase<EnrichmentType = undefined> extends ValueBase {
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
   override generatorKey: GeneratorKey

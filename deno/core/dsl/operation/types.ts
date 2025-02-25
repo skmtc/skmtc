@@ -6,7 +6,7 @@ import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { z } from 'zod'
 import type { SchemaItem } from '../../types/SchemaItem.ts'
 
-export type OperationInsertableArgs<EnrichmentType> = {
+export type OperationInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
@@ -22,7 +22,7 @@ export type WithTransformOperation = {
   transformOperation: (operation: OasOperation) => void
 }
 
-export type IsSupportedOperationConfigArgs<EnrichmentType> = {
+export type IsSupportedOperationConfigArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   operation: OasOperation
   enrichments: EnrichmentType
@@ -53,7 +53,7 @@ export type IsSupportedArgs = {
   operation: OasOperation
 }
 
-export type OperationConfig<EnrichmentType> = {
+export type OperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'operation'
   transform: <Acc = void>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc

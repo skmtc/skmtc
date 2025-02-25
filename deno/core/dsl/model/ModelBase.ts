@@ -7,14 +7,14 @@ import type { ModelInsertable } from './types.ts'
 import { ValueBase } from '../ValueBase.ts'
 import type { Inserted } from '../Inserted.ts'
 import { toGeneratorId } from '../../types/GeneratorKeys.ts'
-export type ModelBaseArgs<EnrichmentType> = {
+export type ModelBaseArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   refName: RefName
 }
 
-export class ModelBase<EnrichmentType> extends ValueBase {
+export class ModelBase<EnrichmentType = undefined> extends ValueBase {
   settings: ContentSettings<EnrichmentType>
   refName: RefName
 

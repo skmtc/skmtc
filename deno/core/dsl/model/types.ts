@@ -6,7 +6,7 @@ import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { z } from 'zod'
 import type { SchemaItem } from '../../types/SchemaItem.ts'
 
-type ModelInsertableConstructorArgs<EnrichmentType> = {
+type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   refName: RefName
   settings: ContentSettings<EnrichmentType>
@@ -44,7 +44,7 @@ export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
   // deno-lint-ignore ban-types
 } & Function
 
-export type ModelConfig<EnrichmentType> = {
+export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
   transform: <Acc = void>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
