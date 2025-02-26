@@ -1,14 +1,14 @@
-import type { z } from 'zod'
+import { z } from 'zod'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { SchemaItem } from '../../types/SchemaItem.ts'
 import type { IsSupportedArgs, TransformOperationArgs } from './types.ts'
 import type { IsSupportedOperationConfigArgs } from './types.ts'
 
-export type ToOperationConfigArgs<EnrichmentType, Acc = void> = {
+export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
   transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
-  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
   isSupported?: ({ context, operation }: IsSupportedOperationConfigArgs<EnrichmentType>) => boolean
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
@@ -16,7 +16,7 @@ export type ToOperationConfigArgs<EnrichmentType, Acc = void> = {
   toSchemaItem?: (operation: OasOperation) => SchemaItem
 }
 
-export const toOperationConfig = <EnrichmentType, Acc = void>({
+export const toOperationConfig = <EnrichmentType = undefined, Acc = void>({
   id,
   transform,
   toEnrichmentSchema,
@@ -40,10 +40,12 @@ export const toOperationConfig = <EnrichmentType, Acc = void>({
         method: operation.method
       })
 
+      const enrichmentSchema = toEnrichmentSchema?.() ?? z.undefined()
+
       return isSupported({
         context,
         operation,
-        enrichments: toEnrichmentSchema().parse(enrichments)
+        enrichments: enrichmentSchema.parse(enrichments) as EnrichmentType
       })
     },
     toEnrichmentRequest,

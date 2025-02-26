@@ -1,5 +1,3 @@
-// @deno-types="npm:@types/lodash-es@4.17.12"
-import { setWith } from 'npm:lodash-es@4.17.21'
 import type { OpenAPIV3 } from 'openapi-types'
 import { parse as parseYaml } from 'jsr:@std/yaml@0.215.0'
 import { toDocumentFieldsV3 } from '../oas/document/toDocumentFieldsV3.ts'
@@ -17,12 +15,6 @@ type ConstructorArgs = {
 export type ParseReturn = {
   oasDocument: OasDocument
   extensions: Record<string, unknown>
-}
-
-type RegisterExtensionArgs = {
-  type: string
-  stackTrail: string[]
-  extensionFields: Record<string, unknown>
 }
 
 export class ParseContext {
@@ -51,10 +43,6 @@ export class ParseContext {
 
   trace<T>(token: string | string[], fn: () => T): T {
     return tracer(this.stackTrail, token, fn)
-  }
-
-  registerExtension({ extensionFields, stackTrail, type }: RegisterExtensionArgs): void {
-    setWith(this.extentions, stackTrail.concat('__x__'), { type, extensionFields }, Object)
   }
 
   logSkippedFields(skipped: Record<string, unknown>) {

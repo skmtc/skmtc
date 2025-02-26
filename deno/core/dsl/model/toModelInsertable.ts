@@ -4,7 +4,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
-import type { z } from 'zod'
+import { z } from 'zod'
 
 export type ModelInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -21,7 +21,7 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
   id: string
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
 }
 
 export const toModelInsertable = <EnrichmentType = undefined>(
@@ -39,7 +39,9 @@ export const toModelInsertable = <EnrichmentType = undefined>(
         generatorId: config.id
       })
 
-      return config.toEnrichmentSchema().parse(generatorSettings.enrichments)
+      const enrichmentSchema = config.toEnrichmentSchema?.() ?? z.undefined()
+
+      return enrichmentSchema.parse(generatorSettings.enrichments) as EnrichmentType
     }
     static isSupported = () => true
 

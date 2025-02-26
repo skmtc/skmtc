@@ -7,9 +7,5 @@ export const mockParseContext = {
     Object.entries(skipped).forEach(([_key, _value]) => {
       // console.log(`Skipped field: ${key}, value: ${value}`)
     })
-  },
-
-  registerExtension(_extensionFields: Record<string, unknown>): void {
-    // noop
   }
 }

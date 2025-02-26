@@ -4,13 +4,13 @@ import type { OasOperation } from '../../oas/operation/Operation.ts'
 import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { OperationInsertableArgs } from './types.ts'
-import type { z } from 'zod'
+import { z } from 'zod'
 
 export type BaseOperationConfig<EnrichmentType = undefined> = {
   id: string
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
-  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
 }
 
 type ToEnrichmentsArgs = {
@@ -35,7 +35,9 @@ export const toOperationInsertable = <EnrichmentType = undefined>(
         method: operation.method
       })
 
-      return config.toEnrichmentSchema().parse(generatorSettings.enrichments)
+      const enrichmentSchema = config.toEnrichmentSchema?.() ?? z.undefined()
+
+      return enrichmentSchema.parse(generatorSettings.enrichments) as EnrichmentType
     }
 
     constructor(args: OperationInsertableArgs<EnrichmentType>) {

@@ -4,10 +4,10 @@ import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { TransformModelArgs } from './types.ts'
 import type { z } from 'zod'
 
-type ToModelConfigArgs<EnrichmentType, Acc = void> = {
+type ToModelConfigArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
   transform: ({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
-  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -15,7 +15,7 @@ type ToModelConfigArgs<EnrichmentType, Acc = void> = {
   toSchemaItem?: (refName: RefName) => SchemaItem
 }
 
-export const toModelConfig = <EnrichmentType, Acc = void>({
+export const toModelConfig = <EnrichmentType = undefined, Acc = void>({
   id,
   transform,
   toEnrichmentSchema,

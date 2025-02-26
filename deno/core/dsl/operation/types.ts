@@ -57,7 +57,7 @@ export type OperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'operation'
   transform: <Acc = void>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
-  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedArgs) => boolean
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation

@@ -28,9 +28,7 @@ export const toComponentsV3 = ({
   const extensionFields = toSpecificationExtensionsV3({ skipped, context })
 
   const fields: ComponentsFields = {
-    schemas: context.trace('schemas', () =>
-      toOptionalSchemasV3({ schemas, context, childOfComponents: true })
-    ),
+    schemas: context.trace('schemas', () => toOptionalSchemasV3({ schemas, context })),
     responses: context.trace('responses', () => toOptionalResponsesV3({ responses, context })),
     parameters: context.trace('parameters', () =>
       toOptionalParametersV3({

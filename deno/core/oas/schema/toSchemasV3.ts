@@ -14,51 +14,21 @@ import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toIntersection } from '../intersection/toIntersection.ts'
-import { extractExtensions } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
   context: ParseContext
-  childOfComponents?: boolean
 }
 
 export const toSchemasV3 = ({
   schemas,
-  context,
-  childOfComponents
+  context
 }: ToSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> => {
   return Object.fromEntries(
     Object.entries(schemas).map(([key, schema]) => {
       return [
         key,
         context.trace(key, () => {
-          const { extensionFields } = extractExtensions(schema as Record<string, unknown>)
-
-          if (childOfComponents) {
-            context.registerExtension({
-              extensionFields: {
-                Label: extensionFields?.['x-label'] ?? '',
-                Description: extensionFields?.['x-description'] ?? ''
-              },
-              stackTrail: ['models', key],
-              type: 'schema'
-            })
-          } else {
-            const parentObject = context.stackTrail.getParentOf(key)
-
-            if (!parentObject) {
-              throw new Error(`Expected to find parent object for '${key}'`)
-            }
-
-            context.registerExtension({
-              extensionFields: {
-                Label: extensionFields?.['x-label'] ?? ''
-              },
-              stackTrail: ['models', parentObject, key],
-              type: 'schema'
-            })
-          }
-
           return toSchemaV3({ schema, context })
         })
       ]
@@ -69,19 +39,17 @@ export const toSchemasV3 = ({
 type ToOptionalSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject> | undefined
   context: ParseContext
-  childOfComponents?: boolean
 }
 
 export const toOptionalSchemasV3 = ({
   schemas,
-  context,
-  childOfComponents
+  context
 }: ToOptionalSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> | undefined => {
   if (!schemas) {
     return undefined
   }
 
-  return toSchemasV3({ schemas, context, childOfComponents })
+  return toSchemasV3({ schemas, context })
 }
 
 type ToSchemaV3Args = {

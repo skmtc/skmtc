@@ -48,7 +48,7 @@ export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
   transform: <Acc = void>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
-  toEnrichmentSchema: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined

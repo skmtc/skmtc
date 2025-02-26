@@ -32,25 +32,6 @@ export const toString = ({ value, context }: ToStringArgs): OasString => {
     context.logger.warn(`Invalid format: ${format}`)
   }
 
-  if (enums?.length) {
-    const { stackTrail } = context.stackTrail.clone()
-
-    const lastFrame = stackTrail[stackTrail.length - 1]
-    const parentObject = stackTrail[stackTrail.length - 2]
-
-    if (typeof lastFrame === 'string' && parentObject === 'schemas') {
-      enums.forEach(enumValue => {
-        context.registerExtension({
-          extensionFields: {
-            Label: ''
-          },
-          stackTrail: ['models', lastFrame, enumValue],
-          type: 'string'
-        })
-      })
-    }
-  }
-
   return new OasString({
     title,
     description,

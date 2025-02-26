@@ -48,15 +48,6 @@ export const toOperationV3 = ({
 
   const extensionFields = toSpecificationExtensionsV3({ skipped, context })
 
-  context.registerExtension({
-    extensionFields: {
-      Label: extensionFields?.['x-label'] ?? '',
-      Description: extensionFields?.['x-description'] ?? ''
-    },
-    type: 'operation',
-    stackTrail: ['operations', `${method.toUpperCase()} ${path}`]
-  })
-
   return new OasOperation({
     pathItem,
     path,

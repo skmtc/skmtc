@@ -216,6 +216,17 @@ export class GenerateContext {
           return acc
         }
 
+        const { selected } = this.toOperationSettings({
+          generatorId: generatorConfig.id,
+          path: operation.path,
+          method: operation.method
+        })
+
+        if (!selected) {
+          this.captureCurrentResult('notSelected')
+          return acc
+        }
+
         const result = generatorConfig.transform({ context: this, operation, acc })
 
         this.captureCurrentResult('success')
@@ -233,11 +244,15 @@ export class GenerateContext {
 
     return refNames.reduce((acc, refName) => {
       return this.trace(refName, () => {
-        // if (!generatorConfig.isSupported()) {
-        //   this.captureCurrentResult('notSupported')
+        const { selected } = this.toModelSettings({
+          generatorId: generatorConfig.id,
+          refName
+        })
 
-        //   return acc
-        // }
+        if (!selected) {
+          this.captureCurrentResult('notSelected')
+          return acc
+        }
 
         const result = generatorConfig.transform({ context: this, refName, acc })
 
@@ -442,12 +457,12 @@ export class GenerateContext {
    *    insertable's driver
    * @mutates this.files
    */
-  insertOperation<V extends GeneratedValue, T extends GenerationType, ET>({
+  insertOperation<V extends GeneratedValue, T extends GenerationType, EnrichmentType = undefined>({
     insertable,
     operation,
     generation,
     destinationPath
-  }: InsertOperationArgs<V, T, ET>): Inserted<V, T, ET> {
+  }: InsertOperationArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new OperationDriver({
       context: this,
       insertable,
@@ -551,25 +566,31 @@ export class GenerateContext {
    * @returns Base settings for operation
    */
   toOperationSettings({ generatorId, path, method }: GetOperationSettingsArgs): EnrichedSetting {
-    const generatorSettings = this.settings?.generators?.find(({ id }) => id === generatorId)
+    if (!this.settings) {
+      return { selected: true }
+    }
+    const generatorSettings = this.settings.generators?.find(({ id }) => id === generatorId)
 
     const operationSettings =
       generatorSettings && 'operations' in generatorSettings
         ? generatorSettings.operations[path]?.[method]
         : undefined
 
-    return operationSettings ?? { selected: false, enrichments: undefined }
+    return operationSettings ?? { selected: false }
   }
 
   toModelSettings({ generatorId, refName }: ToModelSettingsArgs): EnrichedSetting {
-    const generatorSettings = this.settings?.generators?.find(({ id }) => id === generatorId)
+    if (!this.settings) {
+      return { selected: true }
+    }
+    const generatorSettings = this.settings.generators?.find(({ id }) => id === generatorId)
 
     const modelSettings =
       generatorSettings && 'models' in generatorSettings
         ? generatorSettings.models[refName]
         : undefined
 
-    return modelSettings ?? { selected: false, enrichments: undefined }
+    return modelSettings ?? { selected: false }
   }
 
   #addFile(normalisedPath: string): File {
