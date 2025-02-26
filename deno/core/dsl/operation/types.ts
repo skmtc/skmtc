@@ -38,7 +38,7 @@ type ToEnrichmentsArgs = {
   context: GenerateContext
 }
 
-export type OperationInsertable<V, EnrichmentType> = { prototype: V } & {
+export type OperationInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({ context, settings, operation }: OperationInsertableArgs<EnrichmentType>): V
   id: string
   type: 'operation'

@@ -9,7 +9,11 @@ import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import { toOperationGeneratorKey } from '../../types/GeneratorKeys.ts'
 import type { GenerateContext } from '../../context/GenerateContext.ts'
 
-type CreateOperationArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
+type CreateOperationArgs<
+  V extends GeneratedValue,
+  T extends GenerationType,
+  EnrichmentType = undefined
+> = {
   context: GenerateContext
   insertable: OperationInsertable<V, EnrichmentType>
   operation: OasOperation
@@ -27,7 +31,11 @@ type GetDefinitionArgs = {
   exportPath: string
 }
 
-export class OperationDriver<V extends GeneratedValue, T extends GenerationType, EnrichmentType> {
+export class OperationDriver<
+  V extends GeneratedValue,
+  T extends GenerationType,
+  EnrichmentType = undefined
+> {
   context: GenerateContext
   insertable: OperationInsertable<V, EnrichmentType>
   operation: OasOperation

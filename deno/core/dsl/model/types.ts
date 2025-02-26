@@ -28,7 +28,7 @@ export type TransformModelArgs<Acc> = {
   acc: Acc | undefined
 }
 
-export type ModelInsertable<V, EnrichmentType> = { prototype: V } & {
+export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({
     context,
     refName,

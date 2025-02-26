@@ -101,7 +101,7 @@ export type ToModelSettingsArgs = {
 export type InsertOperationArgs<
   V extends GeneratedValue,
   T extends GenerationType,
-  EnrichmentType
+  EnrichmentType = undefined
 > = {
   insertable: OperationInsertable<V, EnrichmentType>
   operation: OasOperation
@@ -109,7 +109,11 @@ export type InsertOperationArgs<
   destinationPath?: string
 }
 
-export type InsertModelArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
+export type InsertModelArgs<
+  V extends GeneratedValue,
+  T extends GenerationType,
+  EnrichmentType = undefined
+> = {
   insertable: ModelInsertable<V, EnrichmentType>
   refName: RefName
   generation?: T
@@ -132,12 +136,12 @@ type RunModelGeneratorArgs<EnrichmentType = undefined> = {
   generatorConfig: ModelConfig<EnrichmentType>
 }
 
-type ToOperationSettingsArgs<V, EnrichmentType> = {
+type ToOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: OasOperation
   insertable: OperationInsertable<V, EnrichmentType>
 }
 
-type BuildModelSettingsArgs<V, EnrichmentType> = {
+type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
   refName: RefName
   insertable: ModelInsertable<V, EnrichmentType>
 }
