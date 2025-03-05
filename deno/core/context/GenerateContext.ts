@@ -570,29 +570,27 @@ export class GenerateContext {
    * @returns Base settings for operation
    */
   toOperationSettings({ generatorId, path, method }: GetOperationSettingsArgs): EnrichedSetting {
-    if (!this.settings) {
+    const generatorSettings = this.settings?.generators?.find(({ id }) => id === generatorId)
+
+    if (!generatorSettings) {
       return { selected: true }
     }
-    const generatorSettings = this.settings.generators?.find(({ id }) => id === generatorId)
 
     const operationSettings =
-      generatorSettings && 'operations' in generatorSettings
-        ? generatorSettings.operations[path]?.[method]
-        : undefined
+      'operations' in generatorSettings ? generatorSettings.operations[path]?.[method] : undefined
 
     return operationSettings ?? { selected: false }
   }
 
   toModelSettings({ generatorId, refName }: ToModelSettingsArgs): EnrichedSetting {
-    if (!this.settings) {
+    const generatorSettings = this.settings?.generators?.find(({ id }) => id === generatorId)
+
+    if (!generatorSettings) {
       return { selected: true }
     }
-    const generatorSettings = this.settings.generators?.find(({ id }) => id === generatorId)
 
     const modelSettings =
-      generatorSettings && 'models' in generatorSettings
-        ? generatorSettings.models[refName]
-        : undefined
+      'models' in generatorSettings ? generatorSettings.models[refName] : undefined
 
     return modelSettings ?? { selected: false }
   }

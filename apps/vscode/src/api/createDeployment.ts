@@ -21,8 +21,12 @@ const denoDeployment = z.object({
   id: z.string(),
   stackName: z.string(),
   projectId: z.string(),
-  status: z.enum(['pending', 'success', 'failed']),
-  createdAt: z.string()
+  latestStatus: z.enum(['pending', 'success', 'failed']),
+  latestDeploymentId: z.string(),
+  latestDenoDeploymentId: z.string(),
+  accountName: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string()
 })
 
 export const createDeployment = async ({
@@ -44,7 +48,7 @@ export const createDeployment = async ({
     method: 'POST',
     body: JSON.stringify({
       assets,
-      generators: stackConfig.generators
+      generatorIds: stackConfig.generators
     }),
     headers: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -61,6 +65,8 @@ export const createDeployment = async ({
   }
 
   const body = await res.json()
+
+  console.log('BODY', body)
 
   return denoDeployment.parse(body)
 }
