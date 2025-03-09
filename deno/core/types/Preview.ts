@@ -1,9 +1,9 @@
 import { z } from '@hono/zod-openapi'
 import { method, type Method } from './Method.ts'
-import type { OpenAPIV3 } from 'openapi-types'
+import type { OasSchema } from '../oas/schema/Schema.ts'
 
 export type InputOption = {
-  schema: OpenAPIV3.SchemaObject
+  schema: OasSchema
   label: string
   name?: string
 }
@@ -15,7 +15,7 @@ export const inputOption = z.object({
 })
 
 export type FormatterOption = {
-  schema: OpenAPIV3.SchemaObject
+  schema: OasSchema
   label: string
 }
 

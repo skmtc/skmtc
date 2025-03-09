@@ -124,11 +124,8 @@ export class CoreContext {
 
     const oasDocument = this.#phase.context.parse()
 
-    const extensions = this.#phase.context.extentions
-
     return {
-      oasDocument,
-      extensions
+      oasDocument
     }
   }
 

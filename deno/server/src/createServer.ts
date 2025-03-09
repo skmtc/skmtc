@@ -257,7 +257,7 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
       const { clientSettings, defaultSelected = false, schema } = postSettingsBody.parse(body)
 
-      const { enrichedSettings, extensions } = await generateSettings({
+      const { enrichedSettings } = await generateSettings({
         toGeneratorConfigMap,
         schema,
         clientSettings,
@@ -265,7 +265,7 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
         spanId: span.spanContext().spanId
       })
 
-      return c.json({ generators: enrichedSettings, extensions })
+      return c.json({ generators: enrichedSettings })
     })
   })
 

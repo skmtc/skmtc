@@ -14,7 +14,6 @@ type ConstructorArgs = {
 
 export type ParseReturn = {
   oasDocument: OasDocument
-  extensions: Record<string, unknown>
 }
 
 export class ParseContext {
@@ -22,13 +21,11 @@ export class ParseContext {
   logger: log.Logger
   oasDocument: OasDocument
   stackTrail: StackTrail
-  extentions: Record<string, unknown>
 
   constructor({ documentObject, logger, stackTrail }: ConstructorArgs) {
     this.documentObject = documentObject
     this.logger = logger
     this.stackTrail = stackTrail
-    this.extentions = {}
     this.oasDocument = new OasDocument()
   }
 

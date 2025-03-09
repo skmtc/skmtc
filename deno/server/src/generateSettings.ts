@@ -19,7 +19,7 @@ export const generateSettings = async ({
   spanId
 }: GenerateSettingsArgs) => {
   const documentObject = await toV3Document(stringToSchema(schema))
-  const { oasDocument, extensions } = toOasDocument({ documentObject, spanId })
+  const { oasDocument } = toOasDocument({ documentObject, spanId })
 
   const generatorSettings = toSettings({
     generators: Object.values(toGeneratorConfigMap()),
@@ -30,5 +30,5 @@ export const generateSettings = async ({
 
   const enrichedSettings = enrichSettings({ generatorSettings, enrichments: {} })
 
-  return { enrichedSettings, extensions }
+  return { enrichedSettings }
 }
