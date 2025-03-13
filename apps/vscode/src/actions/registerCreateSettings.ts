@@ -1,4 +1,4 @@
-import { commands, ProgressLocation, window } from 'vscode'
+import { commands, ProgressLocation, window, ExtensionContext } from 'vscode'
 import { readSchemaFile } from '../utilities/readSchemaFile'
 import { readClientConfig } from '../utilities/readClientConfig'
 import { z } from 'zod'
@@ -8,7 +8,12 @@ import { writeClientConfig } from '../utilities/writeClientConfig'
 import { ExtensionStore } from '../types/ExtensionStore'
 import { readStackConfig } from '../utilities/readStackConfig'
 
-export const registerCreateSettings = (store: ExtensionStore) => {
+type RegisterCreateSettingsArgs = {
+  store: ExtensionStore
+  context: ExtensionContext
+}
+
+export const registerCreateSettings = ({ store, context }: RegisterCreateSettingsArgs) => {
   return commands.registerCommand('skmtc-vscode.createSettings', ({ selectAll } = {}) => {
     window.withProgress(
       {
@@ -24,7 +29,7 @@ export const registerCreateSettings = (store: ExtensionStore) => {
         progress.report({ message: 'running' })
 
         return new Promise<void>(resolve => {
-          callCreateSettings(store)
+          callCreateSettings({ store, context })
             .then(() => {
               if (selectAll) {
                 commands.executeCommand('skmtc-vscode.selectAll')
@@ -48,7 +53,12 @@ const createSettingsRespose = z.object({
   extensions: z.record(z.unknown())
 })
 
-const callCreateSettings = async (store: ExtensionStore) => {
+type CallCreateSettingsArgs = {
+  store: ExtensionStore
+  context: ExtensionContext
+}
+
+const callCreateSettings = async ({ store, context }: CallCreateSettingsArgs) => {
   const clientConfig = readClientConfig({ notifyIfMissing: true })
 
   if (!clientConfig) {
@@ -71,7 +81,8 @@ const callCreateSettings = async (store: ExtensionStore) => {
     store,
     schema,
     clientConfig,
-    stackName: stackConfig.name
+    stackName: stackConfig.name,
+    context
   })
 
   const { generators } = createSettingsRespose.parse(res)

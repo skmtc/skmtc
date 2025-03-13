@@ -6,7 +6,6 @@ import { join, resolve } from 'node:path'
 import { ensureFileSync, writeFileSync } from 'fs-extra'
 import { readPrettierFile } from '../utilities/readPrettierFile'
 import { readClientConfig } from '../utilities/readClientConfig'
-import { toServerUrl } from '../utilities/toServerUrl'
 import { writeManifest } from '../utilities/writeManifest'
 import { readManifest } from '../utilities/readManifest'
 import { unlinkSync } from 'node:fs'
@@ -18,6 +17,7 @@ import { ExtensionStore } from '../types/ExtensionStore'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
 import { readStackConfig } from '../utilities/readStackConfig'
+import { ExtensionContext } from 'vscode'
 
 export type PrettierConfigType = {
   printWidth?: number
@@ -44,7 +44,12 @@ export type PrettierConfigType = {
   singleAttributePerLine?: boolean
 }
 
-export const registerCreateArtifacts = (store: ExtensionStore) => {
+type RegisterCreateArtifactsArgs = {
+  context: ExtensionContext
+  store: ExtensionStore
+}
+
+export const registerCreateArtifacts = ({ context, store }: RegisterCreateArtifactsArgs) => {
   return commands.registerCommand('skmtc-vscode.createArtifacts', () => {
     const clientConfig = readClientConfig({ notifyIfMissing: true })
 
@@ -90,7 +95,8 @@ export const registerCreateArtifacts = (store: ExtensionStore) => {
             schema: schema,
             clientConfig,
             prettier: undefined,
-            stackName
+            stackName,
+            context
           })
 
           if (!res) {
@@ -116,12 +122,12 @@ export const registerCreateArtifacts = (store: ExtensionStore) => {
           for (const [path, content] of Object.entries(res.artifacts ?? {})) {
             const absolutePath = resolve(rootPath, path)
 
-            await writeArtifact({ absolutePath, stackName, content, prettier })
+            await writeArtifact({ absolutePath, stackName, content: String(content), prettier })
           }
 
           setTimeout(() => resolvePromise(), 0)
 
-          const summary = toSummary(res)
+          const summary = toSummary({ manifest: res.manifest })
 
           window.showInformationMessage(`${stackName}: ${summary}`)
 

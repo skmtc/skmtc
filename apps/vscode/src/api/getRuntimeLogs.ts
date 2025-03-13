@@ -1,21 +1,22 @@
 import { z } from 'zod'
 import { getSession } from '../auth/getSession'
 import { ExtensionStore } from '../types/ExtensionStore'
-import { SKMTC_API } from './constants'
+import { SKMTC_API_PATH } from './constants'
 import ndjsonStream from 'can-ndjson-stream'
 import { writeLogs } from '../utilities/writeLogs'
 import * as fs from 'node:fs'
 import { join } from 'node:path'
-import { window } from 'vscode'
+import { ExtensionContext, window } from 'vscode'
 import { existsSync } from 'node:fs'
 import { match } from 'ts-pattern'
-
+import { toApiOrigin } from '../utilities/toApiOrigin'
 type GetDeploymentArgs = {
   deploymentId: string
   store: ExtensionStore
   stackTrail: string
   startAt: number
   endAt: number
+  context: ExtensionContext
 }
 
 const deploymentLogLine = z.object({
@@ -35,7 +36,8 @@ export const getRemoteRuntimeLogs = async ({
   startAt,
   endAt,
   deploymentId,
-  store
+  store,
+  context
 }: GetDeploymentArgs) => {
   const session = await getSession({ createIfNone: true })
 
@@ -47,13 +49,17 @@ export const getRemoteRuntimeLogs = async ({
     }
   }
 
+  const apiOrigin = toApiOrigin(context)
+
   const query = new URLSearchParams({
     q: stackTrail,
     since: new Date(startAt).toISOString(),
     until: new Date(endAt).toISOString()
   })
 
-  const url = `${SKMTC_API}/deployments/${deploymentId}/runtime-logs?${query}`
+  const url = new URL(
+    `${apiOrigin}${SKMTC_API_PATH}/deployments/${deploymentId}/runtime-logs?${query}`
+  )
 
   const response = await fetch(url, {
     method: 'GET',

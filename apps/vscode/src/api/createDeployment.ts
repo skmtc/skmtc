@@ -1,8 +1,10 @@
 import { SkmtcStackConfig } from '@skmtc/core/Settings'
 import { getSession } from '../auth/getSession'
 import { DenoFiles } from '../types/File'
-import { SKMTC_API } from './constants'
+import { SKMTC_API_PATH } from './constants'
 import { z } from 'zod'
+import { ExtensionContext } from 'vscode'
+import { toApiOrigin } from '../utilities/toApiOrigin'
 
 export type Plugin = {
   id: string
@@ -15,6 +17,7 @@ type CreateDeploymentArgs = {
   assets: DenoFiles
   stackConfig: SkmtcStackConfig
   stackName: string
+  context: ExtensionContext
 }
 
 const denoDeployment = z.object({
@@ -32,7 +35,8 @@ const denoDeployment = z.object({
 export const createDeployment = async ({
   assets,
   stackConfig,
-  stackName
+  stackName,
+  context
 }: CreateDeploymentArgs) => {
   const session = await getSession({ createIfNone: true })
 
@@ -40,9 +44,9 @@ export const createDeployment = async ({
     return
   }
 
-  const url = `${SKMTC_API}/servers/${session.account.label}/${stackName}`
+  const apiOrigin = toApiOrigin(context)
 
-  console.log('URL', url)
+  const url = new URL(`${apiOrigin}${SKMTC_API_PATH}/servers/${session.account.label}/${stackName}`)
 
   const res = await fetch(url, {
     method: 'POST',

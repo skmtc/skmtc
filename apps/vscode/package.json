@@ -3,10 +3,10 @@
   "publisher": "skmtc",
   "displayName": "CodeSquared",
   "description": "Generate TypeScript from OpenAPI",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "engines": {
-    "vscode": ">=1.93.0",
-    "cursor": ">=0.42.0",
+    "vscode": ">=1.96.0",
+    "cursor": ">=0.46.0",
     "node": ">=20"
   },
   "repository": "https://github.com/skmtc/skmtc-vscode",
@@ -25,6 +25,7 @@
     "codegen",
     "api"
   ],
+  "activationEvents": [],
   "contributes": {
     "commands": [
       {
@@ -116,6 +117,11 @@
         "command": "skmtc-vscode.downloadGenerator",
         "title": "Download generator",
         "category": "Skmtc"
+      },
+      {
+        "command": "skmtc-vscode.setApiOrigin",
+        "title": "Set API origin",
+        "category": "Skmtc"
       }
     ],
     "views": {
@@ -202,7 +208,8 @@
     "package": "NODE_ENV=production node ./esbuild.js",
     "watch": "node ./esbuild.js --watch",
     "lint": "eslint src --ext ts",
-    "types": "tsc --noEmit --skipLibCheck"
+    "types": "tsc --noEmit --skipLibCheck",
+    "types:trace": "tsc --noEmit --skipLibCheck -p ./ --generateTrace ./src --incremental false"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
@@ -222,6 +229,7 @@
     "typescript": "5.7.2"
   },
   "dependencies": {
+    "@hono/zod-openapi": "^0.19.2",
     "@sentry/browser": "^8.26.0",
     "@skmtc/core": "^0.0.581",
     "@supabase/supabase-js": "^2.48.1",

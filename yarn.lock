@@ -600,6 +600,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hono/zod-openapi@npm:^0.19.2":
+  version: 0.19.2
+  resolution: "@hono/zod-openapi@npm:0.19.2"
+  dependencies:
+    "@asteasolutions/zod-to-openapi": "npm:^7.1.0"
+    "@hono/zod-validator": "npm:^0.4.1"
+  peerDependencies:
+    hono: ">=4.3.6"
+    zod: 3.*
+  checksum: 10c0/abdc1ff87e0b2e1a36ec6a6e1f1763de1be96cb6c4e131d59e9199dfa715becc993c7fe69e710964ab7dc437dc3ae924f897b711db7c0c802a114d22341648a1
+  languageName: node
+  linkType: hard
+
 "@hono/zod-validator@npm:^0.4.1":
   version: 0.4.3
   resolution: "@hono/zod-validator@npm:0.4.3"
@@ -8576,6 +8589,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "skmtc-vscode@workspace:apps/vscode"
   dependencies:
+    "@hono/zod-openapi": "npm:^0.19.2"
     "@sentry/browser": "npm:^8.26.0"
     "@skmtc/core": "npm:^0.0.581"
     "@supabase/supabase-js": "npm:^2.48.1"

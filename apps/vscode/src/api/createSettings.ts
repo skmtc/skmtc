@@ -1,5 +1,5 @@
 import { getSession } from '../auth/getSession'
-import { window } from 'vscode'
+import { window, ExtensionContext } from 'vscode'
 import type { SkmtcClientConfig } from '@skmtc/core/Settings'
 import { ExtensionStore } from '../types/ExtensionStore'
 import { toServerUrl } from '../utilities/toServerUrl'
@@ -9,15 +9,17 @@ type CreateSettingsArgs = {
   schema: string
   clientConfig: SkmtcClientConfig
   stackName: string
+  context: ExtensionContext
 }
 
 export const createSettings = async ({
   store,
   schema,
   clientConfig,
-  stackName
+  stackName,
+  context
 }: CreateSettingsArgs) => {
-  const reqParams = await getSettingsUrl({ store, stackName })
+  const reqParams = await getSettingsUrl({ store, stackName, context })
 
   if (!reqParams) {
     return
@@ -52,9 +54,10 @@ export const createSettings = async ({
 type GetSettingsUrlArgs = {
   store: ExtensionStore
   stackName: string
+  context: ExtensionContext
 }
 
-const getSettingsUrl = async ({ store, stackName }: GetSettingsUrlArgs) => {
+const getSettingsUrl = async ({ store, stackName, context }: GetSettingsUrlArgs) => {
   if (store.devMode?.url) {
     return {
       url: `${store.devMode.url}/settings`,
@@ -69,7 +72,7 @@ const getSettingsUrl = async ({ store, stackName }: GetSettingsUrlArgs) => {
     return
   }
 
-  const serverUrl = toServerUrl({ accountName: session.account.label, stackName })
+  const serverUrl = toServerUrl({ accountName: session.account.label, stackName, context })
 
   return {
     url: `${serverUrl}/settings`,

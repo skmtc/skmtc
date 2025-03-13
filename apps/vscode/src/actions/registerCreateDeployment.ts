@@ -21,7 +21,7 @@ type RegisterDeployStackArgs = {
 
 type AssetEntry = [string, DenoFile]
 
-export const registerCreateDeployment = ({ store }: RegisterDeployStackArgs) => {
+export const registerCreateDeployment = ({ context, store }: RegisterDeployStackArgs) => {
   return commands.registerCommand('skmtc-vscode.deployStack', async () => {
     return await Sentry.startSpan({ name: 'Collate content' }, async () => {
       if (store.devMode?.url) {
@@ -62,7 +62,8 @@ export const registerCreateDeployment = ({ store }: RegisterDeployStackArgs) => 
             const res = await createDeployment({
               assets,
               stackConfig,
-              stackName
+              stackName,
+              context
             })
 
             if (res) {
@@ -73,14 +74,15 @@ export const registerCreateDeployment = ({ store }: RegisterDeployStackArgs) => 
                   resolve,
                   stackName,
                   deploymentId: res.id,
-                  store
+                  store,
+                  context
                 })
               })
             }
           } catch (error) {
             store.sentryClient.captureException(error)
 
-            await handleDeploymentFailure({ stackName, store, deploymentId: undefined })
+            await handleDeploymentFailure({ stackName, store, deploymentId: undefined, context })
           }
         }
       )
@@ -93,23 +95,27 @@ type PollForStatusArgs = {
   stackName: string
   deploymentId: string
   store: ExtensionStore
+  context: ExtensionContext
 }
 
-const pollForStatus = ({ resolve, stackName, deploymentId, store }: PollForStatusArgs) => {
+const pollForStatus = ({ resolve, stackName, deploymentId, store, context }: PollForStatusArgs) => {
   const interval = setInterval(async () => {
     try {
-      const res = await getDeployment({ deploymentId })
+      const res = await getDeployment({ deploymentId, context })
 
       if (res.status === 'failed') {
         clearInterval(interval)
 
-        await handleDeploymentFailure({ stackName, deploymentId, store })
+        await handleDeploymentFailure({ stackName, deploymentId, store, context })
 
         setTimeout(() => resolve('FAILED'), 0)
       }
 
       if (res.status === 'success') {
-        const canonicalDomainName = await setCannonicalDeploymentDomainName({ deploymentId })
+        const canonicalDomainName = await setCannonicalDeploymentDomainName({
+          deploymentId,
+          context
+        })
 
         console.log('CANONICAL DOMAIN NAME', canonicalDomainName)
 
@@ -120,7 +126,7 @@ const pollForStatus = ({ resolve, stackName, deploymentId, store }: PollForStatu
         setTimeout(() => resolve('SUCCESS'), 0)
       }
     } catch (error) {
-      setTimeout(() => handleDeploymentFailure({ stackName, deploymentId, store }), 0)
+      setTimeout(() => handleDeploymentFailure({ stackName, deploymentId, store, context }), 0)
 
       setTimeout(() => {
         clearInterval(interval)
@@ -190,15 +196,17 @@ type HandleDeploymentFailureArgs = {
   stackName: string
   store: ExtensionStore
   deploymentId: string | undefined
+  context: ExtensionContext
 }
 
 const handleDeploymentFailure = async ({
   stackName,
   store,
-  deploymentId
+  deploymentId,
+  context
 }: HandleDeploymentFailureArgs) => {
   if (deploymentId) {
-    await showDeploymentLogs({ store, deploymentId })
+    await showDeploymentLogs({ store, deploymentId, context })
   }
 
   window.showErrorMessage(`${stackName}: Failed to deploy`)
@@ -207,8 +215,9 @@ const handleDeploymentFailure = async ({
 type ShowDeploymentLogsArgs = {
   store: ExtensionStore
   deploymentId: string
+  context: ExtensionContext
 }
 
-const showDeploymentLogs = async ({ deploymentId, store }: ShowDeploymentLogsArgs) => {
-  await getDeploymentLogs({ deploymentId, store })
+const showDeploymentLogs = async ({ deploymentId, store, context }: ShowDeploymentLogsArgs) => {
+  await getDeploymentLogs({ deploymentId, store, context })
 }

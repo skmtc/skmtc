@@ -61,6 +61,7 @@ import { createMilestonesView } from './create/createMilestonesView'
 import { registerAddGenerator } from './actions/registerAddGenerator'
 import { registerAddOpenApiSchema } from './actions/registerAddOpenApiSchema'
 import { readStackConfig } from './utilities/readStackConfig'
+import { registerSetApiOrigin } from './actions/registerSetApiOrigin'
 export async function activate(context: ExtensionContext) {
   try {
     const clientConfig = readClientConfig({ notifyIfMissing: false })
@@ -111,19 +112,20 @@ export async function activate(context: ExtensionContext) {
       resultsTreeView,
       milestonesTreeView,
       registerAddOpenApiSchema(),
+      registerSetApiOrigin({ context, store }),
       registerAddGenerator(store),
       registerCreateStack(store),
       registerCreateDevServer(store),
-      registerCreateArtifacts(store),
+      registerCreateArtifacts({ context, store }),
       ...registerDevMode({ store, context }),
       registerCreateGenerator(),
       registerAddExternalGenerator(store),
       registerShowProjectName(),
       registerDownloadGenerator(store),
       registerDeleteArtifacts({ store, settingsTreeView }),
-      registerResultsTreeItemClicked({ resultsTreeView, store }),
+      registerResultsTreeItemClicked({ resultsTreeView, store, context }),
       registerCreateDeployment({ context, store }),
-      registerCreateSettings(store),
+      registerCreateSettings({ store, context }),
       registerSelectAll(),
       registerSelectNone(),
       authProvider,

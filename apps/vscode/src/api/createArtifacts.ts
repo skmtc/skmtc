@@ -1,5 +1,5 @@
 import { getSession } from '../auth/getSession'
-import { window } from 'vscode'
+import { window, ExtensionContext } from 'vscode'
 import { SkmtcClientConfig } from '@skmtc/core/Settings'
 import { createArtifactsResponse } from '../types/generationResponse'
 import { ExtensionStore } from '../types/ExtensionStore'
@@ -11,6 +11,7 @@ type GenerateArgs = {
   prettier: string | undefined
   clientConfig: SkmtcClientConfig
   stackName: string
+  context: ExtensionContext
 }
 
 export const createArtifacts = async ({
@@ -18,10 +19,11 @@ export const createArtifacts = async ({
   schema,
   prettier,
   clientConfig,
-  stackName
+  stackName,
+  context
 }: GenerateArgs) => {
   try {
-    const reqParams = await getStackUrl({ store, clientConfig, stackName })
+    const reqParams = await getStackUrl({ store, clientConfig, stackName, context })
 
     if (!reqParams) {
       return null
@@ -58,9 +60,10 @@ type GetStackUrlArgs = {
   store: ExtensionStore
   clientConfig: SkmtcClientConfig
   stackName: string
+  context: ExtensionContext
 }
 
-const getStackUrl = async ({ store, clientConfig, stackName }: GetStackUrlArgs) => {
+const getStackUrl = async ({ store, clientConfig, stackName, context }: GetStackUrlArgs) => {
   if (store.devMode?.url) {
     return {
       url: `${store.devMode.url}/artifacts`,
@@ -81,7 +84,7 @@ const getStackUrl = async ({ store, clientConfig, stackName }: GetStackUrlArgs) 
     return
   }
 
-  const url = toServerUrl({ accountName: session.account.label, stackName, deploymentId })
+  const url = toServerUrl({ accountName: session.account.label, stackName, deploymentId, context })
 
   return {
     url,

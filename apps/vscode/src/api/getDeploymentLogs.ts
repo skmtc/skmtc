@@ -1,46 +1,55 @@
-import { z } from 'zod';
-import { getSession } from '../auth/getSession';
-import { ExtensionStore } from '../types/ExtensionStore';
-import { SKMTC_API } from './constants';
-import ndjsonStream from 'can-ndjson-stream';
-import { writeLogs } from '../utilities/writeLogs';
-
+import { getSession } from '../auth/getSession'
+import { ExtensionStore } from '../types/ExtensionStore'
+import { SKMTC_API_PATH } from './constants'
+import ndjsonStream from 'can-ndjson-stream'
+import { writeLogs } from '../utilities/writeLogs'
+import { ExtensionContext } from 'vscode'
+import { toApiOrigin } from '../utilities/toApiOrigin'
 type GetDeploymentLogsArgs = {
-  store: ExtensionStore;
-  deploymentId: string;
-};
+  store: ExtensionStore
+  deploymentId: string
+  context: ExtensionContext
+}
 
-export const getDeploymentLogs = async ({ store, deploymentId }: GetDeploymentLogsArgs) => {
-  const session = await getSession({ createIfNone: true });
+export const getDeploymentLogs = async ({
+  store,
+  deploymentId,
+  context
+}: GetDeploymentLogsArgs) => {
+  const session = await getSession({ createIfNone: true })
 
-  const controller = new AbortController();
+  const controller = new AbortController()
 
   if (!session) {
     return {
-      dispose: () => {},
-    };
+      dispose: () => {}
+    }
   }
 
-  const response = await fetch(`${SKMTC_API}/deployments/${deploymentId}/deployment-logs`, {
+  const apiOrigin = toApiOrigin(context)
+
+  const url = new URL(`${apiOrigin}${SKMTC_API_PATH}/deployments/${deploymentId}/deployment-logs`)
+
+  const response = await fetch(url, {
     method: 'GET',
     signal: controller.signal,
     headers: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'Content-Type': 'application/json',
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      'Accept': 'application/x-ndjson',
+      Accept: 'application/x-ndjson',
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      'Authorization': `Bearer ${session.accessToken}`,
-    },
-  });
+      Authorization: `Bearer ${session.accessToken}`
+    }
+  })
 
-  const reader = ndjsonStream(response.body).getReader();
+  const reader = ndjsonStream(response.body).getReader()
 
-  store.remoteDeploymentLogs.clear();
+  store.remoteDeploymentLogs.clear()
 
-  store.remoteDeploymentLogs.show();
+  store.remoteDeploymentLogs.show()
 
-  pump();
+  pump()
 
   function pump() {
     return (
@@ -51,23 +60,23 @@ export const getDeploymentLogs = async ({ store, deploymentId }: GetDeploymentLo
           // When no more data needs to be consumed, close the stream
 
           if (done) {
-            return;
+            return
           }
 
-          writeLogs(store.remoteDeploymentLogs, value);
+          writeLogs(store.remoteDeploymentLogs, value)
 
-          pump();
+          pump()
         })
         .catch((e: unknown) => {
-          console.error(e);
+          console.error(e)
         })
-    );
+    )
   }
 
   return {
     dispose: () => {
-      reader.cancel();
-      controller.abort();
-    },
-  };
-};
+      reader.cancel()
+      controller.abort()
+    }
+  }
+}
