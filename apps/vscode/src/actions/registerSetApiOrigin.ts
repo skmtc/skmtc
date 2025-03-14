@@ -8,14 +8,6 @@ type RegisterSetApiOriginArgs = {
 
 export const registerSetApiOrigin = ({ context }: RegisterSetApiOriginArgs) => {
   return commands.registerCommand('skmtc-vscode.setApiOrigin', async () => {
-    try {
-      const a = toApiOrigin(context)
-
-      console.log('a', a)
-    } catch (error) {
-      console.log('error', error)
-    }
-
     const value = toApiOrigin(context)
 
     const apiOrigin = await window.showInputBox({
