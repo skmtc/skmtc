@@ -1,4 +1,4 @@
-import { KeyPath } from '@/components/forms/types'
+import { KeyPath } from '@/components/inputs/types'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { FieldValues, useFormContext } from 'react-hook-form'
 import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select'

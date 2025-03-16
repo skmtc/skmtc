@@ -1,7 +1,7 @@
-import { KeyPath } from '@/components/forms/types.ts'
+import { KeyPath } from '@/components/inputs/types'
 import { Input } from '@/components/ui/input.tsx'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form.tsx'
-import { FieldValues, useFormContext } from 'react-hook-form'
+import { type FieldValues, useFormContext } from 'react-hook-form'
 
 type StringFieldProps<Model extends FieldValues, Key extends KeyPath<Model>> = {
   fieldName: Key
