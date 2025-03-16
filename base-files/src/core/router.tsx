@@ -22,19 +22,23 @@ export const Router: FC = () => (
 
 const DynamicParent = () => {
   const { pathname } = useLocation()
-  const name = pathname.replace(/^\/_preview\//, '')
+  const [group, name] = pathname.replace(/^\/_preview\//, '').split('/')
 
-  return <DynamicContainer key={name} name={name} />
+  return <DynamicContainer key={name} group={group} name={name} />
 }
 
 type DynamicContainerProps = {
+  group: string
   name: string
 }
 
-const DynamicContainer = ({ name }: DynamicContainerProps) => {
+const DynamicContainer = ({ group, name }: DynamicContainerProps) => {
+  console.log('GROUP', group)
+  console.log('NAME', name)
+
   const Component = lazy(async () => {
     return {
-      default: (await import(`../forms/${name}.generated.tsx`))[name]
+      default: (await import(`../${group}/${name}.generated.tsx`))[name]
     }
   })
 
