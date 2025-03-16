@@ -29,6 +29,7 @@ import invariant from 'tiny-invariant'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
 import { match } from 'ts-pattern'
+import type { SchemaOption } from '../types/SchemaOptions.ts'
 
 type ConstructorArgs = {
   oasDocument: OasDocument
@@ -65,6 +66,7 @@ export type RegisterArgs = {
   preview?: {
     [group: string]: Omit<Preview, 'group' | 'exportPath'>
   }
+  schemaOptions?: SchemaOption[]
   destinationPath: string
 }
 
@@ -149,11 +151,13 @@ type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
 type GenerateResult = {
   files: Map<string, File>
   previews: Record<string, Record<string, Preview>>
+  schemaOptions: SchemaOption[]
 }
 
 export class GenerateContext {
   #files: Map<string, File>
   #previews: Record<string, Record<string, Preview>>
+  #schemaOptions: SchemaOption[]
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   logger: log.Logger
@@ -173,6 +177,7 @@ export class GenerateContext {
     this.logger = logger
     this.#files = new Map()
     this.#previews = {}
+    this.#schemaOptions = []
     this.oasDocument = oasDocument
     this.settings = settings
     this.#stackTrail = stackTrail
@@ -205,7 +210,8 @@ export class GenerateContext {
 
     return {
       files: this.#files,
-      previews: this.#previews
+      previews: this.#previews,
+      schemaOptions: this.#schemaOptions
     }
   }
 
@@ -382,7 +388,14 @@ export class GenerateContext {
    *
    * @mutates this.files
    */
-  register({ imports = {}, definitions, destinationPath, reExports, preview }: RegisterArgs) {
+  register({
+    imports = {},
+    definitions,
+    destinationPath,
+    reExports,
+    preview,
+    schemaOptions
+  }: RegisterArgs) {
     // TODO deduplicate import names and definition names against each other
     const currentFile = this.#getFile(destinationPath)
 
@@ -430,7 +443,11 @@ export class GenerateContext {
       }
     })
 
-    Object.entries(preview ?? {}).forEach(([group, { name, route, source, input, formatter }]) => {
+    schemaOptions?.forEach(schemaOption => {
+      this.#schemaOptions.push(schemaOption)
+    })
+
+    Object.entries(preview ?? {}).forEach(([group, { name, source }]) => {
       if (!this.#previews[group]) {
         this.#previews[group] = {}
       }
@@ -439,10 +456,7 @@ export class GenerateContext {
         name,
         exportPath: destinationPath,
         group,
-        route,
-        source,
-        ...(input ? { input } : {}),
-        ...(formatter ? { formatter } : {})
+        source
       }
     })
   }

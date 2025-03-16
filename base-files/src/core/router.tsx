@@ -41,9 +41,7 @@ const DynamicContainer = ({ name }: DynamicContainerProps) => {
   return (
     <div className="flex h-screen w-screen">
       <Suspense fallback={<div>Loading...</div>}>
-        <Component title="Hello">
-          <button>Click me</button>
-        </Component>
+        <Component />
       </Suspense>
     </div>
   )

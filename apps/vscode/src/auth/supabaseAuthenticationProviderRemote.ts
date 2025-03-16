@@ -51,7 +51,7 @@ export class SupabaseAuthenticationProvider implements AuthenticationProvider, D
 
   constructor(private readonly context: ExtensionContext) {
     const apiOrigin = toApiOrigin(this.context)
-    const apiUrl = new URL(`${apiOrigin}${SKMTC_API_PATH}`)
+    const apiUrl = new URL(`${apiOrigin}`)
 
     this.supabase = createClient(apiUrl.toString(), SKMTC_PUBLIC_ANON_KEY)
 

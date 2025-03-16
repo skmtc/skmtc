@@ -70,7 +70,5 @@ export const createDeployment = async ({
 
   const body = await res.json()
 
-  console.log('BODY', body)
-
   return denoDeployment.parse(body)
 }

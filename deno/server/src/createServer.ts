@@ -2,12 +2,9 @@ import * as Sentry from '@sentry/deno'
 import { cors } from 'hono/cors'
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { clientSettings as settingsSchema, transform } from '@skmtc/core'
-import { operationPreview, modelPreview } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
-import type { GeneratorsMapContainer, OasRef, OasSchema } from '@skmtc/core'
-import { toOasDocument } from './toOasDocument.ts'
+import type { GeneratorsMapContainer } from '@skmtc/core'
 import { manifestContent } from '@skmtc/core/Manifest'
-import invariant from 'tiny-invariant'
 import { stringToSchema, toV3Document } from './toV3Document.ts'
 
 const postSettingsBody = z
@@ -25,14 +22,6 @@ const postArtifactsBody = z
     prettier: z.record(z.unknown()).optional()
   })
   .openapi('PostArtifactsRequestBody')
-
-const postArtifactConfigBody = z
-  .object({
-    schema: z.string(),
-    clientSettings: settingsSchema,
-    source: z.discriminatedUnion('type', [operationPreview, modelPreview])
-  })
-  .openapi('PostArtifactConfigRequestBody')
 
 type CreateServerArgs = {
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
@@ -83,39 +72,6 @@ const getGenerators = createRoute({
     }
   }
 })
-
-const schemaItem = z
-  .object({
-    schema: z.record(z.unknown()),
-    name: z.string().nullable(),
-    type: z.enum(['list-item', 'form-item'])
-  })
-  .openapi('SchemaItem')
-
-const postArtifactConfigResponse = z
-  .object({
-    schemaItem: schemaItem.nullable()
-  })
-  .openapi('PostArtifactConfigResponse')
-
-const postArtifactConfig = createRoute({
-  method: 'post',
-  path: '/artifact-config',
-  request: {
-    body: { content: { 'application/json': { schema: postArtifactConfigBody } } }
-  },
-  responses: {
-    200: {
-      description: 'Artifact config',
-      content: { 'application/json': { schema: postArtifactConfigResponse } }
-    }
-  }
-})
-
-type OperationSchemaItem = {
-  schema: OasSchema | OasRef<'schema'>
-  type: 'list-item' | 'form-item'
-}
 
 export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArgs): OpenAPIHono => {
   const app = new OpenAPIHono()
@@ -175,8 +131,6 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
           logsPath
         })
 
-        console.log('INPUTS', JSON.stringify(manifest.previews?.inputs, null, 2))
-
         return { artifacts, manifest }
       })
     })
@@ -187,55 +141,6 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
   app.openapi(getGenerators, c => {
     return Sentry.startSpan({ name: 'GET /generators' }, () => {
       return c.json({ generators: Object.keys(toGeneratorConfigMap()) })
-    })
-  })
-
-  app.openapi(postArtifactConfig, async c => {
-    return await Sentry.startSpan({ name: 'POST /artifact-config' }, async span => {
-      const { schema, source } = c.req.valid('json')
-
-      invariant(source.type === 'operation', 'Source must be an operation')
-
-      const documentObject = await toV3Document(stringToSchema(schema))
-
-      const { oasDocument } = toOasDocument({
-        documentObject,
-        spanId: span.spanContext().spanId
-      })
-
-      const operation = oasDocument.operations.find(operation => {
-        return (
-          operation.method === source.operationMethod && operation.path === source.operationPath
-        )
-      })
-
-      // deno-lint-ignore ban-ts-comment
-      // @ts-expect-error
-      const operationSchemaItem = toGeneratorConfigMap()[source.generatorId]?.toSchemaItem(
-        operation
-      ) as OperationSchemaItem
-
-      if (!operationSchemaItem) {
-        return c.json({ schemaItem: null }, 200)
-      }
-
-      const refName = operationSchemaItem.schema.isRef()
-        ? operationSchemaItem.schema.toRefName()
-        : null
-
-      return c.json(
-        {
-          schemaItem: {
-            schema: operationSchemaItem.schema.toJsonSchema({ resolve: true }) as Record<
-              string,
-              unknown
-            >,
-            name: refName,
-            type: operationSchemaItem.type
-          }
-        },
-        200
-      )
     })
   })
 

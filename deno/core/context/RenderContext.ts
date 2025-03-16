@@ -12,10 +12,11 @@ import type { StackTrail } from './StackTrail.ts'
 import type * as log from 'jsr:@std/log@^0.224.6'
 import type { File } from '../dsl/File.ts'
 import type { Preview } from '../types/Preview.ts'
-
+import type { SchemaOption } from '../types/SchemaOptions.ts'
 type ConstructorArgs = {
   files: Map<string, File>
   previews: Record<string, Record<string, Preview>>
+  schemaOptions: SchemaOption[]
   prettier?: PrettierConfigType
   basePath: string | undefined
   stackTrail: StackTrail
@@ -34,6 +35,7 @@ type FileObject = {
 export class RenderContext {
   files: Map<string, File>
   previews: Record<string, Record<string, Preview>>
+  schemaOptions: SchemaOption[]
   private prettier?: PrettierConfigType
   basePath: string | undefined
   logger: log.Logger
@@ -42,6 +44,7 @@ export class RenderContext {
   constructor({
     files,
     previews,
+    schemaOptions,
     prettier,
     basePath,
     logger,
@@ -50,6 +53,7 @@ export class RenderContext {
   }: ConstructorArgs) {
     this.files = files
     this.previews = previews
+    this.schemaOptions = schemaOptions
     this.prettier = prettier
     this.basePath = basePath
     this.logger = logger
@@ -66,7 +70,8 @@ export class RenderContext {
       const rendered: Omit<RenderResult, 'results'> = {
         artifacts: result.artifacts,
         files: result.files,
-        previews: this.previews
+        previews: this.previews,
+        schemaOptions: this.schemaOptions
       }
 
       return rendered

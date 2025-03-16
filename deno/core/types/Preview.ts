@@ -2,23 +2,27 @@ import { z } from '@hono/zod-openapi'
 import { method, type Method } from './Method.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 
+/** @deprecated */
 export type InputOption = {
   schema: OasSchema
   label: string
   name?: string
 }
 
+/** @deprecated */
 export const inputOption = z.object({
   schema: z.record(z.unknown()),
   label: z.string(),
   name: z.string().optional()
 })
 
+/** @deprecated */
 export type FormatterOption = {
   schema: OasSchema
   label: string
 }
 
+/** @deprecated */
 export const formatterOption = z.object({
   schema: z.record(z.unknown()),
   label: z.string()
@@ -39,10 +43,13 @@ export type ModelPreview = {
 
 export type Preview = {
   name: string
+  /** @deprecated */
   route?: string
   exportPath: string
   group: string
+  /** @deprecated */
   input?: InputOption
+  /** @deprecated */
   formatter?: FormatterOption
   source: OperationPreview | ModelPreview
 }
@@ -65,8 +72,11 @@ export const preview = z
     name: z.string(),
     exportPath: z.string(),
     group: z.string(),
+    /** @deprecated */
     route: z.string().optional(),
+    /** @deprecated */
     input: inputOption.optional(),
+    /** @deprecated */
     formatter: formatterOption.optional(),
     source: z.discriminatedUnion('type', [operationPreview, modelPreview])
   })
