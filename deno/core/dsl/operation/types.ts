@@ -4,8 +4,7 @@ import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { z } from 'zod'
-import type { SchemaItem } from '../../types/SchemaItem.ts'
-
+import type { SchemaOption } from '../../types/SchemaOptions.ts'
 export type OperationInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
@@ -59,8 +58,8 @@ export type OperationConfig<EnrichmentType = undefined> = {
   transform: <Acc = void>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedArgs) => boolean
+  toSchemaOptions?: () => SchemaOption[]
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
-  toSchemaItem?: (operation: OasOperation) => SchemaItem
 }

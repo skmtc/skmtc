@@ -18,7 +18,6 @@ await build({
     { name: './refFns', path: './helpers/refFns.ts' },
     { name: './Preview', path: './types/Preview.ts' },
     { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' },
-    { name: './SchemaItem', path: './types/SchemaItem.ts' },
     { name: './ParseContext', path: './context/ParseContext.ts' },
     { name: './StackTrail', path: './context/StackTrail.ts' },
     { name: './OasDocument', path: './oas/document/Document.ts' },

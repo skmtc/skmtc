@@ -4,8 +4,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { z } from 'zod'
-import type { SchemaItem } from '../../types/SchemaItem.ts'
-
+import type { SchemaOption } from '../../types/SchemaOptions.ts'
 type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   refName: RefName
@@ -49,9 +48,8 @@ export type ModelConfig<EnrichmentType = undefined> = {
   type: 'model'
   transform: <Acc = void>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
   toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
+  toSchemaOptions?: () => SchemaOption[]
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
-
-  toSchemaItem?: (refName: RefName) => SchemaItem
 }

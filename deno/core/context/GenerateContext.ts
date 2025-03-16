@@ -66,7 +66,7 @@ export type RegisterArgs = {
   preview?: {
     [group: string]: Omit<Preview, 'group' | 'exportPath'>
   }
-  schemaOptions?: SchemaOption[]
+  schemaOptions?: Omit<SchemaOption, 'exportPath'>[]
   destinationPath: string
 }
 
@@ -219,6 +219,19 @@ export class GenerateContext {
     oasDocument,
     generatorConfig
   }: RunOperationGeneratorArgs<EnrichmentType>) {
+    const schemaOptions = generatorConfig.toSchemaOptions?.() ?? []
+
+    schemaOptions.forEach(schemaOption => {
+      const existingSchemaOption = this.#schemaOptions.find(
+        ({ name, exportPath }) =>
+          name === schemaOption.name && exportPath === schemaOption.exportPath
+      )
+
+      if (!existingSchemaOption) {
+        this.#schemaOptions.push(schemaOption)
+      }
+    })
+
     return oasDocument.operations.reduce((acc, operation) => {
       return this.trace([operation.path, operation.method], () => {
         if (!generatorConfig.isSupported({ operation, context: this })) {
@@ -250,6 +263,19 @@ export class GenerateContext {
     oasDocument,
     generatorConfig
   }: RunModelGeneratorArgs<EnrichmentType>) {
+    const schemaOptions = generatorConfig.toSchemaOptions?.() ?? []
+
+    schemaOptions.forEach(schemaOption => {
+      const existingSchemaOption = this.#schemaOptions.find(
+        ({ name, exportPath }) =>
+          name === schemaOption.name && exportPath === schemaOption.exportPath
+      )
+
+      if (!existingSchemaOption) {
+        this.#schemaOptions.push(schemaOption)
+      }
+    })
+
     const refNames = oasDocument.components?.toSchemasRefNames() ?? []
 
     return refNames.reduce((acc, refName) => {
@@ -444,7 +470,13 @@ export class GenerateContext {
     })
 
     schemaOptions?.forEach(schemaOption => {
-      this.#schemaOptions.push(schemaOption)
+      const existingSchemaOption = this.#schemaOptions.find(
+        ({ name, exportPath }) => name === schemaOption.name && exportPath === destinationPath
+      )
+
+      if (!existingSchemaOption) {
+        this.#schemaOptions.push({ ...schemaOption, exportPath: destinationPath })
+      }
     })
 
     Object.entries(preview ?? {}).forEach(([group, { name, source }]) => {

@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi'
 import { resultsItem, resultsItemJsonSchema, type ResultsItem } from './Results.ts'
 import { preview, type Preview } from './Preview.ts'
-
+import { serializedSchemaOption, type SerializedSchemaOption } from './SchemaOptions.ts'
 export type ManifestEntry = {
   lines: number
   characters: number
@@ -37,6 +37,7 @@ export type ManifestContent = {
   results: ResultsItem
   startAt: number
   endAt: number
+  schemaOptions: SerializedSchemaOption[]
 }
 
 export const manifestContent = z
@@ -49,6 +50,7 @@ export const manifestContent = z
     previews: z.record(z.record(preview)),
     results: resultsItem.openapi('ResultsItem', resultsItemJsonSchema as Record<string, unknown>),
     startAt: z.number(),
-    endAt: z.number()
+    endAt: z.number(),
+    schemaOptions: z.array(serializedSchemaOption)
   })
   .openapi('ManifestContent')
