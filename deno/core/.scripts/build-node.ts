@@ -35,7 +35,8 @@ await build({
     { name: './OasString', path: './oas/string/String.ts' },
     { name: './OasBoolean', path: './oas/boolean/Boolean.ts' },
     { name: './OasObject', path: './oas/object/Object.ts' },
-    { name: './OasArray', path: './oas/array/Array.ts' }
+    { name: './OasArray', path: './oas/array/Array.ts' },
+    { name: './SchemaOptions', path: './types/SchemaOptions.ts' }
   ],
   outDir: '../../packages/core',
   test: false,
