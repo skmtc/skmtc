@@ -6,9 +6,7 @@
   },
   "imports": {
     "@skmtc/core": "jsr:@skmtc/core@^0.0.599",
-    "@sentry/deno": "npm:@sentry/deno@^8.47.0",
-    "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.18.4",
-    "@asteasolutions/zod-to-openapi": "npm:@asteasolutions/zod-to-openapi@^7.3.0"
+    "@sentry/deno": "npm:@sentry/deno@^8.47.0"
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty"

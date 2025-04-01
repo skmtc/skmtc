@@ -1,4 +1,4 @@
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 
 export type SchemaOption = {

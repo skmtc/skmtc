@@ -1,25 +1,21 @@
 import { type Method, method } from './Method.ts'
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 
-export const enrichedSetting = z
-  .object({
-    selected: z.boolean(),
-    enrichments: z.unknown().optional()
-  })
-  .openapi('EnrichedSetting')
+export const enrichedSetting = z.object({
+  selected: z.boolean(),
+  enrichments: z.unknown().optional()
+})
 
 export type EnrichedSetting = {
   selected: boolean
   enrichments?: unknown
 }
 
-export const operationsGeneratorSettings = z
-  .object({
-    id: z.string(),
-    description: z.string().optional(),
-    operations: z.record(z.record(method, enrichedSetting))
-  })
-  .openapi('OperationsGeneratorSettings')
+export const operationsGeneratorSettings = z.object({
+  id: z.string(),
+  description: z.string().optional(),
+  operations: z.record(z.record(method, enrichedSetting))
+})
 
 export type OperationsGeneratorSettings = {
   id: string
@@ -27,14 +23,12 @@ export type OperationsGeneratorSettings = {
   operations: Record<string, Partial<Record<Method, EnrichedSetting>>>
 }
 
-export const modelsGeneratorSettings = z
-  .object({
-    id: z.string(),
-    exportPath: z.string().optional(),
-    description: z.string().optional(),
-    models: z.record(enrichedSetting)
-  })
-  .openapi('ModelsGeneratorSettings')
+export const modelsGeneratorSettings = z.object({
+  id: z.string(),
+  exportPath: z.string().optional(),
+  description: z.string().optional(),
+  models: z.record(enrichedSetting)
+})
 
 export type ModelsGeneratorSettings = {
   id: string
@@ -43,31 +37,28 @@ export type ModelsGeneratorSettings = {
   models: Record<string, EnrichedSetting>
 }
 
-export const clientGeneratorSettings = z
-  .union([operationsGeneratorSettings, modelsGeneratorSettings])
-  .openapi('GeneratorSettings')
+export const clientGeneratorSettings = z.union([
+  operationsGeneratorSettings,
+  modelsGeneratorSettings
+])
 
 export type ClientGeneratorSettings = OperationsGeneratorSettings | ModelsGeneratorSettings
 
-export const modulePackage = z
-  .object({
-    rootPath: z.string(),
-    moduleName: z.string().optional()
-  })
-  .openapi('ModulePackage')
+export const modulePackage = z.object({
+  rootPath: z.string(),
+  moduleName: z.string().optional()
+})
 
 export type ModulePackage = {
   rootPath: string
   moduleName?: string
 }
 
-export const clientSettings = z
-  .object({
-    basePath: z.string().optional(),
-    packages: z.array(modulePackage).optional().openapi('ModulePackages'),
-    generators: z.array(clientGeneratorSettings)
-  })
-  .openapi('ClientSettings')
+export const clientSettings = z.object({
+  basePath: z.string().optional(),
+  packages: z.array(modulePackage).optional(),
+  generators: z.array(clientGeneratorSettings)
+})
 
 export type ClientSettings = {
   basePath?: string
@@ -81,21 +72,17 @@ export type SkmtcClientConfig = {
   settings: ClientSettings
 }
 
-export const skmtcClientConfig = z
-  .object({
-    accountName: z.string().optional(),
-    deploymentId: z.string().optional(),
-    settings: clientSettings
-  })
-  .openapi('SkmtcClientConfig')
+export const skmtcClientConfig = z.object({
+  accountName: z.string().optional(),
+  deploymentId: z.string().optional(),
+  settings: clientSettings
+})
 
-export const skmtcStackConfig = z
-  .object({
-    name: z.string().optional(),
-    version: z.string().optional(),
-    generators: z.array(z.string())
-  })
-  .openapi('SkmtcStackConfig')
+export const skmtcStackConfig = z.object({
+  name: z.string().optional(),
+  version: z.string().optional(),
+  generators: z.array(z.string())
+})
 
 export type SkmtcStackConfig = {
   name?: string

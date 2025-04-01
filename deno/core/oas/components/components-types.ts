@@ -20,7 +20,7 @@ import {
 import { type OasRequestBodyData, oasRequestBodyData } from '../requestBody/requestBody-types.ts'
 import { type OasResponseData, oasResponseData } from '../response/response-types.ts'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 
 export type OasComponentsData = {
   oasType: 'components'

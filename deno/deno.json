@@ -19,8 +19,7 @@
     "zod": "npm:zod@^3.24.1",
     "hono": "npm:hono@4.7.2",
     "@babel/helper-validator-identifier": "npm:@babel/helper-validator-identifier@7.22.20",
-    "zod-to-json-schema": "npm:zod-to-json-schema@^3.24.1",
-    "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.18.4"
+  
   },
   "workspace": [
     "./core",

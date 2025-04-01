@@ -55,10 +55,6 @@ await build({
     scripts: {
       test: 'exit 0'
     },
-    dependencies: {
-      '@hono/zod-openapi': '^0.18.3',
-      'zod-to-json-schema': '^3.24.3'
-    },
     devDependencies: {
       '@types/lodash-es': '4.17.12',
       'openapi-types': '12.1.3'

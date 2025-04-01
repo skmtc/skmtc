@@ -11,7 +11,7 @@ import {
 } from '../ref/ref-types.ts'
 import { type OasRequestBodyData, oasRequestBodyData } from '../requestBody/requestBody-types.ts'
 import { type OasResponseData, oasResponseData } from '../response/response-types.ts'
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 
 export type OasOperationData = {
   oasType: 'operation'

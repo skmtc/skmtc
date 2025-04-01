@@ -8,7 +8,7 @@ import {
   oasSchemaRefData
 } from '../ref/ref-types.ts'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 
 export type OasHeaderData = {
   oasType: 'header'

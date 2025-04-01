@@ -1,4 +1,4 @@
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 import { method, type Method } from './Method.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 
@@ -67,17 +67,15 @@ export const modelPreview = z.object({
   refName: z.string()
 })
 
-export const preview = z
-  .object({
-    name: z.string(),
-    exportPath: z.string(),
-    group: z.string(),
-    /** @deprecated */
-    route: z.string().optional(),
-    /** @deprecated */
-    input: inputOption.optional(),
-    /** @deprecated */
-    formatter: formatterOption.optional(),
-    source: z.discriminatedUnion('type', [operationPreview, modelPreview])
-  })
-  .openapi('Preview')
+export const preview = z.object({
+  name: z.string(),
+  exportPath: z.string(),
+  group: z.string(),
+  /** @deprecated */
+  route: z.string().optional(),
+  /** @deprecated */
+  input: inputOption.optional(),
+  /** @deprecated */
+  formatter: formatterOption.optional(),
+  source: z.discriminatedUnion('type', [operationPreview, modelPreview])
+})

@@ -1,4 +1,4 @@
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 
 // Not an actual OAS type, but adding it here to
 // transform to a void type during transform

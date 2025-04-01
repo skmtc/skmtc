@@ -1,4 +1,4 @@
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
 import { type OasSchemaRefData, oasSchemaRefData } from '../ref/ref-types.ts'
 

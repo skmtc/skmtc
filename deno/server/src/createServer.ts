@@ -1,80 +1,30 @@
 import * as Sentry from '@sentry/deno'
 import { cors } from 'hono/cors'
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
+import { Hono } from 'hono'
 import { clientSettings as settingsSchema, transform } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
 import type { GeneratorsMapContainer } from '@skmtc/core'
-import { manifestContent } from '@skmtc/core/Manifest'
 import { stringToSchema, toV3Document } from './toV3Document.ts'
+import { z } from 'zod'
+const postSettingsBody = z.object({
+  defaultSelected: z.boolean().optional(),
+  schema: z.string(),
+  clientSettings: settingsSchema.optional()
+})
 
-const postSettingsBody = z
-  .object({
-    defaultSelected: z.boolean().optional(),
-    schema: z.string(),
-    clientSettings: settingsSchema.optional()
-  })
-  .openapi('PostSettingsRequestBody')
-
-const postArtifactsBody = z
-  .object({
-    schema: z.string(),
-    clientSettings: settingsSchema.optional(),
-    prettier: z.record(z.unknown()).optional()
-  })
-  .openapi('PostArtifactsRequestBody')
+const postArtifactsBody = z.object({
+  schema: z.string(),
+  clientSettings: settingsSchema.optional(),
+  prettier: z.record(z.unknown()).optional()
+})
 
 type CreateServerArgs = {
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   logsPath?: string
 }
 
-const postArtifacts = createRoute({
-  method: 'post',
-  path: '/artifacts',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: postArtifactsBody
-        }
-      },
-      required: true
-    }
-  },
-  responses: {
-    200: {
-      description: 'Artifacts generated',
-      content: {
-        'application/json': {
-          schema: z.object({
-            artifacts: z.record(z.string()).openapi('Artifacts'),
-            manifest: manifestContent
-          })
-        }
-      }
-    }
-  }
-})
-
-const getGenerators = createRoute({
-  method: 'get',
-  path: '/generators',
-  responses: {
-    200: {
-      description: 'Generators list',
-      content: {
-        'application/json': {
-          schema: z.object({
-            generators: z.array(z.string())
-          })
-        }
-      }
-    }
-  }
-})
-
-export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArgs): OpenAPIHono => {
-  const app = new OpenAPIHono()
+export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArgs): Hono => {
+  const app = new Hono()
 
   app.use(
     '*',
@@ -138,7 +88,7 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
     return c.json(result, 200)
   })
 
-  app.openapi(getGenerators, c => {
+  app.get('/generators', c => {
     return Sentry.startSpan({ name: 'GET /generators' }, () => {
       return c.json({ generators: Object.keys(toGeneratorConfigMap()) })
     })
@@ -172,14 +122,6 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
       return c.json({ generators: enrichedSettings })
     })
-  })
-
-  app.doc('/openapi', {
-    openapi: '3.0.3',
-    info: {
-      title: 'SKMTC API',
-      version: '0.0.1'
-    }
   })
 
   return app

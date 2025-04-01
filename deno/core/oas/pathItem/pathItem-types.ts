@@ -1,7 +1,7 @@
 import { markdown } from '../markdown/markdown-types.ts'
 import { type OasParameterData, oasParameterData } from '../parameter/parameter-types.ts'
 import { type OasParameterRefData, oasParameterRefData } from '../ref/ref-types.ts'
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 
 export type OasPathItemData = {
   oasType: 'pathItem'

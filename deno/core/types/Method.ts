@@ -1,4 +1,4 @@
-import { z } from '@hono/zod-openapi'
+import { z } from 'zod'
 
 export const methodValues = [
   'get',
@@ -13,9 +13,16 @@ export const methodValues = [
 
 export const methodValuesNoTrace = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch']
 
-export const method: z.ZodType<Method> = z
-  .enum(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'])
-  .openapi('Method')
+export const method: z.ZodType<Method> = z.enum([
+  'get',
+  'put',
+  'post',
+  'delete',
+  'options',
+  'head',
+  'patch',
+  'trace'
+])
 
 export type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
 

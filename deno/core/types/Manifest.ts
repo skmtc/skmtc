@@ -1,5 +1,5 @@
-import { z } from '@hono/zod-openapi'
-import { resultsItem, resultsItemJsonSchema, type ResultsItem } from './Results.ts'
+import { z } from 'zod'
+import { resultsItem, type ResultsItem } from './Results.ts'
 import { preview, type Preview } from './Preview.ts'
 import { serializedSchemaOption, type SerializedSchemaOption } from './SchemaOptions.ts'
 export type ManifestEntry = {
@@ -8,25 +8,22 @@ export type ManifestEntry = {
   destinationPath: string
 }
 
-export const manifestEntry = z
-  .object({
-    lines: z.number(),
-    characters: z.number(),
-    destinationPath: z.string()
-  })
-  .openapi('ManifestEntry')
+export const manifestEntry = z.object({
+  lines: z.number(),
+  characters: z.number(),
+  destinationPath: z.string()
+})
 
 export type PreviewItem = {
   name: string
   exportPath: string
 }
 
-export const previewItem = z
-  .object({
-    name: z.string(),
-    exportPath: z.string()
-  })
-  .openapi('PreviewItem')
+export const previewItem = z.object({
+  name: z.string(),
+  exportPath: z.string()
+})
+
 export type ManifestContent = {
   deploymentId: string
   traceId: string
@@ -40,17 +37,15 @@ export type ManifestContent = {
   schemaOptions: SerializedSchemaOption[]
 }
 
-export const manifestContent = z
-  .object({
-    deploymentId: z.string(),
-    traceId: z.string(),
-    spanId: z.string(),
-    region: z.string().optional(),
-    files: z.record(manifestEntry),
-    previews: z.record(z.record(preview)),
-    results: resultsItem.openapi('ResultsItem', resultsItemJsonSchema as Record<string, unknown>),
-    startAt: z.number(),
-    endAt: z.number(),
-    schemaOptions: z.array(serializedSchemaOption)
-  })
-  .openapi('ManifestContent')
+export const manifestContent = z.object({
+  deploymentId: z.string(),
+  traceId: z.string(),
+  spanId: z.string(),
+  region: z.string().optional(),
+  files: z.record(manifestEntry),
+  previews: z.record(z.record(preview)),
+  results: resultsItem,
+  startAt: z.number(),
+  endAt: z.number(),
+  schemaOptions: z.array(serializedSchemaOption)
+})
