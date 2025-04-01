@@ -5,7 +5,6 @@ import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
 import { logger } from 'hono/logger'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { mockServer } from './core/mock-server.generated.js'
 
 const app = new Hono()
 app.use(logger())
@@ -14,8 +13,6 @@ app.use(cors({
   allowedHeaders: ['Authorization', 'api-version'],
   credentials: true
 }))
-
-app.route('/api', mockServer)
 
 app.get('/assets/*', serveStatic({ root: './build' }))
 
