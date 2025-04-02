@@ -1,6 +1,6 @@
 import { markdown } from '../markdown/markdown-types.ts'
 import { type OasMediaTypeData, oasMediaTypeData } from '../mediaType/mediaType-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasRequestBodyData = {
   oasType: 'requestBody'
@@ -9,9 +9,9 @@ export type OasRequestBodyData = {
   required?: boolean
 }
 
-export const oasRequestBodyData: z.ZodType<OasRequestBodyData> = z.object({
-  oasType: z.literal('requestBody'),
-  description: markdown.optional(),
-  content: z.record(oasMediaTypeData),
-  required: z.boolean().optional()
+export const oasRequestBodyData = v.object({
+  oasType: v.literal('requestBody'),
+  description: v.optional(markdown),
+  content: v.record(v.string(), oasMediaTypeData),
+  required: v.optional(v.boolean())
 })

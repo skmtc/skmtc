@@ -3,7 +3,7 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
-import type { z } from 'zod'
+import * as v from 'valibot'
 import type { SchemaOption } from '../../types/SchemaOptions.ts'
 export type OperationInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -56,7 +56,7 @@ export type OperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'operation'
   transform: <Acc = void>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
-  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedArgs) => boolean
   toSchemaOptions?: () => SchemaOption[]
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(

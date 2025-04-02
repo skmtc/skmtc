@@ -11,7 +11,7 @@ import {
 } from '../ref/ref-types.ts'
 import { type OasRequestBodyData, oasRequestBodyData } from '../requestBody/requestBody-types.ts'
 import { type OasResponseData, oasResponseData } from '../response/response-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasOperationData = {
   oasType: 'operation'
@@ -33,22 +33,31 @@ export type OasOperationData = {
   // servers?: Server[]
 }
 
-export const oasOperationData: z.ZodType<OasOperationData> = z.object({
-  oasType: z.literal('operation'),
+export const oasOperationData = v.object({
+  oasType: v.literal('operation'),
   pathItem: oasPathItemData,
-  path: z.string(),
-  method: z.enum(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']),
-  operationId: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  summary: z.string().optional(),
-  description: markdown.optional(),
+  path: v.string(),
+  method: v.enum({
+    get: 'get',
+    put: 'put',
+    post: 'post',
+    delete: 'delete',
+    options: 'options',
+    head: 'head',
+    patch: 'patch',
+    trace: 'trace'
+  }),
+  operationId: v.optional(v.string()),
+  tags: v.optional(v.array(v.string())),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown),
   // externalDocs: externalDocs.optional(),
   // operationId: z.string().optional(),
-  parameters: z.array(z.union([oasParameterData, oasParameterRefData])).optional(),
-  requestBody: z.union([oasRequestBodyData, oasRequestBodyRefData]).optional(),
-  responses: z.record(z.union([oasResponseData, oasResponseRefData])),
+  parameters: v.optional(v.array(v.union([oasParameterData, oasParameterRefData]))),
+  requestBody: v.optional(v.union([oasRequestBodyData, oasRequestBodyRefData])),
+  responses: v.record(v.string(), v.union([oasResponseData, oasResponseRefData])),
   // callbacks: z.never(),
-  deprecated: z.boolean().optional()
+  deprecated: v.optional(v.boolean())
   // security: z.never(),
   // servers: z.array(server).optional()
 })

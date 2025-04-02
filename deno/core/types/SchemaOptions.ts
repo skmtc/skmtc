@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import type { OasSchema } from '../oas/schema/Schema.ts'
+import * as v from 'valibot'
 
 export type SchemaOption = {
   type: 'input' | 'formatter'
@@ -11,39 +11,44 @@ export type SchemaOption = {
   exportPath: string
 }
 
-export const schemaOption = z.object({
-  type: z.enum(['input', 'formatter']),
-  name: z.string(),
-  matchBy: z.object({
-    schema: z.record(z.unknown()),
-    name: z.string().optional()
+export const schemaOption = v.object({
+  type: v.union([v.literal('input'), v.literal('formatter')]),
+  name: v.string(),
+  matchBy: v.object({
+    schema: v.record(v.string(), v.unknown()),
+    name: v.optional(v.string())
   }),
-  exportPath: z.string()
+  exportPath: v.string()
 })
 
-export const serializedSchema: z.ZodType<SerializedSchema> = z.union([
-  z.object({
-    type: z.literal('object'),
-    properties: z.lazy(() => z.record(serializedSchema)).optional()
+export const serializedSchema: v.GenericSchema<SerializedSchema> = v.union([
+  v.object({
+    type: v.literal('object'),
+    properties: v.optional(
+      v.record(
+        v.string(),
+        v.lazy(() => serializedSchema)
+      )
+    )
   }),
-  z.object({
-    type: z.literal('string')
+  v.object({
+    type: v.literal('string')
   }),
-  z.object({
-    type: z.literal('number')
+  v.object({
+    type: v.literal('number')
   }),
-  z.object({
-    type: z.literal('boolean')
+  v.object({
+    type: v.literal('boolean')
   }),
-  z.object({
-    type: z.literal('array'),
-    items: z.lazy(() => serializedSchema)
+  v.object({
+    type: v.literal('array'),
+    items: v.lazy(() => serializedSchema)
   }),
-  z.object({
-    type: z.literal('integer')
+  v.object({
+    type: v.literal('integer')
   }),
-  z.object({
-    type: z.literal('integer')
+  v.object({
+    type: v.literal('integer')
   })
 ])
 
@@ -72,13 +77,13 @@ export type SerializedSchema =
       type: 'boolean'
     }
 
-export const serializedSchemaOption = z.object({
-  type: z.enum(['input', 'formatter']),
-  name: z.string(),
-  exportPath: z.string(),
-  matchBy: z.object({
+export const serializedSchemaOption = v.object({
+  type: v.union([v.literal('input'), v.literal('formatter')]),
+  name: v.string(),
+  exportPath: v.string(),
+  matchBy: v.object({
     schema: serializedSchema,
-    name: z.string().optional()
+    name: v.optional(v.string())
   })
 })
 

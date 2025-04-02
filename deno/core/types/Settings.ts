@@ -1,9 +1,9 @@
 import { type Method, method } from './Method.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
-export const enrichedSetting = z.object({
-  selected: z.boolean(),
-  enrichments: z.unknown().optional()
+export const enrichedSetting = v.object({
+  selected: v.boolean(),
+  enrichments: v.optional(v.unknown())
 })
 
 export type EnrichedSetting = {
@@ -11,10 +11,10 @@ export type EnrichedSetting = {
   enrichments?: unknown
 }
 
-export const operationsGeneratorSettings = z.object({
-  id: z.string(),
-  description: z.string().optional(),
-  operations: z.record(z.record(method, enrichedSetting))
+export const operationsGeneratorSettings = v.object({
+  id: v.string(),
+  description: v.optional(v.string()),
+  operations: v.record(v.string(), v.record(method, enrichedSetting))
 })
 
 export type OperationsGeneratorSettings = {
@@ -23,11 +23,11 @@ export type OperationsGeneratorSettings = {
   operations: Record<string, Partial<Record<Method, EnrichedSetting>>>
 }
 
-export const modelsGeneratorSettings = z.object({
-  id: z.string(),
-  exportPath: z.string().optional(),
-  description: z.string().optional(),
-  models: z.record(enrichedSetting)
+export const modelsGeneratorSettings = v.object({
+  id: v.string(),
+  exportPath: v.optional(v.string()),
+  description: v.optional(v.string()),
+  models: v.record(v.string(), enrichedSetting)
 })
 
 export type ModelsGeneratorSettings = {
@@ -37,16 +37,16 @@ export type ModelsGeneratorSettings = {
   models: Record<string, EnrichedSetting>
 }
 
-export const clientGeneratorSettings = z.union([
+export const clientGeneratorSettings = v.union([
   operationsGeneratorSettings,
   modelsGeneratorSettings
 ])
 
 export type ClientGeneratorSettings = OperationsGeneratorSettings | ModelsGeneratorSettings
 
-export const modulePackage = z.object({
-  rootPath: z.string(),
-  moduleName: z.string().optional()
+export const modulePackage = v.object({
+  rootPath: v.string(),
+  moduleName: v.optional(v.string())
 })
 
 export type ModulePackage = {
@@ -54,10 +54,10 @@ export type ModulePackage = {
   moduleName?: string
 }
 
-export const clientSettings = z.object({
-  basePath: z.string().optional(),
-  packages: z.array(modulePackage).optional(),
-  generators: z.array(clientGeneratorSettings)
+export const clientSettings = v.object({
+  basePath: v.optional(v.string()),
+  packages: v.optional(v.array(modulePackage)),
+  generators: v.array(clientGeneratorSettings)
 })
 
 export type ClientSettings = {
@@ -72,16 +72,16 @@ export type SkmtcClientConfig = {
   settings: ClientSettings
 }
 
-export const skmtcClientConfig = z.object({
-  accountName: z.string().optional(),
-  deploymentId: z.string().optional(),
+export const skmtcClientConfig = v.object({
+  accountName: v.optional(v.string()),
+  deploymentId: v.optional(v.string()),
   settings: clientSettings
 })
 
-export const skmtcStackConfig = z.object({
-  name: z.string().optional(),
-  version: z.string().optional(),
-  generators: z.array(z.string())
+export const skmtcStackConfig = v.object({
+  name: v.optional(v.string()),
+  version: v.optional(v.string()),
+  generators: v.array(v.string())
 })
 
 export type SkmtcStackConfig = {

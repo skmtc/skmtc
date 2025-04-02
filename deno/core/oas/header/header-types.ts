@@ -8,7 +8,7 @@ import {
   oasSchemaRefData
 } from '../ref/ref-types.ts'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasHeaderData = {
   oasType: 'header'
@@ -23,24 +23,24 @@ export type OasHeaderData = {
   explode?: boolean
 }
 
-const oasHeaderStyle = z.literal('simple')
+const oasHeaderStyle = v.literal('simple')
 
 type OasHeaderStyle = 'simple'
 
-export const oasHeaderData: z.ZodType<OasHeaderData> = z.object({
-  oasType: z.literal('header'),
-  description: markdown.optional(),
-  required: z.boolean().optional(),
-  deprecated: z.boolean().optional(),
-  allowEmptyValue: z.boolean().optional(),
+export const oasHeaderData = v.object({
+  oasType: v.literal('header'),
+  description: v.optional(markdown),
+  required: v.optional(v.boolean()),
+  deprecated: v.optional(v.boolean()),
+  allowEmptyValue: v.optional(v.boolean()),
   // Default values (based on value of in): for query - form; for path - simple; for header - simple; for cookie - form.
-  style: oasHeaderStyle.optional(),
-  explode: z.boolean().optional(),
-  // allowReserved: z.boolean().optional(),
-  schema: z.union([oasSchemaData, oasSchemaRefData]).optional(),
+  style: v.optional(oasHeaderStyle),
+  explode: v.optional(v.boolean()),
+  // allowReserved: v.boolean().optional(),
+  schema: v.optional(v.union([oasSchemaData, oasSchemaRefData])),
   // example: z.any().optional(),
-  examples: z.record(z.union([oasExampleData, oasExampleRefData])).optional(),
-  content: z.record(oasMediaTypeData).optional()
+  examples: v.optional(v.record(v.string(), v.union([oasExampleData, oasExampleRefData]))),
+  content: v.optional(v.record(v.string(), oasMediaTypeData))
 })
 
 // export type OasHeaders = Record<string, OasHeader | OasHeaderRef>

@@ -1,5 +1,5 @@
 import { markdown } from '../markdown/markdown-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasSchemaRefData = {
   oasType: 'ref'
@@ -9,12 +9,12 @@ export type OasSchemaRefData = {
   description?: string
 }
 
-export const oasSchemaRefData: z.ZodType<OasSchemaRefData> = z.object({
-  oasType: z.literal('ref'),
-  refType: z.enum(['schema']),
-  $ref: z.string(),
-  summary: z.string().optional(),
-  description: markdown.optional()
+export const oasSchemaRefData: v.GenericSchema<OasSchemaRefData> = v.object({
+  oasType: v.literal('ref'),
+  refType: v.literal('schema'),
+  $ref: v.string(),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown)
 })
 
 export type OasResponseRefData = {
@@ -25,12 +25,12 @@ export type OasResponseRefData = {
   description?: string
 }
 
-export const oasResponseRefData: z.ZodType<OasResponseRefData> = z.object({
-  oasType: z.literal('ref'),
-  refType: z.enum(['response']),
-  $ref: z.string(),
-  summary: z.string().optional(),
-  description: markdown.optional()
+export const oasResponseRefData: v.GenericSchema<OasResponseRefData> = v.object({
+  oasType: v.literal('ref'),
+  refType: v.literal('response'),
+  $ref: v.string(),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown)
 })
 
 export type OasParameterRefData = {
@@ -41,12 +41,12 @@ export type OasParameterRefData = {
   description?: string
 }
 
-export const oasParameterRefData: z.ZodType<OasParameterRefData> = z.object({
-  oasType: z.literal('ref'),
-  refType: z.enum(['parameter']),
-  $ref: z.string(),
-  summary: z.string().optional(),
-  description: markdown.optional()
+export const oasParameterRefData: v.GenericSchema<OasParameterRefData> = v.object({
+  oasType: v.literal('ref'),
+  refType: v.literal('parameter'),
+  $ref: v.string(),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown)
 })
 
 export type OasExampleRefData = {
@@ -57,12 +57,12 @@ export type OasExampleRefData = {
   description?: string
 }
 
-export const oasExampleRefData: z.ZodType<OasExampleRefData> = z.object({
-  oasType: z.literal('ref'),
-  refType: z.enum(['example']),
-  $ref: z.string(),
-  summary: z.string().optional(),
-  description: markdown.optional()
+export const oasExampleRefData: v.GenericSchema<OasExampleRefData> = v.object({
+  oasType: v.literal('ref'),
+  refType: v.literal('example'),
+  $ref: v.string(),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown)
 })
 
 export type OasRequestBodyRefData = {
@@ -73,12 +73,12 @@ export type OasRequestBodyRefData = {
   description?: string
 }
 
-export const oasRequestBodyRefData: z.ZodType<OasRequestBodyRefData> = z.object({
-  oasType: z.literal('ref'),
-  refType: z.enum(['requestBody']),
-  $ref: z.string(),
-  summary: z.string().optional(),
-  description: markdown.optional()
+export const oasRequestBodyRefData: v.GenericSchema<OasRequestBodyRefData> = v.object({
+  oasType: v.literal('ref'),
+  refType: v.literal('requestBody'),
+  $ref: v.string(),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown)
 })
 export type OasHeaderRefData = {
   oasType: 'ref'
@@ -88,12 +88,12 @@ export type OasHeaderRefData = {
   description?: string
 }
 
-export const oasHeaderRefData: z.ZodType<OasHeaderRefData> = z.object({
-  oasType: z.literal('ref'),
-  refType: z.enum(['header']),
-  $ref: z.string(),
-  summary: z.string().optional(),
-  description: markdown.optional()
+export const oasHeaderRefData: v.GenericSchema<OasHeaderRefData> = v.object({
+  oasType: v.literal('ref'),
+  refType: v.literal('header'),
+  $ref: v.string(),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown)
 })
 
 // export const oasPathItemRefData = z.object({
@@ -113,7 +113,7 @@ export type OasRefData =
   | OasHeaderRefData
 // OasPathItemRefData
 
-export const oasRefData: z.ZodType<OasRefData> = z.union([
+export const oasRefData: v.GenericSchema<OasRefData> = v.union([
   oasSchemaRefData,
   oasResponseRefData,
   oasParameterRefData,

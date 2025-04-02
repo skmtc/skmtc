@@ -3,7 +3,7 @@ import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasInteger } from './Integer.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { oasIntegerData } from './integer-types.ts'
-
+import * as v from 'valibot'
 type ToIntegerArgs = {
   value: OpenAPIV3.NonArraySchemaObject
   context: ParseContext
@@ -19,7 +19,7 @@ export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
     enum: enums,
     example,
     ...skipped
-  } = oasIntegerData.parse(value)
+  } = v.parse(oasIntegerData, value)
 
   const extensionFields = toSpecificationExtensionsV3({ skipped, context })
 

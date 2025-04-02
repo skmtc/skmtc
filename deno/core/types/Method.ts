@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export const methodValues = [
   'get',
@@ -13,23 +13,22 @@ export const methodValues = [
 
 export const methodValuesNoTrace = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch']
 
-export const method: z.ZodType<Method> = z.enum([
-  'get',
-  'put',
-  'post',
-  'delete',
-  'options',
-  'head',
-  'patch',
-  'trace'
+export const method = v.union([
+  v.literal('get'),
+  v.literal('put'),
+  v.literal('post'),
+  v.literal('delete'),
+  v.literal('options'),
+  v.literal('head'),
+  v.literal('patch')
 ])
 
 export type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
 
 type Methods = Method[]
 
-export const methods: z.ZodType<Methods> = z.array(method)
+export const methods = v.array(method)
 
 export const isMethod = (arg: unknown): arg is Method => {
-  return method.safeParse(arg).success
+  return v.safeParse(method, arg).success
 }

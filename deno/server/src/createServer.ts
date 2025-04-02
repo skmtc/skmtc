@@ -5,17 +5,18 @@ import { clientSettings as settingsSchema, transform } from '@skmtc/core'
 import { generateSettings } from './generateSettings.ts'
 import type { GeneratorsMapContainer } from '@skmtc/core'
 import { stringToSchema, toV3Document } from './toV3Document.ts'
-import { z } from 'zod'
-const postSettingsBody = z.object({
-  defaultSelected: z.boolean().optional(),
-  schema: z.string(),
-  clientSettings: settingsSchema.optional()
+import * as v from 'valibot'
+
+const postSettingsBody = v.object({
+  defaultSelected: v.optional(v.boolean()),
+  schema: v.string(),
+  clientSettings: v.optional(settingsSchema)
 })
 
-const postArtifactsBody = z.object({
-  schema: z.string(),
-  clientSettings: settingsSchema.optional(),
-  prettier: z.record(z.unknown()).optional()
+const postArtifactsBody = v.object({
+  schema: v.string(),
+  clientSettings: v.optional(settingsSchema),
+  prettier: v.optional(v.record(v.string(), v.unknown()))
 })
 
 type CreateServerArgs = {
@@ -63,7 +64,7 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
     const result = await Sentry.startSpan({ name: 'POST /artifacts' }, async span => {
       const body = await c.req.json()
 
-      const { schema, clientSettings, prettier } = postArtifactsBody.parse(body)
+      const { schema, clientSettings, prettier } = v.parse(postArtifactsBody, body)
 
       const documentObject = await toV3Document(stringToSchema(schema))
 
@@ -98,7 +99,7 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
     return await Sentry.startSpan({ name: 'POST /to-v3-json' }, async () => {
       const body = await c.req.json()
 
-      const { schema } = z.object({ schema: z.string() }).parse(body)
+      const { schema } = v.parse(v.object({ schema: v.string() }), body)
 
       const oas30Document = await toV3Document(stringToSchema(schema))
 
@@ -110,7 +111,7 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
     return await Sentry.startSpan({ name: 'POST /settings' }, async span => {
       const body = await c.req.json()
 
-      const { clientSettings, defaultSelected = false, schema } = postSettingsBody.parse(body)
+      const { clientSettings, defaultSelected = false, schema } = v.parse(postSettingsBody, body)
 
       const { enrichedSettings } = await generateSettings({
         toGeneratorConfigMap,

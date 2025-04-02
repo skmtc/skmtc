@@ -1,17 +1,18 @@
-import { z } from 'zod'
 import { resultsItem, type ResultsItem } from './Results.ts'
 import { preview, type Preview } from './Preview.ts'
 import { serializedSchemaOption, type SerializedSchemaOption } from './SchemaOptions.ts'
+import * as v from 'valibot'
+
 export type ManifestEntry = {
   lines: number
   characters: number
   destinationPath: string
 }
 
-export const manifestEntry = z.object({
-  lines: z.number(),
-  characters: z.number(),
-  destinationPath: z.string()
+export const manifestEntry = v.object({
+  lines: v.number(),
+  characters: v.number(),
+  destinationPath: v.string()
 })
 
 export type PreviewItem = {
@@ -19,9 +20,9 @@ export type PreviewItem = {
   exportPath: string
 }
 
-export const previewItem = z.object({
-  name: z.string(),
-  exportPath: z.string()
+export const previewItem = v.object({
+  name: v.string(),
+  exportPath: v.string()
 })
 
 export type ManifestContent = {
@@ -37,15 +38,15 @@ export type ManifestContent = {
   schemaOptions: SerializedSchemaOption[]
 }
 
-export const manifestContent = z.object({
-  deploymentId: z.string(),
-  traceId: z.string(),
-  spanId: z.string(),
-  region: z.string().optional(),
-  files: z.record(manifestEntry),
-  previews: z.record(z.record(preview)),
+export const manifestContent = v.object({
+  deploymentId: v.string(),
+  traceId: v.string(),
+  spanId: v.string(),
+  region: v.optional(v.string()),
+  files: v.record(v.string(), manifestEntry),
+  previews: v.record(v.string(), v.record(v.string(), preview)),
   results: resultsItem,
-  startAt: z.number(),
-  endAt: z.number(),
-  schemaOptions: z.array(serializedSchemaOption)
+  startAt: v.number(),
+  endAt: v.number(),
+  schemaOptions: v.array(serializedSchemaOption)
 })

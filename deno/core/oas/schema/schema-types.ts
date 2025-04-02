@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 import { oasArrayData, type OasArrayData } from '../array/array-types.ts'
 import { oasBooleanData, type OasBooleanData } from '../boolean/boolean-types.ts'
 import { oasNullData, type OasNullData } from '../null/null-types.ts'
@@ -25,7 +25,7 @@ export type OasSchemaData =
   | OasIntersectionData
   | OasUnknownData
 
-export const oasSchemaData: z.ZodType<OasSchemaData> = z.union([
+export const oasSchemaData: v.GenericSchema<OasSchemaData> = v.union([
   oasObjectData,
   oasArrayData,
   oasBooleanData,

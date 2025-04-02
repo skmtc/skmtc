@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type PrettierConfigType = {
   printWidth?: number
@@ -25,33 +25,33 @@ export type PrettierConfigType = {
   singleAttributePerLine?: boolean
 }
 
-export const prettierConfigType: z.ZodType<PrettierConfigType> = z.object({
-  printWidth: z.number().optional(),
-  tabWidth: z.number().optional(),
-  useTabs: z.boolean().optional(),
-  semi: z.boolean().optional(),
-  singleQuote: z.boolean().optional(),
-  quoteProps: z
-    .union([z.literal('as-needed'), z.literal('consistent'), z.literal('preserve')])
-    .optional(),
-  jsxSingleQuote: z.boolean().optional(),
-  trailingComma: z.union([z.literal('none'), z.literal('es5'), z.literal('all')]).optional(),
-  bracketSameLine: z.boolean().optional(),
-  bracketSpacing: z.boolean().optional(),
-  jsxBracketSameLine: z.boolean().optional(),
-  arrowParens: z.union([z.literal('avoid'), z.literal('always')]).optional(),
-  rangeStart: z.number().optional(),
-  rangeEnd: z.number().optional(),
-  requirePragma: z.boolean().optional(),
-  insertPragma: z.boolean().optional(),
-  proseWrap: z.union([z.literal('always'), z.literal('never'), z.literal('preserve')]).optional(),
-  htmlWhitespaceSensitivity: z
-    .union([z.literal('css'), z.literal('strict'), z.literal('ignore')])
-    .optional(),
-  vueIndentScriptAndStyle: z.boolean().optional(),
-  endOfLine: z
-    .union([z.literal('auto'), z.literal('lf'), z.literal('crlf'), z.literal('cr')])
-    .optional(),
-  embeddedLanguageFormatting: z.union([z.literal('auto'), z.literal('off')]).optional(),
-  singleAttributePerLine: z.boolean().optional()
+export const prettierConfigType = v.object({
+  printWidth: v.optional(v.number()),
+  tabWidth: v.optional(v.number()),
+  useTabs: v.optional(v.boolean()),
+  semi: v.optional(v.boolean()),
+  singleQuote: v.optional(v.boolean()),
+  quoteProps: v.optional(
+    v.union([v.literal('as-needed'), v.literal('consistent'), v.literal('preserve')])
+  ),
+  jsxSingleQuote: v.optional(v.boolean()),
+  trailingComma: v.optional(v.union([v.literal('none'), v.literal('es5'), v.literal('all')])),
+  bracketSameLine: v.optional(v.boolean()),
+  bracketSpacing: v.optional(v.boolean()),
+  jsxBracketSameLine: v.optional(v.boolean()),
+  arrowParens: v.optional(v.union([v.literal('avoid'), v.literal('always')])),
+  rangeStart: v.optional(v.number()),
+  rangeEnd: v.optional(v.number()),
+  requirePragma: v.optional(v.boolean()),
+  insertPragma: v.optional(v.boolean()),
+  proseWrap: v.optional(v.union([v.literal('always'), v.literal('never'), v.literal('preserve')])),
+  htmlWhitespaceSensitivity: v.optional(
+    v.union([v.literal('css'), v.literal('strict'), v.literal('ignore')])
+  ),
+  vueIndentScriptAndStyle: v.optional(v.boolean()),
+  endOfLine: v.optional(
+    v.union([v.literal('auto'), v.literal('lf'), v.literal('crlf'), v.literal('cr')])
+  ),
+  embeddedLanguageFormatting: v.optional(v.union([v.literal('auto'), v.literal('off')])),
+  singleAttributePerLine: v.optional(v.boolean())
 })

@@ -29,10 +29,8 @@
     "jsr:@ts-morph/bootstrap@0.24": "0.24.0",
     "jsr:@ts-morph/common@0.24": "0.24.0",
     "npm:@apiture/openapi-down-convert@0.14.0": "0.14.0",
-    "npm:@asteasolutions/zod-to-openapi@^7.3.0": "7.3.0_zod@3.24.1",
     "npm:@babel/helper-validator-identifier@7.22.20": "7.22.20",
     "npm:@google/generative-ai@0.21": "0.21.0",
-    "npm:@hono/zod-openapi@~0.18.4": "0.18.4_hono@4.7.2_zod@3.24.1",
     "npm:@sentry/deno@8.47.0": "8.47.0",
     "npm:@sentry/deno@^8.47.0": "8.47.0",
     "npm:@types/babel__helper-validator-identifier@7.15.2": "7.15.2",
@@ -43,8 +41,7 @@
     "npm:openapi-types@12.1.3": "12.1.3",
     "npm:tiny-invariant@1.3.3": "1.3.3",
     "npm:ts-pattern@5.6.0": "5.6.0",
-    "npm:zod-to-json-schema@3.24.1": "3.24.1_zod@3.24.1",
-    "npm:zod-to-json-schema@^3.24.1": "3.24.1_zod@3.24.1",
+    "npm:valibot@1.0.0": "1.0.0",
     "npm:zod@3.24.1": "3.24.1",
     "npm:zod@^3.24.1": "3.24.1"
   },
@@ -176,34 +173,11 @@
         "typescript"
       ]
     },
-    "@asteasolutions/zod-to-openapi@7.3.0_zod@3.24.1": {
-      "integrity": "sha512-7tE/r1gXwMIvGnXVUdIqUhCU1RevEFC4Jk6Bussa0fk1ecbnnINkZzj1EOAJyE/M3AI25DnHT/zKQL1/FPFi8Q==",
-      "dependencies": [
-        "openapi3-ts",
-        "zod"
-      ]
-    },
     "@babel/helper-validator-identifier@7.22.20": {
       "integrity": "sha512-Y4OZ+ytlatR8AI+8KZfKuL5urKp7qey08ha31L8b3BwewJAoJamTzyvxPR/5D+KkdJCGPq/+8TukHBlY10FX9A=="
     },
     "@google/generative-ai@0.21.0": {
       "integrity": "sha512-7XhUbtnlkSEZK15kN3t+tzIMxsbKm/dSkKBFalj+20NvPKe1kBY7mR2P7vuijEn+f06z5+A8bVGKO0v39cr6Wg=="
-    },
-    "@hono/zod-openapi@0.18.4_hono@4.7.2_zod@3.24.1": {
-      "integrity": "sha512-6NHMHU96Hh32B1yDhb94Z4Z5/POsmEu2AXpWLWcBq9arskRnOMt2752yEoXoADV8WUAc7H1IkNaQHGj1ytXbYw==",
-      "dependencies": [
-        "@asteasolutions/zod-to-openapi",
-        "@hono/zod-validator",
-        "hono",
-        "zod"
-      ]
-    },
-    "@hono/zod-validator@0.4.3_hono@4.7.2_zod@3.24.1": {
-      "integrity": "sha512-xIgMYXDyJ4Hj6ekm9T9Y27s080Nl9NXHcJkOvkXPhubOLj8hZkOL8pDnnXfvCf5xEE8Q4oMFenQUZZREUY2gqQ==",
-      "dependencies": [
-        "hono",
-        "zod"
-      ]
     },
     "@sentry/core@8.47.0": {
       "integrity": "sha512-iSEJZMe3DOcqBFZQAqgA3NB2lCWBc4Gv5x/SCri/TVg96wAlss4VrUunSI2Mp0J4jJ5nJcJ2ChqHSBAU48k3FA=="
@@ -260,12 +234,6 @@
     "openapi-types@12.1.3": {
       "integrity": "sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw=="
     },
-    "openapi3-ts@4.4.0": {
-      "integrity": "sha512-9asTNB9IkKEzWMcHmVZE7Ts3kC9G7AFHfs8i7caD8HbI76gEjdkId4z/AkP83xdZsH7PLAnnbl47qZkXuxpArw==",
-      "dependencies": [
-        "yaml"
-      ]
-    },
     "tiny-invariant@1.3.3": {
       "integrity": "sha512-+FbBPE1o9QAYvviau/qC5SE3caw21q3xkvWKBtja5vgqOWIHHJ3ioaq1VPfn/Szqctz2bU/oYeKd9/z5BL+PVg=="
     },
@@ -278,14 +246,8 @@
     "undici-types@6.19.8": {
       "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
     },
-    "yaml@2.7.0": {
-      "integrity": "sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA=="
-    },
-    "zod-to-json-schema@3.24.1_zod@3.24.1": {
-      "integrity": "sha512-3h08nf3Vw3Wl3PK+q3ow/lIil81IT2Oa7YpQyUUDsEWbXveMesdfK1xBd2RhCkynwZndAxixji/7SYJJowr62w==",
-      "dependencies": [
-        "zod"
-      ]
+    "valibot@1.0.0": {
+      "integrity": "sha512-1Hc0ihzWxBar6NGeZv7fPLY0QuxFMyxwYR2sF1Blu7Wq7EnremwY2W02tit2ij2VJT8HcSkHAQqmFfl77f73Yw=="
     },
     "zod@3.24.1": {
       "integrity": "sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A=="
@@ -303,14 +265,13 @@
       "jsr:@std/testing@1.0.8",
       "jsr:@std/yaml@1.0.5",
       "npm:@babel/helper-validator-identifier@7.22.20",
-      "npm:@hono/zod-openapi@~0.18.4",
       "npm:@sentry/deno@8.47.0",
       "npm:hono@4.7.2",
       "npm:lodash-es@4.17.21",
       "npm:openapi-types@12.1.3",
       "npm:tiny-invariant@1.3.3",
       "npm:ts-pattern@5.6.0",
-      "npm:zod-to-json-schema@^3.24.1",
+      "npm:valibot@1.0.0",
       "npm:zod@^3.24.1"
     ],
     "members": {
@@ -328,8 +289,6 @@
       "server": {
         "dependencies": [
           "jsr:@skmtc/core@^0.0.599",
-          "npm:@asteasolutions/zod-to-openapi@^7.3.0",
-          "npm:@hono/zod-openapi@~0.18.4",
           "npm:@sentry/deno@^8.47.0"
         ]
       }

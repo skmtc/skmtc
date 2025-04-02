@@ -1,11 +1,11 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
-export const oasBooleanData: z.ZodType<OasBooleanData> = z.object({
-  oasType: z.literal('schema'),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  default: z.boolean().optional(),
-  type: z.literal('boolean')
+export const oasBooleanData: v.GenericSchema<OasBooleanData> = v.object({
+  oasType: v.literal('schema'),
+  title: v.optional(v.string()),
+  description: v.optional(v.string()),
+  default: v.optional(v.boolean()),
+  type: v.literal('boolean')
 })
 
 export type OasBooleanData = {

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasDiscriminatorData = {
   oasType: 'discriminator'
@@ -6,8 +6,8 @@ export type OasDiscriminatorData = {
   mapping?: Record<string, string>
 }
 
-export const oasDiscriminatorData: z.ZodType<OasDiscriminatorData> = z.object({
-  oasType: z.literal('discriminator'),
-  propertyName: z.string(),
-  mapping: z.record(z.string()).optional()
+export const oasDiscriminatorData = v.object({
+  oasType: v.literal('discriminator'),
+  propertyName: v.string(),
+  mapping: v.optional(v.record(v.string(), v.string()))
 })

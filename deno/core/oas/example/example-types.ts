@@ -1,5 +1,5 @@
 import { markdown } from '../markdown/markdown-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasExampleData = {
   oasType: 'example'
@@ -9,10 +9,10 @@ export type OasExampleData = {
   // externalValue?: string
 }
 
-export const oasExampleData: z.ZodType<OasExampleData> = z.object({
-  oasType: z.literal('example'),
-  summary: z.string().optional(),
-  description: markdown.optional(),
-  value: z.unknown().optional()
+export const oasExampleData = v.object({
+  oasType: v.literal('example'),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown),
+  value: v.optional(v.unknown())
   // externalValue: url.optional()
 })

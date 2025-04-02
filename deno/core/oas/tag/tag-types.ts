@@ -1,5 +1,5 @@
 import { markdown } from '../markdown/markdown-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasTagData = {
   oasType: 'tag'
@@ -7,9 +7,9 @@ export type OasTagData = {
   description?: string
 }
 
-export const oasTagData: z.ZodType<OasTagData> = z.object({
-  oasType: z.literal('tag'),
-  name: z.string(),
-  description: markdown.optional()
+export const oasTagData = v.object({
+  oasType: v.literal('tag'),
+  name: v.string(),
+  description: v.optional(markdown)
   // externalDocs: externalDocs.optional()
 })

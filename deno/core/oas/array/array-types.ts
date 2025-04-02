@@ -1,21 +1,21 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
 import { type OasSchemaRefData, oasSchemaRefData } from '../ref/ref-types.ts'
 
-export const oasArrayData: z.ZodType<OasArrayData> = z.object({
-  oasType: z.literal('schema'),
+export const oasArrayData = v.object({
+  oasType: v.literal('schema'),
   // Add soon
-  type: z.literal('array'),
-  // additionalItems: z.lazy(() => z.union([z.boolean(), jsonSchema4]).optional()),
-  items: z.lazy(() => z.union([oasSchemaData, oasSchemaRefData])),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  default: z.array(z.unknown()).optional()
+  type: v.literal('array'),
+  // additionalItems: v.optional(v.union([v.boolean(), jsonSchema4])),
+  items: v.lazy(() => v.union([oasSchemaData, oasSchemaRefData])),
+  title: v.optional(v.string()),
+  description: v.optional(v.string()),
+  default: v.optional(v.array(v.unknown()))
 
   // Add soon
-  // maxItems: z.number().optional(),
-  // minItems: z.number().optional(),
-  // uniqueItems: z.boolean().optional()
+  // maxItems: v.optional(v.number()),
+  // minItems: v.optional(v.number()),
+  // uniqueItems: v.optional(v.boolean())
 })
 
 export type OasArrayData = {

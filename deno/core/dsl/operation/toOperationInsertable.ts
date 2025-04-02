@@ -4,13 +4,13 @@ import type { OasOperation } from '../../oas/operation/Operation.ts'
 import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { OperationInsertableArgs } from './types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type BaseOperationConfig<EnrichmentType = undefined> = {
   id: string
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
-  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
 }
 
 type ToEnrichmentsArgs = {
@@ -35,9 +35,9 @@ export const toOperationInsertable = <EnrichmentType = undefined>(
         method: operation.method
       })
 
-      const enrichmentSchema = config.toEnrichmentSchema?.() ?? z.undefined()
+      const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
 
-      return enrichmentSchema.parse(generatorSettings.enrichments) as EnrichmentType
+      return v.parse(enrichmentSchema, generatorSettings.enrichments) as EnrichmentType
     }
 
     constructor(args: OperationInsertableArgs<EnrichmentType>) {

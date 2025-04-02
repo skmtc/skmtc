@@ -1,11 +1,11 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
 // Not an actual OAS type, but adding it here to
 // transform to a void type during transform
-export const oasVoidData: z.ZodType<OasVoidData> = z.object({
-  oasType: z.literal('schema'),
-  description: z.string().optional(),
-  type: z.literal('void')
+export const oasVoidData = v.object({
+  oasType: v.literal('schema'),
+  description: v.optional(v.string()),
+  type: v.literal('void')
 })
 
 export type OasVoidData = {

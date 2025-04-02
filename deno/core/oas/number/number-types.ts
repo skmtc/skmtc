@@ -1,17 +1,17 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
-export const oasNumberData: z.ZodType<OasNumberData> = z.object({
-  oasType: z.literal('schema'),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  default: z.number().optional(),
-  type: z.literal('number')
+export const oasNumberData = v.object({
+  oasType: v.literal('schema'),
+  title: v.optional(v.string()),
+  description: v.optional(v.string()),
+  default: v.optional(v.number()),
+  type: v.literal('number')
   // Add soon
-  // multipleOf: z.number().optional(),
-  // maximum: z.number().optional(),
-  // exclusiveMaximum: z.boolean().optional(),
-  // minimum: z.number().optional(),
-  // exclusiveMinimum: z.boolean().optional()
+  // multipleOf: v.optional(v.number()),
+  // maximum: v.optional(v.number()),
+  // exclusiveMaximum: v.optional(v.boolean()),
+  // minimum: v.optional(v.number()),
+  // exclusiveMinimum: v.optional(v.boolean())
 })
 
 export type OasNumberData = {

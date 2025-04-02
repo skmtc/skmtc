@@ -6,7 +6,7 @@ import {
   oasSchemaRefData
 } from '../ref/ref-types.ts'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasMediaTypeData = {
   oasType: 'mediaType'
@@ -17,11 +17,11 @@ export type OasMediaTypeData = {
   // encoding?: Record<string, OasEncodingData>
 }
 
-export const oasMediaTypeData: z.ZodType<OasMediaTypeData> = z.object({
-  oasType: z.literal('mediaType'),
-  mediaType: z.string(),
-  schema: z.union([oasSchemaData, oasSchemaRefData]).optional(),
+export const oasMediaTypeData = v.object({
+  oasType: v.literal('mediaType'),
+  mediaType: v.string(),
+  schema: v.optional(v.union([oasSchemaData, oasSchemaRefData])),
   // example: z.any().optional(),
-  examples: z.record(z.union([oasExampleData, oasExampleRefData])).optional()
+  examples: v.optional(v.record(v.string(), v.union([oasExampleData, oasExampleRefData])))
   // encoding: z.lazy(() => z.record(encoding).optional())
 })

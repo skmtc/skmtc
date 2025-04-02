@@ -4,7 +4,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type ModelInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -21,7 +21,7 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
   id: string
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichmentSchema?: () => z.ZodType<EnrichmentType>
+  toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
 }
 
 export const toModelInsertable = <EnrichmentType = undefined>(
@@ -39,9 +39,9 @@ export const toModelInsertable = <EnrichmentType = undefined>(
         generatorId: config.id
       })
 
-      const enrichmentSchema = config.toEnrichmentSchema?.() ?? z.undefined()
+      const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.undefined()
 
-      return enrichmentSchema.parse(generatorSettings.enrichments) as EnrichmentType
+      return v.parse(enrichmentSchema, generatorSettings.enrichments) as EnrichmentType
     }
     static isSupported = () => true
 

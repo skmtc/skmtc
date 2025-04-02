@@ -1,23 +1,23 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
-export const oasIntegerData: z.ZodType<OasIntegerData> = z
-  .object({
-    title: z.string().optional(),
-    description: z.string().optional(),
-    default: z.number().int().optional(),
-    format: z.union([z.literal('int32'), z.literal('int64')]).optional(),
-    enum: z.array(z.number()).optional(),
-    type: z.literal('integer'),
-    nullable: z.boolean().optional(),
-    example: z.number().int().optional().catch(undefined) as z.ZodType<number | undefined>
-    // Add soon
-    // multipleOf: z.number().optional(),
-    // maximum: z.number().optional(),
-    // exclusiveMaximum: z.boolean().optional(),
-    // minimum: z.number().optional(),
-    // exclusiveMinimum: z.boolean().optional()
-  })
-  .passthrough()
+const integerSchema = v.pipe(v.number(), v.integer())
+
+export const oasIntegerData = v.object({
+  title: v.optional(v.string()),
+  description: v.optional(v.string()),
+  default: v.optional(integerSchema),
+  format: v.optional(v.union([v.literal('int32'), v.literal('int64')])),
+  enum: v.optional(v.array(integerSchema)),
+  type: v.literal('integer'),
+  nullable: v.optional(v.boolean()),
+  example: v.optional(integerSchema)
+  // Add soon
+  // multipleOf: v.optional(integerSchema),
+  // maximum: v.optional(integerSchema),
+  // exclusiveMaximum: v.optional(v.boolean()),
+  // minimum: v.optional(integerSchema),
+  // exclusiveMinimum: v.optional(v.boolean())
+})
 
 export type OasIntegerData = {
   title?: string

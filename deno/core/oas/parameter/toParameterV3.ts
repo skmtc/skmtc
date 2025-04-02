@@ -16,7 +16,7 @@ import type { ParameterFields } from './Parameter.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { match } from 'npm:ts-pattern@5.6.0'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-
+import * as v from 'valibot'
 type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
   context: ParseContext
@@ -102,7 +102,7 @@ const toParameterV3 = ({
     context
   })
 
-  const parsedLocation = oasParameterLocation.parse(location)
+  const parsedLocation = v.parse(oasParameterLocation, location)
 
   if (parsedLocation === 'path' && !required) {
     console.warn(`Path parameters must be required`)
@@ -144,7 +144,7 @@ type ToStyleArgs = {
 }
 
 const toStyle = ({ style, location }: ToStyleArgs): OasParameterStyle => {
-  const parsed = oasParameterStyle.optional().parse(style)
+  const parsed = v.parse(v.optional(oasParameterStyle), style)
   return (
     parsed ??
     match(location)

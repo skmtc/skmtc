@@ -1,7 +1,7 @@
 import { type OasLicenseData, oasLicenseData } from '../license/license-types.ts'
 import { type OasContactData, oasContactData } from '../contact/contact-types.ts'
 import { markdown } from '../markdown/markdown-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasInfoData = {
   oasType: 'info'
@@ -13,12 +13,12 @@ export type OasInfoData = {
   version: string
 }
 
-export const oasInfoData: z.ZodType<OasInfoData> = z.object({
-  oasType: z.literal('info'),
-  title: z.string(),
-  description: markdown.optional(),
-  termsOfService: z.string().optional(),
-  contact: oasContactData.optional(),
-  license: oasLicenseData.optional(),
-  version: z.string()
+export const oasInfoData = v.object({
+  oasType: v.literal('info'),
+  title: v.string(),
+  description: v.optional(markdown),
+  termsOfService: v.optional(v.string()),
+  contact: v.optional(oasContactData),
+  license: v.optional(oasLicenseData),
+  version: v.string()
 })

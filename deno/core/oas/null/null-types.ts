@@ -1,10 +1,11 @@
-import { z } from 'zod'
-export const oasNullData: z.ZodType<OasNullData> = z.object({
-  oasType: z.literal('schema'),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  default: z.null().optional(),
-  type: z.literal('null')
+import * as v from 'valibot'
+
+export const oasNullData = v.object({
+  oasType: v.literal('schema'),
+  title: v.optional(v.string()),
+  description: v.optional(v.string()),
+  default: v.optional(v.null()),
+  type: v.literal('null')
 })
 
 export type OasNullData = {

@@ -1,6 +1,6 @@
 import { type OasTagData, oasTagData } from '../tag/tag-types.ts'
 import { type OasOperationData, oasOperationData } from '../operation/operation-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 import { type OasComponentsData, oasComponentsData } from '../components/components-types.ts'
 import { type OasInfoData, oasInfoData } from '../info/info-types.ts'
 
@@ -17,16 +17,16 @@ export type OasDocumentData = {
   tags?: OasTagData[]
 }
 
-export const oasDocumentData: z.ZodType<OasDocumentData> = z.object({
-  oasType: z.literal('openapi'),
-  openapi: z.string(),
+export const oasDocumentData = v.object({
+  oasType: v.literal('openapi'),
+  openapi: v.string(),
   info: oasInfoData,
-  jsonSchemaDialect: z.string().optional(),
+  jsonSchemaDialect: v.optional(v.string()),
   // servers: z.array(server).optional(),
-  operations: z.array(oasOperationData),
+  operations: v.array(oasOperationData),
   // webhooks: z.record(z.union([pathItem, ref])).optional(),
-  components: oasComponentsData.optional(),
+  components: v.optional(oasComponentsData),
   // security: z.never(),
-  tags: z.array(oasTagData).optional()
+  tags: v.optional(v.array(oasTagData))
   // externalDocs: externalDocs.optional()
 })

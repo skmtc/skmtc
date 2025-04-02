@@ -1,3 +1,3 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
-export const markdown: z.ZodType<string> = z.string()
+export const markdown: v.GenericSchema<string> = v.string()

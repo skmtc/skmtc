@@ -1,6 +1,6 @@
-import { z } from 'zod'
 import { method, type Method } from './Method.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
+import * as v from 'valibot'
 
 /** @deprecated */
 export type InputOption = {
@@ -10,10 +10,10 @@ export type InputOption = {
 }
 
 /** @deprecated */
-export const inputOption = z.object({
-  schema: z.record(z.unknown()),
-  label: z.string(),
-  name: z.string().optional()
+export const inputOption = v.object({
+  schema: v.record(v.string(), v.unknown()),
+  label: v.string(),
+  name: v.optional(v.string())
 })
 
 /** @deprecated */
@@ -23,9 +23,9 @@ export type FormatterOption = {
 }
 
 /** @deprecated */
-export const formatterOption = z.object({
-  schema: z.record(z.unknown()),
-  label: z.string()
+export const formatterOption = v.object({
+  schema: v.record(v.string(), v.unknown()),
+  label: v.string()
 })
 
 export type OperationPreview = {
@@ -54,28 +54,28 @@ export type Preview = {
   source: OperationPreview | ModelPreview
 }
 
-export const operationPreview = z.object({
-  type: z.literal('operation'),
-  generatorId: z.string(),
-  operationPath: z.string(),
+export const operationPreview = v.object({
+  type: v.literal('operation'),
+  generatorId: v.string(),
+  operationPath: v.string(),
   operationMethod: method
 })
 
-export const modelPreview = z.object({
-  type: z.literal('model'),
-  generatorId: z.string(),
-  refName: z.string()
+export const modelPreview = v.object({
+  type: v.literal('model'),
+  generatorId: v.string(),
+  refName: v.string()
 })
 
-export const preview = z.object({
-  name: z.string(),
-  exportPath: z.string(),
-  group: z.string(),
+export const preview = v.object({
+  name: v.string(),
+  exportPath: v.string(),
+  group: v.string(),
   /** @deprecated */
-  route: z.string().optional(),
+  route: v.optional(v.string()),
   /** @deprecated */
-  input: inputOption.optional(),
+  input: v.optional(inputOption),
   /** @deprecated */
-  formatter: formatterOption.optional(),
-  source: z.discriminatedUnion('type', [operationPreview, modelPreview])
+  formatter: v.optional(formatterOption),
+  source: v.variant('type', [operationPreview, modelPreview])
 })

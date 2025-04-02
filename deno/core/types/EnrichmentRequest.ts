@@ -1,7 +1,7 @@
-import type { z } from 'npm:zod@3.24.1'
+import type * as v from 'valibot'
 
 export type EnrichmentRequest<EnrichmentType = undefined> = {
   prompt: string
-  enrichmentSchema: z.ZodType<EnrichmentType>
+  enrichmentSchema: v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
   content: string
 }

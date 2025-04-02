@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasLicenseData = {
   oasType: 'license'
@@ -7,9 +7,9 @@ export type OasLicenseData = {
   identifier?: string
 }
 
-export const oasLicenseData: z.ZodType<OasLicenseData> = z.object({
-  oasType: z.literal('license'),
-  name: z.string(),
-  url: z.string().optional(),
-  identifier: z.string().optional()
+export const oasLicenseData = v.object({
+  oasType: v.literal('license'),
+  name: v.string(),
+  url: v.optional(v.string()),
+  identifier: v.optional(v.string())
 })

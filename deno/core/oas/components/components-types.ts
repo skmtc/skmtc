@@ -20,7 +20,7 @@ import {
 import { type OasRequestBodyData, oasRequestBodyData } from '../requestBody/requestBody-types.ts'
 import { type OasResponseData, oasResponseData } from '../response/response-types.ts'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasComponentsData = {
   oasType: 'components'
@@ -32,14 +32,16 @@ export type OasComponentsData = {
   headers?: Record<string, OasHeaderData | OasHeaderRefData>
 }
 
-export const oasComponentsData: z.ZodType<OasComponentsData> = z.object({
-  oasType: z.literal('components'),
-  schemas: z.record(z.union([oasSchemaData, oasSchemaRefData])).optional(),
-  responses: z.record(z.union([oasResponseData, oasResponseRefData])).optional(),
-  parameters: z.record(z.union([oasParameterData, oasParameterRefData])).optional(),
-  examples: z.record(z.union([oasExampleData, oasExampleRefData])).optional(),
-  requestBodies: z.record(z.union([oasRequestBodyData, oasRequestBodyRefData])).optional(),
-  headers: z.record(z.union([oasHeaderData, oasHeaderRefData])).optional()
+export const oasComponentsData = v.object({
+  oasType: v.literal('components'),
+  schemas: v.optional(v.record(v.string(), v.union([oasSchemaData, oasSchemaRefData]))),
+  responses: v.optional(v.record(v.string(), v.union([oasResponseData, oasResponseRefData]))),
+  parameters: v.optional(v.record(v.string(), v.union([oasParameterData, oasParameterRefData]))),
+  examples: v.optional(v.record(v.string(), v.union([oasExampleData, oasExampleRefData]))),
+  requestBodies: v.optional(
+    v.record(v.string(), v.union([oasRequestBodyData, oasRequestBodyRefData]))
+  ),
+  headers: v.optional(v.record(v.string(), v.union([oasHeaderData, oasHeaderRefData])))
   // securitySchemes: z.record(z.union([securityScheme, ref])),
   // links: z.record(z.union([link, ref])),
   // callbacks: z.never(),

@@ -8,16 +8,16 @@ import {
   oasSchemaRefData
 } from '../ref/ref-types.ts'
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasParameterLocation = 'query' | 'header' | 'path' | 'cookie'
 
-export const oasParameterLocation: z.ZodType<OasParameterLocation> = z.enum([
-  'query',
-  'header',
-  'path',
-  'cookie'
-])
+export const oasParameterLocation = v.enum({
+  query: 'query',
+  header: 'header',
+  path: 'path',
+  cookie: 'cookie'
+})
 
 export type OasParameterStyle =
   | 'matrix'
@@ -28,15 +28,15 @@ export type OasParameterStyle =
   | 'pipeDelimited'
   | 'deepObject'
 
-export const oasParameterStyle: z.ZodType<OasParameterStyle> = z.enum([
-  'matrix',
-  'label',
-  'form',
-  'simple',
-  'spaceDelimited',
-  'pipeDelimited',
-  'deepObject'
-])
+export const oasParameterStyle = v.enum({
+  matrix: 'matrix',
+  label: 'label',
+  form: 'form',
+  simple: 'simple',
+  spaceDelimited: 'spaceDelimited',
+  pipeDelimited: 'pipeDelimited',
+  deepObject: 'deepObject'
+})
 
 export type OasParameterData = {
   oasType: 'parameter'
@@ -54,20 +54,18 @@ export type OasParameterData = {
   style: OasParameterStyle
 }
 
-export const oasParameterData: z.ZodType<OasParameterData> = z.object({
-  oasType: z.literal('parameter'),
-  // Default values (based on value of in): for query - form; for path - simple; for header - simple; for cookie - form.
-  // example: z.any().optional(),
-  allowReserved: z.boolean().optional(),
-  allowEmptyValue: z.boolean().optional(),
-  content: z.record(oasMediaTypeData).optional(),
-  deprecated: z.boolean().optional(),
-  description: markdown.optional(),
-  examples: z.record(z.union([oasExampleData, oasExampleRefData])).optional(),
-  explode: z.boolean(),
+export const oasParameterData = v.object({
+  oasType: v.literal('parameter'),
+  allowEmptyValue: v.optional(v.boolean()),
+  allowReserved: v.optional(v.boolean()),
+  content: v.optional(v.record(v.string(), oasMediaTypeData)),
+  deprecated: v.optional(v.boolean()),
+  description: v.optional(markdown),
+  examples: v.optional(v.record(v.string(), v.union([oasExampleData, oasExampleRefData]))),
+  explode: v.boolean(),
   location: oasParameterLocation,
-  name: z.string(),
-  required: z.boolean().optional(),
-  schema: z.union([oasSchemaData, oasSchemaRefData]).optional(),
+  name: v.string(),
+  required: v.optional(v.boolean()),
+  schema: v.optional(v.union([oasSchemaData, oasSchemaRefData])),
   style: oasParameterStyle
 })

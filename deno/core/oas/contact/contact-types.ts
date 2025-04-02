@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasContactData = {
   oasType: 'contact'
@@ -7,9 +7,9 @@ export type OasContactData = {
   email?: string
 }
 
-export const oasContactData: z.ZodType<OasContactData> = z.object({
-  oasType: z.literal('contact'),
-  name: z.string().optional(),
-  url: z.string().optional(),
-  email: z.string().email().optional()
+export const oasContactData = v.object({
+  oasType: v.literal('contact'),
+  name: v.optional(v.string()),
+  url: v.optional(v.string()),
+  email: v.optional(v.string())
 })

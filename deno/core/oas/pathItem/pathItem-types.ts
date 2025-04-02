@@ -1,7 +1,7 @@
 import { markdown } from '../markdown/markdown-types.ts'
 import { type OasParameterData, oasParameterData } from '../parameter/parameter-types.ts'
 import { type OasParameterRefData, oasParameterRefData } from '../ref/ref-types.ts'
-import { z } from 'zod'
+import * as v from 'valibot'
 
 export type OasPathItemData = {
   oasType: 'pathItem'
@@ -12,11 +12,11 @@ export type OasPathItemData = {
   parameters?: (OasParameterData | OasParameterRefData)[]
 }
 
-export const oasPathItemData: z.ZodType<OasPathItemData> = z.object({
-  oasType: z.literal('pathItem'),
-  $ref: z.string().optional(),
-  summary: z.string().optional(),
-  description: markdown.optional(),
+export const oasPathItemData = v.object({
+  oasType: v.literal('pathItem'),
+  $ref: v.optional(v.string()),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown),
   // servers: z.array(server).optional(),
-  parameters: z.array(z.union([oasParameterData, oasParameterRefData])).optional()
+  parameters: v.optional(v.array(v.union([oasParameterData, oasParameterRefData])))
 })
