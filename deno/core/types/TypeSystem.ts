@@ -9,7 +9,6 @@ import type { GeneratorKey } from './GeneratorKeys.ts'
 
 export type TypeSystemValue =
   | TypeSystemArray
-  | TypeSystemIntersection
   | TypeSystemObject
   | TypeSystemUnion
   | TypeSystemString
@@ -72,13 +71,6 @@ export type TypeSystemUnknown = {
 
 export type TypeSystemNull = {
   type: 'null'
-  generatorKey?: GeneratorKey
-}
-
-export type TypeSystemIntersection = {
-  type: 'intersection'
-  members: TypeSystemValue[]
-  modifiers: Modifiers
   generatorKey?: GeneratorKey
 }
 
@@ -148,10 +140,6 @@ export type SchemaToTypeSystemMap = {
   null: {
     source: OasSchema
     output: TypeSystemNull
-  }
-  intersection: {
-    source: OasSchema
-    output: TypeSystemIntersection
   }
   object: {
     source: OasSchema

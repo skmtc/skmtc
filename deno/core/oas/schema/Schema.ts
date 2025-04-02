@@ -6,7 +6,6 @@ import type { OasObject } from '../object/Object.ts'
 import type { OasString } from '../string/String.ts'
 import type { OasUnknown } from '../unknown/Unknown.ts'
 import type { OasUnion } from '../union/Union.ts'
-import type { OasIntersection } from '../intersection/Intersection.ts'
 
 export type OasSchema =
   | OasArray
@@ -17,7 +16,6 @@ export type OasSchema =
   | OasString
   | OasUnknown
   | OasUnion
-  | OasIntersection
 
 export type ToJsonSchemaOptions = {
   resolve: boolean

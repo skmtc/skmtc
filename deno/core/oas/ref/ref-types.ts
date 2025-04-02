@@ -96,6 +96,18 @@ export const oasHeaderRefData: v.GenericSchema<OasHeaderRefData> = v.object({
   description: v.optional(markdown)
 })
 
+export type OasSecuritySchemeRefData = {
+  oasType: 'ref'
+  refType: 'securityScheme'
+  $ref: string
+}
+
+export const oasSecuritySchemeRefData: v.GenericSchema<OasSecuritySchemeRefData> = v.object({
+  oasType: v.literal('ref'),
+  refType: v.literal('securityScheme'),
+  $ref: v.string()
+})
+
 // export const oasPathItemRefData = z.object({
 //   oasType: z.literal('ref'),
 //   refType: z.enum(['pathItem']),
@@ -111,6 +123,7 @@ export type OasRefData =
   | OasExampleRefData
   | OasRequestBodyRefData
   | OasHeaderRefData
+  | OasSecuritySchemeRefData
 // OasPathItemRefData
 
 export const oasRefData: v.GenericSchema<OasRefData> = v.union([
@@ -119,6 +132,7 @@ export const oasRefData: v.GenericSchema<OasRefData> = v.union([
   oasParameterRefData,
   oasExampleRefData,
   oasRequestBodyRefData,
-  oasHeaderRefData
+  oasHeaderRefData,
+  oasSecuritySchemeRefData
   // oasPathItemRefData
 ])

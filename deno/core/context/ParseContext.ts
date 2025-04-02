@@ -6,14 +6,18 @@ import type * as log from 'jsr:@std/log@^0.224.6'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import * as v from 'valibot'
+import { merge, openApiMergeRules } from 'allof-merge'
+
 type ConstructorArgs = {
   documentObject: OpenAPIV3.Document
   logger: log.Logger
   stackTrail: StackTrail
+  silent?: boolean
 }
 
 export type ParseReturn = {
   oasDocument: OasDocument
+  warnings: ParseWarning[]
 }
 
 export type LogWarningArgs = {
@@ -28,17 +32,30 @@ export type ProvisionalParseArgs<T> = {
   toMessage: (value: unknown) => string
 }
 
+type ParseWarning = {
+  message: string
+  location: StackTrail
+}
+
 export class ParseContext {
   documentObject: OpenAPIV3.Document
   logger: log.Logger
   oasDocument: OasDocument
   stackTrail: StackTrail
+  warnings: ParseWarning[]
+  silent: boolean
+  constructor({ documentObject, logger, stackTrail, silent = false }: ConstructorArgs) {
+    const merged = merge(documentObject, {
+      rules: openApiMergeRules('3.0.x'),
+      mergeRefSibling: true
+    }) as OpenAPIV3.Document
 
-  constructor({ documentObject, logger, stackTrail }: ConstructorArgs) {
-    this.documentObject = documentObject
+    this.documentObject = merged
     this.logger = logger
     this.stackTrail = stackTrail
     this.oasDocument = new OasDocument()
+    this.silent = silent
+    this.warnings = []
   }
 
   parse() {
@@ -88,7 +105,14 @@ export class ParseContext {
 
   logWarning({ key, message }: LogWarningArgs) {
     this.trace(key, () => {
-      this.logger.warn({ location: this.stackTrail.toString(), message })
+      this.warnings.push({
+        message,
+        location: this.stackTrail.clone()
+      })
+
+      if (!this.silent) {
+        this.logger.warn({ location: this.stackTrail.toString(), message })
+      }
     })
   }
 }

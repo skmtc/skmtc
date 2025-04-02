@@ -22,8 +22,17 @@ export const toComponentsV3 = ({
   if (!components) {
     return undefined
   }
-  const { schemas, responses, parameters, examples, requestBodies, headers, ...skipped } =
-    components
+
+  const {
+    schemas,
+    responses,
+    parameters,
+    examples,
+    requestBodies,
+    headers,
+    securitySchemes,
+    ...skipped
+  } = components
 
   const extensionFields = toSpecificationExtensionsV3({ skipped, context })
 
@@ -46,6 +55,9 @@ export const toComponentsV3 = ({
       toRequestBodiesV3({ requestBodies, context })
     ),
     headers: context.trace('headers', () => toHeadersV3({ headers, context })),
+    securitySchemes: context.trace('securitySchemes', () =>
+      toSecuritySchemesV3({ securitySchemes, context })
+    ),
     extensionFields
   }
 

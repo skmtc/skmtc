@@ -9,6 +9,7 @@ export type OasObjectFields = {
   description?: string
   properties?: Record<string, OasSchema | OasRef<'schema'> | CustomValue> | undefined
   required?: string[] | undefined
+  default?: Record<string, unknown> | undefined
   additionalProperties?: boolean | OasSchema | OasRef<'schema'> | undefined
   nullable?: boolean | undefined
   extensionFields?: Record<string, unknown>
@@ -69,6 +70,10 @@ export class OasObject {
    * An example of the object.
    */
   example: Record<string, unknown> | undefined
+  /**
+   * The default value of the object.
+   */
+  default: Record<string, unknown> | undefined
 
   constructor(fields: OasObjectFields) {
     this.title = fields.title
@@ -79,6 +84,7 @@ export class OasObject {
     this.nullable = fields.nullable
     this.extensionFields = fields.extensionFields
     this.example = fields.example
+    this.default = fields.default
   }
 
   /** Creates new empty OasObject */

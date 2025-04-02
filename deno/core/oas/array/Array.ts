@@ -11,6 +11,8 @@ export type ArrayFields = {
   extensionFields?: Record<string, unknown>
   // deno-lint-ignore no-explicit-any
   example?: Array<any>
+  maxItems?: number
+  minItems?: number
 }
 
 /**
@@ -54,7 +56,14 @@ export class OasArray {
    * An example of the array.
    */
   example: Array<unknown> | undefined
-
+  /**
+   * The maximum number of items in the array.
+   */
+  maxItems: number | undefined
+  /**
+   * The minimum number of items in the array.
+   */
+  minItems: number | undefined
   constructor(fields: ArrayFields) {
     this.items = fields.items
     this.title = fields.title
@@ -63,6 +72,8 @@ export class OasArray {
     this.uniqueItems = fields.uniqueItems
     this.extensionFields = fields.extensionFields
     this.example = fields.example
+    this.maxItems = fields.maxItems
+    this.minItems = fields.minItems
   }
 
   isRef(): this is OasRef<'schema'> {
@@ -84,7 +95,10 @@ export class OasArray {
       title: this.title,
       description: this.description,
       nullable: this.nullable,
-      example: this.example
+      example: this.example,
+      maxItems: this.maxItems,
+      minItems: this.minItems,
+      uniqueItems: this.uniqueItems
     }
   }
 }

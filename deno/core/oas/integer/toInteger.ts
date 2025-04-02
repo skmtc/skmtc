@@ -49,7 +49,19 @@ const toNullableInteger = ({
     toMessage: value => `Removed invalid enum. Expected array of integers or null, got: ${value}`
   })
 
-  const { type: _type, title, description, format, ...skipped } = v.parse(oasIntegerData, value)
+  const {
+    type: _type,
+    title,
+    description,
+    default: defaultValue,
+    format,
+    multipleOf,
+    maximum,
+    exclusiveMaximum,
+    minimum,
+    exclusiveMinimum,
+    ...skipped
+  } = v.parse(oasIntegerData, value)
 
   const extensionFields = toSpecificationExtensionsV3({ skipped, context })
 
@@ -60,7 +72,13 @@ const toNullableInteger = ({
     format,
     enums: parsedEnums,
     extensionFields,
-    example: parsedExample
+    example: parsedExample,
+    multipleOf,
+    maximum,
+    exclusiveMaximum,
+    minimum,
+    exclusiveMinimum,
+    default: defaultValue
   })
 }
 
@@ -88,6 +106,12 @@ const toNonNullableInteger = ({
     title,
     description,
     format,
+    default: defaultValue,
+    multipleOf,
+    maximum,
+    exclusiveMaximum,
+    minimum,
+    exclusiveMinimum,
     ...skipped
   } = v.parse(oasIntegerData, value)
 
@@ -100,6 +124,12 @@ const toNonNullableInteger = ({
     format,
     enums,
     extensionFields,
-    example: parsedExample
+    example: parsedExample,
+    multipleOf,
+    maximum,
+    exclusiveMaximum,
+    minimum,
+    exclusiveMinimum,
+    default: defaultValue
   })
 }

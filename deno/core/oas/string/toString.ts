@@ -56,6 +56,8 @@ const toNullableString = ({
     format,
     maxLength,
     minLength,
+    pattern,
+    default: defaultValue,
     ...skipped
   } = v.parse(oasStringData, value)
 
@@ -80,6 +82,8 @@ const toNullableString = ({
     format,
     maxLength,
     minLength,
+    pattern,
+    default: defaultValue,
     extensionFields
   })
 }
@@ -110,6 +114,8 @@ const toNonNullableString = ({
     format,
     maxLength,
     minLength,
+    pattern,
+    default: defaultValue,
     ...skipped
   } = v.parse(oasStringData, value)
 
@@ -134,6 +140,8 @@ const toNonNullableString = ({
     format,
     maxLength,
     minLength,
+    pattern,
+    default: defaultValue,
     extensionFields
   })
 }

@@ -16,8 +16,10 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
     title,
     description,
     nullable,
-    uniqueItems,
     example,
+    uniqueItems,
+    maxItems,
+    minItems,
     ...skipped
   } = value
 
@@ -27,9 +29,11 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
     title,
     description,
     nullable,
-    uniqueItems,
     items: context.trace('items', () => toSchemaV3({ schema: items, context })),
     extensionFields,
-    example
+    example,
+    uniqueItems,
+    maxItems,
+    minItems
   })
 }

@@ -1,17 +1,17 @@
 import * as v from 'valibot'
 
 export const oasBooleanData: v.GenericSchema<OasBooleanData> = v.object({
-  oasType: v.literal('schema'),
+  type: v.literal('boolean'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   default: v.optional(v.boolean()),
-  type: v.literal('boolean')
+  enum: v.optional(v.array(v.boolean()))
 })
 
 export type OasBooleanData = {
-  oasType: 'schema'
+  type: 'boolean'
   title?: string
   description?: string
   default?: boolean
-  type: 'boolean'
+  enum?: boolean[]
 }

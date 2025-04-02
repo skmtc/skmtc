@@ -6,7 +6,8 @@ export type StringFields<Nullable extends boolean | undefined> = {
   title?: string
   description?: string
   format?: string
-  // pattern?: string
+  default?: Nullable extends true ? string | null | undefined : string | undefined
+  pattern?: string
   enums?: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
   maxLength?: number
   minLength?: number
@@ -60,6 +61,14 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
   extensionFields: Record<string, unknown> | undefined
   /** An example of the string. */
   example: Nullable extends true ? string | null | undefined : string | undefined
+  /**
+   * The pattern of the string.
+   */
+  pattern: string | undefined
+  /**
+   * The default value of the string.
+   */
+  default: Nullable extends true ? string | null | undefined : string | undefined
 
   constructor(fields: StringFields<Nullable>) {
     this.title = fields.title
@@ -71,11 +80,9 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
     this.example = fields.example
     this.maxLength = fields.maxLength
     this.minLength = fields.minLength
+    this.pattern = fields.pattern
+    this.default = fields.default
   }
-
-  // get pattern() {
-  //   return this.fields.pattern
-  // }
 
   isRef(): this is OasRef<'schema'> {
     return false
@@ -100,7 +107,9 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
       format: this.format,
       enum: this.enums,
       maxLength: this.maxLength,
-      minLength: this.minLength
+      minLength: this.minLength,
+      pattern: this.pattern,
+      default: this.default
     }
   }
 }

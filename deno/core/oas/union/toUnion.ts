@@ -26,9 +26,9 @@ export const toUnion = ({ value, members, context }: ToUnionArgs): OasUnion => {
     discriminator: context.trace('discriminator', () =>
       toDiscriminatorV3({ discriminator, context })
     ),
-    members: members.map((schema, index) =>
-      context.trace(`${index}`, () => toSchemaV3({ schema, context }))
-    ),
+    members: members
+      .filter(item => item !== undefined && item !== null)
+      .map((schema, index) => context.trace(`${index}`, () => toSchemaV3({ schema, context }))),
     example,
     extensionFields
   })

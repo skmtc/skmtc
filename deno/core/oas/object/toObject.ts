@@ -20,6 +20,7 @@ export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
     additionalProperties,
     nullable,
     example,
+    default: defaultValue,
     ...skipped
   } = value
 
@@ -43,7 +44,8 @@ export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
     additionalProperties: context.trace('additionalProperties', () =>
       toAdditionalPropertiesV3({ additionalProperties, context })
     ),
-    extensionFields
+    extensionFields,
+    default: defaultValue
   }
 
   return new OasObject(fields)

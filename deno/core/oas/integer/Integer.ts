@@ -6,9 +6,15 @@ export type IntegerFields<Nullable extends boolean | undefined> = {
   description?: string
   nullable: Nullable
   format?: 'int32' | 'int64'
+  default?: Nullable extends true ? number | null | undefined : number | undefined
   enums?: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
   extensionFields?: Record<string, unknown>
   example?: Nullable extends true ? number | null | undefined : number | undefined
+  multipleOf?: number
+  maximum?: number
+  exclusiveMaximum?: boolean
+  minimum?: number
+  exclusiveMinimum?: boolean
 }
 
 export class OasInteger<Nullable extends boolean | undefined = boolean | undefined> {
@@ -47,7 +53,30 @@ export class OasInteger<Nullable extends boolean | undefined = boolean | undefin
    * An example of the integer.
    */
   example: Nullable extends true ? number | null | undefined : number | undefined
-
+  /**
+   * The multiple of the integer.
+   */
+  multipleOf: number | undefined
+  /**
+   * The maximum value of the integer.
+   */
+  maximum: number | undefined
+  /**
+   * Whether the maximum value is exclusive.
+   */
+  exclusiveMaximum: boolean | undefined
+  /**
+   * The minimum value of the integer.
+   */
+  minimum: number | undefined
+  /**
+   * Whether the minimum value is exclusive.
+   */
+  exclusiveMinimum: boolean | undefined
+  /**
+   * The default value of the integer.
+   */
+  default: Nullable extends true ? number | null | undefined : number | undefined
   constructor(fields: IntegerFields<Nullable>) {
     this.title = fields.title
     this.description = fields.description
@@ -56,6 +85,12 @@ export class OasInteger<Nullable extends boolean | undefined = boolean | undefin
     this.enums = fields.enums
     this.extensionFields = fields.extensionFields
     this.example = fields.example
+    this.multipleOf = fields.multipleOf
+    this.maximum = fields.maximum
+    this.exclusiveMaximum = fields.exclusiveMaximum
+    this.minimum = fields.minimum
+    this.exclusiveMinimum = fields.exclusiveMinimum
+    this.default = fields.default
   }
 
   isRef(): this is OasRef<'schema'> {
@@ -79,7 +114,13 @@ export class OasInteger<Nullable extends boolean | undefined = boolean | undefin
       nullable: this.nullable,
       format: this.format,
       enum: this.enums,
-      example: this.example
+      example: this.example,
+      multipleOf: this.multipleOf,
+      maximum: this.maximum,
+      exclusiveMaximum: this.exclusiveMaximum,
+      minimum: this.minimum,
+      exclusiveMinimum: this.exclusiveMinimum,
+      default: this.default
     }
   }
 }

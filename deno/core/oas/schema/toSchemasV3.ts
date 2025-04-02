@@ -13,7 +13,7 @@ import { toBoolean } from '../boolean/toBoolean.ts'
 import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
-import { toIntersection } from '../intersection/toIntersection.ts'
+import { merge, openApiMergeRules } from 'allof-merge'
 
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
@@ -68,6 +68,19 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
   // }
 
   return match(schema)
+    .with({ allOf: P.array() }, () => {
+      // if (members.length === 1) {
+      //   return toSchemaV3({ schema: members[0], context })
+      // }
+
+      const merged = merge(schema, {
+        source: context.documentObject,
+        rules: openApiMergeRules('3.0.x'),
+        mergeRefSibling: true
+      }) as OpenAPIV3.SchemaObject
+
+      return toSchemaV3({ schema: merged, context })
+    })
     .with({ oneOf: P.array() }, ({ oneOf: members, ...value }) => {
       // if (members.length === 1) {
       //   return toSchemaV3({ schema: members[0], context })
@@ -82,20 +95,30 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
 
       return context.trace('anyOf', () => toUnion({ value, members, context }))
     })
-    .with({ allOf: P.array() }, ({ allOf: members, ...value }) => {
-      // if (members.length === 1) {
-      //   return toSchemaV3({ schema: members[0], context })
-      // }
-
-      return context.trace('allOf', () => toIntersection({ value, members, context }))
-    })
     .with({ type: 'object' }, value => toObject({ value, context }))
     .with({ type: 'array' }, value => toArray({ value, context }))
     .with({ type: 'integer' }, value => toInteger({ value, context }))
     .with({ type: 'number' }, value => toNumber({ value, context }))
     .with({ type: 'boolean' }, value => toBoolean({ value, context }))
     .with({ type: 'string' }, value => toString({ value, context }))
-    .otherwise(value => toUnknown({ value, context }))
+    .otherwise(value => {
+      if (
+        value &&
+        'properties' in value &&
+        typeof value.properties === 'object' &&
+        value.properties
+      ) {
+        return toObject({
+          value: {
+            ...value,
+            type: 'object'
+          },
+          context
+        })
+      }
+
+      return toUnknown({ value, context })
+    })
 }
 
 type ToOptionalSchemaV3Args = {
