@@ -60,13 +60,10 @@ export class ParseContext {
   }
 
   logSkippedFields(skipped: Record<string, unknown>) {
-    Object.entries(skipped).forEach(([key, value]) => {
-      const str = JSON.stringify(value)
-      const reduced = str.length > 30 ? `${str.slice(0, 30)}...` : str
-
+    Object.keys(skipped).forEach(key => {
       this.logWarning({
         key,
-        message: `Property not yet implemented. value: ${reduced}`
+        message: `Property not yet implemented`
       })
     })
   }
@@ -91,7 +88,7 @@ export class ParseContext {
 
   logWarning({ key, message }: LogWarningArgs) {
     this.trace(key, () => {
-      this.logger.warn(message)
+      this.logger.warn({ location: this.stackTrail.toString(), message })
     })
   }
 }
