@@ -12,7 +12,9 @@ export const oasObjectData: v.GenericSchema<OasObjectData> = v.object({
   // maxProperties: z.number().optional(),
   // Add soon
   // minProperties: z.number().optional(),
-  properties: v.optional(v.record(v.string(), v.union([oasSchemaData, oasSchemaRefData]))),
+  properties: v.optional(
+    v.record(v.string(), v.union([v.lazy(() => oasSchemaData), oasSchemaRefData]))
+  ),
   // Add soon
   // patternProperties: z.lazy(() => z.record(jsonSchema4).optional()),
   required: v.optional(v.array(v.string())),
@@ -21,7 +23,9 @@ export const oasObjectData: v.GenericSchema<OasObjectData> = v.object({
   // Use oneOf instead of anyOf
   // anyOf: z.lazy(() => z.array(jsonSchema4).optional()),
   // oneOf: z.lazy(() => z.array(oasObject).optional()),
-  additionalProperties: v.optional(v.union([v.boolean(), oasSchemaData, oasSchemaRefData]))
+  additionalProperties: v.optional(
+    v.union([v.boolean(), v.lazy(() => oasSchemaData), oasSchemaRefData])
+  )
 })
 
 export type OasObjectData = {

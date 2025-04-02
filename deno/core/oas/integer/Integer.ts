@@ -1,17 +1,17 @@
 import type { OasRef } from '../ref/Ref.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
-export type IntegerFields = {
+export type IntegerFields<Nullable extends boolean | undefined> = {
   title?: string
   description?: string
-  nullable?: boolean
+  nullable: Nullable
   format?: 'int32' | 'int64'
-  enums?: number[]
+  enums?: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
   extensionFields?: Record<string, unknown>
-  example?: number
+  example?: Nullable extends true ? number | null | undefined : number | undefined
 }
 
-export class OasInteger {
+export class OasInteger<Nullable extends boolean | undefined = boolean | undefined> {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -32,7 +32,7 @@ export class OasInteger {
   /**
    * Indicates whether value can be null.
    */
-  nullable: boolean | undefined
+  nullable: Nullable
   /**
    * The format of the integer.
    */
@@ -40,15 +40,15 @@ export class OasInteger {
   /**
    * An array of allowed values for the integer.
    */
-  enums: number[] | undefined
+  enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
   /** Specification Extension fields */
   extensionFields: Record<string, unknown> | undefined
   /**
    * An example of the integer.
    */
-  example: number | undefined
+  example: Nullable extends true ? number | null | undefined : number | undefined
 
-  constructor(fields: IntegerFields) {
+  constructor(fields: IntegerFields<Nullable>) {
     this.title = fields.title
     this.description = fields.description
     this.nullable = fields.nullable
@@ -62,11 +62,11 @@ export class OasInteger {
     return false
   }
 
-  resolve(): OasInteger {
+  resolve(): OasInteger<Nullable> {
     return this
   }
 
-  resolveOnce(): OasInteger {
+  resolveOnce(): OasInteger<Nullable> {
     return this
   }
 

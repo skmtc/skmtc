@@ -7,7 +7,7 @@ export const oasArrayData = v.object({
   // Add soon
   type: v.literal('array'),
   // additionalItems: v.optional(v.union([v.boolean(), jsonSchema4])),
-  items: v.lazy(() => v.union([oasSchemaData, oasSchemaRefData])),
+  items: v.lazy(() => v.union([v.lazy(() => oasSchemaData), oasSchemaRefData])),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   default: v.optional(v.array(v.unknown()))

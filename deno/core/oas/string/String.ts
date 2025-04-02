@@ -2,23 +2,23 @@ import type { OasRef } from '../ref/Ref.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
-export type StringFields = {
+export type StringFields<Nullable extends boolean | undefined> = {
   title?: string
   description?: string
   format?: string
   // pattern?: string
-  enums?: string[]
+  enums?: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
   maxLength?: number
   minLength?: number
-  nullable?: boolean
+  nullable: Nullable
   extensionFields?: Record<string, unknown>
-  example?: string
+  example?: Nullable extends true ? string | null | undefined : string | undefined
 }
 
 /**
  * Object representing a string in the OpenAPI Specification.
  */
-export class OasString {
+export class OasString<Nullable extends boolean | undefined = boolean | undefined> {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -43,7 +43,7 @@ export class OasString {
   /**
    * An array of allowed values for the string.
    */
-  enums: string[] | undefined
+  enums: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
   /**
    * The maximum length of the string.
    */
@@ -55,13 +55,13 @@ export class OasString {
   /**
    * Indicates whether value can be null.
    */
-  nullable: boolean | undefined
+  nullable: Nullable
   /** Specification Extension fields */
   extensionFields: Record<string, unknown> | undefined
   /** An example of the string. */
-  example: string | undefined
+  example: Nullable extends true ? string | null | undefined : string | undefined
 
-  constructor(fields: StringFields) {
+  constructor(fields: StringFields<Nullable>) {
     this.title = fields.title
     this.description = fields.description
     this.format = fields.format
@@ -81,11 +81,11 @@ export class OasString {
     return false
   }
 
-  resolve(): OasString {
+  resolve(): OasString<Nullable> {
     return this
   }
 
-  resolveOnce(): OasString {
+  resolveOnce(): OasString<Nullable> {
     return this
   }
 

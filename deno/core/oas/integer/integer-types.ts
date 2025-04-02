@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 
-const integerSchema = v.pipe(v.number(), v.integer())
+export const integerSchema = v.pipe(v.number(), v.integer())
 
 export const oasIntegerData = v.object({
   title: v.optional(v.string()),

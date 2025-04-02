@@ -5,7 +5,7 @@ import { OasDocument } from '../oas/document/Document.ts'
 import type * as log from 'jsr:@std/log@^0.224.6'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
-
+import * as v from 'valibot'
 type ConstructorArgs = {
   documentObject: OpenAPIV3.Document
   logger: log.Logger
@@ -14,6 +14,18 @@ type ConstructorArgs = {
 
 export type ParseReturn = {
   oasDocument: OasDocument
+}
+
+export type LogWarningArgs = {
+  key: string
+  message: string
+}
+
+export type ProvisionalParseArgs<T> = {
+  key?: string
+  value: unknown
+  schema: v.GenericSchema<T>
+  toMessage: (value: unknown) => string
 }
 
 export class ParseContext {
@@ -30,10 +42,15 @@ export class ParseContext {
   }
 
   parse() {
-    this.oasDocument.fields = toDocumentFieldsV3({
-      documentObject: this.documentObject,
-      context: this
-    })
+    try {
+      this.oasDocument.fields = toDocumentFieldsV3({
+        documentObject: this.documentObject,
+        context: this
+      })
+    } catch (e) {
+      console.log('ERROR', e)
+      console.log('STACK', this.stackTrail.toString())
+    }
 
     return this.oasDocument
   }
@@ -44,12 +61,37 @@ export class ParseContext {
 
   logSkippedFields(skipped: Record<string, unknown>) {
     Object.entries(skipped).forEach(([key, value]) => {
-      this.trace(key, () => {
-        const str = JSON.stringify(value)
-        const reduced = str.length > 30 ? `${str.slice(0, 30)}...` : str
+      const str = JSON.stringify(value)
+      const reduced = str.length > 30 ? `${str.slice(0, 30)}...` : str
 
-        this.logger.warn(`Property not yet implemented. value: ${reduced}`)
+      this.logWarning({
+        key,
+        message: `Property not yet implemented. value: ${reduced}`
       })
+    })
+  }
+
+  provisionalParse<T>({
+    key = 'example',
+    value,
+    schema,
+    toMessage
+  }: ProvisionalParseArgs<T>): T | undefined {
+    const parsed = v.safeParse(v.optional(schema), value)
+
+    if (parsed.success) {
+      return parsed.output
+    }
+
+    this.logWarning({
+      key,
+      message: toMessage(value)
+    })
+  }
+
+  logWarning({ key, message }: LogWarningArgs) {
+    this.trace(key, () => {
+      this.logger.warn(message)
     })
   }
 }
