@@ -1,0 +1,36 @@
+import type { OpenAPIV3 } from 'openapi-types'
+import type { ParseContext } from '../../context/ParseContext.ts'
+import * as v from 'valibot'
+
+type ParseEnumArgs<T, Nullable extends boolean | undefined> = {
+  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable'>
+  nullable: Nullable
+  valibotSchema: v.GenericSchema<T>
+  context: ParseContext
+}
+
+type ParseEnumReturn<T, Nullable extends boolean | undefined> = {
+  enum: Nullable extends true ? (T | null)[] | undefined : T[] | undefined
+  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable' | 'enum'>
+}
+
+export const parseEnum = <T, Nullable extends boolean | undefined>({
+  value,
+  nullable,
+  valibotSchema,
+  context
+}: ParseEnumArgs<T, Nullable>): ParseEnumReturn<T, Nullable> => {
+  const { enum: enums, ...rest } = value
+
+  const parsedEnum = context.provisionalParse({
+    key: 'enum',
+    value: enums,
+    schema: nullable === true ? v.array(v.nullable(valibotSchema)) : v.array(valibotSchema),
+    toMessage: value => `Removed invalid enum. Expected ${valibotSchema.type}, got: ${value}`
+  })
+
+  return {
+    enum: parsedEnum,
+    value: rest
+  } as ParseEnumReturn<T, Nullable>
+}
