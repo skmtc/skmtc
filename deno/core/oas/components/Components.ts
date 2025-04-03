@@ -6,6 +6,7 @@ import type { OasHeader } from '../header/Header.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { RefName } from '../../types/RefName.ts'
+import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 
 export type ComponentsFields = {
   schemas?: Record<RefName, OasSchema | OasRef<'schema'>>
@@ -14,6 +15,7 @@ export type ComponentsFields = {
   examples?: Record<RefName, OasExample | OasRef<'example'>>
   requestBodies?: Record<RefName, OasRequestBody | OasRef<'requestBody'>>
   headers?: Record<RefName, OasHeader | OasRef<'header'>>
+  securitySchemes?: Record<string, OasSecurityScheme | OasRef<'securityScheme'>>
   extensionFields?: Record<string, unknown>
 }
 
@@ -41,16 +43,12 @@ export class OasComponents {
   }
 
   /** Record holding re-usable {@link OasResponse} objects or Refs  */
-  get responses():
-    | Record<RefName, OasResponse | OasRef<'response'>>
-    | undefined {
+  get responses(): Record<RefName, OasResponse | OasRef<'response'>> | undefined {
     return this.#fields.responses
   }
 
   /** Record holding re-usable {@link OasParameter} objects or Refs  */
-  get parameters():
-    | Record<RefName, OasParameter | OasRef<'parameter'>>
-    | undefined {
+  get parameters(): Record<RefName, OasParameter | OasRef<'parameter'>> | undefined {
     return this.#fields.parameters
   }
 
@@ -60,15 +58,18 @@ export class OasComponents {
   }
 
   /** Record holding re-usable {@link OasRequestBody} objects or Refs  */
-  get requestBodies():
-    | Record<RefName, OasRequestBody | OasRef<'requestBody'>>
-    | undefined {
+  get requestBodies(): Record<RefName, OasRequestBody | OasRef<'requestBody'>> | undefined {
     return this.#fields.requestBodies
   }
 
   /** Record holding re-usable {@link OasHeader} objects or Refs  */
   get headers(): Record<RefName, OasHeader | OasRef<'header'>> | undefined {
     return this.#fields.headers
+  }
+
+  /** Record holding re-usable {@link OasSecurityScheme} objects or Refs  */
+  get securitySchemes(): Record<string, OasSecurityScheme | OasRef<'securityScheme'>> | undefined {
+    return this.#fields.securitySchemes
   }
 
   /** Specification Extension fields */

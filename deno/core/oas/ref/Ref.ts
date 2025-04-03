@@ -10,7 +10,7 @@ import type { OasHeader } from '../header/Header.ts'
 import type { OasDocument } from '../document/Document.ts'
 import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-
+import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 const MAX_LOOKUPS = 10
 
 export type RefFields<T extends OasRefData['refType']> = {
@@ -59,6 +59,7 @@ export class OasRef<T extends OasRefData['refType']> {
       .with('response', () => c?.responses?.[refName])
       .with('example', () => c?.examples?.[refName])
       .with('header', () => c?.headers?.[refName])
+      .with('securityScheme', () => c?.securitySchemes?.[refName])
       .exhaustive()
 
     if (!resolved) {
@@ -123,6 +124,7 @@ export class OasRef<T extends OasRefData['refType']> {
         .with('response', () => 'responses')
         .with('example', () => 'examples')
         .with('header', () => 'headers')
+        .with('securityScheme', () => 'securitySchemes')
         .exhaustive()}/${this.toRefName()}`
     }
 
@@ -141,5 +143,6 @@ export type OasComponentType =
   | OasExample
   | OasRequestBody
   | OasHeader
+  | OasSecurityScheme
 
 export type ResolvedRef<T extends OasRefData['refType']> = Extract<OasComponentType, { oasType: T }>

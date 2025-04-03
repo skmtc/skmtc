@@ -9,7 +9,7 @@ import type { OasRef } from '../ref/Ref.ts'
 import { OasObject } from '../object/Object.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-
+import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
 export type OperationFields = {
   path: string
   method: Method
@@ -21,6 +21,7 @@ export type OperationFields = {
   parameters?: (OasParameter | OasRef<'parameter'>)[] | undefined
   requestBody?: OasRequestBody | OasRef<'requestBody'> | undefined
   responses: Record<string, OasResponse | OasRef<'response'>>
+  security?: OasSecurityRequirement[] | undefined
   deprecated?: boolean | undefined
   extensionFields?: Record<string, unknown>
 }
@@ -44,8 +45,10 @@ export class OasOperation {
   parameters: (OasParameter | OasRef<'parameter'>)[] | undefined
   requestBody: OasRequestBody | OasRef<'requestBody'> | undefined
   responses: Record<string, OasResponse | OasRef<'response'>>
+  security: OasSecurityRequirement[] | undefined
   deprecated: boolean | undefined
   extensionFields: Record<string, unknown> | undefined
+
   constructor(fields: OperationFields) {
     this.path = fields.path
     this.method = fields.method
@@ -57,6 +60,7 @@ export class OasOperation {
     this.parameters = fields.parameters
     this.requestBody = fields.requestBody
     this.responses = fields.responses
+    this.security = fields.security
     this.deprecated = fields.deprecated
     this.extensionFields = fields.extensionFields
   }

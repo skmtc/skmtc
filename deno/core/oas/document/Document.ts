@@ -3,6 +3,7 @@ import type { OasComponents } from '../components/Components.ts'
 import type { OasOperation } from '../operation/Operation.ts'
 import type { OasInfo } from '../info/Info.ts'
 import type { OasServer } from '../server/Server.ts'
+import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
 
 export type DocumentFields = {
   openapi: string
@@ -11,6 +12,7 @@ export type DocumentFields = {
   operations: OasOperation[]
   components?: OasComponents | undefined
   tags?: OasTag[] | undefined
+  security?: OasSecurityRequirement[] | undefined
   extensionFields?: Record<string, unknown>
 }
 
@@ -80,6 +82,15 @@ export class OasDocument {
     }
 
     return this.#fields.tags
+  }
+
+  /** List of security requirements for the API */
+  get security(): OasSecurityRequirement[] | undefined {
+    if (!this.#fields) {
+      throw new Error(`Accessing 'security' before fields are set`)
+    }
+
+    return this.#fields.security
   }
 
   /** Specification Extension fields */

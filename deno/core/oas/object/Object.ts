@@ -4,16 +4,23 @@ import type { CustomValue } from '../../types/CustomValue.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { match, P } from 'ts-pattern'
 
-export type OasObjectFields = {
+export type OasObjectFields<Nullable extends boolean | undefined> = {
   title?: string
   description?: string
   properties?: Record<string, OasSchema | OasRef<'schema'> | CustomValue> | undefined
   required?: string[] | undefined
-  default?: Record<string, unknown> | undefined
+  default?: Nullable extends true
+    ? Record<string, unknown> | null | undefined
+    : Record<string, unknown> | undefined
   additionalProperties?: boolean | OasSchema | OasRef<'schema'> | undefined
-  nullable?: boolean | undefined
+  nullable: Nullable
+  enums?: Nullable extends true
+    ? (Record<string, unknown> | null)[] | undefined
+    : Record<string, unknown>[] | undefined
   extensionFields?: Record<string, unknown>
-  example?: Record<string, unknown>
+  example?: Nullable extends true
+    ? Record<string, unknown> | null | undefined
+    : Record<string, unknown> | undefined
 }
 
 export type AddPropertyArgs = {
@@ -27,7 +34,7 @@ export type AddPropertyArgs = {
  *
  * Objects have fixed, named fields. Records have any number of fields that do not have predefined names.
  */
-export class OasObject {
+export class OasObject<Nullable extends boolean | undefined = boolean | undefined> {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -48,11 +55,13 @@ export class OasObject {
   /**
    * Indicates whether value can be null.
    */
-  nullable: boolean | undefined
+  nullable: Nullable
   /**
    * A record which maps property names of the object to their schemas.
    */
-  properties: Record<string, OasSchema | OasRef<'schema'> | CustomValue> | undefined
+  properties: Nullable extends true
+    ? Record<string, OasSchema | OasRef<'schema'> | CustomValue> | null | undefined
+    : Record<string, OasSchema | OasRef<'schema'> | CustomValue> | undefined
   /**
    * An array of required property names.
    */
@@ -69,13 +78,17 @@ export class OasObject {
   /**
    * An example of the object.
    */
-  example: Record<string, unknown> | undefined
+  example: Nullable extends true
+    ? Record<string, unknown> | null | undefined
+    : Record<string, unknown> | undefined
   /**
    * The default value of the object.
    */
-  default: Record<string, unknown> | undefined
+  default: Nullable extends true
+    ? Record<string, unknown> | null | undefined
+    : Record<string, unknown> | undefined
 
-  constructor(fields: OasObjectFields) {
+  constructor(fields: OasObjectFields<Nullable>) {
     this.title = fields.title
     this.description = fields.description
     this.properties = fields.properties
@@ -88,8 +101,9 @@ export class OasObject {
   }
 
   /** Creates new empty OasObject */
-  static empty(): OasObject {
+  static empty(): OasObject<false> {
     return new OasObject({
+      nullable: false,
       properties: {},
       required: []
     })

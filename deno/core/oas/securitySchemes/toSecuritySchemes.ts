@@ -18,7 +18,7 @@ import {
 import type { OasSecurityScheme } from './SecurityScheme.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'
 import type { OasRef } from '../ref/Ref.ts'
-import { isRef } from '../../helpers/isRef.ts'
+import { isRef } from '../../helpers/refFns.ts'
 
 type ToSecuritySchemesArgs = {
   securitySchemes:

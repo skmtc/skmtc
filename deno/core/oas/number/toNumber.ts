@@ -136,3 +136,59 @@ export const toNonNullableNumber = ({
     exclusiveMinimum
   })
 }
+
+type ToXNumberArgs<Nullable extends boolean | undefined> = {
+  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable' | 'example' | 'enums'>
+  context: ParseContext
+  nullable: Nullable
+  example: Nullable extends true ? number | null | undefined : number | undefined
+  enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
+}
+
+const toXNumber = <Nullable extends boolean | undefined>({
+  context,
+  nullable,
+  example,
+  enums,
+  value
+}: ToXNumberArgs<Nullable>): OasNumber<Nullable> => {
+  // const parsedExample = context.provisionalParse({
+  //   key: 'example',
+  //   value: example,
+  //   schema: v.number(),
+  //   toMessage: value => `Removed invalid example. Expected number, got: ${value}`
+  // })
+
+  const {
+    type: _type,
+    title,
+    description,
+    format,
+    multipleOf,
+    maximum,
+    exclusiveMaximum,
+    minimum,
+    exclusiveMinimum,
+    ...skipped
+  } = v.parse(oasNumberData, value)
+
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    context
+  })
+
+  return new OasNumber<Nullable>({
+    title,
+    description,
+    nullable,
+    extensionFields,
+    example,
+    enums,
+    format,
+    multipleOf,
+    maximum,
+    exclusiveMaximum,
+    minimum,
+    exclusiveMinimum
+  })
+}

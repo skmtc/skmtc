@@ -9,7 +9,7 @@ import { toPathItemV3 } from '../pathItem/toPathItemV3.ts'
 import type { OasPathItem } from '../pathItem/PathItem.ts'
 import { methodValues } from '../../types/Method.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-
+import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
 type OperationInfo = {
   method: Method
   path: string
@@ -43,6 +43,7 @@ export const toOperationV3 = ({
     requestBody,
     responses,
     deprecated,
+    security,
     ...skipped
   } = operation
 
@@ -60,6 +61,7 @@ export const toOperationV3 = ({
     requestBody: context.trace('requestBody', () => toRequestBodyV3({ requestBody, context })),
     responses: context.trace('responses', () => toResponsesV3({ responses, context })),
     deprecated,
+    security: context.trace('security', () => toSecurityRequirementsV3({ security, context })),
     extensionFields
   })
 }

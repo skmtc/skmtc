@@ -9,6 +9,7 @@ import { toRequestBodiesV3 } from '../requestBody/toRequestBodiesV3.ts'
 import { OasComponents } from './Components.ts'
 import type { ComponentsFields } from './Components.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
+import { toSecuritySchemesV3 } from '../securitySchemes/toSecuritySchemes.ts'
 
 type ToComponentsV3Args = {
   components: OpenAPIV3.ComponentsObject | undefined
