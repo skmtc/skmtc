@@ -58,6 +58,7 @@ export const toResponseV3 = ({
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: response,
     context
   })
 

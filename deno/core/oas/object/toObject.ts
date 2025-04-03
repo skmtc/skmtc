@@ -4,9 +4,9 @@ import { OasObject } from './Object.ts'
 import { toOptionalSchemasV3 } from '../schema/toSchemasV3.ts'
 import { toAdditionalPropertiesV3 } from './toAdditionalPropertiesV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { parseNullable } from '../helpers/parseNullable.ts'
-import { parseExample } from '../helpers/parseExample.ts'
-import { parseEnum } from '../helpers/parseEnum.ts'
+import { parseNullable } from '../_helpers/parseNullable.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
 
 type ToObjectArgs = {
@@ -68,13 +68,18 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     description,
     properties,
     required,
+    maxProperties,
+    minProperties,
     additionalProperties,
     default: defaultValue,
+    readOnly,
+    writeOnly,
     ...skipped
   } = value
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: value,
     context
   })
 
@@ -91,10 +96,14 @@ const toParsedObject = <Nullable extends boolean | undefined>({
       })
     ),
     required,
+    maxProperties,
+    minProperties,
     additionalProperties: context.trace('additionalProperties', () =>
       toAdditionalPropertiesV3({ additionalProperties, context })
     ),
     extensionFields,
-    default: defaultValue
+    default: defaultValue,
+    readOnly,
+    writeOnly
   })
 }

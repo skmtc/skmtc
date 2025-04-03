@@ -25,6 +25,7 @@ export const parseEnum = <T, Nullable extends boolean | undefined>({
   const parsedEnum = context.provisionalParse({
     key: 'enum',
     value: enums,
+    parent: value,
     schema: nullable === true ? v.array(v.nullable(valibotSchema)) : v.array(valibotSchema),
     toMessage: value => `Removed invalid enum. Expected ${valibotSchema.type}, got: ${value}`
   })

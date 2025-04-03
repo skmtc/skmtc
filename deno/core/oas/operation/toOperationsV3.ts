@@ -47,7 +47,11 @@ export const toOperationV3 = ({
     ...skipped
   } = operation
 
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: operation,
+    context
+  })
 
   return new OasOperation({
     pathItem,

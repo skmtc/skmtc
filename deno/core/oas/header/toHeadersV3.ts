@@ -43,7 +43,11 @@ const toHeaderV3 = ({ header, context }: ToHeaderV3Args): OasHeader | OasRef<'he
   const { description, required, deprecated, schema, example, examples, content, ...skipped } =
     header
 
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: header,
+    context
+  })
 
   const fields: HeaderFields = {
     description,

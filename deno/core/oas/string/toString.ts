@@ -15,6 +15,7 @@ export const toString = ({ context, value }: ToStringArgs) => {
   const parsedNullable = context.provisionalParse({
     key: 'nullable',
     value: nullable,
+    parent: value,
     schema: v.optional(v.boolean()),
     toMessage: input => `Invalid nullable: ${input}`
   })
@@ -38,6 +39,7 @@ const toNullableString = ({
   const parsedExample = context.provisionalParse({
     key: 'example',
     value: example,
+    parent: args.value,
     schema: v.nullable(v.string()),
     toMessage: value => `Removed invalid example. Expected string, got: ${value}`
   })
@@ -45,6 +47,7 @@ const toNullableString = ({
   const parsedEnums = context.provisionalParse({
     key: 'enum',
     value: enums,
+    parent: args.value,
     schema: v.array(v.nullable(v.string())),
     toMessage: value => `Removed invalid enum. Expected array of strings or null, got: ${value}`
   })
@@ -63,13 +66,15 @@ const toNullableString = ({
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: value,
     context
   })
 
   if (format && !v.is(stringFormat, format)) {
     context.logWarning({
       key: 'format',
-      message: `Invalid format: ${format}`
+      message: `Invalid format: ${format}`,
+      parent: value
     })
   }
 
@@ -102,6 +107,7 @@ const toNonNullableString = ({
   const parsedExample = context.provisionalParse({
     key: 'example',
     value: example,
+    parent: args.value,
     schema: v.string(),
     toMessage: value => `Removed invalid example. Expected string, got: ${value}`
   })
@@ -121,13 +127,15 @@ const toNonNullableString = ({
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: value,
     context
   })
 
   if (format && !v.is(stringFormat, format)) {
     context.logWarning({
       key: 'format',
-      message: `Invalid format: ${format}`
+      message: `Invalid format: ${format}`,
+      parent: value
     })
   }
 

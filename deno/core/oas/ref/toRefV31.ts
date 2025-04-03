@@ -17,7 +17,7 @@ export const toRefV31 = <T extends OasRefData['refType']>({
 }: ToRefV31Args<T>): OasRef<T> => {
   const { $ref, summary, description, ...skipped } = ref
 
-  context.logSkippedFields(skipped)
+  context.logSkippedFields(skipped, ref)
 
   const fields: RefFields<T> = {
     refType,

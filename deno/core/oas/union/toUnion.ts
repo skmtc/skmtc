@@ -16,6 +16,7 @@ export const toUnion = ({ value, members, context }: ToUnionArgs): OasUnion => {
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: value,
     context
   })
 

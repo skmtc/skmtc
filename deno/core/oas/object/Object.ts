@@ -14,6 +14,8 @@ export type OasObjectFields<Nullable extends boolean | undefined> = {
     : Record<string, unknown> | undefined
   additionalProperties?: boolean | OasSchema | OasRef<'schema'> | undefined
   nullable: Nullable
+  maxProperties?: number
+  minProperties?: number
   enums?: Nullable extends true
     ? (Record<string, unknown> | null)[] | undefined
     : Record<string, unknown>[] | undefined
@@ -21,6 +23,8 @@ export type OasObjectFields<Nullable extends boolean | undefined> = {
   example?: Nullable extends true
     ? Record<string, unknown> | null | undefined
     : Record<string, unknown> | undefined
+  readOnly?: boolean
+  writeOnly?: boolean
 }
 
 export type AddPropertyArgs = {
@@ -87,6 +91,10 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
   default: Nullable extends true
     ? Record<string, unknown> | null | undefined
     : Record<string, unknown> | undefined
+  maxProperties?: number
+  minProperties?: number
+  readOnly?: boolean
+  writeOnly?: boolean
 
   constructor(fields: OasObjectFields<Nullable>) {
     this.title = fields.title
@@ -98,6 +106,10 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
     this.extensionFields = fields.extensionFields
     this.example = fields.example
     this.default = fields.default
+    this.maxProperties = fields.maxProperties
+    this.minProperties = fields.minProperties
+    this.readOnly = fields.readOnly
+    this.writeOnly = fields.writeOnly
   }
 
   /** Creates new empty OasObject */
@@ -191,10 +203,15 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
           )
         : undefined,
       required: this.required,
+      maxProperties: this.maxProperties,
+      minProperties: this.minProperties,
+
       additionalProperties: match(this.additionalProperties)
         .with(P.nullish, () => false)
         .with(P.boolean, value => value)
-        .otherwise(value => value.toJsonSchema(options))
+        .otherwise(value => value.toJsonSchema(options)),
+      readOnly: this.readOnly,
+      writeOnly: this.writeOnly
     }
   }
 }

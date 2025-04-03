@@ -18,7 +18,7 @@ export const toDiscriminatorV3 = ({
 
   const { propertyName, ...skipped } = discriminator
 
-  context.logSkippedFields(skipped)
+  context.logSkippedFields(skipped, discriminator)
 
   const fields: DiscriminatorFields = {
     propertyName

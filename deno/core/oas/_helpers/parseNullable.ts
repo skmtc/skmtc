@@ -18,6 +18,7 @@ export const parseNullable = ({ value, context }: ParseNullableArgs): ParseNulla
   const parsedNullable = context.provisionalParse({
     key: 'nullable',
     value: nullable,
+    parent: value,
     schema: v.optional(v.boolean()),
     toMessage: (input: unknown) => `Invalid nullable: ${input}`
   })

@@ -22,12 +22,14 @@ export type ParseReturn = {
 
 export type LogWarningArgs = {
   key: string
+  parent: unknown
   message: string
 }
 
 export type ProvisionalParseArgs<T> = {
-  key?: string
+  key: string
   value: unknown
+  parent: unknown
   schema: v.GenericSchema<T>
   toMessage: (value: unknown) => string
 }
@@ -35,6 +37,7 @@ export type ProvisionalParseArgs<T> = {
 type ParseWarning = {
   message: string
   location: StackTrail
+  parent: unknown
 }
 
 export class ParseContext {
@@ -76,18 +79,20 @@ export class ParseContext {
     return tracer(this.stackTrail, token, fn)
   }
 
-  logSkippedFields(skipped: Record<string, unknown>) {
+  logSkippedFields(skipped: Record<string, unknown>, parent: unknown) {
     Object.keys(skipped).forEach(key => {
       this.logWarning({
         key,
+        parent,
         message: `Property not yet implemented`
       })
     })
   }
 
   provisionalParse<T>({
-    key = 'example',
+    key,
     value,
+    parent,
     schema,
     toMessage
   }: ProvisionalParseArgs<T>): T | undefined {
@@ -99,19 +104,25 @@ export class ParseContext {
 
     this.logWarning({
       key,
+      parent,
       message: toMessage(value)
     })
   }
 
-  logWarning({ key, message }: LogWarningArgs) {
+  logWarning({ key, parent, message }: LogWarningArgs) {
     this.trace(key, () => {
       this.warnings.push({
         message,
-        location: this.stackTrail.clone()
+        location: this.stackTrail.clone(),
+        parent
       })
 
       if (!this.silent) {
-        this.logger.warn({ location: this.stackTrail.toString(), message })
+        this.logger.warn({
+          location: this.stackTrail.toString(),
+          parent: JSON.stringify(parent),
+          message
+        })
       }
     })
   }

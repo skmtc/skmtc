@@ -4,6 +4,9 @@ import { OasBoolean } from './Boolean.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
 import { oasBooleanData } from './boolean-types.ts'
+import { parseNullable } from '../_helpers/parseNullable.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseEnum } from '../_helpers/parseEnum.ts'
 
 type ToBooleanArgs = {
   value: OpenAPIV3.NonArraySchemaObject
@@ -11,45 +14,49 @@ type ToBooleanArgs = {
 }
 
 export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
-  const { nullable } = value
-
-  const parsedNullable = context.provisionalParse({
-    key: 'nullable',
-    value: nullable,
-    schema: v.optional(v.boolean()),
-    toMessage: input => `Invalid nullable: ${input}`
+  const { nullable, value: valueWithoutNullable } = parseNullable({
+    value,
+    context
   })
 
-  return parsedNullable
-    ? toNullableBoolean({ context, nullable: parsedNullable, value })
-    : toNonNullableBoolean({ context, nullable: parsedNullable, value })
+  const { example, value: valueWithoutExample } = parseExample({
+    value: valueWithoutNullable,
+    nullable,
+    valibotSchema: v.boolean(),
+    context
+  })
+
+  const { enum: enums, value: valueWithoutEnums } = parseEnum({
+    value: valueWithoutExample,
+    nullable,
+    valibotSchema: v.boolean(),
+    context
+  })
+
+  return toParsedBoolean({
+    context,
+    nullable,
+    example,
+    enums,
+    value: valueWithoutEnums
+  })
 }
 
-type ToNullableBooleanArgs = ToBooleanArgs & {
-  nullable: true
+type ToParsedBooleanArgs<Nullable extends boolean | undefined> = {
+  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable' | 'example' | 'enums'>
+  context: ParseContext
+  nullable: Nullable
+  example: Nullable extends true ? boolean | null | undefined : boolean | undefined
+  enums: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
 }
 
-export const toNullableBoolean = ({
+export const toParsedBoolean = <Nullable extends boolean | undefined>({
   context,
   nullable,
-  ...args
-}: ToNullableBooleanArgs): OasBoolean<true> => {
-  const { example, enum: enums, nullable: _nullable, ...value } = args.value
-
-  const parsedExample = context.provisionalParse({
-    key: 'example',
-    value: example,
-    schema: v.nullable(v.boolean()),
-    toMessage: value => `Removed invalid example. Expected boolean, got: ${value}`
-  })
-
-  const parsedEnums = context.provisionalParse({
-    key: 'enum',
-    value: enums,
-    schema: v.array(v.nullable(v.boolean())),
-    toMessage: value => `Removed invalid enum. Expected array of booleans or null, got: ${value}`
-  })
-
+  example,
+  enums,
+  value
+}: ToParsedBooleanArgs<Nullable>): OasBoolean<Nullable> => {
   const {
     type: _type,
     title,
@@ -58,53 +65,17 @@ export const toNullableBoolean = ({
     ...skipped
   } = v.parse(oasBooleanData, value)
 
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: value,
+    context
+  })
 
   return new OasBoolean({
     nullable,
     title,
     description,
-    example: parsedExample,
-    enum: parsedEnums,
-    default: defaultValue,
-    extensionFields
-  })
-}
-
-type ToNonNullableBooleanArgs = ToBooleanArgs & {
-  nullable: false | undefined
-}
-
-export const toNonNullableBoolean = ({
-  context,
-  nullable,
-  ...args
-}: ToNonNullableBooleanArgs): OasBoolean<false | undefined> => {
-  const { example, nullable: _nullable, ...value } = args.value
-
-  const parsedExample = context.provisionalParse({
-    key: 'example',
-    value: example,
-    schema: v.boolean(),
-    toMessage: value => `Removed invalid example. Expected boolean, got: ${value}`
-  })
-
-  const {
-    type: _type,
-    title,
-    description,
-    enum: enums,
-    default: defaultValue,
-    ...skipped
-  } = v.parse(oasBooleanData, value)
-
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
-
-  return new OasBoolean({
-    nullable,
-    title,
-    description,
-    example: parsedExample,
+    example,
     enum: enums,
     default: defaultValue,
     extensionFields

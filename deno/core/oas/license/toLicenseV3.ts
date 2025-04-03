@@ -11,6 +11,7 @@ export const toLicenseV3 = (
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: license,
     context
   })
 

@@ -41,6 +41,7 @@ export const toServerV3 = ({ server, context }: ToServerV3Args): OasServer => {
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: server,
     context
   })
 

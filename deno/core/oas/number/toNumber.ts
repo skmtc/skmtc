@@ -4,9 +4,9 @@ import { OasNumber } from './Number.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
 import { oasNumberData } from './number-types.ts'
-import { parseNullable } from '../helpers/parseNullable.ts'
-import { parseExample } from '../helpers/parseExample.ts'
-import { parseEnum } from '../helpers/parseEnum.ts'
+import { parseNullable } from '../_helpers/parseNullable.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseEnum } from '../_helpers/parseEnum.ts'
 type ToNumberArgs = {
   value: OpenAPIV3.NonArraySchemaObject
   context: ParseContext
@@ -71,6 +71,7 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: value,
     context
   })
 

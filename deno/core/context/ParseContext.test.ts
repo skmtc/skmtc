@@ -22,6 +22,8 @@ const warningsByProperty = parseContext.warnings.reduce<Record<string, number>>(
   const property = stackTrail[stackTrail.length - 1]
 
   console.log(JSON.stringify(stackTrail.toString(), null, 2))
+  console.log(JSON.stringify(warning.parent, null, 2))
+  console.log('')
 
   return {
     ...acc,

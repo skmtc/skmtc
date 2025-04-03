@@ -15,6 +15,7 @@ export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
   const parsedNullable = context.provisionalParse({
     key: 'nullable',
     value: nullable,
+    parent: value,
     schema: v.optional(v.boolean()),
     toMessage: input => `Invalid nullable: ${input}`
   })
@@ -38,6 +39,7 @@ const toNullableInteger = ({
   const parsedExample = context.provisionalParse({
     key: 'example',
     value: example,
+    parent: args.value,
     schema: v.nullable(integerSchema),
     toMessage: value => `Removed invalid example. Expected integer, got: ${value}`
   })
@@ -45,6 +47,7 @@ const toNullableInteger = ({
   const parsedEnums = context.provisionalParse({
     key: 'enum',
     value: enums,
+    parent: args.value,
     schema: v.array(v.nullable(integerSchema)),
     toMessage: value => `Removed invalid enum. Expected array of integers or null, got: ${value}`
   })
@@ -63,7 +66,11 @@ const toNullableInteger = ({
     ...skipped
   } = v.parse(oasIntegerData, value)
 
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: value,
+    context
+  })
 
   return new OasInteger<true>({
     title,
@@ -96,6 +103,7 @@ const toNonNullableInteger = ({
   const parsedExample = context.provisionalParse({
     key: 'example',
     value: example,
+    parent: args.value,
     schema: integerSchema,
     toMessage: value => `Removed invalid example. Expected integer, got: ${value}`
   })
@@ -115,7 +123,11 @@ const toNonNullableInteger = ({
     ...skipped
   } = v.parse(oasIntegerData, value)
 
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: value,
+    context
+  })
 
   return new OasInteger<false | undefined>({
     title,

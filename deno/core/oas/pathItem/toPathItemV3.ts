@@ -16,6 +16,10 @@ export const toPathItemV3 = ({ pathItem, context }: ToPathItemV3Args): OasPathIt
     summary,
     description,
     parameters: context.trace('parameters', () => toParameterListV3({ parameters, context })),
-    extensionFields: toSpecificationExtensionsV3({ skipped, context })
+    extensionFields: toSpecificationExtensionsV3({
+      skipped,
+      parent: pathItem,
+      context
+    })
   })
 }

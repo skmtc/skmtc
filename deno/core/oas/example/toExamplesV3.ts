@@ -74,7 +74,11 @@ export const toExampleV3 = ({
 
   const { summary, description, value, ...skipped } = example
 
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: example,
+    context
+  })
 
   return new OasExample({
     summary,

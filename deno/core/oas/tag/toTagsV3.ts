@@ -27,6 +27,7 @@ export const toTagV3 = ({ tag, context }: ToTagV3Args): OasTag => {
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: tag,
     context
   })
 

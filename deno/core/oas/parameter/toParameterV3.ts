@@ -99,6 +99,7 @@ const toParameterV3 = ({
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: parameter,
     context
   })
 

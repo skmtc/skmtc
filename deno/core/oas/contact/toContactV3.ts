@@ -11,6 +11,7 @@ export const toContactV3 = (
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: contact,
     context
   })
 

@@ -25,6 +25,7 @@ export const parseExample = <T, Nullable extends boolean | undefined>({
   const parsedExample = context.provisionalParse({
     key: 'example',
     value: example,
+    parent: value,
     schema: nullable === true ? v.nullable(valibotSchema) : valibotSchema,
     toMessage: value => `Removed invalid example. Expected ${valibotSchema.type}, got: ${value}`
   })

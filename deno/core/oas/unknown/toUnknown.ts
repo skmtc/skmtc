@@ -14,6 +14,7 @@ export const toUnknown = ({ value, context }: ToUnknownArgs): OasUnknown => {
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: value,
     context
   })
 

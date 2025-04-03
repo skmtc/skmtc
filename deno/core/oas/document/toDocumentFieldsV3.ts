@@ -22,6 +22,7 @@ export const toDocumentFieldsV3 = ({
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: documentObject,
     context
   })
 

@@ -23,7 +23,11 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
     ...skipped
   } = value
 
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: value,
+    context
+  })
 
   return new OasArray({
     title,

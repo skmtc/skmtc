@@ -35,7 +35,11 @@ export const toComponentsV3 = ({
     ...skipped
   } = components
 
-  const extensionFields = toSpecificationExtensionsV3({ skipped, context })
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: components,
+    context
+  })
 
   const fields: ComponentsFields = {
     schemas: context.trace('schemas', () => toOptionalSchemasV3({ schemas, context })),

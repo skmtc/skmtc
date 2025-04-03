@@ -30,6 +30,7 @@ export const toRequestBodyV3 = ({
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
+    parent: requestBody,
     context
   })
 
