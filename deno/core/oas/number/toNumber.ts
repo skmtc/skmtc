@@ -8,7 +8,7 @@ import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseExample } from '../_helpers/parseExample.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
 type ToNumberArgs = {
-  value: OpenAPIV3.NonArraySchemaObject
+  value: OpenAPIV3.SchemaObject
   context: ParseContext
 }
 
@@ -42,7 +42,7 @@ export const toNumber = ({ context, value }: ToNumberArgs): OasNumber => {
 }
 
 type ToParsedNumberArgs<Nullable extends boolean | undefined> = {
-  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable' | 'example' | 'enums'>
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
   context: ParseContext
   nullable: Nullable
   example: Nullable extends true ? number | null | undefined : number | undefined
@@ -66,6 +66,7 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
     exclusiveMaximum,
     minimum,
     exclusiveMinimum,
+    default: defaultValue,
     ...skipped
   } = v.parse(oasNumberData, value)
 
@@ -79,6 +80,7 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
     title,
     description,
     nullable,
+    default: defaultValue,
     extensionFields,
     example,
     enums,

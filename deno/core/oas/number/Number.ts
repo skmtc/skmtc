@@ -5,6 +5,7 @@ export type NumberFields<Nullable extends boolean | undefined> = {
   title?: string
   description?: string
   nullable: Nullable
+  default?: Nullable extends true ? number | null | undefined : number | undefined
   extensionFields?: Record<string, unknown>
   example?: Nullable extends true ? number | null | undefined : number | undefined
   enums?: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
@@ -33,6 +34,10 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
    * A short summary of the number.
    */
   title: string | undefined
+  /**
+   * The default value of the number.
+   */
+  default: Nullable extends true ? number | null | undefined : number | undefined
   /**
    * A description of the number.
    */
@@ -79,6 +84,7 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
     this.title = fields.title
     this.description = fields.description
     this.nullable = fields.nullable
+    this.default = fields.default
     this.extensionFields = fields.extensionFields
     this.example = fields.example
     this.enums = fields.enums

@@ -117,6 +117,23 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         })
       }
 
+      if (
+        value &&
+        'items' in value &&
+        value.items &&
+        typeof value.items === 'object' &&
+        value.items
+      ) {
+        return toArray({
+          value: {
+            ...value,
+            type: 'array'
+            // Adding cast here since {} is a valid value for items
+          } as OpenAPIV3.ArraySchemaObject,
+          context
+        })
+      }
+
       return toUnknown({ value, context })
     })
 }

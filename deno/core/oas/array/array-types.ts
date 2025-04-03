@@ -10,7 +10,8 @@ export const oasArrayData = v.object({
   default: v.optional(v.array(v.unknown())),
   maxItems: v.optional(v.number()),
   minItems: v.optional(v.number()),
-  uniqueItems: v.optional(v.boolean())
+  uniqueItems: v.optional(v.boolean()),
+  enums: v.optional(v.array(v.unknown()))
 })
 
 export type OasArrayData = {
@@ -22,4 +23,5 @@ export type OasArrayData = {
   maxItems?: number
   minItems?: number
   uniqueItems?: boolean
+  enums?: unknown[]
 }

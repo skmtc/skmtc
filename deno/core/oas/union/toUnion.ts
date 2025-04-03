@@ -4,6 +4,8 @@ import { OasUnion } from './Union.ts'
 import { toDiscriminatorV3 } from '../discriminator/toDiscriminatorV3.ts'
 import { toSchemaV3 } from '../schema/toSchemasV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
+import type { OasSchema } from '../schema/Schema.ts'
+import type { OasRef } from '../ref/Ref.ts'
 
 type ToUnionArgs = {
   value: OpenAPIV3.SchemaObject
@@ -27,9 +29,13 @@ export const toUnion = ({ value, members, context }: ToUnionArgs): OasUnion => {
     discriminator: context.trace('discriminator', () =>
       toDiscriminatorV3({ discriminator, context })
     ),
-    members: members
-      // .filter(item => item !== undefined && item !== null)
-      .map((schema, index) => context.trace(`${index}`, () => toSchemaV3({ schema, context }))),
+    members: members.reduce<(OasSchema | OasRef<'schema'>)[]>((acc, item, index) => {
+      if (item === undefined || item === null) {
+        return acc
+      }
+
+      return [...acc, context.trace(`${index}`, () => toSchemaV3({ schema: item, context }))]
+    }, []),
     example,
     extensionFields
   })

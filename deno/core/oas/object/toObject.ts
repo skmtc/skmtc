@@ -10,7 +10,7 @@ import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
 
 type ToObjectArgs = {
-  value: OpenAPIV3.NonArraySchemaObject
+  value: OpenAPIV3.SchemaObject
   context: ParseContext
 }
 
@@ -44,7 +44,7 @@ export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
 }
 
 type ToParsedObjectArgs<Nullable extends boolean | undefined> = {
-  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable' | 'example' | 'enums'>
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
   context: ParseContext
   nullable: Nullable
   example: Nullable extends true

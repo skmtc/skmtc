@@ -4,54 +4,59 @@ import { OasString } from './String.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { oasStringData, stringFormat } from './string-types.ts'
 import * as v from 'valibot'
+import { parseNullable } from '../_helpers/parseNullable.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseEnum } from '../_helpers/parseEnum.ts'
+
 type ToStringArgs = {
-  value: OpenAPIV3.NonArraySchemaObject
+  value: OpenAPIV3.SchemaObject
   context: ParseContext
 }
 
 export const toString = ({ context, value }: ToStringArgs) => {
-  const { nullable } = value
-
-  const parsedNullable = context.provisionalParse({
-    key: 'nullable',
-    value: nullable,
-    parent: value,
-    schema: v.optional(v.boolean()),
-    toMessage: input => `Invalid nullable: ${input}`
+  const { nullable, value: valueWithoutNullable } = parseNullable({
+    value,
+    context
   })
 
-  return parsedNullable
-    ? toNullableString({ context, value, nullable: parsedNullable })
-    : toNonNullableString({ context, value, nullable: parsedNullable })
+  const { example, value: valueWithoutExample } = parseExample({
+    value: valueWithoutNullable,
+    nullable,
+    valibotSchema: v.string(),
+    context
+  })
+
+  const { enum: enums, value: valueWithoutEnums } = parseEnum({
+    value: valueWithoutExample,
+    nullable,
+    valibotSchema: v.string(),
+    context
+  })
+
+  return toParsedString({
+    context,
+    nullable,
+    example,
+    enums,
+    value: valueWithoutEnums
+  })
 }
 
-type ToNullableStringArgs = ToStringArgs & {
-  nullable: true
+type ToParsedStringArgs<Nullable extends boolean | undefined> = {
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
+  context: ParseContext
+  nullable: Nullable
+  example: Nullable extends true ? string | null | undefined : string | undefined
+  enums: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
 }
 
-const toNullableString = ({
+export const toParsedString = <Nullable extends boolean | undefined>({
   context,
   nullable,
-  ...args
-}: ToNullableStringArgs): OasString<true> => {
-  const { example, enum: enums, nullable: _nullable, ...value } = args.value
-
-  const parsedExample = context.provisionalParse({
-    key: 'example',
-    value: example,
-    parent: args.value,
-    schema: v.nullable(v.string()),
-    toMessage: value => `Removed invalid example. Expected string, got: ${value}`
-  })
-
-  const parsedEnums = context.provisionalParse({
-    key: 'enum',
-    value: enums,
-    parent: args.value,
-    schema: v.array(v.nullable(v.string())),
-    toMessage: value => `Removed invalid enum. Expected array of strings or null, got: ${value}`
-  })
-
+  example,
+  enums,
+  value
+}: ToParsedStringArgs<Nullable>): OasString<Nullable> => {
   const {
     type: _type,
     title,
@@ -73,78 +78,17 @@ const toNullableString = ({
   if (format && !v.is(stringFormat, format)) {
     context.logWarning({
       key: 'format',
-      message: `Invalid format: ${format}`,
+      message: `Unexpected format: ${format}`,
       parent: value
     })
   }
 
-  return new OasString<true>({
-    title,
-    description,
-    enums: parsedEnums,
-    nullable: nullable,
-    example: parsedExample,
-    format,
-    maxLength,
-    minLength,
-    pattern,
-    default: defaultValue,
-    extensionFields
-  })
-}
-
-type ToNonNullableStringArgs = ToStringArgs & {
-  nullable: false | undefined
-}
-
-const toNonNullableString = ({
-  context,
-  nullable,
-  ...args
-}: ToNonNullableStringArgs): OasString<false | undefined> => {
-  const { example, nullable: _nullable, ...value } = args.value
-
-  const parsedExample = context.provisionalParse({
-    key: 'example',
-    value: example,
-    parent: args.value,
-    schema: v.string(),
-    toMessage: value => `Removed invalid example. Expected string, got: ${value}`
-  })
-
-  const {
-    type: _type,
-    title,
-    description,
-    enum: enums,
-    format,
-    maxLength,
-    minLength,
-    pattern,
-    default: defaultValue,
-    ...skipped
-  } = v.parse(oasStringData, value)
-
-  const extensionFields = toSpecificationExtensionsV3({
-    skipped,
-    parent: value,
-    context
-  })
-
-  if (format && !v.is(stringFormat, format)) {
-    context.logWarning({
-      key: 'format',
-      message: `Invalid format: ${format}`,
-      parent: value
-    })
-  }
-
-  return new OasString({
+  return new OasString<Nullable>({
     title,
     description,
     enums,
     nullable,
-    example: parsedExample,
+    example,
     format,
     maxLength,
     minLength,

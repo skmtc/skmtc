@@ -4,117 +4,65 @@ import { OasInteger } from './Integer.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { oasIntegerData, integerSchema } from './integer-types.ts'
 import * as v from 'valibot'
+import { parseNullable } from '../_helpers/parseNullable.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseEnum } from '../_helpers/parseEnum.ts'
+
 type ToIntegerArgs = {
-  value: OpenAPIV3.NonArraySchemaObject
+  value: OpenAPIV3.SchemaObject
   context: ParseContext
 }
 
 export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
-  const { nullable } = value
-
-  const parsedNullable = context.provisionalParse({
-    key: 'nullable',
-    value: nullable,
-    parent: value,
-    schema: v.optional(v.boolean()),
-    toMessage: input => `Invalid nullable: ${input}`
-  })
-
-  return parsedNullable
-    ? toNullableInteger({ context, nullable: parsedNullable, value })
-    : toNonNullableInteger({ context, nullable: parsedNullable, value })
-}
-
-type ToNullableIntegerArgs = ToIntegerArgs & {
-  nullable: true
-}
-
-const toNullableInteger = ({
-  context,
-  nullable,
-  ...args
-}: ToNullableIntegerArgs): OasInteger<true> => {
-  const { example, enum: enums, nullable: _nullable, ...value } = args.value
-
-  const parsedExample = context.provisionalParse({
-    key: 'example',
-    value: example,
-    parent: args.value,
-    schema: v.nullable(integerSchema),
-    toMessage: value => `Removed invalid example. Expected integer, got: ${value}`
-  })
-
-  const parsedEnums = context.provisionalParse({
-    key: 'enum',
-    value: enums,
-    parent: args.value,
-    schema: v.array(v.nullable(integerSchema)),
-    toMessage: value => `Removed invalid enum. Expected array of integers or null, got: ${value}`
-  })
-
-  const {
-    type: _type,
-    title,
-    description,
-    default: defaultValue,
-    format,
-    multipleOf,
-    maximum,
-    exclusiveMaximum,
-    minimum,
-    exclusiveMinimum,
-    ...skipped
-  } = v.parse(oasIntegerData, value)
-
-  const extensionFields = toSpecificationExtensionsV3({
-    skipped,
-    parent: value,
+  const { nullable, value: valueWithoutNullable } = parseNullable({
+    value,
     context
   })
 
-  return new OasInteger<true>({
-    title,
-    description,
+  const { example, value: valueWithoutExample } = parseExample({
+    value: valueWithoutNullable,
     nullable,
-    format,
-    enums: parsedEnums,
-    extensionFields,
-    example: parsedExample,
-    multipleOf,
-    maximum,
-    exclusiveMaximum,
-    minimum,
-    exclusiveMinimum,
-    default: defaultValue
+    valibotSchema: integerSchema,
+    context
+  })
+
+  const { enum: enums, value: valueWithoutEnums } = parseEnum({
+    value: valueWithoutExample,
+    nullable,
+    valibotSchema: integerSchema,
+    context
+  })
+
+  return toParsedInteger({
+    context,
+    nullable,
+    example,
+    enums,
+    value: valueWithoutEnums
   })
 }
 
-type ToNonNullableIntegerArgs = ToIntegerArgs & {
-  nullable: false | undefined
+type ToParsedIntegerArgs<Nullable extends boolean | undefined> = {
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
+  context: ParseContext
+  nullable: Nullable
+  example: Nullable extends true ? number | null | undefined : number | undefined
+  enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
 }
 
-const toNonNullableInteger = ({
+export const toParsedInteger = <Nullable extends boolean | undefined>({
   context,
   nullable,
-  ...args
-}: ToNonNullableIntegerArgs): OasInteger<false | undefined> => {
-  const { example, nullable: _nullable, ...value } = args.value
-
-  const parsedExample = context.provisionalParse({
-    key: 'example',
-    value: example,
-    parent: args.value,
-    schema: integerSchema,
-    toMessage: value => `Removed invalid example. Expected integer, got: ${value}`
-  })
-
+  example,
+  enums,
+  value
+}: ToParsedIntegerArgs<Nullable>): OasInteger<Nullable> => {
   const {
     type: _type,
-    enum: enums,
     title,
     description,
-    format,
     default: defaultValue,
+    format,
     multipleOf,
     maximum,
     exclusiveMaximum,
@@ -129,19 +77,19 @@ const toNonNullableInteger = ({
     context
   })
 
-  return new OasInteger<false | undefined>({
+  return new OasInteger<Nullable>({
     title,
     description,
     nullable,
     format,
     enums,
-    extensionFields,
-    example: parsedExample,
+    example,
     multipleOf,
     maximum,
     exclusiveMaximum,
     minimum,
     exclusiveMinimum,
-    default: defaultValue
+    default: defaultValue,
+    extensionFields
   })
 }

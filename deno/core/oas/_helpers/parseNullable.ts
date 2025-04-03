@@ -2,17 +2,20 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import * as v from 'valibot'
 
-export type ParseNullableArgs = {
-  value: OpenAPIV3.NonArraySchemaObject
+export type ParseNullableArgs<Value extends OpenAPIV3.SchemaObject> = {
+  value: Value
   context: ParseContext
 }
 
-export type ParseNullableReturn = {
+export type ParseNullableReturn<Value extends OpenAPIV3.SchemaObject> = {
   nullable: boolean | undefined
-  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable'>
+  value: Omit<Value, 'nullable'>
 }
 
-export const parseNullable = ({ value, context }: ParseNullableArgs): ParseNullableReturn => {
+export const parseNullable = <Value extends OpenAPIV3.SchemaObject>({
+  value,
+  context
+}: ParseNullableArgs<Value>): ParseNullableReturn<Value> => {
   const { nullable, ...rest } = value
 
   const parsedNullable = context.provisionalParse({

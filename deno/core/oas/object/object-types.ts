@@ -3,7 +3,6 @@ import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
 import { type OasSchemaRefData, oasSchemaRefData } from '../ref/ref-types.ts'
 
 export const oasObjectData: v.GenericSchema<OasObjectData> = v.object({
-  oasType: v.literal('schema'),
   type: v.literal('object'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
@@ -29,7 +28,6 @@ export const oasObjectData: v.GenericSchema<OasObjectData> = v.object({
 })
 
 export type OasObjectData = {
-  oasType: 'schema'
   type: 'object'
   title?: string
   description?: string

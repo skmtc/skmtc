@@ -2,24 +2,36 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import * as v from 'valibot'
 
-type ParseExampleArgs<T, Nullable extends boolean | undefined> = {
-  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable'>
+type ParseExampleArgs<
+  T,
+  Nullable extends boolean | undefined,
+  Value extends OpenAPIV3.SchemaObject
+> = {
+  value: Omit<Value, 'nullable'>
   nullable: Nullable
   valibotSchema: v.GenericSchema<T>
   context: ParseContext
 }
 
-type ParseExampleReturn<T, Nullable extends boolean | undefined> = {
+type ParseExampleReturn<
+  T,
+  Nullable extends boolean | undefined,
+  Value extends OpenAPIV3.SchemaObject
+> = {
   example: Nullable extends true ? T | null | undefined : T | undefined
-  value: Omit<OpenAPIV3.NonArraySchemaObject, 'nullable' | 'example'>
+  value: Omit<Value, 'nullable' | 'example'>
 }
 
-export const parseExample = <T, Nullable extends boolean | undefined>({
+export const parseExample = <
+  T,
+  Nullable extends boolean | undefined,
+  Value extends OpenAPIV3.SchemaObject
+>({
   value,
   nullable,
   valibotSchema,
   context
-}: ParseExampleArgs<T, Nullable>): ParseExampleReturn<T, Nullable> => {
+}: ParseExampleArgs<T, Nullable, Value>): ParseExampleReturn<T, Nullable, Value> => {
   const { example, ...rest } = value
 
   const parsedExample = context.provisionalParse({
@@ -33,5 +45,5 @@ export const parseExample = <T, Nullable extends boolean | undefined>({
   return {
     example: parsedExample,
     value: rest
-  } as ParseExampleReturn<T, Nullable>
+  } as ParseExampleReturn<T, Nullable, Value>
 }

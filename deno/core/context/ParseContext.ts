@@ -7,6 +7,7 @@ import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import * as v from 'valibot'
 import { merge, openApiMergeRules } from 'allof-merge'
+import fs from 'node:fs'
 
 type ConstructorArgs = {
   documentObject: OpenAPIV3.Document
@@ -50,8 +51,11 @@ export class ParseContext {
   constructor({ documentObject, logger, stackTrail, silent = false }: ConstructorArgs) {
     const merged = merge(documentObject, {
       rules: openApiMergeRules('3.0.x'),
-      mergeRefSibling: true
+      mergeRefSibling: true,
+      mergeCombinarySibling: true
     }) as OpenAPIV3.Document
+
+    fs.writeFileSync('merged.json', JSON.stringify(merged, null, 2))
 
     this.documentObject = merged
     this.logger = logger
