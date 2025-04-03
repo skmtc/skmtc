@@ -39,7 +39,8 @@ export const parseExample = <
     value: example,
     parent: value,
     schema: nullable === true ? v.nullable(valibotSchema) : valibotSchema,
-    toMessage: value => `Removed invalid example. Expected ${valibotSchema.type}, got: ${value}`
+    toMessage: value => `Removed invalid example. Expected ${valibotSchema.type}, got: ${value}`,
+    type: 'INCORRECT_EXAMPLE'
   })
 
   return {

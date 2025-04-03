@@ -66,6 +66,7 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     type: _type,
     title,
     description,
+    deprecated,
     properties,
     required,
     maxProperties,
@@ -80,7 +81,8 @@ const toParsedObject = <Nullable extends boolean | undefined>({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: value,
-    context
+    context,
+    parentType: 'schema:object'
   })
 
   return new OasObject<Nullable>({
@@ -103,6 +105,7 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     ),
     extensionFields,
     default: defaultValue,
+    deprecated,
     readOnly,
     writeOnly
   })

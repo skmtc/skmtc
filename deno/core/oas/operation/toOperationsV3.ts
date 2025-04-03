@@ -50,7 +50,8 @@ export const toOperationV3 = ({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: operation,
-    context
+    context,
+    parentType: 'operation'
   })
 
   return new OasOperation({

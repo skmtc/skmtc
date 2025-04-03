@@ -25,6 +25,7 @@ export type OasObjectFields<Nullable extends boolean | undefined> = {
     : Record<string, unknown> | undefined
   readOnly?: boolean
   writeOnly?: boolean
+  deprecated?: boolean
 }
 
 export type AddPropertyArgs = {
@@ -95,7 +96,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
   minProperties?: number
   readOnly?: boolean
   writeOnly?: boolean
-
+  deprecated?: boolean
   constructor(fields: OasObjectFields<Nullable>) {
     this.title = fields.title
     this.description = fields.description
@@ -109,7 +110,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
     this.maxProperties = fields.maxProperties
     this.minProperties = fields.minProperties
     this.readOnly = fields.readOnly
-    this.writeOnly = fields.writeOnly
+    this.deprecated = fields.deprecated
   }
 
   /** Creates new empty OasObject */
@@ -211,7 +212,8 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
         .with(P.boolean, value => value)
         .otherwise(value => value.toJsonSchema(options)),
       readOnly: this.readOnly,
-      writeOnly: this.writeOnly
+      writeOnly: this.writeOnly,
+      deprecated: this.deprecated
     }
   }
 }

@@ -7,6 +7,7 @@ export const oasObjectData: v.GenericSchema<OasObjectData> = v.object({
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   default: v.optional(v.object({})),
+  deprecated: v.optional(v.boolean()),
   maxProperties: v.optional(v.number()),
   minProperties: v.optional(v.number()),
   properties: v.optional(
@@ -32,6 +33,7 @@ export type OasObjectData = {
   title?: string
   description?: string
   default?: Record<string, unknown>
+  deprecated?: boolean
   maxProperties?: number
   minProperties?: number
   properties?: Record<string, OasSchemaData | OasSchemaRefData>

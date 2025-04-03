@@ -19,7 +19,8 @@ export const toPathItemV3 = ({ pathItem, context }: ToPathItemV3Args): OasPathIt
     extensionFields: toSpecificationExtensionsV3({
       skipped,
       parent: pathItem,
-      context
+      context,
+      parentType: 'pathItem'
     })
   })
 }

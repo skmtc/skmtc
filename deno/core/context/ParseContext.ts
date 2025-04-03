@@ -7,8 +7,7 @@ import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import * as v from 'valibot'
 import { merge, openApiMergeRules } from 'allof-merge'
-import fs from 'node:fs'
-
+import type { WarningType } from './types.ts'
 type ConstructorArgs = {
   documentObject: OpenAPIV3.Document
   logger: log.Logger
@@ -25,6 +24,13 @@ export type LogWarningArgs = {
   key: string
   parent: unknown
   message: string
+  type: WarningType
+}
+
+export type LogWarningNoKeyArgs = {
+  parent: unknown
+  message: string
+  type: WarningType
 }
 
 export type ProvisionalParseArgs<T> = {
@@ -33,12 +39,20 @@ export type ProvisionalParseArgs<T> = {
   parent: unknown
   schema: v.GenericSchema<T>
   toMessage: (value: unknown) => string
+  type: WarningType
+}
+
+export type LogSkippedValuesArgs = {
+  skipped: Record<string, unknown>
+  parent: unknown
+  parentType: string
 }
 
 type ParseWarning = {
   message: string
   location: StackTrail
   parent: unknown
+  type: WarningType
 }
 
 export class ParseContext {
@@ -54,8 +68,6 @@ export class ParseContext {
       mergeRefSibling: true,
       mergeCombinarySibling: true
     }) as OpenAPIV3.Document
-
-    fs.writeFileSync('merged.json', JSON.stringify(merged, null, 2))
 
     this.documentObject = merged
     this.logger = logger
@@ -83,12 +95,13 @@ export class ParseContext {
     return tracer(this.stackTrail, token, fn)
   }
 
-  logSkippedFields(skipped: Record<string, unknown>, parent: unknown) {
+  logSkippedFields({ skipped, parent, parentType }: LogSkippedValuesArgs) {
     Object.keys(skipped).forEach(key => {
       this.logWarning({
         key,
         parent,
-        message: `Property not yet implemented`
+        message: `Unexpected property "${key}" in "${parentType}"`,
+        type: 'UNEXPECTED_PROPERTY'
       })
     })
   }
@@ -98,7 +111,8 @@ export class ParseContext {
     value,
     parent,
     schema,
-    toMessage
+    toMessage,
+    type
   }: ProvisionalParseArgs<T>): T | undefined {
     const parsed = v.safeParse(v.optional(schema), value)
 
@@ -109,26 +123,31 @@ export class ParseContext {
     this.logWarning({
       key,
       parent,
-      message: toMessage(value)
+      message: toMessage(value),
+      type
     })
   }
 
-  logWarning({ key, parent, message }: LogWarningArgs) {
-    this.trace(key, () => {
-      this.warnings.push({
-        message,
-        location: this.stackTrail.clone(),
-        parent
-      })
+  logWarning({ key, parent, message, type }: LogWarningArgs) {
+    this.trace(key, () => this.logWarningNoKey({ parent, message, type }))
+  }
 
-      if (!this.silent) {
-        this.logger.warn({
-          location: this.stackTrail.toString(),
-          parent: JSON.stringify(parent),
-          message
-        })
-      }
+  logWarningNoKey({ parent, message, type }: LogWarningNoKeyArgs) {
+    this.warnings.push({
+      message,
+      location: this.stackTrail.clone(),
+      parent,
+      type
     })
+
+    if (!this.silent) {
+      this.logger.warn({
+        location: this.stackTrail.toString(),
+        parent: JSON.stringify(parent),
+        message,
+        type
+      })
+    }
   }
 }
 

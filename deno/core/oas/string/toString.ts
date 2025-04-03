@@ -72,14 +72,16 @@ export const toParsedString = <Nullable extends boolean | undefined>({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: value,
-    context
+    context,
+    parentType: 'schema:string'
   })
 
   if (format && !v.is(stringFormat, format)) {
     context.logWarning({
       key: 'format',
       message: `Unexpected format: ${format}`,
-      parent: value
+      parent: value,
+      type: 'UNEXPECTED_FORMAT'
     })
   }
 

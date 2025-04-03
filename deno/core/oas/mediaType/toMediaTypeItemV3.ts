@@ -22,7 +22,8 @@ export const toMediaTypeItemV3 = ({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: mediaTypeItem,
-    context
+    context,
+    parentType: 'mediaType'
   })
 
   const fields: MediaTypeFields = {

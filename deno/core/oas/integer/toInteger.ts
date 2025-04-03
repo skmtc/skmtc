@@ -74,7 +74,8 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: value,
-    context
+    context,
+    parentType: 'schema:integer'
   })
 
   return new OasInteger<Nullable>({

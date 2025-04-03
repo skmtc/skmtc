@@ -68,7 +68,7 @@ const toSecuritySchemeV3 = ({
         matched
       )
 
-      context.logSkippedFields(skipped, matched)
+      context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:http' })
 
       return new OasHttpSecurityScheme({
         description,
@@ -85,7 +85,7 @@ const toSecuritySchemeV3 = ({
         ...skipped
       } = v.parse(oasApiKeySecuritySchemeData, matched)
 
-      context.logSkippedFields(skipped, matched)
+      context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:apiKey' })
 
       return new OasApiKeySecurityScheme({
         description,
@@ -96,7 +96,7 @@ const toSecuritySchemeV3 = ({
     .with({ type: 'oauth2' }, matched => {
       const { flows, description, ...skipped } = v.parse(oasOAuth2SecuritySchemeData, matched)
 
-      context.logSkippedFields(skipped, matched)
+      context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:oauth2' })
 
       return new OasOAuth2SecurityScheme({
         description,
@@ -109,7 +109,11 @@ const toSecuritySchemeV3 = ({
         matched
       )
 
-      context.logSkippedFields(skipped, matched)
+      context.logSkippedFields({
+        skipped,
+        parent: matched,
+        parentType: 'securityScheme:openIdConnect'
+      })
 
       return new OasOpenIdSecurityScheme({
         description,

@@ -73,7 +73,8 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: value,
-    context
+    context,
+    parentType: 'schema:number'
   })
 
   return new OasNumber<Nullable>({

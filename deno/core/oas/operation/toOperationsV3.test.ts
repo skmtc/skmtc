@@ -18,7 +18,7 @@ import { OasRef } from '../ref/Ref.ts'
 Deno.test('Parse operations', () => {
   const operations = toOperationsV3({
     paths: mockPaths,
-    context: mockParseContext as ParseContext
+    context: mockParseContext as unknown as ParseContext
   })
 
   assertEquals(
@@ -38,8 +38,10 @@ Deno.test('Parse operations', () => {
                   mediaType: 'application/json',
                   schema: new OasObject({
                     additionalProperties: new OasInteger({
-                      format: 'int32'
-                    })
+                      format: 'int32',
+                      nullable: undefined
+                    }),
+                    nullable: undefined
                   })
                 })
               },
@@ -143,7 +145,8 @@ Deno.test('Parse operations', () => {
               style: 'simple',
               explode: false,
               schema: new OasInteger({
-                format: 'int64'
+                format: 'int64',
+                nullable: undefined
               })
             })
           ],
@@ -206,7 +209,8 @@ Deno.test('Parse operations', () => {
               style: 'simple',
               explode: false,
               schema: new OasInteger({
-                format: 'int64'
+                format: 'int64',
+                nullable: undefined
               })
             })
           ],

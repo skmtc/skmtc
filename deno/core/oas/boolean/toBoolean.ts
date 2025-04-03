@@ -68,7 +68,8 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: value,
-    context
+    context,
+    parentType: 'schema:boolean'
   })
 
   return new OasBoolean({

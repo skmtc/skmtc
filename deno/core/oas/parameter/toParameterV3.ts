@@ -100,7 +100,8 @@ const toParameterV3 = ({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: parameter,
-    context
+    context,
+    parentType: 'parameter'
   })
 
   const parsedLocation = v.parse(oasParameterLocation, location)

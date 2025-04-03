@@ -77,7 +77,8 @@ export const toExampleV3 = ({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: example,
-    context
+    context,
+    parentType: 'example'
   })
 
   return new OasExample({

@@ -86,7 +86,8 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: value,
-    context
+    context,
+    parentType: 'schema:array'
   })
 
   return new OasArray({

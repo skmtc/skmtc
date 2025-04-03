@@ -28,3 +28,14 @@ export type RenderResult = {
 }
 
 export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3_1.Document
+
+export type WarningType =
+  | 'UNEXPECTED_PROPERTY'
+  | 'MISSING_OBJECT_TYPE'
+  | 'MISSING_STRING_TYPE'
+  | 'MISSING_ARRAY_TYPE'
+  | 'INCORRECT_EXAMPLE'
+  | 'INCORRECT_ENUM'
+  | 'INCORRECT_DEFAULT'
+  | 'INCORRECT_NULLABLE'
+  | 'UNEXPECTED_FORMAT'

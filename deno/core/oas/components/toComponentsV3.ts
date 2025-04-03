@@ -38,7 +38,8 @@ export const toComponentsV3 = ({
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: components,
-    context
+    context,
+    parentType: 'components'
   })
 
   const fields: ComponentsFields = {

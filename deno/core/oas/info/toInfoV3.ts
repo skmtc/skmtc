@@ -16,7 +16,8 @@ export const toInfoV3 = ({ info, context }: ToInfoV3Args): OasInfo => {
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: info,
-    context
+    context,
+    parentType: 'info'
   })
 
   return new OasInfo({

@@ -3,17 +3,19 @@ import type { ParseContext } from '../../context/ParseContext.ts'
 type ToSpecificationExtensionsV3Args = {
   skipped: Record<string, unknown>
   parent: unknown
+  parentType: string
   context: ParseContext
 }
 
 export const toSpecificationExtensionsV3 = ({
   skipped: s,
   parent,
+  parentType,
   context
 }: ToSpecificationExtensionsV3Args): Record<string, unknown> | undefined => {
   const { skipped, extensionFields } = extractExtensions(s)
 
-  context.logSkippedFields(skipped, parent)
+  context.logSkippedFields({ skipped, parent, parentType })
 
   return extensionFields
 }

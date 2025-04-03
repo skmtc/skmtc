@@ -13,7 +13,6 @@ import { toBoolean } from '../boolean/toBoolean.ts'
 import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
-import { merge, openApiMergeRules } from 'allof-merge'
 
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
@@ -73,27 +72,21 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
       //   return toSchemaV3({ schema: members[0], context })
       // }
 
-      const merged = merge(schema, {
-        source: context.documentObject,
-        rules: openApiMergeRules('3.0.x'),
-        mergeRefSibling: true
-      }) as OpenAPIV3.SchemaObject
+      throw new Error('Unexpected "allOf" schema')
 
-      return toSchemaV3({ schema: merged, context })
+      // const merged = merge(schema, {
+      //   source: context.documentObject,
+      //   rules: openApiMergeRules('3.0.x'),
+      //   mergeRefSibling: true
+      // }) as OpenAPIV3.SchemaObject
+
+      // return toSchemaV3({ schema: merged, context })
     })
     .with({ oneOf: P.array() }, ({ oneOf: members, ...value }) => {
-      // if (members.length === 1) {
-      //   return toSchemaV3({ schema: members[0], context })
-      // }
-
-      return toUnion({ value, members, context })
+      return toUnion({ value, members, parentType: 'oneOf', context })
     })
     .with({ anyOf: P.array() }, ({ anyOf: members, ...value }) => {
-      // if (members.length === 1) {
-      //   return toSchemaV3({ schema: members[0], context })
-      // }
-
-      return context.trace('anyOf', () => toUnion({ value, members, context }))
+      return context.trace('anyOf', () => toUnion({ value, members, parentType: 'anyOf', context }))
     })
     .with({ type: 'object' }, value => toObject({ value, context }))
     .with({ type: 'array' }, value => toArray({ value, context }))
@@ -108,6 +101,12 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         typeof value.properties === 'object' &&
         value.properties
       ) {
+        context.logWarningNoKey({
+          message: 'Object has "properties" property, but is missing type="object" property',
+          parent: value,
+          type: 'MISSING_OBJECT_TYPE'
+        })
+
         return toObject({
           value: {
             ...value,
@@ -124,6 +123,12 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         typeof value.items === 'object' &&
         value.items
       ) {
+        context.logWarningNoKey({
+          message: 'Object has "items" property, but is missing type="array" property',
+          parent: value,
+          type: 'MISSING_ARRAY_TYPE'
+        })
+
         return toArray({
           value: {
             ...value,

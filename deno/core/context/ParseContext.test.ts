@@ -16,13 +16,24 @@ parseContext.parse()
 
 const endTime = performance.now()
 
-const warningsByProperty = parseContext.warnings.reduce<Record<string, number>>((acc, warning) => {
+const filteredWarnings = parseContext.warnings.filter(warning => {
+  return (
+    warning.type === 'UNEXPECTED_PROPERTY' &&
+    ![
+      'Unexpected property "items" in "schema:object"',
+      'Unexpected property "uniqueItems" in "schema:object"'
+    ].includes(warning.message)
+  )
+})
+
+const warningsByProperty = filteredWarnings.reduce<Record<string, number>>((acc, warning) => {
   const { stackTrail } = warning.location
 
   const property = stackTrail[stackTrail.length - 1]
 
-  console.log(JSON.stringify(stackTrail.toString(), null, 2))
-  // console.log(JSON.stringify(warning.parent, null, 2))
+  console.log(stackTrail.toString())
+  console.log(warning.message)
+  console.log(JSON.stringify(warning.parent, null, 2))
   console.log('')
 
   return {
@@ -33,8 +44,8 @@ const warningsByProperty = parseContext.warnings.reduce<Record<string, number>>(
 
 const items = Object.entries(warningsByProperty).sort((a, b) => a[1] - b[1])
 
-console.log(JSON.stringify(items, null, 2))
+console.log(JSON.stringify(Object.fromEntries(items), null, 2))
 
 console.log(`Time taken: ${endTime - startTime} milliseconds`)
 
-console.log(`Number of warnings: ${parseContext.warnings.length}`)
+console.log(`Number of warnings: ${filteredWarnings.length}`)

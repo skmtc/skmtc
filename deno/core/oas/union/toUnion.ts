@@ -10,16 +10,18 @@ import type { OasRef } from '../ref/Ref.ts'
 type ToUnionArgs = {
   value: OpenAPIV3.SchemaObject
   members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
+  parentType: 'anyOf' | 'oneOf'
   context: ParseContext
 }
 
-export const toUnion = ({ value, members, context }: ToUnionArgs): OasUnion => {
+export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): OasUnion => {
   const { discriminator, title, description, nullable, example, ...skipped } = value
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
     parent: value,
-    context
+    context,
+    parentType: `schema:${parentType}`
   })
 
   return new OasUnion({
