@@ -16,8 +16,6 @@ parseContext.parse()
 
 const endTime = performance.now()
 
-console.log(`Time taken: ${endTime - startTime} milliseconds`)
-
 const warningsByProperty = parseContext.warnings.reduce<Record<string, number>>((acc, warning) => {
   const { stackTrail } = warning.location
 
@@ -34,5 +32,7 @@ const warningsByProperty = parseContext.warnings.reduce<Record<string, number>>(
 const items = Object.entries(warningsByProperty).sort((a, b) => a[1] - b[1])
 
 console.log(JSON.stringify(items, null, 2))
+
+console.log(`Time taken: ${endTime - startTime} milliseconds`)
 
 console.log(`Number of warnings: ${parseContext.warnings.length}`)
