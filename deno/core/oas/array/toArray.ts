@@ -90,6 +90,11 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
     parentType: 'schema:array'
   })
 
+  // if (!items) {
+  //   console.log(JSON.stringify(value, null, 2))
+  //   throw new Error('No items')
+  // }
+
   return new OasArray({
     title,
     description,

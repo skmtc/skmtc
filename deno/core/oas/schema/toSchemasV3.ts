@@ -95,12 +95,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
     .with({ type: 'boolean' }, value => toBoolean({ value, context }))
     .with({ type: 'string' }, value => toString({ value, context }))
     .otherwise(value => {
-      if (
-        value &&
-        'properties' in value &&
-        typeof value.properties === 'object' &&
-        value.properties
-      ) {
+      if (possibleObject(value)) {
         context.logWarningNoKey({
           message: 'Object has "properties" property, but is missing type="object" property',
           parent: value,
@@ -116,13 +111,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         })
       }
 
-      if (
-        value &&
-        'items' in value &&
-        value.items &&
-        typeof value.items === 'object' &&
-        value.items
-      ) {
+      if (possibleArray(value)) {
         context.logWarningNoKey({
           message: 'Object has "items" property, but is missing type="array" property',
           parent: value,
@@ -139,8 +128,81 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         })
       }
 
+      if (possibleBoolean(value)) {
+        context.logWarningNoKey({
+          message:
+            'Object has a boolean "default" or "example" property, but is missing type="boolean" property',
+          parent: value,
+          type: 'MISSING_BOOLEAN_TYPE'
+        })
+
+        return toBoolean({
+          value: {
+            ...value,
+            type: 'boolean'
+          },
+          context
+        })
+      }
+
+      if (possibleString(value)) {
+        context.logWarningNoKey({
+          message:
+            'Object has a string "default" or "example" property, but is missing type="string" property',
+          parent: value,
+          type: 'MISSING_STRING_TYPE'
+        })
+
+        return toString({
+          value: {
+            ...value,
+            type: 'string'
+          },
+          context
+        })
+      }
+
       return toUnknown({ value, context })
     })
+}
+
+const possibleString = (value: unknown) => {
+  return (
+    value &&
+    typeof value === 'object' &&
+    (('default' in value && typeof value.default === 'string') ||
+      ('example' in value && typeof value.example === 'string'))
+  )
+}
+
+const possibleBoolean = (value: unknown) => {
+  return (
+    value &&
+    typeof value === 'object' &&
+    (('default' in value && typeof value.default === 'boolean') ||
+      ('example' in value && typeof value.example === 'boolean'))
+  )
+}
+
+const possibleArray = (value: unknown) => {
+  return (
+    value &&
+    typeof value === 'object' &&
+    'items' in value &&
+    value.items &&
+    typeof value.items === 'object' &&
+    value.items
+  )
+}
+
+const possibleObject = (value: unknown) => {
+  return (
+    value &&
+    typeof value === 'object' &&
+    'properties' in value &&
+    typeof value.properties === 'object' &&
+    value.properties
+  )
 }
 
 type ToOptionalSchemaV3Args = {

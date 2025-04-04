@@ -7,7 +7,7 @@ import * as v from 'valibot'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseExample } from '../_helpers/parseExample.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
-
+import { parseDefault } from '../_helpers/parseDefault.ts'
 type ToStringArgs = {
   value: OpenAPIV3.SchemaObject
   context: ParseContext
@@ -33,21 +33,30 @@ export const toString = ({ context, value }: ToStringArgs) => {
     context
   })
 
+  const { default: defaultValue, value: valueWithoutDefault } = parseDefault({
+    value: valueWithoutEnums,
+    nullable,
+    valibotSchema: v.string(),
+    context
+  })
+
   return toParsedString({
     context,
     nullable,
     example,
     enums,
-    value: valueWithoutEnums
+    defaultValue,
+    value: valueWithoutDefault
   })
 }
 
 type ToParsedStringArgs<Nullable extends boolean | undefined> = {
-  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums' | 'default'>
   context: ParseContext
   nullable: Nullable
   example: Nullable extends true ? string | null | undefined : string | undefined
   enums: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
+  defaultValue: Nullable extends true ? string | null | undefined : string | undefined
 }
 
 export const toParsedString = <Nullable extends boolean | undefined>({
@@ -55,6 +64,7 @@ export const toParsedString = <Nullable extends boolean | undefined>({
   nullable,
   example,
   enums,
+  defaultValue,
   value
 }: ToParsedStringArgs<Nullable>): OasString<Nullable> => {
   const {
@@ -65,7 +75,6 @@ export const toParsedString = <Nullable extends boolean | undefined>({
     maxLength,
     minLength,
     pattern,
-    default: defaultValue,
     ...skipped
   } = v.parse(oasStringData, value)
 

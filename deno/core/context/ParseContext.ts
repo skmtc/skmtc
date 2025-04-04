@@ -63,11 +63,7 @@ export class ParseContext {
   warnings: ParseWarning[]
   silent: boolean
   constructor({ documentObject, logger, stackTrail, silent = false }: ConstructorArgs) {
-    const merged = merge(documentObject, {
-      rules: openApiMergeRules('3.0.x'),
-      mergeRefSibling: true,
-      mergeCombinarySibling: true
-    }) as OpenAPIV3.Document
+    const merged = merge(documentObject) as OpenAPIV3.Document
 
     this.documentObject = merged
     this.logger = logger
