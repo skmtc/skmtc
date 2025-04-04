@@ -1,6 +1,6 @@
-import { assertEquals, assertThrows } from 'https://deno.land/std/testing/asserts.ts'
+import { assertEquals, assertThrows } from '@std/assert'
 import type { OpenAPIV3 } from 'openapi-types'
-import { allOfMerge } from './allOfMerge.ts'
+import { mergeAllOf } from './merge-all-of.ts'
 
 // Mock getRef function for testing
 const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
@@ -10,7 +10,7 @@ const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
   }
 }
 
-Deno.test('allOfMerge - basic property merging', () => {
+Deno.test('mergeAllOf - basic property merging', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -28,7 +28,7 @@ Deno.test('allOfMerge - basic property merging', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
       name: { type: 'string' },
@@ -36,10 +36,10 @@ Deno.test('allOfMerge - basic property merging', () => {
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - required fields combination', () => {
+Deno.test('mergeAllOf - required fields combination', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -59,7 +59,7 @@ Deno.test('allOfMerge - required fields combination', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     required: ['name', 'age'],
     properties: {
@@ -68,10 +68,30 @@ Deno.test('allOfMerge - required fields combination', () => {
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - nested allOf handling', () => {
+Deno.test('mergeAllOf - merge two objects', () => {
+  const schema: OpenAPIV3.SchemaObject = {
+    allOf: [
+      { type: 'object', properties: { name: { type: 'string' } } },
+      { type: 'object', properties: { email: { type: 'string' } } }
+    ]
+  }
+
+  const expected: OpenAPIV3.SchemaObject = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      email: { type: 'string' }
+    }
+  }
+
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+})
+
+// This can be handled when we go deeper into the schema later during parsing
+Deno.test('mergeAllOf - do not merge deeper allOf items', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -88,58 +108,153 @@ Deno.test('allOfMerge - nested allOf handling', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
       user: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          email: { type: 'string' }
-        }
+        allOf: [
+          { type: 'object', properties: { name: { type: 'string' } } },
+          { type: 'object', properties: { email: { type: 'string' } } }
+        ]
       }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - reference resolution', () => {
+Deno.test('mergeAllOf - reference resolution - leave single reference as is', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
         type: 'object',
         properties: {
-          ref: { $ref: '#/components/schemas/User' }
+          user: { $ref: '#/components/schemas/User' }
         }
       }
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
-      ref: {
+      user: { $ref: '#/components/schemas/User' }
+    }
+  }
+
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+})
+
+Deno.test('mergeAllOf - reference resolution - combine identical references', () => {
+  const schema: OpenAPIV3.SchemaObject = {
+    allOf: [
+      {
+        type: 'object',
+        properties: {
+          user: { $ref: '#/components/schemas/User' }
+        }
+      },
+      {
+        type: 'object',
+        properties: {
+          user: { $ref: '#/components/schemas/User' }
+        }
+      }
+    ]
+  }
+
+  const expected: OpenAPIV3.SchemaObject = {
+    type: 'object',
+    properties: {
+      user: { $ref: '#/components/schemas/User' }
+    }
+  }
+
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+})
+
+Deno.test('mergeAllOf - reference resolution - resolve reference when merging is needed', () => {
+  const schema: OpenAPIV3.SchemaObject = {
+    allOf: [
+      {
+        type: 'object',
+        properties: {
+          user: { $ref: '#/components/schemas/User' }
+        }
+      },
+      {
+        type: 'object',
+        properties: {
+          user: {
+            nullable: true
+          }
+        }
+      }
+    ]
+  }
+
+  const expected: OpenAPIV3.SchemaObject = {
+    type: 'object',
+    properties: {
+      user: {
         type: 'string',
-        description: 'Mock resolved reference'
+        description: 'Mock resolved reference',
+        nullable: true
       }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - empty allOf array', () => {
+Deno.test(
+  'mergeAllOf - reference resolution - resolve reference when merging is needed - reverse order',
+  () => {
+    const schema: OpenAPIV3.SchemaObject = {
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            user: {
+              nullable: true
+            }
+          }
+        },
+        {
+          type: 'object',
+          properties: {
+            user: { $ref: '#/components/schemas/User' }
+          }
+        }
+      ]
+    }
+
+    const expected: OpenAPIV3.SchemaObject = {
+      type: 'object',
+      properties: {
+        user: {
+          nullable: true,
+          type: 'string',
+          description: 'Mock resolved reference'
+        }
+      }
+    }
+
+    assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  }
+)
+
+Deno.test('mergeAllOf - empty allOf array', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: []
   }
 
-  const expected = {}
+  const expected: OpenAPIV3.SchemaObject = {}
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - array concatenation', () => {
+Deno.test('mergeAllOf - array concatenation', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -163,7 +278,7 @@ Deno.test('allOfMerge - array concatenation', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
       tags: {
@@ -173,10 +288,10 @@ Deno.test('allOfMerge - array concatenation', () => {
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - conflicting property descriptions', () => {
+Deno.test('mergeAllOf - conflicting property descriptions', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -194,32 +309,29 @@ Deno.test('allOfMerge - conflicting property descriptions', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
       name: { type: 'string', description: 'Second description' }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - mixed type schemas', () => {
+Deno.test('mergeAllOf - mixed type schemas', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [{ type: 'string' }, { type: 'object', properties: { name: { type: 'string' } } }]
   }
 
-  const expected = {
-    type: 'object',
-    properties: {
-      name: { type: 'string' }
-    }
-  }
-
-  assertEquals(allOfMerge(schema), expected)
+  assertThrows(
+    () => mergeAllOf(schema, mockGetRef),
+    Error,
+    `Cannot merge schemas: conflicting types 'string' and 'object'`
+  )
 })
 
-Deno.test('allOfMerge - nullable properties', () => {
+Deno.test('mergeAllOf - nullable properties', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -237,17 +349,17 @@ Deno.test('allOfMerge - nullable properties', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
       value: { type: 'string', nullable: false }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - enum values', () => {
+Deno.test('mergeAllOf - enum values', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -261,15 +373,15 @@ Deno.test('allOfMerge - enum values', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'string',
     enum: ['B']
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - additionalProperties with pattern', () => {
+Deno.test('mergeAllOf - additionalProperties with pattern', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -283,15 +395,15 @@ Deno.test('allOfMerge - additionalProperties with pattern', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     additionalProperties: { type: 'number' }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - min/max properties', () => {
+Deno.test('mergeAllOf - min/max properties', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -307,16 +419,16 @@ Deno.test('allOfMerge - min/max properties', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     minProperties: 3,
     maxProperties: 4
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - array constraints', () => {
+Deno.test('mergeAllOf - array constraints', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -336,18 +448,18 @@ Deno.test('allOfMerge - array constraints', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'array',
     items: { type: 'string' },
     minItems: 3,
     maxItems: 4,
-    uniqueItems: false
+    uniqueItems: true
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - number constraints', () => {
+Deno.test('mergeAllOf - number constraints', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -365,7 +477,7 @@ Deno.test('allOfMerge - number constraints', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'number',
     minimum: 5,
     maximum: 10,
@@ -373,10 +485,10 @@ Deno.test('allOfMerge - number constraints', () => {
     exclusiveMaximum: true
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - string constraints', () => {
+Deno.test('mergeAllOf - string constraints', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -394,17 +506,14 @@ Deno.test('allOfMerge - string constraints', () => {
     ]
   }
 
-  const expected = {
-    type: 'string',
-    minLength: 5,
-    maxLength: 10,
-    pattern: '^[A-Z].*[0-9]$'
-  }
-
-  assertEquals(allOfMerge(schema), expected)
+  assertThrows(
+    () => mergeAllOf(schema, mockGetRef),
+    Error,
+    `Cannot merge schemas: conflicting patterns '^[A-Z]' and '[0-9]$'`
+  )
 })
 
-Deno.test('allOfMerge - oneOf inside allOf', () => {
+Deno.test('mergeAllOf - oneOf inside allOf', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -426,19 +535,17 @@ Deno.test('allOfMerge - oneOf inside allOf', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
-      value: {
-        oneOf: [{ type: 'number' }]
-      }
+      value: { type: 'number' }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - anyOf inside allOf', () => {
+Deno.test('mergeAllOf - anyOf inside allOf', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -460,19 +567,17 @@ Deno.test('allOfMerge - anyOf inside allOf', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
-      value: {
-        anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }]
-      }
+      value: { type: 'number' }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - not keyword', () => {
+Deno.test('mergeAllOf - not keyword', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -494,20 +599,14 @@ Deno.test('allOfMerge - not keyword', () => {
     ]
   }
 
-  const expected = {
-    type: 'object',
-    not: {
-      anyOf: [
-        { properties: { forbidden: { type: 'string' } } },
-        { properties: { restricted: { type: 'string' } } }
-      ]
-    }
-  }
-
-  assertEquals(allOfMerge(schema), expected)
+  assertThrows(
+    () => mergeAllOf(schema, mockGetRef),
+    Error,
+    'Merging schemas with "not" keyword is not supported'
+  )
 })
 
-Deno.test('allOfMerge - readOnly and writeOnly conflict throws error', () => {
+Deno.test('mergeAllOf - readOnly and writeOnly conflict throws error', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -527,13 +626,13 @@ Deno.test('allOfMerge - readOnly and writeOnly conflict throws error', () => {
 
   // Should throw an error about conflicting readOnly/writeOnly flags
   assertThrows(
-    () => allOfMerge(schema),
+    () => mergeAllOf(schema, mockGetRef),
     Error,
-    "Cannot merge schemas: property 'value' cannot be both readOnly and writeOnly"
+    'Cannot merge schemas: property cannot be both readOnly and writeOnly'
   )
 })
 
-Deno.test('allOfMerge - format conflict throws error', () => {
+Deno.test('mergeAllOf - format conflict throws error', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -549,13 +648,13 @@ Deno.test('allOfMerge - format conflict throws error', () => {
 
   // Should throw an error about conflicting formats
   assertThrows(
-    () => allOfMerge(schema),
+    () => mergeAllOf(schema, mockGetRef),
     Error,
     "Cannot merge schemas: conflicting formats 'email' and 'uri'"
   )
 })
 
-Deno.test('allOfMerge - empty enum intersection throws error', () => {
+Deno.test('mergeAllOf - empty enum intersection throws error', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -571,13 +670,13 @@ Deno.test('allOfMerge - empty enum intersection throws error', () => {
 
   // Should throw an error about empty enum intersection
   assertThrows(
-    () => allOfMerge(schema),
+    () => mergeAllOf(schema, mockGetRef),
     Error,
     'Cannot merge schemas: enum values have no intersection'
   )
 })
 
-Deno.test('allOfMerge - incompatible number constraints throws error', () => {
+Deno.test('mergeAllOf - incompatible number constraints throws error', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -595,13 +694,13 @@ Deno.test('allOfMerge - incompatible number constraints throws error', () => {
 
   // Should throw an error about incompatible number ranges
   assertThrows(
-    () => allOfMerge(schema),
+    () => mergeAllOf(schema, mockGetRef),
     Error,
     'Cannot merge schemas: incompatible number ranges [10,20] and [30,40]'
   )
 })
 
-Deno.test('allOfMerge - array item type conflict throws error', () => {
+Deno.test('mergeAllOf - array item type conflict throws error', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -617,13 +716,13 @@ Deno.test('allOfMerge - array item type conflict throws error', () => {
 
   // Should throw an error about conflicting array item types
   assertThrows(
-    () => allOfMerge(schema),
+    () => mergeAllOf(schema, mockGetRef),
     Error,
     "Cannot merge schemas: array items have conflicting types 'string' and 'number'"
   )
 })
 
-Deno.test('allOfMerge - multipleOf', () => {
+Deno.test('mergeAllOf - multipleOf', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -637,15 +736,15 @@ Deno.test('allOfMerge - multipleOf', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'number',
     multipleOf: 6
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - default values', () => {
+Deno.test('mergeAllOf - default values', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -663,17 +762,17 @@ Deno.test('allOfMerge - default values', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
       value: { type: 'string', default: 'second' }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - example values', () => {
+Deno.test('mergeAllOf - example values', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -691,17 +790,17 @@ Deno.test('allOfMerge - example values', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
       value: { type: 'string', example: 'second' }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - deprecated properties', () => {
+Deno.test('mergeAllOf - deprecated properties', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -719,17 +818,17 @@ Deno.test('allOfMerge - deprecated properties', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
       value: { type: 'string', deprecated: true }
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - externalDocs', () => {
+Deno.test('mergeAllOf - externalDocs', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -749,7 +848,7 @@ Deno.test('allOfMerge - externalDocs', () => {
     ]
   }
 
-  const expected = {
+  const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     externalDocs: {
       url: 'https://example.com/second',
@@ -757,10 +856,10 @@ Deno.test('allOfMerge - externalDocs', () => {
     }
   }
 
-  assertEquals(allOfMerge(schema), expected)
+  assertEquals(mergeAllOf(schema, mockGetRef), expected)
 })
 
-Deno.test('allOfMerge - type conflict throws error', () => {
+Deno.test('mergeAllOf - type conflict throws error', () => {
   const schema: OpenAPIV3.SchemaObject = {
     allOf: [
       {
@@ -780,8 +879,8 @@ Deno.test('allOfMerge - type conflict throws error', () => {
 
   // Should throw an error about conflicting types
   assertThrows(
-    () => allOfMerge(schema),
+    () => mergeAllOf(schema, mockGetRef),
     Error,
-    "Cannot merge schemas: property 'value' has conflicting types 'string' and 'number'"
+    "Cannot merge schemas: conflicting types 'string' and 'number'"
   )
 })
