@@ -71,9 +71,15 @@ const mergeSchemasWithAnyOfs = (
   const firstAnyOf = Array.isArray(first.anyOf) ? first.anyOf : [first]
   const secondAnyOf = Array.isArray(second.anyOf) ? second.anyOf : [second]
 
-  const mergedAnyOf = crossProduct(firstAnyOf, secondAnyOf).map(([firstItem, secondItem]) => {
-    return mergeSchemasOrRefs(firstItem, secondItem, getRef)
-  })
+  const mergedAnyOf = crossProduct(firstAnyOf, secondAnyOf)
+    .map(([firstItem, secondItem]) => {
+      try {
+        return mergeSchemasOrRefs(firstItem, secondItem, getRef)
+      } catch (_error) {
+        return undefined
+      }
+    })
+    .filter(item => item !== undefined)
 
   return {
     anyOf: mergedAnyOf
@@ -108,9 +114,15 @@ const mergeSchemasWithOneOfs = (
   const firstOneOf = Array.isArray(first.oneOf) ? first.oneOf : [first]
   const secondOneOf = Array.isArray(second.oneOf) ? second.oneOf : [second]
 
-  const mergedOneOf = crossProduct(firstOneOf, secondOneOf).map(([firstItem, secondItem]) => {
-    return mergeSchemasOrRefs(firstItem, secondItem, getRef)
-  })
+  const mergedOneOf = crossProduct(firstOneOf, secondOneOf)
+    .map(([firstItem, secondItem]) => {
+      try {
+        return mergeSchemasOrRefs(firstItem, secondItem, getRef)
+      } catch (_error) {
+        return undefined
+      }
+    })
+    .filter(item => item !== undefined)
 
   return {
     oneOf: mergedOneOf
@@ -200,16 +212,14 @@ const mergeWithRef = (
   }
 
   if (isRef(first) && !isRef(second)) {
-    console.log(`MERGE ${JSON.stringify(first.$ref)} with ${JSON.stringify(second)}`)
     const merged = isEmpty(second) ? first : mergeSchemas(getRef(first), second, getRef)
-    console.log(`MERGED ${JSON.stringify(merged)}`)
+
     return merged
   }
 
   if (!isRef(first) && isRef(second)) {
-    console.log(`MERGE ${JSON.stringify(second.$ref)} with ${JSON.stringify(first)}`)
     const merged = isEmpty(first) ? second : mergeSchemas(first, getRef(second), getRef)
-    console.log(`MERGED ${JSON.stringify(merged)}`)
+
     return merged
   }
 

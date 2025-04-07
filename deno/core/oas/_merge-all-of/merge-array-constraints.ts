@@ -11,17 +11,11 @@ export function mergeArrayConstraints(
     throw new Error('Cannot merge array constraints: no items found')
   }
 
-  console.log(
-    `MERGING ARRAY ${JSON.stringify(first, null, 2)} with ${JSON.stringify(second, null, 2)}`
-  )
-
   const result: ArraySchemaObject = {
     ...genericMerge(first, second, getRef, v.array(v.any())),
     type: 'array',
     items: mergeItems(first, second, getRef)
   }
-
-  console.log(`MERGED ARRAY ${JSON.stringify(result, null, 2)}`)
 
   // Merge minItems
   if (first.minItems !== undefined || second.minItems !== undefined) {

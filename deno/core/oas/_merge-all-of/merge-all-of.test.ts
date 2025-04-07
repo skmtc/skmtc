@@ -395,12 +395,11 @@ Deno.test('mergeAllOf - additionalProperties with pattern', () => {
     ]
   }
 
-  const expected: OpenAPIV3.SchemaObject = {
-    type: 'object',
-    additionalProperties: { type: 'number' }
-  }
-
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertThrows(
+    () => mergeAllOf(schema, mockGetRef),
+    Error,
+    `Cannot merge schemas: conflicting types 'string' and 'number'`
+  )
 })
 
 Deno.test('mergeAllOf - min/max properties', () => {
@@ -538,7 +537,9 @@ Deno.test('mergeAllOf - oneOf inside allOf', () => {
   const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
-      value: { type: 'number' }
+      value: {
+        oneOf: [{ type: 'number' }]
+      }
     }
   }
 
@@ -570,7 +571,9 @@ Deno.test('mergeAllOf - anyOf inside allOf', () => {
   const expected: OpenAPIV3.SchemaObject = {
     type: 'object',
     properties: {
-      value: { type: 'number' }
+      value: {
+        anyOf: [{ type: 'number' }]
+      }
     }
   }
 

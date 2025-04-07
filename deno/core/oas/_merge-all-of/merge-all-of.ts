@@ -12,8 +12,6 @@ export const mergeAllOf = (schema: SchemaObject, getRef: GetRefFn): SchemaOrRefe
   const result = dereffed.reduce<SchemaOrReference>((acc, decomposed) => {
     const merged = mergeSchemasOrRefs(acc, decomposed, getRef)
 
-    console.log(`REDUCED ${JSON.stringify(merged, null, 2)}`)
-
     return merged
   }, {} as SchemaObject)
 
