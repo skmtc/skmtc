@@ -1,51 +1,54 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import { mergeEnumValues } from './merge-enum-values.ts'
-
+import type { SchemaObject } from './types.ts'
+import { genericMerge } from './generic-merge.ts'
+import type { GetRefFn } from './types.ts'
+import * as v from 'valibot'
 export function mergeNumberConstraints(
-  a: OpenAPIV3.SchemaObject,
-  b: OpenAPIV3.SchemaObject
+  first: OpenAPIV3.SchemaObject,
+  second: OpenAPIV3.SchemaObject,
+  getRef: GetRefFn
 ): OpenAPIV3.SchemaObject {
   // If either schema is not a number, return the one that is
-  if (a.type !== 'number') return { ...b }
-  if (b.type !== 'number') return { ...a }
+  if (first.type !== 'number') return { ...second }
+  if (second.type !== 'number') return { ...first }
 
   // First merge enum values if present
-  const result = mergeEnumValues(a, b)
+  const result: SchemaObject = genericMerge(first, second, getRef, v.number())
 
   // Then merge other constraints
   result.type = 'number'
 
   // Merge minimum and exclusiveMinimum
-  if (a.minimum !== undefined || b.minimum !== undefined) {
-    const minA = a.minimum ?? -Infinity
-    const minB = b.minimum ?? -Infinity
+  if (first.minimum !== undefined || second.minimum !== undefined) {
+    const minA = first.minimum ?? -Infinity
+    const minB = second.minimum ?? -Infinity
     result.minimum = Math.max(minA, minB)
 
     // If either minimum is exclusive, the result is exclusive
-    if (a.exclusiveMinimum || b.exclusiveMinimum) {
+    if (first.exclusiveMinimum || second.exclusiveMinimum) {
       result.exclusiveMinimum = true
     }
   }
 
   // Merge maximum and exclusiveMaximum
-  if (a.maximum !== undefined || b.maximum !== undefined) {
-    const maxA = a.maximum ?? Infinity
-    const maxB = b.maximum ?? Infinity
+  if (first.maximum !== undefined || second.maximum !== undefined) {
+    const maxA = first.maximum ?? Infinity
+    const maxB = second.maximum ?? Infinity
     result.maximum = Math.min(maxA, maxB)
 
     // If either maximum is exclusive, the result is exclusive
-    if (a.exclusiveMaximum || b.exclusiveMaximum) {
+    if (first.exclusiveMaximum || second.exclusiveMaximum) {
       result.exclusiveMaximum = true
     }
   }
 
   // Merge multipleOf
-  if (a.multipleOf !== undefined && b.multipleOf !== undefined) {
-    result.multipleOf = a.multipleOf * b.multipleOf
-  } else if (a.multipleOf !== undefined) {
-    result.multipleOf = a.multipleOf
-  } else if (b.multipleOf !== undefined) {
-    result.multipleOf = b.multipleOf
+  if (first.multipleOf !== undefined && second.multipleOf !== undefined) {
+    result.multipleOf = first.multipleOf * second.multipleOf
+  } else if (first.multipleOf !== undefined) {
+    result.multipleOf = first.multipleOf
+  } else if (second.multipleOf !== undefined) {
+    result.multipleOf = second.multipleOf
   }
 
   return result

@@ -4,14 +4,14 @@ import { checkFormatConflicts } from './check-format-conflicts.ts'
 import { checkEnumConflicts } from './check-enum-conflicts.ts'
 import { checkNumberConstraintsConflicts } from './check-number-constraints-conflicts.ts'
 import { checkArrayItemTypeConflicts } from './check-array-item-type-conflicts.ts'
-import { mergeNumberConstraints } from './merge-number-constraints.ts'
-import { mergeStringConstraints } from './merge-string-constraints.ts'
-import { mergeArrayConstraints } from './merge-array-constraints.ts'
-import { mergeObjectConstraints } from './merge-object-constraints.ts'
+// import { mergeNumberConstraints } from './merge-number-constraints.ts'
+// import { mergeStringConstraints } from './merge-string-constraints.ts'
+// import { mergeArrayConstraints } from './merge-array-constraints.ts'
+// import { mergeObjectConstraints } from './merge-object-constraints.ts'
 import { mergeEnumValues } from './merge-enum-values.ts'
 import { mergeMetadata } from './merge-metadata.ts'
-import { mergeIntegerConstraints } from './merge-integer-constraints.ts'
-import { mergeBooleanConstraints } from './merge-boolean-constraints.ts'
+// import { mergeIntegerConstraints } from './merge-integer-constraints.ts'
+// import { mergeBooleanConstraints } from './merge-boolean-constraints.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { GetRefFn } from './types.ts'
 type NonArraySchemaObject = OpenAPIV3.NonArraySchemaObject
@@ -23,7 +23,7 @@ export const mergeTwoSchemas = (
   second: SchemaObject,
   getRef: GetRefFn
 ): SchemaObject => {
-  throw new Error('Start here')
+  // throw new Error('Start here')
   // CONTINUE HERE NEXT
   // 1. Is of the schemas a oneOf?
   // -> try to merge each oneOf member with the other schema
@@ -53,36 +53,36 @@ export const mergeTwoSchemas = (
   Object.assign(result, mergeMetadata(first, second))
 
   // 5. Handle type-specific merging based on the type of the second schema
-  if (second.type) {
-    if (second.type === 'array') {
-      Object.assign(result, mergeArrayConstraints(first, second))
-    } else {
-      switch (second.type) {
-        case 'integer':
-          Object.assign(result, mergeIntegerConstraints(first, second))
-          break
-        case 'number':
-          Object.assign(result, mergeNumberConstraints(first, second))
-          break
-        case 'string':
-          Object.assign(result, mergeStringConstraints(first, second))
-          break
-        case 'object':
-          Object.assign(result, mergeObjectConstraints(first, second, getRef))
-          break
-        case 'boolean':
-          Object.assign(result, mergeBooleanConstraints(first, second))
-          break
-      }
-    }
-  } else if (first.type) {
-    // If second schema has no type, use first schema's type
-    if (first.type === 'array') {
-      Object.assign(result, mergeArrayConstraints(first, second))
-    } else {
-      ;(result as NonArraySchemaObject).type = first.type
-    }
-  }
+  // if (second.type) {
+  //   if (second.type === 'array') {
+  //     Object.assign(result, mergeArrayConstraints(first, second, getRef))
+  //   } else {
+  //     switch (second.type) {
+  //       case 'integer':
+  //         Object.assign(result, mergeIntegerConstraints(first, second))
+  //         break
+  //       case 'number':
+  //         Object.assign(result, mergeNumberConstraints(first, second))
+  //         break
+  //       case 'string':
+  //         Object.assign(result, mergeStringConstraints(first, second))
+  //         break
+  //       case 'object':
+  //         Object.assign(result, mergeObjectConstraints(first, second, getRef))
+  //         break
+  //       case 'boolean':
+  //         Object.assign(result, mergeBooleanConstraints(first, second))
+  //         break
+  //     }
+  //   }
+  // } else if (first.type) {
+  //   // If second schema has no type, use first schema's type
+  //   if (first.type === 'array') {
+  //     Object.assign(result, mergeArrayConstraints(first, second, getRef))
+  //   } else {
+  //     ;(result as NonArraySchemaObject).type = first.type
+  //   }
+  // }
 
   // 6. Handle enum values
   if (first.enum || second.enum) {

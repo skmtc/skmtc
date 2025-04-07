@@ -245,8 +245,11 @@ Deno.test('mergeObjectConstraints - takes enum from first schema when second has
     type: 'object',
     enum: [{ foo: 'bar' }, { baz: 'qux' }]
   }
+
   const b: OpenAPIV3.SchemaObject = { type: 'object' }
+
   const result = mergeObjectConstraints(a, b, mockGetRef)
+
   assertEquals(result, {
     type: 'object',
     enum: [{ foo: 'bar' }, { baz: 'qux' }]

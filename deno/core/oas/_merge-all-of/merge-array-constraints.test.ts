@@ -1,21 +1,24 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { mergeArrayConstraints } from './merge-array-constraints.ts'
-import type { OpenAPIV3 } from 'openapi-types'
+import type { GetRefFn, ArraySchemaObject } from './types.ts'
 
 Deno.test('mergeArrayConstraints - merges length constraints', () => {
-  const a: OpenAPIV3.SchemaObject = {
+  const getRef: GetRefFn = () => ({})
+
+  const a: ArraySchemaObject = {
     type: 'array',
     minItems: 0,
     maxItems: 10,
     items: { type: 'string' }
   }
-  const b: OpenAPIV3.SchemaObject = {
+  const b: ArraySchemaObject = {
     type: 'array',
     minItems: 5,
     maxItems: 15,
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b)
+  const result = mergeArrayConstraints(a, b, getRef)
+
   assertEquals(result, {
     type: 'array',
     minItems: 5,
@@ -25,17 +28,19 @@ Deno.test('mergeArrayConstraints - merges length constraints', () => {
 })
 
 Deno.test('mergeArrayConstraints - handles missing constraints', () => {
-  const a: OpenAPIV3.SchemaObject = {
+  const getRef: GetRefFn = () => ({})
+
+  const a: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' }
   }
-  const b: OpenAPIV3.SchemaObject = {
+  const b: ArraySchemaObject = {
     type: 'array',
     minItems: 5,
     maxItems: 15,
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b)
+  const result = mergeArrayConstraints(a, b, getRef)
 
   assertEquals(result, {
     type: 'array',
@@ -46,16 +51,18 @@ Deno.test('mergeArrayConstraints - handles missing constraints', () => {
 })
 
 Deno.test('mergeArrayConstraints - handles single uniqueItems', () => {
-  const a: OpenAPIV3.SchemaObject = {
+  const getRef: GetRefFn = () => ({})
+
+  const a: ArraySchemaObject = {
     type: 'array',
     uniqueItems: true,
     items: { type: 'string' }
   }
-  const b: OpenAPIV3.SchemaObject = {
+  const b: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b)
+  const result = mergeArrayConstraints(a, b, getRef)
   assertEquals(result, {
     type: 'array',
     uniqueItems: true,
@@ -64,17 +71,19 @@ Deno.test('mergeArrayConstraints - handles single uniqueItems', () => {
 })
 
 Deno.test('mergeArrayConstraints - handles conflicting uniqueItems', () => {
-  const a: OpenAPIV3.SchemaObject = {
+  const getRef: GetRefFn = () => ({})
+
+  const a: ArraySchemaObject = {
     type: 'array',
     uniqueItems: true,
     items: { type: 'string' }
   }
-  const b: OpenAPIV3.SchemaObject = {
+  const b: ArraySchemaObject = {
     type: 'array',
     uniqueItems: false,
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b)
+  const result = mergeArrayConstraints(a, b, getRef)
   assertEquals(result, {
     type: 'array',
     uniqueItems: true,
@@ -83,7 +92,9 @@ Deno.test('mergeArrayConstraints - handles conflicting uniqueItems', () => {
 })
 
 Deno.test('mergeArrayConstraints - merges enum values when both schemas have enums', () => {
-  const a: OpenAPIV3.SchemaObject = {
+  const getRef: GetRefFn = () => ({})
+
+  const a: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' },
     enum: [
@@ -91,7 +102,7 @@ Deno.test('mergeArrayConstraints - merges enum values when both schemas have enu
       ['c', 'd']
     ]
   }
-  const b: OpenAPIV3.SchemaObject = {
+  const b: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' },
     enum: [
@@ -99,7 +110,7 @@ Deno.test('mergeArrayConstraints - merges enum values when both schemas have enu
       ['e', 'f']
     ]
   }
-  const result = mergeArrayConstraints(a, b)
+  const result = mergeArrayConstraints(a, b, getRef)
   assertEquals(result, {
     type: 'array',
     items: { type: 'string' },
@@ -108,11 +119,13 @@ Deno.test('mergeArrayConstraints - merges enum values when both schemas have enu
 })
 
 Deno.test('mergeArrayConstraints - takes enum from second schema when first has no enum', () => {
-  const a: OpenAPIV3.SchemaObject = {
+  const getRef: GetRefFn = () => ({})
+
+  const a: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' }
   }
-  const b: OpenAPIV3.SchemaObject = {
+  const b: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' },
     enum: [
@@ -120,7 +133,7 @@ Deno.test('mergeArrayConstraints - takes enum from second schema when first has 
       ['c', 'd']
     ]
   }
-  const result = mergeArrayConstraints(a, b)
+  const result = mergeArrayConstraints(a, b, getRef)
   assertEquals(result, {
     type: 'array',
     items: { type: 'string' },
@@ -132,7 +145,9 @@ Deno.test('mergeArrayConstraints - takes enum from second schema when first has 
 })
 
 Deno.test('mergeArrayConstraints - takes enum from first schema when second has no enum', () => {
-  const a: OpenAPIV3.SchemaObject = {
+  const getRef: GetRefFn = () => ({})
+
+  const a: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' },
     enum: [
@@ -140,11 +155,11 @@ Deno.test('mergeArrayConstraints - takes enum from first schema when second has 
       ['c', 'd']
     ]
   }
-  const b: OpenAPIV3.SchemaObject = {
+  const b: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b)
+  const result = mergeArrayConstraints(a, b, getRef)
   assertEquals(result, {
     type: 'array',
     items: { type: 'string' },
@@ -156,7 +171,9 @@ Deno.test('mergeArrayConstraints - takes enum from first schema when second has 
 })
 
 Deno.test('mergeArrayConstraints - throws when enum intersection is empty', () => {
-  const a: OpenAPIV3.SchemaObject = {
+  const getRef: GetRefFn = () => ({})
+
+  const a: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' },
     enum: [
@@ -164,7 +181,7 @@ Deno.test('mergeArrayConstraints - throws when enum intersection is empty', () =
       ['c', 'd']
     ]
   }
-  const b: OpenAPIV3.SchemaObject = {
+  const b: ArraySchemaObject = {
     type: 'array',
     items: { type: 'string' },
     enum: [
@@ -172,5 +189,9 @@ Deno.test('mergeArrayConstraints - throws when enum intersection is empty', () =
       ['g', 'h']
     ]
   }
-  assertThrows(() => mergeArrayConstraints(a, b), Error, 'Merged schema has empty enum array')
+  assertThrows(
+    () => mergeArrayConstraints(a, b, getRef),
+    Error,
+    'Merged schema has empty enum array'
+  )
 })

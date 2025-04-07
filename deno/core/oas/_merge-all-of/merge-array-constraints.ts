@@ -1,55 +1,66 @@
-import type { OpenAPIV3 } from 'openapi-types'
-import { mergeEnumValues } from './merge-enum-values.ts'
-
+import { mergeSchemasOrRefs } from './merge.ts'
+import type { ArraySchemaObject, GetRefFn, SchemaObject, SchemaOrReference } from './types.ts'
+import { genericMerge } from './generic-merge.ts'
+import * as v from 'valibot'
 export function mergeArrayConstraints(
-  a: OpenAPIV3.SchemaObject,
-  b: OpenAPIV3.SchemaObject
-): OpenAPIV3.ArraySchemaObject {
-  // If neither schema has a type, return empty object with required array properties
-  if (!a.type && !b.type) {
-    return { type: 'array', items: { type: 'string' } }
+  first: ArraySchemaObject | SchemaObject,
+  second: ArraySchemaObject | SchemaObject,
+  getRef: GetRefFn
+): ArraySchemaObject {
+  if (!('items' in first) && !('items' in second)) {
+    throw new Error('Cannot merge array constraints: no items found')
   }
 
-  // Check for type conflicts
-  if (a.type && b.type && a.type !== b.type) {
-    throw new Error(`Cannot merge schemas: conflicting types '${a.type}' and '${b.type}'`)
+  console.log(
+    `MERGING ARRAY ${JSON.stringify(first, null, 2)} with ${JSON.stringify(second, null, 2)}`
+  )
+
+  const result: ArraySchemaObject = {
+    ...genericMerge(first, second, getRef, v.array(v.any())),
+    type: 'array',
+    items: mergeItems(first, second, getRef)
   }
 
-  // If only one schema has a type and it's not array, return empty array schema
-  if ((a.type && a.type !== 'array') || (b.type && b.type !== 'array')) {
-    return { type: 'array', items: { type: 'string' } }
-  }
-
-  // First merge enum values if present
-  const baseResult = mergeEnumValues(a, b)
-  const result = baseResult as OpenAPIV3.ArraySchemaObject
-
-  // Then merge other constraints
-  result.type = 'array'
-
-  // Merge items
-  const aArray = a as OpenAPIV3.ArraySchemaObject
-  const bArray = b as OpenAPIV3.ArraySchemaObject
-  result.items = aArray.items || bArray.items || { type: 'string' }
+  console.log(`MERGED ARRAY ${JSON.stringify(result, null, 2)}`)
 
   // Merge minItems
-  if (aArray.minItems !== undefined || bArray.minItems !== undefined) {
-    const minA = aArray.minItems ?? 0
-    const minB = bArray.minItems ?? 0
+  if (first.minItems !== undefined || second.minItems !== undefined) {
+    const minA = first.minItems ?? 0
+    const minB = second.minItems ?? 0
     result.minItems = Math.max(minA, minB)
   }
 
   // Merge maxItems
-  if (aArray.maxItems !== undefined || bArray.maxItems !== undefined) {
-    const maxA = aArray.maxItems ?? Infinity
-    const maxB = bArray.maxItems ?? Infinity
+  if (first.maxItems !== undefined || second.maxItems !== undefined) {
+    const maxA = first.maxItems ?? Infinity
+    const maxB = second.maxItems ?? Infinity
     result.maxItems = Math.min(maxA, maxB)
   }
 
   // Merge uniqueItems
-  if (aArray.uniqueItems || bArray.uniqueItems) {
+  if (first.uniqueItems || second.uniqueItems) {
     result.uniqueItems = true
   }
 
   return result
+}
+
+const mergeItems = (
+  first: ArraySchemaObject | SchemaObject,
+  second: ArraySchemaObject | SchemaObject,
+  getRef: GetRefFn
+): SchemaOrReference => {
+  if ('items' in first && 'items' in second && first.items && second.items) {
+    return mergeSchemasOrRefs(first.items, second.items, getRef)
+  }
+
+  if ('items' in first && first.items) {
+    return first.items
+  }
+
+  if ('items' in second && second.items) {
+    return second.items
+  }
+
+  throw new Error('Cannot merge array constraints: no items found')
 }

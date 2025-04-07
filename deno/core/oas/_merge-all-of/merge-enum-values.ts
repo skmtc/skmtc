@@ -1,4 +1,5 @@
-import type { OpenAPIV3 } from 'openapi-types'
+import type { SchemaObject } from './types.ts'
+import * as v from 'valibot'
 
 function isEqual(a: unknown, b: unknown): boolean {
   if (Array.isArray(a) && Array.isArray(b)) {
@@ -18,16 +19,35 @@ function isEqual(a: unknown, b: unknown): boolean {
   return a === b
 }
 
-export function mergeEnumValues(
-  a: OpenAPIV3.SchemaObject,
-  b: OpenAPIV3.SchemaObject
-): OpenAPIV3.SchemaObject {
-  // If either schema doesn't have an enum, return the one that does
-  if (!a.enum) return { ...b }
-  if (!b.enum) return { ...a }
+const containsEnum = (schema: SchemaObject): boolean => {
+  return Array.isArray(schema.enum)
+}
+
+export function mergeEnumValues<T>(
+  first: SchemaObject,
+  second: SchemaObject,
+  typeCheck?: v.GenericSchema<T>
+): Pick<SchemaObject, 'enum'> {
+  if (!containsEnum(first) && !containsEnum(second)) {
+    return {}
+  }
+
+  if (!containsEnum(first) && containsEnum(second)) {
+    return {
+      enum: second.enum
+    }
+  }
+
+  if (containsEnum(first) && !containsEnum(second)) {
+    return {
+      enum: first.enum
+    }
+  }
 
   // Find intersection of enum values
-  const intersection = a.enum.filter(value => b.enum!.some(bValue => isEqual(value, bValue)))
+  const intersection = first
+    .enum!.filter(value => second.enum!.some(bValue => isEqual(value, bValue)))
+    .map(value => (typeCheck ? v.parse(typeCheck, value) : value))
 
   // If intersection is empty, throw error
   if (intersection.length === 0) {
@@ -36,8 +56,6 @@ export function mergeEnumValues(
 
   // Return merged schema with intersection of enum values
   return {
-    ...a,
-    ...b,
     enum: intersection
   }
 }

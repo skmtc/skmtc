@@ -82,7 +82,7 @@ Deno.test('mergeAllOf - complex oneOf', () => {
     oneOf: [
       {
         type: 'object',
-        required: ['kind', 'content'],
+        required: ['content', 'kind'],
         properties: {
           kind: {
             type: 'string',
@@ -92,14 +92,13 @@ Deno.test('mergeAllOf - complex oneOf', () => {
             type: 'string'
           },
           encoding: {
-            type: 'string',
-            enum: ['utf-8', 'base64']
+            $ref: '#/components/schemas/Encoding'
           }
         }
       },
       {
         type: 'object',
-        required: ['kind', 'gitSha1'],
+        required: ['gitSha1', 'kind'],
         properties: {
           kind: {
             type: 'string',
@@ -126,7 +125,6 @@ Deno.test('mergeAllOf - complex oneOf', () => {
 
   const result = mergeAllOf(input, getRef)
 
-  console.log('RESULT', JSON.stringify(result, null, 2))
   assertEquals(result, expected)
 })
 
@@ -251,8 +249,7 @@ const stepFive = {
           type: 'string'
         },
         encoding: {
-          type: 'string',
-          enum: ['utf-8', 'base64']
+          $ref: '#/components/schemas/Encoding'
         }
       }
     },

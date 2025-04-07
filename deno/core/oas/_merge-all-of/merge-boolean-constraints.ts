@@ -1,30 +1,26 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import { mergeEnumValues } from './merge-enum-values.ts'
-
+import { genericMerge } from './generic-merge.ts'
+import type { GetRefFn } from './types.ts'
+import * as v from 'valibot'
 export function mergeBooleanConstraints(
-  a: OpenAPIV3.SchemaObject,
-  b: OpenAPIV3.SchemaObject
+  first: OpenAPIV3.SchemaObject,
+  second: OpenAPIV3.SchemaObject,
+  getRef: GetRefFn
 ): OpenAPIV3.SchemaObject {
   // If neither schema has a type, return empty object
-  if (!a.type && !b.type) {
+  if (!first.type && !second.type) {
     return {}
   }
 
   // Check for type conflicts
-  if (a.type && b.type && a.type !== b.type) {
-    throw new Error(`Cannot merge schemas: conflicting types '${a.type}' and '${b.type}'`)
+  if (first.type && second.type && first.type !== second.type) {
+    throw new Error(`Cannot merge schemas: conflicting types '${first.type}' and '${second.type}'`)
   }
 
   // If only one schema has a type and it's not boolean, return empty object
-  if ((a.type && a.type !== 'boolean') || (b.type && b.type !== 'boolean')) {
+  if ((first.type && first.type !== 'boolean') || (second.type && second.type !== 'boolean')) {
     return {}
   }
 
-  // First merge enum values if present
-  const result = mergeEnumValues(a, b)
-
-  // Then set type
-  result.type = 'boolean'
-
-  return result
+  return genericMerge(first, second, getRef, v.boolean())
 }
