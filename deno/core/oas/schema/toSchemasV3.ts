@@ -78,6 +78,8 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         })
 
         if ('allOf' in merged) {
+          console.log(JSON.stringify(merged, null, 2))
+
           throw new Error('Unexpected "allOf" in schema')
         }
 
