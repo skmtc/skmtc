@@ -2,11 +2,14 @@ import { mergeSchemasOrRefs } from './merge.ts'
 import type { ArraySchemaObject, GetRefFn, SchemaObject, SchemaOrReference } from './types.ts'
 import { genericMerge } from './generic-merge.ts'
 import * as v from 'valibot'
+import { checkTypeConflicts } from './check-type-conflicts.ts'
 export function mergeArrayConstraints(
   first: ArraySchemaObject | SchemaObject,
   second: ArraySchemaObject | SchemaObject,
   getRef: GetRefFn
 ): ArraySchemaObject {
+  checkTypeConflicts(first, second)
+
   if (!('items' in first) && !('items' in second)) {
     throw new Error('Cannot merge array constraints: no items found')
   }

@@ -3,24 +3,17 @@ import type { SchemaObject } from './types.ts'
 import { genericMerge } from './generic-merge.ts'
 import type { GetRefFn } from './types.ts'
 import * as v from 'valibot'
+import { checkTypeConflicts } from './check-type-conflicts.ts'
+import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
 export function mergeStringConstraints(
   first: OpenAPIV3.SchemaObject,
   second: OpenAPIV3.SchemaObject,
   getRef: GetRefFn
 ): OpenAPIV3.SchemaObject {
-  // If neither schema has a type, return empty object
-  if (!first.type && !second.type) {
-    return {}
-  }
+  checkTypeConflicts(first, second)
 
-  // Check for type conflicts
-  if (first.type && second.type && first.type !== second.type) {
-    throw new Error(`Cannot merge schemas: conflicting types '${first.type}' and '${second.type}'`)
-  }
-
-  // If only one schema has a type and it's not string, return empty object
-  if ((first.type && first.type !== 'string') || (second.type && second.type !== 'string')) {
-    return {}
+  if (!checkAtLeastOneTypeMatch(first, second, 'string')) {
+    return genericMerge(first, second, getRef)
   }
 
   // First merge enum values if present

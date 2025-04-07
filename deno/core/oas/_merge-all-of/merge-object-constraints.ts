@@ -1,39 +1,18 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { OneOfObject, AnyOfObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { genericMerge } from './generic-merge.ts'
 import * as v from 'valibot'
+import { checkTypeConflicts } from './check-type-conflicts.ts'
 type SchemaObject = OpenAPIV3.SchemaObject
 type ReferenceObject = OpenAPIV3.ReferenceObject
-type SchemaOrReference = SchemaObject | ReferenceObject
-
-const isOneOf = (schema: unknown): schema is OneOfObject => {
-  return (
-    typeof schema === 'object' &&
-    schema !== null &&
-    'oneOf' in schema &&
-    Array.isArray(schema.oneOf)
-  )
-}
-
-const isAnyOf = (schema: unknown): schema is AnyOfObject => {
-  return (
-    typeof schema === 'object' &&
-    schema !== null &&
-    'anyOf' in schema &&
-    Array.isArray(schema.anyOf)
-  )
-}
 
 export const mergeObjectConstraints = (
   first: SchemaObject,
   second: SchemaObject,
   getRef: (ref: ReferenceObject) => SchemaObject
 ): SchemaObject => {
-  // // Check for type conflicts
-  // if (a.type && b.type && a.type !== b.type) {
-  //   throw new Error(`Cannot merge schemas: conflicting types '${a.type}' and '${b.type}'`)
-  // }
+  // Check for type conflicts
+  checkTypeConflicts(first, second)
 
   // // If only one schema has a type and it's not object, return empty object
   // if ((a.type && a.type !== 'object') || (b.type && b.type !== 'object')) {

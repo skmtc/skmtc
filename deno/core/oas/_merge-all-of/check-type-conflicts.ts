@@ -1,7 +1,10 @@
 import type { OpenAPIV3 } from 'openapi-types'
 
-export const checkTypeConflicts = (a: OpenAPIV3.SchemaObject, b: OpenAPIV3.SchemaObject): void => {
-  if (a.type && b.type && a.type !== b.type) {
-    throw new Error(`Cannot merge schemas: conflicting types '${a.type}' and '${b.type}'`)
+export const checkTypeConflicts = (
+  first: OpenAPIV3.SchemaObject,
+  second: OpenAPIV3.SchemaObject
+): void => {
+  if (first.type && second.type && first.type !== second.type) {
+    throw new Error(`Cannot merge schemas: conflicting types '${first.type}' and '${second.type}'`)
   }
 }

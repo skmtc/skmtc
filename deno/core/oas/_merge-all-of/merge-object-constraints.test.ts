@@ -145,11 +145,12 @@ Deno.test('mergeObjectConstraints - merges additionalProperties with schema', ()
     type: 'object',
     additionalProperties: { type: 'number' }
   }
-  const result = mergeObjectConstraints(a, b, mockGetRef)
-  assertEquals(result, {
-    type: 'object',
-    additionalProperties: { type: 'string' }
-  })
+
+  assertThrows(
+    () => mergeObjectConstraints(a, b, mockGetRef),
+    Error,
+    `Cannot merge schemas: conflicting types 'string' and 'number'`
+  )
 })
 
 Deno.test('mergeObjectConstraints - handles property conflicts', () => {
@@ -200,10 +201,12 @@ Deno.test('mergeObjectConstraints - throws error when merging object with non-ob
       name: { type: 'string' }
     }
   }
+
   const b: OpenAPIV3.SchemaObject = {
     type: 'string',
     minLength: 1
   }
+
   assertThrows(
     () => mergeObjectConstraints(a, b, mockGetRef),
     Error,

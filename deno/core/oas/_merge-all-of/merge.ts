@@ -15,6 +15,7 @@ import { mergeNumberConstraints } from './merge-number-constraints.ts'
 import { mergeIntegerConstraints } from './merge-integer-constraints.ts'
 import { mergeBooleanConstraints } from './merge-boolean-constraints.ts'
 import { genericMerge } from './generic-merge.ts'
+import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
 export const mergeSchemasOrRefs = (
   first: SchemaOrReference,
   second: SchemaOrReference,
@@ -160,35 +161,33 @@ const mergeSchemas = (
 }
 
 const typedMerge = (first: SchemaObject, second: SchemaObject, getRef: GetRefFn): SchemaObject => {
+  checkTypeConflicts(first, second)
+
   if (!first.type && !second.type) {
     return genericMerge(first, second, getRef)
   }
 
-  if (first.type && second.type && first.type !== second.type) {
-    throw new Error('Cannot merge schemas with different types')
-  }
-
-  if (first.type === 'object' || second.type === 'object') {
+  if (checkAtLeastOneTypeMatch(first, second, 'object')) {
     return mergeObjectConstraints(first, second, getRef)
   }
 
-  if (first.type === 'array' || second.type === 'array') {
+  if (checkAtLeastOneTypeMatch(first, second, 'array')) {
     return mergeArrayConstraints(first, second, getRef)
   }
 
-  if (first.type === 'string' || second.type === 'string') {
+  if (checkAtLeastOneTypeMatch(first, second, 'string')) {
     return mergeStringConstraints(first, second, getRef)
   }
 
-  if (first.type === 'number' || second.type === 'number') {
+  if (checkAtLeastOneTypeMatch(first, second, 'number')) {
     return mergeNumberConstraints(first, second, getRef)
   }
 
-  if (first.type === 'integer' || second.type === 'integer') {
+  if (checkAtLeastOneTypeMatch(first, second, 'integer')) {
     return mergeIntegerConstraints(first, second, getRef)
   }
 
-  if (first.type === 'boolean' || second.type === 'boolean') {
+  if (checkAtLeastOneTypeMatch(first, second, 'boolean')) {
     return mergeBooleanConstraints(first, second, getRef)
   }
 

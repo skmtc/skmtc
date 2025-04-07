@@ -3,14 +3,13 @@ import type { SchemaObject } from './types.ts'
 import { genericMerge } from './generic-merge.ts'
 import type { GetRefFn } from './types.ts'
 import * as v from 'valibot'
+import { checkTypeConflicts } from './check-type-conflicts.ts'
 export function mergeIntegerConstraints(
   first: OpenAPIV3.SchemaObject,
   second: OpenAPIV3.SchemaObject,
   getRef: GetRefFn
 ): OpenAPIV3.SchemaObject {
-  // If either schema is not an integer, return the one that is
-  if (first.type !== 'integer') return { ...second }
-  if (second.type !== 'integer') return { ...first }
+  checkTypeConflicts(first, second)
 
   // First merge enum values if present
   const result: SchemaObject = genericMerge(first, second, getRef, v.number())
