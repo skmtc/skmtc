@@ -1,6 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { match } from 'ts-pattern'
-import { mergeAllOf } from './merge-all-of.ts'
+import { mergeGroup } from './merge-group.ts'
 import { assertEquals } from 'https://deno.land/std@0.131.0/testing/asserts.ts'
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
@@ -59,94 +59,94 @@ const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
     })
 }
 
-// const input: OpenAPIV3.SchemaObject = {
-//   oneOf: [
-//     {
-//       allOf: [
-//         {
-//           $ref: '#/components/schemas/File'
-//         },
-//         {
-//           type: 'object',
-//           required: ['kind'],
-//           properties: {
-//             kind: {
-//               type: 'string',
-//               enum: ['file']
-//             }
-//           }
-//         }
-//       ]
-//     },
-//     {
-//       allOf: [
-//         {
-//           $ref: '#/components/schemas/Symlink'
-//         },
-//         {
-//           type: 'object',
-//           required: ['kind'],
-//           properties: {
-//             kind: {
-//               type: 'string',
-//               enum: ['symlink']
-//             }
-//           }
-//         }
-//       ]
-//     }
-//   ],
-//   discriminator: {
-//     propertyName: 'kind'
-//   }
-// }
+const input: OpenAPIV3.SchemaObject = {
+  oneOf: [
+    {
+      allOf: [
+        {
+          $ref: '#/components/schemas/File'
+        },
+        {
+          type: 'object',
+          required: ['kind'],
+          properties: {
+            kind: {
+              type: 'string',
+              enum: ['file']
+            }
+          }
+        }
+      ]
+    },
+    {
+      allOf: [
+        {
+          $ref: '#/components/schemas/Symlink'
+        },
+        {
+          type: 'object',
+          required: ['kind'],
+          properties: {
+            kind: {
+              type: 'string',
+              enum: ['symlink']
+            }
+          }
+        }
+      ]
+    }
+  ],
+  discriminator: {
+    propertyName: 'kind'
+  }
+}
 
-// const expected: OpenAPIV3.SchemaObject = {
-//   oneOf: [
-//     {
-//       allOf: [
-//         {
-//           $ref: '#/components/schemas/File'
-//         },
-//         {
-//           type: 'object',
-//           required: ['kind'],
-//           properties: {
-//             kind: {
-//               type: 'string',
-//               enum: ['file']
-//             }
-//           }
-//         }
-//       ]
-//     },
-//     {
-//       allOf: [
-//         {
-//           $ref: '#/components/schemas/Symlink'
-//         },
-//         {
-//           type: 'object',
-//           required: ['kind'],
-//           properties: {
-//             kind: {
-//               type: 'string',
-//               enum: ['symlink']
-//             }
-//           }
-//         }
-//       ]
-//     }
-//   ],
-//   discriminator: {
-//     propertyName: 'kind'
-//   }
-// }
+const expected: OpenAPIV3.SchemaObject = {
+  oneOf: [
+    {
+      allOf: [
+        {
+          $ref: '#/components/schemas/File'
+        },
+        {
+          type: 'object',
+          required: ['kind'],
+          properties: {
+            kind: {
+              type: 'string',
+              enum: ['file']
+            }
+          }
+        }
+      ]
+    },
+    {
+      allOf: [
+        {
+          $ref: '#/components/schemas/Symlink'
+        },
+        {
+          type: 'object',
+          required: ['kind'],
+          properties: {
+            kind: {
+              type: 'string',
+              enum: ['symlink']
+            }
+          }
+        }
+      ]
+    }
+  ],
+  discriminator: {
+    propertyName: 'kind'
+  }
+}
 
-// Deno.test('mergeAllOf - with top-level oneOf', () => {
-//   const result = mergeAllOf(input, getRef)
-//   assertEquals(result, expected)
-// })
+Deno.test('mergeAllOf - with top-level oneOf', () => {
+  const result = mergeGroup({ schema: input, getRef, groupType: 'oneOf' })
+  assertEquals(result, expected)
+})
 
 Deno.test('mergeAllOf - simpler allOf', () => {
   const input: OpenAPIV3.SchemaObject = {
@@ -182,6 +182,6 @@ Deno.test('mergeAllOf - simpler allOf', () => {
     additionalProperties: false
   }
 
-  const result = mergeAllOf(input, getRef)
+  const result = mergeGroup({ schema: input, getRef, groupType: 'allOf' })
   assertEquals(result, expected)
 })

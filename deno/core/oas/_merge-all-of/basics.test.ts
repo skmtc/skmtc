@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert'
 import type { OpenAPIV3 } from 'openapi-types'
-import { mergeAllOf } from './merge-all-of.ts'
+import { mergeGroup } from './merge-group.ts'
 import { match } from 'ts-pattern'
 // Mock getRef function for testing
 const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
@@ -33,5 +33,5 @@ Deno.test('mergeAllOf - basic property merging', () => {
     nullable: true
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })

@@ -13,6 +13,8 @@ import { toBoolean } from '../boolean/toBoolean.ts'
 import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
+import { toGetRef } from '../../helpers/refFns.ts'
+import { mergeGroup } from '../_merge-all-of/merge-group.ts'
 
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
@@ -67,23 +69,37 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
   // }
 
   return match(schema)
-    .with({ allOf: P.array() }, () => {
-      // if (members.length === 1) {
-      //   return toSchemaV3({ schema: members[0], context })
-      // }
+    .with({ allOf: P.array() }, allOf => {
+      return context.trace('allOf', () => {
+        const merged = mergeGroup({
+          schema: allOf,
+          getRef: toGetRef(context.documentObject),
+          groupType: 'allOf'
+        })
 
-      throw new Error('Unexpected "allOf" schema')
+        if ('allOf' in merged) {
+          throw new Error('Unexpected "allOf" in schema')
+        }
 
-      // const merged = merge(schema, {
-      //   source: context.documentObject,
-      //   rules: openApiMergeRules('3.0.x'),
-      //   mergeRefSibling: true
-      // }) as OpenAPIV3.SchemaObject
-
-      // return toSchemaV3({ schema: merged, context })
+        return toSchemaV3({ schema: merged, context })
+      })
     })
-    .with({ oneOf: P.array() }, ({ oneOf: members, ...value }) => {
-      return toUnion({ value, members, parentType: 'oneOf', context })
+    .with({ oneOf: P.array() }, oneOf => {
+      return context.trace('oneOf', () => {
+        const merged = mergeGroup({
+          schema: oneOf,
+          getRef: toGetRef(context.documentObject),
+          groupType: 'oneOf'
+        })
+
+        if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
+          throw new Error('Missing "oneOf" array')
+        }
+
+        const { oneOf: members, ...value } = merged
+
+        return toUnion({ value, members, parentType: 'oneOf', context })
+      })
     })
     .with({ anyOf: P.array() }, ({ anyOf: members, ...value }) => {
       return context.trace('anyOf', () => toUnion({ value, members, parentType: 'anyOf', context }))

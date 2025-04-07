@@ -1,6 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { match } from 'ts-pattern'
-import { mergeAllOf } from './merge-all-of.ts'
+import { mergeGroup } from './merge-group.ts'
 import { assertEquals } from 'https://deno.land/std@0.131.0/testing/asserts.ts'
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
@@ -112,159 +112,136 @@ Deno.test('mergeAllOf - complex oneOf', () => {
     ]
   }
 
-  const got = {
-    type: 'object',
-    properties: {
-      kind: {
-        type: 'string',
-        enum: ['file']
-      }
-    },
-    required: ['kind']
-  }
-
-  const result = mergeAllOf(input, getRef)
+  const result = mergeGroup({ schema: input, getRef, groupType: 'allOf' })
 
   assertEquals(result, expected)
 })
 
-// Cannot merge ref and object
-// -> look up the ref and substitute in the value
-const stepOne = {
-  allOf: [
-    {
-      $ref: '#/components/schemas/File'
-    },
-    {
-      type: 'object',
-      required: ['kind'],
-      properties: {
-        kind: {
-          type: 'string',
-          enum: ['file']
-        }
+Deno.test('mergeAllOf - even more complex oneOf', () => {
+  const input: OpenAPIV3.SchemaObject = {
+    oneOf: [
+      {
+        allOf: [
+          {
+            $ref: '#/components/schemas/File'
+          },
+          {
+            type: 'object',
+            required: ['kind'],
+            properties: {
+              kind: {
+                type: 'string',
+                enum: ['file']
+              }
+            }
+          }
+        ]
+      },
+      {
+        allOf: [
+          {
+            $ref: '#/components/schemas/Symlink'
+          },
+          {
+            type: 'object',
+            required: ['kind'],
+            properties: {
+              kind: {
+                type: 'string',
+                enum: ['symlink']
+              }
+            }
+          }
+        ]
       }
+    ],
+    discriminator: {
+      propertyName: 'kind'
     }
-  ]
-}
+  }
 
-// Cannot oneOf and object
-// -> apply allOf to each oneOfs
-const stepTwo = {
-  allOf: [
-    {
-      oneOf: [
-        {
-          type: 'object',
-          required: ['content'],
-          properties: {
-            content: {
-              type: 'string'
-            },
-            encoding: {
-              $ref: '#/components/schemas/Encoding'
+  const expected: OpenAPIV3.SchemaObject = {
+    oneOf: [
+      {
+        allOf: [
+          {
+            $ref: '#/components/schemas/File'
+          },
+          {
+            type: 'object',
+            required: ['kind'],
+            properties: {
+              kind: {
+                type: 'string',
+                enum: ['file']
+              }
             }
           }
-        },
-        {
-          type: 'object',
-          required: ['gitSha1'],
-          properties: {
-            gitSha1: {
-              type: 'string'
+        ]
+      },
+      {
+        allOf: [
+          {
+            $ref: '#/components/schemas/Symlink'
+          },
+          {
+            type: 'object',
+            required: ['kind'],
+            properties: {
+              kind: {
+                type: 'string',
+                enum: ['symlink']
+              }
             }
           }
-        }
-      ]
-    },
-    {
-      type: 'object',
-      required: ['kind'],
-      properties: {
-        kind: { type: 'string', enum: ['file'] }
+        ]
       }
+    ],
+    discriminator: {
+      propertyName: 'kind'
     }
-  ]
-}
+  }
 
-const stepThree = {
-  oneOf: [
-    {
-      allOf: [
-        {
-          type: 'object',
-          required: ['content'],
-          properties: {
-            content: {
-              type: 'string'
-            },
-            encoding: {
-              $ref: '#/components/schemas/Encoding'
-            }
-          }
-        },
-        {
-          type: 'object',
-          required: ['kind'],
-          properties: {
-            kind: { type: 'string', enum: ['file'] }
-          }
-        }
-      ]
-    },
-    {
-      allOf: [
-        {
-          type: 'object',
-          required: ['gitSha1'],
-          properties: {
-            gitSha1: {
-              type: 'string'
-            }
-          }
-        },
-        {
-          type: 'object',
-          required: ['kind'],
-          properties: {
-            kind: { type: 'string', enum: ['file'] }
-          }
-        }
-      ]
-    }
-  ]
-}
+  const result = mergeGroup({ schema: input, getRef, groupType: 'oneOf' })
 
-const stepFive = {
-  oneOf: [
-    {
-      type: 'object',
-      required: ['kind', 'content'],
-      properties: {
-        kind: {
-          type: 'string',
-          enum: ['file']
-        },
-        content: {
-          type: 'string'
-        },
-        encoding: {
-          $ref: '#/components/schemas/Encoding'
-        }
+  const resultTemp = {
+    oneOf: [
+      {
+        allOf: [
+          {
+            $ref: '#/components/schemas/File'
+          },
+          {
+            type: 'object',
+            required: ['kind'],
+            properties: {
+              kind: {
+                type: 'string',
+                enum: ['file']
+              }
+            }
+          }
+        ]
+      },
+      {
+        allOf: [
+          {
+            $ref: '#/components/schemas/Symlink'
+          },
+          {
+            type: 'object',
+            required: ['kind'],
+            properties: {
+              kind: {
+                type: 'string',
+                enum: ['symlink']
+              }
+            }
+          }
+        ]
       }
-    },
-    {
-      type: 'object',
-      required: ['kind', 'gitSha1'],
-      properties: {
-        kind: {
-          type: 'string',
-          enum: ['file']
-        },
-        gitSha1: {
-          type: 'string'
-        }
-      }
-    }
-  ]
-}
+    ]
+  }
+
+  assertEquals(result, expected)
+})

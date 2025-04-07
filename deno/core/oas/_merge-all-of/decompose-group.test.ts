@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { decomposeAllOf } from './decompose-all-of.ts'
+import { decomposeGroup } from './decompose-group.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
 Deno.test('decomposeAllOf - nullable at the end', () => {
@@ -27,7 +27,7 @@ Deno.test('decomposeAllOf - nullable at the end', () => {
     }
   ]
 
-  assertEquals(decomposeAllOf(schema), expected)
+  assertEquals(decomposeGroup({ schema, groupType: 'allOf' }), expected)
 })
 
 Deno.test('decomposeAllOf - nullable at the start', () => {
@@ -55,7 +55,7 @@ Deno.test('decomposeAllOf - nullable at the start', () => {
     }
   ]
 
-  assertEquals(decomposeAllOf(schema), expected)
+  assertEquals(decomposeGroup({ schema, groupType: 'allOf' }), expected)
 })
 
 Deno.test('decomposeAllOf - no allOf', () => {
@@ -69,7 +69,7 @@ Deno.test('decomposeAllOf - no allOf', () => {
     }
   ]
 
-  assertEquals(decomposeAllOf(schema), expected)
+  assertEquals(decomposeGroup({ schema, groupType: 'allOf' }), expected)
 })
 
 Deno.test('decomposeAllOf - two allOf items', () => {
@@ -105,7 +105,7 @@ Deno.test('decomposeAllOf - two allOf items', () => {
     }
   ]
 
-  assertEquals(decomposeAllOf(schema), expected)
+  assertEquals(decomposeGroup({ schema, groupType: 'allOf' }), expected)
 })
 
 Deno.test('decomposeAllOf - two allOf items with before and after', () => {
@@ -149,5 +149,5 @@ Deno.test('decomposeAllOf - two allOf items with before and after', () => {
     }
   ]
 
-  assertEquals(decomposeAllOf(schema), expected)
+  assertEquals(decomposeGroup({ schema, groupType: 'allOf' }), expected)
 })

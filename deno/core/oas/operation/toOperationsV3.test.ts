@@ -14,6 +14,7 @@ import { OasDocument } from '../document/Document.ts'
 import { OasObject } from '../object/Object.ts'
 import { OasInfo } from '../info/Info.ts'
 import { OasRef } from '../ref/Ref.ts'
+import { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
 
 Deno.test('Parse operations', () => {
   const operations = toOperationsV3({
@@ -49,7 +50,14 @@ Deno.test('Parse operations', () => {
             })
           },
           summary: 'Returns pet inventories by status',
-          tags: ['store']
+          tags: ['store'],
+          security: [
+            new OasSecurityRequirement({
+              requirement: {
+                api_key: []
+              }
+            })
+          ]
         }),
         new OasOperation({
           path: '/store/order',

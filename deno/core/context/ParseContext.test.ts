@@ -31,9 +31,9 @@ const warningsByProperty = filteredWarnings.reduce<Record<string, number>>((acc,
 
   const property = stackTrail[stackTrail.length - 1]
 
-  console.log(stackTrail.toString())
-  console.log(warning.message)
-  console.log(JSON.stringify(warning.parent, null, 2))
+  console.log(`STACK TRACE: ${stackTrail.toString()}`)
+  console.log(`WARNING: ${warning.message}`)
+  console.log(`PARENT: ${JSON.stringify(warning.parent, null, 2)}`)
   console.log('')
 
   return {
@@ -44,7 +44,9 @@ const warningsByProperty = filteredWarnings.reduce<Record<string, number>>((acc,
 
 const items = Object.entries(warningsByProperty).sort((a, b) => a[1] - b[1])
 
-console.log(JSON.stringify(Object.fromEntries(items), null, 2))
+if (items.length > 0) {
+  console.log(JSON.stringify(Object.fromEntries(items), null, 2))
+}
 
 console.log(`Time taken: ${endTime - startTime} milliseconds`)
 

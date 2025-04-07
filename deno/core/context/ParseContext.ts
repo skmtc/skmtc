@@ -6,7 +6,6 @@ import type * as log from 'jsr:@std/log@^0.224.6'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import * as v from 'valibot'
-import { merge, openApiMergeRules } from 'allof-merge'
 import type { WarningType } from './types.ts'
 type ConstructorArgs = {
   documentObject: OpenAPIV3.Document
@@ -63,9 +62,7 @@ export class ParseContext {
   warnings: ParseWarning[]
   silent: boolean
   constructor({ documentObject, logger, stackTrail, silent = false }: ConstructorArgs) {
-    const merged = merge(documentObject) as OpenAPIV3.Document
-
-    this.documentObject = merged
+    this.documentObject = documentObject
     this.logger = logger
     this.stackTrail = stackTrail
     this.oasDocument = new OasDocument()

@@ -6,10 +6,16 @@ type Output = {
   after: [string, any][]
 }
 
-// Break up a schema into its constituent parts that can be merged individually into a new schema
-export const decomposeAllOf = (
+type DecomposeGroupArgs = {
   schema: OpenAPIV3.SchemaObject
-): (OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject)[] => {
+  groupType: 'oneOf' | 'anyOf' | 'allOf'
+}
+
+// Break up a schema into its constituent parts that can be merged individually into a new schema
+export const decomposeGroup = ({
+  schema,
+  groupType
+}: DecomposeGroupArgs): (OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject)[] => {
   if (!schema.allOf) {
     return [schema]
   }
@@ -23,7 +29,7 @@ export const decomposeAllOf = (
   }
 
   for (const [key, value] of Object.entries(schema)) {
-    if (key === 'allOf') {
+    if (key === groupType) {
       output.inside = value
       location = 'after'
     } else {

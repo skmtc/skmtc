@@ -1,4 +1,6 @@
 import type { RefName } from '../types/RefName.ts'
+import type { OpenAPIV3 } from 'openapi-types'
+import type { ReferenceObject } from '../oas/_merge-all-of/types.ts'
 
 export const toRefName = ($ref: string): RefName => {
   // TODO: Add validation here to ensure reference exists
@@ -22,3 +24,21 @@ export const isRef = (value: unknown): value is Ref => {
     return false
   }
 }
+
+export const toGetRef =
+  (oasDocument: OpenAPIV3.Document) =>
+  ({ $ref }: ReferenceObject): OpenAPIV3.SchemaObject => {
+    const refName = toRefName($ref)
+
+    const item = oasDocument.components?.schemas?.[refName]
+
+    if (isRef(item)) {
+      return toGetRef(oasDocument)(item)
+    }
+
+    if (item) {
+      return item
+    }
+
+    throw new Error(`Invalid reference: ${$ref}`)
+  }

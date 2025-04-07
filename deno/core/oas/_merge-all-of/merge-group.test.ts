@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import type { OpenAPIV3 } from 'openapi-types'
-import { mergeAllOf } from './merge-all-of.ts'
+import { mergeGroup } from './merge-group.ts'
 
 // Mock getRef function for testing
 const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
@@ -36,7 +36,7 @@ Deno.test('mergeAllOf - basic property merging', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - required fields combination', () => {
@@ -68,7 +68,7 @@ Deno.test('mergeAllOf - required fields combination', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - merge two objects', () => {
@@ -87,7 +87,7 @@ Deno.test('mergeAllOf - merge two objects', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 // This can be handled when we go deeper into the schema later during parsing
@@ -120,7 +120,7 @@ Deno.test('mergeAllOf - do not merge deeper allOf items', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - reference resolution - leave single reference as is', () => {
@@ -142,7 +142,7 @@ Deno.test('mergeAllOf - reference resolution - leave single reference as is', ()
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - reference resolution - combine identical references', () => {
@@ -170,7 +170,7 @@ Deno.test('mergeAllOf - reference resolution - combine identical references', ()
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - reference resolution - resolve reference when merging is needed', () => {
@@ -204,7 +204,7 @@ Deno.test('mergeAllOf - reference resolution - resolve reference when merging is
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test(
@@ -240,7 +240,7 @@ Deno.test(
       }
     }
 
-    assertEquals(mergeAllOf(schema, mockGetRef), expected)
+    assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
   }
 )
 
@@ -251,7 +251,7 @@ Deno.test('mergeAllOf - empty allOf array', () => {
 
   const expected: OpenAPIV3.SchemaObject = {}
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - array concatenation', () => {
@@ -288,7 +288,7 @@ Deno.test('mergeAllOf - array concatenation', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - conflicting property descriptions', () => {
@@ -316,7 +316,7 @@ Deno.test('mergeAllOf - conflicting property descriptions', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - mixed type schemas', () => {
@@ -325,7 +325,7 @@ Deno.test('mergeAllOf - mixed type schemas', () => {
   }
 
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     `Cannot merge schemas: conflicting types 'string' and 'object'`
   )
@@ -356,7 +356,7 @@ Deno.test('mergeAllOf - nullable properties', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - enum values', () => {
@@ -378,7 +378,7 @@ Deno.test('mergeAllOf - enum values', () => {
     enum: ['B']
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - additionalProperties with pattern', () => {
@@ -396,7 +396,7 @@ Deno.test('mergeAllOf - additionalProperties with pattern', () => {
   }
 
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     `Cannot merge schemas: conflicting types 'string' and 'number'`
   )
@@ -424,7 +424,7 @@ Deno.test('mergeAllOf - min/max properties', () => {
     maxProperties: 4
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - array constraints', () => {
@@ -455,7 +455,7 @@ Deno.test('mergeAllOf - array constraints', () => {
     uniqueItems: true
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - number constraints', () => {
@@ -484,7 +484,7 @@ Deno.test('mergeAllOf - number constraints', () => {
     exclusiveMaximum: true
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - string constraints', () => {
@@ -506,7 +506,7 @@ Deno.test('mergeAllOf - string constraints', () => {
   }
 
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     `Cannot merge schemas: conflicting patterns '^[A-Z]' and '[0-9]$'`
   )
@@ -543,7 +543,7 @@ Deno.test('mergeAllOf - oneOf inside allOf', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - anyOf inside allOf', () => {
@@ -577,7 +577,7 @@ Deno.test('mergeAllOf - anyOf inside allOf', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - not keyword', () => {
@@ -603,7 +603,7 @@ Deno.test('mergeAllOf - not keyword', () => {
   }
 
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     'Merging schemas with "not" keyword is not supported'
   )
@@ -629,7 +629,7 @@ Deno.test('mergeAllOf - readOnly and writeOnly conflict throws error', () => {
 
   // Should throw an error about conflicting readOnly/writeOnly flags
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     'Cannot merge schemas: property cannot be both readOnly and writeOnly'
   )
@@ -651,7 +651,7 @@ Deno.test('mergeAllOf - format conflict throws error', () => {
 
   // Should throw an error about conflicting formats
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     "Cannot merge schemas: conflicting formats 'email' and 'uri'"
   )
@@ -673,7 +673,7 @@ Deno.test('mergeAllOf - empty enum intersection throws error', () => {
 
   // Should throw an error about empty enum intersection
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     'Cannot merge schemas: enum values have no intersection'
   )
@@ -697,7 +697,7 @@ Deno.test('mergeAllOf - incompatible number constraints throws error', () => {
 
   // Should throw an error about incompatible number ranges
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     'Cannot merge schemas: incompatible number ranges [10,20] and [30,40]'
   )
@@ -719,7 +719,7 @@ Deno.test('mergeAllOf - array item type conflict throws error', () => {
 
   // Should throw an error about conflicting array item types
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     "Cannot merge schemas: array items have conflicting types 'string' and 'number'"
   )
@@ -744,7 +744,7 @@ Deno.test('mergeAllOf - multipleOf', () => {
     multipleOf: 6
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - default values', () => {
@@ -772,7 +772,7 @@ Deno.test('mergeAllOf - default values', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - example values', () => {
@@ -800,7 +800,7 @@ Deno.test('mergeAllOf - example values', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - deprecated properties', () => {
@@ -828,7 +828,7 @@ Deno.test('mergeAllOf - deprecated properties', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - externalDocs', () => {
@@ -859,7 +859,7 @@ Deno.test('mergeAllOf - externalDocs', () => {
     }
   }
 
-  assertEquals(mergeAllOf(schema, mockGetRef), expected)
+  assertEquals(mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }), expected)
 })
 
 Deno.test('mergeAllOf - type conflict throws error', () => {
@@ -882,7 +882,7 @@ Deno.test('mergeAllOf - type conflict throws error', () => {
 
   // Should throw an error about conflicting types
   assertThrows(
-    () => mergeAllOf(schema, mockGetRef),
+    () => mergeGroup({ schema, getRef: mockGetRef, groupType: 'allOf' }),
     Error,
     "Cannot merge schemas: conflicting types 'string' and 'number'"
   )
