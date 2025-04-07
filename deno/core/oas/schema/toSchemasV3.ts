@@ -69,16 +69,18 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
   // }
 
   return match(schema)
-    .with({ allOf: P.array() }, allOf => {
+    .with({ allOf: P.array() }, schema => {
       return context.trace('allOf', () => {
         const merged = mergeGroup({
-          schema: allOf,
+          schema,
           getRef: toGetRef(context.documentObject),
           groupType: 'allOf'
         })
 
         if ('allOf' in merged) {
-          console.log(JSON.stringify(merged, null, 2))
+          console.log('SCHEMA INPUT', schema)
+
+          console.log('SCHEMA MERGED', JSON.stringify(merged, null, 2))
 
           throw new Error('Unexpected "allOf" in schema')
         }

@@ -75,7 +75,9 @@ const mergeSchemasWithAnyOfs = (
   const mergedAnyOf = crossProduct(firstAnyOf, secondAnyOf)
     .map(([firstItem, secondItem]) => {
       try {
-        return mergeSchemasOrRefs(firstItem, secondItem, getRef)
+        const result = mergeSchemasOrRefs(firstItem, secondItem, getRef)
+
+        return result
       } catch (_error) {
         return undefined
       }

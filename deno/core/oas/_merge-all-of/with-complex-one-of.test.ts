@@ -204,44 +204,5 @@ Deno.test('mergeAllOf - even more complex oneOf', () => {
 
   const result = mergeGroup({ schema: input, getRef, groupType: 'oneOf' })
 
-  const resultTemp = {
-    oneOf: [
-      {
-        allOf: [
-          {
-            $ref: '#/components/schemas/File'
-          },
-          {
-            type: 'object',
-            required: ['kind'],
-            properties: {
-              kind: {
-                type: 'string',
-                enum: ['file']
-              }
-            }
-          }
-        ]
-      },
-      {
-        allOf: [
-          {
-            $ref: '#/components/schemas/Symlink'
-          },
-          {
-            type: 'object',
-            required: ['kind'],
-            properties: {
-              kind: {
-                type: 'string',
-                enum: ['symlink']
-              }
-            }
-          }
-        ]
-      }
-    ]
-  }
-
   assertEquals(result, expected)
 })
