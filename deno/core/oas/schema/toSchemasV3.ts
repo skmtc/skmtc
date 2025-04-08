@@ -14,8 +14,8 @@ import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '../../helpers/refFns.ts'
-import { mergeGroup } from '../_merge-all-of/merge-group.ts'
-
+import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
+import { mergeUnion } from '../_merge-all-of/merge-union.ts'
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
   context: ParseContext
@@ -71,10 +71,9 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
   return match(schema)
     .with({ allOf: P.array() }, schema => {
       return context.trace('allOf', () => {
-        const merged = mergeGroup({
+        const merged = mergeIntersection({
           schema,
-          getRef: toGetRef(context.documentObject),
-          groupType: 'allOf'
+          getRef: toGetRef(context.documentObject)
         })
 
         if ('allOf' in merged) {
@@ -90,7 +89,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
     })
     .with({ oneOf: P.array() }, oneOf => {
       return context.trace('oneOf', () => {
-        const merged = mergeGroup({
+        const merged = mergeUnion({
           schema: oneOf,
           getRef: toGetRef(context.documentObject),
           groupType: 'oneOf'
@@ -105,8 +104,22 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         return toUnion({ value, members, parentType: 'oneOf', context })
       })
     })
-    .with({ anyOf: P.array() }, ({ anyOf: members, ...value }) => {
-      return context.trace('anyOf', () => toUnion({ value, members, parentType: 'anyOf', context }))
+    .with({ anyOf: P.array() }, anyOf => {
+      return context.trace('anyOf', () => {
+        const merged = mergeUnion({
+          schema: anyOf,
+          getRef: toGetRef(context.documentObject),
+          groupType: 'anyOf'
+        })
+
+        if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
+          throw new Error('Missing "anyOf" array')
+        }
+
+        const { anyOf: members, ...value } = merged
+
+        return toUnion({ value, members, parentType: 'anyOf', context })
+      })
     })
     .with({ type: 'object' }, value => toObject({ value, context }))
     .with({ type: 'array' }, value => toArray({ value, context }))

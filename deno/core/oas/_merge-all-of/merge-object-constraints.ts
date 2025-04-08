@@ -14,56 +14,8 @@ export const mergeObjectConstraints = (
   // Check for type conflicts
   checkTypeConflicts(first, second)
 
-  // // If only one schema has a type and it's not object, return empty object
-  // if ((a.type && a.type !== 'object') || (b.type && b.type !== 'object')) {
-  //   return {}
-  // }
-
-  // const result: SchemaObject = {}
-  // result.type = 'object'
-
-  // // Merge properties, using mergeTwoSchemas for properties that exist in both schemas
-  // const properties: Record<string, SchemaOrReference> = {}
-
-  // // First add all properties from the second schema
-  // if (b.properties) {
-  //   Object.assign(properties, b.properties)
-  // }
-
-  // Then merge properties from the first schema
-  // if (a.properties) {
-  //   for (const [key, value] of Object.entries(a.properties)) {
-  //     if (properties[key]) {
-  //       // If property exists in both schemas and both are the same schema
-  //       if (isRef(value) && isRef(properties[key]) && value.$ref === properties[key].$ref) {
-  //         // take the second schema's property by doing nothing
-  //         // If both are oneOf, merge them
-  //       } else if (isOneOf(value) && isOneOf(properties[key])) {
-  //         properties[key] = mergeSchemasOrRefs(value, properties[key], getRef)
-  //       } else if (isAnyOf(value) && isAnyOf(properties[key])) {
-  //         properties[key] = mergeTwoAnyOfs(value, properties[key], getRef)
-  //       } else {
-  //         // If property exists in both schemas and both are SchemaObjects, merge them
-  //         properties[key] = mergeTwoSchemas(
-  //           isRef(value) ? getRef(value) : value,
-  //           isRef(properties[key]) ? getRef(properties[key]) : properties[key],
-  //           getRef
-  //         )
-  //       }
-  //     } else {
-  //       // If property only exists in first schema, add it
-  //       properties[key] = value
-  //     }
-  //   }
-  // }
-
-  // if (Object.keys(properties).length > 0) {
-  //   result.properties = properties
-  // }
-
   const result: SchemaObject = genericMerge(first, second, getRef, v.record(v.string(), v.any()))
 
-  // Merge additionalProperties
   if (
     typeof second.additionalProperties === 'object' &&
     typeof first.additionalProperties === 'object'

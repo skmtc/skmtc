@@ -15,7 +15,15 @@ type ToUnionArgs = {
 }
 
 export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): OasUnion => {
-  const { discriminator, title, description, nullable, example, ...skipped } = value
+  const {
+    discriminator,
+    title,
+    description,
+    nullable,
+    example,
+    default: defaultValue,
+    ...skipped
+  } = value
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -28,6 +36,7 @@ export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): O
     title,
     description,
     nullable,
+    default: defaultValue,
     discriminator: context.trace('discriminator', () =>
       toDiscriminatorV3({ discriminator, context })
     ),

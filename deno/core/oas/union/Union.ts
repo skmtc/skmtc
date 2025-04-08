@@ -10,6 +10,7 @@ export type UnionFields = {
   nullable?: boolean
   discriminator?: OasDiscriminator
   example?: unknown
+  default?: unknown
   members: (OasSchema | OasRef<'schema'>)[]
   extensionFields?: Record<string, unknown>
 }
@@ -60,6 +61,10 @@ export class OasUnion {
    * An example of the union type.
    */
   example?: unknown
+  /**
+   * The default value of the union type.
+   */
+  default?: unknown
 
   constructor(fields: UnionFields) {
     this.title = fields.title
@@ -69,6 +74,7 @@ export class OasUnion {
     this.members = fields.members
     this.extensionFields = fields.extensionFields
     this.example = fields.example
+    this.default = fields.default
   }
 
   isRef(): this is OasRef<'schema'> {
@@ -89,6 +95,7 @@ export class OasUnion {
       description: this.description,
       nullable: this.nullable,
       example: this.example,
+      default: this.default,
       oneOf: this.members.map(member => member.toJsonSchema(options))
     }
   }

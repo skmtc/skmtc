@@ -1,7 +1,7 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { match } from 'ts-pattern'
-import { mergeGroup } from './merge-group.ts'
-import { assertEquals } from 'https://deno.land/std@0.131.0/testing/asserts.ts'
+import { mergeIntersection } from './merge-intersection.ts'
+import { assertEquals } from '@std/assert'
 import { assertThrows } from '@std/assert/throws'
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
@@ -203,7 +203,7 @@ Deno.test('mergeAllOf - merges two deep refs', () => {
     type: 'object'
   }
 
-  const result = mergeGroup({ schema: input, getRef, groupType: 'allOf' })
+  const result = mergeIntersection({ schema: input, getRef })
 
   const expected: OpenAPIV3.SchemaObject = {
     properties: {
@@ -289,7 +289,7 @@ Deno.test('mergeAllOf - merges two refs chunks', () => {
     type: 'object'
   }
 
-  const result = mergeGroup({ schema: input, getRef, groupType: 'allOf' })
+  const result = mergeIntersection({ schema: input, getRef })
 
   const expected: OpenAPIV3.SchemaObject = {
     properties: {
@@ -338,7 +338,7 @@ Deno.test('mergeAllOf - merges two deep refs', () => {
   }
 
   assertThrows(
-    () => mergeGroup({ schema: input, getRef, groupType: 'allOf' }),
+    () => mergeIntersection({ schema: input, getRef }),
     Error,
     'Cannot merge schemas: enum values have no intersection'
   )

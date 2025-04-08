@@ -7,7 +7,6 @@ import { checkFormatConflicts } from './check-format-conflicts.ts'
 import { checkEnumConflicts } from './check-enum-conflicts.ts'
 import { checkNumberConstraintsConflicts } from './check-number-constraints-conflicts.ts'
 import { checkArrayItemTypeConflicts } from './check-array-item-type-conflicts.ts'
-
 import { mergeObjectConstraints } from './merge-object-constraints.ts'
 import { mergeArrayConstraints } from './merge-array-constraints.ts'
 import { mergeStringConstraints } from './merge-string-constraints.ts'
@@ -16,8 +15,8 @@ import { mergeIntegerConstraints } from './merge-integer-constraints.ts'
 import { mergeBooleanConstraints } from './merge-boolean-constraints.ts'
 import { genericMerge } from './generic-merge.ts'
 import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
-import { mergeGroup } from './merge-group.ts'
-
+import { mergeIntersection } from './merge-intersection.ts'
+import { mergeCrossProduct } from './merge-union.ts'
 export const mergeSchemasOrRefs = (
   first: SchemaOrReference,
   second: SchemaOrReference,
@@ -36,23 +35,21 @@ export const mergeSchemasOrRefs = (
   }
 
   if (containsAllOf(first) || containsAllOf(second)) {
-    const mergedFirst = containsAllOf(first)
-      ? mergeGroup({ schema: first, getRef, groupType: 'allOf' })
-      : first
+    const mergedFirst = containsAllOf(first) ? mergeIntersection({ schema: first, getRef }) : first
 
     const mergedSecond = containsAllOf(second)
-      ? mergeGroup({ schema: second, getRef, groupType: 'allOf' })
+      ? mergeIntersection({ schema: second, getRef })
       : second
 
     return mergeSchemasOrRefs(mergedFirst, mergedSecond, getRef)
   }
 
   if (containsOneOf(first, second)) {
-    return mergeSchemasWithOneOfs(first, second, getRef)
+    return mergeCrossProduct({ first, second, getRef, groupType: 'oneOf' })
   }
 
   if (containsAnyOf(first, second)) {
-    return mergeSchemasWithAnyOfs(first, second, getRef)
+    return mergeCrossProduct({ first, second, getRef, groupType: 'anyOf' })
   }
 
   return mergeSchemas(first, second, getRef)
@@ -90,31 +87,6 @@ const containsAnyOf = (first: SchemaObject, second: SchemaObject): boolean => {
   return false
 }
 
-const mergeSchemasWithAnyOfs = (
-  first: SchemaObject,
-  second: SchemaObject,
-  getRef: (ref: ReferenceObject) => SchemaObject
-): SchemaObject => {
-  const firstAnyOf = Array.isArray(first.anyOf) ? first.anyOf : [first]
-  const secondAnyOf = Array.isArray(second.anyOf) ? second.anyOf : [second]
-
-  const mergedAnyOf = crossProduct(firstAnyOf, secondAnyOf)
-    .map(([firstItem, secondItem]) => {
-      try {
-        const result = mergeSchemasOrRefs(firstItem, secondItem, getRef)
-
-        return result
-      } catch (_error) {
-        return undefined
-      }
-    })
-    .filter(item => item !== undefined)
-
-  return {
-    anyOf: mergedAnyOf
-  }
-}
-
 const containsOneOf = (first: SchemaObject, second: SchemaObject): boolean => {
   if (first.oneOf) {
     if (first.oneOf?.length) {
@@ -133,36 +105,6 @@ const containsOneOf = (first: SchemaObject, second: SchemaObject): boolean => {
   }
 
   return false
-}
-
-const mergeSchemasWithOneOfs = (
-  first: SchemaObject,
-  second: SchemaObject,
-  getRef: (ref: ReferenceObject) => SchemaObject
-): SchemaObject => {
-  const firstOneOf = Array.isArray(first.oneOf) ? first.oneOf : [first]
-  const secondOneOf = Array.isArray(second.oneOf) ? second.oneOf : [second]
-
-  const mergedOneOf = crossProduct(firstOneOf, secondOneOf)
-    .map(([firstItem, secondItem]) => {
-      try {
-        return mergeSchemasOrRefs(firstItem, secondItem, getRef)
-      } catch (_error) {
-        return undefined
-      }
-    })
-    .filter(item => item !== undefined)
-
-  return {
-    oneOf: mergedOneOf
-  }
-}
-
-const crossProduct = (a: SchemaOrReference[], b: SchemaOrReference[]) => {
-  return a.reduce<[SchemaOrReference, SchemaOrReference][]>(
-    (acc, x) => [...acc, ...b.map((y): [SchemaOrReference, SchemaOrReference] => [x, y])],
-    []
-  )
 }
 
 const containsRef = (first: SchemaOrReference, second: SchemaOrReference): boolean => {

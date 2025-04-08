@@ -1,7 +1,8 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { match } from 'ts-pattern'
-import { mergeGroup } from './merge-group.ts'
-import { assertEquals } from 'https://deno.land/std@0.131.0/testing/asserts.ts'
+import { mergeIntersection } from './merge-intersection.ts'
+import { assertEquals } from '@std/assert'
+import { mergeUnion } from './merge-union.ts'
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
   return match(ref)
@@ -112,7 +113,7 @@ Deno.test('mergeAllOf - complex oneOf', () => {
     ]
   }
 
-  const result = mergeGroup({ schema: input, getRef, groupType: 'allOf' })
+  const result = mergeIntersection({ schema: input, getRef })
 
   assertEquals(result, expected)
 })
@@ -202,7 +203,7 @@ Deno.test('mergeAllOf - even more complex oneOf', () => {
     }
   }
 
-  const result = mergeGroup({ schema: input, getRef, groupType: 'oneOf' })
+  const result = mergeUnion({ schema: input, getRef, groupType: 'oneOf' })
 
   assertEquals(result, expected)
 })
