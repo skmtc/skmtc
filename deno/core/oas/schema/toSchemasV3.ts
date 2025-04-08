@@ -209,7 +209,13 @@ const possibleString = (value: unknown) => {
     value &&
     typeof value === 'object' &&
     (('default' in value && typeof value.default === 'string') ||
-      ('example' in value && typeof value.example === 'string'))
+      ('example' in value && typeof value.example === 'string') ||
+      ('enum' in value &&
+        Array.isArray(value.enum) &&
+        value.enum.every(item => typeof item === 'string')) ||
+      ('format' in value &&
+        typeof value.format === 'string' &&
+        ['date', 'date-time', 'binary', 'byte'].includes(value.format)))
   )
 }
 

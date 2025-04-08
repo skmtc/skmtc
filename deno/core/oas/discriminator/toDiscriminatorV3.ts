@@ -1,7 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasDiscriminator } from './Discriminator.ts'
-import type { DiscriminatorFields } from './Discriminator.ts'
 
 type ToDiscriminatorV3Args = {
   discriminator: OpenAPIV3.DiscriminatorObject | undefined
@@ -16,13 +15,12 @@ export const toDiscriminatorV3 = ({
     return undefined
   }
 
-  const { propertyName, ...skipped } = discriminator
+  const { propertyName, mapping, ...skipped } = discriminator
 
   context.logSkippedFields({ skipped, parent: discriminator, parentType: 'discriminator' })
 
-  const fields: DiscriminatorFields = {
-    propertyName
-  }
-
-  return new OasDiscriminator(fields)
+  return new OasDiscriminator({
+    propertyName,
+    mapping
+  })
 }
