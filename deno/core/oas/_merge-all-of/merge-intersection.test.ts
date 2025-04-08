@@ -325,7 +325,7 @@ Deno.test('mergeAllOf - mixed type schemas', () => {
   }
 
   assertThrows(
-    () => mergeIntersection({ schema, getRef: mockGetRef }),
+    () => mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
     Error,
     `Cannot merge schemas: conflicting types 'string' and 'object'`
   )
@@ -396,7 +396,7 @@ Deno.test('mergeAllOf - additionalProperties with pattern', () => {
   }
 
   assertThrows(
-    () => mergeIntersection({ schema, getRef: mockGetRef }),
+    () => mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
     Error,
     `Cannot merge schemas: conflicting types 'string' and 'number'`
   )
@@ -882,7 +882,7 @@ Deno.test('mergeAllOf - type conflict throws error', () => {
 
   // Should throw an error about conflicting types
   assertThrows(
-    () => mergeIntersection({ schema, getRef: mockGetRef }),
+    () => mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
     Error,
     "Cannot merge schemas: conflicting types 'string' and 'number'"
   )

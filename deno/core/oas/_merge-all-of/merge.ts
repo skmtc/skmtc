@@ -116,7 +116,12 @@ const mergeSchemas = (
   second: SchemaObject,
   getRef: GetRefFn
 ): SchemaObject => {
-  checkTypeConflicts(first, second)
+  try {
+    checkTypeConflicts(first, second)
+  } catch (e) {
+    throw e
+  }
+
   checkReadOnlyWriteOnlyConflicts(first, second)
   checkFormatConflicts(first, second)
   checkEnumConflicts(first, second)
@@ -131,8 +136,6 @@ const mergeSchemas = (
 }
 
 const typedMerge = (first: SchemaObject, second: SchemaObject, getRef: GetRefFn): SchemaObject => {
-  checkTypeConflicts(first, second)
-
   if (!first.type && !second.type) {
     return genericMerge(first, second, getRef)
   }

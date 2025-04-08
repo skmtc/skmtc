@@ -5,6 +5,7 @@ import { mergeSchemasOrRefs } from './merge.ts'
 type MergeIntersectionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
+  throwOnConflict?: boolean
 }
 
 export const mergeIntersection = ({ schema, getRef }: MergeIntersectionArgs): SchemaOrReference => {

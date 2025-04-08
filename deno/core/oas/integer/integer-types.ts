@@ -2,12 +2,14 @@ import * as v from 'valibot'
 
 export const integerSchema = v.pipe(v.number(), v.integer())
 
+export const integerFormat = v.union([v.literal('int32'), v.literal('int64')])
+
 export const oasIntegerData = v.object({
   type: v.literal('integer'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   default: v.optional(integerSchema),
-  format: v.optional(v.union([v.literal('int32'), v.literal('int64')])),
+  format: v.optional(integerFormat),
   enum: v.optional(v.array(integerSchema)),
   nullable: v.optional(v.boolean()),
   example: v.optional(integerSchema),

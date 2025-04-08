@@ -71,15 +71,10 @@ export class ParseContext {
   }
 
   parse() {
-    try {
-      this.oasDocument.fields = toDocumentFieldsV3({
-        documentObject: this.documentObject,
-        context: this
-      })
-    } catch (e) {
-      console.log('ERROR', e)
-      console.log('STACK', this.stackTrail.toString())
-    }
+    this.oasDocument.fields = toDocumentFieldsV3({
+      documentObject: this.documentObject,
+      context: this
+    })
 
     return this.oasDocument
   }

@@ -7,6 +7,7 @@ import { oasBooleanData } from './boolean-types.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseExample } from '../_helpers/parseExample.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
 
 type ToBooleanArgs = {
   value: OpenAPIV3.SchemaObject
@@ -33,12 +34,20 @@ export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
     context
   })
 
+  const { default: defaultValue, value: valueWithoutDefault } = parseDefault({
+    value: valueWithoutEnums,
+    nullable,
+    valibotSchema: v.boolean(),
+    context
+  })
+
   return toParsedBoolean({
     context,
     nullable,
     example,
     enums,
-    value: valueWithoutEnums
+    defaultValue,
+    value: valueWithoutDefault
   })
 }
 
@@ -48,6 +57,7 @@ type ToParsedBooleanArgs<Nullable extends boolean | undefined> = {
   nullable: Nullable
   example: Nullable extends true ? boolean | null | undefined : boolean | undefined
   enums: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
+  defaultValue: Nullable extends true ? boolean | null | undefined : boolean | undefined
 }
 
 export const toParsedBoolean = <Nullable extends boolean | undefined>({
@@ -55,15 +65,10 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
   nullable,
   example,
   enums,
+  defaultValue,
   value
 }: ToParsedBooleanArgs<Nullable>): OasBoolean<Nullable> => {
-  const {
-    type: _type,
-    title,
-    description,
-    default: defaultValue,
-    ...skipped
-  } = v.parse(oasBooleanData, value)
+  const { type: _type, title, description, ...skipped } = v.parse(oasBooleanData, value)
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,

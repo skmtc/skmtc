@@ -116,15 +116,26 @@ export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOpera
               return
             }
 
-            return toOperationV3({
-              operation,
-              operationInfo: {
-                method: method as Method,
-                path,
-                pathItem: pathItemObject
-              },
-              context
-            })
+            try {
+              return toOperationV3({
+                operation,
+                operationInfo: {
+                  method: method as Method,
+                  path,
+                  pathItem: pathItemObject
+                },
+                context
+              })
+            } catch (error) {
+              context.logWarning({
+                key: method,
+                message: error instanceof Error ? error.message : 'Failed to parse operation',
+                parent: operation,
+                type: 'INVALID_OPERATION'
+              })
+
+              return undefined
+            }
           })
         })
         .filter((item): item is OasOperation => Boolean(item))

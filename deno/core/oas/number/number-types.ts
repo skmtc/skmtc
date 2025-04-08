@@ -1,11 +1,13 @@
 import * as v from 'valibot'
 
+export const numberFormat = v.union([v.literal('float'), v.literal('double')])
+
 export const oasNumberData = v.object({
   type: v.literal('number'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   default: v.optional(v.number()),
-  format: v.optional(v.union([v.literal('float'), v.literal('double')])),
+  format: v.optional(numberFormat),
   enum: v.optional(v.array(v.number())),
   nullable: v.optional(v.boolean()),
   example: v.optional(v.number()),

@@ -10,6 +10,7 @@ export const tracer = <T>(stackTrail: StackTrail, token: string | string[], fn: 
     return result
   } catch (error) {
     stackTrail.remove(token)
+
     throw error
   }
 }

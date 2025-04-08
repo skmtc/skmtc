@@ -5,6 +5,10 @@ export const checkTypeConflicts = (
   second: OpenAPIV3.SchemaObject
 ): void => {
   if (first.type && second.type && first.type !== second.type) {
-    throw new Error(`Cannot merge schemas: conflicting types '${first.type}' and '${second.type}'`)
+    throw new Error(
+      `Cannot merge schemas: conflicting types '${first.type}' and '${second.type}', ${JSON.stringify(
+        first
+      )} and ${JSON.stringify(second)}`
+    )
   }
 }

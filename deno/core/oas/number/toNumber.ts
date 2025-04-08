@@ -3,10 +3,11 @@ import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasNumber } from './Number.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
-import { oasNumberData } from './number-types.ts'
+import { oasNumberData, numberFormat } from './number-types.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseExample } from '../_helpers/parseExample.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseFormat } from '../_helpers/parseFormat.ts'
 type ToNumberArgs = {
   value: OpenAPIV3.SchemaObject
   context: ParseContext
@@ -54,13 +55,18 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
   nullable,
   example,
   enums,
-  value
+  value: valueWithoutEnums
 }: ToParsedNumberArgs<Nullable>): OasNumber<Nullable> => {
+  const { format, value: valueWithoutFormat } = parseFormat({
+    value: valueWithoutEnums,
+    valibotSchema: numberFormat,
+    context
+  })
+
   const {
     type: _type,
     title,
     description,
-    format,
     multipleOf,
     maximum,
     exclusiveMaximum,
@@ -68,11 +74,11 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
     exclusiveMinimum,
     default: defaultValue,
     ...skipped
-  } = v.parse(oasNumberData, value)
+  } = v.parse(oasNumberData, valueWithoutFormat)
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
-    parent: value,
+    parent: valueWithoutEnums,
     context,
     parentType: 'schema:number'
   })

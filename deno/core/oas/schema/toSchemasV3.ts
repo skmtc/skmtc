@@ -26,14 +26,27 @@ export const toSchemasV3 = ({
   context
 }: ToSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> => {
   return Object.fromEntries(
-    Object.entries(schemas).map(([key, schema]) => {
-      return [
-        key,
-        context.trace(key, () => {
-          return toSchemaV3({ schema, context })
-        })
-      ]
-    })
+    Object.entries(schemas)
+      .map(([key, schema]) => {
+        try {
+          return [
+            key,
+            context.trace(key, () => {
+              return toSchemaV3({ schema, context })
+            })
+          ]
+        } catch (error) {
+          context.logWarning({
+            key,
+            message: error instanceof Error ? error.message : 'Failed to parse schema',
+            parent: schema,
+            type: 'INVALID_SCHEMA'
+          })
+
+          return undefined
+        }
+      })
+      .filter(item => item !== undefined)
   )
 }
 
@@ -75,14 +88,6 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
           schema,
           getRef: toGetRef(context.documentObject)
         })
-
-        if ('allOf' in merged) {
-          console.log('SCHEMA INPUT', schema)
-
-          console.log('SCHEMA MERGED', JSON.stringify(merged, null, 2))
-
-          throw new Error('Unexpected "allOf" in schema')
-        }
 
         return toSchemaV3({ schema: merged, context })
       })
