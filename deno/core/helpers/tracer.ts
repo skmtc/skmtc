@@ -1,15 +1,15 @@
 import type { StackTrail } from '../context/StackTrail.ts'
 
-export const tracer = <T>(
-  stackTrail: StackTrail,
-  token: string | string[],
-  fn: () => T
-) => {
+export const tracer = <T>(stackTrail: StackTrail, token: string | string[], fn: () => T) => {
   stackTrail.append(token)
+  try {
+    const result = fn()
 
-  const result = fn()
+    stackTrail.remove(token)
 
-  stackTrail.remove(token)
-
-  return result
+    return result
+  } catch (error) {
+    stackTrail.remove(token)
+    throw error
+  }
 }

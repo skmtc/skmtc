@@ -19,9 +19,22 @@ export const toResponsesV3 = ({
   context
 }: ToResponsesV3Args): Record<string, OasResponse | OasRef<'response'>> => {
   return Object.fromEntries(
-    Object.entries(responses).map(([key, value]) => {
-      return [key, context.trace(key, () => toResponseV3({ response: value, context }))]
-    })
+    Object.entries(responses)
+      .map(([key, value]) => {
+        try {
+          return [key, context.trace(key, () => toResponseV3({ response: value, context }))]
+        } catch (error) {
+          context.logWarning({
+            key,
+            message: error instanceof Error ? error.message : 'Failed to parse response',
+            parent: value,
+            type: 'INVALID_RESPONSE'
+          })
+
+          return undefined
+        }
+      })
+      .filter(item => item !== undefined)
   )
 }
 

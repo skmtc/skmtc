@@ -40,7 +40,7 @@ export const parseDefault = <
     parent: value,
     schema: nullable === true ? v.nullable(valibotSchema) : valibotSchema,
     toMessage: value => `Removed invalid default. Expected ${valibotSchema.type}, got: ${value}`,
-    type: 'INCORRECT_DEFAULT'
+    type: 'INVALID_DEFAULT'
   })
 
   return {

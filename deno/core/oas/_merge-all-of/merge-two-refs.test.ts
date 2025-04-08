@@ -2,6 +2,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { match } from 'ts-pattern'
 import { mergeGroup } from './merge-group.ts'
 import { assertEquals } from 'https://deno.land/std@0.131.0/testing/asserts.ts'
+import { assertThrows } from '@std/assert/throws'
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
   return match(ref)
@@ -274,6 +275,56 @@ Deno.test('mergeAllOf - merges two deep refs', () => {
   assertEquals(result, expected)
 })
 
+Deno.test('mergeAllOf - merges two refs chunks', () => {
+  const input: OpenAPIV3.SchemaObject = {
+    allOf: [
+      { $ref: '#/components/schemas/custom-pages_api-response-common' },
+      {
+        properties: {
+          result: { items: {}, nullable: true, type: 'array' },
+          result_info: { $ref: '#/components/schemas/custom-pages_result_info' }
+        }
+      }
+    ],
+    type: 'object'
+  }
+
+  const result = mergeGroup({ schema: input, getRef, groupType: 'allOf' })
+
+  const expected: OpenAPIV3.SchemaObject = {
+    properties: {
+      errors: {
+        $ref: '#/components/schemas/custom-pages_messages'
+      },
+      messages: {
+        $ref: '#/components/schemas/custom-pages_messages'
+      },
+      result: {
+        anyOf: [
+          {
+            items: {},
+            nullable: true,
+            type: 'array'
+          }
+        ]
+      },
+      result_info: {
+        $ref: '#/components/schemas/custom-pages_result_info'
+      },
+      success: {
+        description: 'Whether the API call was successful',
+        enum: [true],
+        example: true,
+        type: 'boolean'
+      }
+    },
+    required: ['success', 'errors', 'messages', 'result'],
+    type: 'object'
+  }
+
+  assertEquals(result, expected)
+})
+
 Deno.test('mergeAllOf - merges two deep refs', () => {
   const input: OpenAPIV3.SchemaObject = {
     allOf: [
@@ -286,121 +337,9 @@ Deno.test('mergeAllOf - merges two deep refs', () => {
     ]
   }
 
-  const expected: OpenAPIV3.SchemaObject = {
-    allOf: [
-      {
-        properties: {
-          errors: {
-            example: [],
-            items: {
-              properties: {
-                code: { minimum: 1000, type: 'integer' },
-                message: { type: 'string' }
-              },
-              required: ['code', 'message'],
-              type: 'object',
-              uniqueItems: true
-            },
-            type: 'array'
-          },
-          messages: {
-            example: [],
-            items: {
-              properties: {
-                code: { minimum: 1000, type: 'integer' },
-                message: { type: 'string' }
-              },
-              required: ['code', 'message'],
-              type: 'object',
-              uniqueItems: true
-            },
-            type: 'array'
-          },
-          result: {
-            anyOf: [{ items: {}, nullable: true, type: 'array' }]
-          },
-          result_info: {
-            properties: {
-              count: {
-                description: 'Total number of results for the requested service',
-                example: 1,
-                type: 'number'
-              },
-              page: {
-                description: 'Current page within paginated list of results',
-                example: 1,
-                type: 'number'
-              },
-              per_page: {
-                description: 'Number of results per page of results',
-                example: 20,
-                type: 'number'
-              },
-              total_count: {
-                description: 'Total results available without any search parameters',
-                example: 2000,
-                type: 'number'
-              }
-            },
-            type: 'object'
-          },
-          success: {
-            description: 'Whether the API call was successful',
-            enum: [true],
-            example: true,
-            type: 'boolean'
-          }
-        },
-        required: ['success', 'errors', 'messages', 'result'],
-        type: 'object'
-      },
-      {
-        properties: {
-          errors: {
-            example: [{ code: 7003, message: 'No route for the URI' }],
-            minLength: 1,
-            items: {
-              properties: {
-                code: { minimum: 1000, type: 'integer' },
-                message: { type: 'string' }
-              },
-              required: ['code', 'message'],
-              type: 'object',
-              uniqueItems: true
-            },
-            type: 'array'
-          },
-          messages: {
-            example: [],
-            items: {
-              properties: {
-                code: { minimum: 1000, type: 'integer' },
-                message: { type: 'string' }
-              },
-              required: ['code', 'message'],
-              type: 'object',
-              uniqueItems: true
-            },
-            type: 'array'
-          },
-          result: { enum: [null], nullable: true, type: 'object' },
-          success: {
-            description: 'Whether the API call was successful',
-            enum: [false],
-            example: false,
-            type: 'boolean'
-          }
-        },
-        required: ['success', 'errors', 'messages', 'result'],
-        type: 'object'
-      }
-    ]
-  }
-
-  const result = mergeGroup({ schema: input, getRef, groupType: 'allOf' })
-
-  throw new Error('Result below is not quite done. Two top levels of allOf are not merged.')
-  console.log('RESULT', JSON.stringify(result, null, 2))
-
-  assertEquals(result, expected)
+  assertThrows(
+    () => mergeGroup({ schema: input, getRef, groupType: 'allOf' }),
+    Error,
+    'Cannot merge schemas: enum values have no intersection'
+  )
 })

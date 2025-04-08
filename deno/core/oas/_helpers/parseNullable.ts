@@ -24,7 +24,7 @@ export const parseNullable = <Value extends OpenAPIV3.SchemaObject>({
     parent: value,
     schema: v.optional(v.boolean()),
     toMessage: (input: unknown) => `Invalid nullable: ${input}`,
-    type: 'INCORRECT_NULLABLE'
+    type: 'INVALID_NULLABLE'
   })
 
   return {

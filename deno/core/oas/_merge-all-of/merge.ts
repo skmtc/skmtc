@@ -16,6 +16,8 @@ import { mergeIntegerConstraints } from './merge-integer-constraints.ts'
 import { mergeBooleanConstraints } from './merge-boolean-constraints.ts'
 import { genericMerge } from './generic-merge.ts'
 import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
+import { mergeGroup } from './merge-group.ts'
+
 export const mergeSchemasOrRefs = (
   first: SchemaOrReference,
   second: SchemaOrReference,
@@ -33,6 +35,18 @@ export const mergeSchemasOrRefs = (
     throw new Error('Ref in second')
   }
 
+  if (containsAllOf(first) || containsAllOf(second)) {
+    const mergedFirst = containsAllOf(first)
+      ? mergeGroup({ schema: first, getRef, groupType: 'allOf' })
+      : first
+
+    const mergedSecond = containsAllOf(second)
+      ? mergeGroup({ schema: second, getRef, groupType: 'allOf' })
+      : second
+
+    return mergeSchemasOrRefs(mergedFirst, mergedSecond, getRef)
+  }
+
   if (containsOneOf(first, second)) {
     return mergeSchemasWithOneOfs(first, second, getRef)
   }
@@ -42,6 +56,18 @@ export const mergeSchemasOrRefs = (
   }
 
   return mergeSchemas(first, second, getRef)
+}
+
+const containsAllOf = (schema: SchemaObject): boolean => {
+  if (schema.allOf) {
+    if (schema.allOf?.length) {
+      return true
+    }
+
+    throw new Error('Empty allOf')
+  }
+
+  return false
 }
 
 const containsAnyOf = (first: SchemaObject, second: SchemaObject): boolean => {

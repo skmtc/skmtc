@@ -1,23 +1,6 @@
+import { isEqual } from './is-equal.ts'
 import type { SchemaObject } from './types.ts'
 import * as v from 'valibot'
-
-function isEqual(a: unknown, b: unknown): boolean {
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false
-    return a.every((value, index) => isEqual(value, b[index]))
-  }
-  if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
-    const aKeys = Object.keys(a)
-    const bKeys = Object.keys(b)
-    if (aKeys.length !== bKeys.length) return false
-    return aKeys.every(
-      key =>
-        bKeys.includes(key) &&
-        isEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
-    )
-  }
-  return a === b
-}
 
 const containsEnum = (schema: SchemaObject): boolean => {
   return Array.isArray(schema.enum)

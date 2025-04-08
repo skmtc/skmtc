@@ -40,7 +40,7 @@ export const parseEnum = <
     parent: value,
     schema: nullable === true ? v.array(v.nullable(valibotSchema)) : v.array(valibotSchema),
     toMessage: value => `Removed invalid enum. Expected ${valibotSchema.type}, got: ${value}`,
-    type: 'INCORRECT_ENUM'
+    type: 'INVALID_ENUM'
   })
 
   return {
