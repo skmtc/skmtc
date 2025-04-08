@@ -164,38 +164,47 @@ Deno.test('mergeAllOf - even more complex oneOf', () => {
   const expected: OpenAPIV3.SchemaObject = {
     oneOf: [
       {
-        allOf: [
-          {
-            $ref: '#/components/schemas/File'
+        type: 'object',
+        required: ['content', 'kind'],
+        properties: {
+          content: {
+            type: 'string'
           },
-          {
-            type: 'object',
-            required: ['kind'],
-            properties: {
-              kind: {
-                type: 'string',
-                enum: ['file']
-              }
-            }
+          encoding: {
+            $ref: '#/components/schemas/Encoding'
+          },
+          kind: {
+            type: 'string',
+            enum: ['file']
           }
-        ]
+        }
       },
       {
-        allOf: [
-          {
-            $ref: '#/components/schemas/Symlink'
+        type: 'object',
+        required: ['gitSha1', 'kind'],
+        properties: {
+          gitSha1: {
+            type: 'string'
           },
-          {
-            type: 'object',
-            required: ['kind'],
-            properties: {
-              kind: {
-                type: 'string',
-                enum: ['symlink']
-              }
-            }
+          kind: {
+            type: 'string',
+            enum: ['file']
           }
-        ]
+        }
+      },
+      {
+        type: 'object',
+        required: ['target', 'kind'],
+        properties: {
+          target: {
+            type: 'string'
+          },
+          kind: {
+            type: 'string',
+            enum: ['symlink']
+          }
+        },
+        additionalProperties: false
       }
     ],
     discriminator: {

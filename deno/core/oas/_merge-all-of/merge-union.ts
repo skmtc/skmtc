@@ -2,6 +2,7 @@ import { decomposeUnion } from './decompose-union.ts'
 import type { GetRefFn, SchemaOrReference, SchemaObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
+import { isRef } from '../../helpers/refFns.ts'
 type MergeUnionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
@@ -11,15 +12,18 @@ type MergeUnionArgs = {
 export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): SchemaOrReference => {
   const { beforeExcluded, decomposed, afterExcluded } = decomposeUnion({ schema, groupType })
 
-  console.log('DECOMPOSED', JSON.stringify(decomposed, null, 2))
+  // if (decomposed.length === 1) {
+  //   console.log('DECOMPOSED', JSON.stringify(decomposed[0], null, 2))
+  //   const result = {
+  //     ...beforeExcluded,
+  //     ...decomposed[0],
+  //     ...afterExcluded
+  //   }
 
-  if (decomposed.length === 1) {
-    return {
-      ...beforeExcluded,
-      ...decomposed[0],
-      ...afterExcluded
-    }
-  }
+  //   console.log('MERGED UNION - SHORT', JSON.stringify(result, null, 2))
+
+  //   return result
+  // }
 
   const dereffed = decomposed.map(decomposed => {
     return '$ref' in decomposed ? getRef(decomposed) : decomposed
@@ -31,7 +35,13 @@ export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): Schem
     return merged
   }, {} as SchemaObject)
 
-  return result
+  const output = {
+    ...beforeExcluded,
+    ...result,
+    ...afterExcluded
+  }
+
+  return output
 }
 
 type MergeCrossProductArgs = {
@@ -63,6 +73,12 @@ export const mergeCrossProduct = ({
     .filter(item => item !== undefined)
 
   return {
-    [groupType]: mergedGroup
+    [groupType]: mergedGroup.flatMap(item => {
+      if (!isRef(item) && Array.isArray(item[groupType])) {
+        return item[groupType]
+      }
+
+      return [item]
+    })
   }
 }

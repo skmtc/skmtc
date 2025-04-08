@@ -20,6 +20,8 @@ type DecomposeUnionReturn = {
 // Convert a schema object into an array of schemas that can be merged iteratively into a new schema
 export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): DecomposeUnionReturn => {
   if (!schema[groupType]) {
+    console.log('NO GROUP TYPE', JSON.stringify(schema, null, 2))
+
     return {
       beforeExcluded: {},
       decomposed: [schema],
@@ -54,11 +56,13 @@ export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): Decom
     after.length > 0 ? Object.fromEntries(after) : undefined
   ].filter(item => item !== undefined)
 
-  return {
+  const result = {
     beforeExcluded: Object.fromEntries(beforeExcluded),
     decomposed,
     afterExcluded: Object.fromEntries(afterExcluded)
   }
+
+  return result
 }
 
 const excludedProperties = ['discriminator', 'default']
@@ -72,9 +76,9 @@ const exclude = (entries: [string, any][]): ExcludeOutput => {
   return entries.reduce<ExcludeOutput>(
     (acc, [key, value]) => {
       if (excludedProperties.includes(key)) {
-        acc.retained.push([key, value])
-      } else {
         acc.excluded.push([key, value])
+      } else {
+        acc.retained.push([key, value])
       }
 
       return acc

@@ -155,8 +155,6 @@ const expected: SchemaObject = {
 Deno.test('mergeAllOf - with top-level oneOf', () => {
   const result = mergeUnion({ schema: input, getRef, groupType: 'oneOf' })
 
-  console.log('RESULT', JSON.stringify(result, null, 2))
-
   assertEquals(result, expected)
 })
 
