@@ -13,7 +13,7 @@ export type OasObjectFields<Nullable extends boolean | undefined> = {
     ? Record<string, unknown> | null | undefined
     : Record<string, unknown> | undefined
   additionalProperties?: boolean | OasSchema | OasRef<'schema'> | undefined
-  nullable: Nullable
+  nullable?: Nullable
   maxProperties?: number
   minProperties?: number
   enums?: Nullable extends true
@@ -60,7 +60,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
   /**
    * Indicates whether value can be null.
    */
-  nullable: Nullable
+  nullable: Nullable | undefined
   /**
    * A record which maps property names of the object to their schemas.
    */

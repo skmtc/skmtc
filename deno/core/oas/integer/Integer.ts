@@ -4,7 +4,7 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 export type IntegerFields<Nullable extends boolean | undefined> = {
   title?: string
   description?: string
-  nullable: Nullable
+  nullable?: Nullable
   format?: 'int32' | 'int64'
   default?: Nullable extends true ? number | null | undefined : number | undefined
   enums?: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
@@ -38,7 +38,7 @@ export class OasInteger<Nullable extends boolean | undefined = boolean | undefin
   /**
    * Indicates whether value can be null.
    */
-  nullable: Nullable
+  nullable: Nullable | undefined
   /**
    * The format of the integer.
    */

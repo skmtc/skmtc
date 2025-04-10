@@ -6,7 +6,7 @@ export type ArrayFields<Nullable extends boolean | undefined> = {
   items: OasSchema | OasRef<'schema'>
   title?: string
   description?: string
-  nullable: Nullable
+  nullable?: Nullable
   uniqueItems?: boolean
   extensionFields?: Record<string, unknown>
   example?: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined
@@ -44,7 +44,7 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
   /**
    * Indicates whether value can be null.
    */
-  nullable: Nullable
+  nullable: Nullable | undefined
   /**
    * Indicates whether the array items must be unique.
    */

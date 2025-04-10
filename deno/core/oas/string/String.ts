@@ -11,7 +11,7 @@ export type StringFields<Nullable extends boolean | undefined> = {
   enums?: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
   maxLength?: number
   minLength?: number
-  nullable: Nullable
+  nullable?: Nullable
   extensionFields?: Record<string, unknown>
   example?: Nullable extends true ? string | null | undefined : string | undefined
 }
@@ -56,7 +56,7 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
   /**
    * Indicates whether value can be null.
    */
-  nullable: Nullable
+  nullable: Nullable | undefined
   /** Specification Extension fields */
   extensionFields: Record<string, unknown> | undefined
   /** An example of the string. */

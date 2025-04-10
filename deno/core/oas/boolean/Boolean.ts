@@ -4,7 +4,7 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 export type BooleanFields<Nullable extends boolean | undefined> = {
   title?: string
   description?: string
-  nullable: Nullable
+  nullable?: Nullable
   extensionFields?: Record<string, unknown>
   example?: Nullable extends true ? boolean | null | undefined : boolean | undefined
   enum?: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
@@ -35,7 +35,7 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
   /**
    * Indicates whether value can be null.
    */
-  nullable: Nullable
+  nullable: Nullable | undefined
 
   /** Specification Extension fields */
   extensionFields: Record<string, unknown> | undefined
