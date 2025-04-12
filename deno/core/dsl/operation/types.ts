@@ -3,7 +3,7 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
-import * as v from 'valibot'
+import type * as v from 'valibot'
 import type { SchemaOption } from '../../types/SchemaOptions.ts'
 export type OperationInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext

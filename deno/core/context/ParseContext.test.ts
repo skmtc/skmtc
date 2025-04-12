@@ -21,8 +21,8 @@ const filteredWarnings = parseContext.warnings.filter(warning => {
   return (
     warning.type === 'UNEXPECTED_PROPERTY' &&
     ![
-      'Unexpected property "items" in "schema:object"',
-      'Unexpected property "uniqueItems" in "schema:object"'
+      `Unexpected property 'items' in 'schema:object'`,
+      `Unexpected property 'uniqueItems' in 'schema:object'`
     ].includes(warning.message)
   )
 })

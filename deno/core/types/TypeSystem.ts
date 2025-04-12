@@ -87,7 +87,7 @@ export type TypeSystemObjectProperties = {
 export type TypeSystemString = {
   type: 'string'
   format: string | undefined
-  enums: string[] | undefined
+  enums: string[] | (string | null)[] | undefined
   modifiers: Modifiers
   generatorKey?: GeneratorKey
 }

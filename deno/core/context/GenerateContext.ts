@@ -6,7 +6,12 @@ import type { OasDocument } from '../oas/document/Document.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { GetFileOptions } from './types.ts'
-import type { ClientSettings, EnrichedSetting } from '../types/Settings.ts'
+import type {
+  ClientGeneratorSettings,
+  ClientSettings,
+  EnrichedSetting,
+  OperationsGeneratorSettings
+} from '../types/Settings.ts'
 import type { Method } from '../types/Method.ts'
 import type { OperationConfig, OperationInsertable } from '../dsl/operation/types.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
@@ -30,7 +35,8 @@ import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
 import { match } from 'ts-pattern'
 import type { SchemaOption } from '../types/SchemaOptions.ts'
-
+import type { GeneratorConfig } from '../types/GeneratorType.ts'
+import { toGeneratorSettings } from '../run/toGeneratorSettings.ts'
 type ConstructorArgs = {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
@@ -154,6 +160,10 @@ type GenerateResult = {
   schemaOptions: SchemaOption[]
 }
 
+type ToSettingsArgs = {
+  defaultSelected: boolean
+}
+
 export class GenerateContext {
   #files: Map<string, File>
   #previews: Record<string, Record<string, Preview>>
@@ -188,10 +198,10 @@ export class GenerateContext {
   /**
    * @internal
    */
-  generate(): GenerateResult {
+  toArtifacts(): GenerateResult {
     const generators = Object.values(this.toGeneratorConfigMap())
 
-    Sentry.startSpan({ name: 'Generate' }, () =>
+    Sentry.startSpan({ name: 'toArtifacts' }, () =>
       generators.forEach(generatorConfig => {
         this.trace(generatorConfig.id, () => {
           match(generatorConfig.type)
@@ -215,6 +225,88 @@ export class GenerateContext {
     }
   }
 
+  toSettings({ defaultSelected }: ToSettingsArgs): ClientGeneratorSettings[] {
+    const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
+
+    const generatorSettings = Sentry.startSpan({ name: 'toSettings' }, () =>
+      generators.map(generatorConfig => {
+        return this.trace(generatorConfig.id, () => {
+          return match(generatorConfig)
+            .returnType<ClientGeneratorSettings>()
+            .with({ type: 'operation' }, operationGenerator => {
+              const generatorSettings = toGeneratorSettings({
+                settings: this.settings,
+                generatorId: operationGenerator.id,
+                generatorType: operationGenerator.type
+              })
+
+              const operationsSettings = this.oasDocument.operations
+                .filter(operation => {
+                  return operationGenerator.isSupported({
+                    context: this,
+                    operation
+                  })
+                })
+                .reduce(
+                  (acc, { path, method }) => {
+                    const currentSettings = generatorSettings?.operations?.[path]?.[method]
+
+                    acc[path] = {
+                      ...acc[path],
+                      [method]: currentSettings ?? {
+                        selected: defaultSelected,
+                        enrichments: undefined
+                      }
+                    }
+
+                    return acc
+                  },
+                  {} as Record<string, Partial<Record<Method, EnrichedSetting>>>
+                )
+
+              return {
+                ...generatorSettings,
+                id: operationGenerator.id,
+                operations: operationsSettings
+              }
+            })
+            .with({ type: 'model' }, modelGenerator => {
+              const generatorSettings = toGeneratorSettings({
+                settings: this.settings,
+                generatorId: modelGenerator.id,
+                generatorType: modelGenerator.type
+              })
+
+              const modelsSettings = (
+                this.oasDocument.components?.toSchemasRefNames() ?? []
+              ).reduce(
+                (acc, refName) => {
+                  const currentSettings = generatorSettings?.models?.[refName]
+
+                  acc[refName] = currentSettings ?? {
+                    selected: defaultSelected,
+                    enrichments: undefined
+                  }
+
+                  return acc
+                },
+                {} as Record<string, EnrichedSetting>
+              )
+
+              return {
+                ...generatorSettings,
+                id: modelGenerator.id,
+                models: modelsSettings
+              }
+            })
+            .exhaustive()
+        })
+      })
+    )
+
+    return generatorSettings
+  }
+
   #runOperationGenerator<EnrichmentType = undefined>({
     oasDocument,
     generatorConfig
@@ -234,7 +326,10 @@ export class GenerateContext {
 
     return oasDocument.operations.reduce((acc, operation) => {
       return this.trace([operation.path, operation.method], () => {
-        if (!generatorConfig.isSupported({ operation, context: this })) {
+        if (
+          typeof generatorConfig?.isSupported === 'function' &&
+          !generatorConfig.isSupported({ operation, context: this })
+        ) {
           this.captureCurrentResult('notSupported')
           return acc
         }

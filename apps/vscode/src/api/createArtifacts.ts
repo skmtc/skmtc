@@ -4,6 +4,7 @@ import { SkmtcClientConfig } from '@skmtc/core/Settings'
 import { createArtifactsResponse } from '../types/generationResponse'
 import { ExtensionStore } from '../types/ExtensionStore'
 import { toServerUrl } from '../utilities/toServerUrl'
+import * as v from 'valibot'
 
 type GenerateArgs = {
   store: ExtensionStore
@@ -44,7 +45,7 @@ export const createArtifacts = async ({
 
     const json = await res.json()
 
-    return createArtifactsResponse.parse(json)
+    return v.parse(createArtifactsResponse, json)
   } catch (error) {
     store.sentryClient.captureException(error)
 

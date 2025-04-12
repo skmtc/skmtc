@@ -88,7 +88,7 @@ export class ParseContext {
       this.logWarning({
         key,
         parent,
-        message: `Unexpected property "${key}" in "${parentType}"`,
+        message: `Unexpected property '${key}' in '${parentType}'`,
         type: 'UNEXPECTED_PROPERTY'
       })
     })

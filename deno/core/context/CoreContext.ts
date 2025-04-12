@@ -3,7 +3,7 @@ import { RenderContext } from './RenderContext.ts'
 import { ParseContext } from './ParseContext.ts'
 import type { PrettierConfigType } from '../types/prettierConfig.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
-import type { ClientSettings } from '../types/Settings.ts'
+import type { ClientSettings, ClientGeneratorSettings } from '../types/Settings.ts'
 import type { ResultType } from '../types/Results.ts'
 import * as log from 'jsr:@std/log@^0.224.6'
 import { ResultsHandler } from './ResultsHandler.ts'
@@ -51,6 +51,13 @@ type RenderArgs = {
   schemaOptions: SchemaOption[]
   prettier?: PrettierConfigType
   basePath: string | undefined
+}
+
+type GenerateSettingsArgs = {
+  documentObject: OpenAPIV3.Document
+  clientSettings: ClientSettings | undefined
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  defaultSelected: boolean
 }
 
 type TransformArgs = {
@@ -130,6 +137,39 @@ export class CoreContext {
     }
   }
 
+  generateSettings({
+    documentObject,
+    clientSettings,
+    toGeneratorConfigMap,
+    defaultSelected
+  }: GenerateSettingsArgs): ClientGeneratorSettings[] | undefined {
+    try {
+      const oasDocument = this.trace('parse', () => {
+        this.#phase = this.#setupParsePhase(documentObject)
+
+        return this.#phase.context.parse()
+      })
+
+      return this.trace('toSettings', () => {
+        this.#phase = this.#setupGeneratePhase({
+          toGeneratorConfigMap,
+          oasDocument,
+          settings: clientSettings
+        })
+
+        return this.#phase.context.toSettings({ defaultSelected })
+      })
+    } catch (error) {
+      console.error(error)
+
+      this.logger.error(error)
+
+      Sentry.captureException(error)
+
+      return undefined
+    }
+  }
+
   transform({ documentObject, settings, toGeneratorConfigMap, prettier }: TransformArgs) {
     try {
       const oasDocument = this.trace('parse', () => {
@@ -138,14 +178,14 @@ export class CoreContext {
         return this.#phase.context.parse()
       })
 
-      const { files, previews, schemaOptions } = this.trace('generate', () => {
+      const { files, previews, schemaOptions } = this.trace('toArtifacts', () => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           oasDocument,
           settings
         })
 
-        return this.#phase.context.generate()
+        return this.#phase.context.toArtifacts()
       })
 
       this.logger.debug(`${files.size} files generated`)

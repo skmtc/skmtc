@@ -26,18 +26,6 @@ export const createWatchers = ({ store, settingsTreeView }: CreateWatchersArgs):
     }
   })
 
-  const extensionsConfigWatcher = workspace.createFileSystemWatcher(
-    join(toSettingsPath(), 'extensions.json')
-  )
-
-  const extensionsConfigCreateWatcherDisposable = extensionsConfigWatcher.onDidCreate(() => {
-    filesUpdated({ store, settingsTreeView })
-  })
-
-  const extensionsConfigChangeWatcherDisposable = extensionsConfigWatcher.onDidChange(() =>
-    filesUpdated({ store, settingsTreeView })
-  )
-
   const clientConfigWatcher = workspace.createFileSystemWatcher(
     join(toSettingsPath(), 'client.json')
   )
@@ -101,9 +89,6 @@ export const createWatchers = ({ store, settingsTreeView }: CreateWatchersArgs):
     workspaceWatcher,
     clientConfigWatcher,
     clientConfigChangeWatcherDisposable,
-    extensionsConfigWatcher,
-    extensionsConfigCreateWatcherDisposable,
-    extensionsConfigChangeWatcherDisposable,
     jsonSchemaWatcher,
     jsonSchemaCreateDisposable,
     jsonSchemaDeleteDisposable,

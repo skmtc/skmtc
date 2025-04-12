@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/deno'
 import { cors } from 'hono/cors'
 import { Hono } from 'hono'
-import { clientSettings as settingsSchema, transform } from '@skmtc/core'
-import { generateSettings } from './generateSettings.ts'
+import { CoreContext, clientSettings as settingsSchema, transform } from '@skmtc/core'
 import type { GeneratorsMapContainer } from '@skmtc/core'
 import { stringToSchema, toV3Document } from './toV3Document.ts'
 import * as v from 'valibot'
@@ -113,15 +112,18 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
       const { clientSettings, defaultSelected = false, schema } = v.parse(postSettingsBody, body)
 
-      const { enrichedSettings } = await generateSettings({
-        toGeneratorConfigMap,
-        schema,
+      const documentObject = await toV3Document(stringToSchema(schema))
+
+      const context = new CoreContext({ spanId: span.spanContext().spanId })
+
+      const generators = context.generateSettings({
+        documentObject,
         clientSettings,
-        defaultSelected,
-        spanId: span.spanContext().spanId
+        toGeneratorConfigMap,
+        defaultSelected
       })
 
-      return c.json({ generators: enrichedSettings })
+      return c.json({ generators })
     })
   })
 

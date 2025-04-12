@@ -1,12 +1,12 @@
 import { commands, ProgressLocation, window, ExtensionContext } from 'vscode'
 import { readSchemaFile } from '../utilities/readSchemaFile'
 import { readClientConfig } from '../utilities/readClientConfig'
-import { z } from 'zod'
 import { clientGeneratorSettings } from '@skmtc/core/Settings'
 import { createSettings } from '../api/createSettings'
 import { writeClientConfig } from '../utilities/writeClientConfig'
 import { ExtensionStore } from '../types/ExtensionStore'
 import { readStackConfig } from '../utilities/readStackConfig'
+import * as v from 'valibot'
 
 type RegisterCreateSettingsArgs = {
   store: ExtensionStore
@@ -48,9 +48,8 @@ export const registerCreateSettings = ({ store, context }: RegisterCreateSetting
   })
 }
 
-const createSettingsRespose = z.object({
-  generators: z.array(clientGeneratorSettings),
-  extensions: z.record(z.unknown())
+const createSettingsRespose = v.object({
+  generators: v.array(clientGeneratorSettings)
 })
 
 type CallCreateSettingsArgs = {
@@ -85,7 +84,7 @@ const callCreateSettings = async ({ store, context }: CallCreateSettingsArgs) =>
     context
   })
 
-  const { generators } = createSettingsRespose.parse(res)
+  const { generators } = v.parse(createSettingsRespose, res)
 
   clientConfig.settings.generators = generators
 
