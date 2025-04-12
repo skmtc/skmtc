@@ -3,7 +3,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { OasServer } from './Server.ts'
 import type { ServerFields } from './Server.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-
+import { toOptionalServerVariablesV3 } from '../serverVariable/toServerVariableV3.ts'
 type ToServersV3Args = {
   servers: OpenAPIV3.ServerObject[]
   context: ParseContext
@@ -37,7 +37,7 @@ type ToServerV3Args = {
 }
 
 export const toServerV3 = ({ server, context }: ToServerV3Args): OasServer => {
-  const { description, url, ...skipped } = server
+  const { description, url, variables, ...skipped } = server
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -46,11 +46,10 @@ export const toServerV3 = ({ server, context }: ToServerV3Args): OasServer => {
     parentType: 'server'
   })
 
-  const fields: ServerFields = {
+  return new OasServer({
     description,
     url,
+    variables: toOptionalServerVariablesV3({ serverVariables: variables, context }),
     extensionFields
-  }
-
-  return new OasServer(fields)
+  })
 }
