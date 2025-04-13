@@ -13,7 +13,7 @@ export class OasContact {
   email: string | undefined
   extensionFields: Record<string, unknown> | undefined
 
-  constructor(fields: ContactFields) {
+  constructor(fields: ContactFields = {}) {
     this.name = fields.name
     this.url = fields.url
     this.email = fields.email

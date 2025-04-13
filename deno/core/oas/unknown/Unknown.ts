@@ -40,7 +40,7 @@ export class OasUnknown {
   /** An example of the unknown type. */
   example: unknown | undefined
 
-  constructor(fields: UnknownFields) {
+  constructor(fields: UnknownFields = {}) {
     this.title = fields.title
     this.description = fields.description
     this.extensionFields = fields.extensionFields

@@ -97,7 +97,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
   readOnly?: boolean
   writeOnly?: boolean
   deprecated?: boolean
-  constructor(fields: OasObjectFields<Nullable>) {
+  constructor(fields: OasObjectFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
     this.properties = fields.properties

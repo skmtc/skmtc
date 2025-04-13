@@ -80,7 +80,7 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
    * Whether the minimum value is exclusive.
    */
   exclusiveMinimum: boolean | undefined
-  constructor(fields: NumberFields<Nullable>) {
+  constructor(fields: NumberFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
     this.nullable = fields.nullable

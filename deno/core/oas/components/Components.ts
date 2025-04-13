@@ -29,7 +29,7 @@ export class OasComponents {
   /** @internal */
   #fields: ComponentsFields
 
-  constructor(fields: ComponentsFields) {
+  constructor(fields: ComponentsFields = {}) {
     this.#fields = fields
   }
 

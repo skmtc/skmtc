@@ -70,7 +70,7 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
    */
   default: Nullable extends true ? string | null | undefined : string | undefined
 
-  constructor(fields: StringFields<Nullable>) {
+  constructor(fields: StringFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
     this.format = fields.format

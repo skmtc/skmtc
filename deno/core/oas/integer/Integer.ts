@@ -77,7 +77,7 @@ export class OasInteger<Nullable extends boolean | undefined = boolean | undefin
    * The default value of the integer.
    */
   default: Nullable extends true ? number | null | undefined : number | undefined
-  constructor(fields: IntegerFields<Nullable>) {
+  constructor(fields: IntegerFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
     this.nullable = fields.nullable

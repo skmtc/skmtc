@@ -53,7 +53,7 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
    */
   default: Nullable extends true ? boolean | null | undefined : boolean | undefined
 
-  constructor(fields: BooleanFields<Nullable>) {
+  constructor(fields: BooleanFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
     this.nullable = fields.nullable

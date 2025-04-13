@@ -9,7 +9,7 @@ export class OasLicense {
   name: string | undefined
   url: string | undefined
   extensionFields: Record<string, unknown> | undefined
-  constructor(fields: LicenseFields) {
+  constructor(fields: LicenseFields = {}) {
     this.name = fields.name
     this.url = fields.url
     this.extensionFields = fields.extensionFields
