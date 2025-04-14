@@ -6,12 +6,7 @@ import type { OasDocument } from '../oas/document/Document.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { GetFileOptions } from './types.ts'
-import type {
-  ClientGeneratorSettings,
-  ClientSettings,
-  EnrichedSetting,
-  OperationsGeneratorSettings
-} from '../types/Settings.ts'
+import type { ClientGeneratorSettings, ClientSettings, EnrichedSetting } from '../types/Settings.ts'
 import type { Method } from '../types/Method.ts'
 import type { OperationConfig, OperationInsertable } from '../dsl/operation/types.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
@@ -22,7 +17,7 @@ import type { GenerationType, GeneratedValue } from '../types/GeneratedValue.ts'
 import { ContentSettings } from '../dsl/ContentSettings.ts'
 import type { RefName } from '../types/RefName.ts'
 import * as Sentry from 'npm:@sentry/deno@8.47.0'
-import type * as log from 'jsr:@std/log@^0.224.6'
+import type * as log from 'jsr:@std/log@0.224.6'
 import type { ResultType } from '../types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'

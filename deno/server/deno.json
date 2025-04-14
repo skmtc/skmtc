@@ -1,12 +1,16 @@
 {
   "name": "@skmtc/server",
-    "version": "0.0.487",
+    "version": "0.0.488",
     "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.607",
-    "@sentry/deno": "npm:@sentry/deno@^8.47.0"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.608",
+    "@sentry/deno": "npm:@sentry/deno@^8.47.0",
+    "@std/log":"jsr:@std/log@0.224.6",
+    "@std/yaml":"jsr:@std/yaml@^1.0.5",
+    "swagger2openapi":"npm:swagger2openapi@7.0.8",
+    "@apiture/openapi-down-convert":"npm:@apiture/openapi-down-convert@0.14.0"
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty"

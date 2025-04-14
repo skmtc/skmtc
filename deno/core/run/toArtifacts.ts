@@ -16,7 +16,7 @@ type TransformArgs = {
   startAt: number
 }
 
-export const transform = ({
+export const toArtifacts = ({
   traceId,
   spanId,
   documentObject,
@@ -28,7 +28,7 @@ export const transform = ({
 }: TransformArgs) => {
   const context = new CoreContext({ spanId, logsPath })
 
-  const { artifacts, files, previews, schemaOptions, results } = context.transform({
+  const { artifacts, files, previews, schemaOptions, results } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     prettier,

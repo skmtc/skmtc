@@ -5,7 +5,7 @@ import type { PrettierConfigType } from '../types/prettierConfig.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
 import type { ClientSettings, ClientGeneratorSettings } from '../types/Settings.ts'
 import type { ResultType } from '../types/Results.ts'
-import * as log from 'jsr:@std/log@^0.224.6'
+import * as log from 'jsr:@std/log@0.224.6'
 import { ResultsHandler } from './ResultsHandler.ts'
 import { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
@@ -60,7 +60,7 @@ type GenerateSettingsArgs = {
   defaultSelected: boolean
 }
 
-type TransformArgs = {
+type ToArtifactsArgs = {
   documentObject: OpenAPIV3.Document
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
@@ -170,7 +170,7 @@ export class CoreContext {
     }
   }
 
-  transform({ documentObject, settings, toGeneratorConfigMap, prettier }: TransformArgs) {
+  toArtifacts({ documentObject, settings, toGeneratorConfigMap, prettier }: ToArtifactsArgs) {
     try {
       const oasDocument = this.trace('parse', () => {
         this.#phase = this.#setupParsePhase(documentObject)

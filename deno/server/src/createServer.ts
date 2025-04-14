@@ -1,9 +1,14 @@
 import * as Sentry from '@sentry/deno'
 import { cors } from 'hono/cors'
 import { Hono } from 'hono'
-import { CoreContext, clientSettings as settingsSchema, transform } from '@skmtc/core'
+import {
+  CoreContext,
+  clientSettings as settingsSchema,
+  toArtifacts,
+  stringToSchema,
+  toV3Document
+} from '@skmtc/core'
 import type { GeneratorsMapContainer } from '@skmtc/core'
-import { stringToSchema, toV3Document } from './toV3Document.ts'
 import * as v from 'valibot'
 
 const postSettingsBody = v.object({
@@ -52,8 +57,6 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
       body: c.req.raw.body
     })
 
-    console.log('REQ', req)
-
     return fetch(req)
   })
 
@@ -70,7 +73,7 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
       return Sentry.startSpan({ name: 'Generate' }, () => {
         const { traceId, spanId } = span.spanContext()
 
-        const { artifacts, manifest } = transform({
+        const { artifacts, manifest } = toArtifacts({
           traceId,
           spanId,
           startAt,
