@@ -79,17 +79,17 @@ export const oasPasswordOAuth2FlowData = v.object({
 })
 
 export type OasOAuth2FlowsData = {
-  authorizationCode: OasAuthorizationCodeOAuth2FlowData
-  clientCredentials: OasClientCredentialsOAuth2FlowData
-  implicit: OasImplicitOAuth2FlowData
-  password: OasPasswordOAuth2FlowData
+  authorizationCode?: OasAuthorizationCodeOAuth2FlowData
+  clientCredentials?: OasClientCredentialsOAuth2FlowData
+  implicit?: OasImplicitOAuth2FlowData
+  password?: OasPasswordOAuth2FlowData
 }
 
 export const oasOAuth2FlowsData = v.object({
-  authorizationCode: oasAuthorizationCodeOAuth2FlowData,
-  clientCredentials: oasClientCredentialsOAuth2FlowData,
-  implicit: oasImplicitOAuth2FlowData,
-  password: oasPasswordOAuth2FlowData
+  authorizationCode: v.optional(oasAuthorizationCodeOAuth2FlowData),
+  clientCredentials: v.optional(oasClientCredentialsOAuth2FlowData),
+  implicit: v.optional(oasImplicitOAuth2FlowData),
+  password: v.optional(oasPasswordOAuth2FlowData)
 })
 
 export type OasOAuth2SecuritySchemeData = {

@@ -22,23 +22,23 @@ export type ApiKeySecuritySchemeFields = {
 export type OAuth2SecuritySchemeFields = {
   description?: string
   flows: {
-    authorizationCode: {
+    authorizationCode?: {
       authorizationUrl: string
       tokenUrl: string
       refreshUrl?: string | undefined
       scopes: Record<string, string>
     }
-    clientCredentials: {
+    clientCredentials?: {
       tokenUrl: string
       refreshUrl?: string | undefined
       scopes: Record<string, string>
     }
-    implicit: {
+    implicit?: {
       authorizationUrl: string
       refreshUrl?: string | undefined
       scopes: Record<string, string>
     }
-    password: {
+    password?: {
       tokenUrl: string
       refreshUrl?: string | undefined
       scopes: Record<string, string>
@@ -125,23 +125,23 @@ export class OasOAuth2SecurityScheme {
   type: 'oauth2' = 'oauth2'
   description: string | undefined
   flows: {
-    authorizationCode: {
+    authorizationCode?: {
       authorizationUrl: string
       tokenUrl: string
       refreshUrl?: string | undefined
       scopes: Record<string, string>
     }
-    clientCredentials: {
+    clientCredentials?: {
       tokenUrl: string
       refreshUrl?: string | undefined
       scopes: Record<string, string>
     }
-    implicit: {
+    implicit?: {
       authorizationUrl: string
       refreshUrl?: string | undefined
       scopes: Record<string, string>
     }
-    password: {
+    password?: {
       tokenUrl: string
       refreshUrl?: string | undefined
       scopes: Record<string, string>
