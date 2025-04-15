@@ -166,11 +166,15 @@ const toAssets = async (skmtcPath: string): Promise<Record<string, DenoFile>> =>
     .map((filePath): AssetEntry | undefined => {
       invariant(typeof filePath === 'string', 'expected filePath to be a string')
 
-      const resolvedFilePath = path.join(skmtcRoot, filePath)
-
-      if (resolvedFilePath.includes('.DS_Store') || resolvedFilePath.includes('.prettierrc.json')) {
+      if (
+        filePath.includes('.DS_Store') ||
+        filePath.includes('.prettierrc.json') ||
+        filePath.startsWith('logs/')
+      ) {
         return
       }
+
+      const resolvedFilePath = path.join(skmtcRoot, filePath)
 
       if (fs.statSync(resolvedFilePath).isDirectory()) {
         return
