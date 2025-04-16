@@ -166,8 +166,6 @@ const toAssets = async (skmtcPath: string): Promise<Record<string, DenoFile>> =>
     .map((filePath): AssetEntry | undefined => {
       invariant(typeof filePath === 'string', 'expected filePath to be a string')
 
-      console.log('FILE PATH', filePath)
-
       if (
         filePath.includes('.DS_Store') ||
         filePath.includes('.prettierrc.json') ||
@@ -185,16 +183,13 @@ const toAssets = async (skmtcPath: string): Promise<Record<string, DenoFile>> =>
         return
       }
 
-      const fileContents = fs.readFileSync(resolvedFilePath, 'utf-8')
+      const file: DenoFile = {
+        kind: 'file',
+        encoding: 'utf-8',
+        content: fs.readFileSync(resolvedFilePath, 'utf-8')
+      }
 
-      return [
-        filePath,
-        {
-          kind: 'file',
-          content: fileContents,
-          encoding: 'utf-8'
-        }
-      ]
+      return [filePath, file]
     })
     .filter((item): item is AssetEntry => Boolean(item))
 

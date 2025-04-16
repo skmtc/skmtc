@@ -319,7 +319,7 @@ export class GenerateContext {
       }
     })
 
-    return oasDocument.operations.reduce((acc, operation) => {
+    oasDocument.operations.reduce((acc, operation) => {
       return this.trace([operation.path, operation.method], () => {
         if (
           typeof generatorConfig?.isSupported === 'function' &&
@@ -340,11 +340,17 @@ export class GenerateContext {
           return acc
         }
 
-        const result = generatorConfig.transform({ context: this, operation, acc })
+        try {
+          const result = generatorConfig.transform({ context: this, operation, acc })
 
-        this.captureCurrentResult('success')
+          this.captureCurrentResult('success')
 
-        return result
+          return result
+        } catch (error) {
+          this.logger.error(error)
+
+          this.captureCurrentResult('error')
+        }
       })
     }, undefined)
   }
@@ -380,11 +386,16 @@ export class GenerateContext {
           return acc
         }
 
-        const result = generatorConfig.transform({ context: this, refName, acc })
+        try {
+          const result = generatorConfig.transform({ context: this, refName, acc })
 
-        this.captureCurrentResult('success')
+          this.captureCurrentResult('success')
 
-        return result
+          return result
+        } catch (error) {
+          this.logger.error(error)
+          this.captureCurrentResult('error')
+        }
       })
     }, undefined)
   }
