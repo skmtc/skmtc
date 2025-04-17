@@ -76,11 +76,6 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
     return toRefV31({ ref: schema, refType: 'schema', context })
   }
 
-  // Workaround for dodgy Reapit schema
-  // if (schema.type !== 'array' && 'optional' in schema && schema.optional === true) {
-  //   schema.nullable = true
-  // }
-
   return match(schema)
     .with({ allOf: P.array() }, schema => {
       return context.trace('allOf', () => {
@@ -106,6 +101,10 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
 
         const { oneOf: members, ...value } = merged
 
+        if (members.length === 1) {
+          return toSchemaV3({ schema: members[0], context })
+        }
+
         return toUnion({ value, members, parentType: 'oneOf', context })
       })
     })
@@ -122,6 +121,10 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         }
 
         const { anyOf: members, ...value } = merged
+
+        if (members.length === 1) {
+          return toSchemaV3({ schema: members[0], context })
+        }
 
         return toUnion({ value, members, parentType: 'anyOf', context })
       })
