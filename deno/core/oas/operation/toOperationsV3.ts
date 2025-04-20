@@ -127,6 +127,8 @@ export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOpera
                 context
               })
             } catch (error) {
+              console.log('ERROR IN OPERATION', error)
+
               context.logWarning({
                 key: method,
                 message: error instanceof Error ? error.message : 'Failed to parse operation',

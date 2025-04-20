@@ -13,6 +13,10 @@ export class StackTrail {
     return new StackTrail(this.#stack.slice(start, end))
   }
 
+  includes(frames: string[]) {
+    return frames.every(frame => this.#stack.includes(frame))
+  }
+
   get stackTrail() {
     return this.#stack
   }

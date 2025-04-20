@@ -61,6 +61,7 @@ export class ParseContext {
   stackTrail: StackTrail
   warnings: ParseWarning[]
   silent: boolean
+  #refErrors: Record<string, StackTrail[] | Error | undefined>
   constructor({ documentObject, logger, stackTrail, silent = false }: ConstructorArgs) {
     this.documentObject = documentObject
     this.logger = logger
@@ -68,6 +69,7 @@ export class ParseContext {
     this.oasDocument = new OasDocument()
     this.silent = silent
     this.warnings = []
+    this.#refErrors = {}
   }
 
   parse() {
@@ -77,6 +79,65 @@ export class ParseContext {
     })
 
     return this.oasDocument
+  }
+
+  // Apply past or future errors to the ref
+  // Register a callback to be called when an error occurs during ref parsing later
+  // If ref error has already occurred, call the callback immediately
+  registerRefStackTrail($ref: string, stackTrail: StackTrail) {
+    const refError = this.#refErrors[$ref]
+
+    if (!refError) {
+      this.#refErrors[$ref] = [stackTrail]
+      return
+    }
+
+    if (Array.isArray(refError)) {
+      refError.push(stackTrail)
+      return
+    }
+
+    if (refError instanceof Error) {
+      console.log('REF ERROR THROWING', refError)
+      throw refError
+    }
+
+    throw new Error(`Invalid ref error handler for ${$ref}`)
+  }
+
+  registerRefError($ref: string, error: Error) {
+    const refError = this.#refErrors[$ref]
+
+    if (!refError) {
+      console.log('NEW ERROR', $ref, error)
+      this.#refErrors[$ref] = error
+      return
+    }
+
+    if (Array.isArray(refError)) {
+      console.log('ARRAY ERROR', refError)
+      refError.forEach(stackTrail => {
+        throw new Error('Continue here next')
+        /* Look up operation or model based on stack trail
+        and remove it from document. Log the removal. */
+
+        console.log('STACK TRAIL', stackTrail.toString())
+      })
+
+      console.log('ADDING ERROR', error)
+
+      this.#refErrors[$ref] = error
+      return
+    }
+
+    if (refError instanceof Error) {
+      console.log('CACHED ERROR FOUND')
+      throw new Error(`Invalid ref error handler for ${$ref}`)
+    }
+
+    console.log('INVALID REF ERROR HANDLER', $ref)
+
+    throw new Error(`Invalid ref error handler for ${$ref}`)
   }
 
   trace<T>(token: string | string[], fn: () => T): T {

@@ -2,7 +2,6 @@ import type { OpenAPIV3_1 } from 'openapi-types'
 import type { OasRefData } from './ref-types.ts'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasRef } from './Ref.ts'
-import type { RefFields } from './Ref.ts'
 
 type ToRefV31Args<T extends OasRefData['refType']> = {
   ref: OpenAPIV3_1.ReferenceObject
@@ -19,12 +18,15 @@ export const toRefV31 = <T extends OasRefData['refType']>({
 
   context.logSkippedFields({ skipped, parent: ref, parentType: 'ref' })
 
-  const fields: RefFields<T> = {
-    refType,
-    $ref,
-    summary,
-    description
-  }
+  context.registerRefStackTrail($ref, context.stackTrail.clone())
 
-  return new OasRef(fields, context.oasDocument)
+  return new OasRef(
+    {
+      refType,
+      $ref,
+      summary,
+      description
+    },
+    context.oasDocument
+  )
 }

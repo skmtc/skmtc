@@ -46,7 +46,28 @@ export const toParametersV3 = ({
 }: ToParametersV3Args): Record<string, OasParameter | OasRef<'parameter'>> => {
   return Object.fromEntries(
     Object.entries(parameters).map(([key, value]) => {
-      return [key, context.trace(key, () => toParameterV3({ parameter: value, context }))]
+      try {
+        return [key, context.trace(key, () => toParameterV3({ parameter: value, context }))]
+      } catch (error: unknown) {
+        console.log('ERROR AT', context.stackTrail.toString())
+
+        const insideRef = context.stackTrail.includes(['components', 'parameters'])
+
+        if (!insideRef) {
+          console.log('ERROR OUTSIDE REF', error)
+          throw error
+        }
+
+        if (error instanceof Error) {
+          console.log('REGISTER REF ERROR', `#/components/parameters/${key}`, error)
+          context.registerRefError(`#/components/parameters/${key}`, error)
+        } else {
+          console.log('UNEXPECTED ERROR TYPE', error)
+          throw new Error(`Unexpected error type`, { cause: error })
+        }
+
+        return []
+      }
     })
   )
 }

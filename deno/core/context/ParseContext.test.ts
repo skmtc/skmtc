@@ -1,11 +1,25 @@
 import { ParseContext } from './ParseContext.ts'
 import { StackTrail } from './StackTrail.ts'
-import schema from '../_schemas/deno.json' with { type: 'json' }
+import denoSchema from '../_schemas/deno.json' with { type: 'json' }
+import cloudFlareSchema from '../_schemas/cloudflare.json' with { type: 'json' }
 // import schema from '../_schemas/cloudflare.json' with { type: 'json' }
 import type { OpenAPIV3 } from 'openapi-types'
 
+Deno.test('camelCase removes trailing non-alphanumeric characters', () => {
+  const parseContext = new ParseContext({
+    documentObject: cloudFlareSchema as unknown as OpenAPIV3.Document,
+    logger: console as any,
+    stackTrail: new StackTrail(),
+    silent: true
+  })
+
+  const parsed = parseContext.parse()
+
+  console.log('PARSED', JSON.stringify(parsed, null, 2))
+})
+
 const parseContext = new ParseContext({
-  documentObject: schema as unknown as OpenAPIV3.Document,
+  documentObject: denoSchema as unknown as OpenAPIV3.Document,
   logger: console as any,
   stackTrail: new StackTrail(),
   silent: true

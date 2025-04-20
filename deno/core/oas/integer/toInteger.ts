@@ -2,11 +2,12 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasInteger } from './Integer.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { oasIntegerData, integerSchema } from './integer-types.ts'
+import { oasIntegerData, integerSchema, integerFormat } from './integer-types.ts'
 import * as v from 'valibot'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseExample } from '../_helpers/parseExample.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseFormat } from '../_helpers/parseFormat.ts'
 
 type ToIntegerArgs = {
   value: OpenAPIV3.SchemaObject
@@ -55,25 +56,31 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
   nullable,
   example,
   enums,
-  value
+  value: valueWithoutEnums
 }: ToParsedIntegerArgs<Nullable>): OasInteger<Nullable> => {
+  // const { format, value: valueWithoutFormat } = parseFormat({
+  //   value: valueWithoutEnums,
+  //   valibotSchema: integerFormat,
+  //   context
+  // })
+
   const {
     type: _type,
     title,
     description,
     default: defaultValue,
-    format,
     multipleOf,
     maximum,
     exclusiveMaximum,
     minimum,
+    format,
     exclusiveMinimum,
     ...skipped
-  } = v.parse(oasIntegerData, value)
+  } = v.parse(oasIntegerData, valueWithoutEnums)
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
-    parent: value,
+    parent: valueWithoutEnums,
     context,
     parentType: 'schema:integer'
   })
