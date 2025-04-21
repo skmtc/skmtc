@@ -18,7 +18,7 @@ export const toRefV31 = <T extends OasRefData['refType']>({
 
   context.logSkippedFields({ skipped, parent: ref, parentType: 'ref' })
 
-  context.registerRefStackTrail($ref, context.stackTrail.clone())
+  context.registerRef(context.stackTrail.clone(), $ref)
 
   return new OasRef(
     {

@@ -8,7 +8,7 @@ import { OasResponse } from './Response.ts'
 import type { ResponseFields } from './Response.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-
+import invariant from 'tiny-invariant'
 type ToResponsesV3Args = {
   responses: OpenAPIV3.ResponsesObject
   context: ParseContext
@@ -24,9 +24,12 @@ export const toResponsesV3 = ({
         try {
           return [key, context.trace(key, () => toResponseV3({ response: value, context }))]
         } catch (error) {
-          context.logWarning({
+          invariant(error instanceof Error, 'Invalid error')
+
+          context.logIssue({
             key,
-            message: error instanceof Error ? error.message : 'Failed to parse response',
+            level: 'error',
+            error,
             parent: value,
             type: 'INVALID_RESPONSE'
           })

@@ -86,8 +86,9 @@ export const toParsedString = <Nullable extends boolean | undefined>({
   })
 
   if (format && !v.is(stringFormat, format)) {
-    context.logWarning({
+    context.logIssue({
       key: 'format',
+      level: 'warning',
       message: `Unexpected format: ${format}`,
       parent: value,
       type: 'UNEXPECTED_FORMAT'

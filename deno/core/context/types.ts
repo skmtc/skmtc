@@ -29,7 +29,7 @@ export type RenderResult = {
 
 export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3_1.Document
 
-export type WarningType =
+export type IssueType =
   | 'UNEXPECTED_PROPERTY'
   | 'MISSING_OBJECT_TYPE'
   | 'MISSING_STRING_TYPE'
@@ -44,3 +44,5 @@ export type WarningType =
   | 'INVALID_FORMAT'
   | 'INVALID_OPERATION'
   | 'INVALID_SCHEMA'
+  | 'INVALID_PARAMETER'
+  | 'INVALID_DEPENDENCY_REF'

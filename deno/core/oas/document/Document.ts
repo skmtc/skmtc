@@ -4,6 +4,11 @@ import type { OasOperation } from '../operation/Operation.ts'
 import type { OasInfo } from '../info/Info.ts'
 import type { OasServer } from '../server/Server.ts'
 import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
+import type { StackTrail } from '../../context/StackTrail.ts'
+import { match } from 'ts-pattern'
+import type { RefName } from '../../types/RefName.ts'
+import type { OasSchema } from '../schema/Schema.ts'
+import type { OasRef } from '../ref/Ref.ts'
 
 export type DocumentFields = {
   openapi: string
@@ -25,6 +30,35 @@ export class OasDocument {
 
   constructor(fields?: DocumentFields) {
     this.#fields = fields
+  }
+
+  removeItem(stackTrail: StackTrail): OasOperation | OasSchema | OasRef<'schema'> | undefined {
+    const [first, second, third] = stackTrail.stackTrail
+
+    return match(first)
+      .with('paths', () => {
+        const index = this.#fields!.operations.findIndex(
+          ({ path, method }) => path === second && method === third
+        )
+
+        if (index === -1) {
+          return undefined
+        }
+
+        const [removed] = this.#fields!.operations.splice(index, 1)
+
+        return removed
+      })
+      .with('components', () => {
+        if (typeof third !== 'string') {
+          throw new Error(`RefName cannot be a number: ${third}`)
+        }
+
+        return this.#fields!.components!.removeSchema(third as RefName)
+      })
+      .otherwise(() => {
+        throw new Error(`Unexpected stack trail: ${stackTrail}`)
+      })
   }
 
   set fields(fields: DocumentFields) {

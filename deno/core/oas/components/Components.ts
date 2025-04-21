@@ -8,6 +8,16 @@ import type { OasSchema } from '../schema/Schema.ts'
 import type { RefName } from '../../types/RefName.ts'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 
+export const componentsKeys = [
+  'schemas',
+  'responses',
+  'parameters',
+  'examples',
+  'requestBodies',
+  'headers',
+  'securitySchemes'
+]
+
 export type ComponentsFields = {
   schemas?: Record<RefName, OasSchema | OasRef<'schema'>>
   responses?: Record<RefName, OasResponse | OasRef<'response'>>
@@ -40,6 +50,14 @@ export class OasComponents {
   /** Record holding re-usable {@link OasSchema} objects or Refs  */
   get schemas(): Record<RefName, OasSchema | OasRef<'schema'>> | undefined {
     return this.#fields.schemas
+  }
+
+  removeSchema(refName: RefName): OasSchema | OasRef<'schema'> {
+    const { [refName]: removed, ...rest } = this.#fields.schemas!
+
+    this.#fields.schemas = rest
+
+    return removed
   }
 
   /** Record holding re-usable {@link OasResponse} objects or Refs  */

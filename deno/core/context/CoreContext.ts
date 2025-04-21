@@ -178,7 +178,7 @@ export class CoreContext {
         return this.#phase.context.parse()
       })
 
-      const { files, previews, schemaOptions } = this.trace('toArtifacts', () => {
+      const { files, previews, schemaOptions } = this.trace('generate', () => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           oasDocument,

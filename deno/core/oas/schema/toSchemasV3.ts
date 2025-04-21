@@ -16,6 +16,7 @@ import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '../../helpers/refFns.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
+import invariant from 'tiny-invariant'
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
   context: ParseContext
@@ -36,9 +37,12 @@ export const toSchemasV3 = ({
             })
           ]
         } catch (error) {
-          context.logWarning({
+          invariant(error instanceof Error, 'Invalid error')
+
+          context.logIssue({
             key,
-            message: error instanceof Error ? error.message : 'Failed to parse schema',
+            level: 'error',
+            error,
             parent: schema,
             type: 'INVALID_SCHEMA'
           })
@@ -137,7 +141,8 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
     .with({ type: 'string' }, value => toString({ value, context }))
     .otherwise(value => {
       if (possibleObject(value)) {
-        context.logWarningNoKey({
+        context.logIssueNoKey({
+          level: 'warning',
           message: 'Object has "properties" property, but is missing type="object" property',
           parent: value,
           type: 'MISSING_OBJECT_TYPE'
@@ -153,7 +158,8 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
       }
 
       if (possibleArray(value)) {
-        context.logWarningNoKey({
+        context.logIssueNoKey({
+          level: 'warning',
           message: 'Object has "items" property, but is missing type="array" property',
           parent: value,
           type: 'MISSING_ARRAY_TYPE'
@@ -170,7 +176,8 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
       }
 
       if (possibleBoolean(value)) {
-        context.logWarningNoKey({
+        context.logIssueNoKey({
+          level: 'warning',
           message:
             'Object has a boolean "default" or "example" property, but is missing type="boolean" property',
           parent: value,
@@ -187,7 +194,8 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
       }
 
       if (possibleString(value)) {
-        context.logWarningNoKey({
+        context.logIssueNoKey({
+          level: 'warning',
           message:
             'Object has a string "default" or "example" property, but is missing type="string" property',
           parent: value,

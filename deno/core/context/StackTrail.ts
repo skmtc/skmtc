@@ -1,3 +1,5 @@
+import { componentsKeys } from '../oas/components/Components.ts'
+
 export class StackTrail {
   #stack: (string | number)[]
 
@@ -48,6 +50,24 @@ export class StackTrail {
     }
   }
 
+  toStackRef(): string | undefined {
+    const [first, second, third] = this.stackTrail
+
+    if (first !== 'components') {
+      return
+    }
+
+    if (typeof second !== 'string' || !componentsKeys.includes(second)) {
+      return
+    }
+
+    if (typeof third !== 'string') {
+      return
+    }
+
+    return `#/${first}/${second}/${third}`
+  }
+
   remove(frame: string | string[]): StackTrail {
     if (typeof frame === 'string') {
       const lastItem = this.#stack[this.#stack.length - 1]
@@ -84,6 +104,10 @@ export class StackTrail {
     })
 
     return new StackTrail(stack)
+  }
+
+  toJSON() {
+    return this.toString()
   }
 
   toString() {

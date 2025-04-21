@@ -17,6 +17,8 @@ import type { OasRef } from '../ref/Ref.ts'
 import { match } from 'npm:ts-pattern@5.6.0'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
+import invariant from 'tiny-invariant'
+
 type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
   context: ParseContext
@@ -45,26 +47,19 @@ export const toParametersV3 = ({
   context
 }: ToParametersV3Args): Record<string, OasParameter | OasRef<'parameter'>> => {
   return Object.fromEntries(
-    Object.entries(parameters).map(([key, value]) => {
+    Object.entries(parameters).map(([key, parameter]) => {
       try {
-        return [key, context.trace(key, () => toParameterV3({ parameter: value, context }))]
+        return [key, context.trace(key, () => toParameterV3({ parameter, context }))]
       } catch (error: unknown) {
-        console.log('ERROR AT', context.stackTrail.toString())
+        invariant(error instanceof Error, 'Invalid error')
 
-        const insideRef = context.stackTrail.includes(['components', 'parameters'])
-
-        if (!insideRef) {
-          console.log('ERROR OUTSIDE REF', error)
-          throw error
-        }
-
-        if (error instanceof Error) {
-          console.log('REGISTER REF ERROR', `#/components/parameters/${key}`, error)
-          context.registerRefError(`#/components/parameters/${key}`, error)
-        } else {
-          console.log('UNEXPECTED ERROR TYPE', error)
-          throw new Error(`Unexpected error type`, { cause: error })
-        }
+        context.logIssue({
+          key: key,
+          level: 'error',
+          error,
+          parent: parameter,
+          type: 'INVALID_PARAMETER'
+        })
 
         return []
       }

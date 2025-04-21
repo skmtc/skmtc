@@ -27,7 +27,7 @@ export const toDocumentFieldsV3 = ({
     parentType: 'document'
   })
 
-  const fields: DocumentFields = {
+  return {
     openapi,
     info: context.trace('info', () => toInfoV3({ info, context })),
     servers: context.trace('servers', () => toOptionalServersV3({ servers, context })),
@@ -37,6 +37,4 @@ export const toDocumentFieldsV3 = ({
     security: context.trace('security', () => toSecurityRequirementsV3({ security, context })),
     extensionFields
   }
-
-  return fields
 }

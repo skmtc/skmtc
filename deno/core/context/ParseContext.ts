@@ -6,7 +6,8 @@ import type * as log from 'jsr:@std/log@0.224.6'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import * as v from 'valibot'
-import type { WarningType } from './types.ts'
+import type { IssueType } from './types.ts'
+
 type ConstructorArgs = {
   documentObject: OpenAPIV3.Document
   logger: log.Logger
@@ -16,20 +17,30 @@ type ConstructorArgs = {
 
 export type ParseReturn = {
   oasDocument: OasDocument
-  warnings: ParseWarning[]
+  issues: ParseIssue[]
 }
 
-export type LogWarningArgs = {
+type ParseWarningBase = {
+  level: 'warning'
+  message: string
+}
+
+type ParseErrorBase = {
+  level: 'error'
+  error: Error
+}
+
+type ParseIssueBase = ParseErrorBase | ParseWarningBase
+
+export type LogIssueArgs = ParseIssueBase & {
   key: string
   parent: unknown
-  message: string
-  type: WarningType
+  type: IssueType
 }
 
-export type LogWarningNoKeyArgs = {
+export type LogIssueNoKeyArgs = ParseIssueBase & {
   parent: unknown
-  message: string
-  type: WarningType
+  type: IssueType
 }
 
 export type ProvisionalParseArgs<T> = {
@@ -38,7 +49,7 @@ export type ProvisionalParseArgs<T> = {
   parent: unknown
   schema: v.GenericSchema<T>
   toMessage: (value: unknown) => string
-  type: WarningType
+  type: IssueType
 }
 
 export type LogSkippedValuesArgs = {
@@ -47,28 +58,41 @@ export type LogSkippedValuesArgs = {
   parentType: string
 }
 
-type ParseWarning = {
-  message: string
-  location: StackTrail
+export type ParseError = {
+  level: 'error'
+  error: Error
+  location: string
   parent: unknown
-  type: WarningType
+  type: IssueType
 }
+
+export type ParseWarning = {
+  level: 'warning'
+  message: string
+  location: string
+  parent: unknown
+  type: IssueType
+}
+
+export type ParseIssue = ParseError | ParseWarning
 
 export class ParseContext {
   documentObject: OpenAPIV3.Document
   logger: log.Logger
   oasDocument: OasDocument
   stackTrail: StackTrail
-  warnings: ParseWarning[]
+  issues: ParseIssue[]
   silent: boolean
-  #refErrors: Record<string, StackTrail[] | Error | undefined>
+  #refStackTrails: Record<string, StackTrail[]>
+  #refErrors: Record<string, Error[]>
   constructor({ documentObject, logger, stackTrail, silent = false }: ConstructorArgs) {
     this.documentObject = documentObject
     this.logger = logger
     this.stackTrail = stackTrail
     this.oasDocument = new OasDocument()
     this.silent = silent
-    this.warnings = []
+    this.issues = []
+    this.#refStackTrails = {}
     this.#refErrors = {}
   }
 
@@ -78,66 +102,43 @@ export class ParseContext {
       context: this
     })
 
+    this.removeErroredItems()
+
     return this.oasDocument
   }
 
-  // Apply past or future errors to the ref
-  // Register a callback to be called when an error occurs during ref parsing later
-  // If ref error has already occurred, call the callback immediately
-  registerRefStackTrail($ref: string, stackTrail: StackTrail) {
-    const refError = this.#refErrors[$ref]
+  removeErroredItems() {
+    Object.entries(this.#refErrors).forEach(([$ref, errors]) => {
+      errors.forEach(error => {
+        this.#refStackTrails[$ref]?.forEach(stackTrail => {
+          const removed = this.oasDocument.removeItem(stackTrail)
 
-    if (!refError) {
-      this.#refErrors[$ref] = [stackTrail]
-      return
-    }
-
-    if (Array.isArray(refError)) {
-      refError.push(stackTrail)
-      return
-    }
-
-    if (refError instanceof Error) {
-      console.log('REF ERROR THROWING', refError)
-      throw refError
-    }
-
-    throw new Error(`Invalid ref error handler for ${$ref}`)
+          if (removed) {
+            this.issues.push({
+              level: 'error',
+              error,
+              location: stackTrail.toString(),
+              parent: removed,
+              type: 'INVALID_DEPENDENCY_REF'
+            })
+          }
+        })
+      })
+    })
   }
 
-  registerRefError($ref: string, error: Error) {
-    const refError = this.#refErrors[$ref]
+  registerRef(stackTrail: StackTrail, $ref: string) {
+    const refStackTrails = this.#refStackTrails[$ref]
 
-    if (!refError) {
-      console.log('NEW ERROR', $ref, error)
-      this.#refErrors[$ref] = error
-      return
+    refStackTrails ? refStackTrails.push(stackTrail) : (this.#refStackTrails[$ref] = [stackTrail])
+  }
+
+  registerRefError(error: Error, $ref: string | undefined) {
+    if ($ref) {
+      const refErrors = this.#refErrors[$ref]
+
+      refErrors ? refErrors.push(error) : (this.#refErrors[$ref] = [error])
     }
-
-    if (Array.isArray(refError)) {
-      console.log('ARRAY ERROR', refError)
-      refError.forEach(stackTrail => {
-        throw new Error('Continue here next')
-        /* Look up operation or model based on stack trail
-        and remove it from document. Log the removal. */
-
-        console.log('STACK TRAIL', stackTrail.toString())
-      })
-
-      console.log('ADDING ERROR', error)
-
-      this.#refErrors[$ref] = error
-      return
-    }
-
-    if (refError instanceof Error) {
-      console.log('CACHED ERROR FOUND')
-      throw new Error(`Invalid ref error handler for ${$ref}`)
-    }
-
-    console.log('INVALID REF ERROR HANDLER', $ref)
-
-    throw new Error(`Invalid ref error handler for ${$ref}`)
   }
 
   trace<T>(token: string | string[], fn: () => T): T {
@@ -146,9 +147,10 @@ export class ParseContext {
 
   logSkippedFields({ skipped, parent, parentType }: LogSkippedValuesArgs) {
     Object.keys(skipped).forEach(key => {
-      this.logWarning({
+      this.logIssue({
         key,
         parent,
+        level: 'warning',
         message: `Unexpected property '${key}' in '${parentType}'`,
         type: 'UNEXPECTED_PROPERTY'
       })
@@ -169,31 +171,36 @@ export class ParseContext {
       return parsed.output
     }
 
-    this.logWarning({
+    this.logIssue({
       key,
       parent,
+      level: 'warning',
       message: toMessage(value),
       type
     })
   }
 
-  logWarning({ key, parent, message, type }: LogWarningArgs) {
-    this.trace(key, () => this.logWarningNoKey({ parent, message, type }))
+  logIssue({ key, parent, type, ...issue }: LogIssueArgs) {
+    this.trace(key, () => this.logIssueNoKey({ parent, type, ...issue }))
   }
 
-  logWarningNoKey({ parent, message, type }: LogWarningNoKeyArgs) {
-    this.warnings.push({
-      message,
-      location: this.stackTrail.clone(),
+  logIssueNoKey({ parent, type, ...issue }: LogIssueNoKeyArgs) {
+    if (issue.level === 'error') {
+      this.registerRefError(issue.error, this.stackTrail.toStackRef())
+    }
+
+    this.issues.push({
+      ...issue,
+      location: this.stackTrail.toString(),
       parent,
       type
     })
 
     if (!this.silent) {
       this.logger.warn({
+        ...issue,
         location: this.stackTrail.toString(),
         parent: JSON.stringify(parent),
-        message,
         type
       })
     }

@@ -10,6 +10,7 @@ import type { OasPathItem } from '../pathItem/PathItem.ts'
 import { methodValues } from '../../types/Method.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
+import invariant from 'tiny-invariant'
 type OperationInfo = {
   method: Method
   path: string
@@ -127,12 +128,13 @@ export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOpera
                 context
               })
             } catch (error) {
-              console.log('ERROR IN OPERATION', error)
+              invariant(error instanceof Error, 'Invalid error')
 
-              context.logWarning({
+              context.logIssue({
                 key: method,
-                message: error instanceof Error ? error.message : 'Failed to parse operation',
                 parent: operation,
+                level: 'error',
+                error,
                 type: 'INVALID_OPERATION'
               })
 
