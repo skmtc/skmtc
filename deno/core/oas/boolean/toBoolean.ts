@@ -82,7 +82,7 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
     title,
     description,
     example,
-    enum: enums,
+    enums: enums,
     default: defaultValue,
     extensionFields
   })
