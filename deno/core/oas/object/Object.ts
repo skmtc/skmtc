@@ -97,6 +97,9 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
   readOnly?: boolean
   writeOnly?: boolean
   deprecated?: boolean
+  enums?: Nullable extends true
+    ? (Record<string, unknown> | null)[] | undefined
+    : Record<string, unknown>[] | undefined
   constructor(fields: OasObjectFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
@@ -111,6 +114,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
     this.minProperties = fields.minProperties
     this.readOnly = fields.readOnly
     this.deprecated = fields.deprecated
+    this.enums = fields.enums
   }
 
   /** Creates new empty OasObject */
@@ -206,7 +210,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
       required: this.required,
       maxProperties: this.maxProperties,
       minProperties: this.minProperties,
-
+      enum: this.enums,
       additionalProperties: match(this.additionalProperties)
         .with(P.nullish, () => false)
         .with(P.boolean, value => value)

@@ -7,7 +7,7 @@ export type BooleanFields<Nullable extends boolean | undefined> = {
   nullable?: Nullable
   extensionFields?: Record<string, unknown>
   example?: Nullable extends true ? boolean | null | undefined : boolean | undefined
-  enum?: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
+  enums?: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
   default?: Nullable extends true ? boolean | null | undefined : boolean | undefined
 }
 
@@ -47,7 +47,7 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
   /**
    * Possible values the boolean can have
    */
-  enum: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
+  enums: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
   /**
    * The default value of the boolean.
    */
@@ -59,7 +59,7 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
     this.nullable = fields.nullable
     this.extensionFields = fields.extensionFields
     this.example = fields.example
-    this.enum = fields.enum
+    this.enums = fields.enums
     this.default = fields.default
   }
 
@@ -83,7 +83,7 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
       description: this.description,
       nullable: this.nullable,
       example: this.example,
-      enum: this.enum,
+      enum: this.enums,
       default: this.default
     }
   }
