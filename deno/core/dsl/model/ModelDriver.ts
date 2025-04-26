@@ -15,6 +15,7 @@ type CreateModelArgs<V extends GeneratedValue, T extends GenerationType, Enrichm
   refName: RefName
   generation?: T
   destinationPath?: string
+  rootRef: RefName
 }
 type ApplyArgs<T extends GenerationType> = {
   generation?: T
@@ -33,20 +34,22 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V, T>
+  rootRef: RefName
   constructor({
     context,
     insertable,
     refName,
     generation,
-    destinationPath
+    destinationPath,
+    rootRef
   }: CreateModelArgs<V, T, EnrichmentType>) {
     this.context = context
     this.insertable = insertable
     this.refName = refName
     this.destinationPath = destinationPath
+    this.rootRef = rootRef
 
     this.settings = this.context.toModelContentSettings({ refName, insertable })
-
     this.definition = this.apply({ generation, destinationPath })
   }
 
@@ -82,11 +85,22 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
       return cachedDefinition
     }
 
+    // const [previous, current] = this.context.stackTrail.slice(-2).stackTrail
+
+    // if (
+    //   previous === this.insertable.id &&
+    //   current === this.refName &&
+    //   this.refName === this.rootRef
+    // ) {
+    //   this.context.modelDepth++
+    // }
+
     const value = new this.insertable({
       refName: this.refName,
       context: this.context,
       settings: this.settings,
-      destinationPath: this.settings.exportPath
+      destinationPath: this.settings.exportPath,
+      rootRef: this.rootRef
     })
 
     const definition = new Definition({

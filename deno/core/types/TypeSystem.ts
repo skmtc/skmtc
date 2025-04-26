@@ -6,6 +6,7 @@ import type { GenerateContext } from '../context/GenerateContext.ts'
 import type { CustomValue } from './CustomValue.ts'
 import type { OasVoid } from '../oas/void/Void.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
+import type { RefName } from './RefName.ts'
 
 export type TypeSystemValue =
   | TypeSystemArray
@@ -168,6 +169,7 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
   context: GenerateContext
   destinationPath: string
   schema: Schema
+  rootRef: RefName
   required: boolean | undefined
 }
 

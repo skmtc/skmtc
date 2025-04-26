@@ -11,6 +11,7 @@ import type { OasDocument } from '../document/Document.ts'
 import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
+
 const MAX_LOOKUPS = 10
 
 export type RefFields<T extends OasRefData['refType']> = {

@@ -35,7 +35,8 @@ export class ModelBase<EnrichmentType = undefined> extends ValueBase {
       insertable,
       refName,
       generation: 'force',
-      destinationPath: this.settings.exportPath
+      destinationPath: this.settings.exportPath,
+      rootRef: refName
     })
   }
 

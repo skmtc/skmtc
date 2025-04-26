@@ -13,5 +13,9 @@ export const mockParseContext = {
     Object.entries(skipped).forEach(([_key, _value]) => {
       // console.log(`Skipped field: ${key}, value: ${value}`)
     })
+  },
+
+  logIssue(): void {
+    //do nothing
   }
 }

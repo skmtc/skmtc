@@ -11,6 +11,7 @@ type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
   refName: RefName
   settings: ContentSettings<EnrichmentType>
   destinationPath: string
+  rootRef: RefName
 }
 
 export type WithTransformModel = {
@@ -33,7 +34,8 @@ export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & 
     context,
     refName,
     settings,
-    destinationPath
+    destinationPath,
+    rootRef
   }: ModelInsertableConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'

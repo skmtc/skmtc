@@ -76,6 +76,7 @@ export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   identifier: Identifier
   destinationPath: string
   schemaToValueFn: SchemaToValueFn
+  rootRef: RefName
 }
 
 export type DefineAndRegisterArgs<V extends GeneratedValue> = {
@@ -121,6 +122,7 @@ export type InsertModelArgs<
   refName: RefName
   generation?: T
   destinationPath?: string
+  rootRef: RefName
 }
 
 export type InsertReturn<
@@ -168,8 +170,8 @@ export class GenerateContext {
   logger: log.Logger
   captureCurrentResult: (result: ResultType) => void
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-
-  #stackTrail: StackTrail
+  stackTrail: StackTrail
+  modelDepth: number
 
   constructor({
     oasDocument,
@@ -185,9 +187,10 @@ export class GenerateContext {
     this.#schemaOptions = []
     this.oasDocument = oasDocument
     this.settings = settings
-    this.#stackTrail = stackTrail
+    this.stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
+    this.modelDepth = 0
   }
 
   /**
@@ -401,7 +404,7 @@ export class GenerateContext {
   }
 
   trace<T>(token: string | string[], fn: () => T): T {
-    return tracer(this.#stackTrail, token, fn)
+    return tracer(this.stackTrail, token, fn)
   }
 
   #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File {
@@ -433,13 +436,16 @@ export class GenerateContext {
    * @param identifier - The identifier for the definition.
    * @param destinationPath - The path to the file where the definition will be registered.
    * @param schemaToValueFn - A function that converts the schema to a value.
+   * @param rootRef - If the definition identifier is a ref, provide it here. It can be
+   * used to support circular references depending on generator implementation.
    * @returns The created definition or cached definition if it already exists.
    */
   createAndRegisterDefinition<Schema extends SchemaType>({
     schema,
     identifier,
     destinationPath,
-    schemaToValueFn
+    schemaToValueFn,
+    rootRef
   }: CreateAndRegisterDefinition<Schema>): Definition<TypeSystemOutput<Schema['type']>> {
     const cachedDefinition = this.findDefinition({
       name: identifier.name,
@@ -456,6 +462,7 @@ export class GenerateContext {
       context: this,
       schema,
       destinationPath,
+      rootRef,
       required: true
     })
 
@@ -644,14 +651,17 @@ export class GenerateContext {
     insertable,
     refName,
     generation,
-    destinationPath
+    destinationPath,
+    rootRef
   }: InsertModelArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
+    this.modelDepth = 0
     const { settings, definition } = new ModelDriver({
       context: this,
       insertable,
       refName,
       generation,
-      destinationPath
+      destinationPath,
+      rootRef
     })
 
     return new Inserted({ settings, definition })
@@ -760,6 +770,8 @@ export class GenerateContext {
    * @throws if schema is not found
    */
   resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'> {
+    this.modelDepth++
+
     const schema = this.oasDocument.components?.schemas?.[refName]?.resolveOnce()
 
     if (!schema) {

@@ -23,6 +23,7 @@ type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   schema: Schema
   identifier: Identifier
   schemaToValueFn: SchemaToValueFn
+  rootRef: RefName
 }
 
 export class OperationBase<EnrichmentType = undefined> extends ValueBase {
@@ -58,20 +59,23 @@ export class OperationBase<EnrichmentType = undefined> extends ValueBase {
       insertable,
       refName,
       generation: 'force',
-      destinationPath: this.settings.exportPath
+      destinationPath: this.settings.exportPath,
+      rootRef: refName
     })
   }
 
   createAndRegisterDefinition<Schema extends SchemaType>({
     schema,
     identifier,
-    schemaToValueFn
+    schemaToValueFn,
+    rootRef
   }: CreateAndRegisterDefinition<Schema>): Definition<TypeSystemOutput<Schema['type']>> {
     return this.context.createAndRegisterDefinition({
       schema,
       identifier,
       schemaToValueFn,
-      destinationPath: this.settings.exportPath
+      destinationPath: this.settings.exportPath,
+      rootRef: rootRef
     })
   }
 
