@@ -135,4 +135,17 @@ export class OasDocument {
 
     return this.#fields.extensionFields
   }
+
+  toJSON() {
+    return {
+      openapi: this.openapi,
+      info: this.info,
+      servers: this.servers,
+      operations: this.operations,
+      components: this.components,
+      tags: this.tags,
+      security: this.security,
+      ...this.extensionFields
+    }
+  }
 }

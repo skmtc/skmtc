@@ -11,10 +11,11 @@ import { methodValues } from '../../types/Method.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
 import invariant from 'tiny-invariant'
+import isEmpty from 'lodash-es/isEmpty.js'
 type OperationInfo = {
   method: Method
   path: string
-  pathItem: OasPathItem
+  pathItem: OasPathItem | undefined
 }
 
 type ToOperationV3Args = {
@@ -108,7 +109,9 @@ export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOpera
         }
       )
 
-      const pathItemObject = toPathItemV3({ pathItem: cleaned.rest, context })
+      const pathItemObject = !isEmpty(cleaned.rest)
+        ? toPathItemV3({ pathItem: cleaned.rest, context })
+        : undefined
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {

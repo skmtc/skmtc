@@ -16,8 +16,6 @@ const MAX_LOOKUPS = 10
 export type RefFields<T extends OasRefData['refType']> = {
   refType: T
   $ref: string
-  summary?: string
-  description?: string
 }
 
 export class OasRef<T extends OasRefData['refType']> {
@@ -95,14 +93,6 @@ export class OasRef<T extends OasRefData['refType']> {
     return this.#fields.refType
   }
 
-  get summary(): string | undefined {
-    return this.#fields.summary
-  }
-
-  get description(): string | undefined {
-    return this.#fields.description
-  }
-
   get oasDocument(): OasDocument {
     return this.#oasDocument
   }
@@ -129,6 +119,20 @@ export class OasRef<T extends OasRefData['refType']> {
     }
 
     return ref
+  }
+
+  toJSON() {
+    return {
+      $ref: `#/components/${match(this.refType)
+        .with('schema', () => 'schemas')
+        .with('requestBody', () => 'requestBodies')
+        .with('parameter', () => 'parameters')
+        .with('response', () => 'responses')
+        .with('example', () => 'examples')
+        .with('header', () => 'headers')
+        .with('securityScheme', () => 'securitySchemes')
+        .exhaustive()}/${this.toRefName()}`
+    }
   }
 }
 

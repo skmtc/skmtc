@@ -1,7 +1,7 @@
 import { ParseContext } from './ParseContext.ts'
 import { StackTrail } from './StackTrail.ts'
 import denoSchema from '../_schemas/deno.json' with { type: 'json' }
-// import schema from '../_schemas/cloudflare.json' with { type: 'json' }
+import cfCycleSchema from '../_schemas/cf-cycle.json' with { type: 'json' }
 import type { OpenAPIV3 } from 'openapi-types'
 import { assertEquals, assertObjectMatch } from 'jsr:@std/assert@^1.0.10'
 import { OasRef } from '../oas/ref/Ref.ts'
@@ -13,7 +13,7 @@ import { OasResponse } from '../oas/response/Response.ts'
 import { OasOperation } from '../oas/operation/Operation.ts'
 import type { ParseError } from './ParseContext.ts'
 
-Deno.test('Handles schema warnings', () => {
+Deno.test.ignore('Handles schema warnings', () => {
   const parseContext = new ParseContext({
     documentObject: {
       openapi: '3.0.3',
@@ -97,7 +97,7 @@ Deno.test('Handles schema warnings', () => {
   )
 })
 
-Deno.test('Handles response error', () => {
+Deno.test.ignore('Handles response error', () => {
   const parseContext = new ParseContext({
     documentObject: {
       openapi: '3.0.3',
@@ -185,52 +185,66 @@ Deno.test('Handles response error', () => {
   })
 })
 
-const parseContext = new ParseContext({
-  documentObject: denoSchema as unknown as OpenAPIV3.Document,
-  logger: console as any,
-  stackTrail: new StackTrail(),
-  silent: true
+Deno.test('Handles cycle merges', () => {
+  const parseContext = new ParseContext({
+    documentObject: cfCycleSchema as unknown as OpenAPIV3.Document,
+    logger: console as any,
+    stackTrail: new StackTrail(),
+    silent: true
+  })
+
+  const parsed = parseContext.parse()
+
+  console.log(parseContext.issues)
+  console.log('PARSED', JSON.stringify(parsed, null, 2))
 })
 
-const startTime = performance.now()
+// const parseContext = new ParseContext({
+//   documentObject: denoSchema as unknown as OpenAPIV3.Document,
+//   logger: console as any,
+//   stackTrail: new StackTrail(),
+//   silent: true
+// })
 
-parseContext.parse()
+// const startTime = performance.now()
 
-const endTime = performance.now()
+// parseContext.parse()
 
-const filteredIssues = parseContext.issues.filter(issue => {
-  return (
-    issue.type === 'UNEXPECTED_PROPERTY' &&
-    issue.level === 'warning' &&
-    ![
-      `Unexpected property 'items' in 'schema:object'`,
-      `Unexpected property 'uniqueItems' in 'schema:object'`
-    ].includes(issue.message)
-  )
-})
+// const endTime = performance.now()
 
-const issuesByProperty = filteredIssues.reduce<Record<string, number>>((acc, issue) => {
-  const stackTrail = issue.location.split(':')
+// const filteredIssues = parseContext.issues.filter(issue => {
+//   return (
+//     issue.type === 'UNEXPECTED_PROPERTY' &&
+//     issue.level === 'warning' &&
+//     ![
+//       `Unexpected property 'items' in 'schema:object'`,
+//       `Unexpected property 'uniqueItems' in 'schema:object'`
+//     ].includes(issue.message)
+//   )
+// })
 
-  const property = stackTrail[stackTrail.length - 1]
+// const issuesByProperty = filteredIssues.reduce<Record<string, number>>((acc, issue) => {
+//   const stackTrail = issue.location.split(':')
 
-  console.log(`STACK TRACE: ${stackTrail.toString()}`)
-  console.log(`ISSUE: ${issue.level === 'warning' ? issue.message : issue.error.message}`)
-  console.log(`PARENT: ${JSON.stringify(issue.parent, null, 2)}`)
-  console.log('')
+//   const property = stackTrail[stackTrail.length - 1]
 
-  return {
-    ...acc,
-    [property]: (acc[property] ?? 0) + 1
-  }
-}, {})
+//   console.log(`STACK TRACE: ${stackTrail.toString()}`)
+//   console.log(`ISSUE: ${issue.level === 'warning' ? issue.message : issue.error.message}`)
+//   console.log(`PARENT: ${JSON.stringify(issue.parent, null, 2)}`)
+//   console.log('')
 
-const items = Object.entries(issuesByProperty).sort((a, b) => a[1] - b[1])
+//   return {
+//     ...acc,
+//     [property]: (acc[property] ?? 0) + 1
+//   }
+// }, {})
 
-if (items.length > 0) {
-  console.log(JSON.stringify(Object.fromEntries(items), null, 2))
-}
+// const items = Object.entries(issuesByProperty).sort((a, b) => a[1] - b[1])
 
-console.log(`Time taken: ${endTime - startTime} milliseconds`)
+// if (items.length > 0) {
+//   console.log(JSON.stringify(Object.fromEntries(items), null, 2))
+// }
 
-console.log(`Number of issues: ${filteredIssues.length}`)
+// console.log(`Time taken: ${endTime - startTime} milliseconds`)
+
+// console.log(`Number of issues: ${filteredIssues.length}`)

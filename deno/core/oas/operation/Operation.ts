@@ -13,7 +13,7 @@ import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequ
 export type OperationFields = {
   path: string
   method: Method
-  pathItem: OasPathItem
+  pathItem: OasPathItem | undefined
   operationId?: string | undefined
   summary?: string | undefined
   tags?: string[] | undefined
@@ -37,7 +37,7 @@ export class OasOperation {
 
   path: string
   method: Method
-  pathItem: OasPathItem
+  pathItem: OasPathItem | undefined
   operationId: string | undefined
   summary: string | undefined
   tags: string[] | undefined
@@ -123,7 +123,24 @@ export class OasOperation {
       responses: Object.fromEntries(
         Object.entries(this.responses).map(([key, value]) => [key, value.toJsonSchema(options)])
       ),
-      deprecated: this.deprecated
+      security: this.security?.map(security => security.toJsonSchema()),
+      deprecated: this.deprecated,
+      ...this.extensionFields
+    }
+  }
+
+  toJSON() {
+    return {
+      tags: this.tags,
+      summary: this.summary,
+      description: this.description,
+      operationId: this.operationId,
+      parameters: this.parameters,
+      requestBody: this.requestBody,
+      responses: this.responses,
+      security: this.security,
+      deprecated: this.deprecated,
+      ...this.extensionFields
     }
   }
 }

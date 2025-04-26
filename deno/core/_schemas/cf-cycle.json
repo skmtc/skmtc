@@ -1,0 +1,167 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CF Cycle",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/accounts/{account_id}/request-tracer/trace": {
+      "post": {
+        "operationId": "account-request-tracer-request-trace",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/request-tracer_api-response-common" },
+                    {
+                      "properties": {
+                        "result": {
+                          "description": "Trace result with an origin status code",
+                          "properties": {
+                            "status_code": {
+                              "description": "HTTP Status code of zone response",
+                              "type": "integer"
+                            },
+                            "trace": { "$ref": "#/components/schemas/request-tracer_trace" }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Request Trace response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/request-tracer_api-response-common-failure" }
+                  ]
+                }
+              }
+            },
+            "description": "Request Trace response failure"
+          }
+        },
+        "security": [{ "api_email": [], "api_key": [] }],
+        "summary": "Request Trace",
+        "tags": ["Account Request Tracer"],
+        "x-api-token-group": ["Allow Request Tracer Read"],
+        "x-cfPlanAvailability": { "business": true, "enterprise": true, "free": true, "pro": true }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "request-tracer_trace": {
+        "items": {
+          "description": "List of steps acting on request/response",
+          "properties": {
+            "action": {
+              "description": "If step type is rule, then action performed by this rule",
+              "example": "execute",
+              "pattern": "^[a-z_]+$",
+              "type": "string"
+            },
+            "action_parameters": {
+              "description": "If step type is rule, then action parameters of this rule as JSON",
+              "example": { "id": "4814384a9e5d4991b9815dcfc25d2f1f" },
+              "type": "object"
+            },
+            "description": {
+              "description": "If step type is rule or ruleset, the description of this entity",
+              "example": "some rule",
+              "type": "string"
+            },
+            "expression": {
+              "description": "If step type is rule, then expression used to match for this rule",
+              "example": "ip.src ne 1.1.1.1",
+              "type": "string"
+            },
+            "kind": {
+              "description": "If step type is ruleset, then kind of this ruleset",
+              "example": "zone",
+              "type": "string"
+            },
+            "matched": {
+              "description": "Whether tracing step affected tracing request/response",
+              "example": true,
+              "type": "boolean"
+            },
+            "name": {
+              "description": "If step type is ruleset, then name of this ruleset",
+              "example": "some ruleset name",
+              "type": "string"
+            },
+            "step_name": {
+              "description": "Tracing step identifying name",
+              "example": "rule_id01",
+              "type": "string"
+            },
+            "trace": { "$ref": "#/components/schemas/request-tracer_trace" },
+            "type": { "description": "Tracing step type", "example": "rule", "type": "string" }
+          },
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "request-tracer_api-response-common": {
+        "properties": {
+          "errors": { "$ref": "#/components/schemas/request-tracer_messages" },
+          "messages": { "$ref": "#/components/schemas/request-tracer_messages" },
+          "success": {
+            "description": "Whether the API call was successful",
+            "enum": [true],
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": ["success", "errors", "messages"],
+        "type": "object"
+      },
+      "request-tracer_messages": {
+        "example": [],
+        "items": {
+          "properties": {
+            "code": { "minimum": 1000, "type": "integer" },
+            "message": { "type": "string" }
+          },
+          "required": ["code", "message"],
+          "type": "object",
+          "uniqueItems": true
+        },
+        "type": "array"
+      },
+      "request-tracer_api-response-common-failure": {
+        "properties": {
+          "errors": {
+            "allOf": [{ "$ref": "#/components/schemas/request-tracer_messages" }],
+            "example": [{ "code": 7003, "message": "No route for the URI" }],
+            "minLength": 1
+          },
+          "messages": {
+            "allOf": [{ "$ref": "#/components/schemas/request-tracer_messages" }],
+            "example": []
+          },
+          "result": { "enum": [null], "nullable": true, "type": "object" },
+          "success": {
+            "description": "Whether the API call was successful",
+            "enum": [false],
+            "example": false,
+            "type": "boolean"
+          }
+        },
+        "required": ["success", "errors", "messages", "result"],
+        "type": "object"
+      }
+    }
+  }
+}
