@@ -17,7 +17,7 @@ export const toMediaTypeItemV3 = ({
   mediaType,
   context
 }: ToMediaTypeItemV3Args): OasMediaType => {
-  const { schema, example, examples, ...skipped } = mediaTypeItem
+  const { schema, example, examples, encoding, ...skipped } = mediaTypeItem
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -28,6 +28,7 @@ export const toMediaTypeItemV3 = ({
 
   const fields: MediaTypeFields = {
     mediaType,
+    encoding,
     schema: context.trace('schema', () => toOptionalSchemaV3({ schema, context })),
     examples: context.trace('examples', () =>
       toExamplesV3({

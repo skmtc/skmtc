@@ -112,10 +112,21 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         return toUnion({ value, members, parentType: 'oneOf', context })
       })
     })
-    .with({ anyOf: P.array() }, anyOf => {
+    .with({ anyOf: P.array() }, matched => {
       return context.trace('anyOf', () => {
+        const lastThree = context.stackTrail.slice(-3).toString()
+
+        const lastFive = context.stackTrail.slice(-5).toString()
+
+        // deno-lint-ignore ban-ts-comment
+        // @ts-expect-error
+        if (matched['x-expansionResources']) {
+          const { anyOf, ...value } = matched
+          return toUnion({ value, members: anyOf, parentType: 'anyOf', context })
+        }
+
         const merged = mergeUnion({
-          schema: anyOf,
+          schema: matched,
           getRef: toGetRef(context.documentObject),
           groupType: 'anyOf'
         })

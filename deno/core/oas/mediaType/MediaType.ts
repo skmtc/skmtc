@@ -9,6 +9,7 @@ export type MediaTypeFields = {
   schema?: OasSchema | OasRef<'schema'> | undefined
   examples?: Record<string, OasExample | OasRef<'example'>> | undefined
   extensionFields?: Record<string, unknown>
+  encoding?: Record<string, unknown> | undefined
 }
 
 export class OasMediaType {
@@ -17,11 +18,12 @@ export class OasMediaType {
   schema: OasSchema | OasRef<'schema'> | undefined
   examples: Record<string, OasExample | OasRef<'example'>> | undefined
   extensionFields: Record<string, unknown> | undefined
-
+  encoding?: Record<string, unknown> | undefined
   constructor(fields: MediaTypeFields) {
     this.mediaType = fields.mediaType
     this.schema = fields.schema
     this.examples = fields.examples
+    this.encoding = fields.encoding
     this.extensionFields = fields.extensionFields
   }
 
