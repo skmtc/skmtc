@@ -12,7 +12,7 @@ type ConstructorArgs = {
   documentObject: OpenAPIV3.Document
   logger: log.Logger
   stackTrail: StackTrail
-  silent?: boolean
+  silent: boolean
 }
 
 export type ParseReturn = {
@@ -85,7 +85,7 @@ export class ParseContext {
   silent: boolean
   #refStackTrails: Record<string, StackTrail[]>
   #refErrors: Record<string, Error[]>
-  constructor({ documentObject, logger, stackTrail, silent = false }: ConstructorArgs) {
+  constructor({ documentObject, logger, stackTrail, silent = true }: ConstructorArgs) {
     this.documentObject = documentObject
     this.logger = logger
     this.stackTrail = stackTrail

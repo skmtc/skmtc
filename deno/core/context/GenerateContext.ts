@@ -171,7 +171,7 @@ export class GenerateContext {
   captureCurrentResult: (result: ResultType) => void
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   stackTrail: StackTrail
-  modelDepth: number
+  modelDepth: Record<string, number>
 
   constructor({
     oasDocument,
@@ -190,7 +190,7 @@ export class GenerateContext {
     this.stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
-    this.modelDepth = 0
+    this.modelDepth = {}
   }
 
   /**
@@ -654,7 +654,6 @@ export class GenerateContext {
     destinationPath,
     rootRef
   }: InsertModelArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
-    this.modelDepth = 0
     const { settings, definition } = new ModelDriver({
       context: this,
       insertable,
@@ -769,8 +768,8 @@ export class GenerateContext {
    * @returns Matching schema or ref
    * @throws if schema is not found
    */
-  resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'> {
-    this.modelDepth++
+  resolveSchemaRefOnce(refName: RefName, generatorId: string): OasSchema | OasRef<'schema'> {
+    this.modelDepth[`${generatorId}:${refName}`]++
 
     const schema = this.oasDocument.components?.schemas?.[refName]?.resolveOnce()
 

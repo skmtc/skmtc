@@ -14,9 +14,10 @@ type TransformArgs = {
   logsPath?: string
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   startAt: number
+  silent: boolean
 }
 
-export const toArtifacts = ({
+export const toArtifacts = async ({
   traceId,
   spanId,
   documentObject,
@@ -24,15 +25,17 @@ export const toArtifacts = ({
   prettier,
   toGeneratorConfigMap,
   logsPath,
-  startAt
+  startAt,
+  silent
 }: TransformArgs) => {
-  const context = new CoreContext({ spanId, logsPath })
+  const context = new CoreContext({ spanId, logsPath, silent })
 
-  const { artifacts, files, previews, schemaOptions, results } = context.toArtifacts({
+  const { artifacts, files, previews, schemaOptions, results } = await context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     prettier,
-    documentObject
+    documentObject,
+    silent
   })
 
   const manifest: ManifestContent = {

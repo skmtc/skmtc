@@ -49,8 +49,12 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
     this.destinationPath = destinationPath
     this.rootRef = rootRef
 
+    this.context.modelDepth[`${insertable.id}:${refName}`] = 0
+
     this.settings = this.context.toModelContentSettings({ refName, insertable })
     this.definition = this.apply({ generation, destinationPath })
+
+    this.context.modelDepth[`${insertable.id}:${refName}`] = 0
   }
 
   private apply<T extends GenerationType>({

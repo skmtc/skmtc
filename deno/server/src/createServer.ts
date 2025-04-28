@@ -70,10 +70,10 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
       const documentObject = await toV3Document(stringToSchema(schema))
 
-      return Sentry.startSpan({ name: 'Generate' }, () => {
+      return await Sentry.startSpan({ name: 'Generate' }, async () => {
         const { traceId, spanId } = span.spanContext()
 
-        const { artifacts, manifest } = toArtifacts({
+        const { artifacts, manifest } = await toArtifacts({
           traceId,
           spanId,
           startAt,
@@ -81,7 +81,8 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
           prettier,
           settings: clientSettings,
           toGeneratorConfigMap,
-          logsPath
+          logsPath,
+          silent: true
         })
 
         return { artifacts, manifest }
@@ -117,7 +118,7 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
       const documentObject = await toV3Document(stringToSchema(schema))
 
-      const context = new CoreContext({ spanId: span.spanContext().spanId })
+      const context = new CoreContext({ spanId: span.spanContext().spanId, silent: true })
 
       const generators = context.generateSettings({
         documentObject,

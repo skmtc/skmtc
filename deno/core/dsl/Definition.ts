@@ -30,8 +30,11 @@ export class Definition<V extends GeneratedValue = GeneratedValue> extends Value
       : this.identifier.name
 
     // @TODO move syntax to typescript package to enable language agnostic use
-    return withDescription(`export ${this.identifier.entityType} ${identifier} = ${this.value};`, {
-      description: this.description
-    })
+    return withDescription(
+      `export ${this.identifier.entityType} ${identifier} = ${this.value};\n`,
+      {
+        description: this.description
+      }
+    )
   }
 }

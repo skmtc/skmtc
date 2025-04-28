@@ -13,11 +13,13 @@ import type * as log from 'jsr:@std/log@0.224.6'
 import type { File } from '../dsl/File.ts'
 import type { Preview } from '../types/Preview.ts'
 import type { SchemaOption } from '../types/SchemaOptions.ts'
+import * as prettier from 'npm:prettier@^3.5.3'
+
 type ConstructorArgs = {
   files: Map<string, File>
   previews: Record<string, Record<string, Preview>>
   schemaOptions: SchemaOption[]
-  prettier?: PrettierConfigType
+  prettierConfig?: PrettierConfigType
   basePath: string | undefined
   stackTrail: StackTrail
   logger: log.Logger
@@ -36,7 +38,7 @@ export class RenderContext {
   files: Map<string, File>
   previews: Record<string, Record<string, Preview>>
   schemaOptions: SchemaOption[]
-  private prettier?: PrettierConfigType
+  #prettierConfig?: PrettierConfigType
   basePath: string | undefined
   logger: log.Logger
   #stackTrail: StackTrail
@@ -45,7 +47,7 @@ export class RenderContext {
     files,
     previews,
     schemaOptions,
-    prettier,
+    prettierConfig,
     basePath,
     logger,
     stackTrail,
@@ -54,17 +56,17 @@ export class RenderContext {
     this.files = files
     this.previews = previews
     this.schemaOptions = schemaOptions
-    this.prettier = prettier
+    this.#prettierConfig = prettierConfig
     this.basePath = basePath
     this.logger = logger
     this.#stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
   }
 
-  render(): Omit<RenderResult, 'results'> {
-    return Sentry.startSpan({ name: 'Render artifacts' }, () => {
-      const result = Sentry.startSpan({ name: 'Collate content' }, () => {
-        return this.collate()
+  async render(): Promise<Omit<RenderResult, 'results'>> {
+    return await Sentry.startSpan({ name: 'Render artifacts' }, async () => {
+      const result = await Sentry.startSpan({ name: 'Collate content' }, async () => {
+        return await this.collate()
       })
 
       const rendered: Omit<RenderResult, 'results'> = {
@@ -78,17 +80,17 @@ export class RenderContext {
     })
   }
 
-  private collate(): FilesRenderResult {
+  async collate(): Promise<FilesRenderResult> {
     const fileEntries = Array.from(this.files.entries())
 
-    const fileObjects: FileObject[] = fileEntries
+    const fileObjectPromises: Promise<FileObject>[] = fileEntries
       .map(([destinationPath, file]) => {
         return this.trace(destinationPath, () => {
-          const renderedFile: FileObject = renderFile({
+          const renderedFile: Promise<FileObject> = renderFile({
             content: file.toString(),
             destinationPath,
             basePath: this.basePath,
-            prettier: this.prettier
+            prettierConfig: this.#prettierConfig
           })
 
           this.captureCurrentResult('success')
@@ -97,6 +99,8 @@ export class RenderContext {
         })
       })
       .filter(fileObject => fileObject !== undefined)
+
+    const fileObjects = await Promise.all(fileObjectPromises)
 
     return fileObjects.reduce<FilesRenderResult>(
       (acc, { content, path, ...fileMeta }) => ({
@@ -142,15 +146,26 @@ type RenderFileArgs = {
   content: string
   destinationPath: string
   basePath?: string
-  prettier?: PrettierConfigType
+  prettierConfig?: PrettierConfigType
 }
 
-const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {
+const renderFile = async ({
+  content,
+  destinationPath,
+  basePath,
+  prettierConfig
+}: RenderFileArgs): Promise<FileObject> => {
+  const path = toResolvedArtifactPath({ basePath, destinationPath })
+
+  const formatted = prettierConfig
+    ? await prettier.format(content, { ...prettierConfig, parser: 'typescript' })
+    : content
+
   return {
-    content,
-    path: toResolvedArtifactPath({ basePath, destinationPath }),
+    content: formatted,
+    path,
     destinationPath,
-    lines: content.split('\n').length,
-    characters: content.length
+    lines: formatted.split('\n').length,
+    characters: formatted.length
   }
 }

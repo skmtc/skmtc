@@ -43,6 +43,7 @@ type GenerateArgs = {
 type CoreContextArgs = {
   spanId: string
   logsPath?: string
+  silent: boolean
 }
 
 type RenderArgs = {
@@ -65,6 +66,7 @@ type ToArtifactsArgs = {
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   prettier?: PrettierConfigType
+  silent: boolean
 }
 
 type SetupLoggerArgs = {
@@ -77,13 +79,15 @@ export class CoreContext {
   #phase: ExecutionPhase | undefined
   #results: ResultsLog
   #stackTrail: StackTrail
-
-  constructor({ spanId, logsPath }: CoreContextArgs) {
+  silent: boolean
+  constructor({ spanId, logsPath, silent }: CoreContextArgs) {
     this.#stackTrail = new StackTrail([spanId])
 
     this.#results = new ResultsLog()
 
     this.logger = this.#setupLogger({ spanId, logsPath })
+
+    this.silent = silent
   }
 
   #setupLogger({ spanId, logsPath }: SetupLoggerArgs) {
@@ -170,7 +174,7 @@ export class CoreContext {
     }
   }
 
-  toArtifacts({ documentObject, settings, toGeneratorConfigMap, prettier }: ToArtifactsArgs) {
+  async toArtifacts({ documentObject, settings, toGeneratorConfigMap, prettier }: ToArtifactsArgs) {
     try {
       const oasDocument = this.trace('parse', () => {
         this.#phase = this.#setupParsePhase(documentObject)
@@ -190,7 +194,7 @@ export class CoreContext {
 
       this.logger.debug(`${files.size} files generated`)
 
-      const renderOutput = this.trace('render', () => {
+      const renderOutput = await this.trace('render', async () => {
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
@@ -199,7 +203,7 @@ export class CoreContext {
           basePath: settings?.basePath
         })
 
-        return this.#phase.context.render()
+        return await this.#phase.context.render()
       })
 
       return {
@@ -237,7 +241,8 @@ export class CoreContext {
     const parseContext = new ParseContext({
       documentObject,
       logger: this.logger,
-      stackTrail: this.#stackTrail
+      stackTrail: this.#stackTrail,
+      silent: this.silent
     })
 
     return { type: 'parse', context: parseContext }
@@ -275,7 +280,7 @@ export class CoreContext {
       files,
       previews,
       schemaOptions,
-      prettier,
+      prettierConfig: prettier,
       basePath,
       logger: this.logger,
       stackTrail: this.#stackTrail,

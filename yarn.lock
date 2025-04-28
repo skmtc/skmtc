@@ -2555,6 +2555,7 @@ __metadata:
     "@types/swagger2openapi": "npm:7.0.4"
     lodash-es: "npm:4.17.21"
     openapi-types: "npm:12.1.3"
+    prettier: "npm:^3.5.3"
     swagger2openapi: "npm:7.0.8"
     tiny-invariant: "npm:1.3.3"
     ts-pattern: "npm:5.6.0"
@@ -7938,7 +7939,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^3.2.5, prettier@npm:^3.3.3":
+"prettier@npm:^3.2.5, prettier@npm:^3.3.3, prettier@npm:^3.5.3":
   version: 3.5.3
   resolution: "prettier@npm:3.5.3"
   bin:
