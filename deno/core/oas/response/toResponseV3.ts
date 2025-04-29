@@ -5,10 +5,10 @@ import { isRef } from '../../helpers/refFns.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toOptionalMediaTypeItemsV3 } from '../mediaType/toMediaTypeItemV3.ts'
 import { OasResponse } from './Response.ts'
-import type { ResponseFields } from './Response.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import invariant from 'tiny-invariant'
+
 type ToResponsesV3Args = {
   responses: OpenAPIV3.ResponsesObject
   context: ParseContext
@@ -22,7 +22,10 @@ export const toResponsesV3 = ({
     Object.entries(responses)
       .map(([key, value]) => {
         try {
-          return [key, context.trace(key, () => toResponseV3({ response: value, context }))]
+          return [
+            key,
+            context.trace(key, () => toResponseV3({ response: value, code: key, context }))
+          ]
         } catch (error) {
           invariant(error instanceof Error, 'Invalid error')
 
@@ -59,11 +62,13 @@ export const toOptionalResponsesV3 = ({
 
 type ToResponseV3Args = {
   response: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject
+  code: string
   context: ParseContext
 }
 
 export const toResponseV3 = ({
   response,
+  code,
   context
 }: ToResponseV3Args): OasResponse | OasRef<'response'> => {
   if (isRef(response)) {
@@ -79,12 +84,11 @@ export const toResponseV3 = ({
     parentType: 'response'
   })
 
-  const fields: ResponseFields = {
+  return new OasResponse({
     description,
+    code,
     headers: context.trace('headers', () => toHeadersV3({ headers, context })),
     content: context.trace('content', () => toOptionalMediaTypeItemsV3({ content, context })),
     extensionFields
-  }
-
-  return new OasResponse(fields)
+  })
 }
