@@ -65,15 +65,27 @@ export class OasOperation {
     this.extensionFields = fields.extensionFields
   }
 
-  toSuccessResponse(): OasResponse | OasRef<'response'> {
-    const { default: defaultResponse, ...httpCodeResponses } = this.responses
+  toSuccessResponse(): OasResponse | OasRef<'response'> | undefined {
+    const successCode = this.toSuccessResponseCode()
 
-    const successCode = Object.keys(httpCodeResponses)
+    return successCode ? this.responses[successCode] : undefined
+  }
+
+  toSuccessResponseCode(): string | undefined {
+    const successCode = Object.keys(this.responses)
       .map(httpCode => parseInt(httpCode))
       .sort((a, b) => a - b)
       .find(httpCode => httpCode >= 200 && httpCode < 300)
 
-    return successCode ? httpCodeResponses[successCode] : defaultResponse
+    if (successCode) {
+      return successCode.toString()
+    }
+
+    if (this.responses.default) {
+      return 'default'
+    }
+
+    return undefined
   }
 
   toRequestBody<V>(
