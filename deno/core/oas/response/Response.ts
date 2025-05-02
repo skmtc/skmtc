@@ -10,7 +10,6 @@ export type ResponseFields = {
   headers?: Record<string, OasHeader | OasRef<'header'>> | undefined
   content?: Record<string, OasMediaType> | undefined
   extensionFields?: Record<string, unknown>
-  code: string
 }
 
 export class OasResponse {
@@ -19,13 +18,11 @@ export class OasResponse {
   headers: Record<string, OasHeader | OasRef<'header'>> | undefined
   content: Record<string, OasMediaType> | undefined
   extensionFields: Record<string, unknown> | undefined
-  code: string
   constructor(fields: ResponseFields) {
     this.description = fields.description
     this.headers = fields.headers
     this.content = fields.content
     this.extensionFields = fields.extensionFields
-    this.code = fields.code
   }
 
   isRef(): this is OasRef<'response'> {

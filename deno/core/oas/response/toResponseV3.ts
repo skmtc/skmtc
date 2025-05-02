@@ -22,10 +22,7 @@ export const toResponsesV3 = ({
     Object.entries(responses)
       .map(([key, value]) => {
         try {
-          return [
-            key,
-            context.trace(key, () => toResponseV3({ response: value, code: key, context }))
-          ]
+          return [key, context.trace(key, () => toResponseV3({ response: value, context }))]
         } catch (error) {
           invariant(error instanceof Error, 'Invalid error')
 
@@ -62,13 +59,11 @@ export const toOptionalResponsesV3 = ({
 
 type ToResponseV3Args = {
   response: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject
-  code: string
   context: ParseContext
 }
 
 export const toResponseV3 = ({
   response,
-  code,
   context
 }: ToResponseV3Args): OasResponse | OasRef<'response'> => {
   if (isRef(response)) {
@@ -86,7 +81,6 @@ export const toResponseV3 = ({
 
   return new OasResponse({
     description,
-    code,
     headers: context.trace('headers', () => toHeadersV3({ headers, context })),
     content: context.trace('content', () => toOptionalMediaTypeItemsV3({ content, context })),
     extensionFields
