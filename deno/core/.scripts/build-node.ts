@@ -35,6 +35,7 @@ await build({
     { name: './SchemaOptions', path: './types/SchemaOptions.ts' },
     { name: './Settings', path: './types/Settings.ts' },
     { name: './StackTrail', path: './context/StackTrail.ts' },
+    { name: './collateExamples', path: './helpers/collateExamples.ts' },
     { name: './strings', path: './helpers/strings.ts' },
     { name: './toResolvedArtifactPath', path: './helpers/toResolvedArtifactPath.ts' }
   ],
