@@ -17,6 +17,8 @@ import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { SchemaOption } from '../types/SchemaOptions.ts'
+import type { JsonFile } from '../dsl/JsonFile.ts'
+
 export type ParsePhase = {
   type: 'parse'
   context: ParseContext
@@ -47,7 +49,7 @@ type CoreContextArgs = {
 }
 
 type RenderArgs = {
-  files: Map<string, File>
+  files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
   schemaOptions: SchemaOption[]
   prettier?: PrettierConfigType

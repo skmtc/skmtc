@@ -535,7 +535,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.649",
+          "jsr:@skmtc/core@^0.0.651",
           "jsr:@std/log@0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@apiture/openapi-down-convert@0.14.0",

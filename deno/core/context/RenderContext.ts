@@ -10,13 +10,13 @@ import { toResolvedArtifactPath } from '../helpers/toResolvedArtifactPath.ts'
 import { tracer } from '../helpers/tracer.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type * as log from 'jsr:@std/log@0.224.6'
-import type { File } from '../dsl/File.ts'
+import { File } from '../dsl/File.ts'
 import type { Preview } from '../types/Preview.ts'
 import type { SchemaOption } from '../types/SchemaOptions.ts'
 import * as prettier from 'npm:prettier@^3.5.3'
-
+import type { JsonFile } from '../dsl/JsonFile.ts'
 type ConstructorArgs = {
-  files: Map<string, File>
+  files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
   schemaOptions: SchemaOption[]
   prettierConfig?: PrettierConfigType
@@ -35,7 +35,7 @@ type FileObject = {
 }
 
 export class RenderContext {
-  files: Map<string, File>
+  files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
   schemaOptions: SchemaOption[]
   #prettierConfig?: PrettierConfigType
@@ -127,7 +127,7 @@ export class RenderContext {
     return tracer(this.#stackTrail, token, fn)
   }
 
-  getFile(filePath: string): File {
+  getFile(filePath: string): File | JsonFile {
     const normalisedPath = normalize(filePath)
 
     const currentFile = this.files.get(normalisedPath)
@@ -138,7 +138,11 @@ export class RenderContext {
   }
 
   pick({ name, exportPath }: PickArgs): Definition | undefined {
-    return this.getFile(exportPath).definitions.get(name)
+    const file = this.getFile(exportPath)
+
+    invariant(file instanceof File, `File at "${exportPath}" is not a "File" type`)
+
+    return file.definitions.get(name)
   }
 }
 

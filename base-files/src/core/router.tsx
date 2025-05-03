@@ -53,6 +53,7 @@ type MockResponse = {
   status: number
   body: string
   contentType: string
+  params?: Record<string, string>
 }
 
 type DynamicParentProps = {
@@ -64,12 +65,23 @@ const DynamicParent = ({ group, name }: DynamicParentProps) => {
   const mockResponseMapRef = useRef<MockResponseMap | null>(null)
 
   useEffect(() => {
-    import('../mock-responses.generated.js').then(({ mockResponses: mocks }) => {
-      const mockEntries = Object.entries(mocks).map(([url, methods]) => {
-        return [`http://localhost:54321/functions/v1${url}`, methods]
-      })
+    import('../mock-responses.generated.json').then(({ default: mocks }) => {
+      Object.entries(mocks as MockResponseMap).map(([url, methods]) => {
+        Object.entries(methods).map(([method, content]) => {
+          const urlWithParams = paramsReplace({ url, params: content.params })
 
-      mockResponseMapRef.current = Object.fromEntries(mockEntries)
+          if (!mockResponseMapRef.current) {
+            mockResponseMapRef.current = {}
+          }
+
+          if (!mockResponseMapRef.current[urlWithParams]) {
+            // @ts-expect-error
+            mockResponseMapRef.current[urlWithParams] = {}
+          }
+
+          mockResponseMapRef.current[urlWithParams][method] = content
+        })
+      })
     })
   }, [])
 
@@ -78,6 +90,10 @@ const DynamicParent = ({ group, name }: DynamicParentProps) => {
 
     window.fetch = async (url, options) => {
       const mockResponseMap = mockResponseMapRef.current ?? {}
+
+      console.log('URL', url.toString())
+
+      console.log('MOCK RESPONSE MAP', mockResponseMap)
 
       try {
         const matchedResponse =
@@ -132,6 +148,19 @@ const DynamicContainer = ({ group, name }: DynamicContainerProps) => {
       <Container />
     </div>
   )
+}
+
+type ParamsReplaceArgs = {
+  url: string
+  params: Record<string, string> | undefined
+}
+
+const paramsReplace = ({ url, params }: ParamsReplaceArgs) => {
+  const urlWithParams = Object.entries(params ?? {}).reduce((acc, [key, value]) => {
+    return acc.replace(`{${key}}`, value)
+  }, url)
+
+  return `http://localhost:54321/functions/v1${urlWithParams}`
 }
 
 type ToDynamicContainerArgs = {

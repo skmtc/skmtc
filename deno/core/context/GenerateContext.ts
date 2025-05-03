@@ -25,6 +25,7 @@ import type { Identifier } from '../dsl/Identifier.ts'
 import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../types/TypeSystem.ts'
 import { Inserted } from '../dsl/Inserted.ts'
 import { File } from '../dsl/File.ts'
+import { JsonFile } from '../dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
@@ -44,6 +45,11 @@ type ConstructorArgs = {
 export type PickArgs = {
   name: string
   exportPath: string
+}
+
+export type RegisterJsonArgs = {
+  destinationPath: string
+  json: Record<string, unknown>
 }
 
 export type ApplyPackageImportsArgs = {
@@ -152,7 +158,7 @@ type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
 }
 
 type GenerateResult = {
-  files: Map<string, File>
+  files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
   schemaOptions: SchemaOption[]
 }
@@ -162,7 +168,7 @@ type ToSettingsArgs = {
 }
 
 export class GenerateContext {
-  #files: Map<string, File>
+  #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
   #schemaOptions: SchemaOption[]
   oasDocument: OasDocument
@@ -407,7 +413,7 @@ export class GenerateContext {
     return tracer(this.stackTrail, token, fn)
   }
 
-  #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File {
+  #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File | JsonFile {
     const normalisedPath = normalize(filePath)
 
     const currentFile = this.#files.get(normalisedPath)
@@ -511,6 +517,18 @@ export class GenerateContext {
     return definition
   }
 
+  /** @experimental */
+  registerJson({ destinationPath, json }: RegisterJsonArgs) {
+    const currentFile = this.#getFile(destinationPath)
+
+    invariant(
+      currentFile instanceof JsonFile,
+      `File at "${destinationPath}" is not a "JsonFile" type`
+    )
+
+    currentFile.content = json
+  }
+
   /**
    * Insert supplied `imports` and `definitions` into file at `destinationPath`.
    *
@@ -532,6 +550,8 @@ export class GenerateContext {
   }: RegisterArgs) {
     // TODO deduplicate import names and definition names against each other
     const currentFile = this.#getFile(destinationPath)
+
+    invariant(currentFile instanceof File, `File at "${destinationPath}" is not a "File" type`)
 
     Object.entries(reExports ?? {}).forEach(([importModule, identifiers]) => {
       if (!currentFile.reExports.get(importModule) && identifiers.length) {
@@ -751,12 +771,16 @@ export class GenerateContext {
     return modelSettings ?? { selected: false }
   }
 
-  #addFile(normalisedPath: string): File {
+  #addFile(normalisedPath: string): File | JsonFile {
     if (this.#files.has(normalisedPath)) {
       throw new Error(`File already exists: ${normalisedPath}`)
     }
 
-    const newFile = new File({ path: normalisedPath, settings: this.settings })
+    const extension = normalisedPath.split('.').pop()
+
+    const newFile = match(extension)
+      .with('json', () => new JsonFile({ path: normalisedPath, content: {} }))
+      .otherwise(() => new File({ path: normalisedPath, settings: this.settings }))
 
     this.#files.set(normalisedPath, newFile)
 
@@ -788,6 +812,10 @@ export class GenerateContext {
    * @returns Matching definition if found or `undefined` otherwise
    */
   findDefinition({ name, exportPath }: PickArgs): Definition | undefined {
-    return this.#getFile(exportPath).definitions.get(name)
+    const file = this.#getFile(exportPath)
+
+    invariant(file instanceof File, `File at "${exportPath}" is not a "File" type`)
+
+    return file.definitions.get(name)
   }
 }

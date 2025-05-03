@@ -8,6 +8,7 @@ type FileArgs = {
 }
 
 export class File {
+  fileType: 'ts' = 'ts'
   path: string
   reExports: Map<string, Record<string, Set<string>>>
   imports: Map<string, Set<string>>
