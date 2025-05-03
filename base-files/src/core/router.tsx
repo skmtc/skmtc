@@ -1,22 +1,49 @@
 import { FC, lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Route, BrowserRouter, Routes, useLocation } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { match } from 'ts-pattern'
 
-export const RoutesComponent: FC = () => {
-  // @TODO: Remove react-router and use exported app directly
-  // or load components dynamically if path starts with /_preview/
-  return (
-    <Routes>
-      <Route path="/_preview/*" element={<DynamicParent />} />
-    </Routes>
-  )
+type PreviewContent = {
+  group: string
+  name: string
+  url: string
+  route: string
 }
 
-export const Router: FC = () => (
-  <BrowserRouter>
-    <RoutesComponent />
-  </BrowserRouter>
-)
+export const PreviewContainer: FC = () => {
+  const [previewContent, setPreviewContent] = useState<PreviewContent | null>(null)
+  const { pathname, search } = window.location
+
+  useEffect(() => {
+    if (pathname.startsWith('/_preview/')) {
+      const [group, name] = pathname.replace(/^\/_preview\//, '').split('/')
+      const query = new URLSearchParams(search)
+
+      setPreviewContent({
+        group,
+        name,
+        url: query.get('url') ?? '/',
+        route: query.get('route') ?? '/'
+      })
+    } else {
+      setPreviewContent(null)
+    }
+  }, [pathname, search])
+
+  if (!previewContent) {
+    return null
+  }
+
+  return (
+    <MemoryRouter initialEntries={[previewContent.url]}>
+      <Routes>
+        <Route
+          path={previewContent.route}
+          element={<DynamicParent group={previewContent.group} name={previewContent.name} />}
+        />
+      </Routes>
+    </MemoryRouter>
+  )
+}
 
 type Method = 'get' | 'post' | 'put' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
 
@@ -28,10 +55,12 @@ type MockResponse = {
   contentType: string
 }
 
-const DynamicParent = () => {
-  const { pathname } = useLocation()
-  const [group, name] = pathname.replace(/^\/_preview\//, '').split('/')
+type DynamicParentProps = {
+  group: string
+  name: string
+}
 
+const DynamicParent = ({ group, name }: DynamicParentProps) => {
   const mockResponseMapRef = useRef<MockResponseMap | null>(null)
 
   useEffect(() => {
