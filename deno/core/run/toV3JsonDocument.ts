@@ -20,8 +20,8 @@ export const stringToSchema = (schema: string): AnyOasDocument => {
 
 export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Document> => {
   return await match(schema)
-    .with({ openapi: P.string.startsWith('3.0.') }, doc => doc as OpenAPIV3.Document)
-    .with({ openapi: P.string.startsWith('3.1.') }, doc => {
+    .with({ openapi: P.string.startsWith('3.0') }, doc => doc as OpenAPIV3.Document)
+    .with({ openapi: P.string.startsWith('3.1') }, doc => {
       const options: ConverterOptions = {
         verbose: false,
         deleteExampleWithId: false,
@@ -32,10 +32,10 @@ export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Do
 
       return converter.convert() as OpenAPIV3.Document
     })
-    .with({ swagger: '2.0.0' }, async (doc: OpenAPIV2.Document) => {
+    .with({ swagger: P.string.startsWith('2.0') }, async (doc: OpenAPIV2.Document) => {
       const parsed = await converter.convertObj(doc, {})
 
-      return parsed as unknown as OpenAPIV3.Document
+      return parsed.openapi
     })
     .otherwise(() => {
       console.log(
