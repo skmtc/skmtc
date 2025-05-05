@@ -33,6 +33,9 @@ export const PreviewContainer: FC = () => {
     return null
   }
 
+  console.log('ROUTE', previewContent.route)
+  console.log('URL', previewContent.url)
+
   return (
     <MemoryRouter initialEntries={[previewContent.url]}>
       <Routes>
@@ -62,10 +65,13 @@ type DynamicParentProps = {
 }
 
 const DynamicParent = ({ group, name }: DynamicParentProps) => {
+  console.log('PARENT')
   const mockResponseMapRef = useRef<MockResponseMap | null>(null)
 
   useEffect(() => {
     import('../mock-responses.generated.json').then(({ default: mocks }) => {
+      console.log('MOCKS', mocks)
+
       Object.entries(mocks as MockResponseMap).map(([url, methods]) => {
         Object.entries(methods).map(([method, content]) => {
           const urlWithParams = paramsReplace({ url, params: content.params })
@@ -104,7 +110,7 @@ const DynamicParent = ({ group, name }: DynamicParentProps) => {
 
           if (contentType === 'application/json') {
             return Promise.resolve(
-              new Response(JSON.stringify(body), {
+              new Response(body, {
                 status,
                 headers: new Headers({
                   'Content-Type': 'application/json'
