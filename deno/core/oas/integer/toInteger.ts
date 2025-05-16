@@ -58,11 +58,11 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
   enums,
   value: valueWithoutEnums
 }: ToParsedIntegerArgs<Nullable>): OasInteger<Nullable> => {
-  // const { format, value: valueWithoutFormat } = parseFormat({
-  //   value: valueWithoutEnums,
-  //   valibotSchema: integerFormat,
-  //   context
-  // })
+  const { format, value: valueWithoutFormat } = parseFormat({
+    value: valueWithoutEnums,
+    valibotSchema: integerFormat,
+    context
+  })
 
   const {
     type: _type,
@@ -73,10 +73,9 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     maximum,
     exclusiveMaximum,
     minimum,
-    format,
     exclusiveMinimum,
     ...skipped
-  } = v.parse(oasIntegerData, valueWithoutEnums)
+  } = v.parse(oasIntegerData, valueWithoutFormat)
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
