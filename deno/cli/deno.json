@@ -1,0 +1,5 @@
+{
+  "name": "@skmtc/cli",
+  "version": "0.0.61",
+  "exports": "./mod.ts"
+}
