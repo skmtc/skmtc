@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You MUST import `@std` dependencies from `jsr`
+You MUST use latest versions of libraries when adding imports
+You must use `type` keyword when importing types
