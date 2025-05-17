@@ -1,0 +1,4 @@
+{
+  "name": "doc-types",
+  "generators": ["@skmtc/zod", "@skmtc/typescript", "@skmtc/tanstack-query-zod"]
+}

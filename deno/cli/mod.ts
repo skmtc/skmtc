@@ -6,7 +6,8 @@ import { toAddPrompt, toAddCommand } from './src/add.ts'
 import { Select } from '@cliffy/prompt'
 import { P, match } from 'npm:ts-pattern@5.2.0'
 import { getDirectoryContents, getDirectoryNames, hasSchema } from './src/file.ts'
-import { toLoginCommand, toLogoutCommand } from './src/auth/auth.ts'
+import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
+import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
 
 const hasHome = async () => {
   const projectContents = await getDirectoryContents('./.schematic')
@@ -48,6 +49,10 @@ type LogoutAction = {
   action: 'logout'
 }
 
+type UploadAction = {
+  action: 'upload'
+}
+
 type ExitAction = {
   action: 'exit'
 }
@@ -59,6 +64,7 @@ type PromptResponse =
   | AddAction
   | LoginAction
   | LogoutAction
+  | UploadAction
   | ExitAction
 
 const getOptions = async () => {
@@ -107,8 +113,9 @@ const promptwise = async () => {
     .with({ action: 'generate' }, async () => await generatePrompt())
     .with({ action: 'clone' }, async () => await toClonePrompt())
     .with({ action: 'add' }, async () => await toAddPrompt())
-    .with({ action: 'login' }, async () => await toLoginCommand())
-    .with({ action: 'logout' }, async () => await toLogoutCommand())
+    .with({ action: 'login' }, async () => await toLoginPrompt())
+    .with({ action: 'logout' }, async () => await toLogoutPrompt())
+    .with({ action: 'upload' }, async () => await toUploadPrompt())
     .with({ action: 'exit' }, () => Deno.exit(0))
     .otherwise(matched => {
       throw new Error(`Invalid action: ${matched}`)
@@ -128,4 +135,5 @@ await new Command()
   .command('add', toAddCommand())
   .command('login', toLoginCommand())
   .command('logout', toLogoutCommand())
+  .command('upload', toUploadCommand())
   .parse(Deno.args)

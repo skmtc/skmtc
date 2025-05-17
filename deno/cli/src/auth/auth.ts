@@ -2,10 +2,18 @@ import { Command } from '@cliffy/command'
 import { createSupabaseClient } from './supabase-client.ts'
 import { createAuthHandler } from './auth-handler.ts'
 
+export const toLoginPrompt = async () => {
+  await login()
+}
+
 export const toLoginCommand = () => {
   return new Command().description('Log in to Codesquared').action(async () => {
     await login()
   })
+}
+
+export const toLogoutPrompt = async () => {
+  await logout()
 }
 
 export const toLogoutCommand = () => {

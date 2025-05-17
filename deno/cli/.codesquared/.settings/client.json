@@ -1,0 +1,20 @@
+{
+  "accountName": "dmitrigrabov",
+  "deploymentId": "fc43cp85vcgh",
+  "settings": {
+    "generators": [
+      {
+        "id": "@skmtc/tanstack-query-zod",
+        "operations": {}
+      },
+      {
+        "id": "@skmtc/zod",
+        "models": {}
+      },
+      {
+        "id": "@skmtc/typescript",
+        "models": {}
+      }
+    ]
+  }
+}

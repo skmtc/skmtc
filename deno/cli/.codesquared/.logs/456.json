@@ -1,0 +1,11 @@
+{"stackTrail":"456:generate:@skmtc/operation-types:/accounts/{account_id}/request-tracer/trace:post","level":"ERROR","datetime":1745677345184,"message":"RangeError: Maximum call stack size exceeded
+    at GenerateContext.#getFile (https://jsr.io/@skmtc/core/0.0.618/context/GenerateContext.ts:1:1)
+    at GenerateContext.register (https://jsr.io/@skmtc/core/0.0.618/context/GenerateContext.ts:1:1)
+    at toZodValue (file:///Users/dmitrigrabov/workspace/api-foundry-doc-types/.codesquared/zod/src/Zod.ts:1:1)
+    at new ZodArray (file:///Users/dmitrigrabov/workspace/api-foundry-doc-types/.codesquared/zod/src/ZodArray.ts:1:1)
+    at file:///Users/dmitrigrabov/workspace/api-foundry-doc-types/.codesquared/zod/src/Zod.ts:1:1
+    at I.with (file:///Users/dmitrigrabov/Library/Caches/deno/npm/registry.npmjs.org/ts-pattern/5.6.2/dist/index.js:1:1)
+    at toZodValue (file:///Users/dmitrigrabov/workspace/api-foundry-doc-types/.codesquared/zod/src/Zod.ts:1:1)
+    at new ZodInsertable (file:///Users/dmitrigrabov/workspace/api-foundry-doc-types/.codesquared/zod/src/ZodInsertable.ts:2:1)
+    at ModelDriver.getDefinition (https://jsr.io/@skmtc/core/0.0.618/dsl/model/ModelDriver.ts:4:1)
+    at ModelDriver.apply (https://jsr.io/@skmtc/core/0.0.618/dsl/model/ModelDriver.ts:4:1)"}

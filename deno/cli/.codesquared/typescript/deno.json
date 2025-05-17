@@ -1,0 +1,7 @@
+{
+  "name": "@skmtc/typescript",
+  "version": "0.0.25",
+  "exports": {
+    ".": "./mod.ts"
+  }
+}

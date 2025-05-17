@@ -1,0 +1,5 @@
+{
+  "name": "@skmtc/zod",
+  "version": "0.0.25",
+  "exports": "./mod.ts"
+}

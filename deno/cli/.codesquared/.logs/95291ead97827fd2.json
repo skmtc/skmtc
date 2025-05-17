@@ -1,0 +1,15 @@
+[
+  {
+    "stackTrail": "95291ead97827fd2:toArtifacts:@skmtc/shadcn-table:/databases/{databaseId}/database_backups:get",
+    "level": "ERROR",
+    "datetime": 1744815266956,
+    "message": "LIST ITEM TYPE IS NOT OBJECT",
+    "args": "{\"oasType\":\"schema\",\"type\":\"union\",\"members\":[{\"oasType\":\"schema\",\"type\":\"object\",\"properties\":{\"endpoint\":{\"oasType\":\"schema\",\"type\":\"string\",\"description\":\"S3 endpoint URL\",\"example\":\"https://s3.us-east-1.amazonaws.com\"},\"bucketName\":{\"oasType\":\"schema\",\"type\":\"string\",\"description\":\"S3 bucket name\",\"example\":\"my-bucket\"},\"bucketRegion\":{\"oasType\":\"schema\",\"type\":\"string\",\"description\":\"S3 bucket region\",\"example\":\"us-east-1\"},\"accessKeyId\":{\"oasType\":\"schema\",\"type\":\"string\",\"description\":\"Access key ID\",\"example\":\"AKIAIOSFODNN7EXAMPLE\"},\"prefix\":{\"oasType\":\"schema\",\"type\":\"string\",\"description\":\"Prefix to prepend to all keys when accessing the S3 bucket\",\"example\":\"backup/\"},\"kind\":{\"oasType\":\"schema\",\"type\":\"string\",\"enums\":[\"s3\"]},\"id\":{\"oasType\":\"schema\",\"type\":\"string\",\"description\":\"The ID of the backup\",\"format\":\"uuid\"},\"status\":{\"oasType\":\"ref\",\"type\":\"ref\"}},\"required\":[\"endpoint\",\"bucketName\",\"bucketRegion\",\"accessKeyId\",\"prefix\",\"kind\",\"id\",\"status\"]}]}"
+  },
+  {
+    "stackTrail": "95291ead97827fd2",
+    "level": "ERROR",
+    "datetime": 1744815266956,
+    "message": "Error: Invariant failed: Expected object type\n    at invariant (file:///Users/dmitrigrabov/Library/Caches/deno/npm/registry.npmjs.org/tiny-invariant/1.3.3/dist/esm/tiny-invariant.js:12:11)\n    at new ShadcnTable (file:///Users/dmitrigrabov/workspace/skmtc-supabase/.codesquared/shadcn-table/src/ShadcnTable.ts:29:5)\n    at OperationDriver.getDefinition (https://jsr.io/@skmtc/core/0.0.610/dsl/operation/OperationDriver.ts:98:19)\n    at OperationDriver.apply (https://jsr.io/@skmtc/core/0.0.610/dsl/operation/OperationDriver.ts:76:29)\n    at new OperationDriver (https://jsr.io/@skmtc/core/0.0.610/dsl/operation/OperationDriver.ts:63:28)\n    at GenerateContext.insertOperation (https://jsr.io/@skmtc/core/0.0.610/context/GenerateContext.ts:618:38)\n    at Object.transform (file:///Users/dmitrigrabov/workspace/skmtc-supabase/.codesquared/shadcn-table/src/config.ts:17:13)\n    at https://jsr.io/@skmtc/core/0.0.610/context/GenerateContext.ts:344:42\n    at tracer (https://jsr.io/@skmtc/core/0.0.610/helpers/tracer.ts:6:20)\n    at GenerateContext.trace (https://jsr.io/@skmtc/core/0.0.610/context/GenerateContext.ts:405:12)"
+  }
+]

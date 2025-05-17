@@ -1,0 +1,115 @@
+[
+  {
+    "stackTrail": "b63051686a2df4cc:toArtifacts:@skmtc/shadcn-table:/databases/{databaseId}/database_backups:get",
+    "level": "ERROR",
+    "datetime": 1744815446204,
+    "message": "LIST ITEM TYPE IS NOT OBJECT",
+    "args": {
+      "oasType": "schema",
+      "type": "union",
+      "members": [
+        {
+          "oasType": "schema",
+          "type": "object",
+          "properties": {
+            "endpoint": {
+              "oasType": "schema",
+              "type": "string",
+              "description": "S3 endpoint URL",
+              "example": "https://s3.us-east-1.amazonaws.com"
+            },
+            "bucketName": {
+              "oasType": "schema",
+              "type": "string",
+              "description": "S3 bucket name",
+              "example": "my-bucket"
+            },
+            "bucketRegion": {
+              "oasType": "schema",
+              "type": "string",
+              "description": "S3 bucket region",
+              "example": "us-east-1"
+            },
+            "accessKeyId": {
+              "oasType": "schema",
+              "type": "string",
+              "description": "Access key ID",
+              "example": "AKIAIOSFODNN7EXAMPLE"
+            },
+            "prefix": {
+              "oasType": "schema",
+              "type": "string",
+              "description": "Prefix to prepend to all keys when accessing the S3 bucket",
+              "example": "backup/"
+            },
+            "kind": {
+              "oasType": "schema",
+              "type": "string",
+              "enums": [
+                "s3"
+              ]
+            },
+            "id": {
+              "oasType": "schema",
+              "type": "string",
+              "description": "The ID of the backup",
+              "format": "uuid"
+            },
+            "status": {
+              "oasType": "ref",
+              "type": "ref"
+            }
+          },
+          "required": [
+            "endpoint",
+            "bucketName",
+            "bucketRegion",
+            "accessKeyId",
+            "prefix",
+            "kind",
+            "id",
+            "status"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "stackTrail": "b63051686a2df4cc:toArtifacts:@skmtc/shadcn-table:/databases/{databaseId}/database_backups:get",
+    "level": "ERROR",
+    "datetime": 1744815446205,
+    "message": "Error: Invariant failed: Expected object type
+        at invariant (file:///Users/dmitrigrabov/Library/Caches/deno/npm/registry.npmjs.org/tiny-invariant/1.3.3/dist/esm/tiny-invariant.js:12:11)
+        at new ShadcnTable (file:///Users/dmitrigrabov/workspace/skmtc-supabase/.codesquared/shadcn-table/src/ShadcnTable.ts:29:5)
+        at OperationDriver.getDefinition (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationDriver.ts:98:19)
+        at OperationDriver.apply (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationDriver.ts:76:29)
+        at new OperationDriver (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationDriver.ts:63:28)
+        at GenerateContext.insertOperation (https://jsr.io/@skmtc/core/0.0.612/context/GenerateContext.ts:617:38)
+        at Object.transform (file:///Users/dmitrigrabov/workspace/skmtc-supabase/.codesquared/shadcn-table/src/config.ts:17:13)
+        at https://jsr.io/@skmtc/core/0.0.612/context/GenerateContext.ts:344:42
+        at tracer (https://jsr.io/@skmtc/core/0.0.612/helpers/tracer.ts:6:20)
+        at GenerateContext.trace (https://jsr.io/@skmtc/core/0.0.612/context/GenerateContext.ts:404:12)"
+  },
+  {
+    "stackTrail": "b63051686a2df4cc:toArtifacts:@skmtc/shadcn-select-api:/databases/{databaseId}/database_backups:get",
+    "level": "ERROR",
+    "datetime": 1744815446208,
+    "message": "Error: Invariant failed: Expected object type
+        at invariant (file:///Users/dmitrigrabov/Library/Caches/deno/npm/registry.npmjs.org/tiny-invariant/1.3.3/dist/esm/tiny-invariant.js:12:11)
+        at new ShadcnSelectInput (file:///Users/dmitrigrabov/workspace/skmtc-supabase/.codesquared/shadcn-select-api/src/ShadcnSelectInput.ts:26:5)
+        at OperationDriver.getDefinition (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationDriver.ts:98:19)
+        at OperationDriver.apply (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationDriver.ts:76:29)
+        at new OperationDriver (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationDriver.ts:63:28)
+        at GenerateContext.insertOperation (https://jsr.io/@skmtc/core/0.0.612/context/GenerateContext.ts:617:38)
+        at ShadcnSelectField.insertOperation (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationBase.ts:45:25)
+        at new ShadcnSelectField (file:///Users/dmitrigrabov/workspace/skmtc-supabase/.codesquared/shadcn-select-api/src/ShadcnSelectField.ts:23:28)
+        at OperationDriver.getDefinition (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationDriver.ts:98:19)
+        at OperationDriver.apply (https://jsr.io/@skmtc/core/0.0.612/dsl/operation/OperationDriver.ts:76:29)"
+  },
+  {
+    "stackTrail": "b63051686a2df4cc",
+    "level": "DEBUG",
+    "datetime": 1744815446209,
+    "message": "95 files generated"
+  },
+]

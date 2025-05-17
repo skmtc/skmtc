@@ -1,0 +1,5 @@
+{
+  "name": "@skmtc/tanstack-query-zod",
+  "version": "0.0.24",
+  "exports": "./mod.ts"
+}
