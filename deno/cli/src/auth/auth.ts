@@ -1,15 +1,9 @@
-import { Command, type StringType } from '@cliffy/command'
-import { OAuth2Client } from '@cmd-johnson/oauth2-client'
-import { createClient } from '@supabase/supabase-js'
-
-// Create a single supabase client for interacting with your database
-const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!)
+import { Command } from '@cliffy/command'
+import { createSupabaseClient } from './supabase-client.ts'
+import { createAuthHandler } from './auth-handler.ts'
 
 export const toLoginCommand = () => {
-  console.log('TO LOGIN COMMAND')
   return new Command().description('Log in to Codesquared').action(async () => {
-    console.log('LOGIN COMMAND')
-
     await login()
   })
 }
@@ -19,18 +13,70 @@ export const toLogoutCommand = () => {
 }
 
 const login = async () => {
-  console.log('LOGIN')
+  const kv = await Deno.openKv()
+  const supabase = createSupabaseClient({ kv })
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'github'
+  const sessionRes = await supabase.auth.getSession()
+
+  if (sessionRes.data.session) {
+    console.log('You are already logged in')
+
+    return
+  }
+
+  const authHandler = createAuthHandler({ supabase })
+
+  const server = Deno.serve({ port: 9000 }, authHandler)
+
+  const signInRes = await supabase.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: `http://localhost:9000/oauth/callback`
+    }
   })
 
-  console.log('DATA', data)
-  console.log('ERROR', error)
+  console.log('Click the link to login')
+  console.log(signInRes.data.url)
 
-  return data
+  return new Promise(resolve => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        console.log('You are now logged in')
+
+        kv.close()
+        server.shutdown()
+
+        resolve(session)
+      }
+    })
+  })
 }
 
 const logout = async () => {
-  console.log('LOGOUT')
+  const kv = await Deno.openKv()
+
+  const supabase = createSupabaseClient({ kv })
+
+  const sessionRes = await supabase.auth.getSession()
+
+  if (!sessionRes.data.session) {
+    console.log('You are not logged in')
+
+    return
+  }
+
+  const logoutPromise = new Promise(resolve => {
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        console.log('You are now logged out')
+        kv.close()
+
+        resolve(null)
+      }
+    })
+  })
+
+  await supabase.auth.signOut()
+
+  return logoutPromise
 }

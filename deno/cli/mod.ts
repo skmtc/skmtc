@@ -117,8 +117,6 @@ const promptwise = async () => {
   setTimeout(promptwise, 0)
 }
 
-console.log('STARTING')
-
 await new Command()
   .description('Generate code from OpenAPI schema')
   .action(async _flags => {
