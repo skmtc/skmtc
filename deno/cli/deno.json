@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.62",
+  "version": "0.0.64",
   "exports": "./mod.ts",
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty"

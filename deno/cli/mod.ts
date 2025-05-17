@@ -8,6 +8,7 @@ import { P, match } from 'npm:ts-pattern@5.2.0'
 import { getDirectoryContents, getDirectoryNames, hasSchema } from './src/file.ts'
 import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
 import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
+import { toGenerateCommand, toGeneratePrompt } from './src/generate/generate.tsx'
 
 const hasHome = async () => {
   const projectContents = await getDirectoryContents('./.schematic')
@@ -53,6 +54,10 @@ type UploadAction = {
   action: 'upload'
 }
 
+type ArtifactsAction = {
+  action: 'artifacts'
+}
+
 type ExitAction = {
   action: 'exit'
 }
@@ -65,6 +70,7 @@ type PromptResponse =
   | LoginAction
   | LogoutAction
   | UploadAction
+  | ArtifactsAction
   | ExitAction
 
 const getOptions = async () => {
@@ -116,6 +122,7 @@ const promptwise = async () => {
     .with({ action: 'login' }, async () => await toLoginPrompt())
     .with({ action: 'logout' }, async () => await toLogoutPrompt())
     .with({ action: 'upload' }, async () => await toUploadPrompt())
+    .with({ action: 'artifacts' }, async () => await toGeneratePrompt())
     .with({ action: 'exit' }, () => Deno.exit(0))
     .otherwise(matched => {
       throw new Error(`Invalid action: ${matched}`)
@@ -136,4 +143,5 @@ await new Command()
   .command('login', toLoginCommand())
   .command('logout', toLogoutCommand())
   .command('upload', toUploadCommand())
+  .command('artifacts', toGenerateCommand())
   .parse(Deno.args)
