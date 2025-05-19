@@ -10,7 +10,7 @@ export type Plugin = {
   description?: string
 }
 
-type DeployArgs = {
+type DeployToServerArgs = {
   assets: DenoFiles
   stackConfig: SkmtcStackConfig
 }
@@ -27,7 +27,7 @@ const denoDeployment = v.object({
   updatedAt: v.string()
 })
 
-export const deploy = async ({ assets, stackConfig }: DeployArgs) => {
+export const deployToServer = async ({ assets, stackConfig }: DeployToServerArgs) => {
   const kv = await Deno.openKv()
   const supabase = createSupabaseClient({ kv })
 

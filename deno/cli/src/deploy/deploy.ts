@@ -1,26 +1,26 @@
 import { Command } from '@cliffy/command'
 import { resolve } from '@std/path'
 import { toAssets } from './to-assets.ts'
-import { deploy } from './deploy.ts'
+import { deployToServer } from './deploy-to-server.ts'
 import { Input } from '@cliffy/prompt'
 import { getDeployment } from './get-deployment.ts'
 
-export const toUploadCommand = () => {
+export const toDeployCommand = () => {
   return new Command()
-    .description('Upload a file to Codesquared')
+    .description('Deploy a stack to Codesquared')
     .arguments('[path]')
-    .action(async (_, path = './') => await upload(path))
+    .action(async (_, path = './') => await deploy(path))
 }
 
-export const toUploadPrompt = async () => {
+export const toDeployPrompt = async () => {
   const path = await Input.prompt({
     message: 'Enter path to .codesquared folder'
   })
 
-  await upload(path)
+  await deploy(path)
 }
 
-export const upload = async (path: string) => {
+export const deploy = async (path: string) => {
   const skmtcRoot = resolve(path, '.codesquared')
 
   const stackConfig = Deno.readTextFileSync(resolve(skmtcRoot, '.settings', 'stack.json'))
@@ -28,7 +28,7 @@ export const upload = async (path: string) => {
   const assets = await toAssets({ skmtcRoot })
 
   try {
-    const res = await deploy({
+    const res = await deployToServer({
       assets,
       stackConfig: JSON.parse(stackConfig)
     })

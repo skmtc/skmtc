@@ -7,7 +7,7 @@ import { Select } from '@cliffy/prompt'
 import { P, match } from 'npm:ts-pattern@5.2.0'
 import { getDirectoryContents, getDirectoryNames, hasSchema } from './src/file.ts'
 import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
-import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
+import { toDeployCommand, toDeployPrompt } from './src/deploy/deploy.ts'
 import { toGenerateCommand, toGeneratePrompt } from './src/generate/generate.tsx'
 
 const hasHome = async () => {
@@ -50,8 +50,8 @@ type LogoutAction = {
   action: 'logout'
 }
 
-type UploadAction = {
-  action: 'upload'
+type DeployAction = {
+  action: 'deploy'
 }
 
 type ArtifactsAction = {
@@ -69,7 +69,7 @@ type PromptResponse =
   | AddAction
   | LoginAction
   | LogoutAction
-  | UploadAction
+  | DeployAction
   | ArtifactsAction
   | ExitAction
 
@@ -121,7 +121,7 @@ const promptwise = async () => {
     .with({ action: 'add' }, async () => await toAddPrompt())
     .with({ action: 'login' }, async () => await toLoginPrompt())
     .with({ action: 'logout' }, async () => await toLogoutPrompt())
-    .with({ action: 'upload' }, async () => await toUploadPrompt())
+    .with({ action: 'deploy' }, async () => await toDeployPrompt())
     .with({ action: 'artifacts' }, async () => await toGeneratePrompt())
     .with({ action: 'exit' }, () => Deno.exit(0))
     .otherwise(matched => {
@@ -142,6 +142,6 @@ await new Command()
   .command('add', toAddCommand())
   .command('login', toLoginCommand())
   .command('logout', toLogoutCommand())
-  .command('upload', toUploadCommand())
+  .command('deploy', toDeployCommand())
   .command('artifacts', toGenerateCommand())
   .parse(Deno.args)
