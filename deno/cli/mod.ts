@@ -9,6 +9,7 @@ import { getDirectoryContents, getDirectoryNames, hasSchema } from './src/file.t
 import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
 import { toDeployCommand, toDeployPrompt } from './src/deploy/deploy.ts'
 import { toGenerateCommand, toGeneratePrompt } from './src/generate/generate.tsx'
+import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
 
 const hasHome = async () => {
   const projectContents = await getDirectoryContents('./.schematic')
@@ -54,6 +55,10 @@ type DeployAction = {
   action: 'deploy'
 }
 
+type UploadAction = {
+  action: 'upload'
+}
+
 type ArtifactsAction = {
   action: 'artifacts'
 }
@@ -70,6 +75,7 @@ type PromptResponse =
   | LoginAction
   | LogoutAction
   | DeployAction
+  | UploadAction
   | ArtifactsAction
   | ExitAction
 
@@ -122,6 +128,7 @@ const promptwise = async () => {
     .with({ action: 'login' }, async () => await toLoginPrompt())
     .with({ action: 'logout' }, async () => await toLogoutPrompt())
     .with({ action: 'deploy' }, async () => await toDeployPrompt())
+    .with({ action: 'upload' }, async () => await toUploadPrompt())
     .with({ action: 'artifacts' }, async () => await toGeneratePrompt())
     .with({ action: 'exit' }, () => Deno.exit(0))
     .otherwise(matched => {
@@ -143,5 +150,6 @@ await new Command()
   .command('login', toLoginCommand())
   .command('logout', toLogoutCommand())
   .command('deploy', toDeployCommand())
+  .command('upload', toUploadCommand())
   .command('artifacts', toGenerateCommand())
   .parse(Deno.args)

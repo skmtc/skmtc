@@ -42,7 +42,7 @@ export const toGenerateCommand = () => {
     new Command()
       .description('Generate artifacts from OpenAPI schema')
       .arguments('[path]')
-      .option('--oas <oas>', 'The oas to generate from')
+      .option('--oas <oas>', 'The OpenAPI schema to generate from')
       // .option('-s, --settings <settings>', 'The settings to use')
       // .option('-p, --prettier [prettier]', 'The prettier config to use')
       .action(async ({ oas }, path = './') => {
