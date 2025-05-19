@@ -49,7 +49,7 @@ export const uploadSchema = async ({ body }: UploadSchemaArgs) => {
     throw await error.context.json()
   }
 
-  return v.parse(schema, data)
+  return v.parse(v.array(schema), data)
 }
 
 export const openApiVersion = v.picklist(['2.0', '3.0', '3.1'])
