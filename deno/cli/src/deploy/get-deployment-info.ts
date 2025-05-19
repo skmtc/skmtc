@@ -4,7 +4,7 @@ type GetDeploymentArgs = {
   deploymentId: string
 }
 
-export const getDeployment = async ({ deploymentId }: GetDeploymentArgs) => {
+export const getDeploymentInfo = async ({ deploymentId }: GetDeploymentArgs) => {
   const kv = await Deno.openKv()
   const supabase = createSupabaseClient({ kv })
 
@@ -18,12 +18,9 @@ export const getDeployment = async ({ deploymentId }: GetDeploymentArgs) => {
     return
   }
 
-  const { data, error } = await supabase.functions.invoke(
-    `servers/${auth.session.user.user_metadata.user_name}/deployments/${deploymentId}`,
-    {
-      method: 'GET'
-    }
-  )
+  const { data, error } = await supabase.functions.invoke(`/deployments/${deploymentId}/info`, {
+    method: 'GET'
+  })
 
   if (error) {
     console.error('Error getting deployment', error)

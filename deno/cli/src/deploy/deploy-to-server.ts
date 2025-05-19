@@ -1,6 +1,6 @@
 import type { SkmtcStackConfig } from '@skmtc/core/Settings'
-import { createSupabaseClient } from '../auth/supabase-client.ts'
 import type { DenoFiles } from './types.ts'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import * as v from 'valibot'
 
 export type Plugin = {
@@ -13,6 +13,8 @@ export type Plugin = {
 type DeployToServerArgs = {
   assets: DenoFiles
   stackConfig: SkmtcStackConfig
+  accountName: string
+  supabase: SupabaseClient<any, 'public', any>
 }
 
 const denoDeployment = v.object({
@@ -27,24 +29,14 @@ const denoDeployment = v.object({
   updatedAt: v.string()
 })
 
-export const deployToServer = async ({ assets, stackConfig }: DeployToServerArgs) => {
-  const kv = await Deno.openKv()
-  const supabase = createSupabaseClient({ kv })
-
-  const { data: auth } = await supabase.auth.getSession()
-
-  if (!auth?.session) {
-    console.log('You are not logged in')
-
-    kv.close()
-
-    return
-  }
-
-  const userName = auth.session.user.user_metadata.user_name
-
+export const deployToServer = async ({
+  supabase,
+  accountName,
+  assets,
+  stackConfig
+}: DeployToServerArgs) => {
   const { data, error } = await supabase.functions.invoke(
-    `servers/${userName}/${stackConfig.name}`,
+    `servers/${accountName}/${stackConfig.name}`,
     {
       method: 'POST',
       body: {

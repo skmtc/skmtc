@@ -63,6 +63,10 @@ type ArtifactsAction = {
   action: 'artifacts'
 }
 
+type ProjectCreateAction = {
+  action: 'project-create'
+}
+
 type ExitAction = {
   action: 'exit'
 }
@@ -77,6 +81,7 @@ type PromptResponse =
   | DeployAction
   | UploadAction
   | ArtifactsAction
+  | ProjectCreateAction
   | ExitAction
 
 const getOptions = async () => {
