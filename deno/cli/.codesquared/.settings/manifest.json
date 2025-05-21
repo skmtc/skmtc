@@ -1,0 +1,164 @@
+{
+  "deploymentId": "qkcgy8zw0kat",
+  "traceId": "8f4a87670bca4b7caaf988a673de2e02",
+  "spanId": "9e443b81847fe2d5",
+  "region": "europe-west2",
+  "files": {
+    "dist/index.generated.tsx": {
+      "lines": 416,
+      "characters": 22671,
+      "destinationPath": "@/index.generated.tsx"
+    }
+  },
+  "previews": {},
+  "results": {
+    "9e443b81847fe2d5": {
+      "generate": {
+        "@skmtc/zod": {
+          "Account": "success",
+          "AppLogsResponseEntry": "success",
+          "BuildLogsResponseEntry": "success",
+          "CreateAccountBody": "success",
+          "CreateArtifactsResponse": "success",
+          "CreateGeneratorBody": "success",
+          "CreateSchemaBody": "success",
+          "CreateServerBody": "success",
+          "CreateWorkspaceBody": "success",
+          "DenoDeploymentAssets": "success",
+          "DenoFile": "success",
+          "Deployment": "success",
+          "DeploymentInfo": "success",
+          "EnrichedSetting": "success",
+          "FormatterOption": "success",
+          "Generator": "success",
+          "InputOption": "success",
+          "ManifestContent": "success",
+          "ManifestEntry": "success",
+          "ModelPreview": "success",
+          "ModelsGeneratorSettings": "success",
+          "OpenApiVersion": "success",
+          "OperationPreview": "success",
+          "OperationsGeneratorSettings": "success",
+          "OperationsPathObject": "success",
+          "Preview": "success",
+          "Schema": "success",
+          "SchemaFormat": "success",
+          "Server": "success",
+          "ServerWithStatus": "success",
+          "UpdateAccountBody": "success",
+          "UpdateCanonicalDomainNameResponse": "success",
+          "UpdateSchemaBody": "success",
+          "UpdateWorkspaceBody": "success",
+          "Workspace": "success",
+          "WorkspaceDetails": "success"
+        },
+        "@skmtc/typescript": {
+          "Account": "success",
+          "AppLogsResponseEntry": "success",
+          "BuildLogsResponseEntry": "success",
+          "CreateAccountBody": "success",
+          "CreateArtifactsResponse": "success",
+          "CreateGeneratorBody": "success",
+          "CreateSchemaBody": "success",
+          "CreateServerBody": "success",
+          "CreateWorkspaceBody": "success",
+          "DenoDeploymentAssets": "success",
+          "DenoFile": "success",
+          "Deployment": "success",
+          "DeploymentInfo": "success",
+          "EnrichedSetting": "success",
+          "FormatterOption": "success",
+          "Generator": "success",
+          "InputOption": "success",
+          "ManifestContent": "success",
+          "ManifestEntry": "success",
+          "ModelPreview": "success",
+          "ModelsGeneratorSettings": "success",
+          "OpenApiVersion": "success",
+          "OperationPreview": "success",
+          "OperationsGeneratorSettings": "success",
+          "OperationsPathObject": "success",
+          "Preview": "success",
+          "Schema": "success",
+          "SchemaFormat": "success",
+          "Server": "success",
+          "ServerWithStatus": "success",
+          "UpdateAccountBody": "success",
+          "UpdateCanonicalDomainNameResponse": "success",
+          "UpdateSchemaBody": "success",
+          "UpdateWorkspaceBody": "success",
+          "Workspace": "success",
+          "WorkspaceDetails": "success"
+        },
+        "@skmtc/tanstack-query": {
+          "/accounts": {
+            "get": "error",
+            "post": "success",
+            "put": "success"
+          },
+          "/accounts/{accountName}": {
+            "get": "error"
+          },
+          "/deployments/{deploymentId}": {
+            "get": "error",
+            "delete": "error"
+          },
+          "/deployments/{deploymentId}/canonical-domain-name": {
+            "put": "error"
+          },
+          "/deployments/{deploymentId}/deployment-logs": {
+            "get": "error"
+          },
+          "/deployments/{deploymentId}/runtime-logs": {
+            "get": "error"
+          },
+          "/generators": {
+            "get": "error",
+            "post": "success"
+          },
+          "/schemas": {
+            "get": "error",
+            "post": "success",
+            "put": "success"
+          },
+          "/schemas/{slug}": {
+            "get": "error"
+          },
+          "/servers": {
+            "get": "error",
+            "post": "success"
+          },
+          "/servers/{accountName}/{stackName}": {
+            "post": "success",
+            "delete": "error"
+          },
+          "/servers/{accountName}/{stackName}/settings": {
+            "post": "error"
+          },
+          "/servers/{accountName}/{stackName}/{deploymentId}": {
+            "post": "error"
+          },
+          "/servers/{stackName}": {
+            "get": "error"
+          },
+          "/workspaces": {
+            "get": "error",
+            "post": "success"
+          },
+          "/workspaces/{workspaceId}": {
+            "put": "success"
+          },
+          "/workspaces/{workspaceName}": {
+            "get": "error"
+          }
+        }
+      },
+      "render": {
+        "@/index.generated.tsx": "success"
+      }
+    }
+  },
+  "startAt": 1747769067908,
+  "endAt": 1747769067971,
+  "schemaOptions": []
+}

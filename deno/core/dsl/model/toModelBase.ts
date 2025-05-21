@@ -24,10 +24,10 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
 }
 
-export const toModelInsertable = <EnrichmentType = undefined>(
+export const toModelBase = <EnrichmentType = undefined>(
   config: BaseModelConfig<EnrichmentType>
 ) => {
-  const ModelInsertable = class extends ModelBase<EnrichmentType> {
+  return class extends ModelBase<EnrichmentType> {
     static id = config.id
     static type = 'model' as const
 
@@ -55,6 +55,4 @@ export const toModelInsertable = <EnrichmentType = undefined>(
       })
     }
   }
-
-  return ModelInsertable
 }

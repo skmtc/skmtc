@@ -1,7 +1,10 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.67",
+  "version": "0.0.69",
   "exports": "./mod.ts",
+  "imports": {
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.656"
+  },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty"
   }

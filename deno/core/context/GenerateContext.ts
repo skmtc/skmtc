@@ -128,7 +128,6 @@ export type InsertModelArgs<
   refName: RefName
   generation?: T
   destinationPath?: string
-  rootRef: RefName
 }
 
 export type InsertReturn<
@@ -671,8 +670,7 @@ export class GenerateContext {
     insertable,
     refName,
     generation,
-    destinationPath,
-    rootRef
+    destinationPath
   }: InsertModelArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new ModelDriver({
       context: this,
@@ -680,7 +678,7 @@ export class GenerateContext {
       refName,
       generation,
       destinationPath,
-      rootRef
+      rootRef: refName
     })
 
     return new Inserted({ settings, definition })

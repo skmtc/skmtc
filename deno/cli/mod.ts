@@ -8,8 +8,8 @@ import { P, match } from 'npm:ts-pattern@5.2.0'
 import { getDirectoryContents, getDirectoryNames, hasSchema } from './src/file.ts'
 import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
 import { toDeployCommand, toDeployPrompt } from './src/deploy/deploy.ts'
-import { toGenerateCommand, toGeneratePrompt } from './src/generate/generate.tsx'
 import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
+import { toArtifactsCommand, toArtifactsPrompt } from './src/artifacts/artifacts.tsx'
 
 const hasHome = async () => {
   const projectContents = await getDirectoryContents('./.schematic')
@@ -134,7 +134,7 @@ const promptwise = async () => {
     .with({ action: 'logout' }, async () => await toLogoutPrompt())
     .with({ action: 'deploy' }, async () => await toDeployPrompt())
     .with({ action: 'upload' }, async () => await toUploadPrompt())
-    .with({ action: 'artifacts' }, async () => await toGeneratePrompt())
+    .with({ action: 'artifacts' }, async () => await toArtifactsPrompt())
     .with({ action: 'exit' }, () => Deno.exit(0))
     .otherwise(matched => {
       throw new Error(`Invalid action: ${matched}`)
@@ -156,5 +156,5 @@ await new Command()
   .command('logout', toLogoutCommand())
   .command('deploy', toDeployCommand())
   .command('upload', toUploadCommand())
-  .command('artifacts', toGenerateCommand())
+  .command('artifacts', toArtifactsCommand())
   .parse(Deno.args)

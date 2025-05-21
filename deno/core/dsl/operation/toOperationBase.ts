@@ -18,10 +18,10 @@ type ToEnrichmentsArgs = {
   context: GenerateContext
 }
 
-export const toOperationInsertable = <EnrichmentType = undefined>(
+export const toOperationBase = <EnrichmentType = undefined>(
   config: BaseOperationConfig<EnrichmentType>
 ) => {
-  const OperationInsertable = class extends OperationBase<EnrichmentType> {
+  return class extends OperationBase<EnrichmentType> {
     static id = config.id
     static type = 'operation' as const
 
@@ -50,6 +50,4 @@ export const toOperationInsertable = <EnrichmentType = undefined>(
       })
     }
   }
-
-  return OperationInsertable
 }

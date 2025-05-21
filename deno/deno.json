@@ -30,5 +30,8 @@
     "./cli",
     "./core",
     "./server"
-  ] 
+  ],
+  "tasks": {
+    "publish": "deno task --cwd=core publish && deno task --cwd=cli publish && deno task --cwd=server publish"
+  }
 }

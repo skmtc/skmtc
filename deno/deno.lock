@@ -44,6 +44,7 @@
     "jsr:@std/path@0.223": "0.223.0",
     "jsr:@std/path@1": "1.0.9",
     "jsr:@std/path@1.0.0-rc.1": "1.0.0-rc.1",
+    "jsr:@std/path@1.0.6": "1.0.6",
     "jsr:@std/path@1.0.9": "1.0.9",
     "jsr:@std/path@^1.0.4": "1.0.9",
     "jsr:@std/path@^1.0.8": "1.0.9",
@@ -281,6 +282,9 @@
     },
     "@std/path@1.0.0-rc.1": {
       "integrity": "b8c00ae2f19106a6bb7cbf1ab9be52aa70de1605daeb2dbdc4f87a7cbaf10ff6"
+    },
+    "@std/path@1.0.6": {
+      "integrity": "ab2c55f902b380cf28e0eec501b4906e4c1960d13f00e11cfbcd21de15f18fed"
     },
     "@std/path@1.0.9": {
       "integrity": "260a49f11edd3db93dd38350bf9cd1b4d1366afa98e81b86167b4e3dd750129e"
@@ -827,6 +831,11 @@
       "npm:valibot@1.0.0"
     ],
     "members": {
+      "cli": {
+        "dependencies": [
+          "jsr:@skmtc/core@^0.0.656"
+        ]
+      },
       "core": {
         "dependencies": [
           "jsr:@std/assert@^1.0.10",
@@ -845,7 +854,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.654",
+          "jsr:@skmtc/core@^0.0.656",
           "jsr:@std/log@0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@apiture/openapi-down-convert@0.14.0",

@@ -59,8 +59,7 @@ export class OperationBase<EnrichmentType = undefined> extends ValueBase {
       insertable,
       refName,
       generation: 'force',
-      destinationPath: this.settings.exportPath,
-      rootRef: refName
+      destinationPath: this.settings.exportPath
     })
   }
 

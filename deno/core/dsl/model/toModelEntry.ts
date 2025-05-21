@@ -3,7 +3,8 @@ import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type { TransformModelArgs } from './types.ts'
 import type * as v from 'valibot'
 import type { SchemaOption } from '../../types/SchemaOptions.ts'
-type ToModelConfigArgs<EnrichmentType = undefined, Acc = void> = {
+
+type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
   transform: ({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
@@ -13,13 +14,13 @@ type ToModelConfigArgs<EnrichmentType = undefined, Acc = void> = {
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
 }
 
-export const toModelConfig = <EnrichmentType = undefined, Acc = void>({
+export const toModelEntry = <EnrichmentType = undefined, Acc = void>({
   id,
   transform,
   toEnrichmentSchema,
   toSchemaOptions,
   toEnrichmentRequest
-}: ToModelConfigArgs<EnrichmentType, Acc>) => {
+}: ToModelEntryArgs<EnrichmentType, Acc>) => {
   return {
     id,
     type: 'model',
