@@ -31,9 +31,7 @@ export class ModelBase<EnrichmentType = undefined> extends ContentBase {
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName
   ): Inserted<V, 'force', EnrichmentType> {
-    return this.context.insertModel({
-      insertable,
-      refName,
+    return this.context.insertModel(insertable, refName, {
       generation: 'force',
       destinationPath: this.settings.exportPath
     })

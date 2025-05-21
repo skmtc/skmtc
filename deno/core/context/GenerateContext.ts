@@ -108,24 +108,12 @@ export type ToModelSettingsArgs = {
   refName: RefName
 }
 
-export type InsertOperationArgs<
-  V extends GeneratedValue,
-  T extends GenerationType,
-  EnrichmentType = undefined
-> = {
-  insertable: OperationInsertable<V, EnrichmentType>
-  operation: OasOperation
+export type InsertOperationOptions<T extends GenerationType> = {
   generation?: T
   destinationPath?: string
 }
 
-export type InsertModelArgs<
-  V extends GeneratedValue,
-  T extends GenerationType,
-  EnrichmentType = undefined
-> = {
-  insertable: ModelInsertable<V, EnrichmentType>
-  refName: RefName
+export type InsertModelOptions<T extends GenerationType> = {
   generation?: T
   destinationPath?: string
 }
@@ -634,12 +622,11 @@ export class GenerateContext {
    *    insertable's driver
    * @mutates this.files
    */
-  insertOperation<V extends GeneratedValue, T extends GenerationType, EnrichmentType = undefined>({
-    insertable,
-    operation,
-    generation,
-    destinationPath
-  }: InsertOperationArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
+  insertOperation<V extends GeneratedValue, T extends GenerationType, EnrichmentType = undefined>(
+    insertable: OperationInsertable<V, EnrichmentType>,
+    operation: OasOperation,
+    { generation, destinationPath }: InsertOperationOptions<T>
+  ): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new OperationDriver({
       context: this,
       insertable,
@@ -666,12 +653,11 @@ export class GenerateContext {
    * @mutates this.files
    */
 
-  insertModel<V extends GeneratedValue, T extends GenerationType, EnrichmentType>({
-    insertable,
-    refName,
-    generation,
-    destinationPath
-  }: InsertModelArgs<V, T, EnrichmentType>): Inserted<V, T, EnrichmentType> {
+  insertModel<V extends GeneratedValue, T extends GenerationType, EnrichmentType>(
+    insertable: ModelInsertable<V, EnrichmentType>,
+    refName: RefName,
+    { generation, destinationPath }: InsertModelOptions<T>
+  ): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new ModelDriver({
       context: this,
       insertable,

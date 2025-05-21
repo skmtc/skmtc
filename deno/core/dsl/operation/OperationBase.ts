@@ -43,9 +43,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     insertable: OperationInsertable<V, EnrichmentType>,
     operation: OasOperation
   ): Inserted<V, 'force', EnrichmentType> {
-    return this.context.insertOperation({
-      insertable,
-      operation,
+    return this.context.insertOperation(insertable, operation, {
       generation: 'force',
       destinationPath: this.settings.exportPath
     })
@@ -55,9 +53,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName
   ): Inserted<V, 'force', EnrichmentType> {
-    return this.context.insertModel({
-      insertable,
-      refName,
+    return this.context.insertModel(insertable, refName, {
       generation: 'force',
       destinationPath: this.settings.exportPath
     })
