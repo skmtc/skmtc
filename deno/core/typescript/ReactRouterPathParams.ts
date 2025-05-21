@@ -1,4 +1,4 @@
-import { ValueBase } from '../dsl/ValueBase.ts'
+import { ContentBase } from '../dsl/ContentBase.ts'
 import type { GenerateContext } from '../context/GenerateContext.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
 import type { GeneratorKey } from '../types/GeneratorKeys.ts'
@@ -10,7 +10,7 @@ type CreateArgs = {
   destinationPath: string
 }
 
-export class ReactRouterPathParams extends ValueBase {
+export class ReactRouterPathParams extends ContentBase {
   getParams: string = ''
 
   assertParams: string = ''

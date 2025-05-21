@@ -4,7 +4,7 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import { toGeneratorId, type GeneratorKey } from '../../types/GeneratorKeys.ts'
-import { ValueBase } from '../ValueBase.ts'
+import { ContentBase } from '../ContentBase.ts'
 import type { Definition } from '../Definition.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
@@ -26,7 +26,7 @@ type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   rootRef: RefName
 }
 
-export class OperationBase<EnrichmentType = undefined> extends ValueBase {
+export class OperationBase<EnrichmentType = undefined> extends ContentBase {
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
   override generatorKey: GeneratorKey

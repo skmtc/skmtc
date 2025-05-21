@@ -1,6 +1,6 @@
 import type { GenerateContext } from '../context/GenerateContext.ts'
 import type { Identifier } from './Identifier.ts'
-import { ValueBase } from './ValueBase.ts'
+import { ContentBase } from './ContentBase.ts'
 import { withDescription } from '../typescript/withDescription.ts'
 import type { GeneratedValue } from '../types/GeneratedValue.ts'
 
@@ -11,7 +11,7 @@ type ConstructorArgs<V extends GeneratedValue> = {
   value: V
 }
 
-export class Definition<V extends GeneratedValue = GeneratedValue> extends ValueBase {
+export class Definition<V extends GeneratedValue = GeneratedValue> extends ContentBase {
   identifier: Identifier
   description: string | undefined
   value: V

@@ -1,5 +1,5 @@
 import type { GenerateContext } from '../context/GenerateContext.ts'
-import { ValueBase } from '../dsl/ValueBase.ts'
+import { ContentBase } from '../dsl/ContentBase.ts'
 import type { Stringable } from '../dsl/Stringable.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
@@ -10,7 +10,7 @@ type CreateArgs = {
   generatorKey?: GeneratorKey
 }
 
-export class CustomValue extends ValueBase {
+export class CustomValue extends ContentBase {
   type = 'custom' as const
   value: Stringable
 
