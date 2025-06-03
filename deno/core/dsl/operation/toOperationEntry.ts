@@ -15,7 +15,7 @@ export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
 }
 
-export const toOperationConfig = <EnrichmentType = undefined, Acc = void>({
+export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
   id,
   transform,
   toEnrichmentSchema,

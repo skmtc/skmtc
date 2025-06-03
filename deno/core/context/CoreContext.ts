@@ -1,7 +1,7 @@
 import { GenerateContext } from './GenerateContext.ts'
 import { RenderContext } from './RenderContext.ts'
 import { ParseContext } from './ParseContext.ts'
-import type { PrettierConfigType } from '../types/prettierConfig.ts'
+import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
 import type { ClientSettings, ClientGeneratorSettings } from '../types/Settings.ts'
 import type { ResultType } from '../types/Results.ts'

@@ -1,5 +1,5 @@
 import * as Sentry from 'npm:@sentry/deno@8.47.0'
-import type { PrettierConfigType } from '../types/prettierConfig.ts'
+import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { FilesRenderResult, RenderResult } from './types.ts'
 import { normalize } from 'jsr:@std/path@1.0.6'

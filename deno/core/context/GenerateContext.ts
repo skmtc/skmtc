@@ -625,7 +625,7 @@ export class GenerateContext {
   insertOperation<V extends GeneratedValue, T extends GenerationType, EnrichmentType = undefined>(
     insertable: OperationInsertable<V, EnrichmentType>,
     operation: OasOperation,
-    { generation, destinationPath }: InsertOperationOptions<T>
+    { generation, destinationPath }: InsertOperationOptions<T> = {}
   ): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new OperationDriver({
       context: this,
@@ -656,7 +656,7 @@ export class GenerateContext {
   insertModel<V extends GeneratedValue, T extends GenerationType, EnrichmentType>(
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName,
-    { generation, destinationPath }: InsertModelOptions<T>
+    { generation, destinationPath }: InsertModelOptions<T> = {}
   ): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new ModelDriver({
       context: this,

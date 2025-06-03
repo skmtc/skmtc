@@ -1,5 +1,5 @@
 import type { ClientSettings } from '../types/Settings.ts'
-import type { PrettierConfigType } from '../types/prettierConfig.ts'
+import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import { CoreContext } from '../context/CoreContext.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'

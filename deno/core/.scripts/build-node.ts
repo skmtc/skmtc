@@ -1,4 +1,4 @@
-import { build, emptyDir } from 'jsr:@deno/dnt@0.41.3'
+import { build, emptyDir } from 'jsr:@deno/dnt@0.42.1'
 import denoJson from '../deno.json' with { type: 'json' }
 
 await emptyDir('../../packages/core')
@@ -7,6 +7,7 @@ await build({
   entryPoints: [
     './mod.ts',
     { name: './Brand', path: './types/Brand.ts' },
+    { name: './CustomValue', path: './types/CustomValue.ts' },
     { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' },
     { name: './GeneratorKeys', path: './types/GeneratorKeys.ts' },
     { name: './Manifest', path: './types/Manifest.ts' },
@@ -30,6 +31,7 @@ await build({
     { name: './OasString', path: './oas/string/String.ts' },
     { name: './OasTag', path: './oas/tag/Tag.ts' },
     { name: './ParseContext', path: './context/ParseContext.ts' },
+    { name: './PrettierConfig', path: './types/PrettierConfig.ts' },
     { name: './Preview', path: './types/Preview.ts' },
     { name: './refFns', path: './helpers/refFns.ts' },
     { name: './RefName', path: './types/RefName.ts' },
