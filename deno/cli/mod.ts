@@ -9,8 +9,19 @@ import { getDirectoryContents, getDirectoryNames, hasSchema } from './src/file.t
 import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
 import { toDeployCommand, toDeployPrompt } from './src/deploy/deploy.ts'
 import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
-import { toWorkspacesSetCommand, toWorkspacesSetPrompt } from './src/workspaces/workspaces.tsx'
-import { toArtifactsCommand, toArtifactsPrompt } from './src/artifacts/artifacts.tsx'
+import {
+  toWorkspacesSetCommand,
+  toWorkspacesSetPrompt,
+  toWorkspacesGetCommand,
+  toWorkspacesGetPrompt
+} from './src/workspaces/workspaces.ts'
+import { toArtifactsCommand, toArtifactsPrompt } from './src/artifacts/artifacts.ts'
+import {
+  toBaseImagePullCommand,
+  toBaseImagePullPrompt,
+  toBaseImagePushCommand,
+  toBaseImagePushPrompt
+} from './src/base-image/base-image.ts'
 
 const hasHome = async () => {
   const projectContents = await getDirectoryContents('./.schematic')
@@ -76,6 +87,14 @@ type WorkspaceSetAction = {
   action: 'workspace:set'
 }
 
+type BaseImagePullAction = {
+  action: 'base-image:pull'
+}
+
+type BaseImagePushAction = {
+  action: 'base-image:push'
+}
+
 type ExitAction = {
   action: 'exit'
 }
@@ -93,6 +112,8 @@ type PromptResponse =
   | ProjectCreateAction
   | WorkspaceGetAction
   | WorkspaceSetAction
+  | BaseImagePullAction
+  | BaseImagePushAction
   | ExitAction
 
 const getOptions = async () => {
@@ -140,6 +161,9 @@ const promptwise = async () => {
     .with({ action: 'init', options: P.select() }, async options => await toInitPrompt(options))
     .with({ action: 'generate' }, async () => await generatePrompt())
     .with({ action: 'workspace:set' }, async () => await toWorkspacesSetPrompt())
+    .with({ action: 'workspace:get' }, async () => await toWorkspacesGetPrompt())
+    .with({ action: 'base-image:pull' }, async () => await toBaseImagePullPrompt())
+    .with({ action: 'base-image:push' }, async () => await toBaseImagePushPrompt())
     .with({ action: 'clone' }, async () => await toClonePrompt())
     .with({ action: 'add' }, async () => await toAddPrompt())
     .with({ action: 'login' }, async () => await toLoginPrompt())
@@ -163,6 +187,9 @@ await new Command()
   .command('generate', generateCommand())
   .command('init', toInitCommand())
   .command('workspace:set', toWorkspacesSetCommand())
+  .command('workspace:get', toWorkspacesGetCommand())
+  .command('base-image:pull', toBaseImagePullCommand())
+  .command('base-image:push', toBaseImagePushCommand())
   .command('clone', toCloneCommand())
   .command('add', toAddCommand())
   .command('login', toLoginCommand())
