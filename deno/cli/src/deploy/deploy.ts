@@ -5,8 +5,9 @@ import { deployToServer } from './deploy-to-server.ts'
 import { Input } from '@cliffy/prompt'
 import * as v from 'valibot'
 import { getDeploymentInfo } from './get-deployment-info.ts'
-import { existsSync } from '@std/fs'
+import { exists } from '@std/fs'
 import { createSupabaseClient } from '../auth/supabase-client.ts'
+import { skmtcClientConfig } from '@skmtc/core/Settings'
 
 export const toDeployCommand = () => {
   return new Command()
@@ -78,7 +79,7 @@ export const deploy = async (path: string) => {
         }
 
         if (deployment.status === 'success') {
-          updateClientJson({
+          await updateClientJson({
             homePath: skmtcRoot,
             denoDeploymentId: message.denoDeploymentId,
             accountName
@@ -113,12 +114,14 @@ const updateClientJson = async ({
   denoDeploymentId,
   accountName
 }: UpdateClientJsonArgs) => {
-  const clientJsonPath = resolve(homePath, '.codesquared', '.settings', 'client.json')
+  const clientJsonPath = resolve(homePath, '.settings', 'client.json')
 
-  if (existsSync(clientJsonPath)) {
+  const fileExists = await exists(clientJsonPath)
+
+  if (fileExists) {
     const clientJson = await Deno.readTextFile(clientJsonPath)
 
-    const clientJsonObject = JSON.parse(clientJson)
+    const clientJsonObject = v.parse(skmtcClientConfig, JSON.parse(clientJson))
 
     clientJsonObject.deploymentId = denoDeploymentId
 

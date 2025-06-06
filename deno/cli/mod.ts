@@ -9,6 +9,7 @@ import { getDirectoryContents, getDirectoryNames, hasSchema } from './src/file.t
 import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
 import { toDeployCommand, toDeployPrompt } from './src/deploy/deploy.ts'
 import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
+import { toWorkspacesSetCommand, toWorkspacesSetPrompt } from './src/workspaces/workspaces.tsx'
 import { toArtifactsCommand, toArtifactsPrompt } from './src/artifacts/artifacts.tsx'
 
 const hasHome = async () => {
@@ -67,6 +68,14 @@ type ProjectCreateAction = {
   action: 'project-create'
 }
 
+type WorkspaceGetAction = {
+  action: 'workspace:get'
+}
+
+type WorkspaceSetAction = {
+  action: 'workspace:set'
+}
+
 type ExitAction = {
   action: 'exit'
 }
@@ -82,6 +91,8 @@ type PromptResponse =
   | UploadAction
   | ArtifactsAction
   | ProjectCreateAction
+  | WorkspaceGetAction
+  | WorkspaceSetAction
   | ExitAction
 
 const getOptions = async () => {
@@ -128,6 +139,7 @@ const promptwise = async () => {
   await match(action)
     .with({ action: 'init', options: P.select() }, async options => await toInitPrompt(options))
     .with({ action: 'generate' }, async () => await generatePrompt())
+    .with({ action: 'workspace:set' }, async () => await toWorkspacesSetPrompt())
     .with({ action: 'clone' }, async () => await toClonePrompt())
     .with({ action: 'add' }, async () => await toAddPrompt())
     .with({ action: 'login' }, async () => await toLoginPrompt())
@@ -150,6 +162,7 @@ await new Command()
   })
   .command('generate', generateCommand())
   .command('init', toInitCommand())
+  .command('workspace:set', toWorkspacesSetCommand())
   .command('clone', toCloneCommand())
   .command('add', toAddCommand())
   .command('login', toLoginCommand())

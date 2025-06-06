@@ -1,8 +1,9 @@
 import { Command } from '@cliffy/command'
 import { join, resolve } from '@std/path'
-import { existsSync } from '@std/fs'
-import { ManifestContent, manifestContent } from '@skmtc/core/Manifest'
+import { existsSync, ensureFileSync } from '@std/fs'
+import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import * as v from 'valibot'
+import { skmtcClientConfig, skmtcStackConfig } from '@skmtc/core/Settings'
 
 export type FormFieldItem = {
   id: string
@@ -58,10 +59,16 @@ export const toArtifactsCommand = () => {
 
         const pathToSchema = resolve(homePath, oas)
 
+        const stackJson = await Deno.readTextFile(join(homePath, '.settings', 'stack.json'))
+        const stack = v.parse(skmtcStackConfig, JSON.parse(stackJson))
+
+        const clientJson = await Deno.readTextFile(join(homePath, '.settings', 'client.json'))
+        const client = v.parse(skmtcClientConfig, JSON.parse(clientJson))
+
         const schema = await Deno.readTextFile(pathToSchema)
 
         const { artifacts, manifest } = await generatorArtifacts({
-          serverOrigin: 'https://doc-types-qkcgy8zw0kat.deno.dev',
+          serverOrigin: `https://${stack.name}-${client.deploymentId}.deno.dev`,
           schema
         })
 
@@ -70,17 +77,20 @@ export const toArtifactsCommand = () => {
           homePath
         })
 
-        Deno.writeTextFileSync(
-          join(homePath, '.settings', 'manifest.json'),
-          JSON.stringify(manifest, null, 2),
-          { create: true }
-        )
+        const manifestPath = join(homePath, '.settings', 'manifest.json')
+
+        ensureFileSync(manifestPath)
+
+        Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
 
         Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
           const absolutePath = resolve(path, artifactPath)
+
+          ensureFileSync(absolutePath)
+
           console.log(`Writing artifact: ${absolutePath}`)
 
-          Deno.writeTextFileSync(absolutePath, artifactContent, { create: true })
+          Deno.writeTextFileSync(absolutePath, artifactContent)
         })
       })
   )
