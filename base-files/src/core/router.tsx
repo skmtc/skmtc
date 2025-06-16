@@ -8,8 +8,6 @@ type PreviewContent = {
 }
 
 export const PreviewContainer: FC = () => {
-  console.log(' --- PREVIEW CONTAINER --- ')
-
   const [previewContent, setPreviewContent] = useState<PreviewContent | null>(null)
   const { pathname, search } = window.location
 
@@ -32,9 +30,6 @@ export const PreviewContainer: FC = () => {
   if (!previewContent) {
     return null
   }
-
-  console.log('ROUTE', previewContent.route)
-  console.log('URL', previewContent.url)
 
   return <DynamicParent group={previewContent.group} name={previewContent.name} />
 }

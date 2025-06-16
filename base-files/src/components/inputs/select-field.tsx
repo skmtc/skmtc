@@ -1,20 +1,32 @@
 import { KeyPath } from '@/components/inputs/types'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { FieldValues, useFormContext } from 'react-hook-form'
-import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { ReactNode } from 'react'
+
+export type SelectOption = {
+  label: ReactNode
+  value: string
+}
 
 type SelectFieldProps<Model extends FieldValues, Key extends KeyPath<Model>> = {
   fieldName: Key
   label?: string
   placeholder?: string
-  children: React.ReactNode
+  options: SelectOption[]
 }
 
 export const SelectField = <Model extends FieldValues, Key extends KeyPath<Model>>({
   label,
   fieldName,
   placeholder,
-  children
+  options
 }: SelectFieldProps<Model, Key>) => {
   const { control } = useFormContext<Model>()
 
@@ -31,7 +43,13 @@ export const SelectField = <Model extends FieldValues, Key extends KeyPath<Model
                 <SelectValue placeholder={placeholder} />
               </SelectTrigger>
             </FormControl>
-            <SelectContent>{children}</SelectContent>
+            <SelectContent>
+              {options.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           <FormMessage />
         </FormItem>

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
+    "@hookform/lenses": "^0.7.1",
     "@hookform/resolvers": "^3.3.4",
     "@radix-ui/react-checkbox": "^1.1.4",
     "@radix-ui/react-dialog": "^1.1.6",

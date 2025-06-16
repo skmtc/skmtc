@@ -11,6 +11,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.8
         version: 1.14.4(hono@4.6.20)
+      '@hookform/lenses':
+        specifier: ^0.7.1
+        version: 0.7.1(react-hook-form@7.58.0(react@18.3.1))(react@18.3.1)
       '@hookform/resolvers':
         specifier: ^3.3.4
         version: 3.10.0(react-hook-form@7.58.0(react@18.3.1))
@@ -288,6 +291,13 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
+
+  '@hookform/lenses@0.7.1':
+    resolution: {integrity: sha512-lURXz2/mzQFGW6taJi+klKxVqMkwSqh/eZGOzA98svLhYC/63rKyJQTX7mK17NCwDo02j9wYxrG1qD85MBTWYg==}
+    engines: {bun: '>=1.2'}
+    peerDependencies:
+      react: ^16.8.0 || ^17 || ^18 || ^19
+      react-hook-form: ^7.0.0
 
   '@hookform/resolvers@3.10.0':
     resolution: {integrity: sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==}
@@ -1591,6 +1601,11 @@ snapshots:
   '@hono/node-server@1.14.4(hono@4.6.20)':
     dependencies:
       hono: 4.6.20
+
+  '@hookform/lenses@0.7.1(react-hook-form@7.58.0(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-hook-form: 7.58.0(react@18.3.1)
 
   '@hookform/resolvers@3.10.0(react-hook-form@7.58.0(react@18.3.1))':
     dependencies:
