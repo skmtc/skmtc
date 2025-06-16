@@ -1,6 +1,4 @@
 import { FC, lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { MemoryRouter, Route, Routes } from 'react-router'
-import { match } from 'ts-pattern'
 
 type PreviewContent = {
   group: string
@@ -10,6 +8,8 @@ type PreviewContent = {
 }
 
 export const PreviewContainer: FC = () => {
+  console.log(' --- PREVIEW CONTAINER --- ')
+
   const [previewContent, setPreviewContent] = useState<PreviewContent | null>(null)
   const { pathname, search } = window.location
 
@@ -36,16 +36,7 @@ export const PreviewContainer: FC = () => {
   console.log('ROUTE', previewContent.route)
   console.log('URL', previewContent.url)
 
-  return (
-    <MemoryRouter initialEntries={[previewContent.url]}>
-      <Routes>
-        <Route
-          path={previewContent.route}
-          element={<DynamicParent group={previewContent.group} name={previewContent.name} />}
-        />
-      </Routes>
-    </MemoryRouter>
-  )
+  return <DynamicParent group={previewContent.group} name={previewContent.name} />
 }
 
 type Method = 'get' | 'post' | 'put' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
@@ -65,13 +56,10 @@ type DynamicParentProps = {
 }
 
 const DynamicParent = ({ group, name }: DynamicParentProps) => {
-  console.log('PARENT')
   const mockResponseMapRef = useRef<MockResponseMap | null>(null)
 
   useEffect(() => {
     import('../mock-responses.generated.json').then(({ default: mocks }) => {
-      console.log('MOCKS', mocks)
-
       Object.entries(mocks as MockResponseMap).map(([url, methods]) => {
         Object.entries(methods).map(([method, content]) => {
           const urlWithParams = paramsReplace({ url, params: content.params })
@@ -96,10 +84,6 @@ const DynamicParent = ({ group, name }: DynamicParentProps) => {
 
     window.fetch = async (url, options) => {
       const mockResponseMap = mockResponseMapRef.current ?? {}
-
-      console.log('URL', url.toString())
-
-      console.log('MOCK RESPONSE MAP', mockResponseMap)
 
       try {
         const matchedResponse =
@@ -147,11 +131,13 @@ const DynamicContainer = ({ group, name }: DynamicContainerProps) => {
     }
   })
 
-  const Container = toDynamicContainer({ group, name, Component })
-
   return (
     <div className="flex h-screen w-screen">
-      <Container />
+      <div className="flex flex-col gap-4">
+        <Suspense fallback={<div>Loading...</div>}>
+          <Component />
+        </Suspense>
+      </div>
     </div>
   )
 }
@@ -167,51 +153,4 @@ const paramsReplace = ({ url, params }: ParamsReplaceArgs) => {
   }, url)
 
   return `http://localhost:54321/functions/v1${urlWithParams}`
-}
-
-type ToDynamicContainerArgs = {
-  group: string
-  name: string
-  Component: React.ComponentType
-}
-
-const toDynamicContainer = ({ group, name, Component }: ToDynamicContainerArgs) => {
-  return match(group)
-    .returnType<React.ComponentType>()
-    .with('forms', () => {
-      return () => (
-        <div className="flex flex-col gap-4">
-          <Suspense fallback={<div>Loading...</div>}>
-            <Component />
-          </Suspense>
-        </div>
-      )
-    })
-    .with('tables', () => {
-      return () => (
-        <div className="flex flex-col gap-4">
-          <Suspense fallback={<div>Loading...</div>}>
-            <Component />
-          </Suspense>
-        </div>
-      )
-    })
-    .with('inputs', () => {
-      return () => (
-        <div className="flex flex-col gap-4">
-          <Suspense fallback={<div>Loading...</div>}>
-            <Component />
-          </Suspense>
-        </div>
-      )
-    })
-    .otherwise(() => {
-      return () => (
-        <div className="flex flex-col gap-4">
-          <h1>
-            Unknown group: {group} / {name}
-          </h1>
-        </div>
-      )
-    })
 }

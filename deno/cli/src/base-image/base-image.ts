@@ -129,8 +129,6 @@ export const toBaseImagePushCommand = () => {
 
         const workspaceId = await getWorkspaceId({ kv, path })
 
-        console.log('WORKSPACE ID', workspaceId)
-
         if (!workspaceId || typeof workspaceId !== 'string') {
           console.log('No workspace ID found')
           return
