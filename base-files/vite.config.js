@@ -21,13 +21,13 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  optimizeDeps: {
+    force: true,
+  },
+  server: {
+    port: 3111,
+  },
   build: {
-    watch: {
-      exclude: ['node_modules', 'build', "src/index.css"],
-      onInvalidate(file) {
-        console.log(`SKMTC INVALIDATE ${file}`)
-      }
-    },
     outDir: 'build',
     emptyOutDir: false,
     rollupOptions: {

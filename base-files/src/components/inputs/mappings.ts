@@ -9,18 +9,6 @@ type StringLiteral<T> = T extends string ? (string extends T ? never : T) : neve
 
 type ActualString<T> = T extends string ? (string extends T ? T : never) : never
 
-// type P = Permutation<1 | 2 | 3>
-
-export type Permutation<U, T = U> = [U] extends [never]
-  ? []
-  : T extends unknown
-    ? [T, ...Permutation<Exclude<U, T>>]
-    : never
-
-// type C = UnionCount<'a' | 'b' | 'c'>
-
-export type UnionCount<U> = Permutation<U>['length']
-
 export const stringFieldMapping = <T>(arg: ActualString<T>) => {
   return StringField
 }

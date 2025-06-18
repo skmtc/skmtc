@@ -3,8 +3,6 @@ import { FC, lazy, Suspense, useEffect, useRef, useState } from 'react'
 type PreviewContent = {
   group: string
   name: string
-  url: string
-  route: string
 }
 
 export const PreviewContainer: FC = () => {
@@ -14,24 +12,16 @@ export const PreviewContainer: FC = () => {
   useEffect(() => {
     if (pathname.startsWith('/_preview/')) {
       const [group, name] = pathname.replace(/^\/_preview\//, '').split('/')
-      const query = new URLSearchParams(search)
 
-      setPreviewContent({
-        group,
-        name,
-        url: query.get('url') ?? '/',
-        route: query.get('route') ?? '/'
-      })
+      setPreviewContent({ group, name })
     } else {
       setPreviewContent(null)
     }
   }, [pathname, search])
 
-  if (!previewContent) {
-    return null
-  }
-
-  return <DynamicParent group={previewContent.group} name={previewContent.name} />
+  return previewContent ? (
+    <DynamicParent group={previewContent.group} name={previewContent.name} />
+  ) : null
 }
 
 type Method = 'get' | 'post' | 'put' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
@@ -45,12 +35,7 @@ type MockResponse = {
   params?: Record<string, string>
 }
 
-type DynamicParentProps = {
-  group: string
-  name: string
-}
-
-const DynamicParent = ({ group, name }: DynamicParentProps) => {
+const DynamicParent = ({ group, name }: PreviewContent) => {
   const mockResponseMapRef = useRef<MockResponseMap | null>(null)
 
   useEffect(() => {
@@ -114,12 +99,7 @@ const DynamicParent = ({ group, name }: DynamicParentProps) => {
   return <DynamicContainer key={name} group={group} name={name} />
 }
 
-type DynamicContainerProps = {
-  group: string
-  name: string
-}
-
-const DynamicContainer = ({ group, name }: DynamicContainerProps) => {
+const DynamicContainer = ({ group, name }: PreviewContent) => {
   const Component = lazy(async () => {
     return {
       default: (await import(`../${group}/${name}.generated.tsx`))[name]
