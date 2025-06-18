@@ -61,6 +61,16 @@ paths:
         - Widgets
 components:
   schemas:
+    Coordinates:
+      type: object
+      required:
+        - lat
+        - lng
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
     Widget:
       type: object
       required:
@@ -70,6 +80,7 @@ components:
         - count
         - weight
         - color
+        - origin
         - active
         - dateOfBirth
         - createdAt
@@ -93,6 +104,10 @@ components:
             - red
             - blue
             - green
+        origin:
+          $ref: '#/components/schemas/Coordinates'
+        location:
+          $ref: '#/components/schemas/Coordinates'
         active:
           type: boolean
         dateOfBirth:

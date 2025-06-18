@@ -10,7 +10,7 @@ export default defineConfig({
       console.log('SKMTC BUILD START')
     },
     buildEnd(error) {
-      console.log('SKMTC BUILD END', error)
+      console.log(`SKMTC BUILD END ${error}`)
     },
     closeBundle() {
       console.log('SKMTC CLOSE BUNDLE')
@@ -22,6 +22,12 @@ export default defineConfig({
     },
   },
   build: {
+    watch: {
+      exclude: ['node_modules', 'build', "src/index.css"],
+      onInvalidate(file) {
+        console.log(`SKMTC INVALIDATE ${file}`)
+      }
+    },
     outDir: 'build',
     emptyOutDir: false,
     rollupOptions: {

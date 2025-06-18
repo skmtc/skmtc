@@ -3,17 +3,17 @@ import { NumberInput } from '@/components/ui/number-input'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form.tsx'
 import { type FieldValues, useFormContext } from 'react-hook-form'
 
-type IntegerFieldProps<Model extends FieldValues, Key extends KeyPath<Model>> = {
+type NumberFieldProps<Model extends FieldValues, Key extends KeyPath<Model>> = {
   fieldName: Key
   label?: string
   placeholder?: string
 }
 
-export const IntegerField = <Model extends FieldValues, Key extends KeyPath<Model>>({
+export const NumberField = <Model extends FieldValues, Key extends KeyPath<Model>>({
   label,
   fieldName,
   placeholder
-}: IntegerFieldProps<Model, Key>) => {
+}: NumberFieldProps<Model, Key>) => {
   const { control } = useFormContext<Model>()
 
   return (
@@ -26,7 +26,6 @@ export const IntegerField = <Model extends FieldValues, Key extends KeyPath<Mode
           <FormControl>
             <NumberInput
               placeholder={placeholder}
-              stepper={1}
               value={value}
               onValueChange={output => onChange(output)}
               {...field}
