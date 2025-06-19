@@ -10,7 +10,7 @@ type GeneratorArgs = {
   version: string
 }
 
-type CreateArgs = {
+type InitArgs = {
   scopeName: string
   generatorName: string
 }
@@ -25,6 +25,12 @@ type InstallArgs = {
   stackJson: StackJson
 }
 
+type CreateArgs = {
+  denoJson: DenoJson
+  stackJson: StackJson
+  generatorType: 'operation' | 'model'
+}
+
 export class Generator {
   scopeName: string
   generatorName: string
@@ -36,7 +42,7 @@ export class Generator {
     this.version = version
   }
 
-  static async create({ scopeName, generatorName }: CreateArgs) {
+  static async init({ scopeName, generatorName }: InitArgs) {
     const meta = await Jsr.getLatestMeta({ scopeName, generatorName })
 
     return new Generator({ scopeName, generatorName, version: meta.latest })
@@ -44,6 +50,15 @@ export class Generator {
 
   install({ denoJson, stackJson }: InstallArgs) {
     denoJson.addImport(this.toPackageName(), this.toFullName())
+
+    stackJson.addGenerator(this)
+  }
+
+  throw new Error('Continue here by adding generator folders')
+
+  create({ denoJson, stackJson, generatorType }: CreateArgs) {
+    denoJson.addImport(this.toPackageName(), this.toModPath())
+    denoJson.addWorkspace(this.toPath())
 
     stackJson.addGenerator(this)
   }
