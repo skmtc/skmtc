@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { readTextFile, writeFile } from './file.ts'
+import { readTextFile, writeFile } from './lib/file.ts'
 import { resolve } from '@std/path'
 import { Toggle } from '@cliffy/prompt'
 import { ensureFileSync } from '@std/fs'
@@ -12,7 +12,7 @@ const setupGenerate = async (): Promise<void> => {
   const { generate } = await import('@skmtc/core' + '')
 
   const { artifacts, manifest, renderDependencies } = await generate({
-    schema: getSchemaContent(),
+    schema: await getSchemaContent(),
     settings: clientConfig?.settings,
     prettier: await getPrettierConfig(),
     generatorsMap: await loadGenerators()
@@ -172,10 +172,10 @@ const getStackConfig = async () => {
   return serverConfig
 }
 
-const getSchemaContent = () => {
+const getSchemaContent = async () => {
   const jsonSchemaPath = resolve('.codesquared', 'schema.json')
 
-  const jsonSchemaContent = readTextFile(jsonSchemaPath)
+  const jsonSchemaContent = await readTextFile(jsonSchemaPath)
 
   if (jsonSchemaContent) {
     return jsonSchemaContent
@@ -183,7 +183,7 @@ const getSchemaContent = () => {
 
   const ymlSchemaPath = resolve('.codesquared', 'schema.yml')
 
-  const ymlSchemaContent = readTextFile(ymlSchemaPath)
+  const ymlSchemaContent = await readTextFile(ymlSchemaPath)
 
   if (ymlSchemaContent) {
     return ymlSchemaContent
@@ -191,7 +191,7 @@ const getSchemaContent = () => {
 
   const yamlSchemaPath = resolve('.codesquared', 'schema.yaml')
 
-  const yamlSchemaContent = readTextFile(yamlSchemaPath)
+  const yamlSchemaContent = await readTextFile(yamlSchemaPath)
 
   if (yamlSchemaContent) {
     return yamlSchemaContent

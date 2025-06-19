@@ -46,11 +46,13 @@ await build({
     { name: './Stringable', path: './dsl/Stringable.ts' },
     { name: './collateExamples', path: './helpers/collateExamples.ts' },
     { name: './strings', path: './helpers/strings.ts' },
-    { name: './toResolvedArtifactPath', path: './helpers/toResolvedArtifactPath.ts' }
+    { name: './toResolvedArtifactPath', path: './helpers/toResolvedArtifactPath.ts' },
+    { name: './validate', path: './app/validate.ts' },
+    { name: './DenoJson', path: './types/DenoJson.ts' }
   ],
   outDir: '../../packages/core',
   test: false,
-  packageManager: 'yarn',
+  packageManager: 'pnpm',
   compilerOptions: {
     lib: ['DOM', 'ESNext']
   },

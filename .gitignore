@@ -42,3 +42,4 @@ yarn-error.log*
 # Emitted by Deno and not needed
 package-lock.json
 packages/core
+packages/cli

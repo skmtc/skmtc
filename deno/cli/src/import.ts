@@ -19,9 +19,9 @@ type CommandType = Command<
   undefined
 >
 
-export const toAddCommand = (): CommandType => {
+export const toImportCommand = (): CommandType => {
   const command = new Command()
-    .description('Add a new schema from url to project')
+    .description('Import ')
     .arguments('<name:string> <url:string>')
     .action((_options, name, url) => {
       add({ name, url }, { logSuccess: false })

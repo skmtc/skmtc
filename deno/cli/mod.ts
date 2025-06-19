@@ -1,11 +1,10 @@
 import { Command } from '@cliffy/command'
 import { generatePrompt, generateCommand } from './src/setupGenerate.ts'
 import { toInitPrompt, toInitCommand } from './src/init.ts'
-import { toClonePrompt, toCloneCommand } from './src/clone.ts'
+import { toClonePrompt, toCloneCommand } from './src/generators/clone.ts'
 import { toAddPrompt, toAddCommand } from './src/add.ts'
 import { Select } from '@cliffy/prompt'
-import { P, match } from 'npm:ts-pattern@5.2.0'
-import { getDirectoryContents, getDirectoryNames, hasSchema } from './src/file.ts'
+import { match } from 'ts-pattern'
 import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
 import { toDeployCommand, toDeployPrompt } from './src/deploy/deploy.ts'
 import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
@@ -22,19 +21,8 @@ import {
   toBaseImagePushCommand,
   toBaseImagePushPrompt
 } from './src/base-image/base-image.ts'
-
-const hasHome = async () => {
-  const projectContents = await getDirectoryContents('./.schematic')
-
-  return Boolean(projectContents)
-}
-
-const hasProjects = async () => {
-  const projectContents = await getDirectoryContents('./.schematic')
-  const projectNames = await getDirectoryNames(projectContents, hasSchema)
-
-  return Boolean(projectNames?.length)
-}
+import { hasHome } from './src/lib/has-home.ts'
+import { hasGenerators } from './src/lib/has-generators.ts'
 
 type InitAction = {
   action: 'init'
@@ -79,6 +67,26 @@ type ProjectCreateAction = {
   action: 'project-create'
 }
 
+type GeneratorsCreateAction = {
+  action: 'generators:create'
+}
+
+type GeneratorsCloneAction = {
+  action: 'generators:clone'
+}
+
+type GeneratorsImportAction = {
+  action: 'generators:import'
+}
+
+type GeneratorsRemoveAction = {
+  action: 'generators:remove'
+}
+
+type GeneratorsListAction = {
+  action: 'generators:list'
+}
+
 type WorkspaceGetAction = {
   action: 'workspace:get'
 }
@@ -118,18 +126,21 @@ type PromptResponse =
 
 const getOptions = async () => {
   const homeExists = await hasHome()
-  const projectsExist = await hasProjects()
+  const generatorsExist = await hasGenerators()
+
+  console.log('HOME EXISTS', homeExists)
+  console.log('GENERATORS EXIST', generatorsExist)
 
   if (!homeExists) {
     return [
-      { name: 'Create empty project', value: { action: 'init' } },
+      { name: 'Create new API Foundry project', value: { action: 'init' } },
       { name: 'Log in to Codesquared', value: { action: 'login' } },
       { name: 'Log out', value: { action: 'logout' } },
       { name: 'Exit', value: { action: 'exit' } }
     ]
   }
 
-  if (!projectsExist) {
+  if (!generatorsExist) {
     return [
       {
         name: 'Clone a generator from JSR registry for editing',
@@ -158,7 +169,7 @@ const promptwise = async () => {
   })
 
   await match(action)
-    .with({ action: 'init', options: P.select() }, async options => await toInitPrompt(options))
+    .with({ action: 'init' }, async () => await toInitPrompt())
     .with({ action: 'generate' }, async () => await generatePrompt())
     .with({ action: 'workspace:set' }, async () => await toWorkspacesSetPrompt())
     .with({ action: 'workspace:get' }, async () => await toWorkspacesGetPrompt())
@@ -173,6 +184,8 @@ const promptwise = async () => {
     .with({ action: 'artifacts' }, async () => await toArtifactsPrompt())
     .with({ action: 'exit' }, () => Deno.exit(0))
     .otherwise(matched => {
+      console.log('matched', JSON.stringify(matched, null, 2))
+
       throw new Error(`Invalid action: ${matched}`)
     })
 
