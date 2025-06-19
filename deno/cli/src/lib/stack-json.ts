@@ -3,86 +3,70 @@ import { join } from '@std/path'
 import { toRootPath } from './to-root-path.ts'
 import { type SkmtcStackConfig, skmtcStackConfig } from '@skmtc/core'
 import * as v from 'valibot'
-import invariant from 'tiny-invariant'
+import type { Generator } from './generator.ts'
 
 export class StackJson {
-  toPath() {
+  contents: SkmtcStackConfig
+
+  private constructor(contents: SkmtcStackConfig) {
+    this.contents = contents
+  }
+
+  static toPath() {
     const rootPath = toRootPath()
 
     return join(rootPath, '.settings', 'stack.json')
   }
 
-  async exists() {
-    const path = this.toPath()
+  static async exists(): Promise<boolean> {
+    const path = StackJson.toPath()
 
-    return await exists(path, {
-      isFile: true
-    })
+    return await exists(path, { isFile: true })
   }
 
-  async read() {
-    const hasStackJson = await this.exists()
+  static async open(): Promise<StackJson | null> {
+    const hasStackJson = await StackJson.exists()
 
     if (!hasStackJson) {
-      return null
+      throw new Error('Stack JSON not found')
     }
 
     const stackJson = await Deno.readTextFile(this.toPath())
 
-    return v.parse(skmtcStackConfig, JSON.parse(stackJson))
+    const contents = v.parse(skmtcStackConfig, JSON.parse(stackJson))
+
+    return new StackJson(contents)
   }
 
-  async write(stackConfig: SkmtcStackConfig) {
-    const stackJsonPath = this.toPath()
-
-    await Deno.writeTextFile(stackJsonPath, JSON.stringify(stackConfig, null, 2))
-  }
-
-  async toGenerators() {
-    const stackConfig = await this.read()
-
-    return stackConfig?.generators ?? []
-  }
-
-  async addGenerator(generator: string) {
-    const hasStackJson = await this.exists()
-
-    if (!hasStackJson) {
-      await this.create(generator)
-    }
-
-    const stackConfig = await this.read()
-
-    invariant(stackConfig, 'Stack JSON not found')
-
-    stackConfig.generators.push(generator)
-
-    await this.write(stackConfig)
-  }
-
-  async removeGenerator(generator: string) {
-    const hasStackJson = await this.exists()
-
-    if (!hasStackJson) {
-      return
-    }
-
-    const stackConfig = await this.read()
-
-    invariant(stackConfig, 'Stack JSON not found')
-
-    stackConfig.generators = stackConfig.generators.filter(g => g !== generator)
-
-    await this.write(stackConfig)
-  }
-
-  async create(name: string) {
-    const rootPath = toRootPath()
-
-    const settingsPath = join(rootPath, '.settings')
+  async write() {
+    const settingsPath = join(toRootPath(), '.settings')
 
     await ensureDir(settingsPath)
 
-    await this.write({ name, generators: [] })
+    const stackJsonPath = StackJson.toPath()
+
+    await Deno.writeTextFile(stackJsonPath, JSON.stringify(this.contents, null, 2))
+  }
+
+  addGenerator(generator: Generator) {
+    this.contents = {
+      ...this.contents,
+      generators: [...(this.contents?.generators ?? []), generator.toPackageName()]
+    }
+  }
+
+  removeGenerator(generator: string) {
+    if (!this.contents) {
+      return
+    }
+
+    this.contents = {
+      ...this.contents,
+      generators: this.contents.generators.filter(g => g !== generator)
+    }
+  }
+
+  static create(name: string) {
+    return new StackJson({ name, generators: [] })
   }
 }

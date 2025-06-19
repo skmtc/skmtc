@@ -1,6 +1,7 @@
 import { Command, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import { GENERATORS } from '../constants.ts'
+import { Generator } from '../lib/generator.ts'
 
 type CommandType = Command<
   void,
@@ -43,12 +44,8 @@ type InstallOptions = {
   logSuccess: boolean
 }
 
-const install = async (plugin: string, options: InstallOptions) => {
-  if (!plugin.startsWith('jsr:')) {
-    throw new Error('Only JSR registry generators are supported')
-  }
-
-  const name = plugin.replace('jsr:', '')
+const install = async (packageName: string, options: InstallOptions) => {
+  const generator = await Generator.fromName(packageName)
 
   await downloadAndCreatePackage(name, options)
 }

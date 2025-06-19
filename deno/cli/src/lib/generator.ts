@@ -36,7 +36,7 @@ export class Generator {
     return new Generator({ scopeName, generatorName, version: meta.latest, definition })
   }
 
-  addToDenoJson(denoJson: RootDenoJson) {
+  addToDenoJson(denoJson: RootDenoJson): RootDenoJson {
     return match(this as Generator)
       .with({ definition: 'jsr' }, matched => ({
         ...denoJson,

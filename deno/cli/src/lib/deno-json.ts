@@ -4,60 +4,51 @@ import { join } from '@std/path'
 import { writeFile } from './file.ts'
 import * as v from 'valibot'
 import { rootDenoJson, type RootDenoJson } from '@skmtc/core'
-import invariant from 'tiny-invariant'
 import type { Generator } from './generator.ts'
 
 export class DenoJson {
-  toPath() {
+  contents: RootDenoJson
+
+  private constructor(contents: RootDenoJson) {
+    this.contents = contents
+  }
+
+  static toPath() {
     const rootPath = toRootPath()
 
     return join(rootPath, 'deno.json')
   }
 
-  async exists() {
-    const denoJsonPath = this.toPath()
+  static async exists(): Promise<boolean> {
+    const denoJsonPath = DenoJson.toPath()
 
-    return await exists(denoJsonPath, {
-      isFile: true
-    })
+    return await exists(denoJsonPath, { isFile: true })
   }
 
-  async read() {
-    const hasDenoJson = await this.exists()
+  static async open(): Promise<DenoJson | null> {
+    const hasDenoJson = await DenoJson.exists()
 
     if (!hasDenoJson) {
-      return null
+      return new DenoJson({})
     }
 
-    const denoJsonPath = this.toPath()
+    const denoJson = await Deno.readTextFile(DenoJson.toPath())
 
-    const denoJson = await Deno.readTextFile(denoJsonPath)
+    const contents = v.parse(rootDenoJson, JSON.parse(denoJson))
 
-    return v.parse(rootDenoJson, JSON.parse(denoJson))
+    return new DenoJson(contents)
   }
 
-  async write(denoJson: RootDenoJson) {
-    const denoJsonPath = this.toPath()
-
+  async write() {
     await writeFile({
-      content: JSON.stringify(denoJson),
-      resolvedPath: denoJsonPath
+      content: JSON.stringify(this.contents),
+      resolvedPath: DenoJson.toPath()
     })
   }
 
   async addGenerator(generator: Generator) {
-    const hasDenoJson = await this.exists()
+    this.contents = generator.addToDenoJson(this.contents)
 
-    if (!hasDenoJson) {
-      await this.write({})
-    }
-
-    const denoJson = await this.read()
-
-    invariant(denoJson, 'Deno JSON not found')
-
-    const newDenoJson = generator.addToDenoJson(denoJson)
-
-    await this.write(newDenoJson)
+    await this.write()
   }
 }

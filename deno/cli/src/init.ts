@@ -13,9 +13,9 @@ type CreateProjectFolderOptions = {
 export const init = async (name: string, { logSuccess }: CreateProjectFolderOptions) => {
   const rootPath = toRootPath()
 
-  const stackJson = new StackJson()
+  const stackJson = StackJson.create(name)
 
-  await stackJson.create(name)
+  await stackJson.write()
 
   await writeFile({
     content: prettierConfig,
