@@ -4,7 +4,6 @@ import { join } from '@std/path'
 import { writeFile } from './file.ts'
 import * as v from 'valibot'
 import { rootDenoJson, type RootDenoJson } from '@skmtc/core'
-import type { Generator } from './generator.ts'
 
 export class DenoJson {
   contents: RootDenoJson
@@ -25,7 +24,7 @@ export class DenoJson {
     return await exists(denoJsonPath, { isFile: true })
   }
 
-  static async open(): Promise<DenoJson | null> {
+  static async open(): Promise<DenoJson> {
     const hasDenoJson = await DenoJson.exists()
 
     if (!hasDenoJson) {
@@ -39,16 +38,24 @@ export class DenoJson {
     return new DenoJson(contents)
   }
 
+  addImport(key: string, value: string) {
+    this.contents = {
+      ...this.contents,
+      imports: { ...this.contents.imports, [key]: value }
+    }
+  }
+
+  addWorkspace(path: string) {
+    this.contents = {
+      ...this.contents,
+      workspace: [...(this.contents.workspace ?? []), path]
+    }
+  }
+
   async write() {
     await writeFile({
       content: JSON.stringify(this.contents),
       resolvedPath: DenoJson.toPath()
     })
-  }
-
-  async addGenerator(generator: Generator) {
-    this.contents = generator.addToDenoJson(this.contents)
-
-    await this.write()
   }
 }

@@ -2,6 +2,8 @@ import { Command, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import { GENERATORS } from '../constants.ts'
 import { Generator } from '../lib/generator.ts'
+import { DenoJson } from '../lib/deno-json.ts'
+import { StackJson } from '../lib/stack-json.ts'
 
 type CommandType = Command<
   void,
@@ -47,5 +49,15 @@ type InstallOptions = {
 const install = async (packageName: string, options: InstallOptions) => {
   const generator = await Generator.fromName(packageName)
 
-  await downloadAndCreatePackage(name, options)
+  const denoJson = await DenoJson.open()
+  const stackJson = await StackJson.open()
+
+  generator.install({ denoJson, stackJson })
+
+  await denoJson.write()
+  await stackJson.write()
+
+  if (options.logSuccess) {
+    console.log(`Generator "${generator.toPackageName()}" is installed`)
+  }
 }

@@ -1,5 +1,5 @@
 import type { Generator } from './generator.ts'
-import type { JsrPkgMetaVersions, JsrPkgVersionInfo } from '@sys/jsr/types'
+import type { JsrPkgMetaVersions, JsrPkgVersionInfo } from 'jsr:@sys/jsr@0.0.65/types'
 
 type GetLatestVersionArgs = {
   scopeName: string

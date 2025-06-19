@@ -1,59 +1,70 @@
-import { match } from 'ts-pattern'
 import { Jsr } from './jsr.ts'
-import type { RootDenoJson } from '@skmtc/core'
+import type { DenoJson } from './deno-json.ts'
+import type { StackJson } from './stack-json.ts'
+import { join } from '@std/path'
+import { ensureFile } from '@std/fs'
 
 type GeneratorArgs = {
   scopeName: string
   generatorName: string
   version: string
-  definition: GeneratorDefinition
 }
 
 type CreateArgs = {
   scopeName: string
   generatorName: string
-  definition: GeneratorDefinition
 }
 
-type GeneratorDefinition = 'jsr' | 'local'
+type CloneArgs = {
+  denoJson: DenoJson
+  stackJson: StackJson
+}
+
+type InstallArgs = {
+  denoJson: DenoJson
+  stackJson: StackJson
+}
 
 export class Generator {
   scopeName: string
   generatorName: string
   version: string
-  definition: GeneratorDefinition
 
-  private constructor({ scopeName, generatorName, version, definition }: GeneratorArgs) {
+  private constructor({ scopeName, generatorName, version }: GeneratorArgs) {
     this.scopeName = scopeName
     this.generatorName = generatorName
     this.version = version
-    this.definition = definition
   }
 
-  static async create({ scopeName, generatorName, definition }: CreateArgs) {
+  static async create({ scopeName, generatorName }: CreateArgs) {
     const meta = await Jsr.getLatestMeta({ scopeName, generatorName })
 
-    return new Generator({ scopeName, generatorName, version: meta.latest, definition })
+    return new Generator({ scopeName, generatorName, version: meta.latest })
   }
 
-  addToDenoJson(denoJson: RootDenoJson): RootDenoJson {
-    return match(this as Generator)
-      .with({ definition: 'jsr' }, matched => ({
-        ...denoJson,
-        imports: {
-          ...denoJson.imports,
-          [matched.toPackageName()]: matched.toSource()
-        }
-      }))
-      .with({ definition: 'local' }, matched => ({
-        ...denoJson,
-        imports: {
-          ...denoJson.imports,
-          [matched.toPackageName()]: matched.toSource()
-        },
-        workspace: [...(denoJson.workspace ?? []), matched.toPath()]
-      }))
-      .exhaustive()
+  install({ denoJson, stackJson }: InstallArgs) {
+    denoJson.addImport(this.toPackageName(), this.toFullName())
+
+    stackJson.addGenerator(this)
+  }
+
+  async clone({ denoJson, stackJson }: CloneArgs) {
+    const files = await Jsr.download(this)
+
+    const downloads = Object.entries(files).map(async ([path, content]) => {
+      const joinedPath = join(this.toPath(), path)
+
+      await ensureFile(joinedPath)
+
+      return Deno.writeTextFile(joinedPath, content)
+    })
+
+    await Promise.all(downloads)
+
+    denoJson.addImport(this.toPackageName(), this.toModPath())
+    denoJson.addWorkspace(this.toPath())
+
+    stackJson.addGenerator(this)
   }
 
   static async fromName(name: string) {
@@ -65,9 +76,13 @@ export class Generator {
 
     const [scopeName, generatorName] = withoutScheme.split('/')
 
-    const generator = await Generator.create({ scopeName, generatorName, definition: 'jsr' })
+    const generator = await Generator.create({ scopeName, generatorName })
 
     return generator
+  }
+
+  toFullName() {
+    return `jsr:${this.toPackageName()}@${this.version}`
   }
 
   toPackageName() {
@@ -78,10 +93,7 @@ export class Generator {
     return `./${this.generatorName}`
   }
 
-  toSource() {
-    return match(this.definition)
-      .with('jsr', () => `jsr:${this.scopeName}/${this.generatorName}@${this.version}`)
-      .with('local', () => `${this.toPath()}/mod.ts`)
-      .exhaustive()
+  toModPath() {
+    return `${this.toPath()}/mod.ts`
   }
 }

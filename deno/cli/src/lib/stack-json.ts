@@ -24,7 +24,7 @@ export class StackJson {
     return await exists(path, { isFile: true })
   }
 
-  static async open(): Promise<StackJson | null> {
+  static async open(): Promise<StackJson> {
     const hasStackJson = await StackJson.exists()
 
     if (!hasStackJson) {

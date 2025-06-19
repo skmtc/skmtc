@@ -1,26 +1,19 @@
 import { Command, type StringType } from '@cliffy/command'
-import { join } from '@std/path'
-import { writeFile } from './lib/file.ts'
 import { Input } from '@cliffy/prompt'
 import { toNameSuggest } from './lib/to-name-suggest.ts'
-import { toRootPath } from './lib/to-root-path.ts'
 import { StackJson } from './lib/stack-json.ts'
+import { PrettierJson } from './lib/prettier-json.ts'
 
 type CreateProjectFolderOptions = {
   logSuccess?: boolean
 }
 
 export const init = async (name: string, { logSuccess }: CreateProjectFolderOptions) => {
-  const rootPath = toRootPath()
-
   const stackJson = StackJson.create(name)
-
   await stackJson.write()
 
-  await writeFile({
-    content: prettierConfig,
-    resolvedPath: join(rootPath, 'prettier.json')
-  })
+  const prettierJson = PrettierJson.create()
+  await prettierJson.write()
 
   if (logSuccess) {
     console.log('Created new project folder')
@@ -65,12 +58,3 @@ export const toInitPrompt = async () => {
 
   await init(name, { logSuccess: true })
 }
-
-const prettierConfig: string = `{
-  "tabWidth": 2,
-  "useTabs": false,
-  "semi": false,
-  "singleQuote": true,
-  "bracketSpacing": true
-}
-`
