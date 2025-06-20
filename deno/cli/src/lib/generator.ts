@@ -3,6 +3,10 @@ import type { DenoJson } from './deno-json.ts'
 import type { StackJson } from './stack-json.ts'
 import { join } from '@std/path'
 import { ensureFile } from '@std/fs'
+import { toRootPath } from './to-root-path.ts'
+import { match } from 'ts-pattern'
+import { OperationGenerator } from './operation-generator.ts'
+import { ModelGenerator } from './model-generator.ts'
 
 type GeneratorArgs = {
   scopeName: string
@@ -10,9 +14,10 @@ type GeneratorArgs = {
   version: string
 }
 
-type InitArgs = {
+type CreateArgs = {
   scopeName: string
   generatorName: string
+  version: string
 }
 
 type CloneArgs = {
@@ -25,7 +30,7 @@ type InstallArgs = {
   stackJson: StackJson
 }
 
-type CreateArgs = {
+type AddArgs = {
   denoJson: DenoJson
   stackJson: StackJson
   generatorType: 'operation' | 'model'
@@ -42,10 +47,36 @@ export class Generator {
     this.version = version
   }
 
-  static async init({ scopeName, generatorName }: InitArgs) {
-    const meta = await Jsr.getLatestMeta({ scopeName, generatorName })
+  static create({ scopeName, generatorName, version }: CreateArgs) {
+    return new Generator({ scopeName, generatorName, version })
+  }
 
-    return new Generator({ scopeName, generatorName, version: meta.latest })
+  static parseName(name: string) {
+    const [first, second] = name.split('/')
+
+    const firstChunks = first.split(':')
+    const secondChunks = second.split('@')
+
+    const { scheme, scopeName } =
+      firstChunks.length === 2
+        ? {
+            scheme: firstChunks[0],
+            scopeName: firstChunks[1]
+          }
+        : {
+            scheme: null,
+            scopeName: first
+          }
+
+    const { generatorName, version } =
+      secondChunks.length === 2
+        ? {
+            generatorName: secondChunks[0],
+            version: secondChunks[1]
+          }
+        : { generatorName: second, version: null }
+
+    return { scheme, scopeName, generatorName, version }
   }
 
   install({ denoJson, stackJson }: InstallArgs) {
@@ -54,13 +85,39 @@ export class Generator {
     stackJson.addGenerator(this)
   }
 
-  throw new Error('Continue here by adding generator folders')
+  async add({ denoJson, stackJson, generatorType }: AddArgs) {
+    const generatorPath = join(toRootPath(), '.apifoundry', this.generatorName)
+    await this.createFiles(generatorPath)
 
-  create({ denoJson, stackJson, generatorType }: CreateArgs) {
+    await match(generatorType)
+      .with('operation', async () => {
+        const operationGenerator = new OperationGenerator(this)
+        await operationGenerator.createOperationFiles(generatorPath)
+      })
+      .with('model', async () => {
+        const modelGenerator = new ModelGenerator(this)
+        await modelGenerator.createModelFiles(generatorPath)
+      })
+      .exhaustive()
+
     denoJson.addImport(this.toPackageName(), this.toModPath())
     denoJson.addWorkspace(this.toPath())
 
     stackJson.addGenerator(this)
+  }
+
+  async createFiles(generatorPath: string) {
+    await Deno.mkdir(generatorPath, { recursive: true })
+
+    await ensureFile(join(generatorPath, 'mod.ts'))
+
+    const denoJson = {
+      name: this.toPackageName(),
+      version: this.version,
+      exports: './mod.ts'
+    }
+
+    await Deno.writeTextFile(join(generatorPath, 'deno.json'), JSON.stringify(denoJson, null, 2))
   }
 
   async clone({ denoJson, stackJson }: CloneArgs) {
@@ -82,18 +139,21 @@ export class Generator {
     stackJson.addGenerator(this)
   }
 
-  static async fromName(name: string) {
-    if (!name.startsWith('jsr')) {
-      throw new Error('Only JSR registry generators are supported')
-    }
-
-    const withoutScheme = name.replace(/^jsr:/i, '')
-
-    const [scopeName, generatorName] = withoutScheme.split('/')
-
-    const generator = await Generator.create({ scopeName, generatorName })
+  static fromName({ scopeName, generatorName, version }: FromNameArgs): Generator {
+    const generator = Generator.create({ scopeName, generatorName, version })
 
     return generator
+  }
+
+  remove(denoJson: DenoJson, stackJson: StackJson) {
+    const isLocal = denoJson.isLocalModule(this.toPackageName())
+
+    if (isLocal) {
+      Deno.remove(join(toRootPath(), '.apifoundry', this.generatorName))
+    }
+
+    denoJson.removeGenerator(this)
+    stackJson.removeGenerator(this)
   }
 
   toFullName() {
@@ -111,4 +171,10 @@ export class Generator {
   toModPath() {
     return `${this.toPath()}/mod.ts`
   }
+}
+
+type FromNameArgs = {
+  scopeName: string
+  generatorName: string
+  version: string
 }

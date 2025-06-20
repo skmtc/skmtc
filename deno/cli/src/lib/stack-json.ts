@@ -55,14 +55,16 @@ export class StackJson {
     }
   }
 
-  removeGenerator(generator: string) {
+  removeGenerator(generator: Generator) {
     if (!this.contents) {
       return
     }
 
+    const packageName = generator.toPackageName()
+
     this.contents = {
       ...this.contents,
-      generators: this.contents.generators.filter(g => g !== generator)
+      generators: this.contents.generators.filter(g => g !== packageName)
     }
   }
 

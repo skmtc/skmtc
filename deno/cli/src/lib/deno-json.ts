@@ -4,6 +4,7 @@ import { join } from '@std/path'
 import { writeFile } from './file.ts'
 import * as v from 'valibot'
 import { rootDenoJson, type RootDenoJson } from '@skmtc/core'
+import { Generator } from './generator.ts'
 
 export class DenoJson {
   contents: RootDenoJson
@@ -36,6 +37,34 @@ export class DenoJson {
     const contents = v.parse(rootDenoJson, JSON.parse(denoJson))
 
     return new DenoJson(contents)
+  }
+
+  isLocalModule(packageName: string) {
+    const { scheme } = Generator.parseName(packageName)
+
+    return !scheme
+  }
+
+  removeGenerator(generator: Generator) {
+    const packageName = generator.toPackageName()
+
+    const isLocal = this.isLocalModule(packageName)
+
+    if (isLocal) {
+      Deno.remove(join(toRootPath(), '.apifoundry', generator.generatorName))
+    }
+
+    if (this.contents.imports) {
+      this.contents.imports = Object.fromEntries(
+        Object.entries(this.contents.imports).filter(([key]) => key !== packageName)
+      )
+    }
+
+    if (isLocal && this.contents.workspace) {
+      const generatorPath = generator.toPath()
+
+      this.contents.workspace = this.contents.workspace.filter(path => path !== generatorPath)
+    }
   }
 
   addImport(key: string, value: string) {

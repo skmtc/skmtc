@@ -1,6 +1,5 @@
 import { Command, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
-import { GENERATORS } from '../constants.ts'
 import { Generator } from '../lib/generator.ts'
 import { DenoJson } from '../lib/deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
@@ -23,41 +22,44 @@ type CommandType = Command<
   undefined
 >
 
-export const toCreateCommand = (): CommandType => {
+export const toRemoveCommand = (): CommandType => {
   const command = new Command()
-    .description('Create a new generator')
-    .example('Create RTK Query generator from JSR registry', 'create jsr:@skmtc/rtk-query')
+    .description('Remove a generator from the stack')
+    .example('Remove RTK Query generator from the stack', 'remove @skmtc/rtk-query')
     .arguments('<generator:string>')
-    .action((_options, generator) => create(generator, { logSuccess: false }))
+    .action((_options, generator) => remove(generator, { logSuccess: false }))
 
   return command
 }
 
-export const toCreatePrompt = async () => {
+export const toRemovePrompt = async () => {
+  const stackJson = await StackJson.open()
+
   const generator: string = await Input.prompt({
-    message: 'Create a new generator',
-    validate: value => checkProjectName(value) ?? false
+    message: 'Remove a generator from the stack',
+    list: true,
+    suggestions: stackJson.contents.generators
   })
 
-  await create(generator, { logSuccess: true })
+  await remove(generator, { logSuccess: true })
 }
 
-type CreateOptions = {
+type RemoveOptions = {
   logSuccess: boolean
 }
 
 // Should user be logged in to create a generator so we can use their account name as the scope name?
 // Might be easier to let them pick any scope name since it is just a JSR value?
 // Suggest scope name if they are logged in?
-const create = async (packageName: string, { logSuccess }: CreateOptions) => {
+const remove = async (packageName: string, { logSuccess }: RemoveOptions) => {
   const { scopeName, generatorName, version } = Generator.parseName(packageName)
 
-  const generator = Generator.fromName({ scopeName, generatorName, version: version ?? '0.0.1' })
+  const generator = Generator.fromName({ scopeName, generatorName, version: version ?? '' })
 
   const denoJson = await DenoJson.open()
   const stackJson = await StackJson.open()
 
-  generator.install({ denoJson, stackJson })
+  generator.remove(denoJson, stackJson)
 
   await denoJson.write()
   await stackJson.write()

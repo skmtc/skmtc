@@ -4,6 +4,8 @@ import { GENERATORS } from '../constants.ts'
 import { Generator } from '../lib/generator.ts'
 import { DenoJson } from '../lib/deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
+import { Jsr } from '../lib/jsr.ts'
+import invariant from 'tiny-invariant'
 
 type CommandType = Command<
   void,
@@ -47,7 +49,15 @@ type CloneOptions = {
 }
 
 const clone = async (packageName: string, { logSuccess }: CloneOptions) => {
-  const generator = await Generator.fromName(packageName)
+  const { scheme, scopeName, generatorName, version } = Generator.parseName(packageName)
+
+  invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
+
+  const generator = Generator.fromName({
+    scopeName,
+    generatorName,
+    version: version ?? (await Jsr.getLatestMeta({ scopeName, generatorName })).latest
+  })
 
   const denoJson = await DenoJson.open()
   const stackJson = await StackJson.open()
