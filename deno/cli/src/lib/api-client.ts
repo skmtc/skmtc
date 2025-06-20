@@ -124,6 +124,33 @@ export class ApiClient {
 
     return v.parse(v.array(schema), data)
   }
+
+  async getWorkspaces() {
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(`workspaces`, {
+      method: 'GET'
+    })
+
+    if (error) {
+      throw new Error('Failed to get workspaces')
+    }
+
+    return data
+  }
+
+  async getWorkspaceById(workspaceId: string) {
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      `workspaces/find?id=${workspaceId}`,
+      {
+        method: 'GET'
+      }
+    )
+
+    if (error) {
+      throw new Error('Failed to get workspace by id')
+    }
+
+    return data
+  }
 }
 
 export const openApiVersion = v.picklist(['2.0', '3.0', '3.1'])

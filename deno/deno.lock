@@ -26,17 +26,20 @@
     "jsr:@std/io@~0.224.6": "0.224.9",
     "jsr:@std/log@0.224.6": "0.224.6",
     "jsr:@std/path@1": "1.1.0",
+    "jsr:@std/path@1.0.6": "1.0.6",
     "jsr:@std/path@1.0.9": "1.0.9",
     "jsr:@std/path@^1.0.8": "1.1.0",
     "jsr:@std/path@^1.1.0": "1.1.0",
     "jsr:@std/path@~1.0.6": "1.0.9",
     "jsr:@std/text@~1.0.7": "1.0.14",
+    "jsr:@std/yaml@^1.0.5": "1.0.8",
     "jsr:@supabase/supabase-js@2.49.8": "2.49.8",
     "jsr:@ts-morph/bootstrap@0.25": "0.25.0",
     "jsr:@ts-morph/common@0.25": "0.25.0",
     "npm:@apiture/openapi-down-convert@0.14.0": "0.14.0",
     "npm:@babel/helper-validator-identifier@7.22.20": "7.22.20",
     "npm:@google/generative-ai@0.21": "0.21.0",
+    "npm:@sentry/deno@*": "8.47.0",
     "npm:@sentry/deno@8.47.0": "8.47.0",
     "npm:@sentry/deno@^8.47.0": "8.47.0",
     "npm:@supabase/auth-js@2.69.1": "2.69.1",
@@ -170,6 +173,9 @@
         "jsr:@std/io@~0.224.6"
       ]
     },
+    "@std/path@1.0.6": {
+      "integrity": "ab2c55f902b380cf28e0eec501b4906e4c1960d13f00e11cfbcd21de15f18fed"
+    },
     "@std/path@1.0.9": {
       "integrity": "260a49f11edd3db93dd38350bf9cd1b4d1366afa98e81b86167b4e3dd750129e"
     },
@@ -178,6 +184,9 @@
     },
     "@std/text@1.0.14": {
       "integrity": "1a810108482414d19112b8b506ad0b7cba826000cd13f74274ffda6dd83d273f"
+    },
+    "@std/yaml@1.0.8": {
+      "integrity": "90b8aab62995e929fa0ea5f4151c287275b63e321ac375c35ff7406ca60c169d"
     },
     "@supabase/supabase-js@2.49.8": {
       "integrity": "fe1057c623e3297d627d8d795f8c8e7195b2973da8cec813f99e1484b6943b99",

@@ -5,6 +5,7 @@ import { DenoJson } from '../lib/deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
 import { checkProjectName } from '@skmtc/core'
 import { Manager } from '../lib/manager.ts'
+import * as Sentry from 'npm:@sentry/deno'
 
 type CommandType = Command<
   void,
@@ -80,6 +81,8 @@ const add = async (
 
     generator.add({ denoJson, stackJson, generatorType: type })
   } catch (error) {
+    Sentry.captureException(error)
+
     manager.fail('Failed to add generator')
   }
 }

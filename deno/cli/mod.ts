@@ -14,11 +14,15 @@ import {
   description as uploadDescription
 } from './src/schemas/upload.ts'
 import {
+  toWorkspacesGetCommand,
+  toWorkspacesGetPrompt,
+  description as workspacesGetDescription
+} from './src/workspaces/get.ts'
+import {
   toWorkspacesSetCommand,
   toWorkspacesSetPrompt,
-  toWorkspacesGetCommand,
-  toWorkspacesGetPrompt
-} from './src/workspaces/workspaces.ts'
+  description as workspacesSetDescription
+} from './src/workspaces/set.ts'
 import { toGenerateCommand, toGeneratePrompt } from './src/generators/generate.ts'
 import {
   toBaseImagePullCommand,
@@ -45,87 +49,29 @@ import {
   description as cloneDescription
 } from './src/generators/clone.ts'
 
-type InitAction = {
-  action: 'init'
-}
+import * as Sentry from 'npm:@sentry/deno'
 
-type LoginAction = {
-  action: 'login'
-}
-
-type LogoutAction = {
-  action: 'logout'
-}
-
-type SchemasUploadAction = {
-  action: 'schemas:upload'
-}
-
-type ProjectCreateAction = {
-  action: 'project-create'
-}
-
-type GeneratorsAddAction = {
-  action: 'generators:add'
-}
-
-type GeneratorsCloneAction = {
-  action: 'generators:clone'
-}
-
-type GeneratorsInstallAction = {
-  action: 'generators:install'
-}
-
-type GeneratorsRemoveAction = {
-  action: 'generators:remove'
-}
-
-type GeneratorsGenerateAction = {
-  action: 'generators:generate'
-}
-
-type GeneratorsDeployAction = {
-  action: 'generators:deploy'
-}
-
-type WorkspaceGetAction = {
-  action: 'workspace:get'
-}
-
-type WorkspaceSetAction = {
-  action: 'workspace:set'
-}
-
-type BaseImagePullAction = {
-  action: 'base-image:pull'
-}
-
-type BaseImagePushAction = {
-  action: 'base-image:push'
-}
-
-type ExitAction = {
-  action: 'exit'
-}
+Sentry.init({
+  dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
+})
 
 type PromptResponse =
-  | InitAction
-  | GeneratorsGenerateAction
-  | GeneratorsAddAction
-  | GeneratorsCloneAction
-  | GeneratorsInstallAction
-  | GeneratorsRemoveAction
-  | GeneratorsDeployAction
-  | LoginAction
-  | LogoutAction
-  | SchemasUploadAction
-  | ProjectCreateAction
-  | WorkspaceGetAction
-  | WorkspaceSetAction
-  | BaseImagePullAction
-  | BaseImagePushAction
-  | ExitAction
+  | 'init'
+  | 'generators:generate'
+  | 'generators:add'
+  | 'generators:clone'
+  | 'generators:install'
+  | 'generators:remove'
+  | 'generators:deploy'
+  | 'login'
+  | 'logout'
+  | 'schemas:upload'
+  | 'project-create'
+  | 'workspaces:get'
+  | 'workspaces:set'
+  | 'base-image:pull'
+  | 'base-image:push'
+  | 'exit'
 
 const getOptions = async () => {
   const homeExists = await hasHome()
@@ -133,10 +79,10 @@ const getOptions = async () => {
 
   if (!homeExists) {
     return [
-      { name: 'Create new API Foundry project', action: 'init' },
-      { name: 'Log in to Codesquared', action: 'login' },
-      { name: 'Log out', action: 'logout' },
-      { name: 'Exit', action: 'exit' }
+      { name: 'Create new API Foundry project', value: 'init' },
+      { name: 'Log in to Codesquared', value: 'login' },
+      { name: 'Log out', value: 'logout' },
+      { name: 'Exit', value: 'exit' }
     ]
   }
 
@@ -144,48 +90,56 @@ const getOptions = async () => {
     return [
       {
         name: cloneDescription,
-        action: 'generators:clone'
+        value: 'generators:clone'
       },
       {
         name: addDescription,
-        action: 'generators:add'
+        value: 'generators:add'
       },
       {
         name: installDescription,
-        action: 'generators:install'
+        value: 'generators:install'
       },
       {
         name: uploadDescription,
-        action: 'schemas:upload'
+        value: 'schemas:upload'
       },
-      { name: 'Add a new schema from url', action: 'add' },
-      { name: 'Exit', action: 'exit' }
+      { name: 'Add a new schema from url', value: 'add' },
+      { name: 'Exit', value: 'exit' }
     ]
   }
 
   return [
-    { name: 'Run code generator', action: 'generate' },
+    { name: 'Run code generator', value: 'generate' },
     {
       name: cloneDescription,
-      action: 'generators:clone'
+      value: 'generators:clone'
     },
     {
       name: addDescription,
-      action: 'generators:add'
+      value: 'generators:add'
     },
     {
       name: installDescription,
-      action: 'generators:install'
+      value: 'generators:install'
     },
     {
       name: removeDescription,
-      action: 'generators:remove'
+      value: 'generators:remove'
     },
     {
       name: deployDescription,
-      action: 'generators:deploy'
+      value: 'generators:deploy'
     },
-    { name: 'Exit', action: 'exit' }
+    {
+      name: workspacesGetDescription,
+      value: 'workspaces:get'
+    },
+    {
+      name: workspacesSetDescription,
+      value: 'workspaces:set'
+    },
+    { name: 'Exit', value: 'exit' }
   ]
 }
 
@@ -196,21 +150,21 @@ const promptwise = async () => {
   })
 
   await match(action)
-    .with({ action: 'init' }, async () => await toInitPrompt())
-    .with({ action: 'workspace:set' }, async () => await toWorkspacesSetPrompt())
-    .with({ action: 'workspace:get' }, async () => await toWorkspacesGetPrompt())
-    .with({ action: 'base-image:pull' }, async () => await toBaseImagePullPrompt())
-    .with({ action: 'base-image:push' }, async () => await toBaseImagePushPrompt())
-    .with({ action: 'generators:clone' }, async () => await toClonePrompt())
-    .with({ action: 'generators:add' }, async () => await toAddPrompt())
-    .with({ action: 'generators:install' }, async () => await toInstallPrompt())
-    .with({ action: 'generators:remove' }, async () => await toRemovePrompt())
-    .with({ action: 'generators:generate' }, async () => await toGeneratePrompt())
-    .with({ action: 'generators:deploy' }, async () => await toDeployPrompt())
-    .with({ action: 'schemas:upload' }, async () => await toUploadPrompt())
-    .with({ action: 'login' }, async () => await toLoginPrompt())
-    .with({ action: 'logout' }, async () => await toLogoutPrompt())
-    .with({ action: 'exit' }, () => Deno.exit(0))
+    .with('init', async () => await toInitPrompt())
+    .with('workspaces:set', async () => await toWorkspacesSetPrompt())
+    .with('workspaces:get', async () => await toWorkspacesGetPrompt())
+    .with('base-image:pull', async () => await toBaseImagePullPrompt())
+    .with('base-image:push', async () => await toBaseImagePushPrompt())
+    .with('generators:clone', async () => await toClonePrompt())
+    .with('generators:add', async () => await toAddPrompt())
+    .with('generators:install', async () => await toInstallPrompt())
+    .with('generators:remove', async () => await toRemovePrompt())
+    .with('generators:generate', async () => await toGeneratePrompt())
+    .with('generators:deploy', async () => await toDeployPrompt())
+    .with('schemas:upload', async () => await toUploadPrompt())
+    .with('login', async () => await toLoginPrompt())
+    .with('logout', async () => await toLogoutPrompt())
+    .with('exit', () => Deno.exit(0))
     .otherwise(matched => {
       console.log('matched', JSON.stringify(matched, null, 2))
 

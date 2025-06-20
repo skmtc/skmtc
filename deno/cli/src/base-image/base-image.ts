@@ -1,7 +1,7 @@
 import { Command } from '@cliffy/command'
 import { getWorkspaceById } from './get-workspace-by-id.ts'
 import { Input } from '@cliffy/prompt'
-import { getWorkspaceId } from '../workspaces/workspaces.ts'
+import { getWorkspaceId } from '../workspaces/get.ts'
 import { join, resolve } from '@std/path'
 import { patchWorkspaceById } from './patch-workspace-by-id.ts'
 
