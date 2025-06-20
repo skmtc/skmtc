@@ -4,6 +4,7 @@ import { Generator } from '../lib/generator.ts'
 import { DenoJson } from '../lib/deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
 import { Manager } from '../lib/manager.ts'
+import * as Sentry from 'npm:@sentry/deno'
 
 type CommandType = Command<
   void,
@@ -66,7 +67,11 @@ const remove = async (packageName: string, { logSuccess }: RemoveOptions = {}) =
     const stackJson = await StackJson.open(manager)
 
     generator.remove(denoJson, stackJson)
+
+    await manager.success()
   } catch (error) {
+    Sentry.captureException(error)
+
     manager.fail('Failed to remove generator')
   }
 }

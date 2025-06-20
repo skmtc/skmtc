@@ -7,6 +7,7 @@ import { StackJson } from '../lib/stack-json.ts'
 import invariant from 'tiny-invariant'
 import { Jsr } from '../lib/jsr.ts'
 import { Manager } from '../lib/manager.ts'
+import * as Sentry from 'npm:@sentry/deno'
 
 type CommandType = Command<
   void,
@@ -70,7 +71,11 @@ const install = async (packageName: string, { logSuccess }: InstallOptions = {})
     const stackJson = await StackJson.open(manager)
 
     generator.install({ denoJson, stackJson })
+
+    await manager.success()
   } catch (error) {
+    Sentry.captureException(error)
+
     manager.fail('Failed to install generator')
   }
 }
