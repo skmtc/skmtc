@@ -3,7 +3,6 @@ import { Input } from '@cliffy/prompt'
 import { Generator } from '../lib/generator.ts'
 import { DenoJson } from '../lib/deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
-import { checkProjectName } from '@skmtc/core'
 
 type CommandType = Command<
   void,
@@ -22,9 +21,11 @@ type CommandType = Command<
   undefined
 >
 
+export const description = 'Remove a generator from the stack'
+
 export const toRemoveCommand = (): CommandType => {
   const command = new Command()
-    .description('Remove a generator from the stack')
+    .description(description)
     .example('Remove RTK Query generator from the stack', 'remove @skmtc/rtk-query')
     .arguments('<generator:string>')
     .action((_options, generator) => remove(generator, { logSuccess: false }))

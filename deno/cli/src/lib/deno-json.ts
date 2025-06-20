@@ -5,6 +5,7 @@ import { writeFile } from './file.ts'
 import * as v from 'valibot'
 import { rootDenoJson, type RootDenoJson } from '@skmtc/core'
 import { Generator } from './generator.ts'
+import type { Manager } from './manager.ts'
 
 export class DenoJson {
   contents: RootDenoJson
@@ -25,18 +26,21 @@ export class DenoJson {
     return await exists(denoJsonPath, { isFile: true })
   }
 
-  static async open(): Promise<DenoJson> {
+  static async open(manager: Manager): Promise<DenoJson> {
     const hasDenoJson = await DenoJson.exists()
 
     if (!hasDenoJson) {
       return new DenoJson({})
     }
 
-    const denoJson = await Deno.readTextFile(DenoJson.toPath())
+    const contents = await Deno.readTextFile(DenoJson.toPath())
 
-    const contents = v.parse(rootDenoJson, JSON.parse(denoJson))
+    const parsed = v.parse(rootDenoJson, JSON.parse(contents))
+    const denoJson = new DenoJson(parsed)
 
-    return new DenoJson(contents)
+    manager.cleanupActions.push(async () => await denoJson.write())
+
+    return denoJson
   }
 
   isLocalModule(packageName: string) {

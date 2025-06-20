@@ -24,9 +24,11 @@ type CommandType = Command<
   undefined
 >
 
+export const description = 'Clone a generator for editing'
+
 export const toCloneCommand = (): CommandType => {
   const command = new Command()
-    .description('Clone a generator for editing')
+    .description(description)
     .example('Clone RTK Query generator from JSR registry', 'clone jsr:@skmtc/rtk-query')
     .arguments('<generator:string>')
     .action((_options, generator) => clone(generator, { logSuccess: false }))

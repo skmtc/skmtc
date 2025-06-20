@@ -41,7 +41,7 @@ type MethodEnrichments = Record<string, OperationEnrichments>
 type PathEnrichments = Record<string, MethodEnrichments>
 export type GeneratorEnrichments = Record<string, PathEnrichments>
 
-export const toArtifactsCommand = () => {
+export const toGenerateCommand = () => {
   return (
     new Command()
       .description('Generate artifacts from OpenAPI schema')
@@ -95,16 +95,16 @@ export const toArtifactsCommand = () => {
       })
   )
 }
-export type CreateArtifactsResponse = {
+export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
 }
-export const createArtifactsResponse: v.GenericSchema<CreateArtifactsResponse> = v.object({
+export const generateResponse: v.GenericSchema<GenerateResponse> = v.object({
   artifacts: v.record(v.string(), v.string()),
   manifest: manifestContent
 })
 
-export const toArtifactsPrompt = async () => {
+export const toGeneratePrompt = async () => {
   console.log('generate prompt')
 }
 
@@ -132,7 +132,7 @@ export const generatorArtifacts = async ({
   const data = await response.json()
 
   try {
-    return v.parse(createArtifactsResponse, data)
+    return v.parse(generateResponse, data)
   } catch (_error) {
     throw new Error('Failed to generate artifacts')
   }

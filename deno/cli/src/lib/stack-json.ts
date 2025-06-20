@@ -4,6 +4,7 @@ import { toRootPath } from './to-root-path.ts'
 import { type SkmtcStackConfig, skmtcStackConfig } from '@skmtc/core'
 import * as v from 'valibot'
 import type { Generator } from './generator.ts'
+import type { Manager } from './manager.ts'
 
 export class StackJson {
   contents: SkmtcStackConfig
@@ -24,18 +25,21 @@ export class StackJson {
     return await exists(path, { isFile: true })
   }
 
-  static async open(): Promise<StackJson> {
+  static async open(manager: Manager): Promise<StackJson> {
     const hasStackJson = await StackJson.exists()
 
     if (!hasStackJson) {
       throw new Error('Stack JSON not found')
     }
 
-    const stackJson = await Deno.readTextFile(this.toPath())
+    const contents = await Deno.readTextFile(this.toPath())
 
-    const contents = v.parse(skmtcStackConfig, JSON.parse(stackJson))
+    const parsed = v.parse(skmtcStackConfig, JSON.parse(contents))
+    const stackJson = new StackJson(parsed)
 
-    return new StackJson(contents)
+    manager.cleanupActions.push(async () => await stackJson.write())
+
+    return stackJson
   }
 
   async write() {

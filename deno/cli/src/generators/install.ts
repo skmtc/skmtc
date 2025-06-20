@@ -24,9 +24,11 @@ type CommandType = Command<
   undefined
 >
 
+export const description = 'Install a generator'
+
 export const toInstallCommand = (): CommandType => {
   const command = new Command()
-    .description('Install a generator')
+    .description(description)
     .example('Install RTK Query generator from JSR registry', 'install jsr:@skmtc/rtk-query')
     .arguments('<generator:string>')
     .action((_options, generator) => install(generator, { logSuccess: false }))
@@ -34,7 +36,7 @@ export const toInstallCommand = (): CommandType => {
   return command
 }
 
-export const toImportPrompt = async () => {
+export const toInstallPrompt = async () => {
   const generator: string = await Input.prompt({
     message: 'Select generator to install',
     list: true,
