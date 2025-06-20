@@ -17,22 +17,18 @@ export const toDeployPrompt = async () => {
 }
 
 export const deploy = async () => {
-  const manager = new Manager(await Deno.openKv())
+  const kv = await Deno.openKv()
+  const manager = new Manager({ kv })
 
   const deployment = new Deployment(manager)
 
-  const stackJson = await StackJson.open()
-  const clientJson = await ClientJson.open()
+  const stackJson = await StackJson.open(manager)
+  const clientJson = await ClientJson.open(manager)
   const assets = await toAssets({ skmtcRoot: toRootPath() })
 
   try {
     await deployment.deploy({ assets, stackJson, clientJson })
   } catch (error) {
-    console.error('Deployment failed', error)
-  } finally {
-    await stackJson.write()
-    await clientJson.write()
-
-    kv.close()
+    manager.fail('Failed to deploy generators')
   }
 }

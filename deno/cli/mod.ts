@@ -8,7 +8,11 @@ import {
   toDeployPrompt,
   description as deployDescription
 } from './src/generators/deploy.ts'
-import { toUploadCommand, toUploadPrompt } from './src/upload/upload.ts'
+import {
+  toUploadCommand,
+  toUploadPrompt,
+  description as uploadDescription
+} from './src/schemas/upload.ts'
 import {
   toWorkspacesSetCommand,
   toWorkspacesSetPrompt,
@@ -53,8 +57,8 @@ type LogoutAction = {
   action: 'logout'
 }
 
-type UploadAction = {
-  action: 'upload'
+type SchemasUploadAction = {
+  action: 'schemas:upload'
 }
 
 type ProjectCreateAction = {
@@ -115,7 +119,7 @@ type PromptResponse =
   | GeneratorsDeployAction
   | LoginAction
   | LogoutAction
-  | UploadAction
+  | SchemasUploadAction
   | ProjectCreateAction
   | WorkspaceGetAction
   | WorkspaceSetAction
@@ -149,6 +153,10 @@ const getOptions = async () => {
       {
         name: installDescription,
         action: 'generators:install'
+      },
+      {
+        name: uploadDescription,
+        action: 'schemas:upload'
       },
       { name: 'Add a new schema from url', action: 'add' },
       { name: 'Exit', action: 'exit' }
@@ -199,9 +207,9 @@ const promptwise = async () => {
     .with({ action: 'generators:remove' }, async () => await toRemovePrompt())
     .with({ action: 'generators:generate' }, async () => await toGeneratePrompt())
     .with({ action: 'generators:deploy' }, async () => await toDeployPrompt())
+    .with({ action: 'schemas:upload' }, async () => await toUploadPrompt())
     .with({ action: 'login' }, async () => await toLoginPrompt())
     .with({ action: 'logout' }, async () => await toLogoutPrompt())
-    .with({ action: 'upload' }, async () => await toUploadPrompt())
     .with({ action: 'exit' }, () => Deno.exit(0))
     .otherwise(matched => {
       console.log('matched', JSON.stringify(matched, null, 2))
@@ -228,7 +236,7 @@ await new Command()
   .command('generators:remove', toRemoveCommand())
   .command('generators:generate', toGenerateCommand())
   .command('generators:deploy', toDeployCommand())
+  .command('schemas:upload', toUploadCommand())
   .command('login', toLoginCommand())
   .command('logout', toLogoutCommand())
-  .command('upload', toUploadCommand())
   .parse(Deno.args)

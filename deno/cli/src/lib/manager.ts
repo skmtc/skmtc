@@ -39,5 +39,7 @@ export class Manager {
     if (message) {
       console.error(message)
     }
+
+    Deno.exit(1)
   }
 }

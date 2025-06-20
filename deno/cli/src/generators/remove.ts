@@ -3,6 +3,7 @@ import { Input } from '@cliffy/prompt'
 import { Generator } from '../lib/generator.ts'
 import { DenoJson } from '../lib/deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
+import { Manager } from '../lib/manager.ts'
 
 type CommandType = Command<
   void,
@@ -28,7 +29,7 @@ export const toRemoveCommand = (): CommandType => {
     .description(description)
     .example('Remove RTK Query generator from the stack', 'remove @skmtc/rtk-query')
     .arguments('<generator:string>')
-    .action((_options, generator) => remove(generator, { logSuccess: false }))
+    .action((_options, generator) => remove(generator))
 
   return command
 }
@@ -42,30 +43,30 @@ export const toRemovePrompt = async () => {
     suggestions: stackJson.contents.generators
   })
 
-  await remove(generator, { logSuccess: true })
+  await remove(generator, { logSuccess: `Generator "${generator}" is created` })
 }
 
 type RemoveOptions = {
-  logSuccess: boolean
+  logSuccess?: string
 }
 
 // Should user be logged in to create a generator so we can use their account name as the scope name?
 // Might be easier to let them pick any scope name since it is just a JSR value?
 // Suggest scope name if they are logged in?
-const remove = async (packageName: string, { logSuccess }: RemoveOptions) => {
-  const { scopeName, generatorName, version } = Generator.parseName(packageName)
+const remove = async (packageName: string, { logSuccess }: RemoveOptions = {}) => {
+  const kv = await Deno.openKv()
+  const manager = new Manager({ kv, logSuccess })
 
-  const generator = Generator.fromName({ scopeName, generatorName, version: version ?? '' })
+  try {
+    const { scopeName, generatorName, version } = Generator.parseName(packageName)
 
-  const denoJson = await DenoJson.open()
-  const stackJson = await StackJson.open()
+    const generator = Generator.fromName({ scopeName, generatorName, version: version ?? '' })
 
-  generator.remove(denoJson, stackJson)
+    const denoJson = await DenoJson.open(manager)
+    const stackJson = await StackJson.open(manager)
 
-  await denoJson.write()
-  await stackJson.write()
-
-  if (logSuccess) {
-    console.log(`Generator "${generator.toPackageName()}" is created`)
+    generator.remove(denoJson, stackJson)
+  } catch (error) {
+    manager.fail('Failed to remove generator')
   }
 }

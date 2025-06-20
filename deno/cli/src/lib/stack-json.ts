@@ -25,7 +25,7 @@ export class StackJson {
     return await exists(path, { isFile: true })
   }
 
-  static async open(manager: Manager): Promise<StackJson> {
+  static async open(manager?: Manager): Promise<StackJson> {
     const hasStackJson = await StackJson.exists()
 
     if (!hasStackJson) {
@@ -37,7 +37,7 @@ export class StackJson {
     const parsed = v.parse(skmtcStackConfig, JSON.parse(contents))
     const stackJson = new StackJson(parsed)
 
-    manager.cleanupActions.push(async () => await stackJson.write())
+    manager?.cleanupActions.push(async () => await stackJson.write())
 
     return stackJson
   }

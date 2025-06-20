@@ -6,6 +6,7 @@ import { DenoJson } from '../lib/deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
 import invariant from 'tiny-invariant'
 import { Jsr } from '../lib/jsr.ts'
+import { Manager } from '../lib/manager.ts'
 
 type CommandType = Command<
   void,
@@ -31,7 +32,7 @@ export const toInstallCommand = (): CommandType => {
     .description(description)
     .example('Install RTK Query generator from JSR registry', 'install jsr:@skmtc/rtk-query')
     .arguments('<generator:string>')
-    .action((_options, generator) => install(generator, { logSuccess: false }))
+    .action((_options, generator) => install(generator))
 
   return command
 }
@@ -43,33 +44,33 @@ export const toInstallPrompt = async () => {
     suggestions: GENERATORS
   })
 
-  await install(generator, { logSuccess: true })
+  await install(generator, { logSuccess: `Generator "${generator}" is installed` })
 }
 
 type InstallOptions = {
-  logSuccess: boolean
+  logSuccess?: string
 }
 
-const install = async (packageName: string, options: InstallOptions) => {
-  const { scheme, scopeName, generatorName, version } = Generator.parseName(packageName)
+const install = async (packageName: string, { logSuccess }: InstallOptions = {}) => {
+  const kv = await Deno.openKv()
+  const manager = new Manager({ kv, logSuccess })
 
-  invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
+  try {
+    const { scheme, scopeName, generatorName, version } = Generator.parseName(packageName)
 
-  const generator = Generator.fromName({
-    scopeName,
-    generatorName,
-    version: version ?? (await Jsr.getLatestMeta({ scopeName, generatorName })).latest
-  })
+    invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
 
-  const denoJson = await DenoJson.open()
-  const stackJson = await StackJson.open()
+    const generator = Generator.fromName({
+      scopeName,
+      generatorName,
+      version: version ?? (await Jsr.getLatestMeta({ scopeName, generatorName })).latest
+    })
 
-  generator.install({ denoJson, stackJson })
+    const denoJson = await DenoJson.open(manager)
+    const stackJson = await StackJson.open(manager)
 
-  await denoJson.write()
-  await stackJson.write()
-
-  if (options.logSuccess) {
-    console.log(`Generator "${generator.toPackageName()}" is installed`)
+    generator.install({ denoJson, stackJson })
+  } catch (error) {
+    manager.fail('Failed to install generator')
   }
 }
