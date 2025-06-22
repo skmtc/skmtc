@@ -5,6 +5,8 @@ type CreateSupabaseClientArgs = {
 }
 
 export const createSupabaseClient = ({ kv }: CreateSupabaseClientArgs) => {
+  console.log('SUPABASE_URL', Deno.env.get('SUPABASE_URL'))
+
   // Create a single supabase client for interacting with your database
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? 'https://api.apifoundry.dev',

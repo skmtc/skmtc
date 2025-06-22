@@ -6,21 +6,21 @@ import { KvState } from '../lib/kv-state.ts'
 
 export const description = 'Get workspace info'
 
-export const toWorkspacesGetCommand = () => {
+export const toWorkspacesInfoCommand = () => {
   return new Command().description(description).action(async _args => {
-    await get({ logSuccess: 'Workspace retrieved' })
+    await info({ logSuccess: 'Workspace retrieved' })
   })
 }
 
-export const toWorkspacesGetPrompt = async () => {
-  await get()
+export const toWorkspacesInfoPrompt = async () => {
+  await info()
 }
 
-type GetOptions = {
+type InfoOptions = {
   logSuccess?: string
 }
 
-export const get = async ({ logSuccess }: GetOptions = {}) => {
+export const info = async ({ logSuccess }: InfoOptions = {}) => {
   const kv = await Deno.openKv()
 
   const manager = new Manager({ kv, logSuccess })

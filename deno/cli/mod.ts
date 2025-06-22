@@ -14,10 +14,10 @@ import {
   description as uploadDescription
 } from './src/schemas/upload.ts'
 import {
-  toWorkspacesGetCommand,
-  toWorkspacesGetPrompt,
-  description as workspacesGetDescription
-} from './src/workspaces/get.ts'
+  toWorkspacesInfoCommand,
+  toWorkspacesInfoPrompt,
+  description as workspacesInfoDescription
+} from './src/workspaces/info.ts'
 import {
   toWorkspacesSetCommand,
   toWorkspacesSetPrompt,
@@ -71,7 +71,7 @@ type PromptResponse =
   | 'logout'
   | 'schemas:upload'
   | 'project-create'
-  | 'workspaces:get'
+  | 'workspaces:info'
   | 'workspaces:set'
   | 'base-image:pull'
   | 'base-image:push'
@@ -116,6 +116,14 @@ const getOptions = async () => {
         name: baseImagePullDescription,
         value: 'base-image:pull'
       },
+      {
+        name: workspacesInfoDescription,
+        value: 'workspaces:info'
+      },
+      {
+        name: workspacesSetDescription,
+        value: 'workspaces:set'
+      },
       { name: 'Add a new schema from url', value: 'add' },
       { name: 'Exit', value: 'exit' }
     ]
@@ -144,8 +152,8 @@ const getOptions = async () => {
       value: 'generators:deploy'
     },
     {
-      name: workspacesGetDescription,
-      value: 'workspaces:get'
+      name: workspacesInfoDescription,
+      value: 'workspaces:info'
     },
     {
       name: workspacesSetDescription,
@@ -172,7 +180,7 @@ const promptwise = async () => {
   await match(action)
     .with('init', async () => await toInitPrompt())
     .with('workspaces:set', async () => await toWorkspacesSetPrompt())
-    .with('workspaces:get', async () => await toWorkspacesGetPrompt())
+    .with('workspaces:info', async () => await toWorkspacesInfoPrompt())
     .with('base-image:pull', async () => await toBaseImagePullPrompt())
     .with('base-image:push', async () => await toBaseImagePushPrompt())
     .with('generators:clone', async () => await toClonePrompt())
@@ -201,7 +209,7 @@ await new Command()
   })
   .command('init', toInitCommand())
   .command('workspace:set', toWorkspacesSetCommand())
-  .command('workspace:get', toWorkspacesGetCommand())
+  .command('workspace:info', toWorkspacesInfoCommand())
   .command('base-image:pull', toBaseImagePullCommand())
   .command('base-image:push', toBaseImagePushCommand())
   .command('generators:clone', toCloneCommand())

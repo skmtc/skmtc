@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Input } from '@cliffy/prompt'
+import { Input, Confirm } from '@cliffy/prompt'
 import { Manager } from '../lib/manager.ts'
 import { SchemaUpload } from '../lib/schema-upload.ts'
 import { OpenApiSchema } from '../lib/openapi-schema.ts'
@@ -27,7 +27,15 @@ export const toUploadPrompt = async () => {
     message: 'Enter path to OpenAPI schema'
   })
 
-  await upload({ path }, { logSuccess: 'Schema uploaded' })
+  const watch = await Confirm.prompt({
+    message: 'Watch for changes and upload automatically?'
+  })
+
+  if (watch) {
+    watchUpload({ path })
+  } else {
+    await upload({ path })
+  }
 }
 
 type UploadArgs = {
@@ -54,6 +62,8 @@ export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions
     const schemaUpload = new SchemaUpload(manager)
 
     const schema = await schemaUpload.upload(openApiSchema)
+
+    console.log('Schema uploaded', JSON.stringify(schema, null, 2))
   } catch (error) {
     Sentry.captureException(error)
 
