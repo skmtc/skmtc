@@ -46,6 +46,11 @@ type UploadSchemaArgs = {
   body: CreateSchemaBody
 }
 
+type PatchWorkspaceByIdArgs = {
+  workspaceId: string
+  baseImage: Record<string, unknown>
+}
+
 export class ApiClient {
   manager: Manager
 
@@ -147,6 +152,22 @@ export class ApiClient {
 
     if (error) {
       throw new Error('Failed to get workspace by id')
+    }
+
+    return data
+  }
+
+  async patchWorkspaceById({ workspaceId, baseImage }: PatchWorkspaceByIdArgs) {
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      `workspaces/${workspaceId}`,
+      {
+        method: 'PATCH',
+        body: { baseImage }
+      }
+    )
+
+    if (error) {
+      throw new Error('Failed to patch workspace by id')
     }
 
     return data

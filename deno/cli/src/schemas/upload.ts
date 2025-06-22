@@ -3,6 +3,8 @@ import { Input } from '@cliffy/prompt'
 import { Manager } from '../lib/manager.ts'
 import { SchemaUpload } from '../lib/schema-upload.ts'
 import { OpenApiSchema } from '../lib/openapi-schema.ts'
+import * as Sentry from 'npm:@sentry/deno'
+import chokidar from 'npm:chokidar'
 
 export const description = 'Upload an OpenAPI schema to API Foundry'
 
@@ -10,9 +12,13 @@ export const toUploadCommand = () => {
   return new Command()
     .description(description)
     .arguments('<path:string>')
-
-    .action(async (_, path) => {
-      await upload({ path })
+    .option('-w, --watch', 'Watch for changes and upload automatically')
+    .action(async ({ watch }, path) => {
+      if (watch) {
+        watchUpload({ path })
+      } else {
+        await upload({ path })
+      }
     })
 }
 
@@ -32,6 +38,12 @@ type UploadOptions = {
   logSuccess?: string
 }
 
+export const watchUpload = ({ path }: UploadArgs) => {
+  const watcher = chokidar.watch(path)
+
+  watcher.on('change', () => upload({ path }))
+}
+
 export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions = {}) => {
   const kv = await Deno.openKv()
   const manager = new Manager({ kv, logSuccess })
@@ -43,6 +55,8 @@ export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions
 
     const schema = await schemaUpload.upload(openApiSchema)
   } catch (error) {
+    Sentry.captureException(error)
+
     manager.fail('Failed to upload schema')
   }
 }

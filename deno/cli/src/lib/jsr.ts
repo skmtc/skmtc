@@ -1,9 +1,41 @@
 import type { Generator } from './generator.ts'
-import type { JsrPkgMetaVersions, JsrPkgVersionInfo } from 'jsr:@sys/jsr@0.0.65/types'
+
+export type Pkg = {
+  name: string
+  version: string
+}
+
+export type JsrPkgVersionInfo = {
+  pkg: Pkg
+  manifest?: JsrPkgManifest
+  exports?: { [key: string]: string }
+  moduleGraph1?: unknown
+  moduleGraph2?: unknown
+}
+
+export type JsrPkgManifest = {
+  [path: string]: JsrPkgManifestFile
+}
+
+export type JsrPkgManifestFile = {
+  readonly size: number
+  readonly checksum: string
+}
 
 type GetLatestVersionArgs = {
   scopeName: string
   generatorName: string
+}
+
+export type JsrPkgMetaVersion = { yanked?: boolean }
+
+type JsrPkgMetaVersions = {
+  scope: string
+  name: string
+  latest: string
+  versions: {
+    [version: string]: JsrPkgMetaVersion
+  }
 }
 
 export class Jsr {

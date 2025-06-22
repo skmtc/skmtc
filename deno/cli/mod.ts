@@ -25,11 +25,15 @@ import {
 } from './src/workspaces/set.ts'
 import { toGenerateCommand, toGeneratePrompt } from './src/generators/generate.ts'
 import {
+  toBaseImagePushCommand,
+  toBaseImagePushPrompt,
+  description as baseImagePushDescription
+} from './src/base-image/push.ts'
+import {
   toBaseImagePullCommand,
   toBaseImagePullPrompt,
-  toBaseImagePushCommand,
-  toBaseImagePushPrompt
-} from './src/base-image/base-image.ts'
+  description as baseImagePullDescription
+} from './src/base-image/pull.ts'
 import { hasHome } from './src/lib/has-home.ts'
 import { hasGenerators } from './src/lib/has-generators.ts'
 import { toAddCommand, toAddPrompt, description as addDescription } from './src/generators/add.ts'
@@ -104,6 +108,14 @@ const getOptions = async () => {
         name: uploadDescription,
         value: 'schemas:upload'
       },
+      {
+        name: baseImagePushDescription,
+        value: 'base-image:push'
+      },
+      {
+        name: baseImagePullDescription,
+        value: 'base-image:pull'
+      },
       { name: 'Add a new schema from url', value: 'add' },
       { name: 'Exit', value: 'exit' }
     ]
@@ -138,6 +150,14 @@ const getOptions = async () => {
     {
       name: workspacesSetDescription,
       value: 'workspaces:set'
+    },
+    {
+      name: baseImagePullDescription,
+      value: 'base-image:pull'
+    },
+    {
+      name: baseImagePushDescription,
+      value: 'base-image:push'
     },
     { name: 'Exit', value: 'exit' }
   ]

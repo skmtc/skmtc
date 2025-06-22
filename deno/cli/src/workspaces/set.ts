@@ -1,8 +1,9 @@
 import { Command } from '@cliffy/command'
 import { Select } from '@cliffy/prompt'
-import { toRootPath } from '../lib/to-root-path.ts'
 import { Manager } from '../lib/manager.ts'
 import { ApiClient } from '../lib/api-client.ts'
+import { KvState } from '../lib/kv-state.ts'
+import * as Sentry from 'npm:@sentry/deno'
 
 export const description = 'Set workspace id'
 
@@ -12,10 +13,28 @@ export const toWorkspacesSetCommand = () => {
     .arguments('<workspace-id:string>')
 
     .action(async (_, workspaceId) => {
-      const kv = await Deno.openKv()
-
-      await setWorkspaceId({ workspaceId, kv })
+      await set({ workspaceId })
     })
+}
+
+type SetArgs = {
+  workspaceId: string
+}
+
+export const set = async ({ workspaceId }: SetArgs) => {
+  const kv = await Deno.openKv()
+
+  const manager = new Manager({ kv })
+
+  try {
+    const kvState = new KvState(kv)
+
+    await kvState.setWorkspaceId(workspaceId)
+  } catch (error) {
+    Sentry.captureException(error)
+
+    manager.fail('Failed to set workspace id')
+  }
 }
 
 export const toWorkspacesSetPrompt = async () => {
@@ -32,22 +51,5 @@ export const toWorkspacesSetPrompt = async () => {
     options: workspaces.map(({ label, id }) => ({ name: label, value: id }))
   })
 
-  await setWorkspaceId({ workspaceId, kv })
-}
-
-type SetWorkspaceIdArgs = {
-  workspaceId: string
-  kv: Deno.Kv
-}
-
-type SetWorkspaceIdOptions = {
-  logSuccess?: string
-}
-
-const setWorkspaceId = async ({ workspaceId, kv }: SetWorkspaceIdArgs) => {
-  const rootPath = toRootPath()
-
-  await kv.set([rootPath, 'workspaceId'], workspaceId)
-
-  return workspaceId
+  await set({ workspaceId })
 }
