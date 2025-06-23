@@ -52,8 +52,18 @@ import {
   toClonePrompt,
   description as cloneDescription
 } from './generators/clone.ts'
+import {
+  toUnlinkCommand,
+  toUnlinkPrompt,
+  description as unlinkDescription
+} from './schemas/unlink.ts'
+import {
+  toWorkspacesGenerateCommand,
+  toWorkspacesGeneratePrompt,
+  description as workspacesGenerateDescription
+} from './workspaces/generate.ts'
 
-import * as Sentry from 'npm:@sentry/deno'
+import * as Sentry from '@sentry/deno'
 
 Sentry.init({
   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
@@ -70,9 +80,11 @@ type PromptResponse =
   | 'login'
   | 'logout'
   | 'schemas:upload'
+  | 'schemas:unlink'
   | 'project-create'
   | 'workspaces:info'
   | 'workspaces:set'
+  | 'workspaces:generate'
   | 'base-image:pull'
   | 'base-image:push'
   | 'exit'
@@ -124,6 +136,14 @@ const getOptions = async () => {
         name: workspacesSetDescription,
         value: 'workspaces:set'
       },
+      {
+        name: unlinkDescription,
+        value: 'schemas:unlink'
+      },
+      {
+        name: uploadDescription,
+        value: 'schemas:upload'
+      },
       { name: 'Add a new schema from url', value: 'add' },
       { name: 'Exit', value: 'exit' }
     ]
@@ -160,12 +180,24 @@ const getOptions = async () => {
       value: 'workspaces:set'
     },
     {
+      name: workspacesGenerateDescription,
+      value: 'workspaces:generate'
+    },
+    {
       name: baseImagePullDescription,
       value: 'base-image:pull'
     },
     {
       name: baseImagePushDescription,
       value: 'base-image:push'
+    },
+    {
+      name: unlinkDescription,
+      value: 'schemas:unlink'
+    },
+    {
+      name: uploadDescription,
+      value: 'schemas:upload'
     },
     { name: 'Exit', value: 'exit' }
   ]
@@ -179,17 +211,19 @@ const promptwise = async () => {
 
   await match(action)
     .with('init', async () => await toInitPrompt())
-    .with('workspaces:set', async () => await toWorkspacesSetPrompt())
-    .with('workspaces:info', async () => await toWorkspacesInfoPrompt())
     .with('base-image:pull', async () => await toBaseImagePullPrompt())
     .with('base-image:push', async () => await toBaseImagePushPrompt())
-    .with('generators:clone', async () => await toClonePrompt())
     .with('generators:add', async () => await toAddPrompt())
+    .with('generators:clone', async () => await toClonePrompt())
+    .with('generators:deploy', async () => await toDeployPrompt())
+    .with('generators:generate', async () => await toGeneratePrompt())
     .with('generators:install', async () => await toInstallPrompt())
     .with('generators:remove', async () => await toRemovePrompt())
-    .with('generators:generate', async () => await toGeneratePrompt())
-    .with('generators:deploy', async () => await toDeployPrompt())
+    .with('schemas:unlink', async () => await toUnlinkPrompt())
     .with('schemas:upload', async () => await toUploadPrompt())
+    .with('workspaces:generate', async () => await toWorkspacesGeneratePrompt())
+    .with('workspaces:info', async () => await toWorkspacesInfoPrompt())
+    .with('workspaces:set', async () => await toWorkspacesSetPrompt())
     .with('login', async () => await toLoginPrompt())
     .with('logout', async () => await toLogoutPrompt())
     .with('exit', () => Deno.exit(0))
@@ -208,17 +242,19 @@ await new Command()
     await promptwise()
   })
   .command('init', toInitCommand())
-  .command('workspace:set', toWorkspacesSetCommand())
-  .command('workspace:info', toWorkspacesInfoCommand())
   .command('base-image:pull', toBaseImagePullCommand())
   .command('base-image:push', toBaseImagePushCommand())
-  .command('generators:clone', toCloneCommand())
   .command('generators:add', toAddCommand())
+  .command('generators:clone', toCloneCommand())
+  .command('generators:deploy', toDeployCommand())
+  .command('generators:generate', toGenerateCommand())
   .command('generators:install', toInstallCommand())
   .command('generators:remove', toRemoveCommand())
-  .command('generators:generate', toGenerateCommand())
-  .command('generators:deploy', toDeployCommand())
+  .command('schemas:unlink', toUnlinkCommand())
   .command('schemas:upload', toUploadCommand())
+  .command('workspaces:generate', toWorkspacesGenerateCommand())
+  .command('workspaces:info', toWorkspacesInfoCommand())
+  .command('workspaces:set', toWorkspacesSetCommand())
   .command('login', toLoginCommand())
   .command('logout', toLogoutCommand())
   .parse(Deno.args)

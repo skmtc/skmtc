@@ -72,6 +72,8 @@ const remove = async (packageName: string, { logSuccess }: RemoveOptions = {}) =
   } catch (error) {
     Sentry.captureException(error)
 
+    await Sentry.flush()
+
     manager.fail('Failed to remove generator')
   }
 }

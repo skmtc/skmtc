@@ -7,6 +7,7 @@ import { StackJson } from '../lib/stack-json.ts'
 import { Jsr } from '../lib/jsr.ts'
 import invariant from 'tiny-invariant'
 import { Manager } from '../lib/manager.ts'
+import * as Sentry from '@sentry/deno'
 
 type CommandType = Command<
   void,
@@ -70,6 +71,10 @@ const clone = async (packageName: string, { logSuccess }: CloneOptions = {}) => 
 
     await generator.clone({ denoJson, stackJson })
   } catch (error) {
+    Sentry.captureException(error)
+
+    await Sentry.flush()
+
     manager.fail('Failed to clone generator')
   }
 }

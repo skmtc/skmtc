@@ -13,6 +13,10 @@ type UploadArgs = {
   apiClient: ApiClient
 }
 
+type UnlinkArgs = {
+  kvState: KvState
+}
+
 export class OpenApiSchema {
   path: string
   contents: string
@@ -71,6 +75,10 @@ export class OpenApiSchema {
 
       return schema
     }
+  }
+
+  async unlink({ kvState }: UnlinkArgs) {
+    await kvState.clearSchemaId({ path: this.path })
   }
 
   async write() {

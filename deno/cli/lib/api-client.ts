@@ -2,6 +2,9 @@ import type { DenoFile } from '../deploy/types.ts'
 import type { Manager } from './manager.ts'
 import * as v from 'valibot'
 import type { OpenApiSchema } from './openapi-schema.ts'
+import type { ClientSettings } from '@skmtc/core/Settings'
+import { PrettierConfigType } from '@skmtc/core/PrettierConfig'
+import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 
 const deploymentStatus = v.picklist(['pending', 'success', 'failed'])
 
@@ -41,6 +44,10 @@ export type CreateSchemaBody =
       type: 'refs'
       openapiSchemaIds: string[]
     }
+
+type GenerateArtifactsArgs = {
+  workspaceId: string
+}
 
 type CreateSchemaArgs = {
   body: CreateSchemaBody
@@ -142,14 +149,15 @@ export class ApiClient {
 
   async updateSchema({ body }: UpdateSchemaArgs) {
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
-      `schemas/${body.id}`,
+      `/schemas/${body.id}`,
       {
-        method: 'POST',
+        method: 'PUT',
         body
       }
     )
 
     if (error) {
+      console.log('ERROR', error.message)
       throw await error.context.json()
     }
 
@@ -198,6 +206,25 @@ export class ApiClient {
 
     return data
   }
+
+  async generateArtifacts({ workspaceId }: GenerateArtifactsArgs) {
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      `/workspaces/${workspaceId}/artifacts`,
+      {
+        method: 'GET'
+      }
+    )
+
+    if (error) {
+      throw new Error('Failed to generate artifacts', { cause: error })
+    }
+
+    try {
+      return v.parse(generateResponse, data)
+    } catch (_error) {
+      throw new Error('Failed to generate artifacts')
+    }
+  }
 }
 
 export const openApiVersion = v.picklist(['2.0', '3.0', '3.1'])
@@ -231,3 +258,13 @@ export type Schema = {
   filePath?: string | null | undefined
   createdAt: string
 }
+
+export type GenerateResponse = {
+  artifacts: Record<string, string>
+  manifest: ManifestContent
+}
+
+export const generateResponse: v.GenericSchema<GenerateResponse> = v.object({
+  artifacts: v.record(v.string(), v.string()),
+  manifest: manifestContent
+})

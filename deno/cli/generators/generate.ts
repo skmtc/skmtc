@@ -1,9 +1,10 @@
 import { Command } from '@cliffy/command'
-import { join, resolve } from '@std/path'
-import { existsSync, ensureFileSync } from '@std/fs'
+import { join, parse } from '@std/path'
+import { ensureDirSync, ensureFileSync, existsSync } from '@std/fs'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import * as v from 'valibot'
 import { skmtcClientConfig, skmtcStackConfig } from '@skmtc/core/Settings'
+import { toRootPath } from '../lib/to-root-path.ts'
 
 export type FormFieldItem = {
   id: string
@@ -45,24 +46,18 @@ export const toGenerateCommand = () => {
   return (
     new Command()
       .description('Generate artifacts from OpenAPI schema')
-      .arguments('[path]')
-      .option('--oas <oas>', 'The OpenAPI schema to generate from')
+      .arguments('<path:string>')
       // .option('-s, --settings <settings>', 'The settings to use')
       // .option('-p, --prettier [prettier]', 'The prettier config to use')
-      .action(async ({ oas }, path = './') => {
-        if (!oas) {
-          console.error('OAS is required')
-          return
-        }
+      .action(async (_args, path) => {
+        const rootPath = toRootPath()
 
-        const homePath = resolve(path, '.codesquared')
+        const pathToSchema = join(Deno.cwd(), path)
 
-        const pathToSchema = resolve(homePath, oas)
-
-        const stackJson = await Deno.readTextFile(join(homePath, '.settings', 'stack.json'))
+        const stackJson = await Deno.readTextFile(join(rootPath, '.settings', 'stack.json'))
         const stack = v.parse(skmtcStackConfig, JSON.parse(stackJson))
 
-        const clientJson = await Deno.readTextFile(join(homePath, '.settings', 'client.json'))
+        const clientJson = await Deno.readTextFile(join(rootPath, '.settings', 'client.json'))
         const client = v.parse(skmtcClientConfig, JSON.parse(clientJson))
 
         const schema = await Deno.readTextFile(pathToSchema)
@@ -74,19 +69,21 @@ export const toGenerateCommand = () => {
 
         deletePreviousArtifacts({
           incomingPaths: Object.keys(artifacts ?? {}),
-          homePath
+          rootPath
         })
 
-        const manifestPath = join(homePath, '.settings', 'manifest.json')
+        const manifestPath = join(rootPath, '.settings', 'manifest.json')
 
         ensureFileSync(manifestPath)
 
         Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
 
         Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
-          const absolutePath = resolve(path, artifactPath)
+          const absolutePath = join(Deno.cwd(), artifactPath)
 
-          ensureFileSync(absolutePath)
+          const { dir } = parse(absolutePath)
+
+          ensureDirSync(dir)
 
           console.log(`Writing artifact: ${absolutePath}`)
 
@@ -139,12 +136,15 @@ export const generatorArtifacts = async ({
 }
 
 type DeletePreviousArtifactsArgs = {
-  homePath: string
+  rootPath: string
   incomingPaths: string[]
 }
 
-const deletePreviousArtifacts = ({ incomingPaths, homePath }: DeletePreviousArtifactsArgs) => {
-  const manifestPath = resolve(homePath, '.settings', 'manifest.json')
+export const deletePreviousArtifacts = ({
+  incomingPaths,
+  rootPath
+}: DeletePreviousArtifactsArgs) => {
+  const manifestPath = join(rootPath, '.settings', 'manifest.json')
 
   if (!existsSync(manifestPath)) {
     return
@@ -163,7 +163,7 @@ const deletePreviousArtifacts = ({ incomingPaths, homePath }: DeletePreviousArti
   paths.forEach(path => {
     try {
       if (!incomingPaths.includes(path)) {
-        const absolutePath = resolve(homePath, path)
+        const absolutePath = join(Deno.cwd(), path)
         console.log(`Deleting artifact: ${absolutePath}`)
         Deno.removeSync(absolutePath)
       }

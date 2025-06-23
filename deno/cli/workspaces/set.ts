@@ -33,6 +33,8 @@ export const set = async ({ workspaceId }: SetArgs) => {
   } catch (error) {
     Sentry.captureException(error)
 
+    await Sentry.flush()
+
     manager.fail('Failed to set workspace id')
   }
 }

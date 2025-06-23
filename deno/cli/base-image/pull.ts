@@ -51,6 +51,8 @@ export const pull = async ({ path }: PullArgs) => {
   } catch (error) {
     Sentry.captureException(error)
 
+    await Sentry.flush()
+
     manager.fail('Failed to pull base image')
   }
 }

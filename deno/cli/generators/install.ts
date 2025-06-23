@@ -76,6 +76,8 @@ const install = async (packageName: string, { logSuccess }: InstallOptions = {})
   } catch (error) {
     Sentry.captureException(error)
 
+    await Sentry.flush()
+
     manager.fail('Failed to install generator')
   }
 }

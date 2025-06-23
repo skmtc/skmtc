@@ -63,11 +63,15 @@ export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions
     const openApiSchema = await OpenApiSchema.open(path)
     const apiClient = new ApiClient(manager)
 
-    const schema = await openApiSchema.upload(apiClient)
+    await openApiSchema.upload({ apiClient, kvState })
 
-    console.log('Schema uploaded', JSON.stringify(schema, null, 2))
+    manager.success()
   } catch (error) {
+    console.error(error)
+
     Sentry.captureException(error)
+
+    await Sentry.flush()
 
     manager.fail('Failed to upload schema')
   }

@@ -5,6 +5,7 @@ import { toRootPath } from '../lib/to-root-path.ts'
 import { ClientJson } from '../lib/client-json.ts'
 import { Deployment } from '../lib/deployment.ts'
 import { Manager } from '../lib/manager.ts'
+import * as Sentry from '@sentry/deno'
 
 export const description = 'Deploy generators to API Foundry'
 
@@ -29,6 +30,10 @@ export const deploy = async () => {
   try {
     await deployment.deploy({ assets, stackJson, clientJson })
   } catch (error) {
+    Sentry.captureException(error)
+
+    await Sentry.flush()
+
     manager.fail('Failed to deploy generators')
   }
 }

@@ -21,32 +21,38 @@ export class KvState {
   getWorkspaceId = async () => {
     const rootPath = toRootPath()
 
-    const workspaceId = await this.kv.get([rootPath, 'workspaceId'])
+    const workspaceId = await this.kv.get(['workspaceId', rootPath])
 
-    return v.parse(v.optional(v.string()), workspaceId.value)
+    return v.parse(v.nullable(v.string()), workspaceId.value)
   }
 
   setWorkspaceId = async (workspaceId: string) => {
     const rootPath = toRootPath()
 
-    await this.kv.set([rootPath, 'workspaceId'], workspaceId)
+    await this.kv.set(['workspaceId', rootPath], workspaceId)
 
     return workspaceId
   }
 
   setSchemaId = async ({ schemaId, path }: SetSchemaIdArgs) => {
-    const rootPath = toRootPath()
+    const joinedPath = join(Deno.cwd(), path)
 
-    await this.kv.set([join(rootPath, path), 'schemaId'], schemaId)
+    await this.kv.set(['schemaId', joinedPath], schemaId)
 
     return schemaId
   }
 
   getSchemaId = async ({ path }: GetSchemaIdArgs) => {
-    const rootPath = toRootPath()
+    const joinedPath = join(Deno.cwd(), path)
 
-    const schemaId = await this.kv.get([join(rootPath, path)])
+    const schemaId = await this.kv.get(['schemaId', joinedPath])
 
-    return v.parse(v.optional(v.string()), schemaId.value)
+    return v.parse(v.nullable(v.string()), schemaId?.value)
+  }
+
+  clearSchemaId = async ({ path }: GetSchemaIdArgs) => {
+    const joinedPath = join(Deno.cwd(), path)
+
+    await this.kv.delete(['schemaId', joinedPath])
   }
 }

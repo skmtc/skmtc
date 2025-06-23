@@ -8,5 +8,5 @@ export const toResolvedArtifactPath = ({
   basePath,
   destinationPath
 }: ToResolvedArtifactPathArgs) => {
-  return join(basePath ?? 'dist', destinationPath.replace(/^@\//, ''))
+  return join(basePath ?? 'src', destinationPath.replace(/^@\//, ''))
 }

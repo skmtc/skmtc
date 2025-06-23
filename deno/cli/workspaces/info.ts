@@ -42,6 +42,8 @@ export const info = async ({ logSuccess }: InfoOptions = {}) => {
   } catch (error) {
     Sentry.captureException(error)
 
+    await Sentry.flush()
+
     manager.fail('Failed to get workspace')
   }
 }

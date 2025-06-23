@@ -83,6 +83,8 @@ const add = async (
   } catch (error) {
     Sentry.captureException(error)
 
+    await Sentry.flush()
+
     manager.fail('Failed to add generator')
   }
 }

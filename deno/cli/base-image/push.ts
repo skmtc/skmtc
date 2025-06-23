@@ -50,6 +50,8 @@ export const push = async ({ path }: PushArgs) => {
   } catch (error) {
     Sentry.captureException(error)
 
+    await Sentry.flush()
+
     manager.fail('Failed to push base image')
   }
 }

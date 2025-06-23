@@ -26,6 +26,7 @@
     "./RefName": "./types/RefName.ts",
     "./Results": "./types/Results.ts",
     "./Settings": "./types/Settings.ts",
+    "./PrettierConfig": "./types/PrettierConfig.ts",
     "./strings": "./helpers/strings.ts",
     "./toResolvedArtifactPath": "./helpers/toResolvedArtifactPath.ts"
   },
