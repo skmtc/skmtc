@@ -1,13 +1,12 @@
 import { Command, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
-import { GENERATORS } from '../constants.ts'
+import { GENERATORS } from '../lib/constants.ts'
 import { Generator } from '../lib/generator.ts'
 import { DenoJson } from '../lib/deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
-import invariant from 'tiny-invariant'
 import { Jsr } from '../lib/jsr.ts'
+import invariant from 'tiny-invariant'
 import { Manager } from '../lib/manager.ts'
-import * as Sentry from 'npm:@sentry/deno'
 
 type CommandType = Command<
   void,
@@ -26,36 +25,35 @@ type CommandType = Command<
   undefined
 >
 
-export const description = 'Install a generator'
+export const description = 'Clone a generator for editing'
 
-export const toInstallCommand = (): CommandType => {
+export const toCloneCommand = (): CommandType => {
   const command = new Command()
     .description(description)
-    .example('Install RTK Query generator from JSR registry', 'install jsr:@skmtc/rtk-query')
+    .example('Clone RTK Query generator from JSR registry', 'clone jsr:@skmtc/rtk-query')
     .arguments('<generator:string>')
-    .action((_options, generator) => install(generator))
+    .action((_options, generator) => clone(generator))
 
   return command
 }
 
-export const toInstallPrompt = async () => {
+export const toClonePrompt = async () => {
   const generator: string = await Input.prompt({
-    message: 'Select generator to install',
+    message: 'Select generator to clone',
     list: true,
     suggestions: GENERATORS
   })
 
-  await install(generator, { logSuccess: `Generator "${generator}" is installed` })
+  await clone(generator, { logSuccess: `Generator "${generator}" is cloned` })
 }
 
-type InstallOptions = {
+type CloneOptions = {
   logSuccess?: string
 }
 
-const install = async (packageName: string, { logSuccess }: InstallOptions = {}) => {
+const clone = async (packageName: string, { logSuccess }: CloneOptions = {}) => {
   const kv = await Deno.openKv()
   const manager = new Manager({ kv, logSuccess })
-
   try {
     const { scheme, scopeName, generatorName, version } = Generator.parseName(packageName)
 
@@ -70,12 +68,8 @@ const install = async (packageName: string, { logSuccess }: InstallOptions = {})
     const denoJson = await DenoJson.open(manager)
     const stackJson = await StackJson.open(manager)
 
-    generator.install({ denoJson, stackJson })
-
-    await manager.success()
+    await generator.clone({ denoJson, stackJson })
   } catch (error) {
-    Sentry.captureException(error)
-
-    manager.fail('Failed to install generator')
+    manager.fail('Failed to clone generator')
   }
 }

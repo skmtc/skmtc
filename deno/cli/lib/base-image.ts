@@ -1,4 +1,4 @@
-import type { FileSystemTree } from '../types.ts'
+import type { FileSystemTree } from './types.ts'
 import { join } from '@std/path'
 import type { ApiClient } from './api-client.ts'
 

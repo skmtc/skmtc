@@ -1,5 +1,6 @@
 import { ensureDir, exists } from '@std/fs'
 import { resolve } from 'node:path'
+import type { ApiClient, CreateSchemaBody } from './api-client.ts'
 
 type OpenApiSchemaArgs = {
   path: string
@@ -29,6 +30,19 @@ export class OpenApiSchema {
     const contents = await Deno.readTextFile(path)
 
     return new OpenApiSchema({ path, contents })
+  }
+
+  async upload(apiClient: ApiClient) {
+    const serverFilePath = await apiClient.uploadSchemaFile(this)
+
+    const body: CreateSchemaBody = {
+      type: 'file',
+      filePath: serverFilePath
+    }
+
+    const [schema] = await apiClient.uploadSchema({ body })
+
+    return schema
   }
 
   async write() {

@@ -1,8 +1,8 @@
 import { Command, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
-import { toNameSuggest } from './lib/to-name-suggest.ts'
-import { StackJson } from './lib/stack-json.ts'
-import { PrettierJson } from './lib/prettier-json.ts'
+import { toNameSuggest } from './to-name-suggest.ts'
+import { StackJson } from './stack-json.ts'
+import { PrettierJson } from './prettier-json.ts'
 
 type CreateProjectFolderOptions = {
   logSuccess?: boolean

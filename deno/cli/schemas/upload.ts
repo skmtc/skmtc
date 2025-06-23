@@ -1,10 +1,10 @@
 import { Command } from '@cliffy/command'
 import { Input, Confirm } from '@cliffy/prompt'
 import { Manager } from '../lib/manager.ts'
-import { SchemaUpload } from '../lib/schema-upload.ts'
 import { OpenApiSchema } from '../lib/openapi-schema.ts'
 import * as Sentry from 'npm:@sentry/deno'
 import chokidar from 'npm:chokidar'
+import { ApiClient } from '../lib/api-client.ts'
 
 export const description = 'Upload an OpenAPI schema to API Foundry'
 
@@ -58,10 +58,9 @@ export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions
 
   try {
     const openApiSchema = await OpenApiSchema.open(path)
+    const apiClient = new ApiClient(manager)
 
-    const schemaUpload = new SchemaUpload(manager)
-
-    const schema = await schemaUpload.upload(openApiSchema)
+    const schema = await openApiSchema.upload(apiClient)
 
     console.log('Schema uploaded', JSON.stringify(schema, null, 2))
   } catch (error) {

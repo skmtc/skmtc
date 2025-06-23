@@ -4,7 +4,7 @@ import { ApiClient } from '../lib/api-client.ts'
 import { KvState } from '../lib/kv-state.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from 'npm:@sentry/deno'
-import type { Controller } from '../types.ts'
+import type { Controller } from '../lib/types.ts'
 
 export const description = 'Pull base image from deployed workspace'
 

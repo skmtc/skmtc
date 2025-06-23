@@ -1,57 +1,57 @@
 import { Command } from '@cliffy/command'
-import { toInitPrompt, toInitCommand } from './src/init.ts'
+import { toInitPrompt, toInitCommand } from './lib/init.ts'
 import { Select } from '@cliffy/prompt'
 import { match } from 'ts-pattern'
-import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './src/auth/auth.ts'
+import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './auth/auth.ts'
 import {
   toDeployCommand,
   toDeployPrompt,
   description as deployDescription
-} from './src/generators/deploy.ts'
+} from './generators/deploy.ts'
 import {
   toUploadCommand,
   toUploadPrompt,
   description as uploadDescription
-} from './src/schemas/upload.ts'
+} from './schemas/upload.ts'
 import {
   toWorkspacesInfoCommand,
   toWorkspacesInfoPrompt,
   description as workspacesInfoDescription
-} from './src/workspaces/info.ts'
+} from './workspaces/info.ts'
 import {
   toWorkspacesSetCommand,
   toWorkspacesSetPrompt,
   description as workspacesSetDescription
-} from './src/workspaces/set.ts'
-import { toGenerateCommand, toGeneratePrompt } from './src/generators/generate.ts'
+} from './workspaces/set.ts'
+import { toGenerateCommand, toGeneratePrompt } from './generators/generate.ts'
 import {
   toBaseImagePushCommand,
   toBaseImagePushPrompt,
   description as baseImagePushDescription
-} from './src/base-image/push.ts'
+} from './base-image/push.ts'
 import {
   toBaseImagePullCommand,
   toBaseImagePullPrompt,
   description as baseImagePullDescription
-} from './src/base-image/pull.ts'
-import { hasHome } from './src/lib/has-home.ts'
-import { hasGenerators } from './src/lib/has-generators.ts'
-import { toAddCommand, toAddPrompt, description as addDescription } from './src/generators/add.ts'
+} from './base-image/pull.ts'
+import { hasHome } from './lib/has-home.ts'
+import { hasGenerators } from './lib/has-generators.ts'
+import { toAddCommand, toAddPrompt, description as addDescription } from './generators/add.ts'
 import {
   toInstallCommand,
   toInstallPrompt,
   description as installDescription
-} from './src/generators/install.ts'
+} from './generators/install.ts'
 import {
   toRemoveCommand,
   toRemovePrompt,
   description as removeDescription
-} from './src/generators/remove.ts'
+} from './generators/remove.ts'
 import {
   toCloneCommand,
   toClonePrompt,
   description as cloneDescription
-} from './src/generators/clone.ts'
+} from './generators/clone.ts'
 
 import * as Sentry from 'npm:@sentry/deno'
 
