@@ -40,8 +40,6 @@ export class Workspace {
 
       ensureDirSync(dir)
 
-      console.log('WRITING', absolutePath)
-
       Deno.writeTextFileSync(absolutePath, artifactContent)
     })
   }

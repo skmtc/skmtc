@@ -1,7 +1,7 @@
 import { Command } from '@cliffy/command'
 import { Manager } from '../lib/manager.ts'
 import { ApiClient } from '../lib/api-client.ts'
-import * as Sentry from 'npm:@sentry/deno'
+import * as Sentry from '@sentry/deno'
 import { KvState } from '../lib/kv-state.ts'
 
 export const description = 'Get workspace info'

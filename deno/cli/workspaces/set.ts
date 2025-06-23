@@ -3,7 +3,7 @@ import { Select } from '@cliffy/prompt'
 import { Manager } from '../lib/manager.ts'
 import { ApiClient } from '../lib/api-client.ts'
 import { KvState } from '../lib/kv-state.ts'
-import * as Sentry from 'npm:@sentry/deno'
+import * as Sentry from '@sentry/deno'
 
 export const description = 'Set workspace id'
 

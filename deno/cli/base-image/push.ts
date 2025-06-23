@@ -3,7 +3,7 @@ import { Input } from '@cliffy/prompt'
 import { ApiClient } from '../lib/api-client.ts'
 import { KvState } from '../lib/kv-state.ts'
 import { Manager } from '../lib/manager.ts'
-import * as Sentry from 'npm:@sentry/deno'
+import * as Sentry from '@sentry/deno'
 import { BaseImage } from '../lib/base-image.ts'
 
 export const description = 'Push base image to deployed workspace'

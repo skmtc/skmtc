@@ -2,7 +2,7 @@ import { Command } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import { Manager } from '../lib/manager.ts'
 import { OpenApiSchema } from '../lib/openapi-schema.ts'
-import * as Sentry from 'npm:@sentry/deno'
+import * as Sentry from '@sentry/deno'
 import { KvState } from '../lib/kv-state.ts'
 
 export const description = 'Unlink an OpenAPI schema from its uploaded counterpart'
