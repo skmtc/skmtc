@@ -5,6 +5,7 @@ import { OpenApiSchema } from '../lib/openapi-schema.ts'
 import * as Sentry from 'npm:@sentry/deno'
 import chokidar from 'npm:chokidar'
 import { ApiClient } from '../lib/api-client.ts'
+import { KvState } from '../lib/kv-state.ts'
 
 export const description = 'Upload an OpenAPI schema to API Foundry'
 
@@ -54,6 +55,8 @@ export const watchUpload = ({ path }: UploadArgs) => {
 
 export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions = {}) => {
   const kv = await Deno.openKv()
+  const kvState = new KvState(kv)
+
   const manager = new Manager({ kv, logSuccess })
 
   try {

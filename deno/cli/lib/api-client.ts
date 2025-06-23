@@ -42,8 +42,18 @@ export type CreateSchemaBody =
       openapiSchemaIds: string[]
     }
 
-type UploadSchemaArgs = {
+type CreateSchemaArgs = {
   body: CreateSchemaBody
+}
+
+type UpdateSchemaArgs = {
+  body: {
+    id: string
+    name?: string
+    slug?: string
+    schemaId?: string
+    file: CreateSchemaBody
+  }
 }
 
 type PatchWorkspaceByIdArgs = {
@@ -117,11 +127,27 @@ export class ApiClient {
     return serverFilePath
   }
 
-  async uploadSchema({ body }: UploadSchemaArgs) {
+  async createSchema({ body }: CreateSchemaArgs) {
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`schemas`, {
       method: 'POST',
       body
     })
+
+    if (error) {
+      throw await error.context.json()
+    }
+
+    return v.parse(v.array(schema), data)
+  }
+
+  async updateSchema({ body }: UpdateSchemaArgs) {
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      `schemas/${body.id}`,
+      {
+        method: 'POST',
+        body
+      }
+    )
 
     if (error) {
       throw await error.context.json()

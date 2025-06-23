@@ -1,8 +1,13 @@
 import { toRootPath } from './to-root-path.ts'
 import { join } from '@std/path'
+import * as v from 'valibot'
 
 type SetSchemaIdArgs = {
   schemaId: string
+  path: string
+}
+
+type GetSchemaIdArgs = {
   path: string
 }
 
@@ -18,7 +23,7 @@ export class KvState {
 
     const workspaceId = await this.kv.get([rootPath, 'workspaceId'])
 
-    return workspaceId.value
+    return v.parse(v.optional(v.string()), workspaceId.value)
   }
 
   setWorkspaceId = async (workspaceId: string) => {
@@ -35,5 +40,13 @@ export class KvState {
     await this.kv.set([join(rootPath, path), 'schemaId'], schemaId)
 
     return schemaId
+  }
+
+  getSchemaId = async ({ path }: GetSchemaIdArgs) => {
+    const rootPath = toRootPath()
+
+    const schemaId = await this.kv.get([join(rootPath, path)])
+
+    return v.parse(v.optional(v.string()), schemaId.value)
   }
 }

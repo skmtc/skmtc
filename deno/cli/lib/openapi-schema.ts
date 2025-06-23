@@ -1,10 +1,16 @@
 import { ensureDir, exists } from '@std/fs'
 import { resolve } from 'node:path'
 import type { ApiClient, CreateSchemaBody } from './api-client.ts'
+import type { KvState } from './kv-state.ts'
 
 type OpenApiSchemaArgs = {
   path: string
   contents: string
+}
+
+type UploadArgs = {
+  kvState: KvState
+  apiClient: ApiClient
 }
 
 export class OpenApiSchema {
@@ -32,17 +38,39 @@ export class OpenApiSchema {
     return new OpenApiSchema({ path, contents })
   }
 
-  async upload(apiClient: ApiClient) {
+  async upload({ kvState, apiClient }: UploadArgs) {
     const serverFilePath = await apiClient.uploadSchemaFile(this)
 
-    const body: CreateSchemaBody = {
-      type: 'file',
-      filePath: serverFilePath
+    const schemaId = await kvState.getSchemaId({ path: this.path })
+
+    if (schemaId) {
+      const serverFilePath = await apiClient.uploadSchemaFile(this)
+
+      const file: CreateSchemaBody = {
+        type: 'file',
+        filePath: serverFilePath
+      }
+
+      const [schema] = await apiClient.updateSchema({
+        body: {
+          id: schemaId,
+          file: file
+        }
+      })
+
+      return schema
+    } else {
+      const body: CreateSchemaBody = {
+        type: 'file',
+        filePath: serverFilePath
+      }
+
+      const [schema] = await apiClient.createSchema({ body })
+
+      kvState.setSchemaId({ path: this.path, schemaId: schema.id })
+
+      return schema
     }
-
-    const [schema] = await apiClient.uploadSchema({ body })
-
-    return schema
   }
 
   async write() {
