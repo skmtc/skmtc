@@ -13,10 +13,11 @@ export const description = 'Generate artifacts in workspace'
 export const toWorkspacesGenerateCommand = () => {
   return new Command()
     .description(description)
+    .arguments('<path:string>')
     .option('-w, --watch <path:string>', 'Watch for changes to schema and generate artifacts')
-    .action(async ({ watch }) => {
+    .action(async ({ watch }, path) => {
       if (watch) {
-        setupWatcher({ watch })
+        setupWatcher({ path })
       } else {
         await generate({ logSuccess: 'Artifacts generated' })
       }
@@ -28,15 +29,15 @@ export const toWorkspacesGeneratePrompt = async () => {
 }
 
 type WatchGenerateArgs = {
-  watch: string
+  path: string
 }
 
-export const setupWatcher = ({ watch }: WatchGenerateArgs) => {
-  const joinedPath = join(Deno.cwd(), watch)
+export const setupWatcher = ({ path }: WatchGenerateArgs) => {
+  const joinedPath = join(Deno.cwd(), path)
 
   const watcher = chokidar.watch(joinedPath)
 
-  watcher.on('change', () => uploadGenerate({ path: watch }))
+  watcher.on('change', () => uploadGenerate({ path }))
 }
 
 type UploadGenerateArgs = {
