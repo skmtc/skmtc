@@ -44,9 +44,9 @@ export const push = async ({ path }: PushArgs) => {
     }
 
     const apiClient = new ApiClient(manager)
-    const baseImage = new BaseImage(apiClient)
+    const baseImage = new BaseImage(path)
 
-    await baseImage.push({ path, workspaceId })
+    await baseImage.push({ kvState, apiClient })
   } catch (error) {
     Sentry.captureException(error)
 

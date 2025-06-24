@@ -164,7 +164,7 @@ export const deletePreviousArtifacts = ({
     try {
       if (!incomingPaths.includes(path)) {
         const absolutePath = join(Deno.cwd(), path)
-        console.log(`Deleting artifact: ${absolutePath}`)
+
         Deno.removeSync(absolutePath)
       }
     } catch (error) {

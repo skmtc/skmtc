@@ -29,11 +29,6 @@ import {
   toBaseImagePushPrompt,
   description as baseImagePushDescription
 } from './base-image/push.ts'
-import {
-  toBaseImagePullCommand,
-  toBaseImagePullPrompt,
-  description as baseImagePullDescription
-} from './base-image/pull.ts'
 import { hasHome } from './lib/has-home.ts'
 import { hasGenerators } from './lib/has-generators.ts'
 import { toAddCommand, toAddPrompt, description as addDescription } from './generators/add.ts'
@@ -125,10 +120,6 @@ const getOptions = async () => {
         value: 'base-image:push'
       },
       {
-        name: baseImagePullDescription,
-        value: 'base-image:pull'
-      },
-      {
         name: workspacesInfoDescription,
         value: 'workspaces:info'
       },
@@ -184,10 +175,6 @@ const getOptions = async () => {
       value: 'workspaces:generate'
     },
     {
-      name: baseImagePullDescription,
-      value: 'base-image:pull'
-    },
-    {
       name: baseImagePushDescription,
       value: 'base-image:push'
     },
@@ -211,7 +198,6 @@ const promptwise = async () => {
 
   await match(action)
     .with('init', async () => await toInitPrompt())
-    .with('base-image:pull', async () => await toBaseImagePullPrompt())
     .with('base-image:push', async () => await toBaseImagePushPrompt())
     .with('generators:add', async () => await toAddPrompt())
     .with('generators:clone', async () => await toClonePrompt())
@@ -242,7 +228,6 @@ await new Command()
     await promptwise()
   })
   .command('init', toInitCommand())
-  .command('base-image:pull', toBaseImagePullCommand())
   .command('base-image:push', toBaseImagePushCommand())
   .command('generators:add', toAddCommand())
   .command('generators:clone', toCloneCommand())

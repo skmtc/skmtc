@@ -36,7 +36,7 @@ export const setupWatcher = ({ watch }: WatchGenerateArgs) => {
 
   const watcher = chokidar.watch(joinedPath)
 
-  watcher.on('change', path => uploadGenerate({ path }))
+  watcher.on('change', () => uploadGenerate({ path: watch }))
 }
 
 type UploadGenerateArgs = {

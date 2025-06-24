@@ -1,20 +1,28 @@
 import type { FileSystemTree } from './types.ts'
 import { join } from '@std/path'
 import type { ApiClient } from './api-client.ts'
+import type { KvState } from './kv-state.ts'
+import { IgnoreFile } from './ignore-file.ts'
+import console from 'node:console'
 
 type PushArgs = {
-  workspaceId: string
+  kvState: KvState
+  apiClient: ApiClient
+}
+
+type ToFileTreeArgs = {
   path: string
+  ignoreFile: IgnoreFile
 }
 
 export class BaseImage {
-  apiClient: ApiClient
+  path: string
 
-  constructor(apiClient: ApiClient) {
-    this.apiClient = apiClient
+  constructor(path: string) {
+    this.path = path
   }
 
-  static toFileTree(path: string): FileSystemTree {
+  static toFileTree({ path, ignoreFile }: ToFileTreeArgs): FileSystemTree {
     const tree: FileSystemTree = {}
 
     try {
@@ -23,20 +31,17 @@ export class BaseImage {
       for (const entry of entries) {
         const fullPath = join(path, entry.name)
 
-        if (entry.isDirectory) {
-          if (['node_modules', 'build', '.yarn'].includes(entry.name)) {
-            continue
-          }
+        if (ignoreFile.ignore.ignores(fullPath)) {
+          continue
+        }
 
+        if (entry.isDirectory) {
           tree[entry.name] = {
-            directory: BaseImage.toFileTree(fullPath)
+            directory: BaseImage.toFileTree({ path: fullPath, ignoreFile })
           }
         } else if (entry.isFile) {
-          if (['.DS_Store', 'base-files.json'].includes(entry.name)) {
-            continue
-          }
-
           const contents = Deno.readTextFileSync(fullPath)
+
           tree[entry.name] = {
             file: {
               contents
@@ -52,9 +57,17 @@ export class BaseImage {
     return tree
   }
 
-  async push({ path, workspaceId }: PushArgs) {
-    const fileTree = BaseImage.toFileTree(path)
+  async push({ kvState, apiClient }: PushArgs) {
+    const workspaceId = await kvState.getWorkspaceId()
 
-    await this.apiClient.patchWorkspaceById({ workspaceId, baseImage: fileTree })
+    if (!workspaceId) {
+      throw new Error('Workspace ID not found')
+    }
+
+    const ignoreFile = await IgnoreFile.fromFile(this.path)
+
+    const fileTree = BaseImage.toFileTree({ path: this.path, ignoreFile })
+
+    await apiClient.patchWorkspaceById({ workspaceId, baseImage: fileTree })
   }
 }
