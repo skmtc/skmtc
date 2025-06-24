@@ -25,10 +25,10 @@ import {
 } from './workspaces/set.ts'
 import { toGenerateCommand, toGeneratePrompt } from './generators/generate.ts'
 import {
-  toBaseImagePushCommand,
-  toBaseImagePushPrompt,
-  description as baseImagePushDescription
-} from './base-image/push.ts'
+  toBaseFilesPushCommand,
+  toBaseFilesPushPrompt,
+  description as baseFilesPushDescription
+} from './base-files/push.ts'
 import { hasHome } from './lib/has-home.ts'
 import { hasGenerators } from './lib/has-generators.ts'
 import { toAddCommand, toAddPrompt, description as addDescription } from './generators/add.ts'
@@ -79,8 +79,7 @@ type PromptResponse =
   | 'workspaces:info'
   | 'workspaces:set'
   | 'workspaces:generate'
-  | 'base-image:pull'
-  | 'base-image:push'
+  | 'base-files:push'
   | 'exit'
 
 const getOptions = async () => {
@@ -98,6 +97,7 @@ const getOptions = async () => {
 
   if (!generatorsExist) {
     return [
+      Select.separator('Generators'),
       {
         name: cloneDescription,
         value: 'generators:clone'
@@ -114,10 +114,12 @@ const getOptions = async () => {
         name: uploadDescription,
         value: 'schemas:upload'
       },
+      Select.separator('Base Files'),
       {
-        name: baseImagePushDescription,
-        value: 'base-image:push'
+        name: baseFilesPushDescription,
+        value: 'base-files:push'
       },
+      Select.separator('Workspaces'),
       {
         name: workspacesInfoDescription,
         value: 'workspaces:info'
@@ -126,6 +128,7 @@ const getOptions = async () => {
         name: workspacesSetDescription,
         value: 'workspaces:set'
       },
+      Select.separator('Schemas'),
       {
         name: unlinkDescription,
         value: 'schemas:unlink'
@@ -134,13 +137,12 @@ const getOptions = async () => {
         name: uploadDescription,
         value: 'schemas:upload'
       },
-      { name: 'Add a new schema from url', value: 'add' },
       { name: 'Exit', value: 'exit' }
     ]
   }
 
   return [
-    { name: 'Run code generator', value: 'generate' },
+    Select.separator('Generators'),
     {
       name: cloneDescription,
       value: 'generators:clone'
@@ -161,6 +163,7 @@ const getOptions = async () => {
       name: deployDescription,
       value: 'generators:deploy'
     },
+    Select.separator('Workspaces'),
     {
       name: workspacesInfoDescription,
       value: 'workspaces:info'
@@ -173,10 +176,12 @@ const getOptions = async () => {
       name: workspacesGenerateDescription,
       value: 'workspaces:generate'
     },
+    Select.separator('Base Image'),
     {
-      name: baseImagePushDescription,
-      value: 'base-image:push'
+      name: baseFilesPushDescription,
+      value: 'base-files:push'
     },
+    Select.separator('Schemas'),
     {
       name: unlinkDescription,
       value: 'schemas:unlink'
@@ -197,7 +202,7 @@ const promptwise = async () => {
 
   await match(action)
     .with('init', async () => await toInitPrompt())
-    .with('base-image:push', async () => await toBaseImagePushPrompt())
+    .with('base-files:push', async () => await toBaseFilesPushPrompt())
     .with('generators:add', async () => await toAddPrompt())
     .with('generators:clone', async () => await toClonePrompt())
     .with('generators:deploy', async () => await toDeployPrompt())
@@ -227,7 +232,7 @@ await new Command()
     await promptwise()
   })
   .command('init', toInitCommand())
-  .command('base-image:push', toBaseImagePushCommand())
+  .command('base-files:push', toBaseFilesPushCommand())
   .command('generators:add', toAddCommand())
   .command('generators:clone', toCloneCommand())
   .command('generators:deploy', toDeployCommand())

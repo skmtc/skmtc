@@ -15,7 +15,7 @@ type ToFileTreeArgs = {
   ignoreFile: IgnoreFile
 }
 
-export class BaseImage {
+export class BaseFiles {
   path: string
 
   constructor(path: string) {
@@ -37,7 +37,7 @@ export class BaseImage {
 
         if (entry.isDirectory) {
           tree[entry.name] = {
-            directory: BaseImage.toFileTree({ path: fullPath, ignoreFile })
+            directory: BaseFiles.toFileTree({ path: fullPath, ignoreFile })
           }
         } else if (entry.isFile) {
           const contents = Deno.readTextFileSync(fullPath)
@@ -66,7 +66,7 @@ export class BaseImage {
 
     const ignoreFile = await IgnoreFile.fromFile(this.path)
 
-    const fileTree = BaseImage.toFileTree({ path: this.path, ignoreFile })
+    const fileTree = BaseFiles.toFileTree({ path: this.path, ignoreFile })
 
     await apiClient.patchWorkspaceById({ workspaceId, baseImage: fileTree })
   }

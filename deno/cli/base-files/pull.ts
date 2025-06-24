@@ -6,9 +6,9 @@ import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/deno'
 import type { Controller } from '../lib/types.ts'
 
-export const description = 'Pull base image from deployed workspace'
+export const description = 'Pull base files from deployed workspace'
 
-export const toBaseImagePullCommand = (): Command<any, any, any, any, any, any, any, any> => {
+export const toBaseFilesPullCommand = (): Command<any, any, any, any, any, any, any, any> => {
   return new Command()
     .description(description)
     .arguments('<path:string>')
@@ -17,9 +17,9 @@ export const toBaseImagePullCommand = (): Command<any, any, any, any, any, any, 
     })
 }
 
-export const toBaseImagePullPrompt = async () => {
+export const toBaseFilesPullPrompt = async () => {
   const path = await Input.prompt({
-    message: 'Enter destination path for base image'
+    message: 'Enter destination path for base files'
   })
 
   await pull({ path })
@@ -53,14 +53,14 @@ export const pull = async ({ path }: PullArgs) => {
 
     await Sentry.flush()
 
-    manager.fail('Failed to pull base image')
+    manager.fail('Failed to pull base files')
   }
 }
 
-export const baseImagePullController: Controller = {
-  action: 'base-image:pull',
-  description: 'Pull base image from deployed workspace',
-  toCommand: toBaseImagePullCommand,
-  toPrompt: toBaseImagePullPrompt,
+export const baseFilesPullController: Controller = {
+  action: 'base-files:pull',
+  description: 'Pull base files from deployed workspace',
+  toCommand: toBaseFilesPullCommand,
+  toPrompt: toBaseFilesPullPrompt,
   filter: ({ hasHome, hasGenerators }) => true
 }

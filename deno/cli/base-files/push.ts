@@ -4,11 +4,11 @@ import { ApiClient } from '../lib/api-client.ts'
 import { KvState } from '../lib/kv-state.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/deno'
-import { BaseImage } from '../lib/base-image.ts'
+import { BaseFiles } from '../lib/base-files.ts'
 
-export const description = 'Push base image to deployed workspace'
+export const description = 'Push base files to deployed workspace'
 
-export const toBaseImagePushCommand = () => {
+export const toBaseFilesPushCommand = () => {
   return new Command()
     .description(description)
     .arguments('<path:string>')
@@ -17,9 +17,9 @@ export const toBaseImagePushCommand = () => {
     })
 }
 
-export const toBaseImagePushPrompt = async () => {
+export const toBaseFilesPushPrompt = async () => {
   const path = await Input.prompt({
-    message: 'Enter path to base image folder'
+    message: 'Enter path to base files folder'
   })
 
   await push({ path })
@@ -44,14 +44,14 @@ export const push = async ({ path }: PushArgs) => {
     }
 
     const apiClient = new ApiClient(manager)
-    const baseImage = new BaseImage(path)
+    const baseFiles = new BaseFiles(path)
 
-    await baseImage.push({ kvState, apiClient })
+    await baseFiles.push({ kvState, apiClient })
   } catch (error) {
     Sentry.captureException(error)
 
     await Sentry.flush()
 
-    manager.fail('Failed to push base image')
+    manager.fail('Failed to push base files')
   }
 }
