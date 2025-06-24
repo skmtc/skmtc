@@ -97,11 +97,7 @@ const getOptions = async () => {
 
   if (!generatorsExist) {
     return [
-      Select.separator('Generators'),
-      {
-        name: cloneDescription,
-        value: 'generators:clone'
-      },
+      Select.separator(' - Generators - '),
       {
         name: addDescription,
         value: 'generators:add'
@@ -111,15 +107,15 @@ const getOptions = async () => {
         value: 'generators:install'
       },
       {
-        name: uploadDescription,
-        value: 'schemas:upload'
+        name: cloneDescription,
+        value: 'generators:clone'
       },
-      Select.separator('Base Files'),
+      Select.separator(' - Base Files - '),
       {
         name: baseFilesPushDescription,
         value: 'base-files:push'
       },
-      Select.separator('Workspaces'),
+      Select.separator(' - Workspaces - '),
       {
         name: workspacesInfoDescription,
         value: 'workspaces:info'
@@ -128,7 +124,7 @@ const getOptions = async () => {
         name: workspacesSetDescription,
         value: 'workspaces:set'
       },
-      Select.separator('Schemas'),
+      Select.separator(' - Schemas - '),
       {
         name: unlinkDescription,
         value: 'schemas:unlink'
@@ -142,11 +138,7 @@ const getOptions = async () => {
   }
 
   return [
-    Select.separator('Generators'),
-    {
-      name: cloneDescription,
-      value: 'generators:clone'
-    },
+    Select.separator(' - Generators - '),
     {
       name: addDescription,
       value: 'generators:add'
@@ -156,6 +148,10 @@ const getOptions = async () => {
       value: 'generators:install'
     },
     {
+      name: cloneDescription,
+      value: 'generators:clone'
+    },
+    {
       name: removeDescription,
       value: 'generators:remove'
     },
@@ -163,7 +159,7 @@ const getOptions = async () => {
       name: deployDescription,
       value: 'generators:deploy'
     },
-    Select.separator('Workspaces'),
+    Select.separator(' - Workspaces - '),
     {
       name: workspacesInfoDescription,
       value: 'workspaces:info'
@@ -176,12 +172,12 @@ const getOptions = async () => {
       name: workspacesGenerateDescription,
       value: 'workspaces:generate'
     },
-    Select.separator('Base Image'),
+    Select.separator(' - Base Files - '),
     {
       name: baseFilesPushDescription,
       value: 'base-files:push'
     },
-    Select.separator('Schemas'),
+    Select.separator(' - Schemas - '),
     {
       name: unlinkDescription,
       value: 'schemas:unlink'
