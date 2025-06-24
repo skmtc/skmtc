@@ -1,7 +1,7 @@
 import { Command, EnumType, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import { Generator } from '../lib/generator.ts'
-import { DenoJson } from '../lib/deno-json.ts'
+import { RootDenoJson } from '../lib/root-deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
 import { checkProjectName } from '@skmtc/core'
 import { Manager } from '../lib/manager.ts'
@@ -76,10 +76,10 @@ const add = async (
 
     const generator = Generator.fromName({ scopeName, generatorName, version: version ?? '0.0.1' })
 
-    const denoJson = await DenoJson.open(manager)
+    const denoJson = await RootDenoJson.open(manager)
     const stackJson = await StackJson.open(manager)
 
-    generator.add({ denoJson, stackJson, generatorType: type })
+    generator.add({ denoJson, stackJson, generatorType: type, manager })
   } catch (error) {
     Sentry.captureException(error)
 

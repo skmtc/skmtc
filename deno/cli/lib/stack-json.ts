@@ -1,4 +1,4 @@
-import { ensureDir, exists } from '@std/fs'
+import { ensureDir, existsSync } from '@std/fs'
 import { join } from '@std/path'
 import { toRootPath } from './to-root-path.ts'
 import { type SkmtcStackConfig, skmtcStackConfig } from '@skmtc/core'
@@ -19,14 +19,14 @@ export class StackJson {
     return join(rootPath, '.settings', 'stack.json')
   }
 
-  static async exists(): Promise<boolean> {
+  static exists(): boolean {
     const path = StackJson.toPath()
 
-    return await exists(path, { isFile: true })
+    return existsSync(path)
   }
 
   static async open(manager?: Manager): Promise<StackJson> {
-    const hasStackJson = await StackJson.exists()
+    const hasStackJson = StackJson.exists()
 
     if (!hasStackJson) {
       throw new Error('Stack JSON not found')

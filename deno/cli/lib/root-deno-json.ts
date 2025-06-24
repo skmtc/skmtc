@@ -1,16 +1,16 @@
-import { exists } from '@std/fs'
+import { existsSync } from '@std/fs'
 import { toRootPath } from './to-root-path.ts'
 import { join } from '@std/path'
 import { writeFile } from './file.ts'
 import * as v from 'valibot'
-import { rootDenoJson, type RootDenoJson } from '@skmtc/core'
+import { rootDenoJson, type RootDenoJson as RootDenoJsonType } from '@skmtc/core'
 import { Generator } from './generator.ts'
 import type { Manager } from './manager.ts'
 
-export class DenoJson {
-  contents: RootDenoJson
+export class RootDenoJson {
+  contents: RootDenoJsonType
 
-  private constructor(contents: RootDenoJson) {
+  private constructor(contents: RootDenoJsonType) {
     this.contents = contents
   }
 
@@ -20,30 +20,30 @@ export class DenoJson {
     return join(rootPath, 'deno.json')
   }
 
-  static async exists(): Promise<boolean> {
-    const denoJsonPath = DenoJson.toPath()
+  static exists(): boolean {
+    const denoJsonPath = RootDenoJson.toPath()
 
-    return await exists(denoJsonPath, { isFile: true })
+    return existsSync(denoJsonPath)
   }
 
-  static async open(manager: Manager): Promise<DenoJson> {
-    const hasDenoJson = await DenoJson.exists()
+  static async open(manager: Manager): Promise<RootDenoJson> {
+    const hasDenoJson = RootDenoJson.exists()
 
     if (!hasDenoJson) {
-      return new DenoJson({})
+      return new RootDenoJson({})
     }
 
-    const contents = await Deno.readTextFile(DenoJson.toPath())
+    const contents = await Deno.readTextFile(RootDenoJson.toPath())
 
     const parsed = v.parse(rootDenoJson, JSON.parse(contents))
-    const denoJson = new DenoJson(parsed)
+    const denoJson = new RootDenoJson(parsed)
 
     manager.cleanupActions.push(async () => await denoJson.write())
 
     return denoJson
   }
 
-  isLocalModule(packageName: string) {
+  static isLocalModule(packageName: string) {
     const { scheme } = Generator.parseName(packageName)
 
     return !scheme
@@ -52,7 +52,7 @@ export class DenoJson {
   removeGenerator(generator: Generator) {
     const packageName = generator.toPackageName()
 
-    const isLocal = this.isLocalModule(packageName)
+    const isLocal = RootDenoJson.isLocalModule(packageName)
 
     if (isLocal) {
       Deno.remove(join(toRootPath(), '.apifoundry', generator.generatorName))
@@ -88,7 +88,7 @@ export class DenoJson {
   async write() {
     await writeFile({
       content: JSON.stringify(this.contents),
-      resolvedPath: DenoJson.toPath()
+      resolvedPath: RootDenoJson.toPath()
     })
   }
 }

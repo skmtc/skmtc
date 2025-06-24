@@ -14,21 +14,28 @@ export const toDeployCommand = () => {
 }
 
 export const toDeployPrompt = async () => {
-  await deploy()
+  await deploy({ logSuccess: 'Generators deployed' })
 }
 
-export const deploy = async () => {
+type DeployArgs = {
+  logSuccess?: string
+}
+
+export const deploy = async ({ logSuccess }: DeployArgs = {}) => {
   const kv = await Deno.openKv()
-  const manager = new Manager({ kv })
+  const manager = new Manager({ kv, logSuccess })
 
   const deployment = new Deployment(manager)
 
   const stackJson = await StackJson.open(manager)
   const clientJson = await ClientJson.open(manager)
+
   const assets = await toAssets({ skmtcRoot: toRootPath() })
 
   try {
     await deployment.deploy({ assets, stackJson, clientJson })
+
+    manager.success()
   } catch (error) {
     Sentry.captureException(error)
 

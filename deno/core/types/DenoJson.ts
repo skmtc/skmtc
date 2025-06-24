@@ -11,3 +11,17 @@ export type RootDenoJson = {
   exports?: Record<string, string>
   workspace?: string[]
 }
+
+export const packageDenoJson = v.looseObject({
+  name: v.string(),
+  version: v.string(),
+  imports: v.optional(v.record(v.string(), v.string())),
+  exports: v.union([v.record(v.string(), v.string()), v.string()])
+})
+
+export type PackageDenoJson = {
+  name: string
+  version: string
+  imports?: Record<string, string>
+  exports: Record<string, string> | string
+}

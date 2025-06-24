@@ -14,7 +14,7 @@ export const toWorkspacesGenerateCommand = () => {
   return new Command()
     .description(description)
     .arguments('<path:string>')
-    .option('-w, --watch <path:string>', 'Watch for changes to schema and generate artifacts')
+    .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
     .action(async ({ watch }, path) => {
       if (watch) {
         setupWatcher({ path })

@@ -1,14 +1,6 @@
-import { getDirectoryContents } from './file.ts'
-import { getDirectoryNames } from './file.ts'
-import { hasSchema } from './file.ts'
-import { toRootPath } from './to-root-path.ts'
-
+import { StackJson } from './stack-json.ts'
 export const hasGenerators = async () => {
-  const rootPath = toRootPath()
+  const stackJson = await StackJson.open()
 
-  const projectContents = await getDirectoryContents(rootPath)
-
-  const generatorNames = await getDirectoryNames(projectContents, hasSchema)
-
-  return Boolean(generatorNames?.length)
+  return stackJson.contents.generators.length > 0
 }

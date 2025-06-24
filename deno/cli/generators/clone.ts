@@ -2,7 +2,7 @@ import { Command, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import { GENERATORS } from '../lib/constants.ts'
 import { Generator } from '../lib/generator.ts'
-import { DenoJson } from '../lib/deno-json.ts'
+import { RootDenoJson } from '../lib/root-deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
 import { Jsr } from '../lib/jsr.ts'
 import invariant from 'tiny-invariant'
@@ -66,7 +66,7 @@ const clone = async (packageName: string, { logSuccess }: CloneOptions = {}) => 
       version: version ?? (await Jsr.getLatestMeta({ scopeName, generatorName })).latest
     })
 
-    const denoJson = await DenoJson.open(manager)
+    const denoJson = await RootDenoJson.open(manager)
     const stackJson = await StackJson.open(manager)
 
     await generator.clone({ denoJson, stackJson })

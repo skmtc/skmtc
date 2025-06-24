@@ -1,12 +1,14 @@
 import { Jsr } from './jsr.ts'
-import type { DenoJson } from './deno-json.ts'
 import type { StackJson } from './stack-json.ts'
+import { RootDenoJson } from './root-deno-json.ts'
 import { join } from '@std/path'
 import { ensureFile } from '@std/fs'
 import { toRootPath } from './to-root-path.ts'
 import { match } from 'ts-pattern'
 import { OperationGenerator } from './operation-generator.ts'
 import { ModelGenerator } from './model-generator.ts'
+import { PackageDenoJson } from './package-deno-json.ts'
+import type { Manager } from './manager.ts'
 
 type GeneratorArgs = {
   scopeName: string
@@ -21,19 +23,20 @@ type CreateArgs = {
 }
 
 type CloneArgs = {
-  denoJson: DenoJson
+  denoJson: RootDenoJson
   stackJson: StackJson
 }
 
 type InstallArgs = {
-  denoJson: DenoJson
+  denoJson: RootDenoJson
   stackJson: StackJson
 }
 
 type AddArgs = {
-  denoJson: DenoJson
+  denoJson: RootDenoJson
   stackJson: StackJson
   generatorType: 'operation' | 'model'
+  manager: Manager
 }
 
 export class Generator {
@@ -85,9 +88,9 @@ export class Generator {
     stackJson.addGenerator(this)
   }
 
-  async add({ denoJson, stackJson, generatorType }: AddArgs) {
+  async add({ denoJson, stackJson, generatorType, manager }: AddArgs) {
     const generatorPath = join(toRootPath(), '.apifoundry', this.generatorName)
-    await this.createFiles(generatorPath)
+    await this.createFiles(generatorPath, manager)
 
     await match(generatorType)
       .with('operation', async () => {
@@ -106,18 +109,24 @@ export class Generator {
     stackJson.addGenerator(this)
   }
 
-  async createFiles(generatorPath: string) {
+  async createFiles(generatorPath: string, manager: Manager) {
     await Deno.mkdir(generatorPath, { recursive: true })
 
     await ensureFile(join(generatorPath, 'mod.ts'))
 
-    const denoJson = {
-      name: this.toPackageName(),
-      version: this.version,
-      exports: './mod.ts'
-    }
+    const packageDenoJson = PackageDenoJson.create(
+      {
+        path: join(generatorPath, 'deno.json'),
+        contents: {
+          name: this.toPackageName(),
+          version: this.version,
+          exports: './mod.ts'
+        }
+      },
+      manager
+    )
 
-    await Deno.writeTextFile(join(generatorPath, 'deno.json'), JSON.stringify(denoJson, null, 2))
+    await packageDenoJson.write()
   }
 
   async clone({ denoJson, stackJson }: CloneArgs) {
@@ -145,8 +154,8 @@ export class Generator {
     return generator
   }
 
-  remove(denoJson: DenoJson, stackJson: StackJson) {
-    const isLocal = denoJson.isLocalModule(this.toPackageName())
+  remove(denoJson: RootDenoJson, stackJson: StackJson) {
+    const isLocal = RootDenoJson.isLocalModule(this.toPackageName())
 
     if (isLocal) {
       Deno.remove(join(toRootPath(), '.apifoundry', this.generatorName))

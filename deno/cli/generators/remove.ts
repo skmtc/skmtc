@@ -1,7 +1,7 @@
 import { Command, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import { Generator } from '../lib/generator.ts'
-import { DenoJson } from '../lib/deno-json.ts'
+import { RootDenoJson } from '../lib/root-deno-json.ts'
 import { StackJson } from '../lib/stack-json.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/deno'
@@ -63,7 +63,7 @@ const remove = async (packageName: string, { logSuccess }: RemoveOptions = {}) =
 
     const generator = Generator.fromName({ scopeName, generatorName, version: version ?? '' })
 
-    const denoJson = await DenoJson.open(manager)
+    const denoJson = await RootDenoJson.open(manager)
     const stackJson = await StackJson.open(manager)
 
     generator.remove(denoJson, stackJson)

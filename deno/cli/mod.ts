@@ -57,7 +57,6 @@ import {
   toWorkspacesGeneratePrompt,
   description as workspacesGenerateDescription
 } from './workspaces/generate.ts'
-
 import * as Sentry from '@sentry/deno'
 
 Sentry.init({
@@ -85,7 +84,7 @@ type PromptResponse =
   | 'exit'
 
 const getOptions = async () => {
-  const homeExists = await hasHome()
+  const homeExists = hasHome()
   const generatorsExist = await hasGenerators()
 
   if (!homeExists) {
