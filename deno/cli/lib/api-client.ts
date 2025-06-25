@@ -176,6 +176,18 @@ export class ApiClient {
     return data
   }
 
+  async getSchemas() {
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(`schemas`, {
+      method: 'GET'
+    })
+
+    if (error) {
+      throw new Error('Failed to get schemas')
+    }
+
+    return data
+  }
+
   async getWorkspaceById(workspaceId: string) {
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `workspaces/find?id=${workspaceId}`,

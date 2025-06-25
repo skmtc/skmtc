@@ -19,10 +19,10 @@ import {
   description as workspacesInfoDescription
 } from './workspaces/info.ts'
 import {
-  toWorkspacesSetCommand,
-  toWorkspacesSetPrompt,
-  description as workspacesSetDescription
-} from './workspaces/set.ts'
+  toWorkspacesLinkCommand,
+  toWorkspacesLinkPrompt,
+  description as workspacesLinkDescription
+} from './workspaces/link.ts'
 import { toGenerateCommand, toGeneratePrompt } from './generators/generate.ts'
 import {
   toBaseFilesPushCommand,
@@ -52,11 +52,17 @@ import {
   toUnlinkPrompt,
   description as unlinkDescription
 } from './schemas/unlink.ts'
+import { toInfoCommand, toInfoPrompt, description as infoDescription } from './schemas/info.ts'
 import {
   toWorkspacesGenerateCommand,
   toWorkspacesGeneratePrompt,
   description as workspacesGenerateDescription
 } from './workspaces/generate.ts'
+import {
+  toSchemasLinkCommand,
+  toSchemasLinkPrompt,
+  description as schemasLinkDescription
+} from './schemas/link.ts'
 import * as Sentry from '@sentry/deno'
 
 Sentry.init({
@@ -73,11 +79,13 @@ type PromptResponse =
   | 'generators:deploy'
   | 'login'
   | 'logout'
+  | 'schemas:info'
+  | 'schemas:link'
   | 'schemas:upload'
   | 'schemas:unlink'
   | 'project-create'
   | 'workspaces:info'
-  | 'workspaces:set'
+  | 'workspaces:link'
   | 'workspaces:generate'
   | 'base-files:push'
   | 'exit'
@@ -121,10 +129,18 @@ const getOptions = async () => {
         value: 'workspaces:info'
       },
       {
-        name: workspacesSetDescription,
-        value: 'workspaces:set'
+        name: workspacesLinkDescription,
+        value: 'workspaces:link'
       },
       Select.separator(' - Schemas - '),
+      {
+        name: infoDescription,
+        value: 'schemas:info'
+      },
+      {
+        name: schemasLinkDescription,
+        value: 'schemas:link'
+      },
       {
         name: unlinkDescription,
         value: 'schemas:unlink'
@@ -165,8 +181,8 @@ const getOptions = async () => {
       value: 'workspaces:info'
     },
     {
-      name: workspacesSetDescription,
-      value: 'workspaces:set'
+      name: workspacesLinkDescription,
+      value: 'workspaces:link'
     },
     {
       name: workspacesGenerateDescription,
@@ -178,6 +194,14 @@ const getOptions = async () => {
       value: 'base-files:push'
     },
     Select.separator(' - Schemas - '),
+    {
+      name: infoDescription,
+      value: 'schemas:info'
+    },
+    {
+      name: schemasLinkDescription,
+      value: 'schemas:link'
+    },
     {
       name: unlinkDescription,
       value: 'schemas:unlink'
@@ -205,11 +229,13 @@ const promptwise = async () => {
     .with('generators:generate', async () => await toGeneratePrompt())
     .with('generators:install', async () => await toInstallPrompt())
     .with('generators:remove', async () => await toRemovePrompt())
+    .with('schemas:info', async () => await toInfoPrompt())
+    .with('schemas:link', async () => await toSchemasLinkPrompt())
     .with('schemas:unlink', async () => await toUnlinkPrompt())
     .with('schemas:upload', async () => await toUploadPrompt())
     .with('workspaces:generate', async () => await toWorkspacesGeneratePrompt())
     .with('workspaces:info', async () => await toWorkspacesInfoPrompt())
-    .with('workspaces:set', async () => await toWorkspacesSetPrompt())
+    .with('workspaces:link', async () => await toWorkspacesLinkPrompt())
     .with('login', async () => await toLoginPrompt())
     .with('logout', async () => await toLogoutPrompt())
     .with('exit', () => Deno.exit(0))
@@ -235,11 +261,13 @@ await new Command()
   .command('generators:generate', toGenerateCommand())
   .command('generators:install', toInstallCommand())
   .command('generators:remove', toRemoveCommand())
+  .command('schemas:info', toInfoCommand())
+  .command('schemas:link', toSchemasLinkCommand())
   .command('schemas:unlink', toUnlinkCommand())
   .command('schemas:upload', toUploadCommand())
   .command('workspaces:generate', toWorkspacesGenerateCommand())
   .command('workspaces:info', toWorkspacesInfoCommand())
-  .command('workspaces:set', toWorkspacesSetCommand())
+  .command('workspaces:link', toWorkspacesLinkCommand())
   .command('login', toLoginCommand())
   .command('logout', toLogoutCommand())
   .parse(Deno.args)

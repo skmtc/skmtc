@@ -17,6 +17,10 @@ type UnlinkArgs = {
   kvState: KvState
 }
 
+type InfoArgs = {
+  kvState: KvState
+}
+
 export class OpenApiSchema {
   path: string
   contents: string
@@ -79,6 +83,12 @@ export class OpenApiSchema {
 
   async unlink({ kvState }: UnlinkArgs) {
     await kvState.clearSchemaId({ path: this.path })
+  }
+
+  async info({ kvState }: InfoArgs) {
+    const info = await kvState.getSchemaId({ path: this.path })
+
+    return info
   }
 
   async write() {
