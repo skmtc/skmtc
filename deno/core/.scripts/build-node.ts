@@ -40,7 +40,6 @@ await build({
     { name: './refFns', path: './helpers/refFns.ts' },
     { name: './RefName', path: './types/RefName.ts' },
     { name: './Results', path: './types/Results.ts' },
-    { name: './SchemaOptions', path: './types/SchemaOptions.ts' },
     { name: './Settings', path: './types/Settings.ts' },
     { name: './StackTrail', path: './context/StackTrail.ts' },
     { name: './Stringable', path: './dsl/Stringable.ts' },

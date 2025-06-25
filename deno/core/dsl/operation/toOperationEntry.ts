@@ -1,15 +1,19 @@
 import * as v from 'valibot'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
-import type { IsSupportedArgs, TransformOperationArgs } from './types.ts'
+import type {
+  IsSupportedArgs,
+  ToOperationPreviewModuleArgs,
+  TransformOperationArgs
+} from './types.ts'
 import type { IsSupportedOperationConfigArgs } from './types.ts'
-import type { SchemaOption } from '../../types/SchemaOptions.ts'
+import type { PreviewModule } from '../../types/Preview.ts'
 export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
   transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported?: ({ context, operation }: IsSupportedOperationConfigArgs<EnrichmentType>) => boolean
-  toSchemaOptions?: () => SchemaOption[]
+  toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -20,14 +24,13 @@ export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
   transform,
   toEnrichmentSchema,
   isSupported,
-  toSchemaOptions,
+  toPreviewModule,
   toEnrichmentRequest
 }: ToOperationConfigArgs<EnrichmentType, Acc>) => {
   return {
     id,
     type: 'operation',
     transform,
-    toSchemaOptions,
     toEnrichmentSchema,
     isSupported: ({ context, operation }: IsSupportedArgs) => {
       if (!isSupported) {
@@ -48,6 +51,7 @@ export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
         enrichments: v.parse(enrichmentSchema, enrichments) as EnrichmentType
       })
     },
+    toPreviewModule,
     toEnrichmentRequest
   }
 }

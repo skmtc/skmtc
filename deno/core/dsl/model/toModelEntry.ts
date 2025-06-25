@@ -1,14 +1,14 @@
 import type { RefName } from '../../types/RefName.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
-import type { TransformModelArgs } from './types.ts'
+import type { TransformModelArgs, ToModelPreviewModuleArgs } from './types.ts'
 import type * as v from 'valibot'
-import type { SchemaOption } from '../../types/SchemaOptions.ts'
+import type { PreviewModule } from '../../types/Preview.ts'
 
 type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
   transform: ({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
-  toSchemaOptions?: () => SchemaOption[]
+  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -17,16 +17,16 @@ type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
 export const toModelEntry = <EnrichmentType = undefined, Acc = void>({
   id,
   transform,
+  toPreviewModule,
   toEnrichmentSchema,
-  toSchemaOptions,
   toEnrichmentRequest
 }: ToModelEntryArgs<EnrichmentType, Acc>) => {
   return {
     id,
     type: 'model',
     transform,
+    toPreviewModule,
     toEnrichmentSchema,
-    toSchemaOptions,
     toEnrichmentRequest
   }
 }

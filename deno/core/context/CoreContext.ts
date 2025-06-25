@@ -16,7 +16,6 @@ import { join } from 'jsr:@std/path@1.0.6'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { Preview } from '../types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import type { SchemaOption } from '../types/SchemaOptions.ts'
 import type { JsonFile } from '../dsl/JsonFile.ts'
 
 export type ParsePhase = {
@@ -51,7 +50,6 @@ type CoreContextArgs = {
 type RenderArgs = {
   files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
-  schemaOptions: SchemaOption[]
   prettier?: PrettierConfigType
   basePath: string | undefined
 }
@@ -184,7 +182,7 @@ export class CoreContext {
         return this.#phase.context.parse()
       })
 
-      const { files, previews, schemaOptions } = this.trace('generate', () => {
+      const { files, previews } = this.trace('generate', () => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           oasDocument,
@@ -200,7 +198,6 @@ export class CoreContext {
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
-          schemaOptions,
           prettier,
           basePath: settings?.basePath
         })
@@ -223,7 +220,6 @@ export class CoreContext {
         artifacts: {},
         files: {},
         previews: {},
-        schemaOptions: [],
         results: this.#results.toTree()
       }
     } finally {
@@ -271,17 +267,10 @@ export class CoreContext {
     this.#results.capture(this.#stackTrail.toString(), result)
   }
 
-  #setupRenderPhase({
-    files,
-    previews,
-    schemaOptions,
-    prettier,
-    basePath
-  }: RenderArgs): RenderPhase {
+  #setupRenderPhase({ files, previews, prettier, basePath }: RenderArgs): RenderPhase {
     const renderContext = new RenderContext({
       files,
       previews,
-      schemaOptions,
       prettierConfig: prettier,
       basePath,
       logger: this.logger,

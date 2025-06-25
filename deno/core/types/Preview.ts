@@ -1,42 +1,54 @@
 import { method, type Method } from './Method.ts'
 import * as v from 'valibot'
 
-export type OperationPreview = {
+export type OperationSource = {
   type: 'operation'
   generatorId: string
   operationPath: string
   operationMethod: Method
 }
 
-export type ModelPreview = {
+export type ModelSource = {
   type: 'model'
   generatorId: string
   refName: string
 }
 
-export type Preview = {
+export type PreviewGroup = 'forms' | 'tables' | 'inputs'
+
+export type PreviewModule = {
   name: string
   exportPath: string
-  group: string
-  source: OperationPreview | ModelPreview
+  group: PreviewGroup
 }
 
-export const operationPreview = v.object({
+export type Preview = {
+  module: PreviewModule
+  source: OperationSource | ModelSource
+}
+
+export const operationSource = v.object({
   type: v.literal('operation'),
   generatorId: v.string(),
   operationPath: v.string(),
   operationMethod: method
 })
 
-export const modelPreview = v.object({
+export const modelSource = v.object({
   type: v.literal('model'),
   generatorId: v.string(),
   refName: v.string()
 })
 
-export const preview = v.object({
+export const previewGroup = v.picklist(['forms', 'tables', 'inputs'])
+
+export const previewModule = v.object({
   name: v.string(),
   exportPath: v.string(),
-  group: v.string(),
-  source: v.variant('type', [operationPreview, modelPreview])
+  group: previewGroup
+})
+
+export const preview = v.object({
+  module: previewModule,
+  source: v.variant('type', [operationSource, modelSource])
 })

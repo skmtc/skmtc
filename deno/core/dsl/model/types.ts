@@ -4,7 +4,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
-import type { SchemaOption } from '../../types/SchemaOptions.ts'
+import type { PreviewModule } from '../../types/Preview.ts'
 
 type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -29,6 +29,11 @@ export type TransformModelArgs<Acc> = {
   acc: Acc | undefined
 }
 
+export type ToModelPreviewModuleArgs = {
+  context: GenerateContext
+  refName: RefName
+}
+
 export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({
     context,
@@ -39,7 +44,6 @@ export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & 
   }: ModelInsertableConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
-
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
   toEnrichments: ({ refName, context }: ToEnrichmentsArgs) => EnrichmentType
@@ -50,8 +54,8 @@ export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
   transform: <Acc = void>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
+  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
-  toSchemaOptions?: () => SchemaOption[]
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined

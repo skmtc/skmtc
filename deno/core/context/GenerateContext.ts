@@ -28,9 +28,8 @@ import { File } from '../dsl/File.ts'
 import { JsonFile } from '../dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
-import type { Preview } from '../types/Preview.ts'
+import type { OperationSource, ModelSource, Preview, PreviewModule } from '../types/Preview.ts'
 import { match } from 'ts-pattern'
-import type { SchemaOption } from '../types/SchemaOptions.ts'
 import type { GeneratorConfig } from '../types/GeneratorType.ts'
 import { toGeneratorSettings } from '../run/toGeneratorSettings.ts'
 type ConstructorArgs = {
@@ -61,19 +60,12 @@ export type BaseRegisterArgs = {
   imports?: Record<string, ImportNameArg[]>
   reExports?: Record<string, Identifier[]>
   definitions?: (Definition | undefined)[]
-  preview?: {
-    [group: string]: Omit<Preview, 'group' | 'exportPath' | 'source'>
-  }
 }
 
 export type RegisterArgs = {
   imports?: Record<string, ImportNameArg[]>
   reExports?: Record<string, Identifier[]>
   definitions?: (Definition | undefined)[]
-  preview?: {
-    [group: string]: Omit<Preview, 'group' | 'exportPath'>
-  }
-  schemaOptions?: Omit<SchemaOption, 'exportPath'>[]
   destinationPath: string
 }
 
@@ -147,17 +139,20 @@ type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
 type GenerateResult = {
   files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
-  schemaOptions: SchemaOption[]
 }
 
 type ToSettingsArgs = {
   defaultSelected: boolean
 }
 
+type AddPreviewArgs = {
+  previewModule: PreviewModule
+  operation: OasOperation
+}
+
 export class GenerateContext {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
-  #schemaOptions: SchemaOption[]
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   logger: log.Logger
@@ -177,7 +172,6 @@ export class GenerateContext {
     this.logger = logger
     this.#files = new Map()
     this.#previews = {}
-    this.#schemaOptions = []
     this.oasDocument = oasDocument
     this.settings = settings
     this.stackTrail = stackTrail
@@ -211,8 +205,7 @@ export class GenerateContext {
 
     return {
       files: this.#files,
-      previews: this.#previews,
-      schemaOptions: this.#schemaOptions
+      previews: this.#previews
     }
   }
 
@@ -302,19 +295,6 @@ export class GenerateContext {
     oasDocument,
     generatorConfig
   }: RunOperationGeneratorArgs<EnrichmentType>) {
-    const schemaOptions = generatorConfig.toSchemaOptions?.() ?? []
-
-    schemaOptions.forEach(schemaOption => {
-      const existingSchemaOption = this.#schemaOptions.find(
-        ({ name, exportPath }) =>
-          name === schemaOption.name && exportPath === schemaOption.exportPath
-      )
-
-      if (!existingSchemaOption) {
-        this.#schemaOptions.push(schemaOption)
-      }
-    })
-
     oasDocument.operations.reduce((acc, operation) => {
       return this.trace([operation.path, operation.method], () => {
         if (
@@ -337,6 +317,11 @@ export class GenerateContext {
         }
 
         try {
+          this.#addPreview(
+            toOperationSource({ operation, generatorId: generatorConfig.id }),
+            generatorConfig.toPreviewModule?.({ context: this, operation })
+          )
+
           const result = generatorConfig.transform({ context: this, operation, acc })
 
           this.captureCurrentResult('success')
@@ -355,19 +340,6 @@ export class GenerateContext {
     oasDocument,
     generatorConfig
   }: RunModelGeneratorArgs<EnrichmentType>) {
-    const schemaOptions = generatorConfig.toSchemaOptions?.() ?? []
-
-    schemaOptions.forEach(schemaOption => {
-      const existingSchemaOption = this.#schemaOptions.find(
-        ({ name, exportPath }) =>
-          name === schemaOption.name && exportPath === schemaOption.exportPath
-      )
-
-      if (!existingSchemaOption) {
-        this.#schemaOptions.push(schemaOption)
-      }
-    })
-
     const refNames = oasDocument.components?.toSchemasRefNames() ?? []
 
     return refNames.reduce((acc, refName) => {
@@ -394,6 +366,25 @@ export class GenerateContext {
         }
       })
     }, undefined)
+  }
+
+  #addPreview(source: OperationSource | ModelSource, module: PreviewModule | undefined) {
+    if (!module) {
+      return
+    }
+
+    if (!this.#previews[module.group]) {
+      this.#previews[module.group] = {}
+    }
+
+    if (this.#previews[module.group][module.name]) {
+      throw new Error(`Cannot override preview module "${module.name}" in group "${module.group}"`)
+    }
+
+    this.#previews[module.group][module.name] = {
+      module,
+      source
+    }
   }
 
   trace<T>(token: string | string[], fn: () => T): T {
@@ -527,14 +518,7 @@ export class GenerateContext {
    *
    * @mutates this.files
    */
-  register({
-    imports = {},
-    definitions,
-    destinationPath,
-    reExports,
-    preview,
-    schemaOptions
-  }: RegisterArgs) {
+  register({ imports = {}, definitions, destinationPath, reExports }: RegisterArgs) {
     // TODO deduplicate import names and definition names against each other
     const currentFile = this.#getFile(destinationPath)
 
@@ -581,29 +565,6 @@ export class GenerateContext {
 
       if (!currentFile.definitions.has(name)) {
         currentFile.definitions.set(name, definition)
-      }
-    })
-
-    schemaOptions?.forEach(schemaOption => {
-      const existingSchemaOption = this.#schemaOptions.find(
-        ({ name, exportPath }) => name === schemaOption.name && exportPath === destinationPath
-      )
-
-      if (!existingSchemaOption) {
-        this.#schemaOptions.push({ ...schemaOption, exportPath: destinationPath })
-      }
-    })
-
-    Object.entries(preview ?? {}).forEach(([group, { name, source }]) => {
-      if (!this.#previews[group]) {
-        this.#previews[group] = {}
-      }
-
-      this.#previews[group][name] = {
-        name,
-        exportPath: destinationPath,
-        group,
-        source
       }
     })
   }
@@ -803,3 +764,29 @@ export class GenerateContext {
     return file.definitions.get(name)
   }
 }
+
+type ToOperationSourceArgs = {
+  operation: OasOperation
+  generatorId: string
+}
+
+export const toOperationSource = ({
+  operation,
+  generatorId
+}: ToOperationSourceArgs): OperationSource => ({
+  type: 'operation',
+  generatorId,
+  operationPath: operation.path,
+  operationMethod: operation.method
+})
+
+type ToModelSourceArgs = {
+  refName: RefName
+  generatorId: string
+}
+
+export const toModelSource = ({ refName, generatorId }: ToModelSourceArgs): ModelSource => ({
+  type: 'model',
+  generatorId,
+  refName
+})

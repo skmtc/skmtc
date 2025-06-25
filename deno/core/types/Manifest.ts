@@ -1,6 +1,5 @@
 import { resultsItem, type ResultsItem } from './Results.ts'
 import { preview, type Preview } from './Preview.ts'
-import { serializedSchemaOption, type SerializedSchemaOption } from './SchemaOptions.ts'
 import * as v from 'valibot'
 
 export type ManifestEntry = {
@@ -35,7 +34,6 @@ export type ManifestContent = {
   results: ResultsItem
   startAt: number
   endAt: number
-  schemaOptions: SerializedSchemaOption[]
 }
 
 export const manifestContent = v.object({
@@ -47,6 +45,5 @@ export const manifestContent = v.object({
   previews: v.record(v.string(), v.record(v.string(), preview)),
   results: resultsItem,
   startAt: v.number(),
-  endAt: v.number(),
-  schemaOptions: v.array(serializedSchemaOption)
+  endAt: v.number()
 })

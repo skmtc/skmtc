@@ -6,7 +6,7 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import type { ModelInsertable } from './types.ts'
 import { ContentBase } from '../ContentBase.ts'
 import type { Inserted } from '../Inserted.ts'
-import { toGeneratorId } from '../../types/GeneratorKeys.ts'
+
 export type ModelBaseArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
@@ -38,26 +38,8 @@ export class ModelBase<EnrichmentType = undefined> extends ContentBase {
   }
 
   override register(args: BaseRegisterArgs): void {
-    const preview = Object.keys(args.preview ?? {}).length
-      ? Object.fromEntries(
-          Object.entries(args.preview ?? {}).map(([group, preview]) => {
-            const previewWithSource = {
-              ...preview,
-              source: {
-                type: 'model' as const,
-                generatorId: toGeneratorId(this.generatorKey),
-                refName: this.refName
-              }
-            }
-
-            return [group, previewWithSource]
-          })
-        )
-      : undefined
-
     this.context.register({
       ...args,
-      preview,
       destinationPath: this.settings.exportPath
     })
   }

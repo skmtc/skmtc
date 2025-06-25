@@ -4,7 +4,6 @@ import { CoreContext } from '../context/CoreContext.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import type { SerializedSchema } from '../types/SchemaOptions.ts'
 type TransformArgs = {
   traceId: string
   spanId: string
@@ -30,7 +29,7 @@ export const toArtifacts = async ({
 }: TransformArgs) => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  const { artifacts, files, previews, schemaOptions, results } = await context.toArtifacts({
+  const { artifacts, files, previews, results } = await context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     prettier,
@@ -41,13 +40,6 @@ export const toArtifacts = async ({
   const manifest: ManifestContent = {
     files,
     previews,
-    schemaOptions: schemaOptions.map(schemaOption => ({
-      ...schemaOption,
-      matchBy: {
-        schema: schemaOption.matchBy.schema.toJsonSchema({ resolve: true }) as SerializedSchema,
-        name: schemaOption.matchBy.name
-      }
-    })),
     traceId,
     spanId,
     results,

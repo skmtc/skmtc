@@ -3,7 +3,7 @@ import type { OasOperation } from '../../oas/operation/Operation.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
 import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
-import { toGeneratorId, type GeneratorKey } from '../../types/GeneratorKeys.ts'
+import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
 import { ContentBase } from '../ContentBase.ts'
 import type { Definition } from '../Definition.ts'
 import type { Identifier } from '../Identifier.ts'
@@ -75,27 +75,8 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
   }
 
   override register(args: BaseRegisterArgs) {
-    const preview = Object.keys(args.preview ?? {}).length
-      ? Object.fromEntries(
-          Object.entries(args.preview ?? {}).map(([group, preview]) => {
-            const previewWithSource = {
-              ...preview,
-              source: {
-                type: 'operation' as const,
-                generatorId: toGeneratorId(this.generatorKey),
-                operationPath: this.operation.path,
-                operationMethod: this.operation.method
-              }
-            }
-
-            return [group, previewWithSource]
-          })
-        )
-      : undefined
-
     this.context.register({
       ...args,
-      preview,
       destinationPath: this.settings.exportPath
     })
   }
