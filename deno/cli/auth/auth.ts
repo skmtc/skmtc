@@ -1,6 +1,7 @@
 import { Command } from '@cliffy/command'
 import { createSupabaseClient } from './supabase-client.ts'
 import { createAuthHandler } from './auth-handler.ts'
+import type { Session } from '@supabase/supabase-js'
 
 export const toLoginPrompt = async () => {
   await login()
@@ -20,7 +21,7 @@ export const toLogoutCommand = () => {
   return new Command().description('Log out of Codesquared').action(async () => await logout())
 }
 
-const login = async () => {
+export const login = async (): Promise<Session> => {
   const kv = await Deno.openKv()
   const supabase = createSupabaseClient({ kv })
 
@@ -29,7 +30,7 @@ const login = async () => {
   if (sessionRes.data.session) {
     console.log('You are already logged in')
 
-    return
+    return sessionRes.data.session
   }
 
   const authHandler = createAuthHandler({ supabase })
@@ -60,7 +61,7 @@ const login = async () => {
   })
 }
 
-const logout = async () => {
+export const logout = async () => {
   const kv = await Deno.openKv()
 
   const supabase = createSupabaseClient({ kv })

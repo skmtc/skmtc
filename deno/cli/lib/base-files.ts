@@ -1,4 +1,3 @@
-import type { FileSystemTree } from './types.ts'
 import { join } from '@std/path'
 import type { ApiClient } from './api-client.ts'
 import type { KvState } from './kv-state.ts'
@@ -12,6 +11,7 @@ type PushArgs = {
 
 type ToFileTreeArgs = {
   path: string
+  output?: Record<string, string>
   ignoreFile: IgnoreFile
 }
 
@@ -22,9 +22,7 @@ export class BaseFiles {
     this.path = path
   }
 
-  static toFileTree({ path, ignoreFile }: ToFileTreeArgs): FileSystemTree {
-    const tree: FileSystemTree = {}
-
+  static toBaseFiles({ path, ignoreFile, output = {} }: ToFileTreeArgs): Record<string, string> {
     try {
       const entries = Deno.readDirSync(path)
 
@@ -36,17 +34,9 @@ export class BaseFiles {
         }
 
         if (entry.isDirectory) {
-          tree[entry.name] = {
-            directory: BaseFiles.toFileTree({ path: fullPath, ignoreFile })
-          }
+          BaseFiles.toBaseFiles({ path: fullPath, ignoreFile, output })
         } else if (entry.isFile) {
-          const contents = Deno.readTextFileSync(fullPath)
-
-          tree[entry.name] = {
-            file: {
-              contents
-            }
-          }
+          output[fullPath] = Deno.readTextFileSync(fullPath)
         }
       }
     } catch (error) {
@@ -54,7 +44,7 @@ export class BaseFiles {
       throw error
     }
 
-    return tree
+    return output
   }
 
   async push({ kvState, apiClient }: PushArgs) {
@@ -66,8 +56,8 @@ export class BaseFiles {
 
     const ignoreFile = await IgnoreFile.fromFile(this.path)
 
-    const fileTree = BaseFiles.toFileTree({ path: this.path, ignoreFile })
+    const baseFiles = BaseFiles.toBaseFiles({ path: this.path, ignoreFile })
 
-    await apiClient.patchWorkspaceById({ workspaceId, baseImage: fileTree })
+    await apiClient.patchWorkspaceById({ workspaceId, baseFiles })
   }
 }

@@ -1,6 +1,7 @@
 import invariant from 'tiny-invariant'
 import { createSupabaseClient } from '../auth/supabase-client.ts'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import { login } from '../auth/auth.ts'
 
 export class Auth {
   kv: Deno.Kv
@@ -12,28 +13,21 @@ export class Auth {
   }
 
   async toSession() {
-    const { data: auth } = await this.supabase.auth.getSession()
+    const { data } = await this.supabase.auth.getSession()
 
-    return auth.session
+    return data.session
   }
-
-  async enforceAuth() {
+  async enforceAuth(): Promise<Session> {
     const session = await this.toSession()
 
-    if (!session) {
-      console.log('You are not logged in')
-
-      this.kv.close()
-
-      Deno.exit(1)
-    }
+    return session ? session : await login()
   }
 
   async toUserName(): Promise<string> {
-    const { data: auth } = await this.supabase.auth.getSession()
+    const { data } = await this.supabase.auth.getSession()
 
-    invariant(auth?.session, 'User is not logged in')
+    invariant(data?.session, 'User is not logged in')
 
-    return auth.session.user.user_metadata.user_name
+    return data.session.user.user_metadata.user_name
   }
 }

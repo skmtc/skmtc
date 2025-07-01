@@ -48,6 +48,8 @@ export const push = async ({ path }: PushArgs) => {
 
     await baseFiles.push({ kvState, apiClient })
   } catch (error) {
+    console.error(error)
+
     Sentry.captureException(error)
 
     await Sentry.flush()

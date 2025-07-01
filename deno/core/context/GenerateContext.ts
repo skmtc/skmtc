@@ -355,6 +355,11 @@ export class GenerateContext {
         }
 
         try {
+          this.#addPreview(
+            toModelSource({ refName, generatorId: generatorConfig.id }),
+            generatorConfig.toPreviewModule?.({ context: this, refName })
+          )
+
           const result = generatorConfig.transform({ context: this, refName, acc })
 
           this.captureCurrentResult('success')

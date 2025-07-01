@@ -65,7 +65,7 @@ type UpdateSchemaArgs = {
 
 type PatchWorkspaceByIdArgs = {
   workspaceId: string
-  baseImage: Record<string, unknown>
+  baseFiles: Record<string, unknown>
 }
 
 export class ApiClient {
@@ -203,17 +203,21 @@ export class ApiClient {
     return data
   }
 
-  async patchWorkspaceById({ workspaceId, baseImage }: PatchWorkspaceByIdArgs) {
+  async patchWorkspaceById({ workspaceId, baseFiles }: PatchWorkspaceByIdArgs) {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `workspaces/${workspaceId}`,
       {
         method: 'PATCH',
-        body: { baseImage }
+        body: { baseFiles }
       }
     )
 
     if (error) {
-      throw new Error('Failed to patch workspace by id')
+      throw new Error('Failed to patch workspace by id', {
+        cause: error
+      })
     }
 
     return data
