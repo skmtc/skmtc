@@ -3,6 +3,7 @@ import { Manager } from '../lib/manager.ts'
 import { ApiClient } from '../lib/api-client.ts'
 import * as Sentry from '@sentry/deno'
 import { KvState } from '../lib/kv-state.ts'
+import { Workspace } from '../lib/workspace.ts'
 
 export const description = 'Get workspace info'
 
@@ -29,17 +30,16 @@ export const info = async ({ logSuccess }: InfoOptions = {}) => {
   try {
     const apiClient = new ApiClient(manager)
 
-    const workspaceId = await kvState.getWorkspaceId()
+    const workspace = new Workspace()
 
-    if (!workspaceId || typeof workspaceId !== 'string') {
-      console.log('No workspace ID found')
-      return
-    }
+    const { name, id } = await workspace.getWorkspace({ kvState, apiClient })
 
-    const workspace = await apiClient.getWorkspaceById(workspaceId)
+    console.log(`${name} (${id})`)
 
-    console.log(`${workspace.name} (${workspace.id})`)
+    await manager.success()
   } catch (error) {
+    console.error(error)
+
     Sentry.captureException(error)
 
     await Sentry.flush()

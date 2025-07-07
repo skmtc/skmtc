@@ -27,7 +27,7 @@ import { toGenerateCommand, toGeneratePrompt } from './generators/generate.ts'
 import {
   toBaseFilesPushCommand,
   toBaseFilesPushPrompt,
-  description as baseFilesPushDescription
+  toDescription as toBaseFilesPushDescription
 } from './base-files/push.ts'
 import { hasHome } from './lib/has-home.ts'
 import { hasGenerators } from './lib/has-generators.ts'
@@ -120,7 +120,7 @@ const getOptions = async () => {
       },
       Select.separator(' - Base Files - '),
       {
-        name: baseFilesPushDescription,
+        name: await toBaseFilesPushDescription(),
         value: 'base-files:push'
       },
       Select.separator(' - Workspaces - '),
@@ -190,7 +190,7 @@ const getOptions = async () => {
     },
     Select.separator(' - Base Files - '),
     {
-      name: baseFilesPushDescription,
+      name: await toBaseFilesPushDescription(),
       value: 'base-files:push'
     },
     Select.separator(' - Schemas - '),
@@ -254,7 +254,7 @@ await new Command()
     await promptwise()
   })
   .command('init', toInitCommand())
-  .command('base-files:push', toBaseFilesPushCommand())
+  .command('base-files:push', await toBaseFilesPushCommand())
   .command('generators:add', toAddCommand())
   .command('generators:clone', toCloneCommand())
   .command('generators:deploy', toDeployCommand())

@@ -10,7 +10,25 @@ type GenerateArtifactsArgs = {
   apiClient: ApiClient
 }
 
+type GetWorkspaceArgs = {
+  kvState: KvState
+  apiClient: ApiClient
+}
+
 export class Workspace {
+  async getWorkspace({ kvState, apiClient }: GetWorkspaceArgs) {
+    const workspaceId = await kvState.getWorkspaceId()
+
+    if (!workspaceId || typeof workspaceId !== 'string') {
+      console.log('No workspace ID found')
+      return
+    }
+
+    const workspace = await apiClient.getWorkspaceById(workspaceId)
+
+    return workspace
+  }
+
   async generateArtifacts({ kvState, apiClient }: GenerateArtifactsArgs) {
     const workspaceId = await kvState.getWorkspaceId()
 

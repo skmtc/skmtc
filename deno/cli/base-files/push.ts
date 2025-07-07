@@ -5,10 +5,42 @@ import { KvState } from '../lib/kv-state.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/deno'
 import { BaseFiles } from '../lib/base-files.ts'
+import { Workspace } from '../lib/workspace.ts'
 
-export const description = 'Push base files to deployed workspace'
+export const toDescription = async (): Promise<string> => {
+  const kv = await Deno.openKv()
 
-export const toBaseFilesPushCommand = () => {
+  const manager = new Manager({ kv })
+  const kvState = new KvState(kv)
+
+  try {
+    const apiClient = new ApiClient(manager)
+
+    const workspace = new Workspace()
+
+    const accountName = await apiClient.manager.auth.toUserName()
+
+    const { name } = await workspace.getWorkspace({ kvState, apiClient })
+
+    await manager.success()
+
+    return `Push base files to @${accountName}/${name}`
+  } catch (error) {
+    console.error(error)
+
+    Sentry.captureException(error)
+
+    await Sentry.flush()
+
+    manager.fail('Failed to get workspace')
+
+    Deno.exit(1)
+  }
+}
+
+export const toBaseFilesPushCommand = async () => {
+  const description = await toDescription()
+
   return new Command()
     .description(description)
     .arguments('<path:string>')

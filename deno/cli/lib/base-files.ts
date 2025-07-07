@@ -59,5 +59,7 @@ export class BaseFiles {
     const baseFiles = BaseFiles.toBaseFiles({ path: this.path, ignoreFile })
 
     await apiClient.patchWorkspaceById({ workspaceId, baseFiles })
+
+    await apiClient.uploadBaseFiles({ workspaceId, baseFiles })
   }
 }

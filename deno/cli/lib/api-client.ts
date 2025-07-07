@@ -2,8 +2,6 @@ import type { DenoFile } from '../deploy/types.ts'
 import type { Manager } from './manager.ts'
 import * as v from 'valibot'
 import type { OpenApiSchema } from './openapi-schema.ts'
-import type { ClientSettings } from '@skmtc/core/Settings'
-import { PrettierConfigType } from '@skmtc/core/PrettierConfig'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 
 const deploymentStatus = v.picklist(['pending', 'success', 'failed'])
@@ -68,6 +66,11 @@ type PatchWorkspaceByIdArgs = {
   baseFiles: Record<string, unknown>
 }
 
+type UploadBaseFilesArgs = {
+  workspaceId: string
+  baseFiles: Record<string, unknown>
+}
+
 export class ApiClient {
   manager: Manager
 
@@ -76,6 +79,8 @@ export class ApiClient {
   }
 
   async deploy({ assets, accountName, stackName, generatorIds }: DeployArgs) {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `servers/${accountName}/${stackName}`,
       {
@@ -95,6 +100,8 @@ export class ApiClient {
   }
 
   async getDeploymentInfo(deploymentId: string) {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `/deployments/${deploymentId}/info`,
       {
@@ -110,6 +117,8 @@ export class ApiClient {
   }
 
   async uploadSchemaFile(openApiSchema: OpenApiSchema) {
+    await this.manager.auth.enforceAuth()
+
     const session = await this.manager.auth.toSession()
     const path = `${session?.user.id}/${Date.now().toString()}`
 
@@ -135,6 +144,8 @@ export class ApiClient {
   }
 
   async createSchema({ body }: CreateSchemaArgs) {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`schemas`, {
       method: 'POST',
       body
@@ -148,6 +159,8 @@ export class ApiClient {
   }
 
   async updateSchema({ body }: UpdateSchemaArgs) {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `/schemas/${body.id}`,
       {
@@ -165,6 +178,8 @@ export class ApiClient {
   }
 
   async getWorkspaces() {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`workspaces`, {
       method: 'GET'
     })
@@ -177,6 +192,8 @@ export class ApiClient {
   }
 
   async getSchemas() {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`schemas`, {
       method: 'GET'
     })
@@ -189,6 +206,8 @@ export class ApiClient {
   }
 
   async getWorkspaceById(workspaceId: string) {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `workspaces/find?id=${workspaceId}`,
       {
@@ -223,7 +242,26 @@ export class ApiClient {
     return data
   }
 
+  async uploadBaseFiles({ workspaceId, baseFiles }: UploadBaseFilesArgs) {
+    await this.manager.auth.enforceAuth()
+
+    const session = await this.manager.auth.toSession()
+    const path = `${session?.user.id}/${workspaceId}.json`
+
+    const { error } = await this.manager.auth.supabase.storage
+      .from('base-files')
+      .upload(path, JSON.stringify(baseFiles), {
+        upsert: true
+      })
+
+    if (error) {
+      throw new Error('Failed to upload base files', { cause: error })
+    }
+  }
+
   async generateArtifacts({ workspaceId }: GenerateArtifactsArgs) {
+    await this.manager.auth.enforceAuth()
+
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `/workspaces/${workspaceId}/artifacts`,
       {
