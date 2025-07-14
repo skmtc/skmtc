@@ -64,6 +64,11 @@ import {
   description as schemasLinkDescription
 } from './schemas/link.ts'
 import * as Sentry from '@sentry/deno'
+import {
+  toWorkspacesMessageCommand,
+  toWorkspacesMessagePrompt,
+  description as workspacesMessageDescription
+} from './workspaces/message.ts'
 
 Sentry.init({
   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
@@ -71,23 +76,24 @@ Sentry.init({
 
 type PromptResponse =
   | 'init'
-  | 'generators:generate'
+  | 'base-files:push'
   | 'generators:add'
   | 'generators:clone'
+  | 'generators:deploy'
+  | 'generators:generate'
   | 'generators:install'
   | 'generators:remove'
-  | 'generators:deploy'
   | 'login'
   | 'logout'
+  | 'project-create'
   | 'schemas:info'
   | 'schemas:link'
-  | 'schemas:upload'
   | 'schemas:unlink'
-  | 'project-create'
+  | 'schemas:upload'
+  | 'workspaces:generate'
   | 'workspaces:info'
   | 'workspaces:link'
-  | 'workspaces:generate'
-  | 'base-files:push'
+  | 'workspaces:message'
   | 'exit'
 
 const getOptions = async () => {
@@ -185,6 +191,10 @@ const getOptions = async () => {
       value: 'workspaces:link'
     },
     {
+      name: workspacesMessageDescription,
+      value: 'workspaces:message'
+    },
+    {
       name: workspacesGenerateDescription,
       value: 'workspaces:generate'
     },
@@ -236,6 +246,7 @@ const promptwise = async () => {
     .with('workspaces:generate', async () => await toWorkspacesGeneratePrompt())
     .with('workspaces:info', async () => await toWorkspacesInfoPrompt())
     .with('workspaces:link', async () => await toWorkspacesLinkPrompt())
+    .with('workspaces:message', async () => await toWorkspacesMessagePrompt())
     .with('login', async () => await toLoginPrompt())
     .with('logout', async () => await toLogoutPrompt())
     .with('exit', () => Deno.exit(0))
@@ -268,6 +279,7 @@ await new Command()
   .command('workspaces:generate', toWorkspacesGenerateCommand())
   .command('workspaces:info', toWorkspacesInfoCommand())
   .command('workspaces:link', toWorkspacesLinkCommand())
+  .command('workspaces:message', toWorkspacesMessageCommand())
   .command('login', toLoginCommand())
   .command('logout', toLogoutCommand())
   .parse(Deno.args)

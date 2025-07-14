@@ -23,6 +23,12 @@ export class Auth {
     return session ? session : await login()
   }
 
+  async isLoggedIn(): Promise<boolean> {
+    const { data } = await this.supabase.auth.getSession()
+
+    return Boolean(data.session)
+  }
+
   async toUserName(): Promise<string> {
     const { data } = await this.supabase.auth.getSession()
 

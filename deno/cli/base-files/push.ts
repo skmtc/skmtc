@@ -18,9 +18,23 @@ export const toDescription = async (): Promise<string> => {
 
     const workspace = new Workspace()
 
+    const isLoggedIn = await apiClient.manager.auth.isLoggedIn()
+
+    if (!isLoggedIn) {
+      await manager.success()
+      return 'Log in to push base files'
+    }
+
     const accountName = await apiClient.manager.auth.toUserName()
 
-    const { name } = await workspace.getWorkspace({ kvState, apiClient })
+    const workspaceRes = await workspace.getWorkspace({ kvState, apiClient })
+
+    if (!workspaceRes) {
+      await manager.success()
+      return 'Create workspace to push base files'
+    }
+
+    const { name } = workspaceRes
 
     await manager.success()
 

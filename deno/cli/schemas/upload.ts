@@ -50,7 +50,7 @@ type UploadOptions = {
 export const watchUpload = ({ path }: UploadArgs) => {
   const watcher = chokidar.watch(path)
 
-  watcher.on('change', () => upload({ path }))
+  watcher.on('change', () => upload({ path }, { logSuccess: 'Schema uploaded' }))
 }
 
 export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions = {}) => {
@@ -65,7 +65,7 @@ export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions
 
     await openApiSchema.upload({ apiClient, kvState })
 
-    manager.success()
+    await manager.success()
   } catch (error) {
     console.error(error)
 

@@ -216,7 +216,9 @@ export class ApiClient {
     )
 
     if (error) {
-      throw new Error('Failed to get workspace by id')
+      console.log('Failed to get workspace by id')
+
+      return null
     }
 
     return data
