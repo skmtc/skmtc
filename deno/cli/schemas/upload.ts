@@ -6,6 +6,8 @@ import * as Sentry from '@sentry/deno'
 import chokidar from 'chokidar'
 import { ApiClient } from '../lib/api-client.ts'
 import { KvState } from '../lib/kv-state.ts'
+import { WsClient } from '../lib/ws-client.ts'
+import { Workspace } from '../lib/workspace.ts'
 
 export const description = 'Upload an OpenAPI schema to API Foundry'
 
@@ -60,10 +62,28 @@ export const upload = async ({ path }: UploadArgs, { logSuccess }: UploadOptions
   const manager = new Manager({ kv, logSuccess })
 
   try {
-    const openApiSchema = await OpenApiSchema.open(path)
     const apiClient = new ApiClient(manager)
 
-    await openApiSchema.upload({ apiClient, kvState })
+    const workspace = new Workspace()
+
+    const { id } = await workspace.getWorkspace({ kvState, apiClient })
+
+    const wsClient = new WsClient({ workspaceId: id })
+
+    wsClient.connect()
+
+    const openApiSchema = await OpenApiSchema.open(path)
+
+    const schema = await openApiSchema.upload({ apiClient, kvState })
+
+    await wsClient.send({
+      type: 'update-schema',
+      payload: {
+        v3JsonFilePath: schema.v3JsonFilePath
+      }
+    })
+
+    wsClient.disconnect()
 
     await manager.success()
   } catch (error) {

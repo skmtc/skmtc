@@ -1,9 +1,13 @@
 import { hc } from 'hono/client'
 
+type ConstructorArgs = {
+  workspaceId: string
+}
+
 export class WsClient {
   #ws: WebSocket
 
-  constructor(workspaceId: string) {
+  constructor({ workspaceId }: ConstructorArgs) {
     const client = hc(`https://${workspaceId}.apifoundry.dev/`)
 
     this.#ws = client['ws/cli'].$ws(0)
@@ -11,11 +15,11 @@ export class WsClient {
 
   connect() {
     this.#ws.addEventListener('open', () => {
-      console.log('OPENED')
+      // console.log('OPENED')
     })
 
     this.#ws.addEventListener('message', event => {
-      console.log('MESSAGE', event.data)
+      // console.log('MESSAGE', event.data)
     })
 
     this.#ws.addEventListener('error', event => {
@@ -23,13 +27,13 @@ export class WsClient {
     })
   }
 
-  async send(message: string) {
+  async send(message: Message) {
     let count = 0
 
     const promise = new Promise((resolve, reject) => {
       const timer = setInterval(() => {
         if (this.#ws.readyState === WebSocket.OPEN) {
-          this.#ws.send(message)
+          this.#ws.send(JSON.stringify(message))
           resolve(undefined)
           clearInterval(timer)
         } else {
@@ -51,3 +55,17 @@ export class WsClient {
     }
   }
 }
+
+type Message =
+  | {
+      type: 'update-schema'
+      payload: {
+        v3JsonFilePath: string
+      }
+    }
+  | {
+      type: 'basic-message'
+      payload: {
+        content: string
+      }
+    }

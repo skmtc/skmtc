@@ -47,11 +47,16 @@ export const message = async ({ content }: MessageArgs, { logSuccess }: MessageO
 
     const { id } = await workspace.getWorkspace({ kvState, apiClient })
 
-    const wsClient = new WsClient(id)
+    const wsClient = new WsClient({ workspaceId: id })
 
     wsClient.connect()
 
-    await wsClient.send(content)
+    await wsClient.send({
+      type: 'basic-message',
+      payload: {
+        content
+      }
+    })
 
     wsClient.disconnect()
 

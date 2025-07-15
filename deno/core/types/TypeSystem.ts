@@ -18,6 +18,7 @@ export type TypeSystemValue =
   | TypeSystemBoolean
   | TypeSystemUnknown
   | TypeSystemVoid
+  | TypeSystemNever
   | TypeSystemRef
   | TypeSystemNull
   | TypeSystemCustom
@@ -50,6 +51,11 @@ export type TypeSystemNumber = {
 
 export type TypeSystemVoid = {
   type: 'void'
+  generatorKey?: GeneratorKey
+}
+
+export type TypeSystemNever = {
+  type: 'never'
   generatorKey?: GeneratorKey
 }
 

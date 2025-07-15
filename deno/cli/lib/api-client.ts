@@ -298,7 +298,8 @@ export const schema = v.object({
   format: schemaFormat,
   iconKey: v.optional(v.nullable(v.string())),
   sourceUrl: v.optional(v.nullable(v.string())),
-  filePath: v.optional(v.nullable(v.string())),
+  originalFilePath: v.string(),
+  v3JsonFilePath: v.string(),
   createdAt: v.string()
 })
 
@@ -311,7 +312,8 @@ export type Schema = {
   openapiVersion: OpenApiVersion
   format: SchemaFormat
   sourceUrl?: string | null | undefined
-  filePath?: string | null | undefined
+  originalFilePath: string
+  v3JsonFilePath: string
   createdAt: string
 }
 
