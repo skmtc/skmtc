@@ -6,7 +6,7 @@ import type { OasDocument } from '../oas/document/Document.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { GetFileOptions } from './types.ts'
-import type { ClientGeneratorSettings, ClientSettings, EnrichedSetting } from '../types/Settings.ts'
+import type { ClientSettings } from '../types/Settings.ts'
 import type { Method } from '../types/Method.ts'
 import type { OperationConfig, OperationInsertable } from '../dsl/operation/types.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
@@ -16,7 +16,7 @@ import { ModelDriver } from '../dsl/model/ModelDriver.ts'
 import type { GenerationType, GeneratedValue } from '../types/GeneratedValue.ts'
 import { ContentSettings } from '../dsl/ContentSettings.ts'
 import type { RefName } from '../types/RefName.ts'
-import * as Sentry from 'npm:@sentry/deno@8.47.0'
+import * as Sentry from 'npm:@sentry/deno@9.39.0'
 import type * as log from 'jsr:@std/log@0.224.6'
 import type { ResultType } from '../types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
@@ -30,8 +30,7 @@ import invariant from 'tiny-invariant'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { OperationSource, ModelSource, Preview, PreviewModule } from '../types/Preview.ts'
 import { match } from 'ts-pattern'
-import type { GeneratorConfig } from '../types/GeneratorType.ts'
-import { toGeneratorSettings } from '../run/toGeneratorSettings.ts'
+
 type ConstructorArgs = {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
@@ -208,89 +207,6 @@ export class GenerateContext {
       previews: this.#previews
     }
   }
-
-  toSettings({ defaultSelected }: ToSettingsArgs): ClientGeneratorSettings[] {
-    const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
-
-    const generatorSettings = Sentry.startSpan({ name: 'toSettings' }, () =>
-      generators.map(generatorConfig => {
-        return this.trace(generatorConfig.id, () => {
-          return match(generatorConfig)
-            .returnType<ClientGeneratorSettings>()
-            .with({ type: 'operation' }, operationGenerator => {
-              const generatorSettings = toGeneratorSettings({
-                settings: this.settings,
-                generatorId: operationGenerator.id,
-                generatorType: operationGenerator.type
-              })
-
-              const operationsSettings = this.oasDocument.operations
-                .filter(operation => {
-                  return operationGenerator.isSupported({
-                    context: this,
-                    operation
-                  })
-                })
-                .reduce(
-                  (acc, { path, method }) => {
-                    const currentSettings = generatorSettings?.operations?.[path]?.[method]
-
-                    acc[path] = {
-                      ...acc[path],
-                      [method]: currentSettings ?? {
-                        selected: defaultSelected,
-                        enrichments: undefined
-                      }
-                    }
-
-                    return acc
-                  },
-                  {} as Record<string, Partial<Record<Method, EnrichedSetting>>>
-                )
-
-              return {
-                ...generatorSettings,
-                id: operationGenerator.id,
-                operations: operationsSettings
-              }
-            })
-            .with({ type: 'model' }, modelGenerator => {
-              const generatorSettings = toGeneratorSettings({
-                settings: this.settings,
-                generatorId: modelGenerator.id,
-                generatorType: modelGenerator.type
-              })
-
-              const modelsSettings = (
-                this.oasDocument.components?.toSchemasRefNames() ?? []
-              ).reduce(
-                (acc, refName) => {
-                  const currentSettings = generatorSettings?.models?.[refName]
-
-                  acc[refName] = currentSettings ?? {
-                    selected: defaultSelected,
-                    enrichments: undefined
-                  }
-
-                  return acc
-                },
-                {} as Record<string, EnrichedSetting>
-              )
-
-              return {
-                ...generatorSettings,
-                id: modelGenerator.id,
-                models: modelsSettings
-              }
-            })
-            .exhaustive()
-        })
-      })
-    )
-
-    return generatorSettings
-  }
-
   #runOperationGenerator<EnrichmentType = undefined>({
     oasDocument,
     generatorConfig
@@ -302,17 +218,6 @@ export class GenerateContext {
           !generatorConfig.isSupported({ operation, context: this })
         ) {
           this.captureCurrentResult('notSupported')
-          return acc
-        }
-
-        const { selected } = this.toOperationSettings({
-          generatorId: generatorConfig.id,
-          path: operation.path,
-          method: operation.method
-        })
-
-        if (!selected) {
-          this.captureCurrentResult('notSelected')
           return acc
         }
 
@@ -344,16 +249,6 @@ export class GenerateContext {
 
     return refNames.reduce((acc, refName) => {
       return this.trace(refName, () => {
-        const { selected } = this.toModelSettings({
-          generatorId: generatorConfig.id,
-          refName
-        })
-
-        if (!selected) {
-          this.captureCurrentResult('notSelected')
-          return acc
-        }
-
         try {
           this.#addPreview(
             toModelSource({ refName, generatorId: generatorConfig.id }),
@@ -650,14 +545,7 @@ export class GenerateContext {
     operation,
     insertable
   }: ToOperationSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
-    const { selected } = this.toOperationSettings({
-      generatorId: insertable.id,
-      path: operation.path,
-      method: operation.method
-    })
-
     return new ContentSettings<EnrichmentType>({
-      selected,
       identifier: insertable.toIdentifier(operation),
       exportPath: insertable.toExportPath(operation),
       enrichments: insertable.toEnrichments({ operation, context: this })
@@ -677,48 +565,11 @@ export class GenerateContext {
     refName,
     insertable
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
-    const { selected } = this.toModelSettings({
-      generatorId: insertable.id,
-      refName
-    })
-
     return new ContentSettings<EnrichmentType>({
-      selected,
       identifier: insertable.toIdentifier(refName),
       exportPath: insertable.toExportPath(refName),
       enrichments: insertable.toEnrichments({ refName, context: this })
     })
-  }
-
-  /**
-   * Look up operation settings for a given generatorId, path and method.
-   * @param { generatorId, path, method }
-   * @returns Base settings for operation
-   */
-  toOperationSettings({ generatorId, path, method }: GetOperationSettingsArgs): EnrichedSetting {
-    const generatorSettings = this.settings?.generators?.find(({ id }) => id === generatorId)
-
-    if (!generatorSettings) {
-      return { selected: true }
-    }
-
-    const operationSettings =
-      'operations' in generatorSettings ? generatorSettings.operations[path]?.[method] : undefined
-
-    return operationSettings ?? { selected: false }
-  }
-
-  toModelSettings({ generatorId, refName }: ToModelSettingsArgs): EnrichedSetting {
-    const generatorSettings = this.settings?.generators?.find(({ id }) => id === generatorId)
-
-    if (!generatorSettings) {
-      return { selected: true }
-    }
-
-    const modelSettings =
-      'models' in generatorSettings ? generatorSettings.models[refName] : undefined
-
-    return modelSettings ?? { selected: false }
   }
 
   #addFile(normalisedPath: string): File | JsonFile {

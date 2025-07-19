@@ -56,6 +56,6 @@ export class ClientJson {
   }
 
   static create(accountName: string) {
-    return new ClientJson({ accountName, settings: { generators: [] } })
+    return new ClientJson({ accountName, settings: { enrichments: {} } })
   }
 }

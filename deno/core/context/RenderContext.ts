@@ -1,4 +1,4 @@
-import * as Sentry from 'npm:@sentry/deno@8.47.0'
+import * as Sentry from 'npm:@sentry/deno@9.39.0'
 import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { FilesRenderResult, RenderResult } from './types.ts'
@@ -12,7 +12,7 @@ import type { StackTrail } from './StackTrail.ts'
 import type * as log from 'jsr:@std/log@0.224.6'
 import { File } from '../dsl/File.ts'
 import type { Preview } from '../types/Preview.ts'
-import * as prettier from 'npm:prettier@^3.5.3'
+import * as prettier from 'npm:prettier@^3.6.2'
 import type { JsonFile } from '../dsl/JsonFile.ts'
 type ConstructorArgs = {
   files: Map<string, File | JsonFile>

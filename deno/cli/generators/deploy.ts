@@ -37,6 +37,8 @@ export const deploy = async ({ logSuccess }: DeployArgs = {}) => {
 
     manager.success()
   } catch (error) {
+    console.error(error)
+
     Sentry.captureException(error)
 
     await Sentry.flush()

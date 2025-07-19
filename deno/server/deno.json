@@ -1,12 +1,12 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.550",
+  "version": "0.0.551",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.670",
-    "@sentry/deno": "npm:@sentry/deno@^8.47.0",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.671",
+    "@sentry/deno": "npm:@sentry/deno@^9.39.0",
     "@std/log":"jsr:@std/log@0.224.6",
     "@std/yaml":"jsr:@std/yaml@^1.0.5",
     "swagger2openapi":"npm:swagger2openapi@7.0.8",

@@ -13,7 +13,6 @@ const denoDeployment = v.object({
   latestStatus: deploymentStatus,
   latestDeploymentId: v.string(),
   latestDenoDeploymentId: v.string(),
-  accountName: v.string(),
   createdAt: v.string(),
   updatedAt: v.string()
 })

@@ -6,7 +6,7 @@
     "@cliffy/prompt": "jsr:@cliffy/prompt@1.0.0-rc.7",
     "@cmd-johnson/oauth2-client": "jsr:@cmd-johnson/oauth2-client@^2.0.0",
     "@deno/dnt":"jsr:@deno/dnt@0.42.1",
-    "@sentry/deno": "npm:@sentry/deno@8.47.0",
+    "@sentry/deno": "npm:@sentry/deno@9.39.0",
     "@skmtc/cli": "./cli/mod.ts",
     "@skmtc/core": "./core/mod.ts",
     "@std/assert": "jsr:@std/assert@1.0.10",

@@ -67,9 +67,9 @@ export class OperationDriver<
     generation,
     destinationPath
   }: ApplyArgs<T> = {}): GeneratedDefinition<V, T> {
-    const { identifier, exportPath, selected } = this.settings
+    const { identifier, exportPath } = this.settings
 
-    if (!selected && generation !== 'force') {
+    if (/*!selected && */ generation !== 'force') {
       return undefined as GeneratedDefinition<V, T>
     }
 

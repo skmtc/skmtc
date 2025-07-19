@@ -3,14 +3,14 @@ import { RenderContext } from './RenderContext.ts'
 import { ParseContext } from './ParseContext.ts'
 import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
-import type { ClientSettings, ClientGeneratorSettings } from '../types/Settings.ts'
+import type { ClientSettings } from '../types/Settings.ts'
 import type { ResultType } from '../types/Results.ts'
 import * as log from 'jsr:@std/log@0.224.6'
 import { ResultsHandler } from './ResultsHandler.ts'
 import { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import { ResultsLog } from '../helpers/ResultsLog.ts'
-import * as Sentry from 'npm:@sentry/deno@8.47.0'
+import * as Sentry from 'npm:@sentry/deno@9.39.0'
 import type { File } from '../dsl/File.ts'
 import { join } from 'jsr:@std/path@1.0.6'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
@@ -52,13 +52,6 @@ type RenderArgs = {
   previews: Record<string, Record<string, Preview>>
   prettier?: PrettierConfigType
   basePath: string | undefined
-}
-
-type GenerateSettingsArgs = {
-  documentObject: OpenAPIV3.Document
-  clientSettings: ClientSettings | undefined
-  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-  defaultSelected: boolean
 }
 
 type ToArtifactsArgs = {
@@ -138,39 +131,6 @@ export class CoreContext {
 
     return {
       oasDocument
-    }
-  }
-
-  generateSettings({
-    documentObject,
-    clientSettings,
-    toGeneratorConfigMap,
-    defaultSelected
-  }: GenerateSettingsArgs): ClientGeneratorSettings[] | undefined {
-    try {
-      const oasDocument = this.trace('parse', () => {
-        this.#phase = this.#setupParsePhase(documentObject)
-
-        return this.#phase.context.parse()
-      })
-
-      return this.trace('toSettings', () => {
-        this.#phase = this.#setupGeneratePhase({
-          toGeneratorConfigMap,
-          oasDocument,
-          settings: clientSettings
-        })
-
-        return this.#phase.context.toSettings({ defaultSelected })
-      })
-    } catch (error) {
-      console.error(error)
-
-      this.logger.error(error)
-
-      Sentry.captureException(error)
-
-      return undefined
     }
   }
 

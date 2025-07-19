@@ -5,6 +5,8 @@ import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { OperationInsertableArgs } from './types.ts'
 import * as v from 'valibot'
+// @deno-types="npm:@types/lodash-es@4.17.12"
+import { get } from 'npm:lodash-es@4.17.21'
 
 export type BaseOperationConfig<EnrichmentType = undefined> = {
   id: string
@@ -29,15 +31,14 @@ export const toOperationBase = <EnrichmentType = undefined>(
     static toExportPath = config.toExportPath.bind(config)
 
     static toEnrichments = ({ operation, context }: ToEnrichmentsArgs): EnrichmentType => {
-      const generatorSettings = context.toOperationSettings({
-        generatorId: config.id,
-        path: operation.path,
-        method: operation.method
-      })
+      const operationEnrichments = get(
+        context.settings,
+        `enrichments.${config.id}.${operation.path}.${operation.method}`
+      )
 
       const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
 
-      return v.parse(enrichmentSchema, generatorSettings.enrichments) as EnrichmentType
+      return v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType
     }
 
     constructor(args: OperationInsertableArgs<EnrichmentType>) {

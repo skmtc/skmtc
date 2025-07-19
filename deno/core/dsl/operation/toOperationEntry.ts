@@ -8,6 +8,8 @@ import type {
 } from './types.ts'
 import type { IsSupportedOperationConfigArgs } from './types.ts'
 import type { PreviewModule } from '../../types/Preview.ts'
+// @deno-types="npm:@types/lodash-es@4.17.12"
+import { get } from 'npm:lodash-es@4.17.21'
 export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
   transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
@@ -37,18 +39,17 @@ export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
         return true
       }
 
-      const { enrichments } = context.toOperationSettings({
-        generatorId: id,
-        path: operation.path,
-        method: operation.method
-      })
+      const operationEnrichments = get(
+        context.settings,
+        `enrichments.${id}.${operation.path}.${operation.method}`
+      )
 
       const enrichmentSchema = toEnrichmentSchema?.() ?? v.undefined()
 
       return isSupported({
         context,
         operation,
-        enrichments: v.parse(enrichmentSchema, enrichments) as EnrichmentType
+        enrichments: v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType
       })
     },
     toPreviewModule,

@@ -5,6 +5,8 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import * as v from 'valibot'
+// @deno-types="npm:@types/lodash-es@4.17.12"
+import { get } from 'npm:lodash-es@4.17.21'
 
 export type ModelInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -34,14 +36,11 @@ export const toModelBase = <EnrichmentType = undefined>(
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
     static toEnrichments = ({ refName, context }: ToEnrichmentsArgs): EnrichmentType => {
-      const generatorSettings = context.toModelSettings({
-        refName,
-        generatorId: config.id
-      })
+      const modelEnrichments = get(context.settings, `enrichments.${config.id}.${refName}`)
 
       const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.undefined()
 
-      return v.parse(enrichmentSchema, generatorSettings.enrichments) as EnrichmentType
+      return v.parse(enrichmentSchema, modelEnrichments) as EnrichmentType
     }
     static isSupported = () => true
 
