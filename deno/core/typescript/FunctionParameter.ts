@@ -2,7 +2,7 @@
 import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.22.20'
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { camelCase } from 'npm:lodash-es@4.17.21'
-import { match, P } from 'npm:ts-pattern@5.6.0'
+import { match, P } from 'npm:ts-pattern@5.7.1'
 import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '../types/TypeSystem.ts'
 import type { Definition } from '../dsl/Definition.ts'
 import { List, type SkipEmptyOption } from './List.ts'

@@ -69,9 +69,10 @@ export class OperationDriver<
   }: ApplyArgs<T> = {}): GeneratedDefinition<V, T> {
     const { identifier, exportPath } = this.settings
 
-    if (/*!selected && */ generation !== 'force') {
-      return undefined as GeneratedDefinition<V, T>
-    }
+    // Everything is selected (for now)
+    // if (/*!selected && */ generation !== 'force') {
+    //   return undefined as GeneratedDefinition<V, T>
+    // }
 
     const definition = this.getDefinition({ identifier, exportPath })
 

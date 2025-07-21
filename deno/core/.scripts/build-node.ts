@@ -1,4 +1,4 @@
-import { build, emptyDir } from 'jsr:@deno/dnt@0.42.1'
+import { build, emptyDir } from 'jsr:@deno/dnt@0.42.3'
 import denoJson from '../deno.json' with { type: 'json' }
 
 await emptyDir('../../packages/core')
@@ -8,10 +8,12 @@ await build({
     './mod.ts',
     { name: './Brand', path: './types/Brand.ts' },
     { name: './CustomValue', path: './types/CustomValue.ts' },
+    { name: './Enrichments', path: './types/Enrichments.ts' },
     { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' },
     { name: './GeneratorKeys', path: './types/GeneratorKeys.ts' },
     { name: './Manifest', path: './types/Manifest.ts' },
     { name: './Method', path: './types/Method.ts' },
+    { name: './ModuleExport', path: './types/ModuleExport.ts' },
     { name: './OasArray', path: './oas/array/Array.ts' },
     { name: './OasBoolean', path: './oas/boolean/Boolean.ts' },
     { name: './OasComponents', path: './oas/components/Components.ts' },
@@ -70,7 +72,7 @@ await build({
     devDependencies: {
       '@types/lodash-es': '4.17.12',
       'openapi-types': '12.1.3',
-      valibot: '1.0.0'
+      valibot: '1.1.0'
     }
   }
 })

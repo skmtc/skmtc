@@ -192,6 +192,8 @@ export class CoreContext {
   }
 
   trace<T>(token: string | string[], fn: () => T): T {
+    console.log('trace', token)
+    this.logger.info('trace', token)
     return tracer(this.#stackTrail, token, fn, this.logger)
   }
 

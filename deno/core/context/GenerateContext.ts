@@ -140,15 +140,6 @@ type GenerateResult = {
   previews: Record<string, Record<string, Preview>>
 }
 
-type ToSettingsArgs = {
-  defaultSelected: boolean
-}
-
-type AddPreviewArgs = {
-  previewModule: PreviewModule
-  operation: OasOperation
-}
-
 export class GenerateContext {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
@@ -185,9 +176,15 @@ export class GenerateContext {
   toArtifacts(): GenerateResult {
     const generators = Object.values(this.toGeneratorConfigMap())
 
+    console.log('generators', JSON.stringify(generators, null, 2))
+    this.logger.info('generators', JSON.stringify(generators, null, 2))
+
     Sentry.startSpan({ name: 'toArtifacts' }, () =>
       generators.forEach(generatorConfig => {
         this.trace(generatorConfig.id, () => {
+          console.log('generatorConfig', JSON.stringify(generatorConfig, null, 2))
+          this.logger.info('generatorConfig', JSON.stringify(generatorConfig, null, 2))
+
           match(generatorConfig.type)
             .with('operation', () =>
               this.#runOperationGenerator({ oasDocument: this.oasDocument, generatorConfig })
@@ -222,12 +219,12 @@ export class GenerateContext {
         }
 
         try {
+          const result = generatorConfig.transform({ context: this, operation, acc })
+
           this.#addPreview(
             toOperationSource({ operation, generatorId: generatorConfig.id }),
             generatorConfig.toPreviewModule?.({ context: this, operation })
           )
-
-          const result = generatorConfig.transform({ context: this, operation, acc })
 
           this.captureCurrentResult('success')
 
@@ -250,12 +247,12 @@ export class GenerateContext {
     return refNames.reduce((acc, refName) => {
       return this.trace(refName, () => {
         try {
+          const result = generatorConfig.transform({ context: this, refName, acc })
+
           this.#addPreview(
             toModelSource({ refName, generatorId: generatorConfig.id }),
             generatorConfig.toPreviewModule?.({ context: this, refName })
           )
-
-          const result = generatorConfig.transform({ context: this, refName, acc })
 
           this.captureCurrentResult('success')
 
@@ -464,6 +461,8 @@ export class GenerateContext {
       const { name } = definition.identifier
 
       if (!currentFile.definitions.has(name)) {
+        console.log(`registering definition: "${name}" in "${destinationPath}"`)
+        this.logger.info(`registering definition: "${name}" in ${destinationPath}`)
         currentFile.definitions.set(name, definition)
       }
     })

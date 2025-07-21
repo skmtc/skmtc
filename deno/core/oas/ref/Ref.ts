@@ -1,6 +1,6 @@
 import type { OasRefData } from './ref-types.ts'
 import { toRefName } from '../../helpers/refFns.ts'
-import { match } from 'npm:ts-pattern@5.6.0'
+import { match } from 'npm:ts-pattern@5.7.1'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OasResponse } from '../response/Response.ts'
 import type { OasParameter } from '../parameter/Parameter.ts'
