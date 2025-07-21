@@ -18,12 +18,12 @@ export type FormFieldItem = {
 }
 
 export const formItem = v.object({
-  title: v.string(),
+  title: v.optional(v.string()),
   fields: v.array(formFieldItem)
 })
 
 export type FormItem = {
-  title: string
+  title?: string
   fields: FormFieldItem[]
 }
 
@@ -41,28 +41,38 @@ export type TableColumnItem = {
   label: string
 }
 
-export const inputOptionConfigItem = v.object({
+export const tableItem = v.object({
+  title: v.optional(v.string()),
+  columns: v.array(tableColumnItem)
+})
+
+export type TableItem = {
+  title?: string
+  columns: TableColumnItem[]
+}
+
+export const inputItem = v.object({
   id: v.string(),
   accessorPath: v.array(v.string()),
   formatter: moduleExport
 })
 
-export type InputOptionConfigItem = {
+export type InputItem = {
   id: string
   accessorPath: string[]
   formatter: ModuleExport
 }
 
 export const operationEnrichments = v.object({
-  columns: v.array(tableColumnItem),
-  form: formItem,
-  optionLabel: inputOptionConfigItem
+  table: v.optional(tableItem),
+  form: v.optional(formItem),
+  input: v.optional(inputItem)
 })
 
 export type OperationEnrichments = {
-  columns: TableColumnItem[]
-  form: FormItem
-  optionLabel: InputOptionConfigItem
+  table?: TableItem
+  form?: FormItem
+  input?: InputItem
 }
 
 export const methodEnrichments = v.record(v.string(), operationEnrichments)

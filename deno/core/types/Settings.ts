@@ -1,3 +1,4 @@
+import { generatorEnrichments, type GeneratorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
 
 export const modulePackage = v.object({
@@ -13,13 +14,13 @@ export type ModulePackage = {
 export const clientSettings = v.object({
   basePath: v.optional(v.string()),
   packages: v.optional(v.array(modulePackage)),
-  enrichments: v.optional(v.record(v.string(), v.unknown()))
+  enrichments: v.optional(generatorEnrichments)
 })
 
 export type ClientSettings = {
   basePath?: string
   packages?: ModulePackage[]
-  enrichments?: Record<string, unknown>
+  enrichments?: GeneratorEnrichments
 }
 
 export type SkmtcClientConfig = {
