@@ -192,7 +192,7 @@ export class CoreContext {
   }
 
   trace<T>(token: string | string[], fn: () => T): T {
-    return tracer(this.#stackTrail, token, fn)
+    return tracer(this.#stackTrail, token, fn, this.logger)
   }
 
   #setupParsePhase(documentObject: OpenAPIV3.Document): ParsePhase {

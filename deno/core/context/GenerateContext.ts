@@ -288,7 +288,7 @@ export class GenerateContext {
   }
 
   trace<T>(token: string | string[], fn: () => T): T {
-    return tracer(this.stackTrail, token, fn)
+    return tracer(this.stackTrail, token, fn, this.logger)
   }
 
   #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File | JsonFile {

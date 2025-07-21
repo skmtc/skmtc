@@ -142,7 +142,7 @@ export class ParseContext {
   }
 
   trace<T>(token: string | string[], fn: () => T): T {
-    return tracer(this.stackTrail, token, fn)
+    return tracer(this.stackTrail, token, fn, this.logger)
   }
 
   logSkippedFields({ skipped, parent, parentType }: LogSkippedValuesArgs) {
