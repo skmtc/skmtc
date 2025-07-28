@@ -6,42 +6,6 @@ import * as v from 'valibot'
 import { skmtcClientConfig, skmtcStackConfig } from '@skmtc/core/Settings'
 import { toRootPath } from '../lib/to-root-path.ts'
 
-export type FormFieldItem = {
-  id: string
-  accessorPath: string[]
-  input: string
-  label: string
-  placeholder?: string
-}
-
-export type FormItem = {
-  title: string
-  fields: FormFieldItem[]
-}
-
-export type TableColumnItem = {
-  id: string
-  accessorPath: string[]
-  formatter: string
-  label: string
-}
-
-export type InputOptionConfigItem = {
-  id: string
-  accessorPath: string[]
-  formatter: string
-}
-
-type OperationEnrichments = {
-  columns: TableColumnItem[]
-  form: FormItem
-  optionLabel: InputOptionConfigItem
-}
-
-type MethodEnrichments = Record<string, OperationEnrichments>
-type PathEnrichments = Record<string, MethodEnrichments>
-export type GeneratorEnrichments = Record<string, PathEnrichments>
-
 export const toGenerateCommand = () => {
   return (
     new Command()

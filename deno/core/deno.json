@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.681",
+  "version": "0.0.683",
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.10",
     "@std/testing": "jsr:@std/testing@^1.0.8",
@@ -26,6 +26,7 @@
     "./RefName": "./types/RefName.ts",
     "./Results": "./types/Results.ts",
     "./Settings": "./types/Settings.ts",
+    "./Enrichments": "./types/Enrichments.ts",
     "./PrettierConfig": "./types/PrettierConfig.ts",
     "./strings": "./helpers/strings.ts",
     "./toResolvedArtifactPath": "./helpers/toResolvedArtifactPath.ts"

@@ -8,14 +8,22 @@
     "jsr:@cliffy/keycode@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/prompt@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/table@1.0.0-rc.7": "1.0.0-rc.7",
+    "jsr:@david/code-block-writer@^13.0.3": "13.0.3",
+    "jsr:@deno/dnt@0.42.3": "0.42.3",
+    "jsr:@std/assert@^1.0.10": "1.0.13",
     "jsr:@std/assert@~1.0.6": "1.0.13",
     "jsr:@std/encoding@~1.0.5": "1.0.10",
+    "jsr:@std/fmt@1": "1.0.8",
     "jsr:@std/fmt@^1.0.1": "1.0.8",
     "jsr:@std/fmt@~1.0.2": "1.0.8",
+    "jsr:@std/fs@1": "1.0.7",
     "jsr:@std/fs@1.0.7": "1.0.7",
     "jsr:@std/fs@^1.0.2": "1.0.7",
+    "jsr:@std/internal@^1.0.6": "1.0.9",
     "jsr:@std/io@~0.224.6": "0.224.9",
+    "jsr:@std/io@~0.224.9": "0.224.9",
     "jsr:@std/log@0.224.6": "0.224.6",
+    "jsr:@std/path@1": "1.0.9",
     "jsr:@std/path@1.0.6": "1.0.6",
     "jsr:@std/path@1.0.9": "1.0.9",
     "jsr:@std/path@^1.0.8": "1.0.9",
@@ -23,6 +31,8 @@
     "jsr:@std/text@~1.0.7": "1.0.15",
     "jsr:@std/yaml@^1.0.5": "1.0.8",
     "jsr:@supabase/supabase-js@2.49.8": "2.49.8",
+    "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
+    "jsr:@ts-morph/common@0.27": "0.27.0",
     "npm:@apiture/openapi-down-convert@0.14.0": "0.14.0",
     "npm:@babel/helper-validator-identifier@7.22.20": "7.22.20",
     "npm:@google/generative-ai@0.21": "0.21.0",
@@ -33,7 +43,10 @@
     "npm:@supabase/postgrest-js@1.19.4": "1.19.4",
     "npm:@supabase/realtime-js@2.11.2": "2.11.2",
     "npm:@supabase/storage-js@2.7.1": "2.7.1",
+    "npm:@types/babel__helper-validator-identifier@7.15.2": "7.15.2",
     "npm:@types/lodash-es@4.17.12": "4.17.12",
+    "npm:@types/node@*": "22.15.15",
+    "npm:@types/swagger2openapi@7.0.4": "7.0.4",
     "npm:chokidar@^4.0.3": "4.0.3",
     "npm:hono@4.7.2": "4.7.2",
     "npm:ignore@7.0.5": "7.0.5",
@@ -51,7 +64,8 @@
       "integrity": "f71c921cce224c13d322e5cedba4f38e8f7354c7d855c9cb22729362a53f25aa",
       "dependencies": [
         "jsr:@cliffy/internal",
-        "jsr:@std/encoding"
+        "jsr:@std/encoding",
+        "jsr:@std/io@~0.224.9"
       ]
     },
     "@cliffy/command@1.0.0-rc.7": {
@@ -82,8 +96,9 @@
         "jsr:@cliffy/ansi",
         "jsr:@cliffy/internal",
         "jsr:@cliffy/keycode",
-        "jsr:@std/assert",
+        "jsr:@std/assert@~1.0.6",
         "jsr:@std/fmt@~1.0.2",
+        "jsr:@std/io@~0.224.9",
         "jsr:@std/path@~1.0.6",
         "jsr:@std/text"
       ]
@@ -94,8 +109,24 @@
         "jsr:@std/fmt@~1.0.2"
       ]
     },
+    "@david/code-block-writer@13.0.3": {
+      "integrity": "f98c77d320f5957899a61bfb7a9bead7c6d83ad1515daee92dbacc861e13bb7f"
+    },
+    "@deno/dnt@0.42.3": {
+      "integrity": "62a917a0492f3c8af002dce90605bb0d41f7d29debc06aca40dba72ab65d8ae3",
+      "dependencies": [
+        "jsr:@david/code-block-writer",
+        "jsr:@std/fmt@1",
+        "jsr:@std/fs@1",
+        "jsr:@std/path@1",
+        "jsr:@ts-morph/bootstrap"
+      ]
+    },
     "@std/assert@1.0.13": {
-      "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29"
+      "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
     },
     "@std/encoding@1.0.10": {
       "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
@@ -109,6 +140,9 @@
         "jsr:@std/path@^1.0.8"
       ]
     },
+    "@std/internal@1.0.9": {
+      "integrity": "bdfb97f83e4db7a13e8faab26fb1958d1b80cc64366501af78a0aee151696eb8"
+    },
     "@std/io@0.224.9": {
       "integrity": "4414664b6926f665102e73c969cfda06d2c4c59bd5d0c603fd4f1b1c840d6ee3"
     },
@@ -117,7 +151,7 @@
       "dependencies": [
         "jsr:@std/fmt@^1.0.1",
         "jsr:@std/fs@^1.0.2",
-        "jsr:@std/io"
+        "jsr:@std/io@~0.224.6"
       ]
     },
     "@std/path@1.0.6": {
@@ -141,6 +175,19 @@
         "npm:@supabase/postgrest-js",
         "npm:@supabase/realtime-js",
         "npm:@supabase/storage-js"
+      ]
+    },
+    "@ts-morph/bootstrap@0.27.0": {
+      "integrity": "b8d7bc8f7942ce853dde4161b28f9aa96769cef3d8eebafb379a81800b9e2448",
+      "dependencies": [
+        "jsr:@ts-morph/common"
+      ]
+    },
+    "@ts-morph/common@0.27.0": {
+      "integrity": "c7b73592d78ce8479b356fd4f3d6ec3c460d77753a8680ff196effea7a939052",
+      "dependencies": [
+        "jsr:@std/fs@1",
+        "jsr:@std/path@1"
       ]
     }
   },
@@ -211,6 +258,9 @@
         "@supabase/node-fetch"
       ]
     },
+    "@types/babel__helper-validator-identifier@7.15.2": {
+      "integrity": "sha512-l3dkwCt890NFhMwPKXbxsWXC0Por0/+KaFIiQP1j38/vWSH2P3Tn6m+IuJHkx2SBI3VLFqincFe9JtBk2NFHOw=="
+    },
     "@types/lodash-es@4.17.12": {
       "integrity": "sha512-0NgftHUcV4v34VhXm8QBSftKVXtbkBG3ViCjs6+eJ5a6y6Mi/jiFGPc1sC7QK+9BFhWrURE3EOggmWaSxL9OzQ==",
       "dependencies": [
@@ -228,6 +278,13 @@
     },
     "@types/phoenix@1.6.6": {
       "integrity": "sha512-PIzZZlEppgrpoT2QgbnDU+MMzuR6BbCjllj0bM70lWoejMeNJAxCchxnv7J3XFkI8MpygtRpzXrIlmWUBclP5A=="
+    },
+    "@types/swagger2openapi@7.0.4": {
+      "integrity": "sha512-ffMqzciTDihOKH4Q//9Ond1yb5JP1P5FC/aFPsLK4blea1Fwk2aYctiNCkAh5etDYFswFXS+5LV/vuGkf+PU6A==",
+      "dependencies": [
+        "@types/node",
+        "openapi-types"
+      ]
     },
     "@types/ws@8.18.1": {
       "integrity": "sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==",
@@ -551,7 +608,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.681"
+          "jsr:@skmtc/core@^0.0.683"
         ]
       },
       "core": {
@@ -572,7 +629,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.681",
+          "jsr:@skmtc/core@^0.0.683",
           "jsr:@std/log@0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@apiture/openapi-down-convert@0.14.0",

@@ -3,6 +3,7 @@ import type { Manager } from './manager.ts'
 import * as v from 'valibot'
 import type { OpenApiSchema } from './openapi-schema.ts'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
+import { open } from 'node:fs'
 
 const deploymentStatus = v.picklist(['pending', 'success', 'failed'])
 
@@ -70,6 +71,11 @@ type UploadBaseFilesArgs = {
   baseFiles: Record<string, unknown>
 }
 
+type UploadSchemaFileArgs = {
+  openApiSchema: OpenApiSchema
+  schemaId: string
+}
+
 export class ApiClient {
   manager: Manager
 
@@ -115,11 +121,12 @@ export class ApiClient {
     return v.parse(deploymentInfo, data)
   }
 
-  async uploadSchemaFile(openApiSchema: OpenApiSchema) {
+  async uploadSchemaFile({ openApiSchema, schemaId }: UploadSchemaFileArgs) {
     await this.manager.auth.enforceAuth()
 
     const session = await this.manager.auth.toSession()
-    const path = `${session?.user.id}/${Date.now().toString()}`
+
+    const path = `${session?.user.id}/${schemaId}`
 
     const fileName = openApiSchema.path.split('/').pop()
 

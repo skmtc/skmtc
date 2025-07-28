@@ -47,12 +47,13 @@ export class OpenApiSchema {
   }
 
   async upload({ kvState, apiClient }: UploadArgs) {
-    const serverFilePath = await apiClient.uploadSchemaFile(this)
-
     const schemaId = await kvState.getSchemaId({ path: this.path })
 
     if (schemaId) {
-      const serverFilePath = await apiClient.uploadSchemaFile(this)
+      const serverFilePath = await apiClient.uploadSchemaFile({
+        openApiSchema: this,
+        schemaId
+      })
 
       const file: CreateSchemaBody = {
         type: 'file',
@@ -68,6 +69,11 @@ export class OpenApiSchema {
 
       return schema
     } else {
+      const serverFilePath = await apiClient.uploadSchemaFile({
+        openApiSchema: this,
+        schemaId: Date.now().toString()
+      })
+
       const body: CreateSchemaBody = {
         type: 'file',
         filePath: serverFilePath
