@@ -2,11 +2,12 @@
 import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.22.20'
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { camelCase } from 'npm:lodash-es@4.17.21'
-import { match, P } from 'npm:ts-pattern@5.7.1'
+import { match, P } from 'npm:ts-pattern@^5.8.0'
 import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '../types/TypeSystem.ts'
 import type { Definition } from '../dsl/Definition.ts'
 import { List, type SkipEmptyOption } from './List.ts'
 import type { Stringable } from '../dsl/Stringable.ts'
+import { isEmpty } from '../helpers/isEmpty.ts'
 
 type FunctionParameterArgs = {
   name?: string
@@ -107,10 +108,7 @@ export class FunctionParameter {
       })
       .with({ type: 'destructured' }, ({ typeDefinition }) => {
         if (this.skipEmpty) {
-          const isEmpty =
-            Object.keys(typeDefinition.value.objectProperties?.properties ?? {}).length === 0
-
-          if (isEmpty) {
+          if (isEmpty(typeDefinition.value.objectProperties?.properties ?? {})) {
             return ''
           }
         }

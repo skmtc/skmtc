@@ -3,7 +3,7 @@ import type { LogRecord } from 'jsr:@std/log@0.224.6/logger'
 import { BaseHandler } from 'jsr:@std/log@0.224.6/base-handler'
 import type { BaseHandlerOptions } from 'jsr:@std/log@0.224.6/base-handler'
 import type { CoreContext } from './CoreContext.ts'
-import { match } from 'npm:ts-pattern@5.7.1'
+import { match } from 'npm:ts-pattern@^5.8.0'
 
 export interface ResultsHandlerOptions extends BaseHandlerOptions {
   context: CoreContext

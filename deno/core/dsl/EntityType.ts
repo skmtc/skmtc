@@ -1,4 +1,4 @@
-import { match } from 'npm:ts-pattern@5.7.1'
+import { match } from 'npm:ts-pattern@^5.8.0'
 
 export class EntityType {
   type: 'variable' | 'type'

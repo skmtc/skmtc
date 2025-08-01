@@ -1,5 +1,4 @@
 import { isRef } from '../../helpers/refFns.ts'
-import { isEmpty } from 'lodash-es'
 import type { SchemaOrReference, ReferenceObject, SchemaObject, GetRefFn } from './types.ts'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 import { checkReadOnlyWriteOnlyConflicts } from './check-read-only-write-only-conflicts.ts'
@@ -17,6 +16,8 @@ import { genericMerge } from './generic-merge.ts'
 import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
 import { mergeIntersection } from './merge-intersection.ts'
 import { mergeCrossProduct } from './merge-union.ts'
+import { isEmpty } from '../../helpers/isEmpty.ts'
+
 export const mergeSchemasOrRefs = (
   first: SchemaOrReference,
   second: SchemaOrReference,

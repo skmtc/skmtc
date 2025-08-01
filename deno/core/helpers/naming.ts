@@ -2,7 +2,7 @@
 import { camelCase } from 'npm:lodash-es@4.17.21'
 import type { OasOperation } from '../oas/operation/Operation.ts'
 import type { Method } from '../types/Method.ts'
-import { match } from 'npm:ts-pattern@5.7.1'
+import { match } from 'npm:ts-pattern@^5.8.0'
 
 export const toEndpointType = (operation: OasOperation): 'query' | 'mutation' => {
   return operation.method === 'get' ? 'query' : 'mutation'

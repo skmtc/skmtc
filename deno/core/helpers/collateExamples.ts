@@ -1,7 +1,7 @@
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
-import { isEmpty } from 'lodash-es'
 import { match } from 'ts-pattern'
+import { isEmpty } from './isEmpty.ts'
 
 type CollatedExampleArgs = {
   objectSchema: OasSchema | OasRef<'schema'> | undefined

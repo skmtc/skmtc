@@ -11,7 +11,8 @@ import { methodValues } from '../../types/Method.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
 import invariant from 'tiny-invariant'
-import isEmpty from 'lodash-es/isEmpty.js'
+import { isEmpty } from '../../helpers/isEmpty.ts'
+
 type OperationInfo = {
   method: Method
   path: string
