@@ -105,6 +105,10 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
 
         const { oneOf: members, ...value } = merged
 
+        if (members.length === 0) {
+          return toUnknown({ value: merged, context })
+        }
+
         if (members.length === 1) {
           return toSchemaV3({ schema: members[0], context })
         }
@@ -136,6 +140,10 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         }
 
         const { anyOf: members, ...value } = merged
+
+        if (members.length === 0) {
+          return toUnknown({ value: merged, context })
+        }
 
         if (members.length === 1) {
           return toSchemaV3({ schema: members[0], context })

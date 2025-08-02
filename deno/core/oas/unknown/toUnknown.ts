@@ -4,7 +4,7 @@ import { OasUnknown } from './Unknown.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 
 type ToUnknownArgs = {
-  value: OpenAPIV3.NonArraySchemaObject
+  value: OpenAPIV3.SchemaObject
 
   context: ParseContext
 }
