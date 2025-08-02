@@ -32,6 +32,18 @@ type FileObject = {
   characters: number
 }
 
+type RenderOutput = {
+  artifacts: Record<string, string>
+  files: Record<
+    string,
+    {
+      destinationPath: string
+      lines: number
+      characters: number
+    }
+  >
+}
+
 export class RenderContext {
   files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
@@ -96,25 +108,21 @@ export class RenderContext {
 
     const fileObjects = await Promise.all(fileObjectPromises)
 
-    return fileObjects.reduce<FilesRenderResult>(
-      (acc, { content, path, ...fileMeta }) => ({
-        ...acc,
-        artifacts: {
-          ...acc.artifacts,
-          [path]: content
-        },
-        files: {
-          ...acc.files,
-          [path]: {
-            ...fileMeta
-          }
-        }
-      }),
-      {
-        artifacts: {},
-        files: {}
+    const output: FilesRenderResult = {
+      artifacts: {},
+      files: {}
+    }
+
+    for (const fileObject of fileObjects) {
+      output.artifacts[fileObject.path] = fileObject.content
+      output.files[fileObject.path] = {
+        destinationPath: fileObject.destinationPath,
+        lines: fileObject.lines,
+        characters: fileObject.characters
       }
-    )
+    }
+
+    return output
   }
 
   trace<T>(token: string | string[], fn: () => T): T {

@@ -44,3 +44,4 @@ package-lock.json
 packages/core
 packages/cli
 
+deno/test-one
