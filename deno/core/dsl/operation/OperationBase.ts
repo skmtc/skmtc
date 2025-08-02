@@ -11,16 +11,23 @@ import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
 import { ContentBase } from '../ContentBase.ts'
 import type { Definition } from '../Definition.ts'
-import type { SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
+import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
 import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/types.ts'
 import type { RefName } from '../../types/RefName.ts'
+import type { Identifier } from '../Identifier.ts'
 
 export type OperationBaseArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   operation: OasOperation
+}
+
+type CreateAndRegisterCannonicalArgs<Schema extends SchemaType> = {
+  schema: Schema
+  fallbackIdentifier: Identifier
+  schemaToValueFn: SchemaToValueFn
 }
 
 export class OperationBase<EnrichmentType = undefined> extends ContentBase {
@@ -56,6 +63,26 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
+  /** @experimental */
+  createAndRegisterCannonical<Schema extends SchemaType>({
+    schema,
+    fallbackIdentifier,
+    schemaToValueFn
+  }: CreateAndRegisterCannonicalArgs<Schema>): TypeSystemOutput<Schema['type']> {
+    const value = schemaToValueFn({
+      context: this.context,
+      schema,
+      destinationPath: this.settings.exportPath,
+      required: true,
+      rootRef: schema.isRef() ? schema.toRefName() : undefined
+    })
+
+    return schema.isRef()
+      ? value
+      : this.defineAndRegister({ identifier: fallbackIdentifier, value }).value
+  }
+
+  /** @experimental */
   defineAndRegister<V extends GeneratedValue>({
     identifier,
     value
@@ -67,6 +94,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
+  /** @experimental */
   createAndRegisterDefinition<Schema extends SchemaType>({
     schema,
     identifier,

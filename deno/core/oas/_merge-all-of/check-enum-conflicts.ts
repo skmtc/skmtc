@@ -10,7 +10,9 @@ export const checkEnumConflicts = (
     })
 
     if (intersection.length === 0) {
-      throw new Error('Cannot merge schemas: enum values have no intersection')
+      throw new Error(
+        `Cannot merge schemas: enum values have no intersection. First: ${first.enum}, Second: ${second.enum}`
+      )
     }
   }
 }

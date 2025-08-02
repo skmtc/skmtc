@@ -176,15 +176,9 @@ export class GenerateContext {
   toArtifacts(): GenerateResult {
     const generators = Object.values(this.toGeneratorConfigMap())
 
-    console.log('generators', JSON.stringify(generators, null, 2))
-    this.logger.info('generators', JSON.stringify(generators, null, 2))
-
     Sentry.startSpan({ name: 'toArtifacts' }, () =>
       generators.forEach(generatorConfig => {
         this.trace(generatorConfig.id, () => {
-          console.log('generatorConfig', JSON.stringify(generatorConfig, null, 2))
-          this.logger.info('generatorConfig', JSON.stringify(generatorConfig, null, 2))
-
           match(generatorConfig.type)
             .with('operation', () =>
               this.#runOperationGenerator({ oasDocument: this.oasDocument, generatorConfig })
@@ -210,15 +204,15 @@ export class GenerateContext {
   }: RunOperationGeneratorArgs<EnrichmentType>) {
     oasDocument.operations.reduce((acc, operation) => {
       return this.trace([operation.path, operation.method], () => {
-        if (
-          typeof generatorConfig?.isSupported === 'function' &&
-          !generatorConfig.isSupported({ operation, context: this })
-        ) {
-          this.captureCurrentResult('notSupported')
-          return acc
-        }
-
         try {
+          if (
+            typeof generatorConfig?.isSupported === 'function' &&
+            !generatorConfig.isSupported({ operation, context: this })
+          ) {
+            this.captureCurrentResult('notSupported')
+            return acc
+          }
+
           const result = generatorConfig.transform({ context: this, operation, acc })
 
           this.#addPreview(
@@ -461,8 +455,6 @@ export class GenerateContext {
       const { name } = definition.identifier
 
       if (!currentFile.definitions.has(name)) {
-        console.log(`registering definition: "${name}" in "${destinationPath}"`)
-        this.logger.info(`registering definition: "${name}" in ${destinationPath}`)
         currentFile.definitions.set(name, definition)
       }
     })

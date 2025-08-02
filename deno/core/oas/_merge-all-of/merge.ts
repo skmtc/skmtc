@@ -17,6 +17,7 @@ import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
 import { mergeIntersection } from './merge-intersection.ts'
 import { mergeCrossProduct } from './merge-union.ts'
 import { isEmpty } from '../../helpers/isEmpty.ts'
+import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
 
 export const mergeSchemasOrRefs = (
   first: SchemaOrReference,
@@ -51,6 +52,14 @@ export const mergeSchemasOrRefs = (
 
   if (containsAnyOf(first, second)) {
     return mergeCrossProduct({ first, second, getRef, groupType: 'anyOf' })
+  }
+
+  if (isNullOnly(first)) {
+    return mergeNullOnly(second)
+  }
+
+  if (isNullOnly(second)) {
+    return mergeNullOnly(first)
   }
 
   return mergeSchemas(first, second, getRef)

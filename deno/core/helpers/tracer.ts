@@ -15,7 +15,7 @@ export const tracer = <T>(
 
     return result
   } catch (error) {
-    log.error(`Error in ${stackTrail}`, error)
+    // log.error(error)
 
     stackTrail.remove(token)
 
