@@ -1,4 +1,4 @@
-import { normalize } from 'jsr:@std/path@1.0.6'
+import { normalize } from 'jsr:@std/path@^1.0.6'
 import type { ImportNameArg } from '../dsl/Import.ts'
 import { Import } from '../dsl/Import.ts'
 import { Definition } from '../dsl/Definition.ts'
@@ -16,8 +16,8 @@ import { ModelDriver } from '../dsl/model/ModelDriver.ts'
 import type { GenerationType, GeneratedValue } from '../types/GeneratedValue.ts'
 import { ContentSettings } from '../dsl/ContentSettings.ts'
 import type { RefName } from '../types/RefName.ts'
-import * as Sentry from 'npm:@sentry/deno@9.39.0'
-import type * as log from 'jsr:@std/log@0.224.6'
+import * as Sentry from 'npm:@sentry/deno@^9.39.0'
+import type * as log from 'jsr:@std/log@^0.224.6'
 import type { ResultType } from '../types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
@@ -73,7 +73,7 @@ export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   identifier: Identifier
   destinationPath: string
   schemaToValueFn: SchemaToValueFn
-  rootRef: RefName
+  rootRef?: RefName
 }
 
 export type DefineAndRegisterArgs<V extends GeneratedValue> = {

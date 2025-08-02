@@ -1,7 +1,7 @@
 import type { ModelInsertable } from './types.ts'
 import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
-import { normalize } from 'jsr:@std/path@1.0.6'
+import { normalize } from 'jsr:@std/path@^1.0.6'
 import { Definition } from '../Definition.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { GeneratedDefinition, GenerationType } from '../../types/GeneratedValue.ts'
@@ -15,7 +15,7 @@ type CreateModelArgs<V extends GeneratedValue, T extends GenerationType, Enrichm
   refName: RefName
   generation?: T
   destinationPath?: string
-  rootRef: RefName
+  rootRef?: RefName
 }
 type ApplyArgs<T extends GenerationType> = {
   generation?: T
@@ -34,7 +34,7 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V, T>
-  rootRef: RefName
+  rootRef?: RefName
   constructor({
     context,
     insertable,

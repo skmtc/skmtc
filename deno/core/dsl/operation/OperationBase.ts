@@ -1,13 +1,17 @@
 import type { OperationInsertable } from './types.ts'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
-import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.ts'
+import type {
+  BaseRegisterArgs,
+  GenerateContext,
+  CreateAndRegisterDefinition,
+  DefineAndRegisterArgs
+} from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
 import { ContentBase } from '../ContentBase.ts'
 import type { Definition } from '../Definition.ts'
-import type { Identifier } from '../Identifier.ts'
-import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
+import type { SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
 import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/types.ts'
 import type { RefName } from '../../types/RefName.ts'
@@ -17,13 +21,6 @@ export type OperationBaseArgs<EnrichmentType = undefined> = {
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   operation: OasOperation
-}
-
-type CreateAndRegisterDefinition<Schema extends SchemaType> = {
-  schema: Schema
-  identifier: Identifier
-  schemaToValueFn: SchemaToValueFn
-  rootRef: RefName
 }
 
 export class OperationBase<EnrichmentType = undefined> extends ContentBase {
@@ -59,12 +56,25 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
+  defineAndRegister<V extends GeneratedValue>({
+    identifier,
+    value
+  }: Omit<DefineAndRegisterArgs<V>, 'destinationPath'>): Definition<V> {
+    return this.context.defineAndRegister({
+      identifier,
+      value,
+      destinationPath: this.settings.exportPath
+    })
+  }
+
   createAndRegisterDefinition<Schema extends SchemaType>({
     schema,
     identifier,
     schemaToValueFn,
     rootRef
-  }: CreateAndRegisterDefinition<Schema>): Definition<TypeSystemOutput<Schema['type']>> {
+  }: Omit<CreateAndRegisterDefinition<Schema>, 'destinationPath'>): Definition<
+    TypeSystemOutput<Schema['type']>
+  > {
     return this.context.createAndRegisterDefinition({
       schema,
       identifier,

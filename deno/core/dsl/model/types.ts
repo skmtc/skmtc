@@ -11,7 +11,7 @@ type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
   refName: RefName
   settings: ContentSettings<EnrichmentType>
   destinationPath: string
-  rootRef: RefName
+  rootRef?: RefName
 }
 
 export type WithTransformModel = {

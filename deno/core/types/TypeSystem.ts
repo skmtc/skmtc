@@ -175,7 +175,7 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
   context: GenerateContext
   destinationPath: string
   schema: Schema
-  rootRef: RefName
+  rootRef?: RefName
   required: boolean | undefined
 }
 

@@ -1,12 +1,12 @@
-import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'npm:openapi-types@12.1.3'
+import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'npm:openapi-types@^12.1.3'
 import { parse as parseYaml } from 'jsr:@std/yaml@^1.0.5'
 import {
   Converter as ThreeOneToThreeZeroConverter,
   type ConverterOptions
-} from 'npm:@apiture/openapi-down-convert@0.14.0'
+} from 'npm:@apiture/openapi-down-convert@^0.14.0'
 import { match, P } from 'ts-pattern'
 // @deno-types="npm:@types/swagger2openapi@7.0.4"
-import converter from 'npm:swagger2openapi@7.0.8'
+import converter from 'npm:swagger2openapi@^7.0.8'
 
 type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3_1.Document
 

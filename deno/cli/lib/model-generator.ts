@@ -71,7 +71,7 @@ type ConstructorArgs = {
   destinationPath: string
   refName: RefName
   settings: ContentSettings
-  rootRef: RefName
+  rootRef?: RefName
 }
 
 export class ${mainModule}Insertable extends ${mainModule}Base {
