@@ -1,4 +1,8 @@
-import type { BaseRegisterArgs, GenerateContext } from '../../context/GenerateContext.ts'
+import type {
+  BaseRegisterArgs,
+  GenerateContext,
+  InsertModelOptions
+} from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
 import type { RefName } from '../../types/RefName.ts'
@@ -29,11 +33,13 @@ export class ModelBase<EnrichmentType = undefined> extends ContentBase {
 
   insertModel<V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: ModelInsertable<V, EnrichmentType>,
-    refName: RefName
+    refName: RefName,
+    options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
   ): Inserted<V, 'force', EnrichmentType> {
     return this.context.insertModel(insertable, refName, {
       generation: 'force',
-      destinationPath: this.settings.exportPath
+      destinationPath: this.settings.exportPath,
+      noExport: options.noExport
     })
   }
 

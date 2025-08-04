@@ -74,12 +74,14 @@ export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   destinationPath: string
   schemaToValueFn: SchemaToValueFn
   rootRef?: RefName
+  noExport?: boolean
 }
 
 export type DefineAndRegisterArgs<V extends GeneratedValue> = {
   identifier: Identifier
   value: V
   destinationPath: string
+  noExport?: boolean
 }
 
 export type GetOperationSettingsArgs = {
@@ -100,11 +102,13 @@ export type ToModelSettingsArgs = {
 }
 
 export type InsertOperationOptions<T extends GenerationType> = {
+  noExport?: boolean
   generation?: T
   destinationPath?: string
 }
 
 export type InsertModelOptions<T extends GenerationType> = {
+  noExport?: boolean
   generation?: T
   destinationPath?: string
 }
@@ -150,7 +154,6 @@ export class GenerateContext {
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   stackTrail: StackTrail
   modelDepth: Record<string, number>
-
   constructor({
     oasDocument,
     settings,
@@ -320,7 +323,8 @@ export class GenerateContext {
     identifier,
     destinationPath,
     schemaToValueFn,
-    rootRef
+    rootRef,
+    noExport
   }: CreateAndRegisterDefinition<Schema>): Definition<TypeSystemOutput<Schema['type']>> {
     const cachedDefinition = this.findDefinition({
       name: identifier.name,
@@ -344,7 +348,8 @@ export class GenerateContext {
     return this.defineAndRegister({
       identifier,
       value,
-      destinationPath
+      destinationPath,
+      noExport
     })
   }
 
@@ -356,7 +361,8 @@ export class GenerateContext {
   defineAndRegister<V extends GeneratedValue>({
     identifier,
     value,
-    destinationPath
+    destinationPath,
+    noExport
   }: DefineAndRegisterArgs<V>): Definition<V> {
     // @TODO cache check is duplicatd if call comes from
     // createAndRegisterDefinition. Look for a way to share code between
@@ -375,7 +381,8 @@ export class GenerateContext {
     const definition = new Definition({
       context: this,
       identifier,
-      value
+      value,
+      noExport
     })
 
     this.register({
@@ -477,14 +484,15 @@ export class GenerateContext {
   insertOperation<V extends GeneratedValue, T extends GenerationType, EnrichmentType = undefined>(
     insertable: OperationInsertable<V, EnrichmentType>,
     operation: OasOperation,
-    { generation, destinationPath }: InsertOperationOptions<T> = {}
+    { generation, destinationPath, noExport = false }: InsertOperationOptions<T> = {}
   ): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new OperationDriver({
       context: this,
       insertable,
       operation,
       generation,
-      destinationPath
+      destinationPath,
+      noExport
     })
 
     return new Inserted({ settings, definition })
@@ -508,7 +516,7 @@ export class GenerateContext {
   insertModel<V extends GeneratedValue, T extends GenerationType, EnrichmentType>(
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName,
-    { generation, destinationPath }: InsertModelOptions<T> = {}
+    { generation, destinationPath, noExport = false }: InsertModelOptions<T> = {}
   ): Inserted<V, T, EnrichmentType> {
     const { settings, definition } = new ModelDriver({
       context: this,
@@ -516,7 +524,8 @@ export class GenerateContext {
       refName,
       generation,
       destinationPath,
-      rootRef: refName
+      rootRef: refName,
+      noExport
     })
 
     return new Inserted({ settings, definition })

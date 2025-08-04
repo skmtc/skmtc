@@ -5,7 +5,9 @@ import type {
   BaseRegisterArgs,
   GenerateContext,
   CreateAndRegisterDefinition,
-  DefineAndRegisterArgs
+  DefineAndRegisterArgs,
+  InsertOperationOptions,
+  InsertModelOptions
 } from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
@@ -28,6 +30,7 @@ type CreateAndRegisterCannonicalArgs<Schema extends SchemaType> = {
   schema: Schema
   fallbackIdentifier: Identifier
   schemaToValueFn: SchemaToValueFn
+  noExport?: boolean
 }
 
 export class OperationBase<EnrichmentType = undefined> extends ContentBase {
@@ -45,21 +48,25 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
 
   insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: OperationInsertable<V, EnrichmentType>,
-    operation: OasOperation
+    operation: OasOperation,
+    options: Pick<InsertOperationOptions<'force'>, 'noExport'> = {}
   ): Inserted<V, 'force', EnrichmentType> {
     return this.context.insertOperation(insertable, operation, {
       generation: 'force',
-      destinationPath: this.settings.exportPath
+      destinationPath: this.settings.exportPath,
+      noExport: options.noExport
     })
   }
 
   insertModel<V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: ModelInsertable<V, EnrichmentType>,
-    refName: RefName
+    refName: RefName,
+    options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
   ): Inserted<V, 'force', EnrichmentType> {
     return this.context.insertModel(insertable, refName, {
       generation: 'force',
-      destinationPath: this.settings.exportPath
+      destinationPath: this.settings.exportPath,
+      noExport: options.noExport
     })
   }
 
@@ -67,7 +74,8 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
   createAndRegisterCannonical<Schema extends SchemaType>({
     schema,
     fallbackIdentifier,
-    schemaToValueFn
+    schemaToValueFn,
+    noExport
   }: CreateAndRegisterCannonicalArgs<Schema>): TypeSystemOutput<Schema['type']> {
     const value = schemaToValueFn({
       context: this.context,
@@ -79,18 +87,20 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
 
     return schema.isRef()
       ? value
-      : this.defineAndRegister({ identifier: fallbackIdentifier, value }).value
+      : this.defineAndRegister({ identifier: fallbackIdentifier, value, noExport }).value
   }
 
   /** @experimental */
   defineAndRegister<V extends GeneratedValue>({
     identifier,
-    value
+    value,
+    noExport
   }: Omit<DefineAndRegisterArgs<V>, 'destinationPath'>): Definition<V> {
     return this.context.defineAndRegister({
       identifier,
       value,
-      destinationPath: this.settings.exportPath
+      destinationPath: this.settings.exportPath,
+      noExport
     })
   }
 
@@ -99,7 +109,8 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     schema,
     identifier,
     schemaToValueFn,
-    rootRef
+    rootRef,
+    noExport
   }: Omit<CreateAndRegisterDefinition<Schema>, 'destinationPath'>): Definition<
     TypeSystemOutput<Schema['type']>
   > {
@@ -108,7 +119,8 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
       identifier,
       schemaToValueFn,
       destinationPath: this.settings.exportPath,
-      rootRef: rootRef
+      rootRef: rootRef,
+      noExport
     })
   }
 

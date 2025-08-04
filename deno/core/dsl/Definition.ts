@@ -9,19 +9,22 @@ type ConstructorArgs<V extends GeneratedValue> = {
   description?: string
   identifier: Identifier
   value: V
+  noExport?: boolean
 }
 
 export class Definition<V extends GeneratedValue = GeneratedValue> extends ContentBase {
   identifier: Identifier
   description: string | undefined
   value: V
+  noExport?: boolean
 
-  constructor({ context, identifier, value, description }: ConstructorArgs<V>) {
+  constructor({ context, identifier, value, description, noExport }: ConstructorArgs<V>) {
     super({ context, generatorKey: value.generatorKey })
 
     this.value = value
     this.identifier = identifier
     this.description = description
+    this.noExport = noExport
   }
 
   override toString(): string {
@@ -31,7 +34,7 @@ export class Definition<V extends GeneratedValue = GeneratedValue> extends Conte
 
     // @TODO move syntax to typescript package to enable language agnostic use
     return withDescription(
-      `export ${this.identifier.entityType} ${identifier} = ${this.value};\n`,
+      `${this.noExport ? '' : 'export '}${this.identifier.entityType} ${identifier} = ${this.value};\n`,
       {
         description: this.description
       }

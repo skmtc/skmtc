@@ -19,6 +19,7 @@ type CreateOperationArgs<
   operation: OasOperation
   generation?: T
   destinationPath?: string
+  noExport?: boolean
 }
 
 type ApplyArgs<T extends GenerationType> = {
@@ -42,19 +43,20 @@ export class OperationDriver<
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V, T>
-
+  noExport?: boolean
   constructor({
     context,
     insertable,
     operation,
     generation,
-    destinationPath
+    destinationPath,
+    noExport
   }: CreateOperationArgs<V, T, EnrichmentType>) {
     this.context = context
     this.insertable = insertable
     this.operation = operation
     this.destinationPath = destinationPath
-
+    this.noExport = noExport
     this.settings = this.context.toOperationContentSettings({
       operation,
       insertable
@@ -105,7 +107,8 @@ export class OperationDriver<
     const definition = new Definition({
       context: this.context,
       value,
-      identifier
+      identifier,
+      noExport: this.noExport
     })
 
     this.context.register({

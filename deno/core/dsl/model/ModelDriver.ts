@@ -16,6 +16,7 @@ type CreateModelArgs<V extends GeneratedValue, T extends GenerationType, Enrichm
   generation?: T
   destinationPath?: string
   rootRef?: RefName
+  noExport?: boolean
 }
 type ApplyArgs<T extends GenerationType> = {
   generation?: T
@@ -25,6 +26,7 @@ type ApplyArgs<T extends GenerationType> = {
 type GetDefinitionArgs = {
   identifier: Identifier
   exportPath: string
+  noExport?: boolean
 }
 
 export class ModelDriver<V extends GeneratedValue, T extends GenerationType, EnrichmentType> {
@@ -35,19 +37,22 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
   destinationPath?: string
   definition: GeneratedDefinition<V, T>
   rootRef?: RefName
+  noExport?: boolean
   constructor({
     context,
     insertable,
     refName,
     generation,
     destinationPath,
-    rootRef
+    rootRef,
+    noExport
   }: CreateModelArgs<V, T, EnrichmentType>) {
     this.context = context
     this.insertable = insertable
     this.refName = refName
     this.destinationPath = destinationPath
     this.rootRef = rootRef
+    this.noExport = noExport
 
     this.context.modelDepth[`${insertable.id}:${refName}`] = 0
 
@@ -111,7 +116,8 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
     const definition = new Definition({
       context: this.context,
       value,
-      identifier
+      identifier,
+      noExport: this.noExport
     })
 
     this.context.register({
