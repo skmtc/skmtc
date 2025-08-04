@@ -11,7 +11,6 @@
     "jsr:@cmd-johnson/oauth2-client@2": "2.0.0",
     "jsr:@david/code-block-writer@^13.0.3": "13.0.3",
     "jsr:@deno/dnt@0.42.3": "0.42.3",
-    "jsr:@skmtc/core@^0.0.690": "0.0.690",
     "jsr:@std/assert@^1.0.10": "1.0.13",
     "jsr:@std/assert@~1.0.6": "1.0.13",
     "jsr:@std/async@^1.0.9": "1.0.13",
@@ -146,27 +145,6 @@
         "jsr:@std/fs@1",
         "jsr:@std/path@1",
         "jsr:@ts-morph/bootstrap"
-      ]
-    },
-    "@skmtc/core@0.0.690": {
-      "integrity": "a2aee32149af39a1462117eebe518856bb5141c31c6e824cbd6b1734b08eaf8c",
-      "dependencies": [
-        "jsr:@std/log",
-        "jsr:@std/path@^1.0.6",
-        "jsr:@std/yaml",
-        "npm:@apiture/openapi-down-convert@0.14",
-        "npm:@babel/helper-validator-identifier",
-        "npm:@sentry/deno",
-        "npm:@types/babel__helper-validator-identifier",
-        "npm:@types/lodash-es",
-        "npm:@types/swagger2openapi",
-        "npm:lodash-es",
-        "npm:openapi-types",
-        "npm:prettier",
-        "npm:swagger2openapi",
-        "npm:tiny-invariant",
-        "npm:ts-pattern",
-        "npm:valibot"
       ]
     },
     "@std/assert@1.0.13": {
@@ -712,7 +690,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.690"
+          "jsr:@skmtc/core@^0.0.692"
         ]
       },
       "core": {
@@ -732,7 +710,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.690",
+          "jsr:@skmtc/core@^0.0.692",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@apiture/openapi-down-convert@0.14",

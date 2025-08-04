@@ -106,7 +106,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         const { oneOf: members, ...value } = merged
 
         if (members.length === 0) {
-          return toUnknown({ value: merged, context })
+          throw new Error('"oneOf" array is empty')
         }
 
         if (members.length === 1) {
@@ -142,7 +142,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         const { anyOf: members, ...value } = merged
 
         if (members.length === 0) {
-          return toUnknown({ value: merged, context })
+          throw new Error('"anyOf" array is empty')
         }
 
         if (members.length === 1) {
