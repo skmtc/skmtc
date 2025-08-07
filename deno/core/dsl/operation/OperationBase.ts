@@ -8,7 +8,8 @@ import type {
   DefineAndRegisterArgs,
   InsertOperationOptions,
   InsertModelOptions,
-  InsertNormalisedModelArgs
+  InsertNormalisedModelArgs,
+  InsertNormalisedModelReturn
 } from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
@@ -18,6 +19,9 @@ import type { SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
 import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/types.ts'
 import type { RefName } from '../../types/RefName.ts'
+import { OasSchema } from '../../oas/schema/Schema.ts'
+import { OasRef } from '../../oas/ref/Ref.ts'
+import { OasVoid } from '../../oas/void/Void.ts'
 
 export type OperationBaseArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -63,11 +67,15 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
-  insertNormalizedModel<V extends GeneratedValue, EnrichmentType = undefined>(
+  insertNormalizedModel<
+    V extends GeneratedValue,
+    Schema extends OasSchema | OasRef<'schema'> | OasVoid,
+    EnrichmentType = undefined
+  >(
     insertable: ModelInsertable<V, EnrichmentType>,
-    { schema, fallbackName }: Omit<InsertNormalisedModelArgs, 'destinationPath'>,
+    { schema, fallbackName }: Omit<InsertNormalisedModelArgs<Schema>, 'destinationPath'>,
     options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
-  ): Definition<V> {
+  ): InsertNormalisedModelReturn<V, Schema> {
     return this.context.insertNormalisedModel(
       insertable,
       {
@@ -89,26 +97,6 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
       identifier,
       value,
       destinationPath: this.settings.exportPath,
-      noExport
-    })
-  }
-
-  /** @experimental */
-  createAndRegisterDefinition<Schema extends SchemaType>({
-    schema,
-    identifier,
-    schemaToValueFn,
-    rootRef,
-    noExport
-  }: Omit<CreateAndRegisterDefinition<Schema>, 'destinationPath'>): Definition<
-    TypeSystemOutput<Schema['type']>
-  > {
-    return this.context.createAndRegisterDefinition({
-      schema,
-      identifier,
-      schemaToValueFn,
-      destinationPath: this.settings.exportPath,
-      rootRef: rootRef,
       noExport
     })
   }

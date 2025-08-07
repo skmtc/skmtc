@@ -22,7 +22,12 @@ import type { ResultType } from '../types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import type { Identifier } from '../dsl/Identifier.ts'
-import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../types/TypeSystem.ts'
+import type {
+  SchemaToNonRef,
+  SchemaToValueFn,
+  SchemaType,
+  TypeSystemOutput
+} from '../types/TypeSystem.ts'
 import { Inserted } from '../dsl/Inserted.ts'
 import { File } from '../dsl/File.ts'
 import { JsonFile } from '../dsl/JsonFile.ts'
@@ -108,15 +113,23 @@ export type InsertOperationOptions<T extends GenerationType> = {
   destinationPath?: string
 }
 
-export type InsertNormalisedModelArgs = {
+export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'> | OasVoid> = {
   fallbackName: string
-  schema: OasSchema | OasRef<'schema'> | OasVoid
+  schema: Schema
   destinationPath: string
 }
 
 export type InsertNormalisedModelOptions = {
   noExport?: boolean
 }
+
+export type InsertNormalisedModelReturn<
+  V extends GeneratedValue,
+  Schema extends OasSchema | OasRef<'schema'> | OasVoid
+> =
+  Schema extends OasRef<'schema'>
+    ? Definition<V>
+    : Definition<TypeSystemOutput<SchemaToNonRef<Schema>['type']>>
 
 export type InsertModelOptions<T extends GenerationType> = {
   noExport?: boolean
@@ -313,58 +326,6 @@ export class GenerateContext {
   }
 
   /**
-   * Converts schema to value using `schemaToValueFn` and creates definition
-   * with the given `identifier` at `destinationPath`.
-   *
-   * If a definition with the same name already exists, it will be returned
-   * instead of creating a new one.
-   *
-   * @experimental
-   *
-   * @param schema - The schema to create the definition for.
-   * @param identifier - The identifier for the definition.
-   * @param destinationPath - The path to the file where the definition will be registered.
-   * @param schemaToValueFn - A function that converts the schema to a value.
-   * @param rootRef - If the definition identifier is a ref, provide it here. It can be
-   * used to support circular references depending on generator implementation.
-   * @returns The created definition or cached definition if it already exists.
-   */
-  createAndRegisterDefinition<Schema extends SchemaType>({
-    schema,
-    identifier,
-    destinationPath,
-    schemaToValueFn,
-    rootRef,
-    noExport
-  }: CreateAndRegisterDefinition<Schema>): Definition<TypeSystemOutput<Schema['type']>> {
-    const cachedDefinition = this.findDefinition({
-      name: identifier.name,
-      exportPath: destinationPath
-    })
-
-    // @TODO add check to make sure retrieved definition
-    // used same generator and same schema #SKM-47
-    if (cachedDefinition) {
-      return cachedDefinition as Definition<TypeSystemOutput<Schema['type']>>
-    }
-
-    const value = schemaToValueFn({
-      context: this,
-      schema,
-      destinationPath,
-      rootRef,
-      required: true
-    })
-
-    return this.defineAndRegister({
-      identifier,
-      value,
-      destinationPath,
-      noExport
-    })
-  }
-
-  /**
    * Create and register a definition with the given `identifier` at `destinationPath`.
    *
    * @experimental
@@ -509,11 +470,15 @@ export class GenerateContext {
     return new Inserted({ settings, definition })
   }
 
-  insertNormalisedModel<V extends GeneratedValue, EnrichmentType>(
+  insertNormalisedModel<
+    V extends GeneratedValue,
+    Schema extends OasSchema | OasRef<'schema'> | OasVoid,
+    EnrichmentType
+  >(
     insertable: ModelInsertable<V, EnrichmentType>,
-    { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs,
+    { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
     { noExport = false }: InsertNormalisedModelOptions
-  ): Definition<V> {
+  ): InsertNormalisedModelReturn<V, Schema> {
     if (schema.isRef()) {
       const { definition } = this.insertModel(insertable, schema.toRefName(), {
         generation: 'force',
@@ -521,19 +486,37 @@ export class GenerateContext {
         noExport
       })
 
-      return definition
+      // @TODO Using mapped types would help avoid generics casting
+      return definition as InsertNormalisedModelReturn<V, Schema>
     }
 
-    const definition = this.createAndRegisterDefinition({
-      identifier: insertable.createIdentifier(fallbackName),
+    const cachedDefinition = this.findDefinition({
+      name: fallbackName,
+      exportPath: destinationPath
+    })
+
+    // @TODO add check to make sure retrieved definition
+    // used same generator and same schema #SKM-47
+    if (cachedDefinition) {
+      return cachedDefinition as InsertNormalisedModelReturn<V, Schema>
+    }
+
+    const value = insertable.schemaToValueFn({
+      context: this,
       schema,
-      schemaToValueFn: insertable.schemaToValueFn,
+      destinationPath,
+      required: true
+    })
+
+    const definition = this.defineAndRegister({
+      identifier: insertable.createIdentifier(fallbackName),
+      value,
       destinationPath,
       noExport
     })
 
-    // @TODO: using TypeSystemOutput<Schema> would be more accurate than V. Needs attention
-    return definition as unknown as Definition<V>
+    // @TODO Using mapped types would help avoid generics casting
+    return definition as InsertNormalisedModelReturn<V, Schema>
   }
 
   /**
