@@ -7,7 +7,6 @@ import type { Identifier } from '../Identifier.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { get } from 'npm:lodash-es@4.17.21'
-import type { SchemaToValueFn } from '../../types/TypeSystem.ts'
 
 export type ModelInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -25,7 +24,6 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
-  schemaToValueFn: SchemaToValueFn
 }
 
 export const toModelBase = <EnrichmentType = undefined>(

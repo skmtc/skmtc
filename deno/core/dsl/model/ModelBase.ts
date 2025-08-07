@@ -48,16 +48,16 @@ export class ModelBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
-  insertNormalizedModel<Schema extends OasSchema | OasRef<'schema'>, EnrichmentType = undefined>(
-    insertable: ModelInsertable<TypeSystemOutput<SchemaToRef<Schema>['type']>, EnrichmentType>,
-    { schema, fallbackIdentifier }: Omit<InsertNormalisedModelArgs<Schema>, 'destinationPath'>,
+  insertNormalizedModel<V extends GeneratedValue, EnrichmentType = undefined>(
+    insertable: ModelInsertable<V, EnrichmentType>,
+    { schema, fallbackName }: Omit<InsertNormalisedModelArgs, 'destinationPath'>,
     options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
-  ): Definition<TypeSystemOutput<Schema['type']>> {
+  ): Definition<V> {
     return this.context.insertNormalisedModel(
       insertable,
       {
         schema,
-        fallbackIdentifier,
+        fallbackName,
         destinationPath: this.settings.exportPath
       },
       options

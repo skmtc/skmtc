@@ -14,12 +14,10 @@ import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
 import { ContentBase } from '../ContentBase.ts'
 import type { Definition } from '../Definition.ts'
-import type { SchemaToRef, SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
+import type { SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
 import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/types.ts'
 import type { RefName } from '../../types/RefName.ts'
-import type { OasSchema } from '../../oas/schema/Schema.ts'
-import type { OasRef } from '../../oas/ref/Ref.ts'
 
 export type OperationBaseArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -65,16 +63,16 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
-  insertNormalizedModel<Schema extends OasSchema | OasRef<'schema'>, EnrichmentType = undefined>(
-    insertable: ModelInsertable<TypeSystemOutput<SchemaToRef<Schema>['type']>, EnrichmentType>,
-    { schema, fallbackIdentifier }: Omit<InsertNormalisedModelArgs<Schema>, 'destinationPath'>,
+  insertNormalizedModel<V extends GeneratedValue, EnrichmentType = undefined>(
+    insertable: ModelInsertable<V, EnrichmentType>,
+    { schema, fallbackName }: Omit<InsertNormalisedModelArgs, 'destinationPath'>,
     options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
-  ): Definition<TypeSystemOutput<Schema['type']>> {
+  ): Definition<V> {
     return this.context.insertNormalisedModel(
       insertable,
       {
         schema,
-        fallbackIdentifier,
+        fallbackName,
         destinationPath: this.settings.exportPath
       },
       options

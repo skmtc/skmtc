@@ -22,13 +22,7 @@ import type { ResultType } from '../types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import type { Identifier } from '../dsl/Identifier.ts'
-import type {
-  SchemaToRef,
-  SchemaToValueFn,
-  SchemaType,
-  SchemaToNonRef,
-  TypeSystemOutput
-} from '../types/TypeSystem.ts'
+import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../types/TypeSystem.ts'
 import { Inserted } from '../dsl/Inserted.ts'
 import { File } from '../dsl/File.ts'
 import { JsonFile } from '../dsl/JsonFile.ts'
@@ -36,6 +30,7 @@ import invariant from 'tiny-invariant'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { OperationSource, ModelSource, Preview, PreviewModule } from '../types/Preview.ts'
 import { match } from 'ts-pattern'
+import type { OasVoid } from '../oas/void/Void.ts'
 
 type ConstructorArgs = {
   oasDocument: OasDocument
@@ -113,9 +108,9 @@ export type InsertOperationOptions<T extends GenerationType> = {
   destinationPath?: string
 }
 
-export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'>> = {
-  fallbackIdentifier: Identifier
-  schema: Schema
+export type InsertNormalisedModelArgs = {
+  fallbackName: string
+  schema: OasSchema | OasRef<'schema'> | OasVoid
   destinationPath: string
 }
 
@@ -514,17 +509,13 @@ export class GenerateContext {
     return new Inserted({ settings, definition })
   }
 
-  insertNormalisedModel<Schema extends OasSchema | OasRef<'schema'>, EnrichmentType>(
-    insertable: ModelInsertable<TypeSystemOutput<SchemaToRef<Schema>['type']>, EnrichmentType>,
-    { schema, fallbackIdentifier, destinationPath }: InsertNormalisedModelArgs<Schema>,
+  insertNormalisedModel<V extends GeneratedValue, EnrichmentType>(
+    insertable: ModelInsertable<V, EnrichmentType>,
+    { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs,
     { noExport = false }: InsertNormalisedModelOptions
-  ): Definition<TypeSystemOutput<Schema['type']>> {
+  ): Definition<V> {
     if (schema.isRef()) {
-      const { definition } = this.insertModel<
-        TypeSystemOutput<SchemaToRef<Schema>['type']>,
-        'force',
-        EnrichmentType
-      >(insertable, schema.toRefName(), {
+      const { definition } = this.insertModel(insertable, schema.toRefName(), {
         generation: 'force',
         destinationPath,
         noExport
@@ -533,13 +524,16 @@ export class GenerateContext {
       return definition
     }
 
-    return this.createAndRegisterDefinition<Schema>({
-      identifier: fallbackIdentifier,
+    const definition = this.createAndRegisterDefinition({
+      identifier: insertable.createIdentifier(fallbackName),
       schema,
       schemaToValueFn: insertable.schemaToValueFn,
       destinationPath,
       noExport
     })
+
+    // @TODO: using TypeSystemOutput<Schema> would be more accurate than V. Needs attention
+    return definition as unknown as Definition<V>
   }
 
   /**

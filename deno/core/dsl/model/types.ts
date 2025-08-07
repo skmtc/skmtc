@@ -49,6 +49,7 @@ export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & 
   toExportPath: (refName: RefName) => string
   toEnrichments: ({ refName, context }: ToEnrichmentsArgs) => EnrichmentType
   schemaToValueFn: SchemaToValueFn
+  createIdentifier: (name: string) => Identifier
   // deno-lint-ignore ban-types
 } & Function
 
