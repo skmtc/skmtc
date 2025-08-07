@@ -1,7 +1,8 @@
 import type {
   BaseRegisterArgs,
   GenerateContext,
-  InsertModelOptions
+  InsertModelOptions,
+  InsertNormalisedModelArgs
 } from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
@@ -10,6 +11,10 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import type { ModelInsertable } from './types.ts'
 import { ContentBase } from '../ContentBase.ts'
 import type { Inserted } from '../Inserted.ts'
+import type { OasSchema } from '../../oas/schema/Schema.ts'
+import type { OasRef } from '../../oas/ref/Ref.ts'
+import type { SchemaToRef, TypeSystemOutput } from '../../types/TypeSystem.ts'
+import type { Definition } from '../Definition.ts'
 
 export type ModelBaseArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -41,6 +46,22 @@ export class ModelBase<EnrichmentType = undefined> extends ContentBase {
       destinationPath: this.settings.exportPath,
       noExport: options.noExport
     })
+  }
+
+  insertNormalizedModel<Schema extends OasSchema | OasRef<'schema'>, EnrichmentType = undefined>(
+    insertable: ModelInsertable<TypeSystemOutput<SchemaToRef<Schema>['type']>, EnrichmentType>,
+    { schema, fallbackIdentifier }: Omit<InsertNormalisedModelArgs<Schema>, 'destinationPath'>,
+    options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
+  ): Definition<TypeSystemOutput<Schema['type']>> {
+    return this.context.insertNormalisedModel(
+      insertable,
+      {
+        schema,
+        fallbackIdentifier,
+        destinationPath: this.settings.exportPath
+      },
+      options
+    )
   }
 
   override register(args: BaseRegisterArgs): void {

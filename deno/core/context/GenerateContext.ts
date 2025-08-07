@@ -22,7 +22,13 @@ import type { ResultType } from '../types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import type { Identifier } from '../dsl/Identifier.ts'
-import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../types/TypeSystem.ts'
+import type {
+  SchemaToRef,
+  SchemaToValueFn,
+  SchemaType,
+  SchemaToNonRef,
+  TypeSystemOutput
+} from '../types/TypeSystem.ts'
 import { Inserted } from '../dsl/Inserted.ts'
 import { File } from '../dsl/File.ts'
 import { JsonFile } from '../dsl/JsonFile.ts'
@@ -105,6 +111,16 @@ export type InsertOperationOptions<T extends GenerationType> = {
   noExport?: boolean
   generation?: T
   destinationPath?: string
+}
+
+export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'>> = {
+  fallbackIdentifier: Identifier
+  schema: Schema
+  destinationPath: string
+}
+
+export type InsertNormalisedModelOptions = {
+  noExport?: boolean
 }
 
 export type InsertModelOptions<T extends GenerationType> = {
@@ -496,6 +512,34 @@ export class GenerateContext {
     })
 
     return new Inserted({ settings, definition })
+  }
+
+  insertNormalisedModel<Schema extends OasSchema | OasRef<'schema'>, EnrichmentType>(
+    insertable: ModelInsertable<TypeSystemOutput<SchemaToRef<Schema>['type']>, EnrichmentType>,
+    { schema, fallbackIdentifier, destinationPath }: InsertNormalisedModelArgs<Schema>,
+    { noExport = false }: InsertNormalisedModelOptions
+  ): Definition<TypeSystemOutput<Schema['type']>> {
+    if (schema.isRef()) {
+      const { definition } = this.insertModel<
+        TypeSystemOutput<SchemaToRef<Schema>['type']>,
+        'force',
+        EnrichmentType
+      >(insertable, schema.toRefName(), {
+        generation: 'force',
+        destinationPath,
+        noExport
+      })
+
+      return definition
+    }
+
+    return this.createAndRegisterDefinition<Schema>({
+      identifier: fallbackIdentifier,
+      schema,
+      schemaToValueFn: insertable.schemaToValueFn,
+      destinationPath,
+      noExport
+    })
   }
 
   /**

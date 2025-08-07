@@ -7,30 +7,25 @@ import type {
   CreateAndRegisterDefinition,
   DefineAndRegisterArgs,
   InsertOperationOptions,
-  InsertModelOptions
+  InsertModelOptions,
+  InsertNormalisedModelArgs
 } from '../../context/GenerateContext.ts'
 import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
 import { ContentBase } from '../ContentBase.ts'
 import type { Definition } from '../Definition.ts'
-import type { SchemaToValueFn, SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
+import type { SchemaToRef, SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
 import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/types.ts'
 import type { RefName } from '../../types/RefName.ts'
-import type { Identifier } from '../Identifier.ts'
+import type { OasSchema } from '../../oas/schema/Schema.ts'
+import type { OasRef } from '../../oas/ref/Ref.ts'
 
 export type OperationBaseArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   operation: OasOperation
-}
-
-type CreateAndRegisterCannonicalArgs<Schema extends SchemaType> = {
-  schema: Schema
-  fallbackIdentifier: Identifier
-  schemaToValueFn: SchemaToValueFn
-  noExport?: boolean
 }
 
 export class OperationBase<EnrichmentType = undefined> extends ContentBase {
@@ -70,24 +65,20 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
-  /** @experimental */
-  createAndRegisterCannonical<Schema extends SchemaType>({
-    schema,
-    fallbackIdentifier,
-    schemaToValueFn,
-    noExport
-  }: CreateAndRegisterCannonicalArgs<Schema>): TypeSystemOutput<Schema['type']> {
-    const value = schemaToValueFn({
-      context: this.context,
-      schema,
-      destinationPath: this.settings.exportPath,
-      required: true,
-      rootRef: schema.isRef() ? schema.toRefName() : undefined
-    })
-
-    return schema.isRef()
-      ? value
-      : this.defineAndRegister({ identifier: fallbackIdentifier, value, noExport }).value
+  insertNormalizedModel<Schema extends OasSchema | OasRef<'schema'>, EnrichmentType = undefined>(
+    insertable: ModelInsertable<TypeSystemOutput<SchemaToRef<Schema>['type']>, EnrichmentType>,
+    { schema, fallbackIdentifier }: Omit<InsertNormalisedModelArgs<Schema>, 'destinationPath'>,
+    options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
+  ): Definition<TypeSystemOutput<Schema['type']>> {
+    return this.context.insertNormalisedModel(
+      insertable,
+      {
+        schema,
+        fallbackIdentifier,
+        destinationPath: this.settings.exportPath
+      },
+      options
+    )
   }
 
   /** @experimental */

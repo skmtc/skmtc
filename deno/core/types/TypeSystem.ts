@@ -168,6 +168,12 @@ export type SchemaToTypeSystemMap = {
 
 export type SchemaType = OasSchema | OasRef<'schema'> | OasVoid | CustomValue
 
+export type SchemaToRef<Schema extends SchemaType> =
+  Schema extends OasRef<'schema'> ? Schema : never
+
+export type SchemaToNonRef<Schema extends SchemaType> =
+  Schema extends OasRef<'schema'> ? never : Schema
+
 export type TypeSystemOutput<T extends keyof SchemaToTypeSystemMap> =
   SchemaToTypeSystemMap[T]['output']
 

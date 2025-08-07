@@ -5,6 +5,7 @@ import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { PreviewModule } from '../../types/Preview.ts'
+import type { SchemaToValueFn } from '../../types/TypeSystem.ts'
 
 type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
   context: GenerateContext
@@ -47,6 +48,7 @@ export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & 
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
   toEnrichments: ({ refName, context }: ToEnrichmentsArgs) => EnrichmentType
+  schemaToValueFn: SchemaToValueFn
   // deno-lint-ignore ban-types
 } & Function
 

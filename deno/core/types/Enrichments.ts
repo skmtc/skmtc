@@ -20,14 +20,14 @@ export type FormFieldItem = {
 export const formItem = v.object({
   title: v.optional(v.string()),
   description: v.optional(v.string()),
-  fields: v.array(formFieldItem),
+  fields: v.optional(v.array(formFieldItem)),
   submitLabel: v.optional(v.string())
 })
 
 export type FormItem = {
   title?: string
   description?: string
-  fields: FormFieldItem[]
+  fields?: FormFieldItem[]
   submitLabel?: string
 }
 
@@ -48,13 +48,13 @@ export type TableColumnItem = {
 export const tableItem = v.object({
   title: v.optional(v.string()),
   description: v.optional(v.string()),
-  columns: v.array(tableColumnItem)
+  columns: v.optional(v.array(tableColumnItem))
 })
 
 export type TableItem = {
   title?: string
   description?: string
-  columns: TableColumnItem[]
+  columns?: TableColumnItem[]
 }
 
 export const inputItem = v.object({
