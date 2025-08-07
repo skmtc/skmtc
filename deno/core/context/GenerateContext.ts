@@ -350,6 +350,25 @@ export class GenerateContext {
       return cachedDefinition as Definition<V>
     }
 
+    return this.#defineAndRegister({
+      identifier,
+      value,
+      destinationPath,
+      noExport
+    })
+  }
+
+  /**
+   * Create and register a definition with the given `identifier` at `destinationPath` without duplication checks.
+   *
+   * @experimental
+   */
+  #defineAndRegister<V extends GeneratedValue>({
+    identifier,
+    value,
+    destinationPath,
+    noExport
+  }: DefineAndRegisterArgs<V>): Definition<V> {
     const definition = new Definition({
       context: this,
       identifier,
@@ -508,7 +527,7 @@ export class GenerateContext {
       required: true
     })
 
-    const definition = this.defineAndRegister({
+    const definition = this.#defineAndRegister({
       identifier: insertable.createIdentifier(fallbackName),
       value,
       destinationPath,
