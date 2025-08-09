@@ -67,7 +67,7 @@ export class RootDenoJson {
     const isLocal = RootDenoJson.isLocalModule(packageName)
 
     if (isLocal) {
-      Deno.remove(join(toRootPath(), '.apifoundry', generator.generatorName))
+      Deno.remove(join(toProjectPath(this.projectName), generator.generatorName))
     }
 
     if (this.contents.imports) {

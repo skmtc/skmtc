@@ -6,8 +6,9 @@ import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/deno'
 import { BaseFiles } from '../lib/base-files.ts'
 import { Workspace } from '../lib/workspace.ts'
+import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
-export const toDescription = async (): Promise<string> => {
+export const toDescription = async (projectName: string): Promise<string> => {
   const kv = await Deno.openKv()
 
   const manager = new Manager({ kv })
@@ -27,7 +28,7 @@ export const toDescription = async (): Promise<string> => {
 
     const accountName = await apiClient.manager.auth.toUserName()
 
-    const workspaceRes = await workspace.getWorkspace({ kvState, apiClient })
+    const workspaceRes = await workspace.getWorkspace({ projectName, kvState, apiClient })
 
     if (!workspaceRes) {
       await manager.success()
@@ -52,37 +53,50 @@ export const toDescription = async (): Promise<string> => {
   }
 }
 
-export const toBaseFilesPushCommand = async () => {
-  const description = await toDescription()
+export const toBaseFilesPushCommand = async (skmtcRoot: SkmtcRoot) => {
+  const projectName = await Input.prompt({
+    message: 'Select project',
+    list: true,
+    suggestions: skmtcRoot.projects.map(({ name }) => name)
+  })
+
+  const description = await toDescription(projectName)
 
   return new Command()
     .description(description)
-    .arguments('<path:string>')
-    .action(async (_args, path) => {
-      await push({ path })
+    .arguments('<project:string> <path:string>')
+    .action(async (_args, project, path) => {
+      await push({ projectName: project, path })
     })
 }
 
-export const toBaseFilesPushPrompt = async () => {
+export const toBaseFilesPushPrompt = async (skmtcRoot: SkmtcRoot) => {
+  const projectName = await Input.prompt({
+    message: 'Select project',
+    list: true,
+    suggestions: skmtcRoot.projects.map(({ name }) => name)
+  })
+
   const path = await Input.prompt({
     message: 'Enter path to base files folder'
   })
 
-  await push({ path })
+  await push({ projectName, path })
 }
 
 type PushArgs = {
+  projectName: string
   path: string
 }
 
-export const push = async ({ path }: PushArgs) => {
+export const push = async ({ projectName, path }: PushArgs) => {
   const kv = await Deno.openKv()
 
   const manager = new Manager({ kv })
 
   try {
     const kvState = new KvState(kv)
-    const workspaceId = await kvState.getWorkspaceId()
+    const workspaceId = await kvState.getWorkspaceId(projectName)
 
     if (!workspaceId || typeof workspaceId !== 'string') {
       console.log('No workspace ID found')
@@ -92,7 +106,7 @@ export const push = async ({ path }: PushArgs) => {
     const apiClient = new ApiClient(manager)
     const baseFiles = new BaseFiles(path)
 
-    await baseFiles.push({ kvState, apiClient })
+    await baseFiles.push({ projectName, kvState, apiClient })
   } catch (error) {
     console.error(error)
 

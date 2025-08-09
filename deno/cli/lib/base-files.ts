@@ -5,6 +5,7 @@ import { IgnoreFile } from './ignore-file.ts'
 import console from 'node:console'
 
 type PushArgs = {
+  projectName: string
   kvState: KvState
   apiClient: ApiClient
 }
@@ -47,8 +48,8 @@ export class BaseFiles {
     return output
   }
 
-  async push({ kvState, apiClient }: PushArgs) {
-    const workspaceId = await kvState.getWorkspaceId()
+  async push({ projectName, kvState, apiClient }: PushArgs) {
+    const workspaceId = await kvState.getWorkspaceId(projectName)
 
     if (!workspaceId) {
       throw new Error('Workspace ID not found')

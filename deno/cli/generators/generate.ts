@@ -4,24 +4,24 @@ import { ensureDirSync, ensureFileSync, existsSync } from '@std/fs'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import * as v from 'valibot'
 import { skmtcClientConfig, skmtcStackConfig } from '@skmtc/core/Settings'
-import { toRootPath } from '../lib/to-root-path.ts'
+import { toProjectPath } from '../lib/to-project-path.ts'
 
 export const toGenerateCommand = () => {
   return (
     new Command()
       .description('Generate artifacts from OpenAPI schema')
-      .arguments('<path:string>')
+      .arguments('<project:string> <path:string>')
       // .option('-s, --settings <settings>', 'The settings to use')
       // .option('-p, --prettier [prettier]', 'The prettier config to use')
-      .action(async (_args, path) => {
-        const rootPath = toRootPath()
+      .action(async (_args, project, path) => {
+        const projectPath = toProjectPath(project)
 
         const pathToSchema = join(Deno.cwd(), path)
 
-        const stackJson = await Deno.readTextFile(join(rootPath, '.settings', 'stack.json'))
+        const stackJson = await Deno.readTextFile(join(projectPath, '.settings', 'stack.json'))
         const stack = v.parse(skmtcStackConfig, JSON.parse(stackJson))
 
-        const clientJson = await Deno.readTextFile(join(rootPath, '.settings', 'client.json'))
+        const clientJson = await Deno.readTextFile(join(projectPath, '.settings', 'client.json'))
         const client = v.parse(skmtcClientConfig, JSON.parse(clientJson))
 
         const schema = await Deno.readTextFile(pathToSchema)
@@ -33,10 +33,10 @@ export const toGenerateCommand = () => {
 
         deletePreviousArtifacts({
           incomingPaths: Object.keys(artifacts ?? {}),
-          rootPath
+          projectPath
         })
 
-        const manifestPath = join(rootPath, '.settings', 'manifest.json')
+        const manifestPath = join(projectPath, '.settings', 'manifest.json')
 
         ensureFileSync(manifestPath)
 
@@ -100,15 +100,15 @@ export const generatorArtifacts = async ({
 }
 
 type DeletePreviousArtifactsArgs = {
-  rootPath: string
+  projectPath: string
   incomingPaths: string[]
 }
 
 export const deletePreviousArtifacts = ({
   incomingPaths,
-  rootPath
+  projectPath
 }: DeletePreviousArtifactsArgs) => {
-  const manifestPath = join(rootPath, '.settings', 'manifest.json')
+  const manifestPath = join(projectPath, '.settings', 'manifest.json')
 
   if (!existsSync(manifestPath)) {
     return

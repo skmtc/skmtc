@@ -1,23 +1,25 @@
 import type { ApiClient } from './api-client.ts'
 import type { KvState } from './kv-state.ts'
 import { deletePreviousArtifacts } from '../generators/generate.ts'
-import { toRootPath } from './to-root-path.ts'
 import { join, parse } from '@std/path'
 import { ensureDirSync, ensureFileSync } from '@std/fs'
+import { toProjectPath } from './to-project-path.ts'
 
 type GenerateArtifactsArgs = {
+  projectName: string
   kvState: KvState
   apiClient: ApiClient
 }
 
 type GetWorkspaceArgs = {
+  projectName: string
   kvState: KvState
   apiClient: ApiClient
 }
 
 export class Workspace {
-  async getWorkspace({ kvState, apiClient }: GetWorkspaceArgs) {
-    const workspaceId = await kvState.getWorkspaceId()
+  async getWorkspace({ projectName, kvState, apiClient }: GetWorkspaceArgs) {
+    const workspaceId = await kvState.getWorkspaceId(projectName)
 
     if (!workspaceId || typeof workspaceId !== 'string') {
       console.log('No workspace ID found')
@@ -29,8 +31,8 @@ export class Workspace {
     return workspace
   }
 
-  async generateArtifacts({ kvState, apiClient }: GenerateArtifactsArgs) {
-    const workspaceId = await kvState.getWorkspaceId()
+  async generateArtifacts({ projectName, kvState, apiClient }: GenerateArtifactsArgs) {
+    const workspaceId = await kvState.getWorkspaceId(projectName)
 
     if (!workspaceId) {
       throw new Error('Workspace id not found')
@@ -38,14 +40,14 @@ export class Workspace {
 
     const { artifacts, manifest } = await apiClient.generateArtifacts({ workspaceId })
 
-    const rootPath = toRootPath()
+    const projectPath = toProjectPath(projectName)
 
     deletePreviousArtifacts({
       incomingPaths: Object.keys(artifacts ?? {}),
-      rootPath
+      projectPath
     })
 
-    const manifestPath = join(rootPath, '.settings', 'manifest.json')
+    const manifestPath = join(projectPath, '.settings', 'manifest.json')
 
     ensureFileSync(manifestPath)
 

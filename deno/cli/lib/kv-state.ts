@@ -1,6 +1,6 @@
-import { toRootPath } from './to-root-path.ts'
 import { join } from '@std/path'
 import * as v from 'valibot'
+import { toProjectPath } from './to-project-path.ts'
 
 type SetSchemaIdArgs = {
   schemaId: string
@@ -18,18 +18,18 @@ export class KvState {
     this.kv = kv
   }
 
-  getWorkspaceId = async () => {
-    const rootPath = toRootPath()
+  getWorkspaceId = async (projectName: string) => {
+    const projectPath = toProjectPath(projectName)
 
-    const workspaceId = await this.kv.get(['workspaceId', rootPath])
+    const workspaceId = await this.kv.get(['workspaceId', projectPath])
 
     return v.parse(v.nullable(v.string()), workspaceId.value)
   }
 
-  setWorkspaceId = async (workspaceId: string) => {
-    const rootPath = toRootPath()
+  setWorkspaceId = async (projectName: string, workspaceId: string) => {
+    const projectPath = toProjectPath(projectName)
 
-    await this.kv.set(['workspaceId', rootPath], workspaceId)
+    await this.kv.set(['workspaceId', projectPath], workspaceId)
 
     return workspaceId
   }

@@ -1,6 +1,5 @@
 import { ensureDir, exists } from '@std/fs'
 import { join } from '@std/path'
-import { toRootPath } from './to-root-path.ts'
 import { toProjectPath } from './to-project-path.ts'
 import { type SkmtcClientConfig, skmtcClientConfig } from '@skmtc/core'
 import * as v from 'valibot'
@@ -60,7 +59,7 @@ export class ClientJson {
   }
 
   async write() {
-    const settingsPath = join(toRootPath(), '.settings')
+    const settingsPath = join(toProjectPath(this.projectName), '.settings')
 
     await ensureDir(settingsPath)
 

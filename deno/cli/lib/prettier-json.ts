@@ -1,57 +1,67 @@
 import { exists } from '@std/fs'
-import { toRootPath } from './to-root-path.ts'
 import { join } from '@std/path'
 import { writeFile } from './file.ts'
 import * as v from 'valibot'
 import { prettierConfigType, type PrettierConfigType } from '@skmtc/core'
+import { toProjectPath } from './to-project-path.ts'
+
+type ConstructorArgs = {
+  projectName: string
+  contents: PrettierConfigType
+}
 
 export class PrettierJson {
+  projectName: string
   contents: PrettierConfigType
 
-  private constructor(contents: PrettierConfigType) {
+  private constructor({ projectName, contents }: ConstructorArgs) {
+    this.projectName = projectName
     this.contents = contents
   }
 
-  static toPath() {
-    const rootPath = toRootPath()
+  static toPath(projectName: string) {
+    const projectPath = toProjectPath(projectName)
 
-    return join(rootPath, 'prettier.json')
+    return join(projectPath, '.settings', 'prettier.json')
   }
 
-  static async exists(): Promise<boolean> {
-    const prettierJsonPath = PrettierJson.toPath()
+  static async exists(projectName: string): Promise<boolean> {
+    const prettierJsonPath = PrettierJson.toPath(projectName)
 
     return await exists(prettierJsonPath, { isFile: true })
   }
 
-  static async open(): Promise<PrettierJson | null> {
-    const hasPrettierJson = await PrettierJson.exists()
+  static async open(projectName: string): Promise<PrettierJson | null> {
+    const hasPrettierJson = await PrettierJson.exists(projectName)
 
     if (!hasPrettierJson) {
       throw new Error('Prettier JSON not found')
     }
 
-    const prettierJson = await Deno.readTextFile(PrettierJson.toPath())
+    const prettierJson = await Deno.readTextFile(PrettierJson.toPath(projectName))
 
     const contents = v.parse(prettierConfigType, JSON.parse(prettierJson))
 
-    return new PrettierJson(contents)
+    return new PrettierJson({ projectName, contents })
   }
 
   async write() {
     await writeFile({
       content: JSON.stringify(this.contents),
-      resolvedPath: PrettierJson.toPath()
+      resolvedPath: PrettierJson.toPath(this.projectName)
     })
   }
 
-  static create() {
+  static create({ projectName }: ConstructorArgs) {
     return new PrettierJson({
-      tabWidth: 2,
-      useTabs: false,
-      semi: false,
-      singleQuote: true,
-      bracketSpacing: true
+      projectName,
+      contents: {
+        tabWidth: 2,
+        useTabs: false,
+        semi: false,
+        singleQuote: true,
+        bracketSpacing: true
+      }
     })
   }
 }

@@ -1,4 +1,5 @@
 import type { Command } from '@cliffy/command'
+import type { SkmtcRoot } from './skmtc-root.ts'
 
 export type ControllerFilteArgs = {
   hasHome: boolean
@@ -9,6 +10,6 @@ export type Controller = {
   action: string
   description: string
   toCommand: () => Command
-  toPrompt: () => Promise<void>
+  toPrompt: (skmtcRoot: SkmtcRoot) => Promise<void>
   filter: (args: ControllerFilteArgs) => boolean
 }

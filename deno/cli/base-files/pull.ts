@@ -5,31 +5,39 @@ import { KvState } from '../lib/kv-state.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/deno'
 import type { Controller } from '../lib/types.ts'
+import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
 export const description = 'Pull base files from deployed workspace'
 
-export const toBaseFilesPullCommand = (): Command<any, any, any, any, any, any, any, any> => {
+export const toBaseFilesPullCommand = () => {
   return new Command()
     .description(description)
-    .arguments('<path:string>')
-    .action(async (_args, path) => {
-      await pull({ path })
+    .arguments('<project:string> <path:string>')
+    .action(async (_args, project, path) => {
+      return await pull({ projectName: project, path })
     })
 }
 
-export const toBaseFilesPullPrompt = async () => {
+export const toBaseFilesPullPrompt = async (skmtcRoot: SkmtcRoot) => {
+  const projectName = await Input.prompt({
+    message: 'Select project to deploy generators to',
+    list: true,
+    suggestions: skmtcRoot.projects.map(({ name }) => name)
+  })
+
   const path = await Input.prompt({
     message: 'Enter destination path for base files'
   })
 
-  await pull({ path })
+  await pull({ projectName, path })
 }
 
 type PullArgs = {
+  projectName: string
   path: string
 }
 
-export const pull = async ({ path }: PullArgs) => {
+export const pull = async ({ projectName, path }: PullArgs) => {
   const kv = await Deno.openKv()
 
   const manager = new Manager({ kv })
@@ -38,7 +46,7 @@ export const pull = async ({ path }: PullArgs) => {
   const kvState = new KvState(kv)
 
   try {
-    const workspaceId = await kvState.getWorkspaceId()
+    const workspaceId = await kvState.getWorkspaceId(projectName)
 
     if (!workspaceId || typeof workspaceId !== 'string') {
       console.log('No workspace ID found')
