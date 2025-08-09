@@ -1,15 +1,14 @@
 import type { DenoFile } from '../deploy/types.ts'
-import type { StackJson } from './stack-json.ts'
 import * as v from 'valibot'
 import type { ClientJson } from './client-json.ts'
 import { ApiClient } from './api-client.ts'
-import invariant from 'tiny-invariant'
 import { match } from 'ts-pattern'
 import type { Manager } from './manager.ts'
 
 type DeployArgs = {
+  projectName: string
+  generatorIds: string[]
   assets: Record<string, DenoFile>
-  stackJson: StackJson
   clientJson: ClientJson
 }
 
@@ -20,18 +19,14 @@ export class Deployment {
     this.apiClient = new ApiClient(manager)
   }
 
-  async deploy({ assets, stackJson, clientJson }: DeployArgs) {
-    const { name, generators } = stackJson.contents
-
-    invariant(name, 'Stack name is required')
-
+  async deploy({ assets, projectName, generatorIds, clientJson }: DeployArgs) {
     const accountName = await this.apiClient.manager.auth.toUserName()
 
     const { latestDenoDeploymentId } = await this.apiClient.deploy({
       assets,
       accountName,
-      stackName: name,
-      generatorIds: generators
+      stackName: projectName,
+      generatorIds
     })
 
     await this.enqueueDeploymentCheck(latestDenoDeploymentId)

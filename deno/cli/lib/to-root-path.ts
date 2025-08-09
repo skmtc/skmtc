@@ -1,5 +1,5 @@
 import { join } from '@std/path'
 
 export const toRootPath = () => {
-  return join(Deno.cwd(), '.apifoundry')
+  return join(Deno.cwd(), '.skmtc')
 }

@@ -29,8 +29,6 @@ import {
   toBaseFilesPushPrompt,
   toDescription as toBaseFilesPushDescription
 } from './base-files/push.ts'
-import { hasHome } from './lib/has-home.ts'
-import { hasGenerators } from './lib/has-generators.ts'
 import { toAddCommand, toAddPrompt, description as addDescription } from './generators/add.ts'
 import {
   toInstallCommand,
@@ -69,10 +67,17 @@ import {
   toWorkspacesMessagePrompt,
   description as workspacesMessageDescription
 } from './workspaces/message.ts'
+import { SkmtcRoot } from './lib/skmtc-root.ts'
+import { Manager } from './lib/manager.ts'
 
 Sentry.init({
   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
 })
+
+const kv = await Deno.openKv()
+
+const manager = new Manager({ kv })
+const skmtcRoot = await SkmtcRoot.open(manager)
 
 type PromptResponse =
   | 'init'
@@ -97,10 +102,7 @@ type PromptResponse =
   | 'exit'
 
 const getOptions = async () => {
-  const homeExists = hasHome()
-  const generatorsExist = await hasGenerators()
-
-  if (!homeExists) {
+  if (skmtcRoot.projects.length === 0) {
     return [
       { name: 'Create new API Foundry project', value: 'init' },
       { name: 'Log in to Codesquared', value: 'login' },
@@ -109,7 +111,8 @@ const getOptions = async () => {
     ]
   }
 
-  if (!generatorsExist) {
+  // TODO: Add project selection
+  if (skmtcRoot.projects.length > 0) {
     return [
       Select.separator(' - Generators - '),
       {
@@ -231,14 +234,14 @@ const promptwise = async () => {
   })
 
   await match(action)
-    .with('init', async () => await toInitPrompt())
+    .with('init', async () => await toInitPrompt(skmtcRoot))
     .with('base-files:push', async () => await toBaseFilesPushPrompt())
-    .with('generators:add', async () => await toAddPrompt())
-    .with('generators:clone', async () => await toClonePrompt())
-    .with('generators:deploy', async () => await toDeployPrompt())
+    .with('generators:add', async () => await toAddPrompt(skmtcRoot))
+    .with('generators:clone', async () => await toClonePrompt(skmtcRoot))
+    .with('generators:deploy', async () => await toDeployPrompt(skmtcRoot))
     .with('generators:generate', async () => await toGeneratePrompt())
-    .with('generators:install', async () => await toInstallPrompt())
-    .with('generators:remove', async () => await toRemovePrompt())
+    .with('generators:install', async () => await toInstallPrompt(skmtcRoot))
+    .with('generators:remove', async () => await toRemovePrompt(skmtcRoot))
     .with('schemas:info', async () => await toInfoPrompt())
     .with('schemas:link', async () => await toSchemasLinkPrompt())
     .with('schemas:unlink', async () => await toUnlinkPrompt())
@@ -264,7 +267,7 @@ await new Command()
   .action(async _flags => {
     await promptwise()
   })
-  .command('init', toInitCommand())
+  .command('init', toInitCommand(skmtcRoot))
   .command('base-files:push', await toBaseFilesPushCommand())
   .command('generators:add', toAddCommand())
   .command('generators:clone', toCloneCommand())

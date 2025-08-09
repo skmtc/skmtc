@@ -6,37 +6,49 @@ import * as v from 'valibot'
 import { rootDenoJson, type RootDenoJson as RootDenoJsonType } from '@skmtc/core'
 import { Generator } from './generator.ts'
 import type { Manager } from './manager.ts'
+import { toProjectPath } from './to-project-path.ts'
+
+type ConstructorArgs = {
+  projectName: string
+  contents: RootDenoJsonType
+}
 
 export class RootDenoJson {
+  projectName: string
   contents: RootDenoJsonType
 
-  private constructor(contents: RootDenoJsonType) {
+  private constructor({ projectName, contents }: ConstructorArgs) {
+    this.projectName = projectName
     this.contents = contents
   }
 
-  static toPath() {
-    const rootPath = toRootPath()
+  static toPath(projectName: string) {
+    const projectPath = toProjectPath(projectName)
 
-    return join(rootPath, 'deno.json')
+    return join(projectPath, 'deno.json')
   }
 
-  static exists(): boolean {
-    const denoJsonPath = RootDenoJson.toPath()
+  static exists(projectName: string): boolean {
+    const denoJsonPath = RootDenoJson.toPath(projectName)
 
     return existsSync(denoJsonPath)
   }
 
-  static async open(manager: Manager): Promise<RootDenoJson> {
-    const hasDenoJson = RootDenoJson.exists()
+  static create(projectName: string) {
+    return new RootDenoJson({ projectName, contents: {} })
+  }
+
+  static async open(projectName: string, manager: Manager): Promise<RootDenoJson> {
+    const hasDenoJson = RootDenoJson.exists(projectName)
 
     if (!hasDenoJson) {
-      return new RootDenoJson({})
+      return new RootDenoJson({ projectName, contents: {} })
     }
 
-    const contents = await Deno.readTextFile(RootDenoJson.toPath())
+    const contents = await Deno.readTextFile(RootDenoJson.toPath(projectName))
 
     const parsed = v.parse(rootDenoJson, JSON.parse(contents))
-    const denoJson = new RootDenoJson(parsed)
+    const denoJson = new RootDenoJson({ projectName, contents: parsed })
 
     manager.cleanupActions.push(async () => await denoJson.write())
 
@@ -88,7 +100,7 @@ export class RootDenoJson {
   async write() {
     await writeFile({
       content: JSON.stringify(this.contents),
-      resolvedPath: RootDenoJson.toPath()
+      resolvedPath: RootDenoJson.toPath(this.projectName)
     })
   }
 }

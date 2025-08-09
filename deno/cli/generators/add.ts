@@ -1,45 +1,39 @@
-import { Command, EnumType, type StringType } from '@cliffy/command'
+import { Command, EnumType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
-import { Generator } from '../lib/generator.ts'
-import { RootDenoJson } from '../lib/root-deno-json.ts'
-import { StackJson } from '../lib/stack-json.ts'
 import { checkProjectName } from '@skmtc/core'
-import { Manager } from '../lib/manager.ts'
-import * as Sentry from '@sentry/deno'
-
-type CommandType = Command<
-  void,
-  void,
-  void,
-  [StringType & string, EnumType<'operation' | 'model'>],
-  void,
-  {
-    number: number
-    integer: number
-    string: string
-    boolean: boolean
-    file: string
-  },
-  void,
-  undefined
->
+import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import invariant from 'tiny-invariant'
 
 const generatorType = new EnumType(['operation', 'model'])
 
-export const description = 'Add a new generator to the stack'
+export const description = 'Add a new generator to project'
 
-export const toAddCommand = (): CommandType => {
+export const toAddCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
     .example('Add RTK Query generator from JSR registry', 'add jsr:@skmtc/rtk-query')
     .type('generator-type', generatorType)
-    .arguments('<generator:string> <type:generator-type>')
-    .action((_options, generator, type) => add(generator, type))
+    .arguments('<project:string> <generator:string> <type:generator-type>')
+    .action((_options, project, generator, type) => {
+      return skmtcRoot.projects
+        .find(({ name }) => name === project)
+        ?.addGenerator({ packageName: generator, type })
+    })
 
   return command
 }
 
-export const toAddPrompt = async () => {
+export const toAddPrompt = async (skmtcRoot: SkmtcRoot) => {
+  const projectName = await Input.prompt({
+    message: 'Select generator type',
+    list: true,
+    suggestions: generatorType.values
+  })
+
+  const project = skmtcRoot.projects.find(project => project.name === projectName)
+
+  invariant(project, 'Project not found')
+
   const generator: string = await Input.prompt({
     message: 'Generator name',
     validate: value => checkProjectName(value) ?? false
@@ -51,40 +45,10 @@ export const toAddPrompt = async () => {
     suggestions: generatorType.values
   })
 
-  await add(generator, type as 'operation' | 'model', {
-    logSuccess: `Generator "${generator}" is created`
-  })
-}
-
-type AddOptions = {
-  logSuccess?: string
-}
-
-// Should user be logged in to create a generator so we can use their account name as the scope name?
-// Might be easier to let them pick any scope name since it is just a JSR value?
-// Suggest scope name if they are logged in?
-const add = async (
-  packageName: string,
-  type: 'operation' | 'model',
-  { logSuccess }: AddOptions = {}
-) => {
-  const kv = await Deno.openKv()
-  const manager = new Manager({ kv, logSuccess })
-
-  try {
-    const { scopeName, generatorName, version } = Generator.parseName(packageName)
-
-    const generator = Generator.fromName({ scopeName, generatorName, version: version ?? '0.0.1' })
-
-    const denoJson = await RootDenoJson.open(manager)
-    const stackJson = await StackJson.open(manager)
-
-    generator.add({ denoJson, stackJson, generatorType: type, manager })
-  } catch (error) {
-    Sentry.captureException(error)
-
-    await Sentry.flush()
-
-    manager.fail('Failed to add generator')
-  }
+  await project.addGenerator(
+    { packageName: generator, type: type as 'operation' | 'model' },
+    {
+      logSuccess: `Generator "${generator}" is created`
+    }
+  )
 }

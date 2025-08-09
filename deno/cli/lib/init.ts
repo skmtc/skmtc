@@ -1,16 +1,23 @@
 import { Command, type StringType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import { toNameSuggest } from './to-name-suggest.ts'
-import { StackJson } from './stack-json.ts'
 import { PrettierJson } from './prettier-json.ts'
+import type { SkmtcRoot } from './skmtc-root.ts'
+
+type InitArgs = {
+  projectName: string
+  skmtcRoot: SkmtcRoot
+}
 
 type CreateProjectFolderOptions = {
   logSuccess?: boolean
 }
 
-export const init = async (name: string, { logSuccess }: CreateProjectFolderOptions) => {
-  const stackJson = StackJson.create(name)
-  await stackJson.write()
+export const init = async (
+  { projectName, skmtcRoot }: InitArgs,
+  { logSuccess }: CreateProjectFolderOptions
+) => {
+  skmtcRoot.createProject(projectName, skmtcRoot.manager)
 
   const prettierJson = PrettierJson.create()
   await prettierJson.write()
@@ -37,18 +44,18 @@ type CommandType = Command<
   undefined
 >
 
-export const toInitCommand = (): CommandType => {
+export const toInitCommand = (skmtcRoot: SkmtcRoot): CommandType => {
   const command = new Command()
     .description('Initialize a new project in current directory')
     .arguments('<name:string>')
     .action((_options, name) => {
-      init(name, { logSuccess: false })
+      init({ projectName: name, skmtcRoot }, { logSuccess: false })
     })
 
   return command
 }
 
-export const toInitPrompt = async () => {
+export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
   const suggestedName = await toNameSuggest()
 
   const name: string = await Input.prompt({
@@ -56,5 +63,5 @@ export const toInitPrompt = async () => {
     suggestions: [suggestedName]
   })
 
-  await init(name, { logSuccess: true })
+  await init({ projectName: name, skmtcRoot }, { logSuccess: true })
 }

@@ -1,14 +1,14 @@
 import { Jsr } from './jsr.ts'
-import type { StackJson } from './stack-json.ts'
 import { RootDenoJson } from './root-deno-json.ts'
 import { join } from '@std/path'
 import { ensureFile } from '@std/fs'
-import { toRootPath } from './to-root-path.ts'
+import { toProjectPath } from './to-project-path.ts'
 import { match } from 'ts-pattern'
 import { OperationGenerator } from './operation-generator.ts'
 import { ModelGenerator } from './model-generator.ts'
 import { PackageDenoJson } from './package-deno-json.ts'
 import type { Manager } from './manager.ts'
+import { Project } from './project.ts'
 
 type GeneratorArgs = {
   scopeName: string
@@ -24,19 +24,15 @@ type CreateArgs = {
 
 type CloneArgs = {
   denoJson: RootDenoJson
-  stackJson: StackJson
 }
 
 type InstallArgs = {
   denoJson: RootDenoJson
-  stackJson: StackJson
 }
 
 type AddArgs = {
-  denoJson: RootDenoJson
-  stackJson: StackJson
+  project: Project
   generatorType: 'operation' | 'model'
-  manager: Manager
 }
 
 export class Generator {
@@ -82,15 +78,13 @@ export class Generator {
     return { scheme, scopeName, generatorName, version }
   }
 
-  install({ denoJson, stackJson }: InstallArgs) {
+  install({ denoJson }: InstallArgs) {
     denoJson.addImport(this.toPackageName(), this.toFullName())
-
-    stackJson.addGenerator(this)
   }
 
-  async add({ denoJson, stackJson, generatorType, manager }: AddArgs) {
-    const generatorPath = join(toRootPath(), '.apifoundry', this.generatorName)
-    await this.createFiles(generatorPath, manager)
+  async add({ project, generatorType }: AddArgs) {
+    const generatorPath = join(toProjectPath(project.name), this.generatorName)
+    await this.createFiles(generatorPath, project.manager)
 
     await match(generatorType)
       .with('operation', async () => {
@@ -103,10 +97,8 @@ export class Generator {
       })
       .exhaustive()
 
-    denoJson.addImport(this.toPackageName(), this.toModPath())
-    denoJson.addWorkspace(this.toPath())
-
-    stackJson.addGenerator(this)
+    project.rootDenoJson.addImport(this.toPackageName(), this.toModPath())
+    project.rootDenoJson.addWorkspace(this.toPath())
   }
 
   async createFiles(generatorPath: string, manager: Manager) {
@@ -129,7 +121,7 @@ export class Generator {
     await packageDenoJson.write()
   }
 
-  async clone({ denoJson, stackJson }: CloneArgs) {
+  async clone({ denoJson }: CloneArgs) {
     const files = await Jsr.download(this)
 
     const downloads = Object.entries(files).map(async ([path, content]) => {
@@ -144,8 +136,6 @@ export class Generator {
 
     denoJson.addImport(this.toPackageName(), this.toModPath())
     denoJson.addWorkspace(this.toPath())
-
-    stackJson.addGenerator(this)
   }
 
   static fromName({ scopeName, generatorName, version }: FromNameArgs): Generator {
@@ -154,15 +144,14 @@ export class Generator {
     return generator
   }
 
-  remove(denoJson: RootDenoJson, stackJson: StackJson) {
+  remove(project: Project) {
     const isLocal = RootDenoJson.isLocalModule(this.toPackageName())
 
     if (isLocal) {
-      Deno.remove(join(toRootPath(), '.apifoundry', this.generatorName))
+      Deno.remove(join(toProjectPath(project.name), this.generatorName))
     }
 
-    denoJson.removeGenerator(this)
-    stackJson.removeGenerator(this)
+    project.rootDenoJson.removeGenerator(this)
   }
 
   toFullName() {

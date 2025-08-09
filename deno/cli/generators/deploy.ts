@@ -1,48 +1,29 @@
 import { Command } from '@cliffy/command'
-import { toAssets } from '../deploy/to-assets.ts'
-import { StackJson } from '../lib/stack-json.ts'
-import { toRootPath } from '../lib/to-root-path.ts'
-import { ClientJson } from '../lib/client-json.ts'
-import { Deployment } from '../lib/deployment.ts'
-import { Manager } from '../lib/manager.ts'
-import * as Sentry from '@sentry/deno'
+import { Input } from '@cliffy/prompt'
+import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import invariant from 'tiny-invariant'
 
 export const description = 'Deploy generators to API Foundry'
 
-export const toDeployCommand = () => {
-  return new Command().description(description).action(async _ => await deploy())
+export const toDeployCommand = (skmtcRoot: SkmtcRoot) => {
+  return new Command()
+    .description(description)
+    .arguments('<project:string>')
+    .action(async (_options, project) => {
+      return await skmtcRoot.projects.find(({ name }) => name === project)?.deploy()
+    })
 }
 
-export const toDeployPrompt = async () => {
-  await deploy({ logSuccess: 'Generators deployed' })
-}
+export const toDeployPrompt = async (skmtcRoot: SkmtcRoot) => {
+  const projectName = await Input.prompt({
+    message: 'Select project to deploy generators to',
+    list: true,
+    suggestions: skmtcRoot.projects.map(({ name }) => name)
+  })
 
-type DeployArgs = {
-  logSuccess?: string
-}
+  const project = skmtcRoot.projects.find(project => project.name === projectName)
 
-export const deploy = async ({ logSuccess }: DeployArgs = {}) => {
-  const kv = await Deno.openKv()
-  const manager = new Manager({ kv, logSuccess })
+  invariant(project, 'Project not found')
 
-  const deployment = new Deployment(manager)
-
-  const stackJson = await StackJson.open(manager)
-  const clientJson = await ClientJson.open(manager)
-
-  const assets = await toAssets({ skmtcRoot: toRootPath() })
-
-  try {
-    await deployment.deploy({ assets, stackJson, clientJson })
-
-    manager.success()
-  } catch (error) {
-    console.error(error)
-
-    Sentry.captureException(error)
-
-    await Sentry.flush()
-
-    manager.fail('Failed to deploy generators')
-  }
+  await project.deploy({ logSuccess: 'Generators deployed' })
 }

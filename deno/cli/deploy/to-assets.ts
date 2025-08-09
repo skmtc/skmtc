@@ -3,14 +3,16 @@ import { relative } from '@std/path'
 import type { AssetEntry, DenoFile } from './types.ts'
 
 type ToAssetsArgs = {
-  skmtcRoot: string
+  projectRoot: string
 }
 
-export const toAssets = async ({ skmtcRoot }: ToAssetsArgs): Promise<Record<string, DenoFile>> => {
-  const things = await Array.fromAsync(walk(skmtcRoot, {}))
+export const toAssets = async ({
+  projectRoot
+}: ToAssetsArgs): Promise<Record<string, DenoFile>> => {
+  const things = await Array.fromAsync(walk(projectRoot, {}))
   const fileEntries = things
     .map(({ path }): AssetEntry | undefined => {
-      if (skipFile({ path, skmtcRoot })) {
+      if (skipFile({ path, projectRoot })) {
         return
       }
 
@@ -24,7 +26,7 @@ export const toAssets = async ({ skmtcRoot }: ToAssetsArgs): Promise<Record<stri
         content: Deno.readTextFileSync(path)
       }
 
-      return [relative(skmtcRoot, path), file]
+      return [relative(projectRoot, path), file]
     })
     .filter((item): item is AssetEntry => Boolean(item))
 
@@ -33,11 +35,11 @@ export const toAssets = async ({ skmtcRoot }: ToAssetsArgs): Promise<Record<stri
 
 type SkipFileArgs = {
   path: string
-  skmtcRoot: string
+  projectRoot: string
 }
 
-const skipFile = ({ path, skmtcRoot }: SkipFileArgs) => {
-  const relativePath = relative(skmtcRoot, path)
+const skipFile = ({ path, projectRoot }: SkipFileArgs) => {
+  const relativePath = relative(projectRoot, path)
 
   return (
     relativePath.includes('.DS_Store') ||
