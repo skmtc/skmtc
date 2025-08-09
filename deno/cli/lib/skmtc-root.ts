@@ -18,6 +18,8 @@ export class SkmtcRoot {
   createProject(projectName: string, manager: Manager) {
     const project = Project.create(projectName, manager)
     this.projects.push(project)
+
+    return project
   }
 
   static async open(manager: Manager) {

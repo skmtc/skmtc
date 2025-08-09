@@ -1,12 +1,16 @@
-import { SEPARATOR } from '@std/path'
-import { toPackageJson } from './to-package-json.ts'
+import {
+  uniqueNamesGenerator,
+  adjectives,
+  animals,
+  NumberDictionary
+} from 'npm:unique-names-generator'
 
-export const toNameSuggest = async () => {
-  const packageJson = await toPackageJson()
+export const toNameSuggest = () => {
+  const numbers = NumberDictionary.generate({ min: 100, max: 999 })
 
-  const name = packageJson?.name
-    ? packageJson.name.split('/').pop()
-    : Deno.cwd().split(SEPARATOR).pop()
+  const randomName: string = uniqueNamesGenerator({
+    dictionaries: [adjectives, animals, numbers]
+  })
 
-  return name ?? 'untitled'
+  return randomName
 }

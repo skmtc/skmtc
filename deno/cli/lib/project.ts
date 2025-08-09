@@ -49,6 +49,10 @@ type RemoveOptions = {
   logSuccess?: string
 }
 
+type CreateArgs = {
+  name: string
+}
+
 type CloneOptions = {
   logSuccess?: string
 }
@@ -147,7 +151,7 @@ export class Project {
   async deploy({ logSuccess }: DeployOptions = {}) {
     const deployment = new Deployment(this.manager)
 
-    const clientJson = await ClientJson.open(this.manager)
+    const clientJson = await ClientJson.open(this.name, this.manager)
 
     const assets = await toAssets({ projectRoot: toProjectPath(this.name) })
 
