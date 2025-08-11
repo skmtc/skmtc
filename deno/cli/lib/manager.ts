@@ -16,7 +16,7 @@ export class Manager {
     this.kv = kv
     this.auth = new Auth(kv)
     this.logSuccess = logSuccess
-    this.cleanupActions = [() => Promise.resolve(kv.close())]
+    this.cleanupActions = []
   }
 
   async cleanup() {

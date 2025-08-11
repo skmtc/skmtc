@@ -22,7 +22,7 @@ export class PrettierJson {
   static toPath(projectName: string) {
     const projectPath = toProjectPath(projectName)
 
-    return join(projectPath, '.settings', 'prettier.json')
+    return join(projectPath, 'prettier.json')
   }
 
   static async exists(projectName: string): Promise<boolean> {
@@ -47,7 +47,7 @@ export class PrettierJson {
 
   async write() {
     await writeFile({
-      content: JSON.stringify(this.contents),
+      content: JSON.stringify(this.contents, null, 2),
       resolvedPath: PrettierJson.toPath(this.projectName)
     })
   }

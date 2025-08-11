@@ -99,7 +99,7 @@ export class RootDenoJson {
 
   async write() {
     await writeFile({
-      content: JSON.stringify(this.contents),
+      content: JSON.stringify(this.contents, null, 2),
       resolvedPath: RootDenoJson.toPath(this.projectName)
     })
   }

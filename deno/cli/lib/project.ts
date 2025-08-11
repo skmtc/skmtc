@@ -10,6 +10,7 @@ import { toAssets } from '../deploy/to-assets.ts'
 import { toProjectPath } from './to-project-path.ts'
 import { PrettierJson } from './prettier-json.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
+import { availableGenerators, type AvailableGenerator } from '../available-generators.ts'
 
 type AddGeneratorArgs = {
   packageName: string
@@ -91,8 +92,14 @@ export class Project {
       manager: skmtcRoot.manager
     })
 
-    for (const packageName of generators) {
-      await project.installGenerator({ packageName })
+    const generatorIdSet = getDependencyIds({
+      checkedIds: new Set(),
+      options: availableGenerators,
+      generatorIds: new Set(generators)
+    })
+
+    for (const generatorId of generatorIdSet) {
+      await project.installGenerator({ packageName: `jsr:${generatorId}` })
     }
 
     await project.prettierJson?.write()
@@ -147,6 +154,8 @@ export class Project {
 
       return generator
     } catch (error) {
+      console.error(error)
+
       Sentry.captureException(error)
 
       await Sentry.flush()
@@ -250,4 +259,47 @@ export class Project {
 
     return new Project({ name, generatorIds, rootDenoJson, clientJson, prettierJson, manager })
   }
+}
+
+type GetDependencyIdsArgs = {
+  checkedIds: Set<string>
+  options: AvailableGenerator[]
+  generatorIds: Set<string>
+}
+
+export const getDependencyIds = ({
+  checkedIds,
+  options,
+  generatorIds
+}: GetDependencyIdsArgs): Set<string> => {
+  let count = 0
+
+  for (const option of options) {
+    // Skip if already checked
+    if (checkedIds.has(option.id)) {
+      continue
+    }
+
+    // Skip if not in TODO list
+    if (!generatorIds.has(option.id)) {
+      continue
+    }
+
+    // Add to checked ids
+    checkedIds.add(option.id)
+
+    const sizeBefore = generatorIds.size
+
+    option.dependencies.forEach(id => generatorIds.add(id))
+
+    const sizeAfter = generatorIds.size
+
+    // If new items were added, increment count
+    if (sizeAfter > sizeBefore) {
+      count++
+    }
+  }
+
+  // If loop had no new additions, return the set
+  return count === 0 ? generatorIds : getDependencyIds({ checkedIds, options, generatorIds })
 }

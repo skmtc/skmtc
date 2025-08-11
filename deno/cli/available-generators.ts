@@ -1,4 +1,4 @@
-type Generator = {
+export type AvailableGenerator = {
   id: string
   name: string
   github: string
@@ -9,7 +9,7 @@ type Generator = {
   icon?: string
 }
 
-export const availableGenerators: Generator[] = [
+export const availableGenerators: AvailableGenerator[] = [
   {
     id: '@skmtc/gen-shadcn-table',
     name: '@skmtc/gen-shadcn-table',
