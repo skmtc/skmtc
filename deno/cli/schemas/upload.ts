@@ -7,7 +7,7 @@ import { WsClient } from '../lib/ws-client.ts'
 import { Workspace } from '../lib/workspace.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
-export const description = 'Upload an OpenAPI schema to API Foundry'
+export const description = 'Upload an OpenAPI schema to Skmtc'
 
 export const toUploadCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
@@ -23,13 +23,7 @@ export const toUploadCommand = (skmtcRoot: SkmtcRoot) => {
     })
 }
 
-export const toUploadPrompt = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
-    message: 'Select project to upload schema to',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
-  })
-
+export const toUploadPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   const path = await Input.prompt({
     message: 'Enter path to OpenAPI schema'
   })

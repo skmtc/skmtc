@@ -3,11 +3,10 @@ import * as Sentry from '@sentry/deno'
 import { Workspace } from '../lib/workspace.ts'
 import chokidar from 'chokidar'
 import { upload } from '../schemas/upload.ts'
-import { join } from 'node:path'
+import { join } from '@std/path'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
-import { Input } from '@cliffy/prompt'
 
-export const description = 'Generate artifacts in workspace'
+export const description = 'Generate local artifacts'
 
 export const toWorkspacesGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
@@ -23,13 +22,7 @@ export const toWorkspacesGenerateCommand = (skmtcRoot: SkmtcRoot) => {
     })
 }
 
-export const toWorkspacesGeneratePrompt = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
-    message: 'Select project to generate artifacts for',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
-  })
-
+export const toWorkspacesGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   await generate({ projectName, skmtcRoot })
 }
 

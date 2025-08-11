@@ -5,6 +5,7 @@ import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import * as v from 'valibot'
 import { skmtcClientConfig, skmtcStackConfig } from '@skmtc/core/Settings'
 import { toProjectPath } from '../lib/to-project-path.ts'
+import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
 export const toGenerateCommand = () => {
   return (
@@ -65,7 +66,7 @@ export const generateResponse: v.GenericSchema<GenerateResponse> = v.object({
   manifest: manifestContent
 })
 
-export const toGeneratePrompt = async () => {
+export const toGeneratePrompt = async (_skmtcRoot: SkmtcRoot, _projectName: string) => {
   console.log('generate prompt')
 }
 

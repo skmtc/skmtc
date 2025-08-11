@@ -1,7 +1,7 @@
 import { Command } from '@cliffy/command'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
-export const toLoginPrompt = async (skmtcRoot: SkmtcRoot) => {
+export const toLoginPrompt = async (skmtcRoot: SkmtcRoot, _projectName: string) => {
   await skmtcRoot.login()
 }
 
@@ -11,7 +11,7 @@ export const toLoginCommand = (skmtcRoot: SkmtcRoot) => {
   })
 }
 
-export const toLogoutPrompt = async (skmtcRoot: SkmtcRoot) => {
+export const toLogoutPrompt = async (skmtcRoot: SkmtcRoot, _projectName: string) => {
   await skmtcRoot.logout()
 }
 

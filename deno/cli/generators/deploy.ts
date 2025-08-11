@@ -1,9 +1,8 @@
 import { Command } from '@cliffy/command'
-import { Input } from '@cliffy/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 
-export const description = 'Deploy generators to API Foundry'
+export const description = 'Deploy generators'
 
 export const toDeployCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
@@ -14,13 +13,7 @@ export const toDeployCommand = (skmtcRoot: SkmtcRoot) => {
     })
 }
 
-export const toDeployPrompt = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
-    message: 'Select project to deploy generators to',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
-  })
-
+export const toDeployPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   const project = skmtcRoot.projects.find(project => project.name === projectName)
 
   invariant(project, 'Project not found')

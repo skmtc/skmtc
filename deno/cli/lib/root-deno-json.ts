@@ -1,12 +1,12 @@
 import { existsSync } from '@std/fs'
-import { toRootPath } from './to-root-path.ts'
 import { join } from '@std/path'
-import { writeFile } from './file.ts'
+import { writeFileSafeDir } from './file.ts'
 import * as v from 'valibot'
 import { rootDenoJson, type RootDenoJson as RootDenoJsonType } from '@skmtc/core'
 import { Generator } from './generator.ts'
 import type { Manager } from './manager.ts'
 import { toProjectPath } from './to-project-path.ts'
+import invariant from 'tiny-invariant'
 
 type ConstructorArgs = {
   projectName: string
@@ -64,7 +64,11 @@ export class RootDenoJson {
   removeGenerator(generator: Generator) {
     const packageName = generator.toPackageName()
 
-    const isLocal = RootDenoJson.isLocalModule(packageName)
+    const packageSource = this.contents.imports?.[packageName]
+
+    invariant(packageSource, 'Package source not found')
+
+    const isLocal = RootDenoJson.isLocalModule(packageSource)
 
     if (isLocal) {
       Deno.remove(join(toProjectPath(this.projectName), generator.generatorName))
@@ -98,9 +102,9 @@ export class RootDenoJson {
   }
 
   async write() {
-    await writeFile({
-      content: JSON.stringify(this.contents, null, 2),
-      resolvedPath: RootDenoJson.toPath(this.projectName)
-    })
+    const path = RootDenoJson.toPath(this.projectName)
+    const content = JSON.stringify(this.contents, null, 2)
+
+    await writeFileSafeDir(path, content)
   }
 }

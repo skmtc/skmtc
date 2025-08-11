@@ -53,6 +53,7 @@ import {
 } from './workspaces/message.ts'
 import { SkmtcRoot } from './lib/skmtc-root.ts'
 import { Manager } from './lib/manager.ts'
+import { toSelectProject } from './workspaces/select.ts'
 
 Sentry.init({
   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
@@ -85,121 +86,106 @@ type PromptResponse =
   | 'workspaces:message'
   | 'exit'
 
-const getOptions = async () => {
-  if (skmtcRoot.projects.length === 0) {
-    return [
-      { name: 'Create new Skmtc project', value: 'init' },
-      { name: 'Log in to Skmtc', value: 'login' },
-      { name: 'Log out', value: 'logout' },
-      { name: 'Exit', value: 'exit' }
-    ]
+const EmptyWorkspaceOptions = [
+  { name: 'Create new Skmtc project', value: 'init' },
+  { name: 'Log in to Skmtc', value: 'login' },
+  { name: 'Log out', value: 'logout' },
+  { name: 'Exit', value: 'exit' }
+]
+
+const ProjectOptions = [
+  Select.separator(' - Generators - '),
+  {
+    name: addDescription,
+    value: 'generators:add'
+  },
+  {
+    name: installDescription,
+    value: 'generators:install'
+  },
+  {
+    name: cloneDescription,
+    value: 'generators:clone'
+  },
+  {
+    name: removeDescription,
+    value: 'generators:remove'
+  },
+  {
+    name: deployDescription,
+    value: 'generators:deploy'
+  },
+  Select.separator(' - Projects - '),
+  {
+    name: workspacesInfoDescription,
+    value: 'workspaces:info'
+  },
+  {
+    name: workspacesMessageDescription,
+    value: 'workspaces:message'
+  },
+  {
+    name: workspacesGenerateDescription,
+    value: 'workspaces:generate'
+  },
+  Select.separator(' - Base Files - '),
+  {
+    name: baseFilesPushDescription,
+    value: 'base-files:push'
+  },
+  Select.separator(' - Schemas - '),
+  {
+    name: uploadDescription,
+    value: 'schemas:upload'
+  },
+  { name: 'Exit', value: 'exit' }
+]
+
+const toAction = async () => {
+  const { projects } = skmtcRoot
+
+  if (projects.length === 0) {
+    const action = await Select.prompt<PromptResponse>({
+      message: 'Welcome to Smktc! What would you like to do?',
+      options: EmptyWorkspaceOptions
+    })
+
+    return { action, projectName: '' }
   }
 
-  // TODO: Add project selection
-  if (skmtcRoot.projects.length > 0) {
-    return [
-      Select.separator(' - Generators - '),
-      {
-        name: addDescription,
-        value: 'generators:add'
-      },
-      {
-        name: installDescription,
-        value: 'generators:install'
-      },
-      {
-        name: cloneDescription,
-        value: 'generators:clone'
-      },
-      Select.separator(' - Base Files - '),
-      {
-        name: baseFilesPushDescription,
-        value: 'base-files:push'
-      },
-      Select.separator(' - Workspaces - '),
-      {
-        name: workspacesInfoDescription,
-        value: 'workspaces:info'
-      },
-      Select.separator(' - Schemas - '),
-      {
-        name: uploadDescription,
-        value: 'schemas:upload'
-      },
-      { name: 'Exit', value: 'exit' }
-    ]
-  }
+  const projectName = projects.length === 1 ? projects[0].name : await toSelectProject(skmtcRoot)
 
-  return [
-    Select.separator(' - Generators - '),
-    {
-      name: addDescription,
-      value: 'generators:add'
-    },
-    {
-      name: installDescription,
-      value: 'generators:install'
-    },
-    {
-      name: cloneDescription,
-      value: 'generators:clone'
-    },
-    {
-      name: removeDescription,
-      value: 'generators:remove'
-    },
-    {
-      name: deployDescription,
-      value: 'generators:deploy'
-    },
-    Select.separator(' - Workspaces - '),
-    {
-      name: workspacesInfoDescription,
-      value: 'workspaces:info'
-    },
-    {
-      name: workspacesMessageDescription,
-      value: 'workspaces:message'
-    },
-    {
-      name: workspacesGenerateDescription,
-      value: 'workspaces:generate'
-    },
-    Select.separator(' - Base Files - '),
-    {
-      name: baseFilesPushDescription,
-      value: 'base-files:push'
-    },
-    Select.separator(' - Schemas - '),
-    {
-      name: uploadDescription,
-      value: 'schemas:upload'
-    },
-    { name: 'Exit', value: 'exit' }
-  ]
+  console.log('Current project: ', projectName)
+
+  const action = await Select.prompt<PromptResponse>({
+    message: 'Welcome to Smktc! What would you like to do?',
+    options: ProjectOptions
+  })
+
+  return { action, projectName }
 }
 
 const promptwise = async () => {
-  const action = await Select.prompt<PromptResponse>({
-    message: 'Welcome to Smktc! What would you like to do?',
-    options: await getOptions()
-  })
+  const { action, projectName } = await toAction()
 
   await match(action)
     .with('init', async () => await toInitPrompt(skmtcRoot))
-    .with('base-files:push', async () => await toBaseFilesPushPrompt(skmtcRoot))
-    .with('generators:add', async () => await toAddPrompt(skmtcRoot))
-    .with('generators:clone', async () => await toClonePrompt(skmtcRoot))
-    .with('generators:deploy', async () => await toDeployPrompt(skmtcRoot))
-    .with('generators:generate', async () => await toGeneratePrompt())
-    .with('generators:install', async () => await toInstallPrompt(skmtcRoot))
-    .with('generators:remove', async () => await toRemovePrompt(skmtcRoot))
-    .with('schemas:upload', async () => await toUploadPrompt(skmtcRoot))
-    .with('workspaces:generate', async () => await toWorkspacesGeneratePrompt(skmtcRoot))
-    .with('workspaces:info', async () => await toWorkspacesInfoPrompt(skmtcRoot))
-    .with('workspaces:message', async () => await toWorkspacesMessagePrompt(skmtcRoot))
-    .with('login', async () => await toLoginPrompt(skmtcRoot))
-    .with('logout', async () => await toLogoutPrompt(skmtcRoot))
+    .with('base-files:push', async () => await toBaseFilesPushPrompt(skmtcRoot, projectName))
+    .with('generators:add', async () => await toAddPrompt(skmtcRoot, projectName))
+    .with('generators:clone', async () => await toClonePrompt(skmtcRoot, projectName))
+    .with('generators:deploy', async () => await toDeployPrompt(skmtcRoot, projectName))
+    .with('generators:generate', async () => await toGeneratePrompt(skmtcRoot, projectName))
+    .with('generators:install', async () => await toInstallPrompt(skmtcRoot, projectName))
+    .with('generators:remove', async () => await toRemovePrompt(skmtcRoot, projectName))
+    .with('schemas:upload', async () => await toUploadPrompt(skmtcRoot, projectName))
+    .with(
+      'workspaces:generate',
+      async () => await toWorkspacesGeneratePrompt(skmtcRoot, projectName)
+    )
+    .with('workspaces:info', async () => await toWorkspacesInfoPrompt(skmtcRoot, projectName))
+    .with('workspaces:message', async () => await toWorkspacesMessagePrompt(skmtcRoot, projectName))
+    .with('login', async () => await toLoginPrompt(skmtcRoot, projectName))
+    .with('logout', async () => await toLogoutPrompt(skmtcRoot, projectName))
     .with('exit', () => Deno.exit(0))
     .otherwise(matched => {
       console.log('matched', JSON.stringify(matched, null, 2))
@@ -216,7 +202,7 @@ await new Command()
     await promptwise()
   })
   .command('init', toInitCommand(skmtcRoot))
-  .command('base-files:push', await toBaseFilesPushCommand(skmtcRoot))
+  .command('base-files:push', toBaseFilesPushCommand(skmtcRoot))
   .command('generators:add', toAddCommand(skmtcRoot))
   .command('generators:clone', toCloneCommand(skmtcRoot))
   .command('generators:deploy', toDeployCommand(skmtcRoot))

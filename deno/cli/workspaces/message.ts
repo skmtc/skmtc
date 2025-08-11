@@ -1,12 +1,11 @@
 import { Command } from '@cliffy/command'
-import { ApiClient } from '../lib/api-client.ts'
 import * as Sentry from '@sentry/deno'
 import { Workspace } from '../lib/workspace.ts'
 import { Input } from '@cliffy/prompt'
 import { WsClient } from '../lib/ws-client.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
-export const description = 'Send a message to a workspace'
+export const description = 'Send message to project'
 
 export const toWorkspacesMessageCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
@@ -17,13 +16,7 @@ export const toWorkspacesMessageCommand = (skmtcRoot: SkmtcRoot) => {
     })
 }
 
-export const toWorkspacesMessagePrompt = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
-    message: 'Select project to send message to',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
-  })
-
+export const toWorkspacesMessagePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   const content = await Input.prompt({
     message: 'Enter the message to send'
   })

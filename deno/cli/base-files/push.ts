@@ -1,7 +1,6 @@
 import { Command } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import { ApiClient } from '../lib/api-client.ts'
-import { KvState } from '../lib/kv-state.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/deno'
 import { BaseFiles } from '../lib/base-files.ts'
@@ -63,13 +62,7 @@ export const toBaseFilesPushCommand = (_skmtcRoot: SkmtcRoot) => {
     })
 }
 
-export const toBaseFilesPushPrompt = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
-    message: 'Select project',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
-  })
-
+export const toBaseFilesPushPrompt = async (_skmtcRoot: SkmtcRoot, projectName: string) => {
   const path = await Input.prompt({
     message: 'Enter path to base files folder'
   })

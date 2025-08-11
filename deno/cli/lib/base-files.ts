@@ -1,7 +1,6 @@
 import { join } from '@std/path'
 import type { ApiClient } from './api-client.ts'
 import { IgnoreFile } from './ignore-file.ts'
-import console from 'node:console'
 
 type PushArgs = {
   projectName: string

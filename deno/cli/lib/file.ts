@@ -1,5 +1,5 @@
-import { exists } from '@std/fs'
-import { join } from '@std/path'
+import { ensureDir } from '@std/fs'
+import { parse } from '@std/path'
 
 export const readTextFile = async (path: string): Promise<string | undefined> => {
   try {
@@ -9,60 +9,14 @@ export const readTextFile = async (path: string): Promise<string | undefined> =>
   }
 }
 
-type WriteFileArgs = {
-  content: string
-  resolvedPath: string
-}
-
-export const writeFile = async ({ content, resolvedPath }: WriteFileArgs) => {
+export const writeFileSafeDir = async (path: string, content: string) => {
   try {
-    const dir = resolvedPath.substring(0, resolvedPath.lastIndexOf('/'))
+    const { dir } = parse(path)
 
-    const dirExists = await exists(dir)
+    await ensureDir(dir)
 
-    if (!dirExists) {
-      Deno.mkdir(dir, { recursive: true })
-    }
-
-    const encoder = new TextEncoder()
-    const encoded = encoder.encode(content)
-
-    Deno.writeFileSync(resolvedPath, encoded)
+    await Deno.writeTextFile(path, content, { create: true })
   } catch (error) {
     console.error(error)
   }
-}
-
-export const hasSchema = async (): Promise<boolean> => {
-  try {
-    const jsonFileInfo = await Deno.stat(join('.apifoundry', 'schema.json'))
-
-    if (jsonFileInfo.isFile) {
-      return true
-    }
-  } catch (_error) {
-    // ignore
-  }
-
-  try {
-    const yamlFileInfo = await Deno.stat(join('.apifoundry', 'schema.yaml'))
-
-    if (yamlFileInfo.isFile) {
-      return true
-    }
-  } catch (_error) {
-    // ignore
-  }
-
-  try {
-    const ymlFileInfo = await Deno.stat(join('.apifoundry', 'schema.yml'))
-
-    if (ymlFileInfo.isFile) {
-      return true
-    }
-  } catch (_error) {
-    // ignore
-  }
-
-  return false
 }

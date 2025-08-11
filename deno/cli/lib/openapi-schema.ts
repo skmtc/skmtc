@@ -1,5 +1,4 @@
-import { ensureDir, exists } from '@std/fs'
-import { resolve } from 'node:path'
+import { exists } from '@std/fs'
 import type { CreateSchemaBody } from './api-client.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
 
@@ -80,11 +79,7 @@ export class OpenApiSchema {
   }
 
   async write() {
-    const schemaPath = resolve(Deno.cwd(), this.path)
-
-    await ensureDir(schemaPath)
-
-    await Deno.writeTextFile(schemaPath, this.contents)
+    await Deno.writeTextFile(this.path, this.contents)
   }
 
   static create({ path, contents }: OpenApiSchemaArgs) {

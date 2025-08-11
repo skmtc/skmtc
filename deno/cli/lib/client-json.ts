@@ -1,9 +1,10 @@
-import { ensureDir, exists } from '@std/fs'
+import { exists } from '@std/fs'
 import { join } from '@std/path'
 import { toProjectPath } from './to-project-path.ts'
 import { type SkmtcClientConfig, skmtcClientConfig } from '@skmtc/core'
 import * as v from 'valibot'
 import type { Manager } from './manager.ts'
+import { writeFileSafeDir } from './file.ts'
 
 type CreateArgs = {
   accountName?: string
@@ -26,9 +27,9 @@ export class ClientJson {
   }
 
   static toPath(projectName: string) {
-    const rootPath = toProjectPath(projectName)
+    const projectPath = toProjectPath(projectName)
 
-    return join(rootPath, '.settings', 'client.json')
+    return join(projectPath, '.settings', 'client.json')
   }
 
   static async exists(projectName: string): Promise<boolean> {
@@ -59,13 +60,10 @@ export class ClientJson {
   }
 
   async write() {
-    const settingsPath = join(toProjectPath(this.projectName), '.settings')
+    const path = ClientJson.toPath(this.projectName)
+    const content = JSON.stringify(this.contents, null, 2)
 
-    await ensureDir(settingsPath)
-
-    const clientJsonPath = ClientJson.toPath(this.projectName)
-
-    await Deno.writeTextFile(clientJsonPath, JSON.stringify(this.contents, null, 2))
+    await writeFileSafeDir(path, content)
   }
 
   static create({ accountName, projectName, basePath }: CreateArgs) {

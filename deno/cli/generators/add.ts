@@ -6,7 +6,7 @@ import invariant from 'tiny-invariant'
 
 const generatorType = new EnumType(['operation', 'model'])
 
-export const description = 'Add a new generator to project'
+export const description = 'Add new local generator'
 
 export const toAddCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
@@ -23,13 +23,7 @@ export const toAddCommand = (skmtcRoot: SkmtcRoot) => {
   return command
 }
 
-export const toAddPrompt = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
-    message: 'Select generator type',
-    list: true,
-    suggestions: generatorType.values
-  })
-
+export const toAddPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   const project = skmtcRoot.projects.find(project => project.name === projectName)
 
   invariant(project, 'Project not found')

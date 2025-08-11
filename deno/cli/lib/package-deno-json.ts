@@ -1,7 +1,5 @@
 import { exists } from '@std/fs'
-import { toRootPath } from './to-root-path.ts'
-import { join } from '@std/path'
-import { writeFile } from './file.ts'
+import { writeFileSafeDir } from './file.ts'
 import * as v from 'valibot'
 import { packageDenoJson, type PackageDenoJson as PackageDenoJsonType } from '@skmtc/core'
 import type { Manager } from './manager.ts'
@@ -55,9 +53,8 @@ export class PackageDenoJson {
   }
 
   async write() {
-    await writeFile({
-      content: JSON.stringify(this.contents, null, 2),
-      resolvedPath: this.path
-    })
+    const content = JSON.stringify(this.contents, null, 2)
+
+    await writeFileSafeDir(this.path, content)
   }
 }

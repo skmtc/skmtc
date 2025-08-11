@@ -54,11 +54,11 @@ export class SkmtcRoot {
       return new SkmtcRoot([], manager)
     }
 
-    const projects = await Promise.all(
-      Deno.readDirSync(rootPath).map(async post => {
-        return await Project.open(post.name, manager)
-      })
-    )
+    const projectDirs = Deno.readDirSync(rootPath).filter(item => item.isDirectory)
+
+    const projectPromises = projectDirs.map(projectDir => Project.open(projectDir.name, manager))
+
+    const projects = await Promise.all(projectPromises)
 
     return new SkmtcRoot(projects, manager)
   }

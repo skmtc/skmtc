@@ -39,6 +39,8 @@ export const pull = async ({ projectName, skmtcRoot }: PullArgs) => {
 
     console.log('WORKSPACE', workspace)
   } catch (error) {
+    console.error(error)
+
     Sentry.captureException(error)
 
     await Sentry.flush()

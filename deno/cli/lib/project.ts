@@ -18,6 +18,7 @@ type AddGeneratorArgs = {
 }
 
 type CloneGeneratorArgs = {
+  projectName: string
   packageName: string
 }
 
@@ -73,9 +74,16 @@ export class Project {
   prettierJson: PrettierJson | null
   manager: Manager
 
-  private constructor({ name, rootDenoJson, clientJson, prettierJson, manager }: ConstructorArgs) {
+  private constructor({
+    name,
+    generatorIds,
+    rootDenoJson,
+    clientJson,
+    prettierJson,
+    manager
+  }: ConstructorArgs) {
     this.name = name
-    this.generatorIds = []
+    this.generatorIds = generatorIds
     this.rootDenoJson = rootDenoJson
     this.clientJson = clientJson
     this.prettierJson = prettierJson
@@ -111,20 +119,26 @@ export class Project {
     return project
   }
 
-  async cloneGenerator({ packageName }: CloneGeneratorArgs, { logSuccess }: CloneOptions = {}) {
+  async cloneGenerator(
+    { projectName, packageName }: CloneGeneratorArgs,
+    { logSuccess }: CloneOptions = {}
+  ) {
     try {
       const { scheme, scopeName, generatorName, version } = Generator.parseName(packageName)
 
       invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
 
       const generator = Generator.fromName({
+        projectName,
         scopeName,
         generatorName,
         version: version ?? (await Jsr.getLatestMeta({ scopeName, generatorName })).latest
       })
 
-      await generator.clone({ denoJson: this.rootDenoJson })
+      await generator.clone({ projectName, denoJson: this.rootDenoJson })
     } catch (error) {
+      console.error(error)
+
       Sentry.captureException(error)
 
       await Sentry.flush()
@@ -143,6 +157,7 @@ export class Project {
       invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
 
       const generator = Generator.fromName({
+        projectName: this.name,
         scopeName,
         generatorName,
         version: version ?? (await Jsr.getLatestMeta({ scopeName, generatorName })).latest
@@ -168,12 +183,19 @@ export class Project {
     try {
       const { scopeName, generatorName, version } = Generator.parseName(packageName)
 
-      const generator = Generator.fromName({ scopeName, generatorName, version: version ?? '' })
+      const generator = Generator.fromName({
+        projectName: this.name,
+        scopeName,
+        generatorName,
+        version: version ?? ''
+      })
 
       generator.remove(this)
 
       await this.manager.success()
     } catch (error) {
+      console.error(error)
+
       Sentry.captureException(error)
 
       await Sentry.flush()
@@ -217,6 +239,7 @@ export class Project {
       const { scopeName, generatorName, version } = Generator.parseName(packageName)
 
       const generator = Generator.fromName({
+        projectName: this.name,
         scopeName,
         generatorName,
         version: version ?? '0.0.1'
@@ -224,6 +247,8 @@ export class Project {
 
       generator.add({ project: this, generatorType: type })
     } catch (error) {
+      console.error(error)
+
       Sentry.captureException(error)
 
       await Sentry.flush()

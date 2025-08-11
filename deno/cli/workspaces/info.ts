@@ -2,9 +2,8 @@ import { Command } from '@cliffy/command'
 import * as Sentry from '@sentry/deno'
 import { Workspace } from '../lib/workspace.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
-import { Input } from '@cliffy/prompt'
 
-export const description = 'Get workspace info'
+export const description = 'Get project info'
 
 export const toWorkspacesInfoCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
@@ -15,13 +14,7 @@ export const toWorkspacesInfoCommand = (skmtcRoot: SkmtcRoot) => {
     })
 }
 
-export const toWorkspacesInfoPrompt = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
-    message: 'Select project to get workspace info for',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
-  })
-
+export const toWorkspacesInfoPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   await info({ projectName, skmtcRoot })
 }
 

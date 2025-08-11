@@ -1,6 +1,6 @@
 import { exists } from '@std/fs'
 import { join } from '@std/path'
-import { writeFile } from './file.ts'
+import { writeFileSafeDir } from './file.ts'
 import * as v from 'valibot'
 import { prettierConfigType, type PrettierConfigType } from '@skmtc/core'
 import { toProjectPath } from './to-project-path.ts'
@@ -46,10 +46,11 @@ export class PrettierJson {
   }
 
   async write() {
-    await writeFile({
-      content: JSON.stringify(this.contents, null, 2),
-      resolvedPath: PrettierJson.toPath(this.projectName)
-    })
+    const resolvedPath = PrettierJson.toPath(this.projectName)
+
+    console.log('RESOLVED PRETTIER PATH', resolvedPath)
+
+    await writeFileSafeDir(resolvedPath, JSON.stringify(this.contents, null, 2))
   }
 
   static create({ projectName }: ConstructorArgs) {

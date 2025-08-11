@@ -9,20 +9,24 @@ import { ModelGenerator } from './model-generator.ts'
 import { PackageDenoJson } from './package-deno-json.ts'
 import type { Manager } from './manager.ts'
 import type { Project } from './project.ts'
+import invariant from 'tiny-invariant'
 
 type GeneratorArgs = {
+  projectName: string
   scopeName: string
   generatorName: string
   version: string
 }
 
 type CreateArgs = {
+  projectName: string
   scopeName: string
   generatorName: string
   version: string
 }
 
 type CloneArgs = {
+  projectName: string
   denoJson: RootDenoJson
 }
 
@@ -36,18 +40,20 @@ type AddArgs = {
 }
 
 export class Generator {
+  projectName: string
   scopeName: string
   generatorName: string
   version: string
 
-  private constructor({ scopeName, generatorName, version }: GeneratorArgs) {
+  private constructor({ projectName, scopeName, generatorName, version }: GeneratorArgs) {
+    this.projectName = projectName
     this.scopeName = scopeName
     this.generatorName = generatorName
     this.version = version
   }
 
-  static create({ scopeName, generatorName, version }: CreateArgs) {
-    return new Generator({ scopeName, generatorName, version })
+  static create({ projectName, scopeName, generatorName, version }: CreateArgs) {
+    return new Generator({ projectName, scopeName, generatorName, version })
   }
 
   static parseName(name: string) {
@@ -138,14 +144,18 @@ export class Generator {
     denoJson.addWorkspace(this.toPath())
   }
 
-  static fromName({ scopeName, generatorName, version }: FromNameArgs): Generator {
-    const generator = Generator.create({ scopeName, generatorName, version })
+  static fromName({ projectName, scopeName, generatorName, version }: FromNameArgs): Generator {
+    const generator = Generator.create({ projectName, scopeName, generatorName, version })
 
     return generator
   }
 
   remove(project: Project) {
-    const isLocal = RootDenoJson.isLocalModule(this.toPackageName())
+    const packageSource = project.rootDenoJson.contents.imports?.[this.toPackageName()]
+
+    invariant(packageSource, 'Package source not found')
+
+    const isLocal = RootDenoJson.isLocalModule(packageSource)
 
     if (isLocal) {
       Deno.remove(join(toProjectPath(project.name), this.generatorName))
@@ -163,7 +173,7 @@ export class Generator {
   }
 
   toPath() {
-    return `./${this.generatorName}`
+    return join(toProjectPath(this.projectName), this.generatorName)
   }
 
   toModPath() {
@@ -172,6 +182,7 @@ export class Generator {
 }
 
 type FromNameArgs = {
+  projectName: string
   scopeName: string
   generatorName: string
   version: string
