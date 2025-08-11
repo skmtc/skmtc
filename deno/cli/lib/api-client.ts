@@ -3,7 +3,6 @@ import type { Manager } from './manager.ts'
 import * as v from 'valibot'
 import type { OpenApiSchema } from './openapi-schema.ts'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
-import { open } from 'node:fs'
 
 const deploymentStatus = v.picklist(['pending', 'success', 'failed'])
 
@@ -206,6 +205,25 @@ export class ApiClient {
 
     if (error) {
       throw new Error('Failed to get schemas')
+    }
+
+    return data
+  }
+
+  async getWorkspaceByName(workspaceName: string) {
+    await this.manager.auth.enforceAuth()
+
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      `workspaces/${workspaceName}`,
+      {
+        method: 'GET'
+      }
+    )
+
+    if (error) {
+      console.log('Failed to get workspace by name')
+
+      return null
     }
 
     return data

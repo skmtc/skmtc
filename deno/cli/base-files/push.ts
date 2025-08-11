@@ -5,63 +5,56 @@ import { KvState } from '../lib/kv-state.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/deno'
 import { BaseFiles } from '../lib/base-files.ts'
-import { Workspace } from '../lib/workspace.ts'
+// import { Workspace } from '../lib/workspace.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
-export const toDescription = async (projectName: string): Promise<string> => {
-  const kv = await Deno.openKv()
+export const description = 'Push base files to Skmtc'
 
-  const manager = new Manager({ kv })
-  const kvState = new KvState(kv)
+// @TODO Needs deeper refactor
+// export const toDescription = async (skmtcRoot: SkmtcRoot): Promise<string> => {
+//   try {
+//     const apiClient = new ApiClient(skmtcRoot.manager)
 
-  try {
-    const apiClient = new ApiClient(manager)
+//     const workspace = new Workspace()
 
-    const workspace = new Workspace()
+//     const isLoggedIn = await apiClient.manager.auth.isLoggedIn()
 
-    const isLoggedIn = await apiClient.manager.auth.isLoggedIn()
+//     if (!isLoggedIn) {
+//       await skmtcRoot.manager.success()
+//       return 'Log in to push base files'
+//     }
 
-    if (!isLoggedIn) {
-      await manager.success()
-      return 'Log in to push base files'
-    }
+//     const accountName = await apiClient.manager.auth.toUserName()
 
-    const accountName = await apiClient.manager.auth.toUserName()
+//     const workspaceRes = await workspace.getWorkspace({
+//       projectName: skmtcRoot.projectName,
+//       skmtcRoot
+//     })
 
-    const workspaceRes = await workspace.getWorkspace({ projectName, kvState, apiClient })
+//     if (!workspaceRes) {
+//       await skmtcRoot.manager.success()
+//       return 'Create workspace to push base files'
+//     }
 
-    if (!workspaceRes) {
-      await manager.success()
-      return 'Create workspace to push base files'
-    }
+//     const { name } = workspaceRes
 
-    const { name } = workspaceRes
+//     await skmtcRoot.manager.success()
 
-    await manager.success()
+//     return `Push base files to @${accountName}/${name}`
+//   } catch (error) {
+//     console.error(error)
 
-    return `Push base files to @${accountName}/${name}`
-  } catch (error) {
-    console.error(error)
+//     Sentry.captureException(error)
 
-    Sentry.captureException(error)
+//     await Sentry.flush()
 
-    await Sentry.flush()
+//     skmtcRoot.manager.fail('Failed to get workspace')
 
-    manager.fail('Failed to get workspace')
+//     Deno.exit(1)
+//   }
+// }
 
-    Deno.exit(1)
-  }
-}
-
-export const toBaseFilesPushCommand = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
-    message: 'Select project',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
-  })
-
-  const description = await toDescription(projectName)
-
+export const toBaseFilesPushCommand = (_skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
     .arguments('<project:string> <path:string>')
@@ -95,18 +88,10 @@ export const push = async ({ projectName, path }: PushArgs) => {
   const manager = new Manager({ kv })
 
   try {
-    const kvState = new KvState(kv)
-    const workspaceId = await kvState.getWorkspaceId(projectName)
-
-    if (!workspaceId || typeof workspaceId !== 'string') {
-      console.log('No workspace ID found')
-      return
-    }
-
     const apiClient = new ApiClient(manager)
     const baseFiles = new BaseFiles(path)
 
-    await baseFiles.push({ projectName, kvState, apiClient })
+    await baseFiles.push({ projectName, apiClient })
   } catch (error) {
     console.error(error)
 

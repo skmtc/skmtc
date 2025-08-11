@@ -8,7 +8,7 @@ import { OperationGenerator } from './operation-generator.ts'
 import { ModelGenerator } from './model-generator.ts'
 import { PackageDenoJson } from './package-deno-json.ts'
 import type { Manager } from './manager.ts'
-import { Project } from './project.ts'
+import type { Project } from './project.ts'
 
 type GeneratorArgs = {
   scopeName: string

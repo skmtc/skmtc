@@ -8,6 +8,8 @@ import { Deployment } from './deployment.ts'
 import { ClientJson } from './client-json.ts'
 import { toAssets } from '../deploy/to-assets.ts'
 import { toProjectPath } from './to-project-path.ts'
+import { PrettierJson } from './prettier-json.ts'
+import type { SkmtcRoot } from './skmtc-root.ts'
 
 type AddGeneratorArgs = {
   packageName: string
@@ -26,6 +28,8 @@ type ConstructorArgs = {
   name: string
   generatorIds: string[]
   rootDenoJson: RootDenoJson
+  clientJson: ClientJson
+  prettierJson: PrettierJson | null
   manager: Manager
 }
 
@@ -51,6 +55,9 @@ type RemoveOptions = {
 
 type CreateArgs = {
   name: string
+  basePath: string
+  generators: string[]
+  skmtcRoot: SkmtcRoot
 }
 
 type CloneOptions = {
@@ -61,22 +68,38 @@ export class Project {
   name: string
   generatorIds: string[]
   rootDenoJson: RootDenoJson
+  clientJson: ClientJson
+  prettierJson: PrettierJson | null
   manager: Manager
 
-  private constructor({ name, generatorIds, rootDenoJson, manager }: ConstructorArgs) {
+  private constructor({ name, rootDenoJson, clientJson, prettierJson, manager }: ConstructorArgs) {
     this.name = name
-    this.generatorIds = generatorIds
+    this.generatorIds = []
     this.rootDenoJson = rootDenoJson
+    this.clientJson = clientJson
+    this.prettierJson = prettierJson
     this.manager = manager
   }
 
-  static create(name: string, manager: Manager) {
+  static async create({ name, basePath, generators, skmtcRoot }: CreateArgs) {
     const project = new Project({
       name,
       generatorIds: [],
       rootDenoJson: RootDenoJson.create(name),
-      manager
+      clientJson: ClientJson.create({ projectName: name, basePath }),
+      prettierJson: PrettierJson.create({ projectName: name, contents: {} }),
+      manager: skmtcRoot.manager
     })
+
+    for (const packageName of generators) {
+      await project.installGenerator({ packageName })
+    }
+
+    await project.prettierJson?.write()
+
+    await project.clientJson.write()
+
+    await project.rootDenoJson.write()
 
     return project
   }
@@ -121,6 +144,8 @@ export class Project {
       generator.install({ denoJson: this.rootDenoJson })
 
       await this.manager.success()
+
+      return generator
     } catch (error) {
       Sentry.captureException(error)
 
@@ -219,6 +244,10 @@ export class Project {
       return true
     })
 
-    return new Project({ name, generatorIds, rootDenoJson, manager })
+    const clientJson = await ClientJson.open(name, manager)
+
+    const prettierJson = await PrettierJson.open(name)
+
+    return new Project({ name, generatorIds, rootDenoJson, clientJson, prettierJson, manager })
   }
 }

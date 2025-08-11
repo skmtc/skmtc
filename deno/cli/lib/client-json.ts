@@ -6,7 +6,7 @@ import * as v from 'valibot'
 import type { Manager } from './manager.ts'
 
 type CreateArgs = {
-  accountName: string
+  accountName?: string
   projectName: string
   basePath: string
 }

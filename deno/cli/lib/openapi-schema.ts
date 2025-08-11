@@ -1,7 +1,7 @@
 import { ensureDir, exists } from '@std/fs'
 import { resolve } from 'node:path'
-import type { ApiClient, CreateSchemaBody } from './api-client.ts'
-import type { KvState } from './kv-state.ts'
+import type { CreateSchemaBody } from './api-client.ts'
+import type { SkmtcRoot } from './skmtc-root.ts'
 
 type OpenApiSchemaArgs = {
   path: string
@@ -9,16 +9,8 @@ type OpenApiSchemaArgs = {
 }
 
 type UploadArgs = {
-  kvState: KvState
-  apiClient: ApiClient
-}
-
-type UnlinkArgs = {
-  kvState: KvState
-}
-
-type InfoArgs = {
-  kvState: KvState
+  projectName: string
+  skmtcRoot: SkmtcRoot
 }
 
 export class OpenApiSchema {
@@ -46,11 +38,13 @@ export class OpenApiSchema {
     return new OpenApiSchema({ path, contents })
   }
 
-  async upload({ kvState, apiClient }: UploadArgs) {
-    const schemaId = await kvState.getSchemaId({ path: this.path })
+  async upload({ projectName, skmtcRoot }: UploadArgs) {
+    const workspace = await skmtcRoot.apiClient.getWorkspaceByName(projectName)
+
+    const schemaId = workspace.schemaId
 
     if (schemaId) {
-      const serverFilePath = await apiClient.uploadSchemaFile({
+      const serverFilePath = await skmtcRoot.apiClient.uploadSchemaFile({
         openApiSchema: this,
         schemaId
       })
@@ -60,7 +54,7 @@ export class OpenApiSchema {
         filePath: serverFilePath
       }
 
-      const [schema] = await apiClient.updateSchema({
+      const [schema] = await skmtcRoot.apiClient.updateSchema({
         body: {
           id: schemaId,
           file: file
@@ -69,7 +63,7 @@ export class OpenApiSchema {
 
       return schema
     } else {
-      const serverFilePath = await apiClient.uploadSchemaFile({
+      const serverFilePath = await skmtcRoot.apiClient.uploadSchemaFile({
         openApiSchema: this,
         schemaId: Date.now().toString()
       })
@@ -79,22 +73,10 @@ export class OpenApiSchema {
         filePath: serverFilePath
       }
 
-      const [schema] = await apiClient.createSchema({ body })
-
-      kvState.setSchemaId({ path: this.path, schemaId: schema.id })
+      const [schema] = await skmtcRoot.apiClient.createSchema({ body })
 
       return schema
     }
-  }
-
-  async unlink({ kvState }: UnlinkArgs) {
-    await kvState.clearSchemaId({ path: this.path })
-  }
-
-  async info({ kvState }: InfoArgs) {
-    const info = await kvState.getSchemaId({ path: this.path })
-
-    return info
   }
 
   async write() {

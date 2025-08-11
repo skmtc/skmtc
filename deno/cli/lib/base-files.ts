@@ -1,12 +1,10 @@
 import { join } from '@std/path'
 import type { ApiClient } from './api-client.ts'
-import type { KvState } from './kv-state.ts'
 import { IgnoreFile } from './ignore-file.ts'
 import console from 'node:console'
 
 type PushArgs = {
   projectName: string
-  kvState: KvState
   apiClient: ApiClient
 }
 
@@ -48,8 +46,10 @@ export class BaseFiles {
     return output
   }
 
-  async push({ projectName, kvState, apiClient }: PushArgs) {
-    const workspaceId = await kvState.getWorkspaceId(projectName)
+  async push({ projectName, apiClient }: PushArgs) {
+    const workspace = await apiClient.getWorkspaceByName(projectName)
+
+    const workspaceId = workspace.id
 
     if (!workspaceId) {
       throw new Error('Workspace ID not found')

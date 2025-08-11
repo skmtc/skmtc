@@ -1,44 +1,32 @@
-import type { ApiClient } from './api-client.ts'
-import type { KvState } from './kv-state.ts'
 import { deletePreviousArtifacts } from '../generators/generate.ts'
 import { join, parse } from '@std/path'
 import { ensureDirSync, ensureFileSync } from '@std/fs'
 import { toProjectPath } from './to-project-path.ts'
+import type { SkmtcRoot } from './skmtc-root.ts'
 
 type GenerateArtifactsArgs = {
   projectName: string
-  kvState: KvState
-  apiClient: ApiClient
+  skmtcRoot: SkmtcRoot
 }
 
 type GetWorkspaceArgs = {
   projectName: string
-  kvState: KvState
-  apiClient: ApiClient
+  skmtcRoot: SkmtcRoot
 }
 
 export class Workspace {
-  async getWorkspace({ projectName, kvState, apiClient }: GetWorkspaceArgs) {
-    const workspaceId = await kvState.getWorkspaceId(projectName)
-
-    if (!workspaceId || typeof workspaceId !== 'string') {
-      console.log('No workspace ID found')
-      return
-    }
-
-    const workspace = await apiClient.getWorkspaceById(workspaceId)
+  async getWorkspace({ projectName, skmtcRoot }: GetWorkspaceArgs) {
+    const workspace = await skmtcRoot.apiClient.getWorkspaceByName(projectName)
 
     return workspace
   }
 
-  async generateArtifacts({ projectName, kvState, apiClient }: GenerateArtifactsArgs) {
-    const workspaceId = await kvState.getWorkspaceId(projectName)
+  async generateArtifacts({ projectName, skmtcRoot }: GenerateArtifactsArgs) {
+    const workspace = await this.getWorkspace({ projectName, skmtcRoot })
 
-    if (!workspaceId) {
-      throw new Error('Workspace id not found')
-    }
-
-    const { artifacts, manifest } = await apiClient.generateArtifacts({ workspaceId })
+    const { artifacts, manifest } = await skmtcRoot.apiClient.generateArtifacts({
+      workspaceId: workspace.id
+    })
 
     const projectPath = toProjectPath(projectName)
 

@@ -1,73 +1,83 @@
 import { Command } from '@cliffy/command'
-import { Manager } from '../lib/manager.ts'
-import { ApiClient } from '../lib/api-client.ts'
-import { KvState } from '../lib/kv-state.ts'
 import * as Sentry from '@sentry/deno'
 import { Workspace } from '../lib/workspace.ts'
 import chokidar from 'chokidar'
 import { upload } from '../schemas/upload.ts'
 import { join } from 'node:path'
+import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import { Input } from '@cliffy/prompt'
 
 export const description = 'Generate artifacts in workspace'
 
-export const toWorkspacesGenerateCommand = () => {
+export const toWorkspacesGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
-    .arguments('<path:string>')
+    .arguments('<project:string> <path:string>')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
-    .action(async ({ watch }, path) => {
+    .action(async ({ watch }, project, path) => {
       if (watch) {
-        setupWatcher({ path })
+        setupWatcher({ projectName: project, skmtcRoot, path })
       } else {
-        await generate({ logSuccess: 'Artifacts generated' })
+        await generate({ projectName: project, skmtcRoot }, { logSuccess: 'Artifacts generated' })
       }
     })
 }
 
-export const toWorkspacesGeneratePrompt = async () => {
-  await generate()
+export const toWorkspacesGeneratePrompt = async (skmtcRoot: SkmtcRoot) => {
+  const projectName = await Input.prompt({
+    message: 'Select project to generate artifacts for',
+    list: true,
+    suggestions: skmtcRoot.projects.map(({ name }) => name)
+  })
+
+  await generate({ projectName, skmtcRoot })
 }
 
 type WatchGenerateArgs = {
+  projectName: string
+  skmtcRoot: SkmtcRoot
   path: string
 }
 
-export const setupWatcher = ({ path }: WatchGenerateArgs) => {
+export const setupWatcher = ({ projectName, skmtcRoot, path }: WatchGenerateArgs) => {
   const joinedPath = join(Deno.cwd(), path)
 
   const watcher = chokidar.watch(joinedPath)
 
-  watcher.on('change', () => uploadGenerate({ path }))
+  watcher.on('change', () => uploadGenerate({ projectName, skmtcRoot, path }))
 }
 
 type UploadGenerateArgs = {
+  projectName: string
+  skmtcRoot: SkmtcRoot
   path: string
 }
 
-const uploadGenerate = async ({ path }: UploadGenerateArgs) => {
-  await upload({ path }, { logSuccess: 'Schema uploaded' })
+const uploadGenerate = async ({ projectName, skmtcRoot, path }: UploadGenerateArgs) => {
+  await upload({ projectName, skmtcRoot, path }, { logSuccess: 'Schema uploaded' })
 
-  await generate({ logSuccess: 'Artifacts generated' })
+  await generate({ projectName, skmtcRoot }, { logSuccess: 'Artifacts generated' })
 }
 
 type GenerateArgs = {
+  projectName: string
+  skmtcRoot: SkmtcRoot
+}
+
+type GenerateOptions = {
   logSuccess?: string
 }
 
-export const generate = async ({ logSuccess }: GenerateArgs = {}) => {
-  const kv = await Deno.openKv()
-
-  const manager = new Manager({ kv, logSuccess })
-
+export const generate = async (
+  { projectName, skmtcRoot }: GenerateArgs,
+  { logSuccess }: GenerateOptions = {}
+) => {
   try {
-    const kvState = new KvState(kv)
-    const apiClient = new ApiClient(manager)
-
     const workspace = new Workspace()
 
-    await workspace.generateArtifacts({ kvState, apiClient })
+    await workspace.generateArtifacts({ projectName, skmtcRoot })
 
-    manager.success()
+    await skmtcRoot.manager.success()
   } catch (error) {
     console.error(error)
 
@@ -75,6 +85,6 @@ export const generate = async ({ logSuccess }: GenerateArgs = {}) => {
 
     await Sentry.flush()
 
-    manager.fail('Failed to generate artifacts')
+    skmtcRoot.manager.fail('Failed to generate artifacts')
   }
 }
