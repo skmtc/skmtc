@@ -17,7 +17,7 @@ export class Auth {
 
     return data.session
   }
-  async enforceAuth(): Promise<Session> {
+  async ensureAuth(): Promise<Session> {
     const session = await this.toSession()
 
     return session ? session : await this.login()
@@ -65,7 +65,6 @@ export class Auth {
         if (event === 'SIGNED_IN' && session) {
           console.log('You are now logged in')
 
-          this.kv.close()
           server.shutdown()
 
           resolve(session)
@@ -87,7 +86,6 @@ export class Auth {
       this.supabase.auth.onAuthStateChange((_event, session) => {
         if (!session) {
           console.log('You are now logged out')
-          this.kv.close()
 
           resolve(null)
         }

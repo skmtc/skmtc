@@ -11,12 +11,14 @@ import { tracer } from '../helpers/tracer.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type * as log from 'jsr:@std/log@^0.224.6'
 import { File } from '../dsl/File.ts'
-import type { Preview } from '../types/Preview.ts'
+import type { Preview, Mapping } from '../types/Preview.ts'
 import * as prettier from 'npm:prettier@^3.6.2'
 import type { JsonFile } from '../dsl/JsonFile.ts'
+
 type ConstructorArgs = {
   files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
+  mappings: Record<string, Record<string, Mapping>>
   prettierConfig?: PrettierConfigType
   basePath: string | undefined
   stackTrail: StackTrail
@@ -47,6 +49,7 @@ type RenderOutput = {
 export class RenderContext {
   files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
+  mappings: Record<string, Record<string, Mapping>>
   #prettierConfig?: PrettierConfigType
   basePath: string | undefined
   logger: log.Logger
@@ -55,6 +58,7 @@ export class RenderContext {
   constructor({
     files,
     previews,
+    mappings,
     prettierConfig,
     basePath,
     logger,
@@ -63,6 +67,7 @@ export class RenderContext {
   }: ConstructorArgs) {
     this.files = files
     this.previews = previews
+    this.mappings = mappings
     this.#prettierConfig = prettierConfig
     this.basePath = basePath
     this.logger = logger
@@ -79,7 +84,8 @@ export class RenderContext {
       const rendered: Omit<RenderResult, 'results'> = {
         artifacts: result.artifacts,
         files: result.files,
-        previews: this.previews
+        previews: this.previews,
+        mappings: this.mappings
       }
 
       return rendered

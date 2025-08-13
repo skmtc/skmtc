@@ -4,7 +4,7 @@ import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
-import type { PreviewModule } from '../../types/Preview.ts'
+import type { MappingModule, PreviewModule } from '../../types/Preview.ts'
 export type OperationInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContext
   settings: ContentSettings<EnrichmentType>
@@ -42,6 +42,11 @@ export type ToOperationPreviewModuleArgs = {
   operation: OasOperation
 }
 
+export type ToOperationMappingArgs = {
+  context: GenerateContext
+  operation: OasOperation
+}
+
 export type OperationInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({ context, settings, operation }: OperationInsertableArgs<EnrichmentType>): V
   id: string
@@ -64,6 +69,7 @@ export type OperationConfig<EnrichmentType = undefined> = {
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, operation }: ToOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined

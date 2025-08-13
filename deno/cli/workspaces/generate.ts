@@ -5,55 +5,65 @@ import chokidar from 'chokidar'
 import { upload } from '../schemas/upload.ts'
 import { join } from '@std/path'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import invariant from 'tiny-invariant'
+import type { Project } from '../lib/project.ts'
 
-export const description = 'Generate local artifacts'
+export const description = 'Generate artifacts'
 
 export const toWorkspacesGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
     .arguments('<project:string> <path:string>')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
-    .action(async ({ watch }, project, path) => {
+    .action(async ({ watch }, projectName, path) => {
+      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+      invariant(project, 'Project not found')
+
       if (watch) {
-        setupWatcher({ projectName: project, skmtcRoot, path })
+        setupWatcher({ project, skmtcRoot, path })
       } else {
-        await generate({ projectName: project, skmtcRoot }, { logSuccess: 'Artifacts generated' })
+        await generate({ project, skmtcRoot }, { logSuccess: 'Artifacts generated' })
       }
     })
 }
 
 export const toWorkspacesGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
-  await generate({ projectName, skmtcRoot })
+  const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+  invariant(project, 'Project not found')
+
+  await generate({ project, skmtcRoot })
 }
 
 type WatchGenerateArgs = {
-  projectName: string
+  project: Project
   skmtcRoot: SkmtcRoot
   path: string
 }
 
-export const setupWatcher = ({ projectName, skmtcRoot, path }: WatchGenerateArgs) => {
+export const setupWatcher = ({ project, skmtcRoot, path }: WatchGenerateArgs) => {
   const joinedPath = join(Deno.cwd(), path)
 
   const watcher = chokidar.watch(joinedPath)
 
-  watcher.on('change', () => uploadGenerate({ projectName, skmtcRoot, path }))
+  watcher.on('change', () => uploadGenerate({ project, skmtcRoot, path }))
 }
 
 type UploadGenerateArgs = {
-  projectName: string
+  project: Project
   skmtcRoot: SkmtcRoot
   path: string
 }
 
-const uploadGenerate = async ({ projectName, skmtcRoot, path }: UploadGenerateArgs) => {
-  await upload({ projectName, skmtcRoot, path }, { logSuccess: 'Schema uploaded' })
+const uploadGenerate = async ({ project, skmtcRoot, path }: UploadGenerateArgs) => {
+  await upload({ project, skmtcRoot, path }, { logSuccess: 'Schema uploaded' })
 
-  await generate({ projectName, skmtcRoot }, { logSuccess: 'Artifacts generated' })
+  await generate({ project, skmtcRoot }, { logSuccess: 'Artifacts generated' })
 }
 
 type GenerateArgs = {
-  projectName: string
+  project: Project
   skmtcRoot: SkmtcRoot
 }
 
@@ -62,13 +72,13 @@ type GenerateOptions = {
 }
 
 export const generate = async (
-  { projectName, skmtcRoot }: GenerateArgs,
+  { project, skmtcRoot }: GenerateArgs,
   { logSuccess }: GenerateOptions = {}
 ) => {
   try {
     const workspace = new Workspace()
 
-    await workspace.generateArtifacts({ projectName, skmtcRoot })
+    await workspace.generateArtifacts({ project, skmtcRoot })
 
     await skmtcRoot.manager.success()
   } catch (error) {

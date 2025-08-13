@@ -3,59 +3,49 @@ import { join, parse } from '@std/path'
 import { ensureDirSync, ensureFileSync, existsSync } from '@std/fs'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import * as v from 'valibot'
-import { skmtcClientConfig, skmtcStackConfig } from '@skmtc/core/Settings'
-import { toProjectPath } from '../lib/to-project-path.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import invariant from 'tiny-invariant'
 
-export const toGenerateCommand = () => {
-  return (
-    new Command()
-      .description('Generate artifacts from OpenAPI schema')
-      .arguments('<project:string> <path:string>')
-      // .option('-s, --settings <settings>', 'The settings to use')
-      // .option('-p, --prettier [prettier]', 'The prettier config to use')
-      .action(async (_args, project, path) => {
-        const projectPath = toProjectPath(project)
+export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
+  return new Command()
+    .description('Generate artifacts from OpenAPI schema')
+    .arguments('<project:string>')
+    .action(async (_args, projectName) => {
+      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
 
-        const pathToSchema = join(Deno.cwd(), path)
+      invariant(project?.schemaFile?.contents, 'Project schema file not found')
 
-        const stackJson = await Deno.readTextFile(join(projectPath, '.settings', 'stack.json'))
-        const stack = v.parse(skmtcStackConfig, JSON.parse(stackJson))
+      console.log('V1')
 
-        const clientJson = await Deno.readTextFile(join(projectPath, '.settings', 'client.json'))
-        const client = v.parse(skmtcClientConfig, JSON.parse(clientJson))
-
-        const schema = await Deno.readTextFile(pathToSchema)
-
-        const { artifacts, manifest } = await generatorArtifacts({
-          serverOrigin: `https://${stack.name}-${client.deploymentId}.deno.dev`,
-          schema
-        })
-
-        deletePreviousArtifacts({
-          incomingPaths: Object.keys(artifacts ?? {}),
-          projectPath
-        })
-
-        const manifestPath = join(projectPath, '.settings', 'manifest.json')
-
-        ensureFileSync(manifestPath)
-
-        Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
-
-        Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
-          const absolutePath = join(Deno.cwd(), artifactPath)
-
-          const { dir } = parse(absolutePath)
-
-          ensureDirSync(dir)
-
-          console.log(`Writing artifact: ${absolutePath}`)
-
-          Deno.writeTextFileSync(absolutePath, artifactContent)
-        })
+      const { artifacts, manifest } = await generatorArtifacts({
+        serverOrigin: `https://${project.name}-${project?.clientJson.contents.deploymentId}.deno.dev`,
+        schema: project.schemaFile.contents
       })
-  )
+
+      deletePreviousArtifacts({
+        basePath: project.clientJson.contents.settings.basePath,
+        incomingPaths: Object.keys(artifacts ?? {}),
+        projectPath: project.toPath()
+      })
+
+      const manifestPath = join(project.toPath(), '.settings', 'manifest.json')
+
+      ensureFileSync(manifestPath)
+
+      Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+      Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
+        const absolutePath = join(Deno.cwd(), artifactPath)
+
+        const { dir } = parse(absolutePath)
+
+        ensureDirSync(dir)
+
+        console.log(`Writing artifact: ${absolutePath}`)
+
+        Deno.writeTextFileSync(absolutePath, artifactContent)
+      })
+    })
 }
 export type GenerateResponse = {
   artifacts: Record<string, string>
@@ -83,6 +73,8 @@ export const generatorArtifacts = async ({
   // prettier,
   schema
 }: GenerateArgs) => {
+  console.log('V2')
+
   const response = await fetch(`${serverOrigin}/artifacts`, {
     method: 'POST',
     headers: {
@@ -101,11 +93,13 @@ export const generatorArtifacts = async ({
 }
 
 type DeletePreviousArtifactsArgs = {
+  basePath: string | undefined
   projectPath: string
   incomingPaths: string[]
 }
 
 export const deletePreviousArtifacts = ({
+  basePath = '',
   incomingPaths,
   projectPath
 }: DeletePreviousArtifactsArgs) => {
@@ -128,7 +122,7 @@ export const deletePreviousArtifacts = ({
   paths.forEach(path => {
     try {
       if (!incomingPaths.includes(path)) {
-        const absolutePath = join(Deno.cwd(), path)
+        const absolutePath = join(Deno.cwd(), basePath, path)
 
         Deno.removeSync(absolutePath)
       }

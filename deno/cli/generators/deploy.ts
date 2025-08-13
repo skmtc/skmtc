@@ -8,8 +8,12 @@ export const toDeployCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
     .arguments('<project:string>')
-    .action(async (_options, project) => {
-      return await skmtcRoot.projects.find(({ name }) => name === project)?.deploy()
+    .action(async (_options, projectName) => {
+      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+      invariant(project, 'Project not found')
+
+      await project.deploy({ logSuccess: 'Generators deployed' })
     })
 }
 

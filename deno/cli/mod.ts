@@ -35,6 +35,7 @@ import {
   toRemovePrompt,
   description as removeDescription
 } from './generators/remove.ts'
+import { toListCommand, toListPrompt, description as listDescription } from './generators/list.ts'
 import {
   toCloneCommand,
   toClonePrompt,
@@ -86,26 +87,30 @@ type PromptResponse =
   | 'workspaces:message'
   | 'exit'
 
-const EmptyWorkspaceOptions = [
+const EMPTY_WORKSPACE_OPTIONS = [
   { name: 'Create new Skmtc project', value: 'init' },
   { name: 'Log in to Skmtc', value: 'login' },
   { name: 'Log out', value: 'logout' },
   { name: 'Exit', value: 'exit' }
 ]
 
-const ProjectOptions = [
-  Select.separator(' - Generators - '),
-  {
-    name: addDescription,
-    value: 'generators:add'
-  },
+const toProjectOptions = (projectName: string) => [
+  Select.separator(` - Current project: ${projectName}`),
   {
     name: installDescription,
     value: 'generators:install'
   },
   {
+    name: addDescription,
+    value: 'generators:add'
+  },
+  {
     name: cloneDescription,
     value: 'generators:clone'
+  },
+  {
+    name: listDescription,
+    value: 'generators:list'
   },
   {
     name: removeDescription,
@@ -115,29 +120,21 @@ const ProjectOptions = [
     name: deployDescription,
     value: 'generators:deploy'
   },
-  Select.separator(' - Projects - '),
-  {
-    name: workspacesInfoDescription,
-    value: 'workspaces:info'
-  },
-  {
-    name: workspacesMessageDescription,
-    value: 'workspaces:message'
-  },
   {
     name: workspacesGenerateDescription,
     value: 'workspaces:generate'
   },
-  Select.separator(' - Base Files - '),
   {
     name: baseFilesPushDescription,
     value: 'base-files:push'
   },
-  Select.separator(' - Schemas - '),
   {
     name: uploadDescription,
     value: 'schemas:upload'
   },
+  Select.separator(` -- `),
+  { name: 'Log in to Skmtc', value: 'login' },
+  { name: 'Log out', value: 'logout' },
   { name: 'Exit', value: 'exit' }
 ]
 
@@ -147,7 +144,7 @@ const toAction = async () => {
   if (projects.length === 0) {
     const action = await Select.prompt<PromptResponse>({
       message: 'Welcome to Smktc! What would you like to do?',
-      options: EmptyWorkspaceOptions
+      options: EMPTY_WORKSPACE_OPTIONS
     })
 
     return { action, projectName: '' }
@@ -155,11 +152,9 @@ const toAction = async () => {
 
   const projectName = projects.length === 1 ? projects[0].name : await toSelectProject(skmtcRoot)
 
-  console.log('Current project: ', projectName)
-
   const action = await Select.prompt<PromptResponse>({
     message: 'Welcome to Smktc! What would you like to do?',
-    options: ProjectOptions
+    options: toProjectOptions(projectName)
   })
 
   return { action, projectName }
@@ -176,14 +171,13 @@ const promptwise = async () => {
     .with('generators:deploy', async () => await toDeployPrompt(skmtcRoot, projectName))
     .with('generators:generate', async () => await toGeneratePrompt(skmtcRoot, projectName))
     .with('generators:install', async () => await toInstallPrompt(skmtcRoot, projectName))
+    .with('generators:list', () => toListPrompt(skmtcRoot, projectName))
     .with('generators:remove', async () => await toRemovePrompt(skmtcRoot, projectName))
     .with('schemas:upload', async () => await toUploadPrompt(skmtcRoot, projectName))
     .with(
       'workspaces:generate',
       async () => await toWorkspacesGeneratePrompt(skmtcRoot, projectName)
     )
-    .with('workspaces:info', async () => await toWorkspacesInfoPrompt(skmtcRoot, projectName))
-    .with('workspaces:message', async () => await toWorkspacesMessagePrompt(skmtcRoot, projectName))
     .with('login', async () => await toLoginPrompt(skmtcRoot, projectName))
     .with('logout', async () => await toLogoutPrompt(skmtcRoot, projectName))
     .with('exit', () => Deno.exit(0))
@@ -206,13 +200,12 @@ await new Command()
   .command('generators:add', toAddCommand(skmtcRoot))
   .command('generators:clone', toCloneCommand(skmtcRoot))
   .command('generators:deploy', toDeployCommand(skmtcRoot))
-  .command('generators:generate', toGenerateCommand())
+  .command('generators:generate', toGenerateCommand(skmtcRoot))
   .command('generators:install', toInstallCommand(skmtcRoot))
+  .command('generators:list', toListCommand(skmtcRoot))
   .command('generators:remove', toRemoveCommand(skmtcRoot))
   .command('schemas:upload', toUploadCommand(skmtcRoot))
   .command('workspaces:generate', toWorkspacesGenerateCommand(skmtcRoot))
-  .command('workspaces:info', toWorkspacesInfoCommand(skmtcRoot))
-  .command('workspaces:message', toWorkspacesMessageCommand(skmtcRoot))
   .command('login', toLoginCommand(skmtcRoot))
   .command('logout', toLogoutCommand(skmtcRoot))
   .parse(Deno.args)

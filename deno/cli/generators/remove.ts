@@ -26,7 +26,7 @@ export const toRemovePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) 
   const generator: string = await Input.prompt({
     message: 'Remove generator',
     list: true,
-    suggestions: project.generatorIds
+    suggestions: project.toGeneratorIds()
   })
 
   await project.removeGenerator(

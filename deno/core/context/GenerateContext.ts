@@ -33,7 +33,14 @@ import { File } from '../dsl/File.ts'
 import { JsonFile } from '../dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
-import type { OperationSource, ModelSource, Preview, PreviewModule } from '../types/Preview.ts'
+import type {
+  OperationSource,
+  ModelSource,
+  Preview,
+  PreviewModule,
+  MappingModule,
+  Mapping
+} from '../types/Preview.ts'
 import { match } from 'ts-pattern'
 import type { OasVoid } from '../oas/void/Void.ts'
 
@@ -166,11 +173,13 @@ type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
 type GenerateResult = {
   files: Map<string, File | JsonFile>
   previews: Record<string, Record<string, Preview>>
+  mappings: Record<string, Record<string, Mapping>>
 }
 
 export class GenerateContext {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
+  #mappings: Record<string, Record<string, Mapping>>
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   logger: log.Logger
@@ -189,6 +198,7 @@ export class GenerateContext {
     this.logger = logger
     this.#files = new Map()
     this.#previews = {}
+    this.#mappings = {}
     this.oasDocument = oasDocument
     this.settings = settings
     this.stackTrail = stackTrail
@@ -222,7 +232,8 @@ export class GenerateContext {
 
     return {
       files: this.#files,
-      previews: this.#previews
+      previews: this.#previews,
+      mappings: this.#mappings
     }
   }
   #runOperationGenerator<EnrichmentType = undefined>({
@@ -242,10 +253,11 @@ export class GenerateContext {
 
           const result = generatorConfig.transform({ context: this, operation, acc })
 
-          this.#addPreview(
-            toOperationSource({ operation, generatorId: generatorConfig.id }),
-            generatorConfig.toPreviewModule?.({ context: this, operation })
-          )
+          const source = toOperationSource({ operation, generatorId: generatorConfig.id })
+
+          this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, operation }))
+
+          this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, operation }))
 
           this.captureCurrentResult('success')
 
@@ -270,10 +282,11 @@ export class GenerateContext {
         try {
           const result = generatorConfig.transform({ context: this, refName, acc })
 
-          this.#addPreview(
-            toModelSource({ refName, generatorId: generatorConfig.id }),
-            generatorConfig.toPreviewModule?.({ context: this, refName })
-          )
+          const source = toModelSource({ refName, generatorId: generatorConfig.id })
+
+          this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, refName }))
+
+          this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, refName }))
 
           this.captureCurrentResult('success')
 
@@ -300,6 +313,25 @@ export class GenerateContext {
     }
 
     this.#previews[module.group][module.name] = {
+      module,
+      source
+    }
+  }
+
+  #addMapping(source: OperationSource | ModelSource, module: MappingModule | undefined) {
+    if (!module) {
+      return
+    }
+
+    if (!this.#mappings[module.group]) {
+      this.#mappings[module.group] = {}
+    }
+
+    if (this.#mappings[module.group][module.name]) {
+      throw new Error(`Cannot override mapping module "${module.name}" in group "${module.group}"`)
+    }
+
+    this.#mappings[module.group][module.name] = {
       module,
       source
     }

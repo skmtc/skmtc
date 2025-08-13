@@ -29,7 +29,7 @@ export const toArtifacts = async ({
 }: TransformArgs) => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  const { artifacts, files, previews, results } = await context.toArtifacts({
+  const { artifacts, files, previews, results, mappings } = await context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     prettier,
@@ -40,6 +40,7 @@ export const toArtifacts = async ({
   const manifest: ManifestContent = {
     files,
     previews,
+    mappings,
     traceId,
     spanId,
     results,

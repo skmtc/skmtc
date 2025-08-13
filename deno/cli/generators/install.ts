@@ -4,12 +4,11 @@ import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { availableGenerators } from '../available-generators.ts'
 
-export const description = 'Install remote generator'
+export const description = 'Install generator from registry'
 
 export const toInstallCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
-    .example('Install RTK Query generator from JSR registry', 'install jsr:@skmtc/rtk-query')
     .arguments('<project:string> <generator:string>')
     .action((_options, project, generator) => {
       return skmtcRoot.projects

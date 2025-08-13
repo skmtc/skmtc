@@ -9,7 +9,7 @@ const deploymentStatus = v.picklist(['pending', 'success', 'failed'])
 const denoDeployment = v.object({
   id: v.string(),
   stackName: v.string(),
-  projectId: v.string(),
+  serverId: v.string(),
   latestStatus: deploymentStatus,
   latestDeploymentId: v.string(),
   latestDenoDeploymentId: v.string(),
@@ -23,7 +23,6 @@ const deploymentInfo = v.object({
 
 type DeployArgs = {
   assets: Record<string, DenoFile>
-  accountName: string
   stackName: string
   generatorIds: string[]
 }
@@ -41,6 +40,10 @@ export type CreateSchemaBody =
       type: 'refs'
       openapiSchemaIds: string[]
     }
+
+type GetArtifactsArgs = {
+  workspaceId: string
+}
 
 type GenerateArtifactsArgs = {
   workspaceId: string
@@ -82,21 +85,20 @@ export class ApiClient {
     this.manager = manager
   }
 
-  async deploy({ assets, accountName, stackName, generatorIds }: DeployArgs) {
-    await this.manager.auth.enforceAuth()
+  async deploy({ assets, stackName, generatorIds }: DeployArgs) {
+    await this.manager.auth.ensureAuth()
 
-    const { data, error } = await this.manager.auth.supabase.functions.invoke(
-      `servers/${accountName}/${stackName}`,
-      {
-        method: 'POST',
-        body: {
-          assets,
-          generatorIds
-        }
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(`servers`, {
+      method: 'POST',
+      body: {
+        stackName,
+        assets,
+        generatorIds
       }
-    )
+    })
 
     if (error) {
+      console.log('ERROR', error)
       throw new Error(`Failed to deploy stack`)
     }
 
@@ -104,16 +106,18 @@ export class ApiClient {
   }
 
   async getDeploymentInfo(deploymentId: string) {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
-      `/deployments/${deploymentId}/info`,
+      `deployments/${deploymentId}/info`,
       {
         method: 'GET'
       }
     )
 
     if (error) {
+      console.log('ERROR', error)
+
       throw new Error(`Failed to deploy stack`)
     }
 
@@ -121,7 +125,7 @@ export class ApiClient {
   }
 
   async uploadSchemaFile({ openApiSchema, schemaId }: UploadSchemaFileArgs) {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const session = await this.manager.auth.toSession()
 
@@ -149,7 +153,7 @@ export class ApiClient {
   }
 
   async createSchema({ body }: CreateSchemaArgs) {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`schemas`, {
       method: 'POST',
@@ -164,7 +168,7 @@ export class ApiClient {
   }
 
   async updateSchema({ body }: UpdateSchemaArgs) {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `/schemas/${body.id}`,
@@ -183,7 +187,7 @@ export class ApiClient {
   }
 
   async getWorkspaces() {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`workspaces`, {
       method: 'GET'
@@ -197,7 +201,7 @@ export class ApiClient {
   }
 
   async getSchemas() {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`schemas`, {
       method: 'GET'
@@ -211,7 +215,7 @@ export class ApiClient {
   }
 
   async getWorkspaceByName(workspaceName: string) {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `workspaces/${workspaceName}`,
@@ -221,8 +225,6 @@ export class ApiClient {
     )
 
     if (error) {
-      console.log('Failed to get workspace by name')
-
       return null
     }
 
@@ -230,7 +232,7 @@ export class ApiClient {
   }
 
   async getWorkspaceById(workspaceId: string) {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `workspaces/find?id=${workspaceId}`,
@@ -249,7 +251,7 @@ export class ApiClient {
   }
 
   async patchWorkspaceById({ workspaceId, baseFiles }: PatchWorkspaceByIdArgs) {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `workspaces/${workspaceId}`,
@@ -269,7 +271,7 @@ export class ApiClient {
   }
 
   async uploadBaseFiles({ workspaceId, baseFiles }: UploadBaseFilesArgs) {
-    await this.manager.auth.enforceAuth()
+    await this.manager.auth.ensureAuth()
 
     const session = await this.manager.auth.toSession()
     const path = `${session?.user.id}/${workspaceId}.json`
@@ -285,13 +287,34 @@ export class ApiClient {
     }
   }
 
-  async generateArtifacts({ workspaceId }: GenerateArtifactsArgs) {
-    await this.manager.auth.enforceAuth()
+  async getArtifacts({ workspaceId }: GetArtifactsArgs) {
+    await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
       `/workspaces/${workspaceId}/artifacts`,
       {
         method: 'GET'
+      }
+    )
+
+    if (error) {
+      throw new Error('Failed to generate artifacts', { cause: error })
+    }
+
+    try {
+      return v.parse(generateResponse, data)
+    } catch (_error) {
+      throw new Error('Failed to generate artifacts')
+    }
+  }
+
+  async generateArtifacts({ workspaceId }: GenerateArtifactsArgs) {
+    await this.manager.auth.ensureAuth()
+
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      `/workspaces/${workspaceId}/artifacts`,
+      {
+        method: 'POST'
       }
     )
 

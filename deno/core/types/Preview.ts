@@ -1,5 +1,6 @@
 import { method, type Method } from './Method.ts'
 import * as v from 'valibot'
+import type { TypeSystemValue } from './TypeSystem.ts'
 
 export type OperationSource = {
   type: 'operation'
@@ -22,8 +23,21 @@ export type PreviewModule = {
   group: PreviewGroup
 }
 
+export type MappingModule = {
+  name: string
+  exportPath: string
+  group: PreviewGroup
+  itemType: 'input' | 'formatter'
+  schema: TypeSystemValue
+}
+
 export type Preview = {
   module: PreviewModule
+  source: OperationSource | ModelSource
+}
+
+export type Mapping = {
+  module: MappingModule
   source: OperationSource | ModelSource
 }
 
@@ -48,7 +62,20 @@ export const previewModule = v.object({
   group: previewGroup
 })
 
+export const mappingModule = v.object({
+  name: v.string(),
+  exportPath: v.string(),
+  group: previewGroup,
+  itemType: v.picklist(['input', 'formatter']),
+  schema: v.any()
+})
+
 export const preview = v.object({
   module: previewModule,
+  source: v.variant('type', [operationSource, modelSource])
+})
+
+export const mapping = v.object({
+  module: mappingModule,
   source: v.variant('type', [operationSource, modelSource])
 })

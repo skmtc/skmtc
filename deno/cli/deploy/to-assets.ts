@@ -9,14 +9,15 @@ type ToAssetsArgs = {
 export const toAssets = async ({
   projectRoot
 }: ToAssetsArgs): Promise<Record<string, DenoFile>> => {
-  const things = await Array.fromAsync(walk(projectRoot, {}))
-  const fileEntries = things
-    .map(({ path }): AssetEntry | undefined => {
-      if (skipFile({ path, projectRoot })) {
+  const items = await Array.fromAsync(walk(projectRoot, {}))
+
+  const fileEntries = items
+    .map(({ path, isDirectory }): AssetEntry | undefined => {
+      if (isDirectory) {
         return
       }
 
-      if (Deno.statSync(path).isDirectory) {
+      if (skipFile({ path, projectRoot })) {
         return
       }
 
@@ -45,8 +46,8 @@ const skipFile = ({ path, projectRoot }: SkipFileArgs) => {
     relativePath.includes('.DS_Store') ||
     relativePath.includes('.prettierrc.json') ||
     relativePath.startsWith('.logs/') ||
-    relativePath.startsWith('.schema.json') ||
-    relativePath.startsWith('.schema.yaml') ||
+    relativePath.startsWith('schema.json') ||
+    relativePath.startsWith('schema.yaml') ||
     relativePath.startsWith('.settings/files.json') ||
     relativePath.startsWith('.settings/manifest.json') ||
     relativePath.startsWith('.settings/client.json')

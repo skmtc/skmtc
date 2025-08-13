@@ -6,12 +6,11 @@ import invariant from 'tiny-invariant'
 
 const generatorType = new EnumType(['operation', 'model'])
 
-export const description = 'Add new local generator'
+export const description = 'Create local generator'
 
 export const toAddCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
-    .example('Add RTK Query generator from JSR registry', 'add jsr:@skmtc/rtk-query')
     .type('generator-type', generatorType)
     .arguments('<project:string> <generator:string> <type:generator-type>')
     .action((_options, project, generator, type) => {

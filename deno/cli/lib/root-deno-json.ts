@@ -38,6 +38,12 @@ export class RootDenoJson {
     return new RootDenoJson({ projectName, contents: {} })
   }
 
+  toGeneratorIds() {
+    return Object.keys(this.contents.imports ?? {}).filter(item => {
+      return Generator.parseName(item).generatorName.startsWith('gen-')
+    })
+  }
+
   static async open(projectName: string, manager: Manager): Promise<RootDenoJson> {
     const hasDenoJson = RootDenoJson.exists(projectName)
 

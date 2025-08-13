@@ -2,6 +2,8 @@ import { Command } from '@cliffy/command'
 import * as Sentry from '@sentry/deno'
 import { Workspace } from '../lib/workspace.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import invariant from 'tiny-invariant'
+import type { Project } from '../lib/project.ts'
 
 export const description = 'Get project info'
 
@@ -9,17 +11,25 @@ export const toWorkspacesInfoCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
     .arguments('<project:string>')
-    .action(async (_, project) => {
-      await info({ projectName: project, skmtcRoot }, { logSuccess: 'Workspace retrieved' })
+    .action(async (_, projectName) => {
+      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+      invariant(project, 'Project not found')
+
+      await info({ project, skmtcRoot }, { logSuccess: 'Workspace retrieved' })
     })
 }
 
 export const toWorkspacesInfoPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
-  await info({ projectName, skmtcRoot })
+  const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+  invariant(project, 'Project not found')
+
+  await info({ project, skmtcRoot })
 }
 
 type InfoArgs = {
-  projectName: string
+  project: Project
   skmtcRoot: SkmtcRoot
 }
 
@@ -27,14 +37,11 @@ type InfoOptions = {
   logSuccess?: string
 }
 
-export const info = async (
-  { projectName, skmtcRoot }: InfoArgs,
-  { logSuccess }: InfoOptions = {}
-) => {
+export const info = async ({ project, skmtcRoot }: InfoArgs, { logSuccess }: InfoOptions = {}) => {
   try {
     const workspace = new Workspace()
 
-    const { name, id } = await workspace.getWorkspace({ projectName, skmtcRoot })
+    const { name, id } = await workspace.getWorkspace({ project, skmtcRoot })
 
     console.log(`${name} (${id})`)
 

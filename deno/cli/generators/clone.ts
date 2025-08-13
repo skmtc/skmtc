@@ -1,15 +1,14 @@
 import { Command } from '@cliffy/command'
-import { Input } from '@cliffy/prompt'
+import { Checkbox } from '@cliffy/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
-import { availableGenerators } from '../available-generators.ts'
+import { Generator } from '../lib/generator.ts'
 
-export const description = 'Clone remote generator to local'
+export const description = 'Clone generator from registry'
 
 export const toCloneCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
-    .example('Clone RTK Query generator from JSR registry', 'clone jsr:@skmtc/rtk-query')
     .arguments('<project:string> <generator:string>')
     .action((_options, project, generator) => {
       return skmtcRoot.projects
@@ -25,14 +24,25 @@ export const toClonePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) =
 
   invariant(project, 'Project not found')
 
-  const generator: string = await Input.prompt({
-    message: 'Select generator to clone',
-    list: true,
-    suggestions: availableGenerators.map(({ name }) => `jsr:${name}`)
+  const imports = project.rootDenoJson.contents.imports ?? {}
+
+  const options = Object.values(imports).filter(item => {
+    const { scheme } = Generator.parseName(item)
+
+    return Boolean(scheme)
   })
 
-  await project.cloneGenerator(
-    { packageName: generator, projectName },
-    { logSuccess: `Generator "${generator}" is cloned` }
+  const generators = await Checkbox.prompt({
+    message: 'Select generator to clone',
+    options: options
+  })
+
+  await Promise.all(
+    generators.map(async generator => {
+      await project.cloneGenerator(
+        { packageName: generator, projectName },
+        { logSuccess: `Generator "${generator}" is cloned` }
+      )
+    })
   )
 }

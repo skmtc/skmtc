@@ -11,6 +11,7 @@ import { toProjectPath } from './to-project-path.ts'
 import { PrettierJson } from './prettier-json.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
 import { availableGenerators, type AvailableGenerator } from '../available-generators.ts'
+import { SchemaFile } from './schema-file.ts'
 
 type AddGeneratorArgs = {
   packageName: string
@@ -28,11 +29,11 @@ type AddGeneratorOptions = {
 
 type ConstructorArgs = {
   name: string
-  generatorIds: string[]
   rootDenoJson: RootDenoJson
   clientJson: ClientJson
   prettierJson: PrettierJson | null
   manager: Manager
+  schemaFile: SchemaFile | null
 }
 
 type DeployOptions = {
@@ -68,36 +69,40 @@ type CloneOptions = {
 
 export class Project {
   name: string
-  generatorIds: string[]
   rootDenoJson: RootDenoJson
   clientJson: ClientJson
   prettierJson: PrettierJson | null
   manager: Manager
+  schemaFile: SchemaFile | null
 
   private constructor({
     name,
-    generatorIds,
     rootDenoJson,
     clientJson,
     prettierJson,
-    manager
+    manager,
+    schemaFile
   }: ConstructorArgs) {
     this.name = name
-    this.generatorIds = generatorIds
     this.rootDenoJson = rootDenoJson
     this.clientJson = clientJson
     this.prettierJson = prettierJson
     this.manager = manager
+    this.schemaFile = schemaFile
+  }
+
+  toPath() {
+    return toProjectPath(this.name)
   }
 
   static async create({ name, basePath, generators, skmtcRoot }: CreateArgs) {
     const project = new Project({
       name,
-      generatorIds: [],
       rootDenoJson: RootDenoJson.create(name),
       clientJson: ClientJson.create({ projectName: name, basePath }),
       prettierJson: PrettierJson.create({ projectName: name, contents: {} }),
-      manager: skmtcRoot.manager
+      manager: skmtcRoot.manager,
+      schemaFile: SchemaFile.create({ projectName: name, fileType: 'json' })
     })
 
     const generatorIdSet = getDependencyIds({
@@ -204,7 +209,13 @@ export class Project {
     }
   }
 
+  toGeneratorIds() {
+    return this.rootDenoJson.toGeneratorIds()
+  }
+
   async deploy({ logSuccess }: DeployOptions = {}) {
+    await this.manager.auth.ensureAuth()
+
     const deployment = new Deployment(this.manager)
 
     const clientJson = await ClientJson.open(this.name, this.manager)
@@ -216,10 +227,10 @@ export class Project {
         assets,
         clientJson,
         projectName: this.name,
-        generatorIds: this.generatorIds
+        generatorIds: this.toGeneratorIds()
       })
 
-      this.manager.success()
+      this.manager.success('Deployment successful')
     } catch (error) {
       console.error(error)
 
@@ -260,29 +271,20 @@ export class Project {
   static async open(name: string, manager: Manager) {
     const rootDenoJson = await RootDenoJson.open(name, manager)
 
-    const generatorIds = Object.keys(rootDenoJson.contents?.imports ?? {}).filter(importName => {
-      const [scope, name, ...rest] = importName.split('/')
-
-      if (rest.length > 0) {
-        return false
-      }
-
-      if (!scope?.startsWith('@')) {
-        return false
-      }
-
-      if (!name?.startsWith('gen-')) {
-        return false
-      }
-
-      return true
-    })
-
     const clientJson = await ClientJson.open(name, manager)
 
     const prettierJson = await PrettierJson.open(name)
 
-    return new Project({ name, generatorIds, rootDenoJson, clientJson, prettierJson, manager })
+    const schemaFile = await SchemaFile.open(name, manager)
+
+    return new Project({
+      name,
+      rootDenoJson,
+      clientJson,
+      prettierJson,
+      manager,
+      schemaFile
+    })
   }
 }
 

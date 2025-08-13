@@ -22,7 +22,7 @@ export class PrettierJson {
   static toPath(projectName: string) {
     const projectPath = toProjectPath(projectName)
 
-    return join(projectPath, 'prettier.json')
+    return join(projectPath, '.prettierrc.json')
   }
 
   static async exists(projectName: string): Promise<boolean> {
@@ -35,7 +35,7 @@ export class PrettierJson {
     const hasPrettierJson = await PrettierJson.exists(projectName)
 
     if (!hasPrettierJson) {
-      throw new Error('Prettier JSON not found')
+      return null
     }
 
     const prettierJson = await Deno.readTextFile(PrettierJson.toPath(projectName))
@@ -47,8 +47,6 @@ export class PrettierJson {
 
   async write() {
     const resolvedPath = PrettierJson.toPath(this.projectName)
-
-    console.log('RESOLVED PRETTIER PATH', resolvedPath)
 
     await writeFileSafeDir(resolvedPath, JSON.stringify(this.contents, null, 2))
   }

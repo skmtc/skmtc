@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Input, List } from '@cliffy/prompt'
+import { Checkbox, Input } from '@cliffy/prompt'
 import { toNameSuggest } from './to-name-suggest.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
 import { availableGenerators } from '../available-generators.ts'
@@ -45,11 +45,14 @@ export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
     suggestions: [suggestedName]
   })
 
-  const generators = await List.prompt({
+  const generators = await Checkbox.prompt({
     message: 'Select generators to use',
 
-    list: true,
-    suggestions: availableGenerators.map(({ id }) => id)
+    options: availableGenerators.map(({ id }) => ({
+      checked: true,
+      label: id,
+      value: id
+    }))
   })
 
   const basePath = await Input.prompt({

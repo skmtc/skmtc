@@ -59,7 +59,7 @@ export class List<
       return ''
     }
 
-    const joined = this.values.join(this.separator)
+    const joined = this.values.map(value => value.toString()).join(this.separator)
 
     return match(this.bookends satisfies BookendsType)
       .with('[]', () => `[${joined}]`)

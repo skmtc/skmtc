@@ -20,39 +20,38 @@ export class Deployment {
   }
 
   async deploy({ assets, projectName, generatorIds, clientJson }: DeployArgs) {
-    const accountName = await this.apiClient.manager.auth.toUserName()
-
     const { latestDenoDeploymentId } = await this.apiClient.deploy({
       assets,
-      accountName,
       stackName: projectName,
       generatorIds
     })
 
     await this.enqueueDeploymentCheck(latestDenoDeploymentId)
 
-    this.apiClient.manager.kv.listenQueue(async message => {
-      if (v.is(checkDeploymentSchema, message)) {
-        if (message.denoDeploymentId !== latestDenoDeploymentId) {
-          return
+    return new Promise((resolve, reject) => {
+      this.apiClient.manager.kv.listenQueue(async message => {
+        if (v.is(checkDeploymentSchema, message)) {
+          if (message.denoDeploymentId !== latestDenoDeploymentId) {
+            return
+          }
+
+          const deployment = await this.apiClient.getDeploymentInfo(message.denoDeploymentId)
+
+          match(deployment.status)
+            .with('pending', () => {
+              console.log('Deployment pending...')
+              this.enqueueDeploymentCheck(message.denoDeploymentId)
+            })
+            .with('success', () => {
+              clientJson.setDeploymentId(message.denoDeploymentId)
+              resolve(undefined)
+            })
+            .with('failed', () => {
+              reject('Deployment failed')
+            })
+            .exhaustive()
         }
-
-        const deployment = await this.apiClient.getDeploymentInfo(message.denoDeploymentId)
-
-        match(deployment.status)
-          .with('pending', () => {
-            console.log('Deployment pending...')
-            this.enqueueDeploymentCheck(message.denoDeploymentId)
-          })
-          .with('success', () => {
-            clientJson.setDeploymentId(message.denoDeploymentId)
-            console.log('Deployment successful')
-          })
-          .with('failed', () => {
-            throw new Error('Deployment failed')
-          })
-          .exhaustive()
-      }
+      })
     })
   }
 

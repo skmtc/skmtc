@@ -3,19 +3,16 @@ type AsyncAction = () => Promise<void>
 
 type ManagerArgs = {
   kv: Deno.Kv
-  logSuccess?: string
 }
 
 export class Manager {
   kv: Deno.Kv
   auth: Auth
   cleanupActions: AsyncAction[]
-  logSuccess?: string
 
-  constructor({ kv, logSuccess }: ManagerArgs) {
+  constructor({ kv }: ManagerArgs) {
     this.kv = kv
     this.auth = new Auth(kv)
-    this.logSuccess = logSuccess
     this.cleanupActions = []
   }
 
@@ -25,11 +22,11 @@ export class Manager {
     await Promise.all(promises)
   }
 
-  async success() {
+  async success(logSuccess?: string) {
     await this.cleanup()
 
-    if (this.logSuccess) {
-      console.log(this.logSuccess)
+    if (logSuccess) {
+      console.log(logSuccess)
     }
   }
 

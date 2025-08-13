@@ -4,8 +4,9 @@ import { OpenApiSchema } from '../lib/openapi-schema.ts'
 import * as Sentry from '@sentry/deno'
 import chokidar from 'chokidar'
 import { WsClient } from '../lib/ws-client.ts'
-import { Workspace } from '../lib/workspace.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import type { Project } from '../lib/project.ts'
+import invariant from 'tiny-invariant'
 
 export const description = 'Upload an OpenAPI schema to Skmtc'
 
@@ -14,18 +15,27 @@ export const toUploadCommand = (skmtcRoot: SkmtcRoot) => {
     .description(description)
     .arguments('<project:string> <path:string>')
     .option('-w, --watch', 'Watch for changes and upload automatically')
-    .action(async ({ watch }, project, path) => {
+    .action(async ({ watch }, projectName, path) => {
+      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+      invariant(project, 'Project not found')
+
       if (watch) {
-        watchUpload({ projectName: project, skmtcRoot, path })
+        watchUpload({ project, skmtcRoot, path })
       } else {
-        await upload({ projectName: project, skmtcRoot, path })
+        await upload({ project, skmtcRoot, path })
       }
     })
 }
 
 export const toUploadPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
+  const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+  invariant(project, 'Project not found')
+
   const path = await Input.prompt({
-    message: 'Enter path to OpenAPI schema'
+    message: 'Enter path to OpenAPI schema',
+    files: true
   })
 
   const watch = await Confirm.prompt({
@@ -33,14 +43,14 @@ export const toUploadPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) 
   })
 
   if (watch) {
-    watchUpload({ projectName, skmtcRoot, path })
+    watchUpload({ project, skmtcRoot, path })
   } else {
-    await upload({ projectName, skmtcRoot, path })
+    await upload({ project, skmtcRoot, path })
   }
 }
 
 type UploadArgs = {
-  projectName: string
+  project: Project
   skmtcRoot: SkmtcRoot
   path: string
 }
@@ -49,39 +59,43 @@ type UploadOptions = {
   logSuccess?: string
 }
 
-export const watchUpload = ({ projectName, skmtcRoot, path }: UploadArgs) => {
+export const watchUpload = ({ project, skmtcRoot, path }: UploadArgs) => {
   const watcher = chokidar.watch(path)
 
   watcher.on('change', () =>
-    upload({ projectName, skmtcRoot, path }, { logSuccess: 'Schema uploaded' })
+    upload({ project, skmtcRoot, path }, { logSuccess: 'Schema uploaded' })
   )
 }
 
 export const upload = async (
-  { projectName, skmtcRoot, path }: UploadArgs,
+  { project, skmtcRoot, path }: UploadArgs,
   { logSuccess }: UploadOptions = {}
 ) => {
   try {
-    const workspace = new Workspace()
+    const workspace = await skmtcRoot.apiClient.getWorkspaceByName(project.name)
 
-    const { id } = await workspace.getWorkspace({ projectName, skmtcRoot })
+    let wsClient: WsClient | null = null
 
-    const wsClient = new WsClient({ workspaceId: id })
+    if (workspace) {
+      wsClient = new WsClient({ workspaceId: workspace.id })
 
-    wsClient.connect()
+      wsClient.connect()
+    }
 
     const openApiSchema = await OpenApiSchema.open(path)
 
-    const schema = await openApiSchema.upload({ projectName, skmtcRoot })
+    const schema = await openApiSchema.upload({ projectName: project.name, skmtcRoot })
 
-    await wsClient.send({
-      type: 'update-schema',
-      payload: {
-        v3JsonFilePath: schema.v3JsonFilePath
-      }
-    })
+    if (workspace && wsClient) {
+      await wsClient.send({
+        type: 'update-schema',
+        payload: {
+          v3JsonFilePath: schema.v3JsonFilePath
+        }
+      })
 
-    wsClient.disconnect()
+      wsClient.disconnect()
+    }
 
     await skmtcRoot.manager.success()
   } catch (error) {
