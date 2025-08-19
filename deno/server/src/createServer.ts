@@ -43,6 +43,8 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
       const { schema, clientSettings, prettier } = v.parse(postArtifactsBody, body)
 
+      console.log('BASE PATH', clientSettings?.basePath)
+
       const documentObject = await toV3Document(stringToSchema(schema))
 
       return await Sentry.startSpan({ name: 'Generate' }, async () => {

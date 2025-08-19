@@ -12,7 +12,7 @@ export const toRemoveCommand = (skmtcRoot: SkmtcRoot) => {
     .action((_options, project, generator) => {
       return skmtcRoot.projects
         .find(({ name }) => name === project)
-        ?.removeGenerator({ packageName: generator })
+        ?.removeGenerator({ moduleName: generator })
     })
 
   return command
@@ -30,7 +30,7 @@ export const toRemovePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) 
   })
 
   await project.removeGenerator(
-    { packageName: generator },
+    { moduleName: generator },
     { logSuccess: `Generator "${generator}" is created` }
   )
 }

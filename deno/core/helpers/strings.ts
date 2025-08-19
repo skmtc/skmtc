@@ -27,3 +27,4 @@ export const camelCase = (str: string, { upperFirst }: CamelCaseOptions = {}): s
 
   return upperFirst ? capitalize(cleaned) : cleaned
 }
+

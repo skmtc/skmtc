@@ -12,7 +12,7 @@ export class OperationGenerator {
   async createOperationFiles(generatorPath: string) {
     const srcPath = join(generatorPath, 'src')
 
-    const mainModule = camelCase(this.generator.generatorName, { upperFirst: true })
+    const mainModule = camelCase(this.generator.packageName, { upperFirst: true })
 
     await Deno.mkdir(srcPath, { recursive: true })
 
@@ -30,7 +30,7 @@ export class OperationGenerator {
     return `import { toOperationEntry } from '@skmtc/core'
 import { ${mainModule} } from './${mainModule}.ts'
 export const ${mainModule}Entry = toOperationEntry({
-  id: '${this.generator.toPackageName()}',
+  id: '${this.generator.toModuleName()}',
 
   isSupported({ operation }) {
     return true
@@ -47,7 +47,7 @@ export const ${mainModule}Entry = toOperationEntry({
 import { join } from '@std/path'
 
 export const ${mainModule}Base = toOperationBase({
-  id: '${this.generator.toPackageName()}',
+  id: '${this.generator.toModuleName()}',
 
   toIdentifier(operation): Identifier {
     const verb = capitalize(toMethodVerb(operation.method))

@@ -16,7 +16,7 @@ export const toAddCommand = (skmtcRoot: SkmtcRoot) => {
     .action((_options, project, generator, type) => {
       return skmtcRoot.projects
         .find(({ name }) => name === project)
-        ?.addGenerator({ packageName: generator, type })
+        ?.addGenerator({ moduleName: generator, type })
     })
 
   return command
@@ -39,7 +39,7 @@ export const toAddPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => 
   })
 
   await project.addGenerator(
-    { packageName: generator, type: type as 'operation' | 'model' },
+    { moduleName: generator, type: type as 'operation' | 'model' },
     {
       logSuccess: `Generator "${generator}" is created`
     }

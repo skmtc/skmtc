@@ -31,7 +31,7 @@ export type ManifestContent = {
   region?: string
   files: Record<string, ManifestEntry>
   previews: Record<string, Record<string, Preview>>
-  mappings: Record<string, Record<string, Mapping>>
+  mappings?: Record<string, Record<string, Mapping>>
   results: ResultsItem
   startAt: number
   endAt: number
@@ -44,7 +44,7 @@ export const manifestContent = v.object({
   region: v.optional(v.string()),
   files: v.record(v.string(), manifestEntry),
   previews: v.record(v.string(), v.record(v.string(), preview)),
-  mappings: v.record(v.string(), v.record(v.string(), mapping)),
+  mappings: v.optional(v.record(v.string(), v.record(v.string(), mapping))),
   results: resultsItem,
   startAt: v.number(),
   endAt: v.number()

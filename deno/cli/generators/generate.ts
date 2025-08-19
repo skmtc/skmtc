@@ -1,7 +1,7 @@
 import { Command } from '@cliffy/command'
 import { join, parse } from '@std/path'
 import { ensureDirSync, ensureFileSync, existsSync } from '@std/fs'
-import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
+import { type ManifestContent, manifestContent } from '@skmtc/core'
 import * as v from 'valibot'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'

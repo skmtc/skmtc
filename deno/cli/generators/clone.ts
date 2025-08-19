@@ -2,7 +2,7 @@ import { Command } from '@cliffy/command'
 import { Checkbox } from '@cliffy/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
-import { Generator } from '../lib/generator.ts'
+import { parseModuleName } from '@skmtc/core'
 
 export const description = 'Clone generator from registry'
 
@@ -13,7 +13,7 @@ export const toCloneCommand = (skmtcRoot: SkmtcRoot) => {
     .action((_options, project, generator) => {
       return skmtcRoot.projects
         .find(({ name }) => name === project)
-        ?.cloneGenerator({ projectName: project, packageName: generator })
+        ?.cloneGenerator({ projectName: project, moduleName: generator })
     })
 
   return command
@@ -27,7 +27,7 @@ export const toClonePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) =
   const imports = project.rootDenoJson.contents.imports ?? {}
 
   const options = Object.values(imports).filter(item => {
-    const { scheme } = Generator.parseName(item)
+    const { scheme } = parseModuleName(item)
 
     return Boolean(scheme)
   })
@@ -40,7 +40,7 @@ export const toClonePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) =
   await Promise.all(
     generators.map(async generator => {
       await project.cloneGenerator(
-        { packageName: generator, projectName },
+        { moduleName: generator, projectName },
         { logSuccess: `Generator "${generator}" is cloned` }
       )
     })

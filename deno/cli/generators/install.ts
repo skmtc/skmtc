@@ -13,7 +13,7 @@ export const toInstallCommand = (skmtcRoot: SkmtcRoot) => {
     .action((_options, project, generator) => {
       return skmtcRoot.projects
         .find(({ name }) => name === project)
-        ?.installGenerator({ packageName: generator })
+        ?.installGenerator({ moduleName: generator })
     })
 
   return command
@@ -31,7 +31,7 @@ export const toInstallPrompt = async (skmtcRoot: SkmtcRoot, projectName: string)
   })
 
   await project.installGenerator(
-    { packageName: generator },
+    { moduleName: generator },
     { logSuccess: `Generator "${generator}" is installed` }
   )
 }

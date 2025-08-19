@@ -12,15 +12,16 @@ import { PrettierJson } from './prettier-json.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
 import { availableGenerators, type AvailableGenerator } from '../available-generators.ts'
 import { SchemaFile } from './schema-file.ts'
+import { parseModuleName } from '@skmtc/core'
 
 type AddGeneratorArgs = {
-  packageName: string
+  moduleName: string
   type: 'operation' | 'model'
 }
 
 type CloneGeneratorArgs = {
   projectName: string
-  packageName: string
+  moduleName: string
 }
 
 type AddGeneratorOptions = {
@@ -41,7 +42,7 @@ type DeployOptions = {
 }
 
 type InstallGeneratorArgs = {
-  packageName: string
+  moduleName: string
 }
 
 type InstallOptions = {
@@ -49,7 +50,7 @@ type InstallOptions = {
 }
 
 type RemoveGeneratorArgs = {
-  packageName: string
+  moduleName: string
 }
 
 type RemoveOptions = {
@@ -112,7 +113,7 @@ export class Project {
     })
 
     for (const generatorId of generatorIdSet) {
-      await project.installGenerator({ packageName: `jsr:${generatorId}` })
+      await project.installGenerator({ moduleName: `jsr:${generatorId}` })
     }
 
     await project.prettierJson?.write()
@@ -125,19 +126,20 @@ export class Project {
   }
 
   async cloneGenerator(
-    { projectName, packageName }: CloneGeneratorArgs,
+    { projectName, moduleName }: CloneGeneratorArgs,
     { logSuccess }: CloneOptions = {}
   ) {
     try {
-      const { scheme, scopeName, generatorName, version } = Generator.parseName(packageName)
+      const { scheme, scopeName, packageName, version } = parseModuleName(moduleName)
 
       invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
+      invariant(scopeName, 'Scope name is required')
 
       const generator = Generator.fromName({
         projectName,
         scopeName,
-        generatorName,
-        version: version ?? (await Jsr.getLatestMeta({ scopeName, generatorName })).latest
+        packageName,
+        version: version ?? (await Jsr.getLatestMeta({ scopeName, packageName })).latest
       })
 
       await generator.clone({ projectName, denoJson: this.rootDenoJson })
@@ -153,19 +155,20 @@ export class Project {
   }
 
   async installGenerator(
-    { packageName }: InstallGeneratorArgs,
+    { moduleName }: InstallGeneratorArgs,
     { logSuccess }: InstallOptions = {}
   ) {
     try {
-      const { scheme, scopeName, generatorName, version } = Generator.parseName(packageName)
+      const { scheme, scopeName, packageName, version } = parseModuleName(moduleName)
 
       invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
+      invariant(scopeName, 'Scope name is required')
 
       const generator = Generator.fromName({
         projectName: this.name,
         scopeName,
-        generatorName,
-        version: version ?? (await Jsr.getLatestMeta({ scopeName, generatorName })).latest
+        packageName,
+        version: version ?? (await Jsr.getLatestMeta({ scopeName, packageName })).latest
       })
 
       generator.install({ denoJson: this.rootDenoJson })
@@ -184,14 +187,16 @@ export class Project {
     }
   }
 
-  async removeGenerator({ packageName }: RemoveGeneratorArgs, { logSuccess }: RemoveOptions = {}) {
+  async removeGenerator({ moduleName }: RemoveGeneratorArgs, { logSuccess }: RemoveOptions = {}) {
     try {
-      const { scopeName, generatorName, version } = Generator.parseName(packageName)
+      const { scopeName, packageName, version } = parseModuleName(moduleName)
+
+      invariant(scopeName, 'Scope name is required')
 
       const generator = Generator.fromName({
         projectName: this.name,
         scopeName,
-        generatorName,
+        packageName,
         version: version ?? ''
       })
 
@@ -243,16 +248,18 @@ export class Project {
   }
 
   async addGenerator(
-    { packageName, type }: AddGeneratorArgs,
+    { moduleName, type }: AddGeneratorArgs,
     { logSuccess }: AddGeneratorOptions = {}
   ) {
     try {
-      const { scopeName, generatorName, version } = Generator.parseName(packageName)
+      const { scopeName, packageName, version } = parseModuleName(moduleName)
+
+      invariant(scopeName, 'Scope name is required')
 
       const generator = Generator.fromName({
         projectName: this.name,
         scopeName,
-        generatorName,
+        packageName,
         version: version ?? '0.0.1'
       })
 

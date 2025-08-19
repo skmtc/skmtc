@@ -2,8 +2,8 @@ import { existsSync } from '@std/fs'
 import { join } from '@std/path'
 import { writeFileSafeDir } from './file.ts'
 import * as v from 'valibot'
-import { rootDenoJson, type RootDenoJson as RootDenoJsonType } from '@skmtc/core'
-import { Generator } from './generator.ts'
+import { parseModuleName, rootDenoJson, type RootDenoJson as RootDenoJsonType } from '@skmtc/core'
+import type { Generator } from './generator.ts'
 import type { Manager } from './manager.ts'
 import { toProjectPath } from './to-project-path.ts'
 import invariant from 'tiny-invariant'
@@ -40,7 +40,7 @@ export class RootDenoJson {
 
   toGeneratorIds() {
     return Object.keys(this.contents.imports ?? {}).filter(item => {
-      return Generator.parseName(item).generatorName.startsWith('gen-')
+      return parseModuleName(item).packageName.startsWith('gen-')
     })
   }
 
@@ -62,27 +62,27 @@ export class RootDenoJson {
   }
 
   static isLocalModule(packageName: string) {
-    const { scheme } = Generator.parseName(packageName)
+    const { scheme } = parseModuleName(packageName)
 
     return !scheme
   }
 
   removeGenerator(generator: Generator) {
-    const packageName = generator.toPackageName()
+    const moduleName = generator.toModuleName()
 
-    const packageSource = this.contents.imports?.[packageName]
+    const packageSource = this.contents.imports?.[moduleName]
 
     invariant(packageSource, 'Package source not found')
 
     const isLocal = RootDenoJson.isLocalModule(packageSource)
 
     if (isLocal) {
-      Deno.remove(join(toProjectPath(this.projectName), generator.generatorName))
+      Deno.remove(join(toProjectPath(this.projectName), generator.packageName))
     }
 
     if (this.contents.imports) {
       this.contents.imports = Object.fromEntries(
-        Object.entries(this.contents.imports).filter(([key]) => key !== packageName)
+        Object.entries(this.contents.imports).filter(([key]) => key !== moduleName)
       )
     }
 

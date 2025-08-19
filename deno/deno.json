@@ -33,6 +33,7 @@
   "workspace": [
     "./cli",
     "./core",
+    "./mcp",
     "./server"
   ],
   "tasks": {

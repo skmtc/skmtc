@@ -14,14 +14,14 @@ import invariant from 'tiny-invariant'
 type GeneratorArgs = {
   projectName: string
   scopeName: string
-  generatorName: string
+  packageName: string
   version: string
 }
 
 type CreateArgs = {
   projectName: string
   scopeName: string
-  generatorName: string
+  packageName: string
   version: string
 }
 
@@ -42,54 +42,26 @@ type AddArgs = {
 export class Generator {
   projectName: string
   scopeName: string
-  generatorName: string
+  packageName: string
   version: string
 
-  private constructor({ projectName, scopeName, generatorName, version }: GeneratorArgs) {
+  private constructor({ projectName, scopeName, packageName, version }: GeneratorArgs) {
     this.projectName = projectName
     this.scopeName = scopeName
-    this.generatorName = generatorName
+    this.packageName = packageName
     this.version = version
   }
 
-  static create({ projectName, scopeName, generatorName, version }: CreateArgs) {
-    return new Generator({ projectName, scopeName, generatorName, version })
-  }
-
-  static parseName(name: string) {
-    const [first, second] = name.split('/')
-
-    const firstChunks = first.split(':')
-    const secondChunks = second.split('@')
-
-    const { scheme, scopeName } =
-      firstChunks.length === 2
-        ? {
-            scheme: firstChunks[0],
-            scopeName: firstChunks[1]
-          }
-        : {
-            scheme: null,
-            scopeName: first
-          }
-
-    const { generatorName, version } =
-      secondChunks.length === 2
-        ? {
-            generatorName: secondChunks[0],
-            version: secondChunks[1]
-          }
-        : { generatorName: second, version: null }
-
-    return { scheme, scopeName, generatorName, version }
+  static create({ projectName, scopeName, packageName, version }: CreateArgs) {
+    return new Generator({ projectName, scopeName, packageName, version })
   }
 
   install({ denoJson }: InstallArgs) {
-    denoJson.addImport(this.toPackageName(), this.toFullName())
+    denoJson.addImport(this.toModuleName(), this.toFullName())
   }
 
   async add({ project, generatorType }: AddArgs) {
-    const generatorPath = join(toProjectPath(project.name), this.generatorName)
+    const generatorPath = join(toProjectPath(project.name), this.packageName)
     await this.createFiles(generatorPath, project.manager)
 
     await match(generatorType)
@@ -103,7 +75,7 @@ export class Generator {
       })
       .exhaustive()
 
-    project.rootDenoJson.addImport(this.toPackageName(), this.toModPath())
+    project.rootDenoJson.addImport(this.toModuleName(), this.toModPath())
     project.rootDenoJson.addWorkspace(this.toPath())
   }
 
@@ -116,7 +88,7 @@ export class Generator {
       {
         path: join(generatorPath, 'deno.json'),
         contents: {
-          name: this.toPackageName(),
+          name: this.toModuleName(),
           version: this.version,
           exports: './mod.ts'
         }
@@ -140,40 +112,40 @@ export class Generator {
 
     await Promise.all(downloads)
 
-    denoJson.addImport(this.toPackageName(), this.toModPath())
+    denoJson.addImport(this.toModuleName(), this.toModPath())
     denoJson.addWorkspace(this.toPath())
   }
 
-  static fromName({ projectName, scopeName, generatorName, version }: FromNameArgs): Generator {
-    const generator = Generator.create({ projectName, scopeName, generatorName, version })
+  static fromName({ projectName, scopeName, packageName, version }: FromNameArgs): Generator {
+    const generator = Generator.create({ projectName, scopeName, packageName, version })
 
     return generator
   }
 
   remove(project: Project) {
-    const packageSource = project.rootDenoJson.contents.imports?.[this.toPackageName()]
+    const packageSource = project.rootDenoJson.contents.imports?.[this.toModuleName()]
 
     invariant(packageSource, 'Package source not found')
 
     const isLocal = RootDenoJson.isLocalModule(packageSource)
 
     if (isLocal) {
-      Deno.remove(join(toProjectPath(project.name), this.generatorName))
+      Deno.remove(join(toProjectPath(project.name), this.packageName))
     }
 
     project.rootDenoJson.removeGenerator(this)
   }
 
   toFullName() {
-    return `jsr:${this.toPackageName()}@${this.version}`
+    return `jsr:${this.toModuleName()}@${this.version}`
   }
 
-  toPackageName() {
-    return `${this.scopeName}/${this.generatorName}`
+  toModuleName() {
+    return `${this.scopeName}/${this.packageName}`
   }
 
   toPath() {
-    return join(toProjectPath(this.projectName), this.generatorName)
+    return join(toProjectPath(this.projectName), this.packageName)
   }
 
   toModPath() {
@@ -184,6 +156,6 @@ export class Generator {
 type FromNameArgs = {
   projectName: string
   scopeName: string
-  generatorName: string
+  packageName: string
   version: string
 }

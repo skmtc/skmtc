@@ -12,7 +12,7 @@ export class ModelGenerator {
   async createModelFiles(generatorPath: string) {
     const srcPath = join(generatorPath, 'src')
 
-    const mainModule = camelCase(this.generator.generatorName, { upperFirst: true })
+    const mainModule = camelCase(this.generator.packageName, { upperFirst: true })
 
     await Deno.mkdir(srcPath, { recursive: true })
 
@@ -30,8 +30,8 @@ export class ModelGenerator {
     return `import { toModelEntry } from '@skmtc/core'
 import { ${mainModule}Insertable } from './${mainModule}Insertable.ts'
 
-export const ${this.generator.generatorName}Entry = toModelEntry({
-  id: '${this.generator.toPackageName()}',
+export const ${this.generator.packageName}Entry = toModelEntry({
+  id: '${this.generator.toModuleName()}',
 
   transform({ context, refName }) {
     context.insertModel(${mainModule}Insertable, refName)
@@ -44,7 +44,7 @@ export const ${this.generator.generatorName}Entry = toModelEntry({
 import { join } from '@std/path'
 
 export const ${mainModule}Base = toModelBase({
-  id: '${this.generator.toPackageName()}',
+  id: '${this.generator.toModuleName()}',
 
   toIdentifier(refName: RefName): Identifier {
     const name = decapitalize(camelCase(refName))
