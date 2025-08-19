@@ -528,7 +528,7 @@ export class GenerateContext {
   >(
     insertable: ModelInsertable<V, EnrichmentType>,
     { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
-    { noExport = false }: InsertNormalisedModelOptions
+    { noExport = false }: InsertNormalisedModelOptions = {}
   ): InsertNormalisedModelReturn<V, Schema> {
     if (schema.isRef()) {
       const { definition } = this.insertModel(insertable, schema.toRefName(), {
