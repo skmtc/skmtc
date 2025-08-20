@@ -12,7 +12,7 @@ import { PrettierJson } from './prettier-json.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
 import { availableGenerators, type AvailableGenerator } from '../available-generators.ts'
 import { SchemaFile } from './schema-file.ts'
-import { parseModuleName } from '@skmtc/core'
+import { formatNumber, parseModuleName } from '@skmtc/core'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -221,6 +221,8 @@ export class Project {
   async deploy({ logSuccess }: DeployOptions = {}) {
     await this.manager.auth.ensureAuth()
 
+    const startTime = Date.now()
+
     const deployment = new Deployment(this.manager)
 
     const clientJson = await ClientJson.open(this.name, this.manager)
@@ -235,7 +237,11 @@ export class Project {
         generatorIds: this.toGeneratorIds()
       })
 
-      this.manager.success('Deployment successful')
+      const duration = (Date.now() - startTime) / 1000
+
+      console.log(`Deployed in ${formatNumber(duration)}secs`)
+
+      this.manager.success()
     } catch (error) {
       console.error(error)
 

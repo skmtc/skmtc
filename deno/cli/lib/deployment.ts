@@ -21,8 +21,6 @@ export class Deployment {
   }
 
   async deploy({ assets, projectName, generatorIds, clientJson }: DeployArgs) {
-    const startTime = Date.now()
-
     const spinner = new Spinner({ message: 'Uploading...', color: 'yellow' })
 
     spinner.start()
@@ -49,12 +47,8 @@ export class Deployment {
               this.enqueueDeploymentCheck(denoDeploymentId)
             })
             .with('success', () => {
-              const duration = Date.now() - startTime
-
               clientJson.setDeploymentId(denoDeploymentId)
               spinner.stop()
-
-              console.log(`Deployed in ${formatNumber(duration)}ms`)
 
               resolve(undefined)
             })
