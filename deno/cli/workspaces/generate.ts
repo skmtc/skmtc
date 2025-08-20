@@ -8,6 +8,7 @@ import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import type { Project } from '../lib/project.ts'
 import { Spinner } from '../lib/spinner.ts'
+import { formatNumber, toGenerationStats } from '@skmtc/core'
 
 export const description = 'Generate artifacts'
 
@@ -83,9 +84,19 @@ export const generate = async (
   try {
     const workspace = new Workspace()
 
-    await workspace.generateArtifacts({ project, skmtcRoot })
+    const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 
     spinner.stop()
+
+    const { tokens, lines, totalTime, errors, files } = toGenerationStats({ manifest, artifacts })
+
+    if (errors.length) {
+      console.error(`Generation failed with ${formatNumber(errors.length)} errors`)
+    } else {
+      console.log(
+        `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
+      )
+    }
 
     await skmtcRoot.manager.success()
   } catch (error) {

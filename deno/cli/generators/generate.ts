@@ -126,9 +126,9 @@ export const deletePreviousArtifacts = ({
 
         Deno.removeSync(absolutePath)
       }
-    } catch (error) {
+    } catch (_error) {
       // Ignore
-      console.error(`Failed to delete artifact: "${error}"`)
+      // console.error(`Failed to delete artifact: "${error}"`)
     }
   })
 }

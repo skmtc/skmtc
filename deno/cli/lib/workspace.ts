@@ -1,4 +1,8 @@
-import { deletePreviousArtifacts, generateResponse } from '../generators/generate.ts'
+import {
+  deletePreviousArtifacts,
+  generateResponse,
+  type GenerateResponse
+} from '../generators/generate.ts'
 import { join, parse } from '@std/path'
 import { ensureDirSync, ensureFileSync } from '@std/fs'
 import type { SkmtcRoot } from './skmtc-root.ts'
@@ -25,7 +29,7 @@ export class Workspace {
     return workspace
   }
 
-  async generateArtifacts({ project }: GenerateArtifactsArgs) {
+  async generateArtifacts({ project }: GenerateArtifactsArgs): Promise<GenerateResponse> {
     const manifestPath = join(project.toPath(), '.settings', 'manifest.json')
 
     const { deploymentId } = project.clientJson.contents
@@ -69,5 +73,7 @@ export class Workspace {
 
       Deno.writeTextFileSync(absolutePath, artifactContent)
     })
+
+    return { manifest, artifacts }
   }
 }
