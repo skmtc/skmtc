@@ -4,7 +4,7 @@ import type { ClientJson } from './client-json.ts'
 import { ApiClient } from './api-client.ts'
 import { match } from 'ts-pattern'
 import type { Manager } from './manager.ts'
-
+import { Spinner } from './spinner.ts'
 type DeployArgs = {
   projectName: string
   generatorIds: string[]
@@ -20,11 +20,17 @@ export class Deployment {
   }
 
   async deploy({ assets, projectName, generatorIds, clientJson }: DeployArgs) {
+    const spinner = new Spinner({ message: 'Uploading...', color: 'yellow' })
+
+    spinner.start()
+
     const { latestDenoDeploymentId } = await this.apiClient.deploy({
       assets,
       stackName: projectName,
       generatorIds
     })
+
+    spinner.message = 'Deploying...'
 
     await this.enqueueDeploymentCheck(latestDenoDeploymentId)
 
@@ -37,14 +43,15 @@ export class Deployment {
 
           match(deployment.status)
             .with('pending', () => {
-              console.log('Deployment pending...')
               this.enqueueDeploymentCheck(denoDeploymentId)
             })
             .with('success', () => {
               clientJson.setDeploymentId(denoDeploymentId)
+              spinner.stop()
               resolve(undefined)
             })
             .with('failed', () => {
+              spinner.stop()
               reject('Deployment failed')
             })
             .exhaustive()

@@ -1,9 +1,11 @@
 {
   "imports":{
+    "gpt-tokenizer": "npm:gpt-tokenizer@^3.0.1",
     "@apiture/openapi-down-convert": "npm:@apiture/openapi-down-convert@0.14.0",
     "@babel/helper-validator-identifier": "npm:@babel/helper-validator-identifier@7.22.20",
-    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7",
-    "@cliffy/prompt": "jsr:@cliffy/prompt@1.0.0-rc.7",
+    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
+    "@cliffy/prompt": "jsr:@cliffy/prompt@1.0.0-rc.8",
+    "@cliffy/internal": "jsr:@cliffy/internal@1.0.0-rc.8",
     "@cmd-johnson/oauth2-client": "jsr:@cmd-johnson/oauth2-client@^2.0.0",
     "@deno/dnt":"jsr:@deno/dnt@0.42.3",
     "@sentry/deno": "npm:@sentry/deno@^9.39.0",

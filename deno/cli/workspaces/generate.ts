@@ -7,6 +7,7 @@ import { join } from '@std/path'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import type { Project } from '../lib/project.ts'
+import { Spinner } from '../lib/spinner.ts'
 
 export const description = 'Generate artifacts'
 
@@ -75,13 +76,21 @@ export const generate = async (
   { project, skmtcRoot }: GenerateArgs,
   { logSuccess }: GenerateOptions = {}
 ) => {
+  const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
+
+  spinner.start()
+
   try {
     const workspace = new Workspace()
 
     await workspace.generateArtifacts({ project, skmtcRoot })
 
+    spinner.stop()
+
     await skmtcRoot.manager.success()
   } catch (error) {
+    spinner.stop()
+
     console.error(error)
 
     Sentry.captureException(error)
