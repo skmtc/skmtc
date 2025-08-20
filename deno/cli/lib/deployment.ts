@@ -30,20 +30,18 @@ export class Deployment {
 
     return new Promise((resolve, reject) => {
       this.apiClient.manager.kv.listenQueue(async message => {
-        if (v.is(checkDeploymentSchema, message)) {
-          if (message.denoDeploymentId !== latestDenoDeploymentId) {
-            return
-          }
+        if (v.is(checkDeploymentMessage, message)) {
+          const [, denoDeploymentId] = message
 
-          const deployment = await this.apiClient.getDeploymentInfo(message.denoDeploymentId)
+          const deployment = await this.apiClient.getDeploymentInfo(denoDeploymentId)
 
           match(deployment.status)
             .with('pending', () => {
               console.log('Deployment pending...')
-              this.enqueueDeploymentCheck(message.denoDeploymentId)
+              this.enqueueDeploymentCheck(denoDeploymentId)
             })
             .with('success', () => {
-              clientJson.setDeploymentId(message.denoDeploymentId)
+              clientJson.setDeploymentId(denoDeploymentId)
               resolve(undefined)
             })
             .with('failed', () => {
@@ -61,11 +59,15 @@ export class Deployment {
       denoDeploymentId
     }
 
-    await this.apiClient.manager.kv.enqueue(message, { delay: 8000 })
+    await this.apiClient.manager.kv.enqueue(['deployments', denoDeploymentId, message], {
+      delay: 8000
+    })
   }
 }
 
-const checkDeploymentSchema = v.object({
+const checkDeployment = v.object({
   type: v.literal('check-deployment'),
   denoDeploymentId: v.string()
 })
+
+const checkDeploymentMessage = v.tuple([v.literal('deployments'), v.string(), checkDeployment])

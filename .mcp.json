@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+   "skmtc-codegen": {
+      "type": "stdio",
+      "command": "deno",
+      "args": [
+        "run",
+        "-A",
+        "/Users/dmitrigrabov/workspace/codesquared/deno/mcp/mod.ts"
+      ]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem"
+      ]
+    }
+  }
+}

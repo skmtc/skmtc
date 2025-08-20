@@ -1,9 +1,9 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.138",
+  "version": "0.0.139",
   "exports": "./mod.ts",
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.718"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.719"
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"

@@ -37,6 +37,7 @@
     "./server"
   ],
   "tasks": {
-    "publish": "deno task --cwd=core publish && deno task --cwd=cli publish && deno task --cwd=server publish"
+    "publish": "deno task increment-patch && deno task --cwd=core publish && deno task --cwd=cli publish && deno task --cwd=server publish",
+    "increment-patch": "deno run --allow-read --allow-write .scripts/increment-patch.ts"
   }
 }

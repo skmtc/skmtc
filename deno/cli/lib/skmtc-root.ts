@@ -29,6 +29,10 @@ export class SkmtcRoot {
     return toRootPath()
   }
 
+  get isLoggedIn() {
+    return this.manager.auth.isLoggedIn()
+  }
+
   async login() {
     await this.manager.auth.login()
   }

@@ -8,22 +8,7 @@ import {
   toDeployPrompt,
   description as deployDescription
 } from './generators/deploy.ts'
-import {
-  toUploadCommand,
-  toUploadPrompt,
-  description as uploadDescription
-} from './schemas/upload.ts'
-import {
-  toWorkspacesInfoCommand,
-  toWorkspacesInfoPrompt,
-  description as workspacesInfoDescription
-} from './workspaces/info.ts'
 import { toGenerateCommand, toGeneratePrompt } from './generators/generate.ts'
-import {
-  toBaseFilesPushCommand,
-  toBaseFilesPushPrompt,
-  description as baseFilesPushDescription
-} from './base-files/push.ts'
 import { toAddCommand, toAddPrompt, description as addDescription } from './generators/add.ts'
 import {
   toInstallCommand,
@@ -47,11 +32,6 @@ import {
   description as workspacesGenerateDescription
 } from './workspaces/generate.ts'
 import * as Sentry from '@sentry/deno'
-import {
-  toWorkspacesMessageCommand,
-  toWorkspacesMessagePrompt,
-  description as workspacesMessageDescription
-} from './workspaces/message.ts'
 import { SkmtcRoot } from './lib/skmtc-root.ts'
 import { Manager } from './lib/manager.ts'
 import { toSelectProject } from './workspaces/select.ts'
@@ -67,7 +47,6 @@ const skmtcRoot = await SkmtcRoot.open(manager)
 
 type PromptResponse =
   | 'init'
-  | 'base-files:push'
   | 'generators:add'
   | 'generators:clone'
   | 'generators:deploy'
@@ -80,7 +59,6 @@ type PromptResponse =
   | 'schemas:info'
   | 'schemas:link'
   | 'schemas:unlink'
-  | 'schemas:upload'
   | 'workspaces:generate'
   | 'workspaces:info'
   | 'workspaces:link'
@@ -94,7 +72,12 @@ const EMPTY_WORKSPACE_OPTIONS = [
   { name: 'Exit', value: 'exit' }
 ]
 
-const toProjectOptions = (projectName: string) => [
+type ToProjectOptionsArgs = {
+  projectName: string
+  isLoggedIn: boolean
+}
+
+const toProjectOptions = ({ projectName, isLoggedIn }: ToProjectOptionsArgs) => [
   Select.separator(` - Current project: ${projectName}`),
   {
     name: installDescription,
@@ -124,17 +107,8 @@ const toProjectOptions = (projectName: string) => [
     name: workspacesGenerateDescription,
     value: 'workspaces:generate'
   },
-  {
-    name: baseFilesPushDescription,
-    value: 'base-files:push'
-  },
-  {
-    name: uploadDescription,
-    value: 'schemas:upload'
-  },
   Select.separator(` -- `),
-  { name: 'Log in to Skmtc', value: 'login' },
-  { name: 'Log out', value: 'logout' },
+  isLoggedIn ? { name: 'Log out', value: 'logout' } : { name: 'Log in to Skmtc', value: 'login' },
   { name: 'Exit', value: 'exit' }
 ]
 
@@ -154,7 +128,7 @@ const toAction = async () => {
 
   const action = await Select.prompt<PromptResponse>({
     message: 'Welcome to Smktc! What would you like to do?',
-    options: toProjectOptions(projectName)
+    options: toProjectOptions({ projectName, isLoggedIn: await skmtcRoot.isLoggedIn })
   })
 
   return { action, projectName }
@@ -165,7 +139,7 @@ const promptwise = async () => {
 
   await match(action)
     .with('init', async () => await toInitPrompt(skmtcRoot))
-    .with('base-files:push', async () => await toBaseFilesPushPrompt(skmtcRoot, projectName))
+    // .with('base-files:push', async () => await toBaseFilesPushPrompt(skmtcRoot, projectName))
     .with('generators:add', async () => await toAddPrompt(skmtcRoot, projectName))
     .with('generators:clone', async () => await toClonePrompt(skmtcRoot, projectName))
     .with('generators:deploy', async () => await toDeployPrompt(skmtcRoot, projectName))
@@ -173,7 +147,7 @@ const promptwise = async () => {
     .with('generators:install', async () => await toInstallPrompt(skmtcRoot, projectName))
     .with('generators:list', () => toListPrompt(skmtcRoot, projectName))
     .with('generators:remove', async () => await toRemovePrompt(skmtcRoot, projectName))
-    .with('schemas:upload', async () => await toUploadPrompt(skmtcRoot, projectName))
+    // .with('schemas:upload', async () => await toUploadPrompt(skmtcRoot, projectName))
     .with(
       'workspaces:generate',
       async () => await toWorkspacesGeneratePrompt(skmtcRoot, projectName)
@@ -196,7 +170,7 @@ await new Command()
     await promptwise()
   })
   .command('init', toInitCommand(skmtcRoot))
-  .command('base-files:push', toBaseFilesPushCommand(skmtcRoot))
+  // .command('base-files:push', toBaseFilesPushCommand(skmtcRoot))
   .command('generators:add', toAddCommand(skmtcRoot))
   .command('generators:clone', toCloneCommand(skmtcRoot))
   .command('generators:deploy', toDeployCommand(skmtcRoot))
@@ -204,7 +178,7 @@ await new Command()
   .command('generators:install', toInstallCommand(skmtcRoot))
   .command('generators:list', toListCommand(skmtcRoot))
   .command('generators:remove', toRemoveCommand(skmtcRoot))
-  .command('schemas:upload', toUploadCommand(skmtcRoot))
+  // .command('schemas:upload', toUploadCommand(skmtcRoot))
   .command('workspaces:generate', toWorkspacesGenerateCommand(skmtcRoot))
   .command('login', toLoginCommand(skmtcRoot))
   .command('logout', toLogoutCommand(skmtcRoot))

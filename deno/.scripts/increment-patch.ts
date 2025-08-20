@@ -19,14 +19,21 @@ interface PackageInfo {
 /**
  * Increments patch version (x.y.z -> x.y.z+1)
  */
-function incrementPatchVersion(version: string): string {
+export function incrementPatchVersion(version: string): string {
   const parts = version.split('.');
   if (parts.length !== 3) {
     throw new Error(`Invalid version format: ${version}`);
   }
   
   const [major, minor, patch] = parts;
-  const newPatch = parseInt(patch, 10) + 1;
+  const patchNumber = parseInt(patch, 10);
+  
+  // Check if patch is a valid number (allow leading zeros)
+  if (isNaN(patchNumber) || !/^\d+$/.test(patch)) {
+    throw new Error(`Invalid patch version: ${patch} is not a valid number`);
+  }
+  
+  const newPatch = patchNumber + 1;
   return `${major}.${minor}.${newPatch}`;
 }
 
@@ -38,7 +45,7 @@ async function readDenoJson(filePath: string): Promise<DenoJson> {
     const content = await Deno.readTextFile(filePath);
     return JSON.parse(content);
   } catch (error) {
-    throw new Error(`Failed to read ${filePath}: ${error.message}`);
+    throw new Error(`Failed to read ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -50,7 +57,7 @@ async function writeDenoJson(filePath: string, data: DenoJson): Promise<void> {
     const content = JSON.stringify(data, null, 2) + '\n';
     await Deno.writeTextFile(filePath, content);
   } catch (error) {
-    throw new Error(`Failed to write ${filePath}: ${error.message}`);
+    throw new Error(`Failed to write ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -95,7 +102,7 @@ async function getPackageVersions(rootPath: string, workspacePaths: string[]): P
         newVersion: incrementPatchVersion(config.version)
       });
     } catch (error) {
-      console.warn(`Skipping ${workspacePath}: ${error.message}`);
+      console.warn(`Skipping ${workspacePath}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   
@@ -188,7 +195,7 @@ export async function incrementWorkspaceVersions(rootPath: string = Deno.cwd()):
     console.log("\n✅ All versions incremented successfully!");
     
   } catch (error) {
-    console.error(`❌ Error: ${error.message}`);
+    console.error(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     Deno.exit(1);
   }
 }
