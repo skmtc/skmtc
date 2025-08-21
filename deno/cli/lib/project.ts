@@ -13,6 +13,8 @@ import type { SkmtcRoot } from './skmtc-root.ts'
 import { availableGenerators, type AvailableGenerator } from '../available-generators.ts'
 import { SchemaFile } from './schema-file.ts'
 import { formatNumber, parseModuleName } from '@skmtc/core'
+import { PackageDenoJson } from './package-deno-json.ts'
+import { join } from '@std/path'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -142,7 +144,40 @@ export class Project {
         version: version ?? (await Jsr.getLatestMeta({ scopeName, packageName })).latest
       })
 
-      await generator.clone({ projectName, denoJson: this.rootDenoJson })
+      const generatorIds = this.toGeneratorIds()
+
+      const filteredImportEntries = Object.entries(this.rootDenoJson.contents.imports ?? {}).filter(
+        ([generatorId]) => generatorIds.includes(generatorId)
+      )
+
+      await generator.clone({
+        denoJson: this.rootDenoJson,
+        manager: this.manager,
+        localGenerators: Object.fromEntries(filteredImportEntries)
+      })
+
+      const clonedGeneratorId = generator.toModuleName()
+
+      generatorIds.forEach(async generatorId => {
+        const { packageName } = parseModuleName(generatorId)
+
+        const packageDenoJsonPath = join(this.toPath(), packageName, 'deno.json')
+
+        if (await PackageDenoJson.exists(packageDenoJsonPath)) {
+          const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, this.manager)
+
+          if (packageDenoJson.contents.imports?.[clonedGeneratorId]) {
+            packageDenoJson.contents.imports[clonedGeneratorId] = generator.toModPath({
+              relative: true
+            })
+
+            // TODO: Writing should be done in manager.success()
+            await packageDenoJson.write()
+          }
+        }
+      })
+
+      await this.manager.success()
     } catch (error) {
       console.error(error)
 

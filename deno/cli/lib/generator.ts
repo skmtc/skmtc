@@ -26,8 +26,9 @@ type CreateArgs = {
 }
 
 type CloneArgs = {
-  projectName: string
   denoJson: RootDenoJson
+  localGenerators: Record<string, string>
+  manager: Manager
 }
 
 type InstallArgs = {
@@ -37,6 +38,10 @@ type InstallArgs = {
 type AddArgs = {
   project: Project
   generatorType: 'operation' | 'model'
+}
+
+type PathOptions = {
+  relative?: boolean
 }
 
 export class Generator {
@@ -75,8 +80,8 @@ export class Generator {
       })
       .exhaustive()
 
-    project.rootDenoJson.addImport(this.toModuleName(), this.toModPath())
-    project.rootDenoJson.addWorkspace(this.toPath())
+    project.rootDenoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
+    project.rootDenoJson.addWorkspace(this.toPath({ relative: true }))
   }
 
   async createFiles(generatorPath: string, manager: Manager) {
@@ -99,11 +104,11 @@ export class Generator {
     await packageDenoJson.write()
   }
 
-  async clone({ denoJson }: CloneArgs) {
+  async clone({ denoJson, manager, localGenerators }: CloneArgs) {
     const files = await Jsr.download(this)
 
     const downloads = Object.entries(files).map(async ([path, content]) => {
-      const joinedPath = join(this.toPath(), path)
+      const joinedPath = join(this.toPath({ relative: false }), path)
 
       await ensureFile(joinedPath)
 
@@ -112,8 +117,21 @@ export class Generator {
 
     await Promise.all(downloads)
 
-    denoJson.addImport(this.toModuleName(), this.toModPath())
-    denoJson.addWorkspace(this.toPath())
+    denoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
+    denoJson.addWorkspace(this.toPath({ relative: true }))
+
+    const packageDenoJsonPath = join(this.toPath({ relative: false }), 'deno.json')
+
+    const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, manager)
+
+    const updatedImports = Object.entries(packageDenoJson.contents.imports ?? {}).map(
+      ([generatorId, source]) => [
+        generatorId,
+        localGenerators[generatorId] ? localGenerators[generatorId] : source
+      ]
+    )
+
+    packageDenoJson.contents.imports = Object.fromEntries(updatedImports)
   }
 
   static fromName({ projectName, scopeName, packageName, version }: FromNameArgs): Generator {
@@ -127,9 +145,7 @@ export class Generator {
 
     invariant(packageSource, 'Package source not found')
 
-    const isLocal = RootDenoJson.isLocalModule(packageSource)
-
-    if (isLocal) {
+    if (RootDenoJson.isLocalModule(packageSource)) {
       Deno.remove(join(toProjectPath(project.name), this.packageName))
     }
 
@@ -144,12 +160,16 @@ export class Generator {
     return `${this.scopeName}/${this.packageName}`
   }
 
-  toPath() {
+  toPath({ relative }: PathOptions) {
+    if (relative) {
+      return `./${this.packageName}`
+    }
+
     return join(toProjectPath(this.projectName), this.packageName)
   }
 
-  toModPath() {
-    return `${this.toPath()}/mod.ts`
+  toModPath({ relative }: PathOptions) {
+    return `${this.toPath({ relative })}/mod.ts`
   }
 }
 

@@ -27,9 +27,9 @@ export const toClonePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) =
   const imports = project.rootDenoJson.contents.imports ?? {}
 
   const options = Object.values(imports).filter(item => {
-    const { scheme } = parseModuleName(item)
+    const { scheme, packageName } = parseModuleName(item)
 
-    return Boolean(scheme)
+    return Boolean(scheme) && packageName.startsWith('gen-')
   })
 
   const generators = await Checkbox.prompt({

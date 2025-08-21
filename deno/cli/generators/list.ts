@@ -1,6 +1,5 @@
 import { Command, EnumType } from '@cliffy/command'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
-import console from 'node:console'
 
 const generatorType = new EnumType(['operation', 'model'])
 

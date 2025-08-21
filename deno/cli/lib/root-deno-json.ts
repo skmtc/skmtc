@@ -87,7 +87,7 @@ export class RootDenoJson {
     }
 
     if (isLocal && this.contents.workspace) {
-      const generatorPath = generator.toPath()
+      const generatorPath = generator.toPath({ relative: true })
 
       this.contents.workspace = this.contents.workspace.filter(path => path !== generatorPath)
     }

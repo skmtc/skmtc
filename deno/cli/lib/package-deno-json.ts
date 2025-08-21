@@ -31,7 +31,7 @@ export class PackageDenoJson {
     const hasDenoJson = await PackageDenoJson.exists(path)
 
     if (!hasDenoJson) {
-      throw new Error('Package deno.json not found')
+      throw new Error(`Package deno.json not found at "${path}"`)
     }
 
     const contents = await Deno.readTextFile(path)

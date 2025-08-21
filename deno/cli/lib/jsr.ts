@@ -1,4 +1,5 @@
 import type { Generator } from './generator.ts'
+import { maxSatisfying, parse, parseRange } from '@std/semver'
 
 export type Pkg = {
   name: string
@@ -22,11 +23,6 @@ export type JsrPkgManifestFile = {
   readonly checksum: string
 }
 
-type GetLatestVersionArgs = {
-  scopeName: string
-  packageName: string
-}
-
 export type JsrPkgMetaVersion = { yanked?: boolean }
 
 type JsrPkgMetaVersions = {
@@ -38,11 +34,22 @@ type JsrPkgMetaVersions = {
   }
 }
 
+type GetLatestMetaArgs = {
+  scopeName: string
+  packageName: string
+}
+
+type GetLatestVersionArgs = {
+  scopeName: string
+  packageName: string
+  semver: string
+}
+
 export class Jsr {
   static async getLatestMeta({
     scopeName,
     packageName
-  }: GetLatestVersionArgs): Promise<JsrPkgMetaVersions> {
+  }: GetLatestMetaArgs): Promise<JsrPkgMetaVersions> {
     const res = await fetch(`https://jsr.io/${scopeName}/${packageName}/meta.json`)
 
     if (!res.ok) {
@@ -54,24 +61,58 @@ export class Jsr {
     return meta
   }
 
-  static async download(generator: Generator): Promise<Record<string, string>> {
-    const packageName = generator.toModuleName()
+  static async getLatestVersion({
+    scopeName,
+    packageName,
+    semver
+  }: GetLatestVersionArgs): Promise<string> {
+    const meta = await Jsr.getLatestMeta({ scopeName, packageName })
 
-    const versionMetaUrl = `https://jsr.io/${packageName}/${generator.version}_meta.json`
+    const versions = Object.keys(meta.versions).map(version => parse(version))
+
+    const parsedVersion = maxSatisfying(versions, parseRange(semver))
+
+    if (!parsedVersion) {
+      throw new Error(
+        `Failed to find package for jsr:${scopeName}/${packageName} with version matching ${semver}`
+      )
+    }
+
+    const { major, minor, patch } = parsedVersion
+
+    const version = `${major}.${minor}.${patch}`
+
+    return version
+  }
+
+  static async download(generator: Generator): Promise<Record<string, string>> {
+    const [scopeName, packageName] = generator.toModuleName().split('/')
+
+    const version = await Jsr.getLatestVersion({
+      scopeName,
+      packageName,
+      semver: generator.version
+    })
+
+    const versionMetaUrl = `https://jsr.io/${scopeName}/${packageName}/${version}_meta.json`
 
     const versionMetaRes = await fetch(versionMetaUrl)
 
     if (!versionMetaRes.ok) {
-      throw new Error(`Failed to get latest meta for jsr:${packageName}`)
+      const resText = await versionMetaRes.text()
+
+      console.log('RES', resText)
+
+      throw new Error(`Failed to get latest meta for jsr:${scopeName}/${packageName}. ${resText}`)
     }
 
     const versionMeta: JsrPkgVersionInfo = await versionMetaRes.json()
 
     const files = Object.keys(versionMeta.manifest ?? {}).map(async key => {
-      const fileRes = await fetch(`https://jsr.io/${packageName}/${generator.version}/${key}`)
+      const fileRes = await fetch(`https://jsr.io/${scopeName}/${packageName}/${version}/${key}`)
 
       if (!fileRes.ok) {
-        throw new Error(`Failed to get file for jsr:${packageName}`)
+        throw new Error(`Failed to get file for jsr:${scopeName}/${packageName}`)
       }
 
       const file = await fileRes.text()
