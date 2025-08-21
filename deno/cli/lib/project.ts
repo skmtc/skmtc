@@ -167,9 +167,7 @@ export class Project {
           const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, this.manager)
 
           if (packageDenoJson.contents.imports?.[clonedGeneratorId]) {
-            packageDenoJson.contents.imports[clonedGeneratorId] = generator.toModPath({
-              relative: true
-            })
+            delete packageDenoJson.contents.imports[clonedGeneratorId]
 
             // TODO: Writing should be done in manager.success()
             await packageDenoJson.write()
@@ -278,13 +276,26 @@ export class Project {
 
       this.manager.success()
     } catch (error) {
-      console.error(error)
-
       Sentry.captureException(error)
 
       await Sentry.flush()
 
-      this.manager.fail('Failed to deploy generators')
+      if (error === 'Deployment failed' && deployment.denoDeploymentId) {
+        const buildLogs = await deployment.getBuildLogs(deployment.denoDeploymentId)
+
+        // @ts-expect-error - TODO: fix this
+        buildLogs.forEach(log => {
+          if (log?.message) {
+            console.error(log.message)
+          }
+        })
+        this.manager.fail('')
+      } else if (error) {
+        console.error(error)
+        this.manager.fail('Failed to deploy generators')
+      } else {
+        this.manager.fail('Failed to deploy generators')
+      }
     }
   }
 

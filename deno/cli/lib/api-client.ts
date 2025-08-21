@@ -214,6 +214,28 @@ export class ApiClient {
     return data
   }
 
+  async getBuildLogs(denoDeploymentId: string) {
+    await this.manager.auth.ensureAuth()
+
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      `deployments/${denoDeploymentId}/deployment-logs`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        }
+      }
+    )
+
+    if (error) {
+      throw new Error('Failed to get build logs')
+    }
+
+    // @ts-expect-error - TODO: fix this
+    return data.filter(item => item?.level === 'error')
+  }
+
   async getWorkspaceByName(workspaceName: string) {
     await this.manager.auth.ensureAuth()
 

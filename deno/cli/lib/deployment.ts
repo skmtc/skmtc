@@ -5,7 +5,7 @@ import { ApiClient } from './api-client.ts'
 import { match } from 'ts-pattern'
 import type { Manager } from './manager.ts'
 import { Spinner } from './spinner.ts'
-import { formatNumber } from '@skmtc/core'
+
 type DeployArgs = {
   projectName: string
   generatorIds: string[]
@@ -15,6 +15,7 @@ type DeployArgs = {
 
 export class Deployment {
   apiClient: ApiClient
+  denoDeploymentId?: string
 
   constructor(manager: Manager) {
     this.apiClient = new ApiClient(manager)
@@ -30,6 +31,8 @@ export class Deployment {
       stackName: projectName,
       generatorIds
     })
+
+    this.denoDeploymentId = latestDenoDeploymentId
 
     spinner.message = 'Deploying...'
 
@@ -60,6 +63,12 @@ export class Deployment {
         }
       })
     })
+  }
+
+  async getBuildLogs(denoDeploymentId: string) {
+    const buildLogs = await this.apiClient.getBuildLogs(denoDeploymentId)
+
+    return buildLogs
   }
 
   async enqueueDeploymentCheck(denoDeploymentId: string) {

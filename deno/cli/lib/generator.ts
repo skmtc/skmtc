@@ -124,11 +124,8 @@ export class Generator {
 
     const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, manager)
 
-    const updatedImports = Object.entries(packageDenoJson.contents.imports ?? {}).map(
-      ([generatorId, source]) => [
-        generatorId,
-        localGenerators[generatorId] ? localGenerators[generatorId] : source
-      ]
+    const updatedImports = Object.entries(packageDenoJson.contents.imports ?? {}).filter(
+      ([generatorId]) => !localGenerators[generatorId]
     )
 
     packageDenoJson.contents.imports = Object.fromEntries(updatedImports)
