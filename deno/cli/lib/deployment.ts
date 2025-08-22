@@ -1,8 +1,6 @@
 import type { DenoFile } from '../deploy/types.ts'
-import * as v from 'valibot'
 import type { ClientJson } from './client-json.ts'
 import { ApiClient } from './api-client.ts'
-import { match } from 'ts-pattern'
 import type { Manager } from './manager.ts'
 import { Spinner } from './spinner.ts'
 
@@ -36,32 +34,23 @@ export class Deployment {
 
     spinner.message = 'Deploying...'
 
-    await this.enqueueDeploymentCheck(latestDenoDeploymentId)
-
     return new Promise((resolve, reject) => {
-      this.apiClient.manager.kv.listenQueue(async message => {
-        if (v.is(checkDeploymentMessage, message)) {
-          const [, denoDeploymentId] = message
+      const interval = setInterval(async () => {
+        const deployment = await this.apiClient.getDeploymentInfo(latestDenoDeploymentId)
 
-          const deployment = await this.apiClient.getDeploymentInfo(denoDeploymentId)
-
-          match(deployment.status)
-            .with('pending', () => {
-              this.enqueueDeploymentCheck(denoDeploymentId)
-            })
-            .with('success', () => {
-              clientJson.setDeploymentId(denoDeploymentId)
-              spinner.stop()
-
-              resolve(undefined)
-            })
-            .with('failed', () => {
-              spinner.stop()
-              reject('Deployment failed')
-            })
-            .exhaustive()
+        if (deployment.status === 'success') {
+          clientJson.setDeploymentId(latestDenoDeploymentId)
+          clearInterval(interval)
+          spinner.stop()
+          resolve(true)
         }
-      })
+
+        if (deployment.status === 'failed') {
+          clearInterval(interval)
+          spinner.stop()
+          reject(false)
+        }
+      }, 8000)
     })
   }
 
@@ -70,22 +59,4 @@ export class Deployment {
 
     return buildLogs
   }
-
-  async enqueueDeploymentCheck(denoDeploymentId: string) {
-    const message = {
-      type: 'check-deployment',
-      denoDeploymentId
-    }
-
-    await this.apiClient.manager.kv.enqueue(['deployments', denoDeploymentId, message], {
-      delay: 8000
-    })
-  }
 }
-
-const checkDeployment = v.object({
-  type: v.literal('check-deployment'),
-  denoDeploymentId: v.string()
-})
-
-const checkDeploymentMessage = v.tuple([v.literal('deployments'), v.string(), checkDeployment])

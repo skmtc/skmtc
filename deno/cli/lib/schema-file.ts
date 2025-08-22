@@ -34,22 +34,45 @@ type ToPathArgs = {
 }
 
 export class SchemaFile {
-  contents: string
+  #contents: string
   projectName: string
   fileType: 'json' | 'yaml'
   useParent: boolean
+  #dirty: boolean
 
   private constructor({ projectName, contents, fileType, useParent }: ConstructorArgs) {
     this.projectName = projectName
-    this.contents = contents
+    this.#contents = contents
     this.fileType = fileType
     this.useParent = useParent
+
+    this.#dirty = false
   }
 
   static toPath({ projectName, fileType, useParent }: ToPathArgs) {
     const projectPath = useParent ? toRootPath() : toProjectPath(projectName)
 
     return join(projectPath, `schema.${fileType}`)
+  }
+
+  toPath() {
+    return SchemaFile.toPath({
+      projectName: this.projectName,
+      fileType: this.fileType,
+      useParent: this.useParent
+    })
+  }
+
+  get contents() {
+    return this.#contents
+  }
+
+  set contents(contents: string) {
+    this.#contents = contents
+
+    if (!this.#dirty) {
+      this.#dirty = true
+    }
   }
 
   static async toSchemaFileInfo({
@@ -92,7 +115,11 @@ export class SchemaFile {
 
     const schemaFile = new SchemaFile({ projectName, contents, ...fileInfo })
 
-    manager.cleanupActions.push(async () => await schemaFile.write())
+    manager.cleanupActions.push(async () => {
+      if (schemaFile.#dirty) {
+        await schemaFile.write()
+      }
+    })
 
     return schemaFile
   }

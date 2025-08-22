@@ -9,6 +9,7 @@ import invariant from 'tiny-invariant'
 import type { Project } from '../lib/project.ts'
 import { Spinner } from '../lib/spinner.ts'
 import { formatNumber, toGenerationStats } from '@skmtc/core'
+import { type KeyCode, parse } from '@cliffy/keycode'
 
 export const description = 'Generate artifacts'
 
@@ -38,6 +39,29 @@ export const toWorkspacesGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectNa
   await generate({ project, skmtcRoot })
 }
 
+export const toWorkspacesGenerateWatchPrompt = async (
+  skmtcRoot: SkmtcRoot,
+  projectName: string
+) => {
+  const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+  invariant(project?.schemaFile, 'Schema file not found')
+
+  const schemaPath = project.schemaFile.toPath()
+
+  setupWatcher({ project, skmtcRoot, path: schemaPath })
+
+  console.log(`Watching ${schemaPath}...`)
+  console.log('Hit ctrl + c to exit.')
+
+  for await (const key of keypress()) {
+    if (key.ctrl && key.name === 'c') {
+      return
+    }
+    console.log(key)
+  }
+}
+
 type WatchGenerateArgs = {
   project: Project
   skmtcRoot: SkmtcRoot
@@ -45,11 +69,15 @@ type WatchGenerateArgs = {
 }
 
 export const setupWatcher = ({ project, skmtcRoot, path }: WatchGenerateArgs) => {
-  const joinedPath = join(Deno.cwd(), path)
+  console.log('setupWatcher', path)
 
-  const watcher = chokidar.watch(joinedPath)
+  // const joinedPath = join(Deno.cwd(), path)
 
-  watcher.on('change', () => uploadGenerate({ project, skmtcRoot, path }))
+  const watcher = chokidar.watch(path)
+
+  watcher.on('change', () => {
+    generate({ project, skmtcRoot })
+  })
 }
 
 type UploadGenerateArgs = {
@@ -109,5 +137,25 @@ export const generate = async (
     await Sentry.flush()
 
     skmtcRoot.manager.fail('Failed to generate artifacts')
+  }
+}
+
+async function* keypress(): AsyncGenerator<KeyCode, void> {
+  while (true) {
+    const data = new Uint8Array(8)
+
+    Deno.stdin.setRaw(true)
+    const nread = await Deno.stdin.read(data)
+    Deno.stdin.setRaw(false)
+
+    if (nread === null) {
+      return
+    }
+
+    const keys: Array<KeyCode> = parse(data.subarray(0, nread))
+
+    for (const key of keys) {
+      yield key
+    }
   }
 }
