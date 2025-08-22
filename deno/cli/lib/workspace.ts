@@ -30,6 +30,10 @@ export class Workspace {
   }
 
   async generateArtifacts({ project }: GenerateArtifactsArgs): Promise<GenerateResponse> {
+    if (!project.schemaFile) {
+      throw new Error('Project has no schema file, skipping generation')
+    }
+
     const manifestPath = join(project.toPath(), '.settings', 'manifest.json')
 
     const { deploymentId } = project.clientJson.contents
@@ -47,6 +51,11 @@ export class Workspace {
         prettierJson: project.prettierJson?.contents
       })
     })
+
+    if (!res.ok) {
+      console.log(await res.text())
+      throw new Error('Failed to generate artifacts')
+    }
 
     const data = await res.json()
 

@@ -1,5 +1,8 @@
 import { resolve } from '@std/path'
+import { toRootPath } from './to-root-path.ts'
 
 export const toProjectPath = (projectName: string) => {
-  return resolve(Deno.cwd(), '.skmtc', projectName)
+  const rootPath = toRootPath()
+
+  return resolve(rootPath, projectName)
 }

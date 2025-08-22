@@ -1,6 +1,6 @@
 import { Command } from '@cliffy/command'
 import { toInitPrompt, toInitCommand } from './lib/init.ts'
-import { Select } from '@cliffy/prompt'
+import { type GenericListOptions, Select } from '@cliffy/prompt'
 import { match } from 'ts-pattern'
 import { toLoginCommand, toLogoutCommand, toLoginPrompt, toLogoutPrompt } from './auth/auth.ts'
 import {
@@ -34,7 +34,7 @@ import {
 import * as Sentry from '@sentry/deno'
 import { SkmtcRoot } from './lib/skmtc-root.ts'
 import { Manager } from './lib/manager.ts'
-import { toSelectProject } from './workspaces/select.ts'
+import type { Project } from './lib/project.ts'
 
 Sentry.init({
   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
@@ -65,12 +65,32 @@ type PromptResponse =
   | 'workspaces:message'
   | 'exit'
 
-const EMPTY_WORKSPACE_OPTIONS = [
-  { name: 'Create new Skmtc project', value: 'init' },
-  { name: 'Log in to Skmtc', value: 'login' },
-  { name: 'Log out', value: 'logout' },
-  { name: 'Exit', value: 'exit' }
-]
+type ToHomeScreenOptionsArgs = {
+  projects: Project[]
+}
+
+type Option = { name: string; value?: string }
+
+const toHomeScreenOptions = ({ projects }: ToHomeScreenOptionsArgs) => {
+  const projectOptions: Option[] = projects.map(({ name }) => ({
+    name: ` - ${name}`,
+    value: `project:${name}`
+  }))
+
+  if (projects.length) {
+    projectOptions.unshift(Select.separator(`Select project `))
+    projectOptions.push(Select.separator(` `))
+  }
+
+  return [
+    { name: 'Create new Skmtc project', value: 'init' },
+    Select.separator(` `),
+    ...projectOptions,
+    { name: 'Log in to Skmtc', value: 'login' },
+    { name: 'Log out', value: 'logout' },
+    { name: 'Exit', value: 'exit' }
+  ]
+}
 
 type ToProjectOptionsArgs = {
   projectName: string
@@ -108,6 +128,7 @@ const toProjectOptions = ({ projectName, isLoggedIn }: ToProjectOptionsArgs) => 
     value: 'workspaces:generate'
   },
   Select.separator(` -- `),
+  { name: 'Home screen', value: 'home' },
   isLoggedIn ? { name: 'Log out', value: 'logout' } : { name: 'Log in to Skmtc', value: 'login' },
   { name: 'Exit', value: 'exit' }
 ]
@@ -115,16 +136,16 @@ const toProjectOptions = ({ projectName, isLoggedIn }: ToProjectOptionsArgs) => 
 const toAction = async () => {
   const { projects } = skmtcRoot
 
-  if (projects.length === 0) {
-    const action = await Select.prompt<PromptResponse>({
-      message: 'Welcome to Smktc! What would you like to do?',
-      options: EMPTY_WORKSPACE_OPTIONS
-    })
+  const homeScreenAction = await Select.prompt<PromptResponse>({
+    message: 'Welcome to Smktc! What would you like to do?',
+    options: toHomeScreenOptions({ projects })
+  })
 
-    return { action, projectName: '' }
+  if (!homeScreenAction.startsWith('project:')) {
+    return { action: homeScreenAction, projectName: '' }
   }
 
-  const projectName = projects.length === 1 ? projects[0].name : await toSelectProject(skmtcRoot)
+  const [_, projectName] = homeScreenAction.split(':')
 
   const action = await Select.prompt<PromptResponse>({
     message: 'Welcome to Smktc! What would you like to do?',
@@ -156,9 +177,7 @@ const promptwise = async () => {
     .with('logout', async () => await toLogoutPrompt(skmtcRoot, projectName))
     .with('exit', () => Deno.exit(0))
     .otherwise(matched => {
-      console.log('matched', JSON.stringify(matched, null, 2))
-
-      throw new Error(`Invalid action: ${matched}`)
+      // do nothing
     })
 
   setTimeout(promptwise, 0)

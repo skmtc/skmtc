@@ -1,11 +1,14 @@
-import { Input } from '@cliffy/prompt'
+import { Select } from '@cliffy/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
 export const toSelectProject = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
+  const projectName = await Select.prompt({
     message: 'Select project',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
+
+    options: skmtcRoot.projects.map(({ name }) => ({
+      label: name,
+      value: name
+    }))
   })
 
   return projectName

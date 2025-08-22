@@ -142,10 +142,6 @@ export class Generator {
 
     invariant(packageSource, 'Package source not found')
 
-    if (RootDenoJson.isLocalModule(packageSource)) {
-      Deno.remove(join(toProjectPath(project.name), this.packageName))
-    }
-
     project.rootDenoJson.removeGenerator(this)
   }
 

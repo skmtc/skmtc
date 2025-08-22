@@ -77,7 +77,9 @@ export class RootDenoJson {
     const isLocal = RootDenoJson.isLocalModule(packageSource)
 
     if (isLocal) {
-      Deno.remove(join(toProjectPath(this.projectName), generator.packageName))
+      Deno.removeSync(join(toProjectPath(this.projectName), generator.packageName), {
+        recursive: true
+      })
     }
 
     if (this.contents.imports) {
