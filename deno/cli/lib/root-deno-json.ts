@@ -111,6 +111,7 @@ export class RootDenoJson {
 
   async write() {
     const path = RootDenoJson.toPath(this.projectName)
+
     const content = JSON.stringify(this.contents, null, 2)
 
     await writeFileSafeDir(path, content)

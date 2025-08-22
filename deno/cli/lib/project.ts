@@ -15,6 +15,7 @@ import { SchemaFile } from './schema-file.ts'
 import { formatNumber, parseModuleName } from '@skmtc/core'
 import { PackageDenoJson } from './package-deno-json.ts'
 import { join } from '@std/path'
+import { ApiClient } from './api-client.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -220,6 +221,27 @@ export class Project {
     }
   }
 
+  async rename(newName: string) {
+    try {
+      await Deno.rename(this.toPath(), toProjectPath(newName))
+
+      this.name = newName
+
+      this.clientJson.projectName = newName
+      this.rootDenoJson.projectName = newName
+
+      await this.manager.success()
+    } catch (error) {
+      console.error(error)
+
+      Sentry.captureException(error)
+
+      await Sentry.flush()
+
+      this.manager.fail('Failed to rename project')
+    }
+  }
+
   async removeGenerator({ moduleName }: RemoveGeneratorArgs, { logSuccess }: RemoveOptions = {}) {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
@@ -249,6 +271,12 @@ export class Project {
 
   toGeneratorIds() {
     return this.rootDenoJson.toGeneratorIds()
+  }
+
+  async hasServerWriteAccess(apiClient: ApiClient) {
+    const { hasWriteAccess } = await apiClient.hasServerWriteAccess(this.name)
+
+    return hasWriteAccess
   }
 
   async deploy({ logSuccess }: DeployOptions = {}) {

@@ -29,6 +29,10 @@ const denoProject = v.object({
   updatedAt: v.string()
 })
 
+const hasServerWriteAccess = v.object({
+  hasWriteAccess: v.boolean()
+})
+
 const deploymentInfo = v.object({
   status: deploymentStatus
 })
@@ -141,6 +145,19 @@ export class ApiClient {
     }
 
     return v.parse(denoProject, data)
+  }
+
+  async hasServerWriteAccess(projectName: string): Promise<{ hasWriteAccess: boolean }> {
+    await this.manager.auth.ensureAuth()
+
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      `servers/${projectName}`,
+      {
+        method: 'GET'
+      }
+    )
+
+    return v.parse(hasServerWriteAccess, data)
   }
 
   async getDeploymentInfo(deploymentId: string) {

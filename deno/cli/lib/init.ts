@@ -45,6 +45,31 @@ export const toInitCommand = (skmtcRoot: SkmtcRoot) => {
 }
 
 export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
+  const name = await toNamePrompt({ skmtcRoot })
+
+  const generators = await Checkbox.prompt({
+    message: 'Select generators to use',
+
+    options: availableGenerators.map(({ id }) => ({
+      checked: true,
+      label: id,
+      value: id
+    }))
+  })
+
+  const basePath = await Input.prompt({
+    message: 'Base path for generated files',
+    default: './src'
+  })
+
+  await init({ projectName: name, skmtcRoot, generators, basePath }, { logSuccess: true })
+}
+
+type ToNamePromptArgs = {
+  skmtcRoot: SkmtcRoot
+}
+
+export const toNamePrompt = async ({ skmtcRoot }: ToNamePromptArgs) => {
   const suggestedName = toNameSuggest()
 
   const name: string = await Input.prompt({
@@ -65,20 +90,5 @@ export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
     }
   })
 
-  const generators = await Checkbox.prompt({
-    message: 'Select generators to use',
-
-    options: availableGenerators.map(({ id }) => ({
-      checked: true,
-      label: id,
-      value: id
-    }))
-  })
-
-  const basePath = await Input.prompt({
-    message: 'Base path for generated files',
-    default: './src'
-  })
-
-  await init({ projectName: name, skmtcRoot, generators, basePath }, { logSuccess: true })
+  return name
 }

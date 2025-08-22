@@ -184,7 +184,7 @@ const toAction = async (initialProjectName?: string) => {
 const promptwise = async (initialProjectName?: string) => {
   const { action, projectName } = await toAction(initialProjectName)
 
-  await match(action)
+  const res = await match(action)
     .with('init', () => toInitPrompt(skmtcRoot))
     // .with('base-files:push',  () =>  toBaseFilesPushPrompt(skmtcRoot, projectName))
     .with('generators:add', () => toAddPrompt(skmtcRoot, projectName))
@@ -203,7 +203,7 @@ const promptwise = async (initialProjectName?: string) => {
       // do nothing
     })
 
-  setTimeout(() => promptwise(projectName), 0)
+  setTimeout(() => promptwise(res?.projectName ?? projectName), 0)
 }
 
 await new Command()
