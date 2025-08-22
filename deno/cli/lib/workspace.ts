@@ -31,12 +31,18 @@ export class Workspace {
 
   async generateArtifacts({ project }: GenerateArtifactsArgs): Promise<GenerateResponse> {
     if (!project.schemaFile) {
-      throw new Error('Project has no schema file, skipping generation')
+      throw new Error(
+        `Project has no schema file. Add an "openapi.json" or "openapi.yaml" file to ".skmtc/${project.name}" or ".skmtc" folder.`
+      )
     }
 
     const manifestPath = join(project.toPath(), '.settings', 'manifest.json')
 
     const { deploymentId } = project.clientJson.contents
+
+    if (!deploymentId) {
+      throw new Error('Project has no deployment ID. Has it been deployed?')
+    }
 
     const generatorUrl = `https://${project.name}-${deploymentId}.deno.dev/artifacts`
 

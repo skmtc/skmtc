@@ -69,7 +69,7 @@ export class ClientJson {
   static create({ accountName, projectName, basePath }: CreateArgs) {
     return new ClientJson({
       projectName,
-      contents: { accountName, settings: { basePath, enrichments: {} } }
+      contents: { accountName, settings: { basePath } }
     })
   }
 }

@@ -33,7 +33,7 @@ export const downloadAndCreateSchema = async (
 
   const schema = await res.text()
 
-  const destination = join(projectPath, `schema.${fileType}`)
+  const destination = join(projectPath, `openapi.${fileType}`)
 
   Deno.writeTextFileSync(destination, schema)
 

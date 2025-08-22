@@ -8,7 +8,6 @@ import {
   toDeployPrompt,
   description as deployDescription
 } from './generators/deploy.ts'
-import { toGenerateCommand, toGeneratePrompt } from './generators/generate.ts'
 import { toAddCommand, toAddPrompt, description as addDescription } from './generators/add.ts'
 import {
   toInstallCommand,
@@ -27,9 +26,9 @@ import {
   description as cloneDescription
 } from './generators/clone.ts'
 import {
-  toWorkspacesGenerateCommand,
-  toWorkspacesGeneratePrompt,
-  toWorkspacesGenerateWatchPrompt,
+  toGenerateCommand,
+  toGeneratePrompt,
+  toGenerateWatchPrompt,
   description as workspacesGenerateDescription
 } from './workspaces/generate.ts'
 import * as Sentry from '@sentry/deno'
@@ -75,9 +74,8 @@ type ToHomeScreenOptionsArgs = {
 type Option = { name: string; value?: string }
 
 const toHomeScreenOptions = ({ projects, isLoggedIn }: ToHomeScreenOptionsArgs) => {
-  console.log('isLoggedIn', isLoggedIn)
   const projectOptions: Option[] = projects.map(({ name }) => ({
-    name: ` - ${name}`,
+    name: `${name}`,
     value: `project:${name}`
   }))
 
@@ -87,9 +85,9 @@ const toHomeScreenOptions = ({ projects, isLoggedIn }: ToHomeScreenOptionsArgs) 
   }
 
   return [
-    { name: 'Create new Skmtc project', value: 'init' },
-    Select.separator(` `),
     ...projectOptions,
+    { name: 'Create new project', value: 'init' },
+    Select.separator(` `),
     isLoggedIn ? { name: 'Log out', value: 'logout' } : { name: 'Log in to Skmtc', value: 'login' },
     { name: 'Exit', value: 'exit' }
   ]
@@ -101,6 +99,20 @@ type ToProjectOptionsArgs = {
 
 const toProjectOptions = ({ projectName }: ToProjectOptionsArgs) => [
   Select.separator(` - Current project: ${projectName}`),
+  {
+    name: workspacesGenerateDescription,
+    value: 'generators:generate'
+  },
+  {
+    name: `${workspacesGenerateDescription} (watch)`,
+    value: 'generators:generate:watch'
+  },
+  Select.separator(` `),
+  {
+    name: deployDescription,
+    value: 'generators:deploy'
+  },
+  Select.separator(` `),
   {
     name: installDescription,
     value: 'generators:install'
@@ -121,27 +133,17 @@ const toProjectOptions = ({ projectName }: ToProjectOptionsArgs) => [
     name: removeDescription,
     value: 'generators:remove'
   },
-  {
-    name: deployDescription,
-    value: 'generators:deploy'
-  },
-  {
-    name: workspacesGenerateDescription,
-    value: 'generators:generate'
-  },
-  {
-    name: `${workspacesGenerateDescription} (watch)`,
-    value: 'generators:generate:watch'
-  },
-  Select.separator(` -- `),
-  { name: 'Home screen', value: 'home' }
+  Select.separator(` `),
+  { name: 'Back to home screen', value: 'home' }
 ]
 
-const toAction = async (initialProjectName?: string) => {
-  const { projects } = skmtcRoot
+type ToSelectActionArgs = {
+  initialProjectName?: string
+  projects: Project[]
+  isLoggedIn: boolean
+}
 
-  const isLoggedIn = await skmtcRoot.isLoggedIn
-
+const toSelectAction = async ({ initialProjectName, projects, isLoggedIn }: ToSelectActionArgs) => {
   if (!initialProjectName) {
     const homeScreenAction = await Select.prompt<PromptResponse>({
       message: 'Welcome to Smktc! What would you like to do?',
@@ -165,26 +167,37 @@ const toAction = async (initialProjectName?: string) => {
   return { action, projectName: action === 'home' ? '' : initialProjectName }
 }
 
+const toAction = async (initialProjectName?: string) => {
+  const { projects } = skmtcRoot
+
+  const isLoggedIn = await skmtcRoot.isLoggedIn
+
+  return new Promise<{ action: string; projectName: string }>(resolve => {
+    toSelectAction({
+      initialProjectName,
+      projects,
+      isLoggedIn
+    }).then(({ action, projectName }) => resolve({ action, projectName }))
+  })
+}
+
 const promptwise = async (initialProjectName?: string) => {
   const { action, projectName } = await toAction(initialProjectName)
 
   await match(action)
-    .with('init', async () => await toInitPrompt(skmtcRoot))
-    // .with('base-files:push', async () => await toBaseFilesPushPrompt(skmtcRoot, projectName))
-    .with('generators:add', async () => await toAddPrompt(skmtcRoot, projectName))
-    .with('generators:clone', async () => await toClonePrompt(skmtcRoot, projectName))
-    .with('generators:deploy', async () => await toDeployPrompt(skmtcRoot, projectName))
-    .with('generators:generate', async () => await toGeneratePrompt(skmtcRoot, projectName))
-    .with('generators:generate:watch', async () => {
-      console.log('generators:generate:watch')
-      return await toWorkspacesGenerateWatchPrompt(skmtcRoot, projectName)
-    })
-    .with('generators:install', async () => await toInstallPrompt(skmtcRoot, projectName))
+    .with('init', () => toInitPrompt(skmtcRoot))
+    // .with('base-files:push',  () =>  toBaseFilesPushPrompt(skmtcRoot, projectName))
+    .with('generators:add', () => toAddPrompt(skmtcRoot, projectName))
+    .with('generators:clone', () => toClonePrompt(skmtcRoot, projectName))
+    .with('generators:deploy', () => toDeployPrompt(skmtcRoot, projectName))
+    .with('generators:generate', () => toGeneratePrompt(skmtcRoot, projectName))
+    .with('generators:generate:watch', () => toGenerateWatchPrompt(skmtcRoot, projectName))
+    .with('generators:install', () => toInstallPrompt(skmtcRoot, projectName))
     .with('generators:list', () => toListPrompt(skmtcRoot, projectName))
-    .with('generators:remove', async () => await toRemovePrompt(skmtcRoot, projectName))
-    // .with('schemas:upload', async () => await toUploadPrompt(skmtcRoot, projectName))
-    .with('login', async () => await toLoginPrompt(skmtcRoot, projectName))
-    .with('logout', async () => await toLogoutPrompt(skmtcRoot, projectName))
+    .with('generators:remove', () => toRemovePrompt(skmtcRoot, projectName))
+    // .with('schemas:upload',  () =>  toUploadPrompt(skmtcRoot, projectName))
+    .with('login', () => toLoginPrompt(skmtcRoot, projectName))
+    .with('logout', () => toLogoutPrompt(skmtcRoot, projectName))
     .with('exit', () => Deno.exit(0))
     .otherwise(matched => {
       // do nothing
@@ -207,7 +220,7 @@ await new Command()
   .command('generators:list', toListCommand(skmtcRoot))
   .command('generators:remove', toRemoveCommand(skmtcRoot))
   // .command('schemas:upload', toUploadCommand(skmtcRoot))
-  .command('generators:generate', toWorkspacesGenerateCommand(skmtcRoot))
+  .command('generators:generate', toGenerateCommand(skmtcRoot))
   .command('login', toLoginCommand(skmtcRoot))
   .command('logout', toLogoutCommand(skmtcRoot))
   .parse(Deno.args)

@@ -258,14 +258,12 @@ export class Project {
 
     const deployment = new Deployment(this.manager)
 
-    const clientJson = await ClientJson.open(this.name, this.manager)
-
     const assets = await toAssets({ projectRoot: toProjectPath(this.name) })
 
     try {
       await deployment.deploy({
         assets,
-        clientJson,
+        clientJson: this.clientJson,
         projectName: this.name,
         generatorIds: this.toGeneratorIds()
       })

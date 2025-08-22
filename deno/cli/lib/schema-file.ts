@@ -52,7 +52,7 @@ export class SchemaFile {
   static toPath({ projectName, fileType, useParent }: ToPathArgs) {
     const projectPath = useParent ? toRootPath() : toProjectPath(projectName)
 
-    return join(projectPath, `schema.${fileType}`)
+    return join(projectPath, `openapi.${fileType}`)
   }
 
   toPath() {

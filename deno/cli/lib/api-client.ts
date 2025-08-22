@@ -3,6 +3,7 @@ import type { Manager } from './manager.ts'
 import * as v from 'valibot'
 import type { OpenApiSchema } from './openapi-schema.ts'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 
 const deploymentStatus = v.picklist(['pending', 'success', 'failed'])
 
@@ -17,6 +18,17 @@ const denoDeployment = v.object({
   updatedAt: v.string()
 })
 
+const denoProject = v.object({
+  id: v.nullable(v.string()),
+  stackName: v.string(),
+  serverId: v.string(),
+  latestStatus: v.nullable(deploymentStatus),
+  latestDeploymentId: v.nullable(v.string()),
+  latestDenoDeploymentId: v.nullable(v.string()),
+  createdAt: v.string(),
+  updatedAt: v.string()
+})
+
 const deploymentInfo = v.object({
   status: deploymentStatus
 })
@@ -25,6 +37,10 @@ type DeployArgs = {
   assets: Record<string, DenoFile>
   stackName: string
   generatorIds: string[]
+}
+
+type CreateDenoProjectArgs = {
+  projectName: string
 }
 
 export type CreateSchemaBody =
@@ -103,6 +119,28 @@ export class ApiClient {
     }
 
     return v.parse(denoDeployment, data)
+  }
+
+  async createDenoProject({ projectName }: CreateDenoProjectArgs) {
+    await this.manager.auth.ensureAuth()
+
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(`servers`, {
+      method: 'POST',
+      body: { stackName: projectName }
+    })
+
+    if (error) {
+      if (error instanceof FunctionsHttpError) {
+        const errorMessage = await error.context.json()
+        Object.entries(errorMessage?.validationErrors).forEach(([key, value]) => {
+          console.error(`${key}: ${value}`)
+        })
+      }
+
+      throw new Error(`Failed to deploy stack`)
+    }
+
+    return v.parse(denoProject, data)
   }
 
   async getDeploymentInfo(deploymentId: string) {

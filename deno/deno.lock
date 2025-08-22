@@ -15,6 +15,7 @@
     "jsr:@std/encoding@~1.0.5": "1.0.10",
     "jsr:@std/fmt@1": "1.0.8",
     "jsr:@std/fmt@^1.0.5": "1.0.8",
+    "jsr:@std/fmt@^1.0.8": "1.0.8",
     "jsr:@std/fmt@~1.0.2": "1.0.8",
     "jsr:@std/fs@*": "1.0.19",
     "jsr:@std/fs@1": "1.0.19",
@@ -56,6 +57,7 @@
     "npm:gpt-tokenizer@^3.0.1": "3.0.1",
     "npm:hono@4.7.2": "4.7.2",
     "npm:ignore@7.0.5": "7.0.5",
+    "npm:keycode@*": "2.2.1",
     "npm:lodash-es@4.17.21": "4.17.21",
     "npm:make-synchronized@~0.7.2": "0.7.2",
     "npm:openapi-types@^12.1.3": "12.1.3",
@@ -658,6 +660,9 @@
     "json-schema-traverse@0.4.1": {
       "integrity": "sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg=="
     },
+    "keycode@2.2.1": {
+      "integrity": "sha512-Rdgz9Hl9Iv4QKi8b0OlCRQEzp4AgVxyCtz5S/+VIHezDmrDhkp2N2TqBWOLz0/gbeREXOOiI9/4b8BY9uw2vFg=="
+    },
     "lodash-es@4.17.21": {
       "integrity": "sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw=="
     },
@@ -1100,6 +1105,7 @@
       "jsr:@deno/dnt@0.42.3",
       "jsr:@std/assert@^1.0.10",
       "jsr:@std/encoding@^1.0.10",
+      "jsr:@std/fmt@^1.0.8",
       "jsr:@std/fs@^1.0.7",
       "jsr:@std/http@^1.0.16",
       "jsr:@std/log@~0.224.6",
@@ -1125,7 +1131,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.728",
+          "jsr:@skmtc/core@^0.0.729",
           "jsr:@std/semver@^1.0.5"
         ]
       },
@@ -1146,7 +1152,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.148",
+          "jsr:@skmtc/cli@^0.0.149",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -1155,7 +1161,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.728",
+          "jsr:@skmtc/core@^0.0.729",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@apiture/openapi-down-convert@0.14",

@@ -41,6 +41,12 @@ export class SkmtcRoot {
     await this.manager.auth.logout()
   }
 
+  async createDenoProject(name: string) {
+    const project = await this.apiClient.createDenoProject({ projectName: name })
+
+    return project
+  }
+
   async createProject({ name, basePath, generators }: CreateProjectArgs) {
     const project = await Project.create({ name, basePath, generators, skmtcRoot: this })
 

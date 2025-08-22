@@ -19,6 +19,13 @@ export const init = async (
   { projectName, skmtcRoot, generators, basePath }: InitArgs,
   { logSuccess }: CreateProjectFolderOptions
 ) => {
+  try {
+    const denoProject = await skmtcRoot.createDenoProject(projectName)
+  } catch (error) {
+    // TODO: handle error
+    return
+  }
+
   const project = await skmtcRoot.createProject({ name: projectName, basePath, generators })
 
   if (logSuccess) {
@@ -42,7 +49,20 @@ export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
 
   const name: string = await Input.prompt({
     message: `Choose a project name [${suggestedName}]`,
-    suggestions: [suggestedName]
+    suggestions: [suggestedName],
+    validate: value => {
+      if (value.length < 3) {
+        return 'Project name must be at least 3 characters long'
+      }
+
+      const project = skmtcRoot.projects.find(project => project.name === value)
+
+      if (project) {
+        return `Project "${value}" already exists`
+      }
+
+      return true
+    }
   })
 
   const generators = await Checkbox.prompt({
@@ -56,8 +76,7 @@ export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
   })
 
   const basePath = await Input.prompt({
-    message: 'Output path for generated files',
-    files: true,
+    message: 'Base path for generated files',
     default: './src'
   })
 
