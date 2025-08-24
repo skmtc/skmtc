@@ -2,7 +2,6 @@ import { Command } from '@cliffy/command'
 import * as Sentry from '@sentry/deno'
 import { Workspace } from '../lib/workspace.ts'
 import chokidar from 'chokidar'
-import { upload } from '../schemas/upload.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import type { Project } from '../lib/project.ts'
@@ -11,6 +10,7 @@ import { formatNumber, toGenerationStats } from '@skmtc/core'
 import { keypress } from '../lib/keypress.ts'
 import { relative } from '@std/path'
 import { dim } from '@std/fmt/colors'
+import { Confirm } from '@cliffy/prompt'
 
 export const description = 'Generate artifacts'
 
@@ -43,6 +43,14 @@ export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string
 
   invariant(project, 'Project not found')
 
+  const hasDeploymentId = await ensureDeploymentId({ project })
+
+  if (!hasDeploymentId) {
+    console.log('Project has not been deployed. Please deploy before generating artifacts.')
+
+    return
+  }
+
   const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
 
   spinner.start()
@@ -58,6 +66,14 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
   invariant(project?.schemaFile, 'Schema file not found')
 
   const schemaPath = project.schemaFile.toPath()
+
+  const hasDeploymentId = await ensureDeploymentId({ project })
+
+  if (!hasDeploymentId) {
+    console.log('Project has not been deployed. Please deploy before generating artifacts.')
+
+    return
+  }
 
   const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
 
@@ -134,6 +150,12 @@ export const generate = async (
   try {
     const workspace = new Workspace()
 
+    const { deploymentId } = project.clientJson.contents
+
+    if (!deploymentId) {
+      throw new Error('Project has no deployment ID. Has it been deployed?')
+    }
+
     const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 
     const { tokens, lines, totalTime, errors, files } = toGenerationStats({ manifest, artifacts })
@@ -162,4 +184,28 @@ export const generate = async (
 
     skmtcRoot.manager.fail('Failed to generate artifacts')
   }
+}
+
+type EnsureDeploymentIdArgs = {
+  project: Project
+}
+
+const ensureDeploymentId = async ({ project }: EnsureDeploymentIdArgs): Promise<boolean> => {
+  const { deploymentId } = project.clientJson.contents
+
+  if (deploymentId) {
+    return true
+  }
+
+  const confirmed = await Confirm.prompt(
+    'This project has not been deployed. Would you like to deploy it now?'
+  )
+
+  if (!confirmed) {
+    return false
+  }
+
+  await project.deploy({ logSuccess: 'Generators deployed' })
+
+  return true
 }

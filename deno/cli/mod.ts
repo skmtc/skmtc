@@ -186,7 +186,6 @@ const promptwise = async (initialProjectName?: string) => {
 
   const res = await match(action)
     .with('init', () => toInitPrompt(skmtcRoot))
-    // .with('base-files:push',  () =>  toBaseFilesPushPrompt(skmtcRoot, projectName))
     .with('generators:add', () => toAddPrompt(skmtcRoot, projectName))
     .with('generators:clone', () => toClonePrompt(skmtcRoot, projectName))
     .with('generators:deploy', () => toDeployPrompt(skmtcRoot, projectName))
