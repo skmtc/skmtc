@@ -151,7 +151,7 @@ export class ApiClient {
     await this.manager.auth.ensureAuth()
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(
-      `servers/${projectName}`,
+      `servers/${projectName}/hasWriteAccess`,
       {
         method: 'GET'
       }
