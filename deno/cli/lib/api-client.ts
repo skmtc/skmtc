@@ -4,6 +4,7 @@ import * as v from 'valibot'
 import type { OpenApiSchema } from './openapi-schema.ts'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import { isEmpty } from '@skmtc/core'
 
 const deploymentStatus = v.picklist(['pending', 'success', 'failed'])
 
@@ -45,6 +46,11 @@ type DeployArgs = {
 
 type CreateDenoProjectArgs = {
   projectName: string
+}
+
+type GetRuntimeLogsOptions = {
+  spanId?: string
+  since?: string
 }
 
 export type CreateSchemaBody =
@@ -291,6 +297,27 @@ export class ApiClient {
     return data.filter(item => item?.level === 'error')
   }
 
+  async getRuntimeLogs(denoDeploymentId: string, options: GetRuntimeLogsOptions = {}) {
+    await this.manager.auth.ensureAuth()
+
+    const { data, error } = await this.manager.auth.supabase.functions.invoke(
+      toRuntimeLogsUrl(denoDeploymentId, options),
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        }
+      }
+    )
+
+    if (error) {
+      throw new Error('Failed to get build logs')
+    }
+
+    return data
+  }
+
   async getWorkspaceByName(workspaceName: string) {
     await this.manager.auth.ensureAuth()
 
@@ -405,6 +432,28 @@ export class ApiClient {
       throw new Error('Failed to generate artifacts')
     }
   }
+}
+
+const toRuntimeLogsUrl = (denoDeploymentId: string, options: GetRuntimeLogsOptions = {}) => {
+  const baseUrl = `deployments/${denoDeploymentId}/runtime-logs`
+
+  if (isEmpty(options)) {
+    return baseUrl
+  }
+
+  const { spanId, since } = options
+
+  const query = new URLSearchParams()
+
+  if (spanId) {
+    query.set('q', spanId)
+  }
+
+  if (since) {
+    query.set('since', since)
+  }
+
+  return `${baseUrl}?${query}`
 }
 
 export const openApiVersion = v.picklist(['2.0', '3.0', '3.1'])

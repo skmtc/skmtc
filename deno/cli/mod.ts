@@ -35,6 +35,11 @@ import * as Sentry from '@sentry/deno'
 import { SkmtcRoot } from './lib/skmtc-root.ts'
 import { Manager } from './lib/manager.ts'
 import type { Project } from './lib/project.ts'
+import {
+  toRuntimeLogsCommand,
+  toRuntimeLogsPrompt,
+  description as runtimeLogsDescription
+} from './workspaces/runtime-logs.ts'
 
 Sentry.init({
   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
@@ -52,6 +57,7 @@ type PromptResponse =
   | 'generators:deploy'
   | 'generators:generate'
   | 'generators:generate:watch'
+  | 'generators:runtime-logs'
   | 'generators:install'
   | 'generators:remove'
   | 'login'
@@ -111,6 +117,10 @@ const toProjectOptions = ({ projectName }: ToProjectOptionsArgs) => [
   {
     name: deployDescription,
     value: 'generators:deploy'
+  },
+  {
+    name: runtimeLogsDescription,
+    value: 'generators:runtime-logs'
   },
   Select.separator(` `),
   {
@@ -191,6 +201,7 @@ const promptwise = async (initialProjectName?: string) => {
     .with('generators:deploy', () => toDeployPrompt(skmtcRoot, projectName))
     .with('generators:generate', () => toGeneratePrompt(skmtcRoot, projectName))
     .with('generators:generate:watch', () => toGenerateWatchPrompt(skmtcRoot, projectName))
+    .with('generators:runtime-logs', () => toRuntimeLogsPrompt(skmtcRoot, projectName))
     .with('generators:install', () => toInstallPrompt(skmtcRoot, projectName))
     .with('generators:list', () => toListPrompt(skmtcRoot, projectName))
     .with('generators:remove', () => toRemovePrompt(skmtcRoot, projectName))
@@ -217,6 +228,7 @@ await new Command()
   .command('generators:deploy', toDeployCommand(skmtcRoot))
   .command('generators:install', toInstallCommand(skmtcRoot))
   .command('generators:list', toListCommand(skmtcRoot))
+  .command('generators:runtime-logs', toRuntimeLogsCommand(skmtcRoot))
   .command('generators:remove', toRemoveCommand(skmtcRoot))
   // .command('schemas:upload', toUploadCommand(skmtcRoot))
   .command('generators:generate', toGenerateCommand(skmtcRoot))

@@ -166,7 +166,7 @@ export const generate = async (
       const message = `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
 
       if (watching) {
-        spinner.message = `Watching... ${message}`
+        spinner.message = message
       } else {
         console.log(message)
       }

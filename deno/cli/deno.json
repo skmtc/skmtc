@@ -1,9 +1,9 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.151",
+  "version": "0.0.153",
   "exports": "./mod.ts",
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.731",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.733",
     "@std/semver": "jsr:@std/semver@^1.0.5"
   },
   "tasks": {

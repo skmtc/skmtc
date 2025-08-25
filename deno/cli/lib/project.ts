@@ -15,7 +15,8 @@ import { SchemaFile } from './schema-file.ts'
 import { formatNumber, parseModuleName } from '@skmtc/core'
 import { PackageDenoJson } from './package-deno-json.ts'
 import { join } from '@std/path'
-import { ApiClient } from './api-client.ts'
+import type { ApiClient } from './api-client.ts'
+import { Manifest } from './manifest.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -36,6 +37,7 @@ type ConstructorArgs = {
   rootDenoJson: RootDenoJson
   clientJson: ClientJson
   prettierJson: PrettierJson | null
+  manifest: Manifest
   manager: Manager
   schemaFile: SchemaFile | null
 }
@@ -76,6 +78,7 @@ export class Project {
   rootDenoJson: RootDenoJson
   clientJson: ClientJson
   prettierJson: PrettierJson | null
+  manifest: Manifest
   manager: Manager
   schemaFile: SchemaFile | null
 
@@ -84,12 +87,14 @@ export class Project {
     rootDenoJson,
     clientJson,
     prettierJson,
+    manifest,
     manager,
     schemaFile
   }: ConstructorArgs) {
     this.name = name
     this.rootDenoJson = rootDenoJson
     this.clientJson = clientJson
+    this.manifest = manifest
     this.prettierJson = prettierJson
     this.manager = manager
     this.schemaFile = schemaFile
@@ -105,6 +110,7 @@ export class Project {
       rootDenoJson: RootDenoJson.create(name),
       clientJson: ClientJson.create({ projectName: name, basePath }),
       prettierJson: PrettierJson.create({ projectName: name, contents: {} }),
+      manifest: await Manifest.open(name),
       manager: skmtcRoot.manager,
       schemaFile: SchemaFile.create({ projectName: name, fileType: 'json' })
     })
@@ -360,6 +366,8 @@ export class Project {
 
     const prettierJson = await PrettierJson.open(name)
 
+    const manifest = await Manifest.open(name)
+
     const schemaFile = await SchemaFile.open(name, manager)
 
     return new Project({
@@ -367,6 +375,7 @@ export class Project {
       rootDenoJson,
       clientJson,
       prettierJson,
+      manifest,
       manager,
       schemaFile
     })
