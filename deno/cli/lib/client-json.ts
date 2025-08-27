@@ -7,7 +7,6 @@ import type { Manager } from './manager.ts'
 import { writeFileSafeDir } from './file.ts'
 
 type CreateArgs = {
-  accountName?: string
   projectName: string
   basePath: string
 }
@@ -15,6 +14,11 @@ type CreateArgs = {
 type ConstructorArgs = {
   projectName: string
   contents: SkmtcClientConfig
+}
+
+type ServerInfo = {
+  serverName: string
+  deploymentId?: string
 }
 
 export class ClientJson {
@@ -55,8 +59,13 @@ export class ClientJson {
     return clientJson
   }
 
-  setDeploymentId(deploymentId: string) {
-    this.contents.deploymentId = deploymentId
+  setServerInfo({ serverName, deploymentId }: ServerInfo) {
+    this.contents.serverName = serverName
+
+    if (deploymentId) {
+      this.contents.deploymentId = deploymentId
+      this.contents.serverOrigin = `https://${serverName}-${deploymentId}.deno.dev`
+    }
   }
 
   async write() {
@@ -66,10 +75,10 @@ export class ClientJson {
     await writeFileSafeDir(path, content)
   }
 
-  static create({ accountName, projectName, basePath }: CreateArgs) {
+  static create({ projectName, basePath }: CreateArgs) {
     return new ClientJson({
       projectName,
-      contents: { accountName, settings: { basePath } }
+      contents: { settings: { basePath } }
     })
   }
 }

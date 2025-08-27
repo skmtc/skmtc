@@ -1131,17 +1131,8 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@cliffy/command@1.0.0-rc.8",
-          "jsr:@cliffy/internal@1.0.0-rc.8",
-          "jsr:@cliffy/keycode@1.0.0-rc.8",
-          "jsr:@cliffy/prompt@1.0.0-rc.8",
           "jsr:@skmtc/core@^0.0.736",
-          "jsr:@std/semver@^1.0.5",
-          "npm:chokidar@^4.0.3",
-          "npm:tiny-invariant@1.3.3",
-          "npm:ts-pattern@^5.8.0",
-          "npm:unique-names-generator@^4.7.1",
-          "npm:valibot@1.1.0"
+          "jsr:@std/semver@^1.0.5"
         ]
       },
       "core": {

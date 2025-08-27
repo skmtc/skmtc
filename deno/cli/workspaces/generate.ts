@@ -116,22 +116,6 @@ export const setupWatcher = ({ project, skmtcRoot, path, spinner }: WatchGenerat
   })
 }
 
-// type UploadGenerateArgs = {
-//   project: Project
-//   skmtcRoot: SkmtcRoot
-//   path: string
-// }
-
-// const uploadGenerate = async ({ project, skmtcRoot, path }: UploadGenerateArgs) => {
-//   await upload({ project, skmtcRoot, path }, { logSuccess: 'Schema uploaded' })
-
-//   const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
-
-//   spinner.start()
-
-//   await generate({ project, skmtcRoot, spinner }, { logSuccess: 'Artifacts generated' })
-// }
-
 type GenerateArgs = {
   project: Project
   skmtcRoot: SkmtcRoot
@@ -149,12 +133,6 @@ export const generate = async (
 ) => {
   try {
     const workspace = new Workspace()
-
-    const { deploymentId } = project.clientJson.contents
-
-    if (!deploymentId) {
-      throw new Error('Project has no deployment ID. Has it been deployed?')
-    }
 
     const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 

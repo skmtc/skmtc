@@ -38,15 +38,15 @@ export class Workspace {
 
     const manifestPath = join(project.toPath(), '.settings', 'manifest.json')
 
-    const { deploymentId } = project.clientJson.contents
+    const { serverOrigin } = project.clientJson.contents
 
-    if (!deploymentId) {
-      throw new Error('Project has no deployment ID. Has it been deployed?')
+    if (!serverOrigin) {
+      throw new Error(
+        'Project is missing "serverOrigin" in ".settings/client.json". Has it been deployed?'
+      )
     }
 
-    const generatorUrl = `https://${project.name}-${deploymentId}.deno.dev/artifacts`
-
-    const res = await fetch(generatorUrl, {
+    const res = await fetch(`${serverOrigin}/artifacts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

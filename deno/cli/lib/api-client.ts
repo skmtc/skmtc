@@ -40,7 +40,7 @@ const deploymentInfo = v.object({
 
 type DeployArgs = {
   assets: Record<string, DenoFile>
-  stackName: string
+  serverName: string | undefined
   generatorIds: string[]
 }
 
@@ -111,13 +111,16 @@ export class ApiClient {
     this.manager = manager
   }
 
-  async deploy({ assets, stackName, generatorIds }: DeployArgs) {
+  async deploy({ assets, serverName, generatorIds }: DeployArgs) {
     await this.manager.auth.ensureAuth()
+
+    console.log('SERVER NAME', serverName)
+    console.log('GENERATOR IDS', generatorIds)
 
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`servers`, {
       method: 'POST',
       body: {
-        stackName,
+        stackName: serverName ?? null,
         assets,
         generatorIds
       }

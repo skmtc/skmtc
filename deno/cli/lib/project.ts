@@ -280,7 +280,13 @@ export class Project {
   }
 
   async hasServerWriteAccess(apiClient: ApiClient) {
-    const { hasWriteAccess } = await apiClient.hasServerWriteAccess(this.name)
+    const { serverName } = this.clientJson.contents
+
+    if (!serverName) {
+      return true
+    }
+
+    const { hasWriteAccess } = await apiClient.hasServerWriteAccess(serverName)
 
     return hasWriteAccess
   }
@@ -298,7 +304,7 @@ export class Project {
       await deployment.deploy({
         assets,
         clientJson: this.clientJson,
-        projectName: this.name,
+        serverName: this.clientJson.contents.serverName,
         generatorIds: this.toGeneratorIds()
       })
 
