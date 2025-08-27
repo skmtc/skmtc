@@ -50,6 +50,8 @@ const kv = await Deno.openKv()
 const manager = new Manager({ kv })
 const skmtcRoot = await SkmtcRoot.open(manager)
 
+await skmtcRoot.upgradeCheck()
+
 type PromptResponse =
   | 'init'
   | 'generators:add'

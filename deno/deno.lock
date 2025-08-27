@@ -1131,8 +1131,17 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.733",
-          "jsr:@std/semver@^1.0.5"
+          "jsr:@cliffy/command@1.0.0-rc.8",
+          "jsr:@cliffy/internal@1.0.0-rc.8",
+          "jsr:@cliffy/keycode@1.0.0-rc.8",
+          "jsr:@cliffy/prompt@1.0.0-rc.8",
+          "jsr:@skmtc/core@^0.0.736",
+          "jsr:@std/semver@^1.0.5",
+          "npm:chokidar@^4.0.3",
+          "npm:tiny-invariant@1.3.3",
+          "npm:ts-pattern@^5.8.0",
+          "npm:unique-names-generator@^4.7.1",
+          "npm:valibot@1.1.0"
         ]
       },
       "core": {
@@ -1152,7 +1161,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.153",
+          "jsr:@skmtc/cli@^0.0.156",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -1161,7 +1170,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.733",
+          "jsr:@skmtc/core@^0.0.736",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@apiture/openapi-down-convert@0.14",

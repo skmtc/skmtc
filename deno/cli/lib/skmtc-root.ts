@@ -4,6 +4,9 @@ import { exists } from '@std/fs'
 import { ApiClient } from './api-client.ts'
 import { KvState } from './kv-state.ts'
 import { toRootPath } from './to-root-path.ts'
+import { Jsr } from './jsr.ts'
+import cliDenoJson from '../deno.json' with { type: 'json' }
+import { compare, parse } from '@std/semver'
 
 type CreateProjectArgs = {
   name: string
@@ -27,6 +30,22 @@ export class SkmtcRoot {
 
   static toPath() {
     return toRootPath()
+  }
+
+  async upgradeCheck() {
+    const meta = await Jsr.getLatestMeta({ scopeName: '@skmtc', packageName: 'cli' })
+
+    const latestVersion = meta.latest
+
+    const thisVersion = cliDenoJson.version
+
+    const isUpToDate = compare(parse(thisVersion), parse(latestVersion)) >= 0
+
+    if (isUpToDate) {
+      return
+    }
+
+    console.log(`Skmtc CLI v${latestVersion} is available. You are running v${thisVersion}.`)
   }
 
   get isLoggedIn() {

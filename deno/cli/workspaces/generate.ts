@@ -161,15 +161,17 @@ export const generate = async (
     const { tokens, lines, totalTime, errors, files } = toGenerationStats({ manifest, artifacts })
 
     if (errors.length) {
-      console.error(`Generation failed with ${formatNumber(errors.length)} errors`)
-    } else {
-      const message = `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
+      console.error(
+        `Generation completed with ${formatNumber(errors.length)} errors. View runtime logs for more info.`
+      )
+    }
 
-      if (watching) {
-        spinner.message = message
-      } else {
-        console.log(message)
-      }
+    const message = `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
+
+    if (watching) {
+      spinner.message = message
+    } else {
+      console.log(message)
     }
 
     await skmtcRoot.manager.success()

@@ -41,6 +41,8 @@ export const runtimeLogs = async (
   { logSuccess }: GenerateOptions = {}
 ) => {
   try {
+    await project.manifest.refresh()
+
     const manifest = project.manifest.contents
 
     if (!manifest) {
