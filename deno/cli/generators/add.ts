@@ -6,7 +6,7 @@ import invariant from 'tiny-invariant'
 
 const generatorType = new EnumType(['operation', 'model'])
 
-export const description = 'Create local generator'
+export const description = 'Create new generator'
 
 export const toAddCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()

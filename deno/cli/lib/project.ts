@@ -134,14 +134,14 @@ export class Project {
     return project
   }
 
+  // Rename import
   async cloneGenerator(
     { projectName, moduleName }: CloneGeneratorArgs,
     { logSuccess }: CloneOptions = {}
   ) {
     try {
-      const { scheme, scopeName, packageName, version } = parseModuleName(moduleName)
+      const { scopeName, packageName, version } = parseModuleName(moduleName)
 
-      invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
       invariant(scopeName, 'Scope name is required')
 
       const generator = Generator.fromName({
@@ -304,7 +304,6 @@ export class Project {
       await deployment.deploy({
         assets,
         clientJson: this.clientJson,
-        serverName: this.clientJson.contents.serverName,
         generatorIds: this.toGeneratorIds()
       })
 

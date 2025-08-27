@@ -196,7 +196,7 @@ const toAction = async (initialProjectName?: string) => {
 const promptwise = async (initialProjectName?: string) => {
   const { action, projectName } = await toAction(initialProjectName)
 
-  const res = await match(action)
+  await match(action)
     .with('init', () => toInitPrompt(skmtcRoot))
     .with('generators:add', () => toAddPrompt(skmtcRoot, projectName))
     .with('generators:clone', () => toClonePrompt(skmtcRoot, projectName))
@@ -207,7 +207,6 @@ const promptwise = async (initialProjectName?: string) => {
     .with('generators:install', () => toInstallPrompt(skmtcRoot, projectName))
     .with('generators:list', () => toListPrompt(skmtcRoot, projectName))
     .with('generators:remove', () => toRemovePrompt(skmtcRoot, projectName))
-    // .with('schemas:upload',  () =>  toUploadPrompt(skmtcRoot, projectName))
     .with('login', () => toLoginPrompt(skmtcRoot, projectName))
     .with('logout', () => toLogoutPrompt(skmtcRoot, projectName))
     .with('exit', () => Deno.exit(0))
@@ -215,7 +214,7 @@ const promptwise = async (initialProjectName?: string) => {
       // do nothing
     })
 
-  setTimeout(() => promptwise(res?.projectName ?? projectName), 0)
+  setTimeout(() => promptwise(projectName), 0)
 }
 
 await new Command()
@@ -224,7 +223,6 @@ await new Command()
     await promptwise()
   })
   .command('init', toInitCommand(skmtcRoot))
-  // .command('base-files:push', toBaseFilesPushCommand(skmtcRoot))
   .command('generators:add', toAddCommand(skmtcRoot))
   .command('generators:clone', toCloneCommand(skmtcRoot))
   .command('generators:deploy', toDeployCommand(skmtcRoot))
@@ -232,7 +230,6 @@ await new Command()
   .command('generators:list', toListCommand(skmtcRoot))
   .command('generators:runtime-logs', toRuntimeLogsCommand(skmtcRoot))
   .command('generators:remove', toRemoveCommand(skmtcRoot))
-  // .command('schemas:upload', toUploadCommand(skmtcRoot))
   .command('generators:generate', toGenerateCommand(skmtcRoot))
   .command('login', toLoginCommand(skmtcRoot))
   .command('logout', toLogoutCommand(skmtcRoot))

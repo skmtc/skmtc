@@ -1,5 +1,5 @@
 import { Jsr } from './jsr.ts'
-import { RootDenoJson } from './root-deno-json.ts'
+import type { RootDenoJson } from './root-deno-json.ts'
 import { join } from '@std/path'
 import { ensureFile } from '@std/fs'
 import { toProjectPath } from './to-project-path.ts'
@@ -10,6 +10,11 @@ import { PackageDenoJson } from './package-deno-json.ts'
 import type { Manager } from './manager.ts'
 import type { Project } from './project.ts'
 import invariant from 'tiny-invariant'
+import { Octokit } from 'octokit'
+
+const octokit = new Octokit({
+  auth: Deno.env.get('GITHUB_READ_ONLY_TOKEN')
+})
 
 type GeneratorArgs = {
   projectName: string
@@ -105,10 +110,10 @@ export class Generator {
   }
 
   async clone({ denoJson, manager, localGenerators }: CloneArgs) {
-    const files = await Jsr.download(this)
+    const files = await getGeneratorFiles(this.packageName)
 
     const downloads = Object.entries(files).map(async ([path, content]) => {
-      const joinedPath = join(this.toPath({ relative: false }), path)
+      const joinedPath = join(toProjectPath(this.projectName), path)
 
       await ensureFile(joinedPath)
 
@@ -171,4 +176,33 @@ type FromNameArgs = {
   scopeName: string
   packageName: string
   version: string
+}
+
+const getGeneratorFiles = async (path: string, files: Record<string, string> = {}) => {
+  const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+    owner: 'skmtc',
+    repo: 'skmtc-generators',
+    path: path,
+    headers: {
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  })
+
+  const items = Array.isArray(response.data) ? response.data : [response.data]
+
+  const promises = items.map(async item => {
+    if (item.type === 'dir') {
+      await getGeneratorFiles(item.path, files)
+    } else if (item.download_url) {
+      const content = await fetch(item.download_url)
+
+      files[item.path] = await content.text()
+    }
+
+    return
+  })
+
+  await Promise.all(promises)
+
+  return files
 }

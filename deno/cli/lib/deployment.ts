@@ -5,7 +5,6 @@ import type { Manager } from './manager.ts'
 import { Spinner } from './spinner.ts'
 
 type DeployArgs = {
-  serverName: string | undefined
   generatorIds: string[]
   assets: Record<string, DenoFile>
   clientJson: ClientJson
@@ -19,14 +18,14 @@ export class Deployment {
     this.apiClient = new ApiClient(manager)
   }
 
-  async deploy({ assets, serverName, generatorIds, clientJson }: DeployArgs) {
+  async deploy({ assets, generatorIds, clientJson }: DeployArgs) {
     const spinner = new Spinner({ message: 'Uploading...', color: 'yellow' })
 
     spinner.start()
 
     const serverDeployment = await this.apiClient.deploy({
       assets,
-      serverName,
+      serverName: clientJson.contents.serverName,
       generatorIds
     })
 

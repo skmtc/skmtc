@@ -1,10 +1,10 @@
 import { Command } from '@cliffy/command'
-import { Input } from '@cliffy/prompt'
+import { Checkbox } from '@cliffy/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { availableGenerators } from '../available-generators.ts'
 
-export const description = 'Install generator from registry'
+export const description = 'Install generator'
 
 export const toInstallCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
@@ -22,16 +22,23 @@ export const toInstallCommand = (skmtcRoot: SkmtcRoot) => {
 export const toInstallPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   const project = skmtcRoot.projects.find(project => project.name === projectName)
 
+  const imports = project?.rootDenoJson.contents.imports ?? {}
+
   invariant(project, 'Project not found')
 
-  const generator: string = await Input.prompt({
+  const generators: string[] = await Checkbox.prompt({
     message: 'Select generator to install',
-    list: true,
-    suggestions: availableGenerators.map(({ name }) => `jsr:${name}`)
+    options: availableGenerators
+      .filter(item => !imports[item.name])
+      .map(({ name }) => `jsr:${name}`)
   })
 
-  await project.installGenerator(
-    { moduleName: generator },
-    { logSuccess: `Generator "${generator}" is installed` }
+  await Promise.all(
+    generators.map(async generator => {
+      await project.installGenerator(
+        { moduleName: generator },
+        { logSuccess: `Generator "${generator}" is installed` }
+      )
+    })
   )
 }

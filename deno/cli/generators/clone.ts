@@ -4,7 +4,7 @@ import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { parseModuleName } from '@skmtc/core'
 
-export const description = 'Clone generator from registry'
+export const description = 'Clone generator'
 
 export const toCloneCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
@@ -24,13 +24,13 @@ export const toClonePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) =
 
   invariant(project, 'Project not found')
 
-  const imports = project.rootDenoJson.contents.imports ?? {}
+  const options = Object.entries(project.rootDenoJson.contents.imports ?? {})
+    .filter(([_, source]) => {
+      const { scheme, packageName } = parseModuleName(source)
 
-  const options = Object.values(imports).filter(item => {
-    const { scheme, packageName } = parseModuleName(item)
-
-    return Boolean(scheme) && packageName.startsWith('gen-')
-  })
+      return Boolean(scheme) && packageName.startsWith('gen-')
+    })
+    .map(([moduleName]) => moduleName)
 
   const generators = await Checkbox.prompt({
     message: 'Select generator to clone',
