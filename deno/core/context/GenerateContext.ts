@@ -150,16 +150,6 @@ export type InsertReturn<
   EnrichmentType
 > = Inserted<V, T, EnrichmentType>
 
-type RunOperationGeneratorArgs<EnrichmentType = undefined> = {
-  oasDocument: OasDocument
-  generatorConfig: OperationConfig<EnrichmentType>
-}
-
-type RunModelGeneratorArgs<EnrichmentType = undefined> = {
-  oasDocument: OasDocument
-  generatorConfig: ModelConfig<EnrichmentType>
-}
-
 type ToOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: OasOperation
   insertable: OperationInsertable<V, EnrichmentType>
@@ -216,13 +206,13 @@ export class GenerateContext {
     Sentry.startSpan({ name: 'toArtifacts' }, () =>
       generators.forEach(generatorConfig => {
         this.trace(generatorConfig.id, () => {
+          if (this.settings?.skip?.includes(generatorConfig.id)) {
+            return
+          }
+
           match(generatorConfig.type)
-            .with('operation', () =>
-              this.#runOperationGenerator({ oasDocument: this.oasDocument, generatorConfig })
-            )
-            .with('model', () =>
-              this.#runModelGenerator({ oasDocument: this.oasDocument, generatorConfig })
-            )
+            .with('operation', () => this.#runOperationGenerator(this.oasDocument, generatorConfig))
+            .with('model', () => this.#runModelGenerator(this.oasDocument, generatorConfig))
             .otherwise(matched => {
               throw new Error(`Invalid generator type: '${matched}' on ${generatorConfig.id}`)
             })
@@ -236,10 +226,7 @@ export class GenerateContext {
       mappings: this.#mappings
     }
   }
-  #runOperationGenerator<EnrichmentType = undefined>({
-    oasDocument,
-    generatorConfig
-  }: RunOperationGeneratorArgs<EnrichmentType>) {
+  #runOperationGenerator(oasDocument: OasDocument, generatorConfig: OperationConfig) {
     oasDocument.operations.reduce((acc, operation) => {
       return this.trace([operation.path, operation.method], () => {
         try {
@@ -271,10 +258,7 @@ export class GenerateContext {
     }, undefined)
   }
 
-  #runModelGenerator<EnrichmentType = undefined>({
-    oasDocument,
-    generatorConfig
-  }: RunModelGeneratorArgs<EnrichmentType>) {
+  #runModelGenerator(oasDocument: OasDocument, generatorConfig: ModelConfig) {
     const refNames = oasDocument.components?.toSchemasRefNames() ?? []
 
     return refNames.reduce((acc, refName) => {

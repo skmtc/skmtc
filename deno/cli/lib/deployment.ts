@@ -55,7 +55,7 @@ export class Deployment {
 
           clearInterval(interval)
           spinner.stop()
-          reject(false)
+          reject('Deployment failed')
         }
       }, 8000)
     })

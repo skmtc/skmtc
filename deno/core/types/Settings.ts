@@ -14,13 +14,15 @@ export type ModulePackage = {
 export const clientSettings = v.object({
   basePath: v.optional(v.string()),
   packages: v.optional(v.array(modulePackage)),
-  enrichments: v.optional(generatorEnrichments)
+  enrichments: v.optional(generatorEnrichments),
+  skip: v.optional(v.array(v.string()))
 })
 
 export type ClientSettings = {
   basePath?: string
   packages?: ModulePackage[]
   enrichments?: GeneratorEnrichments
+  skip?: string[]
 }
 
 export type SkmtcClientConfig = {
@@ -36,15 +38,3 @@ export const skmtcClientConfig = v.object({
   serverOrigin: v.optional(v.string()),
   settings: clientSettings
 })
-
-export const skmtcStackConfig = v.object({
-  name: v.optional(v.string()),
-  version: v.optional(v.string()),
-  generators: v.array(v.string())
-})
-
-export type SkmtcStackConfig = {
-  name?: string
-  version?: string
-  generators: string[]
-}

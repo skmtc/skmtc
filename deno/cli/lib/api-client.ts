@@ -114,9 +114,6 @@ export class ApiClient {
   async deploy({ assets, serverName, generatorIds }: DeployArgs) {
     await this.manager.auth.ensureAuth()
 
-    console.log('SERVER NAME', serverName)
-    console.log('GENERATOR IDS', generatorIds)
-
     const { data, error } = await this.manager.auth.supabase.functions.invoke(`servers`, {
       method: 'POST',
       body: {

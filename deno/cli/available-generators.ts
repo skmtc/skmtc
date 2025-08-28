@@ -21,7 +21,7 @@ export const availableGenerators: AvailableGenerator[] = [
     dependencies: [
       '@skmtc/gen-zod',
       '@skmtc/gen-typescript',
-      '@skmtc/gen-tanstack-query-zod',
+      '@skmtc/gen-tanstack-query-fetch-zod',
       '@skmtc/gen-msw'
     ]
   },
@@ -33,7 +33,7 @@ export const availableGenerators: AvailableGenerator[] = [
     version: '0.0.x',
     description: 'Generate Shadcn UI form components',
     launchInclude: true,
-    dependencies: ['@skmtc/gen-zod', '@skmtc/gen-typescript', '@skmtc/gen-tanstack-query-zod']
+    dependencies: ['@skmtc/gen-zod', '@skmtc/gen-typescript', '@skmtc/gen-tanstack-query-fetch-zod']
   },
   {
     id: '@skmtc/gen-shadcn-select',
@@ -43,7 +43,7 @@ export const availableGenerators: AvailableGenerator[] = [
     version: '0.0.x',
     description: 'Generate Shadcn UI select components with api driven options',
     launchInclude: true,
-    dependencies: ['@skmtc/gen-zod', '@skmtc/gen-typescript', '@skmtc/gen-tanstack-query-zod']
+    dependencies: ['@skmtc/gen-zod', '@skmtc/gen-typescript', '@skmtc/gen-tanstack-query-fetch-zod']
   },
   {
     id: '@skmtc/gen-msw',
@@ -56,12 +56,23 @@ export const availableGenerators: AvailableGenerator[] = [
     dependencies: []
   },
   {
-    id: '@skmtc/gen-tanstack-query-zod',
-    name: '@skmtc/gen-tanstack-query-zod',
-    github: 'skmtc/skmtc-generators/tree/main/gen-tanstack-query-zod',
+    id: '@skmtc/gen-tanstack-query-fetch-zod',
+    name: '@skmtc/gen-tanstack-query-fetch-zod',
+    github: 'skmtc/skmtc-generators/tree/main/gen-tanstack-query-fetch-zod',
     icon: 'tanstack-query.svg',
     version: '0.0.x',
-    description: 'Generate Tanstack React Query hooks with Zod runtime type checking',
+    description: 'Generate Tanstack React Query hooks with fetch and Zod runtime type checking',
+    launchInclude: true,
+    dependencies: ['@skmtc/gen-zod', '@skmtc/gen-typescript']
+  },
+  {
+    id: '@skmtc/gen-tanstack-query-supabase-zod',
+    name: '@skmtc/gen-tanstack-query-supabase-zod',
+    github: 'skmtc/skmtc-generators/tree/main/gen-tanstack-query-supabase-zod',
+    icon: 'tanstack-query.svg',
+    version: '0.0.x',
+    description:
+      'Generate Tanstack React Query hooks with Supabase client and Zod runtime type checking',
     launchInclude: true,
     dependencies: ['@skmtc/gen-zod', '@skmtc/gen-typescript']
   },
