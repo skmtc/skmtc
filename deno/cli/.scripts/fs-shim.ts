@@ -18,13 +18,13 @@ export async function move(src: string, dest: string, options?: { overwrite?: bo
   }
 }
 
-export function moveSync(src: string, dest: string, options?: { overwrite?: boolean }) {
-  const fs = require('node:fs')
+export async function moveSync(src: string, dest: string, options?: { overwrite?: boolean }) {
+  const fs = await import('node:fs')
   try {
     fs.renameSync(src, dest)
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'EXDEV') {
-      copyFileSync(src, dest)
+      await copyFileSync(src, dest)
       fs.rmSync(src, { recursive: true, force: true })
     } else {
       throw error
@@ -45,8 +45,8 @@ async function copyFile(src: string, dest: string) {
   }
 }
 
-function copyFileSync(src: string, dest: string) {
-  const fs = require('node:fs')
+async function copyFileSync(src: string, dest: string) {
+  const fs = await import('node:fs')
   const stat = fs.statSync(src)
   if (stat.isDirectory()) {
     fs.mkdirSync(dest, { recursive: true })

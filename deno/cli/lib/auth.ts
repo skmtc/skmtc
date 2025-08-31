@@ -4,23 +4,38 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createAuthHandler } from '../auth/auth-handler.ts'
 
 // Cross-platform server creation
-async function createServer(port: number, handler: (request: Request) => Response | Promise<Response>) {
+async function createServer(
+  port: number,
+  handler: (request: Request) => Response | Promise<Response>
+) {
   // Use globalThis to avoid dnt shim type checking issues
-  const denoGlobal = (globalThis as unknown as { Deno?: { serve?: (options: { port: number }, handler: (request: Request) => Response | Promise<Response>) => { shutdown: () => void } } }).Deno
+  const denoGlobal = (
+    globalThis as unknown as {
+      Deno?: {
+        serve?: (
+          options: { port: number },
+          handler: (request: Request) => Response | Promise<Response>
+        ) => { shutdown: () => void }
+      }
+    }
+  ).Deno
   if (typeof denoGlobal?.serve === 'function') {
     // Deno runtime
     return denoGlobal.serve({ port }, handler)
   } else {
     // Node.js runtime - create HTTP server
-    return createNodeServer(port, handler)
+    return await createNodeServer(port, handler)
   }
 }
 
 // Node.js HTTP server implementation
-function createNodeServer(port: number, handler: (request: Request) => Response | Promise<Response>) {
+async function createNodeServer(
+  port: number,
+  handler: (request: Request) => Response | Promise<Response>
+) {
   // Dynamic import to avoid issues during Deno compilation
-  const http = require('node:http')
-  
+  const http = await import('node:http')
+
   const server = http.createServer(async (req: any, res: any) => {
     try {
       // Convert Node.js request to Web API Request
@@ -28,20 +43,20 @@ function createNodeServer(port: number, handler: (request: Request) => Response 
       const request = new Request(fullUrl, {
         method: req.method,
         headers: req.headers,
-        body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
+        body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined
       })
-      
+
       // Call the handler
       const response = await handler(request)
-      
+
       // Convert Web API Response to Node.js response
       res.statusCode = response.status
-      
+
       // Set headers
       response.headers.forEach((value, key) => {
         res.setHeader(key, value)
       })
-      
+
       // Send body
       if (response.body) {
         const reader = response.body.getReader()
@@ -65,9 +80,9 @@ function createNodeServer(port: number, handler: (request: Request) => Response 
       res.end('Internal Server Error')
     }
   })
-  
+
   server.listen(port)
-  
+
   return {
     shutdown: () => {
       server.close()

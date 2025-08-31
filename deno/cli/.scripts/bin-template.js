@@ -81,7 +81,7 @@ function runSkmtc() {
 }
 
 // Main execution
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && (process.argv[1].includes('skmtc') || import.meta.url.includes('skmtc'))) {
   checkNodeVersion();
   
   let skmtcProcess = runSkmtc();

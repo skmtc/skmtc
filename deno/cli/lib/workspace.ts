@@ -56,7 +56,7 @@ export class Workspace {
       body: JSON.stringify({
         schema: project.schemaFile?.contents,
         clientSettings: project.clientJson.contents,
-        prettierJson: project.prettierJson?.contents
+        prettier: project.prettierJson?.contents
       })
     })
 
