@@ -18,12 +18,12 @@ await build({
   },
   mappings: {
     // Map @std/fs move functionality to our Node.js implementation
-    "https://jsr.io/@std/fs/1.0.19/move.ts": "./.scripts/fs-shim.ts"
+    'https://jsr.io/@std/fs/1.0.19/move.ts': './.scripts/fs-shim.ts'
   },
   scriptModule: false,
   package: {
     // package.json properties
-    name: '@skmtc/cli',
+    name: 'skmtc',
     version: denoJson.version,
     type: 'module',
     rootDir: './',
@@ -46,14 +46,14 @@ await build({
     // Copy bin script to the output directory
     const binDir = '../../packages/cli/bin'
     const binScript = '../../packages/cli/bin/skmtc.js'
-    
+
     // Create bin directory
     Deno.mkdirSync(binDir, { recursive: true })
-    
+
     // Copy and customize the bin script
     const binTemplate = Deno.readTextFileSync('./.scripts/bin-template.js')
     Deno.writeTextFileSync(binScript, binTemplate)
-    
+
     // Make the bin script executable
     Deno.chmodSync(binScript, 0o755)
   }

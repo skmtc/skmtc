@@ -13,7 +13,7 @@ export const toAuthStore = (): AuthStore => {
       return new FileStore()
     }
   }
-  
+
   // Fallback to FileStore for Node.js or when KV is not available
   return new FileStore()
 }
