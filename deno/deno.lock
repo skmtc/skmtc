@@ -8,6 +8,7 @@
     "jsr:@std/internal@^1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.9": "1.0.10",
     "jsr:@std/path@1": "1.1.2",
+    "jsr:@std/path@^1.0.9": "1.1.2",
     "jsr:@std/path@^1.1.1": "1.1.2",
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
     "jsr:@ts-morph/common@0.27": "0.27.0",
@@ -1157,7 +1158,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.742",
+          "jsr:@skmtc/core@^0.0.743",
           "jsr:@std/semver@^1.0.5"
         ]
       },
@@ -1178,7 +1179,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.162",
+          "jsr:@skmtc/cli@^0.0.163",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -1187,7 +1188,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.742",
+          "jsr:@skmtc/core@^0.0.743",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@apiture/openapi-down-convert@0.14",
