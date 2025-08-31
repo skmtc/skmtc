@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/deno'
+import * as Sentry from '@sentry/node'
 import { cors } from 'hono/cors'
 import { Hono } from 'hono'
 import {

@@ -1,7 +1,7 @@
 import { Command } from '@cliffy/command'
 import { Input, Confirm } from '@cliffy/prompt'
 import { OpenApiSchema } from '../lib/openapi-schema.ts'
-import * as Sentry from '@sentry/deno'
+import * as Sentry from '@sentry/node'
 import chokidar from 'chokidar'
 import { WsClient } from '../lib/ws-client.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'

@@ -35,7 +35,8 @@ await build({
       valibot: '1.1.0'
     },
     dependencies: {
-      '@deno/shim-deno': '^0.19.2'
+      '@deno/shim-deno': '^0.19.2',
+      '@deno/shim-timers': '^0.1.0'
     }
   },
   postBuild() {
@@ -55,7 +56,7 @@ await build({
 
     // Copy license and readme to output package
     const outputDir = '../../packages/cli'
-    
+
     try {
       const licenseContent = Deno.readTextFileSync('LICENSE')
       Deno.writeTextFileSync(`${outputDir}/LICENSE`, licenseContent)

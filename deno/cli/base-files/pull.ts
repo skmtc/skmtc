@@ -1,6 +1,6 @@
 import { Command } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
-import * as Sentry from '@sentry/deno'
+import * as Sentry from '@sentry/node'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
 export const description = 'Pull base files from deployed workspace'

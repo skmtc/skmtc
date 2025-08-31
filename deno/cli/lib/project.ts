@@ -1,7 +1,7 @@
 import { RootDenoJson } from './root-deno-json.ts'
 import type { Manager } from './manager.ts'
 import { Generator } from './generator.ts'
-import * as Sentry from '@sentry/deno'
+import * as Sentry from '@sentry/node'
 import invariant from 'tiny-invariant'
 import { Jsr } from './jsr.ts'
 import { Deployment } from './deployment.ts'

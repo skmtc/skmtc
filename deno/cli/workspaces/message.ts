@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import * as Sentry from '@sentry/deno'
+import * as Sentry from '@sentry/node'
 import { Workspace } from '../lib/workspace.ts'
 import { Input } from '@cliffy/prompt'
 import { WsClient } from '../lib/ws-client.ts'

@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import * as Sentry from '@sentry/deno'
+import * as Sentry from '@sentry/node'
 import { Workspace } from '../lib/workspace.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'

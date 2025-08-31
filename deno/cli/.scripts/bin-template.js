@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 
-const { spawn } = require("child_process");
-const path = require("path");
-const fs = require("fs");
+import { spawn } from "child_process";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Minimum Node.js version required
 const MIN_NODE_VERSION = "18.0.0";
@@ -77,7 +81,7 @@ function runSkmtc() {
 }
 
 // Main execution
-if (module === require.main) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   checkNodeVersion();
   
   let skmtcProcess = runSkmtc();

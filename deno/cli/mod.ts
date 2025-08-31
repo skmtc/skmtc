@@ -31,7 +31,7 @@ import {
   toGenerateWatchPrompt,
   description as workspacesGenerateDescription
 } from './workspaces/generate.ts'
-import * as Sentry from '@sentry/deno'
+import * as Sentry from '@sentry/node'
 import { SkmtcRoot } from './lib/skmtc-root.ts'
 import { Manager } from './lib/manager.ts'
 import type { Project } from './lib/project.ts'

@@ -80,6 +80,6 @@ Each command follows a consistent pattern:
 - `@cliffy/command` - CLI framework
 - `@cliffy/prompt` - Interactive prompts
 - `@skmtc/core` - Core SKMTC functionality
-- `@sentry/deno` - Error tracking
+- `@sentry/node` - Error tracking
 - `@std/fs` - File system utilities
 - `ts-pattern` - Pattern matching

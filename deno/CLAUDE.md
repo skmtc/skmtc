@@ -114,7 +114,7 @@ The CLI uses Cliffy framework with these patterns:
 - `valibot` - Schema validation
 - `ts-pattern` - Pattern matching
 - `prettier` - Code formatting
-- `@sentry/deno` - Error tracking
+- `@sentry/node` - Error tracking
 
 ## Entry Points
 
