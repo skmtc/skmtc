@@ -76,9 +76,7 @@ type PushArgs = {
 }
 
 export const push = async ({ projectName, path }: PushArgs) => {
-  const kv = await Deno.openKv()
-
-  const manager = new Manager({ kv })
+  const manager = new Manager()
 
   try {
     const apiClient = new ApiClient(manager)

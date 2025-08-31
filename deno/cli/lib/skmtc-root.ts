@@ -2,7 +2,6 @@ import { Project } from './project.ts'
 import type { Manager } from './manager.ts'
 import { exists } from '@std/fs'
 import { ApiClient } from './api-client.ts'
-import { KvState } from './kv-state.ts'
 import { toRootPath } from './to-root-path.ts'
 import { Jsr } from './jsr.ts'
 import cliDenoJson from '../deno.json' with { type: 'json' }
@@ -18,14 +17,12 @@ export class SkmtcRoot {
   projects: Project[]
   manager: Manager
   apiClient: ApiClient
-  kvState: KvState
 
   private constructor(projects: Project[], manager: Manager) {
     this.projects = projects
     this.manager = manager
 
     this.apiClient = new ApiClient(manager)
-    this.kvState = new KvState(manager.kv)
   }
 
   static toPath() {

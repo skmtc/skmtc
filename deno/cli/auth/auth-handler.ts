@@ -25,6 +25,12 @@ const createAuthHandler = ({ supabase }: CreateAuthHandlerArgs) => {
         })
       }
 
+      case '/':
+        return new Response(done, {
+          status: 200,
+          headers: { 'Content-Type': 'text/html' }
+        })
+
       default:
         return new Response(null, { status: 404 })
     }
@@ -32,3 +38,28 @@ const createAuthHandler = ({ supabase }: CreateAuthHandlerArgs) => {
 }
 
 export { createAuthHandler }
+
+const done = `
+<html>
+  <body style="display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100vh;
+    width: 100vw;
+    background-color: #f8f4ed;
+    color: #3f3f46;
+    padding: 32px;"
+  >
+    <h1>You now logged in</h1>
+
+    <p>This page is no longer needed and will close automatically in 5 seconds</p>
+
+    <script>
+      setTimeout(() => {
+        window.close()
+      }, 5000)
+    </script>
+    
+  </body>
+</html>
+`

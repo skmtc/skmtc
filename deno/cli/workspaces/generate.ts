@@ -43,9 +43,9 @@ export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string
 
   invariant(project, 'Project not found')
 
-  const hasDeploymentId = await ensureDeploymentId({ project })
+  const hasDeployment = await ensureDeployment({ project })
 
-  if (!hasDeploymentId) {
+  if (!hasDeployment) {
     console.log('Project has not been deployed. Please deploy before generating artifacts.')
 
     return
@@ -67,9 +67,9 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 
   const schemaPath = project.schemaFile.toPath()
 
-  const hasDeploymentId = await ensureDeploymentId({ project })
+  const hasDeployment = await ensureDeployment({ project })
 
-  if (!hasDeploymentId) {
+  if (!hasDeployment) {
     console.log('Project has not been deployed. Please deploy before generating artifacts.')
 
     return
@@ -170,10 +170,10 @@ type EnsureDeploymentIdArgs = {
   project: Project
 }
 
-const ensureDeploymentId = async ({ project }: EnsureDeploymentIdArgs): Promise<boolean> => {
-  const { deploymentId } = project.clientJson.contents
+const ensureDeployment = async ({ project }: EnsureDeploymentIdArgs): Promise<boolean> => {
+  const { serverOrigin } = project.clientJson.contents
 
-  if (deploymentId) {
+  if (serverOrigin) {
     return true
   }
 

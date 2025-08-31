@@ -1,10 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import { toAuthStore } from './store.ts'
 
-type CreateSupabaseClientArgs = {
-  kv: Deno.Kv
-}
-
-export const createSupabaseClient = ({ kv }: CreateSupabaseClientArgs) => {
+export const createSupabaseClient = () => {
+  const authStore = toAuthStore()
   // Create a single supabase client for interacting with your database
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? 'https://api.skm.tc',
@@ -13,27 +11,7 @@ export const createSupabaseClient = ({ kv }: CreateSupabaseClientArgs) => {
       auth: {
         detectSessionInUrl: true,
         flowType: 'pkce',
-        storage: {
-          getItem: async key => {
-            try {
-              const { value } = await kv.get(['auth', key])
-
-              return value as string | null
-            } catch (_error) {
-              return null
-            }
-          },
-          setItem: async (key, value) => {
-            await kv.set(['auth', key], value)
-          },
-          removeItem: async key => {
-            try {
-              await kv.delete(['auth', key])
-            } catch (_error) {
-              // ignore
-            }
-          }
-        }
+        storage: authStore
       }
     }
   )

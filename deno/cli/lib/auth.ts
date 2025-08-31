@@ -4,12 +4,10 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createAuthHandler } from '../auth/auth-handler.ts'
 
 export class Auth {
-  kv: Deno.Kv
   supabase: SupabaseClient
 
-  constructor(kv: Deno.Kv) {
-    this.kv = kv
-    this.supabase = createSupabaseClient({ kv })
+  constructor() {
+    this.supabase = createSupabaseClient()
   }
 
   async toSession() {
@@ -63,9 +61,9 @@ export class Auth {
     return new Promise(resolve => {
       this.supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session) {
-          console.log('You are now logged in')
-
-          server.shutdown()
+          setTimeout(() => {
+            server.shutdown()
+          }, 5000)
 
           resolve(session)
         }

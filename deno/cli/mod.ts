@@ -45,9 +45,7 @@ Sentry.init({
   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
 })
 
-const kv = await Deno.openKv()
-
-const manager = new Manager({ kv })
+const manager = new Manager()
 const skmtcRoot = await SkmtcRoot.open(manager)
 
 await skmtcRoot.upgradeCheck()

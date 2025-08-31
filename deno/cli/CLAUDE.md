@@ -17,7 +17,7 @@ This is the SKMTC CLI - a Deno-based command-line tool for generating code from 
 ### Core Components
 
 - **mod.ts** - Main entry point that sets up the CLI with all available commands and interactive prompts
-- **Manager** (`lib/manager.ts`) - Central management class that handles Deno KV storage, authentication, and cleanup actions
+- **Manager** (`lib/manager.ts`) - Central management class that handles authentication, and cleanup actions
 - **SkmtcRoot** (`lib/skmtc-root.ts`) - Root workspace manager that handles project creation and discovery
 - **Project** (`lib/project.ts`) - Individual project management
 
@@ -33,7 +33,7 @@ Commands are organized into categories:
 ### Authentication & Storage
 
 - Uses Supabase for authentication (`auth/supabase-client.ts`)
-- Deno KV for local state storage
+- Deno KV or file system for local state storage
 - Sentry integration for error tracking
 
 ### Generator System
@@ -57,7 +57,7 @@ Each command follows a consistent pattern:
 - Command logic is separated from CLI setup
 
 ### State Management
-- Uses Deno KV for persistent storage
+- Uses Deno KV or file system for persistent storage
 - Manager class handles cleanup actions
 - Auth state is managed through Auth class
 
