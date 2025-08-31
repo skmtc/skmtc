@@ -1,4 +1,4 @@
-import { assertEquals } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeMetadata } from './merge-metadata.ts'
 

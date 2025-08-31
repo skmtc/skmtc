@@ -1,4 +1,4 @@
-import { assertThrows } from '@std/assert'
+import { assertThrows } from '@std/assert/throws'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 

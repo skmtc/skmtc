@@ -1,4 +1,4 @@
-import { assertEquals } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeIntersection } from './merge-intersection.ts'
 import { match } from 'ts-pattern'

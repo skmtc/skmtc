@@ -1,7 +1,7 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { match } from 'ts-pattern'
 import { mergeIntersection } from './merge-intersection.ts'
-import { assertEquals } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
 import { assertThrows } from '@std/assert/throws'
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {

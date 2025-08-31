@@ -1,4 +1,5 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
+import { assertThrows } from '@std/assert/throws'
 import { checkEnumConflicts } from './check-enum-conflicts.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 

@@ -1,4 +1,5 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
+import { assertThrows } from '@std/assert/throws'
 import { mergeObjectConstraints } from './merge-object-constraints.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 

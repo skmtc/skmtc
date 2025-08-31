@@ -1,7 +1,7 @@
 import type { ModelInsertable } from './types.ts'
 import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { ContentSettings } from '../ContentSettings.ts'
-import { normalize } from 'jsr:@std/path@^1.0.6'
+import { normalize } from '@std/path/normalize'
 import { Definition } from '../Definition.ts'
 import type { Identifier } from '../Identifier.ts'
 import type { GeneratedDefinition, GenerationType } from '../../types/GeneratedValue.ts'

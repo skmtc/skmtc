@@ -1,5 +1,5 @@
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'npm:openapi-types@^12.1.3'
-import { parse as parseYaml } from 'jsr:@std/yaml@^1.0.5'
+import { parse as parseYaml } from '@std/yaml/parse'
 import {
   Converter as ThreeOneToThreeZeroConverter,
   type ConverterOptions

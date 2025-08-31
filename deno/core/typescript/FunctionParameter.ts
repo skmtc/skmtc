@@ -1,5 +1,5 @@
 // @deno-types="npm:@types/babel__helper-validator-identifier@7.15.2"
-import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.22.20'
+import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { camelCase } from 'npm:lodash-es@4.17.21'
 import { match, P } from 'npm:ts-pattern@^5.8.0'

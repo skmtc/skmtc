@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@^1.0.10";
+import { assertEquals } from '@std/assert/equals';
 import { camelCase } from "./strings.ts";
 import { parseModuleName } from "./parseModuleName.ts";
 

@@ -1,6 +1,6 @@
 import { match } from 'ts-pattern'
 import type { GetRefFn, ReferenceObject, SchemaObject } from './types.ts'
-import { assertEquals } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
 import { mergeUnion } from './merge-union.ts'
 
 const getRef = (ref: ReferenceObject): SchemaObject => {

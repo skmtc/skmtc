@@ -76,6 +76,27 @@ await build({
       '@types/lodash-es': '4.17.12',
       'openapi-types': '12.1.3',
       valibot: '1.1.0'
+    },
+    dependencies: {
+      '@deno/shim-deno': '^0.19.2'
+    }
+  },
+  postBuild() {
+    // Copy license and readme to output package
+    const outputDir = '../../packages/core'
+
+    try {
+      const licenseContent = Deno.readTextFileSync('LICENSE')
+      Deno.writeTextFileSync(`${outputDir}/LICENSE`, licenseContent)
+    } catch {
+      console.warn('LICENSE file not found, skipping copy')
+    }
+
+    try {
+      const readmeContent = Deno.readTextFileSync('README.md')
+      Deno.writeTextFileSync(`${outputDir}/README.md`, readmeContent)
+    } catch {
+      console.warn('README.md file not found, skipping copy')
     }
   }
 })

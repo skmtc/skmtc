@@ -3,7 +3,8 @@ import { StackTrail } from './StackTrail.ts'
 import denoSchema from '../_schemas/deno.json' with { type: 'json' }
 import cfCycleSchema from '../_schemas/cf-cycle.json' with { type: 'json' }
 import type { OpenAPIV3 } from 'openapi-types'
-import { assertEquals, assertObjectMatch } from 'jsr:@std/assert@^1.0.10'
+import { assertEquals } from '@std/assert/equals'
+import { assertObjectMatch } from '@std/assert/object-match'
 import { OasRef } from '../oas/ref/Ref.ts'
 import { OasDocument } from '../oas/document/Document.ts'
 import { OasInfo } from '../oas/info/Info.ts'

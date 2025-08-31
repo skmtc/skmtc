@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "@std/assert/equals";
 import { toPathParams } from "./toPathParams.ts";
 
 Deno.test("toPathParams converts single path parameter", () => {

@@ -1,4 +1,4 @@
-import { assertEquals } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
 import { decomposeIntersection } from './decompose-intersection.ts'
 import type { SchemaObject } from './types.ts'
 

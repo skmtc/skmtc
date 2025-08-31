@@ -1,4 +1,5 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
+import { assertThrows } from '@std/assert/throws'
 import type { SchemaObject, GetRefFn, ReferenceObject } from './types.ts'
 import { mergeIntersection } from './merge-intersection.ts'
 import { match } from 'ts-pattern'

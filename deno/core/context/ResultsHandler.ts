@@ -1,7 +1,7 @@
-import { type LevelName, LogLevels } from 'jsr:@std/log@^0.224.6/levels'
-import type { LogRecord } from 'jsr:@std/log@^0.224.6/logger'
-import { BaseHandler } from 'jsr:@std/log@^0.224.6/base-handler'
-import type { BaseHandlerOptions } from 'jsr:@std/log@^0.224.6/base-handler'
+import { type LevelName, LogLevels } from '@std/log/levels'
+import type { LogRecord } from '@std/log/logger'
+import { BaseHandler } from '@std/log/base-handler'
+import type { BaseHandlerOptions } from '@std/log/base-handler'
 import type { CoreContext } from './CoreContext.ts'
 import { match } from 'npm:ts-pattern@^5.8.0'
 

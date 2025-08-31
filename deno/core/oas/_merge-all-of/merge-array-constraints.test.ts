@@ -1,4 +1,5 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals } from '@std/assert/equals'
+import { assertThrows } from '@std/assert/throws'
 import { mergeArrayConstraints } from './merge-array-constraints.ts'
 import type { GetRefFn, ArraySchemaObject } from './types.ts'
 

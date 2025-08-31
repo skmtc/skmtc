@@ -1,4 +1,4 @@
-import { join } from 'jsr:@std/path@^1.0.6'
+import { join } from '@std/path/join'
 type ToResolvedArtifactPathArgs = {
   basePath: string | undefined
   destinationPath: string
