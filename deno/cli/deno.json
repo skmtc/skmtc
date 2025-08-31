@@ -7,6 +7,9 @@
     "@std/semver": "jsr:@std/semver@^1.0.5"
   },
   "tasks": {
-    "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"
+    "publish": "deno task build && deno task publish:deno && deno task publish:npm",
+    "build": "deno run -A .scripts/build-node.ts",
+    "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:npm": "cd ../../packages/cli && npm publish"
   }
 }
