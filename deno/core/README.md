@@ -82,11 +82,4 @@ export interface User {
 
 ## License
 
-MIT
-
-
-
-
-
-
-
+[FSL-1.1-ALv2](LICENSE)

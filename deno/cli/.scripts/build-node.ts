@@ -16,10 +16,6 @@ await build({
     deno: true,
     timers: true
   },
-  mappings: {
-    // Map @std/fs move functionality to our Node.js implementation
-    'https://jsr.io/@std/fs/1.0.19/move.ts': './.scripts/fs-shim.ts'
-  },
   scriptModule: false,
   package: {
     // package.json properties
@@ -56,5 +52,22 @@ await build({
 
     // Make the bin script executable
     Deno.chmodSync(binScript, 0o755)
+
+    // Copy license and readme to output package
+    const outputDir = '../../packages/cli'
+    
+    try {
+      const licenseContent = Deno.readTextFileSync('LICENSE')
+      Deno.writeTextFileSync(`${outputDir}/LICENSE`, licenseContent)
+    } catch {
+      console.warn('LICENSE file not found, skipping copy')
+    }
+
+    try {
+      const readmeContent = Deno.readTextFileSync('README.md')
+      Deno.writeTextFileSync(`${outputDir}/README.md`, readmeContent)
+    } catch {
+      console.warn('README.md file not found, skipping copy')
+    }
   }
 })
