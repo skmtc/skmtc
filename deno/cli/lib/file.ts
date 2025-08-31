@@ -1,5 +1,5 @@
-import { ensureDir } from '@std/fs'
-import { parse } from '@std/path'
+import { ensureDir } from '@std/fs/ensure-dir'
+import { parse } from '@std/path/parse'
 
 export const readTextFile = async (path: string): Promise<string | undefined> => {
   try {

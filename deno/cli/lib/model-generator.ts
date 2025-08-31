@@ -1,6 +1,6 @@
 import type { Generator } from './generator.ts'
 import { camelCase } from '@skmtc/core'
-import { join } from '@std/path'
+import { join } from '@std/path/join'
 
 export class ModelGenerator {
   generator: Generator
@@ -41,7 +41,7 @@ export const ${this.generator.packageName}Entry = toModelEntry({
 
   toModelBase(mainModule: string) {
     return `import { decapitalize, Identifier, toModelBase, type RefName, camelCase } from '@skmtc/core'
-import { join } from '@std/path'
+import { join } from '@std/path/join'
 
 export const ${mainModule}Base = toModelBase({
   id: '${this.generator.toModuleName()}',

@@ -1,4 +1,4 @@
-import { exists } from '@std/fs'
+import { exists } from '@std/fs/exists'
 import type { CreateSchemaBody } from './api-client.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
 

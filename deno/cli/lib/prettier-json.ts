@@ -1,5 +1,5 @@
-import { exists } from '@std/fs'
-import { join } from '@std/path'
+import { exists } from '@std/fs/exists'
+import { join } from '@std/path/join'
 import { writeFileSafeDir } from './file.ts'
 import * as v from 'valibot'
 import { prettierConfigType, type PrettierConfigType } from '@skmtc/core'

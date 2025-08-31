@@ -1,5 +1,5 @@
-import { walk } from '@std/fs'
-import { relative } from '@std/path'
+import { walk } from '@std/fs/walk'
+import { relative } from '@std/path/relative'
 import type { AssetEntry, DenoFile } from './types.ts'
 
 type ToAssetsArgs = {

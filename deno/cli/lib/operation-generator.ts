@@ -1,6 +1,6 @@
 import type { Generator } from './generator.ts'
 import { camelCase } from '@skmtc/core'
-import { join } from '@std/path'
+import { join } from '@std/path/join'
 
 export class OperationGenerator {
   generator: Generator
@@ -44,7 +44,7 @@ export const ${mainModule}Entry = toOperationEntry({
 
   toOperationBase(mainModule: string) {
     return `import { camelCase, capitalize, Identifier, toMethodVerb, toOperationBase } from '@skmtc/core'
-import { join } from '@std/path'
+import { join } from '@std/path/join'
 
 export const ${mainModule}Base = toOperationBase({
   id: '${this.generator.toModuleName()}',

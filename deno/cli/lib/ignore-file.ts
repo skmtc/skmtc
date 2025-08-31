@@ -1,6 +1,6 @@
 import ignore, { type Ignore } from 'ignore'
-import { join } from '@std/path'
-import { EOL } from '@std/fs'
+import { join } from '@std/path/join'
+import { EOL } from '@std/fs/eol'
 
 const IGNORE_FILE_NAME = '.apifoundryignore'
 

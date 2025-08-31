@@ -1,11 +1,12 @@
 import { Project } from './project.ts'
 import type { Manager } from './manager.ts'
-import { exists } from '@std/fs'
+import { exists } from '@std/fs/exists'
 import { ApiClient } from './api-client.ts'
 import { toRootPath } from './to-root-path.ts'
 import { Jsr } from './jsr.ts'
 import cliDenoJson from '../deno.json' with { type: 'json' }
-import { compare, parse } from '@std/semver'
+import { compare } from '@std/semver/compare'
+import { parse } from '@std/semver/parse'
 
 type CreateProjectArgs = {
   name: string

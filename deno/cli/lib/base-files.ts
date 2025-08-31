@@ -1,4 +1,4 @@
-import { join } from '@std/path'
+import { join } from '@std/path/join'
 import type { ApiClient } from './api-client.ts'
 import { IgnoreFile } from './ignore-file.ts'
 

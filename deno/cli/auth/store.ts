@@ -1,5 +1,8 @@
-import { ensureDir, exists } from '@std/fs'
-import { normalize, resolve, join } from '@std/path'
+import { ensureDir } from '@std/fs/ensure-dir'
+import { exists } from '@std/fs/exists'
+import { normalize } from '@std/path/normalize'
+import { resolve } from '@std/path/resolve'
+import { join } from '@std/path/join'
 
 export const toAuthStore = (): AuthStore => {
   // Check if Deno KV is available (Deno runtime) vs Node.js

@@ -1,5 +1,5 @@
-import { existsSync } from '@std/fs'
-import { join } from '@std/path'
+import { existsSync } from '@std/fs/exists'
+import { join } from '@std/path/join'
 import { writeFileSafeDir } from './file.ts'
 import * as v from 'valibot'
 import { parseModuleName, rootDenoJson, type RootDenoJson as RootDenoJsonType } from '@skmtc/core'

@@ -1,5 +1,7 @@
 import type { Generator } from './generator.ts'
-import { maxSatisfying, parse, parseRange } from '@std/semver'
+import { maxSatisfying } from '@std/semver/max-satisfying'
+import { parse } from '@std/semver/parse'
+import { parseRange } from '@std/semver/parse-range'
 
 export type Pkg = {
   name: string

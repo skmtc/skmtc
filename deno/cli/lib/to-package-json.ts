@@ -1,4 +1,4 @@
-import { join } from '@std/path'
+import { join } from '@std/path/join'
 import { readTextFile } from './file.ts'
 import * as v from 'valibot'
 

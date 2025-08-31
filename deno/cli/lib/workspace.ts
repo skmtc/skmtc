@@ -3,8 +3,10 @@ import {
   generateResponse,
   type GenerateResponse
 } from '../generators/generate.ts'
-import { join, parse } from '@std/path'
-import { ensureDirSync, ensureFileSync } from '@std/fs'
+import { join } from '@std/path/join'
+import { parse } from '@std/path/parse'
+import { ensureDirSync } from '@std/fs/ensure-dir'
+import { ensureFileSync } from '@std/fs/ensure-file'
 import type { SkmtcRoot } from './skmtc-root.ts'
 import * as v from 'valibot'
 import type { Project } from './project.ts'

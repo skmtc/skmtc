@@ -8,7 +8,7 @@ import type { Project } from '../lib/project.ts'
 import { Spinner } from '../lib/spinner.ts'
 import { formatNumber, toGenerationStats } from '@skmtc/core'
 import { keypress } from '../lib/keypress.ts'
-import { relative } from '@std/path'
+import { relative } from '@std/path/relative'
 import { dim } from '@std/fmt/colors'
 import { Confirm } from '@cliffy/prompt'
 

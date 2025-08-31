@@ -14,7 +14,7 @@ import { availableGenerators, type AvailableGenerator } from '../available-gener
 import { SchemaFile } from './schema-file.ts'
 import { formatNumber, parseModuleName } from '@skmtc/core'
 import { PackageDenoJson } from './package-deno-json.ts'
-import { join } from '@std/path'
+import { join } from '@std/path/join'
 import type { ApiClient } from './api-client.ts'
 import { Manifest } from './manifest.ts'
 

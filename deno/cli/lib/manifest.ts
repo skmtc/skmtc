@@ -1,5 +1,5 @@
-import { exists } from '@std/fs'
-import { join } from '@std/path'
+import { exists } from '@std/fs/exists'
+import { join } from '@std/path/join'
 import { toProjectPath } from './to-project-path.ts'
 import { type ManifestContent, manifestContent, toManifestErrors } from '@skmtc/core'
 import * as v from 'valibot'

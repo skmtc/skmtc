@@ -1,4 +1,4 @@
-import { exists } from '@std/fs'
+import { exists } from '@std/fs/exists'
 import { writeFileSafeDir } from './file.ts'
 import * as v from 'valibot'
 import { packageDenoJson, type PackageDenoJson as PackageDenoJsonType } from '@skmtc/core'

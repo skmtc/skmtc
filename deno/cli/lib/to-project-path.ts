@@ -1,4 +1,4 @@
-import { resolve } from '@std/path'
+import { resolve } from '@std/path/resolve'
 import { toRootPath } from './to-root-path.ts'
 
 export const toProjectPath = (projectName: string) => {
