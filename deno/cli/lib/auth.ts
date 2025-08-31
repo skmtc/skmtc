@@ -3,6 +3,78 @@ import { createSupabaseClient } from '../auth/supabase-client.ts'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createAuthHandler } from '../auth/auth-handler.ts'
 
+// Cross-platform server creation
+async function createServer(port: number, handler: (request: Request) => Response | Promise<Response>) {
+  // Use globalThis to avoid dnt shim type checking issues
+  const denoGlobal = (globalThis as unknown as { Deno?: { serve?: (options: { port: number }, handler: (request: Request) => Response | Promise<Response>) => { shutdown: () => void } } }).Deno
+  if (typeof denoGlobal?.serve === 'function') {
+    // Deno runtime
+    return denoGlobal.serve({ port }, handler)
+  } else {
+    // Node.js runtime - create HTTP server
+    return createNodeServer(port, handler)
+  }
+}
+
+// Node.js HTTP server implementation
+function createNodeServer(port: number, handler: (request: Request) => Response | Promise<Response>) {
+  // Dynamic import to avoid issues during Deno compilation
+  const http = require('node:http')
+  
+  const server = http.createServer(async (req: any, res: any) => {
+    try {
+      // Convert Node.js request to Web API Request
+      const fullUrl = `http://localhost:${port}${req.url}`
+      const request = new Request(fullUrl, {
+        method: req.method,
+        headers: req.headers,
+        body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
+      })
+      
+      // Call the handler
+      const response = await handler(request)
+      
+      // Convert Web API Response to Node.js response
+      res.statusCode = response.status
+      
+      // Set headers
+      response.headers.forEach((value, key) => {
+        res.setHeader(key, value)
+      })
+      
+      // Send body
+      if (response.body) {
+        const reader = response.body.getReader()
+        const pump = () => {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              res.end()
+            } else {
+              res.write(value)
+              pump()
+            }
+          })
+        }
+        pump()
+      } else {
+        res.end()
+      }
+    } catch (error) {
+      console.error('Server error:', error)
+      res.statusCode = 500
+      res.end('Internal Server Error')
+    }
+  })
+  
+  server.listen(port)
+  
+  return {
+    shutdown: () => {
+      server.close()
+    }
+  }
+}
+
 export class Auth {
   supabase: SupabaseClient
 
@@ -46,7 +118,7 @@ export class Auth {
 
     const authHandler = createAuthHandler({ supabase: this.supabase })
 
-    const server = Deno.serve({ port: 9000 }, authHandler)
+    const server = await createServer(9000, authHandler)
 
     const signInRes = await this.supabase.auth.signInWithOAuth({
       provider: 'github',

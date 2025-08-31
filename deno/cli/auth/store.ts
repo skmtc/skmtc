@@ -2,13 +2,20 @@ import { ensureDir, exists } from '@std/fs'
 import { normalize, resolve, join } from '@std/path'
 
 export const toAuthStore = (): AuthStore => {
-  try {
-    const kv = Deno.openKv()
-
-    return new KvStore(kv)
-  } catch (_error) {
-    return new FileStore()
+  // Check if Deno KV is available (Deno runtime) vs Node.js
+  // Use globalThis to avoid dnt shim type checking issues
+  const denoGlobal = (globalThis as unknown as { Deno?: { openKv?: () => Promise<KvLike> } }).Deno
+  if (typeof denoGlobal?.openKv === 'function') {
+    try {
+      const kv = denoGlobal.openKv()
+      return new KvStore(kv)
+    } catch (_error) {
+      return new FileStore()
+    }
   }
+  
+  // Fallback to FileStore for Node.js or when KV is not available
+  return new FileStore()
 }
 export type AuthStore = {
   getItem: (key: string) => Promise<string | null>
@@ -38,10 +45,17 @@ export class FileStore {
   }
 }
 
-export class KvStore {
-  kv: Promise<Deno.Kv>
+// Interface to avoid Deno.Kv type issues in Node builds
+interface KvLike {
+  get: (key: string[]) => Promise<{ value: unknown }>
+  set: (key: string[], value: string) => Promise<unknown>
+  delete: (key: string[]) => Promise<void>
+}
 
-  constructor(kv: Promise<Deno.Kv>) {
+export class KvStore {
+  kv: Promise<KvLike>
+
+  constructor(kv: Promise<KvLike>) {
     this.kv = kv
   }
 

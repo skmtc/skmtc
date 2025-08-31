@@ -80,7 +80,7 @@ export class SkmtcRoot {
       return new SkmtcRoot([], manager)
     }
 
-    const projectDirs = Deno.readDirSync(rootPath).filter(item => item.isDirectory)
+    const projectDirs = Array.from(Deno.readDirSync(rootPath)).filter(item => item.isDirectory)
 
     const projectPromises = projectDirs.map(projectDir => Project.open(projectDir.name, manager))
 
