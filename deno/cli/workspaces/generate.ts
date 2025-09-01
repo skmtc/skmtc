@@ -17,9 +17,9 @@ export const description = 'Generate artifacts'
 export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
-    .arguments('<project:string> <path:string>')
+    .arguments('<project:string>')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
-    .action(async ({ watch }, projectName, path) => {
+    .action(async ({ watch }, projectName) => {
       const project = skmtcRoot.projects.find(({ name }) => name === projectName)
 
       invariant(project, 'Project not found')
@@ -29,7 +29,7 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
       spinner.start()
 
       if (watch) {
-        setupWatcher({ project, skmtcRoot, path, spinner })
+        setupWatcher({ project, skmtcRoot, spinner })
       } else {
         await generate({ project, skmtcRoot, spinner }, { logSuccess: 'Artifacts generated' })
 
@@ -79,7 +79,7 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 
   spinner.start()
 
-  setupWatcher({ project, skmtcRoot, path: schemaPath, spinner })
+  setupWatcher({ project, skmtcRoot, spinner })
 
   const relativePath = relative(Deno.cwd(), schemaPath)
 
@@ -105,12 +105,18 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 type WatchGenerateArgs = {
   project: Project
   skmtcRoot: SkmtcRoot
-  path: string
   spinner: Spinner
 }
 
-export const setupWatcher = ({ project, skmtcRoot, path, spinner }: WatchGenerateArgs) => {
-  const watcher = chokidar.watch(path)
+export const setupWatcher = ({ project, skmtcRoot, spinner }: WatchGenerateArgs) => {
+  const schemaPath = project.schemaFile?.toPath()
+
+  invariant(
+    schemaPath,
+    `Schema file not found. Please add an "openapi.json" or "openapi.yaml" file to ".skmtc/${project.name}" or ".skmtc" folder.`
+  )
+
+  const watcher = chokidar.watch(schemaPath)
   watcher.on('change', () => {
     generate({ project, skmtcRoot, spinner, watching: true })
   })

@@ -1,11 +1,11 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.640",
+  "version": "0.0.641",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.760",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.761",
     "@sentry/node": "npm:@sentry/node@^10.8.0",
     "@std/log": "jsr:@std/log@^0.224.6",
     "@std/yaml": "jsr:@std/yaml@^1.0.5",
