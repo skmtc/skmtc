@@ -134,6 +134,8 @@ export const generate = async (
   try {
     const workspace = new Workspace()
 
+    await project.schemaFile?.refresh()
+
     const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 
     const { tokens, lines, totalTime, errors, files } = toGenerationStats({ manifest, artifacts })
@@ -154,6 +156,8 @@ export const generate = async (
 
     await skmtcRoot.manager.success()
   } catch (error) {
+    console.log(error)
+
     spinner.stop()
 
     console.error(error)

@@ -52,24 +52,17 @@ await skmtcRoot.upgradeCheck()
 
 type PromptResponse =
   | 'init'
-  | 'generators:add'
-  | 'generators:clone'
-  | 'generators:deploy'
-  | 'generators:generate'
-  | 'generators:generate:watch'
-  | 'generators:runtime-logs'
-  | 'generators:install'
-  | 'generators:remove'
+  | 'add'
+  | 'clone'
+  | 'deploy'
+  | 'generate'
+  | 'generate:watch'
+  | 'runtime-logs'
+  | 'install'
+  | 'remove'
   | 'login'
   | 'logout'
   | 'project-create'
-  | 'schemas:info'
-  | 'schemas:link'
-  | 'schemas:unlink'
-  | 'generators:generate'
-  | 'workspaces:info'
-  | 'workspaces:link'
-  | 'workspaces:message'
   | 'exit'
 
 type ToHomeScreenOptionsArgs = {
@@ -107,41 +100,41 @@ const toProjectOptions = ({ projectName }: ToProjectOptionsArgs) => [
   Select.separator(` - Current project: ${projectName}`),
   {
     name: workspacesGenerateDescription,
-    value: 'generators:generate'
+    value: 'generate'
   },
   {
     name: `${workspacesGenerateDescription} (watch)`,
-    value: 'generators:generate:watch'
+    value: 'generate:watch'
   },
   Select.separator(` `),
   {
     name: deployDescription,
-    value: 'generators:deploy'
+    value: 'deploy'
   },
   {
     name: runtimeLogsDescription,
-    value: 'generators:runtime-logs'
+    value: 'runtime-logs'
   },
   Select.separator(` `),
   {
     name: installDescription,
-    value: 'generators:install'
+    value: 'install'
   },
   {
     name: addDescription,
-    value: 'generators:add'
+    value: 'add'
   },
   {
     name: cloneDescription,
-    value: 'generators:clone'
+    value: 'clone'
   },
   {
     name: listDescription,
-    value: 'generators:list'
+    value: 'list'
   },
   {
     name: removeDescription,
-    value: 'generators:remove'
+    value: 'remove'
   },
   Select.separator(` `),
   { name: 'Back to home screen', value: 'home' }
@@ -196,15 +189,15 @@ const promptwise = async (initialProjectName?: string) => {
 
   await match(action)
     .with('init', () => toInitPrompt(skmtcRoot))
-    .with('generators:add', () => toAddPrompt(skmtcRoot, projectName))
-    .with('generators:clone', () => toClonePrompt(skmtcRoot, projectName))
-    .with('generators:deploy', () => toDeployPrompt(skmtcRoot, projectName))
-    .with('generators:generate', () => toGeneratePrompt(skmtcRoot, projectName))
-    .with('generators:generate:watch', () => toGenerateWatchPrompt(skmtcRoot, projectName))
-    .with('generators:runtime-logs', () => toRuntimeLogsPrompt(skmtcRoot, projectName))
-    .with('generators:install', () => toInstallPrompt(skmtcRoot, projectName))
-    .with('generators:list', () => toListPrompt(skmtcRoot, projectName))
-    .with('generators:remove', () => toRemovePrompt(skmtcRoot, projectName))
+    .with('add', () => toAddPrompt(skmtcRoot, projectName))
+    .with('clone', () => toClonePrompt(skmtcRoot, projectName))
+    .with('deploy', () => toDeployPrompt(skmtcRoot, projectName))
+    .with('generate', () => toGeneratePrompt(skmtcRoot, projectName))
+    .with('generate:watch', () => toGenerateWatchPrompt(skmtcRoot, projectName))
+    .with('runtime-logs', () => toRuntimeLogsPrompt(skmtcRoot, projectName))
+    .with('install', () => toInstallPrompt(skmtcRoot, projectName))
+    .with('list', () => toListPrompt(skmtcRoot, projectName))
+    .with('remove', () => toRemovePrompt(skmtcRoot, projectName))
     .with('login', () => toLoginPrompt(skmtcRoot, projectName))
     .with('logout', () => toLogoutPrompt(skmtcRoot, projectName))
     .with('exit', () => Deno.exit(0))
@@ -221,14 +214,14 @@ await new Command()
     await promptwise()
   })
   .command('init', toInitCommand(skmtcRoot))
-  .command('generators:add', toAddCommand(skmtcRoot))
-  .command('generators:clone', toCloneCommand(skmtcRoot))
-  .command('generators:deploy', toDeployCommand(skmtcRoot))
-  .command('generators:install', toInstallCommand(skmtcRoot))
-  .command('generators:list', toListCommand(skmtcRoot))
-  .command('generators:runtime-logs', toRuntimeLogsCommand(skmtcRoot))
-  .command('generators:remove', toRemoveCommand(skmtcRoot))
-  .command('generators:generate', toGenerateCommand(skmtcRoot))
+  .command('add', toAddCommand(skmtcRoot))
+  .command('clone', toCloneCommand(skmtcRoot))
+  .command('deploy', toDeployCommand(skmtcRoot))
+  .command('install', toInstallCommand(skmtcRoot))
+  .command('list', toListCommand(skmtcRoot))
+  .command('runtime-logs', toRuntimeLogsCommand(skmtcRoot))
+  .command('remove', toRemoveCommand(skmtcRoot))
+  .command('generate', toGenerateCommand(skmtcRoot))
   .command('login', toLoginCommand(skmtcRoot))
   .command('logout', toLogoutCommand(skmtcRoot))
   .parse(Deno.args)
