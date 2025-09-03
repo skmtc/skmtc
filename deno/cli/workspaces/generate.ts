@@ -17,21 +17,27 @@ export const description = 'Generate artifacts'
 export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
-    .arguments('<project:string>')
+    .arguments('[project:string]')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
     .action(async ({ watch }, projectName) => {
-      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
-
-      invariant(project, 'Project not found')
+      const projects = projectName
+        ? skmtcRoot.projects.filter(({ name }) => name === projectName)
+        : skmtcRoot.projects
 
       const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
 
       spinner.start()
 
       if (watch) {
-        setupWatcher({ project, skmtcRoot, spinner })
+        projects.forEach(project => {
+          setupWatcher({ project, skmtcRoot, spinner })
+        })
       } else {
-        await generate({ project, skmtcRoot, spinner }, { logSuccess: 'Artifacts generated' })
+        const promises = projects.map(project => {
+          return generate({ project, skmtcRoot, spinner }, { logSuccess: 'Artifacts generated' })
+        })
+
+        await Promise.all(promises)
 
         spinner.stop()
       }
@@ -162,17 +168,15 @@ export const generate = async (
 
     await skmtcRoot.manager.success()
   } catch (error) {
-    console.log(error)
-
     spinner.stop()
 
-    console.error(error)
+    console.error(error instanceof Error ? error.message : 'Failed to generate artifacts')
 
     Sentry.captureException(error)
 
     await Sentry.flush()
 
-    skmtcRoot.manager.fail('Failed to generate artifacts')
+    skmtcRoot.manager.fail()
   }
 }
 

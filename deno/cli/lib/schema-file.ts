@@ -117,7 +117,6 @@ export class SchemaFile {
 
     manager.cleanupActions.push(async () => {
       if (schemaFile.#dirty) {
-        console.log('Writing DIRTY schema file')
         await schemaFile.write()
       }
     })
@@ -130,7 +129,6 @@ export class SchemaFile {
   }
 
   async write() {
-    console.log('JUST WRITING')
     const path = SchemaFile.toPath({
       projectName: this.projectName,
       fileType: this.fileType,

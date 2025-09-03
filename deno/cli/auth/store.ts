@@ -38,13 +38,21 @@ export class FileStore {
   }
 
   async setItem(key: string, value: string) {
-    const { filePath } = await ensureFile(key)
-    await Deno.writeTextFile(filePath, value)
+    try {
+      const { filePath } = await ensureFile(key)
+      await Deno.writeTextFile(filePath, value)
+    } catch (_error) {
+      return
+    }
   }
 
   async removeItem(key: string) {
-    const { filePath } = toFilePath(key)
-    await Deno.remove(filePath)
+    try {
+      const { filePath } = toFilePath(key)
+      await Deno.remove(filePath)
+    } catch (_error) {
+      return
+    }
   }
 }
 

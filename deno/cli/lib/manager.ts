@@ -24,7 +24,7 @@ export class Manager {
     }
   }
 
-  async fail(message: string) {
+  async fail(message?: string) {
     await this.cleanup()
 
     if (message) {
