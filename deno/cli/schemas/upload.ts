@@ -7,6 +7,7 @@ import { WsClient } from '../lib/ws-client.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import type { Project } from '../lib/project.ts'
 import invariant from 'tiny-invariant'
+import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
 
 export const description = 'Upload an OpenAPI schema to Skmtc'
 
@@ -72,7 +73,10 @@ export const upload = async (
   { logSuccess }: UploadOptions = {}
 ) => {
   try {
-    const workspace = await skmtcRoot.apiClient.getWorkspaceByName(project.name)
+    const workspace = await getApiWorkspacesWorkspaceName({
+      workspaceName: project.name,
+      supabase: skmtcRoot.manager.auth.supabase
+    })
 
     let wsClient: WsClient | null = null
 
@@ -86,16 +90,18 @@ export const upload = async (
 
     const schema = await openApiSchema.upload({ projectName: project.name, skmtcRoot })
 
-    if (workspace && wsClient) {
-      await wsClient.send({
-        type: 'update-schema',
-        payload: {
-          v3JsonFilePath: schema.v3JsonFilePath
-        }
-      })
+    console.log('UPLOAD IS NOT IMPLEMENTED')
 
-      wsClient.disconnect()
-    }
+    // if (workspace && wsClient) {
+    //   await wsClient.send({
+    //     type: 'update-schema',
+    //     payload: {
+    //       v3JsonFilePath: schema.v3JsonFilePath
+    //     }
+    //   })
+
+    //   wsClient.disconnect()
+    // }
 
     await skmtcRoot.manager.success()
   } catch (error) {

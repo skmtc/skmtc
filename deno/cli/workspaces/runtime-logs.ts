@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/node'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import type { Project } from '../lib/project.ts'
+import { getApiDeploymentsDeploymentIdRuntimeLogs } from '../services/getApiDeploymentsDeploymentIdRuntimeLogs.generated.ts'
 
 export const description = 'View runtime logs'
 
@@ -55,12 +56,13 @@ export const runtimeLogs = async (
       throw new Error('Project has no deployment ID. Has it been deployed?')
     }
 
-    const runtimeLogs = await skmtcRoot.apiClient.getRuntimeLogs(deploymentId, {
-      spanId: manifest.spanId,
-      since: new Date(manifest.startAt).toISOString()
+    const runtimeLogs = await getApiDeploymentsDeploymentIdRuntimeLogs({
+      deploymentId,
+      q: manifest.spanId,
+      since: new Date(manifest.startAt).toISOString(),
+      supabase: skmtcRoot.manager.auth.supabase
     })
 
-    // @ts-expect-error - TODO: fix this
     runtimeLogs.forEach(log => {
       try {
         const message = JSON.parse(log.message)

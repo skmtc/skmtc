@@ -42,6 +42,14 @@ export class ClientJson {
     return await exists(path, { isFile: true })
   }
 
+  async refresh() {
+    const contents = await Deno.readTextFile(ClientJson.toPath(this.projectName))
+
+    const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
+
+    this.contents = parsed
+  }
+
   static async open(projectName: string, manager: Manager): Promise<ClientJson> {
     const hasClientJson = await ClientJson.exists(projectName)
 

@@ -2,7 +2,6 @@ import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { toProjectPath } from './to-project-path.ts'
 import type { Manager } from './manager.ts'
-import { writeFileSafeDir } from './file.ts'
 import { toRootPath } from './to-root-path.ts'
 
 type CreateArgs = {
@@ -104,7 +103,7 @@ export class SchemaFile {
     }
   }
 
-  static async open(projectName: string, manager: Manager): Promise<SchemaFile | null> {
+  static async open(projectName: string, _manager: Manager): Promise<SchemaFile | null> {
     const fileInfo = await SchemaFile.toSchemaFileInfo({ projectName })
 
     if (!fileInfo) {
@@ -115,27 +114,11 @@ export class SchemaFile {
 
     const schemaFile = new SchemaFile({ projectName, contents, ...fileInfo })
 
-    manager.cleanupActions.push(async () => {
-      if (schemaFile.#dirty) {
-        await schemaFile.write()
-      }
-    })
-
     return schemaFile
   }
 
   async refresh() {
     this.contents = await Deno.readTextFile(this.toPath())
-  }
-
-  async write() {
-    const path = SchemaFile.toPath({
-      projectName: this.projectName,
-      fileType: this.fileType,
-      useParent: this.useParent
-    })
-
-    await writeFileSafeDir(path, this.contents)
   }
 
   static create({ projectName, fileType }: CreateArgs) {

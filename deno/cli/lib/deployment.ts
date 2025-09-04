@@ -3,6 +3,10 @@ import type { ClientJson } from './client-json.ts'
 import { ApiClient } from './api-client.ts'
 import type { Manager } from './manager.ts'
 import { Spinner } from './spinner.ts'
+import { getApiDeploymentsDeploymentId } from '../services/getApiDeploymentsDeploymentId.generated.ts'
+import { getApiDeploymentsDeploymentIdDeploymentLogs } from '../services/getApiDeploymentsDeploymentIdDeploymentLogs.generated.ts'
+import { createApiServers } from '../services/createApiServers.generated.ts'
+import invariant from 'tiny-invariant'
 
 type DeployArgs = {
   generatorIds: string[]
@@ -23,21 +27,27 @@ export class Deployment {
 
     spinner.start()
 
-    const serverDeployment = await this.apiClient.deploy({
-      assets,
-      serverName: clientJson.contents.serverName,
-      generatorIds
+    const serverDeployment = await createApiServers({
+      supabase: this.apiClient.manager.auth.supabase,
+      body: {
+        assets,
+        stackName: clientJson.contents.serverName ?? null,
+        generatorIds
+      }
     })
 
-    this.denoDeploymentId = serverDeployment.latestDenoDeploymentId
+    this.denoDeploymentId = serverDeployment.latestDenoDeploymentId ?? undefined
 
     spinner.message = 'Deploying...'
 
     return new Promise((resolve, reject) => {
       const interval = setInterval(async () => {
-        const deployment = await this.apiClient.getDeploymentInfo(
-          serverDeployment.latestDenoDeploymentId
-        )
+        invariant(serverDeployment.latestDenoDeploymentId, 'Deno deployment ID is missing')
+
+        const deployment = await getApiDeploymentsDeploymentId({
+          deploymentId: serverDeployment.latestDenoDeploymentId,
+          supabase: this.apiClient.manager.auth.supabase
+        })
 
         if (deployment.status === 'success') {
           clientJson.setServerInfo({
@@ -62,7 +72,10 @@ export class Deployment {
   }
 
   async getBuildLogs(denoDeploymentId: string) {
-    const buildLogs = await this.apiClient.getBuildLogs(denoDeploymentId)
+    const buildLogs = await getApiDeploymentsDeploymentIdDeploymentLogs({
+      deploymentId: denoDeploymentId,
+      supabase: this.apiClient.manager.auth.supabase
+    })
 
     return buildLogs
   }

@@ -17,6 +17,7 @@ import { PackageDenoJson } from './package-deno-json.ts'
 import { join } from '@std/path/join'
 import type { ApiClient } from './api-client.ts'
 import { Manifest } from './manifest.ts'
+import { getApiServersStackNameHasWriteAccess } from '../services/getApiServersStackNameHasWriteAccess.generated.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -286,7 +287,10 @@ export class Project {
       return true
     }
 
-    const { hasWriteAccess } = await apiClient.hasServerWriteAccess(serverName)
+    const { hasWriteAccess } = await getApiServersStackNameHasWriteAccess({
+      stackName: serverName,
+      supabase: apiClient.manager.auth.supabase
+    })
 
     return hasWriteAccess
   }
@@ -322,7 +326,6 @@ export class Project {
       if (error === 'Deployment failed' && deployment.denoDeploymentId) {
         const buildLogs = await deployment.getBuildLogs(deployment.denoDeploymentId)
 
-        // @ts-expect-error - TODO: fix this
         buildLogs.forEach(log => {
           if (log?.message) {
             console.error(log.message)

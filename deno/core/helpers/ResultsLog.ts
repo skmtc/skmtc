@@ -2,7 +2,6 @@
 import { set } from 'npm:lodash-es@4.17.21'
 import type { ResultsItem, ResultType } from '../types/Results.ts'
 
-
 export class ResultsLog {
   #results: Record<string, ResultType>
 
@@ -41,6 +40,6 @@ const resultRankings: Record<ResultType, number> = {
   error: 50,
   warning: 40,
   success: 30,
-  notSelected: 20,
+  skipped: 20,
   notSupported: 10
 }

@@ -2,6 +2,7 @@ import { Command } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
 import * as Sentry from '@sentry/node'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
 
 export const description = 'Pull base files from deployed workspace'
 
@@ -35,7 +36,10 @@ type PullArgs = {
 
 export const pull = async ({ projectName, skmtcRoot }: PullArgs) => {
   try {
-    const workspace = await skmtcRoot.apiClient.getWorkspaceByName(projectName)
+    const workspace = getApiWorkspacesWorkspaceName({
+      workspaceName: projectName,
+      supabase: skmtcRoot.manager.auth.supabase
+    })
 
     console.log('WORKSPACE', workspace)
   } catch (error) {

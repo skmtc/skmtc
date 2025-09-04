@@ -1,6 +1,8 @@
 import { join } from '@std/path/join'
 import type { ApiClient } from './api-client.ts'
 import { IgnoreFile } from './ignore-file.ts'
+import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
+import { patchApiWorkspacesWorkspaceId } from '../services/patchApiWorkspacesWorkspaceId.generated.ts'
 
 type PushArgs = {
   projectName: string
@@ -46,7 +48,10 @@ export class BaseFiles {
   }
 
   async push({ projectName, apiClient }: PushArgs) {
-    const workspace = await apiClient.getWorkspaceByName(projectName)
+    const workspace = await getApiWorkspacesWorkspaceName({
+      workspaceName: projectName,
+      supabase: apiClient.manager.auth.supabase
+    })
 
     const workspaceId = workspace.id
 
@@ -58,7 +63,11 @@ export class BaseFiles {
 
     const baseFiles = BaseFiles.toBaseFiles({ path: this.path, ignoreFile })
 
-    await apiClient.patchWorkspaceById({ workspaceId, baseFiles })
+    await patchApiWorkspacesWorkspaceId({
+      workspaceId,
+      supabase: apiClient.manager.auth.supabase,
+      body: { baseFiles }
+    })
 
     await apiClient.uploadBaseFiles({ workspaceId, baseFiles })
   }

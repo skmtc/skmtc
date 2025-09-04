@@ -147,6 +147,7 @@ export const generate = async (
     const workspace = new Workspace()
 
     await project.schemaFile?.refresh()
+    await project.clientJson.refresh()
 
     const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 

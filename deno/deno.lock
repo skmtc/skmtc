@@ -66,7 +66,8 @@
     "npm:ts-pattern@^5.8.0": "5.8.0",
     "npm:unique-names-generator@^4.7.1": "4.7.1",
     "npm:valibot@1.1.0": "1.1.0",
-    "npm:zod@^3.25.76": "3.25.76"
+    "npm:zod@^3.25.76": "3.25.76",
+    "npm:zod@^4.0.14": "4.1.5"
   },
   "jsr": {
     "@cliffy/ansi@1.0.0-rc.8": {
@@ -239,7 +240,7 @@
         "express-rate-limit",
         "pkce-challenge",
         "raw-body",
-        "zod",
+        "zod@3.25.76",
         "zod-to-json-schema"
       ]
     },
@@ -1797,11 +1798,14 @@
     "zod-to-json-schema@3.24.6_zod@3.25.76": {
       "integrity": "sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==",
       "dependencies": [
-        "zod"
+        "zod@3.25.76"
       ]
     },
     "zod@3.25.76": {
       "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
+    },
+    "zod@4.1.5": {
+      "integrity": "sha512-rcUUZqlLJgBC33IT3PNMgsCq6TzLQEG/Ei/KTCU0PedSWRMAXoOUN+4t/0H+Q8bdnLPdqUYnvboJT0bn/229qg=="
     }
   },
   "workspace": {
@@ -1819,6 +1823,7 @@
       "jsr:@std/http@^1.0.16",
       "jsr:@std/log@~0.224.6",
       "jsr:@std/path@^1.0.9",
+      "jsr:@std/semver@^1.0.5",
       "jsr:@std/testing@^1.0.8",
       "jsr:@std/yaml@^1.0.5",
       "jsr:@supabase/supabase-js@^2.49.8",
@@ -1836,13 +1841,13 @@
       "npm:tiny-invariant@1.3.3",
       "npm:ts-pattern@^5.8.0",
       "npm:unique-names-generator@^4.7.1",
-      "npm:valibot@1.1.0"
+      "npm:valibot@1.1.0",
+      "npm:zod@^4.0.14"
     ],
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.768",
-          "jsr:@std/semver@^1.0.5"
+          "jsr:@skmtc/core@^0.0.774"
         ]
       },
       "core": {
@@ -1862,7 +1867,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.188",
+          "jsr:@skmtc/cli@^0.0.194",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -1871,12 +1876,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.768",
-          "jsr:@std/log@~0.224.6",
-          "jsr:@std/yaml@^1.0.5",
-          "npm:@apiture/openapi-down-convert@0.14",
-          "npm:@sentry/node@^10.8.0",
-          "npm:swagger2openapi@^7.0.8"
+          "jsr:@skmtc/core@^0.0.774"
         ]
       }
     }

@@ -7,6 +7,7 @@ import { Jsr } from './jsr.ts'
 import cliDenoJson from '../deno.json' with { type: 'json' }
 import { compare } from '@std/semver/compare'
 import { parse } from '@std/semver/parse'
+import { createApiServers } from '../services/createApiServers.generated.ts'
 
 type CreateProjectArgs = {
   name: string
@@ -59,7 +60,12 @@ export class SkmtcRoot {
   }
 
   async createDenoProject(name: string) {
-    const project = await this.apiClient.createDenoProject({ projectName: name })
+    const project = await createApiServers({
+      supabase: this.manager.auth.supabase,
+      body: {
+        stackName: name
+      }
+    })
 
     return project
   }

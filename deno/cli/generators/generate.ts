@@ -26,7 +26,6 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
       })
 
       deletePreviousArtifacts({
-        basePath: project.clientJson.contents.settings.basePath,
         incomingPaths: Object.keys(artifacts ?? {}),
         projectPath: project.toPath()
       })
@@ -96,13 +95,11 @@ export const generatorArtifacts = async ({
 }
 
 type DeletePreviousArtifactsArgs = {
-  basePath: string | undefined
   projectPath: string
   incomingPaths: string[]
 }
 
 export const deletePreviousArtifacts = ({
-  basePath = '',
   incomingPaths,
   projectPath
 }: DeletePreviousArtifactsArgs) => {
@@ -125,7 +122,7 @@ export const deletePreviousArtifacts = ({
   paths.forEach(path => {
     try {
       if (!incomingPaths.includes(path)) {
-        const absolutePath = join(Deno.cwd(), basePath, path)
+        const absolutePath = join(Deno.cwd(), path)
 
         Deno.removeSync(absolutePath)
       }

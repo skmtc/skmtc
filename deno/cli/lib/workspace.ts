@@ -11,6 +11,7 @@ import type { SkmtcRoot } from './skmtc-root.ts'
 import * as v from 'valibot'
 import type { Project } from './project.ts'
 import invariant from 'tiny-invariant'
+import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
 
 type GenerateArtifactsArgs = {
   project: Project
@@ -24,7 +25,10 @@ type GetWorkspaceArgs = {
 
 export class Workspace {
   async getWorkspace({ project, skmtcRoot }: GetWorkspaceArgs) {
-    const workspace = await skmtcRoot.apiClient.getWorkspaceByName(project.name)
+    const workspace = await getApiWorkspacesWorkspaceName({
+      workspaceName: project.name,
+      supabase: skmtcRoot.manager.auth.supabase
+    })
 
     invariant(workspace, 'Workspace not found')
 
@@ -69,12 +73,9 @@ export class Workspace {
 
     const { artifacts, manifest } = v.parse(generateResponse, data)
 
-    const basePath = project.clientJson.contents.settings.basePath ?? ''
-
     deletePreviousArtifacts({
-      incomingPaths: Object.keys(artifacts ?? {}).map(path => join(basePath, path)),
-      projectPath: project.toPath(),
-      basePath
+      incomingPaths: Object.keys(artifacts ?? {}),
+      projectPath: project.toPath()
     })
 
     ensureFileSync(manifestPath)
@@ -82,7 +83,9 @@ export class Workspace {
     Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
 
     Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
-      const absolutePath = join(Deno.cwd(), basePath, artifactPath)
+      const cwd = Deno.cwd()
+
+      const absolutePath = join(cwd, artifactPath)
 
       const { dir } = parse(absolutePath)
 

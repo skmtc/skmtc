@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 
-export type ResultType = 'success' | 'warning' | 'error' | 'notSelected' | 'notSupported'
+export type ResultType = 'success' | 'warning' | 'error' | 'skipped' | 'notSupported'
 
 export type WarningError = 'warning' | 'error'
 
@@ -8,7 +8,7 @@ export const resultType = v.union([
   v.literal('success'),
   v.literal('warning'),
   v.literal('error'),
-  v.literal('notSelected'),
+  v.literal('skipped'),
   v.literal('notSupported')
 ])
 

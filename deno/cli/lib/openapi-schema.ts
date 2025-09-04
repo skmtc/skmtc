@@ -1,6 +1,9 @@
 import { exists } from '@std/fs/exists'
-import type { CreateSchemaBody } from './api-client.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
+import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
+import { patchApiSchemasSchemaId } from '../services/patchApiSchemasSchemaId.generated.ts'
+import { CreateSchemaBodyFile } from '../types/createSchemaBodyFile.generated.ts'
+import { createApiSchemas } from '../services/createApiSchemas.generated.ts'
 
 type OpenApiSchemaArgs = {
   path: string
@@ -38,9 +41,12 @@ export class OpenApiSchema {
   }
 
   async upload({ projectName, skmtcRoot }: UploadArgs) {
-    const workspace = await skmtcRoot.apiClient.getWorkspaceByName(projectName)
+    const workspace = await getApiWorkspacesWorkspaceName({
+      workspaceName: projectName,
+      supabase: skmtcRoot.manager.auth.supabase
+    })
 
-    const schemaId = workspace.schemaId
+    const schemaId = workspace.schema.id
 
     if (schemaId) {
       const serverFilePath = await skmtcRoot.apiClient.uploadSchemaFile({
@@ -48,12 +54,14 @@ export class OpenApiSchema {
         schemaId
       })
 
-      const file: CreateSchemaBody = {
+      const file: CreateSchemaBodyFile = {
         type: 'file',
-        filePath: serverFilePath
+        fileContent: serverFilePath
       }
 
-      const [schema] = await skmtcRoot.apiClient.updateSchema({
+      const schema = await patchApiSchemasSchemaId({
+        schemaId,
+        supabase: skmtcRoot.manager.auth.supabase,
         body: {
           id: schemaId,
           file: file
@@ -67,12 +75,10 @@ export class OpenApiSchema {
         schemaId: Date.now().toString()
       })
 
-      const body: CreateSchemaBody = {
-        type: 'file',
-        filePath: serverFilePath
-      }
-
-      const [schema] = await skmtcRoot.apiClient.createSchema({ body })
+      const schema = await createApiSchemas({
+        supabase: skmtcRoot.manager.auth.supabase,
+        body: { type: 'file', fileContent: serverFilePath }
+      })
 
       return schema
     }

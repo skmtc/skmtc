@@ -6,7 +6,7 @@ import type { OasDocument } from '../oas/document/Document.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { GetFileOptions } from './types.ts'
-import type { ClientSettings } from '../types/Settings.ts'
+import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '../types/Settings.ts'
 import type { Method } from '../types/Method.ts'
 import type { OperationConfig, OperationInsertable } from '../dsl/operation/types.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
@@ -210,9 +210,27 @@ export class GenerateContext {
             return
           }
 
+          const skip: SkipOperations | SkipModels | undefined = this.settings?.skip?.find(
+            (skip): skip is SkipOperations | SkipModels => {
+              return typeof skip === 'object' && Boolean(skip[generatorConfig.id])
+            }
+          )
+
           match(generatorConfig.type)
-            .with('operation', () => this.#runOperationGenerator(this.oasDocument, generatorConfig))
-            .with('model', () => this.#runModelGenerator(this.oasDocument, generatorConfig))
+            .with('operation', () =>
+              this.#runOperationGenerator(
+                this.oasDocument,
+                generatorConfig,
+                toSkipPaths(skip, generatorConfig.id)
+              )
+            )
+            .with('model', () =>
+              this.#runModelGenerator(
+                this.oasDocument,
+                generatorConfig,
+                toSkipModels(skip, generatorConfig.id)
+              )
+            )
             .otherwise(matched => {
               throw new Error(`Invalid generator type: '${matched}' on ${generatorConfig.id}`)
             })
@@ -226,7 +244,11 @@ export class GenerateContext {
       mappings: this.#mappings
     }
   }
-  #runOperationGenerator(oasDocument: OasDocument, generatorConfig: OperationConfig) {
+  #runOperationGenerator(
+    oasDocument: OasDocument,
+    generatorConfig: OperationConfig,
+    skip: SkipPaths | undefined
+  ) {
     oasDocument.operations.reduce((acc, operation) => {
       return this.trace([operation.path, operation.method], () => {
         try {
@@ -235,6 +257,11 @@ export class GenerateContext {
             !generatorConfig.isSupported({ operation, context: this })
           ) {
             this.captureCurrentResult('notSupported')
+            return acc
+          }
+
+          if (skip?.[operation.path]?.includes(operation.method)) {
+            this.captureCurrentResult('skipped')
             return acc
           }
 
@@ -258,12 +285,21 @@ export class GenerateContext {
     }, undefined)
   }
 
-  #runModelGenerator(oasDocument: OasDocument, generatorConfig: ModelConfig) {
+  #runModelGenerator(
+    oasDocument: OasDocument,
+    generatorConfig: ModelConfig,
+    skip: string[] | undefined
+  ) {
     const refNames = oasDocument.components?.toSchemasRefNames() ?? []
 
     return refNames.reduce((acc, refName) => {
       return this.trace(refName, () => {
         try {
+          if (skip?.includes(refName)) {
+            this.captureCurrentResult('skipped')
+            return acc
+          }
+
           const result = generatorConfig.transform({ context: this, refName, acc })
 
           const source = toModelSource({ refName, generatorId: generatorConfig.id })
@@ -702,3 +738,29 @@ export const toModelSource = ({ refName, generatorId }: ToModelSourceArgs): Mode
   generatorId,
   refName
 })
+
+const toSkipPaths = (
+  skip: SkipOperations | SkipModels | undefined,
+  generatorId: string
+): SkipPaths | undefined => {
+  const generatorSkip = skip?.[generatorId]
+
+  if (typeof generatorSkip === 'object' && !Array.isArray(generatorSkip)) {
+    return generatorSkip
+  }
+
+  return undefined
+}
+
+const toSkipModels = (
+  skip: SkipOperations | SkipModels | undefined,
+  generatorId: string
+): string[] | undefined => {
+  const generatorSkip = skip?.[generatorId]
+
+  if (Array.isArray(generatorSkip)) {
+    return generatorSkip
+  }
+
+  return undefined
+}
