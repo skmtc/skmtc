@@ -43,15 +43,11 @@ export type ClientSettings = {
 }
 
 export type SkmtcClientConfig = {
-  deploymentId?: string
-  serverName?: string
-  serverOrigin?: string
+  projectKey?: string
   settings: ClientSettings
 }
 
 export const skmtcClientConfig = v.object({
-  deploymentId: v.optional(v.string()),
-  serverName: v.optional(v.string()),
-  serverOrigin: v.optional(v.string()),
+  projectKey: v.optional(v.string()),
   settings: clientSettings
 })

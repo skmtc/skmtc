@@ -50,14 +50,8 @@ export const runtimeLogs = async (
       throw new Error('Project has no manifest. Has generation been run?')
     }
 
-    const { deploymentId } = project.clientJson.contents
-
-    if (!deploymentId) {
-      throw new Error('Project has no deployment ID. Has it been deployed?')
-    }
-
     const runtimeLogs = await getApiDeploymentsDeploymentIdRuntimeLogs({
-      deploymentId,
+      deploymentId: manifest.deploymentId,
       q: manifest.spanId,
       since: new Date(manifest.startAt).toISOString(),
       supabase: skmtcRoot.manager.auth.supabase

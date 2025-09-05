@@ -9,6 +9,7 @@ import { createApiServers } from '../services/createApiServers.generated.ts'
 import invariant from 'tiny-invariant'
 
 type DeployArgs = {
+  serverName: string
   generatorIds: string[]
   assets: Record<string, DenoFile>
   clientJson: ClientJson
@@ -22,7 +23,7 @@ export class Deployment {
     this.apiClient = new ApiClient(manager)
   }
 
-  async deploy({ assets, generatorIds, clientJson }: DeployArgs) {
+  async deploy({ serverName, assets, generatorIds, clientJson }: DeployArgs) {
     const spinner = new Spinner({ message: 'Uploading...', color: 'yellow' })
 
     spinner.start()
@@ -31,7 +32,7 @@ export class Deployment {
       supabase: this.apiClient.manager.auth.supabase,
       body: {
         assets,
-        stackName: clientJson.contents.serverName ?? null,
+        serverName,
         generatorIds
       }
     })
@@ -49,11 +50,10 @@ export class Deployment {
           supabase: this.apiClient.manager.auth.supabase
         })
 
+        const userName = this.apiClient.manager.auth.toUserName()
+
         if (deployment.status === 'success') {
-          clientJson.setServerInfo({
-            serverName: serverDeployment.stackName,
-            deploymentId: serverDeployment.latestDenoDeploymentId
-          })
+          clientJson.contents.projectKey = `${userName}/${clientJson.projectName}`
 
           clearInterval(interval)
           spinner.stop()
@@ -61,7 +61,7 @@ export class Deployment {
         }
 
         if (deployment.status === 'failed') {
-          clientJson.setServerInfo({ serverName: serverDeployment.stackName })
+          clientJson.contents.projectKey = `${userName}/${clientJson.projectName}`
 
           clearInterval(interval)
           spinner.stop()

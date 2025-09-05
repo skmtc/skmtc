@@ -17,8 +17,7 @@ type ConstructorArgs = {
 }
 
 type ServerInfo = {
-  serverName: string
-  deploymentId?: string
+  projectKey: string
 }
 
 export class ClientJson {
@@ -65,15 +64,6 @@ export class ClientJson {
     manager.cleanupActions.push(async () => await clientJson.write())
 
     return clientJson
-  }
-
-  setServerInfo({ serverName, deploymentId }: ServerInfo) {
-    this.contents.serverName = serverName
-
-    if (deploymentId) {
-      this.contents.deploymentId = deploymentId
-      this.contents.serverOrigin = `https://${serverName}-${deploymentId}.deno.dev`
-    }
   }
 
   async write() {

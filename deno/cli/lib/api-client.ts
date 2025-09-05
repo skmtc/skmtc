@@ -3,10 +3,6 @@ import * as v from 'valibot'
 import type { OpenApiSchema } from './openapi-schema.ts'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 
-type GenerateArtifactsArgs = {
-  workspaceId: string
-}
-
 type UploadBaseFilesArgs = {
   workspaceId: string
   baseFiles: Record<string, unknown>
@@ -67,40 +63,6 @@ export class ApiClient {
       throw new Error('Failed to upload base files', { cause: error })
     }
   }
-}
-
-export const openApiVersion = v.picklist(['2.0', '3.0', '3.1'])
-export type OpenApiVersion = v.InferOutput<typeof openApiVersion>
-
-export const schemaFormat = v.picklist(['json', 'yaml'])
-export type SchemaFormat = v.InferOutput<typeof schemaFormat>
-
-export const schema = v.object({
-  id: v.string(),
-  schemaId: v.string(),
-  name: v.string(),
-  slug: v.string(),
-  openapiVersion: openApiVersion,
-  format: schemaFormat,
-  iconKey: v.optional(v.nullable(v.string())),
-  sourceUrl: v.optional(v.nullable(v.string())),
-  originalFilePath: v.string(),
-  v3JsonFilePath: v.string(),
-  createdAt: v.string()
-})
-
-export type Schema = {
-  id: string
-  schemaId: string
-  name: string
-  slug: string
-  iconKey?: string | null | undefined
-  openapiVersion: OpenApiVersion
-  format: SchemaFormat
-  sourceUrl?: string | null | undefined
-  originalFilePath: string
-  v3JsonFilePath: string
-  createdAt: string
 }
 
 export type GenerateResponse = {

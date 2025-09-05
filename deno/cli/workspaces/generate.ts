@@ -14,30 +14,48 @@ import { Confirm } from '@cliffy/prompt'
 
 export const description = 'Generate artifacts'
 
+/* projectName 
+
+starts with @
+call remote api
+
+starts with http:// or https://
+call server
+
+starts with anything else
+call generator in ./skmtc (deno only)
+
+should schema be optional in project?
+
+schema
+if starts with @
+use remote api
+
+if starts with http:// or https://
+fetch it
+
+use as path to file
+
+*/
+
 export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
-    .arguments('[project:string]')
+    .arguments('<project:string>')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
     .action(async ({ watch }, projectName) => {
-      const projects = projectName
-        ? skmtcRoot.projects.filter(({ name }) => name === projectName)
-        : skmtcRoot.projects
+      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+      invariant(project, `Project "${projectName}" not found`)
 
       const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
 
       spinner.start()
 
       if (watch) {
-        projects.forEach(project => {
-          setupWatcher({ project, skmtcRoot, spinner })
-        })
+        setupWatcher({ project, skmtcRoot, spinner })
       } else {
-        const promises = projects.map(project => {
-          return generate({ project, skmtcRoot, spinner }, { logSuccess: 'Artifacts generated' })
-        })
-
-        await Promise.all(promises)
+        await generate({ project, skmtcRoot, spinner }, { logSuccess: 'Artifacts generated' })
 
         spinner.stop()
       }
@@ -186,9 +204,9 @@ type EnsureDeploymentIdArgs = {
 }
 
 const ensureDeployment = async ({ project }: EnsureDeploymentIdArgs): Promise<boolean> => {
-  const { serverOrigin } = project.clientJson.contents
+  const { projectKey } = project.clientJson.contents
 
-  if (serverOrigin) {
+  if (projectKey) {
     return true
   }
 

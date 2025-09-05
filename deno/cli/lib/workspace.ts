@@ -1,8 +1,3 @@
-import {
-  deletePreviousArtifacts,
-  generateResponse,
-  type GenerateResponse
-} from '../generators/generate.ts'
 import { join } from '@std/path/join'
 import { parse } from '@std/path/parse'
 import { ensureDirSync } from '@std/fs/ensure-dir'
@@ -12,6 +7,57 @@ import * as v from 'valibot'
 import type { Project } from './project.ts'
 import invariant from 'tiny-invariant'
 import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
+import { existsSync } from '@std/fs/exists'
+import { type ManifestContent, manifestContent } from '@skmtc/core'
+import { createApiServersAccountNameServerNameArtifacts } from '@/services/createApiServersAccountNameServerNameArtifacts.generated.ts'
+
+export type GenerateResponse = {
+  artifacts: Record<string, string>
+  manifest: ManifestContent
+}
+export const generateResponse: v.GenericSchema<GenerateResponse> = v.object({
+  artifacts: v.record(v.string(), v.string()),
+  manifest: manifestContent
+})
+
+type DeletePreviousArtifactsArgs = {
+  projectPath: string
+  incomingPaths: string[]
+}
+
+export const deletePreviousArtifacts = ({
+  incomingPaths,
+  projectPath
+}: DeletePreviousArtifactsArgs) => {
+  const manifestPath = join(projectPath, '.settings', 'manifest.json')
+
+  if (!existsSync(manifestPath)) {
+    return
+  }
+
+  const manifest = Deno.readTextFileSync(manifestPath)
+
+  const manifestFile = v.parse(manifestContent, JSON.parse(manifest))
+
+  if (!manifest) {
+    return
+  }
+
+  const paths = Object.keys(manifestFile.files)
+
+  paths.forEach(path => {
+    try {
+      if (!incomingPaths.includes(path)) {
+        const absolutePath = join(Deno.cwd(), path)
+
+        Deno.removeSync(absolutePath)
+      }
+    } catch (_error) {
+      // Ignore
+      // console.error(`Failed to delete artifact: "${error}"`)
+    }
+  })
+}
 
 type GenerateArtifactsArgs = {
   project: Project
@@ -44,34 +90,29 @@ export class Workspace {
 
     const manifestPath = join(project.toPath(), '.settings', 'manifest.json')
 
-    const { serverOrigin } = project.clientJson.contents
+    const { projectKey } = project.clientJson.contents
 
-    if (!serverOrigin) {
+    if (!projectKey) {
       throw new Error(
-        'Project is missing "serverOrigin" in ".settings/client.json". Has it been deployed?'
+        'Project is missing "projectKey" in ".settings/client.json". Has it been deployed?'
       )
     }
 
-    const res = await fetch(`${serverOrigin}/artifacts`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    const [accountName, serverName] = projectKey.split('/')
+
+    invariant(accountName, 'Account name not found')
+    invariant(serverName, 'Server name not found')
+
+    const { artifacts, manifest } = await createApiServersAccountNameServerNameArtifacts({
+      supabase: project.manager.auth.supabase,
+      accountName,
+      serverName,
+      body: {
         schema: project.schemaFile?.contents,
         clientSettings: project.clientJson.contents?.settings,
         prettier: project.prettierJson?.contents
-      })
+      }
     })
-
-    if (!res.ok) {
-      console.log(await res.text())
-      throw new Error('Failed to generate artifacts')
-    }
-
-    const data = await res.json()
-
-    const { artifacts, manifest } = v.parse(generateResponse, data)
 
     deletePreviousArtifacts({
       incomingPaths: Object.keys(artifacts ?? {}),

@@ -1,21 +1,21 @@
 import { z } from 'zod'
 import { SupabaseClient, FunctionsHttpError } from '@supabase/supabase-js'
 
-export type GetApiServersStackNameHasWriteAccessArgs = {
-  stackName: string
+export type GetApiServersServerNameHasWriteAccessArgs = {
+  serverName: string
   supabase: SupabaseClient
 }
 
-export const getApiServersStackNameHasWriteAccessResponse = z.object({
+export const getApiServersServerNameHasWriteAccessResponse = z.object({
   hasWriteAccess: z.boolean(),
 })
 
-export const getApiServersStackNameHasWriteAccess = async ({
-  stackName,
+export const getApiServersServerNameHasWriteAccess = async ({
+  serverName,
   supabase,
-}: GetApiServersStackNameHasWriteAccessArgs) => {
+}: GetApiServersServerNameHasWriteAccessArgs) => {
   const { data, error } = await supabase.functions.invoke(
-    `/servers/${stackName}/hasWriteAccess`,
+    `/servers/${serverName}/hasWriteAccess`,
     {
       method: 'GET',
     },
@@ -32,5 +32,5 @@ export const getApiServersStackNameHasWriteAccess = async ({
     throw new Error(`Failed to deploy stack`)
   }
 
-  return getApiServersStackNameHasWriteAccessResponse.parse(data)
+  return getApiServersServerNameHasWriteAccessResponse.parse(data)
 }

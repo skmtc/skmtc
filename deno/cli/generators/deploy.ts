@@ -7,24 +7,20 @@ export const description = 'Deploy generators'
 export const toDeployCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
-    .arguments('[project:string]')
-    .action(async (_options, project) => {
-      const projects = project
-        ? skmtcRoot.projects.filter(({ name }) => name === project)
-        : skmtcRoot.projects
+    .arguments('<project:string>')
+    .action(async (_options, projectName) => {
+      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
 
-      const promises = projects.map(project => {
-        return project.deploy({ logSuccess: 'Generators deployed' })
-      })
+      invariant(project, `Project "${projectName}" not found`)
 
-      await Promise.all(promises)
+      await project.deploy({ logSuccess: 'Generators deployed' })
     })
 }
 
 export const toDeployPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   const project = skmtcRoot.projects.find(project => project.name === projectName)
 
-  invariant(project, 'Project not found')
+  invariant(project, `Project "${projectName}" not found`)
 
   await project.deploy({ logSuccess: 'Generators deployed' })
 }

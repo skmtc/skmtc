@@ -17,7 +17,7 @@ import { PackageDenoJson } from './package-deno-json.ts'
 import { join } from '@std/path/join'
 import type { ApiClient } from './api-client.ts'
 import { Manifest } from './manifest.ts'
-import { getApiServersStackNameHasWriteAccess } from '../services/getApiServersStackNameHasWriteAccess.generated.ts'
+import { getApiServersServerNameHasWriteAccess } from '../services/getApiServersServerNameHasWriteAccess.generated.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -281,14 +281,20 @@ export class Project {
   }
 
   async hasServerWriteAccess(apiClient: ApiClient) {
-    const { serverName } = this.clientJson.contents
+    const { projectKey } = this.clientJson.contents
+
+    if (!projectKey) {
+      return true
+    }
+
+    const [_accountName, serverName] = projectKey.split('/')
 
     if (!serverName) {
       return true
     }
 
-    const { hasWriteAccess } = await getApiServersStackNameHasWriteAccess({
-      stackName: serverName,
+    const { hasWriteAccess } = await getApiServersServerNameHasWriteAccess({
+      serverName,
       supabase: apiClient.manager.auth.supabase
     })
 
@@ -303,10 +309,24 @@ export class Project {
     const deployment = new Deployment(this.manager)
 
     const assets = await toAssets({ projectRoot: toProjectPath(this.name) })
+    const { projectKey } = this.clientJson.contents
+
+    if (!projectKey) {
+      console.error('Project has no project key')
+      return
+    }
+
+    const [_accountName, serverName] = projectKey.split('/')
+
+    if (!serverName) {
+      console.error('Project has no server name')
+      return
+    }
 
     try {
       await deployment.deploy({
         assets,
+        serverName,
         clientJson: this.clientJson,
         generatorIds: this.toGeneratorIds()
       })

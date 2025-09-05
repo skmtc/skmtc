@@ -59,11 +59,11 @@ export class SkmtcRoot {
     await this.manager.auth.logout()
   }
 
-  async createDenoProject(name: string) {
+  async createDenoProject(serverName: string) {
     const project = await createApiServers({
       supabase: this.manager.auth.supabase,
       body: {
-        stackName: name
+        serverName
       }
     })
 
