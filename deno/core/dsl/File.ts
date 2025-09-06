@@ -137,6 +137,47 @@ export class File {
     this.packages = settings?.packages
   }
 
+  /**
+   * Generates the complete TypeScript file content.
+   * 
+   * This method orchestrates the rendering of all file components in the correct order:
+   * re-exports first, then imports, and finally definitions. It automatically handles
+   * module path normalization based on package configuration and filters out empty sections.
+   * 
+   * @returns The complete TypeScript file content as a string
+   * 
+   * @example Basic file generation
+   * ```typescript
+   * const file = new File({ path: './api.ts', settings: undefined });
+   * 
+   * // Add some imports and definitions
+   * file.imports.set('./types', new Set(['User', 'Product']));
+   * file.definitions.set('ApiClient', someDefinition);
+   * 
+   * const content = file.toString();
+   * console.log(content);
+   * // import { User, Product } from './types'
+   * // 
+   * // export class ApiClient {
+   * //   // ... definition content
+   * // }
+   * ```
+   * 
+   * @example With re-exports
+   * ```typescript
+   * const file = new File({ path: './index.ts', settings: undefined });
+   * 
+   * file.reExports.set('./models', {
+   *   'type': new Set(['User', 'Product']),
+   *   'const': new Set(['DEFAULT_CONFIG'])
+   * });
+   * 
+   * const content = file.toString();
+   * console.log(content);
+   * // export type { User, Product } from './models'
+   * // export { DEFAULT_CONFIG } from './models'
+   * ```
+   */
   toString(): string {
     const reExports = Array.from(this.reExports.entries()).flatMap(([module, entityTypes]) => {
       const updatedModuleName = normaliseModuleName({
@@ -173,17 +214,75 @@ export class File {
   }
 }
 
+/**
+ * Arguments for the {@link normaliseModuleName} function.
+ */
 export type NormaliseModuleNameArgs = {
+  /** The path of the file that will contain the import/export */
   destinationPath: string
+  /** The original path being imported/exported from */
   exportPath: string
+  /** Package configuration for path resolution */
   packages: ModulePackage[] | undefined
 }
 
+/**
+ * Normalizes module import/export paths based on package configuration.
+ * 
+ * This function handles path resolution for complex project structures with multiple
+ * packages. It converts file system paths to appropriate module names based on:
+ * - Whether the destination and export paths are in the same package
+ * - Package-specific module naming conventions
+ * - Root path truncation for intra-package imports
+ * 
+ * @param args - Path normalization arguments
+ * @param args.destinationPath - The path of the file that will contain the import/export
+ * @param args.exportPath - The original path being imported/exported from  
+ * @param args.packages - Package configuration for path resolution (defaults to empty array)
+ * @returns The normalized module name to use in import/export statements
+ * 
+ * @throws {Error} When a matching package is found but has no moduleName configured
+ * 
+ * @example Cross-package import
+ * ```typescript
+ * const normalized = normaliseModuleName({
+ *   destinationPath: './packages/client/src/api.ts',
+ *   exportPath: './packages/types/models/User.ts',
+ *   packages: [
+ *     { rootPath: './packages/types', moduleName: '@company/types' },
+ *     { rootPath: './packages/client', moduleName: '@company/client' }
+ *   ]
+ * });
+ * console.log(normalized); // '@company/types'
+ * ```
+ * 
+ * @example Intra-package import (same package)
+ * ```typescript
+ * const normalized = normaliseModuleName({
+ *   destinationPath: './packages/types/src/index.ts',
+ *   exportPath: './packages/types/models/User.ts', 
+ *   packages: [
+ *     { rootPath: './packages/types', moduleName: '@company/types' }
+ *   ]
+ * });
+ * console.log(normalized); // '@/models/User.ts' (truncates root path)
+ * ```
+ * 
+ * @example No package match (returns original path)
+ * ```typescript
+ * const normalized = normaliseModuleName({
+ *   destinationPath: './src/index.ts',
+ *   exportPath: './src/utils.ts',
+ *   packages: []
+ * });
+ * console.log(normalized); // './src/utils.ts'
+ * ```
+ */
 export const normaliseModuleName = ({
   destinationPath,
   exportPath,
   packages = []
-}: NormaliseModuleNameArgs) => {
+}: NormaliseModuleNameArgs): string => {
   const matchingModule = packages.find(packageModule => {
     return exportPath.startsWith(packageModule.rootPath)
   })
