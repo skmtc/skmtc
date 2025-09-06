@@ -1,13 +1,105 @@
 import type { OasParameter } from '../parameter/Parameter.ts'
 import type { OasRef } from '../ref/Ref.ts'
 
+/**
+ * Constructor fields for {@link OasPathItem}.
+ */
 export type PathItemFields = {
+  /** Optional summary for the path item */
   summary?: string | undefined
+  /** Optional description for the path item */
   description?: string | undefined
+  /** Parameters that are applicable for all operations on this path */
   parameters?: (OasParameter | OasRef<'parameter'>)[] | undefined
+  /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
 }
 
+/**
+ * Represents a Path Item Object in the OpenAPI Specification.
+ * 
+ * The `OasPathItem` class describes operations available on a single API path.
+ * It serves as a container for HTTP operations (GET, POST, PUT, DELETE, etc.)
+ * and can define parameters that apply to all operations on the path.
+ * 
+ * This class provides path-level configuration and shared parameters that
+ * reduce duplication across operations on the same endpoint.
+ * 
+ * ## Key Features
+ * 
+ * - **Operation Container**: Groups HTTP methods for a single path
+ * - **Shared Parameters**: Path-level parameters for all operations
+ * - **Documentation**: Summary and description for the path
+ * - **Extension Support**: Custom fields for additional metadata
+ * - **Parameter Inheritance**: Parameters shared across all operations
+ * 
+ * @example Basic path item with shared parameters
+ * ```typescript
+ * import { OasPathItem, OasParameter, OasString } from '@skmtc/core';
+ * 
+ * const userPathItem = new OasPathItem({
+ *   summary: 'User operations',
+ *   description: 'Operations for managing individual users',
+ *   parameters: [
+ *     new OasParameter({
+ *       name: 'userId',
+ *       in: 'path',
+ *       required: true,
+ *       schema: new OasString({ format: 'uuid' }),
+ *       description: 'Unique identifier for the user'
+ *     })
+ *   ]
+ * });
+ * ```
+ * 
+ * @example Path with common headers
+ * ```typescript
+ * const apiPathItem = new OasPathItem({
+ *   summary: 'API endpoint',
+ *   description: 'Authenticated endpoint requiring API key',
+ *   parameters: [
+ *     new OasParameter({
+ *       name: 'Authorization',
+ *       in: 'header',
+ *       required: true,
+ *       schema: new OasString({ pattern: '^Bearer .+$' }),
+ *       description: 'Bearer token for authentication'
+ *     }),
+ *     new OasParameter({
+ *       name: 'Accept-Version',
+ *       in: 'header',
+ *       required: false,
+ *       schema: new OasString({ enum: ['v1', 'v2'] }),
+ *       description: 'API version preference'
+ *     })
+ *   ]
+ * });
+ * ```
+ * 
+ * @example RESTful resource path
+ * ```typescript
+ * const resourcePathItem = new OasPathItem({
+ *   summary: 'Product resource',
+ *   description: 'CRUD operations for product management',
+ *   parameters: [
+ *     new OasParameter({
+ *       name: 'productId',
+ *       in: 'path',
+ *       required: true,
+ *       schema: new OasInteger({ minimum: 1 }),
+ *       description: 'Product identifier'
+ *     }),
+ *     new OasParameter({
+ *       name: 'include',
+ *       in: 'query',
+ *       required: false,
+ *       schema: new OasString({ enum: ['details', 'reviews', 'images'] }),
+ *       description: 'Additional data to include in response'
+ *     })
+ *   ]
+ * });
+ * ```
+ */
 export class OasPathItem {
   oasType: 'pathItem' = 'pathItem'
   summary: string | undefined
