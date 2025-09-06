@@ -36,7 +36,7 @@
     "publish:ga": "deno task build && deno task publish:deno:ga && deno task publish:npm",
     "build": "deno run -A .scripts/build-node.ts",
     "publish:deno": "deno publish --allow-dirty --token=$JSR_AUTH_TOKEN",
-    "publish:deno:ga": "deno publish",
+    "publish:deno:ga": "deno publish --frozen",
     "publish:npm": "cd ../../packages/core && npm publish"
   },
   "compilerOptions": {

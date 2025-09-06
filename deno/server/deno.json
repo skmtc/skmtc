@@ -9,6 +9,6 @@
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
-    "publish:ga": "deno publish --allow-slow-types"
+    "publish:ga": "deno publish --allow-slow-types --frozen"
   }
 }
