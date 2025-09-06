@@ -17,7 +17,7 @@ type ToSchemaFileTypeArgs = {
 }
 
 type ConstructorArgs = {
-  schemaPath: string
+  schemaSource: SchemaSource
   contents: string
   fileType: FileType
 }
@@ -33,13 +33,23 @@ type ToPathArgs = {
   useParent: boolean
 }
 
+type SchemaSource =
+  | {
+      type: 'local'
+      path: string
+    }
+  | {
+      type: 'remote'
+      url: string
+    }
+
 export class SchemaFile {
   contents: string
-  schemaPath: string
+  schemaSource: SchemaSource
   fileType: FileType
 
-  private constructor({ schemaPath, contents, fileType }: ConstructorArgs) {
-    this.schemaPath = schemaPath
+  private constructor({ schemaSource, contents, fileType }: ConstructorArgs) {
+    this.schemaSource = schemaSource
     this.contents = contents
     this.fileType = fileType
   }
@@ -50,8 +60,8 @@ export class SchemaFile {
     return join(projectPath, `openapi.${fileType}`)
   }
 
-  toPath() {
-    return this.schemaPath
+  toSource() {
+    return this.schemaSource
   }
 
   static async findProjectSchema({
@@ -91,33 +101,66 @@ export class SchemaFile {
 
     const contents = await Deno.readTextFile(SchemaFile.toPath({ projectName, ...fileInfo }))
 
-    const schemaPath = SchemaFile.toPath({ projectName, ...fileInfo })
+    const path = SchemaFile.toPath({ projectName, ...fileInfo })
 
-    const schemaFile = new SchemaFile({ schemaPath, contents, ...fileInfo })
+    const schemaFile = new SchemaFile({
+      schemaSource: { type: 'local', path },
+      contents,
+      ...fileInfo
+    })
 
     return schemaFile
   }
 
-  static async openFromPath(schemaPath: string): Promise<SchemaFile | null> {
-    const resolvedPath = resolve(schemaPath)
+  static async openFromPath(sourceString: string): Promise<SchemaFile | null> {
+    const schemaSource = toSchemaSource(sourceString)
 
-    const contents = await Deno.readTextFile(resolvedPath)
+    const { contents, fileType } = await SchemaFile.getFromSource(schemaSource)
 
-    const fileType = toFileType(schemaPath)
+    return new SchemaFile({ schemaSource, contents, fileType })
+  }
 
-    const schemaFile = new SchemaFile({ schemaPath, contents, fileType })
+  static async getFromSource(
+    source: SchemaSource
+  ): Promise<{ contents: string; fileType: FileType }> {
+    if (source.type === 'remote') {
+      const response = await fetch(source.url)
 
-    return schemaFile
+      const contents = await response.text()
+      const url = new URL(source.url)
+
+      const fileType = toFileType(url.pathname)
+
+      return {
+        contents,
+        fileType
+      }
+    } else {
+      const resolvedPath = resolve(source.path)
+      const contents = await Deno.readTextFile(resolvedPath)
+      const fileType = toFileType(source.path)
+
+      return {
+        contents,
+        fileType
+      }
+    }
   }
 
   async refresh() {
-    this.contents = await Deno.readTextFile(this.toPath())
+    const { contents } = await SchemaFile.getFromSource(this.schemaSource)
+
+    this.contents = contents
   }
 
   static create({ projectName, fileType }: CreateArgs) {
     const schemaPath = SchemaFile.toPath({ projectName, fileType, useParent: false })
 
-    return new SchemaFile({ schemaPath, contents: '', fileType })
+    return new SchemaFile({
+      schemaSource: { type: 'local', path: schemaPath },
+      contents: '',
+      fileType
+    })
   }
 }
 
@@ -131,4 +174,12 @@ const toFileType = (path: string) => {
   }
 
   throw new Error(`File type is not JSON or YAML: ${path}`)
+}
+
+const toSchemaSource = (sourceString: string): SchemaSource => {
+  if (sourceString.startsWith('http://') || sourceString.startsWith('https://')) {
+    return { type: 'remote', url: sourceString }
+  } else {
+    return { type: 'local', path: sourceString }
+  }
 }

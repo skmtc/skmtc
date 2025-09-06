@@ -3,18 +3,20 @@ import type { SchemaFile } from './schema-file.ts'
 import type { ClientJson } from './client-json.ts'
 import { join } from '@std/path/join'
 import type { Manager } from './manager.ts'
-import type { PrettierJson } from './prettier-json.ts'
+import { PrettierJson } from './prettier-json.ts'
 
 type ConstructorArgs = {
   accountName: string
   projectName: string
   schemaFile: SchemaFile
+  prettierJson: PrettierJson | null
   manager: Manager
 }
 
 type FromKeyArgs = {
   projectKey: string
   schemaFile: SchemaFile
+  prettierPath?: string
   manager: Manager
 }
 
@@ -25,17 +27,17 @@ export class RemoteProject {
   clientJson: ClientJson | null
   prettierJson: PrettierJson | null
   manager: Manager
-  constructor({ accountName, projectName, schemaFile, manager }: ConstructorArgs) {
+  constructor({ accountName, projectName, schemaFile, prettierJson, manager }: ConstructorArgs) {
     this.accountName = accountName
     this.projectName = projectName
     this.schemaFile = schemaFile
 
     this.clientJson = null
-    this.prettierJson = null
+    this.prettierJson = prettierJson
     this.manager = manager
   }
 
-  static fromKey({ projectKey, schemaFile, manager }: FromKeyArgs) {
+  static async fromKey({ projectKey, schemaFile, prettierPath, manager }: FromKeyArgs) {
     const [accountName, projectName] = projectKey.split('/')
 
     invariant(accountName.startsWith('@'), 'Account name must start with @')
@@ -43,10 +45,13 @@ export class RemoteProject {
     invariant(accountName, 'Account name not found')
     invariant(projectName, 'Project name not found')
 
+    const prettierJson = prettierPath ? await PrettierJson.openFromPath(prettierPath) : null
+
     return new RemoteProject({
       accountName: accountName.replace(/^@/, ''),
       projectName,
       schemaFile,
+      prettierJson,
       manager
     })
   }

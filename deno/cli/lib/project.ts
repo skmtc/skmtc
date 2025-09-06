@@ -112,7 +112,7 @@ export class Project {
       name,
       rootDenoJson: RootDenoJson.create(name),
       clientJson: ClientJson.create({ projectName: name, basePath }),
-      prettierJson: PrettierJson.create({ projectName: name, contents: {} }),
+      prettierJson: PrettierJson.create({ path: PrettierJson.toPath(name), contents: {} }),
       manifest: await Manifest.open(name),
       manager: skmtcRoot.manager,
       schemaFile: SchemaFile.create({ projectName: name, fileType: 'json' })
@@ -426,7 +426,7 @@ export class Project {
 
     const clientJson = await ClientJson.open(name, manager)
 
-    const prettierJson = await PrettierJson.open(name)
+    const prettierJson = await PrettierJson.openFromPath(PrettierJson.toPath(name))
 
     const manifest = await Manifest.open(name)
 

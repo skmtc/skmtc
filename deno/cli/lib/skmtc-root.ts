@@ -17,6 +17,12 @@ type CreateProjectArgs = {
   generators: string[]
 }
 
+type ToProjectArgs = {
+  projectKey: string
+  schemaPath: string | undefined
+  prettierPath?: string
+}
+
 export class SkmtcRoot {
   projects: Project[]
   manager: Manager
@@ -61,7 +67,7 @@ export class SkmtcRoot {
     await this.manager.auth.logout()
   }
 
-  async toProject(projectKey: string, schemaPath: string | undefined) {
+  async toProject({ projectKey, schemaPath, prettierPath }: ToProjectArgs) {
     if (projectKey.startsWith('@')) {
       invariant(schemaPath, 'Schema path is required for remote projects')
 
@@ -69,7 +75,12 @@ export class SkmtcRoot {
 
       invariant(schemaFile, 'Schema file not found')
 
-      return RemoteProject.fromKey({ projectKey, schemaFile, manager: this.manager })
+      return await RemoteProject.fromKey({
+        projectKey,
+        schemaFile,
+        prettierPath,
+        manager: this.manager
+      })
     }
 
     const project = this.projects.find(({ name }) => name === projectKey)

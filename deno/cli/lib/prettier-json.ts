@@ -6,16 +6,16 @@ import { prettierConfigType, type PrettierConfigType } from '@skmtc/core'
 import { toProjectPath } from './to-project-path.ts'
 
 type ConstructorArgs = {
-  projectName: string
+  path: string
   contents: PrettierConfigType
 }
 
 export class PrettierJson {
-  projectName: string
+  path: string
   contents: PrettierConfigType
 
-  private constructor({ projectName, contents }: ConstructorArgs) {
-    this.projectName = projectName
+  private constructor({ path, contents }: ConstructorArgs) {
+    this.path = path
     this.contents = contents
   }
 
@@ -25,49 +25,45 @@ export class PrettierJson {
     return join(projectPath, '.prettierrc.json')
   }
 
-  static async exists(projectName: string): Promise<boolean> {
-    const prettierJsonPath = PrettierJson.toPath(projectName)
-
-    return await exists(prettierJsonPath, { isFile: true })
+  static async exists(path: string): Promise<boolean> {
+    return await exists(path, { isFile: true })
   }
 
-  static async open(projectName: string): Promise<PrettierJson | null> {
-    const hasPrettierJson = await PrettierJson.exists(projectName)
+  static async openFromPath(path: string): Promise<PrettierJson | null> {
+    const hasPrettierJson = await PrettierJson.exists(path)
 
     if (!hasPrettierJson) {
       return null
     }
 
-    const prettierJson = await Deno.readTextFile(PrettierJson.toPath(projectName))
+    const prettierJson = await Deno.readTextFile(path)
 
     const contents = v.parse(prettierConfigType, JSON.parse(prettierJson))
 
-    return new PrettierJson({ projectName, contents })
+    return new PrettierJson({ path, contents })
   }
 
   async write() {
-    const resolvedPath = PrettierJson.toPath(this.projectName)
-
-    await writeFileSafeDir(resolvedPath, JSON.stringify(this.contents, null, 2))
+    await writeFileSafeDir(this.path, JSON.stringify(this.contents, null, 2))
   }
 
   async refresh() {
-    const hasPrettierJson = await PrettierJson.exists(this.projectName)
+    const hasPrettierJson = await PrettierJson.exists(this.path)
 
     if (!hasPrettierJson) {
       return null
     }
 
-    const contents = await Deno.readTextFile(PrettierJson.toPath(this.projectName))
+    const contents = await Deno.readTextFile(this.path)
 
     const parsed = v.parse(prettierConfigType, JSON.parse(contents))
 
     this.contents = parsed
   }
 
-  static create({ projectName }: ConstructorArgs) {
+  static create({ path }: ConstructorArgs) {
     return new PrettierJson({
-      projectName,
+      path,
       contents: {
         tabWidth: 2,
         useTabs: false,

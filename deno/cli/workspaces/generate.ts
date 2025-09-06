@@ -38,23 +38,14 @@ use as path to file
 
 */
 
-type GeneratorSource =
-  | {
-      type: 'remote'
-      projectKey: string
-    }
-  | {
-      type: 'local'
-      projectName: string
-    }
-
 export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
     .arguments('<project:string> [schema:string]')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
-    .action(async ({ watch }, projectKey, schemaPath) => {
-      const project = await skmtcRoot.toProject(projectKey, schemaPath)
+    .option('-p, --prettier <path:string>', 'Path to prettier config file')
+    .action(async ({ watch, prettier }, projectKey, schemaPath) => {
+      const project = await skmtcRoot.toProject({ projectKey, schemaPath, prettierPath: prettier })
 
       const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
 
@@ -71,7 +62,11 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
 }
 
 export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
-  const project = await skmtcRoot.toProject(projectName, undefined)
+  const project = await skmtcRoot.toProject({
+    projectKey: projectName,
+    schemaPath: undefined,
+    prettierPath: undefined
+  })
 
   const hasDeployment = await project.ensureDeployment()
 
@@ -95,7 +90,9 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 
   invariant(project?.schemaFile, 'Schema file not found')
 
-  const schemaPath = project.schemaFile.toPath()
+  const schemaSource = project.schemaFile.toSource()
+
+  invariant(schemaSource.type === 'local', 'Only local schema files can be watched')
 
   const hasDeployment = await project.ensureDeployment()
 
@@ -111,7 +108,7 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 
   setupWatcher({ project, skmtcRoot, spinner })
 
-  const relativePath = relative(Deno.cwd(), schemaPath)
+  const relativePath = relative(Deno.cwd(), schemaSource.path)
 
   spinner.message = `Watching ${relativePath}`
 
@@ -139,11 +136,11 @@ type WatchGenerateArgs = {
 }
 
 export const setupWatcher = ({ project, skmtcRoot, spinner }: WatchGenerateArgs) => {
-  const schemaPath = project.schemaFile?.toPath()
+  const schemaSource = project.schemaFile?.toSource()
 
-  invariant(schemaPath, `Schema file not found at ${schemaPath}`)
+  invariant(schemaSource?.type === 'local', 'Only local schema files can be watched')
 
-  const watcher = chokidar.watch(schemaPath)
+  const watcher = chokidar.watch(schemaSource.path)
   watcher.on('change', () => {
     generate({ project, skmtcRoot, spinner, watching: true })
   })
