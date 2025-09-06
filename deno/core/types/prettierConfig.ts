@@ -25,7 +25,7 @@ export type PrettierConfigType = {
   singleAttributePerLine?: boolean
 }
 
-export const prettierConfigType = v.object({
+export const prettierConfigType: v.GenericSchema<PrettierConfigType> = v.object({
   printWidth: v.optional(v.number()),
   tabWidth: v.optional(v.number()),
   useTabs: v.optional(v.boolean()),

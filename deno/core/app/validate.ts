@@ -1,4 +1,4 @@
-export const checkProjectName = (name: string) => {
+export const checkProjectName = (name: string): string | undefined => {
   if (name.length < 2) {
     return 'Name must be at least 2 characters long'
   }

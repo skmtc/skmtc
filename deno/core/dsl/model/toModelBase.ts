@@ -28,7 +28,7 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
 
 export const toModelBase = <EnrichmentType = undefined>(
   config: BaseModelConfig<EnrichmentType>
-) => {
+): new (args: ModelInsertableArgs<EnrichmentType>) => ModelBase<EnrichmentType> => {
   return class extends ModelBase<EnrichmentType> {
     static id = config.id
     static type = 'model' as const

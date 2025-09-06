@@ -129,7 +129,7 @@ export class List<
    */
   static toFilteredRecord = (
     record: Record<string, undefined | Stringable | Stringable[] | List>
-  ) => {
+  ): List<Stringable[], ', ', '{}'> => {
     const entries = Object.entries(record).map(([key, value]) => {
       return List.toFilteredKeyValue(key, value)
     })

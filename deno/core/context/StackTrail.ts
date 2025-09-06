@@ -1,25 +1,25 @@
 import { componentsKeys } from '../oas/components/Components.ts'
 
 export class StackTrail {
-  #stack: (string | number)[]
+  #stack: string[]
 
-  constructor(stack: (string | number)[] = []) {
+  constructor(stack: string[] = []) {
     this.#stack = stack
   }
 
-  clone() {
+  clone(): StackTrail {
     return new StackTrail([...this.#stack])
   }
 
-  slice(start: number, end?: number) {
+  slice(start: number, end?: number): StackTrail {
     return new StackTrail(this.#stack.slice(start, end))
   }
 
-  includes(frames: string[]) {
+  includes(frames: string[]): boolean {
     return frames.every(frame => this.#stack.includes(frame))
   }
 
-  get stackTrail() {
+  get stackTrail(): string[] {
     return this.#stack
   }
 
@@ -106,11 +106,11 @@ export class StackTrail {
     return new StackTrail(stack)
   }
 
-  toJSON() {
+  toJSON(): string {
     return this.toString()
   }
 
-  toString() {
+  toString(): string {
     return this.#stack
       .map(item => {
         return typeof item === 'string' ? item.replaceAll(':', '%3A') : item

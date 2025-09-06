@@ -22,7 +22,17 @@ export const toModelEntry = <EnrichmentType = undefined, Acc = void>({
   toMappingModule,
   toEnrichmentSchema,
   toEnrichmentRequest
-}: ToModelEntryArgs<EnrichmentType, Acc>) => {
+}: ToModelEntryArgs<EnrichmentType, Acc>): {
+  id: string;
+  type: 'model';
+  transform: ({ context, refName, acc }: TransformModelArgs<Acc>) => Acc;
+  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule;
+  toMappingModule?: ({ context, refName }: ToModelMappingArgs) => MappingModule;
+  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>;
+  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
+    refName: RefName
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined;
+} => {
   return {
     id,
     type: 'model',

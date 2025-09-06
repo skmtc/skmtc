@@ -112,7 +112,7 @@ export class OasOperation {
     )
   }
 
-  toParametersObject(filter?: OasParameterLocation[]) {
+  toParametersObject(filter?: OasParameterLocation[]): OasObject {
     const parameters = this.toParams(filter)
 
     return parameters.reduce<OasObject>((acc, parameter) => {
@@ -141,7 +141,7 @@ export class OasOperation {
     }
   }
 
-  toJSON() {
+  toJSON(): object {
     return {
       tags: this.tags,
       summary: this.summary,

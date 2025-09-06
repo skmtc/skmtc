@@ -22,7 +22,7 @@ export class OasServer {
     this.extensionFields = fields.extensionFields
   }
 
-  isRef() {
+  isRef(): boolean {
     return false
   }
 

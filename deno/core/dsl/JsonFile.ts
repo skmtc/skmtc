@@ -13,7 +13,7 @@ export class JsonFile {
     this.content = content
   }
 
-  toString() {
+  toString(): string {
     return JSON.stringify(this.content, null, 2)
   }
 }

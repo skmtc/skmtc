@@ -17,6 +17,7 @@ import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { Mapping, Preview } from '../types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '../dsl/JsonFile.ts'
+import type { RenderResult } from './types.ts'
 
 export type ParsePhase = {
   type: 'parse'
@@ -125,7 +126,7 @@ export class CoreContext {
     return log.getLogger(spanId)
   }
 
-  parse(documentObject: OpenAPIV3.Document) {
+  parse(documentObject: OpenAPIV3.Document): { oasDocument: OasDocument } {
     this.#phase = this.#setupParsePhase(documentObject)
 
     const oasDocument = this.#phase.context.parse()
@@ -135,7 +136,7 @@ export class CoreContext {
     }
   }
 
-  async toArtifacts({ documentObject, settings, toGeneratorConfigMap, prettier }: ToArtifactsArgs) {
+  async toArtifacts({ documentObject, settings, toGeneratorConfigMap, prettier }: ToArtifactsArgs): Promise<RenderResult> {
     try {
       const oasDocument = this.trace('parse', () => {
         this.#phase = this.#setupParsePhase(documentObject)

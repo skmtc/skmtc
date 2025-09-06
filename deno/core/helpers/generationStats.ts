@@ -7,7 +7,7 @@ type GenerationStatsArgs = {
   manifest: ManifestContent
   artifacts: Record<string, string>
 }
-export const toGenerationStats = ({ manifest, artifacts }: GenerationStatsArgs) => {
+export const toGenerationStats = ({ manifest, artifacts }: GenerationStatsArgs): { tokens: number; lines: number; totalTime: number; errors: string[][]; files: number } => {
   const tokens = toManifestTokens(artifacts)
   const lines = toManifestLines(manifest)
   const totalTime = toTotalTime(manifest)
@@ -23,7 +23,7 @@ export const toGenerationStats = ({ manifest, artifacts }: GenerationStatsArgs) 
   }
 }
 
-export const toManifestTokens = (artifacts: Record<string, string>) => {
+export const toManifestTokens = (artifacts: Record<string, string>): number => {
   const { tokens } = Object.values(artifacts).reduce(
     (acc, artifact) => ({ tokens: acc.tokens + countTokens(artifact) }),
     { tokens: 0 }
@@ -32,7 +32,7 @@ export const toManifestTokens = (artifacts: Record<string, string>) => {
   return tokens
 }
 
-export const toManifestLines = (manifest: ManifestContent) => {
+export const toManifestLines = (manifest: ManifestContent): number => {
   const { lines } = Object.values(manifest.files).reduce(
     (acc, file) => ({ lines: acc.lines + file.lines }),
     { lines: 0 }
@@ -41,13 +41,13 @@ export const toManifestLines = (manifest: ManifestContent) => {
   return lines
 }
 
-export const toTotalTime = (manifest: ManifestContent) => {
+export const toTotalTime = (manifest: ManifestContent): number => {
   const totalTime = manifest.endAt - manifest.startAt
 
   return totalTime
 }
 
-export const toManifestErrors = (results: ManifestContent['results']) => {
+export const toManifestErrors = (results: ManifestContent['results']): string[][] => {
   const errors: string[][] = []
 
   Object.entries(results).map(([path, result]) => {
@@ -63,7 +63,7 @@ type CheckResultArgs = {
   errors: string[][]
 }
 
-export const checkResult = ({ path, result, errors }: CheckResultArgs) => {
+export const checkResult = ({ path, result, errors }: CheckResultArgs): void => {
   match(result)
     .with(P.array(), matchedResult => {
       return matchedResult.map(item => {

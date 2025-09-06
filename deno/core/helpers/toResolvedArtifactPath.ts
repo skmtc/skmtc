@@ -7,6 +7,6 @@ type ToResolvedArtifactPathArgs = {
 export const toResolvedArtifactPath = ({
   basePath,
   destinationPath
-}: ToResolvedArtifactPathArgs) => {
+}: ToResolvedArtifactPathArgs): string => {
   return join(basePath ?? './', destinationPath.replace(/^@\//, ''))
 }

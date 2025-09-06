@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 
-export const moduleExport = v.object({
+export const moduleExport: v.GenericSchema<ModuleExport> = v.object({
   exportName: v.string(),
   exportPath: v.string()
 })

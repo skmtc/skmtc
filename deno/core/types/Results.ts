@@ -4,7 +4,7 @@ export type ResultType = 'success' | 'warning' | 'error' | 'skipped' | 'notSuppo
 
 export type WarningError = 'warning' | 'error'
 
-export const resultType = v.union([
+export const resultType: v.GenericSchema<ResultType> = v.union([
   v.literal('success'),
   v.literal('warning'),
   v.literal('error'),

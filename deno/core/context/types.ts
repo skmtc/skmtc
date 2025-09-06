@@ -1,7 +1,7 @@
 import type { GeneratorKey } from '../types/GeneratorKeys.ts'
 import type { ManifestEntry } from '../types/Manifest.ts'
 import type { Mapping, Preview } from '../types/Preview.ts'
-import type { ResultType } from '../types/Results.ts'
+import type { ResultType, ResultsItem } from '../types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 
 export type PhaseType = 'parse' | 'generate' | 'render'
@@ -24,7 +24,7 @@ export type RenderResult = {
   files: Record<string, ManifestEntry>
   previews: Record<string, Record<string, Preview>>
   mappings: Record<string, Record<string, Mapping>>
-  results: Record<string, ResultType>
+  results: ResultsItem
 }
 
 export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3_1.Document

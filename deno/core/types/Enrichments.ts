@@ -1,7 +1,7 @@
 import { moduleExport, type ModuleExport } from './ModuleExport.ts'
 import * as v from 'valibot'
 
-export const formFieldItem = v.object({
+export const formFieldItem: v.GenericSchema<FormFieldItem> = v.object({
   id: v.string(),
   accessorPath: v.array(v.string()),
   input: moduleExport,
@@ -17,7 +17,7 @@ export type FormFieldItem = {
   placeholder?: string
 }
 
-export const formItem = v.object({
+export const formItem: v.GenericSchema<FormItem> = v.object({
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   fields: v.optional(v.array(formFieldItem)),
@@ -31,7 +31,7 @@ export type FormItem = {
   submitLabel?: string
 }
 
-export const tableColumnItem = v.object({
+export const tableColumnItem: v.GenericSchema<TableColumnItem> = v.object({
   id: v.string(),
   accessorPath: v.array(v.string()),
   formatter: moduleExport,
@@ -45,7 +45,7 @@ export type TableColumnItem = {
   label: string
 }
 
-export const tableItem = v.object({
+export const tableItem: v.GenericSchema<TableItem> = v.object({
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   columns: v.optional(v.array(tableColumnItem))
@@ -57,7 +57,7 @@ export type TableItem = {
   columns?: TableColumnItem[]
 }
 
-export const inputItem = v.object({
+export const inputItem: v.GenericSchema<InputItem> = v.object({
   id: v.string(),
   accessorPath: v.array(v.string()),
   formatter: moduleExport
@@ -69,7 +69,7 @@ export type InputItem = {
   formatter: ModuleExport
 }
 
-export const operationEnrichments = v.object({
+export const operationEnrichments: v.GenericSchema<OperationEnrichments> = v.object({
   table: v.optional(tableItem),
   form: v.optional(formItem),
   input: v.optional(inputItem)
@@ -81,14 +81,14 @@ export type OperationEnrichments = {
   input?: InputItem
 }
 
-export const methodEnrichments = v.record(v.string(), operationEnrichments)
+export const methodEnrichments: v.GenericSchema<MethodEnrichments> = v.record(v.string(), operationEnrichments)
 
 export type MethodEnrichments = Record<string, OperationEnrichments>
 
-export const pathEnrichments = v.record(v.string(), methodEnrichments)
+export const pathEnrichments: v.GenericSchema<PathEnrichments> = v.record(v.string(), methodEnrichments)
 
 export type PathEnrichments = Record<string, MethodEnrichments>
 
-export const generatorEnrichments = v.record(v.string(), pathEnrichments)
+export const generatorEnrichments: v.GenericSchema<GeneratorEnrichments> = v.record(v.string(), pathEnrichments)
 
 export type GeneratorEnrichments = Record<string, PathEnrichments>

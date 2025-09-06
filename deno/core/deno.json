@@ -34,8 +34,11 @@
   "tasks": {
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",
     "build": "deno run -A .scripts/build-node.ts",
-    "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:deno": "deno publish --allow-dirty --token=$JSR_AUTH_TOKEN",
     "publish:npm": "cd ../../packages/core && npm publish"
+  },
+  "compilerOptions": {
+    "noImplicitAny": true
   },
   "test": {
     "exclude": [

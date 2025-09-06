@@ -22,7 +22,7 @@ type ToEnrichmentsArgs = {
 
 export const toOperationBase = <EnrichmentType = undefined>(
   config: BaseOperationConfig<EnrichmentType>
-) => {
+): new (args: OperationInsertableArgs<EnrichmentType>) => OperationBase<EnrichmentType> => {
   return class extends OperationBase<EnrichmentType> {
     static id = config.id
     static type = 'operation' as const

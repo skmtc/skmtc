@@ -122,7 +122,7 @@ export class OasRef<T extends OasRefData['refType']> {
     return ref
   }
 
-  toJSON() {
+  toJSON(): object {
     return {
       $ref: `#/components/${match(this.refType)
         .with('schema', () => 'schemas')

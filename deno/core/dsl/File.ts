@@ -23,7 +23,7 @@ export class File {
     this.packages = settings?.packages
   }
 
-  toString() {
+  toString(): string {
     const reExports = Array.from(this.reExports.entries()).flatMap(([module, entityTypes]) => {
       const updatedModuleName = normaliseModuleName({
         destinationPath: this.path,

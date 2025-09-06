@@ -21,7 +21,7 @@ export class OasServerVariable {
     this.extensionFields = fields.extensionFields
   }
 
-  isRef() {
+  isRef(): boolean {
     return false
   }
 

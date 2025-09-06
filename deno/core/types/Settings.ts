@@ -2,7 +2,7 @@ import { generatorEnrichments, type GeneratorEnrichments } from './Enrichments.t
 import * as v from 'valibot'
 import { method, type Method } from './Method.ts'
 
-export const modulePackage = v.object({
+export const modulePackage: v.GenericSchema<ModulePackage> = v.object({
   rootPath: v.string(),
   moduleName: v.optional(v.string())
 })
@@ -12,15 +12,15 @@ export type ModulePackage = {
   moduleName?: string
 }
 
-export const skipPaths = v.record(v.string(), v.array(method))
+export const skipPaths: v.GenericSchema<SkipPaths> = v.record(v.string(), v.array(method))
 
-export const skipOperations = v.record(v.string(), skipPaths)
+export const skipOperations: v.GenericSchema<SkipOperations> = v.record(v.string(), skipPaths)
 
-export const skipModels = v.record(v.string(), v.array(v.string()))
+export const skipModels: v.GenericSchema<SkipModels> = v.record(v.string(), v.array(v.string()))
 
-const skip = v.union([skipOperations, skipModels, v.string()])
+const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.string()])
 
-export const clientSettings = v.object({
+export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(v.string()),
   packages: v.optional(v.array(modulePackage)),
   enrichments: v.optional(generatorEnrichments),
@@ -47,7 +47,7 @@ export type SkmtcClientConfig = {
   settings: ClientSettings
 }
 
-export const skmtcClientConfig = v.object({
+export const skmtcClientConfig: v.GenericSchema<SkmtcClientConfig> = v.object({
   projectKey: v.optional(v.string()),
   settings: clientSettings
 })

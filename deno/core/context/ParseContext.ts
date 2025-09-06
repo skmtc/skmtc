@@ -96,7 +96,7 @@ export class ParseContext {
     this.#refErrors = {}
   }
 
-  parse() {
+  parse(): OasDocument {
     this.oasDocument.fields = toDocumentFieldsV3({
       documentObject: this.documentObject,
       context: this
@@ -207,7 +207,7 @@ export class ParseContext {
   }
 }
 
-export const parseSchema = (schema: string) => {
+export const parseSchema = (schema: string): OpenAPIV3.Document => {
   if (schema.trimStart().startsWith('{')) {
     return JSON.parse(schema) as OpenAPIV3.Document
   } else {

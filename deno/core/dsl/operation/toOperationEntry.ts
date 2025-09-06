@@ -31,7 +31,18 @@ export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
   toPreviewModule,
   toMappingModule,
   toEnrichmentRequest
-}: ToOperationConfigArgs<EnrichmentType, Acc>) => {
+}: ToOperationConfigArgs<EnrichmentType, Acc>): {
+  id: string;
+  type: 'operation';
+  transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc;
+  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>;
+  isSupported: ({ context, operation }: IsSupportedArgs) => boolean;
+  toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule;
+  toMappingModule?: ({ context, operation }: ToOperationMappingArgs) => MappingModule;
+  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
+    operation: OasOperation
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined;
+} => {
   return {
     id,
     type: 'operation',

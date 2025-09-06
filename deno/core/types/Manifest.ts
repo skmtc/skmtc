@@ -8,7 +8,7 @@ export type ManifestEntry = {
   destinationPath: string
 }
 
-export const manifestEntry = v.object({
+export const manifestEntry: v.GenericSchema<ManifestEntry> = v.object({
   lines: v.number(),
   characters: v.number(),
   destinationPath: v.string()
@@ -19,7 +19,7 @@ export type PreviewItem = {
   exportPath: string
 }
 
-export const previewItem = v.object({
+export const previewItem: v.GenericSchema<PreviewItem> = v.object({
   name: v.string(),
   exportPath: v.string()
 })
@@ -37,7 +37,7 @@ export type ManifestContent = {
   endAt: number
 }
 
-export const manifestContent = v.object({
+export const manifestContent: v.GenericSchema<ManifestContent> = v.object({
   deploymentId: v.string(),
   traceId: v.string(),
   spanId: v.string(),

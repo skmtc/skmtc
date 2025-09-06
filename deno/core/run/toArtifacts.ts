@@ -26,7 +26,7 @@ export const toArtifacts = async ({
   logsPath,
   startAt,
   silent
-}: TransformArgs) => {
+}: TransformArgs): Promise<{ artifacts: Record<string, string>; manifest: ManifestContent }> => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
   const { artifacts, files, previews, results, mappings } = await context.toArtifacts({

@@ -19,7 +19,6 @@ import type { ApiClient } from './api-client.ts'
 import { Manifest } from './manifest.ts'
 import { getApiServersServerNameHasWriteAccess } from '../services/getApiServersServerNameHasWriteAccess.generated.ts'
 import { Confirm } from '@cliffy/prompt/confirm'
-import { P } from 'ts-pattern'
 
 type AddGeneratorArgs = {
   moduleName: string
