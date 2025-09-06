@@ -31,7 +31,113 @@ type ToRequestBodyMapArgs = {
   requestBody: OasRequestBody
 }
 
-/** Operation represents a resource path and a method that can be enacted against it */
+/**
+ * Represents an OpenAPI Operation Object in the SKMTC OAS processing system.
+ * 
+ * The `OasOperation` class encapsulates a single API operation (path + method combination)
+ * with all its associated metadata, parameters, request/response specifications, and
+ * security requirements. It provides utilities for extracting common operation data
+ * like success responses and request bodies.
+ * 
+ * ## Key Features
+ * 
+ * - **Path and Method**: Unique combination identifying the operation
+ * - **Metadata Access**: Operation ID, summary, description, tags, and deprecation status
+ * - **Parameter Handling**: Query, path, header, and cookie parameters
+ * - **Request/Response Specs**: Type-safe access to request body and response definitions
+ * - **Security Context**: Operation-specific security requirements
+ * - **Success Response Utils**: Helper methods to identify and extract successful responses
+ * 
+ * @example Basic operation properties
+ * ```typescript
+ * import { OasOperation } from '@skmtc/core';
+ * 
+ * // Typically created during document parsing
+ * const getUserOp = new OasOperation({
+ *   path: '/users/{id}',
+ *   method: 'get',
+ *   operationId: 'getUserById',
+ *   summary: 'Get user by ID',
+ *   description: 'Retrieves a single user by their unique identifier',
+ *   parameters: [
+ *     // Path parameter for user ID
+ *     { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+ *   ],
+ *   responses: {
+ *     '200': { description: 'User found', content: { ... } },
+ *     '404': { description: 'User not found' }
+ *   }
+ * });
+ * 
+ * console.log(getUserOp.path);        // '/users/{id}'
+ * console.log(getUserOp.method);      // 'get'
+ * console.log(getUserOp.operationId); // 'getUserById'
+ * ```
+ * 
+ * @example Working with success responses
+ * ```typescript
+ * // Find the primary success response
+ * const successResponse = operation.toSuccessResponse();
+ * if (successResponse) {
+ *   const resolved = successResponse.resolve();
+ *   console.log('Success response:', resolved.description);
+ * }
+ * 
+ * // Get the HTTP status code for success
+ * const successCode = operation.toSuccessResponseCode();
+ * console.log('Success status:', successCode); // '200', '201', 'default', etc.
+ * ```
+ * 
+ * @example Extracting request body data
+ * ```typescript
+ * // Extract request body with custom transformation
+ * const requestData = operation.toRequestBody(({ schema, requestBody }) => {
+ *   return {
+ *     schema: schema,
+ *     contentType: 'application/json',
+ *     required: requestBody.required ?? false,
+ *     description: requestBody.description
+ *   };
+ * });
+ * 
+ * if (requestData) {
+ *   console.log('Request schema:', requestData.schema);
+ *   console.log('Required:', requestData.required);
+ * }
+ * ```
+ * 
+ * @example Parameter processing
+ * ```typescript
+ * // Process operation parameters by location
+ * const pathParams = operation.parameters?.filter(param => {
+ *   const resolved = param.resolve();
+ *   return resolved.in === 'path';
+ * });
+ * 
+ * const queryParams = operation.parameters?.filter(param => {
+ *   const resolved = param.resolve();
+ *   return resolved.in === 'query';
+ * });
+ * 
+ * console.log('Path parameters:', pathParams?.length);
+ * console.log('Query parameters:', queryParams?.length);
+ * ```
+ * 
+ * @example Security requirements
+ * ```typescript
+ * if (operation.security) {
+ *   console.log('Operation has specific security requirements');
+ *   for (const requirement of operation.security) {
+ *     // Process security schemes for this operation
+ *     Object.keys(requirement.schemes).forEach(scheme => {
+ *       console.log(`Security scheme: ${scheme}`);
+ *     });
+ *   }
+ * } else {
+ *   console.log('Operation uses default document security');
+ * }
+ * ```
+ */
 export class OasOperation {
   oasType: 'operation' = 'operation'
 

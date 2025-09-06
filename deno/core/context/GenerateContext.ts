@@ -166,6 +166,101 @@ type GenerateResult = {
   mappings: Record<string, Record<string, Mapping>>
 }
 
+/**
+ * The generation context for the second phase of the SKMTC transformation pipeline.
+ * 
+ * `GenerateContext` manages the transformation of parsed OAS (OpenAPI Schema) objects
+ * into code artifacts using pluggable generators. It provides APIs for model and operation
+ * generation, file management, dependency tracking, and artifact registration.
+ * 
+ * ## Key Responsibilities
+ * 
+ * - **Generator Orchestration**: Executes pluggable model and operation generators
+ * - **Schema Processing**: Provides utilities for working with OAS schemas and references
+ * - **File Management**: Handles file creation, imports, exports, and dependencies
+ * - **Artifact Registration**: Collects generated definitions and files for rendering
+ * - **Type System Integration**: Bridges OAS types with generator-specific type systems
+ * - **Settings Management**: Handles skipping logic and client customizations
+ * 
+ * ## Generator Integration
+ * 
+ * The context works with two main types of generators:
+ * - **Model Generators**: Transform schema definitions into type definitions
+ * - **Operation Generators**: Transform API operations into client functions
+ * 
+ * @example Basic usage in a model generator
+ * ```typescript
+ * import { ModelBase } from '@skmtc/core';
+ * 
+ * class TypeScriptInterface extends ModelBase {
+ *   generate(): Definition {
+ *     const schema = this.context.getSchema(this.refName);
+ *     
+ *     return new Definition({
+ *       context: this.context,
+ *       identifier: Identifier.createType(this.refName),
+ *       description: schema.description,
+ *       value: {
+ *         generatorKey: this.generatorKey,
+ *         content: this.generateInterfaceBody(schema)
+ *       }
+ *     });
+ *   }
+ * }
+ * ```
+ * 
+ * @example Operation generator usage
+ * ```typescript
+ * class ApiClientGenerator extends OperationBase {
+ *   generate(): Definition {
+ *     const operation = this.context.getOperation(this.path, this.method);
+ *     
+ *     const functionName = this.context.createOperationName(this.path, this.method);
+ *     
+ *     return new Definition({
+ *       context: this.context,
+ *       identifier: Identifier.createVariable(functionName),
+ *       value: {
+ *         generatorKey: this.generatorKey,
+ *         content: this.generateClientFunction(operation)
+ *       }
+ *     });
+ *   }
+ * }
+ * ```
+ * 
+ * @example Schema and type system integration
+ * ```typescript
+ * class MyGenerator extends ModelBase {
+ *   generate(): Definition {
+ *     const schema = this.context.getSchema(this.refName);
+ *     
+ *     // Transform schema using type system
+ *     const typeOutput = this.context.transformSchema(schema, {
+ *       stringType: 'string',
+ *       numberType: 'number',
+ *       arrayType: (items) => `Array<${items}>`
+ *     });
+ *     
+ *     // Register dependencies
+ *     if (schema.hasReferences()) {
+ *       this.context.addImportsToFile('./models/types.ts', {
+ *         './common': ['BaseModel']
+ *       });
+ *     }
+ *     
+ *     return new Definition({
+ *       context: this.context,
+ *       identifier: Identifier.createType(this.refName),
+ *       value: {
+ *         generatorKey: this.generatorKey,
+ *         content: typeOutput.content
+ *       }
+ *     });
+ *   }
+ * }
+ * ```
+ */
 export class GenerateContext {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>

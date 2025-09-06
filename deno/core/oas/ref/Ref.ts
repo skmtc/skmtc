@@ -19,6 +19,92 @@ export type RefFields<T extends OasRefData['refType']> = {
   $ref: string
 }
 
+/**
+ * Represents an OpenAPI reference ($ref) in the SKMTC OAS processing system.
+ * 
+ * The `OasRef` class handles OpenAPI JSON Reference Objects that point to reusable
+ * components within the same document. It provides type-safe reference resolution
+ * with support for chained references and circular reference detection.
+ * 
+ * ## Key Features
+ * 
+ * - **Type Safety**: Generic parameter ensures resolved types match the reference type
+ * - **Lazy Resolution**: References are resolved on-demand, not during construction
+ * - **Chain Resolution**: Handles references that point to other references
+ * - **Circular Detection**: Prevents infinite loops with maximum lookup limits
+ * - **Type Validation**: Ensures resolved objects match expected reference types
+ * 
+ * @template T - The type of component this reference points to
+ * 
+ * @example Basic reference resolution
+ * ```typescript
+ * import { OasRef } from '@skmtc/core';
+ * 
+ * // Reference to a schema component
+ * const userRef = new OasRef<'schema'>({
+ *   refType: 'schema',
+ *   $ref: '#/components/schemas/User'
+ * }, document);
+ * 
+ * // Resolve the reference
+ * const userSchema = userRef.resolve();
+ * console.log(userSchema.properties); // Access resolved schema properties
+ * ```
+ * 
+ * @example Working with different reference types
+ * ```typescript
+ * // Schema reference
+ * const schemaRef = new OasRef<'schema'>({
+ *   refType: 'schema',
+ *   $ref: '#/components/schemas/Product'
+ * }, document);
+ * 
+ * // Response reference
+ * const responseRef = new OasRef<'response'>({
+ *   refType: 'response',
+ *   $ref: '#/components/responses/ErrorResponse'
+ * }, document);
+ * 
+ * // Parameter reference
+ * const paramRef = new OasRef<'parameter'>({
+ *   refType: 'parameter',
+ *   $ref: '#/components/parameters/PageSize'
+ * }, document);
+ * ```
+ * 
+ * @example Reference checking and conditional resolution
+ * ```typescript
+ * function processSchemaOrRef(schema: OasSchema | OasRef<'schema'>) {
+ *   if (schema.isRef()) {
+ *     // Handle reference
+ *     const refName = schema.toRefName();
+ *     console.log(`Processing reference: ${refName}`);
+ *     
+ *     // Resolve only when needed
+ *     const resolved = schema.resolve();
+ *     return processed(resolved);
+ *   } else {
+ *     // Handle direct schema
+ *     return process(schema);
+ *   }
+ * }
+ * ```
+ * 
+ * @example Chained reference handling
+ * ```typescript
+ * // References can point to other references
+ * const chainedRef = new OasRef<'schema'>({
+ *   refType: 'schema',
+ *   $ref: '#/components/schemas/AliasToUser'
+ * }, document);
+ * 
+ * // resolve() automatically follows the chain
+ * const finalSchema = chainedRef.resolve(); // Follows chain to final schema
+ * 
+ * // resolveOnce() resolves only one step
+ * const oneStep = chainedRef.resolveOnce(); // May still be a reference
+ * ```
+ */
 export class OasRef<T extends OasRefData['refType']> {
   oasType: 'ref' = 'ref'
   type: 'ref' = 'ref'
