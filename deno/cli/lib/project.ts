@@ -136,7 +136,7 @@ export class Project {
     return project
   }
 
-  // Rename import
+  //Rename import
   async cloneGenerator(
     { projectName, moduleName }: CloneGeneratorArgs,
     { logSuccess }: CloneOptions = {}
