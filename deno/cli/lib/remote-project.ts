@@ -43,7 +43,12 @@ export class RemoteProject {
     invariant(accountName, 'Account name not found')
     invariant(projectName, 'Project name not found')
 
-    return new RemoteProject({ accountName, projectName, schemaFile, manager })
+    return new RemoteProject({
+      accountName: accountName.replace(/^@/, ''),
+      projectName,
+      schemaFile,
+      manager
+    })
   }
 
   ensureSchemaFile() {
@@ -53,11 +58,11 @@ export class RemoteProject {
   }
 
   toProjectKey() {
-    return `${this.accountName}/${this.projectName}`
+    return `@${this.accountName}/${this.projectName}`
   }
 
   toManifestPath() {
-    return join('.skmtc', this.accountName, this.projectName, '.settings', 'manifest.json')
+    return join('.skmtc', `@${this.accountName}`, this.projectName, '.settings', 'manifest.json')
   }
 
   async ensureDeployment(): Promise<boolean> {

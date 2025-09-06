@@ -16,10 +16,6 @@ type ConstructorArgs = {
   contents: SkmtcClientConfig
 }
 
-type ServerInfo = {
-  projectKey: string
-}
-
 export class ClientJson {
   contents: SkmtcClientConfig
   projectName: string
@@ -53,7 +49,7 @@ export class ClientJson {
     const hasClientJson = await ClientJson.exists(projectName)
 
     if (!hasClientJson) {
-      throw new Error('Client JSON not found')
+      throw new Error(`Client JSON not found at: "${ClientJson.toPath(projectName)}"`)
     }
 
     const contents = await Deno.readTextFile(ClientJson.toPath(projectName))

@@ -107,7 +107,9 @@ export class SkmtcRoot {
       return new SkmtcRoot([], manager)
     }
 
-    const projectDirs = Array.from(Deno.readDirSync(rootPath)).filter(item => item.isDirectory)
+    const projectDirs = Array.from(Deno.readDirSync(rootPath)).filter(item => {
+      return item.isDirectory && !item.name.startsWith('@')
+    })
 
     const projectPromises = projectDirs.map(projectDir => Project.open(projectDir.name, manager))
 

@@ -1,4 +1,5 @@
 import { exists } from '@std/fs/exists'
+import { resolve } from '@std/path/resolve'
 import { join } from '@std/path/join'
 import { toProjectPath } from './to-project-path.ts'
 import { toRootPath } from './to-root-path.ts'
@@ -98,7 +99,9 @@ export class SchemaFile {
   }
 
   static async openFromPath(schemaPath: string): Promise<SchemaFile | null> {
-    const contents = await Deno.readTextFile(schemaPath)
+    const resolvedPath = resolve(schemaPath)
+
+    const contents = await Deno.readTextFile(resolvedPath)
 
     const fileType = toFileType(schemaPath)
 
