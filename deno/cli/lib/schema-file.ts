@@ -1,12 +1,13 @@
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { toProjectPath } from './to-project-path.ts'
-import type { Manager } from './manager.ts'
 import { toRootPath } from './to-root-path.ts'
+
+type FileType = 'json' | 'yaml'
 
 type CreateArgs = {
   projectName: string
-  fileType: 'json' | 'yaml'
+  fileType: FileType
 }
 
 type ToSchemaFileTypeArgs = {
@@ -15,37 +16,31 @@ type ToSchemaFileTypeArgs = {
 }
 
 type ConstructorArgs = {
-  projectName: string
+  schemaPath: string
   contents: string
-  fileType: 'json' | 'yaml'
-  useParent: boolean
+  fileType: FileType
 }
 
 type SchemaInfo = {
-  fileType: 'json' | 'yaml'
+  fileType: FileType
   useParent: boolean
 }
 
 type ToPathArgs = {
   projectName: string
-  fileType: 'json' | 'yaml'
+  fileType: FileType
   useParent: boolean
 }
 
 export class SchemaFile {
-  #contents: string
-  projectName: string
-  fileType: 'json' | 'yaml'
-  useParent: boolean
-  #dirty: boolean
+  contents: string
+  schemaPath: string
+  fileType: FileType
 
-  private constructor({ projectName, contents, fileType, useParent }: ConstructorArgs) {
-    this.projectName = projectName
-    this.#contents = contents
+  private constructor({ schemaPath, contents, fileType }: ConstructorArgs) {
+    this.schemaPath = schemaPath
+    this.contents = contents
     this.fileType = fileType
-    this.useParent = useParent
-
-    this.#dirty = false
   }
 
   static toPath({ projectName, fileType, useParent }: ToPathArgs) {
@@ -55,26 +50,10 @@ export class SchemaFile {
   }
 
   toPath() {
-    return SchemaFile.toPath({
-      projectName: this.projectName,
-      fileType: this.fileType,
-      useParent: this.useParent
-    })
+    return this.schemaPath
   }
 
-  get contents() {
-    return this.#contents
-  }
-
-  set contents(contents: string) {
-    this.#contents = contents
-
-    if (!this.#dirty) {
-      this.#dirty = true
-    }
-  }
-
-  static async toSchemaFileInfo({
+  static async findProjectSchema({
     projectName,
     useParent = false
   }: ToSchemaFileTypeArgs): Promise<SchemaInfo | undefined> {
@@ -99,12 +78,11 @@ export class SchemaFile {
     }
 
     if (!useParent) {
-      return SchemaFile.toSchemaFileInfo({ projectName, useParent: true })
+      return SchemaFile.findProjectSchema({ projectName, useParent: true })
     }
   }
-
-  static async open(projectName: string, _manager: Manager): Promise<SchemaFile | null> {
-    const fileInfo = await SchemaFile.toSchemaFileInfo({ projectName })
+  static async openFromProject(projectName: string): Promise<SchemaFile | null> {
+    const fileInfo = await SchemaFile.findProjectSchema({ projectName })
 
     if (!fileInfo) {
       return null
@@ -112,7 +90,19 @@ export class SchemaFile {
 
     const contents = await Deno.readTextFile(SchemaFile.toPath({ projectName, ...fileInfo }))
 
-    const schemaFile = new SchemaFile({ projectName, contents, ...fileInfo })
+    const schemaPath = SchemaFile.toPath({ projectName, ...fileInfo })
+
+    const schemaFile = new SchemaFile({ schemaPath, contents, ...fileInfo })
+
+    return schemaFile
+  }
+
+  static async openFromPath(schemaPath: string): Promise<SchemaFile | null> {
+    const contents = await Deno.readTextFile(schemaPath)
+
+    const fileType = toFileType(schemaPath)
+
+    const schemaFile = new SchemaFile({ schemaPath, contents, fileType })
 
     return schemaFile
   }
@@ -122,6 +112,20 @@ export class SchemaFile {
   }
 
   static create({ projectName, fileType }: CreateArgs) {
-    return new SchemaFile({ projectName, contents: '', fileType, useParent: false })
+    const schemaPath = SchemaFile.toPath({ projectName, fileType, useParent: false })
+
+    return new SchemaFile({ schemaPath, contents: '', fileType })
   }
+}
+
+const toFileType = (path: string) => {
+  if (path.endsWith('.json')) {
+    return 'json'
+  }
+
+  if (path.endsWith('.yaml')) {
+    return 'yaml'
+  }
+
+  throw new Error(`File type is not JSON or YAML: ${path}`)
 }

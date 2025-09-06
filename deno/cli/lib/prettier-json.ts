@@ -51,6 +51,20 @@ export class PrettierJson {
     await writeFileSafeDir(resolvedPath, JSON.stringify(this.contents, null, 2))
   }
 
+  async refresh() {
+    const hasPrettierJson = await PrettierJson.exists(this.projectName)
+
+    if (!hasPrettierJson) {
+      return null
+    }
+
+    const contents = await Deno.readTextFile(PrettierJson.toPath(this.projectName))
+
+    const parsed = v.parse(prettierConfigType, JSON.parse(contents))
+
+    this.contents = parsed
+  }
+
   static create({ projectName }: ConstructorArgs) {
     return new PrettierJson({
       projectName,

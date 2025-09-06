@@ -6,7 +6,7 @@ export const createSupabaseClient = () => {
   // Create a single supabase client for interacting with your database
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? 'https://api.skm.tc',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? 'sb_publishable_9_SstJccHh_uQqDqDt13LA_ZCbJ00y3',
+    Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? 'sb_publishable_9_SstJccHh_uQqDqDt13LA_ZCbJ00y3',
     {
       auth: {
         detectSessionInUrl: true,

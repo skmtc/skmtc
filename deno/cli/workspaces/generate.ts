@@ -10,7 +10,7 @@ import { formatNumber, toGenerationStats } from '@skmtc/core'
 import { keypress } from '../lib/keypress.ts'
 import { relative } from '@std/path/relative'
 import { dim } from '@std/fmt/colors'
-import { Confirm } from '@cliffy/prompt'
+import type { RemoteProject } from '../lib/remote-project.ts'
 
 export const description = 'Generate artifacts'
 
@@ -38,15 +38,23 @@ use as path to file
 
 */
 
+type GeneratorSource =
+  | {
+      type: 'remote'
+      projectKey: string
+    }
+  | {
+      type: 'local'
+      projectName: string
+    }
+
 export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description(description)
-    .arguments('<project:string>')
+    .arguments('<project:string> [schema:string]')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
-    .action(async ({ watch }, projectName) => {
-      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
-
-      invariant(project, `Project "${projectName}" not found`)
+    .action(async ({ watch }, projectKey, schemaPath) => {
+      const project = await skmtcRoot.toProject(projectKey, schemaPath)
 
       const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
 
@@ -63,11 +71,9 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
 }
 
 export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
-  const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+  const project = await skmtcRoot.toProject(projectName, undefined)
 
-  invariant(project, 'Project not found')
-
-  const hasDeployment = await ensureDeployment({ project })
+  const hasDeployment = await project.ensureDeployment()
 
   if (!hasDeployment) {
     console.log('Project has not been deployed. Please deploy before generating artifacts.')
@@ -91,7 +97,7 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 
   const schemaPath = project.schemaFile.toPath()
 
-  const hasDeployment = await ensureDeployment({ project })
+  const hasDeployment = await project.ensureDeployment()
 
   if (!hasDeployment) {
     console.log('Project has not been deployed. Please deploy before generating artifacts.')
@@ -127,7 +133,7 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 }
 
 type WatchGenerateArgs = {
-  project: Project
+  project: Project | RemoteProject
   skmtcRoot: SkmtcRoot
   spinner: Spinner
 }
@@ -135,10 +141,7 @@ type WatchGenerateArgs = {
 export const setupWatcher = ({ project, skmtcRoot, spinner }: WatchGenerateArgs) => {
   const schemaPath = project.schemaFile?.toPath()
 
-  invariant(
-    schemaPath,
-    `Schema file not found. Please add an "openapi.json" or "openapi.yaml" file to ".skmtc/${project.name}" or ".skmtc" folder.`
-  )
+  invariant(schemaPath, `Schema file not found at ${schemaPath}`)
 
   const watcher = chokidar.watch(schemaPath)
   watcher.on('change', () => {
@@ -147,7 +150,7 @@ export const setupWatcher = ({ project, skmtcRoot, spinner }: WatchGenerateArgs)
 }
 
 type GenerateArgs = {
-  project: Project
+  project: Project | RemoteProject
   skmtcRoot: SkmtcRoot
   spinner: Spinner
   watching?: boolean
@@ -165,7 +168,8 @@ export const generate = async (
     const workspace = new Workspace()
 
     await project.schemaFile?.refresh()
-    await project.clientJson.refresh()
+    await project.clientJson?.refresh()
+    await project.prettierJson?.refresh()
 
     const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 
@@ -197,28 +201,4 @@ export const generate = async (
 
     skmtcRoot.manager.fail()
   }
-}
-
-type EnsureDeploymentIdArgs = {
-  project: Project
-}
-
-const ensureDeployment = async ({ project }: EnsureDeploymentIdArgs): Promise<boolean> => {
-  const { projectKey } = project.clientJson.contents
-
-  if (projectKey) {
-    return true
-  }
-
-  const confirmed = await Confirm.prompt(
-    'This project has not been deployed. Would you like to deploy it now?'
-  )
-
-  if (!confirmed) {
-    return false
-  }
-
-  await project.deploy({ logSuccess: 'Generators deployed' })
-
-  return true
 }

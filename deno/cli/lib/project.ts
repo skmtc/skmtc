@@ -18,6 +18,8 @@ import { join } from '@std/path/join'
 import type { ApiClient } from './api-client.ts'
 import { Manifest } from './manifest.ts'
 import { getApiServersServerNameHasWriteAccess } from '../services/getApiServersServerNameHasWriteAccess.generated.ts'
+import { Confirm } from '@cliffy/prompt/confirm'
+import { P } from 'ts-pattern'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -228,6 +230,10 @@ export class Project {
     }
   }
 
+  toManifestPath() {
+    return join(this.toPath(), '.settings', 'manifest.json')
+  }
+
   async rename(newName: string) {
     try {
       await Deno.rename(this.toPath(), toProjectPath(newName))
@@ -246,6 +252,34 @@ export class Project {
       await Sentry.flush()
 
       this.manager.fail('Failed to rename project')
+    }
+  }
+
+  async ensureDeployment(): Promise<boolean> {
+    const { projectKey } = this.clientJson.contents
+
+    if (projectKey) {
+      return true
+    }
+
+    const confirmed = await Confirm.prompt(
+      'This project has not been deployed. Would you like to deploy it now?'
+    )
+
+    if (!confirmed) {
+      return false
+    }
+
+    await this.deploy({ logSuccess: 'Generators deployed' })
+
+    return true
+  }
+
+  ensureSchemaFile() {
+    if (!this.schemaFile) {
+      throw new Error(
+        `Project has no schema file. Add an "openapi.json" or "openapi.yaml" file to ".skmtc/${this.name}" or ".skmtc" folder.`
+      )
     }
   }
 
@@ -309,24 +343,11 @@ export class Project {
     const deployment = new Deployment(this.manager)
 
     const assets = await toAssets({ projectRoot: toProjectPath(this.name) })
-    const { projectKey } = this.clientJson.contents
-
-    if (!projectKey) {
-      console.error('Project has no project key')
-      return
-    }
-
-    const [_accountName, serverName] = projectKey.split('/')
-
-    if (!serverName) {
-      console.error('Project has no server name')
-      return
-    }
 
     try {
       await deployment.deploy({
         assets,
-        serverName,
+        serverName: toServerName(this),
         clientJson: this.clientJson,
         generatorIds: this.toGeneratorIds()
       })
@@ -389,6 +410,17 @@ export class Project {
     }
   }
 
+  toProjectKey() {
+    const projectKey = this.clientJson.contents?.projectKey
+
+    invariant(
+      projectKey,
+      'Project is missing "projectKey" in ".settings/client.json". Has it been deployed?'
+    )
+
+    return projectKey
+  }
+
   static async open(name: string, manager: Manager) {
     const rootDenoJson = await RootDenoJson.open(name, manager)
 
@@ -398,7 +430,7 @@ export class Project {
 
     const manifest = await Manifest.open(name)
 
-    const schemaFile = await SchemaFile.open(name, manager)
+    const schemaFile = await SchemaFile.openFromProject(name)
 
     return new Project({
       name,
@@ -410,6 +442,20 @@ export class Project {
       schemaFile
     })
   }
+}
+
+const toServerName = (project: Project) => {
+  const { projectKey } = project.clientJson.contents
+
+  if (!projectKey) {
+    return project.name
+  }
+
+  const [_accountName, serverName] = projectKey.split('/')
+
+  invariant(serverName, 'Server name not found')
+
+  return serverName
 }
 
 type GetDependencyIdsArgs = {

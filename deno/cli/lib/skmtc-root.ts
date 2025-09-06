@@ -8,7 +8,9 @@ import cliDenoJson from '../deno.json' with { type: 'json' }
 import { compare } from '@std/semver/compare'
 import { parse } from '@std/semver/parse'
 import { createApiServers } from '../services/createApiServers.generated.ts'
-
+import { RemoteProject } from './remote-project.ts'
+import invariant from 'tiny-invariant'
+import { SchemaFile } from './schema-file.ts'
 type CreateProjectArgs = {
   name: string
   basePath: string
@@ -57,6 +59,24 @@ export class SkmtcRoot {
 
   async logout() {
     await this.manager.auth.logout()
+  }
+
+  async toProject(projectKey: string, schemaPath: string | undefined) {
+    if (projectKey.startsWith('@')) {
+      invariant(schemaPath, 'Schema path is required for remote projects')
+
+      const schemaFile = await SchemaFile.openFromPath(schemaPath)
+
+      invariant(schemaFile, 'Schema file not found')
+
+      return RemoteProject.fromKey({ projectKey, schemaFile, manager: this.manager })
+    }
+
+    const project = this.projects.find(({ name }) => name === projectKey)
+
+    invariant(project, `Project "${projectKey}" not found`)
+
+    return project
   }
 
   async createDenoProject(serverName: string) {

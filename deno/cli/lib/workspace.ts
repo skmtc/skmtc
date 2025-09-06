@@ -10,7 +10,7 @@ import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorks
 import { existsSync } from '@std/fs/exists'
 import { type ManifestContent, manifestContent } from '@skmtc/core'
 import { createApiServersAccountNameServerNameArtifacts } from '@/services/createApiServersAccountNameServerNameArtifacts.generated.ts'
-
+import type { RemoteProject } from './remote-project.ts'
 export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
@@ -21,16 +21,14 @@ export const generateResponse: v.GenericSchema<GenerateResponse> = v.object({
 })
 
 type DeletePreviousArtifactsArgs = {
-  projectPath: string
+  manifestPath: string
   incomingPaths: string[]
 }
 
 export const deletePreviousArtifacts = ({
   incomingPaths,
-  projectPath
+  manifestPath
 }: DeletePreviousArtifactsArgs) => {
-  const manifestPath = join(projectPath, '.settings', 'manifest.json')
-
   if (!existsSync(manifestPath)) {
     return
   }
@@ -60,7 +58,7 @@ export const deletePreviousArtifacts = ({
 }
 
 type GenerateArtifactsArgs = {
-  project: Project
+  project: Project | RemoteProject
   skmtcRoot: SkmtcRoot
 }
 
@@ -82,42 +80,33 @@ export class Workspace {
   }
 
   async generateArtifacts({ project }: GenerateArtifactsArgs): Promise<GenerateResponse> {
-    if (!project.schemaFile) {
-      throw new Error(
-        `Project has no schema file. Add an "openapi.json" or "openapi.yaml" file to ".skmtc/${project.name}" or ".skmtc" folder.`
-      )
-    }
+    project.ensureSchemaFile()
 
-    const manifestPath = join(project.toPath(), '.settings', 'manifest.json')
+    const manifestPath = project.toManifestPath()
 
-    const { projectKey } = project.clientJson.contents
-
-    if (!projectKey) {
-      throw new Error(
-        'Project is missing "projectKey" in ".settings/client.json". Has it been deployed?'
-      )
-    }
+    const projectKey = project.toProjectKey()
 
     const [accountName, serverName] = projectKey.split('/')
 
     invariant(accountName, 'Account name not found')
     invariant(serverName, 'Server name not found')
 
+    const schema = project.schemaFile?.contents
+
+    invariant(schema, 'Schema not found')
+
     const { artifacts, manifest } = await createApiServersAccountNameServerNameArtifacts({
       supabase: project.manager.auth.supabase,
       accountName,
       serverName,
       body: {
-        schema: project.schemaFile?.contents,
-        clientSettings: project.clientJson.contents?.settings,
+        schema,
+        clientSettings: project.clientJson?.contents?.settings,
         prettier: project.prettierJson?.contents
       }
     })
 
-    deletePreviousArtifacts({
-      incomingPaths: Object.keys(artifacts ?? {}),
-      projectPath: project.toPath()
-    })
+    deletePreviousArtifacts({ incomingPaths: Object.keys(artifacts ?? {}), manifestPath })
 
     ensureFileSync(manifestPath)
 
