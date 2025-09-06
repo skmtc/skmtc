@@ -7,9 +7,11 @@
     "@skmtc/core": "jsr:@skmtc/core@^0.0.784"
   },
   "tasks": {
+    "publish:ga": "deno task build && deno task publish:deno:ga && deno task publish:npm",
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",
     "build": "deno run -A .scripts/build-node.ts",
     "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:deno:ga": "deno publish --allow-slow-types",
     "publish:npm": "cd ../../packages/cli && npm publish"
   }
 }
