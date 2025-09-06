@@ -387,6 +387,38 @@ export const isGeneratorOnlyKey = (arg: unknown): arg is GeneratorOnlyKey => {
   return Boolean(arg.length)
 }
 
+/**
+ * Extracts the generator ID from any type of GeneratorKey.
+ * 
+ * This utility function parses the generator key to extract just the
+ * generator identifier, regardless of the key type. For operation and
+ * model keys, it extracts the first part before the pipe. For generator-only
+ * keys, it returns the entire key since it's just the generator ID.
+ * 
+ * @param generatorKey - Any type of generator key
+ * @returns The generator ID string
+ * 
+ * @example
+ * ```typescript
+ * const opKey = toOperationGeneratorKey({
+ *   generatorId: 'api-client',
+ *   path: '/users',
+ *   method: 'get'
+ * });
+ * console.log(toGeneratorId(opKey)); // 'api-client'
+ * 
+ * const modelKey = toModelGeneratorKey({
+ *   generatorId: 'typescript-types',
+ *   refName: 'User'
+ * });
+ * console.log(toGeneratorId(modelKey)); // 'typescript-types'
+ * 
+ * const globalKey = toGeneratorOnlyKey({
+ *   generatorId: 'utilities'
+ * });
+ * console.log(toGeneratorId(globalKey)); // 'utilities'
+ * ```
+ */
 export const toGeneratorId = (generatorKey: GeneratorKey): string => {
   if (isOperationGeneratorKey(generatorKey)) {
     return generatorKey.split('|')[0]
@@ -399,23 +431,82 @@ export const toGeneratorId = (generatorKey: GeneratorKey): string => {
   return generatorKey
 }
 
+/**
+ * Object representation of a parsed GeneratorKey.
+ * 
+ * This discriminated union type represents the parsed components of any
+ * generator key, making it easier to work with key data in a structured way.
+ * The `type` field discriminates between the three key types.
+ */
 export type GeneratorKeyObject =
   | {
+      /** Discriminator for operation generator keys */
       type: 'operation'
+      /** Generator identifier */
       generatorId: string
+      /** API path */
       path: string
+      /** HTTP method */
       method: Method
     }
   | {
+      /** Discriminator for model generator keys */
       type: 'model'
+      /** Generator identifier */
       generatorId: string
+      /** Schema reference name */
       refName: string
     }
   | {
+      /** Discriminator for generator-only keys */
       type: 'generator-only'
+      /** Generator identifier */
       generatorId: string
     }
 
+/**
+ * Parses a GeneratorKey into its structured object representation.
+ * 
+ * This function decomposes any generator key into a structured object
+ * with discriminated union types, making it easier to work with the
+ * key components in a type-safe manner.
+ * 
+ * @param generatorKey - Any type of generator key to parse
+ * @returns Parsed generator key object with discriminated type
+ * 
+ * @example Operation key parsing
+ * ```typescript
+ * const opKey = 'api-client|/users/{id}|get' as OperationGeneratorKey;
+ * const parsed = fromGeneratorKey(opKey);
+ * 
+ * if (parsed.type === 'operation') {
+ *   console.log(parsed.generatorId); // 'api-client'
+ *   console.log(parsed.path);        // '/users/{id}'
+ *   console.log(parsed.method);      // 'get'
+ * }
+ * ```
+ * 
+ * @example Model key parsing
+ * ```typescript
+ * const modelKey = 'zod-schemas|User' as ModelGeneratorKey;
+ * const parsed = fromGeneratorKey(modelKey);
+ * 
+ * if (parsed.type === 'model') {
+ *   console.log(parsed.generatorId); // 'zod-schemas'
+ *   console.log(parsed.refName);     // 'User'
+ * }
+ * ```
+ * 
+ * @example Generator-only key parsing
+ * ```typescript
+ * const globalKey = 'utilities' as GeneratorOnlyKey;
+ * const parsed = fromGeneratorKey(globalKey);
+ * 
+ * if (parsed.type === 'generator-only') {
+ *   console.log(parsed.generatorId); // 'utilities'
+ * }
+ * ```
+ */
 export const fromGeneratorKey = (
   generatorKey: GeneratorKey
 ): GeneratorKeyObject => {
