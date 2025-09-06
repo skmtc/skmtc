@@ -1,18 +1,160 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasRef } from '../ref/Ref.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+
+/**
+ * Constructor fields for {@link OasBoolean}.
+ * 
+ * @template Nullable - Whether the boolean can be null (affects type unions)
+ */
 export type BooleanFields<Nullable extends boolean | undefined> = {
+  /** A short summary of the boolean schema */
   title?: string
+  /** A description of the boolean schema */
   description?: string
+  /** Whether the boolean value can be null */
   nullable?: Nullable
+  /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
+  /** Example value for the boolean (null allowed if Nullable is true) */
   example?: Nullable extends true ? boolean | null | undefined : boolean | undefined
+  /** Array of valid enum values for the boolean (null allowed if Nullable is true) */
   enums?: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
+  /** Default value for the boolean (null allowed if Nullable is true) */
   default?: Nullable extends true ? boolean | null | undefined : boolean | undefined
 }
 
 /**
- * Object representing a boolean in the OpenAPI Specification.
+ * Represents a boolean schema in the OpenAPI Specification.
+ * 
+ * The `OasBoolean` class handles boolean data types in OpenAPI schemas, supporting
+ * both simple true/false values and more complex boolean schemas with constraints,
+ * enumerations, and nullable types. This class provides type-safe boolean handling
+ * with optional null value support through generic typing.
+ * 
+ * ## Key Features
+ * 
+ * - **Type Safety**: Generic nullable type support with proper TypeScript inference
+ * - **Enum Support**: Constrain boolean values to specific true/false combinations
+ * - **Null Handling**: Optional null value support for nullable boolean types
+ * - **Validation**: Default values and example validation
+ * - **JSON Schema**: Converts to standard JSON Schema format for validation
+ * - **Documentation**: Rich metadata support for API documentation
+ * 
+ * @template Nullable - Whether the boolean value itself can be null
+ * 
+ * @example Basic boolean schema
+ * ```typescript
+ * import { OasBoolean } from '@skmtc/core';
+ * 
+ * const isActiveSchema = new OasBoolean({
+ *   title: 'Active Status',
+ *   description: 'Whether the user account is active',
+ *   default: true,
+ *   example: true
+ * });
+ * 
+ * // This represents: boolean with default true
+ * ```
+ * 
+ * @example Nullable boolean schema
+ * ```typescript
+ * const nullableFlag = new OasBoolean<true>({
+ *   title: 'Optional Flag',
+ *   description: 'An optional boolean flag that can be null',
+ *   nullable: true,
+ *   default: null,
+ *   example: true
+ * });
+ * 
+ * // This represents: boolean | null
+ * ```
+ * 
+ * @example Boolean with enum constraints
+ * ```typescript
+ * const strictBoolean = new OasBoolean({
+ *   title: 'Confirmation',
+ *   description: 'Must explicitly be true to confirm action',
+ *   enums: [true], // Only true is allowed
+ *   example: true
+ * });
+ * 
+ * // This only accepts true, effectively making it required
+ * ```
+ * 
+ * @example Boolean with null in enum
+ * ```typescript
+ * const triStateBoolean = new OasBoolean<true>({
+ *   title: 'Approval Status',
+ *   description: 'Approval can be true (approved), false (denied), or null (pending)',
+ *   nullable: true,
+ *   enums: [true, false, null],
+ *   default: null,
+ *   example: null
+ * });
+ * 
+ * // This represents: true | false | null (tri-state logic)
+ * ```
+ * 
+ * @example Feature flag schema
+ * ```typescript
+ * const featureFlag = new OasBoolean({
+ *   title: 'Feature Enabled',
+ *   description: 'Whether the new feature is enabled for this user',
+ *   default: false,
+ *   example: false
+ * });
+ * 
+ * // Used in configuration objects
+ * const userConfig = new OasObject({
+ *   properties: {
+ *     darkMode: featureFlag,
+ *     notifications: featureFlag,
+ *     betaFeatures: featureFlag
+ *   }
+ * });
+ * ```
+ * 
+ * @example Consent and agreement booleans
+ * ```typescript
+ * const consentSchema = new OasBoolean({
+ *   title: 'Terms Accepted',
+ *   description: 'User has accepted the terms and conditions',
+ *   enums: [true], // Must be true to be valid
+ *   example: true
+ * });
+ * 
+ * const privacyConsent = new OasBoolean({
+ *   title: 'Privacy Policy Accepted',
+ *   description: 'User has accepted the privacy policy',
+ *   default: false,
+ *   example: true
+ * });
+ * 
+ * // Used in registration forms where consent is required
+ * ```
+ * 
+ * @example Optional settings with nullable booleans
+ * ```typescript
+ * const userPreferences = new OasObject({
+ *   properties: {
+ *     emailNotifications: new OasBoolean<true>({
+ *       title: 'Email Notifications',
+ *       description: 'Enable email notifications (null means use default)',
+ *       nullable: true,
+ *       default: null
+ *     }),
+ *     smsNotifications: new OasBoolean<true>({
+ *       title: 'SMS Notifications', 
+ *       description: 'Enable SMS notifications (null means not set)',
+ *       nullable: true,
+ *       default: null
+ *     })
+ *   }
+ * });
+ * 
+ * // Allows: { emailNotifications: true, smsNotifications: null }
+ * ```
  */
 export class OasBoolean<Nullable extends boolean | undefined = boolean | undefined> {
   /**
