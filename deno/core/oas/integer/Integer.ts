@@ -1,22 +1,120 @@
 import type { OasRef } from '../ref/Ref.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+/**
+ * Constructor fields for {@link OasInteger}.
+ * 
+ * @template Nullable - Whether the integer value can be null
+ */
 export type IntegerFields<Nullable extends boolean | undefined> = {
+  /** A short summary of the integer schema */
   title?: string
+  /** A description of the integer schema */
   description?: string
+  /** Whether the integer value can be null */
   nullable?: Nullable
+  /** Integer format specification (int32 or int64) */
   format?: 'int32' | 'int64'
+  /** Default value for the integer */
   default?: Nullable extends true ? number | null | undefined : number | undefined
+  /** Array of allowed enum values */
   enums?: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
+  /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
+  /** Example value for the integer */
   example?: Nullable extends true ? number | null | undefined : number | undefined
+  /** Number must be a multiple of this value */
   multipleOf?: number
+  /** Maximum value (inclusive) */
   maximum?: number
+  /** Whether maximum is exclusive */
   exclusiveMaximum?: boolean
+  /** Minimum value (inclusive) */
   minimum?: number
+  /** Whether minimum is exclusive */
   exclusiveMinimum?: boolean
 }
 
+/**
+ * Represents an integer schema in the OpenAPI Specification.
+ * 
+ * `OasInteger` handles integer type definitions with comprehensive validation
+ * constraints including range limits, multiple-of validation, format specifications,
+ * and enum restrictions. It supports both 32-bit and 64-bit integer formats
+ * and provides nullable type support.
+ * 
+ * This class is used throughout the OAS processing pipeline to represent
+ * integer fields in API schemas, including IDs, counts, timestamps, and
+ * other numeric values that must be whole numbers.
+ * 
+ * ## Key Features
+ * 
+ * - **Format Support**: int32 and int64 format specifications
+ * - **Range Validation**: Minimum and maximum value constraints
+ * - **Multiple Validation**: Ensure values are multiples of specified numbers
+ * - **Enum Values**: Restricted sets of allowed integer values
+ * - **Nullable Support**: Type-safe nullable integer handling
+ * - **JSON Schema**: Conversion to standard JSON Schema format
+ * 
+ * @template Nullable - Whether the integer value can be null
+ * 
+ * @example Basic integer schema
+ * ```typescript
+ * import { OasInteger } from '@skmtc/core';
+ * 
+ * const ageInteger = new OasInteger({
+ *   title: 'Age',
+ *   description: 'Person age in years',
+ *   minimum: 0,
+ *   maximum: 150,
+ *   example: 25
+ * });
+ * ```
+ * 
+ * @example ID with int64 format
+ * ```typescript
+ * const userIdInteger = new OasInteger({
+ *   title: 'User ID',
+ *   description: 'Unique user identifier',
+ *   format: 'int64',
+ *   minimum: 1,
+ *   example: 1234567890123
+ * });
+ * ```
+ * 
+ * @example Count with multiple-of validation
+ * ```typescript
+ * const batchSizeInteger = new OasInteger({
+ *   title: 'Batch Size',
+ *   description: 'Number of items to process',
+ *   minimum: 10,
+ *   maximum: 1000,
+ *   multipleOf: 10, // Must be multiple of 10
+ *   default: 50
+ * });
+ * ```
+ * 
+ * @example Status code enum
+ * ```typescript
+ * const statusCodeInteger = new OasInteger({
+ *   title: 'HTTP Status Code',
+ *   description: 'Valid HTTP response status codes',
+ *   enums: [200, 201, 400, 401, 404, 500],
+ *   example: 200
+ * });
+ * ```
+ * 
+ * @example Nullable integer
+ * ```typescript
+ * const optionalCountInteger = new OasInteger<true>({
+ *   title: 'Optional Count',
+ *   description: 'Count value that can be null',
+ *   nullable: true,
+ *   minimum: 0,
+ *   default: null
+ * });
+ * ```
+ */
 export class OasInteger<Nullable extends boolean | undefined = boolean | undefined> {
   /**
    * Object is part the 'schema' set which is used
