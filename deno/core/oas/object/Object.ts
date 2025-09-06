@@ -146,7 +146,6 @@ export type AddPropertyArgs = {
  * ```
  */
 export class OasObject<Nullable extends boolean | undefined = boolean | undefined> {
-export class OasObject<Nullable extends boolean | undefined = boolean | undefined> {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.

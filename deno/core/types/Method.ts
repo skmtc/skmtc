@@ -98,12 +98,6 @@ export const method: v.UnionSchema<
  */
 export type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
 
-/**
- * Type representing an array of HTTP methods.
- * 
- * @internal This type is used internally for method array typing.
- */
-type Methods = Method[]
 
 /**
  * Valibot schema for validating arrays of HTTP methods.
