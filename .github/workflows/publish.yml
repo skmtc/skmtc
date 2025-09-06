@@ -23,5 +23,8 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Install deno dependencies
+        run: cd deno && deno install --frozen
+
       - name: Publish to JSR
         run: cd deno && deno task publish:ga
