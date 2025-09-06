@@ -1919,7 +1919,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.786"
+          "jsr:@skmtc/core@^0.0.787"
         ]
       },
       "core": {
@@ -1939,7 +1939,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.206",
+          "jsr:@skmtc/cli@^0.0.207",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -1948,7 +1948,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.786"
+          "jsr:@skmtc/core@^0.0.787"
         ]
       }
     }
