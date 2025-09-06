@@ -10,28 +10,142 @@ import type { RefName } from '../../types/RefName.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
 
+/**
+ * Fields that define the structure of an OpenAPI v3 document.
+ * 
+ * This type represents the normalized structure of an OpenAPI document after
+ * parsing, with operations flattened from the nested paths structure into
+ * a simple array for easier processing.
+ */
 export type DocumentFields = {
+  /** OpenAPI specification version (e.g., '3.0.0', '3.1.0') */
   openapi: string
+  /** API metadata including title, version, description */
   info: OasInfo
+  /** Array of server objects providing connectivity information */
   servers?: OasServer[] | undefined
+  /** Flattened array of all operations from all paths */
   operations: OasOperation[]
+  /** Container for reusable components (schemas, responses, etc.) */
   components?: OasComponents | undefined
+  /** List of tags used by operations with additional metadata */
   tags?: OasTag[] | undefined
+  /** Default security requirements that apply to all operations */
   security?: OasSecurityRequirement[] | undefined
+  /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
 }
 
-/** Top level document object describing the API */
+/**
+ * Represents a complete OpenAPI v3 document in the SKMTC OAS processing system.
+ * 
+ * The `OasDocument` class is the root object in the OAS hierarchy, containing all
+ * the information needed to describe a complete REST API. It provides normalized
+ * access to document properties with built-in validation and error handling.
+ * 
+ * ## Key Features
+ * 
+ * - **Normalized Structure**: Operations are flattened from nested paths for easier processing
+ * - **Lazy Initialization**: Fields are set after construction during parsing
+ * - **Type Safety**: All properties are typed and validated on access
+ * - **Extensibility**: Supports OpenAPI extension fields (x-* properties)
+ * - **JSON Serialization**: Can be converted back to standard OpenAPI JSON format
+ * 
+ * @example Basic document access
+ * ```typescript
+ * import { OasDocument } from '@skmtc/core';
+ * 
+ * // Document is typically created during parsing
+ * const document = new OasDocument();
+ * document.fields = {
+ *   openapi: '3.0.0',
+ *   info: { title: 'My API', version: '1.0.0' },
+ *   operations: [
+ *     // ... parsed operations
+ *   ],
+ *   components: {
+ *     schemas: {
+ *       User: { type: 'object', properties: { id: { type: 'string' } } }
+ *     }
+ *   }
+ * };
+ * 
+ * console.log(document.info.title); // 'My API'
+ * console.log(document.operations.length); // Number of operations
+ * ```
+ * 
+ * @example Iterating over operations
+ * ```typescript
+ * // Process all operations in the document
+ * for (const operation of document.operations) {
+ *   console.log(`${operation.method.toUpperCase()} ${operation.path}`);
+ *   
+ *   if (operation.operationId) {
+ *     console.log(`Operation ID: ${operation.operationId}`);
+ *   }
+ * }
+ * ```
+ * 
+ * @example Working with components
+ * ```typescript
+ * if (document.components?.schemas) {
+ *   const userSchema = document.components.schemas.get('User');
+ *   if (userSchema) {
+ *     console.log('User schema found:', userSchema);
+ *   }
+ * }
+ * ```
+ */
 export class OasDocument {
   /** Static identifier property for OasDocument */
   oasType: 'openapi' = 'openapi'
-  /** @internal */
+  
+  /** @internal Private fields storage */
   #fields: DocumentFields | undefined
 
+  /**
+   * Creates a new OasDocument instance.
+   * 
+   * The document is typically created with undefined fields and populated
+   * later during the parsing process. This allows for lazy initialization
+   * and proper error handling during document processing.
+   * 
+   * @param fields - Optional document fields (usually set later during parsing)
+   * 
+   * @example
+   * ```typescript
+   * // Usually created without fields during parsing
+   * const document = new OasDocument();
+   * 
+   * // Fields are set later by the parser
+   * document.fields = parsedDocumentFields;
+   * ```
+   */
   constructor(fields?: DocumentFields) {
     this.#fields = fields
   }
 
+  /**
+   * Removes an item from the document based on a stack trail path.
+   * 
+   * This method is used internally during document processing to remove
+   * specific operations or schema components. The stack trail indicates
+   * the path to the item within the document structure.
+   * 
+   * @param stackTrail - Path to the item to remove
+   * @returns The removed item, or undefined if not found
+   * 
+   * @internal This method is primarily used by the processing pipeline
+   * 
+   * @example
+   * ```typescript
+   * // Remove an operation at /users POST
+   * const removed = document.removeItem(new StackTrail(['paths', '/users', 'post']));
+   * 
+   * // Remove a schema component
+   * const removedSchema = document.removeItem(new StackTrail(['components', 'schemas', 'User']));
+   * ```
+   */
   removeItem(stackTrail: StackTrail): OasOperation | OasSchema | OasRef<'schema'> | undefined {
     const [first, second, third] = stackTrail.stackTrail
 
@@ -61,6 +175,26 @@ export class OasDocument {
       })
   }
 
+  /**
+   * Sets the document fields after parsing.
+   * 
+   * This setter is called by the parsing pipeline to populate the document
+   * with parsed OpenAPI data. It enables lazy initialization and proper
+   * error handling during document processing.
+   * 
+   * @param fields - The parsed document fields
+   * 
+   * @example
+   * ```typescript
+   * const document = new OasDocument();
+   * document.fields = {
+   *   openapi: '3.0.0',
+   *   info: { title: 'API', version: '1.0' },
+   *   operations: [],
+   *   // ... other fields
+   * };
+   * ```
+   */
   set fields(fields: DocumentFields) {
     this.#fields = fields
   }
@@ -136,6 +270,27 @@ export class OasDocument {
     return this.#fields.extensionFields
   }
 
+  /**
+   * Converts the document back to a JSON-serializable OpenAPI object.
+   * 
+   * This method serializes the document to a standard OpenAPI v3 format,
+   * which can be used for output, validation, or further processing. The
+   * resulting object follows the OpenAPI specification structure.
+   * 
+   * @returns A JSON-serializable object representing the OpenAPI document
+   * 
+   * @example
+   * ```typescript
+   * // Convert document back to standard OpenAPI format
+   * const openApiJson = document.toJSON();
+   * 
+   * // Can be stringified for output
+   * const yamlString = JSON.stringify(openApiJson, null, 2);
+   * 
+   * // Or used with OpenAPI tools
+   * await validateOpenApiDocument(openApiJson);
+   * ```
+   */
   toJSON(): object {
     return {
       openapi: this.openapi,

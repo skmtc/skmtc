@@ -232,6 +232,47 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
+  /**
+   * Inserts a related model with forced generation.
+   * 
+   * This method adds a model to the current generation context, typically used
+   * for request/response models or other types related to the operation. The model
+   * will be generated and can be referenced in the operation code.
+   * 
+   * @template V - Type of generated value returned by the insertable
+   * @template EnrichmentType - Type of enrichment data for the insertable
+   * @param insertable - The model generator to insert
+   * @param refName - Reference name for the inserted model
+   * @param options - Insertion options
+   * @param options.noExport - Whether to skip exporting the inserted model
+   * @returns Inserted model reference with generated value
+   * 
+   * @example Inserting request/response models
+   * ```typescript
+   * class ApiOperation extends OperationBase {
+   *   toDefinition(): Definition {
+   *     // Insert request model
+   *     const requestModel = this.insertModel(
+   *       new RequestModel({ ... }),
+   *       'CreateUserRequest'
+   *     );
+   *     
+   *     // Insert response model
+   *     const responseModel = this.insertModel(
+   *       new ResponseModel({ ... }),
+   *       'CreateUserResponse'
+   *     );
+   *     
+   *     return new Definition({
+   *       name: this.operation.operationId,
+   *       content: `async ${this.operation.operationId}(data: ${requestModel.value}): Promise<${responseModel.value}> {
+   *         return this.request('${this.operation.method}', '${this.operation.path}', data);
+   *       }`
+   *     });
+   *   }
+   * }
+   * ```
+   */
   insertModel<V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName,
@@ -244,6 +285,62 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
+  /**
+   * Inserts a related model with automatic schema normalization and reference resolution.
+   * 
+   * This method intelligently handles schema references from operation request/response
+   * bodies, automatically resolving schema references to appropriate model names.
+   * This is particularly useful for operations with complex request/response schemas.
+   * 
+   * @template V - Type of generated value returned by the insertable
+   * @template Schema - Type of OpenAPI schema (schema object, reference, or void)
+   * @template EnrichmentType - Type of enrichment data for the insertable
+   * @param insertable - The model generator to insert
+   * @param args - Schema normalization arguments
+   * @param args.schema - The OpenAPI schema to normalize (from request/response)
+   * @param args.fallbackName - Name to use if schema is not a reference
+   * @param options - Insertion options
+   * @param options.noExport - Whether to skip exporting the inserted model
+   * @returns Inserted model reference with normalized name and generated value
+   * 
+   * @example Handling operation request/response schemas
+   * ```typescript
+   * class RestApiOperation extends OperationBase {
+   *   toDefinition(): Definition {
+   *     const operation = this.operation;
+   *     
+   *     // Handle request body schema
+   *     let requestType = 'void';
+   *     const requestSchema = operation.requestBody?.content?.['application/json']?.schema;
+   *     if (requestSchema) {
+   *       const requestModel = this.insertNormalizedModel(
+   *         new TypeScriptInterface({ ... }),
+   *         {
+   *           schema: requestSchema,
+   *           fallbackName: `${operation.operationId}Request`
+   *         }
+   *       );
+   *       requestType = requestModel.value;
+   *     }
+   *     
+   *     // Handle response schema  
+   *     const responseSchema = operation.responses?.['200']?.content?.['application/json']?.schema;
+   *     const responseModel = this.insertNormalizedModel(
+   *       new TypeScriptInterface({ ... }),
+   *       {
+   *         schema: responseSchema,
+   *         fallbackName: `${operation.operationId}Response`
+   *       }
+   *     );
+   *     
+   *     return new Definition({
+   *       name: operation.operationId,
+   *       content: `async ${operation.operationId}(data: ${requestType}): Promise<${responseModel.value}>`
+   *     });
+   *   }
+   * }
+   * ```
+   */
   insertNormalizedModel<
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
@@ -264,7 +361,43 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     )
   }
 
-  /** @experimental */
+  /**
+   * Defines and registers a new definition in the generation context.
+   * 
+   * This is an experimental method that allows creating and registering
+   * definitions directly without going through the standard insertion flow.
+   * Use with caution as the API may change in future versions.
+   * 
+   * @experimental This method's API may change in future versions
+   * @template V - Type of generated value
+   * @param args - Definition arguments
+   * @param args.identifier - Unique identifier for the definition
+   * @param args.value - The generated value to associate with the definition
+   * @param args.noExport - Whether to skip exporting the definition
+   * @returns The created and registered definition
+   * 
+   * @example Creating inline definitions
+   * ```typescript
+   * class InlineHelperOperation extends OperationBase {
+   *   toDefinition(): Definition {
+   *     // Create an inline helper function
+   *     const helper = this.defineAndRegister({
+   *       identifier: 'validateRequest',
+   *       value: 'function validateRequest(data: any) { ... }',
+   *       noExport: true
+   *     });
+   *     
+   *     return new Definition({
+   *       name: this.operation.operationId,
+   *       content: `async ${this.operation.operationId}(data: any) {
+   *         ${helper.value}(data);
+   *         return this.request('${this.operation.method}', '${this.operation.path}', data);
+   *       }`
+   *     });
+   *   }
+   * }
+   * ```
+   */
   defineAndRegister<V extends GeneratedValue>({
     identifier,
     value,
@@ -278,7 +411,54 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
     })
   }
 
-  override register(args: BaseRegisterArgs) {
+  /**
+   * Registers a file-level artifact with the generation context.
+   * 
+   * This method allows the operation generator to register additional content
+   * (like imports, exports, or file-level definitions) that should be included
+   * in the generated file. The registration is automatically scoped to this
+   * operation's export path.
+   * 
+   * @param args - Registration arguments
+   * @param args.content - The content to register (import, export, etc.)
+   * @param args.phase - When to register the content ('pre' or 'post')
+   * 
+   * @example Registering API client imports
+   * ```typescript
+   * class HttpOperation extends OperationBase {
+   *   toDefinition(): Definition {
+   *     // Register imports needed for HTTP operations
+   *     this.register({
+   *       content: "import { ApiClient } from './client';",
+   *       phase: 'pre'
+   *     });
+   *     
+   *     this.register({
+   *       content: "import { RequestOptions } from './types';",
+   *       phase: 'pre'
+   *     });
+   *     
+   *     return new Definition({ ... });
+   *   }
+   * }
+   * ```
+   * 
+   * @example Registering utility exports
+   * ```typescript
+   * class ApiOperationGroup extends OperationBase {
+   *   toDefinition(): Definition {
+   *     // Register a utility export after all operations
+   *     this.register({
+   *       content: "export const API_VERSION = '1.0';",
+   *       phase: 'post'
+   *     });
+   *     
+   *     return new Definition({ ... });
+   *   }
+   * }
+   * ```
+   */
+  override register(args: BaseRegisterArgs): void {
     this.context.register({
       ...args,
       destinationPath: this.settings.exportPath
