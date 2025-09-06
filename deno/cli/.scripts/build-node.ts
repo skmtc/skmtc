@@ -29,6 +29,10 @@ await build({
     scripts: {
       test: 'exit 0'
     },
+    repository: {
+      type: 'git',
+      url: 'https://github.com/skmtc/skmtc.git'
+    },
     devDependencies: {
       '@types/lodash-es': '4.17.12',
       'openapi-types': '12.1.3',
