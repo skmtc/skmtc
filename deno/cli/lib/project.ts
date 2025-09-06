@@ -135,6 +135,7 @@ export class Project {
 
     return project
   }
+
   // Rename import
   async cloneGenerator(
     { projectName, moduleName }: CloneGeneratorArgs,
