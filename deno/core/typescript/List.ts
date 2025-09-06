@@ -1,11 +1,19 @@
 import type { Stringable } from '../dsl/Stringable.ts'
 import { match } from 'ts-pattern'
 
+/** Type alias for object-style lists with curly braces: `{item1, item2}` */
 export type ListObject<V extends Stringable> = List<V[], ', ', '{}'>
+
+/** Type alias for line-separated lists without bookends */
 export type ListLines<V extends Stringable> = List<V[], '\n', 'none'>
+
+/** Type alias for array-style lists with square brackets: `[item1, item2]` */
 export type ListArray<V extends Stringable> = List<V[], ', ', '[]'>
+
+/** Type alias for parameter-style lists with parentheses: `(param1, param2)` */
 export type ListParams<V extends Stringable> = List<V[], ', ', '()'>
 
+/** Options for controlling empty list behavior */
 export type SkipEmptyOption = { skipEmpty?: boolean }
 
 export type ListKeyValue<Key extends Stringable, Value extends Stringable> = List<
@@ -34,15 +42,125 @@ type ToConditionalReturn<
   Condition extends boolean
 > = Condition extends true ? List<[Value], ', ', 'none'> : List<never[], ', ', 'none'>
 
+/**
+ * A powerful utility class for building formatted lists of stringable items.
+ * 
+ * The `List` class is a core component of the SKMTC DSL system, providing type-safe
+ * construction of formatted lists with customizable separators and bookends. It's
+ * extensively used throughout the codebase for generating code constructs like
+ * function parameters, object properties, array literals, and more.
+ * 
+ * ## Type Safety
+ * 
+ * The class uses TypeScript's generic system to provide compile-time guarantees
+ * about the list structure, separator, and bookend styles. This enables rich
+ * type inference and helps prevent formatting errors.
+ * 
+ * ## Common Patterns
+ * 
+ * - **Objects**: `List.toObject()` creates `{key: value, ...}` structures
+ * - **Arrays**: `List.toArray()` creates `[item, item, ...]` structures  
+ * - **Parameters**: `List.toParams()` creates `(param, param, ...)` structures
+ * - **Lines**: `List.toLines()` creates newline-separated content
+ * 
+ * @template Values - Array of stringable values
+ * @template Separator - String used to separate items
+ * @template Bookends - Style of bookends ('[]', '{}', '()', '<>', 'none')
+ * 
+ * @example Basic usage
+ * ```typescript
+ * import { List } from '@skmtc/core';
+ * 
+ * // Create a comma-separated list
+ * const items = new List(['apple', 'banana', 'cherry']);
+ * console.log(items.toString()); // "apple, banana, cherry"
+ * 
+ * // Create an array-style list  
+ * const array = new List(['a', 'b', 'c'], { bookends: '[]' });
+ * console.log(array.toString()); // "[a, b, c]"
+ * 
+ * // Create an object-style list
+ * const obj = new List(['x: 1', 'y: 2'], { bookends: '{}' });
+ * console.log(obj.toString()); // "{x: 1, y: 2}"
+ * ```
+ * 
+ * @example Using type aliases
+ * ```typescript
+ * // Type-safe array construction
+ * const params: ListParams<string> = List.toParams(['id', 'name', 'email']);
+ * console.log(params.toString()); // "(id, name, email)"
+ * 
+ * // Object properties with filtering
+ * const props = List.toObject(['title', undefined, 'author'], { skipEmpty: true });
+ * console.log(props.toString()); // "{title, author}"
+ * 
+ * // Line-separated content
+ * const lines = List.toLines(['import React from "react"', 'import { useState } from "react"']);
+ * console.log(lines.toString()); 
+ * // import React from "react"
+ * // import { useState } from "react"
+ * ```
+ * 
+ * @example Advanced usage with builders
+ * ```typescript
+ * // Function signature generation
+ * const signature = List.toParams([
+ *   'id: string',
+ *   'options?: RequestOptions',
+ *   'callback?: (result: T) => void'
+ * ]);
+ * 
+ * // Interface properties
+ * const interfaceProps = List.toObject([
+ *   'readonly id: string',
+ *   'name: string', 
+ *   'createdAt: Date',
+ *   'updatedAt?: Date'
+ * ]);
+ * 
+ * console.log(`interface User ${interfaceProps}`);
+ * // interface User {readonly id: string, name: string, createdAt: Date, updatedAt?: Date}
+ * ```
+ */
 export class List<
   Values extends Stringable[] = Stringable[],
   Separator extends string = string,
   Bookends extends BookendsType = BookendsType
 > {
+  /** The array of values in this list */
   values: ExtractArrayItem<Values>[]
+  
+  /** The separator string used between items */
   separator: Separator
+  
+  /** The bookend style for wrapping the list */
   bookends: Bookends
+  
+  /** Whether to skip rendering when the list is empty */
   skipEmpty: boolean
+  
+  /**
+   * Creates a new List instance.
+   * 
+   * @param values - Array of values (undefined values are automatically filtered out)
+   * @param options - Configuration options
+   * @param options.separator - String to use between items (default: ', ')
+   * @param options.bookends - Style of bookends to wrap the list (default: 'none')  
+   * @param options.skipEmpty - Whether to return empty string for empty lists (default: false)
+   * 
+   * @example
+   * ```typescript
+   * // Basic list with default comma separator
+   * const basic = new List(['a', 'b', 'c']);
+   * 
+   * // Custom separator and bookends
+   * const custom = new List(['x', 'y', 'z'], {
+   *   separator: ' | ',
+   *   bookends: '[]',
+   *   skipEmpty: true
+   * });
+   * ```
+   */
   constructor(
     values: (ExtractArrayItem<Values> | undefined)[],
     { separator, bookends, skipEmpty }: ConstructorOptions<Separator, Bookends> = {}

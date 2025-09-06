@@ -1,3 +1,70 @@
+/**
+ * @module SKMTC Core
+ * 
+ * SKMTC (Schema Kit Mapping & Type Conversion) is a powerful TypeScript/Deno library
+ * for processing OpenAPI v3 documents and generating code artifacts. It provides a 
+ * comprehensive three-phase pipeline for parsing, generating, and rendering OpenAPI 
+ * schemas into various output formats.
+ * 
+ * ## Quick Start
+ * 
+ * ```typescript
+ * import { toArtifacts } from '@skmtc/core';
+ * 
+ * const result = await toArtifacts({
+ *   traceId: 'my-trace',
+ *   spanId: 'my-span',
+ *   documentObject: openApiDoc,
+ *   settings: clientSettings,
+ *   toGeneratorConfigMap: () => generatorMap,
+ *   startAt: Date.now(),
+ *   silent: false
+ * });
+ * 
+ * console.log(result.artifacts); // Generated code files
+ * console.log(result.manifest);  // Generation metadata
+ * ```
+ * 
+ * ## Architecture
+ * 
+ * The library follows a three-phase pipeline:
+ * - **Parse Phase**: Converts OpenAPI v3 JSON into internal OAS objects
+ * - **Generate Phase**: Transforms OAS objects into generator artifacts  
+ * - **Render Phase**: Renders artifacts to formatted files
+ * 
+ * ## Key Components
+ * 
+ * - {@link CoreContext} - Main orchestration class for the pipeline
+ * - {@link toArtifacts} - Primary transformation function
+ * - {@link ContentBase} - Base class for creating generators
+ * - {@link ModelBase} and {@link OperationBase} - DSL building blocks
+ * - {@link List} - Powerful string manipulation and code generation utility
+ * 
+ * ## Type System
+ * 
+ * The library provides comprehensive TypeScript types for OpenAPI schemas,
+ * generator configurations, and output artifacts. All major types are
+ * validated using Valibot schemas for runtime safety.
+ * 
+ * @example Basic Usage
+ * ```typescript
+ * import { CoreContext } from '@skmtc/core';
+ * 
+ * const context = new CoreContext({
+ *   spanId: 'my-span',
+ *   silent: false
+ * });
+ * 
+ * const result = await context.toArtifacts({
+ *   documentObject: myOpenApiDoc,
+ *   settings: mySettings,
+ *   toGeneratorConfigMap: () => myGenerators,
+ *   prettier: prettierConfig,
+ *   silent: false
+ * });
+ * ```
+ */
+
 export * from './app/validate.ts'
 export * from './context/CoreContext.ts'
 export * from './context/GenerateContext.ts'
