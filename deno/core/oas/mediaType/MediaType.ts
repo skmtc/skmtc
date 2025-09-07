@@ -98,12 +98,23 @@ export type MediaTypeFields = {
  * ```
  */
 export class OasMediaType {
+  /** Type identifier for this OAS media type */
   oasType: 'mediaType' = 'mediaType'
+  /** The media type identifier (e.g., 'application/json', 'text/xml') */
   mediaType: string
+  /** The schema defining the structure and validation rules for the content */
   schema: OasSchema | OasRef<'schema'> | undefined
+  /** Example values demonstrating the media type content */
   examples: Record<string, OasExample | OasRef<'example'>> | undefined
+  /** Custom extension fields (x-* properties) defined for this media type */
   extensionFields: Record<string, unknown> | undefined
+  /** Encoding information for multipart and form data serialization */
   encoding?: Record<string, unknown> | undefined
+  /**
+   * Creates a new OasMediaType instance.
+   * 
+   * @param fields - Media type configuration including content schema, examples, and encoding
+   */
   constructor(fields: MediaTypeFields) {
     this.mediaType = fields.mediaType
     this.schema = fields.schema
@@ -112,6 +123,12 @@ export class OasMediaType {
     this.extensionFields = fields.extensionFields
   }
 
+  /**
+   * Converts this OAS media type to an OpenAPI v3 JSON schema representation.
+   * 
+   * @param options - Conversion options including reference handling and formatting preferences
+   * @returns OpenAPI v3 media type object with schema and examples
+   */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.MediaTypeObject {
     return {
       schema: this.schema?.toJsonSchema(options),

@@ -84,33 +84,70 @@ export type InfoFields = {
  * ```
  */
 export class OasInfo {
+  /** Type identifier for this OAS info object */
   oasType: 'info' = 'info'
+  /** Private storage for all info fields */
   #fields: InfoFields
 
+  /**
+   * Creates a new OasInfo instance.
+   * 
+   * @param fields - API information fields including title, version, description, and contact details
+   */
   constructor(fields: InfoFields) {
     this.#fields = fields
   }
 
+  /**
+   * Gets the API title.
+   * 
+   * @returns The title of the API
+   */
   get title(): string {
     return this.#fields.title
   }
 
+  /**
+   * Gets the API description.
+   * 
+   * @returns Optional detailed description of the API's purpose and functionality
+   */
   get description(): string | undefined {
     return this.#fields.description
   }
 
+  /**
+   * Gets the terms of service URL.
+   * 
+   * @returns Optional URL pointing to the API's terms of service
+   */
   get termsOfService(): string | undefined {
     return this.#fields.termsOfService
   }
 
+  /**
+   * Gets the contact information.
+   * 
+   * @returns Optional contact information for API support and inquiries
+   */
   get contact(): OasContact | undefined {
     return this.#fields.contact
   }
 
+  /**
+   * Gets the license information.
+   * 
+   * @returns Optional license information governing API usage
+   */
   get license(): OasLicense | undefined {
     return this.#fields.license
   }
 
+  /**
+   * Gets the API version.
+   * 
+   * @returns The version string of the API (e.g., '1.0.0', '2.1.3')
+   */
   get version(): string {
     return this.#fields.version
   }

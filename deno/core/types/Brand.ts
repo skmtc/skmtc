@@ -1,4 +1,46 @@
 /**
+ * @fileoverview Brand Type System for SKMTC Core
+ * 
+ * This module provides TypeScript branded types for creating type-safe identifiers
+ * and values that are structurally identical but nominally distinct. Branded types
+ * help prevent mixing up similar primitive types and provide better type safety
+ * across the SKMTC codebase.
+ * 
+ * ## Key Features
+ * 
+ * - **Type Safety**: Prevents accidental mixing of similar primitive types
+ * - **Nominal Typing**: Creates distinct types from the same underlying type
+ * - **Zero Runtime Cost**: Pure TypeScript compile-time construct
+ * - **Developer Experience**: Better IntelliSense and error messages
+ * 
+ * @example Creating branded types
+ * ```typescript
+ * import type { Brand } from '@skmtc/core/Brand';
+ * 
+ * type UserId = Brand<string, 'UserId'>;
+ * type ProductId = Brand<string, 'ProductId'>;
+ * 
+ * const userId: UserId = 'user-123' as UserId;
+ * const productId: ProductId = 'prod-456' as ProductId;
+ * 
+ * // TypeScript will prevent this error:
+ * // const wrong: UserId = productId; // Type error!
+ * ```
+ * 
+ * @example Using with numbers
+ * ```typescript
+ * type Score = Brand<number, 'Score'>;
+ * type Percentage = Brand<number, 'Percentage'>;
+ * 
+ * function calculateGrade(score: Score, total: Score): Percentage {
+ *   return ((score / total) * 100) as Percentage;
+ * }
+ * ```
+ * 
+ * @module Brand
+ */
+
+/**
  * Unique symbol used for branding types.
  * 
  * This symbol is used internally by the {@link Brand} type to create
