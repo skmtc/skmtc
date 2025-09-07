@@ -7,7 +7,7 @@ export type OasTagData = {
   description?: string
 }
 
-export const oasTagData = v.object({
+export const oasTagData: v.GenericSchema<OasTagData> = v.object({
   oasType: v.literal('tag'),
   name: v.string(),
   description: v.optional(markdown)

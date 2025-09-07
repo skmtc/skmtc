@@ -33,7 +33,7 @@ export type OasOperationData = {
   // servers?: Server[]
 }
 
-export const oasOperationData = v.object({
+export const oasOperationData: v.GenericSchema<OasOperationData> = v.object({
   oasType: v.literal('operation'),
   pathItem: oasPathItemData,
   path: v.string(),

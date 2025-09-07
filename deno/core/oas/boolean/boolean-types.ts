@@ -6,7 +6,7 @@ import * as v from 'valibot'
  * Validates boolean schemas including default values and enumeration
  * constraints. Boolean enums typically contain [true, false] or single values.
  */
-export const oasBooleanData = v.object({
+export const oasBooleanData: v.GenericSchema<OasBooleanData> = v.object({
   type: v.literal('boolean'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),

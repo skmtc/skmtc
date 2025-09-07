@@ -13,7 +13,7 @@ export type OasInfoData = {
   version: string
 }
 
-export const oasInfoData = v.object({
+export const oasInfoData: v.GenericSchema<OasInfoData> = v.object({
   oasType: v.literal('info'),
   title: v.string(),
   description: v.optional(markdown),

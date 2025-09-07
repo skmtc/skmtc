@@ -35,7 +35,7 @@ export type OasUnionData = {
  * discriminator properties. Uses lazy evaluation to handle recursive
  * schema references in union members.
  */
-export const oasUnionData = v.object({
+export const oasUnionData: v.GenericSchema<OasUnionData> = v.object({
   oasType: v.literal('schema'),
   type: v.literal('union'),
   title: v.optional(v.string()),

@@ -29,7 +29,7 @@ export type StringFormat =
  * Defines the standard string formats supported by OpenAPI v3,
  * including date/time formats, network formats, and encoding formats.
  */
-export const stringFormat = v.enum({
+export const stringFormat: v.GenericSchema<StringFormat> = v.enum({
   'date-time': 'date-time',
   time: 'time',
   date: 'date',
@@ -52,7 +52,7 @@ export const stringFormat = v.enum({
  * Validates string schema objects including length constraints,
  * pattern validation, format specifiers, and enumeration values.
  */
-export const oasStringData = v.object({
+export const oasStringData: v.GenericSchema<OasStringData> = v.object({
   type: v.literal('string'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),

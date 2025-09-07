@@ -23,7 +23,7 @@ export type OasDiscriminatorData = {
  * and optional value-to-schema mappings. Used to ensure discriminator
  * objects conform to OpenAPI specification requirements.
  */
-export const oasDiscriminatorData = v.object({
+export const oasDiscriminatorData: v.GenericSchema<OasDiscriminatorData> = v.object({
   oasType: v.literal('discriminator'),
   propertyName: v.string(),
   mapping: v.optional(v.record(v.string(), v.string()))

@@ -17,7 +17,7 @@ export type OasDocumentData = {
   tags?: OasTagData[]
 }
 
-export const oasDocumentData = v.object({
+export const oasDocumentData: v.GenericSchema<OasDocumentData> = v.object({
   oasType: v.literal('openapi'),
   openapi: v.string(),
   info: oasInfoData,

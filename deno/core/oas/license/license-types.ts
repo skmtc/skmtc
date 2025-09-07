@@ -7,7 +7,7 @@ export type OasLicenseData = {
   identifier?: string
 }
 
-export const oasLicenseData = v.object({
+export const oasLicenseData: v.GenericSchema<OasLicenseData> = v.object({
   oasType: v.literal('license'),
   name: v.string(),
   url: v.optional(v.string()),

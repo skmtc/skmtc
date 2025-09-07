@@ -32,7 +32,7 @@ export type OasComponentsData = {
   headers?: Record<string, OasHeaderData | OasHeaderRefData>
 }
 
-export const oasComponentsData = v.object({
+export const oasComponentsData: v.GenericSchema<OasComponentsData> = v.object({
   oasType: v.literal('components'),
   schemas: v.optional(v.record(v.string(), v.union([oasSchemaData, oasSchemaRefData]))),
   responses: v.optional(v.record(v.string(), v.union([oasResponseData, oasResponseRefData]))),

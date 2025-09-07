@@ -9,7 +9,7 @@ import { type OasSchemaRefData, oasSchemaRefData } from '../ref/ref-types.ts'
  * uniqueness requirements, and enumeration values. Uses lazy evaluation
  * to handle recursive schema references.
  */
-export const oasArrayData = v.object({
+export const oasArrayData: v.GenericSchema<OasArrayData> = v.object({
   type: v.literal('array'),
   items: v.lazy(() => v.union([v.lazy(() => oasSchemaData), oasSchemaRefData])),
   title: v.optional(v.string()),

@@ -12,7 +12,7 @@ export type OasPathItemData = {
   parameters?: (OasParameterData | OasParameterRefData)[]
 }
 
-export const oasPathItemData = v.object({
+export const oasPathItemData: v.GenericSchema<OasPathItemData> = v.object({
   oasType: v.literal('pathItem'),
   $ref: v.optional(v.string()),
   summary: v.optional(v.string()),

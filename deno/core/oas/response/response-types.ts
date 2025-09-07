@@ -11,7 +11,7 @@ export type OasResponseData = {
   // links?: Record<string, Link | Ref>
 }
 
-export const oasResponseData = v.object({
+export const oasResponseData: v.GenericSchema<OasResponseData> = v.object({
   oasType: v.literal('response'),
   description: v.string(),
   headers: v.optional(v.record(v.string(), v.union([oasHeaderData, oasHeaderRefData]))),

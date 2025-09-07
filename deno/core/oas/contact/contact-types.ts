@@ -7,7 +7,7 @@ export type OasContactData = {
   email?: string
 }
 
-export const oasContactData = v.object({
+export const oasContactData: v.GenericSchema<OasContactData> = v.object({
   oasType: v.literal('contact'),
   name: v.optional(v.string()),
   url: v.optional(v.string()),

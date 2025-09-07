@@ -6,7 +6,7 @@ import * as v from 'valibot'
  * Validates unknown/unspecified schemas used as fallbacks when
  * schema types cannot be determined or for flexible data handling.
  */
-export const oasUnknownData = v.object({
+export const oasUnknownData: v.GenericSchema<OasUnknownData> = v.object({
   oasType: v.literal('schema'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),

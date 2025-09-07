@@ -40,9 +40,15 @@ export type OasHeaderData = {
   explode?: boolean
 }
 
-const oasHeaderStyle = v.literal('simple')
+const oasHeaderStyle: v.LiteralSchema<'simple', 'simple'> = v.literal('simple')
 
-type OasHeaderStyle = 'simple'
+/**
+ * Valid serialization styles for OpenAPI headers.
+ * 
+ * Headers can only use the 'simple' serialization style according to
+ * the OpenAPI specification.
+ */
+export type OasHeaderStyle = 'simple'
 
 /**
  * Valibot schema for validating OAS header data structures.
@@ -51,7 +57,7 @@ type OasHeaderStyle = 'simple'
  * ensuring proper types for all fields including nested schemas,
  * examples, and content definitions.
  */
-export const oasHeaderData = v.object({
+export const oasHeaderData: v.GenericSchema<OasHeaderData> = v.object({
   oasType: v.literal('header'),
   description: v.optional(markdown),
   required: v.optional(v.boolean()),

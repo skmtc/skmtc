@@ -29,14 +29,29 @@ type GetDefinitionArgs = {
   noExport?: boolean
 }
 
+/**
+ * Driver class responsible for managing model generation lifecycle.
+ * 
+ * @template V - The generated value type
+ * @template T - The generation type
+ * @template EnrichmentType - Optional enrichment type
+ */
 export class ModelDriver<V extends GeneratedValue, T extends GenerationType, EnrichmentType> {
+  /** The generation context */
   context: GenerateContext
+  /** The insertable model configuration */
   insertable: ModelInsertable<V, EnrichmentType>
+  /** Reference name for the model */
   refName: RefName
+  /** Content settings for the model */
   settings: ContentSettings<EnrichmentType>
+  /** Optional destination path for the generated file */
   destinationPath?: string
+  /** The generated definition */
   definition: GeneratedDefinition<V, T>
+  /** Optional root reference name */
   rootRef?: RefName
+  /** Whether to skip export declaration */
   noExport?: boolean
   constructor({
     context,

@@ -9,7 +9,7 @@ export type OasRequestBodyData = {
   required?: boolean
 }
 
-export const oasRequestBodyData = v.object({
+export const oasRequestBodyData: v.GenericSchema<OasRequestBodyData> = v.object({
   oasType: v.literal('requestBody'),
   description: v.optional(markdown),
   content: v.record(v.string(), oasMediaTypeData),
