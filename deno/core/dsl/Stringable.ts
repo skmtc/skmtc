@@ -1,3 +1,79 @@
+/**
+ * Represents any object that can be converted to a string representation.
+ * 
+ * The `Stringable` interface is a fundamental type used throughout the SKMTC DSL
+ * system to ensure that objects can be converted to strings for code generation.
+ * This interface matches JavaScript's built-in `toString()` contract and is used
+ * extensively by the {@link List} class and other string-building utilities.
+ * 
+ * ## Usage in SKMTC
+ * 
+ * This type is used as a constraint in generic classes and functions that need
+ * to output string representations. It allows for type-safe string building
+ * while accommodating both primitive types and custom objects.
+ * 
+ * @example Built-in types are stringable
+ * ```typescript
+ * import type { Stringable } from '@skmtc/core';
+ * 
+ * // All these types implement Stringable
+ * const str: Stringable = 'hello';        // string
+ * const num: Stringable = 42;             // number
+ * const bool: Stringable = true;          // boolean
+ * const obj: Stringable = { toString: () => 'custom' }; // custom object
+ * ```
+ * 
+ * @example Custom classes implementing Stringable
+ * ```typescript
+ * class CodeBlock implements Stringable {
+ *   constructor(private code: string) {}
+ * 
+ *   toString(): string {
+ *     return `{\n  ${this.code}\n}`;
+ *   }
+ * }
+ * 
+ * const block = new CodeBlock('console.log("hello");');
+ * console.log(block.toString());
+ * // {
+ * //   console.log("hello");
+ * // }
+ * ```
+ * 
+ * @example Using with List class
+ * ```typescript
+ * import { List } from '@skmtc/core';
+ * 
+ * // List accepts any Stringable items
+ * const stringables: Stringable[] = [
+ *   'string literal',
+ *   42,
+ *   true,
+ *   { toString: () => 'custom object' },
+ *   new CodeBlock('return value;')
+ * ];
+ * 
+ * const list = new List(stringables);
+ * console.log(list.toString());
+ * // string literal, 42, true, custom object, {
+ * //   return value;
+ * // }
+ * ```
+ * 
+ * @example Type constraints in generics
+ * ```typescript
+ * function joinWithCommas<T extends Stringable>(items: T[]): string {
+ *   return items.map(item => item.toString()).join(', ');
+ * }
+ * 
+ * const result = joinWithCommas([1, 2, 3]); // "1, 2, 3"
+ * const identifiers = joinWithCommas([
+ *   Identifier.createVariable('user'),
+ *   Identifier.createType('User')
+ * ]); // "user, User"
+ * ```
+ */
 export type Stringable = {
+  /** Converts the object to its string representation */
   toString: () => string
 }
