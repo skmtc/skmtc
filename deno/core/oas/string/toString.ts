@@ -13,7 +13,7 @@ type ToStringArgs = {
   context: ParseContext
 }
 
-export const toString = ({ context, value }: ToStringArgs) => {
+export const toString = ({ context, value }: ToStringArgs): OasString => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,
     context
