@@ -2,7 +2,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { parse as parseYaml } from '@std/yaml/parse'
 import { toDocumentFieldsV3 } from '../oas/document/toDocumentFieldsV3.ts'
 import { OasDocument } from '../oas/document/Document.ts'
-import type * as log from '@std/log'
+import type { Logger } from '../types/Logger.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import * as v from 'valibot'
@@ -15,7 +15,7 @@ type ConstructorArgs = {
   /** The OpenAPI v3 document to parse */
   documentObject: OpenAPIV3.Document
   /** Logger instance for debug information */
-  logger: log.Logger
+  logger: Logger
   /** Stack trail for distributed tracing */
   stackTrail: StackTrail
   /** Whether to suppress console output */
@@ -258,7 +258,7 @@ export class ParseContext {
   /** The original OpenAPI v3 document being parsed */
   documentObject: OpenAPIV3.Document
   /** Logger instance for tracking parse progress and issues */
-  logger: log.Logger
+  logger: Logger
   /** The parsed OAS document result */
   oasDocument: OasDocument
   /** Stack trail for tracking current parsing context */

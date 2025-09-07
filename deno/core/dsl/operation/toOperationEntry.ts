@@ -11,6 +11,15 @@ import type { IsSupportedOperationConfigArgs } from './types.ts'
 import type { MappingModule, PreviewModule } from '../../types/Preview.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { get } from 'npm:lodash-es@4.17.21'
+/**
+ * Configuration arguments for creating operation generator entries.
+ * 
+ * Defines the structure for operation generator configuration including transform functions,
+ * enrichment schemas, preview/mapping modules, and support validation.
+ * 
+ * @template EnrichmentType - Type of enrichment data this operation can provide
+ * @template Acc - Accumulator type used during operation processing
+ */
 export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
   transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
@@ -23,6 +32,34 @@ export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
 }
 
+/**
+ * Creates a configured operation generator entry.
+ * 
+ * Transforms operation configuration arguments into a standardized operation generator entry
+ * that can be used within the SKMTC generation pipeline. Provides type-safe operation processing
+ * with optional enrichment support and preview capabilities.
+ * 
+ * @template EnrichmentType - Type of enrichment data this operation provides
+ * @template Acc - Accumulator type used during operation processing
+ * @param config - Configuration object defining operation behavior
+ * @returns Configured operation generator entry ready for pipeline integration
+ * 
+ * @example Basic operation entry
+ * ```typescript
+ * import { toOperationEntry } from '@skmtc/core';
+ * 
+ * const operationEntry = toOperationEntry({
+ *   id: 'my-operation-generator',
+ *   transform: ({ context, operation, acc }) => {
+ *     // Transform operation into desired format
+ *     return processedOperation;
+ *   },
+ *   isSupported: ({ operation }) => {
+ *     return operation.method === 'POST';
+ *   }
+ * });
+ * ```
+ */
 export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
   id,
   transform,

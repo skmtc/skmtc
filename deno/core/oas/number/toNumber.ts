@@ -13,6 +13,68 @@ type ToNumberArgs = {
   context: ParseContext
 }
 
+/**
+ * Transforms an OpenAPI v3 number schema object into an internal OAS number representation.
+ * 
+ * This function processes OpenAPI number schemas by extracting and parsing nullable values,
+ * examples, enumerations, and default values. It handles the complete transformation from
+ * raw OpenAPI JSON to the SKMTC internal number representation with proper validation
+ * of number formats and constraints.
+ * 
+ * The transformation follows a pipeline approach:
+ * 1. Parse nullable flag and extract base value
+ * 2. Parse example values with nullable support
+ * 3. Parse enumeration constraints
+ * 4. Parse default values
+ * 5. Create final OasNumber instance with format validation
+ * 
+ * @param args - Transformation arguments
+ * @param args.context - Parse context providing utilities and tracing
+ * @param args.value - The OpenAPI v3 number schema object to transform
+ * @returns Transformed OAS number object with parsed properties
+ * 
+ * @example Basic number transformation
+ * ```typescript
+ * import { toNumber } from '@skmtc/core';
+ * 
+ * const openApiNumber = {
+ *   type: 'number',
+ *   format: 'double',
+ *   minimum: 0,
+ *   maximum: 100
+ * };
+ * 
+ * const oasNumber = toNumber({
+ *   context: parseContext,
+ *   value: openApiNumber
+ * });
+ * 
+ * console.log(oasNumber.format); // 'double'
+ * console.log(oasNumber.minimum); // 0
+ * ```
+ * 
+ * @example Number with nullable and constraints
+ * ```typescript
+ * const priceNumber = {
+ *   type: 'number',
+ *   format: 'float',
+ *   nullable: true,
+ *   minimum: 0.01,
+ *   maximum: 9999.99,
+ *   exclusiveMaximum: true,
+ *   default: null,
+ *   example: 19.99
+ * };
+ * 
+ * const oasNumber = toNumber({
+ *   context: parseContext,
+ *   value: priceNumber
+ * });
+ * 
+ * console.log(oasNumber.nullable); // true
+ * console.log(oasNumber.exclusiveMaximum); // true
+ * ```
+ */
 export const toNumber = ({ context, value }: ToNumberArgs): OasNumber => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,

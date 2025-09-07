@@ -18,6 +18,7 @@ import { ContentSettings } from '../dsl/ContentSettings.ts'
 import type { RefName } from '../types/RefName.ts'
 import * as Sentry from 'npm:@sentry/node@^10.8.0'
 import type * as log from '@std/log'
+import type { Logger } from '../types/Logger.ts'
 import type { ResultType } from '../types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
@@ -437,7 +438,7 @@ export class GenerateContext {
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Logger instance for tracking generation progress */
-  logger: log.Logger
+  logger: Logger
   /** Function to capture processing results at current stack position */
   captureCurrentResult: (result: ResultType) => void
   /** Function that returns the generator configuration map */

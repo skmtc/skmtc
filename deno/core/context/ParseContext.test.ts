@@ -1,7 +1,7 @@
 import { ParseContext } from './ParseContext.ts'
 import { StackTrail } from './StackTrail.ts'
 import type { Logger } from '@std/log'
-import type _denoSchema from '../_schemas/deno.json' with { type: 'json' }
+import _denoSchema from '../_schemas/deno.json' with { type: 'json' }
 import cfCycleSchema from '../_schemas/cf-cycle.json' with { type: 'json' }
 import type { OpenAPIV3 } from 'openapi-types'
 import { assertEquals } from '@std/assert/equals'

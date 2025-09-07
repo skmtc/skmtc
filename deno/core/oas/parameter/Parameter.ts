@@ -192,17 +192,33 @@ export class OasParameter {
   name: string
   /** Where the parameter is located (path, query, header, cookie) */
   location: OasParameterLocation
+  /** A brief description of the parameter's purpose and usage */
   description?: string | undefined
+  /** Determines whether this parameter is mandatory for the operation */
   required?: boolean | undefined
+  /** Indicates that the parameter is deprecated and should be avoided */
   deprecated?: boolean | undefined
+  /** Whether to allow empty values for this parameter */
   allowEmptyValue?: boolean | undefined
+  /** Whether reserved characters are allowed in parameter values */
   allowReserved?: boolean | undefined
+  /** The schema defining the parameter's data type and validation rules */
   schema?: OasSchema | OasRef<'schema'> | undefined
+  /** Example values demonstrating parameter usage */
   examples?: Record<string, OasExample | OasRef<'example'>> | undefined
+  /** Media type definitions for complex parameter content */
   content?: Record<string, OasMediaType> | undefined
+  /** The serialization style for the parameter (form, simple, etc.) */
   style: OasParameterStyle
+  /** Whether to explode parameter values into separate key-value pairs */
   explode: boolean
+  /** Custom extension fields (x-* properties) defined for this parameter */
   extensionFields: Record<string, unknown> | undefined
+  /**
+   * Creates a new OasParameter instance.
+   * 
+   * @param fields - Parameter configuration fields including name, location, schema, and serialization options
+   */
   constructor(fields: ParameterFields) {
     this.name = fields.name
     this.location = fields.location
@@ -221,18 +237,43 @@ export class OasParameter {
     this.extensionFields = fields.extensionFields
   }
 
+  /**
+   * Determines if this parameter is a reference object.
+   * 
+   * @returns Always false since this is a concrete parameter instance, not a reference
+   */
   isRef(): this is OasRef<'parameter'> {
     return false
   }
 
+  /**
+   * Resolves this parameter object.
+   * 
+   * @returns The parameter instance itself since it's already a concrete object
+   */
   resolve(): OasParameter {
     return this
   }
 
+  /**
+   * Resolves this parameter object one level.
+   * 
+   * @returns The parameter instance itself since it's already a concrete object
+   */
   resolveOnce(): OasParameter {
     return this
   }
 
+  /**
+   * Extracts the schema for this parameter.
+   * 
+   * Returns the direct schema if available, or extracts schema from content
+   * for the specified media type.
+   * 
+   * @param mediaType - Media type to extract schema from when using content definitions
+   * @returns The parameter's schema object
+   * @throws Error if no schema is found for the specified media type
+   */
   toSchema(mediaType: string = 'application/json'): OasSchema | OasRef<'schema'> {
     if (this.schema) {
       return this.schema
@@ -247,6 +288,12 @@ export class OasParameter {
     return schema
   }
 
+  /**
+   * Converts this OAS parameter to an OpenAPI v3 JSON schema representation.
+   * 
+   * @param options - Conversion options including reference handling and formatting preferences
+   * @returns OpenAPI v3 parameter object with all properties and validation constraints
+   */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ParameterObject {
     return {
       name: this.name,

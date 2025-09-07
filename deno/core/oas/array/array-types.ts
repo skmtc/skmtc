@@ -21,6 +21,12 @@ export const oasArrayData: v.GenericSchema<OasArrayData> = v.object({
   enums: v.optional(v.array(v.unknown()))
 })
 
+/**
+ * Valibot schema for array data without the items property.
+ * 
+ * Used for parsing array schemas when the items property is handled separately,
+ * typically during schema transformation and validation processes.
+ */
 export const oasArrayDataWithoutItems: v.GenericSchema<OasArrayDataWithoutItems> = v.object({
   type: v.literal('array'),
   title: v.optional(v.string()),
@@ -60,6 +66,12 @@ export type OasArrayData = {
   enums?: unknown[]
 }
 
+/**
+ * Array schema data without the items property.
+ * 
+ * Represents an array schema with all properties except the items definition.
+ * Used during parsing phases where item schemas are processed separately.
+ */
 export type OasArrayDataWithoutItems = {
   /** Type identifier (always 'array') */
   type: 'array'

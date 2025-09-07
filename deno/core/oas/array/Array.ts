@@ -184,6 +184,11 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
    */
   defaultValue: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined
 
+  /**
+   * Creates a new OasArray instance.
+   * 
+   * @param fields - Array configuration fields including items schema, validation constraints, and metadata
+   */
   constructor(fields: ArrayFields<Nullable>) {
     this.items = fields.items
     this.title = fields.title
@@ -198,18 +203,39 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
     this.defaultValue = fields.defaultValue
   }
 
+  /**
+   * Determines if this array is a reference object.
+   * 
+   * @returns Always returns false since this is a concrete array instance, not a reference
+   */
   isRef(): this is OasRef<'schema'> {
     return false
   }
 
+  /**
+   * Resolves this array object.
+   * 
+   * @returns The array instance itself since it's already a concrete object, not a reference
+   */
   resolve(): OasArray<Nullable> {
     return this
   }
 
+  /**
+   * Resolves this array object one level.
+   * 
+   * @returns The array instance itself since it's already a concrete object, not a reference
+   */
   resolveOnce(): OasArray<Nullable> {
     return this
   }
 
+  /**
+   * Converts this OAS array to an OpenAPI v3 JSON schema representation.
+   * 
+   * @param options - Conversion options including reference handling and formatting preferences
+   * @returns OpenAPI v3 array schema object with type, items schema, and all validation constraints
+   */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ArraySchemaObject {
     return {
       type: 'array',

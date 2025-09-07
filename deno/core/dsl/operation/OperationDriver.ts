@@ -114,6 +114,19 @@ export class OperationDriver<
     this.definition = this.apply({ generation, destinationPath })
   }
 
+  /**
+   * Applies generation configuration to create the operation definition.
+   * 
+   * This method handles the core generation logic for operations, including
+   * identifier resolution, export path management, and import registration
+   * for cross-file dependencies.
+   * 
+   * @template T - The generation type
+   * @param args - Apply configuration arguments
+   * @param args.generation - Optional generation type (unused currently)
+   * @param args.destinationPath - Optional destination path for imports
+   * @returns Generated definition for the operation
+   */
   private apply<T extends GenerationType>({
     generation: _generation,
     destinationPath
@@ -137,6 +150,18 @@ export class OperationDriver<
     return definition
   }
 
+  /**
+   * Retrieves or creates a definition for the operation.
+   * 
+   * This method first checks for cached definitions to avoid duplicate generation,
+   * then creates a new definition if none exists. It handles the complete operation
+   * transformation process including schema resolution and value generation.
+   * 
+   * @param args - Definition retrieval arguments
+   * @param args.identifier - The identifier for the definition
+   * @param args.exportPath - The export path for the definition
+   * @returns Operation definition instance
+   */
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): Definition<V> {
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
@@ -168,6 +193,17 @@ export class OperationDriver<
     return definition
   }
 
+  /**
+   * Type guard to verify a definition matches the expected generated value type.
+   * 
+   * This method performs type narrowing to ensure a cached definition is compatible
+   * with the current generation requirements, including export path validation.
+   * 
+   * @template V - The expected generated value type
+   * @param definition - The definition to verify (may be undefined)
+   * @param exportPath - Expected export path for validation
+   * @returns True if definition matches expected type and constraints
+   */
   private affirmDefinition<V extends GeneratedValue>(
     definition: Definition | undefined,
     exportPath: string

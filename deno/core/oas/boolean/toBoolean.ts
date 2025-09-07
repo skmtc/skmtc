@@ -14,6 +14,63 @@ type ToBooleanArgs = {
   context: ParseContext
 }
 
+/**
+ * Transforms an OpenAPI v3 boolean schema object into an internal OAS boolean representation.
+ * 
+ * This function processes OpenAPI boolean schemas by extracting and parsing nullable values,
+ * examples, enumerations, and default values. It handles the complete transformation from
+ * raw OpenAPI JSON to the SKMTC internal boolean representation with proper validation.
+ * 
+ * The transformation follows a pipeline approach:
+ * 1. Parse nullable flag and extract base value
+ * 2. Parse example values with nullable support
+ * 3. Parse enumeration constraints (typically [true], [false], or [true, false])
+ * 4. Parse default values
+ * 5. Create final OasBoolean instance
+ * 
+ * @param args - Transformation arguments
+ * @param args.value - The OpenAPI v3 boolean schema object to transform
+ * @param args.context - Parse context providing utilities and tracing
+ * @returns Transformed OAS boolean object with parsed properties
+ * 
+ * @example Basic boolean transformation
+ * ```typescript
+ * import { toBoolean } from '@skmtc/core';
+ * 
+ * const openApiBoolean = {
+ *   type: 'boolean',
+ *   default: false
+ * };
+ * 
+ * const oasBoolean = toBoolean({
+ *   value: openApiBoolean,
+ *   context: parseContext
+ * });
+ * 
+ * console.log(oasBoolean.default); // false
+ * ```
+ * 
+ * @example Boolean with nullable and enum
+ * ```typescript
+ * const flagBoolean = {
+ *   type: 'boolean',
+ *   nullable: true,
+ *   enum: [true, null],
+ *   default: null,
+ *   example: true,
+ *   title: 'Feature Flag',
+ *   description: 'Whether the feature is enabled'
+ * };
+ * 
+ * const oasBoolean = toBoolean({
+ *   value: flagBoolean,
+ *   context: parseContext
+ * });
+ * 
+ * console.log(oasBoolean.nullable); // true
+ * console.log(oasBoolean.enums); // [true, null]
+ * ```
+ */
 export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,

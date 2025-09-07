@@ -195,6 +195,11 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
    */
   default: Nullable extends true ? boolean | null | undefined : boolean | undefined
 
+  /**
+   * Creates a new OasBoolean instance.
+   * 
+   * @param fields - Boolean configuration fields including validation constraints and metadata
+   */
   constructor(fields: BooleanFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
@@ -205,18 +210,39 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
     this.default = fields.default
   }
 
+  /**
+   * Determines if this boolean is a reference object.
+   * 
+   * @returns Always returns false since this is a concrete boolean instance, not a reference
+   */
   isRef(): this is OasRef<'schema'> {
     return false
   }
 
+  /**
+   * Resolves this boolean object.
+   * 
+   * @returns The boolean instance itself since it's already a concrete object, not a reference
+   */
   resolve(): OasBoolean<Nullable> {
     return this
   }
 
+  /**
+   * Resolves this boolean object one level.
+   * 
+   * @returns The boolean instance itself since it's already a concrete object, not a reference
+   */
   resolveOnce(): OasBoolean<Nullable> {
     return this
   }
 
+  /**
+   * Converts this OAS boolean to an OpenAPI v3 JSON schema representation.
+   * 
+   * @param options - Conversion options (currently unused for boolean schemas)
+   * @returns OpenAPI v3 boolean schema object with type and all validation constraints
+   */
   // deno-lint-ignore no-unused-vars
   toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject {
     return {
