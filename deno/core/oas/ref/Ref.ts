@@ -14,6 +14,11 @@ import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 
 const MAX_LOOKUPS = 10
 
+/**
+ * Field data for creating OAS reference objects.
+ * 
+ * @template T - The type of component being referenced (e.g., 'schema', 'response')
+ */
 export type RefFields<T extends OasRefData['refType']> = {
   refType: T
   $ref: string
@@ -106,20 +111,43 @@ export type RefFields<T extends OasRefData['refType']> = {
  * ```
  */
 export class OasRef<T extends OasRefData['refType']> {
+  /** OAS type identifier */
   oasType: 'ref' = 'ref'
+  /** Type identifier */
   type: 'ref' = 'ref'
   #fields: RefFields<T>
   #oasDocument: OasDocument
 
+  /**
+   * Creates a new OAS reference instance.
+   * 
+   * @param fields - Reference field data including refType and $ref
+   * @param oasDocument - Document containing the referenced component
+   */
   constructor(fields: RefFields<T>, oasDocument: OasDocument) {
     this.#fields = fields
     this.#oasDocument = oasDocument
   }
 
+  /**
+   * Type guard to check if this instance is a reference.
+   * 
+   * @returns Always true for OasRef instances
+   */
   isRef(): this is OasRef<T> {
     return true
   }
 
+  /**
+   * Recursively resolves this reference to its final target component.
+   * 
+   * Follows reference chains until reaching a non-reference component,
+   * with protection against infinite loops.
+   * 
+   * @param lookupsPerformed - Internal counter to prevent infinite recursion
+   * @returns The resolved component
+   * @throws Error if maximum lookup depth is exceeded
+   */
   resolve(lookupsPerformed: number = 0): ResolvedRef<T> {
     if (lookupsPerformed >= MAX_LOOKUPS) {
       throw new Error('Max lookups reached')
@@ -130,6 +158,11 @@ export class OasRef<T extends OasRefData['refType']> {
     return resolved.isRef() ? resolved.resolve(lookupsPerformed + 1) : resolved
   }
 
+  /**
+   * Resolves this reference one level, potentially returning another reference.
+   * 
+   * @returns Either the resolved component or another reference in the chain
+   */
   resolveOnce(): OasRef<T> | ResolvedRef<T> {
     const c = this.oasDocument.components
 
@@ -223,10 +256,20 @@ export class OasRef<T extends OasRefData['refType']> {
   }
 }
 
-type ResolvedRefJsonType<T extends OasRefData['refType']> = ReturnType<
+/**
+ * Type representing the JSON schema result from resolving a reference.
+ * 
+ * @template T - The type of component being referenced
+ */
+export type ResolvedRefJsonType<T extends OasRefData['refType']> = ReturnType<
   ResolvedRef<T>['toJsonSchema']
 >
 
+/**
+ * Union type of all OAS component types that can be referenced.
+ * 
+ * Includes all OpenAPI component types that support $ref resolution.
+ */
 export type OasComponentType =
   | OasSchema
   | OasResponse
@@ -236,4 +279,9 @@ export type OasComponentType =
   | OasHeader
   | OasSecurityScheme
 
+/**
+ * Type representing a resolved reference to a specific component type.
+ * 
+ * @template T - The type of component being referenced (e.g., 'schema', 'response')
+ */
 export type ResolvedRef<T extends OasRefData['refType']> = Extract<OasComponentType, { oasType: T }>

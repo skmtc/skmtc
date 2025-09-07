@@ -46,7 +46,10 @@ export type OperationFields = {
   extensionFields?: Record<string, unknown>
 }
 
-type ToRequestBodyMapArgs = {
+/**
+ * Arguments passed to request body mapping functions.
+ */
+export type ToRequestBodyMapArgs = {
   schema: OasSchema | OasRef<'schema'>
   requestBody: OasRequestBody
 }
@@ -189,6 +192,11 @@ export class OasOperation {
   /** OpenAPI specification extensions */
   extensionFields: Record<string, unknown> | undefined
 
+  /**
+   * Creates a new OasOperation instance from operation field data.
+   * 
+   * @param fields - Operation field data from OpenAPI specification
+   */
   constructor(fields: OperationFields) {
     this.path = fields.path
     this.method = fields.method
@@ -205,12 +213,26 @@ export class OasOperation {
     this.extensionFields = fields.extensionFields
   }
 
+  /**
+   * Returns the successful response definition for this operation.
+   * 
+   * Looks for the lowest numbered 2xx response code and returns its response definition.
+   * 
+   * @returns Success response object or undefined if none found
+   */
   toSuccessResponse(): OasResponse | OasRef<'response'> | undefined {
     const successCode = this.toSuccessResponseCode()
 
     return successCode ? this.responses[successCode] : undefined
   }
 
+  /**
+   * Returns the HTTP status code for the primary success response.
+   * 
+   * Finds the lowest numbered 2xx status code in the responses.
+   * 
+   * @returns Success status code as string or undefined if none found
+   */
   toSuccessResponseCode(): string | undefined {
     const successCode = Object.keys(this.responses)
       .map(httpCode => parseInt(httpCode))
@@ -228,6 +250,13 @@ export class OasOperation {
     return undefined
   }
 
+  /**
+   * Maps the request body schema to a custom value using the provided mapping function.
+   * 
+   * @param map - Function to transform the request body schema and metadata
+   * @param mediaType - Media type to extract schema from (default: 'application/json')
+   * @returns Mapped value or undefined if no request body schema found
+   */
   toRequestBody<V>(
     map: ({ schema, requestBody }: ToRequestBodyMapArgs) => V,
     mediaType = 'application/json'
@@ -252,6 +281,12 @@ export class OasOperation {
     )
   }
 
+  /**
+   * Creates an OAS object representation of operation parameters.
+   * 
+   * @param filter - Optional array of parameter locations to include
+   * @returns OAS object with parameter properties
+   */
   toParametersObject(filter?: OasParameterLocation[]): OasObject {
     const parameters = this.toParams(filter)
 
@@ -264,6 +299,12 @@ export class OasOperation {
     }, OasObject.empty())
   }
 
+  /**
+   * Converts the operation to OpenAPI v3 JSON schema format.
+   * 
+   * @param options - Conversion options for nested components
+   * @returns OpenAPI v3 operation object
+   */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject {
     return {
       tags: this.tags,
@@ -281,6 +322,11 @@ export class OasOperation {
     }
   }
 
+  /**
+   * Serializes the operation to a plain JavaScript object.
+   * 
+   * @returns Plain object representation of the operation
+   */
   toJSON(): object {
     return {
       tags: this.tags,

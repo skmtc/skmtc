@@ -35,7 +35,7 @@ export type ParseReturn = {
 /**
  * Base type for parse warning messages.
  */
-type ParseWarningBase = {
+export type ParseWarningBase = {
   /** Issue severity level */
   level: 'warning'
   /** Warning message */
@@ -45,7 +45,7 @@ type ParseWarningBase = {
 /**
  * Base type for parse error messages.
  */
-type ParseErrorBase = {
+export type ParseErrorBase = {
   /** Issue severity level */
   level: 'error'
   /** The error that occurred */
@@ -55,7 +55,7 @@ type ParseErrorBase = {
 /**
  * Base union type for parse issues.
  */
-type ParseIssueBase = ParseErrorBase | ParseWarningBase
+export type ParseIssueBase = ParseErrorBase | ParseWarningBase
 
 /**
  * Arguments for logging issues with a specific key.
@@ -269,6 +269,11 @@ export class ParseContext {
   silent: boolean
   #refStackTrails: Record<string, StackTrail[]>
   #refErrors: Record<string, Error[]>
+  /**
+   * Creates a new ParseContext instance for the parsing phase.
+   * 
+   * @param args - Constructor arguments including document object, logger, and options
+   */
   constructor({ documentObject, logger, stackTrail, silent = true }: ConstructorArgs) {
     this.documentObject = documentObject
     this.logger = logger
@@ -280,6 +285,11 @@ export class ParseContext {
     this.#refErrors = {}
   }
 
+  /**
+   * Parses the OpenAPI v3 document and returns the internal OAS document representation.
+   * 
+   * @returns Parsed OAS document with all components and operations
+   */
   parse(): OasDocument {
     this.oasDocument.fields = toDocumentFieldsV3({
       documentObject: this.documentObject,
@@ -291,6 +301,9 @@ export class ParseContext {
     return this.oasDocument
   }
 
+  /**
+   * Removes items from the parsed document that encountered errors during parsing.
+   */
   removeErroredItems() {
     Object.entries(this.#refErrors).forEach(([$ref, errors]) => {
       errors.forEach(error => {
@@ -311,12 +324,24 @@ export class ParseContext {
     })
   }
 
+  /**
+   * Registers a reference ($ref) with its associated stack trail for error tracking.
+   * 
+   * @param stackTrail - Current processing context stack trail
+   * @param $ref - OpenAPI reference string to register
+   */
   registerRef(stackTrail: StackTrail, $ref: string) {
     const refStackTrails = this.#refStackTrails[$ref]
 
     refStackTrails ? refStackTrails.push(stackTrail) : (this.#refStackTrails[$ref] = [stackTrail])
   }
 
+  /**
+   * Registers an error that occurred while processing a reference.
+   * 
+   * @param error - Error that occurred during reference processing
+   * @param $ref - Reference string that caused the error (if available)
+   */
   registerRefError(error: Error, $ref: string | undefined) {
     if ($ref) {
       const refErrors = this.#refErrors[$ref]
@@ -325,10 +350,22 @@ export class ParseContext {
     }
   }
 
+  /**
+   * Executes a function within a traced context for debugging and monitoring.
+   * 
+   * @param token - Trace identifier or path segments
+   * @param fn - Function to execute within the trace context
+   * @returns The result of the traced function execution
+   */
   trace<T>(token: string | string[], fn: () => T): T {
     return tracer(this.stackTrail, token, fn, this.logger)
   }
 
+  /**
+   * Logs warnings for fields that were skipped during parsing.
+   * 
+   * @param args - Arguments containing skipped fields and parent context
+   */
   logSkippedFields({ skipped, parent, parentType }: LogSkippedValuesArgs) {
     Object.keys(skipped).forEach(key => {
       this.logIssue({
@@ -341,6 +378,12 @@ export class ParseContext {
     })
   }
 
+  /**
+   * Attempts to parse a value with optional error handling and logging.
+   * 
+   * @param args - Parsing arguments including schema and error handling
+   * @returns Parsed value or undefined if parsing fails
+   */
   provisionalParse<T>({
     key,
     value,
@@ -364,10 +407,20 @@ export class ParseContext {
     })
   }
 
+  /**
+   * Logs a parsing issue with associated key context.
+   * 
+   * @param args - Issue arguments including key, parent object, and issue details
+   */
   logIssue({ key, parent, type, ...issue }: LogIssueArgs) {
     this.trace(key, () => this.logIssueNoKey({ parent, type, ...issue }))
   }
 
+  /**
+   * Logs a parsing issue without specific key context.
+   * 
+   * @param args - Issue arguments including parent object and issue details
+   */
   logIssueNoKey({ parent, type, ...issue }: LogIssueNoKeyArgs) {
     if (issue.level === 'error') {
       this.registerRefError(issue.error, this.stackTrail.toStackRef())
@@ -391,6 +444,14 @@ export class ParseContext {
   }
 }
 
+/**
+ * Parses an OpenAPI v3 schema from string format (JSON or YAML).
+ * 
+ * Automatically detects the format based on content and parses accordingly.
+ * 
+ * @param schema - Schema string in JSON or YAML format
+ * @returns Parsed OpenAPI v3 document object
+ */
 export const parseSchema = (schema: string): OpenAPIV3.Document => {
   if (schema.trimStart().startsWith('{')) {
     return JSON.parse(schema) as OpenAPIV3.Document

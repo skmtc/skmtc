@@ -16,13 +16,25 @@ export type ListParams<V extends Stringable> = List<V[], ', ', '()'>
 /** Options for controlling empty list behavior */
 export type SkipEmptyOption = { skipEmpty?: boolean }
 
+/**
+ * Type alias for creating key-value pair lists.
+ * 
+ * Creates a List specialized for key-value pairs with colon separator
+ * and no bookends (e.g., "key1: value1, key2: value2").
+ * 
+ * @template Key - Type of the keys (must be stringable)
+ * @template Value - Type of the values (must be stringable)
+ */
 export type ListKeyValue<Key extends Stringable, Value extends Stringable> = List<
   [Key, Value],
   ': ',
   'none'
 >
 
-type BookendsType = '[]' | '{}' | '()' | '<>' | 'none'
+/**
+ * Type representing the different bookend styles for lists.
+ */
+export type BookendsType = '[]' | '{}' | '()' | '<>' | 'none'
 
 type ConstructorOptions<Separator extends string = ', ', Bookends extends BookendsType = 'none'> = {
   separator?: Separator
@@ -30,7 +42,10 @@ type ConstructorOptions<Separator extends string = ', ', Bookends extends Booken
   skipEmpty?: boolean
 }
 
-type ExtractArrayItem<ArrayOf> = ArrayOf extends Array<infer Item> ? Item : never
+/**
+ * Utility type to extract the item type from an array type.
+ */
+export type ExtractArrayItem<ArrayOf> = ArrayOf extends Array<infer Item> ? Item : never
 
 type ToFilteredKeyValueReturn<Value extends undefined | Stringable | Stringable[] | List> =
   Value extends undefined
@@ -172,6 +187,14 @@ export class List<
     this.skipEmpty = skipEmpty ?? false
   }
 
+  /**
+   * Converts the list to its string representation.
+   * 
+   * Joins all values with the configured separator and wraps with bookends.
+   * Returns empty string if skipEmpty is enabled and list is empty.
+   * 
+   * @returns Formatted string representation of the list
+   */
   toString(): string {
     if (this.skipEmpty && this.values.length === 0) {
       return ''
@@ -386,15 +409,37 @@ export class List<
   }
 }
 
-type KeyMapFn<V extends Stringable> = (key: string, index: number) => V
+/**
+ * Mapping function type for transforming keys into values.
+ */
+export type KeyMapFn<V extends Stringable> = (key: string, index: number) => V
 
+/**
+ * Utility class for working with arrays of string keys.
+ * 
+ * Provides methods for transforming key arrays into objects and lists
+ * with custom mapping functions.
+ */
 export class KeyList {
+  /** Array of string keys */
   keys: string[]
 
+  /**
+   * Creates a new KeyList instance.
+   * 
+   * @param keys - Array of string keys to work with
+   */
   constructor(keys: string[]) {
     this.keys = keys
   }
 
+  /**
+   * Transforms keys into an object using a mapping function.
+   * 
+   * @param mapFn - Function to transform each key into a value
+   * @param options - Options for handling empty values
+   * @returns Object with keys mapped to transformed values
+   */
   toObject<V extends Stringable>(
     mapFn: KeyMapFn<V>,
     { skipEmpty }: SkipEmptyOption = {}
@@ -405,14 +450,30 @@ export class KeyList {
     )
   }
 
+  /**
+   * Creates a plain object with keys as both keys and values.
+   * 
+   * @returns Object where each key maps to itself
+   */
   toObjectPlain(): ListObject<string> {
     return List.toObject(this.keys)
   }
 
+  /**
+   * Transforms keys into a List using a mapping function.
+   * 
+   * @param mapFn - Function to transform each key into a value
+   * @returns List containing the transformed values
+   */
   toLines<V extends Stringable>(mapFn: KeyMapFn<V>): ListLines<V> {
     return List.toLines(this.keys.map((key, index) => mapFn(key, index)))
   }
 
+  /**
+   * Creates a List with keys as the values.
+   * 
+   * @returns List containing the original keys
+   */
   toLinesPlain(): ListLines<string> {
     return List.toLines(this.keys)
   }

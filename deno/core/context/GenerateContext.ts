@@ -619,6 +619,13 @@ export class GenerateContext {
     }
   }
 
+  /**
+   * Executes a function within a traced context for debugging and monitoring.
+   * 
+   * @param token - Trace identifier or path segments
+   * @param fn - Function to execute within the trace context
+   * @returns The result of the traced function execution
+   */
   trace<T>(token: string | string[], fn: () => T): T {
     return tracer(this.stackTrail, token, fn, this.logger)
   }
@@ -698,7 +705,12 @@ export class GenerateContext {
     return definition
   }
 
-  /** @experimental */
+  /**
+   * Registers JSON content for output to a file.
+   * 
+   * @experimental This method is experimental and may change in future versions
+   * @param args - Registration arguments with destination path and JSON content
+   */
   registerJson({ destinationPath, json }: RegisterJsonArgs) {
     const currentFile = this.#getFile(destinationPath)
 
@@ -803,6 +815,14 @@ export class GenerateContext {
     return new Inserted({ settings, definition })
   }
 
+  /**
+   * Inserts a normalized model definition into the generation context.
+   * 
+   * @param insertable - Model insertable configuration with prototype and transform functions
+   * @param schema - OAS schema, reference, or void type to generate model from
+   * @param options - Insertion options including generation type and destination
+   * @returns Inserted model instance with settings and definition
+   */
   insertNormalisedModel<
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,

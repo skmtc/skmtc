@@ -1,16 +1,24 @@
 import { type LevelName, LogLevels } from '@std/log/levels'
 import type { LogRecord } from '@std/log/logger'
 import { BaseHandler } from '@std/log/base-handler'
-import type { BaseHandlerOptions } from '@std/log/base-handler'
 import type { CoreContext } from './CoreContext.ts'
 import { match } from 'npm:ts-pattern@^5.8.0'
 
 /**
+ * Base log handler interface for extending Deno standard library handlers.
+ */
+export interface LogHandlerBase {
+  handle(logRecord: LogRecord): void
+}
+
+/**
  * Configuration options for the {@link ResultsHandler}.
  */
-export interface ResultsHandlerOptions extends BaseHandlerOptions {
+export interface ResultsHandlerOptions {
   /** The CoreContext instance to capture results to */
   context: CoreContext
+  /** Formatter function for log messages */
+  formatter?: (logRecord: LogRecord) => string
 }
 
 /**
@@ -80,7 +88,7 @@ export interface ResultsHandlerOptions extends BaseHandlerOptions {
  * }
  * ```
  */
-export class ResultsHandler extends BaseHandler {
+export class ResultsHandler extends BaseHandler implements LogHandlerBase {
   /** The CoreContext instance for capturing results */
   context: CoreContext
 
