@@ -60,6 +60,6 @@
  * }
  * ```
  */
-export const isEmpty = (value: Record<string, any>): boolean => {
+export const isEmpty = (value: object): boolean => {
   return Object.keys(value).length === 0
 }

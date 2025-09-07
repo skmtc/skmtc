@@ -1,7 +1,7 @@
 import type { GeneratorKey } from '../types/GeneratorKeys.ts'
 import type { ManifestEntry } from '../types/Manifest.ts'
 import type { Mapping, Preview } from '../types/Preview.ts'
-import type { ResultType, ResultsItem } from '../types/Results.ts'
+import type { ResultsItem } from '../types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 
 export type PhaseType = 'parse' | 'generate' | 'render'

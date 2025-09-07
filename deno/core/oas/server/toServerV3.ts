@@ -1,7 +1,6 @@
 import type { ParseContext } from '../../context/ParseContext.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { OasServer } from './Server.ts'
-import type { ServerFields } from './Server.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toOptionalServerVariablesV3 } from '../serverVariable/toServerVariableV3.ts'
 type ToServersV3Args = {

@@ -3,7 +3,7 @@ import { assertThrows } from '@std/assert/throws'
 import { mergeObjectConstraints } from './merge-object-constraints.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
-const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
+const mockGetRef = (_ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
   throw new Error('Not implemented')
 }
 Deno.test('mergeObjectConstraints - merges property constraints', () => {

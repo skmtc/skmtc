@@ -129,7 +129,7 @@ export const tracer = <T>(
   stackTrail: StackTrail,
   token: string | string[],
   fn: () => T,
-  log: Logger
+  _log: Logger
 ) => {
   stackTrail.append(token)
   try {

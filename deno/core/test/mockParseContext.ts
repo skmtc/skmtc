@@ -22,7 +22,7 @@ import type { LogSkippedValuesArgs, ProvisionalParseArgs } from '../context/Pars
  * ```
  */
 export const mockParseContext = {
-  trace<T>(token: string | string[], fn: () => T): T {
+  trace<T>(_token: string | string[], fn: () => T): T {
     return fn()
   },
 
@@ -30,7 +30,7 @@ export const mockParseContext = {
     return args.value as T
   },
 
-  logSkippedFields({ skipped, parent, parentType }: LogSkippedValuesArgs): void {
+  logSkippedFields({ skipped, parent: _parent, parentType: _parentType }: LogSkippedValuesArgs): void {
     Object.entries(skipped).forEach(([_key, _value]) => {
       // console.log(`Skipped field: ${key}, value: ${value}`)
     })

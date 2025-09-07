@@ -179,7 +179,7 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
         return matched.example
       }
 
-      const output: Record<string, any> = {}
+      const output: Record<string, unknown> = {}
 
       Object.entries(matched.properties ?? {}).forEach(([key, value]) => {
         if (value.type === 'custom') {

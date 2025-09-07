@@ -33,14 +33,14 @@ export type ParameterProperties = VoidParameter | DestructuredParameter | Regula
 /**
  * Represents a void parameter (no parameters).
  */
-type VoidParameter = {
+export type VoidParameter = {
   type: 'void'
 }
 
 /**
  * Represents a destructured object parameter.
  */
-type DestructuredParameter = {
+export type DestructuredParameter = {
   type: 'destructured'
   typeDefinition: Definition<TypeSystemObject>
   required: true
@@ -49,7 +49,7 @@ type DestructuredParameter = {
 /**
  * Represents a regular named parameter.
  */
-type RegularParameter = {
+export type RegularParameter = {
   type: 'regular'
   name: string
   typeDefinition: Definition<TypeSystemValue>

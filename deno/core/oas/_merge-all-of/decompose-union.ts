@@ -1,9 +1,9 @@
 import type { SchemaObject, ReferenceObject } from './types.ts'
 
 type Output = {
-  before: [string, any][]
+  before: [string, unknown][]
   inside: SchemaObject[]
-  after: [string, any][]
+  after: [string, unknown][]
 }
 
 type DecomposeUnionArgs = {
@@ -68,11 +68,11 @@ export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): Decom
 const excludedProperties = ['discriminator', 'default']
 
 type ExcludeOutput = {
-  retained: [string, any][]
-  excluded: [string, any][]
+  retained: [string, unknown][]
+  excluded: [string, unknown][]
 }
 
-const exclude = (entries: [string, any][]): ExcludeOutput => {
+const exclude = (entries: [string, unknown][]): ExcludeOutput => {
   return entries.reduce<ExcludeOutput>(
     (acc, [key, value]) => {
       if (excludedProperties.includes(key)) {

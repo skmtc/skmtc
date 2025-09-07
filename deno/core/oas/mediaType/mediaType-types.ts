@@ -34,7 +34,7 @@ export type OasMediaTypeData = {
  * Validates the structure of media type objects including content type
  * identifiers, schema definitions, and example collections.
  */
-export const oasMediaTypeData = v.object({
+export const oasMediaTypeData: v.GenericSchema<OasMediaTypeData> = v.object({
   oasType: v.literal('mediaType'),
   mediaType: v.string(),
   schema: v.optional(v.union([oasSchemaData, oasSchemaRefData])),

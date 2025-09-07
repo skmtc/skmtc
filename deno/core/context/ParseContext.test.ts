@@ -1,6 +1,7 @@
 import { ParseContext } from './ParseContext.ts'
 import { StackTrail } from './StackTrail.ts'
-import denoSchema from '../_schemas/deno.json' with { type: 'json' }
+import type { Logger } from '@std/log'
+import type _denoSchema from '../_schemas/deno.json' with { type: 'json' }
 import cfCycleSchema from '../_schemas/cf-cycle.json' with { type: 'json' }
 import type { OpenAPIV3 } from 'openapi-types'
 import { assertEquals } from '@std/assert/equals'
@@ -49,7 +50,7 @@ Deno.test.ignore('Handles schema warnings', () => {
         }
       }
     },
-    logger: console as any,
+    logger: console as Logger,
     stackTrail: new StackTrail(),
     silent: true
   })
@@ -144,7 +145,7 @@ Deno.test.ignore('Handles response error', () => {
         }
       }
     },
-    logger: console as any,
+    logger: console as Logger,
     stackTrail: new StackTrail(),
     silent: true
   })
@@ -189,7 +190,7 @@ Deno.test.ignore('Handles response error', () => {
 Deno.test('Handles cycle merges', () => {
   const parseContext = new ParseContext({
     documentObject: cfCycleSchema as unknown as OpenAPIV3.Document,
-    logger: console as any,
+    logger: console as Logger,
     stackTrail: new StackTrail(),
     silent: true
   })

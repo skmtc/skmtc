@@ -12,7 +12,7 @@ import * as v from 'valibot'
 
 export type OasParameterLocation = 'query' | 'header' | 'path' | 'cookie'
 
-export const oasParameterLocation = v.enum({
+export const oasParameterLocation: v.GenericSchema<OasParameterLocation> = v.enum({
   query: 'query',
   header: 'header',
   path: 'path',
@@ -28,7 +28,7 @@ export type OasParameterStyle =
   | 'pipeDelimited'
   | 'deepObject'
 
-export const oasParameterStyle = v.enum({
+export const oasParameterStyle: v.GenericSchema<OasParameterStyle> = v.enum({
   matrix: 'matrix',
   label: 'label',
   form: 'form',
@@ -54,7 +54,7 @@ export type OasParameterData = {
   style: OasParameterStyle
 }
 
-export const oasParameterData = v.object({
+export const oasParameterData: v.GenericSchema<OasParameterData> = v.object({
   oasType: v.literal('parameter'),
   allowEmptyValue: v.optional(v.boolean()),
   allowReserved: v.optional(v.boolean()),

@@ -1,9 +1,9 @@
 import type { OpenAPIV3 } from 'openapi-types'
 
 type Output = {
-  before: [string, any][]
+  before: [string, unknown][]
   inside: OpenAPIV3.SchemaObject[]
-  after: [string, any][]
+  after: [string, unknown][]
 }
 
 type DecomposeIntersectionArgs = {

@@ -9,7 +9,7 @@ export type OasExampleData = {
   // externalValue?: string
 }
 
-export const oasExampleData = v.object({
+export const oasExampleData: v.GenericSchema<OasExampleData> = v.object({
   oasType: v.literal('example'),
   summary: v.optional(v.string()),
   description: v.optional(markdown),

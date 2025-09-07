@@ -63,7 +63,7 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
   }
 
   private apply<T extends GenerationType>({
-    generation,
+    generation: _generation,
     destinationPath
   }: ApplyArgs<T> = {}): GeneratedDefinition<V, T> {
     const { identifier, exportPath } = this.settings

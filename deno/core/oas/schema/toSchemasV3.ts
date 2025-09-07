@@ -118,9 +118,9 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
     })
     .with({ anyOf: P.array() }, matched => {
       return context.trace('anyOf', () => {
-        const lastThree = context.stackTrail.slice(-3).toString()
+        const _lastThree = context.stackTrail.slice(-3).toString()
 
-        const lastFive = context.stackTrail.slice(-5).toString()
+        const _lastFive = context.stackTrail.slice(-5).toString()
 
         // deno-lint-ignore ban-ts-comment
         // @ts-expect-error

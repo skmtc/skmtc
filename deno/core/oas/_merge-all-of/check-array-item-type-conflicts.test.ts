@@ -1,4 +1,3 @@
-import { assertEquals } from '@std/assert/equals'
 import { assertThrows } from '@std/assert/throws'
 import { checkArrayItemTypeConflicts } from './check-array-item-type-conflicts.ts'
 import type { OpenAPIV3 } from 'openapi-types'

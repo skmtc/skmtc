@@ -4,7 +4,6 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import type {
   BaseRegisterArgs,
   GenerateContext,
-  CreateAndRegisterDefinition,
   DefineAndRegisterArgs,
   InsertOperationOptions,
   InsertModelOptions,
@@ -15,13 +14,12 @@ import type { GeneratedValue } from '../../types/GeneratedValue.ts'
 import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
 import { ContentBase } from '../ContentBase.ts'
 import type { Definition } from '../Definition.ts'
-import type { SchemaType, TypeSystemOutput } from '../../types/TypeSystem.ts'
 import type { Inserted } from '../Inserted.ts'
 import type { ModelInsertable } from '../model/types.ts'
 import type { RefName } from '../../types/RefName.ts'
-import { OasSchema } from '../../oas/schema/Schema.ts'
-import { OasRef } from '../../oas/ref/Ref.ts'
-import { OasVoid } from '../../oas/void/Void.ts'
+import type { OasSchema } from '../../oas/schema/Schema.ts'
+import type { OasRef } from '../../oas/ref/Ref.ts'
+import type { OasVoid } from '../../oas/void/Void.ts'
 
 /**
  * Constructor arguments for {@link OperationBase}.
