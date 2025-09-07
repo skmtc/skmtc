@@ -198,11 +198,17 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
   default: Nullable extends true
     ? Record<string, unknown> | null | undefined
     : Record<string, unknown> | undefined
+  /** Maximum number of properties allowed in the object */
   maxProperties?: number
+  /** Minimum number of properties required in the object */
   minProperties?: number
+  /** Whether the object is read-only */
   readOnly?: boolean
+  /** Whether the object is write-only */
   writeOnly?: boolean
+  /** Whether the object schema is deprecated */
   deprecated?: boolean
+  /** Array of valid enum values for the object */
   enums?: Nullable extends true
     ? (Record<string, unknown> | null)[] | undefined
     : Record<string, unknown>[] | undefined

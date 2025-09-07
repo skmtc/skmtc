@@ -53,83 +53,217 @@ type ConstructorArgs = {
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
 
+/**
+ * Arguments for picking a specific export from a generator module.
+ * 
+ * Used to select and configure specific exports from generator modules
+ * during the artifact generation process.
+ */
 export type PickArgs = {
+  /** The name of the export to pick from the generator module */
   name: string
+  /** The file path where the export should be made available */
   exportPath: string
 }
 
+/**
+ * Arguments for registering a JSON file in the generation context.
+ * 
+ * Used to register JSON configuration files, manifests, or other JSON
+ * data that should be included in the generated output artifacts.
+ */
 export type RegisterJsonArgs = {
+  /** The destination file path where the JSON should be written */
   destinationPath: string
+  /** The JSON object to write to the file */
   json: Record<string, unknown>
 }
 
+/**
+ * Arguments for applying package imports to a generated file.
+ * 
+ * Used to configure import statements and dependencies when generating
+ * code files that need to reference external packages or modules.
+ */
 export type ApplyPackageImportsArgs = {
+  /** The destination file path where imports should be applied */
   destinationPath: string
+  /** The export path for the module being imported */
   exportPath: string
 }
 
+/**
+ * Base arguments for registering generated content in the generation context.
+ * 
+ * Provides the fundamental configuration options for registering imports,
+ * re-exports, and definitions that will be included in generated files.
+ */
 export type BaseRegisterArgs = {
+  /** Import statements to include, organized by module path */
   imports?: Record<string, ImportNameArg[]>
+  /** Re-export statements to include, organized by module path */
   reExports?: Record<string, Identifier[]>
+  /** Definition objects to include in the generated content */
   definitions?: (Definition | undefined)[]
 }
 
+/**
+ * Arguments for registering generated content with a specific destination.
+ * 
+ * Extends BaseRegisterArgs to include a destination path, allowing content
+ * to be registered and associated with a specific output file location.
+ */
 export type RegisterArgs = {
+  /** Import statements to include, organized by module path */
   imports?: Record<string, ImportNameArg[]>
+  /** Re-export statements to include, organized by module path */
   reExports?: Record<string, Identifier[]>
+  /** Definition objects to include in the generated content */
   definitions?: (Definition | undefined)[]
+  /** The destination file path where the content should be registered */
   destinationPath: string
 }
 
+/**
+ * Arguments for creating and registering a definition from a schema.
+ * 
+ * Used to transform OpenAPI schema objects into code definitions and
+ * register them in the generation context for output file creation.
+ * 
+ * @template Schema - The schema type extending SchemaType
+ */
 export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
+  /** The OpenAPI schema to transform into a definition */
   schema: Schema
+  /** The identifier for the generated definition */
   identifier: Identifier
+  /** The destination file path where the definition should be registered */
   destinationPath: string
+  /** Function to transform the schema into a generated value */
   schemaToValueFn: SchemaToValueFn
+  /** Optional root reference name for the schema */
   rootRef?: RefName
+  /** Whether to exclude this definition from exports */
   noExport?: boolean
 }
 
+/**
+ * Arguments for defining and registering a value in the generation context.
+ * 
+ * Used to create definitions from pre-generated values and register them
+ * in the generation context for inclusion in output files.
+ * 
+ * @template V - The generated value type extending GeneratedValue
+ */
 export type DefineAndRegisterArgs<V extends GeneratedValue> = {
+  /** The identifier for the definition */
   identifier: Identifier
+  /** The generated value to define */
   value: V
+  /** The destination file path where the definition should be registered */
   destinationPath: string
+  /** Whether to exclude this definition from exports */
   noExport?: boolean
 }
 
+/**
+ * Arguments for retrieving operation-specific settings.
+ * 
+ * Used to get generator-specific configuration for a particular
+ * OpenAPI operation based on its path and HTTP method.
+ */
 export type GetOperationSettingsArgs = {
+  /** The ID of the generator requesting settings */
   generatorId: string
+  /** The API path for the operation */
   path: string
+  /** The HTTP method for the operation */
   method: Method
 }
 
+/**
+ * Arguments for adding render dependencies for an operation.
+ * 
+ * Used to specify additional dependencies that should be included
+ * when rendering code for a specific OpenAPI operation.
+ */
 export type AddRenderDependencyArgs = {
+  /** The ID of the generator adding dependencies */
   generatorId: string
+  /** The OpenAPI operation requiring dependencies */
   operation: OasOperation
+  /** Array of dependency names or paths to include */
   dependencies: string[]
 }
 
+/**
+ * Arguments for retrieving model-specific settings.
+ * 
+ * Used to get generator-specific configuration for a particular
+ * OpenAPI model based on its reference name.
+ */
 export type ToModelSettingsArgs = {
+  /** The ID of the generator requesting model settings */
   generatorId: string
+  /** The reference name of the model */
   refName: RefName
 }
 
+/**
+ * Options for inserting an operation into the generation context.
+ * 
+ * Configures how an OpenAPI operation should be processed and
+ * included in the generated code output.
+ * 
+ * @template T - The generation type extending GenerationType
+ */
 export type InsertOperationOptions<T extends GenerationType> = {
+  /** Whether to exclude this operation from exports */
   noExport?: boolean
+  /** The type of generation to apply */
   generation?: T
+  /** Custom destination path for the operation */
   destinationPath?: string
 }
 
+/**
+ * Arguments for inserting a normalized model into the generation context.
+ * 
+ * Used to process and register OpenAPI schema objects as normalized
+ * model definitions with fallback naming when schema names are unavailable.
+ * 
+ * @template Schema - The schema type (OasSchema, OasRef, or OasVoid)
+ */
 export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'> | OasVoid> = {
+  /** Fallback name to use if the schema doesn't have a name */
   fallbackName: string
+  /** The OpenAPI schema to normalize and insert */
   schema: Schema
+  /** The destination file path for the model */
   destinationPath: string
 }
 
+/**
+ * Options for inserting a normalized model.
+ * 
+ * Configures how a normalized model should be processed and
+ * included in the generated code output.
+ */
 export type InsertNormalisedModelOptions = {
+  /** Whether to exclude this model from exports */
   noExport?: boolean
 }
 
+/**
+ * Return type for inserting a normalized model.
+ * 
+ * Provides type-safe return values based on the schema type being processed.
+ * Returns different Definition types depending on whether the schema is a
+ * reference or a concrete schema.
+ * 
+ * @template V - The generated value type
+ * @template Schema - The schema type being processed
+ */
 export type InsertNormalisedModelReturn<
   V extends GeneratedValue,
   Schema extends OasSchema | OasRef<'schema'> | OasVoid
@@ -138,12 +272,33 @@ export type InsertNormalisedModelReturn<
     ? Definition<V>
     : Definition<TypeSystemOutput<SchemaToNonRef<Schema>['type']>>
 
+/**
+ * Options for inserting a model into the generation context.
+ * 
+ * Configures how a model should be processed and included in
+ * the generated code output.
+ * 
+ * @template T - The generation type extending GenerationType
+ */
 export type InsertModelOptions<T extends GenerationType> = {
+  /** Whether to exclude this model from exports */
   noExport?: boolean
+  /** The type of generation to apply */
   generation?: T
+  /** Custom destination path for the model */
   destinationPath?: string
 }
 
+/**
+ * Return type for insert operations in the generation context.
+ * 
+ * Represents the result of inserting content into the generation
+ * context, providing type-safe access to the inserted content.
+ * 
+ * @template V - The generated value type
+ * @template T - The generation type
+ * @template EnrichmentType - The enrichment data type
+ */
 export type InsertReturn<
   V extends GeneratedValue,
   T extends GenerationType,
@@ -265,12 +420,19 @@ export class GenerateContext {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
   #mappings: Record<string, Record<string, Mapping>>
+  /** The parsed OpenAPI document being processed */
   oasDocument: OasDocument
+  /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
+  /** Logger instance for tracking generation progress */
   logger: log.Logger
+  /** Function to capture processing results at current stack position */
   captureCurrentResult: (result: ResultType) => void
+  /** Function that returns the generator configuration map */
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  /** Stack trail for tracking current processing context */
   stackTrail: StackTrail
+  /** Tracking model nesting depth to prevent infinite recursion */
   modelDepth: Record<string, number>
   constructor({
     oasDocument,
@@ -813,6 +975,15 @@ type ToOperationSourceArgs = {
   generatorId: string
 }
 
+/**
+ * Creates an OperationSource from an operation and generator ID.
+ * 
+ * Transforms operation and generator information into a source descriptor
+ * that can be used for tracking operation origins in the generation pipeline.
+ * 
+ * @param args - Arguments containing operation and generator ID
+ * @returns OperationSource descriptor for the operation
+ */
 export const toOperationSource = ({
   operation,
   generatorId
@@ -828,6 +999,15 @@ type ToModelSourceArgs = {
   generatorId: string
 }
 
+/**
+ * Creates a ModelSource from a reference name and generator ID.
+ * 
+ * Transforms model reference and generator information into a source descriptor
+ * that can be used for tracking model origins in the generation pipeline.
+ * 
+ * @param args - Arguments containing reference name and generator ID
+ * @returns ModelSource descriptor for the model
+ */
 export const toModelSource = ({ refName, generatorId }: ToModelSourceArgs): ModelSource => ({
   type: 'model',
   generatorId,

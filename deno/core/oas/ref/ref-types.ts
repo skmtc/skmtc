@@ -1,14 +1,28 @@
 import { markdown } from '../markdown/markdown-types.ts'
 import * as v from 'valibot'
 
+/**
+ * Data type for OpenAPI schema reference objects.
+ * 
+ * Represents $ref references to schema objects in OpenAPI documents,
+ * allowing for component reuse and circular reference handling.
+ */
 export type OasSchemaRefData = {
+  /** Type identifier for OAS reference objects */
   oasType: 'ref'
+  /** The type of object being referenced */
   refType: 'schema'
+  /** The reference path (e.g., '#/components/schemas/User') */
   $ref: string
+  /** Optional summary for the reference */
   summary?: string
+  /** Optional description for the reference */
   description?: string
 }
 
+/**
+ * Valibot schema for validating schema reference data.
+ */
 export const oasSchemaRefData: v.GenericSchema<OasSchemaRefData> = v.object({
   oasType: v.literal('ref'),
   refType: v.literal('schema'),
@@ -17,14 +31,28 @@ export const oasSchemaRefData: v.GenericSchema<OasSchemaRefData> = v.object({
   description: v.optional(markdown)
 })
 
+/**
+ * Data type for OpenAPI response reference objects.
+ * 
+ * Represents $ref references to response objects in OpenAPI documents,
+ * enabling response definition reuse across multiple operations.
+ */
 export type OasResponseRefData = {
+  /** Type identifier for OAS reference objects */
   oasType: 'ref'
+  /** The type of object being referenced */
   refType: 'response'
+  /** The reference path (e.g., '#/components/responses/NotFound') */
   $ref: string
+  /** Optional summary for the reference */
   summary?: string
+  /** Optional description for the reference */
   description?: string
 }
 
+/**
+ * Valibot schema for validating response reference data.
+ */
 export const oasResponseRefData: v.GenericSchema<OasResponseRefData> = v.object({
   oasType: v.literal('ref'),
   refType: v.literal('response'),
@@ -33,14 +61,28 @@ export const oasResponseRefData: v.GenericSchema<OasResponseRefData> = v.object(
   description: v.optional(markdown)
 })
 
+/**
+ * Data type for OpenAPI parameter reference objects.
+ * 
+ * Represents $ref references to parameter objects in OpenAPI documents,
+ * allowing parameter definitions to be reused across operations.
+ */
 export type OasParameterRefData = {
+  /** Type identifier for OAS reference objects */
   oasType: 'ref'
+  /** The type of object being referenced */
   refType: 'parameter'
+  /** The reference path (e.g., '#/components/parameters/PageSize') */
   $ref: string
+  /** Optional summary for the reference */
   summary?: string
+  /** Optional description for the reference */
   description?: string
 }
 
+/**
+ * Valibot schema for validating parameter reference data.
+ */
 export const oasParameterRefData: v.GenericSchema<OasParameterRefData> = v.object({
   oasType: v.literal('ref'),
   refType: v.literal('parameter'),

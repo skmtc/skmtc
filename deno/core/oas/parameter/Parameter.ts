@@ -186,8 +186,11 @@ export type ParameterFields = {
  * ```
  */
 export class OasParameter {
+  /** Type identifier for OAS parameter objects */
   oasType: 'parameter' = 'parameter'
+  /** The name of the parameter */
   name: string
+  /** Where the parameter is located (path, query, header, cookie) */
   location: OasParameterLocation
   description?: string | undefined
   required?: boolean | undefined

@@ -537,7 +537,16 @@ export class CoreContext {
  */
 export type JsonFormatterArgs = {
   /** The Deno log record containing log level, message, and metadata */
-  logRecord: log.LogRecord
+  logRecord: {
+    /** The log level name */
+    levelName: string
+    /** The timestamp when the log was created */
+    datetime: Date
+    /** The log message */
+    msg: string
+    /** Additional log arguments */
+    args: unknown[]
+  }
   /** String representation of the current stack trail position */
   stackTrail: string
 }

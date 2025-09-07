@@ -10,16 +10,33 @@ import {
 import { type OasSchemaData, oasSchemaData } from '../schema/schema-types.ts'
 import * as v from 'valibot'
 
+/**
+ * Data type for OpenAPI header objects in the SKMTC internal representation.
+ * 
+ * Represents HTTP headers in OpenAPI specifications, including validation
+ * rules, examples, and serialization parameters. Headers are used in
+ * responses and can include complex schemas and multiple examples.
+ */
 export type OasHeaderData = {
+  /** Type identifier for OAS header objects */
   oasType: 'header'
+  /** Human-readable description of the header */
   description?: string
+  /** Whether the header is required */
   required?: boolean
+  /** Whether the header is deprecated */
   deprecated?: boolean
+  /** Whether empty values are allowed for the header */
   allowEmptyValue?: boolean
+  /** Schema definition for the header value */
   schema?: OasSchemaData | OasSchemaRefData
+  /** Named examples for the header value */
   examples?: Record<string, OasExampleData | OasExampleRefData>
+  /** Media type definitions for complex header content */
   content?: Record<string, OasMediaTypeData>
+  /** Serialization style (always 'simple' for headers) */
   style?: OasHeaderStyle
+  /** Whether to explode parameter values */
   explode?: boolean
 }
 
@@ -27,6 +44,13 @@ const oasHeaderStyle = v.literal('simple')
 
 type OasHeaderStyle = 'simple'
 
+/**
+ * Valibot schema for validating OAS header data structures.
+ * 
+ * Validates the structure and content of OpenAPI header objects,
+ * ensuring proper types for all fields including nested schemas,
+ * examples, and content definitions.
+ */
 export const oasHeaderData = v.object({
   oasType: v.literal('header'),
   description: v.optional(markdown),

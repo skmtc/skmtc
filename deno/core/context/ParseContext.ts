@@ -255,11 +255,17 @@ export type ParseIssue = ParseError | ParseWarning
  * ```
  */
 export class ParseContext {
+  /** The original OpenAPI v3 document being parsed */
   documentObject: OpenAPIV3.Document
+  /** Logger instance for tracking parse progress and issues */
   logger: log.Logger
+  /** The parsed OAS document result */
   oasDocument: OasDocument
+  /** Stack trail for tracking current parsing context */
   stackTrail: StackTrail
+  /** Collection of parsing issues encountered during processing */
   issues: ParseIssue[]
+  /** Whether to suppress console output during parsing */
   silent: boolean
   #refStackTrails: Record<string, StackTrail[]>
   #refErrors: Record<string, Error[]>

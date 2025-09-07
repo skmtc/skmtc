@@ -1,12 +1,25 @@
 import * as v from 'valibot'
 
+/**
+ * Data type for HTTP authentication security schemes.
+ * 
+ * Represents HTTP authentication mechanisms like Basic, Bearer,
+ * and other HTTP authentication schemes as defined in RFC 7235.
+ */
 export type OasHttpSecuritySchemeData = {
+  /** Security scheme type identifier */
   type: 'http'
+  /** Human-readable description of the security scheme */
   description?: string
+  /** HTTP authorization scheme (e.g., 'basic', 'bearer') */
   scheme: string
+  /** Format hint for bearer tokens (e.g., 'JWT') */
   bearerFormat?: string
 }
 
+/**
+ * Valibot schema for validating HTTP security scheme data.
+ */
 export const oasHttpSecuritySchemeData = v.object({
   type: v.literal('http'),
   description: v.optional(v.string()),
@@ -14,13 +27,26 @@ export const oasHttpSecuritySchemeData = v.object({
   bearerFormat: v.optional(v.string())
 })
 
+/**
+ * Data type for API key authentication security schemes.
+ * 
+ * Represents API key authentication where the key is passed
+ * via header, query parameter, or cookie.
+ */
 export type OasApiKeySecuritySchemeData = {
+  /** Security scheme type identifier */
   type: 'apiKey'
+  /** Human-readable description of the security scheme */
   description?: string
+  /** Name of the header, query parameter, or cookie */
   name: string
+  /** Location where the API key should be sent */
   in: 'header' | 'query' | 'cookie'
 }
 
+/**
+ * Valibot schema for validating API key security scheme data.
+ */
 export const oasApiKeySecuritySchemeData = v.object({
   type: v.literal('apiKey'),
   description: v.optional(v.string()),
@@ -28,25 +54,50 @@ export const oasApiKeySecuritySchemeData = v.object({
   in: v.union([v.literal('header'), v.literal('query'), v.literal('cookie')])
 })
 
+/**
+ * Data type for OAuth2 implicit flow configuration.
+ * 
+ * Represents the implicit OAuth2 flow where tokens are obtained
+ * directly from the authorization endpoint without client authentication.
+ */
 export type OasImplicitOAuth2FlowData = {
+  /** URL for the OAuth2 authorization endpoint */
   authorizationUrl: string
+  /** Optional URL for token refresh */
   refreshUrl: string | undefined
+  /** Available scopes mapped to their descriptions */
   scopes: Record<string, string>
 }
 
+/**
+ * Valibot schema for validating OAuth2 implicit flow data.
+ */
 export const oasImplicitOAuth2FlowData = v.object({
   authorizationUrl: v.string(),
   refreshUrl: v.optional(v.string()),
   scopes: v.record(v.string(), v.string())
 })
 
+/**
+ * Data type for OAuth2 authorization code flow configuration.
+ * 
+ * Represents the authorization code OAuth2 flow, the most secure
+ * flow suitable for server-side applications with client authentication.
+ */
 export type OasAuthorizationCodeOAuth2FlowData = {
+  /** URL for the OAuth2 authorization endpoint */
   authorizationUrl: string
+  /** URL for the OAuth2 token endpoint */
   tokenUrl: string
+  /** Optional URL for token refresh */
   refreshUrl: string | undefined
+  /** Available scopes mapped to their descriptions */
   scopes: Record<string, string>
 }
 
+/**
+ * Valibot schema for validating OAuth2 authorization code flow data.
+ */
 export const oasAuthorizationCodeOAuth2FlowData = v.object({
   authorizationUrl: v.string(),
   tokenUrl: v.string(),
@@ -54,12 +105,24 @@ export const oasAuthorizationCodeOAuth2FlowData = v.object({
   scopes: v.record(v.string(), v.string())
 })
 
+/**
+ * Data type for OAuth2 client credentials flow configuration.
+ * 
+ * Represents the client credentials OAuth2 flow used for
+ * server-to-server authentication without user involvement.
+ */
 export type OasClientCredentialsOAuth2FlowData = {
+  /** URL for the OAuth2 token endpoint */
   tokenUrl: string
+  /** Optional URL for token refresh */
   refreshUrl: string | undefined
+  /** Available scopes mapped to their descriptions */
   scopes: Record<string, string>
 }
 
+/**
+ * Valibot schema for validating OAuth2 client credentials flow data.
+ */
 export const oasClientCredentialsOAuth2FlowData = v.object({
   tokenUrl: v.string(),
   refreshUrl: v.optional(v.string()),

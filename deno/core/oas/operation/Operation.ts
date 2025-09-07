@@ -10,19 +10,39 @@ import { OasObject } from '../object/Object.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
+/**
+ * Fields for configuring an OpenAPI operation object.
+ * 
+ * Contains all the properties needed to define a complete OpenAPI operation,
+ * including path information, parameters, request/response specifications,
+ * security requirements, and metadata.
+ */
 export type OperationFields = {
+  /** The API path for this operation */
   path: string
+  /** The HTTP method for this operation */
   method: Method
+  /** The parent path item containing this operation */
   pathItem: OasPathItem | undefined
+  /** Unique identifier for the operation */
   operationId?: string | undefined
+  /** Brief summary of the operation */
   summary?: string | undefined
+  /** Tags for organizing operations in documentation */
   tags?: string[] | undefined
+  /** Detailed description of the operation */
   description?: string | undefined
+  /** Parameters accepted by this operation */
   parameters?: (OasParameter | OasRef<'parameter'>)[] | undefined
+  /** Request body specification for this operation */
   requestBody?: OasRequestBody | OasRef<'requestBody'> | undefined
+  /** Response specifications mapped by status code */
   responses: Record<string, OasResponse | OasRef<'response'>>
+  /** Security requirements for this operation */
   security?: OasSecurityRequirement[] | undefined
+  /** Whether this operation is deprecated */
   deprecated?: boolean | undefined
+  /** OpenAPI specification extensions */
   extensionFields?: Record<string, unknown>
 }
 
@@ -139,20 +159,34 @@ type ToRequestBodyMapArgs = {
  * ```
  */
 export class OasOperation {
+  /** Type identifier for OAS operation objects */
   oasType: 'operation' = 'operation'
 
+  /** The API path for this operation */
   path: string
+  /** The HTTP method for this operation */
   method: Method
+  /** The parent path item containing this operation */
   pathItem: OasPathItem | undefined
+  /** Unique identifier for the operation */
   operationId: string | undefined
+  /** Brief summary of the operation */
   summary: string | undefined
+  /** Tags for organizing operations in documentation */
   tags: string[] | undefined
+  /** Detailed description of the operation */
   description: string | undefined
+  /** Parameters accepted by this operation */
   parameters: (OasParameter | OasRef<'parameter'>)[] | undefined
+  /** Request body specification for this operation */
   requestBody: OasRequestBody | OasRef<'requestBody'> | undefined
+  /** Response specifications mapped by status code */
   responses: Record<string, OasResponse | OasRef<'response'>>
+  /** Security requirements for this operation */
   security: OasSecurityRequirement[] | undefined
+  /** Whether this operation is deprecated */
   deprecated: boolean | undefined
+  /** OpenAPI specification extensions */
   extensionFields: Record<string, unknown> | undefined
 
   constructor(fields: OperationFields) {

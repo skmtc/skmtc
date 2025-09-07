@@ -6,6 +6,59 @@ type CompareSchemaArgs = {
   childSchema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | undefined
   topSchema: OpenAPIV3.SchemaObject
 }
+/**
+ * Determines if a child schema is a subset of a parent schema.
+ * 
+ * Performs structural comparison between OpenAPI schemas to determine
+ * if the child schema is compatible with and more restrictive than
+ * the parent schema. This is useful for schema validation, inheritance,
+ * and compatibility checking in API evolution scenarios.
+ * 
+ * @param args - Arguments containing schemas to compare
+ * @returns True if child schema is a valid subset of parent schema
+ * 
+ * @example Basic type compatibility
+ * ```typescript
+ * const parentSchema = { type: 'string' };
+ * const childSchema = { type: 'string', maxLength: 100 };
+ * 
+ * const isCompatible = isSchemaSubset({
+ *   parentSchema,
+ *   childSchema,
+ *   topSchema: parentSchema
+ * });
+ * console.log(isCompatible); // true - child is more restrictive
+ * ```
+ * 
+ * @example Object property compatibility
+ * ```typescript
+ * const parentSchema = {
+ *   type: 'object',
+ *   properties: {
+ *     name: { type: 'string' },
+ *     age: { type: 'number' }
+ *   },
+ *   required: ['name']
+ * };
+ * 
+ * const childSchema = {
+ *   type: 'object', 
+ *   properties: {
+ *     name: { type: 'string', minLength: 1 },
+ *     age: { type: 'integer', minimum: 0 },
+ *     email: { type: 'string', format: 'email' }
+ *   },
+ *   required: ['name', 'age']
+ * };
+ * 
+ * const result = isSchemaSubset({
+ *   parentSchema,
+ *   childSchema,
+ *   topSchema: parentSchema
+ * });
+ * console.log(result); // true - child maintains required fields and adds constraints
+ * ```
+ */
 export const isSchemaSubset = ({
   parentSchema,
   childSchema,
