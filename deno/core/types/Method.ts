@@ -1,3 +1,71 @@
+/**
+ * @fileoverview HTTP Method System for SKMTC Core
+ * 
+ * This module provides comprehensive HTTP method definitions and utilities for
+ * handling OpenAPI operations. It includes type-safe method definitions,
+ * validation utilities, and constants for all HTTP methods supported by
+ * the OpenAPI v3 specification.
+ * 
+ * The module ensures type safety when working with HTTP methods throughout
+ * the SKMTC pipeline and provides utilities for method validation and processing.
+ * 
+ * ## Key Features
+ * 
+ * - **Complete Method Support**: All HTTP methods from OpenAPI v3 specification
+ * - **Type Safety**: Branded types and type guards for method handling
+ * - **Validation**: Runtime validation with Valibot integration
+ * - **Case Handling**: Proper case normalization for method strings
+ * - **Specification Compliance**: Full adherence to OpenAPI v3 method definitions
+ * 
+ * @example Working with HTTP methods
+ * ```typescript
+ * import { Method, isMethod, methodValues } from '@skmtc/core/Method';
+ * 
+ * // Type-safe method handling
+ * const method: Method = 'GET';
+ * 
+ * // Validate unknown method strings
+ * const userInput = 'post';
+ * if (isMethod(userInput)) {
+ *   console.log(`Valid method: ${userInput}`); // TypeScript knows it's a Method
+ * }
+ * 
+ * // List all supported methods
+ * console.log('Supported methods:', methodValues);
+ * ```
+ * 
+ * @example Method validation in generators
+ * ```typescript
+ * import { isMethod, Method } from '@skmtc/core/Method';
+ * 
+ * function processOperation(path: string, method: string, operation: any) {
+ *   if (!isMethod(method)) {
+ *     throw new Error(`Unsupported HTTP method: ${method}`);
+ *   }
+ *   
+ *   // TypeScript now knows method is of type Method
+ *   return generateOperationCode(path, method, operation);
+ * }
+ * ```
+ * 
+ * @example Case-insensitive method handling
+ * ```typescript
+ * import { normalizeMethod, isMethod } from '@skmtc/core/Method';
+ * 
+ * function handleMethodString(methodStr: string) {
+ *   const normalized = methodStr.toLowerCase();
+ *   
+ *   if (isMethod(normalized)) {
+ *     return processValidMethod(normalized);
+ *   } else {
+ *     throw new Error(`Invalid method: ${methodStr}`);
+ *   }
+ * }
+ * ```
+ * 
+ * @module Method
+ */
+
 import * as v from 'valibot'
 
 /**
@@ -5,6 +73,7 @@ import * as v from 'valibot'
  * 
  * This constant array includes all HTTP methods that can be used
  * in OpenAPI path operations, as defined by the OpenAPI specification.
+ * All methods are in lowercase to match OpenAPI conventions.
  */
 export const methodValues = [
   'get',

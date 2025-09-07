@@ -1,3 +1,79 @@
+/**
+ * @fileoverview Preview and Mapping System for SKMTC Core
+ * 
+ * This module provides comprehensive types and utilities for creating preview
+ * interfaces and mapping configurations for generated code. The preview system
+ * enables interactive demonstrations of generated APIs, forms, tables, and
+ * other UI components within development tools and documentation.
+ * 
+ * The mapping system provides metadata about how OpenAPI operations and models
+ * translate to generated code, enabling rich tooling experiences and
+ * reverse-engineering capabilities.
+ * 
+ * ## Key Features
+ * 
+ * - **Interactive Previews**: Rich preview interfaces for generated components
+ * - **Source Mapping**: Traceability from generated code back to OpenAPI sources
+ * - **UI Grouping**: Organized grouping of related UI components (forms, tables, inputs)
+ * - **Generator Integration**: Deep integration with the generator pipeline
+ * - **Type Safety**: Comprehensive validation and type safety throughout
+ * 
+ * @example Creating operation previews
+ * ```typescript
+ * import type { PreviewModule, OperationSource } from '@skmtc/core/Preview';
+ * 
+ * const operationSource: OperationSource = {
+ *   type: 'operation',
+ *   generatorId: 'react-forms',
+ *   operationPath: '/users',
+ *   operationMethod: 'POST'
+ * };
+ * 
+ * const preview: PreviewModule = {
+ *   title: 'Create User Form',
+ *   description: 'Interactive form for creating new users',
+ *   group: 'forms',
+ *   source: operationSource,
+ *   moduleName: 'CreateUserForm',
+ *   exportName: 'default'
+ * };
+ * ```
+ * 
+ * @example Creating model previews
+ * ```typescript
+ * import type { PreviewModule, ModelSource } from '@skmtc/core/Preview';
+ * 
+ * const modelSource: ModelSource = {
+ *   type: 'model',
+ *   generatorId: 'typescript-types',
+ *   refName: 'User'
+ * };
+ * 
+ * const preview: PreviewModule = {
+ *   title: 'User Type Definition',
+ *   description: 'TypeScript interface for User model',
+ *   group: 'tables',
+ *   source: modelSource,
+ *   moduleName: 'UserTypes',
+ *   exportName: 'User'
+ * };
+ * ```
+ * 
+ * @example Working with mappings
+ * ```typescript
+ * import type { MappingModule } from '@skmtc/core/Preview';
+ * 
+ * const mapping: MappingModule = {
+ *   source: operationSource,
+ *   moduleName: 'UserApi',
+ *   exportName: 'createUser',
+ *   generatedPath: './src/generated/UserApi.ts'
+ * };
+ * ```
+ * 
+ * @module Preview
+ */
+
 import { method, type Method } from './Method.ts'
 import * as v from 'valibot'
 

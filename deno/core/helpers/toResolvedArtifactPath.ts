@@ -1,7 +1,72 @@
+/**
+ * @fileoverview Artifact Path Resolution Utilities for SKMTC Core
+ * 
+ * This module provides utilities for resolving file paths for generated artifacts
+ * within the SKMTC code generation pipeline. It handles the complexities of path
+ * resolution, ensuring that generated files are placed in the correct locations
+ * relative to base directories and project structures.
+ * 
+ * The path resolution system supports both absolute and relative paths,
+ * cross-platform compatibility, and proper handling of nested directory
+ * structures for organized code generation output.
+ * 
+ * ## Key Features
+ * 
+ * - **Cross-Platform Compatibility**: Works correctly on Windows, macOS, and Linux
+ * - **Relative Path Resolution**: Proper handling of relative paths with base directories
+ * - **Absolute Path Support**: Direct support for absolute destination paths
+ * - **Directory Creation**: Safe directory creation for nested path structures
+ * - **Path Normalization**: Consistent path formatting across different systems
+ * 
+ * @example Basic path resolution
+ * ```typescript
+ * import { toResolvedArtifactPath } from '@skmtc/core/toResolvedArtifactPath';
+ * 
+ * // Resolve relative path with base directory
+ * const resolvedPath = toResolvedArtifactPath({
+ *   basePath: '/project/src',
+ *   destinationPath: './generated/UserApi.ts'
+ * });
+ * 
+ * console.log(resolvedPath); // '/project/src/generated/UserApi.ts'
+ * ```
+ * 
+ * @example Absolute path handling
+ * ```typescript
+ * import { toResolvedArtifactPath } from '@skmtc/core/toResolvedArtifactPath';
+ * 
+ * // Absolute paths are returned as-is
+ * const absolutePath = toResolvedArtifactPath({
+ *   basePath: '/project/src',
+ *   destinationPath: '/absolute/path/to/UserApi.ts'
+ * });
+ * 
+ * console.log(absolutePath); // '/absolute/path/to/UserApi.ts'
+ * ```
+ * 
+ * @example Working without base path
+ * ```typescript
+ * import { toResolvedArtifactPath } from '@skmtc/core/toResolvedArtifactPath';
+ * 
+ * // When basePath is undefined, returns the destination path
+ * const path = toResolvedArtifactPath({
+ *   basePath: undefined,
+ *   destinationPath: './UserApi.ts'
+ * });
+ * 
+ * console.log(path); // './UserApi.ts'
+ * ```
+ * 
+ * @module toResolvedArtifactPath
+ */
+
 import { join } from '@std/path/join'
 
 /**
  * Arguments for resolving artifact file paths.
+ * 
+ * Defines the input parameters needed to resolve a destination path
+ * relative to an optional base directory.
  */
 type ToResolvedArtifactPathArgs = {
   /** The base directory path for resolving relative paths */

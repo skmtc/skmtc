@@ -1,3 +1,68 @@
+/**
+ * @fileoverview Generator Key System for SKMTC Core
+ * 
+ * This module provides a comprehensive type-safe key system for identifying and
+ * organizing generated content within the SKMTC pipeline. Generator keys provide
+ * unique identification for operations, models, and other generated artifacts,
+ * ensuring proper organization and preventing collisions.
+ * 
+ * The key system uses branded types to ensure type safety and provides utilities
+ * for creating, parsing, and manipulating keys throughout the generation process.
+ * 
+ * ## Key Features
+ * 
+ * - **Type Safety**: Branded types prevent mixing different kinds of keys
+ * - **Unique Identification**: Composite keys ensure global uniqueness
+ * - **Parsing Utilities**: Safe extraction of components from composite keys
+ * - **Generator Organization**: Clear mapping between generators and their artifacts
+ * - **Reference Integration**: Seamless integration with OpenAPI reference system
+ * 
+ * @example Creating operation generator keys
+ * ```typescript
+ * import { toOperationGeneratorKey, parseOperationGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ * 
+ * // Create a key for a GET /users operation in api-client generator
+ * const key = toOperationGeneratorKey({
+ *   generatorId: 'api-client',
+ *   path: '/users',
+ *   method: 'GET'
+ * });
+ * 
+ * // Parse the key back into components
+ * const parsed = parseOperationGeneratorKey(key);
+ * console.log(parsed); // { generatorId: 'api-client', path: '/users', method: 'GET' }
+ * ```
+ * 
+ * @example Working with model keys
+ * ```typescript
+ * import { toModelGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ * 
+ * const modelKey = toModelGeneratorKey({
+ *   generatorId: 'typescript-models',
+ *   refName: 'User' as RefName
+ * });
+ * ```
+ * 
+ * @example Type-safe key handling
+ * ```typescript
+ * import type { OperationGeneratorKey, ModelGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ * 
+ * function handleOperationKey(key: OperationGeneratorKey) {
+ *   // TypeScript ensures this is specifically an operation key
+ *   const parsed = parseOperationGeneratorKey(key);
+ *   return `Processing ${parsed.method} ${parsed.path}`;
+ * }
+ * 
+ * function handleModelKey(key: ModelGeneratorKey) {
+ *   // TypeScript ensures this is specifically a model key
+ *   const parsed = parseModelGeneratorKey(key);
+ *   return `Processing model ${parsed.refName}`;
+ * }
+ * ```
+ * 
+ * @module GeneratorKeys
+ */
+
 import type { OasOperation } from '../oas/operation/Operation.ts'
 import type { Brand } from './Brand.ts'
 import type { RefName } from './RefName.ts'
