@@ -434,6 +434,11 @@ export class GenerateContext {
   stackTrail: StackTrail
   /** Tracking model nesting depth to prevent infinite recursion */
   modelDepth: Record<string, number>
+  /**
+   * Creates a new GenerateContext instance for the generation phase.
+   * 
+   * @param args - Constructor arguments including document, settings, and handlers
+   */
   constructor({
     oasDocument,
     settings,
