@@ -19,21 +19,51 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '../dsl/JsonFile.ts'
 import type { RenderResult } from './types.ts'
 
+/**
+ * Represents the parse phase of the SKMTC pipeline.
+ * 
+ * The parse phase converts OpenAPI v3 JSON documents into internal OAS objects,
+ * handling schema validation, reference resolution, and data transformation.
+ */
 export type ParsePhase = {
+  /** Identifies this as the parse phase */
   type: 'parse'
+  /** The parse context containing parsed document and utilities */
   context: ParseContext
 }
 
+/**
+ * Represents the generate phase of the SKMTC pipeline.
+ * 
+ * The generate phase transforms parsed OAS objects into generator-specific artifacts,
+ * applying templates, handling references, and preparing output files.
+ */
 export type GeneratePhase = {
+  /** Identifies this as the generate phase */
   type: 'generate'
+  /** The generate context for artifact creation and processing */
   context: GenerateContext
 }
 
+/**
+ * Represents the render phase of the SKMTC pipeline.
+ * 
+ * The render phase takes generator artifacts and renders them to formatted files,
+ * applying code formatting, file system operations, and final output generation.
+ */
 export type RenderPhase = {
+  /** Identifies this as the render phase */
   type: 'render'
+  /** The render context for file output and formatting */
   context: RenderContext
 }
 
+/**
+ * Union type representing any phase of the SKMTC pipeline execution.
+ * 
+ * Each execution phase contains its type identifier and associated context,
+ * allowing for type-safe phase handling and context access throughout the pipeline.
+ */
 export type ExecutionPhase = ParsePhase | GeneratePhase | RenderPhase
 
 type GenerateArgs = {
@@ -56,11 +86,22 @@ type RenderArgs = {
   basePath: string | undefined
 }
 
-type ToArtifactsArgs = {
+/**
+ * Arguments for the `toArtifacts` method of CoreContext.
+ * 
+ * Contains all the necessary configuration for transforming an OpenAPI document
+ * into code artifacts through the SKMTC pipeline.
+ */
+export type ToArtifactsArgs = {
+  /** The OpenAPI v3 document to process */
   documentObject: OpenAPIV3.Document
+  /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
+  /** Function that returns the generator configuration map */
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  /** Prettier configuration for code formatting (optional) */
   prettier?: PrettierConfigType
+  /** Whether to suppress console output */
   silent: boolean
 }
 
@@ -378,6 +419,34 @@ export class CoreContext {
     }
   }
 
+  /**
+   * Executes a function with distributed tracing and logging.
+   * 
+   * This method wraps function execution with tracing capabilities, updating the
+   * stack trail for context tracking and logging execution details. It's used
+   * throughout the SKMTC pipeline to maintain execution context and debugging information.
+   * 
+   * @template T - The return type of the traced function
+   * @param token - Single token or array of tokens to add to the trace stack
+   * @param fn - The function to execute within the trace context
+   * @returns The result of executing the traced function
+   * 
+   * @example Single token tracing
+   * ```typescript
+   * const result = context.trace('parse-schema', () => {
+   *   // Schema parsing logic here
+   *   return parsedSchema;
+   * });
+   * ```
+   * 
+   * @example Multiple token tracing (nested context)
+   * ```typescript
+   * const result = context.trace(['components', 'schemas', 'User'], () => {
+   *   // Process User schema
+   *   return processedUserSchema;
+   * });
+   * ```
+   */
   trace<T>(token: string | string[], fn: () => T): T {
     console.log('trace', token)
     this.logger.info('trace', token)
@@ -412,6 +481,34 @@ export class CoreContext {
     return { type: 'generate', context: generateContext }
   }
 
+  /**
+   * Captures a result at the current execution position in the stack trail.
+   * 
+   * This method records processing results (success, warning, error, etc.) at the
+   * current location in the document traversal stack. Results are associated with
+   * the current stack trail position, enabling detailed error reporting and
+   * debugging of OpenAPI processing issues.
+   * 
+   * @param result - The type of result to capture (success, warning, error, etc.)
+   * 
+   * @example Capturing a warning result
+   * ```typescript
+   * context.captureCurrentResult('warning');
+   * // Result captured at current stack position like: "components.schemas.User.properties.email"
+   * ```
+   * 
+   * @example Usage during schema processing
+   * ```typescript
+   * context.trace(['components', 'schemas', 'User'], () => {
+   *   try {
+   *     processUserSchema();
+   *     context.captureCurrentResult('success');
+   *   } catch (error) {
+   *     context.captureCurrentResult('error');
+   *   }
+   * });
+   * ```
+   */
   captureCurrentResult(result: ResultType): void {
     this.#results.capture(this.#stackTrail.toString(), result)
   }
@@ -432,11 +529,50 @@ export class CoreContext {
   }
 }
 
+/**
+ * Arguments for the SKMTC JSON log formatter.
+ * 
+ * Contains the log record and stack trail information needed to format
+ * structured JSON log entries for the SKMTC processing pipeline.
+ */
 export type JsonFormatterArgs = {
+  /** The Deno log record containing log level, message, and metadata */
   logRecord: log.LogRecord
+  /** String representation of the current stack trail position */
   stackTrail: string
 }
 
+/**
+ * Custom JSON formatter for SKMTC log entries.
+ * 
+ * Formats log records into structured JSON that includes stack trail context,
+ * making it easier to trace execution and debug issues in the SKMTC pipeline.
+ * The formatter flattens log arguments and includes execution context.
+ * 
+ * @param args - Formatter arguments containing log record and stack trail
+ * @returns Formatted JSON string for the log entry
+ * 
+ * @example Usage in logger setup
+ * ```typescript
+ * const handler = new ConsoleHandler("DEBUG", {
+ *   formatter: (logRecord) => skmtcFormatter({
+ *     logRecord,
+ *     stackTrail: context.stackTrail.toString()
+ *   })
+ * });
+ * ```
+ * 
+ * @example Output format
+ * ```json
+ * {
+ *   "stackTrail": "components.schemas.User.properties.email",
+ *   "level": "INFO",
+ *   "datetime": 1645123456789,
+ *   "message": "Processing email property",
+ *   "args": { "format": "email", "required": true }
+ * }
+ * ```
+ */
 export function skmtcFormatter({ logRecord, stackTrail }: JsonFormatterArgs): string {
   return JSON.stringify({
     stackTrail,
