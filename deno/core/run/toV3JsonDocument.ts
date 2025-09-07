@@ -1,3 +1,58 @@
+/**
+ * @fileoverview OpenAPI Document Conversion Utilities
+ * 
+ * This module provides robust utilities for converting OpenAPI documents between
+ * different versions (v2/Swagger, v3.0, v3.1) and formats (JSON, YAML). It handles
+ * the complexities of version migration, format detection, and schema validation
+ * to ensure seamless OpenAPI document processing within the SKMTC pipeline.
+ * 
+ * ## Key Features
+ * 
+ * - **Multi-Version Support**: Convert between Swagger v2, OpenAPI v3.0, and v3.1
+ * - **Format Detection**: Automatic detection of JSON vs YAML input formats
+ * - **Version Migration**: Safe migration with schema validation and error handling
+ * - **Type Safety**: Full TypeScript support with proper type guards
+ * - **Error Recovery**: Comprehensive error handling for malformed documents
+ * 
+ * @example Converting Swagger v2 to OpenAPI v3
+ * ```typescript
+ * import { toV3JsonDocument } from '@skmtc/core/toV3JsonDocument';
+ * 
+ * const swaggerV2 = {
+ *   swagger: '2.0',
+ *   info: { title: 'My API', version: '1.0.0' },
+ *   paths: { '/users': { get: { responses: { '200': { description: 'Success' } } } } }
+ * };
+ * 
+ * const openApiV3 = await toV3JsonDocument(swaggerV2);
+ * console.log(openApiV3.openapi); // '3.0.0'
+ * ```
+ * 
+ * @example Converting from YAML string
+ * ```typescript
+ * const yamlContent = `
+ * openapi: 3.1.0
+ * info:
+ *   title: My API
+ *   version: 1.0.0
+ * paths: {}
+ * `;
+ * 
+ * const openApiV3 = await toV3JsonDocument(yamlContent);
+ * ```
+ * 
+ * @example Handling conversion errors
+ * ```typescript
+ * try {
+ *   const result = await toV3JsonDocument(malformedDocument);
+ * } catch (error) {
+ *   console.error('Conversion failed:', error.message);
+ * }
+ * ```
+ * 
+ * @module toV3JsonDocument
+ */
+
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'npm:openapi-types@^12.1.3'
 import { parse as parseYaml } from '@std/yaml/parse'
 import {

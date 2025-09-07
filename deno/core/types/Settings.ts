@@ -1,3 +1,54 @@
+/**
+ * @fileoverview SKMTC Core Settings and Configuration
+ * 
+ * This module provides comprehensive configuration types and schemas for the SKMTC
+ * code generation pipeline. It defines settings for generators, modules, packages,
+ * and runtime behavior that control how OpenAPI documents are processed and what
+ * artifacts are generated.
+ * 
+ * ## Key Features
+ * 
+ * - **Generator Configuration**: Settings for individual code generators
+ * - **Module Management**: Package and module resolution configuration
+ * - **Runtime Settings**: Control generation behavior and output preferences
+ * - **Enrichment Integration**: Support for UI enrichment metadata
+ * - **Type Safety**: Comprehensive Valibot validation for all configuration
+ * 
+ * @example Basic generator settings
+ * ```typescript
+ * import type { Settings } from '@skmtc/core/Settings';
+ * 
+ * const settings: Settings = {
+ *   generators: {
+ *     'my-generator': {
+ *       enabled: true,
+ *       config: {
+ *         outputPath: './generated',
+ *         typescript: true
+ *       }
+ *     }
+ *   },
+ *   enrichments: {},
+ *   filters: {
+ *     includePaths: ['/api/v1/*'],
+ *     excludeMethods: ['OPTIONS']
+ *   }
+ * };
+ * ```
+ * 
+ * @example Module package configuration
+ * ```typescript
+ * import type { ModulePackage } from '@skmtc/core/Settings';
+ * 
+ * const moduleConfig: ModulePackage = {
+ *   rootPath: './src/generated',
+ *   moduleName: '@my-org/api-client'
+ * };
+ * ```
+ * 
+ * @module Settings
+ */
+
 import { generatorEnrichments, type GeneratorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
 import { method, type Method } from './Method.ts'

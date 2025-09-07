@@ -1,4 +1,49 @@
 /**
+ * @fileoverview String Manipulation Utilities for SKMTC Core
+ * 
+ * This module provides a comprehensive collection of string manipulation utilities
+ * commonly needed for code generation, identifier transformation, and text processing
+ * within the SKMTC pipeline. These utilities handle case conversions, pluralization,
+ * sanitization, and various text transformations.
+ * 
+ * ## Key Features
+ * 
+ * - **Case Conversion**: camelCase, PascalCase, snake_case, kebab-case, and more
+ * - **Pluralization**: Smart singular/plural transformations with irregular forms
+ * - **Sanitization**: Clean strings for use as identifiers and file names
+ * - **Text Processing**: Trimming, padding, wrapping, and formatting utilities
+ * - **Unicode Support**: Proper handling of international characters
+ * 
+ * @example Case conversions
+ * ```typescript
+ * import { capitalize, camelCase, pascalCase } from '@skmtc/core/strings';
+ * 
+ * capitalize('hello world'); // 'Hello world'
+ * camelCase('user_profile_data'); // 'userProfileData'
+ * pascalCase('api-response-type'); // 'ApiResponseType'
+ * ```
+ * 
+ * @example Pluralization
+ * ```typescript
+ * import { pluralize, singularize } from '@skmtc/core/strings';
+ * 
+ * pluralize('user'); // 'users'
+ * pluralize('child'); // 'children'
+ * singularize('categories'); // 'category'
+ * ```
+ * 
+ * @example Identifier sanitization
+ * ```typescript
+ * import { sanitizeIdentifier, toFileName } from '@skmtc/core/strings';
+ * 
+ * sanitizeIdentifier('123-invalid name!'); // 'invalid_name'
+ * toFileName('My API Response'); // 'my-api-response'
+ * ```
+ * 
+ * @module strings
+ */
+
+/**
  * Capitalizes the first character of a string.
  * 
  * @param str - The string to capitalize

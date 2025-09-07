@@ -1,3 +1,62 @@
+/**
+ * @fileoverview Enrichment System for SKMTC Core
+ * 
+ * This module provides comprehensive enrichment types and schemas for enhancing
+ * OpenAPI operations with UI generation metadata. Enrichments allow generators
+ * to create forms, tables, inputs, and other UI components with rich metadata
+ * about how data should be presented and interacted with.
+ * 
+ * The enrichment system supports a hierarchical structure:
+ * Generator → Path → Method → Operation → Component Type (form/table/input)
+ * 
+ * ## Key Features
+ * 
+ * - **Form Enrichments**: Field definitions with inputs, labels, and validation
+ * - **Table Enrichments**: Column definitions with formatters and headers
+ * - **Input Enrichments**: Standalone input components with formatting
+ * - **Hierarchical Organization**: Nested structure for easy lookup and management
+ * - **Type Safety**: Comprehensive Valibot validation for all enrichment data
+ * 
+ * @example Basic form enrichment
+ * ```typescript
+ * import type { FormItem } from '@skmtc/core/Enrichments';
+ * 
+ * const userForm: FormItem = {
+ *   title: 'User Registration',
+ *   description: 'Create a new user account',
+ *   fields: [
+ *     {
+ *       id: 'name',
+ *       accessorPath: ['name'],
+ *       input: { moduleName: 'TextInput', exportName: 'default' },
+ *       label: 'Full Name',
+ *       placeholder: 'Enter your full name'
+ *     }
+ *   ],
+ *   submitLabel: 'Create Account'
+ * };
+ * ```
+ * 
+ * @example Table enrichment with formatters
+ * ```typescript
+ * import type { TableItem } from '@skmtc/core/Enrichments';
+ * 
+ * const userTable: TableItem = {
+ *   title: 'User Directory',
+ *   columns: [
+ *     {
+ *       id: 'email',
+ *       accessorPath: ['email'],
+ *       formatter: { moduleName: 'EmailFormatter', exportName: 'default' },
+ *       label: 'Email Address'
+ *     }
+ *   ]
+ * };
+ * ```
+ * 
+ * @module Enrichments
+ */
+
 import { moduleExport, type ModuleExport } from './ModuleExport.ts'
 import * as v from 'valibot'
 
