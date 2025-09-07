@@ -32,18 +32,67 @@ type GetDefinitionArgs = {
   exportPath: string
 }
 
+/**
+ * Driver class for generating operation-based artifacts from OpenAPI operations.
+ * 
+ * The `OperationDriver` manages the transformation of OpenAPI operation objects
+ * into code artifacts, handling path generation, identifier resolution, and
+ * definition management. It serves as the core orchestrator for operation-based
+ * code generation in the SKMTC pipeline.
+ * 
+ * @template V - Type of generated values produced by this driver
+ * @template T - Type of generation strategy (e.g., 'function', 'class', 'hook')
+ * @template EnrichmentType - Type of enrichments that can be applied
+ * 
+ * @example Basic usage in an operation generator
+ * ```typescript
+ * class APIClientGenerator extends OperationBase {
+ *   generate() {
+ *     const driver = new OperationDriver({
+ *       context: this.context,
+ *       insertable: this,
+ *       operation: this.operation,
+ *       generation: 'function'
+ *     });
+ * 
+ *     const functionCode = driver.definition.toValueString();
+ *     const file = this.createFile(functionCode);
+ *     this.register({ file });
+ *   }
+ * }
+ * ```
+ */
 export class OperationDriver<
   V extends GeneratedValue,
   T extends GenerationType,
   EnrichmentType = undefined
 > {
+  /** The generation context providing access to OAS objects and utilities */
   context: GenerateContext
+  /** The insertable object that provides generation configuration */
   insertable: OperationInsertable<V, EnrichmentType>
+  /** The OpenAPI operation object being processed */
   operation: OasOperation
+  /** Content settings for customizing generation behavior */
   settings: ContentSettings<EnrichmentType>
+  /** Optional custom destination path for generated files */
   destinationPath?: string
+  /** The generated definition containing the transformed operation */
   definition: GeneratedDefinition<V, T>
+  /** Whether to exclude this operation from exports */
   noExport?: boolean
+
+  /**
+   * Creates a new OperationDriver instance.
+   * 
+   * @param args - Configuration for the operation driver
+   * @param args.context - Generation context
+   * @param args.insertable - Insertable providing generation configuration
+   * @param args.operation - OpenAPI operation to process
+   * @param args.generation - Optional generation type
+   * @param args.destinationPath - Optional custom destination path
+   * @param args.noExport - Whether to exclude from exports
+   */
   constructor({
     context,
     insertable,

@@ -6,7 +6,7 @@ import * as v from 'valibot'
  * Defines the precision formats for number types: float for single-precision
  * and double for double-precision floating-point numbers.
  */
-export const numberFormat: v.UnionSchema<[v.LiteralSchema<'float', 'float'>, v.LiteralSchema<'double', 'double'>], 'float' | 'double'> = v.union([v.literal('float'), v.literal('double')])
+export const numberFormat: v.GenericSchema<'float' | 'double'> = v.union([v.literal('float'), v.literal('double')])
 
 /**
  * Valibot schema for validating OpenAPI number data objects.

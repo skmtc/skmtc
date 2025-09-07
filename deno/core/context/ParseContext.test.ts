@@ -50,7 +50,7 @@ Deno.test.ignore('Handles schema warnings', () => {
         }
       }
     },
-    logger: console as Logger,
+    logger: console as unknown as Logger,
     stackTrail: new StackTrail(),
     silent: true
   })
@@ -145,7 +145,7 @@ Deno.test.ignore('Handles response error', () => {
         }
       }
     },
-    logger: console as Logger,
+    logger: console as unknown as Logger,
     stackTrail: new StackTrail(),
     silent: true
   })
@@ -190,7 +190,7 @@ Deno.test.ignore('Handles response error', () => {
 Deno.test('Handles cycle merges', () => {
   const parseContext = new ParseContext({
     documentObject: cfCycleSchema as unknown as OpenAPIV3.Document,
-    logger: console as Logger,
+    logger: console as unknown as Logger,
     stackTrail: new StackTrail(),
     silent: true
   })

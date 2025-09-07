@@ -158,7 +158,7 @@ type SetupLoggerArgs = {
  */
 export class CoreContext {
   /** Logger instance for the context */
-  logger: log.Logger
+  #logger: log.Logger
   
   /** Current execution phase for pipeline tracking */
   #phase: ExecutionPhase | undefined
@@ -201,7 +201,7 @@ export class CoreContext {
 
     this.#results = new ResultsLog()
 
-    this.logger = this.#setupLogger({ spanId, logsPath })
+    this.#logger = this.#setupLogger({ spanId, logsPath })
 
     this.silent = silent
   }
@@ -378,7 +378,7 @@ export class CoreContext {
         return this.#phase.context.toArtifacts()
       })
 
-      this.logger.debug(`${files.size} files generated`)
+      this.#logger.debug(`${files.size} files generated`)
 
       const renderOutput = await this.trace('render', async () => {
         this.#phase = this.#setupRenderPhase({
@@ -399,7 +399,7 @@ export class CoreContext {
     } catch (error) {
       console.error(error)
 
-      this.logger.error(error)
+      this.#logger.error(error)
 
       Sentry.captureException(error)
 
@@ -411,7 +411,7 @@ export class CoreContext {
         results: this.#results.toTree()
       }
     } finally {
-      this.logger.handlers.forEach(handler => {
+      this.#logger.handlers.forEach(handler => {
         if (handler instanceof log.FileHandler) {
           handler.flush()
         }
@@ -449,14 +449,14 @@ export class CoreContext {
    */
   trace<T>(token: string | string[], fn: () => T): T {
     console.log('trace', token)
-    this.logger.info('trace', token)
-    return tracer(this.#stackTrail, token, fn, this.logger)
+    this.#logger.info('trace', token)
+    return tracer(this.#stackTrail, token, fn, this.#logger)
   }
 
   #setupParsePhase(documentObject: OpenAPIV3.Document): ParsePhase {
     const parseContext = new ParseContext({
       documentObject,
-      logger: this.logger,
+      logger: this.#logger,
       stackTrail: this.#stackTrail,
       silent: this.silent
     })
@@ -472,7 +472,7 @@ export class CoreContext {
     const generateContext = new GenerateContext({
       oasDocument,
       settings,
-      logger: this.logger,
+      logger: this.#logger,
       stackTrail: this.#stackTrail,
       captureCurrentResult: this.captureCurrentResult.bind(this),
       toGeneratorConfigMap
@@ -520,7 +520,7 @@ export class CoreContext {
       mappings,
       prettierConfig: prettier,
       basePath,
-      logger: this.logger,
+      logger: this.#logger,
       stackTrail: this.#stackTrail,
       captureCurrentResult: this.captureCurrentResult.bind(this)
     })

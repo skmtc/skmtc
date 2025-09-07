@@ -194,7 +194,7 @@ type RenderOutput = {
  *       prettierConfig: this.prettierConfig,
  *       basePath: this.settings?.basePath,
  *       stackTrail: this.stackTrail,
- *       logger: this.logger,
+ *       logger: this.#logger,
  *       captureCurrentResult: this.captureCurrentResult.bind(this)
  *     });
  *     
@@ -264,7 +264,7 @@ export class RenderContext {
   /** Base path for resolving file paths */
   basePath: string | undefined
   /** Logger instance for debug information */
-  logger: log.Logger
+  #logger: log.Logger
   /** Stack trail for distributed tracing */
   #stackTrail: StackTrail
   /** Function to capture result status */
@@ -293,7 +293,7 @@ export class RenderContext {
     this.mappings = mappings
     this.#prettierConfig = prettierConfig
     this.basePath = basePath
-    this.logger = logger
+    this.#logger = logger
     this.#stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
   }
@@ -440,7 +440,7 @@ export class RenderContext {
    * ```
    */
   trace<T>(token: string | string[], fn: () => T): T {
-    return tracer(this.#stackTrail, token, fn, this.logger)
+    return tracer(this.#stackTrail, token, fn, this.#logger)
   }
 
   /**

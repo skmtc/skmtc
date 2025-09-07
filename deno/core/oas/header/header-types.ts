@@ -40,7 +40,7 @@ export type OasHeaderData = {
   explode?: boolean
 }
 
-const oasHeaderStyle: v.LiteralSchema<'simple', 'simple'> = v.literal('simple')
+const oasHeaderStyle = v.literal('simple')
 
 /**
  * Valid serialization styles for OpenAPI headers.

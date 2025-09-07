@@ -6,7 +6,7 @@ import * as v from 'valibot'
  * Ensures values are numbers and specifically integers,
  * used for integer validation throughout OAS processing.
  */
-export const integerSchema: v.PipeSchema<[v.NumberSchema<number>, v.IntegerAction<number, undefined>], number> = v.pipe(v.number(), v.integer())
+export const integerSchema: v.GenericSchema<number> = v.pipe(v.number(), v.integer())
 
 /**
  * Valibot schema for valid integer format values.
@@ -14,7 +14,7 @@ export const integerSchema: v.PipeSchema<[v.NumberSchema<number>, v.IntegerActio
  * Defines the size formats for integer types: int32 for 32-bit signed
  * integers and int64 for 64-bit signed integers.
  */
-export const integerFormat: v.UnionSchema<[v.LiteralSchema<'int32', 'int32'>, v.LiteralSchema<'int64', 'int64'>], 'int32' | 'int64'> = v.union([v.literal('int32'), v.literal('int64')])
+export const integerFormat: v.GenericSchema<'int32' | 'int64'> = v.union([v.literal('int32'), v.literal('int64')])
 
 /**
  * Valibot schema for validating OpenAPI integer data objects.

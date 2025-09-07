@@ -53,6 +53,19 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
   rootRef?: RefName
   /** Whether to skip export declaration */
   noExport?: boolean
+
+  /**
+   * Creates a new ModelDriver instance.
+   * 
+   * @param args - Constructor arguments
+   * @param args.context - Generation context
+   * @param args.insertable - Model insertable configuration
+   * @param args.refName - Reference name for the model
+   * @param args.generation - Optional generation type
+   * @param args.destinationPath - Optional destination path
+   * @param args.rootRef - Optional root reference name
+   * @param args.noExport - Whether to skip export declaration
+   */
   constructor({
     context,
     insertable,
@@ -77,6 +90,18 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
     this.context.modelDepth[`${insertable.id}:${refName}`] = 0
   }
 
+  /**
+   * Applies generation configuration to create the model definition.
+   * 
+   * This method handles the core generation logic, including identifier resolution,
+   * export path management, and import registration for cross-file dependencies.
+   * 
+   * @template T - The generation type
+   * @param args - Apply configuration arguments
+   * @param args.generation - Optional generation type (unused currently)
+   * @param args.destinationPath - Optional destination path for imports
+   * @returns Generated definition for the model
+   */
   private apply<T extends GenerationType>({
     generation: _generation,
     destinationPath
@@ -100,6 +125,18 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
     return definition
   }
 
+  /**
+   * Retrieves or creates a definition for the model.
+   * 
+   * This method first checks for cached definitions to avoid duplicate generation,
+   * then creates a new definition if none exists. It handles the complete model
+   * transformation process including schema resolution and value generation.
+   * 
+   * @param args - Definition retrieval arguments
+   * @param args.identifier - The identifier for the definition
+   * @param args.exportPath - The export path for the definition
+   * @returns Model definition instance
+   */
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): Definition<V> {
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
@@ -143,6 +180,17 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
     return definition
   }
 
+  /**
+   * Type guard to verify a definition matches the expected generated value type.
+   * 
+   * This method performs type narrowing to ensure a cached definition is compatible
+   * with the current generation requirements, including export path validation.
+   * 
+   * @template V - The expected generated value type  
+   * @param definition - The definition to verify (may be undefined)
+   * @param exportPath - Expected export path for validation
+   * @returns True if definition matches expected type and constraints
+   */
   private affirmDefinition<V extends GeneratedValue>(
     definition: Definition | undefined,
     exportPath: string

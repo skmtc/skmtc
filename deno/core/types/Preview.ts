@@ -40,6 +40,12 @@ export type Mapping = {
   source: OperationSource | ModelSource
 }
 
+/**
+ * Valibot schema for validating operation source objects.
+ * 
+ * Validates operation source structures including type, generator ID,
+ * operation path, and HTTP method information.
+ */
 export const operationSource: v.ObjectSchema<
   {
     readonly type: v.LiteralSchema<'operation', undefined>
@@ -67,6 +73,12 @@ export const operationSource: v.ObjectSchema<
   operationMethod: method
 })
 
+/**
+ * Valibot schema for validating model source objects.
+ * 
+ * Validates model source structures including type, generator ID,
+ * and reference name information.
+ */
 export const modelSource: v.ObjectSchema<
   {
     readonly type: v.LiteralSchema<'model', undefined>
@@ -80,14 +92,29 @@ export const modelSource: v.ObjectSchema<
   refName: v.string()
 })
 
+/**
+ * Valibot schema for validating preview group values.
+ * 
+ * Validates preview group categories for UI organization.
+ */
 export const previewGroup: v.GenericSchema<PreviewGroup> = v.picklist(['forms', 'tables', 'inputs'])
 
+/**
+ * Valibot schema for validating preview module objects.
+ * 
+ * Validates preview module structures including group, title, and description.
+ */
 export const previewModule: v.GenericSchema<PreviewModule> = v.object({
   name: v.string(),
   exportPath: v.string(),
   group: previewGroup
 })
 
+/**
+ * Valibot schema for validating mapping module objects.
+ * 
+ * Validates mapping module structures for file relationship tracking.
+ */
 export const mappingModule: v.GenericSchema<MappingModule> = v.object({
   name: v.string(),
   exportPath: v.string(),
@@ -99,11 +126,21 @@ export const mappingModule: v.GenericSchema<MappingModule> = v.object({
 const source: v.VariantSchema<'type', [typeof operationSource, typeof modelSource], undefined> =
   v.variant('type', [operationSource, modelSource])
 
+/**
+ * Valibot schema for validating preview objects.
+ * 
+ * Validates complete preview structures including module and source information.
+ */
 export const preview: v.GenericSchema<Preview> = v.object({
   module: previewModule,
   source: source
 })
 
+/**
+ * Valibot schema for validating mapping objects.
+ * 
+ * Validates complete mapping structures including module and source information.
+ */
 export const mapping: v.GenericSchema<Mapping> = v.object({
   module: mappingModule,
   source: source

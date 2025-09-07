@@ -21,6 +21,17 @@ export const oasArrayData: v.GenericSchema<OasArrayData> = v.object({
   enums: v.optional(v.array(v.unknown()))
 })
 
+export const oasArrayDataWithoutItems: v.GenericSchema<OasArrayDataWithoutItems> = v.object({
+  type: v.literal('array'),
+  title: v.optional(v.string()),
+  description: v.optional(v.string()),
+  default: v.optional(v.array(v.unknown())),
+  maxItems: v.optional(v.number()),
+  minItems: v.optional(v.number()),
+  uniqueItems: v.optional(v.boolean()),
+  enums: v.optional(v.array(v.unknown()))
+})
+
 /**
  * Data type for OpenAPI array schema objects.
  * 
@@ -33,6 +44,25 @@ export type OasArrayData = {
   type: 'array'
   /** Schema definition for array items */
   items: OasSchemaData | OasSchemaRefData
+  /** Human-readable title for the array */
+  title?: string
+  /** Detailed description of the array's purpose */
+  description?: string
+  /** Default value for the array */
+  default?: unknown[]
+  /** Maximum number of items allowed */
+  maxItems?: number
+  /** Minimum number of items required */
+  minItems?: number
+  /** Whether all items must be unique */
+  uniqueItems?: boolean
+  /** Array of valid enumeration values */
+  enums?: unknown[]
+}
+
+export type OasArrayDataWithoutItems = {
+  /** Type identifier (always 'array') */
+  type: 'array'
   /** Human-readable title for the array */
   title?: string
   /** Detailed description of the array's purpose */

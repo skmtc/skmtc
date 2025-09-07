@@ -37,14 +37,35 @@ export type ModulePackage = {
   moduleName?: string
 }
 
+/**
+ * Valibot schema for validating skip paths configuration.
+ * 
+ * Validates path-to-methods mappings for skipping specific operations.
+ */
 export const skipPaths: v.GenericSchema<SkipPaths> = v.record(v.string(), v.array(method))
 
+/**
+ * Valibot schema for validating skip operations configuration.
+ * 
+ * Validates generator-to-skip-paths mappings for skipping operations by generator.
+ */
 export const skipOperations: v.GenericSchema<SkipOperations> = v.record(v.string(), skipPaths)
 
+/**
+ * Valibot schema for validating skip models configuration.
+ * 
+ * Validates generator-to-model-names mappings for skipping specific models.
+ */
 export const skipModels: v.GenericSchema<SkipModels> = v.record(v.string(), v.array(v.string()))
 
 const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.string()])
 
+/**
+ * Valibot schema for validating client settings configuration.
+ * 
+ * Validates the complete client settings structure including base paths,
+ * packages, skip configurations, and enrichments.
+ */
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(v.string()),
   packages: v.optional(v.array(modulePackage)),
@@ -171,11 +192,25 @@ export type ClientSettings = {
   skip?: Skip[]
 }
 
+/**
+ * Configuration for SKMTC client with optional project identification.
+ * 
+ * Extends client settings with an optional project key for multi-project
+ * environments or organizational contexts.
+ */
 export type SkmtcClientConfig = {
+  /** Optional project identifier for organizational contexts */
   projectKey?: string
+  /** Client settings for customizing generation behavior */
   settings: ClientSettings
 }
 
+/**
+ * Valibot schema for validating SKMTC client configuration.
+ * 
+ * Validates the complete client configuration including project key
+ * and client settings structure.
+ */
 export const skmtcClientConfig: v.GenericSchema<SkmtcClientConfig> = v.object({
   projectKey: v.optional(v.string()),
   settings: clientSettings
