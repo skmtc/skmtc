@@ -305,12 +305,24 @@ export type InsertReturn<
   EnrichmentType
 > = Inserted<V, T, EnrichmentType>
 
-type ToOperationSettingsArgs<V, EnrichmentType = undefined> = {
+/**
+ * Arguments for generating operation content settings.
+ * 
+ * @template V - The value type for the operation
+ * @template EnrichmentType - Optional enrichment type for the operation
+ */
+export type ToOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: OasOperation
   insertable: OperationInsertable<V, EnrichmentType>
 }
 
-type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
+/**
+ * Arguments for building model content settings.
+ * 
+ * @template V - The value type for the model
+ * @template EnrichmentType - Optional enrichment type for the model
+ */
+export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
   refName: RefName
   insertable: ModelInsertable<V, EnrichmentType>
 }

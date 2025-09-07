@@ -479,28 +479,66 @@ export class KeyList {
   }
 }
 
-type Entry<T extends Stringable> = [key: string, value: T]
+/**
+ * Type representing a key-value pair entry.
+ */
+export type Entry<T extends Stringable> = [key: string, value: T]
 
-type EntryMapFn<T extends Stringable, V extends Stringable> = (
+/**
+ * Mapping function type for transforming entries.
+ */
+export type EntryMapFn<T extends Stringable, V extends Stringable> = (
   entry: Entry<T>,
   index: number
 ) => V | undefined
 
+/**
+ * Utility class for working with arrays of key-value pair entries.
+ * 
+ * Provides methods for transforming entry arrays into objects and lists
+ * with custom mapping functions.
+ * 
+ * @template T - Type of the entry values
+ */
 export class EntryList<T extends Stringable> {
+  /** Array of key-value pair entries */
   entries: Entry<T>[]
 
+  /**
+   * Creates a new EntryList instance.
+   * 
+   * @param entries - Array of key-value pair entries to work with
+   */
   constructor(entries: Entry<T>[]) {
     this.entries = entries
   }
 
+  /**
+   * Transforms entries into an object using a mapping function.
+   * 
+   * @param mapFn - Function to transform each entry into a value
+   * @returns Object with transformed values
+   */
   toObject<V extends Stringable>(mapFn: EntryMapFn<T, V>): ListObject<V> {
     return List.toObject(this.entries.map((entry, index) => mapFn(entry, index)))
   }
 
+  /**
+   * Transforms entries into a List using a mapping function.
+   * 
+   * @param mapFn - Function to transform each entry into a value
+   * @returns List containing the transformed values
+   */
   toLines<V extends Stringable>(mapFn: EntryMapFn<T, V>): ListLines<V> {
     return List.toLines(this.entries.map((key, index) => mapFn(key, index)))
   }
 
+  /**
+   * Transforms entries into an array using a mapping function.
+   * 
+   * @param mapFn - Function to transform each entry into a value
+   * @returns Array containing the transformed values
+   */
   toArray<V extends Stringable>(mapFn: EntryMapFn<T, V>): ListArray<V> {
     return List.toArray(this.entries.map((entry, index) => mapFn(entry, index)))
   }

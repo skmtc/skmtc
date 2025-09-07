@@ -28,7 +28,7 @@ type FunctionParameterArgs = {
 /**
  * Union type representing the different parameter configurations.
  */
-type ParameterProperties = VoidParameter | DestructuredParameter | RegularParameter
+export type ParameterProperties = VoidParameter | DestructuredParameter | RegularParameter
 
 /**
  * Represents a void parameter (no parameters).
