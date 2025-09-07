@@ -1,3 +1,101 @@
+/**
+ * @fileoverview Results and Status Tracking System for SKMTC Core
+ * 
+ * This module provides comprehensive result tracking and status management for
+ * the SKMTC code generation pipeline. It includes hierarchical result structures,
+ * type-safe status definitions, and validation schemas for tracking the outcomes
+ * of parsing, generation, and rendering operations.
+ * 
+ * The results system enables detailed reporting and error handling throughout
+ * the pipeline, supporting nested result structures for complex operations
+ * and comprehensive status categorization.
+ * 
+ * ## Key Features
+ * 
+ * - **Hierarchical Results**: Nested result structures for complex operations
+ * - **Status Categories**: Complete coverage of operation outcomes (success, warning, error, etc.)
+ * - **Type Safety**: Full TypeScript typing with Valibot validation
+ * - **Recursive Support**: Lazy evaluation for deeply nested result structures
+ * - **Pipeline Integration**: Direct integration with SKMTC processing contexts
+ * 
+ * @example Basic result tracking
+ * ```typescript
+ * import type { ResultType, ResultsItem } from '@skmtc/core/Results';
+ * 
+ * const operationResult: ResultType = 'success';
+ * const errorResult: ResultType = 'error';
+ * 
+ * const results: ResultsItem = {
+ *   parsing: 'success',
+ *   generation: 'warning',
+ *   rendering: 'success'
+ * };
+ * ```
+ * 
+ * @example Hierarchical result structures
+ * ```typescript
+ * import type { ResultsItem } from '@skmtc/core/Results';
+ * 
+ * const complexResults: ResultsItem = {
+ *   parsing: {
+ *     schemas: 'success',
+ *     operations: {
+ *       userApi: 'success',
+ *       productApi: 'warning',
+ *       orderApi: 'error'
+ *     }
+ *   },
+ *   generation: [
+ *     { models: 'success' },
+ *     { services: 'warning' },
+ *     null // Skipped operation
+ *   ]
+ * };
+ * ```
+ * 
+ * @example Result validation
+ * ```typescript
+ * import { resultsItem, resultType, ResultsItem } from '@skmtc/core/Results';
+ * import * as v from 'valibot';
+ * 
+ * function validateResults(data: unknown): ResultsItem {
+ *   return v.parse(resultsItem, data);
+ * }
+ * 
+ * function validateResultType(status: unknown): ResultType {
+ *   return v.parse(resultType, status);
+ * }
+ * 
+ * // Usage
+ * const results = validateResults({
+ *   operation: 'success',
+ *   nested: {
+ *     subOperation: 'warning'
+ *   }
+ * });
+ * ```
+ * 
+ * @example Error filtering
+ * ```typescript
+ * import type { ResultType, WarningError } from '@skmtc/core/Results';
+ * 
+ * function hasIssues(result: ResultType): result is WarningError {
+ *   return result === 'warning' || result === 'error';
+ * }
+ * 
+ * function processResults(results: Record<string, ResultType>) {
+ *   const issues = Object.entries(results)
+ *     .filter(([, status]) => hasIssues(status));
+ *   
+ *   if (issues.length > 0) {
+ *     console.log('Operations with issues:', issues);
+ *   }
+ * }
+ * ```
+ * 
+ * @module Results
+ */
+
 import * as v from 'valibot'
 
 /**

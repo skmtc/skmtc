@@ -1,3 +1,78 @@
+/**
+ * @fileoverview Prettier Configuration System for SKMTC Core
+ * 
+ * This module provides comprehensive type definitions and validation schemas for
+ * Prettier code formatting configuration within the SKMTC code generation pipeline.
+ * It ensures that generated code is properly formatted according to specified
+ * formatting rules and style guidelines.
+ * 
+ * The Prettier configuration system supports all standard Prettier options,
+ * enabling fine-tuned control over code formatting for different output targets
+ * and project requirements.
+ * 
+ * ## Key Features
+ * 
+ * - **Complete Option Coverage**: All Prettier configuration options supported
+ * - **Type Safety**: Full TypeScript typing and Valibot validation
+ * - **Flexible Configuration**: Optional settings with sensible defaults
+ * - **Multi-Language Support**: Formatting options for JavaScript, TypeScript, JSX, HTML, and more
+ * - **Integration Ready**: Direct integration with the SKMTC rendering pipeline
+ * 
+ * @example Basic Prettier configuration
+ * ```typescript
+ * import type { PrettierConfigType } from '@skmtc/core/PrettierConfig';
+ * 
+ * const config: PrettierConfigType = {
+ *   printWidth: 100,
+ *   tabWidth: 2,
+ *   useTabs: false,
+ *   semi: true,
+ *   singleQuote: true,
+ *   trailingComma: 'es5'
+ * };
+ * ```
+ * 
+ * @example TypeScript and JSX formatting
+ * ```typescript
+ * import type { PrettierConfigType } from '@skmtc/core/PrettierConfig';
+ * 
+ * const tsConfig: PrettierConfigType = {
+ *   printWidth: 120,
+ *   tabWidth: 2,
+ *   semi: true,
+ *   singleQuote: true,
+ *   jsxSingleQuote: true,
+ *   bracketSameLine: false,
+ *   arrowParens: 'avoid'
+ * };
+ * ```
+ * 
+ * @example Validation usage
+ * ```typescript
+ * import { prettierConfigType, PrettierConfigType } from '@skmtc/core/PrettierConfig';
+ * import * as v from 'valibot';
+ * 
+ * function validatePrettierConfig(config: unknown): PrettierConfigType {
+ *   return v.parse(prettierConfigType, config);
+ * }
+ * 
+ * const userConfig = {
+ *   printWidth: 80,
+ *   singleQuote: true,
+ *   invalidOption: 'test' // This would cause validation error
+ * };
+ * 
+ * try {
+ *   const validConfig = validatePrettierConfig(userConfig);
+ *   console.log('Valid configuration:', validConfig);
+ * } catch (error) {
+ *   console.error('Invalid Prettier configuration:', error);
+ * }
+ * ```
+ * 
+ * @module PrettierConfig
+ */
+
 import * as v from 'valibot'
 
 export type PrettierConfigType = {
