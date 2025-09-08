@@ -1,0 +1,77 @@
+---
+title: "toV3Document"
+description: "Converts any OpenAPI document version to OpenAPI 3.0 format."
+kind: "variable"
+filename: "skmtc/deno/core/run/toV3JsonDocument.ts"
+line: 166
+---
+
+# toV3Document
+
+Converts any OpenAPI document version to OpenAPI 3.0 format.
+
+SKMTC processes all documents using OpenAPI 3.0 as the internal format.
+This function handles version detection and conversion from:
+- OpenAPI 3.0.x (returned as-is)
+- OpenAPI 3.1.x (downgraded to 3.0 with allOf transformations)
+- Swagger 2.0 (upgraded to OpenAPI 3.0)
+
+
+**@param** schema - The OpenAPI document to convert
+
+**@returns** Promise resolving to an OpenAPI 3.0 document
+
+
+## Example
+
+Converting OpenAPI 3.1 to 3.0
+```typescript
+const openapi31Doc = {
+  openapi: "3.1.0",
+  info: { title: "My API", version: "1.0.0" },
+  paths: {}
+};
+const v3Doc = await toV3Document(openapi31Doc);
+console.log(v3Doc.openapi); // "3.0.3" (converted)
+```
+
+
+## Example
+
+Converting Swagger 2.0 to OpenAPI 3.0
+```typescript
+const swagger2Doc = {
+  swagger: "2.0",
+  info: { title: "My API", version: "1.0.0" },
+  paths: {}
+};
+const v3Doc = await toV3Document(swagger2Doc);
+console.log(v3Doc.openapi); // "3.0.0" (converted)
+```
+
+
+## Example
+
+OpenAPI 3.0 passthrough
+```typescript
+const openapi30Doc = {
+  openapi: "3.0.2",
+  info: { title: "My API", version: "1.0.0" },
+  paths: {}
+};
+const v3Doc = await toV3Document(openapi30Doc);
+console.log(v3Doc === openapi30Doc); // true (same object)
+```
+
+
+**@throws** If the document version is not recognized or supported
+
+## Variable Definition
+
+```typescript
+const toV3Document: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/run/toV3JsonDocument.ts:166:13`

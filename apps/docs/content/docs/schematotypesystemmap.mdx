@@ -1,0 +1,33 @@
+---
+title: "SchemaToTypeSystemMap"
+description: "Mapping of schema types to their type system representations."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/TypeSystem.ts"
+line: 451
+---
+
+# SchemaToTypeSystemMap
+
+Mapping of schema types to their type system representations.
+
+This type maps OpenAPI schema types to their corresponding type system
+value types, enabling type-safe transformations during code generation.
+
+
+## Example
+
+```typescript
+// Used internally by the type system transformation process
+type StringOutput = SchemaToTypeSystemMap['string']['output']; // TypeSystemString
+type RefSource = SchemaToTypeSystemMap['ref']['source']; // OasRef<'schema'>
+```
+
+## Type Definition
+
+```typescript
+type SchemaToTypeSystemMap = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/TypeSystem.ts:451:0`

@@ -1,0 +1,93 @@
+---
+title: "toParsedString"
+description: "Creates an OAS string instance from pre-parsed string schema components."
+kind: "variable"
+filename: "skmtc/deno/core/oas/string/toString.ts"
+line: 186
+---
+
+# toParsedString
+
+Creates an OAS string instance from pre-parsed string schema components.
+
+This function is the final step in the string transformation pipeline, taking
+already-parsed nullable, example, enum, and default values and combining them
+with the remaining string properties to create the complete OasString instance.
+
+The function handles format validation against known OpenAPI string formats,
+length constraints parsing, pattern validation, and specification extension
+processing. It logs warnings for unrecognized formats while still preserving
+them in the output.
+
+
+**@template** - Boolean type indicating if the string can be null
+
+**@param** args - Pre-parsed string components
+
+**@param** args.context - Parse context for tracing and issue logging
+
+**@param** args.nullable - Parsed nullable flag
+
+**@param** args.example - Parsed example value (type-safe with nullable)
+
+**@param** args.enums - Parsed enumeration constraints (type-safe with nullable)
+
+**@param** args.defaultValue - Parsed default value (type-safe with nullable)
+
+**@param** args.value - OpenAPI string object without parsed fields
+
+**@returns** Complete OAS string instance with all properties and validation
+
+
+## Example
+
+Date-time string with validation
+```typescript
+const dateTimeString = toParsedString({
+  context: parseContext,
+  nullable: false,
+  example: '2023-12-25T10:00:00Z',
+  enums: undefined,
+  defaultValue: undefined,
+  value: {
+    type: 'string',
+    format: 'date-time',
+    title: 'Event Date',
+    description: 'When the event occurs'
+  }
+});
+
+console.log(dateTimeString.format); // 'date-time'
+```
+
+
+## Example
+
+String with custom format (generates warning)
+```typescript
+const customFormatString = toParsedString({
+  context: parseContext,
+  nullable: false,
+  example: 'ABC123',
+  enums: undefined,
+  defaultValue: undefined,
+  value: {
+    type: 'string',
+    format: 'custom-id', // Unknown format, will log warning
+    pattern: '^[A-Z]{3}[0-9]{3}$'
+  }
+});
+
+// Logs: "Unexpected format: custom-id"
+console.log(customFormatString.format); // 'custom-id' (still preserved)
+```
+
+## Variable Definition
+
+```typescript
+const toParsedString: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/oas/string/toString.ts:186:13`

@@ -1,0 +1,51 @@
+---
+title: "CustomValue"
+description: "Represents a custom value in the SKMTC generation pipeline."
+kind: "class"
+filename: "skmtc/deno/core/types/CustomValue.ts"
+line: 31
+---
+
+# CustomValue
+
+Represents a custom value in the SKMTC generation pipeline.
+
+CustomValue allows generators to create arbitrary content that doesn't fit
+standard schema types. Used for injecting custom code, templates, or specialized
+content during the generation process.
+
+
+## Example
+
+Creating custom content
+```typescript
+const customValue = new CustomValue({
+  context: generateContext,
+  value: 'const customCode = "generated";',
+  generatorKey: 'my-generator'
+});
+
+console.log(customValue.toString()); // "const customCode = "generated";"
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `type: custom`
+- `value: Stringable`
+
+### Methods
+
+- `isRef(): this is [0m[38;5;12mOasRef[0m<[0m[32m"schema"[0m>`
+- `resolve(): CustomValue`
+- `resolveOnce(): CustomValue`
+- `toString(): string`
+
+## Source
+
+Located at `skmtc/deno/core/types/CustomValue.ts:31:0`

@@ -1,0 +1,69 @@
+---
+title: "OasArrayDataWithoutItems"
+description: "Array schema data without the items property."
+kind: "typeAlias"
+filename: "skmtc/deno/core/oas/array/array-types.ts"
+line: 288
+---
+
+# OasArrayDataWithoutItems
+
+Array schema data without the items property.
+
+Represents an array schema with all standard properties except the items definition.
+This type is used during parsing phases where item schemas are processed separately
+from array constraints, enabling more flexible processing pipelines and better
+separation of concerns in complex schema transformation operations.
+
+## Common Use Cases
+
+- **Two-phase parsing**: Validate array structure first, then process items
+- **Schema merging**: Combine array constraints from multiple sources
+- **Constraint extraction**: Extract array rules for validation generation
+- **Reference resolution**: Process items after resolving schema references
+
+
+## Example
+
+Array constraints for validation
+```typescript
+import type { OasArrayDataWithoutItems } from '@skmtc/core/oas/array';
+
+const constraintsSchema: OasArrayDataWithoutItems = {
+  type: 'array',
+  title: 'Validation Rules',
+  description: 'Array with length and uniqueness constraints',
+  minItems: 1,
+  maxItems: 100,
+  uniqueItems: true,
+  default: []
+};
+```
+
+
+## Example
+
+Enum constraints without item types
+```typescript
+const enumArrayConstraints: OasArrayDataWithoutItems = {
+  type: 'array',
+  title: 'Option Groups',
+  description: 'Predefined option combinations',
+  enums: [
+    ['option1', 'option2'],
+    ['option3', 'option4'],
+    ['option1', 'option3', 'option4']
+  ],
+  uniqueItems: true
+};
+```
+
+## Type Definition
+
+```typescript
+type OasArrayDataWithoutItems = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/oas/array/array-types.ts:288:0`

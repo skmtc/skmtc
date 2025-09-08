@@ -1,0 +1,34 @@
+---
+title: "toEndpointName"
+description: "Generates endpoint name in the `camelCase{method}Api{path}` format."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/naming.ts"
+line: 38
+---
+
+# toEndpointName
+
+Generates endpoint name in the `camelCase{method}Api{path}` format.
+
+
+**@param** operation - The OpenAPI operation
+
+**@returns** Camel-cased endpoint name
+
+
+## Example
+
+```typescript
+const op = new OasOperation({ method: 'post', path: '/users/{id}/profile' });
+console.log(toEndpointName(op)); // 'createApiUsersIdProfile'
+```
+
+## Variable Definition
+
+```typescript
+const toEndpointName: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/naming.ts:38:13`

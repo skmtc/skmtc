@@ -1,0 +1,39 @@
+---
+title: "TypeSystemArgs"
+description: "Arguments for type system transformation functions."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/TypeSystem.ts"
+line: 572
+---
+
+# TypeSystemArgs
+
+Arguments for type system transformation functions.
+
+
+**@template** - The specific schema type being transformed
+
+## Example
+
+```typescript
+function transformStringSchema(args: TypeSystemArgs<OasSchema>): TypeSystemString {
+  const { context, schema, required } = args;
+  // Transform string schema to type system representation
+  return {
+    type: 'string',
+    format: schema.format,
+    enums: schema.enums,
+    modifiers: { optional: !required, nullable: schema.nullable }
+  };
+}
+```
+
+## Type Definition
+
+```typescript
+type TypeSystemArgs = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/TypeSystem.ts:572:0`

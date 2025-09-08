@@ -1,0 +1,46 @@
+---
+title: "toManifestLines"
+description: "Calculates the total number of lines across all generated files."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/generationStats.ts"
+line: 205
+---
+
+# toManifestLines
+
+Calculates the total number of lines across all generated files.
+
+This function sums up the line counts from the manifest's file metadata
+to provide the total lines of code generated. This metric is useful
+for understanding the scale of code generation and tracking productivity.
+
+
+**@param** manifest - The generation manifest containing file metadata
+
+**@returns** Total number of lines across all generated files
+
+
+## Example
+
+```typescript
+const manifest = {
+  files: {
+    './models.ts': { lines: 150, characters: 4500 },
+    './types.ts': { lines: 80, characters: 2100 }
+  },
+  // ... other manifest properties
+};
+
+const lines = toManifestLines(manifest);
+console.log(lines); // 230
+```
+
+## Variable Definition
+
+```typescript
+const toManifestLines: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/generationStats.ts:205:13`

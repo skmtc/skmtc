@@ -1,0 +1,128 @@
+---
+title: "ModelBase"
+description: "Base class for model generators in the SKMTC DSL system."
+kind: "class"
+filename: "skmtc/deno/core/dsl/model/ModelBase.ts"
+line: 123
+---
+
+# ModelBase
+
+Base class for model generators in the SKMTC DSL system.
+
+`ModelBase` extends [ContentBase](./contentbase.mdx) to provide specialized functionality for
+generating code from OpenAPI schema models. It offers type-safe methods for
+inserting related models, managing schema references, and handling enrichments.
+
+This class serves as the foundation for creating custom model generators that
+transform OpenAPI schemas into various code artifacts like TypeScript interfaces,
+validation schemas, or database models.
+
+## Key Features
+
+- **Model Insertion**: Insert related models with automatic reference resolution
+- **Schema Normalization**: Handle complex schema references and fallbacks
+- **Export Management**: Control which models are exported from generated files
+- **Enrichment Support**: Extend functionality with custom enrichment data
+- **Type Safety**: Full TypeScript support with generic enrichment types
+
+
+**@template** - Optional type for custom enrichment data
+
+
+## Example
+
+Basic model generator
+```typescript
+import { ModelBase, Definition } from '@skmtc/core';
+
+class TypeScriptInterface extends ModelBase {
+  toDefinition(): Definition {
+    const schema = this.context.getSchema(this.refName);
+
+    return new Definition({
+      name: this.refName,
+      content: `export interface ${this.refName} {
+        ${this.generateProperties(schema)}
+      }`
+    });
+  }
+
+  private generateProperties(schema: OasSchema): string {
+    // Generate interface properties from schema
+    return Object.entries(schema.properties || {})
+      .map(([key, prop]) => `${key}: ${this.getPropertyType(prop)}`)
+      .join(';\n  ');
+  }
+}
+```
+
+
+## Example
+
+With enrichments
+```typescript
+type ValidationEnrichment = {
+  validators: string[];
+  customRules: Record<string, string>;
+};
+
+class ValidationModel extends ModelBase<ValidationEnrichment> {
+  toDefinition(): Definition {
+    const enrichment = this.settings.enrichment;
+    const validators = enrichment?.validators || [];
+
+    return new Definition({
+      name: `${this.refName}Validator`,
+      content: this.generateValidator(validators)
+    });
+  }
+}
+```
+
+
+## Example
+
+Inserting related models
+```typescript
+class ApiModel extends ModelBase {
+  toDefinition(): Definition {
+    const schema = this.context.getSchema(this.refName);
+
+    // Insert related models automatically
+    if (schema.properties?.user) {
+      this.insertNormalizedModel(
+        new TypeScriptInterface({ ... }),
+        { schema: schema.properties.user, fallbackName: 'User' }
+      );
+    }
+
+    return new Definition({
+      name: this.refName,
+      content: this.generateInterface(schema)
+    });
+  }
+}
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `settings: ContentSettings`
+- `refName: RefName`
+- `generatorKey: GeneratorKey`
+
+### Methods
+
+- `insertModel(insertable: ModelInsertable, refName: RefName, ...): Inserted`
+- `insertNormalizedModel(insertable: ModelInsertable, ..., ...): InsertNormalisedModelReturn`
+- `register(args: BaseRegisterArgs): void`
+
+## Source
+
+Located at `skmtc/deno/core/dsl/model/ModelBase.ts:123:0`

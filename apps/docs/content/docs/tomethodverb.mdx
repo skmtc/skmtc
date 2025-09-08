@@ -1,0 +1,36 @@
+---
+title: "toMethodVerb"
+description: "Converts HTTP method to a descriptive verb."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/naming.ts"
+line: 96
+---
+
+# toMethodVerb
+
+Converts HTTP method to a descriptive verb.
+
+
+**@param** method - HTTP method
+
+**@returns** Descriptive verb for the method
+
+
+## Example
+
+```typescript
+console.log(toMethodVerb('post')); // 'Create'
+console.log(toMethodVerb('put'));  // 'Update'
+console.log(toMethodVerb('get'));  // 'get'
+console.log(toMethodVerb('delete')); // 'delete'
+```
+
+## Variable Definition
+
+```typescript
+const toMethodVerb: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/naming.ts:96:13`

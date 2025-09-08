@@ -1,0 +1,82 @@
+---
+title: "CoreContext"
+description: "The main orchestration class for the SKMTC transformation pipeline."
+kind: "class"
+filename: "skmtc/deno/core/context/CoreContext.ts"
+line: 160
+---
+
+# CoreContext
+
+The main orchestration class for the SKMTC transformation pipeline.
+
+`CoreContext` manages the three-phase process of transforming OpenAPI v3 documents
+into code artifacts. It coordinates parsing, generation, and rendering phases while
+providing logging, tracing, and error handling capabilities.
+
+## Pipeline Phases
+
+1. **Parse Phase**: Uses [ParseContext](./parsecontext.mdx) to convert OpenAPI JSON into OAS objects
+2. **Generate Phase**: Uses [GenerateContext](./generatecontext.mdx) to transform OAS objects with generators  
+3. **Render Phase**: Uses [RenderContext](./rendercontext.mdx) to format and prepare final artifacts
+
+
+## Example
+
+Basic usage
+```typescript
+import { CoreContext } from '@skmtc/core';
+
+const context = new CoreContext({
+  spanId: 'user-api-generation',
+  logsPath: './logs',
+  silent: false
+});
+
+const result = await context.toArtifacts({
+  documentObject: openApiDoc,
+  settings: clientSettings,
+  toGeneratorConfigMap: () => generators,
+  prettier: prettierConfig,
+  silent: false
+});
+```
+
+
+## Example
+
+Using individual phases
+```typescript
+const context = new CoreContext({
+  spanId: 'custom-pipeline',
+  silent: true
+});
+
+// Parse phase only
+const { oasDocument } = context.parse(openApiDoc);
+
+// Then use document for custom processing
+console.log('Parsed schemas:', Object.keys(oasDocument.components.schemas));
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `logger: Logger`
+- `silent: boolean`
+
+### Methods
+
+- `parse(documentObject: OpenAPIV3.Document): unknown`
+- `toArtifacts(...): Promise`
+- `trace(token: unknown, fn: unknown): T`
+- `captureCurrentResult(result: ResultType): void`
+
+## Source
+
+Located at `skmtc/deno/core/context/CoreContext.ts:160:0`

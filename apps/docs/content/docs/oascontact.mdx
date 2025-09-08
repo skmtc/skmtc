@@ -1,0 +1,58 @@
+---
+title: "OasContact"
+description: "Represents a Contact Object in the OpenAPI Specification."
+kind: "class"
+filename: "skmtc/deno/core/oas/contact/Contact.ts"
+line: 40
+---
+
+# OasContact
+
+Represents a Contact Object in the OpenAPI Specification.
+
+The `OasContact` class encapsulates contact information for the API,
+providing details about who to contact for support, questions, or issues.
+This information is typically displayed in API documentation.
+
+
+## Example
+
+Basic contact information
+```typescript
+import { OasContact } from '@skmtc/core';
+
+const contact = new OasContact({
+  name: 'API Support Team',
+  email: 'support@example.com'
+});
+```
+
+
+## Example
+
+Complete contact details
+```typescript
+const fullContact = new OasContact({
+  name: 'John Doe',
+  url: 'https://example.com/contact',
+  email: 'john@example.com'
+});
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `oasType: contact`
+- `name: unknown`
+- `url: unknown`
+- `email: unknown`
+- `extensionFields: unknown`
+
+## Source
+
+Located at `skmtc/deno/core/oas/contact/Contact.ts:40:0`

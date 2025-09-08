@@ -1,0 +1,38 @@
+---
+title: "ParsedModuleName"
+description: "Represents the parsed components of a module name."
+kind: "typeAlias"
+filename: "skmtc/deno/core/helpers/parseModuleName.ts"
+line: 19
+---
+
+# ParsedModuleName
+
+Represents the parsed components of a module name.
+
+This type breaks down a module name into its constituent parts,
+supporting various formats used in different package managers
+and registries (npm, JSR, Deno, etc.).
+
+
+## Example
+
+```typescript
+// For 'jsr:@std/path@1.0.0'
+const parsed: ParsedModuleName = {
+  scheme: 'jsr',
+  scopeName: '@std',
+  packageName: 'path',
+  version: '1.0.0'
+};
+```
+
+## Type Definition
+
+```typescript
+type ParsedModuleName = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/parseModuleName.ts:19:0`

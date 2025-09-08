@@ -1,25 +1,10 @@
-import { remarkCodeHike, recmaCodeHike } from "codehike/mdx"
-import  createMDX  from "fumadocs-mdx/config"
+import { createMDX } from 'fumadocs-mdx/next';
 
-/** @type {import('codehike/mdx').CodeHikeConfig} */
-const chConfig = {
-  components: {
-    code: "Code",
-  },
-}
-
-const withMDX = createMDX({
-  mdxOptions: {
-    remarkPlugins: [[remarkCodeHike, chConfig]],
-    recmaPlugins: [[recmaCodeHike, chConfig]],
-    jsx: true,
-  },
-})
+const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
-  transpilePackages: ["geist"]
-}
+};
 
-export default withMDX(config)
+export default withMDX(config);

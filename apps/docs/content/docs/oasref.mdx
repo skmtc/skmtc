@@ -1,0 +1,134 @@
+---
+title: "OasRef"
+description: "Represents an OpenAPI reference ($ref) in the SKMTC OAS processing system."
+kind: "class"
+filename: "skmtc/deno/core/oas/ref/Ref.ts"
+line: 113
+---
+
+# OasRef
+
+Represents an OpenAPI reference ($ref) in the SKMTC OAS processing system.
+
+The `OasRef` class handles OpenAPI JSON Reference Objects that point to reusable
+components within the same document. It provides type-safe reference resolution
+with support for chained references and circular reference detection.
+
+## Key Features
+
+- **Type Safety**: Generic parameter ensures resolved types match the reference type
+- **Lazy Resolution**: References are resolved on-demand, not during construction
+- **Chain Resolution**: Handles references that point to other references
+- **Circular Detection**: Prevents infinite loops with maximum lookup limits
+- **Type Validation**: Ensures resolved objects match expected reference types
+
+
+**@template** - The type of component this reference points to
+
+
+## Example
+
+Basic reference resolution
+```typescript
+import { OasRef } from '@skmtc/core';
+
+// Reference to a schema component
+const userRef = new OasRef<'schema'>({
+  refType: 'schema',
+  $ref: '#/components/schemas/User'
+}, document);
+
+// Resolve the reference
+const userSchema = userRef.resolve();
+console.log(userSchema.properties); // Access resolved schema properties
+```
+
+
+## Example
+
+Working with different reference types
+```typescript
+// Schema reference
+const schemaRef = new OasRef<'schema'>({
+  refType: 'schema',
+  $ref: '#/components/schemas/Product'
+}, document);
+
+// Response reference
+const responseRef = new OasRef<'response'>({
+  refType: 'response',
+  $ref: '#/components/responses/ErrorResponse'
+}, document);
+
+// Parameter reference
+const paramRef = new OasRef<'parameter'>({
+  refType: 'parameter',
+  $ref: '#/components/parameters/PageSize'
+}, document);
+```
+
+
+## Example
+
+Reference checking and conditional resolution
+```typescript
+function processSchemaOrRef(schema: OasSchema | OasRef<'schema'>) {
+  if (schema.isRef()) {
+    // Handle reference
+    const refName = schema.toRefName();
+    console.log(`Processing reference: ${refName}`);
+
+    // Resolve only when needed
+    const resolved = schema.resolve();
+    return processed(resolved);
+  } else {
+    // Handle direct schema
+    return process(schema);
+  }
+}
+```
+
+
+## Example
+
+Chained reference handling
+```typescript
+// References can point to other references
+const chainedRef = new OasRef<'schema'>({
+  refType: 'schema',
+  $ref: '#/components/schemas/AliasToUser'
+}, document);
+
+// resolve() automatically follows the chain
+const finalSchema = chainedRef.resolve(); // Follows chain to final schema
+
+// resolveOnce() resolves only one step
+const oneStep = chainedRef.resolveOnce(); // May still be a reference
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(fields: RefFields, oasDocument: OasDocument)`
+
+### Properties
+
+- `oasType: ref`
+- `type: ref`
+
+### Methods
+
+- `isRef(): this is [0m[38;5;12mOasRef[0m<[0m[38;5;12mT[0m>`
+- `resolve(...): ResolvedRef`
+- `resolveOnce(): unknown`
+- `toRefName(): RefName`
+- `$ref(): string`
+- `refType(): unknown`
+- `oasDocument(): OasDocument`
+- `toJsonSchema(...): unknown`
+- `toJSON(): object`
+
+## Source
+
+Located at `skmtc/deno/core/oas/ref/Ref.ts:113:0`

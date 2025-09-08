@@ -1,0 +1,74 @@
+---
+title: "OasServer"
+description: "Represents a Server Object in the OpenAPI Specification."
+kind: "class"
+filename: "skmtc/deno/core/oas/server/Server.ts"
+line: 53
+---
+
+# OasServer
+
+Represents a Server Object in the OpenAPI Specification.
+
+The `OasServer` class encapsulates server connectivity information, including
+the server URL, optional description, and variable definitions for URL templating.
+Servers are used to specify different environments (development, staging, production)
+or different API versions that clients can connect to.
+
+
+## Example
+
+Basic server
+```typescript
+const server = new OasServer({
+  url: 'https://api.example.com/v1',
+  description: 'Production API server'
+});
+```
+
+
+## Example
+
+Server with variables
+```typescript
+const server = new OasServer({
+  url: 'https://{environment}.example.com/{version}',
+  description: 'Configurable API server',
+  variables: {
+    environment: new OasServerVariable({
+      enum: ['api', 'staging', 'dev'],
+      default: 'api',
+      description: 'API environment'
+    }),
+    version: new OasServerVariable({
+      default: 'v1',
+      description: 'API version'
+    })
+  }
+});
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(fields: ServerFields)`
+
+### Properties
+
+- `oasType: server`
+- `description: unknown`
+- `url: string`
+- `variables: unknown`
+- `extensionFields: unknown`
+
+### Methods
+
+- `isRef(): boolean`
+- `resolve(): OasServer`
+- `resolveOnce(): OasServer`
+- `toJsonSchema(_options: ToJsonSchemaOptions): OpenAPIV3.ServerObject`
+
+## Source
+
+Located at `skmtc/deno/core/oas/server/Server.ts:53:0`

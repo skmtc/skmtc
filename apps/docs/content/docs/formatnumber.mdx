@@ -1,0 +1,131 @@
+---
+title: "formatNumber"
+description: "Formats a number using locale-specific formatting without decimal places."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/formatNumber.ts"
+line: 96
+---
+
+# formatNumber
+
+Formats a number using locale-specific formatting without decimal places.
+
+This utility function formats numbers according to locale conventions,
+adding thousand separators and other locale-specific number formatting
+while ensuring the output contains no fractional digits. It's useful
+for displaying counts, statistics, or other whole numbers in a
+human-readable format.
+
+
+**@param** value - The number to format
+
+**@param** locales - The locale(s) to use for formatting (defaults to 'en-US')
+
+**@returns** The formatted number as a string with locale-appropriate thousand separators
+
+
+## Example
+
+Basic formatting with default locale (en-US)
+```typescript
+import { formatNumber } from '@skmtc/core';
+
+console.log(formatNumber(1234));     // '1,234'
+console.log(formatNumber(1234567));  // '1,234,567'
+console.log(formatNumber(42));       // '42'
+console.log(formatNumber(0));        // '0'
+```
+
+
+## Example
+
+Formatting with different locales
+```typescript
+const bigNumber = 1234567;
+
+console.log(formatNumber(bigNumber, 'en-US')); // '1,234,567'
+console.log(formatNumber(bigNumber, 'de-DE')); // '1.234.567'
+console.log(formatNumber(bigNumber, 'fr-FR')); // '1 234 567'
+console.log(formatNumber(bigNumber, 'en-IN')); // '12,34,567'
+```
+
+
+## Example
+
+Formatting decimal numbers (fractional part removed)
+```typescript
+// The function always rounds to whole numbers
+console.log(formatNumber(1234.56));    // '1,235' (rounded)
+console.log(formatNumber(999.99));     // '1,000' (rounded)
+console.log(formatNumber(1000.1));     // '1,000' (rounded)
+console.log(formatNumber(1000.0));     // '1,000'
+```
+
+
+## Example
+
+Usage in reporting and statistics
+```typescript
+class StatsReporter {
+  generateReport(stats: {
+    totalFiles: number;
+    linesGenerated: number;
+    errors: number;
+  }) {
+    return `
+Generation Report:
+- Files generated: ${formatNumber(stats.totalFiles)}
+- Lines of code: ${formatNumber(stats.linesGenerated)}
+- Errors encountered: ${formatNumber(stats.errors)}
+    `.trim();
+  }
+}
+
+const reporter = new StatsReporter();
+const report = reporter.generateReport({
+  totalFiles: 1234,
+  linesGenerated: 567890,
+  errors: 5
+});
+
+console.log(report);
+// Generation Report:
+// - Files generated: 1,234
+// - Lines of code: 567,890
+// - Errors encountered: 5
+```
+
+
+## Example
+
+International number formatting
+```typescript
+const count = 50000;
+
+// Different regions format numbers differently
+const formats = [
+  { locale: 'en-US', label: 'US English' },
+  { locale: 'de-DE', label: 'German' },
+  { locale: 'fr-FR', label: 'French' },
+  { locale: 'ja-JP', label: 'Japanese' }
+];
+
+formats.forEach(({ locale, label }) => {
+  console.log(`${label}: ${formatNumber(count, locale)}`);
+});
+
+// US English: 50,000
+// German: 50.000
+// French: 50 000
+// Japanese: 50,000
+```
+
+## Variable Definition
+
+```typescript
+const formatNumber: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/formatNumber.ts:96:13`

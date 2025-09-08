@@ -1,0 +1,5 @@
+{
+  "name": "@skmtc/docs",
+  "version": "0.0.1",
+  "exports": "./mod.ts"
+}

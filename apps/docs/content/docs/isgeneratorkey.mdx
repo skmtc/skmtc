@@ -1,0 +1,42 @@
+---
+title: "isGeneratorKey"
+description: "Type guard to check if a value is a valid GeneratorKey."
+kind: "variable"
+filename: "skmtc/deno/core/types/GeneratorKeys.ts"
+line: 318
+---
+
+# isGeneratorKey
+
+Type guard to check if a value is a valid GeneratorKey.
+
+This function validates that the argument is one of the three
+generator key types: operation, model, or generator-only.
+
+
+**@param** arg - Value to check
+
+**@returns** True if the value is a valid GeneratorKey
+
+
+## Example
+
+```typescript
+const key = 'api-client|/users|get';
+
+if (isGeneratorKey(key)) {
+  // key is now typed as GeneratorKey
+  const generatorId = toGeneratorId(key);
+  console.log(generatorId); // 'api-client'
+}
+```
+
+## Variable Definition
+
+```typescript
+const isGeneratorKey: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/GeneratorKeys.ts:318:13`

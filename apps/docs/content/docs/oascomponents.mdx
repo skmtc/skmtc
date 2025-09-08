@@ -1,0 +1,207 @@
+---
+title: "OasComponents"
+description: "Represents the OpenAPI Components Object in the SKMTC OAS processing system."
+kind: "class"
+filename: "skmtc/deno/core/oas/components/Components.ts"
+line: 203
+---
+
+# OasComponents
+
+Represents the OpenAPI Components Object in the SKMTC OAS processing system.
+
+The `OasComponents` class manages the reusable components section of an OpenAPI
+document, providing centralized access to shared schemas, responses, parameters,
+and other reusable elements that can be referenced throughout the API specification.
+
+This class serves as the central registry for all reusable components, enabling
+efficient reference resolution and reducing duplication in OpenAPI documents.
+
+## Key Features
+
+- **Schema Management**: Central repository for reusable data schemas
+- **Response Reuse**: Common response definitions for consistent API responses
+- **Parameter Standardization**: Shared parameter definitions across operations
+- **Reference Resolution**: Support for internal references ($ref) to components
+- **Type Safety**: Strongly typed access to different component categories
+- **Extension Support**: Custom OpenAPI extension field handling
+
+
+## Example
+
+Basic component access
+```typescript
+import { OasComponents } from '@skmtc/core';
+
+// Typically created during document parsing
+const components = new OasComponents({
+  schemas: {
+    User: new OasObject({
+      properties: {
+        id: new OasString(),
+        name: new OasString()
+      }
+    }),
+    Product: new OasObject({
+      properties: {
+        id: new OasString(),
+        price: new OasNumber()
+      }
+    })
+  },
+  responses: {
+    NotFound: new OasResponse({
+      description: '404 - Resource not found'
+    })
+  }
+});
+
+// Access schemas
+const userSchema = components.schemas?.['User'];
+const productSchema = components.schemas?.['Product'];
+
+// Access responses
+const notFoundResponse = components.responses?.['NotFound'];
+```
+
+
+## Example
+
+Schema management
+```typescript
+// Get all schema reference names
+const schemaNames = components.toSchemasRefNames();
+console.log(schemaNames); // ['User', 'Product', 'Order']
+
+// Remove a schema (useful for processing)
+const removedSchema = components.removeSchema('ObsoleteSchema');
+console.log('Removed:', removedSchema);
+
+// Check remaining schemas
+const remainingSchemas = components.toSchemasRefNames();
+console.log('Remaining:', remainingSchemas);
+```
+
+
+## Example
+
+Parameter reuse
+```typescript
+const components = new OasComponents({
+  parameters: {
+    PageSize: new OasParameter({
+      name: 'pageSize',
+      in: 'query',
+      schema: new OasInteger({ minimum: 1, maximum: 100, default: 20 })
+    }),
+    PageNumber: new OasParameter({
+      name: 'page',
+      in: 'query',
+      schema: new OasInteger({ minimum: 1, default: 1 })
+    })
+  }
+});
+
+// These parameters can be referenced in operations:
+// $ref: '#/components/parameters/PageSize'
+// $ref: '#/components/parameters/PageNumber'
+```
+
+
+## Example
+
+Response standardization
+```typescript
+const components = new OasComponents({
+  responses: {
+    Success: new OasResponse({
+      description: 'Successful operation',
+      content: {
+        'application/json': {
+          schema: new OasObject({
+            properties: {
+              success: new OasBoolean({ default: true }),
+              data: new OasObject({ additionalProperties: true })
+            }
+          })
+        }
+      }
+    }),
+    ValidationError: new OasResponse({
+      description: 'Validation failed',
+      content: {
+        'application/json': {
+          schema: new OasObject({
+            properties: {
+              error: new OasString(),
+              details: new OasArray({
+                items: new OasString()
+              })
+            }
+          })
+        }
+      }
+    })
+  }
+});
+
+// Standardized responses across all operations
+```
+
+
+## Example
+
+Processing components in generators
+```typescript
+class ComponentProcessor {
+  processDocument(document: OasDocument) {
+    const components = document.components;
+    if (!components) return;
+
+    // Process all schemas
+    if (components.schemas) {
+      Object.entries(components.schemas).forEach(([name, schema]) => {
+        if (schema.isRef()) {
+          console.log(`Schema ${name} is a reference to ${schema.$ref}`);
+        } else {
+          console.log(`Schema ${name} is a direct definition`);
+        }
+      });
+    }
+
+    // Process parameters
+    if (components.parameters) {
+      Object.keys(components.parameters).forEach(paramName => {
+        console.log(`Reusable parameter: ${paramName}`);
+      });
+    }
+  }
+}
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `oasType: components`
+
+### Methods
+
+- `toSchemasRefNames(): unknown`
+- `schemas(): unknown`
+- `removeSchema(refName: RefName): unknown`
+- `responses(): unknown`
+- `parameters(): unknown`
+- `examples(): unknown`
+- `requestBodies(): unknown`
+- `headers(): unknown`
+- `securitySchemes(): unknown`
+- `extensionFields(): unknown`
+
+## Source
+
+Located at `skmtc/deno/core/oas/components/Components.ts:203:0`

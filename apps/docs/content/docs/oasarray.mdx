@@ -1,0 +1,152 @@
+---
+title: "OasArray"
+description: "Represents an array schema in the OpenAPI Specification."
+kind: "class"
+filename: "skmtc/deno/core/oas/array/Array.ts"
+line: 130
+---
+
+# OasArray
+
+Represents an array schema in the OpenAPI Specification.
+
+`OasArray` handles array type definitions with comprehensive validation
+constraints including item count limits, uniqueness requirements, and
+item type specifications. It supports nested schemas and references
+for complex array structures.
+
+This class is used throughout the OAS processing pipeline to represent
+array fields in API schemas, including lists of objects, primitive arrays,
+and complex nested array structures.
+
+## Key Features
+
+- **Item Type Definition**: Support for any schema type as array items
+- **Size Constraints**: Minimum and maximum item count validation
+- **Uniqueness Validation**: Ensure array items are unique (like Set behavior)
+- **Nested Schemas**: Support for complex nested array structures
+- **Reference Handling**: Seamless integration with schema references
+- **Nullable Support**: Type-safe nullable array handling
+- **JSON Schema**: Conversion to standard JSON Schema format
+
+
+**@template** - Whether the array value can be null
+
+
+## Example
+
+String array
+```typescript
+import { OasArray, OasString } from '@skmtc/core';
+
+const tagsArray = new OasArray({
+  title: 'Tags',
+  description: 'List of tags associated with the item',
+  items: new OasString({ minLength: 1 }),
+  minItems: 1,
+  uniqueItems: true,
+  example: ['javascript', 'typescript', 'react']
+});
+```
+
+
+## Example
+
+Object array with references
+```typescript
+import { OasArray, OasRef } from '@skmtc/core';
+
+const usersArray = new OasArray({
+  title: 'Users',
+  description: 'List of user objects',
+  items: new OasRef({ refName: 'User' }),
+  maxItems: 100,
+  example: [
+    { id: 1, name: 'John' },
+    { id: 2, name: 'Jane' }
+  ]
+});
+```
+
+
+## Example
+
+Nested array (array of arrays)
+```typescript
+const matrixArray = new OasArray({
+  title: 'Matrix',
+  description: '2D array of numbers',
+  items: new OasArray({
+    items: new OasInteger({ minimum: 0 })
+  }),
+  example: [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+  ]
+});
+```
+
+
+## Example
+
+Nullable array with constraints
+```typescript
+const optionalIdsArray = new OasArray<true>({
+  title: 'Optional IDs',
+  description: 'Optional list of IDs',
+  items: new OasInteger({ format: 'int64', minimum: 1 }),
+  nullable: true,
+  minItems: 0,
+  maxItems: 10,
+  defaultValue: null
+});
+```
+
+
+## Example
+
+Unique items validation
+```typescript
+const uniqueEmailsArray = new OasArray({
+  title: 'Email Recipients',
+  description: 'List of unique email addresses',
+  items: new OasString({ format: 'email' }),
+  uniqueItems: true, // Ensures no duplicate emails
+  minItems: 1,
+  example: ['user1@example.com', 'user2@example.com']
+});
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(fields: ArrayFields)`
+
+### Properties
+
+- `oasType: schema`
+- `type: array`
+- `items: unknown`
+- `title: unknown`
+- `description: unknown`
+- `nullable: unknown`
+- `uniqueItems: unknown`
+- `extensionFields: unknown`
+- `example: unknown`
+- `maxItems: unknown`
+- `minItems: unknown`
+- `enums: unknown`
+- `defaultValue: unknown`
+
+### Methods
+
+- `isRef(): this is [0m[38;5;12mOasRef[0m<[0m[32m"schema"[0m>`
+- `resolve(): OasArray`
+- `resolveOnce(): OasArray`
+- `toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ArraySchemaObject`
+
+## Source
+
+Located at `skmtc/deno/core/oas/array/Array.ts:130:0`

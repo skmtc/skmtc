@@ -1,0 +1,48 @@
+---
+title: "GeneratorKey"
+description: "Union type of all possible generator key types."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/GeneratorKeys.ts"
+line: 144
+---
+
+# GeneratorKey
+
+Union type of all possible generator key types.
+
+Generator keys serve as unique identifiers for different types of
+code generators in the SKMTC system. They enable tracking, caching,
+and dependency management between generated artifacts.
+
+
+## Example
+
+```typescript
+// Operation generator key
+const opKey: GeneratorKey = toOperationGeneratorKey({
+  generatorId: 'api-client',
+  path: '/users/{id}',
+  method: 'get'
+});
+
+// Model generator key
+const modelKey: GeneratorKey = toModelGeneratorKey({
+  generatorId: 'typescript-types',
+  refName: 'User'
+});
+
+// Generator-only key
+const globalKey: GeneratorKey = toGeneratorOnlyKey({
+  generatorId: 'api-config'
+});
+```
+
+## Type Definition
+
+```typescript
+type GeneratorKey = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/GeneratorKeys.ts:144:0`

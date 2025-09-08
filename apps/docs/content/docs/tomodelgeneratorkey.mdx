@@ -1,0 +1,46 @@
+---
+title: "toModelGeneratorKey"
+description: "Creates a model generator key from generator ID and schema reference name."
+kind: "variable"
+filename: "skmtc/deno/core/types/GeneratorKeys.ts"
+line: 250
+---
+
+# toModelGeneratorKey
+
+Creates a model generator key from generator ID and schema reference name.
+
+Model generator keys uniquely identify generators processing specific
+OpenAPI schema models. The key format is: `generatorId|refName`
+
+
+**@param** args - Model generator key arguments
+
+**@returns** A branded ModelGeneratorKey
+
+
+## Example
+
+```typescript
+const key = toModelGeneratorKey({
+  generatorId: 'typescript-interfaces',
+  refName: 'User'
+});
+// Result: 'typescript-interfaces|User' (branded)
+
+const validationKey = toModelGeneratorKey({
+  generatorId: 'zod-schemas',
+  refName: 'CreateUserRequest'
+});
+// Result: 'zod-schemas|CreateUserRequest' (branded)
+```
+
+## Variable Definition
+
+```typescript
+const toModelGeneratorKey: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/GeneratorKeys.ts:250:13`

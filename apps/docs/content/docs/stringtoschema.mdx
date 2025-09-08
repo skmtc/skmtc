@@ -1,0 +1,65 @@
+---
+title: "stringToSchema"
+description: "Parses a string into an OpenAPI document object."
+kind: "variable"
+filename: "skmtc/deno/core/run/toV3JsonDocument.ts"
+line: 111
+---
+
+# stringToSchema
+
+Parses a string into an OpenAPI document object.
+
+Automatically detects whether the input string is JSON or YAML format based on
+the content, then parses it into an OpenAPI document object. Supports all
+OpenAPI versions (2.0, 3.0.x, 3.1.x).
+
+
+**@param** schema - The OpenAPI document as a JSON or YAML string
+
+**@returns** Parsed OpenAPI document object
+
+
+## Example
+
+Parsing JSON OpenAPI document
+```typescript
+const jsonSchema = `{
+  "openapi": "3.0.0",
+  "info": { "title": "My API", "version": "1.0.0" },
+  "paths": {}
+}`;
+const document = stringToSchema(jsonSchema);
+console.log(document.info.title); // "My API"
+```
+
+
+## Example
+
+Parsing YAML OpenAPI document
+```typescript
+const yamlSchema = `
+openapi: 3.0.0
+info:
+  title: My API
+  version: 1.0.0
+paths: {}
+`;
+const document = stringToSchema(yamlSchema);
+console.log(document.info.title); // "My API"
+```
+
+
+**@throws** If the JSON is malformed
+
+**@throws** If the YAML is malformed
+
+## Variable Definition
+
+```typescript
+const stringToSchema: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/run/toV3JsonDocument.ts:111:13`
