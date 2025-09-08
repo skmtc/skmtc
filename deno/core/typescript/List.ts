@@ -18,10 +18,10 @@ export type SkipEmptyOption = { skipEmpty?: boolean }
 
 /**
  * Type alias for creating key-value pair lists.
- * 
+ *
  * Creates a List specialized for key-value pairs with colon separator
  * and no bookends (e.g., "key1: value1, key2: value2").
- * 
+ *
  * @template Key - Type of the keys (must be stringable)
  * @template Value - Type of the values (must be stringable)
  */
@@ -34,7 +34,7 @@ export type ListKeyValue<Key extends Stringable, Value extends Stringable> = Lis
 /**
  * Type representing the different bookend styles for lists.
  */
-export type BookendsType = '[]' | '{}' | '()' | '<>' | 'none'
+export type BookendsType = '[]' | '{}' | '()' | 'none'
 
 type ConstructorOptions<Separator extends string = ', ', Bookends extends BookendsType = 'none'> = {
   separator?: Separator
@@ -59,63 +59,63 @@ type ToConditionalReturn<
 
 /**
  * A powerful utility class for building formatted lists of stringable items.
- * 
+ *
  * The `List` class is a core component of the SKMTC DSL system, providing type-safe
  * construction of formatted lists with customizable separators and bookends. It's
  * extensively used throughout the codebase for generating code constructs like
  * function parameters, object properties, array literals, and more.
- * 
+ *
  * ## Type Safety
- * 
+ *
  * The class uses TypeScript's generic system to provide compile-time guarantees
  * about the list structure, separator, and bookend styles. This enables rich
  * type inference and helps prevent formatting errors.
- * 
+ *
  * ## Common Patterns
- * 
+ *
  * - **Objects**: `List.toObject()` creates `{key: value, ...}` structures
- * - **Arrays**: `List.toArray()` creates `[item, item, ...]` structures  
+ * - **Arrays**: `List.toArray()` creates `[item, item, ...]` structures
  * - **Parameters**: `List.toParams()` creates `(param, param, ...)` structures
  * - **Lines**: `List.toLines()` creates newline-separated content
- * 
+ *
  * @template Values - Array of stringable values
  * @template Separator - String used to separate items
- * @template Bookends - Style of bookends ('[]', '{}', '()', '<>', 'none')
- * 
+ * @template Bookends - Style of bookends ('[]', '{}', '()', 'none')
+ *
  * @example Basic usage
  * ```typescript
  * import { List } from '@skmtc/core';
- * 
+ *
  * // Create a comma-separated list
  * const items = new List(['apple', 'banana', 'cherry']);
  * console.log(items.toString()); // "apple, banana, cherry"
- * 
- * // Create an array-style list  
+ *
+ * // Create an array-style list
  * const array = new List(['a', 'b', 'c'], { bookends: '[]' });
  * console.log(array.toString()); // "[a, b, c]"
- * 
+ *
  * // Create an object-style list
  * const obj = new List(['x: 1', 'y: 2'], { bookends: '{}' });
  * console.log(obj.toString()); // "{x: 1, y: 2}"
  * ```
- * 
+ *
  * @example Using type aliases
  * ```typescript
  * // Type-safe array construction
  * const params: ListParams<string> = List.toParams(['id', 'name', 'email']);
  * console.log(params.toString()); // "(id, name, email)"
- * 
+ *
  * // Object properties with filtering
  * const props = List.toObject(['title', undefined, 'author'], { skipEmpty: true });
  * console.log(props.toString()); // "{title, author}"
- * 
+ *
  * // Line-separated content
  * const lines = List.toLines(['import React from "react"', 'import { useState } from "react"']);
- * console.log(lines.toString()); 
+ * console.log(lines.toString());
  * // import React from "react"
  * // import { useState } from "react"
  * ```
- * 
+ *
  * @example Advanced usage with builders
  * ```typescript
  * // Function signature generation
@@ -124,15 +124,15 @@ type ToConditionalReturn<
  *   'options?: RequestOptions',
  *   'callback?: (result: T) => void'
  * ]);
- * 
+ *
  * // Interface properties
  * const interfaceProps = List.toObject([
  *   'readonly id: string',
- *   'name: string', 
+ *   'name: string',
  *   'createdAt: Date',
  *   'updatedAt?: Date'
  * ]);
- * 
+ *
  * console.log(`interface User ${interfaceProps}`);
  * // interface User {readonly id: string, name: string, createdAt: Date, updatedAt?: Date}
  * ```
@@ -144,30 +144,30 @@ export class List<
 > {
   /** The array of values in this list */
   values: ExtractArrayItem<Values>[]
-  
+
   /** The separator string used between items */
   separator: Separator
-  
+
   /** The bookend style for wrapping the list */
   bookends: Bookends
-  
+
   /** Whether to skip rendering when the list is empty */
   skipEmpty: boolean
-  
+
   /**
    * Creates a new List instance.
-   * 
+   *
    * @param values - Array of values (undefined values are automatically filtered out)
    * @param options - Configuration options
    * @param options.separator - String to use between items (default: ', ')
-   * @param options.bookends - Style of bookends to wrap the list (default: 'none')  
+   * @param options.bookends - Style of bookends to wrap the list (default: 'none')
    * @param options.skipEmpty - Whether to return empty string for empty lists (default: false)
-   * 
+   *
    * @example
    * ```typescript
    * // Basic list with default comma separator
    * const basic = new List(['a', 'b', 'c']);
-   * 
+   *
    * // Custom separator and bookends
    * const custom = new List(['x', 'y', 'z'], {
    *   separator: ' | ',
@@ -189,10 +189,10 @@ export class List<
 
   /**
    * Converts the list to its string representation.
-   * 
+   *
    * Joins all values with the configured separator and wraps with bookends.
    * Returns empty string if skipEmpty is enabled and list is empty.
-   * 
+   *
    * @returns Formatted string representation of the list
    */
   toString(): string {
@@ -202,13 +202,15 @@ export class List<
 
     const joined = this.values.map(value => value.toString()).join(this.separator)
 
-    return match(this.bookends satisfies BookendsType)
-      .with('[]', () => `[${joined}]`)
-      .with('{}', () => `{${joined}}`)
-      .with('()', () => `(${joined})`)
-      .with('<>', () => `<${joined}>`)
-      .with('none', () => joined)
-      .exhaustive()
+    return (
+      match(this.bookends satisfies BookendsType)
+        .with('[]', () => `[${joined}]`)
+        .with('{}', () => `{${joined}}`)
+        .with('()', () => `(${joined})`)
+        // .with('<>', () => `<${joined}>`)
+        .with('none', () => joined)
+        .exhaustive()
+    )
   }
 
   /**
@@ -416,7 +418,7 @@ export type KeyMapFn<V extends Stringable> = (key: string, index: number) => V
 
 /**
  * Utility class for working with arrays of string keys.
- * 
+ *
  * Provides methods for transforming key arrays into objects and lists
  * with custom mapping functions.
  */
@@ -426,7 +428,7 @@ export class KeyList {
 
   /**
    * Creates a new KeyList instance.
-   * 
+   *
    * @param keys - Array of string keys to work with
    */
   constructor(keys: string[]) {
@@ -435,7 +437,7 @@ export class KeyList {
 
   /**
    * Transforms keys into an object using a mapping function.
-   * 
+   *
    * @param mapFn - Function to transform each key into a value
    * @param options - Options for handling empty values
    * @returns Object with keys mapped to transformed values
@@ -452,7 +454,7 @@ export class KeyList {
 
   /**
    * Creates a plain object with keys as both keys and values.
-   * 
+   *
    * @returns Object where each key maps to itself
    */
   toObjectPlain(): ListObject<string> {
@@ -461,7 +463,7 @@ export class KeyList {
 
   /**
    * Transforms keys into a List using a mapping function.
-   * 
+   *
    * @param mapFn - Function to transform each key into a value
    * @returns List containing the transformed values
    */
@@ -471,7 +473,7 @@ export class KeyList {
 
   /**
    * Creates a List with keys as the values.
-   * 
+   *
    * @returns List containing the original keys
    */
   toLinesPlain(): ListLines<string> {
@@ -494,10 +496,10 @@ export type EntryMapFn<T extends Stringable, V extends Stringable> = (
 
 /**
  * Utility class for working with arrays of key-value pair entries.
- * 
+ *
  * Provides methods for transforming entry arrays into objects and lists
  * with custom mapping functions.
- * 
+ *
  * @template T - Type of the entry values
  */
 export class EntryList<T extends Stringable> {
@@ -506,7 +508,7 @@ export class EntryList<T extends Stringable> {
 
   /**
    * Creates a new EntryList instance.
-   * 
+   *
    * @param entries - Array of key-value pair entries to work with
    */
   constructor(entries: Entry<T>[]) {
@@ -515,7 +517,7 @@ export class EntryList<T extends Stringable> {
 
   /**
    * Transforms entries into an object using a mapping function.
-   * 
+   *
    * @param mapFn - Function to transform each entry into a value
    * @returns Object with transformed values
    */
@@ -525,7 +527,7 @@ export class EntryList<T extends Stringable> {
 
   /**
    * Transforms entries into a List using a mapping function.
-   * 
+   *
    * @param mapFn - Function to transform each entry into a value
    * @returns List containing the transformed values
    */
@@ -535,7 +537,7 @@ export class EntryList<T extends Stringable> {
 
   /**
    * Transforms entries into an array using a mapping function.
-   * 
+   *
    * @param mapFn - Function to transform each entry into a value
    * @returns Array containing the transformed values
    */

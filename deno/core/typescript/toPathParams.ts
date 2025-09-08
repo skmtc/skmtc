@@ -1,43 +1,43 @@
 /**
  * Converts OpenAPI path parameters to React Router path parameter syntax.
- * 
+ *
  * This utility function transforms OpenAPI path syntax (using curly braces) into
  * React Router path parameter syntax (using colon prefix). It's essential for
  * generating React Router route definitions and other routing configurations
  * that need to match URL parameters.
- * 
+ *
  * The function performs a simple but crucial transformation that enables
  * OpenAPI-defined paths to be used directly in React Router route definitions,
  * maintaining the same parameter names while adapting the syntax.
- * 
+ *
  * @param path - OpenAPI path string with {parameter} syntax
  * @returns React Router path string with :parameter syntax
- * 
+ *
  * @example Basic path parameter conversion
  * ```typescript
  * import { toPathParams } from '@skmtc/core';
- * 
+ *
  * const routePath = toPathParams('/users/{id}/posts/{postId}');
  * console.log(routePath); // '/users/:id/posts/:postId'
  * ```
- * 
+ *
  * @example React Router route generation
  * ```typescript
  * import { Routes, Route } from 'react-router-dom';
- * 
+ *
  * const apiPaths = [
  *   '/users/{id}',
  *   '/users/{id}/posts/{postId}',
  *   '/organizations/{orgId}/members/{userId}'
  * ];
- * 
+ *
  * const routePaths = apiPaths.map(toPathParams);
  * // [
  * //   '/users/:id',
- * //   '/users/:id/posts/:postId', 
+ * //   '/users/:id/posts/:postId',
  * //   '/organizations/:orgId/members/:userId'
  * // ]
- * 
+ *
  * function App() {
  *   return (
  *     <Routes>
@@ -48,28 +48,28 @@
  *   );
  * }
  * ```
- * 
+ *
  * @example Express.js route generation
  * ```typescript
  * import express from 'express';
- * 
+ *
  * class RouteGenerator {
  *   generateExpressRoutes(openApiPaths: string[]) {
  *     const router = express.Router();
- *     
+ *
  *     openApiPaths.forEach(path => {
  *       const expressPath = toPathParams(path);
- *       
+ *
  *       router.get(expressPath, (req, res) => {
  *         // Handler logic using req.params
  *         res.json({ path: expressPath, params: req.params });
  *       });
  *     });
- *     
+ *
  *     return router;
  *   }
  * }
- * 
+ *
  * const generator = new RouteGenerator();
  * const router = generator.generateExpressRoutes([
  *   '/api/users/{userId}',
@@ -79,7 +79,7 @@
  * // '/api/users/:userId'
  * // '/api/users/:userId/orders/:orderId'
  * ```
- * 
+ *
  * @example Route configuration generation
  * ```typescript
  * interface RouteConfig {
@@ -87,7 +87,7 @@
  *   component: string;
  *   exact?: boolean;
  * }
- * 
+ *
  * function generateRouteConfigs(apiEndpoints: Array<{path: string, component: string}>): RouteConfig[] {
  *   return apiEndpoints.map(endpoint => ({
  *     path: toPathParams(endpoint.path),
@@ -95,13 +95,13 @@
  *     exact: true
  *   }));
  * }
- * 
+ *
  * const routeConfigs = generateRouteConfigs([
  *   { path: '/users/{id}', component: 'UserDetail' },
  *   { path: '/users/{id}/settings', component: 'UserSettings' },
  *   { path: '/projects/{projectId}/tasks/{taskId}', component: 'TaskDetail' }
  * ]);
- * 
+ *
  * console.log(routeConfigs);
  * // [
  * //   { path: '/users/:id', component: 'UserDetail', exact: true },
@@ -109,7 +109,7 @@
  * //   { path: '/projects/:projectId/tasks/:taskId', component: 'TaskDetail', exact: true }
  * // ]
  * ```
- * 
+ *
  * @example Next.js dynamic route generation
  * ```typescript
  * class NextJsRouteGenerator {
@@ -122,7 +122,7 @@
  *         .replace(/\/\[([^\]]+)/g, '/[$1]') // [id becomes [id]
  *         .replace(/^\//,'') // Remove leading slash
  *         + '.tsx';
- *       
+ *
  *       return {
  *         originalPath: path,
  *         routerPath,
@@ -131,13 +131,13 @@
  *     });
  *   }
  * }
- * 
+ *
  * const generator = new NextJsRouteGenerator();
  * const structure = generator.generateFileStructure([
  *   '/users/{id}',
  *   '/posts/{slug}/comments/{commentId}'
  * ]);
- * 
+ *
  * console.log(structure);
  * // [
  * //   {
@@ -152,15 +152,15 @@
  * //   }
  * // ]
  * ```
- * 
+ *
  * @example Integration with path matching
  * ```typescript
  * import { matchPath } from 'react-router-dom';
- * 
+ *
  * class PathMatcher {
  *   createMatcher(openApiPath: string) {
  *     const routerPath = toPathParams(openApiPath);
- *     
+ *
  *     return (pathname: string) => {
  *       return matchPath(
  *         { path: routerPath, exact: true },
@@ -169,10 +169,10 @@
  *     };
  *   }
  * }
- * 
+ *
  * const matcher = new PathMatcher();
  * const userMatcher = matcher.createMatcher('/users/{id}');
- * 
+ *
  * const match = userMatcher('/users/123');
  * console.log(match?.params); // { id: '123' }
  * ```

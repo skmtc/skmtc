@@ -6,5 +6,5 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
     ...components,
-  };
+  } as MDXComponents;
 }

@@ -1,0 +1,205 @@
+---
+title: "OasParameter"
+description: "Represents a Parameter Object in the OpenAPI Specification."
+kind: "class"
+filename: "skmtc/deno/core/oas/parameter/Parameter.ts"
+line: 188
+---
+
+# OasParameter
+
+Represents a Parameter Object in the OpenAPI Specification.
+
+The `OasParameter` class encapsulates the definition of a single operation parameter,
+including its location, data type, validation rules, and serialization behavior.
+Parameters can be located in the path, query string, headers, or cookies.
+
+This class provides comprehensive support for parameter validation, serialization
+styles, and complex data types through schema definitions or content specifications.
+
+## Key Features
+
+- **Location Support**: Path, query, header, and cookie parameters
+- **Schema Validation**: Comprehensive data type validation through schemas
+- **Serialization Styles**: Various parameter serialization formats
+- **Content Types**: Support for complex parameter content with media types
+- **Examples & Documentation**: Parameter examples and descriptive documentation
+- **Advanced Options**: Empty values, reserved characters, and explode behavior
+
+
+## Example
+
+Basic path parameter
+```typescript
+import { OasParameter, OasString } from '@skmtc/core';
+
+const userIdParam = new OasParameter({
+  name: 'userId',
+  location: 'path',
+  description: 'Unique identifier for the user',
+  required: true,
+  schema: new OasString({
+    pattern: '^[0-9a-f]{24}$',
+    example: '507f1f77bcf86cd799439011'
+  }),
+  style: 'simple',
+  explode: false
+});
+
+// Used in path: /users/{userId}
+```
+
+
+## Example
+
+Query parameter with validation
+```typescript
+const pageSizeParam = new OasParameter({
+  name: 'pageSize',
+  location: 'query',
+  description: 'Number of items to return per page',
+  required: false,
+  schema: new OasInteger({
+    minimum: 1,
+    maximum: 100,
+    default: 20
+  }),
+  style: 'form',
+  explode: true,
+  examples: {
+    small: new OasExample({ value: 10 }),
+    medium: new OasExample({ value: 25 }),
+    large: new OasExample({ value: 50 })
+  }
+});
+
+// Used in query: ?pageSize=20
+```
+
+
+## Example
+
+Header parameter
+```typescript
+const authHeaderParam = new OasParameter({
+  name: 'Authorization',
+  location: 'header',
+  description: 'Bearer token for authentication',
+  required: true,
+  schema: new OasString({
+    pattern: '^Bearer [A-Za-z0-9+/=]+$',
+    example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+  }),
+  style: 'simple',
+  explode: false
+});
+```
+
+
+## Example
+
+Complex parameter with content
+```typescript
+const filterParam = new OasParameter({
+  name: 'filter',
+  location: 'query',
+  description: 'Complex filter object',
+  required: false,
+  content: {
+    'application/json': new OasMediaType({
+      schema: new OasObject({
+        properties: {
+          category: new OasString(),
+          priceRange: new OasObject({
+            properties: {
+              min: new OasNumber(),
+              max: new OasNumber()
+            }
+          })
+        }
+      })
+    })
+  },
+  style: 'deepObject',
+  explode: true
+});
+
+// Used as: ?filter[category]=electronics&filter[priceRange][min]=100
+```
+
+
+## Example
+
+Array parameter with explode
+```typescript
+const tagsParam = new OasParameter({
+  name: 'tags',
+  location: 'query',
+  description: 'Filter by multiple tags',
+  required: false,
+  schema: new OasArray({
+    items: new OasString(),
+    minItems: 1,
+    maxItems: 10
+  }),
+  style: 'form',
+  explode: true // Results in: ?tags=tech&tags=api&tags=rest
+});
+
+// Without explode: ?tags=tech,api,rest
+// With explode: ?tags=tech&tags=api&tags=rest
+```
+
+
+## Example
+
+Cookie parameter
+```typescript
+const sessionParam = new OasParameter({
+  name: 'sessionId',
+  location: 'cookie',
+  description: 'Session identifier cookie',
+  required: false,
+  schema: new OasString({
+    minLength: 32,
+    maxLength: 128
+  }),
+  style: 'form',
+  explode: false
+});
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(fields: ParameterFields)`
+
+### Properties
+
+- `oasType: parameter`
+- `name: string`
+- `location: OasParameterLocation`
+- `description?: unknown`
+- `required?: unknown`
+- `deprecated?: unknown`
+- `allowEmptyValue?: unknown`
+- `allowReserved?: unknown`
+- `schema?: unknown`
+- `examples?: unknown`
+- `content?: unknown`
+- `style: OasParameterStyle`
+- `explode: boolean`
+- `extensionFields: unknown`
+
+### Methods
+
+- `isRef(): this is OasRef\<"parameter"\>`
+- `resolve(): OasParameter`
+- `resolveOnce(): OasParameter`
+- `toSchema(...): unknown`
+- `toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ParameterObject`
+
+## Source
+
+Located at `skmtc/deno/core/oas/parameter/Parameter.ts:188:0`
