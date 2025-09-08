@@ -6,7 +6,8 @@
     "build": "next build",
     "dev": "next dev --turbo",
     "start": "next start",
-    "postinstall": "fumadocs-mdx"
+    "postinstall": "fumadocs-mdx",
+    "clean": "rm -rf .next && rm -rf content/docs"
   },
   "dependencies": {
     "next": "15.5.2",

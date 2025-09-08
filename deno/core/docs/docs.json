@@ -8184,67 +8184,13 @@
       }
     },
     {
-      "name": "AddGeneratorKeyArgs",
+      "name": "FilesRenderResult",
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
         "line": 23,
         "col": 0,
-        "byteIndex": 677
-      },
-      "declarationKind": "export",
-      "jsDoc": {
-        "doc": "Arguments for adding a generator key to the context."
-      },
-      "kind": "typeAlias",
-      "typeAliasDef": {
-        "tsType": {
-          "repr": "",
-          "kind": "typeLiteral",
-          "typeLiteral": {
-            "constructors": [],
-            "methods": [],
-            "properties": [
-              {
-                "name": "generatorKey",
-                "jsDoc": {
-                  "doc": "The generator key to add"
-                },
-                "location": {
-                  "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 25,
-                  "col": 2,
-                  "byteIndex": 749
-                },
-                "params": [],
-                "computed": false,
-                "optional": false,
-                "tsType": {
-                  "repr": "GeneratorKey",
-                  "kind": "typeRef",
-                  "typeRef": {
-                    "typeParams": null,
-                    "typeName": "GeneratorKey"
-                  }
-                },
-                "typeParams": []
-              }
-            ],
-            "callSignatures": [],
-            "indexSignatures": []
-          }
-        },
-        "typeParams": []
-      }
-    },
-    {
-      "name": "FilesRenderResult",
-      "isDefault": false,
-      "location": {
-        "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-        "line": 31,
-        "col": 0,
-        "byteIndex": 832
+        "byteIndex": 666
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -8266,9 +8212,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 33,
+                  "line": 25,
                   "col": 2,
-                  "byteIndex": 915
+                  "byteIndex": 749
                 },
                 "params": [],
                 "computed": false,
@@ -8301,9 +8247,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 35,
+                  "line": 27,
                   "col": 2,
-                  "byteIndex": 990
+                  "byteIndex": 824
                 },
                 "params": [],
                 "computed": false,
@@ -8345,9 +8291,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-        "line": 41,
+        "line": 33,
         "col": 0,
-        "byteIndex": 1126
+        "byteIndex": 960
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -8369,9 +8315,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 43,
+                  "line": 35,
                   "col": 2,
-                  "byteIndex": 1204
+                  "byteIndex": 1038
                 },
                 "params": [],
                 "computed": false,
@@ -8404,9 +8350,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 45,
+                  "line": 37,
                   "col": 2,
-                  "byteIndex": 1279
+                  "byteIndex": 1113
                 },
                 "params": [],
                 "computed": false,
@@ -8442,9 +8388,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 47,
+                  "line": 39,
                   "col": 2,
-                  "byteIndex": 1362
+                  "byteIndex": 1196
                 },
                 "params": [],
                 "computed": false,
@@ -8494,9 +8440,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 49,
+                  "line": 41,
                   "col": 2,
-                  "byteIndex": 1459
+                  "byteIndex": 1293
                 },
                 "params": [],
                 "computed": false,
@@ -8546,9 +8492,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 51,
+                  "line": 43,
                   "col": 2,
-                  "byteIndex": 1550
+                  "byteIndex": 1384
                 },
                 "params": [],
                 "computed": false,
@@ -8576,9 +8522,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-        "line": 57,
+        "line": 49,
         "col": 0,
-        "byteIndex": 1649
+        "byteIndex": 1483
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -8624,9 +8570,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-        "line": 62,
+        "line": 54,
         "col": 0,
-        "byteIndex": 1824
+        "byteIndex": 1658
       },
       "declarationKind": "export",
       "jsDoc": {

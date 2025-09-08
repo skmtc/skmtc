@@ -18,14 +18,6 @@ export type GetFileOptions = {
 }
 
 /**
- * Arguments for adding a generator key to the context.
- */
-export type AddGeneratorKeyArgs = {
-  /** The generator key to add */
-  generatorKey: GeneratorKey
-}
-
-/**
  * Result of rendering files in the context.
  */
 export type FilesRenderResult = {
