@@ -16,7 +16,11 @@ multiple packages within a Deno workspace.
 ## Type Definition
 
 ```typescript
-type RootDenoJson = unknown
+type RootDenoJson = {
+  imports?: Record
+  exports?: Record
+  workspace?: string[]
+}
 ```
 
 ## Source

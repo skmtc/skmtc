@@ -50,7 +50,13 @@ const configObject: TypeSystemObject = {
 ## Type Definition
 
 ```typescript
-type TypeSystemObject = unknown
+type TypeSystemObject = {
+  type: object
+  recordProperties: TypeSystemRecord | null
+  objectProperties: TypeSystemObjectProperties | null
+  modifiers: Modifiers
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

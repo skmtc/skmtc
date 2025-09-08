@@ -117,7 +117,10 @@ registry.addExport({
 ## Type Definition
 
 ```typescript
-type ModuleExport = unknown
+type ModuleExport = {
+  exportName: string
+  exportPath: string
+}
 ```
 
 ## Source

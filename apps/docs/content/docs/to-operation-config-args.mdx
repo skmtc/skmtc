@@ -21,7 +21,15 @@ enrichment schemas, preview/mapping modules, and support validation.
 ## Type Definition
 
 ```typescript
-type ToOperationConfigArgs = unknown
+type ToOperationConfigArgs = {
+  id: string
+  transform: (...) =\\> Acc
+  toEnrichmentSchema?: () =\\> v.GenericSchema
+  isSupported?: (...) =\\> boolean
+  toPreviewModule?: (...) =\\> PreviewModule
+  toMappingModule?: (...) =\\> MappingModule
+  toEnrichmentRequest?: (operation: OasOperation) =\\> EnrichmentRequest | undefined
+}
 ```
 
 ## Source

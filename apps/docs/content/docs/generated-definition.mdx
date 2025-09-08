@@ -22,7 +22,7 @@ based on whether the content is selected for generation.
 ## Type Definition
 
 ```typescript
-type GeneratedDefinition = unknown
+type GeneratedDefinition = T extends force ? Definition : Definition | undefined
 ```
 
 ## Source

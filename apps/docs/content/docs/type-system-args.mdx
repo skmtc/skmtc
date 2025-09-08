@@ -31,7 +31,13 @@ function transformStringSchema(args: TypeSystemArgs<OasSchema>): TypeSystemStrin
 ## Type Definition
 
 ```typescript
-type TypeSystemArgs = unknown
+type TypeSystemArgs = {
+  context: GenerateContext
+  destinationPath: string
+  schema: Schema
+  rootRef?: RefName
+  required: boolean | undefined
+}
 ```
 
 ## Source

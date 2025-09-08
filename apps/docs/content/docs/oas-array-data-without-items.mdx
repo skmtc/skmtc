@@ -61,7 +61,16 @@ const enumArrayConstraints: OasArrayDataWithoutItems = {
 ## Type Definition
 
 ```typescript
-type OasArrayDataWithoutItems = unknown
+type OasArrayDataWithoutItems = {
+  type: array
+  title?: string
+  description?: string
+  default?: unknown[]
+  maxItems?: number
+  minItems?: number
+  uniqueItems?: boolean
+  enums?: unknown[]
+}
 ```
 
 ## Source

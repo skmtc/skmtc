@@ -13,7 +13,10 @@ Base type for parse warning messages.
 ## Type Definition
 
 ```typescript
-type ParseWarningBase = unknown
+type ParseWarningBase = {
+  level: warning
+  message: string
+}
 ```
 
 ## Source

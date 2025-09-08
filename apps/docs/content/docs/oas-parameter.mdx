@@ -180,24 +180,24 @@ const sessionParam = new OasParameter({
 - `oasType: parameter`
 - `name: string`
 - `location: OasParameterLocation`
-- `description?: unknown`
-- `required?: unknown`
-- `deprecated?: unknown`
-- `allowEmptyValue?: unknown`
-- `allowReserved?: unknown`
-- `schema?: unknown`
-- `examples?: unknown`
-- `content?: unknown`
+- `description?: string | undefined`
+- `required?: boolean | undefined`
+- `deprecated?: boolean | undefined`
+- `allowEmptyValue?: boolean | undefined`
+- `allowReserved?: boolean | undefined`
+- `schema?: OasSchema | OasRef | undefined`
+- `examples?: Record | undefined`
+- `content?: Record | undefined`
 - `style: OasParameterStyle`
 - `explode: boolean`
-- `extensionFields: unknown`
+- `extensionFields: Record | undefined`
 
 ### Methods
 
 - `isRef(): this is OasRef\<"parameter"\>`
 - `resolve(): OasParameter`
 - `resolveOnce(): OasParameter`
-- `toSchema(...): unknown`
+- `toSchema(...): OasSchema | OasRef`
 - `toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ParameterObject`
 
 ## Source

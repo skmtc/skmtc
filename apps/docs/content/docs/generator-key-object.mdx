@@ -17,7 +17,19 @@ The `type` field discriminates between the three key types.
 ## Type Definition
 
 ```typescript
-type GeneratorKeyObject = unknown
+type GeneratorKeyObject = {
+  type: operation
+  generatorId: string
+  path: string
+  method: Method
+} | {
+  type: model
+  generatorId: string
+  refName: string
+} | {
+  type: generator-only
+  generatorId: string
+}
 ```
 
 ## Source

@@ -67,7 +67,12 @@ const settings: ClientSettings = {
 ## Type Definition
 
 ```typescript
-type ClientSettings = unknown
+type ClientSettings = {
+  basePath?: string
+  packages?: ModulePackage[]
+  enrichments?: GeneratorEnrichments
+  skip?: Skip[]
+}
 ```
 
 ## Source

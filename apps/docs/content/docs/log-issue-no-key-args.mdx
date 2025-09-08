@@ -13,7 +13,10 @@ Arguments for logging issues without a specific key.
 ## Type Definition
 
 ```typescript
-type LogIssueNoKeyArgs = unknown
+type LogIssueNoKeyArgs = ParseIssueBase & {
+  parent: unknown
+  type: IssueType
+}
 ```
 
 ## Source

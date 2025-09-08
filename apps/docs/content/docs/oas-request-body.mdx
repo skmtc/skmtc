@@ -294,17 +294,17 @@ const createProductOperation = new OasOperation({
 ### Properties
 
 - `oasType: requestBody`
-- `description: unknown`
+- `description: string | undefined`
 - `content: Record`
-- `required: unknown`
-- `extensionFields: unknown`
+- `required: boolean | undefined`
+- `extensionFields: Record | undefined`
 
 ### Methods
 
 - `isRef(): this is OasRef\<"requestBody"\>`
 - `resolve(): OasRequestBody`
 - `resolveOnce(): OasRequestBody`
-- `toSchema(...): unknown`
+- `toSchema(...): OasSchema | OasRef | undefined`
 - `toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.RequestBodyObject`
 
 ## Source

@@ -13,7 +13,12 @@ Constructor fields for [OasExample](./oas-example.mdx).
 ## Type Definition
 
 ```typescript
-type ExampleFields = unknown
+type ExampleFields = {
+  summary: string | undefined
+  description: string | undefined
+  value: unknown
+  extensionFields?: Record
+}
 ```
 
 ## Source

@@ -16,7 +16,10 @@ Field data for creating OAS reference objects.
 ## Type Definition
 
 ```typescript
-type RefFields = unknown
+type RefFields = {
+  refType: T
+  $ref: string
+}
 ```
 
 ## Source

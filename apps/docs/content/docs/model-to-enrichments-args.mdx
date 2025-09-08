@@ -13,7 +13,10 @@ Arguments for generating enrichment data for models.
 ## Type Definition
 
 ```typescript
-type ModelToEnrichmentsArgs = unknown
+type ModelToEnrichmentsArgs = {
+  refName: RefName
+  context: GenerateContext
+}
 ```
 
 ## Source

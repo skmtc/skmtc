@@ -16,7 +16,11 @@ Arguments passed to operation insertable constructors.
 ## Type Definition
 
 ```typescript
-type OperationInsertableArgs = unknown
+type OperationInsertableArgs = {
+  context: GenerateContext
+  settings: ContentSettings
+  operation: OasOperation
+}
 ```
 
 ## Source

@@ -13,7 +13,13 @@ Represents a parsing warning with location context.
 ## Type Definition
 
 ```typescript
-type ParseWarning = unknown
+type ParseWarning = {
+  level: warning
+  message: string
+  location: string
+  parent: unknown
+  type: IssueType
+}
 ```
 
 ## Source

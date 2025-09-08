@@ -1,0 +1,98 @@
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-white dark:bg-backgroundDark text-black dark:text-white;
+}
+
+.ddoc {
+  /*
+    keep spacing in sync with #topnav in various places further down
+    de-dup body styles to unsure compatibility `@deno/doc`
+  */
+  @apply flex bg-white items-start gap-6 p-4 dark:bg-backgroundDark
+    dark:text-white;
+
+  &:has(#categoryPanel) {
+    @apply lg:p-2;
+
+    & > div:not(#categoryPanel) {
+      @apply lg:pt-4;
+    }
+
+    #topnav {
+      @apply lg:-ml-6 lg:pl-6 !important;
+    }
+  }
+
+  &:not(:has(#categoryPanel)),
+  &:has(#categoryPanel) > div:not(#categoryPanel) {
+    @apply pt-1 px-6;
+  }
+
+  & > div:not(#categoryPanel) {
+    @apply flex flex-col flex-grow;
+  }
+}
+
+#categoryPanel {
+  @apply max-lg:hidden -mt-0 pt-0 w-[250px] flex-shrink-0 top-0 sticky h-screen
+    box-border;
+
+  > ul {
+    @apply max-h-full overflow-y-auto;
+  }
+}
+
+#content {
+  @apply mt-4;
+
+  > main {
+    @apply min-w-0 col-span-full pb-0 md:pb-8 lg:pb-12 flex flex-col gap-3
+      flex-grow;
+  }
+
+  &:has(.toc) > main {
+    @apply lg:col-span-3 lg:row-start-1;
+  }
+}
+
+#topnav {
+  @apply -ml-4 pl-4;
+}
+
+#content, #topnav > div {
+  @apply flex flex-row justify-between gap-6 gap-8 lg:gap-12;
+}
+
+.toc, #searchbar {
+  @apply flex-shrink-0 min-w-[250px] max-w-[300px];
+}
+
+.toc {
+  @apply max-sm:hidden sm:flex sm:flex-col max-lg:row-start-1
+    lg:col-[span_1_/_-1] top-0 sticky max-h-screen h-fit box-border gap-y-4
+    -mt-14 pt-14;
+
+  > div {
+    @apply max-h-full lg:overflow-y-auto;
+
+    > *:last-child {
+      @apply pb-4;
+    }
+  }
+}
+
+#topnav {
+  @apply top-0 sticky z-50 py-3 h-14 bg-white/10 dark:bg-backgroundDark/90
+    dark:text-white/90 border-b border-gray-300 dark:border-gray-700;
+}
+
+#theme-toggle {
+  @apply text-gray-500 dark:text-gray-400 hover:bg-gray-100
+    dark:hover:bg-gray-700 rounded p-1;
+
+  * {
+    @apply size-5;
+  }
+}

@@ -13,7 +13,10 @@ Return type for the parse operation.
 ## Type Definition
 
 ```typescript
-type ParseReturn = unknown
+type ParseReturn = {
+  oasDocument: OasDocument
+  issues: ParseIssue[]
+}
 ```
 
 ## Source

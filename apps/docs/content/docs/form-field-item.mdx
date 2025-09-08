@@ -16,7 +16,13 @@ label text, data binding path, and optional placeholder text.
 ## Type Definition
 
 ```typescript
-type FormFieldItem = unknown
+type FormFieldItem = {
+  id: string
+  accessorPath: string[]
+  input: ModuleExport
+  label: string
+  placeholder?: string
+}
 ```
 
 ## Source

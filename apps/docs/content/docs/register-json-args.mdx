@@ -16,7 +16,10 @@ data that should be included in the generated output artifacts.
 ## Type Definition
 
 ```typescript
-type RegisterJsonArgs = unknown
+type RegisterJsonArgs = {
+  destinationPath: string
+  json: Record
+}
 ```
 
 ## Source

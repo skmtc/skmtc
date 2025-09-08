@@ -16,7 +16,23 @@ Constructor fields for [OasObject](./oas-object.mdx).
 ## Type Definition
 
 ```typescript
-type OasObjectFields = unknown
+type OasObjectFields = {
+  title?: string
+  description?: string
+  properties?: Record | undefined
+  required?: string[] | undefined
+  default?: Nullable extends true ? Record | null | undefined : Record | undefined
+  additionalProperties?: boolean | OasSchema | OasRef | undefined
+  nullable?: Nullable
+  maxProperties?: number
+  minProperties?: number
+  enums?: Nullable extends true ? (Record | null)[] | undefined : Record[] | undefined
+  extensionFields?: Record
+  example?: Nullable extends true ? Record | null | undefined : Record | undefined
+  readOnly?: boolean
+  writeOnly?: boolean
+  deprecated?: boolean
+}
 ```
 
 ## Source

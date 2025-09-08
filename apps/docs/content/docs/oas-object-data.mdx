@@ -11,7 +11,20 @@ line: 31
 ## Type Definition
 
 ```typescript
-type OasObjectData = unknown
+type OasObjectData = {
+  type: object
+  title?: string
+  description?: string
+  default?: Record
+  deprecated?: boolean
+  maxProperties?: number
+  minProperties?: number
+  properties?: Record
+  required?: string[]
+  additionalProperties?: boolean | OasSchemaData | OasSchemaRefData
+  readOnly?: boolean
+  writeOnly?: boolean
+}
 ```
 
 ## Source

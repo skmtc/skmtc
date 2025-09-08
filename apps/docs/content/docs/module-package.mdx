@@ -32,7 +32,10 @@ const packages: ModulePackage[] = [
 ## Type Definition
 
 ```typescript
-type ModulePackage = unknown
+type ModulePackage = {
+  rootPath: string
+  moduleName?: string
+}
 ```
 
 ## Source

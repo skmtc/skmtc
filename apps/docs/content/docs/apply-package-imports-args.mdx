@@ -16,7 +16,10 @@ code files that need to reference external packages or modules.
 ## Type Definition
 
 ```typescript
-type ApplyPackageImportsArgs = unknown
+type ApplyPackageImportsArgs = {
+  destinationPath: string
+  exportPath: string
+}
 ```
 
 ## Source

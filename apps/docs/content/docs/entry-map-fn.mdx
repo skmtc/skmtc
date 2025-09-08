@@ -13,7 +13,7 @@ Mapping function type for transforming entries.
 ## Type Definition
 
 ```typescript
-type EntryMapFn = unknown
+type EntryMapFn = (entry: Entry, index: number) =\> V | undefined
 ```
 
 ## Source

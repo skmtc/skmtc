@@ -13,7 +13,11 @@ Arguments for the [OasObject.addProperty](./oas-object-add-property.mdx) method.
 ## Type Definition
 
 ```typescript
-type AddPropertyArgs = unknown
+type AddPropertyArgs = {
+  name: string
+  schema: OasSchema | OasRef | CustomValue | undefined
+  required?: boolean
+}
 ```
 
 ## Source

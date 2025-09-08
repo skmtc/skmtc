@@ -11,7 +11,11 @@ line: 16
 ## Type Definition
 
 ```typescript
-type ApiKeySecuritySchemeFields = unknown
+type ApiKeySecuritySchemeFields = {
+  description?: string
+  name: string
+  in: header | query | cookie
+}
 ```
 
 ## Source

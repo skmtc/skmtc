@@ -1,0 +1,9 @@
+<div class="space-y-7" id="{{id}}">
+  {{~#if docs~}}
+    {{{~docs~}}} {{! markdown rendering }}
+  {{~/if~}}
+
+  {{~#each sections~}}
+    {{~> section this ~}}
+  {{~/each~}}
+</div>

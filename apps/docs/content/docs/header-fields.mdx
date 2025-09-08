@@ -13,7 +13,15 @@ Constructor fields for [OasHeader](./oas-header.mdx).
 ## Type Definition
 
 ```typescript
-type HeaderFields = unknown
+type HeaderFields = {
+  description: string | undefined
+  required: boolean | undefined
+  deprecated: boolean | undefined
+  schema: OasSchema | OasRef | undefined
+  examples: Record | undefined
+  content: Record | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

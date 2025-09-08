@@ -25,7 +25,56 @@ type RefSource = SchemaToTypeSystemMap['ref']['source']; // OasRef<'schema'>
 ## Type Definition
 
 ```typescript
-type SchemaToTypeSystemMap = unknown
+type SchemaToTypeSystemMap = {
+  ref: {
+  source: OasRef
+  output: TypeSystemRef
+}
+  array: {
+  source: OasSchema
+  output: TypeSystemArray
+}
+  number: {
+  source: OasSchema
+  output: TypeSystemNumber
+}
+  void: {
+  source: OasVoid
+  output: TypeSystemVoid
+}
+  integer: {
+  source: OasSchema
+  output: TypeSystemInteger
+}
+  boolean: {
+  source: OasSchema
+  output: TypeSystemBoolean
+}
+  unknown: {
+  source: OasSchema
+  output: TypeSystemUnknown
+}
+  null: {
+  source: OasSchema
+  output: TypeSystemNull
+}
+  object: {
+  source: OasSchema
+  output: TypeSystemObject
+}
+  string: {
+  source: OasSchema
+  output: TypeSystemString
+}
+  union: {
+  source: OasSchema
+  output: TypeSystemUnion
+}
+  custom: {
+  source: CustomValue
+  output: TypeSystemCustom
+}
+}
 ```
 
 ## Source

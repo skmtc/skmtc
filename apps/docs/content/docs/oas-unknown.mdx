@@ -24,17 +24,17 @@ represent types that are not specified.
 
 - `oasType: schema`
 - `type: unknown`
-- `title: unknown`
-- `description: unknown`
-- `extensionFields: unknown`
-- `example: unknown`
+- `title: string | undefined`
+- `description: string | undefined`
+- `extensionFields: Record | undefined`
+- `example: unknown | undefined`
 
 ### Methods
 
 - `isRef(): this is OasRef\<"schema"\>`
 - `resolve(): OasUnknown`
 - `resolveOnce(): OasUnknown`
-- `toJsonSchema(_options?: ToJsonSchemaOptions): unknown`
+- `toJsonSchema(_options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject | OpenAPIV3.ArraySchemaObject`
 
 ## Source
 

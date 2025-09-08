@@ -103,7 +103,19 @@ const commentSchema: OasStringData = {
 ## Type Definition
 
 ```typescript
-type OasStringData = unknown
+type OasStringData = {
+  title?: string
+  description?: string
+  default?: string
+  type: string
+  maxLength?: number
+  minLength?: number
+  pattern?: string
+  enum?: string[]
+  format?: string
+  nullable?: boolean
+  example?: string
+}
 ```
 
 ## Source

@@ -13,7 +13,15 @@ Constructor fields for [OasInfo](./oas-info.mdx).
 ## Type Definition
 
 ```typescript
-type InfoFields = unknown
+type InfoFields = {
+  title: string
+  version: string
+  description?: string | undefined
+  termsOfService?: string | undefined
+  contact?: OasContact | undefined
+  license?: OasLicense | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

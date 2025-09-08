@@ -16,7 +16,12 @@ including URL, description, variables, and extension fields.
 ## Type Definition
 
 ```typescript
-type ServerFields = unknown
+type ServerFields = {
+  description?: string | undefined
+  url: string
+  variables?: Record | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

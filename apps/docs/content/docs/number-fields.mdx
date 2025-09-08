@@ -16,7 +16,21 @@ Constructor fields for [OasNumber](./oas-number.mdx).
 ## Type Definition
 
 ```typescript
-type NumberFields = unknown
+type NumberFields = {
+  title?: string
+  description?: string
+  nullable?: Nullable
+  default?: Nullable extends true ? number | null | undefined : number | undefined
+  extensionFields?: Record
+  example?: Nullable extends true ? number | null | undefined : number | undefined
+  enums?: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
+  format?: float | double
+  multipleOf?: number
+  maximum?: number
+  exclusiveMaximum?: boolean
+  minimum?: number
+  exclusiveMinimum?: boolean
+}
 ```
 
 ## Source

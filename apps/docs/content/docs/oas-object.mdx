@@ -115,21 +115,21 @@ const nullableUser = new OasObject<true>({
 
 - `oasType: schema`
 - `type: object`
-- `title: unknown`
-- `description: unknown`
-- `nullable: unknown`
-- `properties: unknown`
-- `required: unknown`
-- `additionalProperties: unknown`
-- `extensionFields: unknown`
-- `example: unknown`
-- `default: unknown`
+- `title: string | undefined`
+- `description: string | undefined`
+- `nullable: Nullable | undefined`
+- `properties: Nullable extends true ? Record | null | undefined : Record | undefined`
+- `required: string[] | undefined`
+- `additionalProperties: boolean | OasSchema | OasRef | undefined`
+- `extensionFields: Record | undefined`
+- `example: Nullable extends true ? Record | null | undefined : Record | undefined`
+- `default: Nullable extends true ? Record | null | undefined : Record | undefined`
 - `maxProperties?: number`
 - `minProperties?: number`
 - `readOnly?: boolean`
 - `writeOnly?: boolean`
 - `deprecated?: boolean`
-- `enums?: unknown`
+- `enums?: Nullable extends true ? (Record | null)[] | undefined : Record[] | undefined`
 
 ### Methods
 

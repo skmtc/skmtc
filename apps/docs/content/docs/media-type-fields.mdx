@@ -13,7 +13,13 @@ Constructor fields for [OasMediaType](./oas-media-type.mdx).
 ## Type Definition
 
 ```typescript
-type MediaTypeFields = unknown
+type MediaTypeFields = {
+  mediaType: string
+  schema?: OasSchema | OasRef | undefined
+  examples?: Record | undefined
+  extensionFields?: Record
+  encoding?: Record | undefined
+}
 ```
 
 ## Source

@@ -103,10 +103,10 @@ const xmlContent = new OasMediaType({
 
 - `oasType: mediaType`
 - `mediaType: string`
-- `schema: unknown`
-- `examples: unknown`
-- `extensionFields: unknown`
-- `encoding?: unknown`
+- `schema: OasSchema | OasRef | undefined`
+- `examples: Record | undefined`
+- `extensionFields: Record | undefined`
+- `encoding?: Record | undefined`
 
 ### Methods
 

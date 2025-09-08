@@ -23,7 +23,11 @@ const countType: TypeSystemInteger = {
 ## Type Definition
 
 ```typescript
-type TypeSystemInteger = unknown
+type TypeSystemInteger = {
+  type: integer
+  modifiers: Modifiers
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

@@ -13,7 +13,12 @@ Represents a regular named parameter.
 ## Type Definition
 
 ```typescript
-type RegularParameter = unknown
+type RegularParameter = {
+  type: regular
+  name: string
+  typeDefinition: Definition
+  required: boolean
+}
 ```
 
 ## Source

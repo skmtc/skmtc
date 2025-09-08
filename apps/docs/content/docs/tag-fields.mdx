@@ -11,7 +11,11 @@ line: 1
 ## Type Definition
 
 ```typescript
-type TagFields = unknown
+type TagFields = {
+  name: string
+  description: string | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

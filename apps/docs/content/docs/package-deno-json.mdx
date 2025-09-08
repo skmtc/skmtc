@@ -16,7 +16,12 @@ required name/version fields and optional import/export configurations.
 ## Type Definition
 
 ```typescript
-type PackageDenoJson = unknown
+type PackageDenoJson = {
+  name: string
+  version: string
+  imports?: Record
+  exports: Record | string
+}
 ```
 
 ## Source

@@ -16,7 +16,12 @@ Constructor arguments for [OperationBase](./operation-base.mdx).
 ## Type Definition
 
 ```typescript
-type OperationBaseArgs = unknown
+type OperationBaseArgs = {
+  context: GenerateContext
+  settings: ContentSettings
+  generatorKey: GeneratorKey
+  operation: OasOperation
+}
 ```
 
 ## Source

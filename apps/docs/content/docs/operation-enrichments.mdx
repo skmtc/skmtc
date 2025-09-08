@@ -16,7 +16,11 @@ how an operation is presented and interacted with in generated UIs.
 ## Type Definition
 
 ```typescript
-type OperationEnrichments = unknown
+type OperationEnrichments = {
+  table?: TableItem
+  form?: FormItem
+  input?: InputItem
+}
 ```
 
 ## Source

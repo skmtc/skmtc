@@ -128,17 +128,17 @@ const uniqueEmailsArray = new OasArray({
 
 - `oasType: schema`
 - `type: array`
-- `items: unknown`
-- `title: unknown`
-- `description: unknown`
-- `nullable: unknown`
-- `uniqueItems: unknown`
-- `extensionFields: unknown`
-- `example: unknown`
-- `maxItems: unknown`
-- `minItems: unknown`
-- `enums: unknown`
-- `defaultValue: unknown`
+- `items: OasSchema | OasRef`
+- `title: string | undefined`
+- `description: string | undefined`
+- `nullable: Nullable | undefined`
+- `uniqueItems: boolean | undefined`
+- `extensionFields: Record | undefined`
+- `example: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined`
+- `maxItems: number | undefined`
+- `minItems: number | undefined`
+- `enums: Nullable extends true ? (unknown | null)[] | undefined : unknown[] | undefined`
+- `defaultValue: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined`
 
 ### Methods
 

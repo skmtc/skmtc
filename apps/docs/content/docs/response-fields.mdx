@@ -13,7 +13,12 @@ Constructor fields for [OasResponse](./oas-response.mdx).
 ## Type Definition
 
 ```typescript
-type ResponseFields = unknown
+type ResponseFields = {
+  description?: string | undefined
+  headers?: Record | undefined
+  content?: Record | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

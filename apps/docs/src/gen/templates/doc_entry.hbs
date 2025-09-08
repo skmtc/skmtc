@@ -1,0 +1,39 @@
+<div class="{{#if name}}anchorable{{/if}} docEntry" id="{{id}}">
+
+  <div class="docEntryHeader">
+    <div>
+      {{~#if tags~}}
+        <div class="space-x-1 mb-1">
+          {{~#each tags~}}
+            {{~> tag value=this ~}}
+          {{~/each~}}
+        </div>
+      {{~/if~}}
+
+      <code>
+        {{~#if name~}}
+          {{~> anchor anchor ~}}
+        {{~/if~}}
+
+        {{~#if name_href~}}
+          <a class="font-bold font-lg link" href="{{name_href}}">{{{name}}}</a>
+        {{~else~}}
+          {{~#if name~}}
+            <span class="font-bold font-lg">{{{name}}}</span>
+          {{~/if~}}
+        {{~/if~}}
+        <span class="font-medium text-stone-500 dark:text-stone-200">{{{content}}}</span>
+      </code>
+    </div>
+
+    {{~#if source_href~}}
+      {{~> source_button source_href ~}}
+    {{~/if~}}
+  </div>
+
+  {{~#if js_doc~}}
+    <div class="max-w-[75ch]">
+      {{{~js_doc~}}} {{! markdown rendering }}
+    </div>
+  {{~/if~}}
+</div>

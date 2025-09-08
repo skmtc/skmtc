@@ -19,7 +19,11 @@ included in the generated code output.
 ## Type Definition
 
 ```typescript
-type InsertOperationOptions = unknown
+type InsertOperationOptions = {
+  noExport?: boolean
+  generation?: T
+  destinationPath?: string
+}
 ```
 
 ## Source

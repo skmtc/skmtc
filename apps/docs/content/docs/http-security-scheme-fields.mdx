@@ -11,7 +11,11 @@ line: 10
 ## Type Definition
 
 ```typescript
-type HttpSecuritySchemeFields = unknown
+type HttpSecuritySchemeFields = {
+  description?: string
+  scheme: string
+  bearerFormat?: string
+}
 ```
 
 ## Source

@@ -28,7 +28,11 @@ const customType: TypeSystemCustom = {
 ## Type Definition
 
 ```typescript
-type TypeSystemCustom = unknown
+type TypeSystemCustom = {
+  type: custom
+  value: Stringable
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

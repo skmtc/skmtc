@@ -1,0 +1,54 @@
+{{~#if composed ~}}
+  <div class="usages">
+    {{~#each usages~}}
+      <style scoped>
+        {{{~additional_css~}}} {{! css }}
+      </style>
+
+      <input type="radio" name="usage" id="{{name}}" class="hidden" {{~#if @first~}}checked{{~/if~}} />
+    {{~/each~}}
+
+    <nav>
+		  <h3 class="!mb-0">Use with</h3>
+
+		  <details id="usageSelector">
+			  <summary>
+				  {{~#each usages~}}
+					  <div id="{{name}}_active_dropdown" class="hidden items-center gap-1">
+						  <div class="h-4 *:h-4 *:w-auto flex-none">{{{icon}}} {{! icon }}</div>
+						  <div class="leading-none">{{name}}</div>
+					  </div>
+				  {{~/each~}}
+
+				  <div class="rotate-90">
+					  {{~> icons/arrow }}
+				  </div>
+			  </summary>
+
+			  <div>
+				  <div>
+					  {{~#each usages~}}
+						  <label for="{{name}}">
+							  <div class="h-5 *:h-5 *:w-auto flex-none">{{{icon}}} {{! icon }}</div>
+							  <div>{{name}}</div>
+						  </label>
+					  {{~/each~}}
+				  </div>
+			  </div>
+		  </details>
+	  </nav>
+
+    <div>
+      {{~#each usages~}}
+        <div id="{{name}}_content" class="usageContent">
+          {{{~content~}}} {{! markdown rendering }}
+        </div>
+      {{~/each~}}
+    </div>
+  </div>
+{{~else~}}
+  <div class="usageContent">
+    <h3>Usage</h3>
+    {{{~usages.[0].content~}}} {{! markdown rendering }}
+  </div>
+{{~/if~}}

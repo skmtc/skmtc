@@ -19,7 +19,15 @@ transformation logic, preview generation, and enrichment handling.
 ## Type Definition
 
 ```typescript
-type ModelConfig = unknown
+type ModelConfig = {
+  id: string
+  type: model
+  transform: (...) =\\> Acc
+  toPreviewModule?: (...) =\\> PreviewModule
+  toMappingModule?: (...) =\\> MappingModule
+  toEnrichmentSchema?: () =\\> v.BaseSchema
+  toEnrichmentRequest?: (refName: RefName) =\\> EnrichmentRequest | undefined
+}
 ```
 
 ## Source

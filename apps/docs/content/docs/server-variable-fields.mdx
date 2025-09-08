@@ -16,7 +16,12 @@ including default values, enumeration constraints, and extensions.
 ## Type Definition
 
 ```typescript
-type ServerVariableFields = unknown
+type ServerVariableFields = {
+  description?: string | undefined
+  default: string
+  enums?: string[] | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

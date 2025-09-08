@@ -13,7 +13,10 @@ Base type for parse error messages.
 ## Type Definition
 
 ```typescript
-type ParseErrorBase = unknown
+type ParseErrorBase = {
+  level: error
+  error: Error
+}
 ```
 
 ## Source

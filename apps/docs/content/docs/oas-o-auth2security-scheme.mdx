@@ -18,8 +18,30 @@ line: 123
 
 - `oasType: securityScheme`
 - `type: oauth2`
-- `description: unknown`
-- `flows: unknown`
+- `description: string | undefined`
+- `flows: {
+  authorizationCode?: {
+  authorizationUrl: string
+  tokenUrl: string
+  refreshUrl?: string | undefined
+  scopes: Record
+}
+  clientCredentials?: {
+  tokenUrl: string
+  refreshUrl?: string | undefined
+  scopes: Record
+}
+  implicit?: {
+  authorizationUrl: string
+  refreshUrl?: string | undefined
+  scopes: Record
+}
+  password?: {
+  tokenUrl: string
+  refreshUrl?: string | undefined
+  scopes: Record
+}
+}`
 
 ### Methods
 

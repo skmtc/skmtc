@@ -24,7 +24,12 @@ const stringArray: TypeSystemArray = {
 ## Type Definition
 
 ```typescript
-type TypeSystemArray = unknown
+type TypeSystemArray = {
+  type: array
+  items: TypeSystemValue
+  modifiers: Modifiers
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

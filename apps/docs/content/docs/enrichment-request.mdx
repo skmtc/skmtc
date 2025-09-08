@@ -20,7 +20,11 @@ a schema for validation and the content that needs enrichment.
 ## Type Definition
 
 ```typescript
-type EnrichmentRequest = unknown
+type EnrichmentRequest = {
+  prompt: string
+  enrichmentSchema: v.BaseSchema
+  content: string
+}
 ```
 
 ## Source

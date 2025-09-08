@@ -30,7 +30,12 @@ const parsed: ParsedModuleName = {
 ## Type Definition
 
 ```typescript
-type ParsedModuleName = unknown
+type ParsedModuleName = {
+  scheme: string | null
+  scopeName: string | null
+  packageName: string
+  version: string | null
+}
 ```
 
 ## Source

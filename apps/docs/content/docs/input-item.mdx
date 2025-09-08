@@ -16,7 +16,11 @@ component and data binding path.
 ## Type Definition
 
 ```typescript
-type InputItem = unknown
+type InputItem = {
+  id: string
+  accessorPath: string[]
+  formatter: ModuleExport
+}
 ```
 
 ## Source

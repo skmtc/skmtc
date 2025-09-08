@@ -113,19 +113,19 @@ const optionalCountInteger = new OasInteger<true>({
 
 - `oasType: schema`
 - `type: integer`
-- `title: unknown`
-- `description: unknown`
-- `nullable: unknown`
-- `format: unknown`
-- `enums: unknown`
-- `extensionFields: unknown`
-- `example: unknown`
-- `multipleOf: unknown`
-- `maximum: unknown`
-- `exclusiveMaximum: unknown`
-- `minimum: unknown`
-- `exclusiveMinimum: unknown`
-- `default: unknown`
+- `title: string | undefined`
+- `description: string | undefined`
+- `nullable: Nullable | undefined`
+- `format: int32 | int64 | undefined`
+- `enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined`
+- `extensionFields: Record | undefined`
+- `example: Nullable extends true ? number | null | undefined : number | undefined`
+- `multipleOf: number | undefined`
+- `maximum: number | undefined`
+- `exclusiveMaximum: boolean | undefined`
+- `minimum: number | undefined`
+- `exclusiveMinimum: boolean | undefined`
+- `default: Nullable extends true ? number | null | undefined : number | undefined`
 
 ### Methods
 

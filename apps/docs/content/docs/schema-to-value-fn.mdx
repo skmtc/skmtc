@@ -37,7 +37,7 @@ const transformSchema: SchemaToValueFn = (args) => {
 ## Type Definition
 
 ```typescript
-type SchemaToValueFn = unknown
+type SchemaToValueFn = (args: TypeSystemArgs) =\> TypeSystemOutput
 ```
 
 ## Source

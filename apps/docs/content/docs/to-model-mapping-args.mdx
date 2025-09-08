@@ -16,7 +16,10 @@ enabling cross-references and dependency analysis.
 ## Type Definition
 
 ```typescript
-type ToModelMappingArgs = unknown
+type ToModelMappingArgs = {
+  context: GenerateContext
+  refName: RefName
+}
 ```
 
 ## Source

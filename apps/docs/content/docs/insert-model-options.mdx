@@ -19,7 +19,11 @@ the generated code output.
 ## Type Definition
 
 ```typescript
-type InsertModelOptions = unknown
+type InsertModelOptions = {
+  noExport?: boolean
+  generation?: T
+  destinationPath?: string
+}
 ```
 
 ## Source

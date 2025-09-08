@@ -16,7 +16,10 @@ without full code generation.
 ## Type Definition
 
 ```typescript
-type ToModelPreviewModuleArgs = unknown
+type ToModelPreviewModuleArgs = {
+  context: GenerateContext
+  refName: RefName
+}
 ```
 
 ## Source

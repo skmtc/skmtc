@@ -17,7 +17,13 @@ flexibility is required in the API specification.
 ## Type Definition
 
 ```typescript
-type OasUnknownData = unknown
+type OasUnknownData = {
+  oasType: schema
+  title?: string
+  description?: string
+  default?: unknown
+  type: unknown
+}
 ```
 
 ## Source

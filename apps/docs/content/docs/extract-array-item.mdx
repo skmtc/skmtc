@@ -13,7 +13,7 @@ Utility type to extract the item type from an array type.
 ## Type Definition
 
 ```typescript
-type ExtractArrayItem = unknown
+type ExtractArrayItem = ArrayOf extends Array ? Item : never
 ```
 
 ## Source

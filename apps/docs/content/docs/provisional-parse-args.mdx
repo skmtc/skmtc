@@ -13,7 +13,14 @@ Arguments for provisional parsing with validation.
 ## Type Definition
 
 ```typescript
-type ProvisionalParseArgs = unknown
+type ProvisionalParseArgs = {
+  key: string
+  value: unknown
+  parent: unknown
+  schema: v.GenericSchema
+  toMessage: (value: unknown) =\\> string
+  type: IssueType
+}
 ```
 
 ## Source

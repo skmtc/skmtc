@@ -13,7 +13,11 @@ Arguments for the [normaliseModuleName](./normalise-module-name.mdx) function.
 ## Type Definition
 
 ```typescript
-type NormaliseModuleNameArgs = unknown
+type NormaliseModuleNameArgs = {
+  destinationPath: string
+  exportPath: string
+  packages: ModulePackage[] | undefined
+}
 ```
 
 ## Source

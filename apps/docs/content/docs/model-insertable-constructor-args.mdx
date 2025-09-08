@@ -16,7 +16,13 @@ Constructor arguments for model insertable instances.
 ## Type Definition
 
 ```typescript
-type ModelInsertableConstructorArgs = unknown
+type ModelInsertableConstructorArgs = {
+  context: GenerateContext
+  refName: RefName
+  settings: ContentSettings
+  destinationPath: string
+  rootRef?: RefName
+}
 ```
 
 ## Source

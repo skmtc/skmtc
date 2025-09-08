@@ -16,7 +16,11 @@ Arguments passed to operation transformation functions.
 ## Type Definition
 
 ```typescript
-type TransformOperationArgs = unknown
+type TransformOperationArgs = {
+  context: GenerateContext
+  operation: OasOperation
+  acc: Acc | undefined
+}
 ```
 
 ## Source

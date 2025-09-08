@@ -11,7 +11,21 @@ line: 33
 ## Type Definition
 
 ```typescript
-type OasNumberData = unknown
+type OasNumberData = {
+  type: number
+  title?: string
+  description?: string
+  default?: number
+  format?: float | double
+  enum?: number[]
+  nullable?: boolean
+  example?: number
+  multipleOf?: number
+  maximum?: number
+  exclusiveMaximum?: boolean
+  minimum?: number
+  exclusiveMinimum?: boolean
+}
 ```
 
 ## Source

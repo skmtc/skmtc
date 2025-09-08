@@ -16,7 +16,15 @@ Constructor fields for [OasBoolean](./oas-boolean.mdx).
 ## Type Definition
 
 ```typescript
-type BooleanFields = unknown
+type BooleanFields = {
+  title?: string
+  description?: string
+  nullable?: Nullable
+  extensionFields?: Record
+  example?: Nullable extends true ? boolean | null | undefined : boolean | undefined
+  enums?: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
+  default?: Nullable extends true ? boolean | null | undefined : boolean | undefined
+}
 ```
 
 ## Source

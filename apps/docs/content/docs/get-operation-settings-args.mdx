@@ -16,7 +16,11 @@ OpenAPI operation based on its path and HTTP method.
 ## Type Definition
 
 ```typescript
-type GetOperationSettingsArgs = unknown
+type GetOperationSettingsArgs = {
+  generatorId: string
+  path: string
+  method: Method
+}
 ```
 
 ## Source

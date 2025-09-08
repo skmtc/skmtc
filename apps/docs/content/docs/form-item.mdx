@@ -16,7 +16,12 @@ and customizable submit button label.
 ## Type Definition
 
 ```typescript
-type FormItem = unknown
+type FormItem = {
+  title?: string
+  description?: string
+  fields?: FormFieldItem[]
+  submitLabel?: string
+}
 ```
 
 ## Source

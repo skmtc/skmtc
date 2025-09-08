@@ -22,7 +22,10 @@ const recordType: TypeSystemRecord = {
 ## Type Definition
 
 ```typescript
-type TypeSystemRecord = unknown
+type TypeSystemRecord = {
+  value: TypeSystemValue | true
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

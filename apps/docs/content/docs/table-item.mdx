@@ -15,7 +15,11 @@ Represents a table with optional title, description, and column definitions.
 ## Type Definition
 
 ```typescript
-type TableItem = unknown
+type TableItem = {
+  title?: string
+  description?: string
+  columns?: TableColumnItem[]
+}
 ```
 
 ## Source

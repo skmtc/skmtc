@@ -11,7 +11,11 @@ line: 1
 ## Type Definition
 
 ```typescript
-type LicenseFields = unknown
+type LicenseFields = {
+  name?: string
+  url?: string
+  extensionFields?: Record
+}
 ```
 
 ## Source

@@ -144,12 +144,12 @@ const userOrAdmin = new OasUnion({
 
 - `oasType: schema`
 - `type: union`
-- `title: unknown`
-- `description: unknown`
-- `nullable: unknown`
-- `discriminator: unknown`
-- `members: unknown`
-- `extensionFields: unknown`
+- `title: string | undefined`
+- `description: string | undefined`
+- `nullable: boolean | undefined`
+- `discriminator: OasDiscriminator | undefined`
+- `members: (OasSchema | OasRef)[]`
+- `extensionFields: Record | undefined`
 - `example?: unknown`
 - `default?: unknown`
 

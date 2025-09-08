@@ -13,7 +13,10 @@ Arguments for checking if an operation is supported for generation.
 ## Type Definition
 
 ```typescript
-type IsSupportedArgs = unknown
+type IsSupportedArgs = {
+  context: GenerateContext
+  operation: OasOperation
+}
 ```
 
 ## Source

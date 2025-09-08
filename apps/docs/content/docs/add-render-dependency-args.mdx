@@ -16,7 +16,11 @@ when rendering code for a specific OpenAPI operation.
 ## Type Definition
 
 ```typescript
-type AddRenderDependencyArgs = unknown
+type AddRenderDependencyArgs = {
+  generatorId: string
+  operation: OasOperation
+  dependencies: string[]
+}
 ```
 
 ## Source

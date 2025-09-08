@@ -140,25 +140,25 @@ if (operation.security) {
 - `oasType: operation`
 - `path: string`
 - `method: Method`
-- `pathItem: unknown`
-- `operationId: unknown`
-- `summary: unknown`
-- `tags: unknown`
-- `description: unknown`
-- `parameters: unknown`
-- `requestBody: unknown`
+- `pathItem: OasPathItem | undefined`
+- `operationId: string | undefined`
+- `summary: string | undefined`
+- `tags: string[] | undefined`
+- `description: string | undefined`
+- `parameters: (OasParameter | OasRef)[] | undefined`
+- `requestBody: OasRequestBody | OasRef | undefined`
 - `responses: Record`
-- `security: unknown`
-- `deprecated: unknown`
-- `extensionFields: unknown`
+- `security: OasSecurityRequirement[] | undefined`
+- `deprecated: boolean | undefined`
+- `extensionFields: Record | undefined`
 
 ### Methods
 
-- `toSuccessResponse(): unknown`
-- `toSuccessResponseCode(): unknown`
-- `toRequestBody(map: unknown, ...): unknown`
-- `toParams(filter?: unknown): unknown`
-- `toParametersObject(filter?: unknown): OasObject`
+- `toSuccessResponse(): OasResponse | OasRef | undefined`
+- `toSuccessResponseCode(): string | undefined`
+- `toRequestBody(map: (...) =\> V, ...): V | undefined`
+- `toParams(filter?: OasParameterLocation[]): OasParameter[]`
+- `toParametersObject(filter?: OasParameterLocation[]): OasObject`
 - `toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject`
 - `toJSON(): object`
 

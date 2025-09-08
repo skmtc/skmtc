@@ -205,19 +205,19 @@ const confidenceSchema = new OasNumber({
 
 - `oasType: schema`
 - `type: number`
-- `title: unknown`
-- `default: unknown`
-- `description: unknown`
-- `nullable: unknown`
-- `extensionFields: unknown`
-- `example: unknown`
-- `enums: unknown`
-- `format: unknown`
-- `multipleOf: unknown`
-- `maximum: unknown`
-- `exclusiveMaximum: unknown`
-- `minimum: unknown`
-- `exclusiveMinimum: unknown`
+- `title: string | undefined`
+- `default: Nullable extends true ? number | null | undefined : number | undefined`
+- `description: string | undefined`
+- `nullable: Nullable | undefined`
+- `extensionFields: Record | undefined`
+- `example: Nullable extends true ? number | null | undefined : number | undefined`
+- `enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined`
+- `format: float | double | undefined`
+- `multipleOf: number | undefined`
+- `maximum: number | undefined`
+- `exclusiveMaximum: boolean | undefined`
+- `minimum: number | undefined`
+- `exclusiveMinimum: boolean | undefined`
 
 ### Methods
 

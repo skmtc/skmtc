@@ -11,7 +11,12 @@ line: 5
 ## Type Definition
 
 ```typescript
-type UnknownFields = unknown
+type UnknownFields = {
+  title?: string
+  description?: string
+  extensionFields?: Record
+  example?: unknown
+}
 ```
 
 ## Source

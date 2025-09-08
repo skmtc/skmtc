@@ -13,7 +13,13 @@ Comprehensive generation statistics extracted from build artifacts and manifest.
 ## Type Definition
 
 ```typescript
-type GenerationStats = unknown
+type GenerationStats = {
+  tokens: number
+  lines: number
+  totalTime: number
+  errors: string[][]
+  files: number
+}
 ```
 
 ## Source

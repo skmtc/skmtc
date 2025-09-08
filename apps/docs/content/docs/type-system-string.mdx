@@ -32,7 +32,13 @@ const statusEnum: TypeSystemString = {
 ## Type Definition
 
 ```typescript
-type TypeSystemString = unknown
+type TypeSystemString = {
+  type: string
+  format: string | undefined
+  enums: string[] | (string | null)[] | undefined
+  modifiers: Modifiers
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

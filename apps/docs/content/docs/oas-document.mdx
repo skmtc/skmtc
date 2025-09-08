@@ -88,16 +88,16 @@ if (document.components?.schemas) {
 
 ### Methods
 
-- `removeItem(stackTrail: StackTrail): unknown`
+- `removeItem(stackTrail: StackTrail): OasOperation | OasSchema | OasRef | undefined`
 - `fields(fields: DocumentFields): void`
 - `openapi(): string`
 - `info(): OasInfo`
-- `servers(): unknown`
-- `operations(): unknown`
-- `components(): unknown`
-- `tags(): unknown`
-- `security(): unknown`
-- `extensionFields(): unknown`
+- `servers(): OasServer[] | undefined`
+- `operations(): OasOperation[]`
+- `components(): OasComponents | undefined`
+- `tags(): OasTag[] | undefined`
+- `security(): OasSecurityRequirement[] | undefined`
+- `extensionFields(): Record | undefined`
 - `toJSON(): object`
 
 ## Source

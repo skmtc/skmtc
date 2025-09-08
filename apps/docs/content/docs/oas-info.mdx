@@ -91,12 +91,12 @@ const versionedInfo = new OasInfo({
 ### Methods
 
 - `title(): string`
-- `description(): unknown`
-- `termsOfService(): unknown`
-- `contact(): unknown`
-- `license(): unknown`
+- `description(): string | undefined`
+- `termsOfService(): string | undefined`
+- `contact(): OasContact | undefined`
+- `license(): OasLicense | undefined`
 - `version(): string`
-- `extensionFields(): unknown`
+- `extensionFields(): Record | undefined`
 
 ## Source
 

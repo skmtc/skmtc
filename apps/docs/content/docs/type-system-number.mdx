@@ -23,7 +23,11 @@ const priceType: TypeSystemNumber = {
 ## Type Definition
 
 ```typescript
-type TypeSystemNumber = unknown
+type TypeSystemNumber = {
+  type: number
+  modifiers: Modifiers
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

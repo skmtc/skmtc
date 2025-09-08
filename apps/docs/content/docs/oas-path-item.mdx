@@ -110,10 +110,10 @@ const resourcePathItem = new OasPathItem({
 ### Properties
 
 - `oasType: pathItem`
-- `summary: unknown`
-- `description: unknown`
-- `parameters: unknown`
-- `extensionFields: unknown`
+- `summary: string | undefined`
+- `description: string | undefined`
+- `parameters: (OasParameter | OasRef)[] | undefined`
+- `extensionFields: Record | undefined`
 
 ## Source
 

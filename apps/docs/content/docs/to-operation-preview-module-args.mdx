@@ -16,7 +16,10 @@ without full code generation.
 ## Type Definition
 
 ```typescript
-type ToOperationPreviewModuleArgs = unknown
+type ToOperationPreviewModuleArgs = {
+  context: GenerateContext
+  operation: OasOperation
+}
 ```
 
 ## Source

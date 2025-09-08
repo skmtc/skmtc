@@ -16,7 +16,11 @@ Arguments for creating a model insertable instance.
 ## Type Definition
 
 ```typescript
-type ModelInsertableArgs = unknown
+type ModelInsertableArgs = {
+  context: GenerateContext
+  settings: ContentSettings
+  refName: RefName
+}
 ```
 
 ## Source

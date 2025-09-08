@@ -13,7 +13,12 @@ Constructor fields for [OasPathItem](./oas-path-item.mdx).
 ## Type Definition
 
 ```typescript
-type PathItemFields = unknown
+type PathItemFields = {
+  summary?: string | undefined
+  description?: string | undefined
+  parameters?: (OasParameter | OasRef)[] | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

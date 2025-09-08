@@ -19,7 +19,16 @@ support detection, transformation logic, and enrichment handling.
 ## Type Definition
 
 ```typescript
-type OperationConfig = unknown
+type OperationConfig = {
+  id: string
+  type: operation
+  transform: (...) =\\> Acc
+  toEnrichmentSchema?: () =\\> v.GenericSchema
+  isSupported: (...) =\\> boolean
+  toPreviewModule?: (...) =\\> PreviewModule
+  toMappingModule?: (...) =\\> MappingModule
+  toEnrichmentRequest?: (operation: OasOperation) =\\> EnrichmentRequest | undefined
+}
 ```
 
 ## Source

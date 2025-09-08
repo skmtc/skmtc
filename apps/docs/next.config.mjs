@@ -4,10 +4,9 @@ const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
-  basePath: '/docs',
   reactStrictMode: true,
   output: 'export', // Enable static site generation
-  trailingSlash: true,
+  // trailingSlash: true,
   images: {
     unoptimized: true // Required for static export
   }

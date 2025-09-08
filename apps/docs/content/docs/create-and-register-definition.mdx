@@ -19,7 +19,14 @@ register them in the generation context for output file creation.
 ## Type Definition
 
 ```typescript
-type CreateAndRegisterDefinition = unknown
+type CreateAndRegisterDefinition = {
+  schema: Schema
+  identifier: Identifier
+  destinationPath: string
+  schemaToValueFn: SchemaToValueFn
+  rootRef?: RefName
+  noExport?: boolean
+}
 ```
 
 ## Source

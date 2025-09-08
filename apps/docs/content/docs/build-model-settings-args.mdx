@@ -18,7 +18,10 @@ Arguments for building model content settings.
 ## Type Definition
 
 ```typescript
-type BuildModelSettingsArgs = unknown
+type BuildModelSettingsArgs = {
+  refName: RefName
+  insertable: ModelInsertable
+}
 ```
 
 ## Source

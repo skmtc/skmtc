@@ -16,7 +16,19 @@ Constructor fields for [OasString](./oas-string.mdx).
 ## Type Definition
 
 ```typescript
-type StringFields = unknown
+type StringFields = {
+  title?: string
+  description?: string
+  format?: string
+  default?: Nullable extends true ? string | null | undefined : string | undefined
+  pattern?: string
+  enums?: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
+  maxLength?: number
+  minLength?: number
+  nullable?: Nullable
+  extensionFields?: Record
+  example?: Nullable extends true ? string | null | undefined : string | undefined
+}
 ```
 
 ## Source

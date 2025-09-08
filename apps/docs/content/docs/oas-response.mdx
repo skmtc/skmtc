@@ -220,17 +220,17 @@ const getUserOperation = new OasOperation({
 ### Properties
 
 - `oasType: response`
-- `description: unknown`
-- `headers: unknown`
-- `content: unknown`
-- `extensionFields: unknown`
+- `description: string | undefined`
+- `headers: Record | undefined`
+- `content: Record | undefined`
+- `extensionFields: Record | undefined`
 
 ### Methods
 
 - `isRef(): this is OasRef\<"response"\>`
 - `resolve(): OasResponse`
 - `resolveOnce(): OasResponse`
-- `toSchema(...): unknown`
+- `toSchema(...): OasSchema | OasRef | undefined`
 - `toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ResponseObject`
 
 ## Source

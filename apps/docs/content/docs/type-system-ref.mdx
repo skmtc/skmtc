@@ -29,7 +29,12 @@ const userRef: TypeSystemRef = {
 ## Type Definition
 
 ```typescript
-type TypeSystemRef = unknown
+type TypeSystemRef = {
+  type: ref
+  name: string
+  modifiers: Modifiers
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

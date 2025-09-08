@@ -22,7 +22,10 @@ const voidType: TypeSystemVoid = {
 ## Type Definition
 
 ```typescript
-type TypeSystemVoid = unknown
+type TypeSystemVoid = {
+  type: void
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

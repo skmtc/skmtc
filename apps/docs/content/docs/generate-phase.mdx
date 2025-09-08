@@ -16,7 +16,10 @@ applying templates, handling references, and preparing output files.
 ## Type Definition
 
 ```typescript
-type GeneratePhase = unknown
+type GeneratePhase = {
+  type: generate
+  context: GenerateContext
+}
 ```
 
 ## Source

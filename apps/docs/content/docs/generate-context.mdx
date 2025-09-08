@@ -120,17 +120,17 @@ class MyGenerator extends ModelBase {
 ### Properties
 
 - `oasDocument: OasDocument`
-- `settings: unknown`
+- `settings: ClientSettings | undefined`
 - `logger: Logger`
-- `captureCurrentResult: unknown`
-- `toGeneratorConfigMap: unknown`
+- `captureCurrentResult: (result: ResultType) =\> void`
+- `toGeneratorConfigMap: () =\> GeneratorsMapContainer`
 - `stackTrail: StackTrail`
 - `modelDepth: Record`
 
 ### Methods
 
 - `toArtifacts(): GenerateResult`
-- `trace(token: unknown, fn: unknown): T`
+- `trace(token: string | string[], fn: () =\> T): T`
 - `defineAndRegister(...): Definition`
 - `registerJson(...): void`
 - `register(...): void`
@@ -139,8 +139,8 @@ class MyGenerator extends ModelBase {
 - `insertModel(insertable: ModelInsertable, refName: RefName, ...): Inserted`
 - `toOperationContentSettings(...): ContentSettings`
 - `toModelContentSettings(...): ContentSettings`
-- `resolveSchemaRefOnce(refName: RefName, generatorId: string): unknown`
-- `findDefinition(...): unknown`
+- `resolveSchemaRefOnce(refName: RefName, generatorId: string): OasSchema | OasRef`
+- `findDefinition(...): Definition | undefined`
 
 ## Source
 

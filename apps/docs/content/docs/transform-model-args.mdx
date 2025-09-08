@@ -16,7 +16,11 @@ Arguments passed to model transformation functions.
 ## Type Definition
 
 ```typescript
-type TransformModelArgs = unknown
+type TransformModelArgs = {
+  context: GenerateContext
+  refName: RefName
+  acc: Acc | undefined
+}
 ```
 
 ## Source

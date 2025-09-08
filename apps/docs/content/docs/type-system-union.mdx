@@ -35,7 +35,13 @@ const discriminatedUnion: TypeSystemUnion = {
 ## Type Definition
 
 ```typescript
-type TypeSystemUnion = unknown
+type TypeSystemUnion = {
+  type: union
+  members: TypeSystemValue[]
+  discriminator: string | undefined
+  modifiers: Modifiers
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

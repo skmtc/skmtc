@@ -19,7 +19,12 @@ identifier generation, export path resolution, and enrichment schemas.
 ## Type Definition
 
 ```typescript
-type BaseModelConfig = unknown
+type BaseModelConfig = {
+  id: string
+  toIdentifier: (refName: RefName) =\\> Identifier
+  toExportPath: (refName: RefName) =\\> string
+  toEnrichmentSchema?: () =\\> v.BaseSchema
+}
 ```
 
 ## Source

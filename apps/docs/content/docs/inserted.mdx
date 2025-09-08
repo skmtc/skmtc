@@ -173,7 +173,7 @@ class EnrichedGenerator extends ModelBase<ValidationEnrichment> {
 - `toName(): string`
 - `toIdentifier(): Identifier`
 - `toExportPath(): string`
-- `toValue(): unknown`
+- `toValue(): T extends force ? V : V | undefined`
 
 ## Source
 

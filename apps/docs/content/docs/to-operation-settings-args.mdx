@@ -18,7 +18,10 @@ Arguments for generating operation content settings.
 ## Type Definition
 
 ```typescript
-type ToOperationSettingsArgs = unknown
+type ToOperationSettingsArgs = {
+  operation: OasOperation
+  insertable: OperationInsertable
+}
 ```
 
 ## Source

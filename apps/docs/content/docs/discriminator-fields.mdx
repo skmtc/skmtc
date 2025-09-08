@@ -11,7 +11,10 @@ line: 1
 ## Type Definition
 
 ```typescript
-type DiscriminatorFields = unknown
+type DiscriminatorFields = {
+  propertyName: string
+  mapping?: Record
+}
 ```
 
 ## Source

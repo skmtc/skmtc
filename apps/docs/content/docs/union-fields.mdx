@@ -13,7 +13,16 @@ Constructor fields for [OasUnion](./oas-union.mdx).
 ## Type Definition
 
 ```typescript
-type UnionFields = unknown
+type UnionFields = {
+  title?: string
+  description?: string
+  nullable?: boolean
+  discriminator?: OasDiscriminator
+  example?: unknown
+  default?: unknown
+  members: (OasSchema | OasRef)[]
+  extensionFields?: Record
+}
 ```
 
 ## Source

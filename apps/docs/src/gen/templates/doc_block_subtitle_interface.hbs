@@ -1,0 +1,9 @@
+<div>
+  <span class="type"> extends </span>
+  {{~#each extends~}}
+    {{{~this~}}} {{! typedef rendering }}
+    {{~#unless @last~}}
+      <span>, </span>
+    {{~/unless~}}
+  {{~/each~}}
+</div>

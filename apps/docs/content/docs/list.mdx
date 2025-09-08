@@ -103,29 +103,29 @@ console.log(`interface User ${interfaceProps}`);
 
 ### Constructors
 
-- `constructor(values: unknown, ...)`
+- `constructor(values: (ExtractArrayItem | undefined)[], ...)`
 
 ### Properties
 
-- `values: unknown`
+- `values: ExtractArrayItem[]`
 - `separator: Separator`
 - `bookends: Bookends`
 - `skipEmpty: boolean`
-- `static toEmpty: unknown`
-- `static toSingle: unknown`
-- `static toConditional: unknown`
-- `static toRecord: unknown`
-- `static toFilteredRecord: unknown`
-- `static toKeyValue: unknown`
-- `static toObjectKey: unknown`
-- `static toObject: unknown`
-- `static toArray: unknown`
-- `static toParams: unknown`
-- `static toLines: unknown`
-- `static fromKeys: unknown`
-- `static fromEntries: unknown`
-- `static toFilteredKeyValue: unknown`
-- `static hasValue: unknown`
+- `static toEmpty: () =\> List`
+- `static toSingle: (value: Stringable) =\> List`
+- `static toConditional: (value: Value, condition: Condition) =\> ToConditionalReturn`
+- `static toRecord: (record: Record) =\> List`
+- `static toFilteredRecord: (record: Record) =\> List`
+- `static toKeyValue: (key: string, value: Value) =\> List`
+- `static toObjectKey: (key: string, value: Value) =\> List`
+- `static toObject: (values: (V | undefined)[], ...) =\> ListObject`
+- `static toArray: (values: (V | undefined)[]) =\> ListArray`
+- `static toParams: (values: (V | undefined)[]) =\> ListParams`
+- `static toLines: (values: (V | undefined)[]) =\> ListLines`
+- `static fromKeys: (record: Record | undefined) =\> KeyList`
+- `static fromEntries: (record: Record | undefined) =\> EntryList`
+- `static toFilteredKeyValue: (key: string, value: Value) =\> ToFilteredKeyValueReturn`
+- `static hasValue: (value: undefined | Stringable | Stringable[] | List) =\> value is Stringable | Stringable[] | List`
 
 ### Methods
 

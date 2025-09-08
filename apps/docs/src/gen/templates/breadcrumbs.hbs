@@ -1,0 +1,29 @@
+<ul class="breadcrumbs">
+  {{~#each parts~}}
+    {{~#if this.is_first_symbol~}}
+      <ul>
+    {{~/if~}}
+
+    <li>
+	    {{~#if @last~}}
+	      {{~this.name~}}
+      {{~else~}}
+	      <a href="{{this.href}}" class="contextLink">
+		      {{~this.name~}}
+	      </a>
+			{{~/if~}}
+    </li>
+
+	  {{~#unless @last~}}
+		  {{~#if this.is_symbol~}}
+			  <span>.</span>
+			  {{~else~}}
+			  <span class="text-black dark:text-white">{{~> icons/arrow ~}}</span>
+		  {{~/if~}}
+	  {{/unless}}
+
+    {{~#if (and @last this.is_symbol)~}}
+      </ul>
+    {{~/if~}}
+  {{~/each~}}
+</ul>

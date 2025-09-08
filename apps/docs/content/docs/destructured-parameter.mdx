@@ -13,7 +13,11 @@ Represents a destructured object parameter.
 ## Type Definition
 
 ```typescript
-type DestructuredParameter = unknown
+type DestructuredParameter = {
+  type: destructured
+  typeDefinition: Definition
+  required: true
+}
 ```
 
 ## Source

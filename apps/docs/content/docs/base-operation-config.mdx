@@ -19,7 +19,12 @@ identifier generation, export path resolution, and enrichment schemas.
 ## Type Definition
 
 ```typescript
-type BaseOperationConfig = unknown
+type BaseOperationConfig = {
+  id: string
+  toIdentifier: (operation: OasOperation) =\\> Identifier
+  toExportPath: (operation: OasOperation) =\\> string
+  toEnrichmentSchema?: () =\\> v.BaseSchema
+}
 ```
 
 ## Source

@@ -22,7 +22,10 @@ const nullType: TypeSystemNull = {
 ## Type Definition
 
 ```typescript
-type TypeSystemNull = unknown
+type TypeSystemNull = {
+  type: null
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

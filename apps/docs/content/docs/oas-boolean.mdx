@@ -171,13 +171,13 @@ const userPreferences = new OasObject({
 
 - `oasType: schema`
 - `type: boolean`
-- `title: unknown`
-- `description: unknown`
-- `nullable: unknown`
-- `extensionFields: unknown`
-- `example: unknown`
-- `enums: unknown`
-- `default: unknown`
+- `title: string | undefined`
+- `description: string | undefined`
+- `nullable: Nullable | undefined`
+- `extensionFields: Record | undefined`
+- `example: Nullable extends true ? boolean | null | undefined : boolean | undefined`
+- `enums: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined`
+- `default: Nullable extends true ? boolean | null | undefined : boolean | undefined`
 
 ### Methods
 

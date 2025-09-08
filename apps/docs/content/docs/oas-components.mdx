@@ -191,16 +191,16 @@ class ComponentProcessor {
 
 ### Methods
 
-- `toSchemasRefNames(): unknown`
-- `schemas(): unknown`
-- `removeSchema(refName: RefName): unknown`
-- `responses(): unknown`
-- `parameters(): unknown`
-- `examples(): unknown`
-- `requestBodies(): unknown`
-- `headers(): unknown`
-- `securitySchemes(): unknown`
-- `extensionFields(): unknown`
+- `toSchemasRefNames(): RefName[]`
+- `schemas(): Record | undefined`
+- `removeSchema(refName: RefName): OasSchema | OasRef`
+- `responses(): Record | undefined`
+- `parameters(): Record | undefined`
+- `examples(): Record | undefined`
+- `requestBodies(): Record | undefined`
+- `headers(): Record | undefined`
+- `securitySchemes(): Record | undefined`
+- `extensionFields(): Record | undefined`
 
 ## Source
 

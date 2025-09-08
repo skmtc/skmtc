@@ -16,7 +16,10 @@ handling schema validation, reference resolution, and data transformation.
 ## Type Definition
 
 ```typescript
-type ParsePhase = unknown
+type ParsePhase = {
+  type: parse
+  context: ParseContext
+}
 ```
 
 ## Source

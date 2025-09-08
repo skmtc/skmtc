@@ -68,7 +68,13 @@ const systemFlagSchema: OasBooleanData = {
 ## Type Definition
 
 ```typescript
-type OasBooleanData = unknown
+type OasBooleanData = {
+  type: boolean
+  title?: string
+  description?: string
+  default?: boolean
+  enum?: boolean[]
+}
 ```
 
 ## Source

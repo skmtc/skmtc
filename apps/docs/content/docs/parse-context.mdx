@@ -136,7 +136,7 @@ class CustomCoreContext extends CoreContext {
 - `logger: Logger`
 - `oasDocument: OasDocument`
 - `stackTrail: StackTrail`
-- `issues: unknown`
+- `issues: ParseIssue[]`
 - `silent: boolean`
 
 ### Methods
@@ -144,10 +144,10 @@ class CustomCoreContext extends CoreContext {
 - `parse(): OasDocument`
 - `removeErroredItems(): void`
 - `registerRef(stackTrail: StackTrail, $ref: string): void`
-- `registerRefError(error: Error, $ref: unknown): void`
-- `trace(token: unknown, fn: unknown): T`
+- `registerRefError(error: Error, $ref: string | undefined): void`
+- `trace(token: string | string[], fn: () =\> T): T`
 - `logSkippedFields(...): void`
-- `provisionalParse(...): unknown`
+- `provisionalParse(...): T | undefined`
 - `logIssue(...): void`
 - `logIssueNoKey(...): void`
 

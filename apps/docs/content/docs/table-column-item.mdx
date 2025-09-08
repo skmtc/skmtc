@@ -16,7 +16,12 @@ component, display label, and data binding path.
 ## Type Definition
 
 ```typescript
-type TableColumnItem = unknown
+type TableColumnItem = {
+  id: string
+  accessorPath: string[]
+  formatter: ModuleExport
+  label: string
+}
 ```
 
 ## Source

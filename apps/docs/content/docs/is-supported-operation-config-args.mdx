@@ -16,7 +16,11 @@ Arguments for checking if an operation is supported with enrichment configuratio
 ## Type Definition
 
 ```typescript
-type IsSupportedOperationConfigArgs = unknown
+type IsSupportedOperationConfigArgs = {
+  context: GenerateContext
+  operation: OasOperation
+  enrichments: EnrichmentType
+}
 ```
 
 ## Source

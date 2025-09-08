@@ -105,10 +105,10 @@ const errorExample = new OasExample({
 
 ### Methods
 
-- `summary(): unknown`
-- `description(): unknown`
+- `summary(): string | undefined`
+- `description(): string | undefined`
 - `value(): unknown`
-- `extensionFields(): unknown`
+- `extensionFields(): Record | undefined`
 - `isRef(): this is OasRef\<"example"\>`
 - `resolve(): OasExample`
 - `resolveOnce(): OasExample`

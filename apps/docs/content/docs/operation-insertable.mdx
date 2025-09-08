@@ -21,7 +21,13 @@ into the generation context to produce type-safe operation definitions.
 ## Type Definition
 
 ```typescript
-type OperationInsertable = unknown
+type OperationInsertable = { prototype: V } & {
+  id: string
+  type: operation
+  toIdentifier: (operation: OasOperation) =\\\> Identifier
+  toExportPath: (operation: OasOperation) =\\\> string
+  toEnrichments: (...) =\\\> EnrichmentType
+} & Function
 ```
 
 ## Source

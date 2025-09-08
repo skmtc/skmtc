@@ -23,7 +23,11 @@ const flagType: TypeSystemBoolean = {
 ## Type Definition
 
 ```typescript
-type TypeSystemBoolean = unknown
+type TypeSystemBoolean = {
+  type: boolean
+  modifiers: Modifiers
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

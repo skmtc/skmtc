@@ -1,0 +1,9 @@
+{{~#if (ne this null)~}}
+  <div class="deprecated">
+    <div><span>Deprecated</span></div>
+
+    {{~#if (ne this "")~}}
+      <div>{{{this}}} {{! markdown rendering }}</div>
+    {{~/if~}}
+  </div>
+{{~/if~}}

@@ -99,12 +99,12 @@ console.log(baseTrail.toString());    // 'components:schemas' (unchanged)
 
 - `clone(): StackTrail`
 - `slice(start: number, end?: number): StackTrail`
-- `includes(frames: unknown): boolean`
-- `stackTrail(): unknown`
-- `append(frame: unknown): StackTrail`
-- `getParentOf(frame: string): unknown`
-- `toStackRef(): unknown`
-- `remove(frame: unknown): StackTrail`
+- `includes(frames: string[]): boolean`
+- `stackTrail(): string[]`
+- `append(frame: string | string[]): StackTrail`
+- `getParentOf(frame: string): string | undefined`
+- `toStackRef(): string | undefined`
+- `remove(frame: string | string[]): StackTrail`
 - `static join(...): string`
 - `static parse(value: string): StackTrail`
 - `toJSON(): string`

@@ -13,7 +13,21 @@ Constructor fields for [OasParameter](./oas-parameter.mdx).
 ## Type Definition
 
 ```typescript
-type ParameterFields = unknown
+type ParameterFields = {
+  name: string
+  location: OasParameterLocation
+  description?: string | undefined
+  required?: boolean | undefined
+  deprecated?: boolean | undefined
+  allowEmptyValue?: boolean | undefined
+  allowReserved?: boolean | undefined
+  schema?: OasSchema | OasRef | undefined
+  examples?: Record | undefined
+  content?: Record | undefined
+  style: OasParameterStyle
+  explode: boolean
+  extensionFields?: Record
+}
 ```
 
 ## Source

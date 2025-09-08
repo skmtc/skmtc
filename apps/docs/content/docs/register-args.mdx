@@ -16,7 +16,12 @@ to be registered and associated with a specific output file location.
 ## Type Definition
 
 ```typescript
-type RegisterArgs = unknown
+type RegisterArgs = {
+  imports?: Record
+  reExports?: Record
+  definitions?: (Definition | undefined)[]
+  destinationPath: string
+}
 ```
 
 ## Source

@@ -16,7 +16,15 @@ structured JSON log entries for the SKMTC processing pipeline.
 ## Type Definition
 
 ```typescript
-type JsonFormatterArgs = unknown
+type JsonFormatterArgs = {
+  logRecord: {
+  levelName: string
+  datetime: Date
+  msg: string
+  args: unknown[]
+}
+  stackTrail: string
+}
 ```
 
 ## Source

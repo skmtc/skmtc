@@ -17,7 +17,21 @@ security requirements, and metadata.
 ## Type Definition
 
 ```typescript
-type OperationFields = unknown
+type OperationFields = {
+  path: string
+  method: Method
+  pathItem: OasPathItem | undefined
+  operationId?: string | undefined
+  summary?: string | undefined
+  tags?: string[] | undefined
+  description?: string | undefined
+  parameters?: (OasParameter | OasRef)[] | undefined
+  requestBody?: OasRequestBody | OasRef | undefined
+  responses: Record
+  security?: OasSecurityRequirement[] | undefined
+  deprecated?: boolean | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

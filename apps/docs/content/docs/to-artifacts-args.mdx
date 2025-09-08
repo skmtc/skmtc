@@ -16,7 +16,13 @@ into code artifacts through the SKMTC pipeline.
 ## Type Definition
 
 ```typescript
-type ToArtifactsArgs = unknown
+type ToArtifactsArgs = {
+  documentObject: OpenAPIV3.Document
+  settings: ClientSettings | undefined
+  toGeneratorConfigMap: () =\\> GeneratorsMapContainer
+  prettier?: PrettierConfigType
+  silent: boolean
+}
 ```
 
 ## Source

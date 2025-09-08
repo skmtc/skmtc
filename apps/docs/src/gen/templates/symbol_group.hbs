@@ -1,0 +1,45 @@
+<main class="symbolGroup" id="symbol_{{name}}">
+  {{~#each symbols~}}
+    <article>
+      <div class="symbolTitle">
+        <div>
+          <div class="text-2xl leading-none break-all">
+            <span class="text-{{this.kind.kind}}">{{this.kind.title_lowercase}}</span>&nbsp;<span class="font-bold">{{../name}}</span>
+          </div>
+          {{~#if this.subtitle ~}}
+            <div class="symbolSubtitle">
+              {{~> (concat "doc_block_subtitle_" this.subtitle.kind) this.subtitle.value ~}}
+            </div>
+          {{~/if~}}
+          {{~#if this.tags~}}
+            <div class="space-x-2 !mt-2">
+              {{~#each this.tags~}}
+                {{~> tag value=this large=true ~}}
+              {{~/each~}}
+            </div>
+          {{~/if~}}
+        </div>
+
+        {{~#if source_href~}}
+          {{~> source_button this.source_href ~}}
+        {{~/if~}}
+      </div>
+
+      {{~#if (and usage @first)~}}
+        {{~> usages_large usage ~}}
+      {{~/if~}}
+
+      {{~> deprecated this.deprecated ~}}
+
+      <div>
+        {{~#each this.content~}}
+          {{~#if (eq kind "function")~}}
+            {{~> function value ~}}
+          {{~else~}}
+            {{~> symbol_content value ~}}
+          {{~/if~}}
+        {{~/each~}}
+      </div>
+    </article>
+  {{~/each~}}
+</main>

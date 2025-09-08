@@ -19,7 +19,12 @@ in the generation context for inclusion in output files.
 ## Type Definition
 
 ```typescript
-type DefineAndRegisterArgs = unknown
+type DefineAndRegisterArgs = {
+  identifier: Identifier
+  value: V
+  destinationPath: string
+  noExport?: boolean
+}
 ```
 
 ## Source

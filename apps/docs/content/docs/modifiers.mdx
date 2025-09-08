@@ -84,7 +84,11 @@ function generateTypeScript(type: TypeSystemValue): string {
 ## Type Definition
 
 ```typescript
-type Modifiers = unknown
+type Modifiers = {
+  required?: boolean
+  description?: string
+  nullable?: boolean
+}
 ```
 
 ## Source

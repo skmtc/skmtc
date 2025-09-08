@@ -16,7 +16,11 @@ re-exports, and definitions that will be included in generated files.
 ## Type Definition
 
 ```typescript
-type BaseRegisterArgs = unknown
+type BaseRegisterArgs = {
+  imports?: Record
+  reExports?: Record
+  definitions?: (Definition | undefined)[]
+}
 ```
 
 ## Source

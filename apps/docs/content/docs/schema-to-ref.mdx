@@ -23,7 +23,7 @@ type NeverForSchema = SchemaToRef<OasSchema>; // never
 ## Type Definition
 
 ```typescript
-type SchemaToRef = unknown
+type SchemaToRef = Schema extends OasRef ? Schema : never
 ```
 
 ## Source

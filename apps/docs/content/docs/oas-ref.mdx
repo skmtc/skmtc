@@ -121,12 +121,12 @@ const oneStep = chainedRef.resolveOnce(); // May still be a reference
 
 - `isRef(): this is OasRef\<T\>`
 - `resolve(...): ResolvedRef`
-- `resolveOnce(): unknown`
+- `resolveOnce(): OasRef | ResolvedRef`
 - `toRefName(): RefName`
 - `$ref(): string`
-- `refType(): unknown`
+- `refType(): OasRefData[refType]`
 - `oasDocument(): OasDocument`
-- `toJsonSchema(...): unknown`
+- `toJsonSchema(...): OpenAPIV3.ReferenceObject | ResolvedRefJsonType`
 - `toJSON(): object`
 
 ## Source

@@ -13,7 +13,13 @@ Represents a parsing error with location context.
 ## Type Definition
 
 ```typescript
-type ParseError = unknown
+type ParseError = {
+  level: error
+  error: Error
+  location: string
+  parent: unknown
+  type: IssueType
+}
 ```
 
 ## Source

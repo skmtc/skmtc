@@ -16,7 +16,10 @@ OpenAPI model based on its reference name.
 ## Type Definition
 
 ```typescript
-type ToModelSettingsArgs = unknown
+type ToModelSettingsArgs = {
+  generatorId: string
+  refName: RefName
+}
 ```
 
 ## Source

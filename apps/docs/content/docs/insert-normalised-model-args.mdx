@@ -19,7 +19,11 @@ model definitions with fallback naming when schema names are unavailable.
 ## Type Definition
 
 ```typescript
-type InsertNormalisedModelArgs = unknown
+type InsertNormalisedModelArgs = {
+  fallbackName: string
+  schema: Schema
+  destinationPath: string
+}
 ```
 
 ## Source

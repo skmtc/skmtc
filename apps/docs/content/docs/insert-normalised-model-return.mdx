@@ -22,7 +22,7 @@ reference or a concrete schema.
 ## Type Definition
 
 ```typescript
-type InsertNormalisedModelReturn = unknown
+type InsertNormalisedModelReturn = Schema extends OasRef ? Definition : Definition
 ```
 
 ## Source

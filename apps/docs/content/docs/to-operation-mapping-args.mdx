@@ -16,7 +16,10 @@ enabling cross-references and dependency analysis.
 ## Type Definition
 
 ```typescript
-type ToOperationMappingArgs = unknown
+type ToOperationMappingArgs = {
+  context: GenerateContext
+  operation: OasOperation
+}
 ```
 
 ## Source

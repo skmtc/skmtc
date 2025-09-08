@@ -22,7 +22,10 @@ const neverType: TypeSystemNever = {
 ## Type Definition
 
 ```typescript
-type TypeSystemNever = unknown
+type TypeSystemNever = {
+  type: never
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

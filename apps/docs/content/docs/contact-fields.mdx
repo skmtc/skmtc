@@ -16,7 +16,12 @@ including name, URL, email, and extension fields.
 ## Type Definition
 
 ```typescript
-type ContactFields = unknown
+type ContactFields = {
+  name?: string
+  url?: string
+  email?: string
+  extensionFields?: Record
+}
 ```
 
 ## Source

@@ -45,7 +45,16 @@ const operationEntry = toOperationEntry({
 ## Variable Definition
 
 ```typescript
-const toOperationEntry: unknown
+const toOperationEntry: (...) =\> {
+  id: string
+  type: operation
+  transform: (...) =\\\> Acc
+  toEnrichmentSchema?: () =\\\> v.GenericSchema
+  isSupported: (...) =\\\> boolean
+  toPreviewModule?: (...) =\\\> PreviewModule
+  toMappingModule?: (...) =\\\> MappingModule
+  toEnrichmentRequest?: (operation: OasOperation) =\\\> EnrichmentRequest | undefined
+}
 ```
 
 ## Source

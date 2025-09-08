@@ -16,7 +16,10 @@ applying code formatting, file system operations, and final output generation.
 ## Type Definition
 
 ```typescript
-type RenderPhase = unknown
+type RenderPhase = {
+  type: render
+  context: RenderContext
+}
 ```
 
 ## Source

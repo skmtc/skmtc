@@ -1,0 +1,35 @@
+<section class="section" {{#if header}} id="{{header.anchor.id}}"{{/if}}>
+  {{~#if header~}}
+    <div>
+      <h2 class="anchorable mb-1">
+        {{~> anchor header.anchor ~}}
+
+        {{~#if header.href~}}
+          <a href="{{header.href}}" class="contextLink">{{header.title}}</a>
+          {{~else~}}
+          {{header.title}}
+        {{~/if~}}
+      </h2>
+
+      {{~#if header.doc~}}
+        {{{header.doc}}} {{! markdown }}
+      {{~/if~}}
+    </div>
+  {{~/if~}}
+
+  {{~#if (ne content.kind "empty")~}}
+    {{~#if (or (eq content.kind "namespace_section") (eq content.kind "see"))~}}
+      {{~> (lookup ../content "kind") content.content ~}}
+    {{~else~}}
+      <div class="space-y-8">
+        {{~#each content.content~}}
+          {{~> (lookup ../content "kind") this ~}}
+
+          {{~#if (and (eq (lookup ../content "kind") "example") (not @last))~}}
+            <div class="border-b border-gray-300 dark:border-gray-700"></div>
+          {{~/if~}}
+        {{~/each~}}
+      </div>
+    {{~/if~}}
+  {{~/if~}}
+</section>

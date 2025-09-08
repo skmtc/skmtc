@@ -21,7 +21,15 @@ into the generation context to produce type-safe model definitions.
 ## Type Definition
 
 ```typescript
-type ModelInsertable = unknown
+type ModelInsertable = { prototype: V } & {
+  id: string
+  type: model
+  toIdentifier: (refName: RefName) =\\\> Identifier
+  toExportPath: (refName: RefName) =\\\> string
+  toEnrichments: (...) =\\\> EnrichmentType
+  schemaToValueFn: SchemaToValueFn
+  createIdentifier: (name: string) =\\\> Identifier
+} & Function
 ```
 
 ## Source

@@ -1,0 +1,18 @@
+<div class="mt-3 space-y-8">
+  {{~#each functions~}}
+    <div class="scroll-mt-16" id="{{this.id}}">
+      <code class="anchorable text-base break-words">
+        {{~> anchor this.anchor ~}}
+
+        <span class="font-bold">{{this.name}}</span><span class="font-medium">{{{this.summary}}} {{! typedef rendering }}</span>
+      </code>
+
+      {{~> deprecated this.deprecated ~}}
+
+      {{~> symbol_content this.content ~}}
+    </div>
+    {{~#if (not @last)~}}
+      <div class="border-b border-gray-300 max-w-[75ch] dark:border-gray-700"></div>
+    {{~/if~}}
+  {{~/each~}}
+</div>

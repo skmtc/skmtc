@@ -107,17 +107,17 @@ const nullableString = new OasString<true>({
 
 - `oasType: schema`
 - `type: string`
-- `title: unknown`
-- `description: unknown`
-- `format: unknown`
-- `enums: unknown`
-- `maxLength: unknown`
-- `minLength: unknown`
-- `nullable: unknown`
-- `extensionFields: unknown`
-- `example: unknown`
-- `pattern: unknown`
-- `default: unknown`
+- `title: string | undefined`
+- `description: string | undefined`
+- `format: string | undefined`
+- `enums: Nullable extends true ? (string | null)[] | undefined : string[] | undefined`
+- `maxLength: number | undefined`
+- `minLength: number | undefined`
+- `nullable: Nullable | undefined`
+- `extensionFields: Record | undefined`
+- `example: Nullable extends true ? string | null | undefined : string | undefined`
+- `pattern: string | undefined`
+- `default: Nullable extends true ? string | null | undefined : string | undefined`
 
 ### Methods
 

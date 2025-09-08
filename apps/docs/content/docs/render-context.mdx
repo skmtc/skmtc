@@ -212,17 +212,17 @@ try {
 - `files: Map`
 - `previews: Record`
 - `mappings: Record`
-- `basePath: unknown`
+- `basePath: string | undefined`
 - `logger: Logger`
-- `captureCurrentResult: unknown`
+- `captureCurrentResult: (result: ResultType) =\> void`
 
 ### Methods
 
 - `render(): Promise`
 - `collate(): Promise`
-- `trace(token: unknown, fn: unknown): T`
-- `getFile(filePath: string): unknown`
-- `pick(...): unknown`
+- `trace(token: string | string[], fn: () =\> T): T`
+- `getFile(filePath: string): File | JsonFile`
+- `pick(...): Definition | undefined`
 
 ## Source
 

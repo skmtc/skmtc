@@ -17,7 +17,7 @@ tracking and organization purposes.
 ## Type Definition
 
 ```typescript
-type GeneratedValue = unknown
+type GeneratedValue = Stringable & { generatorKey?: GeneratorKey }
 ```
 
 ## Source

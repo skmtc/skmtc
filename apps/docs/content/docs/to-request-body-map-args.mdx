@@ -13,7 +13,10 @@ Arguments passed to request body mapping functions.
 ## Type Definition
 
 ```typescript
-type ToRequestBodyMapArgs = unknown
+type ToRequestBodyMapArgs = {
+  schema: OasSchema | OasRef
+  requestBody: OasRequestBody
+}
 ```
 
 ## Source

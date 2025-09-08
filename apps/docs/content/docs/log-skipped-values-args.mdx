@@ -13,7 +13,11 @@ Arguments for logging skipped values during parsing.
 ## Type Definition
 
 ```typescript
-type LogSkippedValuesArgs = unknown
+type LogSkippedValuesArgs = {
+  skipped: Record
+  parent: unknown
+  parentType: string
+}
 ```
 
 ## Source

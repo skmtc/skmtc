@@ -13,7 +13,16 @@ Constructor fields for [OasComponents](./oas-components.mdx).
 ## Type Definition
 
 ```typescript
-type ComponentsFields = unknown
+type ComponentsFields = {
+  schemas?: Record
+  responses?: Record
+  parameters?: Record
+  examples?: Record
+  requestBodies?: Record
+  headers?: Record
+  securitySchemes?: Record
+  extensionFields?: Record
+}
 ```
 
 ## Source

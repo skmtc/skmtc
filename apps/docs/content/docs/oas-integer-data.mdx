@@ -11,7 +11,21 @@ line: 41
 ## Type Definition
 
 ```typescript
-type OasIntegerData = unknown
+type OasIntegerData = {
+  type: integer
+  title?: string
+  description?: string
+  default?: number
+  format?: int32 | int64
+  enum?: number[]
+  nullable?: boolean
+  example?: number
+  multipleOf?: number
+  maximum?: number
+  exclusiveMaximum?: boolean
+  minimum?: number
+  exclusiveMinimum?: boolean
+}
 ```
 
 ## Source

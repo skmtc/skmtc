@@ -22,7 +22,10 @@ const unknownType: TypeSystemUnknown = {
 ## Type Definition
 
 ```typescript
-type TypeSystemUnknown = unknown
+type TypeSystemUnknown = {
+  type: unknown
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

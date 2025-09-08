@@ -89,7 +89,15 @@ const validationModelEntry = toModelEntry({
 ## Variable Definition
 
 ```typescript
-const toModelEntry: unknown
+const toModelEntry: (...) =\> {
+  id: string
+  type: model
+  transform: (...) =\\\> Acc
+  toPreviewModule?: (...) =\\\> PreviewModule
+  toMappingModule?: (...) =\\\> MappingModule
+  toEnrichmentSchema?: () =\\\> v.GenericSchema
+  toEnrichmentRequest?: (refName: RefName) =\\\> EnrichmentRequest | undefined
+}
 ```
 
 ## Source

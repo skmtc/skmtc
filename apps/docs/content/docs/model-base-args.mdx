@@ -16,7 +16,12 @@ Constructor arguments for [ModelBase](./model-base.mdx).
 ## Type Definition
 
 ```typescript
-type ModelBaseArgs = unknown
+type ModelBaseArgs = {
+  context: GenerateContext
+  settings: ContentSettings
+  generatorKey: GeneratorKey
+  refName: RefName
+}
 ```
 
 ## Source

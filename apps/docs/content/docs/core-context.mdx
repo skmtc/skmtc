@@ -72,9 +72,9 @@ console.log('Parsed schemas:', Object.keys(oasDocument.components.schemas));
 
 ### Methods
 
-- `parse(documentObject: OpenAPIV3.Document): unknown`
+- `parse(documentObject: OpenAPIV3.Document): { oasDocument: OasDocument }`
 - `toArtifacts(...): Promise`
-- `trace(token: unknown, fn: unknown): T`
+- `trace(token: string | string[], fn: () =\> T): T`
 - `captureCurrentResult(result: ResultType): void`
 
 ## Source

@@ -25,7 +25,10 @@ const objectProps: TypeSystemObjectProperties = {
 ## Type Definition
 
 ```typescript
-type TypeSystemObjectProperties = unknown
+type TypeSystemObjectProperties = {
+  properties: Record
+  generatorKey?: GeneratorKey
+}
 ```
 
 ## Source

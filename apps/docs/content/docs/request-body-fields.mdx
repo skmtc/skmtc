@@ -13,7 +13,12 @@ Constructor fields for [OasRequestBody](./oas-request-body.mdx).
 ## Type Definition
 
 ```typescript
-type RequestBodyFields = unknown
+type RequestBodyFields = {
+  description?: string | undefined
+  content: Record
+  required?: boolean | undefined
+  extensionFields?: Record
+}
 ```
 
 ## Source

@@ -13,7 +13,13 @@ Complete result of the rendering phase including all generated content and metad
 ## Type Definition
 
 ```typescript
-type RenderResult = unknown
+type RenderResult = {
+  artifacts: Record
+  files: Record
+  previews: Record
+  mappings: Record
+  results: ResultsItem
+}
 ```
 
 ## Source
