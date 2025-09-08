@@ -1,0 +1,111 @@
+---
+title: "handleKey"
+description: "Safely formats a key for use in object literals, adding quotes if needed."
+kind: "variable"
+filename: "skmtc/deno/core/typescript/identifiers.ts"
+line: 83
+---
+
+# handleKey
+
+Safely formats a key for use in object literals, adding quotes if needed.
+
+This function determines whether a property key needs to be quoted in JavaScript/TypeScript
+object literals based on identifier naming rules. Valid identifiers are left unquoted,
+while invalid identifiers (containing spaces, special characters, starting with numbers, etc.)
+are wrapped in single quotes.
+
+
+**@param** key - The property key to format
+
+**@returns** The key as-is if it's a valid identifier, otherwise wrapped in quotes
+
+
+## Example
+
+Valid identifiers (no quotes needed)
+```typescript
+import { handleKey } from '@skmtc/core';
+
+console.log(handleKey('name'));      // 'name'
+console.log(handleKey('userName'));  // 'userName'
+console.log(handleKey('_private'));  // '_private'
+console.log(handleKey('$special'));  // '$special'
+```
+
+
+## Example
+
+Invalid identifiers (quotes added)
+```typescript
+console.log(handleKey('first-name'));  // "'first-name'"
+console.log(handleKey('2nd-place'));   // "'2nd-place'"
+console.log(handleKey('user name'));   // "'user name'"
+console.log(handleKey('api-key'));     // "'api-key'"
+console.log(handleKey('data.nested')); // "'data.nested'"
+```
+
+
+## Example
+
+Usage in object generation
+```typescript
+class ObjectGenerator {
+  generateObjectLiteral(properties: Record<string, string>) {
+    const props = Object.entries(properties)
+      .map(([key, value]) => `${handleKey(key)}: ${value}`)
+      .join(', ');
+
+    return `{ ${props} }`;
+  }
+}
+
+const generator = new ObjectGenerator();
+const result = generator.generateObjectLiteral({
+  'name': 'string',
+  'first-name': 'string',
+  'age': 'number'
+});
+
+console.log(result);
+// { name: string, 'first-name': string, age: number }
+```
+
+
+## Example
+
+TypeScript interface generation
+```typescript
+function generateInterface(name: string, properties: Record<string, string>) {
+  const props = Object.entries(properties)
+    .map(([key, type]) => `  ${handleKey(key)}: ${type};`)
+    .join('\n');
+
+  return `interface ${name} {\n${props}\n}`;
+}
+
+const userInterface = generateInterface('User', {
+  'id': 'string',
+  'first-name': 'string',
+  'last_name': 'string',
+  '2fa-enabled': 'boolean'
+});
+
+console.log(userInterface);
+// interface User {
+//   id: string;
+//   'first-name': string;
+//   last_name: string;
+//   '2fa-enabled': boolean;
+// }
+```
+
+## Variable Definition
+
+```typescript
+const handleKey: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/typescript/identifiers.ts:83:13`

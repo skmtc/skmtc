@@ -1,0 +1,37 @@
+---
+title: "EntryList"
+description: "Utility class for working with arrays of key-value pair entries."
+kind: "class"
+filename: "skmtc/deno/core/typescript/List.ts"
+line: 505
+---
+
+# EntryList
+
+Utility class for working with arrays of key-value pair entries.
+
+Provides methods for transforming entry arrays into objects and lists
+with custom mapping functions.
+
+
+**@template** - Type of the entry values
+
+## Class Definition
+
+### Constructors
+
+- `constructor(entries: unknown)`
+
+### Properties
+
+- `entries: unknown`
+
+### Methods
+
+- `toObject(mapFn: EntryMapFn): ListObject`
+- `toLines(mapFn: EntryMapFn): ListLines`
+- `toArray(mapFn: EntryMapFn): ListArray`
+
+## Source
+
+Located at `skmtc/deno/core/typescript/List.ts:505:0`

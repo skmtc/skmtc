@@ -1,0 +1,45 @@
+---
+title: "ModelDriver"
+description: "Driver class responsible for managing model generation lifecycle."
+kind: "class"
+filename: "skmtc/deno/core/dsl/model/ModelDriver.ts"
+line: 39
+---
+
+# ModelDriver
+
+Driver class responsible for managing model generation lifecycle.
+
+
+**@template** - The generated value type
+
+**@template** - The generation type
+
+**@template** - Optional enrichment type
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `context: GenerateContext`
+- `insertable: ModelInsertable`
+- `refName: RefName`
+- `settings: ContentSettings`
+- `destinationPath?: string`
+- `definition: GeneratedDefinition`
+- `rootRef?: RefName`
+- `noExport?: boolean`
+
+### Methods
+
+- `apply(...): GeneratedDefinition`
+- `getDefinition(...): Definition`
+- `affirmDefinition(definition: unknown, exportPath: string): definition is Definition\<V\>`
+
+## Source
+
+Located at `skmtc/deno/core/dsl/model/ModelDriver.ts:39:0`

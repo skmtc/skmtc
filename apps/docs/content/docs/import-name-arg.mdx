@@ -1,0 +1,38 @@
+---
+title: "ImportNameArg"
+description: "Argument type for import names - can be a simple string or an alias object."
+kind: "typeAlias"
+filename: "skmtc/deno/core/dsl/Import.ts"
+line: 193
+---
+
+# ImportNameArg
+
+Argument type for import names - can be a simple string or an alias object.
+
+
+## Example
+
+String import
+```typescript
+const simpleImport: ImportNameArg = 'User';
+```
+
+
+## Example
+
+Aliased import
+```typescript
+const aliasedImport: ImportNameArg = { 'User': 'IUser' };
+// This creates: User as IUser
+```
+
+## Type Definition
+
+```typescript
+type ImportNameArg = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/dsl/Import.ts:193:0`

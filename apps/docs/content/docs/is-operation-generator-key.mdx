@@ -1,0 +1,46 @@
+---
+title: "isOperationGeneratorKey"
+description: "Type guard to check if a value is a valid OperationGeneratorKey."
+kind: "variable"
+filename: "skmtc/deno/core/types/GeneratorKeys.ts"
+line: 350
+---
+
+# isOperationGeneratorKey
+
+Type guard to check if a value is a valid OperationGeneratorKey.
+
+Validates that the argument is a string with the correct format:
+`generatorId|path|method` where each part is non-empty and method
+is a valid HTTP method.
+
+
+**@param** arg - Value to check
+
+**@returns** True if the value is a valid OperationGeneratorKey
+
+
+## Example
+
+```typescript
+const key = 'api-client|/users/{id}|get';
+
+if (isOperationGeneratorKey(key)) {
+  // key is now typed as OperationGeneratorKey
+  const obj = fromGeneratorKey(key);
+  console.log(obj.type);        // 'operation'
+  console.log(obj.generatorId); // 'api-client'
+  console.log(obj.path);        // '/users/{id}'
+  console.log(obj.method);      // 'get'
+}
+```
+
+## Variable Definition
+
+```typescript
+const isOperationGeneratorKey: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/GeneratorKeys.ts:350:13`

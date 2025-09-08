@@ -1,0 +1,40 @@
+---
+title: "TypeSystemString"
+description: "Type system representation of string types."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/TypeSystem.ts"
+line: 342
+---
+
+# TypeSystemString
+
+Type system representation of string types.
+
+
+## Example
+
+```typescript
+const emailString: TypeSystemString = {
+  type: 'string',
+  format: 'email',
+  enums: undefined,
+  modifiers: { optional: false, nullable: false }
+};
+
+const statusEnum: TypeSystemString = {
+  type: 'string',
+  format: undefined,
+  enums: ['active', 'inactive', 'pending'],
+  modifiers: { optional: false, nullable: false }
+};
+```
+
+## Type Definition
+
+```typescript
+type TypeSystemString = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/TypeSystem.ts:342:0`

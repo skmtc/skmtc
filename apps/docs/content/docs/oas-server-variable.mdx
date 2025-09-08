@@ -1,0 +1,55 @@
+---
+title: "OasServerVariable"
+description: "Represents an OpenAPI server variable object."
+kind: "class"
+filename: "skmtc/deno/core/oas/serverVariable/ServerVariable.ts"
+line: 40
+---
+
+# OasServerVariable
+
+Represents an OpenAPI server variable object.
+
+Server variables provide parameterization for server URLs,
+allowing dynamic server configuration with default values
+and enumeration constraints.
+
+
+## Example
+
+Basic server variable
+```typescript
+const serverVar = new OasServerVariable({
+  default: 'api',
+  description: 'API version subdomain',
+  enums: ['api', 'api-staging', 'api-dev']
+});
+
+console.log(serverVar.default); // 'api'
+console.log(serverVar.enums);   // ['api', 'api-staging', 'api-dev']
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(fields: ServerVariableFields)`
+
+### Properties
+
+- `oasType: serverVariable`
+- `description: unknown`
+- `default: string`
+- `enums?: unknown`
+- `extensionFields: unknown`
+
+### Methods
+
+- `isRef(): boolean`
+- `resolve(): OasServerVariable`
+- `resolveOnce(): OasServerVariable`
+- `toJsonSchema(_options: ToJsonSchemaOptions): OpenAPIV3.ServerVariableObject`
+
+## Source
+
+Located at `skmtc/deno/core/oas/serverVariable/ServerVariable.ts:40:0`

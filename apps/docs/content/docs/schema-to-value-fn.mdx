@@ -1,0 +1,45 @@
+---
+title: "SchemaToValueFn"
+description: "Function type for transforming schemas to type system values."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/TypeSystem.ts"
+line: 607
+---
+
+# SchemaToValueFn
+
+Function type for transforming schemas to type system values.
+
+
+**@template** - The schema type being transformed
+
+**@param** args - Transformation arguments
+
+**@returns** The corresponding type system value
+
+
+## Example
+
+```typescript
+const transformSchema: SchemaToValueFn = (args) => {
+  switch (args.schema.type) {
+    case 'string':
+      return transformStringSchema(args);
+    case 'object':
+      return transformObjectSchema(args);
+    // ... other cases
+    default:
+      throw new Error(`Unknown schema type: ${args.schema.type}`);
+  }
+};
+```
+
+## Type Definition
+
+```typescript
+type SchemaToValueFn = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/TypeSystem.ts:607:0`

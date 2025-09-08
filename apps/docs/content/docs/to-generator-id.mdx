@@ -1,0 +1,54 @@
+---
+title: "toGeneratorId"
+description: "Extracts the generator ID from any type of GeneratorKey."
+kind: "variable"
+filename: "skmtc/deno/core/types/GeneratorKeys.ts"
+line: 487
+---
+
+# toGeneratorId
+
+Extracts the generator ID from any type of GeneratorKey.
+
+This utility function parses the generator key to extract just the
+generator identifier, regardless of the key type. For operation and
+model keys, it extracts the first part before the pipe. For generator-only
+keys, it returns the entire key since it's just the generator ID.
+
+
+**@param** generatorKey - Any type of generator key
+
+**@returns** The generator ID string
+
+
+## Example
+
+```typescript
+const opKey = toOperationGeneratorKey({
+  generatorId: 'api-client',
+  path: '/users',
+  method: 'get'
+});
+console.log(toGeneratorId(opKey)); // 'api-client'
+
+const modelKey = toModelGeneratorKey({
+  generatorId: 'typescript-types',
+  refName: 'User'
+});
+console.log(toGeneratorId(modelKey)); // 'typescript-types'
+
+const globalKey = toGeneratorOnlyKey({
+  generatorId: 'utilities'
+});
+console.log(toGeneratorId(globalKey)); // 'utilities'
+```
+
+## Variable Definition
+
+```typescript
+const toGeneratorId: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/GeneratorKeys.ts:487:13`

@@ -1,0 +1,115 @@
+---
+title: "StackTrail"
+description: "Represents a stack-based trail for tracking document traversal in OpenAPI processing."
+kind: "class"
+filename: "skmtc/deno/core/context/StackTrail.ts"
+line: 73
+---
+
+# StackTrail
+
+Represents a stack-based trail for tracking document traversal in OpenAPI processing.
+
+The `StackTrail` class maintains a stack of string frames that represent the current
+path through an OpenAPI document structure. It's used throughout the SKMTC pipeline
+for tracking context during parsing, generating, and debugging schema processing.
+
+This class is essential for error reporting, debugging, and maintaining context
+when processing nested OpenAPI structures like schemas, operations, and components.
+
+## Key Features
+
+- **Path Tracking**: Maintains a trail of traversed document elements
+- **Context Preservation**: Preserves parsing context for error reporting
+- **Stack Operations**: Supports push, pop, clone, and manipulation operations
+- **Reference Resolution**: Can generate OpenAPI reference strings from trails
+- **Serialization**: Supports string serialization and parsing for persistence
+
+
+## Example
+
+Basic usage
+```typescript
+import { StackTrail } from '@skmtc/core';
+
+// Start with empty trail
+const trail = new StackTrail();
+
+// Build a path through document structure
+trail.append('components')
+     .append('schemas')
+     .append('User')
+     .append('properties')
+     .append('name');
+
+console.log(trail.toString()); // 'components:schemas:User:properties:name'
+```
+
+
+## Example
+
+Schema reference generation
+```typescript
+const schemaTrail = new StackTrail(['components', 'schemas', 'User']);
+const ref = schemaTrail.toStackRef();
+console.log(ref); // '#/components/schemas/User'
+```
+
+
+## Example
+
+Error context tracking
+```typescript
+class SchemaProcessor {
+  processSchema(schema: OasSchema, trail: StackTrail) {
+    try {
+      // Process schema logic
+      return this.transformSchema(schema);
+    } catch (error) {
+      throw new Error(`Error at ${trail.toString()}: ${error.message}`);
+      // Error at components:schemas:User:properties:email: Invalid format
+    }
+  }
+}
+```
+
+
+## Example
+
+Cloning and manipulation
+```typescript
+const baseTrail = new StackTrail(['components', 'schemas']);
+
+// Clone for processing different schemas
+const userTrail = baseTrail.clone().append('User');
+const productTrail = baseTrail.clone().append('Product');
+
+console.log(userTrail.toString());    // 'components:schemas:User'
+console.log(productTrail.toString()); // 'components:schemas:Product'
+console.log(baseTrail.toString());    // 'components:schemas' (unchanged)
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Methods
+
+- `clone(): StackTrail`
+- `slice(start: number, end?: number): StackTrail`
+- `includes(frames: unknown): boolean`
+- `stackTrail(): unknown`
+- `append(frame: unknown): StackTrail`
+- `getParentOf(frame: string): unknown`
+- `toStackRef(): unknown`
+- `remove(frame: unknown): StackTrail`
+- `static join(...): string`
+- `static parse(value: string): StackTrail`
+- `toJSON(): string`
+- `toString(): string`
+
+## Source
+
+Located at `skmtc/deno/core/context/StackTrail.ts:73:0`

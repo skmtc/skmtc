@@ -1,0 +1,43 @@
+---
+title: "TypeSystemUnion"
+description: "Type system representation of union types."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/TypeSystem.ts"
+line: 378
+---
+
+# TypeSystemUnion
+
+Type system representation of union types.
+
+
+## Example
+
+```typescript
+const stringOrNumber: TypeSystemUnion = {
+  type: 'union',
+  members: [
+    { type: 'string', modifiers: { optional: false, nullable: false } },
+    { type: 'number', modifiers: { optional: false, nullable: false } }
+  ],
+  discriminator: undefined,
+  modifiers: { optional: false, nullable: false }
+};
+
+const discriminatedUnion: TypeSystemUnion = {
+  type: 'union',
+  members: [userType, adminType, guestType],
+  discriminator: 'type',
+  modifiers: { optional: false, nullable: false }
+};
+```
+
+## Type Definition
+
+```typescript
+type TypeSystemUnion = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/TypeSystem.ts:378:0`

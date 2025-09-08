@@ -1,0 +1,37 @@
+---
+title: "toEndpointType"
+description: "Determines the endpoint type based on HTTP method."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/naming.ts"
+line: 22
+---
+
+# toEndpointType
+
+Determines the endpoint type based on HTTP method.
+
+
+**@param** operation - The OpenAPI operation to analyze
+
+**@returns** 'query' for GET operations, 'mutation' for all others
+
+
+## Example
+
+```typescript
+const getOp = new OasOperation({ method: 'get', path: '/users' });
+console.log(toEndpointType(getOp)); // 'query'
+
+const postOp = new OasOperation({ method: 'post', path: '/users' });
+console.log(toEndpointType(postOp)); // 'mutation'
+```
+
+## Variable Definition
+
+```typescript
+const toEndpointType: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/naming.ts:22:13`

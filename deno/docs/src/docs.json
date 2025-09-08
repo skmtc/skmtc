@@ -1351,7 +1351,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 63,
         "col": 0,
-        "byteIndex": 2507
+        "byteIndex": 2506
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -1375,7 +1375,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 65,
                   "col": 2,
-                  "byteIndex": 2600
+                  "byteIndex": 2599
                 },
                 "params": [],
                 "computed": false,
@@ -1396,7 +1396,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 67,
                   "col": 2,
-                  "byteIndex": 2680
+                  "byteIndex": 2679
                 },
                 "params": [],
                 "computed": false,
@@ -1423,7 +1423,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 76,
         "col": 0,
-        "byteIndex": 2920
+        "byteIndex": 2918
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -1447,7 +1447,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 78,
                   "col": 2,
-                  "byteIndex": 3023
+                  "byteIndex": 3021
                 },
                 "params": [],
                 "computed": false,
@@ -1468,7 +1468,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 80,
                   "col": 2,
-                  "byteIndex": 3095
+                  "byteIndex": 3093
                 },
                 "params": [],
                 "computed": false,
@@ -1509,7 +1509,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 89,
         "col": 0,
-        "byteIndex": 3342
+        "byteIndex": 3339
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -1533,7 +1533,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 91,
                   "col": 2,
-                  "byteIndex": 3451
+                  "byteIndex": 3448
                 },
                 "params": [],
                 "computed": false,
@@ -1554,7 +1554,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 93,
                   "col": 2,
-                  "byteIndex": 3532
+                  "byteIndex": 3529
                 },
                 "params": [],
                 "computed": false,
@@ -1581,7 +1581,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 102,
         "col": 0,
-        "byteIndex": 3793
+        "byteIndex": 3789
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -1605,7 +1605,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 104,
                   "col": 2,
-                  "byteIndex": 3892
+                  "byteIndex": 3888
                 },
                 "params": [],
                 "computed": false,
@@ -1647,7 +1647,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 106,
                   "col": 2,
-                  "byteIndex": 4003
+                  "byteIndex": 3999
                 },
                 "params": [],
                 "computed": false,
@@ -1689,7 +1689,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 108,
                   "col": 2,
-                  "byteIndex": 4110
+                  "byteIndex": 4106
                 },
                 "params": [],
                 "computed": false,
@@ -1738,7 +1738,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 117,
         "col": 0,
-        "byteIndex": 4391
+        "byteIndex": 4386
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -1762,7 +1762,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 119,
                   "col": 2,
-                  "byteIndex": 4486
+                  "byteIndex": 4481
                 },
                 "params": [],
                 "computed": false,
@@ -1804,7 +1804,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 121,
                   "col": 2,
-                  "byteIndex": 4597
+                  "byteIndex": 4592
                 },
                 "params": [],
                 "computed": false,
@@ -1846,7 +1846,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 123,
                   "col": 2,
-                  "byteIndex": 4704
+                  "byteIndex": 4699
                 },
                 "params": [],
                 "computed": false,
@@ -1889,7 +1889,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 125,
                   "col": 2,
-                  "byteIndex": 4821
+                  "byteIndex": 4816
                 },
                 "params": [],
                 "computed": false,
@@ -1916,7 +1916,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 136,
         "col": 0,
-        "byteIndex": 5132
+        "byteIndex": 5125
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -1947,7 +1947,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 138,
                   "col": 2,
-                  "byteIndex": 5264
+                  "byteIndex": 5257
                 },
                 "params": [],
                 "computed": false,
@@ -1971,7 +1971,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 140,
                   "col": 2,
-                  "byteIndex": 5334
+                  "byteIndex": 5327
                 },
                 "params": [],
                 "computed": false,
@@ -1995,7 +1995,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 142,
                   "col": 2,
-                  "byteIndex": 5436
+                  "byteIndex": 5429
                 },
                 "params": [],
                 "computed": false,
@@ -2016,7 +2016,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 144,
                   "col": 2,
-                  "byteIndex": 5527
+                  "byteIndex": 5520
                 },
                 "params": [],
                 "computed": false,
@@ -2040,7 +2040,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 146,
                   "col": 2,
-                  "byteIndex": 5615
+                  "byteIndex": 5608
                 },
                 "params": [],
                 "computed": false,
@@ -2064,7 +2064,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 148,
                   "col": 2,
-                  "byteIndex": 5692
+                  "byteIndex": 5685
                 },
                 "params": [],
                 "computed": false,
@@ -2103,7 +2103,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 159,
         "col": 0,
-        "byteIndex": 6008
+        "byteIndex": 5999
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -2134,7 +2134,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 161,
                   "col": 2,
-                  "byteIndex": 6117
+                  "byteIndex": 6108
                 },
                 "params": [],
                 "computed": false,
@@ -2158,7 +2158,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 163,
                   "col": 2,
-                  "byteIndex": 6181
+                  "byteIndex": 6172
                 },
                 "params": [],
                 "computed": false,
@@ -2182,7 +2182,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 165,
                   "col": 2,
-                  "byteIndex": 6269
+                  "byteIndex": 6260
                 },
                 "params": [],
                 "computed": false,
@@ -2203,7 +2203,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 167,
                   "col": 2,
-                  "byteIndex": 6352
+                  "byteIndex": 6343
                 },
                 "params": [],
                 "computed": false,
@@ -2242,7 +2242,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 176,
         "col": 0,
-        "byteIndex": 6564
+        "byteIndex": 6554
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -2266,7 +2266,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 178,
                   "col": 2,
-                  "byteIndex": 6660
+                  "byteIndex": 6650
                 },
                 "params": [],
                 "computed": false,
@@ -2287,7 +2287,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 180,
                   "col": 2,
-                  "byteIndex": 6722
+                  "byteIndex": 6712
                 },
                 "params": [],
                 "computed": false,
@@ -2308,7 +2308,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 182,
                   "col": 2,
-                  "byteIndex": 6780
+                  "byteIndex": 6770
                 },
                 "params": [],
                 "computed": false,
@@ -2338,7 +2338,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 191,
         "col": 0,
-        "byteIndex": 6996
+        "byteIndex": 6985
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -2362,7 +2362,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 193,
                   "col": 2,
-                  "byteIndex": 7091
+                  "byteIndex": 7080
                 },
                 "params": [],
                 "computed": false,
@@ -2383,7 +2383,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 195,
                   "col": 2,
-                  "byteIndex": 7167
+                  "byteIndex": 7156
                 },
                 "params": [],
                 "computed": false,
@@ -2407,7 +2407,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 197,
                   "col": 2,
-                  "byteIndex": 7248
+                  "byteIndex": 7237
                 },
                 "params": [],
                 "computed": false,
@@ -2438,7 +2438,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 206,
         "col": 0,
-        "byteIndex": 7450
+        "byteIndex": 7438
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -2462,7 +2462,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 208,
                   "col": 2,
-                  "byteIndex": 7547
+                  "byteIndex": 7535
                 },
                 "params": [],
                 "computed": false,
@@ -2483,7 +2483,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 210,
                   "col": 2,
-                  "byteIndex": 7610
+                  "byteIndex": 7598
                 },
                 "params": [],
                 "computed": false,
@@ -2513,7 +2513,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 221,
         "col": 0,
-        "byteIndex": 7880
+        "byteIndex": 7866
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -2544,7 +2544,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 223,
                   "col": 2,
-                  "byteIndex": 8003
+                  "byteIndex": 7989
                 },
                 "params": [],
                 "computed": false,
@@ -2565,7 +2565,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 225,
                   "col": 2,
-                  "byteIndex": 8065
+                  "byteIndex": 8051
                 },
                 "params": [],
                 "computed": false,
@@ -2589,7 +2589,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 227,
                   "col": 2,
-                  "byteIndex": 8133
+                  "byteIndex": 8119
                 },
                 "params": [],
                 "computed": false,
@@ -2628,7 +2628,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 238,
         "col": 0,
-        "byteIndex": 8468
+        "byteIndex": 8452
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -2659,7 +2659,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 240,
                   "col": 2,
-                  "byteIndex": 8631
+                  "byteIndex": 8615
                 },
                 "params": [],
                 "computed": false,
@@ -2680,7 +2680,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 242,
                   "col": 2,
-                  "byteIndex": 8706
+                  "byteIndex": 8690
                 },
                 "params": [],
                 "computed": false,
@@ -2704,7 +2704,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 244,
                   "col": 2,
-                  "byteIndex": 8772
+                  "byteIndex": 8756
                 },
                 "params": [],
                 "computed": false,
@@ -2774,7 +2774,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 253,
         "col": 0,
-        "byteIndex": 8959
+        "byteIndex": 8942
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -2798,7 +2798,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 255,
                   "col": 2,
-                  "byteIndex": 9058
+                  "byteIndex": 9041
                 },
                 "params": [],
                 "computed": false,
@@ -2825,7 +2825,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 268,
         "col": 0,
-        "byteIndex": 9429
+        "byteIndex": 9410
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -3007,7 +3007,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 284,
         "col": 0,
-        "byteIndex": 9912
+        "byteIndex": 9891
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -3038,7 +3038,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 286,
                   "col": 2,
-                  "byteIndex": 10027
+                  "byteIndex": 10006
                 },
                 "params": [],
                 "computed": false,
@@ -3059,7 +3059,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 288,
                   "col": 2,
-                  "byteIndex": 10089
+                  "byteIndex": 10068
                 },
                 "params": [],
                 "computed": false,
@@ -3083,7 +3083,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 290,
                   "col": 2,
-                  "byteIndex": 10153
+                  "byteIndex": 10132
                 },
                 "params": [],
                 "computed": false,
@@ -3122,7 +3122,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 303,
         "col": 0,
-        "byteIndex": 10525
+        "byteIndex": 10502
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -3216,7 +3216,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 315,
         "col": 0,
-        "byteIndex": 10851
+        "byteIndex": 10827
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -3249,7 +3249,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 316,
                   "col": 2,
-                  "byteIndex": 10924
+                  "byteIndex": 10900
                 },
                 "params": [],
                 "computed": false,
@@ -3270,7 +3270,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 317,
                   "col": 2,
-                  "byteIndex": 10950
+                  "byteIndex": 10926
                 },
                 "params": [],
                 "computed": false,
@@ -3329,7 +3329,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 326,
         "col": 0,
-        "byteIndex": 11181
+        "byteIndex": 11156
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -3362,7 +3362,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 327,
                   "col": 2,
-                  "byteIndex": 11253
+                  "byteIndex": 11228
                 },
                 "params": [],
                 "computed": false,
@@ -3383,7 +3383,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
                   "line": 328,
                   "col": 2,
-                  "byteIndex": 11272
+                  "byteIndex": 11247
                 },
                 "params": [],
                 "computed": false,
@@ -3442,7 +3442,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 432,
         "col": 0,
-        "byteIndex": 14740
+        "byteIndex": 14676
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -3530,7 +3530,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 455,
               "col": 2,
-              "byteIndex": 15816
+              "byteIndex": 15751
             }
           }
         ],
@@ -3557,7 +3557,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 437,
               "col": 2,
-              "byteIndex": 14971
+              "byteIndex": 14907
             }
           },
           {
@@ -3593,7 +3593,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 439,
               "col": 2,
-              "byteIndex": 15052
+              "byteIndex": 14988
             }
           },
           {
@@ -3618,7 +3618,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 441,
               "col": 2,
-              "byteIndex": 15149
+              "byteIndex": 15085
             }
           },
           {
@@ -3663,7 +3663,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 443,
               "col": 2,
-              "byteIndex": 15240
+              "byteIndex": 15176
             }
           },
           {
@@ -3715,7 +3715,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 445,
               "col": 2,
-              "byteIndex": 15356
+              "byteIndex": 15292
             }
           },
           {
@@ -3740,7 +3740,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 447,
               "col": 2,
-              "byteIndex": 15514
+              "byteIndex": 15450
             }
           },
           {
@@ -3776,7 +3776,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 449,
               "col": 2,
-              "byteIndex": 15607
+              "byteIndex": 15543
             }
           }
         ],
@@ -3815,7 +3815,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 478,
               "col": 2,
-              "byteIndex": 16327
+              "byteIndex": 16262
             }
           },
           {
@@ -3915,7 +3915,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 642,
               "col": 2,
-              "byteIndex": 21206
+              "byteIndex": 21140
             }
           },
           {
@@ -4017,7 +4017,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 667,
               "col": 2,
-              "byteIndex": 21871
+              "byteIndex": 21805
             }
           },
           {
@@ -4081,7 +4081,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 727,
               "col": 2,
-              "byteIndex": 23379
+              "byteIndex": 23312
             }
           },
           {
@@ -4151,7 +4151,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 749,
               "col": 2,
-              "byteIndex": 24028
+              "byteIndex": 23961
             }
           },
           {
@@ -4332,7 +4332,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 814,
               "col": 2,
-              "byteIndex": 26223
+              "byteIndex": 26156
             }
           },
           {
@@ -4552,7 +4552,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 839,
               "col": 2,
-              "byteIndex": 27179
+              "byteIndex": 27111
             }
           },
           {
@@ -4728,7 +4728,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 903,
               "col": 2,
-              "byteIndex": 29273
+              "byteIndex": 29205
             }
           },
           {
@@ -4827,7 +4827,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 931,
               "col": 2,
-              "byteIndex": 30114
+              "byteIndex": 30046
             }
           },
           {
@@ -4927,7 +4927,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 951,
               "col": 2,
-              "byteIndex": 30845
+              "byteIndex": 30777
             }
           },
           {
@@ -5021,7 +5021,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 983,
               "col": 2,
-              "byteIndex": 31885
+              "byteIndex": 31817
             }
           },
           {
@@ -5099,7 +5099,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
               "line": 1002,
               "col": 2,
-              "byteIndex": 32449
+              "byteIndex": 32381
             }
           }
         ],
@@ -5116,7 +5116,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 1025,
         "col": 13,
-        "byteIndex": 33149
+        "byteIndex": 33079
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -5187,7 +5187,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/GenerateContext.ts",
         "line": 1049,
         "col": 13,
-        "byteIndex": 33797
+        "byteIndex": 33725
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -8184,67 +8184,13 @@
       }
     },
     {
-      "name": "AddGeneratorKeyArgs",
+      "name": "FilesRenderResult",
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
         "line": 23,
         "col": 0,
-        "byteIndex": 677
-      },
-      "declarationKind": "export",
-      "jsDoc": {
-        "doc": "Arguments for adding a generator key to the context."
-      },
-      "kind": "typeAlias",
-      "typeAliasDef": {
-        "tsType": {
-          "repr": "",
-          "kind": "typeLiteral",
-          "typeLiteral": {
-            "constructors": [],
-            "methods": [],
-            "properties": [
-              {
-                "name": "generatorKey",
-                "jsDoc": {
-                  "doc": "The generator key to add"
-                },
-                "location": {
-                  "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 25,
-                  "col": 2,
-                  "byteIndex": 749
-                },
-                "params": [],
-                "computed": false,
-                "optional": false,
-                "tsType": {
-                  "repr": "GeneratorKey",
-                  "kind": "typeRef",
-                  "typeRef": {
-                    "typeParams": null,
-                    "typeName": "GeneratorKey"
-                  }
-                },
-                "typeParams": []
-              }
-            ],
-            "callSignatures": [],
-            "indexSignatures": []
-          }
-        },
-        "typeParams": []
-      }
-    },
-    {
-      "name": "FilesRenderResult",
-      "isDefault": false,
-      "location": {
-        "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-        "line": 31,
-        "col": 0,
-        "byteIndex": 832
+        "byteIndex": 666
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -8266,9 +8212,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 33,
+                  "line": 25,
                   "col": 2,
-                  "byteIndex": 915
+                  "byteIndex": 749
                 },
                 "params": [],
                 "computed": false,
@@ -8301,9 +8247,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 35,
+                  "line": 27,
                   "col": 2,
-                  "byteIndex": 990
+                  "byteIndex": 824
                 },
                 "params": [],
                 "computed": false,
@@ -8345,9 +8291,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-        "line": 41,
+        "line": 33,
         "col": 0,
-        "byteIndex": 1126
+        "byteIndex": 960
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -8369,9 +8315,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 43,
+                  "line": 35,
                   "col": 2,
-                  "byteIndex": 1204
+                  "byteIndex": 1038
                 },
                 "params": [],
                 "computed": false,
@@ -8404,9 +8350,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 45,
+                  "line": 37,
                   "col": 2,
-                  "byteIndex": 1279
+                  "byteIndex": 1113
                 },
                 "params": [],
                 "computed": false,
@@ -8442,9 +8388,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 47,
+                  "line": 39,
                   "col": 2,
-                  "byteIndex": 1362
+                  "byteIndex": 1196
                 },
                 "params": [],
                 "computed": false,
@@ -8494,9 +8440,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 49,
+                  "line": 41,
                   "col": 2,
-                  "byteIndex": 1459
+                  "byteIndex": 1293
                 },
                 "params": [],
                 "computed": false,
@@ -8546,9 +8492,9 @@
                 },
                 "location": {
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-                  "line": 51,
+                  "line": 43,
                   "col": 2,
-                  "byteIndex": 1550
+                  "byteIndex": 1384
                 },
                 "params": [],
                 "computed": false,
@@ -8576,9 +8522,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-        "line": 57,
+        "line": 49,
         "col": 0,
-        "byteIndex": 1649
+        "byteIndex": 1483
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -8624,9 +8570,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/context/types.ts",
-        "line": 62,
+        "line": 54,
         "col": 0,
-        "byteIndex": 1824
+        "byteIndex": 1658
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -40274,7 +40220,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
         "line": 12,
         "col": 0,
-        "byteIndex": 400
+        "byteIndex": 399
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -40305,7 +40251,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 14,
                   "col": 2,
-                  "byteIndex": 511
+                  "byteIndex": 510
                 },
                 "params": [],
                 "computed": false,
@@ -40326,7 +40272,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 16,
                   "col": 2,
-                  "byteIndex": 565
+                  "byteIndex": 564
                 },
                 "params": [],
                 "computed": false,
@@ -40347,7 +40293,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 18,
                   "col": 2,
-                  "byteIndex": 644
+                  "byteIndex": 643
                 },
                 "params": [],
                 "computed": false,
@@ -40427,7 +40373,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 20,
                   "col": 2,
-                  "byteIndex": 772
+                  "byteIndex": 771
                 },
                 "params": [],
                 "computed": false,
@@ -40463,7 +40409,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 22,
                   "col": 2,
-                  "byteIndex": 879
+                  "byteIndex": 878
                 },
                 "params": [],
                 "computed": false,
@@ -40566,7 +40512,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 26,
                   "col": 2,
-                  "byteIndex": 1075
+                  "byteIndex": 1074
                 },
                 "params": [],
                 "computed": false,
@@ -40623,7 +40569,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 28,
                   "col": 2,
-                  "byteIndex": 1197
+                  "byteIndex": 1196
                 },
                 "params": [],
                 "computed": false,
@@ -40647,7 +40593,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 30,
                   "col": 2,
-                  "byteIndex": 1265
+                  "byteIndex": 1264
                 },
                 "params": [],
                 "computed": false,
@@ -40668,7 +40614,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 32,
                   "col": 2,
-                  "byteIndex": 1337
+                  "byteIndex": 1336
                 },
                 "params": [],
                 "computed": false,
@@ -40689,7 +40635,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 34,
                   "col": 2,
-                  "byteIndex": 1413
+                  "byteIndex": 1412
                 },
                 "params": [],
                 "computed": false,
@@ -40810,7 +40756,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 38,
                   "col": 2,
-                  "byteIndex": 1592
+                  "byteIndex": 1591
                 },
                 "params": [],
                 "computed": false,
@@ -40845,7 +40791,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 40,
                   "col": 2,
-                  "byteIndex": 1709
+                  "byteIndex": 1708
                 },
                 "params": [],
                 "computed": false,
@@ -40948,7 +40894,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 44,
                   "col": 2,
-                  "byteIndex": 1875
+                  "byteIndex": 1874
                 },
                 "params": [],
                 "computed": false,
@@ -40969,7 +40915,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 46,
                   "col": 2,
-                  "byteIndex": 1938
+                  "byteIndex": 1937
                 },
                 "params": [],
                 "computed": false,
@@ -40990,7 +40936,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 48,
                   "col": 2,
-                  "byteIndex": 2002
+                  "byteIndex": 2001
                 },
                 "params": [],
                 "computed": false,
@@ -41037,7 +40983,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
         "line": 54,
         "col": 0,
-        "byteIndex": 2093
+        "byteIndex": 2092
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -41061,7 +41007,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 56,
                   "col": 2,
-                  "byteIndex": 2168
+                  "byteIndex": 2167
                 },
                 "params": [],
                 "computed": false,
@@ -41082,7 +41028,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 58,
                   "col": 2,
-                  "byteIndex": 2231
+                  "byteIndex": 2230
                 },
                 "params": [],
                 "computed": false,
@@ -41142,7 +41088,7 @@
                   "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
                   "line": 60,
                   "col": 2,
-                  "byteIndex": 2345
+                  "byteIndex": 2344
                 },
                 "params": [],
                 "computed": false,
@@ -41169,7 +41115,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
         "line": 148,
         "col": 0,
-        "byteIndex": 5067
+        "byteIndex": 5051
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -41253,7 +41199,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 233,
               "col": 2,
-              "byteIndex": 7622
+              "byteIndex": 7604
             }
           }
         ],
@@ -41280,7 +41226,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 153,
               "col": 2,
-              "byteIndex": 5267
+              "byteIndex": 5251
             }
           },
           {
@@ -41305,7 +41251,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 157,
               "col": 2,
-              "byteIndex": 5383
+              "byteIndex": 5367
             }
           },
           {
@@ -41338,7 +41284,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 161,
               "col": 2,
-              "byteIndex": 5458
+              "byteIndex": 5442
             }
           },
           {
@@ -41371,7 +41317,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 165,
               "col": 2,
-              "byteIndex": 5532
+              "byteIndex": 5516
             }
           },
           {
@@ -41407,7 +41353,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 169,
               "col": 2,
-              "byteIndex": 5620
+              "byteIndex": 5604
             }
           },
           {
@@ -41579,7 +41525,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 173,
               "col": 2,
-              "byteIndex": 5737
+              "byteIndex": 5721
             }
           },
           {
@@ -41616,7 +41562,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 179,
               "col": 2,
-              "byteIndex": 5988
+              "byteIndex": 5972
             }
           },
           {
@@ -41674,7 +41620,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 185,
               "col": 2,
-              "byteIndex": 6152
+              "byteIndex": 6136
             }
           },
           {
@@ -41721,7 +41667,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 188,
               "col": 2,
-              "byteIndex": 6268
+              "byteIndex": 6252
             }
           },
           {
@@ -41825,7 +41771,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 192,
               "col": 2,
-              "byteIndex": 6366
+              "byteIndex": 6350
             }
           },
           {
@@ -41929,7 +41875,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 198,
               "col": 2,
-              "byteIndex": 6540
+              "byteIndex": 6524
             }
           },
           {
@@ -41951,7 +41897,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 202,
               "col": 2,
-              "byteIndex": 6724
+              "byteIndex": 6708
             }
           },
           {
@@ -41973,7 +41919,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 204,
               "col": 2,
-              "byteIndex": 6810
+              "byteIndex": 6794
             }
           },
           {
@@ -41995,7 +41941,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 206,
               "col": 2,
-              "byteIndex": 6876
+              "byteIndex": 6860
             }
           },
           {
@@ -42017,7 +41963,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 208,
               "col": 2,
-              "byteIndex": 6939
+              "byteIndex": 6923
             }
           },
           {
@@ -42039,7 +41985,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 210,
               "col": 2,
-              "byteIndex": 7010
+              "byteIndex": 6994
             }
           },
           {
@@ -42161,7 +42107,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 212,
               "col": 2,
-              "byteIndex": 7084
+              "byteIndex": 7068
             }
           }
         ],
@@ -42215,7 +42161,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 276,
               "col": 2,
-              "byteIndex": 8905
+              "byteIndex": 8881
             }
           },
           {
@@ -42311,7 +42257,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 329,
               "col": 2,
-              "byteIndex": 10427
+              "byteIndex": 10397
             }
           },
           {
@@ -42369,7 +42315,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 377,
               "col": 2,
-              "byteIndex": 11950
+              "byteIndex": 11915
             }
           },
           {
@@ -42417,7 +42363,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 395,
               "col": 2,
-              "byteIndex": 12425
+              "byteIndex": 12390
             }
           },
           {
@@ -42446,7 +42392,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 399,
               "col": 2,
-              "byteIndex": 12485
+              "byteIndex": 12450
             }
           },
           {
@@ -42475,7 +42421,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 403,
               "col": 2,
-              "byteIndex": 12531
+              "byteIndex": 12496
             }
           },
           {
@@ -42536,7 +42482,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/oas/object/Object.ts",
               "line": 444,
               "col": 2,
-              "byteIndex": 13634
+              "byteIndex": 13593
             }
           }
         ],
@@ -73907,7 +73853,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
         "line": 28,
         "col": 0,
-        "byteIndex": 1085
+        "byteIndex": 1083
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -74007,7 +73953,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
         "line": 37,
         "col": 0,
-        "byteIndex": 1273
+        "byteIndex": 1271
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -74044,14 +73990,6 @@
               }
             },
             {
-              "repr": "<>",
-              "kind": "literal",
-              "literal": {
-                "kind": "string",
-                "string": "<>"
-              }
-            },
-            {
               "repr": "none",
               "kind": "literal",
               "literal": {
@@ -74071,7 +74009,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
         "line": 48,
         "col": 0,
-        "byteIndex": 1577
+        "byteIndex": 1568
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -74138,11 +74076,11 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
         "line": 140,
         "col": 0,
-        "byteIndex": 4966
+        "byteIndex": 4929
       },
       "declarationKind": "export",
       "jsDoc": {
-        "doc": "A powerful utility class for building formatted lists of stringable items.\n\nThe `List` class is a core component of the SKMTC DSL system, providing type-safe\nconstruction of formatted lists with customizable separators and bookends. It's\nextensively used throughout the codebase for generating code constructs like\nfunction parameters, object properties, array literals, and more.\n\n## Type Safety\n\nThe class uses TypeScript's generic system to provide compile-time guarantees\nabout the list structure, separator, and bookend styles. This enables rich\ntype inference and helps prevent formatting errors.\n\n## Common Patterns\n\n- **Objects**: `List.toObject()` creates `{key: value, ...}` structures\n- **Arrays**: `List.toArray()` creates `[item, item, ...]` structures  \n- **Parameters**: `List.toParams()` creates `(param, param, ...)` structures\n- **Lines**: `List.toLines()` creates newline-separated content\n",
+        "doc": "A powerful utility class for building formatted lists of stringable items.\n\nThe `List` class is a core component of the SKMTC DSL system, providing type-safe\nconstruction of formatted lists with customizable separators and bookends. It's\nextensively used throughout the codebase for generating code constructs like\nfunction parameters, object properties, array literals, and more.\n\n## Type Safety\n\nThe class uses TypeScript's generic system to provide compile-time guarantees\nabout the list structure, separator, and bookend styles. This enables rich\ntype inference and helps prevent formatting errors.\n\n## Common Patterns\n\n- **Objects**: `List.toObject()` creates `{key: value, ...}` structures\n- **Arrays**: `List.toArray()` creates `[item, item, ...]` structures\n- **Parameters**: `List.toParams()` creates `(param, param, ...)` structures\n- **Lines**: `List.toLines()` creates newline-separated content\n",
         "tags": [
           {
             "kind": "template",
@@ -74157,7 +74095,7 @@
           {
             "kind": "template",
             "name": "Bookends",
-            "doc": "- Style of bookends ('[]', '{}', '()', '<>', 'none')\n"
+            "doc": "- Style of bookends ('[]', '{}', '()', 'none')\n"
           },
           {
             "kind": "example",
@@ -74313,7 +74251,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
               "line": 179,
               "col": 2,
-              "byteIndex": 6188
+              "byteIndex": 6138
             }
           }
         ],
@@ -74353,7 +74291,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
               "line": 146,
               "col": 2,
-              "byteIndex": 5163
+              "byteIndex": 5126
             }
           },
           {
@@ -74378,7 +74316,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
               "line": 149,
               "col": 2,
-              "byteIndex": 5252
+              "byteIndex": 5213
             }
           },
           {
@@ -74403,7 +74341,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
               "line": 152,
               "col": 2,
-              "byteIndex": 5327
+              "byteIndex": 5286
             }
           },
           {
@@ -74425,7 +74363,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
               "line": 155,
               "col": 2,
-              "byteIndex": 5409
+              "byteIndex": 5366
             }
           },
           {
@@ -74485,9 +74423,9 @@
             "name": "toEmpty",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 218,
+              "line": 220,
               "col": 2,
-              "byteIndex": 7394
+              "byteIndex": 7371
             }
           },
           {
@@ -74574,9 +74512,9 @@
             "name": "toSingle",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 227,
+              "line": 229,
               "col": 2,
-              "byteIndex": 7615
+              "byteIndex": 7592
             }
           },
           {
@@ -74717,9 +74655,9 @@
             "name": "toConditional",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 241,
+              "line": 243,
               "col": 2,
-              "byteIndex": 8117
+              "byteIndex": 8094
             }
           },
           {
@@ -74844,9 +74782,9 @@
             "name": "toRecord",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 256,
+              "line": 258,
               "col": 2,
-              "byteIndex": 8705
+              "byteIndex": 8682
             }
           },
           {
@@ -74976,9 +74914,9 @@
             "name": "toFilteredRecord",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 271,
+              "line": 273,
               "col": 2,
-              "byteIndex": 9157
+              "byteIndex": 9134
             }
           },
           {
@@ -75122,9 +75060,9 @@
             "name": "toKeyValue",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 287,
+              "line": 289,
               "col": 2,
-              "byteIndex": 9624
+              "byteIndex": 9601
             }
           },
           {
@@ -75242,9 +75180,9 @@
             "name": "toObjectKey",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 300,
+              "line": 302,
               "col": 2,
-              "byteIndex": 9994
+              "byteIndex": 9971
             }
           },
           {
@@ -75364,9 +75302,9 @@
             "name": "toObject",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 314,
+              "line": 316,
               "col": 2,
-              "byteIndex": 10401
+              "byteIndex": 10378
             }
           },
           {
@@ -75462,9 +75400,9 @@
             "name": "toArray",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 326,
+              "line": 328,
               "col": 2,
-              "byteIndex": 10782
+              "byteIndex": 10759
             }
           },
           {
@@ -75560,9 +75498,9 @@
             "name": "toParams",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 335,
+              "line": 337,
               "col": 2,
-              "byteIndex": 11101
+              "byteIndex": 11078
             }
           },
           {
@@ -75658,9 +75596,9 @@
             "name": "toLines",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 344,
+              "line": 346,
               "col": 2,
-              "byteIndex": 11407
+              "byteIndex": 11384
             }
           },
           {
@@ -75745,9 +75683,9 @@
             "name": "fromKeys",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 354,
+              "line": 356,
               "col": 2,
-              "byteIndex": 11669
+              "byteIndex": 11646
             }
           },
           {
@@ -75853,9 +75791,9 @@
             "name": "fromEntries",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 364,
+              "line": 366,
               "col": 2,
-              "byteIndex": 11934
+              "byteIndex": 11911
             }
           },
           {
@@ -75977,9 +75915,9 @@
             "name": "toFilteredKeyValue",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 379,
+              "line": 381,
               "col": 2,
-              "byteIndex": 12494
+              "byteIndex": 12471
             }
           },
           {
@@ -76103,9 +76041,9 @@
             "name": "hasValue",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 393,
+              "line": 395,
               "col": 2,
-              "byteIndex": 13004
+              "byteIndex": 12981
             }
           }
         ],
@@ -76143,7 +76081,7 @@
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
               "line": 198,
               "col": 2,
-              "byteIndex": 6844
+              "byteIndex": 6792
             }
           }
         ],
@@ -76218,9 +76156,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-        "line": 415,
+        "line": 417,
         "col": 0,
-        "byteIndex": 13430
+        "byteIndex": 13407
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -76286,9 +76224,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-        "line": 423,
+        "line": 425,
         "col": 0,
-        "byteIndex": 13684
+        "byteIndex": 13660
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -76330,9 +76268,9 @@
             ],
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 432,
+              "line": 434,
               "col": 2,
-              "byteIndex": 13865
+              "byteIndex": 13840
             }
           }
         ],
@@ -76358,9 +76296,9 @@
             "name": "keys",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 425,
+              "line": 427,
               "col": 2,
-              "byteIndex": 13739
+              "byteIndex": 13715
             }
           }
         ],
@@ -76477,9 +76415,9 @@
             },
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 443,
+              "line": 445,
               "col": 2,
-              "byteIndex": 14183
+              "byteIndex": 14157
             }
           },
           {
@@ -76521,9 +76459,9 @@
             },
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 458,
+              "line": 460,
               "col": 2,
-              "byteIndex": 14547
+              "byteIndex": 14520
             }
           },
           {
@@ -76608,9 +76546,9 @@
             },
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 468,
+              "line": 470,
               "col": 2,
-              "byteIndex": 14822
+              "byteIndex": 14794
             }
           },
           {
@@ -76652,9 +76590,9 @@
             },
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 477,
+              "line": 479,
               "col": 2,
-              "byteIndex": 15080
+              "byteIndex": 15051
             }
           }
         ],
@@ -76669,9 +76607,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-        "line": 485,
+        "line": 487,
         "col": 0,
-        "byteIndex": 15211
+        "byteIndex": 15182
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -76718,9 +76656,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-        "line": 490,
+        "line": 492,
         "col": 0,
-        "byteIndex": 15337
+        "byteIndex": 15308
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -76820,9 +76758,9 @@
       "isDefault": false,
       "location": {
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-        "line": 503,
+        "line": 505,
         "col": 0,
-        "byteIndex": 15696
+        "byteIndex": 15665
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -76883,9 +76821,9 @@
             ],
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 512,
+              "line": 514,
               "col": 2,
-              "byteIndex": 15933
+              "byteIndex": 15901
             }
           }
         ],
@@ -76923,9 +76861,9 @@
             "name": "entries",
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 505,
+              "line": 507,
               "col": 2,
-              "byteIndex": 15786
+              "byteIndex": 15755
             }
           }
         ],
@@ -77021,9 +76959,9 @@
             },
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 522,
+              "line": 524,
               "col": 2,
-              "byteIndex": 16196
+              "byteIndex": 16163
             }
           },
           {
@@ -77116,9 +77054,9 @@
             },
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 532,
+              "line": 534,
               "col": 2,
-              "byteIndex": 16557
+              "byteIndex": 16523
             }
           },
           {
@@ -77211,9 +77149,9 @@
             },
             "location": {
               "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/List.ts",
-              "line": 542,
+              "line": 544,
               "col": 2,
-              "byteIndex": 16914
+              "byteIndex": 16879
             }
           }
         ],
@@ -77712,7 +77650,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/toPathTemplate.ts",
         "line": 115,
         "col": 13,
-        "byteIndex": 3937
+        "byteIndex": 3900
       },
       "declarationKind": "export",
       "jsDoc": {
@@ -77805,7 +77743,7 @@
         "filename": "file:///Users/dmitrigrabov/workspace/skmtc-root/skmtc/deno/core/typescript/toPathParams.ts",
         "line": 180,
         "col": 13,
-        "byteIndex": 5265
+        "byteIndex": 5212
       },
       "declarationKind": "export",
       "jsDoc": {

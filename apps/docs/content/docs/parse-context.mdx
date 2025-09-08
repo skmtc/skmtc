@@ -1,0 +1,156 @@
+---
+title: "ParseContext"
+description: "The parsing context for the first phase of the SKMTC transformation pipeline."
+kind: "class"
+filename: "skmtc/deno/core/context/ParseContext.ts"
+line: 257
+---
+
+# ParseContext
+
+The parsing context for the first phase of the SKMTC transformation pipeline.
+
+`ParseContext` is responsible for converting OpenAPI v3 JSON documents into
+the internal OAS (OpenAPI Schema) object representation used by SKMTC. It
+provides comprehensive error handling, validation, and issue tracking during
+the parsing process.
+
+This context handles the complex task of transforming external OpenAPI
+specifications into type-safe internal representations while maintaining
+detailed information about any parsing issues or inconsistencies found.
+
+## Key Features
+
+- **JSON to OAS Conversion**: Transforms OpenAPI JSON into typed OAS objects
+- **Validation & Error Handling**: Comprehensive validation with detailed error reporting
+- **Issue Tracking**: Collects warnings and errors with precise location information
+- **Reference Management**: Handles complex reference resolution and tracking
+- **Logging Integration**: Provides detailed logging and tracing capabilities
+- **Silent Mode**: Can suppress console output while maintaining error collection
+
+
+## Example
+
+Basic parsing usage
+```typescript
+import { ParseContext } from '@skmtc/core';
+
+const parseContext = new ParseContext({
+  documentObject: openApiJsonDocument,
+  logger: myLogger,
+  stackTrail: traceStack,
+  silent: false
+});
+
+const oasDocument = parseContext.parse();
+
+// Check for parsing issues
+if (parseContext.issues.length > 0) {
+  console.log('Parsing issues found:');
+  parseContext.issues.forEach(issue => {
+    console.log(`${issue.level}: ${issue.location} - ${issue.message || issue.error?.message}`);
+  });
+}
+
+// Use the parsed document
+console.log('Parsed schemas:', Object.keys(oasDocument.components?.schemas || {}));
+```
+
+
+## Example
+
+Error handling during parsing
+```typescript
+const parseContext = new ParseContext({
+  documentObject: malformedOpenApiDoc,
+  logger: logger,
+  stackTrail: stack,
+  silent: true
+});
+
+try {
+  const parsed = parseContext.parse();
+
+  // Separate errors from warnings
+  const errors = parseContext.issues.filter(issue => issue.level === 'error');
+  const warnings = parseContext.issues.filter(issue => issue.level === 'warning');
+
+  if (errors.length > 0) {
+    console.error(`${errors.length} parsing errors found`);
+    errors.forEach(error => {
+      console.error(`Error at ${error.location}: ${error.error.message}`);
+    });
+  }
+
+  if (warnings.length > 0) {
+    console.warn(`${warnings.length} parsing warnings found`);
+    warnings.forEach(warning => {
+      console.warn(`Warning at ${warning.location}: ${warning.message}`);
+    });
+  }
+} catch (error) {
+  console.error('Critical parsing failure:', error);
+}
+```
+
+
+## Example
+
+Integration with CoreContext
+```typescript
+// Typically used within CoreContext.parse()
+class CustomCoreContext extends CoreContext {
+  parseWithCustomValidation(document: OpenAPIV3.Document) {
+    const parseContext = new ParseContext({
+      documentObject: document,
+      logger: this.logger,
+      stackTrail: this.stackTrail,
+      silent: this.silent
+    });
+
+    const parsed = parseContext.parse();
+
+    // Custom post-processing based on issues
+    const criticalErrors = parseContext.issues.filter(issue =>
+      issue.level === 'error' && issue.type === 'schema-validation'
+    );
+
+    if (criticalErrors.length > 0) {
+      throw new Error(`Schema validation failed: ${criticalErrors.length} critical errors`);
+    }
+
+    return parsed;
+  }
+}
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `documentObject: OpenAPIV3.Document`
+- `logger: Logger`
+- `oasDocument: OasDocument`
+- `stackTrail: StackTrail`
+- `issues: unknown`
+- `silent: boolean`
+
+### Methods
+
+- `parse(): OasDocument`
+- `removeErroredItems(): void`
+- `registerRef(stackTrail: StackTrail, $ref: string): void`
+- `registerRefError(error: Error, $ref: unknown): void`
+- `trace(token: unknown, fn: unknown): T`
+- `logSkippedFields(...): void`
+- `provisionalParse(...): unknown`
+- `logIssue(...): void`
+- `logIssueNoKey(...): void`
+
+## Source
+
+Located at `skmtc/deno/core/context/ParseContext.ts:257:0`

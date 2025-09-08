@@ -1,0 +1,34 @@
+---
+title: "toResponseName"
+description: "Generates response type name for an operation."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/naming.ts"
+line: 58
+---
+
+# toResponseName
+
+Generates response type name for an operation.
+
+
+**@param** operation - The OpenAPI operation
+
+**@returns** Response type name with 'Response' suffix
+
+
+## Example
+
+```typescript
+const op = new OasOperation({ method: 'get', path: '/users' });
+console.log(toResponseName(op)); // 'getApiUsersResponse'
+```
+
+## Variable Definition
+
+```typescript
+const toResponseName: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/naming.ts:58:13`

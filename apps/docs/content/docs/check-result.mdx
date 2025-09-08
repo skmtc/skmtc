@@ -1,0 +1,95 @@
+---
+title: "checkResult"
+description: "Recursively checks results structure for error conditions and collects error paths."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/generationStats.ts"
+line: 360
+---
+
+# checkResult
+
+Recursively checks results structure for error conditions and collects error paths.
+
+This function traverses the complex nested structure of generation results,
+identifying error conditions at any level and recording their full path context.
+It handles arrays, objects, strings, and null values, building a comprehensive
+map of all errors that occurred during generation.
+
+The function mutates the errors array parameter, accumulating error paths
+as it traverses the results structure. This approach is used for performance
+when processing large result sets.
+
+
+**@param** args - Arguments for result checking
+
+**@param** args.path - Current path segments being traversed
+
+**@param** args.result - The result value to check for errors
+
+**@param** args.errors - Array to accumulate error paths (mutated by function)
+
+
+## Example
+
+Simple error detection
+```typescript
+const errors: string[][] = [];
+
+checkResult({
+  path: ['models.ts'],
+  result: 'error',
+  errors
+});
+
+console.log(errors); // [['models.ts']]
+```
+
+
+## Example
+
+Nested structure error detection
+```typescript
+const errors: string[][] = [];
+const nestedResult = {
+  'User': 'success',
+  'Product': {
+    'validation': 'error',
+    'generation': 'success'
+  }
+};
+
+checkResult({
+  path: ['models.ts'],
+  result: nestedResult,
+  errors
+});
+
+console.log(errors); // [['models.ts', 'Product', 'validation']]
+```
+
+
+## Example
+
+Array handling
+```typescript
+const errors: string[][] = [];
+const arrayResult = ['success', null, 'error', 'success'];
+
+checkResult({
+  path: ['batch'],
+  result: arrayResult,
+  errors
+});
+
+console.log(errors); // [['batch']] - for the 'error' item
+```
+
+## Variable Definition
+
+```typescript
+const checkResult: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/generationStats.ts:360:13`

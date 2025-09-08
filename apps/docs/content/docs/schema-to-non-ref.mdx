@@ -1,0 +1,31 @@
+---
+title: "SchemaToNonRef"
+description: "Extracts only non-reference types from a schema type."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/TypeSystem.ts"
+line: 538
+---
+
+# SchemaToNonRef
+
+Extracts only non-reference types from a schema type.
+
+
+**@template** - The schema type to filter
+
+## Example
+
+```typescript
+type SchemaOnly = SchemaToNonRef<OasSchema>; // OasSchema
+type NeverForRef = SchemaToNonRef<OasRef<'schema'>>; // never
+```
+
+## Type Definition
+
+```typescript
+type SchemaToNonRef = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/TypeSystem.ts:538:0`

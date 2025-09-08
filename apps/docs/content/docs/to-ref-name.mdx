@@ -1,0 +1,71 @@
+---
+title: "toRefName"
+description: "Extracts a reference name from an OpenAPI $ref string."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/refFns.ts"
+line: 46
+---
+
+# toRefName
+
+Extracts a reference name from an OpenAPI $ref string.
+
+This function parses JSON Pointer references (like '#/components/schemas/User')
+and extracts the final component as a branded RefName type. It's used throughout
+the SKMTC system to convert string references into type-safe reference names.
+
+
+**@param** $ref - The OpenAPI reference string (e.g., '#/components/schemas/User')
+
+**@returns** The extracted reference name as a branded RefName type
+
+
+**@throws** When the reference string is invalid or empty
+
+
+## Example
+
+Basic usage
+```typescript
+import { toRefName } from '@skmtc/core/helpers';
+
+const refName = toRefName('#/components/schemas/User');
+console.log(refName); // 'User' (typed as RefName)
+
+const responseRef = toRefName('#/components/responses/ErrorResponse');
+console.log(responseRef); // 'ErrorResponse' (typed as RefName)
+```
+
+
+## Example
+
+Error cases
+```typescript
+// These will throw errors:
+toRefName('invalid/ref/'); // Error: 'Invalid reference'
+toRefName('#/components/schemas/'); // Error: 'Invalid reference'
+```
+
+
+## Example
+
+Integration with OAS processing
+```typescript
+class SchemaProcessor {
+  processReference(ref: string) {
+    const refName = toRefName(ref);
+    const schema = this.document.components.schemas[refName];
+    return this.processSchema(schema, refName);
+  }
+}
+```
+
+## Variable Definition
+
+```typescript
+const toRefName: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/refFns.ts:46:13`

@@ -1,0 +1,37 @@
+---
+title: "TypeSystemRef"
+description: "Type system representation of a reference to another schema."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/TypeSystem.ts"
+line: 98
+---
+
+# TypeSystemRef
+
+Type system representation of a reference to another schema.
+
+`TypeSystemRef` represents references to other schemas, typically used for
+complex types that are defined elsewhere in the schema and referenced
+through `$ref` in OpenAPI specifications.
+
+
+## Example
+
+```typescript
+const userRef: TypeSystemRef = {
+  type: 'ref',
+  name: 'User',
+  modifiers: { optional: false, nullable: false },
+  generatorKey: 'model|User'
+};
+```
+
+## Type Definition
+
+```typescript
+type TypeSystemRef = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/TypeSystem.ts:98:0`

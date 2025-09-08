@@ -1,0 +1,43 @@
+---
+title: "isGeneratorOnlyKey"
+description: "Type guard to check if a value is a valid GeneratorOnlyKey."
+kind: "variable"
+filename: "skmtc/deno/core/types/GeneratorKeys.ts"
+line: 447
+---
+
+# isGeneratorOnlyKey
+
+Type guard to check if a value is a valid GeneratorOnlyKey.
+
+Validates that the argument is a non-empty string. Generator-only keys
+are simple strings containing just the generator ID.
+
+
+**@param** arg - Value to check
+
+**@returns** True if the value is a valid GeneratorOnlyKey
+
+
+## Example
+
+```typescript
+const key = 'api-config';
+
+if (isGeneratorOnlyKey(key)) {
+  // key is now typed as GeneratorOnlyKey
+  const obj = fromGeneratorKey(key);
+  console.log(obj.type);        // 'generator-only'
+  console.log(obj.generatorId); // 'api-config'
+}
+```
+
+## Variable Definition
+
+```typescript
+const isGeneratorOnlyKey: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/GeneratorKeys.ts:447:13`

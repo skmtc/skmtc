@@ -1,0 +1,180 @@
+---
+title: "Inserted"
+description: "Represents a successfully inserted generator artifact in the SKMTC DSL system."
+kind: "class"
+filename: "skmtc/deno/core/dsl/Inserted.ts"
+line: 158
+---
+
+# Inserted
+
+Represents a successfully inserted generator artifact in the SKMTC DSL system.
+
+The `Inserted` class is returned when generators are inserted into the generation
+context, providing access to the generated content, metadata, and configuration.
+It acts as a bridge between the insertion process and the consuming code that
+needs to reference or use the generated artifacts.
+
+This class provides type-safe access to generated values with proper handling
+of both forced and lazy generation modes, ensuring the correct optionality
+of the generated content based on the generation strategy used.
+
+## Key Features
+
+- **Type Safety**: Generic parameters preserve exact types from generators
+- **Generation Modes**: Handles both 'force' and 'lazy' generation strategies
+- **Metadata Access**: Provides access to identifiers, export paths, and settings
+- **Value Extraction**: Type-safe value extraction with proper optionality
+- **Enrichment Support**: Full support for custom enrichment data types
+
+
+**@template** - The type of generated value (preserves generator output type)
+
+**@template** - The generation type ('force' ensures non-null, 'lazy' allows undefined)
+
+**@template** - Optional type for custom enrichment data
+
+
+## Example
+
+Basic usage with forced generation
+```typescript
+import { Inserted } from '@skmtc/core';
+
+class MyGenerator extends ModelBase {
+  generate(): Definition {
+    // Insert a related model with forced generation
+    const userModel = this.insertModel(
+      new UserModelGenerator({ ... }),
+      'User'
+    ); // Returns Inserted<UserModelValue, 'force', EnrichmentType>
+
+    // Access the generated value (guaranteed to be present)
+    const userTypeName = userModel.toValue(); // UserModelValue (not undefined)
+    const exportPath = userModel.toExportPath(); // './src/models.ts'
+    const identifier = userModel.toName(); // 'User'
+
+    return new Definition({
+      identifier: Identifier.createType(this.refName),
+      value: {
+        generatorKey: this.generatorKey,
+        content: `export interface Order { user: ${userTypeName}; }`
+      }
+    });
+  }
+}
+```
+
+
+## Example
+
+Working with lazy generation
+```typescript
+class ConditionalGenerator extends ModelBase {
+  generate(): Definition {
+    // Insert with lazy generation (may not generate if already exists)
+    const optionalModel = this.insertModel(
+      new OptionalModelGenerator({ ... }),
+      'OptionalModel',
+      { generation: 'lazy' }
+    ); // Returns Inserted<OptionalValue, 'lazy', EnrichmentType>
+
+    // Value might be undefined with lazy generation
+    const value = optionalModel.toValue(); // OptionalValue | undefined
+
+    if (value) {
+      // Use the generated value
+      return this.createDefinitionWith(value);
+    } else {
+      // Handle case where generation was skipped
+      return this.createFallbackDefinition();
+    }
+  }
+}
+```
+
+
+## Example
+
+Accessing insertion metadata
+```typescript
+class MetadataAwareGenerator extends OperationBase {
+  generate(): Definition {
+    const requestModel = this.insertModel(
+      new RequestModelGenerator({ ... }),
+      'CreateUserRequest'
+    );
+
+    // Access various metadata
+    const modelName = requestModel.toName(); // 'CreateUserRequest'
+    const identifier = requestModel.toIdentifier(); // Full Identifier object
+    const exportPath = requestModel.toExportPath(); // './src/api/types.ts'
+    const enrichments = requestModel.settings.enrichments; // Custom data
+
+    console.log(`Generated ${modelName} in ${exportPath}`);
+
+    return new Definition({
+      identifier: Identifier.createVariable(this.operation.operationId!),
+      value: {
+        generatorKey: this.generatorKey,
+        content: `async function createUser(data: ${modelName}) { ... }`
+      }
+    });
+  }
+}
+```
+
+
+## Example
+
+With enrichment data
+```typescript
+type ValidationEnrichment = {
+  validators: string[];
+  required: boolean;
+};
+
+class EnrichedGenerator extends ModelBase<ValidationEnrichment> {
+  generate(): Definition {
+    const validatedModel = this.insertModel(
+      new ValidatedModelGenerator({ ... }),
+      'ValidatedUser'
+    ); // Returns Inserted<ModelValue, 'force', ValidationEnrichment>
+
+    // Access enrichment data
+    const enrichment = validatedModel.settings.enrichments;
+    const validators = enrichment?.validators ?? [];
+    const isRequired = enrichment?.required ?? false;
+
+    return new Definition({
+      identifier: Identifier.createType(this.refName),
+      value: {
+        generatorKey: this.generatorKey,
+        content: this.generateWithValidation(validatedModel.toValue(), validators)
+      }
+    });
+  }
+}
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `settings: ContentSettings`
+- `definition: GeneratedDefinition`
+
+### Methods
+
+- `toName(): string`
+- `toIdentifier(): Identifier`
+- `toExportPath(): string`
+- `toValue(): unknown`
+
+## Source
+
+Located at `skmtc/deno/core/dsl/Inserted.ts:158:0`

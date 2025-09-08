@@ -1,0 +1,34 @@
+---
+title: "toArgsName"
+description: "Generates arguments type name for an operation."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/naming.ts"
+line: 76
+---
+
+# toArgsName
+
+Generates arguments type name for an operation.
+
+
+**@param** operation - The OpenAPI operation
+
+**@returns** Arguments type name with 'Args' suffix
+
+
+## Example
+
+```typescript
+const op = new OasOperation({ method: 'put', path: '/users/{id}' });
+console.log(toArgsName(op)); // 'updateApiUsersIdArgs'
+```
+
+## Variable Definition
+
+```typescript
+const toArgsName: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/naming.ts:76:13`

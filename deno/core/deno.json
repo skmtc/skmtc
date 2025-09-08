@@ -39,7 +39,7 @@
     "publish:deno:ga": "deno publish",
     "publish:npm": "cd ../../packages/core && npm publish",
     "docs": "deno doc --html --name=\"My library\" ./mod.ts",
-    "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > docs/docs.json"
+    "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > ../docs/src/docs.json"
   },
   "compilerOptions": {
     "noImplicitAny": true

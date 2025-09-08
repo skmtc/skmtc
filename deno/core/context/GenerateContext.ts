@@ -56,7 +56,7 @@ type ConstructorArgs = {
 
 /**
  * Arguments for picking a specific export from a generator module.
- * 
+ *
  * Used to select and configure specific exports from generator modules
  * during the artifact generation process.
  */
@@ -69,7 +69,7 @@ export type PickArgs = {
 
 /**
  * Arguments for registering a JSON file in the generation context.
- * 
+ *
  * Used to register JSON configuration files, manifests, or other JSON
  * data that should be included in the generated output artifacts.
  */
@@ -82,7 +82,7 @@ export type RegisterJsonArgs = {
 
 /**
  * Arguments for applying package imports to a generated file.
- * 
+ *
  * Used to configure import statements and dependencies when generating
  * code files that need to reference external packages or modules.
  */
@@ -95,7 +95,7 @@ export type ApplyPackageImportsArgs = {
 
 /**
  * Base arguments for registering generated content in the generation context.
- * 
+ *
  * Provides the fundamental configuration options for registering imports,
  * re-exports, and definitions that will be included in generated files.
  */
@@ -110,7 +110,7 @@ export type BaseRegisterArgs = {
 
 /**
  * Arguments for registering generated content with a specific destination.
- * 
+ *
  * Extends BaseRegisterArgs to include a destination path, allowing content
  * to be registered and associated with a specific output file location.
  */
@@ -127,10 +127,10 @@ export type RegisterArgs = {
 
 /**
  * Arguments for creating and registering a definition from a schema.
- * 
+ *
  * Used to transform OpenAPI schema objects into code definitions and
  * register them in the generation context for output file creation.
- * 
+ *
  * @template Schema - The schema type extending SchemaType
  */
 export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
@@ -150,10 +150,10 @@ export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
 
 /**
  * Arguments for defining and registering a value in the generation context.
- * 
+ *
  * Used to create definitions from pre-generated values and register them
  * in the generation context for inclusion in output files.
- * 
+ *
  * @template V - The generated value type extending GeneratedValue
  */
 export type DefineAndRegisterArgs<V extends GeneratedValue> = {
@@ -169,7 +169,7 @@ export type DefineAndRegisterArgs<V extends GeneratedValue> = {
 
 /**
  * Arguments for retrieving operation-specific settings.
- * 
+ *
  * Used to get generator-specific configuration for a particular
  * OpenAPI operation based on its path and HTTP method.
  */
@@ -184,7 +184,7 @@ export type GetOperationSettingsArgs = {
 
 /**
  * Arguments for adding render dependencies for an operation.
- * 
+ *
  * Used to specify additional dependencies that should be included
  * when rendering code for a specific OpenAPI operation.
  */
@@ -199,7 +199,7 @@ export type AddRenderDependencyArgs = {
 
 /**
  * Arguments for retrieving model-specific settings.
- * 
+ *
  * Used to get generator-specific configuration for a particular
  * OpenAPI model based on its reference name.
  */
@@ -212,10 +212,10 @@ export type ToModelSettingsArgs = {
 
 /**
  * Options for inserting an operation into the generation context.
- * 
+ *
  * Configures how an OpenAPI operation should be processed and
  * included in the generated code output.
- * 
+ *
  * @template T - The generation type extending GenerationType
  */
 export type InsertOperationOptions<T extends GenerationType> = {
@@ -229,10 +229,10 @@ export type InsertOperationOptions<T extends GenerationType> = {
 
 /**
  * Arguments for inserting a normalized model into the generation context.
- * 
+ *
  * Used to process and register OpenAPI schema objects as normalized
  * model definitions with fallback naming when schema names are unavailable.
- * 
+ *
  * @template Schema - The schema type (OasSchema, OasRef, or OasVoid)
  */
 export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'> | OasVoid> = {
@@ -246,7 +246,7 @@ export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'
 
 /**
  * Options for inserting a normalized model.
- * 
+ *
  * Configures how a normalized model should be processed and
  * included in the generated code output.
  */
@@ -257,11 +257,11 @@ export type InsertNormalisedModelOptions = {
 
 /**
  * Return type for inserting a normalized model.
- * 
+ *
  * Provides type-safe return values based on the schema type being processed.
  * Returns different Definition types depending on whether the schema is a
  * reference or a concrete schema.
- * 
+ *
  * @template V - The generated value type
  * @template Schema - The schema type being processed
  */
@@ -275,10 +275,10 @@ export type InsertNormalisedModelReturn<
 
 /**
  * Options for inserting a model into the generation context.
- * 
+ *
  * Configures how a model should be processed and included in
  * the generated code output.
- * 
+ *
  * @template T - The generation type extending GenerationType
  */
 export type InsertModelOptions<T extends GenerationType> = {
@@ -292,10 +292,10 @@ export type InsertModelOptions<T extends GenerationType> = {
 
 /**
  * Return type for insert operations in the generation context.
- * 
+ *
  * Represents the result of inserting content into the generation
  * context, providing type-safe access to the inserted content.
- * 
+ *
  * @template V - The generated value type
  * @template T - The generation type
  * @template EnrichmentType - The enrichment data type
@@ -308,7 +308,7 @@ export type InsertReturn<
 
 /**
  * Arguments for generating operation content settings.
- * 
+ *
  * @template V - The value type for the operation
  * @template EnrichmentType - Optional enrichment type for the operation
  */
@@ -319,7 +319,7 @@ export type ToOperationSettingsArgs<V, EnrichmentType = undefined> = {
 
 /**
  * Arguments for building model content settings.
- * 
+ *
  * @template V - The value type for the model
  * @template EnrichmentType - Optional enrichment type for the model
  */
@@ -336,34 +336,34 @@ type GenerateResult = {
 
 /**
  * The generation context for the second phase of the SKMTC transformation pipeline.
- * 
+ *
  * `GenerateContext` manages the transformation of parsed OAS (OpenAPI Schema) objects
  * into code artifacts using pluggable generators. It provides APIs for model and operation
  * generation, file management, dependency tracking, and artifact registration.
- * 
+ *
  * ## Key Responsibilities
- * 
+ *
  * - **Generator Orchestration**: Executes pluggable model and operation generators
  * - **Schema Processing**: Provides utilities for working with OAS schemas and references
  * - **File Management**: Handles file creation, imports, exports, and dependencies
  * - **Artifact Registration**: Collects generated definitions and files for rendering
  * - **Type System Integration**: Bridges OAS types with generator-specific type systems
  * - **Settings Management**: Handles skipping logic and client customizations
- * 
+ *
  * ## Generator Integration
- * 
+ *
  * The context works with two main types of generators:
  * - **Model Generators**: Transform schema definitions into type definitions
  * - **Operation Generators**: Transform API operations into client functions
- * 
+ *
  * @example Basic usage in a model generator
  * ```typescript
  * import { ModelBase } from '@skmtc/core';
- * 
+ *
  * class TypeScriptInterface extends ModelBase {
  *   generate(): Definition {
  *     const schema = this.context.getSchema(this.refName);
- *     
+ *
  *     return new Definition({
  *       context: this.context,
  *       identifier: Identifier.createType(this.refName),
@@ -376,15 +376,15 @@ type GenerateResult = {
  *   }
  * }
  * ```
- * 
+ *
  * @example Operation generator usage
  * ```typescript
  * class ApiClientGenerator extends OperationBase {
  *   generate(): Definition {
  *     const operation = this.context.getOperation(this.path, this.method);
- *     
+ *
  *     const functionName = this.context.createOperationName(this.path, this.method);
- *     
+ *
  *     return new Definition({
  *       context: this.context,
  *       identifier: Identifier.createVariable(functionName),
@@ -396,27 +396,27 @@ type GenerateResult = {
  *   }
  * }
  * ```
- * 
+ *
  * @example Schema and type system integration
  * ```typescript
  * class MyGenerator extends ModelBase {
  *   generate(): Definition {
  *     const schema = this.context.getSchema(this.refName);
- *     
+ *
  *     // Transform schema using type system
  *     const typeOutput = this.context.transformSchema(schema, {
  *       stringType: 'string',
  *       numberType: 'number',
  *       arrayType: (items) => `Array<${items}>`
  *     });
- *     
+ *
  *     // Register dependencies
  *     if (schema.hasReferences()) {
  *       this.context.addImportsToFile('./models/types.ts', {
  *         './common': ['BaseModel']
  *       });
  *     }
- *     
+ *
  *     return new Definition({
  *       context: this.context,
  *       identifier: Identifier.createType(this.refName),
@@ -449,7 +449,7 @@ export class GenerateContext {
   modelDepth: Record<string, number>
   /**
    * Creates a new GenerateContext instance for the generation phase.
-   * 
+   *
    * @param args - Constructor arguments including document, settings, and handlers
    */
   constructor({
@@ -634,7 +634,7 @@ export class GenerateContext {
 
   /**
    * Executes a function within a traced context for debugging and monitoring.
-   * 
+   *
    * @param token - Trace identifier or path segments
    * @param fn - Function to execute within the trace context
    * @returns The result of the traced function execution
@@ -720,7 +720,7 @@ export class GenerateContext {
 
   /**
    * Registers JSON content for output to a file.
-   * 
+   *
    * @experimental This method is experimental and may change in future versions
    * @param args - Registration arguments with destination path and JSON content
    */
@@ -830,7 +830,7 @@ export class GenerateContext {
 
   /**
    * Inserts a normalized model definition into the generation context.
-   * 
+   *
    * @param insertable - Model insertable configuration with prototype and transform functions
    * @param schema - OAS schema, reference, or void type to generate model from
    * @param options - Insertion options including generation type and destination
@@ -1015,10 +1015,10 @@ type ToOperationSourceArgs = {
 
 /**
  * Creates an OperationSource from an operation and generator ID.
- * 
+ *
  * Transforms operation and generator information into a source descriptor
  * that can be used for tracking operation origins in the generation pipeline.
- * 
+ *
  * @param args - Arguments containing operation and generator ID
  * @returns OperationSource descriptor for the operation
  */
@@ -1039,10 +1039,10 @@ type ToModelSourceArgs = {
 
 /**
  * Creates a ModelSource from a reference name and generator ID.
- * 
+ *
  * Transforms model reference and generator information into a source descriptor
  * that can be used for tracking model origins in the generation pipeline.
- * 
+ *
  * @param args - Arguments containing reference name and generator ID
  * @returns ModelSource descriptor for the model
  */

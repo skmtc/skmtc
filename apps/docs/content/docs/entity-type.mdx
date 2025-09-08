@@ -1,0 +1,78 @@
+---
+title: "EntityType"
+description: "Represents the type of a TypeScript entity for code generation."
+kind: "class"
+filename: "skmtc/deno/core/dsl/EntityType.ts"
+line: 46
+---
+
+# EntityType
+
+Represents the type of a TypeScript entity for code generation.
+
+`EntityType` encapsulates the distinction between different kinds of
+TypeScript entities, specifically variables (which become `const` declarations)
+and types (which become `type` or `interface` declarations).
+
+This class is used by the [Identifier](./identifier.mdx) system to ensure that
+generated code uses the correct TypeScript keywords and syntax patterns.
+
+
+## Example
+
+Variable entity type
+```typescript
+import { EntityType } from '@skmtc/core';
+
+const variableEntity = new EntityType('variable');
+console.log(variableEntity.toString()); // 'const'
+
+// Used in code generation:
+// const API_URL = 'https://api.example.com';
+```
+
+
+## Example
+
+Type entity type
+```typescript
+const typeEntity = new EntityType('type');
+console.log(typeEntity.toString()); // 'type'
+
+// Used in code generation:
+// type User = { id: string; name: string; };
+```
+
+
+## Example
+
+Integration with Identifier
+```typescript
+import { Identifier, EntityType } from '@skmtc/core';
+
+// Create a variable identifier (uses 'const' keyword)
+const varId = Identifier.createVariable('API_KEY', 'string');
+console.log(varId.entityType.toString()); // 'const'
+
+// Create a type identifier (uses 'type' keyword)
+const typeId = Identifier.createType('UserStatus');
+console.log(typeId.entityType.toString()); // 'type'
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(type: unknown)`
+
+### Properties
+
+- `type: unknown`
+
+### Methods
+
+- `toString(): string`
+
+## Source
+
+Located at `skmtc/deno/core/dsl/EntityType.ts:46:0`

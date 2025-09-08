@@ -1,0 +1,135 @@
+---
+title: "oasContactData"
+description: "Valibot schema for validating OpenAPI contact data objects."
+kind: "variable"
+filename: "skmtc/deno/core/oas/contact/contact-types.ts"
+line: 186
+---
+
+# oasContactData
+
+Valibot schema for validating OpenAPI contact data objects.
+
+This schema validates OpenAPI contact information according to the OpenAPI v3
+specification. All contact fields are optional, allowing for flexible contact
+information configurations. The schema ensures proper string formatting for
+name, URL, and email fields while maintaining the required `oasType` identifier.
+
+Note that while all fields are optional according to the OpenAPI specification,
+it's recommended to provide at least one contact method for practical API usage.
+
+
+## Example
+
+Validating complete contact information
+```typescript
+import { oasContactData } from '@skmtc/core/oas/contact';
+import * as v from 'valibot';
+
+const contact = {
+  oasType: 'contact',
+  name: 'API Support',
+  url: 'https://api.company.com/support',
+  email: 'support@company.com'
+};
+
+const validated = v.parse(oasContactData, contact);
+console.log(validated.name); // 'API Support'
+console.log(validated.email); // 'support@company.com'
+```
+
+
+## Example
+
+Validating partial contact information
+```typescript
+const partialContact = {
+  oasType: 'contact',
+  email: 'help@api.com'
+  // name and url are optional and omitted
+};
+
+const result = v.parse(oasContactData, partialContact);
+console.log(result.email); // 'help@api.com'
+console.log(result.name); // undefined
+console.log(result.url); // undefined
+```
+
+
+## Example
+
+Validation error handling
+```typescript
+const invalidContact = {
+  oasType: 'contact',
+  name: 123, // Invalid: should be string
+  email: 'valid@email.com'
+};
+
+try {
+  v.parse(oasContactData, invalidContact);
+} catch (error) {
+  console.error('Contact validation failed:', error.message);
+  // Handle validation errors appropriately
+}
+```
+
+
+## Example
+
+Usage in OpenAPI document processing
+```typescript
+function processApiInfo(infoObject: unknown) {
+  // Validate the info object structure
+  const info = parseInfoObject(infoObject);
+
+  // If contact information exists, validate it
+  if (info.contact) {
+    const validatedContact = v.parse(oasContactData, {
+      oasType: 'contact',
+      ...info.contact
+    });
+
+    console.log(`API maintained by: ${validatedContact.name || 'Unknown'}`);
+    console.log(`Support: ${validatedContact.email || 'No email provided'}`);
+  }
+}
+```
+
+
+## Example
+
+Integration with documentation generators
+```typescript
+class DocumentationGenerator {
+  generateContactSection(contactData: OasContactData): string {
+    const validated = v.parse(oasContactData, contactData);
+
+    let contactSection = '## Contact Information\n\n';
+
+    if (validated.name) {
+      contactSection += `**Maintainer:** ${validated.name}\n\n`;
+    }
+
+    if (validated.email) {
+      contactSection += `**Email:** [${validated.email}](mailto:${validated.email})\n\n`;
+    }
+
+    if (validated.url) {
+      contactSection += `**Website:** [${validated.url}](${validated.url})\n\n`;
+    }
+
+    return contactSection;
+  }
+}
+```
+
+## Variable Definition
+
+```typescript
+const oasContactData: v.GenericSchema
+```
+
+## Source
+
+Located at `skmtc/deno/core/oas/contact/contact-types.ts:186:13`

@@ -1,0 +1,44 @@
+---
+title: "isModelGeneratorKey"
+description: "Type guard to check if a value is a valid ModelGeneratorKey."
+kind: "variable"
+filename: "skmtc/deno/core/types/GeneratorKeys.ts"
+line: 402
+---
+
+# isModelGeneratorKey
+
+Type guard to check if a value is a valid ModelGeneratorKey.
+
+Validates that the argument is a string with the correct format:
+`generatorId|refName` where both parts are non-empty strings.
+
+
+**@param** arg - Value to check
+
+**@returns** True if the value is a valid ModelGeneratorKey
+
+
+## Example
+
+```typescript
+const key = 'zod-schemas|User';
+
+if (isModelGeneratorKey(key)) {
+  // key is now typed as ModelGeneratorKey
+  const obj = fromGeneratorKey(key);
+  console.log(obj.type);        // 'model'
+  console.log(obj.generatorId); // 'zod-schemas'
+  console.log(obj.refName);     // 'User'
+}
+```
+
+## Variable Definition
+
+```typescript
+const isModelGeneratorKey: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/GeneratorKeys.ts:402:13`

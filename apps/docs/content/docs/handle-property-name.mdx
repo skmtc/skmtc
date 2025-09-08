@@ -1,0 +1,116 @@
+---
+title: "handlePropertyName"
+description: "Safely formats property access, using dot notation or bracket notation as appropriate."
+kind: "variable"
+filename: "skmtc/deno/core/typescript/identifiers.ts"
+line: 167
+---
+
+# handlePropertyName
+
+Safely formats property access, using dot notation or bracket notation as appropriate.
+
+This function generates the appropriate property access syntax for JavaScript/TypeScript
+code. Valid identifiers use dot notation (`parent.property`), while invalid identifiers
+use bracket notation (`parent['property']`).
+
+
+**@param** name - The property name to access
+
+**@param** parent - The parent object expression
+
+**@returns** Properly formatted property access expression
+
+
+## Example
+
+Valid identifiers (dot notation)
+```typescript
+import { handlePropertyName } from '@skmtc/core';
+
+console.log(handlePropertyName('name', 'user'));      // 'user.name'
+console.log(handlePropertyName('firstName', 'user')); // 'user.firstName'
+console.log(handlePropertyName('_id', 'document'));   // 'document._id'
+console.log(handlePropertyName('$meta', 'data'));     // 'data.$meta'
+```
+
+
+## Example
+
+Invalid identifiers (bracket notation)
+```typescript
+console.log(handlePropertyName('first-name', 'user'));  // "user['first-name']"
+console.log(handlePropertyName('2nd-place', 'result')); // "result['2nd-place']"
+console.log(handlePropertyName('user name', 'form'));   // "form['user name']"
+console.log(handlePropertyName('api-key', 'config'));   // "config['api-key']"
+```
+
+
+## Example
+
+Usage in accessor generation
+```typescript
+class PropertyAccessor {
+  generateGetter(objectName: string, propertyPath: string[]) {
+    return propertyPath.reduce((acc, prop) =>
+      handlePropertyName(prop, acc), objectName
+    );
+  }
+}
+
+const accessor = new PropertyAccessor();
+const path1 = accessor.generateGetter('data', ['user', 'profile', 'firstName']);
+const path2 = accessor.generateGetter('config', ['api-settings', 'retry-count']);
+
+console.log(path1); // 'data.user.profile.firstName'
+console.log(path2); // "config['api-settings']['retry-count']"
+```
+
+
+## Example
+
+Complex object navigation
+```typescript
+function generateObjectAccess(base: string, properties: string[]) {
+  let result = base;
+
+  for (const prop of properties) {
+    result = handlePropertyName(prop, result);
+  }
+
+  return result;
+}
+
+const access1 = generateObjectAccess('response', ['data', 'user-info', 'name']);
+const access2 = generateObjectAccess('settings', ['ui', 'theme', 'darkMode']);
+
+console.log(access1); // "response.data['user-info'].name"
+console.log(access2); // "settings.ui.theme.darkMode"
+```
+
+
+## Example
+
+Function generation
+```typescript
+function generatePropertyGetter(objName: string, propName: string) {
+  const access = handlePropertyName(propName, objName);
+  return `function get${propName.replace(/[^a-zA-Z0-9]/g, '')}() { return ${access}; }`;
+}
+
+const getter1 = generatePropertyGetter('user', 'firstName');
+const getter2 = generatePropertyGetter('config', 'api-key');
+
+console.log(getter1); // "function getfirstName() { return user.firstName; }"
+console.log(getter2); // "function getapikey() { return config['api-key']; }"
+```
+
+## Variable Definition
+
+```typescript
+const handlePropertyName: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/typescript/identifiers.ts:167:13`

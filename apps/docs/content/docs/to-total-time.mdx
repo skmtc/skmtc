@@ -1,0 +1,45 @@
+---
+title: "toTotalTime"
+description: "Calculates the total generation time from the manifest timestamps."
+kind: "variable"
+filename: "skmtc/deno/core/helpers/generationStats.ts"
+line: 237
+---
+
+# toTotalTime
+
+Calculates the total generation time from the manifest timestamps.
+
+This function computes the duration of the generation process by
+calculating the difference between the end and start timestamps
+recorded in the manifest. The result is in milliseconds.
+
+
+**@param** manifest - The generation manifest with timing information
+
+**@returns** Total generation time in milliseconds
+
+
+## Example
+
+```typescript
+const manifest = {
+  startAt: 1672531200000, // January 1, 2023 00:00:00 GMT
+  endAt: 1672531245000,   // January 1, 2023 00:00:45 GMT
+  // ... other manifest properties
+};
+
+const duration = toTotalTime(manifest);
+console.log(duration); // 45000 (45 seconds)
+console.log(`${duration / 1000}s`); // "45s"
+```
+
+## Variable Definition
+
+```typescript
+const toTotalTime: unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/helpers/generationStats.ts:237:13`

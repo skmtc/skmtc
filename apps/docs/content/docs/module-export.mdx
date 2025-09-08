@@ -1,0 +1,125 @@
+---
+title: "ModuleExport"
+description: "Configuration object for module exports in the SKMTC pipeline."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/ModuleExport.ts"
+line: 136
+---
+
+# ModuleExport
+
+Configuration object for module exports in the SKMTC pipeline.
+
+This type defines the structure for describing how generated code modules
+should be exported and made available for import. It's used throughout
+the SKMTC system for organizing generated code, managing dependencies,
+and creating proper import/export relationships between generated files.
+
+## Usage in SKMTC Pipeline
+
+This type is used by:
+- Code generators to define export configurations
+- File processors to organize generated modules
+- Import managers to resolve module dependencies
+- Build systems to understand code structure
+
+
+## Example
+
+Basic module export definition
+```typescript
+import type { ModuleExport } from '@skmtc/core/types';
+
+const apiExport: ModuleExport = {
+  exportName: 'UserApiClient',
+  exportPath: './generated/api/UserApiClient.ts'
+};
+
+console.log(`Import ${apiExport.exportName} from '${apiExport.exportPath}'`);
+// Import UserApiClient from './generated/api/UserApiClient.ts'
+```
+
+
+## Example
+
+Function export configuration
+```typescript
+const functionExport: ModuleExport = {
+  exportName: 'validateUserData',
+  exportPath: './generated/validators/userValidation.ts'
+};
+
+// Used to generate: export { validateUserData } from './generated/validators/userValidation.ts'
+```
+
+
+## Example
+
+Type export configuration
+```typescript
+const typeExport: ModuleExport = {
+  exportName: 'UserType',
+  exportPath: './generated/types/User.ts'
+};
+
+// Used to generate: export type { UserType } from './generated/types/User.ts'
+```
+
+
+## Example
+
+Multiple exports from same file
+```typescript
+const userModuleExports: ModuleExport[] = [
+  {
+    exportName: 'User',
+    exportPath: './generated/models/User.ts'
+  },
+  {
+    exportName: 'UserValidator',
+    exportPath: './generated/models/User.ts'
+  },
+  {
+    exportName: 'createUser',
+    exportPath: './generated/models/User.ts'
+  }
+];
+
+// All exports reference the same file but different symbols
+```
+
+
+## Example
+
+Integration with build systems
+```typescript
+class ModuleRegistry {
+  private exports: ModuleExport[] = [];
+
+  addExport(moduleExport: ModuleExport) {
+    this.exports.push(moduleExport);
+  }
+
+  generateIndexFile(): string {
+    return this.exports
+      .map(exp => `export { ${exp.exportName} } from '${exp.exportPath}';`)
+      .join('\n');
+  }
+}
+
+const registry = new ModuleRegistry();
+registry.addExport({
+  exportName: 'ApiClient',
+  exportPath: './api/client.ts'
+});
+```
+
+## Type Definition
+
+```typescript
+type ModuleExport = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/ModuleExport.ts:136:0`

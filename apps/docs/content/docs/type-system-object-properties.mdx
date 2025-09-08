@@ -1,0 +1,33 @@
+---
+title: "TypeSystemObjectProperties"
+description: "Type system representation of object properties."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/TypeSystem.ts"
+line: 315
+---
+
+# TypeSystemObjectProperties
+
+Type system representation of object properties.
+
+
+## Example
+
+```typescript
+const objectProps: TypeSystemObjectProperties = {
+  properties: {
+    name: { type: 'string', modifiers: { optional: false, nullable: false } },
+    age: { type: 'integer', modifiers: { optional: true, nullable: false } }
+  }
+};
+```
+
+## Type Definition
+
+```typescript
+type TypeSystemObjectProperties = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/TypeSystem.ts:315:0`

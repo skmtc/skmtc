@@ -1,0 +1,41 @@
+---
+title: "OasUnknown"
+description: "Object representing an unknown type in the OpenAPI Specification."
+kind: "class"
+filename: "skmtc/deno/core/oas/unknown/Unknown.ts"
+line: 19
+---
+
+# OasUnknown
+
+Object representing an unknown type in the OpenAPI Specification.
+
+JSON schema treats a definition without any type information as 'any'.
+Since this is not useful in an API context, we use OasUnknown to
+represent types that are not specified.
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `oasType: schema`
+- `type: unknown`
+- `title: unknown`
+- `description: unknown`
+- `extensionFields: unknown`
+- `example: unknown`
+
+### Methods
+
+- `isRef(): this is OasRef\<"schema"\>`
+- `resolve(): OasUnknown`
+- `resolveOnce(): OasUnknown`
+- `toJsonSchema(_options?: ToJsonSchemaOptions): unknown`
+
+## Source
+
+Located at `skmtc/deno/core/oas/unknown/Unknown.ts:19:0`

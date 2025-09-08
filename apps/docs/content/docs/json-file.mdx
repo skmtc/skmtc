@@ -1,0 +1,152 @@
+---
+title: "JsonFile"
+description: "Represents a JSON file in the SKMTC DSL system."
+kind: "class"
+filename: "skmtc/deno/core/dsl/JsonFile.ts"
+line: 123
+---
+
+# JsonFile
+
+Represents a JSON file in the SKMTC DSL system.
+
+The `JsonFile` class is used to generate JSON files as part of the code generation
+process. It provides a simple interface for creating configuration files, manifests,
+package.json files, and other JSON-based artifacts with proper formatting.
+
+## Key Features
+
+- **JSON Formatting**: Automatically formats JSON with 2-space indentation
+- **Type Safety**: Accepts any valid JSON-serializable content structure
+- **Path Management**: Associates content with specific file paths
+- **String Conversion**: Easy integration with file writing systems
+
+
+## Example
+
+Basic JSON file creation
+```typescript
+import { JsonFile } from '@skmtc/core';
+
+const packageJson = new JsonFile({
+  path: './package.json',
+  content: {
+    name: 'my-api-client',
+    version: '1.0.0',
+    type: 'module',
+    main: './index.js',
+    dependencies: {
+      'axios': '^1.0.0'
+    }
+  }
+});
+
+const jsonContent = packageJson.toString();
+console.log(jsonContent);
+// {
+//   "name": "my-api-client",
+//   "version": "1.0.0",
+//   "type": "module",
+//   "main": "./index.js",
+//   "dependencies": {
+//     "axios": "^1.0.0"
+//   }
+// }
+```
+
+
+## Example
+
+Configuration file generation
+```typescript
+const configFile = new JsonFile({
+  path: './src/config/api.json',
+  content: {
+    baseUrl: 'https://api.example.com',
+    timeout: 5000,
+    retryAttempts: 3,
+    endpoints: {
+      users: '/users',
+      products: '/products',
+      orders: '/orders'
+    }
+  }
+});
+
+// Write to file system
+await Deno.writeTextFile(configFile.path, configFile.toString());
+```
+
+
+## Example
+
+OpenAPI specification output
+```typescript
+const openApiFile = new JsonFile({
+  path: './dist/openapi.json',
+  content: {
+    openapi: '3.0.0',
+    info: {
+      title: 'My API',
+      version: '1.0.0'
+    },
+    paths: {
+      '/users': {
+        get: {
+          summary: 'List users',
+          responses: {
+            '200': {
+              description: 'Success'
+            }
+          }
+        }
+      }
+    }
+  }
+});
+```
+
+
+## Example
+
+Using with generator registration
+```typescript
+class MyGenerator extends ContentBase {
+  generate() {
+    const manifestFile = new JsonFile({
+      path: './generated/manifest.json',
+      content: {
+        generatedAt: new Date().toISOString(),
+        version: '1.0.0',
+        files: [
+          './models/User.ts',
+          './models/Product.ts'
+        ]
+      }
+    });
+
+    // Register with the generation context
+    this.register({ jsonFile: manifestFile });
+  }
+}
+```
+
+## Class Definition
+
+### Constructors
+
+- `constructor(...)`
+
+### Properties
+
+- `fileType: json`
+- `path: string`
+- `content: Record`
+
+### Methods
+
+- `toString(): string`
+
+## Source
+
+Located at `skmtc/deno/core/dsl/JsonFile.ts:123:0`

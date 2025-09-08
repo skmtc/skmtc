@@ -1,0 +1,87 @@
+---
+title: "GeneratorsMapContainer"
+description: "Container type for a complete generators map with optional enrichment."
+kind: "typeAlias"
+filename: "skmtc/deno/core/types/GeneratorType.ts"
+line: 131
+---
+
+# GeneratorsMapContainer
+
+Container type for a complete generators map with optional enrichment.
+
+This type represents a complete mapping of generators that can process
+an OpenAPI document. It's used as the main configuration structure
+passed to the SKMTC processing pipeline.
+
+
+**@template** - Optional type for custom enrichment data across all generators
+
+
+## Example
+
+Basic generators map
+```typescript
+import { GeneratorsMapContainer } from '@skmtc/core';
+
+const generators: GeneratorsMapContainer = {
+  'api-client': {
+    type: 'operation',
+    generatorId: 'api-client',
+    settings: { exportPath: './src/api.ts' },
+    toGenerator: (args) => new ApiClientGenerator(args)
+  },
+  'typescript-models': {
+    type: 'model',
+    generatorId: 'typescript-models',
+    settings: { exportPath: './src/models.ts' },
+    toGenerator: (args) => new TypeScriptModels(args)
+  }
+};
+
+// Use with toArtifacts
+const result = await toArtifacts({
+  documentObject: openApiDoc,
+  settings: clientSettings,
+  toGeneratorConfigMap: () => generators,
+  traceId: 'generation',
+  spanId: 'main',
+  startAt: Date.now()
+});
+```
+
+
+## Example
+
+With enrichments
+```typescript
+type MyEnrichments = {
+  customValidation: boolean;
+  generateComments: boolean;
+};
+
+const enrichedGenerators: GeneratorsMapContainer<MyEnrichments> = {
+  'enhanced-models': {
+    type: 'model',
+    generatorId: 'enhanced-models',
+    settings: {
+      exportPath: './src/enhanced.ts',
+      enrichment: {
+        customValidation: true,
+        generateComments: true
+      }
+    },
+    toGenerator: (args) => new EnhancedModelGenerator(args)
+  }
+};
+```
+
+## Type Definition
+
+```typescript
+type GeneratorsMapContainer = GeneratorsMap
+```
+
+## Source
+
+Located at `skmtc/deno/core/types/GeneratorType.ts:131:0`

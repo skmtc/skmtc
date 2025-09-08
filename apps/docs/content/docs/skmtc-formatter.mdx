@@ -1,0 +1,57 @@
+---
+title: "skmtcFormatter"
+description: "Custom JSON formatter for SKMTC log entries."
+kind: "function"
+filename: "skmtc/deno/core/context/CoreContext.ts"
+line: 586
+---
+
+# skmtcFormatter
+
+Custom JSON formatter for SKMTC log entries.
+
+Formats log records into structured JSON that includes stack trail context,
+making it easier to trace execution and debug issues in the SKMTC pipeline.
+The formatter flattens log arguments and includes execution context.
+
+
+**@param** args - Formatter arguments containing log record and stack trail
+
+**@returns** Formatted JSON string for the log entry
+
+
+## Example
+
+Usage in logger setup
+```typescript
+const handler = new ConsoleHandler("DEBUG", {
+  formatter: (logRecord) => skmtcFormatter({
+    logRecord,
+    stackTrail: context.stackTrail.toString()
+  })
+});
+```
+
+
+## Example
+
+Output format
+```json
+{
+  "stackTrail": "components.schemas.User.properties.email",
+  "level": "INFO",
+  "datetime": 1645123456789,
+  "message": "Processing email property",
+  "args": { "format": "email", "required": true }
+}
+```
+
+## Signature
+
+```typescript
+function skmtcFormatter(...): string
+```
+
+## Source
+
+Located at `skmtc/deno/core/context/CoreContext.ts:586:0`

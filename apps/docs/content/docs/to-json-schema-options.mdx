@@ -1,0 +1,35 @@
+---
+title: "ToJsonSchemaOptions"
+description: "Configuration options for JSON Schema conversion operations."
+kind: "typeAlias"
+filename: "skmtc/deno/core/oas/schema/Schema.ts"
+line: 136
+---
+
+# ToJsonSchemaOptions
+
+Configuration options for JSON Schema conversion operations.
+
+These options control how OAS schemas are converted back to JSON Schema format,
+particularly around reference resolution and schema inlining behavior.
+
+
+## Example
+
+```typescript
+const options: ToJsonSchemaOptions = {
+  resolve: true  // Resolve $ref references during conversion
+};
+
+const jsonSchema = schema.toJsonSchema(options);
+```
+
+## Type Definition
+
+```typescript
+type ToJsonSchemaOptions = unknown
+```
+
+## Source
+
+Located at `skmtc/deno/core/oas/schema/Schema.ts:136:0`
