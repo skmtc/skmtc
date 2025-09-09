@@ -7,7 +7,7 @@ import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '../../types/Preview.ts'
 /**
  * Arguments passed to operation insertable constructors.
- * 
+ *
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
 export type OperationInsertableArgs<EnrichmentType = undefined> = {
@@ -18,7 +18,7 @@ export type OperationInsertableArgs<EnrichmentType = undefined> = {
 
 /**
  * Arguments passed to operation transformation functions.
- * 
+ *
  * @template Acc - Accumulator type for collecting transformation results
  */
 export type TransformOperationArgs<Acc> = {
@@ -29,7 +29,7 @@ export type TransformOperationArgs<Acc> = {
 
 /**
  * Interface for objects that provide operation transformation capabilities.
- * 
+ *
  * Used by generator configurations to transform operation definitions
  * during the code generation process.
  */
@@ -39,7 +39,7 @@ export type WithTransformOperation = {
 
 /**
  * Arguments for checking if an operation is supported with enrichment configuration.
- * 
+ *
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
 export type IsSupportedOperationConfigArgs<EnrichmentType = undefined> = {
@@ -59,14 +59,14 @@ export type IsSupportedOperationArgs = {
 /**
  * Arguments for generating enrichment data for operations.
  */
-export type OperationToEnrichmentsArgs = {
+export type ToOperationEnrichmentsArgs = {
   operation: OasOperation
   context: GenerateContext
 }
 
 /**
  * Arguments for generating operation preview modules.
- * 
+ *
  * Preview modules provide quick insights into generated operations
  * without full code generation.
  */
@@ -77,7 +77,7 @@ export type ToOperationPreviewModuleArgs = {
 
 /**
  * Arguments for generating operation mapping information.
- * 
+ *
  * Mappings track relationships between OAS operations and generated code,
  * enabling cross-references and dependency analysis.
  */
@@ -88,10 +88,10 @@ export type ToOperationMappingArgs = {
 
 /**
  * Configuration object for insertable operation generators.
- * 
+ *
  * Defines the contract for operation generator classes that can be inserted
  * into the generation context to produce type-safe operation definitions.
- * 
+ *
  * @template V - Generated value type produced by the operation generator
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
@@ -101,7 +101,7 @@ export type OperationInsertable<V, EnrichmentType = undefined> = { prototype: V 
   type: 'operation'
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
-  toEnrichments: ({ operation, context }: OperationToEnrichmentsArgs) => EnrichmentType
+  toEnrichments: ({ operation, context }: ToOperationEnrichmentsArgs) => EnrichmentType
   // deno-lint-ignore ban-types
 } & Function
 
@@ -115,10 +115,10 @@ export type IsSupportedArgs = {
 
 /**
  * Configuration object for operation generators.
- * 
+ *
  * Defines the behavior and capabilities of operation generators including
  * support detection, transformation logic, and enrichment handling.
- * 
+ *
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
 export type OperationConfig<EnrichmentType = undefined> = {

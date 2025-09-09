@@ -3,17 +3,17 @@ import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
-import type { OperationInsertableArgs } from './types.ts'
+import type { OperationInsertable, OperationInsertableArgs } from './types.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { get } from 'npm:lodash-es@4.17.21'
 
 /**
  * Configuration for creating a base operation class.
- * 
+ *
  * Defines the structure and behavior for operation generators, including
  * identifier generation, export path resolution, and enrichment schemas.
- * 
+ *
  * @template EnrichmentType - Type of enrichments to apply to generated operations
  */
 export type BaseOperationConfig<EnrichmentType = undefined> = {
@@ -34,20 +34,20 @@ type ToEnrichmentsArgs = {
 
 /**
  * Creates a base operation class constructor for generating type-safe operation artifacts.
- * 
+ *
  * This factory function creates a specialized OperationBase class that implements
  * the provided configuration for identifier generation, export paths, and
  * enrichment handling. The resulting class can be instantiated to generate
  * operation artifacts from OpenAPI operations.
- * 
+ *
  * @template EnrichmentType - Type of enrichments to apply to generated operations
  * @param config - Configuration defining the operation generation behavior
  * @returns Constructor function for creating operation instances
- * 
+ *
  * @example Creating a TypeScript function generator
  * ```typescript
  * import { toOperationBase } from '@skmtc/core';
- * 
+ *
  * const TypeScriptOperationBase = toOperationBase({
  *   id: 'typescript-functions',
  *   toIdentifier: (operation) => new Identifier(camelCase(operation.operationId)),
@@ -57,7 +57,7 @@ type ToEnrichmentsArgs = {
  *     asyncMode: v.optional(v.boolean())
  *   })
  * });
- * 
+ *
  * class TypeScriptOperationGenerator extends TypeScriptOperationBase {
  *   generate() {
  *     const enrichments = this.enrichments;
@@ -68,7 +68,7 @@ type ToEnrichmentsArgs = {
  *   }
  * }
  * ```
- * 
+ *
  * @example Creating a React hook generator
  * ```typescript
  * const ReactHookOperationBase = toOperationBase({
@@ -80,7 +80,7 @@ type ToEnrichmentsArgs = {
  */
 export const toOperationBase = <EnrichmentType = undefined>(
   config: BaseOperationConfig<EnrichmentType>
-): new (args: OperationInsertableArgs<EnrichmentType>) => OperationBase<EnrichmentType> => {
+) => {
   return class extends OperationBase<EnrichmentType> {
     static id = config.id
     static type = 'operation' as const

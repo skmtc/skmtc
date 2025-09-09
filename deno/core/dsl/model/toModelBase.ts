@@ -7,10 +7,11 @@ import type { Identifier } from '../Identifier.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12"
 import { get } from 'npm:lodash-es@4.17.21'
+import type { ModelInsertable } from './types.ts'
 
 /**
  * Arguments for creating a model insertable instance.
- * 
+ *
  * @template EnrichmentType - Type of enrichments to apply to the model
  */
 export type ModelInsertableArgs<EnrichmentType = undefined> = {
@@ -29,10 +30,10 @@ type ToEnrichmentsArgs = {
 
 /**
  * Configuration for creating a base model class.
- * 
+ *
  * Defines the structure and behavior for model generators, including
  * identifier generation, export path resolution, and enrichment schemas.
- * 
+ *
  * @template EnrichmentType - Type of enrichments to apply to generated models
  */
 export type BaseModelConfig<EnrichmentType = undefined> = {
@@ -48,20 +49,20 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
 
 /**
  * Creates a base model class constructor for generating type-safe model artifacts.
- * 
+ *
  * This factory function creates a specialized ModelBase class that implements
  * the provided configuration for identifier generation, export paths, and
  * enrichment handling. The resulting class can be instantiated to generate
  * model artifacts from OpenAPI schemas.
- * 
+ *
  * @template EnrichmentType - Type of enrichments to apply to generated models
  * @param config - Configuration defining the model generation behavior
  * @returns Constructor function for creating model instances
- * 
+ *
  * @example Creating a TypeScript interface generator
  * ```typescript
  * import { toModelBase } from '@skmtc/core';
- * 
+ *
  * const TypeScriptModelBase = toModelBase({
  *   id: 'typescript-interfaces',
  *   toIdentifier: (refName) => new Identifier(pascalCase(refName)),
@@ -71,7 +72,7 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
  *     readonly: v.optional(v.boolean())
  *   })
  * });
- * 
+ *
  * class TypeScriptModelGenerator extends TypeScriptModelBase {
  *   generate() {
  *     const enrichments = this.enrichments;
@@ -82,7 +83,7 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
  *   }
  * }
  * ```
- * 
+ *
  * @example Creating a validation schema generator
  * ```typescript
  * const ValidationModelBase = toModelBase({
@@ -94,7 +95,7 @@ export type BaseModelConfig<EnrichmentType = undefined> = {
  */
 export const toModelBase = <EnrichmentType = undefined>(
   config: BaseModelConfig<EnrichmentType>
-): new (args: ModelInsertableArgs<EnrichmentType>) => ModelBase<EnrichmentType> => {
+) => {
   return class extends ModelBase<EnrichmentType> {
     static id = config.id
     static type = 'model' as const

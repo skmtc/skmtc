@@ -9,7 +9,7 @@ import type { SchemaToValueFn } from '../../types/TypeSystem.ts'
 
 /**
  * Constructor arguments for model insertable instances.
- * 
+ *
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
 export type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
@@ -22,7 +22,7 @@ export type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
 
 /**
  * Interface for objects that provide model transformation capabilities.
- * 
+ *
  * Used by generator configurations to transform model definitions
  * during the code generation process.
  */
@@ -33,14 +33,14 @@ export type WithTransformModel = {
 /**
  * Arguments for generating enrichment data for models.
  */
-export type ModelToEnrichmentsArgs = {
+export type ToModelEnrichmentsArgs = {
   refName: RefName
   context: GenerateContext
 }
 
 /**
  * Arguments passed to model transformation functions.
- * 
+ *
  * @template Acc - Accumulator type for collecting transformation results
  */
 export type TransformModelArgs<Acc> = {
@@ -51,7 +51,7 @@ export type TransformModelArgs<Acc> = {
 
 /**
  * Arguments for generating model preview modules.
- * 
+ *
  * Preview modules provide quick insights into generated models
  * without full code generation.
  */
@@ -62,7 +62,7 @@ export type ToModelPreviewModuleArgs = {
 
 /**
  * Arguments for generating model mapping information.
- * 
+ *
  * Mappings track relationships between OAS schemas and generated models,
  * enabling cross-references and dependency analysis.
  */
@@ -73,10 +73,10 @@ export type ToModelMappingArgs = {
 
 /**
  * Configuration object for insertable model generators.
- * 
+ *
  * Defines the contract for model generator classes that can be inserted
  * into the generation context to produce type-safe model definitions.
- * 
+ *
  * @template V - Generated value type produced by the model generator
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
@@ -92,7 +92,7 @@ export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & 
   type: 'model'
   toIdentifier: (refName: RefName) => Identifier
   toExportPath: (refName: RefName) => string
-  toEnrichments: ({ refName, context }: ModelToEnrichmentsArgs) => EnrichmentType
+  toEnrichments: ({ refName, context }: ToModelEnrichmentsArgs) => EnrichmentType
   schemaToValueFn: SchemaToValueFn
   createIdentifier: (name: string) => Identifier
   // deno-lint-ignore ban-types
@@ -100,10 +100,10 @@ export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & 
 
 /**
  * Configuration object for model generators.
- * 
+ *
  * Defines the behavior and capabilities of model generators including
  * transformation logic, preview generation, and enrichment handling.
- * 
+ *
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
 export type ModelConfig<EnrichmentType = undefined> = {
