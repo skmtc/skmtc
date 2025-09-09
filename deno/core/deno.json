@@ -39,8 +39,7 @@
     "publish:deno:ga": "deno publish --allow-slow-types",
     "publish:npm": "cd ../../packages/core && npm publish",
     "docs": "deno doc --html --name=\"My library\" ./mod.ts",
-    "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > ../docs/src/docs.json",
-    "docs:md": "jsdoc2md ./mod.ts"
+    "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > ../docs/src/docs.json"
   },
   "compilerOptions": {
     "noImplicitAny": true
