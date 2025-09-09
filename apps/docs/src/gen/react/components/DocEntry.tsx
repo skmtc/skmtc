@@ -1,70 +1,55 @@
-import React from 'react';
-import { Anchor } from './Anchor';
-import { Tag } from './Tag';
-import { SourceButton } from './SourceButton';
-
-interface DocEntryProps {
-  id?: string;
-  name?: string;
-  nameHref?: string;
-  content: string;
-  tags?: Array<{ kind: string; value?: string | string[] }>;
-  sourceHref?: string;
-  jsDoc?: string;
-}
+import React from 'react'
+import type { DocEntryProps } from '../types'
+import { parseMarkdown } from '../utils/jsdoc-links'
+import { renderValue } from '../utils/index'
 
 export const DocEntry: React.FC<DocEntryProps> = ({
-  id,
   name,
-  nameHref,
-  content,
-  tags,
-  sourceHref,
-  jsDoc
+  jsDoc,
+  location,
+  declarationKind,
+  def
 }) => {
-  const hasName = Boolean(name);
+  console.log('DOC ENTRY: ', name, jsDoc, location, declarationKind, def)
 
   return (
-    <div className={`${hasName ? 'anchorable' : ''} docEntry`} id={id}>
-      <div className="docEntryHeader">
-        <div>
-          {tags && (
-            <div className="space-x-1 mb-1">
-              {tags.map((tag, index) => (
-                <Tag key={index} value={tag} />
-              ))}
+    <article className="doc-entry mb-8 p-4 border rounded-lg">
+      <header className="mb-4">
+        <h3 className="text-xl font-bold">{name}</h3>
+        {declarationKind && <span className="text-sm text-gray-600">{declarationKind}</span>}
+        {location && (
+          <div className="text-sm text-gray-500 mt-1">
+            {location.filename}:{location.line}:{location.col}
+          </div>
+        )}
+      </header>
+
+      {jsDoc?.doc && (
+        <div
+          className="prose mb-4"
+          dangerouslySetInnerHTML={{ __html: parseMarkdown(jsDoc.doc) }}
+        />
+      )}
+
+      {jsDoc?.tags && jsDoc.tags.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {jsDoc.tags.map((tag, index) => (
+            <div key={index} className="text-sm">
+              <span className="font-semibold capitalize">{tag.kind}: </span>
+              {tag.name && <span className="font-mono">{tag.name} </span>}
+              {tag.doc && <span dangerouslySetInnerHTML={{ __html: parseMarkdown(tag.doc) }} />}
             </div>
-          )}
-
-          <code>
-            {name && <Anchor id={id || ''} />}
-
-            {nameHref ? (
-              <a className="font-bold text-lg link" href={nameHref}>
-                <span dangerouslySetInnerHTML={{ __html: name || '' }} />
-              </a>
-            ) : (
-              name && (
-                <span className="font-bold text-lg">
-                  <span dangerouslySetInnerHTML={{ __html: name }} />
-                </span>
-              )
-            )}
-            <span 
-              className="font-medium text-stone-500 dark:text-stone-200"
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
-          </code>
-        </div>
-
-        {sourceHref && <SourceButton href={sourceHref} />}
-      </div>
-
-      {jsDoc && (
-        <div className="max-w-[75ch]">
-          <div dangerouslySetInnerHTML={{ __html: jsDoc }} />
+          ))}
         </div>
       )}
-    </div>
-  );
-};
+
+      {def && (
+        <div className="mt-4">
+          <pre className="bg-gray-100 p-3 rounded overflow-x-auto">
+            <code>{renderValue(def)}</code>
+          </pre>
+        </div>
+      )}
+    </article>
+  )
+}

@@ -1,67 +1,41 @@
-import React from 'react'
-import { ArrowIcon } from './Icon'
+import React from 'react';
+import type { BreadcrumbsProps } from '../types';
 
-interface BreadcrumbPart {
-  name: string
-  href?: string
-  isFirstSymbol?: boolean
-  isSymbol?: boolean
-}
-
-interface BreadcrumbsProps {
-  parts?: BreadcrumbPart[]
-}
-
-export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ parts }) => {
-  const symbolParts = parts?.filter(part => part.isSymbol)
-
+export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
   return (
-    <ul className="breadcrumbs">
-      {parts?.map((part, index) => {
-        const isLast = index === parts.length - 1
-        const isFirstSymbol = part.isFirstSymbol
-
-        return (
-          <React.Fragment key={index}>
-            {isFirstSymbol && (
-              <ul>
-                {symbolParts?.map((symbolPart, symbolIndex) => (
-                  <li key={symbolIndex}>
-                    {symbolIndex === symbolParts.length - 1 ? (
-                      symbolPart.name
-                    ) : (
-                      <a href={symbolPart.href} className="contextLink">
-                        {symbolPart.name}
-                      </a>
-                    )}
-                    {symbolIndex < symbolParts.length - 1 && <span>.</span>}
-                  </li>
-                ))}
-              </ul>
+    <nav className="flex" aria-label="Breadcrumb">
+      <ol className="inline-flex items-center space-x-1 md:space-x-3">
+        {items.map((item, index) => (
+          <li key={index} className="inline-flex items-center">
+            {index > 0 && (
+              <svg
+                className="w-6 h-6 text-gray-400"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
             )}
-
-            {!part.isSymbol && (
-              <>
-                <li>
-                  {isLast ? (
-                    part.name
-                  ) : (
-                    <a href={part.href} className="contextLink">
-                      {part.name}
-                    </a>
-                  )}
-                </li>
-
-                {!isLast && (
-                  <span className="text-black dark:text-white">
-                    <ArrowIcon />
-                  </span>
-                )}
-              </>
+            {item.href ? (
+              <a
+                href={item.href}
+                className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
+              >
+                {item.label}
+              </a>
+            ) : (
+              <span className="text-sm font-medium text-gray-500">
+                {item.label}
+              </span>
             )}
-          </React.Fragment>
-        )
-      })}
-    </ul>
-  )
-}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+};

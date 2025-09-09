@@ -1,78 +1,43 @@
-import React from 'react'
-import { ArrowIcon } from './Icon'
-import { DocNodeKindIcon } from './DocNodeKindIcon'
-import { Usages } from './Usages'
+import React from 'react';
+import type { TocProps, TocItem } from '../types';
+import { DocNodeKindIcon } from './DocNodeKindIcon';
 
-interface TopSymbol {
-  name: string
-  href: string
-  kind: Array<{
-    kind: string
-    title: string
-    char: string
-  }>
-}
+export const Toc: React.FC<TocProps> = ({ items }) => {
+  const renderTocItem = (item: TocItem, level: number = 0) => {
+    const paddingClass = `pl-${level * 4}`;
+    
+    return (
+      <li key={item.href} className="my-1">
+        <a
+          href={item.href}
+          className={`flex items-center py-1 px-2 text-sm hover:bg-gray-100 rounded ${
+            item.isActive ? 'bg-gray-100 font-semibold' : ''
+          } ${paddingClass}`}
+        >
+          {item.kind && <DocNodeKindIcon kind={item.kind} />}
+          <span className="ml-2">{item.name}</span>
+        </a>
+        {item.children && item.children.length > 0 && (
+          <ul className="ml-2">
+            {item.children.map((child) => renderTocItem(child, level + 1))}
+          </ul>
+        )}
+      </li>
+    );
+  };
 
-interface TopSymbols {
-  symbols: TopSymbol[]
-  totalSymbols: number
-  allSymbolsHref: string
-}
-
-interface TocProps {
-  usages?: any
-  topSymbols?: TopSymbols
-  documentNavigationStr?: string
-}
-
-export const Toc: React.FC<TocProps> = ({ usages, topSymbols, documentNavigationStr }) => {
-  const hasContent = usages || topSymbols || documentNavigationStr
-
-  if (!hasContent) {
-    return null
+  if (!items || items.length === 0) {
+    return null;
   }
 
-  console.log('TOP SYMBOLS', topSymbols)
-
   return (
-    <div className="toc">
-      <div>
-        {usages && <Usages {...usages} />}
-
-        {topSymbols && (
-          <nav className="topSymbols">
-            <h3>Symbols</h3>
-            <ul>
-              {topSymbols.symbols.map((symbol, index) => (
-                <li key={index}>
-                  <a href={symbol.href} title={symbol.name}>
-                    <DocNodeKindIcon kinds={symbol.kind} />
-                    <span
-                      className={`hover:bg-${symbol.kind[0]?.kind}/15 hover:bg-${symbol.kind[0]?.kind}Dark/15`}
-                    >
-                      {symbol.name}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-
-            {topSymbols.totalSymbols > 5 && (
-              <a className="flex items-center gap-0.5" href={topSymbols.allSymbolsHref}>
-                <span className="leading-none">view all {topSymbols.totalSymbols} symbols</span>
-                <ArrowIcon />
-              </a>
-            )}
-          </nav>
-        )}
-
-        {documentNavigationStr && (
-          <nav className="documentNavigation">
-            <h3>Document Navigation</h3>
-            <div dangerouslySetInnerHTML={{ __html: documentNavigationStr }} />
-          </nav>
-        )}
+    <nav className="toc sticky top-4 w-64 ml-8">
+      <div className="border rounded-lg p-4 bg-white">
+        <h3 className="font-semibold text-lg mb-3">Table of Contents</h3>
+        <ul className="space-y-1">
+          {items.map((item) => renderTocItem(item))}
+        </ul>
       </div>
-    </div>
-  )
-}
+    </nav>
+  );
+};

@@ -1,27 +1,27 @@
 import React from 'react';
+import type { DocNodeKindIconProps } from '../types';
+import { getKindColor } from '../utils';
 
-interface KindItem {
-  kind: string;
-  title: string;
-  char: string;
-}
+export const DocNodeKindIcon: React.FC<DocNodeKindIconProps> = ({ kind }) => {
+  const iconMap = {
+    moduleDoc: 'M',
+    variable: 'V',
+    typeAlias: 'T',
+    function: 'F',
+    class: 'C',
+    interface: 'I',
+    namespace: 'N',
+    enum: 'E',
+    import: '↓',
+    export: '↑',
+  };
 
-interface DocNodeKindIconProps {
-  kinds: KindItem[];
-}
+  const icon = iconMap[kind] || '?';
+  const color = getKindColor(kind);
 
-export const DocNodeKindIcon: React.FC<DocNodeKindIconProps> = ({ kinds }) => {
   return (
-    <div className="docNodeKindIcon">
-      {kinds.map((item, index) => (
-        <div 
-          key={index}
-          className={`text-${item.kind} bg-${item.kind}/15 dark:text-${item.kind}Dark dark:bg-${item.kind}Dark/15`}
-          title={item.title}
-        >
-          {item.char}
-        </div>
-      ))}
-    </div>
+    <span className={`inline-block w-6 h-6 text-center font-mono font-bold ${color}`}>
+      {icon}
+    </span>
   );
 };

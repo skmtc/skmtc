@@ -1,88 +1,28 @@
 import React from 'react';
-import { ArrowIcon } from './Icon';
-
-interface Usage {
-  name: string;
-  icon: string;
-  content: string;
-  additionalCss?: string;
-}
+import type { UsageInfo } from '../types';
 
 interface UsagesProps {
-  usages: Usage[];
-  composed?: boolean;
+  usage: UsageInfo;
 }
 
-export const Usages: React.FC<UsagesProps> = ({ usages, composed = false }) => {
-  if (!composed) {
-    return (
-      <div className="usageContent">
-        <h3>Usage</h3>
-        <div dangerouslySetInnerHTML={{ __html: usages[0]?.content || '' }} />
-      </div>
-    );
-  }
+export const Usages: React.FC<UsagesProps> = ({ usage }) => {
+  if (!usage) return null;
 
   return (
-    <div className="usages">
-      {usages.map((usage, index) => (
-        <React.Fragment key={usage.name}>
-          {usage.additionalCss && (
-            <style scoped>
-              <div dangerouslySetInnerHTML={{ __html: usage.additionalCss }} />
-            </style>
-          )}
-          <input 
-            type="radio" 
-            name="usage" 
-            id={usage.name}
-            className="hidden" 
-            defaultChecked={index === 0}
-          />
-        </React.Fragment>
-      ))}
-
-      <nav>
-        <h3 className="!mb-0">Use with</h3>
-        
-        <details id="usageSelector">
-          <summary>
-            {usages.map((usage) => (
-              <div key={`${usage.name}_active_dropdown`} id={`${usage.name}_active_dropdown`} className="hidden items-center gap-1">
-                <div className="h-4 *:h-4 *:w-auto flex-none">
-                  <div dangerouslySetInnerHTML={{ __html: usage.icon }} />
-                </div>
-                <div className="leading-none">{usage.name}</div>
-              </div>
-            ))}
-
-            <div className="rotate-90">
-              <ArrowIcon />
-            </div>
-          </summary>
-
-          <div>
-            <div>
-              {usages.map((usage) => (
-                <label key={usage.name} htmlFor={usage.name}>
-                  <div className="h-5 *:h-5 *:w-auto flex-none">
-                    <div dangerouslySetInnerHTML={{ __html: usage.icon }} />
-                  </div>
-                  <div>{usage.name}</div>
-                </label>
-              ))}
-            </div>
-          </div>
-        </details>
-      </nav>
-
-      <div>
-        {usages.map((usage) => (
-          <div key={`${usage.name}_content`} id={`${usage.name}_content`} className="usageContent">
-            <div dangerouslySetInnerHTML={{ __html: usage.content }} />
-          </div>
-        ))}
-      </div>
+    <div className="my-4">
+      {usage.entrypoints && usage.entrypoints.length > 0 && (
+        <div className="mb-2">
+          <span className="font-semibold">Import from: </span>
+          <code className="bg-gray-100 px-2 py-1 rounded">
+            {usage.entrypoints.join(', ')}
+          </code>
+        </div>
+      )}
+      {usage.code && (
+        <pre className="bg-gray-100 p-3 rounded overflow-x-auto">
+          <code>{usage.code}</code>
+        </pre>
+      )}
     </div>
   );
 };

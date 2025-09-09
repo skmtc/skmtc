@@ -1,19 +1,30 @@
 import React from 'react';
-import { Deprecated } from './Deprecated';
-import { SymbolContent } from './SymbolContent';
+import type { ModuleDocProps } from '../types';
+import { parseMarkdown } from '../utils/jsdoc-links';
+import { Example } from './Example';
 
-interface ModuleDocProps {
-  deprecated?: string | null;
-  sections?: any;
-}
+export const ModuleDoc: React.FC<ModuleDocProps> = ({ doc, examples }) => {
+  if (!doc && (!examples || examples.length === 0)) {
+    return null;
+  }
 
-export const ModuleDoc: React.FC<ModuleDocProps> = ({ deprecated, sections }) => {
   return (
-    <section>
-      <div className="space-y-2 flex-1">
-        <Deprecated content={deprecated || null} />
-        <SymbolContent {...sections} />
-      </div>
-    </section>
+    <div className="module-doc my-6">
+      {doc && (
+        <div 
+          className="prose max-w-none mb-6"
+          dangerouslySetInnerHTML={{ __html: parseMarkdown(doc) }}
+        />
+      )}
+      
+      {examples && examples.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Examples</h3>
+          {examples.map((example) => (
+            <Example key={example.id} example={example} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 };

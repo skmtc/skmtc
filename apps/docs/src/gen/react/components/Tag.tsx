@@ -1,54 +1,58 @@
 import React from 'react';
-
-interface TagValue {
-  kind: string;
-  value?: string | string[];
-}
+import type { JsDocTag } from '../types';
 
 interface TagProps {
-  value: TagValue;
+  value: JsDocTag | string;
   large?: boolean;
 }
 
-const titleCase = (str: string): string => {
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-};
-
 export const Tag: React.FC<TagProps> = ({ value, large = false }) => {
+  // Handle both JsDocTag objects and strings
+  const tagData = typeof value === 'string' 
+    ? { kind: value, value: undefined }
+    : { kind: value.kind, value: value.doc };
+  
+  const sizeClasses = large 
+    ? 'font-bold py-2 px-3' 
+    : 'text-sm py-1 px-2';
+  
+  const kindColorMap: Record<string, string> = {
+    deprecated: 'yellow',
+    experimental: 'orange', 
+    internal: 'red',
+    since: 'green',
+    see: 'purple',
+    example: 'indigo',
+    param: 'gray',
+    return: 'gray',
+    returns: 'gray',
+    throws: 'red',
+    author: 'blue',
+    version: 'green',
+    template: 'purple',
+    unsupported: 'red',
+    module: 'blue'
+  };
+  
+  const colorClass = kindColorMap[tagData.kind] || 'gray';
+  
+  const titleCase = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+  
   const renderContent = () => {
     if (large) {
-      if (value.value) {
-        if (value.kind === 'permissions' && Array.isArray(value.value)) {
-          return (
-            <span className="space-x-2">
-              {value.value.map((item, index) => (
-                <React.Fragment key={index}>
-                  <span>{item}</span>
-                  {index < value.value!.length - 1 && (
-                    <div className="inline border-l-2 border-stone-300 dark:border-gray-700"></div>
-                  )}
-                </React.Fragment>
-              ))}
-            </span>
-          );
-        }
-        return titleCase(Array.isArray(value.value) ? value.value.join(', ') : value.value);
+      if (tagData.value) {
+        return titleCase(tagData.value);
       }
-      return titleCase(value.kind);
+      return titleCase(tagData.kind);
     } else {
-      if (value.value) {
-        return Array.isArray(value.value) ? value.value.join(', ') : value.value;
-      }
-      return value.kind;
+      return tagData.value || tagData.kind;
     }
   };
-
-  const sizeClasses = large ? 'font-bold py-2 px-3' : 'text-sm py-1 px-2';
-
+  
   return (
-    <div
-      className={`text-${value.kind} border border-${value.kind}/50 bg-${value.kind}/5 inline-flex items-center gap-0.5 *:flex-none rounded-md leading-none ${sizeClasses}`}
-    >
+    <div className={`text-${colorClass}-700 border border-${colorClass}-500/50 bg-${colorClass}-500/5 inline-flex items-center gap-0.5 rounded-md leading-none ${sizeClasses}`}>
       {renderContent()}
     </div>
   );
