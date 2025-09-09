@@ -36,7 +36,7 @@
     "publish:ga": "deno task build && deno task publish:deno:ga && deno task publish:npm",
     "build": "deno run -A .scripts/build-node.ts",
     "publish:deno": "deno publish --allow-dirty --token=$JSR_AUTH_TOKEN",
-    "publish:deno:ga": "deno publish",
+    "publish:deno:ga": "deno publish --allow-slow-types",
     "publish:npm": "cd ../../packages/core && npm publish",
     "docs": "deno doc --html --name=\"My library\" ./mod.ts",
     "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > ../docs/src/docs.json",
