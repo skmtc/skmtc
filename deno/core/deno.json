@@ -10,7 +10,7 @@
     "lodash-es": "npm:lodash-es@4.17.21",
     "@sentry/node": "npm:@sentry/node@^10.8.0",
     "openapi-types": "npm:openapi-types@^12.1.3",
-    "valibot": "npm:valibot@1.1.0",
+    "valibot": "npm:valibot@^1.1.0",
     "prettier": "npm:prettier@^3.6.2",
     "make-synchronized": "npm:make-synchronized@^0.7.2"
   },
