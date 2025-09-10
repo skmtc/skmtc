@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Input } from '@cliffy/prompt'
+import { Input, Select } from '@cliffy/prompt'
 import * as Sentry from '@sentry/node'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
@@ -16,10 +16,12 @@ export const toBaseFilesPullCommand = (skmtcRoot: SkmtcRoot) => {
 }
 
 export const toBaseFilesPullPrompt = async (skmtcRoot: SkmtcRoot) => {
-  const projectName = await Input.prompt({
+  const projectName = await Select.prompt({
     message: 'Select project to deploy generators to',
-    list: true,
-    suggestions: skmtcRoot.projects.map(({ name }) => name)
+    options: skmtcRoot.projects.map(({ name }) => ({
+      name,
+      value: name
+    }))
   })
 
   const path = await Input.prompt({
