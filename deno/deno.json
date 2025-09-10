@@ -21,7 +21,7 @@
     "@std/semver": "jsr:@std/semver@^1.0.5",
     "@std/testing": "jsr:@std/testing@^1.0.8",
     "@std/yaml":"jsr:@std/yaml@^1.0.5",
-    "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.49.8",
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.57.4",
     "chokidar": "npm:chokidar@^4.0.3",
     "gpt-tokenizer": "npm:gpt-tokenizer@^3.0.1",
     "hono": "npm:hono@4.7.2",
