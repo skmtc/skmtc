@@ -11,32 +11,9 @@ import { keypress } from '../lib/keypress.ts'
 import { relative } from '@std/path/relative'
 import { dim } from '@std/fmt/colors'
 import type { RemoteProject } from '../lib/remote-project.ts'
+import { Input } from '@cliffy/prompt'
 
 export const description = 'Generate artifacts'
-
-/* projectName 
-
-starts with @
-call remote api
-
-starts with http:// or https://
-call server
-
-starts with anything else
-call generator in ./skmtc (deno only)
-
-should schema be optional in project?
-
-schema
-if starts with @
-use remote api
-
-if starts with http:// or https://
-fetch it
-
-use as path to file
-
-*/
 
 export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
@@ -44,7 +21,9 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
     .arguments('<project:string> [schema:string]')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
     .option('-p, --prettier <path:string>', 'Path to prettier config file')
-    .action(async ({ watch, prettier }, projectKey, schemaPath) => {
+    .action(async ({ watch, prettier }, projectKey, path) => {
+      const schemaPath = path ? path : await Input.prompt('Enter path or url OpenAPI schema')
+
       const project = await skmtcRoot.toProject({ projectKey, schemaPath, prettierPath: prettier })
 
       const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
