@@ -7,11 +7,11 @@
 
 ## ✨ Why Skmtc?
 
-Skmtc automatically generates:
-- 🧵 **Easy to edit code generators** - Outputs specified using string templates
+- 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
 - 🥞 **Stackable generators** - Combine multiple generators to generate deep functionality
 - 🗄️ **Use your own code conventions** - Full control over naming and file structure
-- 🎭 **Choose from 11 ready-to-use generators** - Generators include Tanstack Query, Zod, TypeScript, and more - https://github.com/skmtc/skmtc-generators
+- 🎨 **Formatted output** - Prettier integration for consistent styling
+- 🍱 **Choose from 11 ready-to-use generators** - Generators include Tanstack Query, Zod, TypeScript, and more - https://github.com/skmtc/skmtc-generators
 
 ## 🚀 Quick Start
 
@@ -20,7 +20,7 @@ Skmtc automatically generates:
 npm install -g @skmtc
 
 # Or use directly with npx
-npx @skmtc
+npx skmtc
 
 # Initialize a new project
 skmtc init
@@ -33,8 +33,8 @@ That's it! Skmtc will guide you through selecting generators and configuring you
 
 ## 🎯 Features
 
-### Multiple Code Generators
-Choose from our growing collection of generators or create your own:
+### Single ecosystem for code generators
+Choose from our growing collection of generators, combone them or create your own:
 
 - **Tanstack Query** - React Query hooks with Zod validation
 - **MSW** - Mock Service Worker handlers from OpenAPI examples
@@ -92,36 +92,34 @@ Your generated code appears in the configured output directory, ready to use!
 ## ❓ FAQ
 
 ### **What OpenAPI versions are supported?**
-Skmtc supports OpenAPI v3.0+ specifications. We also automatically convert Swagger 2.0 documents.
+Skmtc supports OpenAPI v3.0. Swagger 2.0 and OpenAPI v3.1 are automatically converted to OpenAPI v3.0.
+
+### **Can I customize the generated code?**
+Yes! Each Transformer specifies its output using plain string templates, which means you can
+edit them as would you edit any other code.
 
 ### **Can I use this with my existing React app?**
 Yes! Skmtc generates standalone code that integrates with any React application. The generated components work with your existing setup.
 
 ### **How does this compare to OpenAPI Generator?**
-Skmtc focuses on modern TypeScript/React ecosystems with better DX, type safety, and React-specific features like hooks and components. We generate idiomatic code that looks hand-written.
-
-### **Can I customize the generated code?**
-Yes! Each generator has configuration options, and you can create custom generators for your specific needs. The generated code is also fully editable.
+Skmtc is the only code generation framework that provides full control over the generated code. You are not limited by library-specific settings and you do not need to write complex AST code.
 
 ### **Is this production-ready?**
 Skmtc is actively used in production environments. We follow semantic versioning and maintain backward compatibility.
 
-### **What about authentication?**
-Generated API clients support custom headers, interceptors, and authentication tokens. Configure once, use everywhere.
-
 ### **Does it work with Next.js/Remix/Vite?**
-Yes! The generated code is framework-agnostic TypeScript/React that works with any modern build tool.
+Yes! The generated code is framework-agnostic TypeScript that works with any build tool or library.
 
 ## 🤝 Contributing
 
 We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.
 
-## 📚 Documentation
+<!-- ## 📚 Documentation
 
 - [Full Documentation](https://docs.skmtc.dev)
 - [API Reference](https://docs.skmtc.dev/api)
 - [Custom Generators Guide](https://docs.skmtc.dev/generators)
-- [Examples](https://github.com/skmtc/skmtc/tree/main/examples)
+- [Examples](https://github.com/skmtc/skmtc/tree/main/examples) -->
 
 ## 🛟 Support
 
@@ -130,7 +128,7 @@ We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to
 
 ## 📄 License
 
-MIT © [Skmtc Contributors](LICENSE.md)
+Apache 2.0 © [Skmtc Contributors](LICENSE.md)
 
 ---
 
