@@ -127,8 +127,6 @@ const createProject = async ({
     generators: [generatorName]
   })
 
-  await skmtcRoot.manager.success(`Project created in "${project.toPath()}"`)
-
   return { project, moduleName: generatorName, isNewProject: true }
 }
 

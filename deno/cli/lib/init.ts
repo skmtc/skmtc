@@ -21,8 +21,11 @@ export const init = async (
 ) => {
   try {
     const denoProject = await skmtcRoot.createDenoProject(projectName)
+
+    console.log('Deno project created', denoProject)
   } catch (error) {
-    // TODO: handle error
+    console.error(error)
+    skmtcRoot.manager.fail('Failed to create deno project')
     return
   }
 
@@ -51,7 +54,6 @@ export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
     message: 'Select generators to use',
 
     options: availableGenerators.map(({ id }) => ({
-      checked: true,
       label: id,
       value: id
     }))

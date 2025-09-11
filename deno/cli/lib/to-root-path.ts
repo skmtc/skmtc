@@ -28,5 +28,5 @@ const isInsideHomedir = (path: string) => {
 
   const resolvedPath = resolve(path)
 
-  return resolvedPath.startsWith(resoledHomedir)
+  return resolvedPath.startsWith(resoledHomedir) && resolvedPath !== resoledHomedir
 }

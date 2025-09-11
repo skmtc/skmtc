@@ -1,64 +1,63 @@
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
-import { toProjectPath } from './to-project-path.ts'
 import { type SkmtcClientConfig, skmtcClientConfig } from '@skmtc/core'
 import * as v from 'valibot'
 import type { Manager } from './manager.ts'
 import { writeFileSafeDir } from './file.ts'
+import type { ProjectKey } from './project.ts'
 
 type CreateArgs = {
-  projectName: string
+  path: string
   basePath: string
 }
 
 type ConstructorArgs = {
-  projectName: string
+  path: string
   contents: SkmtcClientConfig
+}
+
+type OpenArgs = {
+  path: string
+  manager: Manager
+}
+
+type ToPathArgs = {
+  projectPath: string | ProjectKey
 }
 
 export class ClientJson {
   contents: SkmtcClientConfig
-  projectName: string
+  path: string
 
-  private constructor({ projectName, contents }: ConstructorArgs) {
-    this.projectName = projectName
+  private constructor({ path, contents }: ConstructorArgs) {
+    this.path = path
     this.contents = contents
   }
 
-  static toPath(projectName: string) {
-    const projectPath = toProjectPath(projectName)
-
+  static toPath({ projectPath }: ToPathArgs): string {
     return join(projectPath, '.settings', 'client.json')
   }
 
-  static async exists(projectName: string): Promise<boolean> {
-    const path = ClientJson.toPath(projectName)
-
-    return await exists(path, { isFile: true })
-  }
-
   async refresh() {
-    const refreshPath = ClientJson.toPath(this.projectName)
-
-    const contents = await Deno.readTextFile(refreshPath)
+    const contents = await Deno.readTextFile(this.path)
 
     const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
 
     this.contents = parsed
   }
 
-  static async open(projectName: string, manager: Manager): Promise<ClientJson> {
-    const hasClientJson = await ClientJson.exists(projectName)
+  static async open({ path, manager }: OpenArgs): Promise<ClientJson> {
+    const hasClientJson = await exists(path, { isFile: true })
 
     if (!hasClientJson) {
-      throw new Error(`Client JSON not found at: "${ClientJson.toPath(projectName)}"`)
+      throw new Error(`Client JSON not found at: "${path}"`)
     }
 
-    const contents = await Deno.readTextFile(ClientJson.toPath(projectName))
+    const contents = await Deno.readTextFile(path)
 
     const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
 
-    const clientJson = new ClientJson({ projectName, contents: parsed })
+    const clientJson = new ClientJson({ path, contents: parsed })
 
     manager.cleanupActions.push(async () => await clientJson.write())
 
@@ -66,15 +65,14 @@ export class ClientJson {
   }
 
   async write() {
-    const path = ClientJson.toPath(this.projectName)
     const content = JSON.stringify(this.contents, null, 2)
 
-    await writeFileSafeDir(path, content)
+    await writeFileSafeDir(this.path, content)
   }
 
-  static create({ projectName, basePath }: CreateArgs) {
+  static create({ path, basePath }: CreateArgs) {
     return new ClientJson({
-      projectName,
+      path,
       contents: { settings: { basePath } }
     })
   }

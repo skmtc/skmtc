@@ -7,6 +7,7 @@ import { getApiDeploymentsDeploymentIdDeploymentLogs } from '../services/getApiD
 import { createApiServers } from '../services/createApiServers.generated.ts'
 import invariant from 'tiny-invariant'
 import type { Project } from './project.ts'
+import type { RemoteProject } from './remote-project.ts'
 
 type DeployArgs = {
   serverName: string
@@ -52,7 +53,7 @@ export class Deployment {
         const userName = await this.apiClient.manager.auth.toUserName()
 
         if (deployment.status === 'success') {
-          project.clientJson.contents.projectKey = `@${userName}/${project.clientJson.projectName}`
+          project.clientJson.contents.projectKey = `@${userName}/${project.name}`
 
           project.clientJson.write()
 
@@ -62,7 +63,7 @@ export class Deployment {
         }
 
         if (deployment.status === 'failed') {
-          project.clientJson.contents.projectKey = `@${userName}/${project.clientJson.projectName}`
+          project.clientJson.contents.projectKey = `@${userName}/${project.name}`
 
           project.clientJson.write()
 

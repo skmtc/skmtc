@@ -90,7 +90,7 @@ export class Workspace {
 
     const schema = project.schemaFile?.contents
 
-    invariant(schema, 'Schema not found')
+    invariant(schema, 'Schema not found 1')
 
     const { artifacts, manifest } = await createApiServersAccountNameServerNameArtifacts({
       supabase: project.manager.auth.supabase,

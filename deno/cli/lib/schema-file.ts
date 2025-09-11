@@ -7,6 +7,7 @@ import invariant from 'tiny-invariant'
 import { match, P } from 'ts-pattern'
 import { Input } from '@cliffy/prompt'
 import type { Project } from './project.ts'
+import type { RemoteProject } from './remote-project.ts'
 
 type FileType = 'json' | 'yaml'
 
@@ -104,7 +105,7 @@ export class SchemaFile {
     }
   }
 
-  async promptOrFail(project: Project) {
+  async promptOrFail(project: Project | RemoteProject) {
     if (!this.schemaSource) {
       const source = await Input.prompt('Enter path or url of OpenAPI schema')
       const schemaSource = toSchemaSource(source)

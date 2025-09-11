@@ -109,7 +109,10 @@ export class Project {
     const project = new Project({
       name,
       rootDenoJson: RootDenoJson.create(name),
-      clientJson: ClientJson.create({ projectName: name, basePath }),
+      clientJson: ClientJson.create({
+        path: ClientJson.toPath({ projectPath: toProjectPath(name) }),
+        basePath
+      }),
       prettierJson: PrettierJson.create({ path: PrettierJson.toPath(name), contents: {} }),
       manifest: await Manifest.open(name),
       manager: skmtcRoot.manager,
@@ -238,7 +241,7 @@ export class Project {
 
       this.name = newName
 
-      this.clientJson.projectName = newName
+      this.clientJson.path = ClientJson.toPath({ projectPath: toProjectPath(newName) })
       this.rootDenoJson.projectName = newName
 
       await this.manager.success()
@@ -417,7 +420,10 @@ export class Project {
   static async open(name: string, manager: Manager) {
     const rootDenoJson = await RootDenoJson.open(name, manager)
 
-    const clientJson = await ClientJson.open(name, manager)
+    const clientJson = await ClientJson.open({
+      path: ClientJson.toPath({ projectPath: toProjectPath(name) }),
+      manager
+    })
 
     const prettierJson = await PrettierJson.openFromPath(PrettierJson.toPath(name))
 

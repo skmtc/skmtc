@@ -1,14 +1,16 @@
 import type { SchemaFile } from './schema-file.ts'
-import type { ClientJson } from './client-json.ts'
+import { ClientJson } from './client-json.ts'
 import { join } from '@std/path/join'
 import type { Manager } from './manager.ts'
 import { PrettierJson } from './prettier-json.ts'
 import type { ProjectKey } from './project.ts'
+import { toRemoteProjectPath } from './to-remote-project-path.ts'
 
 type ConstructorArgs = {
   accountName: string
-  projectName: string
+  name: string
   schemaFile: SchemaFile
+  clientJson: ClientJson
   prettierJson: PrettierJson | null
   manager: Manager
 }
@@ -22,54 +24,59 @@ type FromKeyArgs = {
 
 export class RemoteProject {
   accountName: string
-  projectName: string
+  name: string
   schemaFile: SchemaFile
-  clientJson: ClientJson | null
+  clientJson: ClientJson
   prettierJson: PrettierJson | null
   manager: Manager
   private constructor({
     accountName,
-    projectName,
+    name,
     schemaFile,
     prettierJson,
+    clientJson,
     manager
   }: ConstructorArgs) {
     this.accountName = accountName
-    this.projectName = projectName
+    this.name = name
     this.schemaFile = schemaFile
 
-    this.clientJson = null
+    this.clientJson = clientJson
     this.prettierJson = prettierJson
     this.manager = manager
   }
 
   static async fromKey({ projectKey, schemaFile, prettierPath, manager }: FromKeyArgs) {
-    const [accountName, projectName] = projectKey.split('/')
+    const [accountName, name] = projectKey.split('/')
 
     const prettierJson = prettierPath ? await PrettierJson.openFromPath(prettierPath) : null
     const scrubbedAccountName = accountName.replace(/^@/, '')
 
+    const clientJson = await ClientJson.open({
+      path: ClientJson.toPath({ projectPath: toRemoteProjectPath(projectKey) }),
+      manager
+    })
+
     return new RemoteProject({
       accountName: scrubbedAccountName,
-      projectName,
+      name,
       schemaFile,
       prettierJson,
+      clientJson,
       manager
     })
   }
 
-  ensureSchemaFile() {
-    if (!this.schemaFile) {
-      throw new Error(`Project does not have a schema file.`)
-    }
+  async ensureSchemaFile() {
+    await this.schemaFile.promptOrFail(this)
   }
 
   toProjectKey() {
-    return `@${this.accountName}/${this.projectName}`
+    return `@${this.accountName}/${this.name}`
   }
 
   toManifestPath() {
-    return join('.skmtc', `@${this.accountName}`, this.projectName, '.settings', 'manifest.json')
+    return join('.skmtc', `@${this.accountName}`, this.name, '.settings', 'manifest.json')
   }
 
   async ensureDeployment(): Promise<boolean> {
