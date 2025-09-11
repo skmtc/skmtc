@@ -74,6 +74,6 @@ export const message = async (
 
     await Sentry.flush()
 
-    skmtcRoot.manager.fail('Failed to get workspace')
+    await skmtcRoot.manager.fail('Failed to get workspace')
   }
 }

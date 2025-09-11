@@ -111,6 +111,6 @@ export const upload = async (
 
     await Sentry.flush()
 
-    skmtcRoot.manager.fail('Failed to upload schema')
+    await skmtcRoot.manager.fail('Failed to upload schema')
   }
 }

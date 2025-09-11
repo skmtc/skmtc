@@ -90,6 +90,6 @@ export const push = async ({ projectName, path }: PushArgs) => {
 
     await Sentry.flush()
 
-    manager.fail('Failed to push base files')
+    await manager.fail('Failed to push base files')
   }
 }

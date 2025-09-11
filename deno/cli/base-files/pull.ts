@@ -51,6 +51,6 @@ export const pull = async ({ projectName, skmtcRoot }: PullArgs) => {
 
     await Sentry.flush()
 
-    skmtcRoot.manager.fail('Failed to pull base files')
+    await skmtcRoot.manager.fail('Failed to pull base files')
   }
 }

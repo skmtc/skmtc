@@ -4,6 +4,8 @@ import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { availableGenerators } from '../available-generators.ts'
 import { isGeneratorName } from '@skmtc/core'
+import type { Project } from '../lib/project.ts'
+import { runPrompt } from '../prompt/run-prompt.ts'
 
 export const description = 'Install generator'
 
@@ -11,19 +13,27 @@ export const toInstallCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
     .arguments('<project:string> [generator:string]')
-    .action((_options, projectName, generator) => {
-      return toProject({ skmtcRoot, projectName, generator })
+    .action(async (_options, projectName, generatorName) => {
+      const { project, moduleName, isNewProject } = await toProject({
+        skmtcRoot,
+        projectName,
+        generatorName
+      })
+
+      const generator = await project.installGenerator({ moduleName })
+
+      if (isNewProject && generator) {
+        setTimeout(() => runPrompt(skmtcRoot, project.name), 0)
+      }
     })
 
   return command
 }
 
 export const toInstallPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
-  const project = skmtcRoot.projects.find(project => project.name === projectName)
+  const project = skmtcRoot.findProject(projectName)
 
   const imports = project?.rootDenoJson.contents.imports ?? {}
-
-  invariant(project, 'Project not found')
 
   const generators: string[] = await Checkbox.prompt({
     message: 'Select generator to install',
@@ -45,21 +55,33 @@ export const toInstallPrompt = async (skmtcRoot: SkmtcRoot, projectName: string)
 type ToProjectArgs = {
   skmtcRoot: SkmtcRoot
   projectName: string | undefined
-  generator: string | undefined
+  generatorName: string | undefined
 }
 
-const toProject = async ({ skmtcRoot, projectName, generator }: ToProjectArgs) => {
-  if (projectName && generator) {
-    return skmtcRoot.projects
-      .find(({ name }) => name === projectName)
-      ?.installGenerator({ moduleName: generator })
+type ToProjectResult = {
+  project: Project
+  moduleName: string
+  isNewProject: boolean
+}
+
+const toProject = async ({
+  skmtcRoot,
+  projectName,
+  generatorName
+}: ToProjectArgs): Promise<ToProjectResult> => {
+  if (projectName && generatorName) {
+    const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+
+    invariant(project, `Project "${projectName}" not found`)
+
+    return { project, moduleName: generatorName, isNewProject: false }
   }
 
   const hasProjects = skmtcRoot.projects.length > 0
 
-  if (projectName && !generator && isGeneratorName(projectName)) {
+  if (projectName && !generatorName && isGeneratorName(projectName)) {
     if (!hasProjects) {
-      return createProject({ skmtcRoot, generator: projectName })
+      return createProject({ skmtcRoot, generatorName: projectName })
     }
 
     const next = await Select.prompt({
@@ -77,34 +99,48 @@ const toProject = async ({ skmtcRoot, projectName, generator }: ToProjectArgs) =
     })
 
     if (next === 'new') {
-      return createProject({ skmtcRoot, generator: projectName })
+      return createProject({ skmtcRoot, generatorName: projectName })
     }
 
-    return useExistingProject({ skmtcRoot, generator: projectName })
+    return useExistingProject({ skmtcRoot, generatorName: projectName })
   }
+
+  throw new Error('Please provide a project name and generator name')
 }
 
 type CreateProjectArgs = {
   skmtcRoot: SkmtcRoot
-  generator: string
+  generatorName: string
 }
 
-const createProject = async ({ skmtcRoot, generator }: CreateProjectArgs) => {
+const createProject = async ({
+  skmtcRoot,
+  generatorName
+}: CreateProjectArgs): Promise<ToProjectResult> => {
   const name = await Input.prompt(
     "Let's create a new Skmtc project. What would you like to call it?"
   )
 
-  const project = await skmtcRoot.createProject({ name, basePath: './', generators: [] })
+  const project = await skmtcRoot.createProject({
+    name,
+    basePath: './',
+    generators: [generatorName]
+  })
 
-  return project.installGenerator({ moduleName: generator })
+  await skmtcRoot.manager.success(`Project created in "${project.toPath()}"`)
+
+  return { project, moduleName: generatorName, isNewProject: true }
 }
 
 type UseExistingProjectArgs = {
   skmtcRoot: SkmtcRoot
-  generator: string
+  generatorName: string
 }
 
-const useExistingProject = async ({ skmtcRoot, generator }: UseExistingProjectArgs) => {
+const useExistingProject = async ({
+  skmtcRoot,
+  generatorName
+}: UseExistingProjectArgs): Promise<ToProjectResult> => {
   const newProjectName = await Select.prompt({
     message: 'Select project to deploy generators to',
     options: skmtcRoot.projects.map(({ name }) => ({
@@ -115,7 +151,7 @@ const useExistingProject = async ({ skmtcRoot, generator }: UseExistingProjectAr
 
   const project = skmtcRoot.projects.find(({ name }) => name === newProjectName)
 
-  invariant(project, 'Project not found')
+  invariant(project, `Project "${newProjectName}" not found`)
 
-  return project.installGenerator({ moduleName: generator })
+  return { project, moduleName: generatorName, isNewProject: false }
 }

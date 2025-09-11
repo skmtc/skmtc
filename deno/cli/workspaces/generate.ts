@@ -4,14 +4,13 @@ import { Workspace } from '../lib/workspace.ts'
 import chokidar from 'chokidar'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
-import type { Project } from '../lib/project.ts'
+import { Project } from '../lib/project.ts'
 import { Spinner } from '../lib/spinner.ts'
 import { formatNumber, toGenerationStats } from '@skmtc/core'
 import { keypress } from '../lib/keypress.ts'
 import { relative } from '@std/path/relative'
 import { dim } from '@std/fmt/colors'
 import type { RemoteProject } from '../lib/remote-project.ts'
-import { Input } from '@cliffy/prompt'
 
 export const description = 'Generate artifacts'
 
@@ -21,14 +20,14 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
     .arguments('<project:string> [schema:string]')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
     .option('-p, --prettier <path:string>', 'Path to prettier config file')
-    .action(async ({ watch, prettier }, projectKey, path) => {
-      const schemaPath = path ? path : await Input.prompt('Enter path or url OpenAPI schema')
-
-      const project = await skmtcRoot.toProject({ projectKey, schemaPath, prettierPath: prettier })
+    .action(async ({ watch, prettier }, projectName, path) => {
+      const project = await skmtcRoot.toProject({
+        projectName,
+        schemaPath: path,
+        prettierPath: prettier
+      })
 
       const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
-
-      spinner.start()
 
       if (watch) {
         setupWatcher({ project, skmtcRoot, spinner })
@@ -42,7 +41,7 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
 
 export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   const project = await skmtcRoot.toProject({
-    projectKey: projectName,
+    projectName,
     schemaPath: undefined,
     prettierPath: undefined
   })
@@ -57,21 +56,19 @@ export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string
 
   const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
 
-  spinner.start()
-
   await generate({ project, skmtcRoot, spinner })
 
   spinner.stop()
 }
 
 export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
-  const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+  const project = skmtcRoot.findProject(projectName)
 
-  invariant(project?.schemaFile, 'Schema file not found')
+  project.schemaFile.promptOrFail(project)
 
-  const schemaSource = project.schemaFile.toSource()
+  const { schemaSource } = project.schemaFile
 
-  invariant(schemaSource.type === 'local', 'Only local schema files can be watched')
+  invariant(schemaSource?.type === 'local', 'Only local schema files can be watched')
 
   const hasDeployment = await project.ensureDeployment()
 
@@ -82,8 +79,6 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
   }
 
   const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
-
-  spinner.start()
 
   setupWatcher({ project, skmtcRoot, spinner })
 
@@ -115,7 +110,7 @@ type WatchGenerateArgs = {
 }
 
 export const setupWatcher = ({ project, skmtcRoot, spinner }: WatchGenerateArgs) => {
-  const schemaSource = project.schemaFile?.toSource()
+  const { schemaSource } = project.schemaFile
 
   invariant(schemaSource?.type === 'local', 'Only local schema files can be watched')
 
@@ -143,9 +138,15 @@ export const generate = async (
   try {
     const workspace = new Workspace()
 
-    await project.schemaFile?.refresh()
     await project.clientJson?.refresh()
+
+    if (project instanceof Project) {
+      await project.schemaFile.promptOrFail(project)
+    }
+
     await project.prettierJson?.refresh()
+
+    spinner.start()
 
     const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 
@@ -175,6 +176,6 @@ export const generate = async (
 
     await Sentry.flush()
 
-    skmtcRoot.manager.fail()
+    await skmtcRoot.manager.fail()
   }
 }

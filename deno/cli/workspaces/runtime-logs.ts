@@ -74,6 +74,6 @@ export const runtimeLogs = async (
 
     await Sentry.flush()
 
-    skmtcRoot.manager.fail('Failed to get runtime logs')
+    await skmtcRoot.manager.fail('Failed to get runtime logs')
   }
 }

@@ -51,7 +51,9 @@ export class RootDenoJson {
       return new RootDenoJson({ projectName, contents: {} })
     }
 
-    const contents = await Deno.readTextFile(RootDenoJson.toPath(projectName))
+    const path = RootDenoJson.toPath(projectName)
+
+    const contents = await Deno.readTextFile(path)
 
     const parsed = v.parse(rootDenoJson, JSON.parse(contents))
     const denoJson = new RootDenoJson({ projectName, contents: parsed })

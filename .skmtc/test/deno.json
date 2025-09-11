@@ -1,5 +1,0 @@
-{
-  "imports": {
-    "@skmtc/gen-typescript": "jsr:@skmtc/gen-typescript@0.0.38"
-  }
-}

@@ -38,7 +38,9 @@ export class ClientJson {
   }
 
   async refresh() {
-    const contents = await Deno.readTextFile(ClientJson.toPath(this.projectName))
+    const refreshPath = ClientJson.toPath(this.projectName)
+
+    const contents = await Deno.readTextFile(refreshPath)
 
     const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
 
@@ -55,6 +57,7 @@ export class ClientJson {
     const contents = await Deno.readTextFile(ClientJson.toPath(projectName))
 
     const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
+
     const clientJson = new ClientJson({ projectName, contents: parsed })
 
     manager.cleanupActions.push(async () => await clientJson.write())

@@ -103,8 +103,6 @@ export class Jsr {
     if (!versionMetaRes.ok) {
       const resText = await versionMetaRes.text()
 
-      console.log('RES', resText)
-
       throw new Error(`Failed to get latest meta for jsr:${scopeName}/${packageName}. ${resText}`)
     }
 

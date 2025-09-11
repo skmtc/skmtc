@@ -1,9 +1,9 @@
-import invariant from 'tiny-invariant'
 import type { SchemaFile } from './schema-file.ts'
 import type { ClientJson } from './client-json.ts'
 import { join } from '@std/path/join'
 import type { Manager } from './manager.ts'
 import { PrettierJson } from './prettier-json.ts'
+import type { ProjectKey } from './project.ts'
 
 type ConstructorArgs = {
   accountName: string
@@ -14,7 +14,7 @@ type ConstructorArgs = {
 }
 
 type FromKeyArgs = {
-  projectKey: string
+  projectKey: ProjectKey
   schemaFile: SchemaFile
   prettierPath?: string
   manager: Manager
@@ -27,7 +27,13 @@ export class RemoteProject {
   clientJson: ClientJson | null
   prettierJson: PrettierJson | null
   manager: Manager
-  constructor({ accountName, projectName, schemaFile, prettierJson, manager }: ConstructorArgs) {
+  private constructor({
+    accountName,
+    projectName,
+    schemaFile,
+    prettierJson,
+    manager
+  }: ConstructorArgs) {
     this.accountName = accountName
     this.projectName = projectName
     this.schemaFile = schemaFile
@@ -40,15 +46,11 @@ export class RemoteProject {
   static async fromKey({ projectKey, schemaFile, prettierPath, manager }: FromKeyArgs) {
     const [accountName, projectName] = projectKey.split('/')
 
-    invariant(accountName.startsWith('@'), 'Account name must start with @')
-
-    invariant(accountName, 'Account name not found')
-    invariant(projectName, 'Project name not found')
-
     const prettierJson = prettierPath ? await PrettierJson.openFromPath(prettierPath) : null
+    const scrubbedAccountName = accountName.replace(/^@/, '')
 
     return new RemoteProject({
-      accountName: accountName.replace(/^@/, ''),
+      accountName: scrubbedAccountName,
       projectName,
       schemaFile,
       prettierJson,

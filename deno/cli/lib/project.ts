@@ -19,7 +19,6 @@ import type { ApiClient } from './api-client.ts'
 import { Manifest } from './manifest.ts'
 import { getApiServersServerNameHasWriteAccess } from '../services/getApiServersServerNameHasWriteAccess.generated.ts'
 import { Confirm } from '@cliffy/prompt/confirm'
-
 type AddGeneratorArgs = {
   moduleName: string
   type: 'operation' | 'model'
@@ -41,7 +40,7 @@ type ConstructorArgs = {
   prettierJson: PrettierJson | null
   manifest: Manifest
   manager: Manager
-  schemaFile: SchemaFile | null
+  schemaFile: SchemaFile
 }
 
 type DeployOptions = {
@@ -82,7 +81,7 @@ export class Project {
   prettierJson: PrettierJson | null
   manifest: Manifest
   manager: Manager
-  schemaFile: SchemaFile | null
+  schemaFile: SchemaFile
 
   private constructor({
     name,
@@ -114,7 +113,7 @@ export class Project {
       prettierJson: PrettierJson.create({ path: PrettierJson.toPath(name), contents: {} }),
       manifest: await Manifest.open(name),
       manager: skmtcRoot.manager,
-      schemaFile: SchemaFile.create({ projectName: name, fileType: 'json' })
+      schemaFile: SchemaFile.create()
     })
 
     const generatorIdSet = getDependencyIds({
@@ -192,7 +191,7 @@ export class Project {
 
       await Sentry.flush()
 
-      this.manager.fail('Failed to clone generator')
+      await this.manager.fail('Failed to clone generator')
     }
   }
 
@@ -201,9 +200,9 @@ export class Project {
     { logSuccess }: InstallOptions = {}
   ) {
     try {
-      const { scheme, scopeName, packageName, version } = parseModuleName(moduleName)
+      const { scopeName, packageName, version } = parseModuleName(moduleName)
 
-      invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
+      // invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
       invariant(scopeName, 'Scope name is required')
 
       const generator = Generator.fromName({
@@ -225,7 +224,7 @@ export class Project {
 
       await Sentry.flush()
 
-      this.manager.fail('Failed to install generator')
+      await this.manager.fail('Failed to install generator')
     }
   }
 
@@ -250,7 +249,7 @@ export class Project {
 
       await Sentry.flush()
 
-      this.manager.fail('Failed to rename project')
+      await this.manager.fail('Failed to rename project')
     }
   }
 
@@ -274,12 +273,8 @@ export class Project {
     return true
   }
 
-  ensureSchemaFile() {
-    if (!this.schemaFile) {
-      throw new Error(
-        `Project has no schema file. Add an "openapi.json" or "openapi.yaml" file to ".skmtc/${this.name}" or ".skmtc" folder.`
-      )
-    }
+  async ensureSchemaFile() {
+    await this.schemaFile.promptOrFail(this)
   }
 
   async removeGenerator({ moduleName }: RemoveGeneratorArgs, { logSuccess }: RemoveOptions = {}) {
@@ -305,7 +300,7 @@ export class Project {
 
       await Sentry.flush()
 
-      this.manager.fail('Failed to remove generator')
+      await this.manager.fail('Failed to remove generator')
     }
   }
 
@@ -347,15 +342,14 @@ export class Project {
       await deployment.deploy({
         assets,
         serverName: toServerName(this),
-        clientJson: this.clientJson,
-        generatorIds: this.toGeneratorIds()
+        project: this
       })
 
       const duration = (Date.now() - startTime) / 1000
 
       console.log(`Deployed in ${formatNumber(duration)}secs`)
 
-      this.manager.success()
+      await this.manager.success()
     } catch (error) {
       console.error(error)
 
@@ -371,12 +365,12 @@ export class Project {
             console.error(log.message)
           }
         })
-        this.manager.fail('')
+        await this.manager.fail('')
       } else if (error) {
         console.error(error)
-        this.manager.fail('Failed to deploy generators')
+        await this.manager.fail('Failed to deploy generators')
       } else {
-        this.manager.fail('Failed to deploy generators')
+        await this.manager.fail('Failed to deploy generators')
       }
     }
   }
@@ -405,11 +399,11 @@ export class Project {
 
       await Sentry.flush()
 
-      this.manager.fail('Failed to add generator')
+      await this.manager.fail('Failed to add generator')
     }
   }
 
-  toProjectKey() {
+  toProjectKey(): ProjectKey {
     const projectKey = this.clientJson.contents?.projectKey
 
     invariant(
@@ -417,7 +411,7 @@ export class Project {
       'Project is missing "projectKey" in ".settings/client.json". Has it been deployed?'
     )
 
-    return projectKey
+    return toProjectKey(projectKey)
   }
 
   static async open(name: string, manager: Manager) {
@@ -429,7 +423,7 @@ export class Project {
 
     const manifest = await Manifest.open(name)
 
-    const schemaFile = await SchemaFile.openFromProject(name)
+    const schemaFile = await SchemaFile.openFromProject(name, clientJson.contents?.source)
 
     return new Project({
       name,
@@ -498,4 +492,38 @@ export const getDependencyIds = ({
 
   // If loop had no new additions, return the set
   return count === 0 ? generatorIds : getDependencyIds({ checkedIds, options, generatorIds })
+}
+
+export type ProjectKey = `@${string}/${string}`
+
+export const isProjectKey = (value: string): value is ProjectKey => {
+  if (!value.startsWith('@')) {
+    return false
+  }
+
+  const chunks = value.split('/')
+
+  if (chunks.length !== 2) {
+    return false
+  }
+
+  const [accountName, projectName] = chunks
+
+  if (accountName.length < 4 || projectName.length < 3) {
+    return false
+  }
+
+  if (projectName.startsWith('gen-')) {
+    throw new Error('Project name cannot start with "gen-"')
+  }
+
+  return true
+}
+
+export const toProjectKey = (value: string): ProjectKey => {
+  if (isProjectKey(value)) {
+    return value
+  }
+
+  throw new Error('Project key must be in the format "@<accountName>/<projectName>"')
 }

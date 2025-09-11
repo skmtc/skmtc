@@ -88,9 +88,6 @@ export class Workspace {
 
     const [accountName, serverName] = projectKey.split('/')
 
-    invariant(accountName, 'Account name not found')
-    invariant(serverName, 'Server name not found')
-
     const schema = project.schemaFile?.contents
 
     invariant(schema, 'Schema not found')

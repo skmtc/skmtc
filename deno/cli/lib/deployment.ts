@@ -1,5 +1,4 @@
 import type { DenoFile } from '../deploy/types.ts'
-import type { ClientJson } from './client-json.ts'
 import { ApiClient } from './api-client.ts'
 import type { Manager } from './manager.ts'
 import { Spinner } from './spinner.ts'
@@ -7,12 +6,12 @@ import { getApiDeploymentsDeploymentId } from '../services/getApiDeploymentsDepl
 import { getApiDeploymentsDeploymentIdDeploymentLogs } from '../services/getApiDeploymentsDeploymentIdDeploymentLogs.generated.ts'
 import { createApiServers } from '../services/createApiServers.generated.ts'
 import invariant from 'tiny-invariant'
+import type { Project } from './project.ts'
 
 type DeployArgs = {
   serverName: string
-  generatorIds: string[]
   assets: Record<string, DenoFile>
-  clientJson: ClientJson
+  project: Project
 }
 
 export class Deployment {
@@ -23,7 +22,7 @@ export class Deployment {
     this.apiClient = new ApiClient(manager)
   }
 
-  async deploy({ serverName, assets, generatorIds, clientJson }: DeployArgs) {
+  async deploy({ serverName, assets, project }: DeployArgs) {
     const spinner = new Spinner({ message: 'Uploading...', color: 'yellow' })
 
     spinner.start()
@@ -33,7 +32,7 @@ export class Deployment {
       body: {
         assets,
         serverName,
-        generatorIds
+        generatorIds: project.toGeneratorIds()
       }
     })
 
@@ -50,10 +49,12 @@ export class Deployment {
           supabase: this.apiClient.manager.auth.supabase
         })
 
-        const userName = this.apiClient.manager.auth.toUserName()
+        const userName = await this.apiClient.manager.auth.toUserName()
 
         if (deployment.status === 'success') {
-          clientJson.contents.projectKey = `${userName}/${clientJson.projectName}`
+          project.clientJson.contents.projectKey = `@${userName}/${project.clientJson.projectName}`
+
+          project.clientJson.write()
 
           clearInterval(interval)
           spinner.stop()
@@ -61,7 +62,9 @@ export class Deployment {
         }
 
         if (deployment.status === 'failed') {
-          clientJson.contents.projectKey = `${userName}/${clientJson.projectName}`
+          project.clientJson.contents.projectKey = `@${userName}/${project.clientJson.projectName}`
+
+          project.clientJson.write()
 
           clearInterval(interval)
           spinner.stop()

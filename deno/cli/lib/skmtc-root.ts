@@ -1,4 +1,4 @@
-import { Project } from './project.ts'
+import { Project, isProjectKey } from './project.ts'
 import type { Manager } from './manager.ts'
 import { exists } from '@std/fs/exists'
 import { ApiClient } from './api-client.ts'
@@ -18,7 +18,7 @@ type CreateProjectArgs = {
 }
 
 type ToProjectArgs = {
-  projectKey: string
+  projectName: string
   schemaPath: string | undefined
   prettierPath?: string
 }
@@ -55,6 +55,14 @@ export class SkmtcRoot {
     console.log(`Skmtc CLI v${latestVersion} is available. You are running v${thisVersion}.`)
   }
 
+  findProject(projectName: string): Project {
+    const project = this.projects.find(({ name }) => name === projectName)
+
+    invariant(project, `Project "${projectName}" not found`)
+
+    return project
+  }
+
   get isLoggedIn() {
     return this.manager.auth.isLoggedIn()
   }
@@ -67,27 +75,21 @@ export class SkmtcRoot {
     await this.manager.auth.logout()
   }
 
-  async toProject({ projectKey, schemaPath, prettierPath }: ToProjectArgs) {
-    if (projectKey.startsWith('@')) {
-      invariant(schemaPath, 'Schema path is required for remote projects')
-
-      const schemaFile = await SchemaFile.openFromPath(schemaPath)
-
-      invariant(schemaFile, 'Schema file not found')
+  async toProject({ projectName, schemaPath, prettierPath }: ToProjectArgs) {
+    if (isProjectKey(projectName)) {
+      const schemaFile = schemaPath
+        ? await SchemaFile.openFromSource(schemaPath)
+        : SchemaFile.create()
 
       return await RemoteProject.fromKey({
-        projectKey,
+        projectKey: projectName,
         schemaFile,
         prettierPath,
         manager: this.manager
       })
     }
 
-    const project = this.projects.find(({ name }) => name === projectKey)
-
-    invariant(project, `Project "${projectKey}" not found`)
-
-    return project
+    return this.findProject(projectName)
   }
 
   async createDenoProject(serverName: string) {
