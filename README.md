@@ -7,23 +7,20 @@
 
 ## ✨ Why Skmtc?
 
-Stop writing boilerplate. Stop maintaining API client code manually. Stop worrying about type mismatches between your frontend and backend.
-
 Skmtc automatically generates:
-- ⚡ **Supabase Edge Functions** - Type-safe API endpoints with Hono
-- 🔄 **Tanstack Query Hooks** - Data fetching with caching and mutations
-- 🛡️ **Zod Schemas** - Runtime validation matching your API specs
-- 🎭 **MSW Handlers** - Mock API responses for testing
-- 📝 **TypeScript Types** - Full type definitions from your schemas
+- 🧵 **Easy to edit code generators** - Outputs specified using string templates
+- 🥞 **Stackable generators** - Combine multiple generators to generate deep functionality
+- 🗄️ **Use your own code conventions** - Full control over naming and file structure
+- 🎭 **Choose from 11 ready-to-use generators** - Generators include Tanstack Query, Zod, TypeScript, and more - https://github.com/skmtc/skmtc-generators
 
 ## 🚀 Quick Start
 
 ```bash
 # Install globally via npm
-npm install -g @skmtc/cli
+npm install -g @skmtc
 
 # Or use directly with npx
-npx @skmtc/cli
+npx @skmtc
 
 # Initialize a new project
 skmtc init
