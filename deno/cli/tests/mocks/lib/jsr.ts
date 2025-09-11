@@ -1,4 +1,4 @@
-import type { Generator } from './generator.ts'
+import type { Generator } from '../../lib/generator.ts'
 import { maxSatisfying } from '@std/semver/max-satisfying'
 import { parse } from '@std/semver/parse'
 import { parseRange } from '@std/semver/parse-range'
@@ -52,15 +52,15 @@ export class Jsr {
     scopeName,
     packageName
   }: GetLatestMetaArgs): Promise<JsrPkgMetaVersions> {
-    const res = await fetch(`https://jsr.io/${scopeName}/${packageName}/meta.json`)
-
-    if (!res.ok) {
-      throw new Error(`Failed to get latest meta for jsr:${scopeName}/${packageName}`)
+    // Return mock data
+    return {
+      scope: scopeName,
+      name: packageName,
+      latest: '0.0.1',
+      versions: {
+        '0.0.1': {}
+      }
     }
-
-    const meta: JsrPkgMetaVersions = await res.json()
-
-    return meta
   }
 
   static async getLatestVersion({
@@ -88,38 +88,10 @@ export class Jsr {
   }
 
   static async download(generator: Generator): Promise<Record<string, string>> {
-    const [scopeName, packageName] = generator.toModuleName().split('/')
-
-    const version = await Jsr.getLatestVersion({
-      scopeName,
-      packageName,
-      semver: generator.version
-    })
-
-    const versionMetaUrl = `https://jsr.io/${scopeName}/${packageName}/${version}_meta.json`
-
-    const versionMetaRes = await fetch(versionMetaUrl)
-
-    if (!versionMetaRes.ok) {
-      const resText = await versionMetaRes.text()
-
-      throw new Error(`Failed to get latest meta for jsr:${scopeName}/${packageName}. ${resText}`)
+    // Return mock files
+    return {
+      'mod.ts': '// Mock generator file\nexport const generate = () => "mock output";\n',
+      'deno.json': '{ "name": "mock-generator", "version": "0.0.1" }'
     }
-
-    const versionMeta: JsrPkgVersionInfo = await versionMetaRes.json()
-
-    const files = Object.keys(versionMeta.manifest ?? {}).map(async key => {
-      const fileRes = await fetch(`https://jsr.io/${scopeName}/${packageName}/${version}/${key}`)
-
-      if (!fileRes.ok) {
-        throw new Error(`Failed to get file for jsr:${scopeName}/${packageName}`)
-      }
-
-      const file = await fileRes.text()
-
-      return [key, file] as [string, string]
-    })
-
-    return Object.fromEntries(await Promise.all(files))
   }
 }

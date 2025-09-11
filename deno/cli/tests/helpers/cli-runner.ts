@@ -25,15 +25,15 @@ export class CliRunner {
     this.defaultEnv = {
       NO_COLOR: '1',
       FORCE_COLOR: '0',
-      SKMTC_TEST_MODE: 'true',
     }
   }
 
   async run(options: CliRunOptions = {}): Promise<CliRunResult> {
     const { args = [], stdin, env = {}, cwd, timeout = 10000 } = options
 
+    const importMapPath = join(Deno.cwd(), 'tests/test-complete.importmap.json')
     const command = new Deno.Command('deno', {
-      args: ['run', '--allow-all', this.cliPath, ...args],
+      args: ['run', '--allow-all', `--import-map=${importMapPath}`, this.cliPath, ...args],
       env: { ...this.defaultEnv, ...env },
       cwd,
       stdin: stdin ? 'piped' : 'null',
@@ -73,11 +73,15 @@ export class CliRunner {
 
   async runInteractive(
     args: string[],
-    interactions: Array<{ waitFor: string | RegExp; input: string }>
+    interactions: Array<{ waitFor: string | RegExp; input: string }>,
+    options: { env?: Record<string, string>; cwd?: string } = {}
   ): Promise<CliRunResult> {
+    const { env = {}, cwd } = options
+    
     const command = new Deno.Command('deno', {
-      args: ['run', '--allow-all', this.cliPath, ...args],
-      env: this.defaultEnv,
+      args: ['run', '--allow-all', '--import-map=tests/test.importmap.json', this.cliPath, ...args],
+      env: { ...this.defaultEnv, ...env },
+      cwd,
       stdin: 'piped',
       stdout: 'piped',
       stderr: 'piped',

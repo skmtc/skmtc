@@ -119,17 +119,14 @@ export class Project {
       schemaFile: SchemaFile.create()
     })
 
-    // Skip generator installation in test mode for speed
-    if (Deno.env.get('SKMTC_TEST_MODE') !== 'true') {
-      const generatorIdSet = getDependencyIds({
-        checkedIds: new Set(),
-        options: availableGenerators,
-        generatorIds: new Set(generators)
-      })
+    const generatorIdSet = getDependencyIds({
+      checkedIds: new Set(),
+      options: availableGenerators,
+      generatorIds: new Set(generators)
+    })
 
-      for (const generatorId of generatorIdSet) {
-        await project.installGenerator({ moduleName: `jsr:${generatorId}` })
-      }
+    for (const generatorId of generatorIdSet) {
+      await project.installGenerator({ moduleName: `jsr:${generatorId}` })
     }
 
     await project.prettierJson?.write()

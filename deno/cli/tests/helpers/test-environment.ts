@@ -55,10 +55,6 @@ export class TestEnvironmentManager {
       SKMTC_ROOT: env.projectsDir,
       DENO_KV_PATH: env.kvPath,
       SKMTC_DISABLE_TELEMETRY: 'true',
-      SKMTC_TEST_MODE: 'true',
-      SKMTC_OFFLINE_MODE: 'true',
-      SKMTC_SKIP_AUTH: 'true',
-      SKMTC_SKIP_REMOTE_PROJECT: 'true',
       NO_COLOR: '1',
       FORCE_COLOR: '0',
     }

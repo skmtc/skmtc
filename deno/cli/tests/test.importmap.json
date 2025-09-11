@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "@/": "../",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.818",
+    "@sentry/node": "./mocks/sentry/node.ts",
+    "../auth/supabase-client.ts": "./mocks/auth/supabase-client.ts",
+    "../lib/jsr.ts": "./mocks/lib/jsr.ts", 
+    "../services/createApiServers.generated.ts": "./mocks/services/createApiServers.generated.ts"
+  }
+}

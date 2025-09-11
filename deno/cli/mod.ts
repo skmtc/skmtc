@@ -21,22 +21,11 @@ Sentry.init({
 const manager = new Manager()
 const skmtcRoot = await SkmtcRoot.open(manager)
 
-// Skip upgrade check in test mode
-if (Deno.env.get('SKMTC_TEST_MODE') !== 'true') {
-  await skmtcRoot.upgradeCheck()
-}
+await skmtcRoot.upgradeCheck()
 
 await new Command()
   .description('Generate code from OpenAPI schema')
   .action(async _flags => {
-    // Don't run interactive prompt in test mode
-    if (Deno.env.get('SKMTC_TEST_MODE') === 'true') {
-      console.log('Welcome to Smktc! What would you like to do?')
-      console.log('1. Create new project')
-      console.log('2. Log in to Skmtc')
-      console.log('3. Exit')
-      return
-    }
     await runPrompt(skmtcRoot)
   })
   .command('init', toInitCommand(skmtcRoot))
