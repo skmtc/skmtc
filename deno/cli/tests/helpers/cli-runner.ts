@@ -96,8 +96,11 @@ export class CliRunner {
     const decoder = new TextDecoder()
 
     try {
-      for (const interaction of interactions) {
+      for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i]
         let buffer = ''
+        
+        console.log(`\n--- Step ${i + 1}: Waiting for "${interaction.waitFor}" ---`)
         
         while (true) {
           const { value, done } = await reader.read()
@@ -116,7 +119,14 @@ export class CliRunner {
             : pattern.test(buffer)
 
           if (matches) {
+            console.log('Current screen state:')
+            console.log(buffer.slice(-500)) // Show last 500 chars of current screen
+            console.log(`\n>>> Sending input: ${JSON.stringify(interaction.input)} <<<\n`)
+            
             await writer.write(new TextEncoder().encode(interaction.input))
+            
+            // Give a moment for the UI to update
+            await new Promise(resolve => setTimeout(resolve, 100))
             break
           }
         }

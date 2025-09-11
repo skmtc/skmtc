@@ -8,21 +8,35 @@ const envManager = new TestEnvironmentManager()
 const cliRunner = new CliRunner()
 
 Deno.test('prompt navigation', async (t) => {
-  await t.step('shows welcome message in test mode', async () => {
+  await t.step('shows welcome message and navigates menu', async () => {
     const env = await envManager.setup('prompt-test-mode')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: [],
+    // Test interactive navigation through the menu
+    const interactions = [
+      { waitFor: 'Welcome to', input: '\x1b[B' }, // Down arrow - move to "Create new project"
+      { waitFor: 'Create new project', input: '\x1b[B' }, // Down arrow - move to "Log in to Skmtc" 
+      { waitFor: 'Log in to Skmtc', input: '\x1b[A' }, // Up arrow - move back to "Create new project"
+      { waitFor: 'Create new project', input: '\x1b[B\x1b[B' }, // Down twice - move to "Exit"
+      { waitFor: 'Exit', input: '\r' }, // Enter - select "Exit"
+    ]
+
+    const result = await cliRunner.runInteractive([], interactions, {
       env: envVars,
       cwd: env.homeDir,
-      timeout: 2000,
     })
 
+    // Print the final screen state
+    console.log('\n=== Final CLI Screen State ===')
+    console.log(result.stdout)
+    console.log('===============================\n')
+
+    // Verify the welcome screen appeared
     assertStringIncludes(result.stdout, 'Welcome to Smktc')
     assertStringIncludes(result.stdout, 'Create new project')
     assertStringIncludes(result.stdout, 'Log in to Skmtc')
     assertStringIncludes(result.stdout, 'Exit')
+    assertEquals(result.success, true, 'CLI should exit successfully when selecting Exit')
 
     await env.cleanup()
   })
