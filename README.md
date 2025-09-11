@@ -1,9 +1,10 @@
-# SKMTC - Schema Kit Mapping & Type Conversion
+# SKMTC
 
 [![npm version](https://img.shields.io/npm/v/@skmtc/core.svg)](https://www.npmjs.com/package/@skmtc/core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![GitHub License](https://img.shields.io/github/license/skmtc/skmtc)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Deno](https://img.shields.io/badge/Deno-1.46+-black.svg)](https://deno.land/)
+[![Deno](https://img.shields.io/badge/Deno-2.6+-black.svg)](https://deno.land/)
 
 **Generate production-ready, type-safe code from OpenAPI specifications in seconds.** SKMTC transforms your OpenAPI v3 documents into fully-typed TypeScript code, React components, API clients, and more.
 
