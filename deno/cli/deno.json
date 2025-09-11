@@ -12,6 +12,9 @@
     "build": "deno run -A .scripts/build-node.ts",
     "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
     "publish:deno:ga": "deno publish --allow-slow-types",
-    "publish:npm": "cd ../../packages/cli && npm publish"
+    "publish:npm": "cd ../../packages/cli && npm publish",
+    "test": "deno test --allow-all tests/",
+    "test:watch": "deno test --allow-all --watch tests/",
+    "test:coverage": "deno test --allow-all --coverage tests/"
   }
 }

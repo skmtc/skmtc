@@ -119,14 +119,17 @@ export class Project {
       schemaFile: SchemaFile.create()
     })
 
-    const generatorIdSet = getDependencyIds({
-      checkedIds: new Set(),
-      options: availableGenerators,
-      generatorIds: new Set(generators)
-    })
+    // Skip generator installation in test mode for speed
+    if (Deno.env.get('SKMTC_TEST_MODE') !== 'true') {
+      const generatorIdSet = getDependencyIds({
+        checkedIds: new Set(),
+        options: availableGenerators,
+        generatorIds: new Set(generators)
+      })
 
-    for (const generatorId of generatorIdSet) {
-      await project.installGenerator({ moduleName: `jsr:${generatorId}` })
+      for (const generatorId of generatorIdSet) {
+        await project.installGenerator({ moduleName: `jsr:${generatorId}` })
+      }
     }
 
     await project.prettierJson?.write()
@@ -257,7 +260,7 @@ export class Project {
   }
 
   async ensureDeployment(): Promise<boolean> {
-    const { projectKey } = this.clientJson.contents
+    const projectKey = this.clientJson.contents?.projectKey
 
     if (projectKey) {
       return true
@@ -312,7 +315,7 @@ export class Project {
   }
 
   async hasServerWriteAccess(apiClient: ApiClient) {
-    const { projectKey } = this.clientJson.contents
+    const projectKey = this.clientJson.contents?.projectKey
 
     if (!projectKey) {
       return true
@@ -444,7 +447,7 @@ export class Project {
 }
 
 const toServerName = (project: Project) => {
-  const { projectKey } = project.clientJson.contents
+  const projectKey = project.clientJson.contents?.projectKey
 
   if (!projectKey) {
     return project.name

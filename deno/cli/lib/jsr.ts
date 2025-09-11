@@ -52,6 +52,18 @@ export class Jsr {
     scopeName,
     packageName
   }: GetLatestMetaArgs): Promise<JsrPkgMetaVersions> {
+    // Return mock data in test mode
+    if (Deno.env.get('SKMTC_TEST_MODE') === 'true') {
+      return {
+        scope: scopeName,
+        name: packageName,
+        latest: '0.0.1',
+        versions: {
+          '0.0.1': {}
+        }
+      }
+    }
+
     const res = await fetch(`https://jsr.io/${scopeName}/${packageName}/meta.json`)
 
     if (!res.ok) {
@@ -88,6 +100,14 @@ export class Jsr {
   }
 
   static async download(generator: Generator): Promise<Record<string, string>> {
+    // Return mock files in test mode
+    if (Deno.env.get('SKMTC_TEST_MODE') === 'true') {
+      return {
+        'mod.ts': '// Mock generator file\nexport const generate = () => "mock output";\n',
+        'deno.json': '{ "name": "mock-generator", "version": "0.0.1" }'
+      }
+    }
+
     const [scopeName, packageName] = generator.toModuleName().split('/')
 
     const version = await Jsr.getLatestVersion({

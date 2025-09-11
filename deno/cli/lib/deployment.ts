@@ -53,9 +53,7 @@ export class Deployment {
         const userName = await this.apiClient.manager.auth.toUserName()
 
         if (deployment.status === 'success') {
-          project.clientJson.contents.projectKey = `@${userName}/${project.name}`
-
-          project.clientJson.write()
+          updateProjectKey({ project, projectKey: `@${userName}/${project.name}` })
 
           clearInterval(interval)
           spinner.stop()
@@ -63,9 +61,7 @@ export class Deployment {
         }
 
         if (deployment.status === 'failed') {
-          project.clientJson.contents.projectKey = `@${userName}/${project.name}`
-
-          project.clientJson.write()
+          updateProjectKey({ project, projectKey: `@${userName}/${project.name}` })
 
           clearInterval(interval)
           spinner.stop()
@@ -83,4 +79,22 @@ export class Deployment {
 
     return buildLogs
   }
+}
+
+type UpdateProjectKeyArgs = {
+  project: Project | RemoteProject
+  projectKey: string
+}
+
+const updateProjectKey = ({ project, projectKey }: UpdateProjectKeyArgs) => {
+  if (project.clientJson.contents) {
+    project.clientJson.contents.projectKey = projectKey
+  } else {
+    project.clientJson.contents = {
+      projectKey,
+      settings: {}
+    }
+  }
+
+  project.clientJson.write()
 }

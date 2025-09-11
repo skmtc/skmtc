@@ -113,7 +113,8 @@ export class SchemaFile {
 
       invariant(contents, `Failed to load OpenAPI schema from "${source}"`)
 
-      project.clientJson.contents.source = source
+      project.clientJson.updateContents({ source })
+
       await project.clientJson.write()
 
       this.contents = contents

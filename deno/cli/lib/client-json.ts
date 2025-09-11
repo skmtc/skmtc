@@ -13,7 +13,7 @@ type CreateArgs = {
 
 type ConstructorArgs = {
   path: string
-  contents: SkmtcClientConfig
+  contents: SkmtcClientConfig | null
 }
 
 type OpenArgs = {
@@ -26,7 +26,7 @@ type ToPathArgs = {
 }
 
 export class ClientJson {
-  contents: SkmtcClientConfig
+  contents: SkmtcClientConfig | null
   path: string
 
   private constructor({ path, contents }: ConstructorArgs) {
@@ -46,11 +46,15 @@ export class ClientJson {
     this.contents = parsed
   }
 
+  updateContents(contents: Partial<SkmtcClientConfig>) {
+    this.contents = { settings: {}, ...this.contents, ...contents }
+  }
+
   static async open({ path, manager }: OpenArgs): Promise<ClientJson> {
     const hasClientJson = await exists(path, { isFile: true })
 
     if (!hasClientJson) {
-      throw new Error(`Client JSON not found at: "${path}"`)
+      return new ClientJson({ path, contents: null })
     }
 
     const contents = await Deno.readTextFile(path)
