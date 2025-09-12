@@ -333,7 +333,7 @@ export class Project {
   }
 
   async deploy({ logSuccess }: DeployOptions = {}) {
-    await this.manager.auth.ensureAuth()
+    // await this.manager.auth.ensureAuth()
 
     const startTime = Date.now()
 

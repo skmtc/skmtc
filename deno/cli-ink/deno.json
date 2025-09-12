@@ -9,7 +9,10 @@
     "react/jsx-runtime": "npm:react@^19.0.0/jsx-runtime",
     "ink": "npm:ink@^6.0.0",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
-    "ink-testing-library": "npm:ink-testing-library@^4.0.0"
+    "ink-testing-library": "npm:ink-testing-library@^4.0.0",
+    "ink-divider": "npm:ink-divider@^4.1.1",
+    "ink-link": "npm:ink-link@^4.1.0",
+    "@mishieck/ink-titled-box": "npm:@mishieck/ink-titled-box@^0.3.0"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

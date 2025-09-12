@@ -2,6 +2,7 @@ import invariant from 'tiny-invariant'
 import { createSupabaseClient } from '../auth/supabase-client.ts'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createAuthHandler } from '../auth/auth-handler.ts'
+import type { AlertState } from '../components/types.ts'
 
 // Cross-platform server creation
 async function createServer(
@@ -90,6 +91,10 @@ async function createNodeServer(
   }
 }
 
+type LogoutArgs = {
+  notify: (alert: AlertState) => void
+}
+
 export class Auth {
   supabase: SupabaseClient
 
@@ -102,10 +107,10 @@ export class Auth {
 
     return data.session
   }
-  async ensureAuth(): Promise<Session> {
+  async ensureAuth(emitLoginLink: (loginLink: string) => void): Promise<Session> {
     const session = await this.toSession()
 
-    return session ? session : await this.login()
+    return session ? session : await this.login(emitLoginLink)
   }
 
   async isLoggedIn(): Promise<boolean> {
@@ -122,11 +127,11 @@ export class Auth {
     return data.session.user.user_metadata.user_name
   }
 
-  async login(): Promise<Session> {
+  async login(emitLoginLink: (loginLink: string) => void): Promise<Session> {
     const sessionRes = await this.supabase.auth.getSession()
 
     if (sessionRes.data.session) {
-      console.log('You are already logged in')
+      // console.log('You are already logged in')
 
       return sessionRes.data.session
     }
@@ -142,8 +147,9 @@ export class Auth {
       }
     })
 
-    console.log('Click the link to login')
-    console.log(signInRes.data.url)
+    invariant(signInRes.data.url, 'Login link is null')
+
+    emitLoginLink(signInRes.data.url)
 
     return new Promise(resolve => {
       this.supabase.auth.onAuthStateChange((event, session) => {
@@ -158,11 +164,11 @@ export class Auth {
     })
   }
 
-  async logout() {
+  async logout({ notify }: LogoutArgs) {
     const sessionRes = await this.supabase.auth.getSession()
 
     if (!sessionRes.data.session) {
-      console.log('You are not logged in')
+      notify({ type: 'info', message: 'You are not logged in' })
 
       return
     }
@@ -170,7 +176,7 @@ export class Auth {
     const logoutPromise = new Promise(resolve => {
       this.supabase.auth.onAuthStateChange((_event, session) => {
         if (!session) {
-          console.log('You are now logged out')
+          notify({ type: 'info', message: 'You are now logged out' })
 
           resolve(null)
         }

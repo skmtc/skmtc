@@ -1,5 +1,5 @@
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
-import { Input, Select, Confirm } from '../components/index.ts'
+import { Input, Select } from '../components/index.ts'
 import { ensureDir } from '@std/fs/ensure-dir'
 import { resolve } from '@std/path/resolve'
 import { match } from 'ts-pattern'
@@ -24,13 +24,15 @@ export const toSchemasCreatePrompt = async (skmtcRoot: SkmtcRoot) => {
     const tspVersion = toTspVersion()
 
     if (!tspVersion) {
-      const confirmInstallTsp: boolean = await Confirm.prompt(
-        'TypeSpec is not installed. Would you like to install it?'
-      )
+      console.log('TODO: Add ink Confirm prompt')
 
-      if (!confirmInstallTsp) {
-        throw new Error('TypeSpec is not installed')
-      }
+      // const confirmInstallTsp: boolean = await Confirm.prompt(
+      //   'TypeSpec is not installed. Would you like to install it?'
+      // )
+
+      // if (!confirmInstallTsp) {
+      //   throw new Error('TypeSpec is not installed')
+      // }
 
       installTsp()
     }

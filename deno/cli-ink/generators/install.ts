@@ -5,7 +5,6 @@ import invariant from 'tiny-invariant'
 import { availableGenerators } from '../available-generators.ts'
 import { isGeneratorName } from '@skmtc/core'
 import type { Project } from '../lib/project.ts'
-import { runPrompt } from '../prompt/run-prompt.ts'
 
 export const description = 'Install generator'
 
@@ -22,9 +21,9 @@ export const toInstallCommand = (skmtcRoot: SkmtcRoot) => {
 
       const generator = await project.installGenerator({ moduleName })
 
-      if (isNewProject && generator) {
-        setTimeout(() => runPrompt(skmtcRoot, project.name), 0)
-      }
+      // if (isNewProject && generator) {
+      //   setTimeout(() => runPrompt(skmtcRoot, project.name), 0)
+      // }
     })
 
   return command

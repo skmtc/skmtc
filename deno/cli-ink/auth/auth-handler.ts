@@ -4,7 +4,7 @@ type CreateAuthHandlerArgs = {
   supabase: SupabaseClient<any, 'public', any>
 }
 
-const createAuthHandler = ({ supabase }: CreateAuthHandlerArgs) => {
+export const createAuthHandler = ({ supabase }: CreateAuthHandlerArgs) => {
   return async (req: Request) => {
     const { pathname } = new URL(req.url)
 
@@ -36,8 +36,6 @@ const createAuthHandler = ({ supabase }: CreateAuthHandlerArgs) => {
     }
   }
 }
-
-export { createAuthHandler }
 
 const done = `
 <html>

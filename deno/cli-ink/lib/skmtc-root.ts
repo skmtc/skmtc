@@ -11,6 +11,9 @@ import { createApiServers } from '../services/createApiServers.generated.ts'
 import { RemoteProject } from './remote-project.ts'
 import invariant from 'tiny-invariant'
 import { SchemaFile } from './schema-file.ts'
+import type { Session, User } from '@supabase/supabase-js'
+import type { AlertState } from '../components/types.ts'
+
 type CreateProjectArgs = {
   name: string
   basePath: string
@@ -21,6 +24,15 @@ type ToProjectArgs = {
   projectName: string
   schemaPath: string | undefined
   prettierPath?: string
+}
+
+type LoginArgs = {
+  emitLoginLink: (loginLink: string) => void
+  onLogin: (session: Session) => void
+}
+
+type LogoutArgs = {
+  notify: (alert: AlertState) => void
 }
 
 export class SkmtcRoot {
@@ -67,12 +79,20 @@ export class SkmtcRoot {
     return this.manager.auth.isLoggedIn()
   }
 
-  async login() {
-    await this.manager.auth.login()
+  async getUser(): Promise<User | null> {
+    const session = await this.manager.auth.toSession()
+
+    return session?.user ?? null
   }
 
-  async logout() {
-    await this.manager.auth.logout()
+  async login({ emitLoginLink, onLogin }: LoginArgs) {
+    const session = await this.manager.auth.login(emitLoginLink)
+
+    onLogin(session)
+  }
+
+  async logout({ notify }: LogoutArgs) {
+    await this.manager.auth.logout({ notify })
   }
 
   async toProject({ projectName, schemaPath, prettierPath }: ToProjectArgs) {

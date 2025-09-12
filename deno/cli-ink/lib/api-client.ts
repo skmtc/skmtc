@@ -20,7 +20,7 @@ export class ApiClient {
     this.manager = manager
   }
   async uploadSchemaFile({ openApiSchema, schemaId }: UploadSchemaFileArgs) {
-    await this.manager.auth.ensureAuth()
+    // await this.manager.auth.ensureAuth()
 
     const session = await this.manager.auth.toSession()
 
@@ -48,7 +48,7 @@ export class ApiClient {
   }
 
   async uploadBaseFiles({ workspaceId, baseFiles }: UploadBaseFilesArgs) {
-    await this.manager.auth.ensureAuth()
+    // await this.manager.auth.ensureAuth()
 
     const session = await this.manager.auth.toSession()
     const path = `${session?.user.id}/${workspaceId}.json`
