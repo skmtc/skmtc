@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useInput, useApp, Text, Box } from 'ink'
 
 export interface CheckboxOption {
@@ -72,7 +72,7 @@ export const Checkbox = {
     const { render } = await import('ink')
     
     return new Promise<string[]>((resolve) => {
-      let unmount: () => void
+      let unmount: (() => void) | undefined
       
       const handleSubmit = (values: string[]) => {
         unmount?.()

@@ -8,7 +8,8 @@
     "react": "npm:react@^19.0.0",
     "react/jsx-runtime": "npm:react@^19.0.0/jsx-runtime",
     "ink": "npm:ink@^6.0.0",
-    "ink-ui": "npm:ink-ui@^2.0.0"
+    "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
+    "ink-testing-library": "npm:ink-testing-library@^4.0.0"
   },
   "compilerOptions": {
     "jsx": "react-jsx",
@@ -22,7 +23,8 @@
     "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
     "publish:deno:ga": "deno publish --allow-slow-types",
     "publish:npm": "cd ../../packages/cli && npm publish",
-    "test": "deno test --allow-all --no-check --import-map=tests/test-complete.importmap.json tests/",
+    "test": "deno test --allow-all --no-check tests/",
+    "test:components": "deno test --allow-all --no-check tests/components/",
     "test:watch": "deno test --allow-all --watch tests/",
     "test:coverage": "deno test --allow-all --coverage tests/"
   }

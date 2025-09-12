@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useInput, useApp, Text, Box } from 'ink'
 
 interface InkInputProps {
@@ -106,7 +106,7 @@ export const Input = {
     const { render } = await import('ink')
     
     return new Promise<string>((resolve) => {
-      let unmount: () => void
+      let unmount: (() => void) | undefined
       
       const handleSubmit = (value: string) => {
         unmount?.()
