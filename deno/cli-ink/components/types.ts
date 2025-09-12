@@ -14,6 +14,9 @@ export type ViewState =
       type: 'project'
       projectName: string
     }
+  | {
+      type: 'create-project'
+    }
 
 export type AlertState =
   | {
