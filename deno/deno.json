@@ -6,6 +6,7 @@
     "@cliffy/internal": "jsr:@cliffy/internal@1.0.0-rc.8",
     "@cliffy/keycode": "jsr:@cliffy/keycode@1.0.0-rc.8",
     "@cliffy/prompt": "jsr:@cliffy/prompt@1.0.0-rc.8",
+    "@cliffy/testing": "jsr:@cliffy/testing@1.0.0-rc.8",
     "@cmd-johnson/oauth2-client": "jsr:@cmd-johnson/oauth2-client@^2.0.0",
     "@deno/dnt":"jsr:@deno/dnt@0.42.3",
     "@sentry/node": "npm:@sentry/node@^10.8.0",

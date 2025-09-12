@@ -3,7 +3,6 @@ import { assertSnapshot } from '@std/testing/snapshot'
 
 export interface CliRunOptions {
   args?: string[]
-  stdin?: string
   env?: Record<string, string>
   cwd?: string
   timeout?: number
@@ -21,60 +20,10 @@ export class CliRunner {
   private defaultEnv: Record<string, string>
 
   constructor(cliPath?: string) {
-    this.cliPath = cliPath || join(Deno.cwd(), 'mod.ts')
+    this.cliPath = cliPath || join(Deno.cwd(), '../cli/mod.ts')
     this.defaultEnv = {
       NO_COLOR: '1',
       FORCE_COLOR: '0'
-    }
-  }
-
-  async run(options: CliRunOptions = {}): Promise<CliRunResult> {
-    const { args = [], stdin, env = {}, cwd, timeout = 10000 } = options
-
-    const importMapPath = join(Deno.cwd(), 'tests/test-complete.importmap.json')
-    const command = new Deno.Command('deno', {
-      args: [
-        'run',
-        '--quiet',
-        '--allow-all',
-        `--import-map=${importMapPath}`,
-        this.cliPath,
-        ...args
-      ],
-      env: { ...this.defaultEnv, ...env },
-      cwd,
-      stdin: stdin ? 'piped' : 'null',
-      stdout: 'piped',
-      stderr: 'piped'
-    })
-
-    const process = command.spawn()
-
-    if (stdin && process.stdin) {
-      const writer = process.stdin.getWriter()
-      await writer.write(new TextEncoder().encode(stdin))
-      await writer.close()
-    }
-
-    const timeoutId = setTimeout(() => {
-      try {
-        process.kill()
-      } catch {
-        // Process may have already exited
-      }
-    }, timeout)
-
-    const output = await process.output()
-    clearTimeout(timeoutId)
-
-    const stdout = new TextDecoder().decode(output.stdout)
-    const stderr = new TextDecoder().decode(output.stderr)
-
-    return {
-      stdout,
-      stderr,
-      code: output.code,
-      success: output.success
     }
   }
 
@@ -120,21 +69,52 @@ export class CliRunner {
   }
 
   /**
-   * Advanced interactive CLI testing with menu navigation and direct input support
-   *
-   * @param args CLI arguments to pass
-   * @param menuSelections Array of interaction steps:
-   *   - If `select` is provided: Navigate to find and select the menu item by label
-   *   - If `select` is not provided: Send `input` directly to stdin after `waitFor`
-   * @param options Configuration options (env vars, cwd, timeout)
-   *
-   * Examples:
-   * - Menu selection: { waitFor: /Welcome/i, select: 'Exit', input: '\r' }
-   * - Direct input: { waitFor: /Project name/i, input: 'my-project\r' }
+   * Simple execution path for non-interactive commands
    */
-  async runInteractive(
+  async runSimple(
     args: string[],
-    menuSelections: Array<{ waitFor?: string | RegExp; select?: string; input?: string }>,
+    options: { env?: Record<string, string>; cwd?: string; timeout?: number } = {}
+  ): Promise<CliRunResult> {
+    const { env = {}, cwd, timeout = 10000 } = options
+
+    const importMapPath = join(Deno.cwd(), 'tests/test-complete.importmap.json')
+    const command = new Deno.Command('deno', {
+      args: [
+        'run',
+        '--quiet',
+        '--allow-all',
+        `--import-map=${importMapPath}`,
+        this.cliPath,
+        ...args
+      ],
+      env: { ...this.defaultEnv, ...env },
+      cwd,
+      stdout: 'piped',
+      stderr: 'piped'
+    })
+
+    const process = command.spawn()
+    const { stdout, stderr } = await process.output()
+    const status = await process.status
+
+    return {
+      stdout: new TextDecoder().decode(stdout),
+      stderr: new TextDecoder().decode(stderr),
+      code: status.code,
+      success: status.success
+    }
+  }
+
+  /**
+   * Interactive CLI runner that yields control back to the test
+   * 
+   * @param args CLI arguments
+   * @param interactionHandler Function that receives stdout chunks and can send input
+   * @param options Configuration options
+   */
+  async runWithInteractionHandler(
+    args: string[],
+    interactionHandler: (stdout: string, sendInput: (input: string) => Promise<void>) => Promise<void>,
     options: { env?: Record<string, string>; cwd?: string; timeout?: number } = {}
   ): Promise<CliRunResult> {
     const { env = {}, cwd, timeout = 30000 } = options
@@ -170,7 +150,7 @@ export class CliRunner {
       let stderr = ''
       const decoder = new TextDecoder()
 
-      // Read stderr in background to prevent blocking
+      // Read stderr in background
       const stderrPromise = (async () => {
         try {
           while (true) {
@@ -183,203 +163,46 @@ export class CliRunner {
         }
       })()
 
-      for (let i = 0; i < menuSelections.length; i++) {
-        const selection = menuSelections[i]
-        let buffer = ''
-        let attempts = 0
-        const maxAttempts = 15
-        let found = false
+      // Create input sender function
+      const sendInput = async (input: string) => {
+        await writer!.write(new TextEncoder().encode(input))
+      }
 
-        // If select is not provided, just send input directly after waitFor condition
-        if (!selection.select) {
-          // If there's a waitFor condition, wait for that first
-          if (selection.waitFor) {
-            while (attempts < maxAttempts && !found) {
-              const { value, done } = await Promise.race([
-                reader.read(),
-                new Promise<{ value: undefined; done: true }>((_, reject) =>
-                  setTimeout(() => reject(new Error('Read timeout')), 1000)
-                ).catch(() => ({ value: undefined, done: true }))
-              ])
-
-              if (done || !value) break
-
-              const chunk = decoder.decode(value, { stream: true })
-              stdout += chunk
-              buffer += chunk
-
-              const waitPattern = selection.waitFor
-              const waitMatches =
-                typeof waitPattern === 'string'
-                  ? buffer.includes(waitPattern)
-                  : waitPattern.test(buffer)
-
-              if (waitMatches) {
-                found = true
-                break
-              }
-              attempts++
-            }
-          } else {
-            // No waitFor, just send input immediately
-            found = true
-          }
-
-          if (found && selection.input) {
-            await writer.write(new TextEncoder().encode(selection.input))
-          }
-
-          // Brief pause before next step
-          await new Promise(resolve => setTimeout(resolve, 100))
-          continue
-        }
-
-        // If there's a waitFor condition, wait for that first
-        if (selection.waitFor) {
-          while (attempts < maxAttempts && !found) {
-            const { value, done } = await Promise.race([
-              reader.read(),
-              new Promise<{ value: undefined; done: true }>((_, reject) =>
-                setTimeout(() => reject(new Error('Read timeout')), 1000)
-              ).catch(() => ({ value: undefined, done: true }))
-            ])
-
+      // Start reading stdout and let the interaction handler control flow
+      const readerPromise = (async () => {
+        try {
+          while (true) {
+            const { value, done } = await reader!.read()
             if (done || !value) break
-
+            
             const chunk = decoder.decode(value, { stream: true })
             stdout += chunk
-            buffer += chunk
-
-            const waitPattern = selection.waitFor
-            const waitMatches =
-              typeof waitPattern === 'string'
-                ? buffer.includes(waitPattern)
-                : waitPattern.test(buffer)
-
-            if (waitMatches) {
-              found = true
-              break
-            }
-            attempts++
+            
+            // Let the test handler decide what to do with this output
+            await interactionHandler(stdout, sendInput)
           }
+        } catch {
+          // Reader error, continue to cleanup
         }
+      })()
 
-        // Now navigate to find the target menu item
-        buffer = ''
-        attempts = 0
-        found = false
-
-        while (attempts < maxAttempts && !found) {
-          // Read current screen state
-          try {
-            const { value, done } = await Promise.race([
-              reader.read(),
-              new Promise<{ value: undefined; done: true }>((_, reject) =>
-                setTimeout(() => reject(new Error('Read timeout')), 500)
-              ).catch(() => ({ value: undefined, done: true }))
-            ])
-
-            if (value && !done) {
-              const chunk = decoder.decode(value, { stream: true })
-              stdout += chunk
-              buffer += chunk
-            }
-          } catch {
-            // Timeout reading, continue
-          }
-
-          // Check if target item is visible
-          const targetRegex = new RegExp(
-            selection.select!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-            'i'
-          )
-
-          if (targetRegex.test(buffer)) {
-            found = true
-            // Send selection input (Enter by default)
-            const inputKey = selection.input || '\r'
-            await writer.write(new TextEncoder().encode(inputKey))
-            break
-          }
-
-          // Try navigating down to find the item
-          if (attempts < maxAttempts - 1) {
-            await writer.write(new TextEncoder().encode('\x1b[B')) // Down arrow
-            await new Promise(resolve => setTimeout(resolve, 200)) // Wait for UI update
-          }
-
-          attempts++
-        }
-
-        if (!found) {
-          // If we couldn't find the item, try to exit gracefully by pressing Escape or Ctrl+C
-          try {
-            await writer.write(new TextEncoder().encode('\x1b')) // Escape key
-            await new Promise(resolve => setTimeout(resolve, 500))
-            await writer.write(new TextEncoder().encode('\x03')) // Ctrl+C
-          } catch {
-            // Ignore errors during cleanup
-          }
-          break
-        }
-
-        // Brief pause between selections
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-
-      // Give the process a moment to handle the final input before closing writer
-      await new Promise(resolve => setTimeout(resolve, 200))
-
-      // Close writer first
-      if (writer) {
-        await writer.close()
-        writer = null
-      }
-
-      // Read any remaining output with shorter timeout
-      try {
-        let readAttempts = 0
-        while (readAttempts < 5 && reader) {
-          // Limit read attempts
-          const { value, done } = await Promise.race([
-            reader.read(),
-            new Promise<{ value: undefined; done: true }>((_, reject) =>
-              setTimeout(() => reject(new Error('Read timeout')), 800)
-            ).catch(() => ({ value: undefined, done: true }))
-          ])
-          if (done || !value) break
-          stdout += decoder.decode(value, { stream: true })
-          readAttempts++
-        }
-      } catch {
-        // Read timeout, continue to process termination
-      }
-
-      // Wait for stderr to complete
-      try {
-        await Promise.race([
-          stderrPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('stderr timeout')), 1000))
-        ])
-      } catch {
-        // stderr timeout, continue
-      }
-
-      // Wait for process to exit with timeout
-      const status = await Promise.race([
-        process.status,
-        new Promise<{ code: number; success: boolean }>((_, reject) =>
-          setTimeout(() => reject(new Error('Process timeout')), 3000)
-        ).catch(() => {
-          // Force kill the process if it doesn't exit cleanly
-          try {
-            process.kill('SIGKILL')
-          } catch {
-            // Process may already be dead
-          }
-          return { code: 143, success: false }
-        })
+      // Wait for process to complete or timeout
+      await Promise.race([
+        readerPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Process timeout')), timeout))
       ])
+
+      // Close stdin to signal completion
+      await writer.close()
+      writer = null
+
+      // Wait for stderr and process completion
+      await Promise.all([
+        stderrPromise.catch(() => {}),
+        process.status.catch(() => {})
+      ])
+
+      const status = await process.status
 
       return {
         stdout,
@@ -395,23 +218,82 @@ export class CliRunner {
       }
       throw error
     } finally {
-      // Clean up all resources
-      const cleanup = async (resource: any, name: string) => {
+      // Clean up resources
+      const cleanup = async (resource: any) => {
         try {
           if (resource) {
             if ('cancel' in resource) await resource.cancel()
             else if ('close' in resource) await resource.close()
           }
         } catch {
-          // Resource cleanup error, continue
+          // Cleanup error, continue
         }
       }
 
       await Promise.all([
-        cleanup(reader, 'reader'),
-        cleanup(stderrReader, 'stderrReader'),
-        cleanup(writer, 'writer')
+        cleanup(reader),
+        cleanup(stderrReader),
+        cleanup(writer)
       ])
     }
+  }
+
+  /**
+   * Backwards compatibility - converts old interaction format to new handler
+   */
+  async runInteractive(
+    args: string[],
+    menuSelections: Array<{ waitFor?: string | RegExp; select?: string; input?: string }>,
+    options: { env?: Record<string, string>; cwd?: string; timeout?: number } = {}
+  ): Promise<CliRunResult> {
+    // If no interactions, use simple path
+    if (menuSelections.length === 0) {
+      return this.runSimple(args, options)
+    }
+
+    let currentStep = 0
+    let buffer = ''
+
+    return this.runWithInteractionHandler(
+      args,
+      async (stdout, sendInput) => {
+        buffer = stdout
+        
+        // Check if we have more steps to process
+        if (currentStep >= menuSelections.length) return
+
+        const selection = menuSelections[currentStep]
+        
+        // Check if waitFor condition is met
+        if (selection.waitFor) {
+          const waitPattern = selection.waitFor
+          const waitMatches = typeof waitPattern === 'string'
+            ? buffer.includes(waitPattern)
+            : waitPattern.test(buffer)
+          
+          if (!waitMatches) return // Wait for condition
+        }
+
+        // Send appropriate input
+        if (selection.select) {
+          // Menu navigation - look for the item and send Enter
+          const targetRegex = new RegExp(
+            selection.select.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+            'i'
+          )
+          
+          if (targetRegex.test(buffer)) {
+            await sendInput(selection.input || '\r')
+            currentStep++
+          }
+          // If not found, we could send down arrow, but for now just wait
+        } else if (selection.input) {
+          // Direct input
+          await sendInput(selection.input)
+          currentStep++
+        }
+      },
+      options
+    )
   }
 }

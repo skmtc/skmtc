@@ -12,12 +12,15 @@ Deno.test('init command', async (t) => {
     const env = await envManager.setup('init-valid-args')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: ['init', 'test-project', '@skmtc/gen-typescript', './src'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000,
-    })
+    const result = await cliRunner.runInteractive(
+      ['init', 'test-project', '@skmtc/gen-typescript', './src'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     assertEquals(result.success, true, 'Command should succeed')
     assertStringIncludes(result.stdout, 'Deno project created')
@@ -41,12 +44,15 @@ Deno.test('init command', async (t) => {
     const env = await envManager.setup('init-missing-args')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: ['init'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 5000,
-    })
+    const result = await cliRunner.runInteractive(
+      ['init'],
+      [],  // No interactions, expecting error
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 5000
+      }
+    )
 
     assertEquals(result.success, false, 'Command should fail with missing args')
 
@@ -58,22 +64,28 @@ Deno.test('init command', async (t) => {
     const envVars = envManager.getEnvVars(env)
 
     // Create first project
-    const result1 = await cliRunner.run({
-      args: ['init', 'first-project', '@skmtc/gen-typescript', './src'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000,
-    })
+    const result1 = await cliRunner.runInteractive(
+      ['init', 'first-project', '@skmtc/gen-typescript', './src'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     assertEquals(result1.success, true, 'First project should succeed')
 
     // Create second project
-    const result2 = await cliRunner.run({
-      args: ['init', 'second-project', '@skmtc/gen-typescript', './src'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000,
-    })
+    const result2 = await cliRunner.runInteractive(
+      ['init', 'second-project', '@skmtc/gen-typescript', './src'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     assertEquals(result2.success, true, 'Second project should succeed')
 
@@ -90,12 +102,15 @@ Deno.test('init command', async (t) => {
     const env = await envManager.setup('init-generators')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: ['init', 'gen-test', '@skmtc/gen-typescript', './src'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000,
-    })
+    const result = await cliRunner.runInteractive(
+      ['init', 'gen-test', '@skmtc/gen-typescript', './src'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     assertEquals(result.success, true, 'Command should succeed')
 
@@ -113,12 +128,15 @@ Deno.test('init command', async (t) => {
     const envVars = envManager.getEnvVars(env)
 
     const customPath = './custom/output'
-    const result = await cliRunner.run({
-      args: ['init', 'custom-path-test', '@skmtc/gen-typescript', customPath],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000,
-    })
+    const result = await cliRunner.runInteractive(
+      ['init', 'custom-path-test', '@skmtc/gen-typescript', customPath],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     assertEquals(result.success, true, 'Command should succeed')
 
@@ -141,12 +159,15 @@ Deno.test('init command edge cases', async (t) => {
     const env = await envManager.setup('init-special-chars')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: ['init', 'test_project-123', '@skmtc/gen-typescript', './src'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000,
-    })
+    const result = await cliRunner.runInteractive(
+      ['init', 'test_project-123', '@skmtc/gen-typescript', './src'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     assertEquals(result.success, true, 'Command should succeed')
 

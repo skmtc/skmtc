@@ -51,11 +51,12 @@ Executes the CLI as a subprocess and captures output:
 ```typescript
 const runner = new CliRunner()
 
-// Run command with arguments
-const result = await runner.run({
-  args: ['init', 'my-project', '@skmtc/gen-typescript', './src'],
-  env: { HOME: '/tmp/test-home' },
-})
+// Run command with arguments (non-interactive)
+const result = await runner.runInteractive(
+  ['init', 'my-project', '@skmtc/gen-typescript', './src'],
+  [],  // No interactions needed when all args provided
+  { env: { HOME: '/tmp/test-home' } }
+)
 
 // Run interactive session
 const result = await runner.runInteractive([], [
@@ -142,10 +143,11 @@ Deno.test('my new feature', async (t) => {
     const env = await envManager.setup('test-name')
     const envVars = envManager.getEnvVars(env)
     
-    const result = await runner.run({
-      args: ['my-command'],
-      env: envVars,
-    })
+    const result = await runner.runInteractive(
+      ['my-command'],
+      [],  // No interactions needed
+      { env: envVars }
+    )
     
     assertEquals(result.success, true)
     await env.cleanup()

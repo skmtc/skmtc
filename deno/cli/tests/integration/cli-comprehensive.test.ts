@@ -12,12 +12,15 @@ Deno.test('CLI comprehensive functionality', async t => {
     const env = await envManager.setup('cli-help')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: ['--help'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 15000
-    })
+    const result = await cliRunner.runInteractive(
+      ['--help'],
+      [],  // No interactions needed for help command
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 15000
+      }
+    )
 
     assertEquals(result.success, true, 'Help command should succeed')
     assertStringIncludes(result.stdout, 'Generate code from OpenAPI schema')
@@ -33,12 +36,15 @@ Deno.test('CLI comprehensive functionality', async t => {
     const env = await envManager.setup('init-help')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: ['init', '--help'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 15000
-    })
+    const result = await cliRunner.runInteractive(
+      ['init', '--help'],
+      [],  // No interactions needed for help command
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 15000
+      }
+    )
 
     assertEquals(result.success, true, 'Init help should succeed')
     assertStringIncludes(result.stdout, 'Initialize a new project')
@@ -51,12 +57,15 @@ Deno.test('CLI comprehensive functionality', async t => {
     const envVars = envManager.getEnvVars(env)
 
     // Test direct init command with all required arguments
-    const result = await cliRunner.run({
-      args: ['init', 'test-comprehensive', '@skmtc/gen-typescript', 'src/generated'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 30000
-    })
+    const result = await cliRunner.runInteractive(
+      ['init', 'test-comprehensive', '@skmtc/gen-typescript', 'src/generated'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 30000
+      }
+    )
 
     assertEquals(result.success, true, 'Init command should succeed')
     assertStringIncludes(result.stdout, 'Project created')
@@ -91,12 +100,15 @@ Deno.test('CLI comprehensive functionality', async t => {
     const envVars = envManager.getEnvVars(env)
 
     // Test init with missing arguments
-    const result = await cliRunner.run({
-      args: ['init'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000
-    })
+    const result = await cliRunner.runInteractive(
+      ['init'],
+      [],  // No interactions, expecting error
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     assertEquals(result.success, false, 'Should fail with missing arguments')
 
@@ -107,12 +119,15 @@ Deno.test('CLI comprehensive functionality', async t => {
     const env = await envManager.setup('unknown-command')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: ['nonexistent-command'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000
-    })
+    const result = await cliRunner.runInteractive(
+      ['nonexistent-command'],
+      [],  // No interactions, expecting error
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     assertEquals(result.success, false, 'Should fail with unknown command')
 
@@ -125,12 +140,15 @@ Deno.test('CLI comprehensive functionality', async t => {
 
     // Run CLI without arguments to trigger interactive mode
     // We expect it to start the interactive prompt but timeout
-    const result = await cliRunner.run({
-      args: [],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 3000 // Short timeout since we expect it to hang on prompt
-    })
+    const result = await cliRunner.runInteractive(
+      [],
+      [],  // No interactions, testing if it starts
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 3000  // Short timeout since we expect it to hang on prompt
+      }
+    )
 
     // Interactive mode typically times out or exits with non-zero when interrupted
     // The important thing is that it starts the interactive flow

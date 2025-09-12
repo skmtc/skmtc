@@ -10,12 +10,15 @@ Deno.test('CLI help functionality', async t => {
     const env = await envManager.setup('cli-help-test')
     const envVars = envManager.getEnvVars(env)
 
-    const result = await cliRunner.run({
-      args: ['--help'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 20000
-    })
+    const result = await cliRunner.runInteractive(
+      ['--help'],
+      [],  // No interactions needed for help command
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 20000
+      }
+    )
 
     // The CLI should run successfully and show help content
     if (result.success) {

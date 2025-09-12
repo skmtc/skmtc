@@ -43,27 +43,36 @@ Deno.test('prompt navigation', async t => {
     const envVars = envManager.getEnvVars(env)
 
     // Create projects using the init command
-    await cliRunner.run({
-      args: ['init', 'project-alpha', '@skmtc/gen-typescript', './src'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000
-    })
+    await cliRunner.runInteractive(
+      ['init', 'project-alpha', '@skmtc/gen-typescript', './src'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
-    await cliRunner.run({
-      args: ['init', 'project-beta', '@skmtc/gen-typescript', './src'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 10000
-    })
+    await cliRunner.runInteractive(
+      ['init', 'project-beta', '@skmtc/gen-typescript', './src'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 10000
+      }
+    )
 
     // Now test the prompt shows both projects
-    const result = await cliRunner.run({
-      args: [],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 2000
-    })
+    const result = await cliRunner.runInteractive(
+      [],
+      [],  // No interactions, just testing if menu shows
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 2000
+      }
+    )
 
     assertStringIncludes(result.stdout, 'Welcome to Smktc')
 
@@ -124,12 +133,15 @@ Deno.test('project creation via CLI prompt', async t => {
     const envVars = envManager.getEnvVars(env)
 
     // Test project creation using the direct init command
-    const result = await cliRunner.run({
-      args: ['init', 'test-direct-cli', '@skmtc/gen-typescript', 'direct-out'],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 15000
-    })
+    const result = await cliRunner.runInteractive(
+      ['init', 'test-direct-cli', '@skmtc/gen-typescript', 'direct-out'],
+      [],  // No interactions needed when all args provided
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 15000
+      }
+    )
 
     // Verify the command succeeded
     assertEquals(result.success, true, 'Init command should succeed')

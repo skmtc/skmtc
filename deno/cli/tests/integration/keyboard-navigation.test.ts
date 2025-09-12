@@ -42,12 +42,15 @@ Deno.test('CLI keyboard navigation', async t => {
     const envVars = envManager.getEnvVars(env)
 
     // Simply start the CLI and let it timeout to verify it shows the menu
-    const result = await cliRunner.run({
-      args: [],
-      env: envVars,
-      cwd: env.homeDir,
-      timeout: 2000 // Short timeout since we know it will show menu and wait
-    })
+    const result = await cliRunner.runInteractive(
+      [],
+      [],  // No interactions, just testing if menu appears
+      {
+        env: envVars,
+        cwd: env.homeDir,
+        timeout: 2000  // Short timeout since we know it will show menu and wait
+      }
+    )
 
     // The CLI starting interactive mode is success - it will timeout when waiting for input
     assertEquals(typeof result.code, 'number', 'Should return an exit code when interrupted')

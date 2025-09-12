@@ -68,12 +68,15 @@ Deno.test(
       const env = await envManager.setup('cli-startup')
       const envVars = envManager.getEnvVars(env)
 
-      const result = await cliRunner.run({
-        args: [],
-        env: envVars,
-        cwd: env.homeDir,
-        timeout: 3000
-      })
+      const result = await cliRunner.runInteractive(
+        [],
+        [],  // No interactions, just testing startup
+        {
+          env: envVars,
+          cwd: env.homeDir,
+          timeout: 3000
+        }
+      )
 
       const didStartup = result.code !== null
       assertEquals(didStartup, true, 'CLI should start up successfully')
