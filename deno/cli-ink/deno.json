@@ -1,0 +1,29 @@
+{
+  "name": "@skmtc/cli-ink",
+  "version": "0.0.238",
+  "exports": "./mod.ts",
+  "imports": {
+    "@/": "./",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.818",
+    "react": "npm:react@^19.0.0",
+    "react/jsx-runtime": "npm:react@^19.0.0/jsx-runtime",
+    "ink": "npm:ink@^6.0.0",
+    "ink-ui": "npm:ink-ui@^2.0.0"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "jsxImportSourceTypes": "npm:@types/react@^19"
+  },
+  "tasks": {
+    "publish:ga": "deno task build && deno task publish:deno:ga && deno task publish:npm",
+    "publish": "deno task build && deno task publish:deno && deno task publish:npm",
+    "build": "deno run -A .scripts/build-node.ts",
+    "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:deno:ga": "deno publish --allow-slow-types",
+    "publish:npm": "cd ../../packages/cli && npm publish",
+    "test": "deno test --allow-all --no-check --import-map=tests/test-complete.importmap.json tests/",
+    "test:watch": "deno test --allow-all --watch tests/",
+    "test:coverage": "deno test --allow-all --coverage tests/"
+  }
+}

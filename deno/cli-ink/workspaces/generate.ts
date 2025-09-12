@@ -1,0 +1,181 @@
+import { Command } from '@cliffy/command'
+import * as Sentry from '@sentry/node'
+import { Workspace } from '../lib/workspace.ts'
+import chokidar from 'chokidar'
+import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import invariant from 'tiny-invariant'
+import { Project } from '../lib/project.ts'
+import { Spinner } from '../lib/spinner.ts'
+import { formatNumber, toGenerationStats } from '@skmtc/core'
+import { keypress } from '../lib/keypress.ts'
+import { relative } from '@std/path/relative'
+import { dim } from '@std/fmt/colors'
+import type { RemoteProject } from '../lib/remote-project.ts'
+
+export const description = 'Generate artifacts'
+
+export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
+  return new Command()
+    .description(description)
+    .arguments('<project:string> [schema:string]')
+    .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
+    .option('-p, --prettier <path:string>', 'Path to prettier config file')
+    .action(async ({ watch, prettier }, projectName, path) => {
+      const project = await skmtcRoot.toProject({
+        projectName,
+        schemaPath: path,
+        prettierPath: prettier
+      })
+
+      const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
+
+      if (watch) {
+        setupWatcher({ project, skmtcRoot, spinner })
+      } else {
+        await generate({ project, skmtcRoot, spinner }, { logSuccess: 'Artifacts generated' })
+
+        spinner.stop()
+      }
+    })
+}
+
+export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
+  const project = await skmtcRoot.toProject({
+    projectName,
+    schemaPath: undefined,
+    prettierPath: undefined
+  })
+
+  const hasDeployment = await project.ensureDeployment()
+
+  if (!hasDeployment) {
+    console.log('Project has not been deployed. Please deploy before generating artifacts.')
+
+    return
+  }
+
+  const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
+
+  await generate({ project, skmtcRoot, spinner })
+
+  spinner.stop()
+}
+
+export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
+  const project = skmtcRoot.findProject(projectName)
+
+  project.schemaFile.promptOrFail(project)
+
+  const { schemaSource } = project.schemaFile
+
+  invariant(schemaSource?.type === 'local', 'Only local schema files can be watched')
+
+  const hasDeployment = await project.ensureDeployment()
+
+  if (!hasDeployment) {
+    console.log('Project has not been deployed. Please deploy before generating artifacts.')
+
+    return
+  }
+
+  const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
+
+  setupWatcher({ project, skmtcRoot, spinner })
+
+  const relativePath = relative(Deno.cwd(), schemaSource.path)
+
+  spinner.message = `Watching ${relativePath}`
+
+  console.log(dim(`Hit 'escape' key to stop.`))
+
+  for await (const key of keypress()) {
+    if (key.ctrl && key.name === 'c') {
+      spinner.stop()
+
+      return
+    }
+
+    if (key.name === 'escape') {
+      spinner.stop()
+
+      return
+    }
+  }
+}
+
+type WatchGenerateArgs = {
+  project: Project | RemoteProject
+  skmtcRoot: SkmtcRoot
+  spinner: Spinner
+}
+
+export const setupWatcher = ({ project, skmtcRoot, spinner }: WatchGenerateArgs) => {
+  const { schemaSource } = project.schemaFile
+
+  invariant(schemaSource?.type === 'local', 'Only local schema files can be watched')
+
+  const watcher = chokidar.watch(schemaSource.path)
+  watcher.on('change', () => {
+    generate({ project, skmtcRoot, spinner, watching: true })
+  })
+}
+
+type GenerateArgs = {
+  project: Project | RemoteProject
+  skmtcRoot: SkmtcRoot
+  spinner: Spinner
+  watching?: boolean
+}
+
+type GenerateOptions = {
+  logSuccess?: string
+}
+
+export const generate = async (
+  { project, skmtcRoot, spinner, watching }: GenerateArgs,
+  { logSuccess }: GenerateOptions = {}
+) => {
+  try {
+    const workspace = new Workspace()
+
+    await project.clientJson?.refresh()
+
+    if (project instanceof Project) {
+      await project.schemaFile.promptOrFail(project)
+    }
+
+    await project.prettierJson?.refresh()
+
+    spinner.start()
+
+    const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
+
+    const { tokens, lines, totalTime, errors, files } = toGenerationStats({ manifest, artifacts })
+
+    if (errors.length) {
+      console.error(
+        `Generation completed with ${formatNumber(errors.length)} errors. View runtime logs for more info.`
+      )
+    }
+
+    const message = `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
+
+    if (watching) {
+      spinner.message = message
+    } else {
+      console.log(message)
+    }
+
+    await skmtcRoot.manager.success()
+  } catch (error) {
+    spinner.stop()
+
+    console.error(error instanceof Error ? error.message : 'Failed to generate artifacts')
+
+    Sentry.captureException(error)
+
+    await Sentry.flush()
+
+    await skmtcRoot.manager.fail()
+  }
+}

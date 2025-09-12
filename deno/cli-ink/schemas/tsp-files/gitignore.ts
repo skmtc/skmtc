@@ -1,0 +1,14 @@
+export class GitIgnore {
+  toString() {
+    return `# MacOS
+.DS_Store
+
+# Default TypeSpec output
+tsp-output/
+dist/
+
+# Dependency directories
+node_modules/
+`
+  }
+}
