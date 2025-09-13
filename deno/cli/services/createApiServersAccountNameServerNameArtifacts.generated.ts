@@ -28,9 +28,6 @@ export const createApiServersAccountNameServerNameArtifacts = async ({
     }
   )
 
-  console.log('DATA', data)
-  console.log('ERROR', error)
-
   if (error) {
     if (error instanceof FunctionsHttpError) {
       const errorMessage = await error.context.json()
