@@ -80,7 +80,7 @@ export class Workspace {
   }
 
   async generateArtifacts({ project }: GenerateArtifactsArgs): Promise<GenerateResponse> {
-    project.ensureSchemaFile()
+    await project.ensureSchemaFile()
 
     const manifestPath = project.toManifestPath()
 

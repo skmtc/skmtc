@@ -18,15 +18,18 @@ export const createApiServersAccountNameServerNameArtifacts = async ({
   accountName,
   serverName,
   supabase,
-  body,
+  body
 }: CreateApiServersAccountNameServerNameArtifactsArgs) => {
   const { data, error } = await supabase.functions.invoke(
     `/servers/${accountName}/${serverName}/artifacts`,
     {
       method: 'POST',
-      body,
-    },
+      body
+    }
   )
+
+  console.log('DATA', data)
+  console.log('ERROR', error)
 
   if (error) {
     if (error instanceof FunctionsHttpError) {

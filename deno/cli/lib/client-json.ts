@@ -39,11 +39,15 @@ export class ClientJson {
   }
 
   async refresh() {
-    const contents = await Deno.readTextFile(this.path)
+    try {
+      const contents = await Deno.readTextFile(this.path)
 
-    const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
+      const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
 
-    this.contents = parsed
+      this.contents = parsed
+    } catch (_error) {
+      // Do nothing
+    }
   }
 
   updateContents(contents: Partial<SkmtcClientConfig>) {

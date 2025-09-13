@@ -55,11 +55,18 @@ Deno.test({
             summary: 'Returns pet inventories by status',
             tags: ['store'],
             security: [
-              new OasSecurityRequirement({
-                requirement: {
-                  api_key: []
-                }
-              })
+              new OasSecurityRequirement(
+                {
+                  requirement: {
+                    api_key: []
+                  }
+                },
+                new OasDocument({
+                  openapi: '3.0.0',
+                  info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
+                  operations: []
+                })
+              )
             ]
           }),
           new OasOperation({

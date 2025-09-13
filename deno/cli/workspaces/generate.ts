@@ -140,7 +140,7 @@ export const generate = async (
 
     await project.clientJson?.refresh()
 
-    if (project instanceof Project) {
+    if (project) {
       await project.schemaFile.promptOrFail(project)
     }
 
@@ -168,6 +168,8 @@ export const generate = async (
 
     await skmtcRoot.manager.success()
   } catch (error) {
+    console.log('ERROR', error)
+
     spinner.stop()
 
     console.error(error instanceof Error ? error.message : 'Failed to generate artifacts')

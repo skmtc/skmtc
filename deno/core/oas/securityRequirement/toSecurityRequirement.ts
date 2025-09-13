@@ -7,13 +7,14 @@ type ToSecurityRequirementsV3Args = {
 }
 
 export const toSecurityRequirementsV3 = ({
-  security
+  security,
+  context
 }: ToSecurityRequirementsV3Args): OasSecurityRequirement[] | undefined => {
   if (!security) {
     return undefined
   }
 
   return security.map(requirement => {
-    return new OasSecurityRequirement({ requirement })
+    return new OasSecurityRequirement({ requirement }, context.oasDocument)
   })
 }
