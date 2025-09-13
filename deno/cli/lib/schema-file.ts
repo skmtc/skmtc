@@ -106,12 +106,8 @@ export class SchemaFile {
   }
 
   async promptOrFail(project: Project | RemoteProject) {
-    console.log('PROMPTING OR FAILING', this.schemaSource)
-
     if (!this.schemaSource) {
       const source = await Input.prompt('Enter path or url of OpenAPI schema')
-
-      console.log('SOURCE', source)
 
       const schemaSource = toSchemaSource(source)
       const { contents } = await SchemaFile.getFromSource(schemaSource)

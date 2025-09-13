@@ -11,6 +11,7 @@ import { existsSync } from '@std/fs/exists'
 import { type ManifestContent, manifestContent } from '@skmtc/core'
 import { createApiServersAccountNameServerNameArtifacts } from '@/services/createApiServersAccountNameServerNameArtifacts.generated.ts'
 import type { RemoteProject } from './remote-project.ts'
+import { toRootPath } from './to-root-path.ts'
 export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
@@ -21,11 +22,13 @@ export const generateResponse: v.GenericSchema<GenerateResponse> = v.object({
 })
 
 type DeletePreviousArtifactsArgs = {
+  skmtcRootPath: string
   manifestPath: string
   incomingPaths: string[]
 }
 
 export const deletePreviousArtifacts = ({
+  skmtcRootPath,
   incomingPaths,
   manifestPath
 }: DeletePreviousArtifactsArgs) => {
@@ -46,7 +49,7 @@ export const deletePreviousArtifacts = ({
   paths.forEach(path => {
     try {
       if (!incomingPaths.includes(path)) {
-        const absolutePath = join(Deno.cwd(), path)
+        const absolutePath = join(skmtcRootPath, '..', path)
 
         Deno.removeSync(absolutePath)
       }
@@ -103,16 +106,20 @@ export class Workspace {
       }
     })
 
-    deletePreviousArtifacts({ incomingPaths: Object.keys(artifacts ?? {}), manifestPath })
+    const skmtcRootPath = toRootPath()
+
+    deletePreviousArtifacts({
+      incomingPaths: Object.keys(artifacts ?? {}),
+      manifestPath,
+      skmtcRootPath
+    })
 
     ensureFileSync(manifestPath)
 
     Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
 
     Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
-      const cwd = Deno.cwd()
-
-      const absolutePath = join(cwd, artifactPath)
+      const absolutePath = join(skmtcRootPath, '..', artifactPath)
 
       const { dir } = parse(absolutePath)
 

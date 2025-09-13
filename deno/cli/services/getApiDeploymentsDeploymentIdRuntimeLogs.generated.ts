@@ -2,8 +2,7 @@ import { appLogsResponseEntry } from '@/types/appLogsResponseEntry.generated.ts'
 import { z } from 'zod'
 import { SupabaseClient, FunctionsHttpError } from '@supabase/supabase-js'
 
-export const getApiDeploymentsDeploymentIdRuntimeLogsResponse =
-  z.array(appLogsResponseEntry)
+export const getApiDeploymentsDeploymentIdRuntimeLogsResponse = z.array(appLogsResponseEntry)
 
 export type GetApiDeploymentsDeploymentIdRuntimeLogsArgs = {
   deploymentId: string
@@ -19,15 +18,23 @@ export const getApiDeploymentsDeploymentIdRuntimeLogs = async ({
   q,
   since,
   until,
-  limit,
-  supabase,
+  supabase
 }: GetApiDeploymentsDeploymentIdRuntimeLogsArgs) => {
+  const queryParams = Object.entries({ q, since, until })
+    .filter(([_, value]) => value !== null && value !== undefined)
+    .map(([key, value]) => [key, value])
+
+  const query = new URLSearchParams(Object.fromEntries(queryParams))
+
   const { data, error } = await supabase.functions.invoke(
-    `/deployments/${deploymentId}/runtime-logs`,
+    `/deployments/${deploymentId}/runtime-logs?${query}`,
     {
-      method: 'GET',
-    },
+      method: 'GET'
+    }
   )
+
+  console.log('DATA', data)
+  console.log('ERROR', error)
 
   if (error) {
     if (error instanceof FunctionsHttpError) {

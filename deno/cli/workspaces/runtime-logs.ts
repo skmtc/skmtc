@@ -54,6 +54,7 @@ export const runtimeLogs = async (
       deploymentId: manifest.deploymentId,
       q: manifest.spanId,
       since: new Date(manifest.startAt).toISOString(),
+      until: new Date(manifest.endAt).toISOString(),
       supabase: skmtcRoot.manager.auth.supabase
     })
 
