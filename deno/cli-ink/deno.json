@@ -1,10 +1,10 @@
 {
   "name": "@skmtc/cli-ink",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.820",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.821",
     "react": "npm:react@^19.0.0",
     "react/jsx-runtime": "npm:react@^19.0.0/jsx-runtime",
     "ink": "npm:ink@^6.0.0",

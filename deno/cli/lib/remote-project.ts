@@ -5,6 +5,7 @@ import type { Manager } from './manager.ts'
 import { PrettierJson } from './prettier-json.ts'
 import type { ProjectKey } from './project.ts'
 import { toRemoteProjectPath } from './to-remote-project-path.ts'
+import { toRootPath } from './to-root-path.ts'
 
 type ConstructorArgs = {
   accountName: string
@@ -76,7 +77,7 @@ export class RemoteProject {
   }
 
   toManifestPath() {
-    return join('.skmtc', `@${this.accountName}`, this.name, '.settings', 'manifest.json')
+    return join(toRootPath(), `@${this.accountName}`, this.name, '.settings', 'manifest.json')
   }
 
   async ensureDeployment(): Promise<boolean> {

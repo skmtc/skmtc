@@ -116,4 +116,4 @@ const items = await Checkbox.prompt({ message: 'Select items:', options: [...] }
 
 ## License
 
-[FSL-1.1-ALv2](LICENSE)
+[Apache-2.0](LICENSE)
