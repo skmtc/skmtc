@@ -77,7 +77,7 @@ Choose from our growing collection of generators, combone them or create your ow
 - **Supabase/Hono Functions** - Edge function handlers
 - More coming soon...
 
-### Developer Experience First
+## Developer Experience First
 - 🎯 **Interactive CLI** - Guided setup and configuration
 - 🔥 **Hot Reload** - Watch mode for automatic regeneration
 - 🎨 **Prettier Integration** - Auto-formatted output
