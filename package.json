@@ -1,5 +1,6 @@
 {
-  "name": "codesquared",
+  "name": "skmtc",
+  "description": "Skmtc is a declarative code generation framework",
   "private": true,
   "scripts": {
     "build": "turbo build",

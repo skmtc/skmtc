@@ -20,6 +20,7 @@ await build({
   package: {
     // package.json properties
     name: 'skmtc',
+    description: 'Skmtc is a declarative code generation framework',
     version: denoJson.version,
     type: 'module',
     rootDir: './',
