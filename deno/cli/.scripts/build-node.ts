@@ -29,10 +29,6 @@ await build({
     scripts: {
       test: 'exit 0'
     },
-    repository: {
-      type: 'git',
-      url: 'https://github.com/skmtc/skmtc.git'
-    },
     devDependencies: {
       '@types/lodash-es': '4.17.12',
       'openapi-types': '12.1.3',
@@ -41,7 +37,16 @@ await build({
     dependencies: {
       '@deno/shim-deno': '^0.19.2',
       '@deno/shim-timers': '^0.1.0'
-    }
+    },
+    license: 'Apache-2.0',
+    repository: {
+      type: 'git',
+      url: 'https://github.com/skmtc/skmtc.git'
+    },
+    author: 'Skmtc Contributors',
+    bugs: 'https://github.com/skmtc/skmtc/issues',
+    homepage: 'https://skm.tc',
+    keywords: ['openapi', 'swagger', 'typescript', 'codegen', 'code generator']
   },
   postBuild() {
     // Copy bin script to the output directory
