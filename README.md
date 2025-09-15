@@ -6,7 +6,7 @@
   <img src="./skmtc.svg" />
 </p>
 
-**Generate production-ready, type-safe code from OpenAPI specifications in seconds.** Skmtc transforms your OpenAPI v3 documents into fully-typed TypeScript code, React components, API clients, and more.
+**Skmtc is a declarative code generation framework for converting OpenAPI schemas into TypeScript code**. Specify the exact output you want using string templates and get it in seconds.
 
 ## ✨ Why Skmtc?
 
@@ -23,14 +23,15 @@
 # Run directly with npx
 npx skmtc
 
-# Try it out
+# Try some examples
 
 # Generates Supabase Edge Functions with Hono server and Zod validation for the Petstore API
 npx skmtc generate @skmtc/supabase-backend https://petstore3.swagger.io/api/v3/openapi.json
+# Generated 9 files (507 lines, 3,383 tokens) in 9ms
 
 # Generates React Query hooks with Supabase client and Zod validation for entire Cloudflare API
 npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.com/cloudflare/api-schemas/refs/heads/main/openapi.json
-
+# Generated 4,764 files (77,972 lines, 1,262,544 tokens) in 3,632ms
 
 ```
 
@@ -45,6 +46,7 @@ Choose from our growing collection of generators, combone them or create your ow
 - **Zod Schemas** - Runtime validation schemas
 - **TypeScript Types** - Pure type definitions
 - **Supabase/Hono Functions** - Edge function handlers
+- More coming soon...
 
 ### Developer Experience First
 - 🎯 **Interactive CLI** - Guided setup and configuration
