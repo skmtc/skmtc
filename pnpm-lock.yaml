@@ -404,24 +404,9 @@ importers:
       '@sentry/node':
         specifier: ^10.8.0
         version: 10.10.0
-      '@supabase/auth-js':
-        specifier: 2.71.1
-        version: 2.71.1
-      '@supabase/functions-js':
-        specifier: 2.4.6
-        version: 2.4.6
-      '@supabase/node-fetch':
-        specifier: 2.6.15
-        version: 2.6.15
-      '@supabase/postgrest-js':
-        specifier: 1.21.4
-        version: 1.21.4
-      '@supabase/realtime-js':
-        specifier: 2.15.5
-        version: 2.15.5
-      '@supabase/storage-js':
-        specifier: 2.12.1
-        version: 2.12.1
+      '@supabase/supabase-js':
+        specifier: ^2.57.4
+        version: 2.57.4
       '@types/babel__helper-validator-identifier':
         specifier: 7.15.2
         version: 7.15.2
