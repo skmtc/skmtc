@@ -3,7 +3,7 @@
 [![Discord](https://img.shields.io/badge/Discord-join%20chat-1dce73.svg)](https://discord.gg/https://discord.com/invite/Mg88C8Xu5Y)
 
 <p align="center">
-  <img src="./skmtc.svg" />
+  <img src="https://raw.githubusercontent.com/skmtc/skmtc/refs/heads/main/skmtc.svg" />
 </p>
 
 ## License
