@@ -33,24 +33,9 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 
 ```
 
-## 📦 Available Generators
+## Example code
 
-Choose from our growing collection of generators, combone them or create your own:
-
-- **Tanstack Query** - React Query hooks with Zod validation
-- **MSW** - Mock Service Worker handlers from OpenAPI examples
-- **Zod Schemas** - Runtime validation schemas
-- **TypeScript Types** - Pure type definitions
-- **Supabase/Hono Functions** - Edge function handlers
-- More coming soon...
-
-### Developer Experience First
-- 🎯 **Interactive CLI** - Guided setup and configuration
-- 🔥 **Hot Reload** - Watch mode for automatic regeneration
-- 🎨 **Prettier Integration** - Auto-formatted output
-- 🔍 **Type Safety** - Full TypeScript support throughout
-
-### Example code - Runtime type-safe API client with Zod validation in 13 lines of code
+Runtime type-safe API client with Zod validation in 13 lines of code
 
 ```typescript
 import { ZodInsertable } from '@skmtc/zod'
@@ -80,6 +65,23 @@ class ZodFetch extends BaseTransformer {
   }
 }
 ```
+
+## 📦 Available Generators
+
+Choose from our growing collection of generators, combone them or create your own:
+
+- **Tanstack Query** - React Query hooks with Zod validation
+- **MSW** - Mock Service Worker handlers from OpenAPI examples
+- **Zod Schemas** - Runtime validation schemas
+- **TypeScript Types** - Pure type definitions
+- **Supabase/Hono Functions** - Edge function handlers
+- More coming soon...
+
+### Developer Experience First
+- 🎯 **Interactive CLI** - Guided setup and configuration
+- 🔥 **Hot Reload** - Watch mode for automatic regeneration
+- 🎨 **Prettier Integration** - Auto-formatted output
+- 🔍 **Type Safety** - Full TypeScript support throughout
 
 ## ❓ FAQ
 
