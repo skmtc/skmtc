@@ -23,13 +23,11 @@
 # Run directly with npx
 npx skmtc
 
-# Try some examples
-
-# Generates Supabase Edge Functions with Hono server and Zod validation for the Petstore API
+# Example - Create Supabase Server for Petstore API
 npx skmtc generate @skmtc/supabase-backend https://petstore3.swagger.io/api/v3/openapi.json
 # Generated 9 files (507 lines, 3,383 tokens) in 9ms
 
-# Generates React Query hooks with Supabase client and Zod validation for entire Cloudflare API
+# Example - Generate React Query hooks for entire Cloudflare API (6MB OpenAPI schema)
 npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.com/cloudflare/api-schemas/refs/heads/main/openapi.json
 # Generated 4,764 files (77,972 lines, 1,262,544 tokens) in 3,632ms
 
