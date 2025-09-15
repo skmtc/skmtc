@@ -1,8 +1,5 @@
 {
-  "pages": [
-    "components",
-    "---My Separator---",
-    "...folder",
-    "..."
-  ]
+  "title": "Skmtc docs",
+  "pages": ["index", "---My Separator---", "test", "info"],
+  "root": true
 }
