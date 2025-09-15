@@ -1,13 +1,12 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.246",
+  "version": "0.0.247",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.826"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.827"
   },
   "tasks": {
-    "publish:ga": "deno task build && deno task publish:deno:ga && deno task publish:npm",
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",
     "build": "deno run -A .scripts/build-node.ts",
     "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",

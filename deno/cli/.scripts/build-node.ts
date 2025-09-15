@@ -44,7 +44,6 @@ await build({
       type: 'git',
       url: 'https://github.com/skmtc/skmtc.git'
     },
-    author: 'Skmtc Contributors',
     bugs: 'https://github.com/skmtc/skmtc/issues',
     homepage: 'https://skm.tc',
     keywords: ['openapi', 'swagger', 'typescript', 'codegen', 'code generator']

@@ -68,14 +68,11 @@ await build({
   package: {
     // package.json properties
     name: '@skmtc/core',
+    description: 'Skmtc is a declarative code generation framework',
     version: denoJson.version,
     rootDir: './',
     scripts: {
       test: 'exit 0'
-    },
-    repository: {
-      type: 'git',
-      url: 'https://github.com/skmtc/skmtc.git'
     },
     devDependencies: {
       '@types/lodash-es': '4.17.12',
@@ -84,7 +81,15 @@ await build({
     },
     dependencies: {
       '@deno/shim-deno': '^0.19.2'
-    }
+    },
+    license: 'Apache-2.0',
+    repository: {
+      type: 'git',
+      url: 'https://github.com/skmtc/skmtc.git'
+    },
+    bugs: 'https://github.com/skmtc/skmtc/issues',
+    homepage: 'https://skm.tc',
+    keywords: ['openapi', 'swagger', 'typescript', 'codegen', 'code generator']
   },
   postBuild() {
     // Copy license and readme to output package
