@@ -1,5 +1,18 @@
 {
-  "title": "Skmtc docs",
-  "pages": ["index", "---My Separator---", "test", "info"],
+  "title": "Skmtc Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "concepts",
+    "using-generators",
+    "generators",
+    "creating-generators",
+    "recipes",
+    "---",
+    "api-reference",
+    "cli-reference",
+    "troubleshooting",
+    "contributing"
+  ],
   "root": true
 }

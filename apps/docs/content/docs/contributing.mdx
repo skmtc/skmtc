@@ -1,0 +1,415 @@
+---
+title: Contributing
+description: How to contribute to Skmtc development
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+We welcome contributions to Skmtc! Whether you're fixing bugs, adding features, or creating generators, your help makes the project better.
+
+## Ways to Contribute
+
+### 🐛 Report Issues
+Found a bug or have a feature request? [Create an issue](https://github.com/skmtc/skmtc/issues/new).
+
+### 📝 Improve Documentation
+Help us improve these docs by clicking "Edit on GitHub" on any page.
+
+### 🧩 Create Generators
+Build generators for frameworks and libraries not yet supported.
+
+### 💻 Core Development
+Contribute to the Skmtc core library and CLI tools.
+
+### 🧪 Testing
+Help test new features and report compatibility issues.
+
+## Development Setup
+
+<Steps>
+
+<Step>
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/skmtc/skmtc.git
+cd skmtc
+```
+
+</Step>
+
+<Step>
+
+### Install Dependencies
+
+Skmtc is a Deno-based monorepo:
+
+```bash
+# Install Deno (if not already installed)
+curl -fsSL https://deno.land/install.sh | sh
+
+# Install dependencies
+deno install
+```
+
+</Step>
+
+<Step>
+
+### Understand the Structure
+
+```
+skmtc/
+├── deno/
+│   ├── core/           # Core library (@skmtc/core)
+│   │   ├── mod.ts
+│   │   ├── context/    # Pipeline contexts
+│   │   ├── dsl/        # Code generation DSL
+│   │   └── oas/        # OpenAPI processing
+│   ├── cli/            # CLI tool (@skmtc/cli)
+│   │   ├── mod.ts
+│   │   └── lib/        # CLI implementation
+│   └── mcp/            # MCP server
+├── packages/           # NPM packages (built from Deno)
+├── apps/
+│   └── docs/           # Documentation site
+└── examples/           # Example projects
+```
+
+</Step>
+
+<Step>
+
+### Run Tests
+
+```bash
+# Run all tests
+deno test
+
+# Run specific tests
+deno test deno/core
+deno test deno/cli
+
+# Run with coverage
+deno test --coverage=coverage
+```
+
+</Step>
+
+<Step>
+
+### Development Workflow
+
+```bash
+# Make changes to deno/core or deno/cli
+
+# Test your changes
+deno test
+
+# Build NPM packages
+deno task build
+
+# Test CLI locally
+cd examples/simple
+deno run --allow-all ../../deno/cli/mod.ts generate
+```
+
+</Step>
+
+</Steps>
+
+## Code Style
+
+### TypeScript Guidelines
+
+```typescript
+// ✅ Good: Use explicit types
+function parseSchema(schema: OasSchema): ParsedSchema {
+  return { /* ... */ };
+}
+
+// ❌ Bad: Implicit any
+function parseSchema(schema) {
+  return { /* ... */ };
+}
+
+// ✅ Good: Use branded types
+type ModelName = string & { __brand: 'ModelName' };
+
+// ✅ Good: Document complex functions
+/**
+ * Merges allOf schemas with conflict detection
+ * @param schemas Array of schemas to merge
+ * @returns Merged schema or error
+ */
+function mergeAllOf(schemas: OasSchema[]): Result<OasSchema, MergeError> {
+  // ...
+}
+```
+
+### Naming Conventions
+
+- **Files**: `kebab-case.ts`
+- **Functions**: `camelCase`
+- **Types/Interfaces**: `PascalCase`
+- **Constants**: `UPPER_SNAKE_CASE`
+- **Private fields**: `_privateField`
+
+### Error Handling
+
+Use the Result pattern for error handling:
+
+```typescript
+import { Result, ok, err } from '@/helpers/result';
+
+function parseModel(input: unknown): Result<Model, ParseError> {
+  if (!isValidModel(input)) {
+    return err(new ParseError('Invalid model format'));
+  }
+
+  return ok(transformToModel(input));
+}
+```
+
+## Core Development
+
+### Adding New Features
+
+1. **Design first**: Discuss major changes in GitHub issues
+2. **Write tests**: Test-driven development preferred
+3. **Update docs**: Include documentation updates
+4. **Consider compatibility**: Avoid breaking changes
+
+### Architecture Principles
+
+<Callout type="info">
+**Core Principles:**
+
+1. **Separation of Concerns** - Each phase has a single responsibility
+2. **Extensibility** - Easy to add new generators and features
+3. **Performance** - Optimize for large OpenAPI specifications
+4. **Developer Experience** - Prioritize ease of use
+5. **Type Safety** - Leverage TypeScript throughout
+</Callout>
+
+### Testing Guidelines
+
+```typescript
+// Unit tests
+import { assertEquals } from '@std/assert';
+import { parseSchema } from './parse-schema.ts';
+
+Deno.test('parseSchema handles basic object', () => {
+  const input = { type: 'object', properties: {} };
+  const result = parseSchema(input);
+
+  assertEquals(result.type, 'object');
+  assertEquals(result.properties, {});
+});
+
+// Integration tests
+import { toArtifacts } from '@skmtc/core';
+import typescriptGenerator from '@skmtc/gen-typescript';
+
+Deno.test('generates TypeScript from OpenAPI', async () => {
+  const artifacts = await toArtifacts({
+    schema: petStoreSpec,
+    generators: [typescriptGenerator]
+  });
+
+  assertEquals(artifacts.size, 3);
+  // Validate generated content
+});
+```
+
+## Generator Development
+
+### Creating a New Generator
+
+```typescript
+// generators/my-generator/mod.ts
+import type { Generator } from '@skmtc/core';
+
+export default {
+  name: 'my-generator',
+  version: '1.0.0',
+
+  transformModel({ model }) {
+    return [{
+      path: `${model.name}.custom`,
+      content: generateCustomFormat(model)
+    }];
+  }
+} satisfies Generator;
+```
+
+### Testing Generators
+
+```typescript
+import { testGenerator } from '@skmtc/testing';
+import myGenerator from './my-generator.ts';
+
+Deno.test('generator produces correct output', async () => {
+  const result = await testGenerator(myGenerator, {
+    models: [
+      { name: 'User', type: 'object', properties: {} }
+    ]
+  });
+
+  assertEquals(result.files.length, 1);
+  assertEquals(result.files[0].path, 'User.custom');
+});
+```
+
+## Documentation
+
+### Writing Documentation
+
+Documentation is written in MDX and lives in `apps/docs/content/docs/`:
+
+```mdx
+---
+title: My Feature
+description: Description of the feature
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## Overview
+
+Explain what this feature does.
+
+<Callout type="tip">
+Add helpful tips and warnings.
+</Callout>
+
+## Usage
+
+Show code examples:
+
+```typescript
+// Example code here
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="Related Topic" href="/docs/related" />
+</Cards>
+```
+
+### Documentation Guidelines
+
+- **Start with why** - Explain the purpose before the how
+- **Include examples** - Show practical usage
+- **Keep it current** - Update docs with code changes
+- **Use components** - Leverage Fumadocs UI components
+- **Cross-reference** - Link related topics
+
+## Pull Request Process
+
+### Before Submitting
+
+1. **Run tests**: `deno test`
+2. **Format code**: `deno fmt`
+3. **Lint code**: `deno lint`
+4. **Update docs**: Include documentation updates
+5. **Add tests**: Ensure good test coverage
+
+### PR Template
+
+```markdown
+## Description
+Brief description of changes
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+- [ ] Tests pass locally
+- [ ] Added new tests
+- [ ] Manual testing performed
+
+## Checklist
+- [ ] Code follows style guidelines
+- [ ] Self-review completed
+- [ ] Documentation updated
+- [ ] No breaking changes (or justified)
+```
+
+### Review Process
+
+1. **Automated checks** run on all PRs
+2. **Code review** by maintainers
+3. **Testing** in multiple environments
+4. **Documentation review** for user-facing changes
+5. **Merge** after approval
+
+## Release Process
+
+### Versioning
+
+Skmtc follows [Semantic Versioning](https://semver.org/):
+
+- **Major** (1.0.0): Breaking changes
+- **Minor** (1.1.0): New features, backward compatible
+- **Patch** (1.1.1): Bug fixes, backward compatible
+
+### Release Steps
+
+1. **Update versions** in all packages
+2. **Update changelog** with release notes
+3. **Create git tag** with version
+4. **Publish to JSR** (Deno packages)
+5. **Publish to npm** (Node.js packages)
+6. **Update documentation**
+
+## Community Guidelines
+
+### Code of Conduct
+
+We follow the [Contributor Covenant](https://www.contributor-covenant.org/). Please be:
+
+- **Respectful** of different viewpoints and experiences
+- **Constructive** in feedback and discussions
+- **Collaborative** in finding solutions
+- **Patient** with newcomers and questions
+
+### Communication
+
+- **GitHub Issues**: Bug reports, feature requests
+- **GitHub Discussions**: General questions, ideas
+- **Discord**: Real-time community chat
+- **Pull Requests**: Code contributions
+
+## Getting Started Checklist
+
+Ready to contribute? Here's your checklist:
+
+- [ ] Read the contributing guidelines
+- [ ] Set up development environment
+- [ ] Join the [Discord community](https://discord.gg/ndr8YpxZ)
+- [ ] Look for ["good first issue"](https://github.com/skmtc/skmtc/labels/good%20first%20issue) labels
+- [ ] Introduce yourself in Discord or GitHub discussions
+
+## Recognition
+
+Contributors are recognized in:
+
+- **GitHub contributors** list
+- **Release notes** for significant contributions
+- **Documentation** for major features
+- **Discord roles** for community contributors
+
+## Questions?
+
+- **General questions**: [GitHub Discussions](https://github.com/skmtc/skmtc/discussions)
+- **Real-time chat**: [Discord](https://discord.gg/ndr8YpxZ)
+- **Bug reports**: [GitHub Issues](https://github.com/skmtc/skmtc/issues)
+
+Thank you for contributing to Skmtc! 🎉

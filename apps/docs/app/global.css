@@ -1,3 +1,48 @@
 @import 'tailwindcss';
-@import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
+
+body {
+  font-family: "Geist Mono";
+  background-color: #F8F4ED;
+}
+
+@theme {
+  --background: #fbf7f0;
+  --foreground: #224 71.4% 4.1%;
+  --card: #0 0% 100%;
+  --card-foreground: #224 71.4% 4.1%;
+  --popover: #0 0% 100%;
+  --popover-foreground: #224 71.4% 4.1%;
+  --primary: #220.9 39.3% 11%;
+  --sidebar: #F4F1E9;
+
+
+  --color-fd-background: var(--background);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-muted: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
+  --color-fd-popover: var(--popover);
+  --color-fd-popover-foreground: var(--popover-foreground);
+  --color-fd-card: var(--card);
+  --color-fd-card-foreground: var(--card-foreground);
+  --color-fd-border: var(--border);
+  --color-fd-primary: var(--primary);
+  --color-fd-primary-foreground: var(--primary-foreground);
+  --color-fd-secondary: var(--secondary);
+  --color-fd-secondary-foreground: var(--secondary-foreground);
+  --color-fd-accent: var(--accent);
+  --color-fd-accent-foreground: var(--accent-foreground);
+  --color-fd-ring: var(--ring);
+}
+
+#nd-sidebar {
+  background-color: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border-color: var(--sidebar-border);
+
+  --color-fd-accent: var(--sidebar-accent);
+  --color-fd-accent-foreground: var(--sidebar-accent-foreground);
+  --color-fd-ring: var(--sidebar-ring);
+  --color-fd-primary-foreground: var(--sidebar-primary-foreground);
+}
+

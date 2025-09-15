@@ -1,0 +1,549 @@
+---
+title: Generator Basics
+description: Learn how to create your own Skmtc generator
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Create custom generators to transform OpenAPI specifications into any code format you need.
+
+## Why Create a Generator?
+
+You should create a custom generator when:
+- You need code in a format not covered by existing generators
+- Your team has specific coding conventions
+- You want to integrate with proprietary frameworks
+- You need domain-specific transformations
+
+## Generator Anatomy
+
+Every generator has three core parts:
+
+```typescript
+interface Generator {
+  // 1. Metadata
+  name: string;
+  version: string;
+  description?: string;
+
+  // 2. Transform functions
+  transformModel?(args: TransformModelArgs): GeneratedValue[];
+  transformOperation?(args: TransformOperationArgs): GeneratedValue[];
+
+  // 3. Configuration
+  configSchema?: Schema;
+  defaultConfig?: Config;
+  dependencies?: string[];
+}
+```
+
+## Your First Generator
+
+<Steps>
+
+<Step>
+
+### Create the generator structure
+
+```bash
+mkdir my-generator
+cd my-generator
+npm init -y
+```
+
+Create the main generator file:
+
+```typescript
+// index.ts
+import type { Generator, TransformModelArgs } from '@skmtc/core';
+
+const generator: Generator = {
+  name: 'my-generator',
+  version: '1.0.0',
+  description: 'My custom generator',
+
+  transformModel({ model }) {
+    // Transform each schema/model
+    const className = model.name;
+    const properties = model.properties || [];
+
+    const content = `
+export class ${className} {
+  ${properties.map(prop =>
+    `${prop.name}: ${mapType(prop.type)};`
+  ).join('\n  ')}
+}`;
+
+    return [{
+      path: `models/${className}.ts`,
+      content
+    }];
+  }
+};
+
+function mapType(type: string): string {
+  const typeMap: Record<string, string> = {
+    'string': 'string',
+    'integer': 'number',
+    'number': 'number',
+    'boolean': 'boolean',
+    'array': 'any[]',
+    'object': 'Record<string, any>'
+  };
+  return typeMap[type] || 'any';
+}
+
+export default generator;
+```
+
+</Step>
+
+<Step>
+
+### Add operation transformation
+
+```typescript
+transformOperation({ operation }) {
+  const { name, method, path, parameters } = operation;
+
+  // Generate an API client method
+  const content = `
+export async function ${name}(
+  ${parameters.map(p => `${p.name}: ${mapType(p.type)}`).join(', ')}
+): Promise<${operation.responseType}> {
+  const response = await fetch('${path}', {
+    method: '${method.toUpperCase()}',
+    // Add headers, body, etc.
+  });
+  return response.json();
+}`;
+
+  return [{
+    path: `api/${name}.ts`,
+    content
+  }];
+}
+```
+
+</Step>
+
+<Step>
+
+### Test your generator
+
+Create a test file:
+
+```typescript
+// __tests__/generator.test.ts
+import generator from '../index';
+import { createTestContext } from '@skmtc/testing';
+
+test('generates class from model', () => {
+  const model = {
+    name: 'User',
+    properties: [
+      { name: 'id', type: 'string', required: true },
+      { name: 'email', type: 'string', required: true },
+      { name: 'age', type: 'integer', required: false }
+    ]
+  };
+
+  const context = createTestContext();
+  const result = generator.transformModel({ model, context });
+
+  expect(result[0].content).toContain('export class User');
+  expect(result[0].content).toContain('id: string;');
+  expect(result[0].content).toContain('email: string;');
+  expect(result[0].content).toContain('age: number;');
+});
+```
+
+</Step>
+
+<Step>
+
+### Package your generator
+
+```json
+// package.json
+{
+  "name": "@myorg/skmtc-gen-custom",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "peerDependencies": {
+    "@skmtc/core": "^1.0.0"
+  },
+  "devDependencies": {
+    "@skmtc/core": "^1.0.0",
+    "@skmtc/testing": "^1.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0"
+  }
+}
+```
+
+</Step>
+
+</Steps>
+
+## String Templates vs AST
+
+Skmtc uses **string templates** instead of Abstract Syntax Trees (AST). Here's why:
+
+### String Templates (Skmtc Approach)
+
+```typescript
+// Simple and readable
+const content = `
+export interface ${name} {
+  ${properties.map(p => `${p.name}: ${p.type};`).join('\n  ')}
+}`;
+```
+
+**Pros:**
+- Easy to understand and modify
+- Direct control over formatting
+- Language agnostic
+- Faster to develop
+
+**Cons:**
+- Manual escaping needed
+- Less type safety during generation
+
+### AST Approach (Not Used)
+
+```typescript
+// Complex and verbose
+const ast = ts.factory.createInterfaceDeclaration(
+  undefined,
+  [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+  ts.factory.createIdentifier(name),
+  undefined,
+  undefined,
+  properties.map(p => /* complex AST node creation */)
+);
+```
+
+<Callout type="info">
+**Design Philosophy:** Skmtc prioritizes developer experience. String templates let you see exactly what will be generated, making generators easier to write, understand, and maintain.
+</Callout>
+
+## Generator Inputs
+
+### Model Transformation Args
+
+```typescript
+interface TransformModelArgs {
+  model: {
+    name: string;
+    description?: string;
+    properties?: Property[];
+    required?: string[];
+    additionalProperties?: boolean;
+    enum?: any[];
+    type: string;
+    // ... more OpenAPI schema properties
+  };
+
+  context: GenerateContext;
+  config: YourConfigType;
+  dependencies: Map<string, GeneratorResults>;
+}
+```
+
+### Operation Transformation Args
+
+```typescript
+interface TransformOperationArgs {
+  operation: {
+    name: string;
+    path: string;
+    method: string;
+    description?: string;
+    parameters: Parameter[];
+    requestBody?: RequestBody;
+    responses: Map<string, Response>;
+    // ... more OpenAPI operation properties
+  };
+
+  context: GenerateContext;
+  config: YourConfigType;
+  dependencies: Map<string, GeneratorResults>;
+}
+```
+
+## Using Dependencies
+
+Access results from other generators:
+
+```typescript
+transformModel({ model, dependencies }) {
+  // Get TypeScript type from another generator
+  const tsType = dependencies.get('@skmtc/gen-typescript')
+    ?.getType(model.name);
+
+  if (!tsType) {
+    throw new Error('TypeScript generator must run first');
+  }
+
+  // Use the type in your generation
+  return [{
+    path: `validators/${model.name}.ts`,
+    content: `
+import { ${tsType} } from '../types';
+
+export function validate${model.name}(data: unknown): data is ${tsType} {
+  // Validation logic
+}
+    `
+  }];
+}
+```
+
+## Configuration Schema
+
+Define configuration options for your generator:
+
+```typescript
+import { z } from 'zod';
+
+const configSchema = z.object({
+  style: z.enum(['class', 'interface']).default('interface'),
+  immutable: z.boolean().default(false),
+  prefix: z.string().optional(),
+  customBase: z.string().optional()
+});
+
+type Config = z.infer<typeof configSchema>;
+
+const generator: Generator<Config> = {
+  name: 'my-generator',
+  configSchema,
+  defaultConfig: {
+    style: 'interface',
+    immutable: false
+  },
+
+  transformModel({ model, config }) {
+    const keyword = config.style === 'class' ? 'class' : 'interface';
+    const prefix = config.prefix || '';
+
+    return [{
+      path: `models/${prefix}${model.name}.ts`,
+      content: `export ${keyword} ${prefix}${model.name} { /* ... */ }`
+    }];
+  }
+};
+```
+
+## Best Practices
+
+### 1. Include Source Information
+
+Always include comments about the source:
+
+```typescript
+const content = `
+/**
+ * ${model.description || `${model.name} model`}
+ *
+ * @generated from ${model.source}
+ * @generator ${generator.name} v${generator.version}
+ * @date ${new Date().toISOString()}
+ */
+export interface ${model.name} {
+  // ...
+}`;
+```
+
+### 2. Handle Edge Cases
+
+```typescript
+transformModel({ model }) {
+  // Handle empty objects
+  if (!model.properties?.length) {
+    return [{
+      path: `models/${model.name}.ts`,
+      content: `export type ${model.name} = Record<string, unknown>;`
+    }];
+  }
+
+  // Handle circular references
+  if (model.circular) {
+    // Add special handling
+  }
+
+  // Normal generation
+  // ...
+}
+```
+
+### 3. Preserve Formatting
+
+Use template literals with proper indentation:
+
+```typescript
+const content = `
+export interface ${model.name} {
+${model.properties.map(prop => `  ${prop.name}: ${prop.type};`).join('\n')}
+}`.trim();
+```
+
+### 4. Add Validation
+
+Validate inputs before processing:
+
+```typescript
+transformModel({ model }) {
+  if (!model.name) {
+    throw new Error('Model name is required');
+  }
+
+  if (!/^[A-Z][a-zA-Z0-9]*$/.test(model.name)) {
+    console.warn(`Model name ${model.name} doesn't follow conventions`);
+  }
+
+  // Continue with generation
+}
+```
+
+## Testing Generators
+
+### Unit Tests
+
+```typescript
+import { testGenerator } from '@skmtc/testing';
+
+describe('My Generator', () => {
+  it('generates interface from model', async () => {
+    const result = await testGenerator(generator, {
+      model: {
+        name: 'User',
+        properties: [
+          { name: 'id', type: 'string' }
+        ]
+      }
+    });
+
+    expect(result.files).toHaveLength(1);
+    expect(result.files[0].path).toBe('models/User.ts');
+    expect(result.files[0].content).toContain('interface User');
+  });
+});
+```
+
+### Integration Tests
+
+```typescript
+import { runGenerator } from '@skmtc/testing';
+import { readFileSync } from 'fs';
+
+test('generates from real OpenAPI spec', async () => {
+  const spec = JSON.parse(
+    readFileSync('./fixtures/openapi.json', 'utf-8')
+  );
+
+  const result = await runGenerator(generator, spec);
+
+  expect(result.files).toHaveLength(10);
+  // Validate generated files
+});
+```
+
+## Debugging
+
+Enable debug output:
+
+```typescript
+transformModel({ model, context }) {
+  context.log('debug', 'Processing model', { name: model.name });
+
+  try {
+    // Generation logic
+  } catch (error) {
+    context.log('error', 'Failed to generate model', {
+      model: model.name,
+      error
+    });
+    throw error;
+  }
+}
+```
+
+Run with debug flag:
+
+```bash
+SKMTC_DEBUG=my-generator skmtc generate
+```
+
+## Publishing
+
+### To npm
+
+```bash
+npm run build
+npm publish --access public
+```
+
+### To JSR (Deno)
+
+```typescript
+// deno.json
+{
+  "name": "@myorg/skmtc-gen-custom",
+  "version": "1.0.0",
+  "exports": "./mod.ts"
+}
+```
+
+```bash
+deno publish
+```
+
+### Local Testing
+
+Test locally before publishing:
+
+```bash
+# In your generator directory
+npm link
+
+# In your project
+npm link @myorg/skmtc-gen-custom
+
+# Use in config
+{
+  "generators": ["@myorg/skmtc-gen-custom"]
+}
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Generator API"
+    description="Complete API reference"
+    href="/docs/creating-generators/api"
+  />
+  <Card
+    title="Advanced Patterns"
+    description="Complex generator techniques"
+    href="/docs/creating-generators/advanced"
+  />
+  <Card
+    title="Examples"
+    description="Step-by-step tutorials"
+    href="/docs/creating-generators/examples"
+  />
+</Cards>
+
+<Callout type="tip">
+**Start Simple:** Begin with a basic generator that handles common cases, then add complexity as needed. It's easier to extend a working generator than to debug a complex one.
+</Callout>

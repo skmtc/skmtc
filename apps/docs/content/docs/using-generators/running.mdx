@@ -1,0 +1,580 @@
+---
+title: Running Generators
+description: Complete guide to running Skmtc generators via CLI and configuration
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Learn how to run Skmtc generators effectively, from basic commands to advanced workflows.
+
+## Basic Commands
+
+### Generate Command
+
+The primary command for code generation:
+
+```bash
+# Generate from a URL
+skmtc generate https://api.example.com/openapi.json
+
+# Generate from a local file
+skmtc generate ./openapi.yaml
+
+# Generate with specific output directory
+skmtc generate api.json --output ./src/api
+
+# Generate with specific generators
+skmtc generate api.json --generators typescript,zod
+```
+
+### Command Options
+
+```bash
+skmtc generate [source] [options]
+
+Options:
+  -o, --output <dir>        Output directory (default: ./generated)
+  -g, --generators <list>   Comma-separated generator list
+  -c, --config <file>       Config file path (default: .skmtc/config.json)
+  -w, --watch              Watch mode - regenerate on changes
+  -f, --force              Overwrite without prompting
+  -d, --dry-run            Preview without writing files
+  -v, --verbose            Verbose output
+  --no-format              Skip Prettier formatting
+  --incremental            Only regenerate changed schemas
+```
+
+## Watch Mode
+
+Automatically regenerate when your OpenAPI spec changes:
+
+```bash
+# Watch a local file
+skmtc watch ./openapi.json
+
+# Watch with custom polling interval
+skmtc watch api.yaml --poll 5000
+
+# Watch multiple files
+skmtc watch "specs/*.yaml"
+```
+
+<Callout type="info">
+Watch mode is perfect for development. It detects changes and regenerates in under a second.
+</Callout>
+
+### Watch Configuration
+
+Configure watch behavior in `.skmtc/config.json`:
+
+```json
+{
+  "watch": {
+    "enabled": true,
+    "poll": 1000,
+    "ignore": ["*.tmp", "*.bak"],
+    "clear": true,  // Clear console on regeneration
+    "notify": true   // Desktop notifications
+  }
+}
+```
+
+## Source Inputs
+
+### Local Files
+
+Support for various file formats:
+
+<Tabs items={['JSON', 'YAML', 'JavaScript']}>
+<Tab value="JSON">
+```bash
+skmtc generate openapi.json
+skmtc generate ./specs/api.json
+skmtc generate ../shared/openapi.json
+```
+</Tab>
+<Tab value="YAML">
+```bash
+skmtc generate openapi.yaml
+skmtc generate openapi.yml
+skmtc generate ./specs/*.yaml  # Glob patterns
+```
+</Tab>
+<Tab value="JavaScript">
+```bash
+# Generate from dynamic JS/TS files
+skmtc generate openapi.config.js
+skmtc generate openapi.config.ts
+```
+
+The JS file should export the OpenAPI object:
+```javascript
+module.exports = {
+  openapi: '3.0.0',
+  info: { /* ... */ },
+  paths: { /* ... */ }
+};
+```
+</Tab>
+</Tabs>
+
+### Remote URLs
+
+Fetch specs from various sources:
+
+```bash
+# Public APIs
+skmtc generate https://api.example.com/openapi.json
+
+# With authentication
+skmtc generate https://api.example.com/openapi.json \
+  --header "Authorization: Bearer $TOKEN"
+
+# From GitHub
+skmtc generate https://raw.githubusercontent.com/org/repo/main/openapi.yaml
+
+# With proxy
+HTTPS_PROXY=http://proxy:8080 skmtc generate https://api.example.com/spec
+```
+
+### Auto-Discovery
+
+Let Skmtc find your OpenAPI spec:
+
+```bash
+# Searches for common patterns:
+# - openapi.json, openapi.yaml
+# - swagger.json, swagger.yaml
+# - api.json, api.yaml
+# - **/openapi.*, **/swagger.*
+skmtc generate --discover
+
+# Discover in specific directory
+skmtc generate --discover ./backend
+```
+
+## Generator Selection
+
+### Listing Available Generators
+
+```bash
+# List installed generators
+skmtc list
+
+# Show generator details
+skmtc info @skmtc/gen-typescript
+
+# Search for generators
+skmtc search tanstack
+```
+
+### Installing Generators
+
+```bash
+# Install a single generator
+skmtc install @skmtc/gen-typescript
+
+# Install multiple generators
+skmtc install typescript zod tanstack-query
+
+# Install specific version
+skmtc install @skmtc/gen-typescript@2.1.0
+
+# Install from GitHub
+skmtc install github:username/generator
+
+# Install from local path
+skmtc install file:../my-generator
+```
+
+### Using Generators
+
+Specify which generators to run:
+
+```bash
+# Use specific generators
+skmtc generate api.json --generators typescript,zod
+
+# Exclude generators
+skmtc generate api.json --exclude msw,jest
+
+# Use generator preset
+skmtc generate api.json --preset react-stack
+# Includes: typescript, zod, tanstack-query, msw
+```
+
+## Output Management
+
+### Directory Structure
+
+Control how files are organized:
+
+```json
+{
+  "output": {
+    "baseDir": "./src/generated",
+    "structure": "nested",  // "flat" | "nested" | "domain"
+    "clean": true,          // Clean directory before generation
+    "gitignore": true       // Add .gitignore
+  }
+}
+```
+
+Output structures:
+
+```bash
+# Flat structure
+generated/
+  user.ts
+  pet.ts
+  use-get-user.ts
+  use-get-pet.ts
+
+# Nested structure (default)
+generated/
+  types/
+    user.ts
+    pet.ts
+  hooks/
+    use-get-user.ts
+    use-get-pet.ts
+
+# Domain structure
+generated/
+  user/
+    types.ts
+    hooks.ts
+    schemas.ts
+  pet/
+    types.ts
+    hooks.ts
+    schemas.ts
+```
+
+### File Overwrites
+
+Handle existing files:
+
+```bash
+# Always overwrite (dangerous!)
+skmtc generate --force
+
+# Never overwrite (safe)
+skmtc generate --no-overwrite
+
+# Interactive mode (default)
+skmtc generate
+# Prompts: File exists. Overwrite? (y/N/a/d)
+# y = yes, n = no, a = all, d = diff
+```
+
+### Dry Run
+
+Preview changes without writing:
+
+```bash
+# See what would be generated
+skmtc generate api.json --dry-run
+
+# Verbose dry run
+skmtc generate api.json --dry-run --verbose
+```
+
+Output:
+```
+Dry run mode - no files will be written
+
+Would generate:
+  ✓ src/generated/types/user.ts (1.2kb)
+  ✓ src/generated/types/pet.ts (0.8kb)
+  ✓ src/generated/hooks/use-get-user.ts (2.1kb)
+  ✓ src/generated/schemas/user-schema.ts (1.5kb)
+
+Total: 4 files, 5.6kb
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+name: Generate API Client
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Skmtc
+        run: npm install -g @skmtc/cli
+
+      - name: Generate code
+        run: |
+          skmtc generate ${{ secrets.API_URL }}/openapi.json \
+            --output ./src/generated
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.git-check.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: 'chore: update generated API client'
+          commit-message: 'chore: update generated API client'
+          branch: update-api-client
+```
+
+### GitLab CI
+
+```yaml
+generate-api:
+  image: node:20
+  script:
+    - npm install -g @skmtc/cli
+    - skmtc generate $API_SPEC_URL
+    - |
+      if [ -n "$(git status --porcelain)" ]; then
+        git add .
+        git commit -m "chore: update generated code"
+        git push origin $CI_COMMIT_BRANCH
+      fi
+  only:
+    - schedules
+```
+
+### Pre-commit Hooks
+
+Ensure generated code is up-to-date:
+
+```bash
+# .husky/pre-commit
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Regenerate and check for changes
+npm run generate
+git diff --exit-code src/generated || {
+  echo "Generated code is out of date. Please run 'npm run generate'"
+  exit 1
+}
+```
+
+## Environment Variables
+
+Control generator behavior with environment variables:
+
+```bash
+# Output directory
+SKMTC_OUTPUT=./src/api skmtc generate
+
+# Disable telemetry
+SKMTC_DISABLE_TELEMETRY=true skmtc generate
+
+# Set log level
+SKMTC_LOG_LEVEL=debug skmtc generate
+
+# Custom config file
+SKMTC_CONFIG=./custom.json skmtc generate
+
+# Parallel processing
+SKMTC_PARALLEL=false skmtc generate
+
+# Cache directory
+SKMTC_CACHE_DIR=/tmp/skmtc-cache skmtc generate
+```
+
+## Performance Optimization
+
+### Incremental Generation
+
+Only regenerate what changed:
+
+```bash
+# Enable incremental mode
+skmtc generate --incremental
+
+# With cache statistics
+skmtc generate --incremental --stats
+```
+
+Output:
+```
+Incremental generation:
+  Cached: 45 models, 23 operations
+  Changed: 2 models, 1 operation
+  Generated: 3 files in 0.2s
+  Savings: 94% faster
+```
+
+### Parallel Processing
+
+Control parallelization:
+
+```json
+{
+  "performance": {
+    "parallel": true,
+    "maxWorkers": 4,
+    "chunkSize": 10
+  }
+}
+```
+
+### Memory Management
+
+For large APIs:
+
+```bash
+# Increase Node.js memory limit
+NODE_OPTIONS="--max-old-space-size=4096" skmtc generate large-api.json
+
+# Stream processing mode
+skmtc generate huge-api.json --stream
+```
+
+## Debugging
+
+### Verbose Output
+
+```bash
+# Basic verbose
+skmtc generate -v
+
+# Very verbose
+skmtc generate -vv
+
+# Debug mode
+SKMTC_DEBUG=* skmtc generate
+```
+
+### Logging
+
+Configure logging output:
+
+```json
+{
+  "logging": {
+    "level": "info",  // "debug" | "info" | "warn" | "error"
+    "file": "./skmtc.log",
+    "console": true,
+    "timestamp": true
+  }
+}
+```
+
+### Tracing
+
+Enable execution tracing:
+
+```bash
+# Enable tracing
+SKMTC_TRACE=true skmtc generate
+
+# With timing information
+SKMTC_TRACE=timing skmtc generate
+
+# Save trace to file
+SKMTC_TRACE_FILE=trace.json skmtc generate
+```
+
+## Advanced Workflows
+
+### Multi-Spec Generation
+
+Generate from multiple specs:
+
+```bash
+# Using config file
+skmtc generate --config multi-spec.json
+```
+
+```json
+// multi-spec.json
+{
+  "specs": [
+    {
+      "source": "users-api.yaml",
+      "output": "./src/users",
+      "generators": ["typescript", "zod"]
+    },
+    {
+      "source": "products-api.yaml",
+      "output": "./src/products",
+      "generators": ["typescript", "tanstack-query"]
+    }
+  ]
+}
+```
+
+### Conditional Generation
+
+Generate based on conditions:
+
+```bash
+# Only generate if spec changed
+if [ spec.yaml -nt src/generated ]; then
+  skmtc generate spec.yaml
+fi
+
+# Generate different outputs for environments
+if [ "$ENV" = "production" ]; then
+  skmtc generate --preset production
+else
+  skmtc generate --preset development
+fi
+```
+
+### Custom Scripts
+
+Integrate with npm scripts:
+
+```json
+{
+  "scripts": {
+    "generate": "skmtc generate",
+    "generate:watch": "skmtc watch",
+    "generate:clean": "rm -rf generated && skmtc generate",
+    "generate:check": "skmtc generate --dry-run",
+    "postgenerate": "npm run lint:generated && npm run test:generated"
+  }
+}
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Configuration"
+    description="Deep dive into configuration options"
+    href="/docs/using-generators/configuration"
+  />
+  <Card
+    title="Managing Generators"
+    description="Install and manage generators"
+    href="/docs/using-generators/managing-generators"
+  />
+  <Card
+    title="CI/CD Recipes"
+    description="Production deployment patterns"
+    href="/docs/recipes/ci-cd"
+  />
+</Cards>
+
+<Callout type="tip">
+**Pro Tip:** Use `skmtc generate --dry-run` before running in CI/CD to validate your configuration and catch issues early.
+</Callout>

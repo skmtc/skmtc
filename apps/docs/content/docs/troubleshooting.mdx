@@ -1,0 +1,611 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for Skmtc
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Get help with common Skmtc issues and learn debugging techniques.
+
+## Installation Issues
+
+### Command not found
+
+**Problem:** `skmtc: command not found` after global installation
+
+**Solutions:**
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+<Tab value="npm">
+```bash
+# Check npm global bin directory
+npm config get prefix
+
+# Add to PATH (add to ~/.bashrc or ~/.zshrc)
+export PATH="$(npm config get prefix)/bin:$PATH"
+
+# Or reinstall
+npm uninstall -g @skmtc/cli
+npm install -g @skmtc/cli
+```
+</Tab>
+<Tab value="yarn">
+```bash
+# Check yarn global bin
+yarn global bin
+
+# Add to PATH
+export PATH="$(yarn global bin):$PATH"
+```
+</Tab>
+<Tab value="pnpm">
+```bash
+# Check pnpm global bin
+pnpm root -g
+
+# Usually the issue is pnpm not in PATH
+npm install -g pnpm
+```
+</Tab>
+</Tabs>
+
+### Permission errors (EACCES)
+
+**Problem:** Permission denied when installing globally
+
+**Solution:**
+```bash
+# Use a Node version manager (recommended)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install node
+npm install -g @skmtc/cli
+
+# Or fix npm permissions
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Version conflicts
+
+**Problem:** Multiple Node.js versions causing issues
+
+**Solution:**
+```bash
+# Use nvm to manage versions
+nvm list
+nvm use 20  # Use specific version
+npm install -g @skmtc/cli
+
+# Or use npx to avoid version issues
+npx @skmtc/cli@latest generate
+```
+
+## Generation Issues
+
+### OpenAPI validation errors
+
+**Problem:** Invalid OpenAPI specification
+
+```
+Error: Invalid OpenAPI document
+- Property 'paths' is required
+- Schema '/components/schemas/User' has invalid type
+```
+
+**Solutions:**
+
+1. **Validate your spec:**
+   ```bash
+   # Use online validator
+   curl -X POST https://validator.swagger.io/validator/debug \
+        -H "Content-Type: application/json" \
+        -d @openapi.json
+
+   # Or use skmtc built-in validator
+   skmtc validate openapi.json
+   ```
+
+2. **Common fixes:**
+   ```yaml
+   # Add missing required fields
+   openapi: "3.0.0"
+   info:
+     title: My API
+     version: 1.0.0
+   paths: {}  # At least empty paths
+
+   # Fix schema references
+   $ref: '#/components/schemas/User'  # Not '#/definitions/User'
+   ```
+
+### Generator not found
+
+**Problem:** `Generator '@skmtc/gen-typescript' not found`
+
+**Solutions:**
+
+1. **Install the generator:**
+   ```bash
+   skmtc install @skmtc/gen-typescript
+   ```
+
+2. **Check installed generators:**
+   ```bash
+   skmtc list
+   ```
+
+3. **Clear cache and reinstall:**
+   ```bash
+   rm -rf .skmtc/cache
+   skmtc install @skmtc/gen-typescript
+   ```
+
+### Configuration errors
+
+**Problem:** Invalid configuration file
+
+**Solutions:**
+
+1. **Validate config:**
+   ```bash
+   skmtc config --validate
+   ```
+
+2. **Common config issues:**
+   ```json
+   {
+     // Fix: Missing quotes around strings
+     "source": "./openapi.json",  // Not ./openapi.json
+
+     // Fix: Correct array syntax
+     "generators": [
+       "@skmtc/gen-typescript"
+     ],
+
+     // Fix: Valid JSON (no trailing commas)
+     "output": {
+       "baseDir": "./generated"  // No comma after last property
+     }
+   }
+   ```
+
+### File permission errors
+
+**Problem:** Cannot write to output directory
+
+**Solutions:**
+
+1. **Check permissions:**
+   ```bash
+   ls -la ./generated
+   chmod 755 ./generated
+   ```
+
+2. **Create directory:**
+   ```bash
+   mkdir -p ./src/generated
+   ```
+
+3. **Use different output directory:**
+   ```bash
+   skmtc generate --output ./temp-generated
+   ```
+
+## Runtime Errors
+
+### Memory issues
+
+**Problem:** JavaScript heap out of memory for large APIs
+
+**Solutions:**
+
+1. **Increase Node.js memory:**
+   ```bash
+   NODE_OPTIONS="--max-old-space-size=8192" skmtc generate large-api.json
+   ```
+
+2. **Use streaming mode:**
+   ```bash
+   skmtc generate --stream large-api.json
+   ```
+
+3. **Generate incrementally:**
+   ```bash
+   skmtc generate --incremental large-api.json
+   ```
+
+### Network timeouts
+
+**Problem:** Timeout fetching remote OpenAPI spec
+
+**Solutions:**
+
+1. **Increase timeout:**
+   ```bash
+   SKMTC_TIMEOUT=60000 skmtc generate https://api.example.com/openapi.json
+   ```
+
+2. **Use proxy:**
+   ```bash
+   HTTPS_PROXY=http://proxy:8080 skmtc generate https://api.example.com/spec
+   ```
+
+3. **Download manually:**
+   ```bash
+   curl -o openapi.json https://api.example.com/openapi.json
+   skmtc generate ./openapi.json
+   ```
+
+### Formatting failures
+
+**Problem:** Prettier fails to format generated code
+
+**Solutions:**
+
+1. **Fix Prettier config:**
+   ```json
+   // .prettierrc
+   {
+     "parser": "typescript",
+     "semi": true,
+     "singleQuote": true
+   }
+   ```
+
+2. **Skip formatting temporarily:**
+   ```bash
+   skmtc generate --no-format
+   ```
+
+3. **Update Prettier:**
+   ```bash
+   npm update prettier
+   ```
+
+## Type Errors
+
+### TypeScript compilation errors
+
+**Problem:** Generated code doesn't compile
+
+**Common issues:**
+
+1. **Missing imports:**
+   ```typescript
+   // Generated code missing import
+   // Fix: Configure generator imports
+   {
+     "generators": {
+       "@skmtc/gen-typescript": {
+         "imports": {
+           "Date": false,  // Use native Date
+           "BigInt": "bigint"
+         }
+       }
+     }
+   }
+   ```
+
+2. **Circular dependencies:**
+   ```typescript
+   // Fix: Use type-only imports
+   import type { User } from './User';
+   ```
+
+3. **Invalid identifiers:**
+   ```typescript
+   // Problem: Invalid property name
+   interface User {
+     "first-name": string;  // Invalid
+   }
+
+   // Solution: Configure naming
+   {
+     "naming": {
+       "properties": "camelCase"
+     }
+   }
+   ```
+
+### Zod schema errors
+
+**Problem:** Generated Zod schemas are invalid
+
+**Solutions:**
+
+1. **Check Zod version compatibility:**
+   ```bash
+   npm list zod
+   # Ensure compatible version
+   ```
+
+2. **Fix enum handling:**
+   ```json
+   {
+     "generators": {
+       "@skmtc/gen-zod": {
+         "enumStyle": "native"  // vs "union"
+       }
+     }
+   }
+   ```
+
+## Performance Issues
+
+### Slow generation
+
+**Problem:** Generation takes too long
+
+**Diagnostic commands:**
+```bash
+# Enable timing
+SKMTC_TRACE=timing skmtc generate
+
+# Profile memory
+SKMTC_PROFILE=memory skmtc generate
+
+# Check what's slow
+skmtc generate --verbose --stats
+```
+
+**Solutions:**
+
+1. **Enable parallel processing:**
+   ```json
+   {
+     "performance": {
+       "parallel": true,
+       "maxWorkers": 4
+     }
+   }
+   ```
+
+2. **Use incremental mode:**
+   ```bash
+   skmtc generate --incremental
+   ```
+
+3. **Reduce generator count:**
+   ```bash
+   # Only generate what you need
+   skmtc generate --generators typescript,zod
+   ```
+
+### High memory usage
+
+**Problem:** skmtc uses too much memory
+
+**Solutions:**
+
+1. **Limit concurrent generators:**
+   ```json
+   {
+     "performance": {
+       "maxWorkers": 2
+     }
+   }
+   ```
+
+2. **Clear cache regularly:**
+   ```bash
+   skmtc cache --clear
+   ```
+
+## Debugging Techniques
+
+### Enable debug logging
+
+```bash
+# Debug everything
+SKMTC_DEBUG=* skmtc generate
+
+# Debug specific components
+SKMTC_DEBUG=generators skmtc generate
+SKMTC_DEBUG=parser skmtc generate
+SKMTC_DEBUG=config skmtc generate
+```
+
+### Verbose output
+
+```bash
+# Basic verbose
+skmtc generate -v
+
+# Very verbose
+skmtc generate -vv
+
+# With stack traces
+skmtc generate --verbose --trace
+```
+
+### Dry run analysis
+
+```bash
+# See what would be generated
+skmtc generate --dry-run --verbose
+
+# Check configuration
+skmtc config --show
+skmtc config --validate
+```
+
+### Save debug information
+
+```bash
+# Save log to file
+skmtc generate --log-file debug.log
+
+# Save trace information
+SKMTC_TRACE_FILE=trace.json skmtc generate
+
+# Generate debug bundle
+skmtc debug --output debug-bundle.zip
+```
+
+## Common Error Messages
+
+### "Cannot find generator"
+
+```
+Error: Cannot find generator '@skmtc/gen-typescript'
+```
+
+**Solution:**
+```bash
+skmtc install @skmtc/gen-typescript
+# Or check for typos in generator name
+```
+
+### "Schema validation failed"
+
+```
+Schema validation failed at /components/schemas/User:
+  - Property 'type' is required
+```
+
+**Solution:**
+```yaml
+User:
+  type: object  # Add missing type
+  properties:
+    # ...
+```
+
+### "Circular reference detected"
+
+```
+Error: Circular reference detected: User -> Address -> User
+```
+
+**Solution:**
+```typescript
+// Use interface declaration merging or type references
+interface User {
+  address?: Address;
+}
+```
+
+### "Output directory not empty"
+
+```
+Error: Output directory is not empty. Use --force to overwrite.
+```
+
+**Solution:**
+```bash
+# Clean and regenerate
+skmtc generate --force
+
+# Or configure to clean automatically
+{
+  "output": {
+    "clean": true
+  }
+}
+```
+
+## Getting Help
+
+### Community Support
+
+<Callout type="info">
+**Need more help?** Our community is here to help:
+
+- [Discord Server](https://discord.gg/ndr8YpxZ) - Real-time chat
+- [GitHub Discussions](https://github.com/skmtc/skmtc/discussions) - Community Q&A
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/skmtc) - Use tag `skmtc`
+</Callout>
+
+### Bug Reports
+
+When reporting bugs, include:
+
+1. **Skmtc version:** `skmtc --version`
+2. **Node.js version:** `node --version`
+3. **Operating system:** `uname -a` (Linux/Mac) or system info (Windows)
+4. **Configuration:** Your `.skmtc/config.json`
+5. **OpenAPI spec:** Minimal reproduction case
+6. **Error logs:** Full error message and stack trace
+
+```bash
+# Generate debug bundle
+skmtc debug --include-spec --include-config > debug-info.txt
+```
+
+### Feature Requests
+
+For feature requests:
+
+1. Check [existing discussions](https://github.com/skmtc/skmtc/discussions)
+2. Describe your use case
+3. Provide examples of desired output
+4. Consider creating a custom generator first
+
+## Preventive Measures
+
+### Pre-commit Hooks
+
+Prevent issues before they happen:
+
+```bash
+# .husky/pre-commit
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Validate OpenAPI spec
+skmtc validate openapi.json
+
+# Ensure generated code is up to date
+npm run generate
+git diff --exit-code src/generated || {
+  echo "Generated code is out of date"
+  exit 1
+}
+```
+
+### CI/CD Validation
+
+```yaml
+# .github/workflows/validate.yml
+name: Validate OpenAPI
+on: [push, pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Skmtc
+        run: npm install -g @skmtc/cli
+
+      - name: Validate spec
+        run: skmtc validate openapi.json
+
+      - name: Test generation
+        run: skmtc generate --dry-run
+```
+
+### Regular Health Checks
+
+```bash
+# Check for outdated generators
+skmtc outdated
+
+# Validate configuration
+skmtc config --validate
+
+# Clean old cache
+skmtc cache --clean --older-than 7d
+
+# Update generators
+skmtc update
+```
+
+Still having issues? Join our [Discord community](https://discord.gg/ndr8YpxZ) for real-time help!

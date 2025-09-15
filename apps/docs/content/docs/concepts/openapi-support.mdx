@@ -1,0 +1,526 @@
+---
+title: OpenAPI Support
+description: Comprehensive guide to Skmtc's OpenAPI version support and feature handling
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Skmtc provides robust support for OpenAPI specifications with intelligent handling of different versions and complex schema features.
+
+## Supported Versions
+
+<Tabs items={['OpenAPI 3.0', 'OpenAPI 3.1', 'Swagger 2.0']}>
+<Tab value="OpenAPI 3.0">
+**Native Support** ✅
+
+OpenAPI 3.0 is Skmtc's primary target. All features are fully supported:
+- Components and references
+- Multiple servers
+- Callbacks and links
+- Security schemes
+- Examples and defaults
+</Tab>
+<Tab value="OpenAPI 3.1">
+**Automatic Conversion** 🔄
+
+OpenAPI 3.1 documents are automatically converted to 3.0:
+- JSON Schema compatibility
+- `null` type handling
+- `$dynamicRef` resolution
+- `unevaluatedProperties` support
+
+<Callout type="info">
+Conversion happens transparently during the Parse phase. You can use 3.1 features and Skmtc handles the rest.
+</Callout>
+</Tab>
+<Tab value="Swagger 2.0">
+**Legacy Support** 🔄
+
+Swagger 2.0 documents are converted to OpenAPI 3.0:
+- Definitions → Components/Schemas
+- Parameters → Components/Parameters
+- Responses → Components/Responses
+- Security definitions → Security schemes
+</Tab>
+</Tabs>
+
+## Schema Features
+
+### Basic Types
+
+All OpenAPI primitive types are supported:
+
+```yaml
+String:
+  type: string
+  minLength: 1
+  maxLength: 100
+  pattern: '^[A-Za-z]+$'
+  format: email  # Formats: date, date-time, email, uri, etc.
+
+Number:
+  type: number
+  minimum: 0
+  maximum: 100
+  multipleOf: 0.01
+  format: float  # or double
+
+Integer:
+  type: integer
+  format: int32  # or int64
+
+Boolean:
+  type: boolean
+
+Array:
+  type: array
+  items:
+    type: string
+  minItems: 1
+  maxItems: 10
+  uniqueItems: true
+```
+
+### Object Schemas
+
+Complex object handling with full validation:
+
+```yaml
+User:
+  type: object
+  required:
+    - id
+    - email
+  properties:
+    id:
+      type: string
+      format: uuid
+    email:
+      type: string
+      format: email
+    profile:
+      $ref: '#/components/schemas/Profile'
+  additionalProperties: false  # Strict validation
+```
+
+### Advanced Composition
+
+#### allOf - Schema Intersection
+
+```yaml
+Employee:
+  allOf:
+    - $ref: '#/components/schemas/Person'
+    - type: object
+      properties:
+        employeeId:
+          type: string
+        department:
+          type: string
+```
+
+Skmtc intelligently merges `allOf` schemas:
+- Combines all properties
+- Merges required fields
+- Detects and reports conflicts
+- Preserves descriptions and examples
+
+#### oneOf - Discriminated Unions
+
+```yaml
+PaymentMethod:
+  oneOf:
+    - $ref: '#/components/schemas/CreditCard'
+    - $ref: '#/components/schemas/BankAccount'
+    - $ref: '#/components/schemas/PayPal'
+  discriminator:
+    propertyName: type
+    mapping:
+      card: '#/components/schemas/CreditCard'
+      bank: '#/components/schemas/BankAccount'
+      paypal: '#/components/schemas/PayPal'
+```
+
+Generated TypeScript:
+```typescript
+type PaymentMethod =
+  | { type: 'card' } & CreditCard
+  | { type: 'bank' } & BankAccount
+  | { type: 'paypal' } & PayPal;
+```
+
+#### anyOf - Flexible Unions
+
+```yaml
+StringOrNumber:
+  anyOf:
+    - type: string
+    - type: number
+```
+
+### Nullable Handling
+
+Skmtc correctly handles different nullable patterns:
+
+```yaml
+# OpenAPI 3.0
+NullableString:
+  type: string
+  nullable: true
+
+# OpenAPI 3.1
+NullableString:
+  type: ['string', 'null']
+
+# Both generate:
+# type NullableString = string | null;
+```
+
+### Enums
+
+String and numeric enums with proper TypeScript generation:
+
+```yaml
+Status:
+  type: string
+  enum: [active, pending, disabled]
+
+Priority:
+  type: integer
+  enum: [1, 2, 3]
+```
+
+Generated code:
+```typescript
+// String union (default)
+type Status = 'active' | 'pending' | 'disabled';
+
+// Or TypeScript enum (configurable)
+enum Status {
+  Active = 'active',
+  Pending = 'pending',
+  Disabled = 'disabled'
+}
+```
+
+## Operation Features
+
+### Parameters
+
+All parameter locations are supported:
+
+```yaml
+paths:
+  /users/{userId}:
+    get:
+      parameters:
+        # Path parameter
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+
+        # Query parameters
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+
+        # Header parameter
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+
+        # Cookie parameter
+        - name: session
+          in: cookie
+          schema:
+            type: string
+```
+
+### Request Bodies
+
+Multiple content types with examples:
+
+```yaml
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/User'
+      examples:
+        default:
+          value:
+            name: John Doe
+            email: john@example.com
+
+    multipart/form-data:
+      schema:
+        type: object
+        properties:
+          file:
+            type: string
+            format: binary
+          metadata:
+            type: object
+```
+
+### Responses
+
+Rich response definitions:
+
+```yaml
+responses:
+  '200':
+    description: Success
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/User'
+    headers:
+      X-Rate-Limit:
+        schema:
+          type: integer
+
+  '400':
+    $ref: '#/components/responses/BadRequest'
+
+  default:
+    description: Unexpected error
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+```
+
+## Security Schemes
+
+All OAuth 2.0 flows and security types:
+
+```yaml
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.example.com/oauth/authorize
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes:
+            read: Read access
+            write: Write access
+
+    openId:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.example.com/.well-known
+```
+
+## Special Cases
+
+### Circular References
+
+Skmtc detects and handles circular references:
+
+```yaml
+Node:
+  type: object
+  properties:
+    value:
+      type: string
+    children:
+      type: array
+      items:
+        $ref: '#/components/schemas/Node'  # Circular reference
+```
+
+Generated with proper TypeScript handling:
+```typescript
+interface Node {
+  value?: string;
+  children?: Node[];  // TypeScript handles the circularity
+}
+```
+
+### Deep Nesting
+
+Complex nested structures are flattened appropriately:
+
+```yaml
+DeeplyNested:
+  type: object
+  properties:
+    level1:
+      type: object
+      properties:
+        level2:
+          type: object
+          properties:
+            level3:
+              type: array
+              items:
+                $ref: '#/components/schemas/Item'
+```
+
+### Empty Schemas
+
+Empty and free-form objects:
+
+```yaml
+FreeForm:
+  type: object
+  additionalProperties: true  # Any properties allowed
+
+EmptyObject:
+  type: object
+  properties: {}
+  additionalProperties: false  # No properties allowed
+```
+
+## Validation Features
+
+### Format Validation
+
+Skmtc recognizes standard formats:
+
+| Format | Type | Generated Validation |
+|--------|------|---------------------|
+| `date` | string | ISO 8601 date |
+| `date-time` | string | ISO 8601 datetime |
+| `email` | string | Email regex |
+| `uri` | string | URI validation |
+| `uuid` | string | UUID v4 format |
+| `binary` | string | Base64 or file |
+| `int32` | integer | 32-bit integer |
+| `int64` | integer | 64-bit integer |
+
+### Custom Formats
+
+Register custom format handlers:
+
+```typescript
+// In generator configuration
+{
+  formats: {
+    'phone': {
+      type: 'string',
+      pattern: '^\\+?[1-9]\\d{1,14}$',
+      tsType: 'PhoneNumber'  // Custom TypeScript type
+    }
+  }
+}
+```
+
+## Error Handling
+
+### Schema Validation Errors
+
+Skmtc provides detailed error messages:
+
+```
+Error in /components/schemas/User:
+  - Property 'email' has conflicting types in allOf merge
+  - Required property 'id' is not defined in properties
+  - Circular reference detected: User -> Address -> User
+```
+
+### Recovery Strategies
+
+When encountering invalid schemas:
+
+1. **Warning Mode** (default) - Generate with warnings
+2. **Strict Mode** - Fail on any validation error
+3. **Lenient Mode** - Best effort generation
+
+Configure in `.skmtc/config.json`:
+
+```json
+{
+  "validation": {
+    "mode": "strict",  // "warning" | "strict" | "lenient"
+    "treatWarningsAsErrors": false
+  }
+}
+```
+
+## Edge Cases
+
+<Callout type="warning">
+**Known Limitations:**
+
+- `not` schemas are treated as `any`
+- `patternProperties` generate index signatures
+- `const` values become literal types
+- XML attributes are ignored (JSON-only)
+</Callout>
+
+### Workarounds
+
+For unsupported features, use extensions:
+
+```yaml
+ComplexSchema:
+  type: object
+  x-skmtc-type: 'CustomType'  # Override generated type
+  x-skmtc-import: '@/types'   # Custom import
+```
+
+## Best Practices
+
+### Schema Organization
+
+1. **Use $ref extensively** - Avoid duplication
+2. **Define reusable components** - Parameters, responses, schemas
+3. **Add descriptions** - They become JSDoc comments
+4. **Provide examples** - Used in tests and mocks
+5. **Use discriminators** - For better union types
+
+### Version Migration
+
+When migrating between OpenAPI versions:
+
+```bash
+# Validate your spec first
+skmtc validate openapi.yaml
+
+# Check conversion output
+skmtc convert --from swagger2 --to openapi3 api.yaml
+
+# Generate with migration mode
+skmtc generate --migration-mode api.yaml
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Generator System"
+    description="Learn how generators process schemas"
+    href="/docs/concepts/generator-system"
+  />
+  <Card
+    title="Configuration"
+    description="Configure schema handling behavior"
+    href="/docs/using-generators/configuration"
+  />
+  <Card
+    title="Troubleshooting"
+    description="Solve common schema issues"
+    href="/docs/troubleshooting"
+  />
+</Cards>
