@@ -52,6 +52,37 @@ Choose from our growing collection of generators, combone them or create your ow
 - 🎨 **Prettier Integration** - Auto-formatted output
 - 🔍 **Type Safety** - Full TypeScript support throughout
 
+### Example code - Runtime type-safe API client with Zod validation in 13 lines of code
+
+```typescript
+import { ZodInsertable } from '@skmtc/zod'
+
+class ZodFetch extends BaseTransformer {
+  zodName: string;
+
+  constructor({context, operation, settings}){
+    super({context, operation, settings})
+
+    // Get response schema from API operation
+    const response = operation.toSuccessResponse()?.resolve().toSchema()
+    // Generate Zod schema for the response and insert it into current file
+    const zodResponse = this.insert(ZodInsertable, response)
+    // Assign Zod schema name to properties so it can be used in toString()
+    this.zodName = zodResponse.identifier.name
+  }
+
+  // Define code output
+  toString(){
+    return `() => {
+      const res = await fetch('${this.operation.path}')
+      const data = await res.json()
+
+      return ${zodName}.parse(data)
+    }`
+  }
+}
+```
+
 ## ❓ FAQ
 
 ### **What OpenAPI versions are supported?**
