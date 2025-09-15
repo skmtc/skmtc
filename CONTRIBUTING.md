@@ -48,8 +48,8 @@ We are committed to providing a welcoming and inclusive environment. Please be r
 ## Development Setup
 
 ### Prerequisites
-- Deno 2.5+ 
-- Node.js 22.12.0+ (for workspace packages)
+- Deno 2.1+ 
+- Node.js 20+ (for workspace packages)
 - pnpm 10.12.1+
 - Git
 
@@ -377,7 +377,7 @@ Paste full error here
 - 💬 [GitHub Discussions](https://github.com/skmtc/skmtc/discussions) - Ask questions
 - 🐛 [Issue Tracker](https://github.com/skmtc/skmtc/issues) - Report bugs
 - 📚 [Documentation](https://docs.skmtc.dev) - Read the docs
-- 💻 [Discord](https://discord.gg/skmtc) - Chat with community
+- 💻 [Discord](https://discord.com/invite/Mg88C8Xu5Y) - Chat with community
 
 ## Recognition
 

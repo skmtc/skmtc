@@ -18,7 +18,7 @@ In this quick start, you'll:
 
 ## Prerequisites
 
-- Node.js 18+ or Deno 2.5+
+- Node.js 20+ or Deno 2.1+
 - Basic familiarity with OpenAPI/Swagger
 - A TypeScript project (optional, we'll show you how to create one)
 
@@ -164,30 +164,12 @@ const newPet: Pet = {
 };
 ```
 
-## Next steps
-
-<Cards>
-  <Card
-    title="Add more generators"
-    description="Generate API clients, validation schemas, and UI components"
-    href="/docs/using-generators/running"
-  />
-  <Card
-    title="Configure output"
-    description="Customize naming, file structure, and formatting"
-    href="/docs/using-generators/configuration"
-  />
-  <Card
-    title="Create a generator"
-    description="Build custom generators for your specific needs"
-    href="/docs/creating-generators/basics"
-  />
-</Cards>
-
 ## Common questions
 
 ### Can I regenerate when my API changes?
-Yes! Run `skmtc generate` again anytime. Skmtc will cleanly regenerate all files.
+Yes! Run `skmtc generate` again anytime. Skmtc will regenerate all files. It will also
+remove any outdated files from previous generation that are not produced during latest
+generation.
 
 ### Does this work with existing projects?
 Absolutely. Skmtc generates standalone code that integrates with any TypeScript project.
@@ -197,6 +179,6 @@ Yes, through configuration and custom generators. See our [configuration guide](
 
 ## Need help?
 
-- Join our [Discord community](https://discord.gg/ndr8YpxZ)
+- Join our [Discord community](https://discord.com/invite/Mg88C8Xu5Y)
 - Check out [examples](https://github.com/skmtc/skmtc/tree/main/examples)
 - Report issues on [GitHub](https://github.com/skmtc/skmtc/issues)

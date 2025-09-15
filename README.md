@@ -10,6 +10,7 @@
 
 ## ✨ Why Skmtc?
 
+- 🏎️ **Fast** - Generates 200k+ tokens per second
 - 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
 - 🥞 **Stackable generators** - Combine multiple generators to generate deep functionality
 - 🗄️ **Use your own code conventions** - Full control over naming and file structure
@@ -19,24 +20,24 @@
 ## 🚀 Quick Start
 
 ```bash
-# Install globally via npm
-npm install -g @skmtc
-
-# Or use directly with npx
+# Run directly with npx
 npx skmtc
 
-# Initialize a new project
-skmtc init
+# Try it out
 
-# Generate code from your OpenAPI spec
-skmtc generate
+# Generates Supabase Edge Functions with Hono server and Zod validation for the Petstore API
+npx skmtc generate @skmtc/supabase-backend https://petstore3.swagger.io/api/v3/openapi.json
+
+# Generates React Query hooks with Supabase client and Zod validation for entire Cloudflare API
+npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.com/cloudflare/api-schemas/refs/heads/main/openapi.json
+
+
 ```
 
 That's it! Skmtc will guide you through selecting generators and configuring your output.
 
-## 🎯 Features
+## 📦 Available Generators
 
-### Single ecosystem for code generators
 Choose from our growing collection of generators, combone them or create your own:
 
 - **Tanstack Query** - React Query hooks with Zod validation
@@ -45,52 +46,11 @@ Choose from our growing collection of generators, combone them or create your ow
 - **TypeScript Types** - Pure type definitions
 - **Supabase/Hono Functions** - Edge function handlers
 
-### Smart Dependency Resolution
-Skmtc automatically manages generator dependencies. When you add a Shadcn table generator, it automatically includes TypeScript types, Zod schemas, and Tanstack Query hooks.
-
-### Three-Phase Pipeline
-Our robust architecture ensures reliable code generation:
-1. **Parse** - Validates and processes your OpenAPI document
-2. **Generate** - Transforms schemas into language-specific artifacts  
-3. **Render** - Formats and writes files with proper styling
-
 ### Developer Experience First
 - 🎯 **Interactive CLI** - Guided setup and configuration
 - 🔥 **Hot Reload** - Watch mode for automatic regeneration
-- 📦 **Monorepo Support** - Works with Turborepo, Nx, and more
 - 🎨 **Prettier Integration** - Auto-formatted output
 - 🔍 **Type Safety** - Full TypeScript support throughout
-
-## 🏃 Getting Started
-
-### 1. Initialize Your Project
-
-```bash
-skmtc init
-```
-
-This creates a `.skmtc` folder with your project configuration.
-
-### 2. Select Generators
-
-Choose which code to generate:
-
-```bash
-skmtc install @skmtc/gen-shadcn-table
-skmtc install @skmtc/gen-tanstack-query-fetch-zod
-```
-
-### 3. Generate Code
-
-```bash
-# Local file
-skmtc generate ./openapi.json
-
-# Remote URL
-skmtc generate https://api.example.com/openapi.json
-```
-
-Your generated code appears in the configured output directory, ready to use!
 
 ## ❓ FAQ
 
@@ -106,9 +66,6 @@ Yes! Skmtc generates standalone code that integrates with any React application.
 
 ### **How does this compare to OpenAPI Generator?**
 Skmtc is the only code generation framework that provides full control over the generated code. You are not limited by library-specific settings and you do not need to write complex AST code.
-
-### **Is this production-ready?**
-Skmtc is actively used in production environments. We follow semantic versioning and maintain backward compatibility.
 
 ### **Does it work with Next.js/Remix/Vite?**
 Yes! The generated code is framework-agnostic TypeScript that works with any build tool or library.
@@ -127,7 +84,7 @@ We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to
 ## 🛟 Support
 
 - [GitHub Issues](https://github.com/skmtc/skmtc/issues) - Bug reports and feature requests
-- [Discord Community](https://discord.gg/ndr8YpxZ) - Get help and share your experience
+- [Discord Community](https://discord.com/invite/Mg88C8Xu5Y) - Get help and share your experience
 
 ## 📄 License
 
