@@ -10,7 +10,7 @@
 
 ## ✨ Why Skmtc?
 
-- 🏎️ **Fast** - Generates 200k+ tokens per second
+- 🏎️ **Fast** - Generates 350k+ tokens per second
 - 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
 - 🥞 **Stackable generators** - Combine multiple generators to generate deep functionality
 - 🗄️ **Use your own code conventions** - Full control over naming and file structure
