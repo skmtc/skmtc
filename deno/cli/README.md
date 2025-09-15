@@ -1,4 +1,6 @@
-# SKMTC CLI
+<p align="center">
+  <img src="./skmtc.svg" />
+</p>
 
 ## License
 

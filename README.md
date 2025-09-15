@@ -3,6 +3,10 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Deno](https://img.shields.io/badge/Deno-2.5+-black.svg)](https://deno.land/)
 
+<p align="center">
+  <img src="./skmtc.svg" />
+</p>
+
 **Generate production-ready, type-safe code from OpenAPI specifications in seconds.** Skmtc transforms your OpenAPI v3 documents into fully-typed TypeScript code, React components, API clients, and more.
 
 ## ✨ Why Skmtc?

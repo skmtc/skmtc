@@ -62,6 +62,13 @@ await build({
     const outputDir = '../../packages/cli'
 
     try {
+      const skmtcLogo = Deno.readTextFileSync('skmtc.svg')
+      Deno.writeTextFileSync(`${outputDir}/skmtc.svg`, skmtcLogo)
+    } catch {
+      console.warn('skmtc.svg file not found, skipping copy')
+    }
+
+    try {
       const licenseContent = Deno.readTextFileSync('LICENSE')
       Deno.writeTextFileSync(`${outputDir}/LICENSE`, licenseContent)
     } catch {
