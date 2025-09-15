@@ -35,8 +35,6 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 
 ```
 
-That's it! Skmtc will guide you through selecting generators and configuring your output.
-
 ## 📦 Available Generators
 
 Choose from our growing collection of generators, combone them or create your own:
