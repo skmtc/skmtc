@@ -108,7 +108,10 @@ export class SchemaFile {
   async promptOrFail(project: Project | RemoteProject) {
     if (!this.schemaSource) {
       const source = await Input.prompt({
-        message: 'Enter path or url of OpenAPI schema'
+        id: 'schema-source',
+        message: 'Enter path or url of OpenAPI schema',
+        maxLength: 2048,
+        minLength: 1
       })
 
       const schemaSource = toSchemaSource(source)
