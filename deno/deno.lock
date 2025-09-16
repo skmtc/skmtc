@@ -11,8 +11,8 @@
     "jsr:@cmd-johnson/oauth2-client@2": "2.0.0",
     "jsr:@david/code-block-writer@^13.0.3": "13.0.3",
     "jsr:@deno/dnt@0.42.3": "0.42.3",
-    "jsr:@skmtc/internal@1.0.0-rc.8": "1.0.0-rc.8",
-    "jsr:@skmtc/prompt@1.0.0-rc.8": "1.0.0-rc.8",
+    "jsr:@skmtc/internal@1.0.0-rc.9": "1.0.0-rc.9",
+    "jsr:@skmtc/prompt@1.0.0-rc.9": "1.0.0-rc.9",
     "jsr:@std/assert@^1.0.10": "1.0.14",
     "jsr:@std/assert@^1.0.13": "1.0.14",
     "jsr:@std/assert@^1.0.2": "1.0.14",
@@ -153,14 +153,14 @@
         "jsr:@ts-morph/bootstrap"
       ]
     },
-    "@skmtc/internal@1.0.0-rc.8": {
-      "integrity": "98bcfbbb5de8e0e4c4db2905663ca55654772f990e6ada3642612c4fc58d16b5",
+    "@skmtc/internal@1.0.0-rc.9": {
+      "integrity": "e4b72a3105db67a4f6a3a29b5af8f60ff44266066408e30cc69866d3ba7811bd",
       "dependencies": [
         "jsr:@std/fmt@~1.0.2"
       ]
     },
-    "@skmtc/prompt@1.0.0-rc.8": {
-      "integrity": "7dd9012bc88bf6432bf98bd0021830fb006437ffcb5fec921e6cd6debfcd147b",
+    "@skmtc/prompt@1.0.0-rc.9": {
+      "integrity": "4757b203495e2e97d9511f303637428f832821b38247f32b288c65ef7a67f73c",
       "dependencies": [
         "jsr:@cliffy/ansi",
         "jsr:@cliffy/keycode",
@@ -1939,8 +1939,8 @@
       "jsr:@cliffy/testing@1.0.0-rc.8",
       "jsr:@cmd-johnson/oauth2-client@2",
       "jsr:@deno/dnt@0.42.3",
-      "jsr:@skmtc/internal@1.0.0-rc.8",
-      "jsr:@skmtc/prompt@1.0.0-rc.8",
+      "jsr:@skmtc/internal@1.0.0-rc.9",
+      "jsr:@skmtc/prompt@1.0.0-rc.9",
       "jsr:@std/assert@^1.0.10",
       "jsr:@std/encoding@^1.0.10",
       "jsr:@std/fmt@^1.0.8",
@@ -1972,7 +1972,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.838"
+          "jsr:@skmtc/core@^0.0.839"
         ]
       },
       "core": {
@@ -1992,7 +1992,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.259",
+          "jsr:@skmtc/cli@^0.0.260",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -2001,7 +2001,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.838"
+          "jsr:@skmtc/core@^0.0.839"
         ]
       }
     }
