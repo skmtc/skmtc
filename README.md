@@ -48,11 +48,11 @@ class ZodFetch extends BaseTransformer {
   constructor({context, operation, settings}){
     super({context, operation, settings})
 
-    // Get response schema from API operation
+    // Generate Zod schema for API response and insert it into current file
     const response = operation.toSuccessResponse()?.resolve().toSchema()
-    // Generate Zod schema for the response and insert it into current file
     const zodResponse = this.insert(ZodInsertable, response)
-    // Assign Zod schema name to properties so it can be used in toString()
+
+    // Grab Zod schema name to use in output code
     this.zodName = zodResponse.identifier.name
   }
 
