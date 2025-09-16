@@ -21,8 +21,6 @@ export const init = async (
 ) => {
   try {
     const denoProject = await skmtcRoot.createDenoProject(projectName)
-
-    console.log('Deno project created', denoProject)
   } catch (error) {
     console.error(error)
     skmtcRoot.manager.fail('Failed to create deno project')
