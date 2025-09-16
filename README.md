@@ -40,7 +40,7 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 Typical generatore code
 
 ```typescript
-import { ZodInsertable } from '@skmtc/zod'
+import { ZodInsertable } from '@skmtc/gen-zod'
 
 class ZodFetch extends BaseTransformer {
   zodName: string;
