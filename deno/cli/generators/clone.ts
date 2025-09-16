@@ -11,10 +11,12 @@ export const toCloneCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
     .arguments('<project:string> <generator:string>')
-    .action((_options, project, generator) => {
+    .action(async (_options, project, generator) => {
+      const generatorsDenoJson = await getGeneratorsRootDenoJson()
+
       return skmtcRoot.projects
         .find(({ name }) => name === project)
-        ?.cloneGenerator({ projectName: project, moduleName: generator })
+        ?.cloneGenerator({ projectName: project, moduleName: generator, generatorsDenoJson })
     })
 
   return command

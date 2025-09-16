@@ -164,28 +164,12 @@ export class Project {
 
       await generator.clone({
         denoJson: this.rootDenoJson,
+        generatorsDenoJson,
         manager: this.manager,
         localGenerators: Object.fromEntries(filteredImportEntries)
       })
 
-      const clonedGeneratorId = generator.toModuleName()
-
-      generatorIds.forEach(async generatorId => {
-        const { packageName } = parseModuleName(generatorId)
-
-        const packageDenoJsonPath = join(this.toPath(), packageName, 'deno.json')
-
-        if (await PackageDenoJson.exists(packageDenoJsonPath)) {
-          const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, this.manager)
-
-          if (packageDenoJson.contents.imports?.[clonedGeneratorId]) {
-            delete packageDenoJson.contents.imports[clonedGeneratorId]
-
-            // TODO: Writing should be done in manager.success()
-            await packageDenoJson.write()
-          }
-        }
-      })
+      this.rootDenoJson.write()
 
       await this.manager.success()
     } catch (error) {

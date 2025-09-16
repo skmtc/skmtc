@@ -11,6 +11,7 @@ import type { Manager } from './manager.ts'
 import type { Project } from './project.ts'
 import invariant from 'tiny-invariant'
 import { Octokit } from 'octokit'
+import { extractImportPaths } from './extract-import-paths.ts'
 
 const octokit = new Octokit({
   auth: Deno.env.get('GITHUB_READ_ONLY_TOKEN')
@@ -33,6 +34,7 @@ type CreateArgs = {
 type CloneArgs = {
   denoJson: RootDenoJson
   localGenerators: Record<string, string>
+  generatorsDenoJson: Record<string, unknown>
   manager: Manager
 }
 
@@ -109,7 +111,7 @@ export class Generator {
     await packageDenoJson.write()
   }
 
-  async clone({ denoJson, manager, localGenerators }: CloneArgs) {
+  async clone({ denoJson, manager, localGenerators, generatorsDenoJson }: CloneArgs) {
     const files = await getGeneratorFiles(this.packageName)
 
     const downloads = Object.entries(files).map(async ([path, content]) => {
@@ -122,18 +124,41 @@ export class Generator {
 
     await Promise.all(downloads)
 
-    denoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
-    denoJson.addWorkspace(this.toPath({ relative: true }))
-
     const packageDenoJsonPath = join(this.toPath({ relative: false }), 'deno.json')
 
     const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, manager)
 
-    const updatedImports = Object.entries(packageDenoJson.contents.imports ?? {}).filter(
-      ([generatorId]) => !localGenerators[generatorId]
-    )
+    // Extract imports from all files and add them to denoJson
+    const generatorImports = generatorsDenoJson.imports as Record<string, string> | undefined
+    if (generatorImports) {
+      const importsToAdd = new Set<string>()
 
-    packageDenoJson.contents.imports = Object.fromEntries(updatedImports)
+      // Process each file to extract imports
+      for (const [filePath, content] of Object.entries(files)) {
+        // Only process TypeScript files
+        if (filePath.endsWith('.ts')) {
+          const importPaths = extractImportPaths(content)
+          importPaths.forEach(path => importsToAdd.add(path))
+        }
+      }
+
+      // Add each import to denoJson if it exists in generatorsDenoJson.imports
+      for (const importModule of importsToAdd) {
+        let source: string | undefined = generatorImports[importModule]
+
+        // If using relative import, use the local import
+        if (source?.startsWith('./')) {
+          source = packageDenoJson.contents.imports?.[importModule]
+        }
+
+        if (source) {
+          denoJson.addImport(importModule, source)
+        }
+      }
+    }
+
+    denoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
+    denoJson.addWorkspace(this.toPath({ relative: true }))
   }
 
   static fromName({ projectName, scopeName, packageName, version }: FromNameArgs): Generator {
@@ -179,8 +204,6 @@ type FromNameArgs = {
 }
 
 const getGeneratorFiles = async (path: string, files: Record<string, string> = {}) => {
-  console.log('PATH', path)
-
   const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
     owner: 'skmtc',
     repo: 'skmtc-generators',
@@ -191,8 +214,6 @@ const getGeneratorFiles = async (path: string, files: Record<string, string> = {
   })
 
   const items = Array.isArray(response.data) ? response.data : [response.data]
-
-  console.log('ITEMS', items)
 
   const promises = items.map(async item => {
     if (item.type === 'dir') {
@@ -221,11 +242,7 @@ export const getGeneratorsRootDenoJson = async () => {
     }
   })
 
-  console.log('ROOT DENO JSON RESPONSE', response)
-
   const items = Array.isArray(response.data) ? response.data : [response.data]
-
-  console.log('ITEMS', items)
 
   const promises = items.map(async item => {
     if (item.type === 'file' && item.path === 'deno.json' && item.download_url) {
