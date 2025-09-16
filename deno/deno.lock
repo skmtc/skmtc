@@ -4,9 +4,7 @@
     "jsr:@cliffy/ansi@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/command@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/flags@1.0.0-rc.8": "1.0.0-rc.8",
-    "jsr:@cliffy/internal@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/keycode@1.0.0-rc.8": "1.0.0-rc.8",
-    "jsr:@cliffy/prompt@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/table@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/testing@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cmd-johnson/oauth2-client@2": "2.0.0",
@@ -45,12 +43,13 @@
     "jsr:@std/path@^1.0.2": "1.1.2",
     "jsr:@std/path@^1.0.9": "1.1.2",
     "jsr:@std/path@^1.1.1": "1.1.2",
-    "jsr:@std/path@~1.0.6": "1.0.9",
+    "jsr:@std/regexp@^1.0.1": "1.0.1",
     "jsr:@std/semver@^1.0.5": "1.0.5",
     "jsr:@std/streams@^1.0.10": "1.0.12",
     "jsr:@std/testing@1.0.0": "1.0.0",
     "jsr:@std/testing@^1.0.15": "1.0.15",
     "jsr:@std/testing@^1.0.8": "1.0.15",
+    "jsr:@std/text@^1.0.16": "1.0.16",
     "jsr:@std/text@~1.0.7": "1.0.16",
     "jsr:@std/yaml@^1.0.5": "1.0.9",
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
@@ -86,8 +85,8 @@
     "@cliffy/ansi@1.0.0-rc.8": {
       "integrity": "ba37f10ce55bbfbdd8ddd987f91f029b17bce88385b98ba3058870f3b007b80c",
       "dependencies": [
-        "jsr:@cliffy/internal",
         "jsr:@std/encoding@~1.0.5",
+        "jsr:@std/fmt@~1.0.2",
         "jsr:@std/io@~0.224.9"
       ]
     },
@@ -95,39 +94,19 @@
       "integrity": "758147790797c74a707e5294cc7285df665422a13d2a483437092ffce40b5557",
       "dependencies": [
         "jsr:@cliffy/flags",
-        "jsr:@cliffy/internal",
         "jsr:@cliffy/table",
         "jsr:@std/fmt@~1.0.2",
-        "jsr:@std/text"
+        "jsr:@std/text@~1.0.7"
       ]
     },
     "@cliffy/flags@1.0.0-rc.8": {
       "integrity": "0f1043ce6ef037ba1cb5fe6b1bcecb25dc2f29371a1c17f278ab0f45e4b6f46c",
       "dependencies": [
-        "jsr:@std/text"
-      ]
-    },
-    "@cliffy/internal@1.0.0-rc.8": {
-      "integrity": "34cdf2fad9b084b5aed493b138d573f52d4e988767215f7460daf0b918ff43d8",
-      "dependencies": [
-        "jsr:@std/fmt@~1.0.2"
+        "jsr:@std/text@~1.0.7"
       ]
     },
     "@cliffy/keycode@1.0.0-rc.8": {
       "integrity": "76dbf85a67ec0aea2e29ca049b8507b6b3f62a2a971bd744d8d3fc447c177cd9"
-    },
-    "@cliffy/prompt@1.0.0-rc.8": {
-      "integrity": "eba403ea1d47b9971bf2210fa35f4dc7ebd2aba87beec9540ae47552806e2f25",
-      "dependencies": [
-        "jsr:@cliffy/ansi",
-        "jsr:@cliffy/internal",
-        "jsr:@cliffy/keycode",
-        "jsr:@std/assert@~1.0.6",
-        "jsr:@std/fmt@~1.0.2",
-        "jsr:@std/io@~0.224.9",
-        "jsr:@std/path@~1.0.6",
-        "jsr:@std/text"
-      ]
     },
     "@cliffy/table@1.0.0-rc.8": {
       "integrity": "8bbcdc2ba5e0061b4b13810a24e6f5c6ab19c09f0cce9eb691ccd76c7c6c9db5",
@@ -139,7 +118,6 @@
       "integrity": "e048afd26b38d079861d80f3e44c0997f7cef5443e9fe43bf99219788fd561f5",
       "dependencies": [
         "jsr:@cliffy/ansi",
-        "jsr:@cliffy/internal",
         "jsr:@std/assert@~1.0.6",
         "jsr:@std/fmt@~1.0.2",
         "jsr:@std/testing@1.0.0"
@@ -232,14 +210,14 @@
     "@std/net@1.0.6": {
       "integrity": "110735f93e95bb9feb95790a8b1d1bf69ec0dc74f3f97a00a76ea5efea25500c"
     },
-    "@std/path@1.0.9": {
-      "integrity": "260a49f11edd3db93dd38350bf9cd1b4d1366afa98e81b86167b4e3dd750129e"
-    },
     "@std/path@1.1.2": {
       "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
       "dependencies": [
         "jsr:@std/internal@^1.0.10"
       ]
+    },
+    "@std/regexp@1.0.1": {
+      "integrity": "5179d823465085c5480dafb44438466e83c424fadc61ba31f744050ecc0f596d"
     },
     "@std/semver@1.0.5": {
       "integrity": "529f79e83705714c105ad0ba55bec0f9da0f24d2f726b6cc1c15e505cc2c0624"
@@ -268,7 +246,10 @@
       ]
     },
     "@std/text@1.0.16": {
-      "integrity": "ddb9853b75119a2473857d691cf1ec02ad90793a2e8b4a4ac49d7354281a0cf8"
+      "integrity": "ddb9853b75119a2473857d691cf1ec02ad90793a2e8b4a4ac49d7354281a0cf8",
+      "dependencies": [
+        "jsr:@std/regexp"
+      ]
     },
     "@std/yaml@1.0.9": {
       "integrity": "6bad3dc766dd85b4b37eabcba81b6aa4eac7a392792ae29abcfb0f90602d55bb"
@@ -1925,10 +1906,9 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@cliffy/ansi@1.0.0-rc.8",
       "jsr:@cliffy/command@1.0.0-rc.8",
-      "jsr:@cliffy/internal@1.0.0-rc.8",
       "jsr:@cliffy/keycode@1.0.0-rc.8",
-      "jsr:@cliffy/prompt@1.0.0-rc.8",
       "jsr:@cliffy/testing@1.0.0-rc.8",
       "jsr:@cmd-johnson/oauth2-client@2",
       "jsr:@deno/dnt@0.42.3",
@@ -1941,6 +1921,7 @@
       "jsr:@std/path@^1.0.9",
       "jsr:@std/semver@^1.0.5",
       "jsr:@std/testing@^1.0.15",
+      "jsr:@std/text@^1.0.16",
       "jsr:@std/yaml@^1.0.5",
       "npm:@apiture/openapi-down-convert@0.14.0",
       "npm:@babel/helper-validator-identifier@7.27.1",
@@ -1963,7 +1944,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.836"
+          "jsr:@skmtc/core@^0.0.837"
         ]
       },
       "core": {
@@ -1983,7 +1964,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.257",
+          "jsr:@skmtc/cli@^0.0.258",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -1992,7 +1973,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.836"
+          "jsr:@skmtc/core@^0.0.837"
         ]
       }
     }
