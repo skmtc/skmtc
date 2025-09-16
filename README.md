@@ -30,11 +30,9 @@ npx skmtc
 Running code generators
 
 ```bash
-# Example - Create Supabase Server for Petstore API
 npx skmtc generate @skmtc/supabase-backend https://petstore3.swagger.io/api/v3/openapi.json
 # Generated 9 files (507 lines, 3,383 tokens) in 9ms
 
-# Example - Generate React Query hooks for entire Cloudflare API (6MB OpenAPI schema)
 npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.com/cloudflare/api-schemas/refs/heads/main/openapi.json
 # Generated 6,797 files (104,752 lines, 1,635,227 tokens) in 2,969ms
 ```
