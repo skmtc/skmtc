@@ -2,7 +2,7 @@
   <img src="./skmtc.svg" />
 </p>
 
-**Skmtc is a declarative code generation framework**. It lets you generate TypeScript code from OpenAPI schemas using string templates.
+**Skmtc is a declarative code generation framework**. It lets you generate TypeScript code from OpenAPI schemas without complex ASTs.
 
 ## ✨ Features
 
