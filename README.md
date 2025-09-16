@@ -8,7 +8,7 @@
 
 - 🏎️ **Fast** - Generates 550k+ tokens per second
 - 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
-- 🥞 **Stackable generators** - Combine multiple generators to generate deep functionality
+- 🥞 **Stackable generators** - Compose complex functionality by combining generators
 - 🗄️ **Use your own code conventions** - Full control over naming and file structure
 
 ## 🚀 Quick Start
