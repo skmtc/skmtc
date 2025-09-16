@@ -10,7 +10,6 @@
 - 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
 - 🥞 **Stackable generators** - Combine multiple generators to generate deep functionality
 - 🗄️ **Use your own code conventions** - Full control over naming and file structure
-- 🍱 **Choose from 11 ready-to-use generators** - Generators include Tanstack Query, Zod, TypeScript, and more - https://github.com/skmtc/skmtc-generators
 
 ## 🚀 Quick Start
 
@@ -72,7 +71,7 @@ Choose from our growing collection of generators, combone them or create your ow
 - **Zod Schemas** - Runtime validation schemas
 - **TypeScript Types** - Pure type definitions
 - **Supabase/Hono Functions** - Edge function handlers
-- More coming soon...
+- See full list at https://github.com/skmtc/skmtc-generators
 
 ## Developer Experience First
 - 🎯 **Interactive CLI** - Guided setup and configuration
