@@ -64,7 +64,7 @@ export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string
 export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
   const project = skmtcRoot.findProject(projectName)
 
-  project.schemaFile.promptOrFail(project)
+  await project.schemaFile.promptOrFail(project)
 
   const { schemaSource } = project.schemaFile
 

@@ -110,6 +110,7 @@ export class SchemaFile {
       const source = await Input.prompt({
         id: 'schema-source',
         message: 'Enter path or url of OpenAPI schema',
+        suggestions: ['https://petstore3.swagger.io/api/v3/openapi.json'],
         maxLength: 2048,
         minLength: 1
       })
