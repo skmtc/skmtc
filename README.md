@@ -6,7 +6,7 @@
   <img src="./skmtc.svg" />
 </p>
 
-**Skmtc is a declarative code generation framework for converting OpenAPI schemas into TypeScript code**. Specify the exact output you want using string templates and get it in seconds.
+**Skmtc is a declarative code generation framework**. It lets you generate TypeScript code from OpenAPI schemas. Specify the exact output you want using string templates and get it in seconds.
 
 ## ✨ Why Skmtc?
 
@@ -14,7 +14,6 @@
 - 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
 - 🥞 **Stackable generators** - Combine multiple generators to generate deep functionality
 - 🗄️ **Use your own code conventions** - Full control over naming and file structure
-- 🎨 **Formatted output** - Prettier integration for consistent styling
 - 🍱 **Choose from 11 ready-to-use generators** - Generators include Tanstack Query, Zod, TypeScript, and more - https://github.com/skmtc/skmtc-generators
 
 ## 🚀 Quick Start
