@@ -10,7 +10,7 @@
 
 ## ✨ Why Skmtc?
 
-- 🏎️ **Fast** - Generates 350k+ tokens per second
+- 🏎️ **Fast** - Generates 550k+ tokens per second
 - 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
 - 🥞 **Stackable generators** - Combine multiple generators to generate deep functionality
 - 🗄️ **Use your own code conventions** - Full control over naming and file structure
@@ -23,19 +23,23 @@
 # Run directly with npx
 npx skmtc
 
+```
+
+## 🧑‍💻 Examples
+
+Running code generators
+
+```bash
 # Example - Create Supabase Server for Petstore API
 npx skmtc generate @skmtc/supabase-backend https://petstore3.swagger.io/api/v3/openapi.json
 # Generated 9 files (507 lines, 3,383 tokens) in 9ms
 
 # Example - Generate React Query hooks for entire Cloudflare API (6MB OpenAPI schema)
 npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.com/cloudflare/api-schemas/refs/heads/main/openapi.json
-# Generated 4,764 files (77,972 lines, 1,262,544 tokens) in 3,632ms
-
+# Generated 6,797 files (104,752 lines, 1,635,227 tokens) in 2,969ms
 ```
 
-## Example code
-
-Runtime type-safe API client with Zod validation in 13 lines of code
+Typical generatore code
 
 ```typescript
 import { ZodInsertable } from '@skmtc/zod'
