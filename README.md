@@ -4,7 +4,7 @@
 
 **Skmtc is a declarative code generation framework**. It lets you generate TypeScript code from OpenAPI schemas. Specify the exact output you want using string templates and get it in seconds.
 
-## ✨ Why Skmtc?
+## ✨ Features
 
 - 🏎️ **Fast** - Generates 550k+ tokens per second
 - 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
@@ -19,9 +19,7 @@ npx skmtc
 
 ```
 
-## 🧑‍💻 Examples
-
-Running code generators
+### Running code generators
 
 ```bash
 npx skmtc generate @skmtc/supabase-backend https://petstore3.swagger.io/api/v3/openapi.json
@@ -31,7 +29,7 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 # Generated 6,797 files (104,752 lines, 1,635,227 tokens) in 2,969ms
 ```
 
-Typical generatore code
+### Example generator code
 
 ```typescript
 import { ZodInsertable } from '@skmtc/gen-zod'
@@ -72,12 +70,6 @@ Choose from our growing collection of generators, combone them or create your ow
 - **TypeScript Types** - Pure type definitions
 - **Supabase/Hono Functions** - Edge function handlers
 - See full list at https://github.com/skmtc/skmtc-generators
-
-## Developer Experience First
-- 🎯 **Interactive CLI** - Guided setup and configuration
-- 🔥 **Hot Reload** - Watch mode for automatic regeneration
-- 🎨 **Prettier Integration** - Auto-formatted output
-- 🔍 **Type Safety** - Full TypeScript support throughout
 
 ## ❓ FAQ
 
