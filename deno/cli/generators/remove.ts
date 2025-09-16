@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Input } from '@cliffy/prompt'
+import { Input } from '@skmtc/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 

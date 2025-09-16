@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Input } from '@cliffy/prompt'
+import { Input } from '@skmtc/prompt'
 import { ApiClient } from '../lib/api-client.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/node'

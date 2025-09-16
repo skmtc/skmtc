@@ -1,5 +1,5 @@
 import { Command, EnumType } from '@cliffy/command'
-import { Input } from '@cliffy/prompt'
+import { Input } from '@skmtc/prompt'
 import { checkProjectName } from '@skmtc/core'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'

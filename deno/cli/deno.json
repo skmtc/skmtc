@@ -1,11 +1,10 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.258",
+  "version": "0.0.259",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.837",
-    "@cliffy/internal": "jsr:@skmtc/internal@1.0.0-rc.8"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.838"
   },
   "tasks": {
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",

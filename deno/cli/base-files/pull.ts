@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Input, Select } from '@cliffy/prompt'
+import { Input, Select } from '@skmtc/prompt'
 import * as Sentry from '@sentry/node'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'

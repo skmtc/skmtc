@@ -2,8 +2,8 @@
 
 // Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 
-import { getNoColor } from '@cliffy/internal/runtime/no-color'
-import { writeSync } from '@cliffy/internal/runtime/write-sync'
+import { getNoColor } from '@skmtc/internal/runtime/no-color'
+import { writeSync } from '@skmtc/internal/runtime/write-sync'
 
 const encoder = new TextEncoder()
 

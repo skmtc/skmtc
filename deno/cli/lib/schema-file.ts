@@ -5,7 +5,7 @@ import { toProjectPath } from './to-project-path.ts'
 import { toRootPath } from './to-root-path.ts'
 import invariant from 'tiny-invariant'
 import { match, P } from 'ts-pattern'
-import { Input, prompt } from '@cliffy/prompt'
+import { Input, prompt } from '@skmtc/prompt'
 import type { Project } from './project.ts'
 import type { RemoteProject } from './remote-project.ts'
 

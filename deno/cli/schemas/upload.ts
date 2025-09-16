@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Input, Confirm } from '@cliffy/prompt'
+import { Input, Confirm } from '@skmtc/prompt'
 import { OpenApiSchema } from '../lib/openapi-schema.ts'
 import * as Sentry from '@sentry/node'
 import chokidar from 'chokidar'

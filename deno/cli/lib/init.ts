@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Checkbox, Input } from '@cliffy/prompt'
+import { Checkbox, Input } from '@skmtc/prompt'
 import { toNameSuggest } from './to-name-suggest.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
 import { availableGenerators } from '../available-generators.ts'
