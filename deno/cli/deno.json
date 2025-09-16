@@ -5,7 +5,7 @@
   "imports": {
     "@/": "./",
     "@skmtc/core": "jsr:@skmtc/core@^0.0.837",
-    "@cliffy/prompt": "../prompt/mod.ts"
+    "@cliffy/prompt": "../../deno/prompt/mod.ts"
   },
   "tasks": {
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",
