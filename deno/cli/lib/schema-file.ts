@@ -5,7 +5,7 @@ import { toProjectPath } from './to-project-path.ts'
 import { toRootPath } from './to-root-path.ts'
 import invariant from 'tiny-invariant'
 import { match, P } from 'ts-pattern'
-import { Input } from '@cliffy/prompt'
+import { Input, prompt } from '@cliffy/prompt'
 import type { Project } from './project.ts'
 import type { RemoteProject } from './remote-project.ts'
 
@@ -107,13 +107,18 @@ export class SchemaFile {
 
   async promptOrFail(project: Project | RemoteProject) {
     if (!this.schemaSource) {
-      const source = await Input.prompt({
-        id: 'schema-source',
-        message: 'Enter path or url of OpenAPI schema',
-        suggestions: ['https://petstore3.swagger.io/api/v3/openapi.json'],
-        maxLength: 2048,
-        minLength: 1
-      })
+      const { source } = await prompt([
+        {
+          name: 'source',
+          message: 'Enter path or url of OpenAPI schema',
+          suggestions: ['https://petstore3.swagger.io/api/v3/openapi.json'],
+          maxLength: 2048,
+          minLength: 1,
+          type: Input
+        }
+      ])
+
+      invariant(source, `Schema source is required`)
 
       const schemaSource = toSchemaSource(source)
       const { contents } = await SchemaFile.getFromSource(schemaSource)
