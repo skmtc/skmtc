@@ -40,7 +40,6 @@
   "unstable": ["kv"],
   "workspace": [
     "./cli",
-    "./cli-ink",
     "./core",
     "./mcp",
     "./server"

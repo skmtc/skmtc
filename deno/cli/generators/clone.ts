@@ -3,6 +3,7 @@ import { Checkbox } from '@cliffy/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { parseModuleName } from '@skmtc/core'
+import { getGeneratorsRootDenoJson } from '../lib/generator.ts'
 
 export const description = 'Clone generator'
 
@@ -37,10 +38,12 @@ export const toClonePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) =
     options: options
   })
 
+  const generatorsDenoJson = await getGeneratorsRootDenoJson()
+
   await Promise.all(
     generators.map(async generator => {
       await project.cloneGenerator(
-        { moduleName: generator, projectName },
+        { moduleName: generator, projectName, generatorsDenoJson },
         { logSuccess: `Generator "${generator}" is cloned` }
       )
     })

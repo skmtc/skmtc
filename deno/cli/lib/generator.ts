@@ -179,6 +179,8 @@ type FromNameArgs = {
 }
 
 const getGeneratorFiles = async (path: string, files: Record<string, string> = {}) => {
+  console.log('PATH', path)
+
   const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
     owner: 'skmtc',
     repo: 'skmtc-generators',
@@ -189,6 +191,8 @@ const getGeneratorFiles = async (path: string, files: Record<string, string> = {
   })
 
   const items = Array.isArray(response.data) ? response.data : [response.data]
+
+  console.log('ITEMS', items)
 
   const promises = items.map(async item => {
     if (item.type === 'dir') {
@@ -205,4 +209,39 @@ const getGeneratorFiles = async (path: string, files: Record<string, string> = {
   await Promise.all(promises)
 
   return files
+}
+
+export const getGeneratorsRootDenoJson = async () => {
+  const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+    owner: 'skmtc',
+    repo: 'skmtc-generators',
+    path: 'deno.json',
+    headers: {
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  })
+
+  console.log('ROOT DENO JSON RESPONSE', response)
+
+  const items = Array.isArray(response.data) ? response.data : [response.data]
+
+  console.log('ITEMS', items)
+
+  const promises = items.map(async item => {
+    if (item.type === 'file' && item.path === 'deno.json' && item.download_url) {
+      const content = await fetch(item.download_url)
+
+      return await content.text()
+    }
+
+    return null
+  })
+
+  const results = await Promise.all(promises)
+
+  const result = results.find(result => result !== null)
+
+  invariant(result, 'Generators root deno json not found')
+
+  return JSON.parse(result)
 }

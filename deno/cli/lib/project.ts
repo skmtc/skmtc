@@ -27,6 +27,7 @@ type AddGeneratorArgs = {
 type CloneGeneratorArgs = {
   projectName: string
   moduleName: string
+  generatorsDenoJson: Record<string, unknown>
 }
 
 type AddGeneratorOptions = {
@@ -140,7 +141,7 @@ export class Project {
 
   //Rename import
   async cloneGenerator(
-    { projectName, moduleName }: CloneGeneratorArgs,
+    { projectName, moduleName, generatorsDenoJson }: CloneGeneratorArgs,
     { logSuccess }: CloneOptions = {}
   ) {
     try {

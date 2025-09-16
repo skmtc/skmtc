@@ -59,7 +59,7 @@ export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
 
   const basePath = await Input.prompt({
     message: 'Base path for generated files',
-    default: './src'
+    default: 'src'
   })
 
   await init({ projectName: name, skmtcRoot, generators, basePath }, { logSuccess: true })
