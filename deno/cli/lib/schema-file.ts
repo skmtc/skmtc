@@ -108,8 +108,7 @@ export class SchemaFile {
   async promptOrFail(project: Project | RemoteProject) {
     if (!this.schemaSource) {
       const source = await Input.prompt({
-        message: 'Enter path or url of OpenAPI schema',
-        suggestions: ['https://petstore3.swagger.io/api/v3/openapi.json']
+        message: 'Enter path or url of OpenAPI schema'
       })
 
       const schemaSource = toSchemaSource(source)
