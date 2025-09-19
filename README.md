@@ -57,7 +57,6 @@ class ZodFetch extends BaseProjection {
 
     // Assign schema name to object so it can be accessed from `toString()` below
     this.zodName = zodResponse.identifier.name
-    // Transformation end
   }
 
   // Map object properties to output code
