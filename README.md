@@ -30,22 +30,17 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 
 ## Motivation
 
-I've saved countless hours of work, by using third party code generators to automatically produce tens of thousands lines of code from OpenAPI schemas. However, I was still frustrated by their limitations such as
-- Having to use ASTs to specify outputs, which made it difficult to customise outputs code for specific use cases
-- It is not possible to use different code generators together.
-- Output customisation is limited to a small number of predefined settings
-- Hardcoded naming conventions producing long and unwieldy variable names
-- All generated code being output in one huge single file
-- Only the most popular libraries have code generators available
+I've saved countless hours of work by using code generators to automatically produce many thousands of lines of code from OpenAPI schemas. 
+However, I was still frustrated by their limitations and wanted to create a framework that
 
-I wanted to create a framework that
 - Makes creating code generators as simple as writing everyday code
+- Does not require writing ASTs
 - Ensures code generators can use each others outputs
-- Allows full stack apps, not just clients, servers and types to be generated
+- Allows UI components, not just clients, servers and types to be generated
 
 ## How does it work?
 
-To achieve interoperability between code generators Skmtc handles OpenAPI parsing and output rendering. This means each generator only needs to specify how to represent its API schema input as a code string.
+Skmtc handles all OpenAPI parsing and output rendering, which means each generator only needs to specify how to represent its API schema input as a code string.
 
 The process runs in 3 phases
 
@@ -59,8 +54,8 @@ The core building block of Skmtc is a data structure called a **Projection**. It
 2. **Transformation** - Takes source data and extracts or creates output objects
 3. **Result** - String representation of output objects produced during Render phase
 
-The benefit of producing **Projections** rather than strings during **Generate** phase is that they retain underlying data used to produce output code. This makes our generated code more robust by allowing
-each Projection to be a source of truth about its own data.
+The benefit of producing **Projections** rather than strings during **Generate** phase is that they retain all underlying data. This provides us
+with a type-safe method for looking up and using generated properties.
 
 Let's take a look at an example, where we create a `fetch` based API client with Zod type checking
 
