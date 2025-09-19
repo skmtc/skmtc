@@ -28,36 +28,72 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 # Generated 6,797 files (104,752 lines, 1,635,227 tokens) in 2,969ms
 ```
 
-### Example generator code
+## Motivation
+
+I've saved countless hours of work, by using third party code generators to automatically produce tens of thousands lines of code from OpenAPI schemas. However, I was still frustrated by their limitations such as
+- Having to use ASTs to specify outputs, which made it difficult to customise outputs code for specific use cases
+- It is not possible to use different code generators together. For example, you cannot add Arktype schema checking to generated RTK Query hooks
+- Output customisation is limited to a small number of predefined options
+- Only a small number of the most popular libraries have generators available
+- Hardcoded naming conventions producing long and unwieldy variable names
+- All generated code being output in one huge single file
+
+I wanted to create a framework that makes
+- Creating code generators as simple as writing everyday code
+- Code generators modular and interoperable with each other
+
+## How does it work?
+
+To achieve interoperability between code generators Skmtc handles OpenAPI parsing and output rendering. This means each generator only needs to specify how to represent its API schema input as a code string.
+
+The process runs in 3 phases
+**1. Parse** - Take OpenAPI schema and turn it into an **OasDocument** object with helper methods
+**2. Generate** - Create **Projection** objects from operations and models in OasDocument and assign each to its output **File** object
+**3. Render** - Convert generated **File** objects into code strings
+
+The core building block of Skmtc is a data structure called a **Projection**. It has three parts
+
+**1. Source** - Input API operation or model, and settings
+**2. Transformation** - Takes source data and extracts or creates output objects
+**3. Result** - String representation of output objects produced during Render phase
+
 
 ```typescript
 import { ZodInsertable } from '@skmtc/gen-zod'
 
-class ZodFetch extends BaseTransformer {
+class ZodFetch extends BaseProjection {
   zodName: string;
 
+  // Source start
   constructor({context, operation, settings}){
     super({context, operation, settings})
+    // Source end
 
+    // Transformation start
     // Generate Zod schema for API response and insert it into current file
     const response = operation.toSuccessResponse()?.resolve().toSchema()
     const zodResponse = this.insert(ZodInsertable, response)
 
     // Grab Zod schema name to use in output code
     this.zodName = zodResponse.identifier.name
+    // Transformation end
   }
 
   // Define code output
   toString(){
+    // Result start
     return `() => {
       const res = await fetch('${this.operation.path}')
       const data = await res.json()
 
       return ${zodName}.parse(data)
     }`
+    // Result end
   }
 }
 ```
+
+
 
 ## 📦 Available Generators
 
