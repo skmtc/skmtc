@@ -38,15 +38,6 @@ The process runs in 3 phases
 2. **Generate** - Creates **Projection** objects from operations and models in OasDocument and writes them to respective **File** objects
 3. **Render** - Outputs generated **File** objects as code files
 
-The core building block of Skmtc is a data structure called a **Projection**. It has three parts
-
-1. **Source** - Input API operation or model, and settings
-2. **Transformation** - Takes source data and extracts or creates output objects
-3. **Result** - String representation of output objects produced during Render phase
-
-The benefit of producing **Projections** rather than strings during **Generate** phase is that they retain all underlying data. This provides us
-with a type-safe method for looking up and using generated properties.
-
 Let's take a look at an example, where we create a `fetch` based API client with Zod type checking
 
 ```typescript
@@ -55,23 +46,21 @@ import { ZodInsertable } from '@skmtc/gen-zod'
 class ZodFetch extends BaseProjection {
   zodName: string;
 
-  // The Source is an API operation
   constructor({context, operation, settings}){
     super({context, operation, settings})
 
-    // To add Zod type checks, the Transformation we apply is extract 
-    // API response schema from the operation
+    // To add Zod type checks, we look up the response schema for each operation,
     const response = operation.toSuccessResponse()?.resolve().toSchema()
+
     // generate a Zod schema from it and insert it into current file
     const zodResponse = this.insert(ZodInsertable, response)
 
-    // And finally grab the generated Zod schema name to use in output code
+    // Assign schema name to object so it can be accessed from `toString()` below
     this.zodName = zodResponse.identifier.name
     // Transformation end
   }
 
-  // To produce the Result, we use a `toString()` method to specify
-  // how this object's properties should be output as code
+  // Map object properties to output code
   toString(){
     return `() => {
       const res = await fetch('${this.operation.path}')
