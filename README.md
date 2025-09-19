@@ -48,15 +48,16 @@ I wanted to create a framework that
 To achieve interoperability between code generators Skmtc handles OpenAPI parsing and output rendering. This means each generator only needs to specify how to represent its API schema input as a code string.
 
 The process runs in 3 phases
-**1. Parse** - Take OpenAPI schema and turn it into an **OasDocument** object with helper methods
-**2. Generate** - Create **Projection** objects from operations and models in OasDocument and assign each to its output **File** object
-**3. Render** - Convert generated **File** objects into code strings
+
+1. **Parse** - Take OpenAPI schema and turn it into an **OasDocument** object with helper methods
+2. **Generate** - Create **Projection** objects from operations and models in OasDocument and assign each to its output **File** object
+3. **Render** - Convert generated **File** objects into code strings
 
 The core building block of Skmtc is a data structure called a **Projection**. It has three parts
 
-**1. Source** - Input API operation or model, and settings
-**2. Transformation** - Takes source data and extracts or creates output objects
-**3. Result** - String representation of output objects produced during Render phase
+1. **Source** - Input API operation or model, and settings
+2. **Transformation** - Takes source data and extracts or creates output objects
+3. **Result** - String representation of output objects produced during Render phase
 
 Let's take a look at an example, where we create a `fetch` based API client with Zod type checking
 
