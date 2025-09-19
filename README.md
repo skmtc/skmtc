@@ -32,15 +32,16 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 
 I've saved countless hours of work, by using third party code generators to automatically produce tens of thousands lines of code from OpenAPI schemas. However, I was still frustrated by their limitations such as
 - Having to use ASTs to specify outputs, which made it difficult to customise outputs code for specific use cases
-- It is not possible to use different code generators together. For example, you cannot add Arktype schema checking to generated RTK Query hooks
-- Output customisation is limited to a small number of predefined options
-- Only a small number of the most popular libraries have generators available
+- It is not possible to use different code generators together.
+- Output customisation is limited to a small number of predefined settings
 - Hardcoded naming conventions producing long and unwieldy variable names
 - All generated code being output in one huge single file
+- Only the most popular libraries have code generators available
 
-I wanted to create a framework that makes
-- Creating code generators as simple as writing everyday code
-- Code generators modular and interoperable with each other
+I wanted to create a framework that
+- Makes creating code generators as simple as writing everyday code
+- Ensures code generators can use each others outputs
+- Allows full stack apps, not just clients, servers and types to be generated
 
 ## How does it work?
 
@@ -57,6 +58,7 @@ The core building block of Skmtc is a data structure called a **Projection**. It
 **2. Transformation** - Takes source data and extracts or creates output objects
 **3. Result** - String representation of output objects produced during Render phase
 
+Let's take a look at an example, where we create a `fetch` based API client with Zod type checking
 
 ```typescript
 import { ZodInsertable } from '@skmtc/gen-zod'
@@ -64,31 +66,30 @@ import { ZodInsertable } from '@skmtc/gen-zod'
 class ZodFetch extends BaseProjection {
   zodName: string;
 
-  // Source start
+  // The Source is an API operation
   constructor({context, operation, settings}){
     super({context, operation, settings})
-    // Source end
 
-    // Transformation start
-    // Generate Zod schema for API response and insert it into current file
+    // To add Zod type checks, the Transformation we apply is extract
+    // response schema, generate Zod schema for API response and
+    // insert it into current file...
     const response = operation.toSuccessResponse()?.resolve().toSchema()
     const zodResponse = this.insert(ZodInsertable, response)
 
-    // Grab Zod schema name to use in output code
+    // ... and grab Zod schema name to use in output code
     this.zodName = zodResponse.identifier.name
     // Transformation end
   }
 
-  // Define code output
+  // To produce the Result, we use a `toString()` method to specify
+  // how this object's properties should be output as code
   toString(){
-    // Result start
     return `() => {
       const res = await fetch('${this.operation.path}')
       const data = await res.json()
 
       return ${zodName}.parse(data)
     }`
-    // Result end
   }
 }
 ```
