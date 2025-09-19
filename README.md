@@ -49,15 +49,18 @@ To achieve interoperability between code generators Skmtc handles OpenAPI parsin
 
 The process runs in 3 phases
 
-1. **Parse** - Take OpenAPI schema and turn it into an **OasDocument** object with helper methods
-2. **Generate** - Create **Projection** objects from operations and models in OasDocument and assign each to its output **File** object
-3. **Render** - Convert generated **File** objects into code strings
+1. **Parse** - Converts input OpenAPI schema into an **OasDocument** object
+2. **Generate** - Creates **Projection** objects from operations and models in OasDocument and writes them to respective **File** objects
+3. **Render** - Outputs generated **File** objects as code files
 
 The core building block of Skmtc is a data structure called a **Projection**. It has three parts
 
 1. **Source** - Input API operation or model, and settings
 2. **Transformation** - Takes source data and extracts or creates output objects
 3. **Result** - String representation of output objects produced during Render phase
+
+The benefit of producing **Projections** rather than strings during **Generate** phase is that they retain underlying data used to produce output code. This makes our generated code more robust by allowing
+each Projection to be a source of truth about its own data.
 
 Let's take a look at an example, where we create a `fetch` based API client with Zod type checking
 
@@ -71,13 +74,13 @@ class ZodFetch extends BaseProjection {
   constructor({context, operation, settings}){
     super({context, operation, settings})
 
-    // To add Zod type checks, the Transformation we apply is extract
-    // response schema, generate Zod schema for API response and
-    // insert it into current file...
+    // To add Zod type checks, the Transformation we apply is extract 
+    // API response schema from the operation
     const response = operation.toSuccessResponse()?.resolve().toSchema()
+    // generate a Zod schema from it and insert it into current file
     const zodResponse = this.insert(ZodInsertable, response)
 
-    // ... and grab Zod schema name to use in output code
+    // And finally grab the generated Zod schema name to use in output code
     this.zodName = zodResponse.identifier.name
     // Transformation end
   }
