@@ -28,16 +28,6 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 # Generated 6,797 files (104,752 lines, 1,635,227 tokens) in 2,969ms
 ```
 
-## Motivation
-
-I've saved countless hours of work by using code generators to automatically produce many thousands of lines of code from OpenAPI schemas. 
-However, I was still frustrated by their limitations and wanted to create a framework that
-
-- Makes creating code generators as simple as writing everyday code
-- Does not require writing ASTs
-- Ensures code generators can use each others outputs
-- Allows UI components, not just clients, servers and types to be generated
-
 ## How does it work?
 
 Skmtc handles all OpenAPI parsing and output rendering, which means each generator only needs to specify how to represent its API schema input as a code string.
