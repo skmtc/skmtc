@@ -5,10 +5,10 @@ import { toProjectPath } from './to-project-path.ts'
 import { toRootPath } from './to-root-path.ts'
 import invariant from 'tiny-invariant'
 import { match, P } from 'ts-pattern'
-import { Input, prompt } from '@skmtc/prompt'
 import type { Project } from './project.ts'
 import type { RemoteProject } from './remote-project.ts'
 import { textInputPrompt } from './text-input-prompt.tsx'
+import { toMessage } from './to-message.tsx'
 
 type FileType = 'json' | 'yaml'
 
@@ -109,9 +109,26 @@ export class SchemaFile {
   async promptOrFail(project: Project | RemoteProject) {
     if (!this.schemaSource) {
       const source = await textInputPrompt({
-        message: 'Enter path or url of OpenAPI schema',
-        suggestions: ['https://petstore3.swagger.io/api/v3/openapi.json']
+        message: 'Enter path or url of OpenAPI schema:',
+        suggestions: ['https://petstore3.swagger.io/api/v3/openapi.json'],
+        validate: value => {
+          if (value.length === 0) {
+            return 'Schema source is required'
+          }
+
+          if (value.length > 2048) {
+            return 'Schema source cannot be longer than 2048 characters'
+          }
+
+          if (!value.startsWith('http://') && !value.startsWith('https://')) {
+            return 'Schema source must start with http:// or https://'
+          }
+
+          return true
+        }
       })
+
+      toMessage({ messages: [] })
 
       invariant(source, `Schema source is required`)
 

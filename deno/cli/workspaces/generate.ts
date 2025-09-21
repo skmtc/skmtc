@@ -5,12 +5,13 @@ import chokidar from 'chokidar'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { Project } from '../lib/project.ts'
-import { Spinner } from '../lib/spinner.ts'
 import { formatNumber, toGenerationStats } from '@skmtc/core'
 import { keypress } from '../lib/keypress.ts'
 import { relative } from '@std/path/relative'
 import { dim } from '@std/fmt/colors'
 import type { RemoteProject } from '../lib/remote-project.ts'
+import { toMessage } from '../lib/to-message.tsx'
+import { toSpinner } from '../lib/to-spinner.tsx'
 
 export const description = 'Generate artifacts'
 
@@ -27,14 +28,10 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
         prettierPath: prettier
       })
 
-      const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
-
       if (watch) {
-        setupWatcher({ project, skmtcRoot, spinner })
+        setupWatcher({ project, skmtcRoot })
       } else {
-        await generate({ project, skmtcRoot, spinner }, { logSuccess: 'Artifacts generated' })
-
-        spinner.stop()
+        await generate({ project, skmtcRoot }, { logSuccess: 'Artifacts generated' })
       }
     })
 }
@@ -54,11 +51,9 @@ export const toGeneratePrompt = async (skmtcRoot: SkmtcRoot, projectName: string
     return
   }
 
-  const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
+  toSpinner({ message: 'Generating...' })
 
-  await generate({ project, skmtcRoot, spinner })
-
-  spinner.stop()
+  await generate({ project, skmtcRoot })
 }
 
 export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
@@ -78,25 +73,21 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
     return
   }
 
-  const spinner = new Spinner({ message: 'Generating...', color: 'yellow' })
-
-  setupWatcher({ project, skmtcRoot, spinner })
+  setupWatcher({ project, skmtcRoot })
 
   const relativePath = relative(Deno.cwd(), schemaSource.path)
 
-  spinner.message = `Watching ${relativePath}`
-
-  console.log(dim(`Hit 'escape' key to stop.`))
+  toSpinner({ message: `Watching ${relativePath}`, sub: `Hit 'escape' key to stop.` })
 
   for await (const key of keypress()) {
     if (key.ctrl && key.name === 'c') {
-      spinner.stop()
+      toMessage({ messages: [] })
 
       return
     }
 
     if (key.name === 'escape') {
-      spinner.stop()
+      toMessage({ messages: [] })
 
       return
     }
@@ -106,24 +97,24 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 type WatchGenerateArgs = {
   project: Project | RemoteProject
   skmtcRoot: SkmtcRoot
-  spinner: Spinner
 }
 
-export const setupWatcher = ({ project, skmtcRoot, spinner }: WatchGenerateArgs) => {
+export const setupWatcher = ({ project, skmtcRoot }: WatchGenerateArgs) => {
   const { schemaSource } = project.schemaFile
 
   invariant(schemaSource?.type === 'local', 'Only local schema files can be watched')
 
   const watcher = chokidar.watch(schemaSource.path)
-  watcher.on('change', () => {
-    generate({ project, skmtcRoot, spinner, watching: true })
+  watcher.on('change', async () => {
+    await generate({ project, skmtcRoot, watching: true })
+
+    toSpinner({ message: `Watching ${schemaSource.path}`, sub: `Hit 'escape' key to stop.` })
   })
 }
 
 type GenerateArgs = {
   project: Project | RemoteProject
   skmtcRoot: SkmtcRoot
-  spinner: Spinner
   watching?: boolean
 }
 
@@ -132,7 +123,7 @@ type GenerateOptions = {
 }
 
 export const generate = async (
-  { project, skmtcRoot, spinner, watching }: GenerateArgs,
+  { project, skmtcRoot, watching }: GenerateArgs,
   { logSuccess }: GenerateOptions = {}
 ) => {
   try {
@@ -146,7 +137,7 @@ export const generate = async (
 
     await project.prettierJson?.refresh()
 
-    spinner.start()
+    toSpinner({ message: 'Generating...', sub: `Hit 'escape' key to stop.` })
 
     const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 
@@ -160,8 +151,8 @@ export const generate = async (
 
     const message = `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
 
-    if (watching) {
-      spinner.message = message
+    if (!watching) {
+      toMessage({ messages: [{ message }] })
     } else {
       console.log(message)
     }
@@ -170,7 +161,7 @@ export const generate = async (
   } catch (error) {
     console.log('ERROR', error)
 
-    spinner.stop()
+    toMessage({ messages: [] })
 
     console.error(error instanceof Error ? error.message : 'Failed to generate artifacts')
 

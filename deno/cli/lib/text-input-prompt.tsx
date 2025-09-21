@@ -1,5 +1,5 @@
-import React from 'react'
-import { render } from 'ink'
+import React, { useEffect } from 'react'
+import { render, Text, Box } from 'ink'
 import { TextInput } from '@inkjs/ui'
 
 interface TextInputPromptOptions {
@@ -20,65 +20,55 @@ export async function textInputPrompt(
   const options =
     typeof messageOrOptions === 'string' ? { message: messageOrOptions } : messageOrOptions
 
-  return new Promise((resolve, reject) => {
-    let inputValue = options.default || ''
-    let isSubmitted = false
-
-    const TextInputComponent = () => {
-      const [value, setValue] = React.useState(inputValue)
-      const [error, setError] = React.useState<string | null>(null)
-
-      const handleChange = (newValue: string) => {
-        setValue(newValue)
-        inputValue = newValue
-
-        // Clear error on change
-        if (error) {
-          setError(null)
-        }
-      }
-
-      const handleSubmit = () => {
-        if (isSubmitted) return
-
-        // Run validation if provided
-        if (options.validate) {
-          const result = options.validate(inputValue)
-          if (result !== true) {
-            const errorMessage = typeof result === 'string' ? result : 'Invalid input'
-            setError(errorMessage)
-            return
-          }
-        }
-
-        isSubmitted = true
-        resolve(inputValue)
-      }
-
-      return (
-        <>
-          {options.message && <div style={{ marginBottom: 1 }}>{options.message}</div>}
-
-          {error && <div style={{ color: 'red', marginBottom: 1 }}>{error}</div>}
-
-          <TextInput
-            placeholder={options.placeholder || ''}
-            defaultValue={options.default || ''}
-            suggestions={options.suggestions || []}
-            onChange={handleChange}
-            onSubmit={handleSubmit}
-          />
-        </>
-      )
-    }
-
-    try {
-      const app = render(<TextInputComponent />)
-
-      // Handle cleanup if needed
-      app.waitUntilExit().catch(reject)
-    } catch (err) {
-      reject(err)
-    }
+  return new Promise(resolve => {
+    render(<TextInputComponent options={options} resolve={resolve} />)
   })
+}
+
+type TextInputComponentProps = {
+  options: TextInputPromptOptions
+  resolve: (value: string) => void
+}
+
+const TextInputComponent = ({ options, resolve }: TextInputComponentProps) => {
+  const [value, setValue] = React.useState('')
+  const [error, setError] = React.useState<string | null>(null)
+
+  const handleChange = (newValue: string) => {
+    setValue(newValue)
+  }
+
+  const handleSubmit = () => {
+    // Run validation if provided
+    if (typeof options.validate === 'function') {
+      const result = options.validate(value)
+      if (result !== true) {
+        const errorMessage = typeof result === 'string' ? result : 'Invalid input'
+        setError(errorMessage)
+        return
+      } else {
+        setError(null)
+      }
+    }
+
+    resolve(value)
+  }
+
+  return (
+    <Box flexDirection="column">
+      {options.message && <Text color="yellow">{options.message}</Text>}
+
+      <Box flexDirection="row">
+        <TextInput
+          placeholder={options.placeholder || ''}
+          defaultValue={options.default || ''}
+          suggestions={options.suggestions || []}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+        />
+      </Box>
+
+      {error && <Text color="red">{error}</Text>}
+    </Box>
+  )
 }
