@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { render, Text, Box } from 'ink'
 import { TextInput } from '@inkjs/ui'
 

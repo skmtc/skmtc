@@ -1,5 +1,6 @@
 import { Spinner, ThemeProvider, extendTheme, defaultTheme } from '@inkjs/ui'
 import { render, type TextProps, Text } from 'ink'
+import React from 'react'
 
 type ToSpinnerProps = {
   message: string

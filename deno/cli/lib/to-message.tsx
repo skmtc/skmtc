@@ -1,5 +1,5 @@
 import { render, Text, Box } from 'ink'
-
+import React from 'react'
 type Message = {
   message: string
   color?: string
