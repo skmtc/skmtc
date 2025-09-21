@@ -1,5 +1,6 @@
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import { Input, Select, Confirm } from '@skmtc/prompt'
+import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import { ensureDir } from '@std/fs/ensure-dir'
 import { resolve } from '@std/path/resolve'
 import { match } from 'ts-pattern'
@@ -35,12 +36,12 @@ export const toSchemasCreatePrompt = async (skmtcRoot: SkmtcRoot) => {
       installTsp()
     }
 
-    const path = await Input.prompt({
+    const path = await textInputPrompt({
       message: 'Where would you like to create the new TypeSpec schema?',
       suggestions: ['./']
     })
 
-    const schemaName = await Input.prompt({
+    const schemaName = await textInputPrompt({
       message: 'What is the name of the new TypeSpec schema?'
     })
 
@@ -53,7 +54,7 @@ export const toSchemasCreatePrompt = async (skmtcRoot: SkmtcRoot) => {
     suggestions: skmtcRoot.projects.map(({ name }) => name)
   })
 
-  const path = await Input.prompt({
+  const path = await textInputPrompt({
     message: 'Enter path to OpenAPI schema'
   })
 }

@@ -1,5 +1,6 @@
 import { Command } from '@cliffy/command'
-import { Input, Select } from '@skmtc/prompt'
+import { Select } from '@skmtc/prompt'
+import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import * as Sentry from '@sentry/node'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
@@ -24,7 +25,7 @@ export const toBaseFilesPullPrompt = async (skmtcRoot: SkmtcRoot) => {
     }))
   })
 
-  const path = await Input.prompt({
+  const path = await textInputPrompt({
     message: 'Enter destination path for base files'
   })
 

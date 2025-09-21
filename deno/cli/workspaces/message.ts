@@ -1,7 +1,7 @@
 import { Command } from '@cliffy/command'
 import * as Sentry from '@sentry/node'
 import { Workspace } from '../lib/workspace.ts'
-import { Input } from '@skmtc/prompt'
+import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import { WsClient } from '../lib/ws-client.ts'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import type { Project } from '../lib/project.ts'
@@ -27,7 +27,7 @@ export const toWorkspacesMessagePrompt = async (skmtcRoot: SkmtcRoot, projectNam
 
   invariant(project, 'Project not found')
 
-  const content = await Input.prompt({
+  const content = await textInputPrompt({
     message: 'Enter the message to send'
   })
 

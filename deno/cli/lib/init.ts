@@ -1,5 +1,6 @@
 import { Command } from '@cliffy/command'
-import { Checkbox, Input } from '@skmtc/prompt'
+import { Checkbox } from '@skmtc/prompt'
+import { textInputPrompt } from './text-input-prompt.tsx'
 import { toNameSuggest } from './to-name-suggest.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
 import { availableGenerators } from '../available-generators.ts'
@@ -57,7 +58,7 @@ export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
     }))
   })
 
-  const basePath = await Input.prompt({
+  const basePath = await textInputPrompt({
     message: 'Base path for generated files',
     default: 'src'
   })
@@ -72,7 +73,7 @@ type ToNamePromptArgs = {
 export const toNamePrompt = async ({ skmtcRoot }: ToNamePromptArgs) => {
   const suggestedName = toNameSuggest()
 
-  const name: string = await Input.prompt({
+  const name: string = await textInputPrompt({
     message: `Choose a project name [${suggestedName}]`,
     suggestions: [suggestedName],
     validate: value => {

@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Input } from '@skmtc/prompt'
+import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import { ApiClient } from '../lib/api-client.ts'
 import { Manager } from '../lib/manager.ts'
 import * as Sentry from '@sentry/node'
@@ -63,7 +63,7 @@ export const toBaseFilesPushCommand = (_skmtcRoot: SkmtcRoot) => {
 }
 
 export const toBaseFilesPushPrompt = async (_skmtcRoot: SkmtcRoot, projectName: string) => {
-  const path = await Input.prompt({
+  const path = await textInputPrompt({
     message: 'Enter path to base files folder'
   })
 

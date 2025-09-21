@@ -1,5 +1,6 @@
 import { Command, EnumType } from '@cliffy/command'
 import { Input } from '@skmtc/prompt'
+import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import { checkProjectName } from '@skmtc/core'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
@@ -27,7 +28,7 @@ export const toAddPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => 
 
   invariant(project, 'Project not found')
 
-  const generator: string = await Input.prompt({
+  const generator: string = await textInputPrompt({
     message: 'Generator name',
     validate: value => checkProjectName(value) ?? false
   })

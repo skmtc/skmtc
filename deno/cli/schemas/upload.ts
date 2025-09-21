@@ -1,5 +1,6 @@
 import { Command } from '@cliffy/command'
-import { Input, Confirm } from '@skmtc/prompt'
+import { Confirm } from '@skmtc/prompt'
+import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import { OpenApiSchema } from '../lib/openapi-schema.ts'
 import * as Sentry from '@sentry/node'
 import chokidar from 'chokidar'
@@ -34,9 +35,8 @@ export const toUploadPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) 
 
   invariant(project, 'Project not found')
 
-  const path = await Input.prompt({
-    message: 'Enter path to OpenAPI schema',
-    files: true
+  const path = await textInputPrompt({
+    message: 'Enter path to OpenAPI schema'
   })
 
   const watch = await Confirm.prompt({

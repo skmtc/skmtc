@@ -4,7 +4,15 @@
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.841"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.841",
+    "ink": "npm:ink@^6.2.3",
+    "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
+    "react": "npm:react@^19.1.1"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "jsxImportSourceTypes": "npm:@types/react@^19"
   },
   "tasks": {
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",

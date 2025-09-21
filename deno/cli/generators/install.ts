@@ -1,5 +1,6 @@
 import { Command } from '@cliffy/command'
 import { Checkbox, Input, Select } from '@skmtc/prompt'
+import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { availableGenerators } from '../available-generators.ts'
@@ -117,7 +118,7 @@ const createProject = async ({
   skmtcRoot,
   generatorName
 }: CreateProjectArgs): Promise<ToProjectResult> => {
-  const name = await Input.prompt(
+  const name = await textInputPrompt(
     "Let's create a new Skmtc project. What would you like to call it?"
   )
 
