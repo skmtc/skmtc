@@ -16,10 +16,10 @@ interface TextInputPromptOptions {
  */
 export async function textInputPrompt(
   messageOrOptions: string | TextInputPromptOptions
-): Promise<string | null> {
+): Promise<string> {
   const options =
     typeof messageOrOptions === 'string' ? { message: messageOrOptions } : messageOrOptions
-  let value: string | null = null
+  let value = ''
 
   const { waitUntilExit } = render(
     <TextInputComponent options={options} resolve={v => (value = v)} />
