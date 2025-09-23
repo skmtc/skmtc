@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, Text, Box, useApp } from 'ink'
+import { render, Text, Box, useApp, type Instance } from 'ink'
 import { TextInput } from '@inkjs/ui'
 
 interface TextInputPromptOptions {
@@ -20,18 +20,29 @@ export async function textInputPrompt(
   const options =
     typeof messageOrOptions === 'string' ? { message: messageOrOptions } : messageOrOptions
 
-  return new Promise(resolve => {
-    const res = render(
+  let instance: Instance | undefined = undefined
+  const done = new Promise<string>(resolve => {
+    instance = render(
       <TextInputComponent
         options={options}
         resolve={v => {
-          res.unmount()
-
           resolve(v)
         }}
       />
     )
   })
+
+  const value = await done
+
+  if (instance) {
+    // @ts-expect-error - instance is not typed
+    instance?.unmount()
+
+    // @ts-expect-error - instance is not typed
+    await instance?.waitUntilExit()
+  }
+
+  return value
 }
 
 type TextInputComponentProps = {
@@ -61,8 +72,9 @@ const TextInputComponent = ({ options, resolve }: TextInputComponentProps) => {
       }
     }
 
+    setTimeout(() => exit(), 0)
+
     resolve(value)
-    exit()
   }
 
   return (
