@@ -16,6 +16,9 @@ await build({
     deno: true,
     timers: true
   },
+  mappings: {
+    './workspaces/serve.ts': './workspaces/serve.node.ts'
+  },
   scriptModule: false,
   package: {
     // package.json properties

@@ -32,7 +32,7 @@ type ServeArgs = {
   port: string | undefined
 }
 
-export const serve = async ({ project, skmtcRoot, port = '8001' }: ServeArgs) => {
+const serve = async ({ project, skmtcRoot, port = '8001' }: ServeArgs) => {
   try {
     await project.clientJson?.refresh()
 
