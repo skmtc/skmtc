@@ -1,4 +1,4 @@
-import { Select } from '@skmtc/prompt'
+import { Select } from '@cliffy/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
 export const toSelectProject = async (skmtcRoot: SkmtcRoot) => {

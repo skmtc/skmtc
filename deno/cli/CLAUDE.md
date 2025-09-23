@@ -78,7 +78,7 @@ Each command follows a consistent pattern:
 ## Dependencies
 
 - `@cliffy/command` - CLI framework
-- `@skmtc/prompt` - Interactive prompts
+- `@cliffy/prompt` - Interactive prompts
 - `@skmtc/core` - Core SKMTC functionality
 - `@sentry/node` - Error tracking
 - `@std/fs` - File system utilities

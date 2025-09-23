@@ -1,5 +1,5 @@
 import { toInitPrompt } from '../lib/init.ts'
-import { Select } from '@skmtc/prompt'
+import { Select } from '@cliffy/prompt'
 import { match } from 'ts-pattern'
 import { toLoginPrompt, toLogoutPrompt } from '../auth/auth.ts'
 import { toDeployPrompt, description as deployDescription } from '../generators/deploy.ts'

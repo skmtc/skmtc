@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Checkbox, Input, Select } from '@skmtc/prompt'
+import { Checkbox, Input, Select } from '@cliffy/prompt'
 import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'

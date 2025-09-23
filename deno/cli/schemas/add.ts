@@ -1,5 +1,5 @@
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
-import { Input, Select, Confirm } from '@skmtc/prompt'
+import { Input, Select, Confirm } from '@cliffy/prompt'
 import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import { ensureDir } from '@std/fs/ensure-dir'
 import { resolve } from '@std/path/resolve'

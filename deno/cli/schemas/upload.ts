@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Confirm } from '@skmtc/prompt'
+import { Confirm } from '@cliffy/prompt'
 import { textInputPrompt } from '../lib/text-input-prompt.tsx'
 import { OpenApiSchema } from '../lib/openapi-schema.ts'
 import * as Sentry from '@sentry/node'

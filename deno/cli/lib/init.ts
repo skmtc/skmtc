@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Checkbox } from '@skmtc/prompt'
+import { Checkbox } from '@cliffy/prompt'
 import { textInputPrompt } from './text-input-prompt.tsx'
 import { toNameSuggest } from './to-name-suggest.ts'
 import type { SkmtcRoot } from './skmtc-root.ts'
@@ -73,9 +73,8 @@ type ToNamePromptArgs = {
 export const toNamePrompt = async ({ skmtcRoot }: ToNamePromptArgs) => {
   const suggestedName = toNameSuggest()
 
-  const name: string = await textInputPrompt({
-    message: `Choose a project name [${suggestedName}]`,
-    suggestions: [suggestedName],
+  const name: string | null = await textInputPrompt({
+    message: `Enter a project name`,
     validate: value => {
       if (value.length < 3) {
         return 'Project name must be at least 3 characters long'

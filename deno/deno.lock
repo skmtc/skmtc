@@ -6,13 +6,12 @@
     "jsr:@cliffy/flags@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/internal@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/keycode@1.0.0-rc.8": "1.0.0-rc.8",
+    "jsr:@cliffy/prompt@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/table@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/testing@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cmd-johnson/oauth2-client@2": "2.0.0",
     "jsr:@david/code-block-writer@^13.0.3": "13.0.3",
     "jsr:@deno/dnt@0.42.3": "0.42.3",
-    "jsr:@skmtc/internal@1.0.0-rc.9": "1.0.0-rc.9",
-    "jsr:@skmtc/prompt@1.0.0-rc.9": "1.0.0-rc.9",
     "jsr:@std/assert@^1.0.10": "1.0.14",
     "jsr:@std/assert@^1.0.13": "1.0.14",
     "jsr:@std/assert@^1.0.2": "1.0.14",
@@ -56,10 +55,10 @@
     "jsr:@std/yaml@^1.0.5": "1.0.9",
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
     "jsr:@ts-morph/common@0.27": "0.27.0",
-    "npm:@apiture/openapi-down-convert@0.14": "0.14.0",
+    "npm:@apiture/openapi-down-convert@0.14": "0.14.1",
     "npm:@apiture/openapi-down-convert@0.14.0": "0.14.0",
     "npm:@babel/helper-validator-identifier@7.27.1": "7.27.1",
-    "npm:@inkjs/ui@2": "2.0.0_ink@6.3.0__@types+react@19.1.12__react@19.1.1_@types+react@19.1.12_react@19.1.1",
+    "npm:@inkjs/ui@2": "2.0.0_ink@6.3.0__react@19.1.1_react@19.1.1",
     "npm:@modelcontextprotocol/sdk@^1.17.3": "1.18.0_express@5.1.0_zod@3.25.76",
     "npm:@sentry/node@^10.8.0": "10.11.0_@opentelemetry+api@1.9.0_@opentelemetry+context-async-hooks@2.1.0__@opentelemetry+api@1.9.0_@opentelemetry+core@2.1.0__@opentelemetry+api@1.9.0_@opentelemetry+instrumentation@0.203.0__@opentelemetry+api@1.9.0_@opentelemetry+resources@2.1.0__@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@2.1.0__@opentelemetry+api@1.9.0_@opentelemetry+semantic-conventions@1.37.0",
     "npm:@supabase/supabase-js@^2.57.4": "2.57.4",
@@ -72,7 +71,7 @@
     "npm:gpt-tokenizer@^3.0.1": "3.0.1",
     "npm:hono@4.7.2": "4.7.2",
     "npm:ignore@7.0.5": "7.0.5",
-    "npm:ink@^6.2.3": "6.3.0_@types+react@19.1.12_react@19.1.1",
+    "npm:ink@^6.2.3": "6.3.0_react@19.1.1",
     "npm:lodash-es@4.17.21": "4.17.21",
     "npm:make-synchronized@~0.7.2": "0.7.2",
     "npm:octokit@^5.0.3": "5.0.3_@octokit+core@7.0.3",
@@ -122,6 +121,19 @@
     "@cliffy/keycode@1.0.0-rc.8": {
       "integrity": "76dbf85a67ec0aea2e29ca049b8507b6b3f62a2a971bd744d8d3fc447c177cd9"
     },
+    "@cliffy/prompt@1.0.0-rc.8": {
+      "integrity": "eba403ea1d47b9971bf2210fa35f4dc7ebd2aba87beec9540ae47552806e2f25",
+      "dependencies": [
+        "jsr:@cliffy/ansi",
+        "jsr:@cliffy/internal",
+        "jsr:@cliffy/keycode",
+        "jsr:@std/assert@~1.0.6",
+        "jsr:@std/fmt@~1.0.2",
+        "jsr:@std/io@~0.224.9",
+        "jsr:@std/path@~1.0.6",
+        "jsr:@std/text"
+      ]
+    },
     "@cliffy/table@1.0.0-rc.8": {
       "integrity": "8bbcdc2ba5e0061b4b13810a24e6f5c6ab19c09f0cce9eb691ccd76c7c6c9db5",
       "dependencies": [
@@ -155,25 +167,6 @@
         "jsr:@std/fs@1",
         "jsr:@std/path@1",
         "jsr:@ts-morph/bootstrap"
-      ]
-    },
-    "@skmtc/internal@1.0.0-rc.9": {
-      "integrity": "e4b72a3105db67a4f6a3a29b5af8f60ff44266066408e30cc69866d3ba7811bd",
-      "dependencies": [
-        "jsr:@std/fmt@~1.0.2"
-      ]
-    },
-    "@skmtc/prompt@1.0.0-rc.9": {
-      "integrity": "4757b203495e2e97d9511f303637428f832821b38247f32b288c65ef7a67f73c",
-      "dependencies": [
-        "jsr:@cliffy/ansi",
-        "jsr:@cliffy/keycode",
-        "jsr:@skmtc/internal",
-        "jsr:@std/assert@~1.0.6",
-        "jsr:@std/fmt@~1.0.2",
-        "jsr:@std/io@~0.224.9",
-        "jsr:@std/path@~1.0.6",
-        "jsr:@std/text"
       ]
     },
     "@std/assert@1.0.14": {
@@ -316,13 +309,22 @@
       ],
       "bin": true
     },
+    "@apiture/openapi-down-convert@0.14.1": {
+      "integrity": "sha512-7uQNuD3Zt8iPwyQjYo3kAiMXOncSvVKXvQNYMjlMn8cmIwkYH/Hl9s6VRoyhUFgg/3rSq4uVJJlLp2CMZjBlSQ==",
+      "dependencies": [
+        "commander",
+        "js-yaml",
+        "typescript"
+      ],
+      "bin": true
+    },
     "@babel/helper-validator-identifier@7.27.1": {
       "integrity": "sha512-D2hP9eA+Sqx1kBZgzxZh0y1trbuU+JoDkiEwqhQ36nodYqJwyEIhPSdMNd7lOm/4io72luTPWH20Yda0xOuUow=="
     },
     "@exodus/schemasafe@1.3.0": {
       "integrity": "sha512-5Aap/GaRupgNx/feGBwLLTVv8OQFfv3pq2lPRzPg9R+IOBnDgghTGW7l7EuVXOvg5cc/xSAlRW8rBrjIC3Nvqw=="
     },
-    "@inkjs/ui@2.0.0_ink@6.3.0__@types+react@19.1.12__react@19.1.1_@types+react@19.1.12_react@19.1.1": {
+    "@inkjs/ui@2.0.0_ink@6.3.0__react@19.1.1_react@19.1.1": {
       "integrity": "sha512-5+8fJmwtF9UvikzLfph9sA+LS+l37Ij/szQltkuXLOAXwNkBX9innfzh4pLGXIB59vKEQUtc6D4qGvhD7h3pAg==",
       "dependencies": [
         "chalk",
@@ -1473,11 +1475,10 @@
     "inherits@2.0.4": {
       "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ=="
     },
-    "ink@6.3.0_@types+react@19.1.12_react@19.1.1": {
+    "ink@6.3.0_react@19.1.1": {
       "integrity": "sha512-2CbJAa7XeziZYe6pDS5RVLirRY28iSGMQuEV8jRU5NQsONQNfcR/BZHHc9vkMg2lGYTHTM2pskxC1YmY28p6bQ==",
       "dependencies": [
         "@alcalzone/ansi-tokenize",
-        "@types/react",
         "ansi-escapes",
         "ansi-styles@6.2.3",
         "auto-bind",
@@ -1501,9 +1502,6 @@
         "wrap-ansi@9.0.2",
         "ws",
         "yoga-layout"
-      ],
-      "optionalPeers": [
-        "@types/react"
       ]
     },
     "ipaddr.js@1.9.1": {
@@ -2176,12 +2174,12 @@
     "dependencies": [
       "jsr:@cliffy/ansi@1.0.0-rc.8",
       "jsr:@cliffy/command@1.0.0-rc.8",
+      "jsr:@cliffy/internal@1.0.0-rc.8",
       "jsr:@cliffy/keycode@1.0.0-rc.8",
+      "jsr:@cliffy/prompt@1.0.0-rc.8",
       "jsr:@cliffy/testing@1.0.0-rc.8",
       "jsr:@cmd-johnson/oauth2-client@2",
       "jsr:@deno/dnt@0.42.3",
-      "jsr:@skmtc/internal@1.0.0-rc.9",
-      "jsr:@skmtc/prompt@1.0.0-rc.9",
       "jsr:@std/assert@^1.0.10",
       "jsr:@std/encoding@^1.0.10",
       "jsr:@std/fmt@^1.0.8",
@@ -2213,7 +2211,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.845",
+          "jsr:@skmtc/core@^0.0.846",
           "npm:@inkjs/ui@2",
           "npm:@types/react@19",
           "npm:ink@^6.2.3",
@@ -2237,7 +2235,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.266",
+          "jsr:@skmtc/cli@^0.0.267",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -2246,7 +2244,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.845"
+          "jsr:@skmtc/core@^0.0.846"
         ]
       }
     }

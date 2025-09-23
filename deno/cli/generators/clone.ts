@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Checkbox } from '@skmtc/prompt'
+import { Checkbox } from '@cliffy/prompt'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { parseModuleName } from '@skmtc/core'
