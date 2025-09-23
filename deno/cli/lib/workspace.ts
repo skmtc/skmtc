@@ -12,6 +12,9 @@ import { type ManifestContent, manifestContent } from '@skmtc/core'
 import { createApiServersAccountNameServerNameArtifacts } from '@/services/createApiServersAccountNameServerNameArtifacts.generated.ts'
 import type { RemoteProject } from './remote-project.ts'
 import { toRootPath } from './to-root-path.ts'
+import type { ClientSettings } from '@/types/clientSettings.generated.ts'
+import type { PrettierConfigType } from '@/types/prettierConfigType.generated.ts'
+import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
 export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
@@ -87,24 +90,25 @@ export class Workspace {
 
     const manifestPath = project.toManifestPath()
 
-    const projectKey = project.toProjectKey()
-
-    const [accountName, serverName] = projectKey.split('/')
-
     const schema = project.schemaFile?.contents
+    const clientSettings = project.clientJson?.contents?.settings
+    const prettier = project.prettierJson?.contents
 
-    invariant(schema, 'Schema not found 1')
+    invariant(schema, 'Schema not found')
 
-    const { artifacts, manifest } = await createApiServersAccountNameServerNameArtifacts({
-      supabase: project.manager.auth.supabase,
-      accountName,
-      serverName,
-      body: {
-        schema,
-        clientSettings: project.clientJson?.contents?.settings,
-        prettier: project.prettierJson?.contents
-      }
-    })
+    const { artifacts, manifest } = project.clientJson.contents?.serverUrl
+      ? await generateLocal({
+          schema,
+          clientSettings,
+          prettier,
+          localUrl: project.clientJson.contents?.serverUrl
+        })
+      : await generateRemote({
+          project,
+          schema,
+          clientSettings,
+          prettier
+        })
 
     const skmtcRootPath = toRootPath()
 
@@ -125,9 +129,62 @@ export class Workspace {
 
       ensureDirSync(dir)
 
+      console.log('absolutePath', absolutePath)
+
       Deno.writeTextFileSync(absolutePath, artifactContent)
     })
 
     return { manifest, artifacts }
   }
+}
+
+type GenerateRemoteArgs = {
+  project: Project | RemoteProject
+  schema: string
+  clientSettings: ClientSettings | undefined
+  prettier: PrettierConfigType | undefined
+}
+
+const generateRemote = async ({
+  project,
+  schema,
+  clientSettings,
+  prettier
+}: GenerateRemoteArgs) => {
+  const projectKey = project.toProjectKey()
+
+  const [accountName, serverName] = projectKey.split('/')
+
+  return await createApiServersAccountNameServerNameArtifacts({
+    supabase: project.manager.auth.supabase,
+    accountName,
+    serverName,
+    body: {
+      schema,
+      clientSettings,
+      prettier
+    }
+  })
+}
+
+type GenerateLocalArgs = {
+  localUrl: string
+  schema: string
+  clientSettings: ClientSettings | undefined
+  prettier: PrettierConfigType | undefined
+}
+
+const generateLocal = async ({ localUrl, schema, clientSettings, prettier }: GenerateLocalArgs) => {
+  const res = await fetch(`${localUrl}/artifacts`, {
+    method: 'POST',
+    body: JSON.stringify({
+      schema,
+      clientSettings,
+      prettier
+    })
+  })
+
+  const data = await res.json()
+
+  return createArtifactsResponse.parse(data)
 }

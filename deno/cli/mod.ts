@@ -13,6 +13,7 @@ import { SkmtcRoot } from './lib/skmtc-root.ts'
 import { Manager } from './lib/manager.ts'
 import { toRuntimeLogsCommand } from './workspaces/runtime-logs.ts'
 import { runPrompt } from './prompt/run-prompt.ts'
+import { toServeCommand } from './workspaces/serve.ts'
 
 Sentry.init({
   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
@@ -32,6 +33,7 @@ await new Command()
   .command('add', toAddCommand(skmtcRoot))
   .command('clone', toCloneCommand(skmtcRoot))
   .command('deploy', toDeployCommand(skmtcRoot))
+  .command('serve', toServeCommand(skmtcRoot))
   .command('install', toInstallCommand(skmtcRoot))
   .command('list', toListCommand(skmtcRoot))
   .command('runtime-logs', toRuntimeLogsCommand(skmtcRoot))

@@ -250,6 +250,8 @@ export type ClientSettings = {
  * environments or organizational contexts.
  */
 export type SkmtcClientConfig = {
+  /** Url of the server when running locally */
+  serverUrl?: string
   /** Optional project identifier for organizational contexts */
   projectKey?: string
   /** Optional schema path or url for OpenAPI schema */
@@ -265,6 +267,7 @@ export type SkmtcClientConfig = {
  * and client settings structure.
  */
 export const skmtcClientConfig: v.GenericSchema<SkmtcClientConfig> = v.object({
+  serverUrl: v.optional(v.string()),
   projectKey: v.optional(v.string()),
   source: v.optional(v.string()),
   settings: clientSettings
