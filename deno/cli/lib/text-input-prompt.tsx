@@ -38,8 +38,8 @@ export async function textInputPrompt(
     // @ts-expect-error - instance is not typed
     instance?.unmount()
 
-    // @ts-expect-error - instance is not typed
-    await instance?.waitUntilExit()
+    // // @ts-expect-error - instance is not typed
+    // await instance?.waitUntilExit()
   }
 
   return value
@@ -53,7 +53,6 @@ type TextInputComponentProps = {
 const TextInputComponent = ({ options, resolve }: TextInputComponentProps) => {
   const [value, setValue] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
-  const { exit } = useApp()
 
   const handleChange = (newValue: string) => {
     setValue(newValue)
@@ -71,8 +70,6 @@ const TextInputComponent = ({ options, resolve }: TextInputComponentProps) => {
         setError(null)
       }
     }
-
-    setTimeout(() => exit(), 0)
 
     resolve(value)
   }
