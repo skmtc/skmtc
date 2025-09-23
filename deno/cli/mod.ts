@@ -22,7 +22,7 @@ Sentry.init({
 const manager = new Manager()
 const skmtcRoot = await SkmtcRoot.open(manager)
 
-await skmtcRoot.upgradeCheck()
+// await skmtcRoot.upgradeCheck()
 
 await new Command()
   .description('Generate code from OpenAPI schema')

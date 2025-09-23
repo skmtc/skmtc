@@ -1,10 +1,10 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.272",
+  "version": "0.0.273",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.851",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.852",
     "ink": "npm:ink@^6.2.3",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
     "react": "npm:react@^19.1.1"
