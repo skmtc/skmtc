@@ -73,7 +73,7 @@ type ToNamePromptArgs = {
 export const toNamePrompt = async ({ skmtcRoot }: ToNamePromptArgs) => {
   const suggestedName = toNameSuggest()
 
-  const name: string | null = await textInputPrompt({
+  const name: string = await textInputPrompt({
     message: `Enter a project name`,
     validate: value => {
       if (value.length < 3) {

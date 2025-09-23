@@ -19,15 +19,19 @@ export async function textInputPrompt(
 ): Promise<string> {
   const options =
     typeof messageOrOptions === 'string' ? { message: messageOrOptions } : messageOrOptions
-  let value = ''
 
-  const { waitUntilExit } = render(
-    <TextInputComponent options={options} resolve={v => (value = v)} />
-  )
+  return new Promise(resolve => {
+    const res = render(
+      <TextInputComponent
+        options={options}
+        resolve={v => {
+          res.unmount()
 
-  await waitUntilExit()
-
-  return value
+          resolve(v)
+        }}
+      />
+    )
+  })
 }
 
 type TextInputComponentProps = {
