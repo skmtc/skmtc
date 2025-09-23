@@ -38,8 +38,8 @@ export async function textInputPrompt(
     // @ts-expect-error - instance is not typed
     instance?.unmount()
 
-    // // @ts-expect-error - instance is not typed
-    // await instance?.waitUntilExit()
+    // @ts-expect-error - instance is not typed
+    await instance?.waitUntilExit()
   }
 
   return value
