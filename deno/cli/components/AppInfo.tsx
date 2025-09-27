@@ -2,6 +2,7 @@ import { Box, Text } from 'ink'
 import { toRelativeRootPath } from '../lib/to-root-path.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 import { useSkmtc } from './SkmtcContext.tsx'
+import { StatusMessage } from '@inkjs/ui'
 
 export const AppInfo = () => {
   const { state } = useSkmtc()
@@ -13,49 +14,56 @@ export const AppInfo = () => {
   }
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderDimColor
-      width="auto"
-      paddingLeft={1}
-      paddingRight={1}
-      marginLeft={1}
-      marginRight={1}
-      marginBottom={1}
-    >
-      <Box flexDirection="row" marginBottom={1} justifyContent="space-between">
-        <Box flexDirection="row">
-          <Text dimColor>{'>_ '}</Text>
-          <Text color="white">Skmtc CLI </Text>
-          <Text dimColor>{`(v${denoJson.version})`}</Text>
-        </Box>
-        <Box flexDirection="row">
-          {state.session ? (
-            <Text>
-              <Text dimColor>Logged in as </Text>
-              <Text>{state.session.user.user_metadata.user_name}</Text>
-            </Text>
-          ) : (
-            <Text>You are not logged in</Text>
-          )}
-        </Box>
-      </Box>
-
-      <Box flexDirection="row" justifyContent="space-between">
-        <Box flexDirection="row">
-          <Text dimColor>directory: </Text>
-          <Text>{appRootPath}</Text>
-        </Box>
-        {state.view.page === 'project' ? (
+    <>
+      <Box
+        flexDirection="column"
+        borderStyle="single"
+        borderDimColor
+        width="auto"
+        paddingLeft={1}
+        paddingRight={1}
+        marginLeft={1}
+        marginRight={1}
+        marginBottom={state.message ? 0 : 1}
+      >
+        <Box flexDirection="row" marginBottom={1} justifyContent="space-between">
           <Box flexDirection="row">
-            <Text dimColor>project: </Text>
-            <Text>{state.view.projectName}</Text>
+            <Text dimColor>{'>_ '}</Text>
+            <Text color="white">Skmtc CLI </Text>
+            <Text dimColor>{`(v${denoJson.version})`}</Text>
           </Box>
-        ) : (
-          <Box></Box>
-        )}
+          <Box flexDirection="row">
+            {state.session ? (
+              <Text>
+                <Text dimColor>Logged in as </Text>
+                <Text>{state.session.user.user_metadata.user_name}</Text>
+              </Text>
+            ) : (
+              <Text>You are not logged in</Text>
+            )}
+          </Box>
+        </Box>
+
+        <Box flexDirection="row" justifyContent="space-between">
+          {'projectName' in state.view ? (
+            <Box flexDirection="row">
+              <Text dimColor>project: </Text>
+              <Text>{state.view.projectName}</Text>
+            </Box>
+          ) : (
+            <Box></Box>
+          )}
+          <Box flexDirection="row">
+            <Text dimColor>directory: </Text>
+            <Text>{appRootPath}</Text>
+          </Box>
+        </Box>
       </Box>
-    </Box>
+      {state.message ? (
+        <Box flexDirection="row" paddingLeft={2} paddingBottom={1}>
+          <StatusMessage variant="success">{state.message}</StatusMessage>
+        </Box>
+      ) : null}
+    </>
   )
 }

@@ -2,20 +2,20 @@ import { Box, Text, useInput } from 'ink'
 import { useSkmtc } from './SkmtcContext.tsx'
 import type { Project } from '../lib/project.ts'
 import type { RemoteProject } from '../lib/remote-project.ts'
-import SelectInput from 'ink-select-input'
 import { useEffect, useReducer, useState } from 'react'
-import { generate } from '../workspaces/generate.ts'
+import { generate, toGenerateStatus } from '../workspaces/generate.ts'
 import { match } from 'ts-pattern'
 import { Spinner } from '@inkjs/ui'
 import chokidar, { type FSWatcher } from 'chokidar'
 import invariant from 'tiny-invariant'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import { BooleanPrompt } from './BooleanPrompt.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
 }
 
-type GenerateStateType = 'idle' | 'running' | 'completed' | 'failed'
+type GenerateStateType = 'idle' | 'running'
 
 type GenerateState = {
   state: GenerateStateType
@@ -41,7 +41,7 @@ const generateReducer = (state: GenerateState, action: GenerateAction) => {
 }
 
 export const GenerateView = ({ project }: GenerateProps) => {
-  const { state: skmtcState, dispatch: skmtcDispatch } = useSkmtc()
+  const { state: skmtcState } = useSkmtc()
 
   const [state, dispatch] = useReducer(generateReducer, {
     state: 'idle',
@@ -50,16 +50,11 @@ export const GenerateView = ({ project }: GenerateProps) => {
 
   const { skmtcRoot } = skmtcState
 
-  console.log('STATE', state)
-  console.log('WATCH MODE', state.watchMode)
-
   return match(state)
     .with({ state: 'idle' }, () => (
       <BooleanPrompt
         label="Watch for changes?"
         setValue={value => {
-          console.log('SET VALUE', value)
-
           dispatch({ type: 'set-watch-mode', payload: value })
 
           dispatch({ type: 'set-state', payload: 'running' })
@@ -71,12 +66,41 @@ export const GenerateView = ({ project }: GenerateProps) => {
       return state.watchMode ? (
         <WatchGenerate skmtcRoot={skmtcRoot} project={project} />
       ) : (
-        <Spinner label="Generating..." />
+        <RunGenerate skmtcRoot={skmtcRoot} project={project} />
       )
     })
-    .with({ state: 'completed' }, () => <Text>Completed</Text>)
-    .with({ state: 'failed' }, () => <Text>Failed</Text>)
     .exhaustive()
+}
+
+type RunGenerateProps = {
+  skmtcRoot: SkmtcRoot
+  project: Project | RemoteProject
+}
+
+const RunGenerate = ({ skmtcRoot, project }: RunGenerateProps) => {
+  const { dispatch } = useSkmtc()
+
+  const [run, setRun] = useState(true)
+
+  useEffect(() => {
+    if (run) {
+      generate({ project, skmtcRoot, interactive: true })
+        .then(stats => {
+          if (stats) {
+            dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
+          }
+        })
+        .catch(error => {
+          console.error(error)
+        })
+        .finally(() => {
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+          setRun(false)
+        })
+    }
+  }, [run])
+
+  return <Spinner label="Generating..." />
 }
 
 type WatchGenerateProps = {
@@ -105,7 +129,7 @@ const WatchGenerate = ({ skmtcRoot, project }: WatchGenerateProps) => {
 
   useEffect(() => {
     if (run) {
-      generate({ project, skmtcRoot, watching: true })
+      generate({ project, skmtcRoot, interactive: true })
         .catch(error => {
           console.error(error)
         })
@@ -125,28 +149,6 @@ const WatchGenerate = ({ skmtcRoot, project }: WatchGenerateProps) => {
     <Box flexDirection="column">
       <Spinner label={`Watching ${schemaSource.path}`} />
       <Text dimColor>Hit 'escape' key to stop.</Text>
-    </Box>
-  )
-}
-
-type BooleanPromptProps = {
-  label: string
-  setValue: (value: boolean) => void
-}
-
-const BooleanPrompt = ({ label, setValue }: BooleanPromptProps) => {
-  return (
-    <Box flexDirection="column">
-      <Text>{label}</Text>
-      <SelectInput
-        items={[
-          { label: 'Yes', value: true },
-          { label: 'No', value: false }
-        ]}
-        onSelect={({ value }) => {
-          setValue(value)
-        }}
-      />
     </Box>
   )
 }

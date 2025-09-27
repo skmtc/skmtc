@@ -11,7 +11,10 @@ type SkmtcAction =
         session: Session | null
       }
     }
-
+  | {
+      type: 'set-message'
+      payload: string | null
+    }
 type SkmtcDispatch = (action: SkmtcAction) => void
 
 type ViewState =
@@ -36,6 +39,7 @@ type State = {
   view: ViewState
   skmtcRoot: SkmtcRoot
   session: Session | null
+  message: string | null
 }
 type SkmtcProviderProps = {
   skmtcRoot: SkmtcRoot
@@ -51,7 +55,7 @@ const skmtcReducer = (state: State, action: SkmtcAction) => {
   return match(action)
     .with({ type: 'set-view' }, ({ payload }) => ({ ...state, view: payload }))
     .with({ type: 'set-session' }, ({ payload }) => ({ ...state, session: payload.session }))
-
+    .with({ type: 'set-message' }, ({ payload }) => ({ ...state, message: payload }))
     .exhaustive()
 }
 
@@ -59,7 +63,8 @@ const SkmtcProvider = ({ children, skmtcRoot, session }: SkmtcProviderProps) => 
   const [state, dispatch] = useReducer(skmtcReducer, {
     view: { page: 'home' },
     skmtcRoot,
-    session
+    session,
+    message: null
   })
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context
@@ -69,9 +74,11 @@ const SkmtcProvider = ({ children, skmtcRoot, session }: SkmtcProviderProps) => 
 
 const useSkmtc = () => {
   const context = useContext(SkmtcStateContext)
+
   if (context === undefined) {
     throw new Error('useSkmtc must be used within a SkmtcProvider')
   }
+
   return context
 }
 

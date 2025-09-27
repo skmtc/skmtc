@@ -10,7 +10,7 @@
     "ink-select-input": "npm:ink-select-input@^6.2.0",
     "ink-link": "npm:ink-link@^5.0.0",
     "react": "npm:react@^19.1.1",
-    "ink-confirm-input": "npm:ink-confirm-input@^2.0.0" 
+    "ink-confirm-input": "npm:ink-confirm-input@^2.0.0"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

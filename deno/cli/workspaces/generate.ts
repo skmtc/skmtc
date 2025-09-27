@@ -5,11 +5,11 @@ import chokidar from 'chokidar'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { Project } from '../lib/project.ts'
-import { formatNumber, toGenerationStats } from '@skmtc/core'
+import { formatNumber, toGenerationStats, type GenerationStats } from '@skmtc/core'
 import { keypress } from '../lib/keypress.ts'
 import { relative } from '@std/path/relative'
 import type { RemoteProject } from '../lib/remote-project.ts'
-import { toMessage } from '../lib/to-message.tsx'
+// import { toMessage } from '../lib/to-message.tsx'
 import { toSpinner } from '../lib/to-spinner.tsx'
 
 export const description = 'Generate artifacts'
@@ -80,13 +80,13 @@ export const toGenerateWatchPrompt = async (skmtcRoot: SkmtcRoot, projectName: s
 
   for await (const key of keypress()) {
     if (key.ctrl && key.name === 'c') {
-      toMessage({ messages: [] })
+      // toMessage({ messages: [] })
 
       return
     }
 
     if (key.name === 'escape') {
-      toMessage({ messages: [] })
+      // toMessage({ messages: [] })
 
       return
     }
@@ -114,7 +114,7 @@ export const setupWatcher = ({ project, skmtcRoot }: WatchGenerateArgs) => {
 type GenerateArgs = {
   project: Project | RemoteProject
   skmtcRoot: SkmtcRoot
-  watching?: boolean
+  interactive?: boolean
 }
 
 type GenerateOptions = {
@@ -122,7 +122,7 @@ type GenerateOptions = {
 }
 
 export const generate = async (
-  { project, skmtcRoot, watching }: GenerateArgs,
+  { project, skmtcRoot, interactive }: GenerateArgs,
   { logSuccess }: GenerateOptions = {}
 ) => {
   try {
@@ -130,37 +130,33 @@ export const generate = async (
 
     await project.clientJson?.refresh()
 
+    throw new Error('Remove promptOrFail and ensure data is available before calling generate')
+
     if (project) {
       await project.schemaFile.promptOrFail(project)
     }
 
     await project.prettierJson?.refresh()
 
-    toSpinner({ message: 'Generating...', sub: `Hit 'escape' key to stop.` })
-
     const { artifacts, manifest } = await workspace.generateArtifacts({ project, skmtcRoot })
 
-    const { tokens, lines, totalTime, errors, files } = toGenerationStats({ manifest, artifacts })
+    const stats = toGenerationStats({ manifest, artifacts })
 
-    if (errors.length) {
+    if (stats.errors.length) {
       console.error(
-        `Generation completed with ${formatNumber(errors.length)} errors. View runtime logs for more info.`
+        `Generation completed with ${formatNumber(stats.errors.length)} errors. View runtime logs for more info.`
       )
     }
 
-    const message = `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
-
-    if (!watching) {
-      toMessage({ messages: [{ message }] })
-    } else {
-      console.log(message)
+    if (!interactive) {
+      console.log(toGenerateStatus(stats))
     }
 
     await skmtcRoot.manager.success()
+
+    return stats
   } catch (error) {
     console.log('ERROR', error)
-
-    toMessage({ messages: [] })
 
     console.error(error instanceof Error ? error.message : 'Failed to generate artifacts')
 
@@ -170,4 +166,8 @@ export const generate = async (
 
     await skmtcRoot.manager.fail()
   }
+}
+
+export const toGenerateStatus = ({ files, lines, tokens, totalTime }: GenerationStats) => {
+  return `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
 }
