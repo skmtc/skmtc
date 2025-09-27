@@ -12,11 +12,11 @@ export const toLoginCommand = (skmtcRoot: SkmtcRoot) => {
 }
 
 export const toLogoutPrompt = async (skmtcRoot: SkmtcRoot, _projectName: string) => {
-  await skmtcRoot.logout()
+  await skmtcRoot.logout({ silent: true })
 }
 
 export const toLogoutCommand = (skmtcRoot: SkmtcRoot) => {
   return new Command()
     .description('Log out of Codesquared')
-    .action(async () => await skmtcRoot.logout())
+    .action(async () => await skmtcRoot.logout({ silent: false }))
 }

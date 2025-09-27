@@ -92,9 +92,11 @@ async function createNodeServer(
 
 export class Auth {
   supabase: SupabaseClient
+  server: { shutdown: () => void } | null
 
   constructor() {
     this.supabase = createSupabaseClient()
+    this.server = null
   }
 
   async toSession() {
@@ -122,6 +124,21 @@ export class Auth {
     return data.session.user.user_metadata.user_name
   }
 
+  async toLoginUrl(): Promise<string | null> {
+    const authHandler = createAuthHandler({ supabase: this.supabase })
+
+    this.server = await createServer(9000, authHandler)
+
+    const signInRes = await this.supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `http://localhost:9000/oauth/callback`
+      }
+    })
+
+    return signInRes.data.url
+  }
+
   async login(): Promise<Session> {
     const sessionRes = await this.supabase.auth.getSession()
 
@@ -133,7 +150,7 @@ export class Auth {
 
     const authHandler = createAuthHandler({ supabase: this.supabase })
 
-    const server = await createServer(9000, authHandler)
+    this.server = await createServer(9000, authHandler)
 
     const signInRes = await this.supabase.auth.signInWithOAuth({
       provider: 'github',
@@ -145,11 +162,15 @@ export class Auth {
     console.log('Click the link to login')
     console.log(signInRes.data.url)
 
+    return await this.expectSession()
+  }
+
+  expectSession(): Promise<Session> {
     return new Promise(resolve => {
       this.supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session) {
           setTimeout(() => {
-            server.shutdown()
+            this.server?.shutdown()
           }, 5000)
 
           resolve(session)
@@ -158,7 +179,7 @@ export class Auth {
     })
   }
 
-  async logout() {
+  async logout({ silent }: { silent: boolean }) {
     const sessionRes = await this.supabase.auth.getSession()
 
     if (!sessionRes.data.session) {
@@ -170,7 +191,9 @@ export class Auth {
     const logoutPromise = new Promise(resolve => {
       this.supabase.auth.onAuthStateChange((_event, session) => {
         if (!session) {
-          console.log('You are now logged out')
+          if (!silent) {
+            console.log('You are now logged out')
+          }
 
           resolve(null)
         }

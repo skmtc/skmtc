@@ -71,8 +71,8 @@ export class SkmtcRoot {
     await this.manager.auth.login()
   }
 
-  async logout() {
-    await this.manager.auth.logout()
+  async logout({ silent }: { silent: boolean }) {
+    await this.manager.auth.logout({ silent })
   }
 
   async toProject({ projectName, schemaPath, prettierPath }: ToProjectArgs) {

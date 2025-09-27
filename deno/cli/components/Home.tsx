@@ -3,7 +3,7 @@ import { Box, Newline, Text, useApp } from 'ink'
 import { match, P } from 'ts-pattern'
 import { useSkmtc } from './SkmtcContext.tsx'
 
-type HomeActionType = `select-project:${string}` | 'create-project' | 'login' | 'exit'
+type HomeActionType = `select-project:${string}` | 'create-project' | 'login' | 'logout' | 'exit'
 
 type HomeActionItem = {
   value: HomeActionType
@@ -15,7 +15,8 @@ export const Home = () => {
   const { state, dispatch } = useSkmtc()
   const { exit } = useApp()
 
-  const { projects } = state.skmtcRoot
+  const { skmtcRoot, session } = state
+  const { projects } = skmtcRoot
 
   const projectOptions: HomeActionItem[] = projects.map(({ name }, index, array) => ({
     value: `select-project:${name}`,
@@ -26,7 +27,7 @@ export const Home = () => {
   const items: HomeActionItem[] = [
     ...projectOptions,
     { value: 'create-project', label: 'Create new project', space: true },
-    { value: 'login', label: 'Log in to Skmtc' },
+    session ? { value: 'logout', label: 'Log out' } : { value: 'login', label: 'Log in to Skmtc' },
     { value: 'exit', label: 'Exit' }
   ]
 
@@ -51,17 +52,21 @@ export const Home = () => {
             </Text>
           )
         }}
-        onSelect={item =>
-          match(item)
+        onSelect={async item =>
+          await match(item)
             .with({ value: P.string.startsWith('select-project:') }, ({ label }) =>
               dispatch({ type: 'set-view', payload: { page: 'project', projectName: label } })
             )
             .with({ value: 'create-project' }, () => {
               dispatch({ type: 'set-view', payload: { page: 'create-project' } })
             })
-            .with({ value: 'login' }, () =>
+            .with({ value: 'login' }, () => {
               dispatch({ type: 'set-view', payload: { page: 'login' } })
-            )
+            })
+            .with({ value: 'logout' }, async () => {
+              await skmtcRoot.logout({ silent: true })
+              dispatch({ type: 'set-session', payload: { session: null } })
+            })
             .with({ value: 'exit' }, () => exit())
             .exhaustive()
         }

@@ -1,5 +1,7 @@
 import { Box, Newline, Text } from 'ink'
 import SelectInput from 'ink-select-input'
+import { useSkmtc } from './SkmtcContext.tsx'
+import { match } from 'ts-pattern'
 type ProjectProps = {
   projectName: string
 }
@@ -38,10 +40,11 @@ const projectActions: ProjectAction[] = [
   { value: 'back-to-home', label: 'Back to home' }
 ]
 
-export const Project = ({ projectName }: ProjectProps) => {
+export const Project = (_props: ProjectProps) => {
+  const { dispatch } = useSkmtc()
+
   return (
     <Box flexDirection="column">
-      <Text>Project: {projectName}</Text>
       <SelectInput<ProjectActionValue>
         items={projectActions}
         itemComponent={({ label, isSelected, ...props }) => {
@@ -53,6 +56,15 @@ export const Project = ({ projectName }: ProjectProps) => {
               {space && <Newline />}
             </Text>
           )
+        }}
+        onSelect={item => {
+          match(item)
+            .with({ value: 'back-to-home' }, () => {
+              dispatch({ type: 'set-view', payload: { page: 'home' } })
+            })
+            .otherwise(() => {
+              console.log(item)
+            })
         }}
       />
     </Box>

@@ -1,9 +1,16 @@
 import { Box, Text } from 'ink'
 import { toRelativeRootPath } from '../lib/to-root-path.ts'
 import denoJson from '../deno.json' with { type: 'json' }
+import { useSkmtc } from './SkmtcContext.tsx'
 
 export const AppInfo = () => {
+  const { state } = useSkmtc()
+
   const appRootPath = toRelativeRootPath()
+
+  if (state.view.page === 'login') {
+    return null
+  }
 
   return (
     <Box
@@ -17,15 +24,37 @@ export const AppInfo = () => {
       marginRight={1}
       marginBottom={1}
     >
-      <Box flexDirection="row" marginBottom={1}>
-        <Text dimColor>{'>_ '}</Text>
-        <Text color="white">Skmtc CLI </Text>
-        <Text dimColor>{`(v${denoJson.version})`}</Text>
+      <Box flexDirection="row" marginBottom={1} justifyContent="space-between">
+        <Box flexDirection="row">
+          <Text dimColor>{'>_ '}</Text>
+          <Text color="white">Skmtc CLI </Text>
+          <Text dimColor>{`(v${denoJson.version})`}</Text>
+        </Box>
+        <Box flexDirection="row">
+          {state.session ? (
+            <Text>
+              <Text dimColor>Logged in as </Text>
+              <Text>{state.session.user.user_metadata.user_name}</Text>
+            </Text>
+          ) : (
+            <Text>You are not logged in</Text>
+          )}
+        </Box>
       </Box>
 
-      <Box flexDirection="row">
-        <Text dimColor>directory: </Text>
-        <Text>{appRootPath}</Text>
+      <Box flexDirection="row" justifyContent="space-between">
+        {state.view.page === 'project' ? (
+          <Box flexDirection="row">
+            <Text dimColor>project: </Text>
+            <Text>{state.view.projectName}</Text>
+          </Box>
+        ) : (
+          <Box></Box>
+        )}
+        <Box flexDirection="row">
+          <Text dimColor>directory: </Text>
+          <Text>{appRootPath}</Text>
+        </Box>
       </Box>
     </Box>
   )

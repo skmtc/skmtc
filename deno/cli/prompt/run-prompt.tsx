@@ -157,7 +157,9 @@ const toAction = async (skmtcRoot: SkmtcRoot, initialProjectName?: string) => {
 }
 
 export const runPrompt = async (skmtcRoot: SkmtcRoot, initialProjectName?: string) => {
-  render(<App skmtcRoot={skmtcRoot} />)
+  const session = await skmtcRoot.manager.auth.toSession()
+
+  render(<App skmtcRoot={skmtcRoot} session={session} />)
 
   // const { action, projectName } = await toAction(skmtcRoot, initialProjectName)
 
