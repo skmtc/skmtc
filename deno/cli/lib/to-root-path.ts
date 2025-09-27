@@ -2,6 +2,7 @@ import { join } from '@std/path/join'
 import { existsSync } from '@std/fs/exists'
 import { homedir } from 'node:os'
 import { resolve } from '@std/path/resolve'
+import { relative } from '@std/path/relative'
 
 export const toRootPath = () => {
   let path = Deno.cwd()
@@ -29,4 +30,18 @@ const isInsideHomedir = (path: string) => {
   const resolvedPath = resolve(path)
 
   return resolvedPath.startsWith(resoledHomedir) && resolvedPath !== resoledHomedir
+}
+
+export const toRelativeRootPath = () => {
+  const homePath = Deno.env.get('HOME')
+
+  const appRootPath = join(toRootPath(), '..')
+
+  if (!homePath) {
+    return appRootPath
+  }
+
+  const relativePath = relative(homePath, appRootPath)
+
+  return join('~', relativePath)
 }

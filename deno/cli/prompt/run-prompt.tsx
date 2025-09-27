@@ -19,6 +19,8 @@ import {
   toRuntimeLogsPrompt,
   description as runtimeLogsDescription
 } from '../workspaces/runtime-logs.ts'
+import { render } from 'ink'
+import { App } from '../components/App.tsx'
 
 type PromptResponse =
   | 'init'
@@ -155,25 +157,27 @@ const toAction = async (skmtcRoot: SkmtcRoot, initialProjectName?: string) => {
 }
 
 export const runPrompt = async (skmtcRoot: SkmtcRoot, initialProjectName?: string) => {
-  const { action, projectName } = await toAction(skmtcRoot, initialProjectName)
+  render(<App skmtcRoot={skmtcRoot} />)
 
-  await match(action)
-    .with('init', () => toInitPrompt(skmtcRoot))
-    .with('add', () => toAddPrompt(skmtcRoot, projectName))
-    .with('clone', () => toClonePrompt(skmtcRoot, projectName))
-    .with('deploy', () => toDeployPrompt(skmtcRoot, projectName))
-    .with('generate', () => toGeneratePrompt(skmtcRoot, projectName))
-    .with('generate:watch', () => toGenerateWatchPrompt(skmtcRoot, projectName))
-    .with('runtime-logs', () => toRuntimeLogsPrompt(skmtcRoot, projectName))
-    .with('install', () => toInstallPrompt(skmtcRoot, projectName))
-    .with('list', () => toListPrompt(skmtcRoot, projectName))
-    .with('remove', () => toRemovePrompt(skmtcRoot, projectName))
-    .with('login', () => toLoginPrompt(skmtcRoot, projectName))
-    .with('logout', () => toLogoutPrompt(skmtcRoot, projectName))
-    .with('exit', () => Deno.exit(0))
-    .otherwise(matched => {
-      // do nothing
-    })
+  // const { action, projectName } = await toAction(skmtcRoot, initialProjectName)
 
-  setTimeout(() => runPrompt(skmtcRoot, projectName), 0)
+  // await match(action)
+  //   .with('init', () => toInitPrompt(skmtcRoot))
+  //   .with('add', () => toAddPrompt(skmtcRoot, projectName))
+  //   .with('clone', () => toClonePrompt(skmtcRoot, projectName))
+  //   .with('deploy', () => toDeployPrompt(skmtcRoot, projectName))
+  //   .with('generate', () => toGeneratePrompt(skmtcRoot, projectName))
+  //   .with('generate:watch', () => toGenerateWatchPrompt(skmtcRoot, projectName))
+  //   .with('runtime-logs', () => toRuntimeLogsPrompt(skmtcRoot, projectName))
+  //   .with('install', () => toInstallPrompt(skmtcRoot, projectName))
+  //   .with('list', () => toListPrompt(skmtcRoot, projectName))
+  //   .with('remove', () => toRemovePrompt(skmtcRoot, projectName))
+  //   .with('login', () => toLoginPrompt(skmtcRoot, projectName))
+  //   .with('logout', () => toLogoutPrompt(skmtcRoot, projectName))
+  //   .with('exit', () => Deno.exit(0))
+  //   .otherwise(matched => {
+  //     // do nothing
+  //   })
+
+  // setTimeout(() => runPrompt(skmtcRoot, projectName), 0)
 }

@@ -8,7 +8,19 @@ This is the SKMTC CLI - a Deno-based command-line tool for generating code from 
 
 ## Key Commands
 
-- `deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN` - Publish package to JSR registry
+### Development & Testing
+- `deno task test` - Run all tests with coverage
+- `deno task test:watch` - Run tests in watch mode
+- `deno task test:coverage` - Run tests with coverage report
+- `deno test path/to/specific-test.ts` - Run a specific test file
+
+### Building & Publishing
+- `deno task build` - Build Node.js distribution in ../../packages/cli
+- `deno task publish` - Full publish (build + publish to JSR + NPM)
+- `deno task publish:deno` - Publish to JSR only
+- `deno task publish:npm` - Publish to NPM only (from ../../packages/cli)
+
+### CLI Usage
 - `deno run mod.ts` - Run the CLI in interactive mode
 - `deno run mod.ts <command>` - Run specific CLI commands
 
@@ -24,11 +36,19 @@ This is the SKMTC CLI - a Deno-based command-line tool for generating code from 
 ### Command Structure
 
 Commands are organized into categories:
-- `generators/*` - Code generation commands (add, clone, deploy, generate, install, list, remove)
-- `base-files/*` - Base file management (push)
-- `schemas/*` - Schema operations (upload)
-- `workspaces/*` - Workspace management (generate, info, message, select)
+- `generators/*` - Code generation commands (add, clone, deploy, install, list, remove)
+- `workspaces/*` - Workspace management (generate, serve, runtime-logs)
 - `auth/*` - Authentication (login, logout)
+- `lib/*` - Core business logic and utilities
+
+### Interactive UI Architecture
+
+The CLI features a React/Ink-based interactive interface:
+- **Main UI** (`components/App.tsx`) - React component using Ink for terminal UI
+- **Prompt System** (`prompt/run-prompt.tsx`) - Interactive command selection with React rendering
+- **Command Pattern** - Each command has both programmatic and interactive variants
+
+**IMPORTANT**: This project uses Ink CLI to create terminal user interface components. Ink uses special React components designed for terminal rendering (like `<Box>`, `<Text>`, `<Input>`, etc.) instead of HTML elements. When working with React components in this project, NEVER use HTML React components like `<div>`, `<span>`, `<button>`, etc. Always use Ink-specific components from the `ink` and `@inkjs/ui` packages.
 
 ### Authentication & Storage
 
@@ -38,15 +58,16 @@ Commands are organized into categories:
 
 ### Generator System
 
-The CLI supports multiple code generators defined in `available-generators.ts`:
-- Shadcn UI components (table, form, select)
-- MSW mock handlers
-- Tanstack Query hooks
-- Supabase/Hono functions
-- Zod schemas
-- TypeScript types
+The CLI supports multiple code generators with automatic dependency resolution:
+- **Remote Generators** - Fetched from JSR registry (e.g., `@skmtc/supabase-backend`)
+- **Local Projects** - Created and managed locally within the SKMTC root directory
+- **Generator Types** - Shadcn UI, MSW, Tanstack Query, Supabase/Hono, Zod, TypeScript
 
-Each generator has dependencies that are automatically resolved.
+Key generator operations:
+- `add` - Add generators to existing projects
+- `clone` - Clone generators from remote sources
+- `install` - Install generator dependencies
+- `deploy` - Deploy projects to Supabase/Deno platforms
 
 ## Development Patterns
 
@@ -66,20 +87,33 @@ Each command follows a consistent pattern:
 - Sentry integration for error tracking
 - Graceful exit with proper cleanup
 
-## File Organization
 
-- `/lib/` - Core business logic and utilities
-- `/generators/` - Generator-specific commands
-- `/auth/` - Authentication-related code
-- `/schemas/` - Schema processing
-- `/workspaces/` - Workspace management
-- `/deploy/` - Deployment utilities
+## Key Dependencies
 
-## Dependencies
+### CLI Framework
+- `@cliffy/command` - CLI framework for command handling
+- `@cliffy/prompt` - Interactive prompts and selection
 
-- `@cliffy/command` - CLI framework
-- `@cliffy/prompt` - Interactive prompts
-- `@skmtc/core` - Core SKMTC functionality
-- `@sentry/node` - Error tracking
-- `@std/fs` - File system utilities
-- `ts-pattern` - Pattern matching
+### UI & Rendering
+- `ink` - React for terminal interfaces
+- `@inkjs/ui` - UI components for Ink
+- `ink-select-input` - Selection input component
+- `react` - React for component-based UI
+
+### Core Functionality
+- `@skmtc/core` - Core SKMTC functionality for OpenAPI processing
+- `@sentry/node` - Error tracking and monitoring
+- `@std/*` - Deno standard library modules
+- `ts-pattern` - Pattern matching utilities
+- `tiny-invariant` - Runtime assertions
+
+## Project Structure
+
+### Key Directories
+- `/lib/` - Core business logic (Manager, SkmtcRoot, Project, Auth)
+- `/generators/` - Generator-specific commands (add, clone, deploy, install, list, remove)
+- `/workspaces/` - Workspace operations (generate, serve, runtime-logs)
+- `/auth/` - Authentication with Supabase integration
+- `/components/` - React/Ink UI components
+- `/prompt/` - Interactive prompt system
+- `/services/` - Generated API service clients
