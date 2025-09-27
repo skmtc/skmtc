@@ -28,6 +28,10 @@ type ViewState =
       page: 'project'
       projectName: string
     }
+  | {
+      page: 'generate'
+      projectName: string
+    }
 type State = {
   view: ViewState
   skmtcRoot: SkmtcRoot

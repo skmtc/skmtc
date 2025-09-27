@@ -1,13 +1,14 @@
 import { Box } from 'ink'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
-import { Home } from './Home.tsx'
+import { HomeView } from './HomeView.tsx'
 import { match } from 'ts-pattern'
-import { Project } from './Project.tsx'
+import { ProjectView } from './ProjectView.tsx'
 import { SkmtcProvider, useSkmtc } from './SkmtcContext.tsx'
 import { CreateProject } from './CreateProject.tsx'
-import { Login } from './Login.tsx'
+import { LoginView } from './LoginView.tsx'
 import { AppInfo } from './AppInfo.tsx'
 import type { Session } from '@supabase/supabase-js'
+import { GenerateView } from './GenerateView.tsx'
 
 type AppProps = {
   skmtcRoot: SkmtcRoot
@@ -29,9 +30,14 @@ const ViewManager = () => {
   const { state } = useSkmtc()
 
   return match(state.view)
-    .with({ page: 'home' }, () => <Home />)
+    .with({ page: 'home' }, () => <HomeView />)
     .with({ page: 'create-project' }, () => <CreateProject />)
-    .with({ page: 'login' }, () => <Login />)
-    .with({ page: 'project' }, ({ projectName }) => <Project projectName={projectName} />)
+    .with({ page: 'login' }, () => <LoginView />)
+    .with({ page: 'project' }, ({ projectName }) => (
+      <ProjectView project={state.skmtcRoot.findProject(projectName)} />
+    ))
+    .with({ page: 'generate' }, ({ projectName }) => (
+      <GenerateView project={state.skmtcRoot.findProject(projectName)} />
+    ))
     .exhaustive()
 }

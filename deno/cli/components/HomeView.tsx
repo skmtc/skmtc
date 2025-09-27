@@ -11,7 +11,7 @@ type HomeActionItem = {
   label: string
 }
 
-export const Home = () => {
+export const HomeView = () => {
   const { state, dispatch } = useSkmtc()
   const { exit } = useApp()
 

@@ -3,7 +3,7 @@ import { useSkmtc } from './SkmtcContext.tsx'
 import { useEffect } from 'react'
 import { useState } from 'react'
 import Link from 'ink-link'
-export const Login = () => {
+export const LoginView = () => {
   const { state, dispatch } = useSkmtc()
   const [loginUrl, setLoginUrl] = useState<string | null>(null)
 

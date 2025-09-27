@@ -2,8 +2,10 @@ import { Box, Newline, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useSkmtc } from './SkmtcContext.tsx'
 import { match } from 'ts-pattern'
+import type { Project } from '../lib/project.ts'
+import type { RemoteProject } from '../lib/remote-project.ts'
 type ProjectProps = {
-  projectName: string
+  project: Project | RemoteProject
 }
 
 type ProjectActionValue =
@@ -26,7 +28,6 @@ type ProjectAction = {
 
 const projectActions: ProjectAction[] = [
   { value: 'generate-artifacts', label: 'Generate artifacts' },
-  { value: 'generate-artifacts-watch', label: 'Generate artifacts (watch)', space: true },
 
   { value: 'deploy', label: 'Deploy' },
   { value: 'runtime-logs', label: 'View runtime logs', space: true },
@@ -40,8 +41,8 @@ const projectActions: ProjectAction[] = [
   { value: 'back-to-home', label: 'Back to home' }
 ]
 
-export const Project = (_props: ProjectProps) => {
-  const { dispatch } = useSkmtc()
+export const ProjectView = ({ project }: ProjectProps) => {
+  const { state, dispatch } = useSkmtc()
 
   return (
     <Box flexDirection="column">
@@ -61,6 +62,12 @@ export const Project = (_props: ProjectProps) => {
           match(item)
             .with({ value: 'back-to-home' }, () => {
               dispatch({ type: 'set-view', payload: { page: 'home' } })
+            })
+            .with({ value: 'generate-artifacts' }, () => {
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'generate', projectName: project.name }
+              })
             })
             .otherwise(() => {
               console.log(item)

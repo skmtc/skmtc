@@ -43,6 +43,10 @@ export const AppInfo = () => {
       </Box>
 
       <Box flexDirection="row" justifyContent="space-between">
+        <Box flexDirection="row">
+          <Text dimColor>directory: </Text>
+          <Text>{appRootPath}</Text>
+        </Box>
         {state.view.page === 'project' ? (
           <Box flexDirection="row">
             <Text dimColor>project: </Text>
@@ -51,10 +55,6 @@ export const AppInfo = () => {
         ) : (
           <Box></Box>
         )}
-        <Box flexDirection="row">
-          <Text dimColor>directory: </Text>
-          <Text>{appRootPath}</Text>
-        </Box>
       </Box>
     </Box>
   )
