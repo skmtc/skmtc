@@ -22,8 +22,6 @@ export const AppInfo = () => {
         width="auto"
         paddingLeft={1}
         paddingRight={1}
-        marginLeft={1}
-        marginRight={1}
         marginBottom={state.message ? 0 : 1}
       >
         <Box flexDirection="row" marginBottom={1} justifyContent="space-between">

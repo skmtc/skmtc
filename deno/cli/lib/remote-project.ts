@@ -79,10 +79,4 @@ export class RemoteProject {
   toManifestPath() {
     return join(toRootPath(), `@${this.accountName}`, this.name, '.settings', 'manifest.json')
   }
-
-  async ensureDeployment(): Promise<boolean> {
-    console.log('TODO: Implement remote project deployment check')
-
-    return await Promise.resolve(true)
-  }
 }

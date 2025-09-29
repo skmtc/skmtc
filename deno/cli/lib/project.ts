@@ -13,7 +13,6 @@ import type { SkmtcRoot } from './skmtc-root.ts'
 import { availableGenerators, type AvailableGenerator } from '../available-generators.ts'
 import { SchemaFile } from './schema-file.ts'
 import { formatNumber, parseModuleName } from '@skmtc/core'
-import { PackageDenoJson } from './package-deno-json.ts'
 import { join } from '@std/path/join'
 import type { ApiClient } from './api-client.ts'
 import { Manifest } from './manifest.ts'
@@ -140,10 +139,7 @@ export class Project {
   }
 
   //Rename import
-  async cloneGenerator(
-    { projectName, moduleName, generatorsDenoJson }: CloneGeneratorArgs,
-    { logSuccess }: CloneOptions = {}
-  ) {
+  async cloneGenerator({ projectName, moduleName, generatorsDenoJson }: CloneGeneratorArgs) {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
 
@@ -239,26 +235,6 @@ export class Project {
 
       await this.manager.fail('Failed to rename project')
     }
-  }
-
-  async ensureDeployment(): Promise<boolean> {
-    const projectKey = this.clientJson.contents?.projectKey
-
-    if (projectKey) {
-      return true
-    }
-
-    const confirmed = await Confirm.prompt(
-      'This project has not been deployed. Would you like to deploy it now?'
-    )
-
-    if (!confirmed) {
-      return false
-    }
-
-    await this.deploy({ logSuccess: 'Generators deployed' })
-
-    return true
   }
 
   async ensureSchemaFile() {

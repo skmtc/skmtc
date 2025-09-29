@@ -13,7 +13,7 @@ export const QuestionManager = ({ questions }: QuestionManagerProps) => {
   const [currentQuestion, setCurrentQuestion] = useState<number>(0)
 
   return questions
-    .filter(question => question !== null)
+    .filter(({ include }) => include)
     .map((question, index) => {
       if (index > currentQuestion) {
         return null

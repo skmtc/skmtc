@@ -4,7 +4,7 @@ import {
   type ViewStateGenerate,
   type ViewStateGenerateConfirmed
 } from './SkmtcContext.tsx'
-import type { Project } from '../lib/project.ts'
+import { Project } from '../lib/project.ts'
 import type { RemoteProject } from '../lib/remote-project.ts'
 import { useEffect, useState } from 'react'
 import { generate, toGenerateStatus } from '../workspaces/generate.tsx'
@@ -35,10 +35,21 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     .otherwise(() => (
       <QuestionManager
         questions={[
-          // Need add deployment check. See `project.ensureDeployment()`
+          {
+            type: 'boolean',
+            include:
+              project instanceof Project &&
+              typeof project.clientJson.contents?.projectKey !== 'string',
+            prompt: 'This project has not been deployed. Would you like to deploy it now?',
+            setValue: async value => {
+              if (project instanceof Project && value === true) {
+                await project.deploy({ logSuccess: 'Generators deployed' })
+              }
+            }
+          },
           {
             type: 'string',
-            include: typeof view.schemaSourceString === 'string',
+            include: typeof view.schemaSourceString !== 'string',
             prompt: 'Path or URL for input OpenAPI schema',
             defaultValue: schemaSource?.type === 'local' ? schemaSource.path : undefined,
             setValue: value => {
@@ -56,7 +67,7 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
           },
           {
             type: 'boolean',
-            include: typeof view.watchMode === 'boolean',
+            include: typeof view.watchMode !== 'boolean',
             prompt: 'Watch for changes?',
             setValue: value => {
               dispatch({ type: 'set-view', payload: { ...view, watchMode: value } })
@@ -156,6 +167,11 @@ const WatchGenerate = ({ project, view }: WatchGenerateProps) => {
             prettier: project.prettierJson?.contents
           })
         })
+        .then(stats => {
+          if (stats) {
+            dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
+          }
+        })
         .catch(error => {
           console.error(error)
         })
@@ -177,7 +193,7 @@ const WatchGenerate = ({ project, view }: WatchGenerateProps) => {
 
   return (
     <Box flexDirection="column">
-      <Spinner label={`Watching ${view.schemaSourceString}`} />
+      <Spinner label={run ? `Generating...` : `Watching ${view.schemaSourceString}`} />
       <Text dimColor>Hit 'escape' key to stop.</Text>
     </Box>
   )
