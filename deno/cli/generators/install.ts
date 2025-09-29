@@ -24,7 +24,7 @@ export const toInstallCommand = (skmtcRoot: SkmtcRoot) => {
       const generator = await project.installGenerator({ moduleName })
 
       if (isNewProject && generator) {
-        setTimeout(() => runPrompt(skmtcRoot, project.name), 0)
+        setTimeout(() => runPrompt(skmtcRoot), 0)
       }
     })
 

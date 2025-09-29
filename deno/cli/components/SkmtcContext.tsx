@@ -17,34 +17,57 @@ type SkmtcAction =
     }
 type SkmtcDispatch = (action: SkmtcAction) => void
 
-type ViewState =
-  | {
-      page: 'home'
-    }
-  | {
-      page: 'create-project'
-    }
-  | {
-      page: 'login'
-    }
-  | {
-      page: 'project'
-      projectName: string
-    }
-  | {
-      page: 'generate'
-      projectName: string
-    }
+export type ViewStateHome = {
+  page: 'home'
+}
+export type ViewStateCreateProject = {
+  page: 'create-project'
+}
+
+export type ViewStateLogin = {
+  page: 'login'
+}
+
+export type ViewStateProject = {
+  page: 'project'
+  projectName: string
+}
+
+export type ViewStateGenerate = {
+  page: 'generate'
+  projectName: string
+  schemaSourceString?: string
+  watchMode?: boolean
+}
+
+export type ViewStateGenerateConfirmed = {
+  page: 'generate'
+  projectName: string
+  schemaSourceString: string
+  watchMode: boolean
+}
+
+export type ViewState =
+  | ViewStateHome
+  | ViewStateCreateProject
+  | ViewStateLogin
+  | ViewStateProject
+  | ViewStateGenerate
+
 type State = {
   view: ViewState
   skmtcRoot: SkmtcRoot
   session: Session | null
   message: string | null
+  interactive: boolean
 }
+
 type SkmtcProviderProps = {
+  view: ViewState
   skmtcRoot: SkmtcRoot
   children: ReactNode
   session: Session | null
+  interactive: boolean
 }
 
 const SkmtcStateContext = createContext<{ state: State; dispatch: SkmtcDispatch } | undefined>(
@@ -59,12 +82,13 @@ const skmtcReducer = (state: State, action: SkmtcAction) => {
     .exhaustive()
 }
 
-const SkmtcProvider = ({ children, skmtcRoot, session }: SkmtcProviderProps) => {
+const SkmtcProvider = ({ children, skmtcRoot, session, interactive, view }: SkmtcProviderProps) => {
   const [state, dispatch] = useReducer(skmtcReducer, {
-    view: { page: 'home' },
+    view,
     skmtcRoot,
     session,
-    message: null
+    message: null,
+    interactive
   })
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context

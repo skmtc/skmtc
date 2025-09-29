@@ -8,11 +8,7 @@ import { toInstallPrompt, description as installDescription } from '../generator
 import { toRemovePrompt, description as removeDescription } from '../generators/remove.ts'
 import { toListPrompt, description as listDescription } from '../generators/list.ts'
 import { toClonePrompt, description as cloneDescription } from '../generators/clone.ts'
-import {
-  toGeneratePrompt,
-  toGenerateWatchPrompt,
-  description as workspacesGenerateDescription
-} from '../workspaces/generate.ts'
+import { description as workspacesGenerateDescription } from '../workspaces/generate.tsx'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import type { Project } from '../lib/project.ts'
 import {
@@ -142,24 +138,10 @@ const toSelectAction = async ({ initialProjectName, projects, isLoggedIn }: ToSe
   return { action, projectName: action === 'home' ? '' : initialProjectName }
 }
 
-const toAction = async (skmtcRoot: SkmtcRoot, initialProjectName?: string) => {
-  const { projects } = skmtcRoot
-
-  const isLoggedIn = await skmtcRoot.isLoggedIn
-
-  return new Promise<{ action: string; projectName: string }>(resolve => {
-    toSelectAction({
-      initialProjectName,
-      projects,
-      isLoggedIn
-    }).then(({ action, projectName }) => resolve({ action, projectName }))
-  })
-}
-
-export const runPrompt = async (skmtcRoot: SkmtcRoot, initialProjectName?: string) => {
+export const runPrompt = async (skmtcRoot: SkmtcRoot) => {
   const session = await skmtcRoot.manager.auth.toSession()
 
-  render(<App skmtcRoot={skmtcRoot} session={session} />)
+  render(<App skmtcRoot={skmtcRoot} session={session} view={{ page: 'home' }} interactive />)
 
   // const { action, projectName } = await toAction(skmtcRoot, initialProjectName)
 

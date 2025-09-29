@@ -1,15 +1,27 @@
 import { Box, Text } from 'ink'
 import SelectInput from 'ink-select-input'
+import { useState } from 'react'
 
 type BooleanPromptProps = {
-  label: string
+  prompt: string
   setValue: (value: boolean) => void
 }
 
-export const BooleanPrompt = ({ label, setValue }: BooleanPromptProps) => {
+export const BooleanPrompt = ({ prompt, setValue }: BooleanPromptProps) => {
+  const [response, setResponse] = useState<boolean | null>(null)
+
+  if (response !== null) {
+    return (
+      <Box flexDirection="column" marginBottom={1}>
+        <Text>{prompt}</Text>
+        <Text dimColor>{response ? 'Yes' : 'No'}</Text>
+      </Box>
+    )
+  }
+
   return (
     <Box flexDirection="column">
-      <Text>{label}</Text>
+      <Text>{prompt}</Text>
       <SelectInput
         items={[
           { label: 'Yes', value: true },
@@ -17,6 +29,7 @@ export const BooleanPrompt = ({ label, setValue }: BooleanPromptProps) => {
         ]}
         onSelect={({ value }) => {
           setValue(value)
+          setResponse(value)
         }}
       />
     </Box>

@@ -3,7 +3,7 @@ import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import { HomeView } from './HomeView.tsx'
 import { match } from 'ts-pattern'
 import { ProjectView } from './ProjectView.tsx'
-import { SkmtcProvider, useSkmtc } from './SkmtcContext.tsx'
+import { SkmtcProvider, useSkmtc, type ViewState } from './SkmtcContext.tsx'
 import { CreateProject } from './CreateProject.tsx'
 import { LoginView } from './LoginView.tsx'
 import { AppInfo } from './AppInfo.tsx'
@@ -13,10 +13,12 @@ import { GenerateView } from './GenerateView.tsx'
 type AppProps = {
   skmtcRoot: SkmtcRoot
   session: Session | null
+  view: ViewState
+  interactive: boolean
 }
-export const App = ({ skmtcRoot, session }: AppProps) => {
+export const App = (props: AppProps) => {
   return (
-    <SkmtcProvider skmtcRoot={skmtcRoot} session={session}>
+    <SkmtcProvider {...props}>
       <Box flexDirection="column">
         <AppInfo />
 
@@ -36,8 +38,8 @@ const ViewManager = () => {
     .with({ page: 'project' }, ({ projectName }) => (
       <ProjectView project={state.skmtcRoot.findProject(projectName)} />
     ))
-    .with({ page: 'generate' }, ({ projectName }) => (
-      <GenerateView project={state.skmtcRoot.findProject(projectName)} />
+    .with({ page: 'generate' }, view => (
+      <GenerateView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
     .exhaustive()
 }

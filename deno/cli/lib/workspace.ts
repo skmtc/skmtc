@@ -65,7 +65,9 @@ export const deletePreviousArtifacts = ({
 
 type GenerateArtifactsArgs = {
   project: Project | RemoteProject
-  skmtcRoot: SkmtcRoot
+  schemaContents: string
+  clientSettings: ClientSettings | undefined
+  prettier: PrettierConfigType | undefined
 }
 
 type GetWorkspaceArgs = {
@@ -85,27 +87,26 @@ export class Workspace {
     return workspace
   }
 
-  async generateArtifacts({ project }: GenerateArtifactsArgs): Promise<GenerateResponse> {
+  async generateArtifacts({
+    project,
+    schemaContents,
+    clientSettings,
+    prettier
+  }: GenerateArtifactsArgs): Promise<GenerateResponse> {
     await project.ensureSchemaFile()
 
     const manifestPath = project.toManifestPath()
 
-    const schema = project.schemaFile?.contents
-    const clientSettings = project.clientJson?.contents?.settings
-    const prettier = project.prettierJson?.contents
-
-    invariant(schema, 'Schema not found')
-
     const { artifacts, manifest } = project.clientJson.contents?.serverUrl
       ? await generateLocal({
-          schema,
+          schema: schemaContents,
           clientSettings,
           prettier,
           localUrl: project.clientJson.contents?.serverUrl
         })
       : await generateRemote({
           project,
-          schema,
+          schema: schemaContents,
           clientSettings,
           prettier
         })

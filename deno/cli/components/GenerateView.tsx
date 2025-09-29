@@ -1,90 +1,95 @@
 import { Box, Text, useInput } from 'ink'
-import { useSkmtc } from './SkmtcContext.tsx'
+import {
+  useSkmtc,
+  type ViewStateGenerate,
+  type ViewStateGenerateConfirmed
+} from './SkmtcContext.tsx'
 import type { Project } from '../lib/project.ts'
 import type { RemoteProject } from '../lib/remote-project.ts'
-import { useEffect, useReducer, useState } from 'react'
-import { generate, toGenerateStatus } from '../workspaces/generate.ts'
-import { match } from 'ts-pattern'
+import { useEffect, useState } from 'react'
+import { generate, toGenerateStatus } from '../workspaces/generate.tsx'
+import { match, P } from 'ts-pattern'
 import { Spinner } from '@inkjs/ui'
 import chokidar, { type FSWatcher } from 'chokidar'
-import invariant from 'tiny-invariant'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
-import { BooleanPrompt } from './BooleanPrompt.tsx'
+import { SchemaFile, toSchemaSource } from '../lib/schema-file.ts'
+import { QuestionManager } from './QuestionManager.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
+  view: ViewStateGenerate
 }
 
-type GenerateStateType = 'idle' | 'running'
+export const GenerateView = ({ project, view }: GenerateProps) => {
+  const { dispatch } = useSkmtc()
 
-type GenerateState = {
-  state: GenerateStateType
-  watchMode: boolean
-}
+  const schemaSource = project.schemaFile?.schemaSource
 
-type GenerateAction =
-  | {
-      type: 'set-state'
-      payload: GenerateStateType
-    }
-  | {
-      type: 'set-watch-mode'
-      payload: boolean
-    }
-
-const generateReducer = (state: GenerateState, action: GenerateAction) => {
-  return match(action)
-    .with({ type: 'set-state' }, ({ payload }) => ({ ...state, state: payload }))
-    .with({ type: 'set-watch-mode' }, ({ payload }) => ({ ...state, watchMode: payload }))
-
-    .exhaustive()
-}
-
-export const GenerateView = ({ project }: GenerateProps) => {
-  const { state: skmtcState } = useSkmtc()
-
-  const [state, dispatch] = useReducer(generateReducer, {
-    state: 'idle',
-    watchMode: false
-  })
-
-  const { skmtcRoot } = skmtcState
-
-  return match(state)
-    .with({ state: 'idle' }, () => (
-      <BooleanPrompt
-        label="Watch for changes?"
-        setValue={value => {
-          dispatch({ type: 'set-watch-mode', payload: value })
-
-          dispatch({ type: 'set-state', payload: 'running' })
-        }}
-      />
-    ))
-
-    .with({ state: 'running' }, () => {
-      return state.watchMode ? (
-        <WatchGenerate skmtcRoot={skmtcRoot} project={project} />
+  return match(view)
+    .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
+      return view.watchMode ? (
+        <WatchGenerate project={project} view={confirmedView} />
       ) : (
-        <RunGenerate skmtcRoot={skmtcRoot} project={project} />
+        <RunGenerate project={project} view={confirmedView} />
       )
     })
-    .exhaustive()
+    .otherwise(() => (
+      <QuestionManager
+        questions={[
+          // Need add deployment check. See `project.ensureDeployment()`
+          {
+            type: 'string',
+            include: typeof view.schemaSourceString === 'string',
+            prompt: 'Path or URL for input OpenAPI schema',
+            defaultValue: schemaSource?.type === 'local' ? schemaSource.path : undefined,
+            setValue: value => {
+              const isRemote = value.startsWith('http://') || value.startsWith('https://')
+
+              dispatch({
+                type: 'set-view',
+                payload: {
+                  ...view,
+                  schemaSourceString: value,
+                  watchMode: isRemote ? false : view.watchMode
+                }
+              })
+            }
+          },
+          {
+            type: 'boolean',
+            include: typeof view.watchMode === 'boolean',
+            prompt: 'Watch for changes?',
+            setValue: value => {
+              dispatch({ type: 'set-view', payload: { ...view, watchMode: value } })
+            }
+          }
+        ]}
+      />
+    ))
 }
 
 type RunGenerateProps = {
-  skmtcRoot: SkmtcRoot
   project: Project | RemoteProject
+  view: ViewStateGenerateConfirmed
 }
 
-const RunGenerate = ({ skmtcRoot, project }: RunGenerateProps) => {
-  const { dispatch } = useSkmtc()
+const RunGenerate = ({ project, view }: RunGenerateProps) => {
+  const { state, dispatch } = useSkmtc()
 
   const [run, setRun] = useState(true)
 
   useEffect(() => {
     if (run) {
-      generate({ project, skmtcRoot, interactive: true })
+      toSchemaContents(view.schemaSourceString)
+        .then(schemaContents => {
+          return generate({
+            project,
+            skmtcRoot: state.skmtcRoot,
+            interactive: state.interactive,
+            schemaContents,
+            clientSettings: project.clientJson?.contents?.settings,
+            prettier: project.prettierJson?.contents
+          })
+        })
         .then(stats => {
           if (stats) {
             dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
@@ -103,33 +108,54 @@ const RunGenerate = ({ skmtcRoot, project }: RunGenerateProps) => {
   return <Spinner label="Generating..." />
 }
 
-type WatchGenerateProps = {
-  skmtcRoot: SkmtcRoot
-  project: Project | RemoteProject
+const toSchemaContents = async (schemaSourceString: string): Promise<string> => {
+  const schemaSource = toSchemaSource(schemaSourceString)
+  const { contents } = await SchemaFile.getFromSource(schemaSource)
+
+  return contents
 }
 
-const WatchGenerate = ({ skmtcRoot, project }: WatchGenerateProps) => {
-  const { dispatch } = useSkmtc()
+type WatchGenerateProps = {
+  project: Project | RemoteProject
+  view: ViewStateGenerateConfirmed
+}
+
+const WatchGenerate = ({ project, view }: WatchGenerateProps) => {
+  const { state, dispatch } = useSkmtc()
 
   const [run, setRun] = useState(false)
 
-  const { schemaSource } = project.schemaFile
-
-  invariant(schemaSource?.type === 'local', 'Only local schema files can be watched')
-
-  const [watcher, setWatcher] = useState<FSWatcher>(chokidar.watch(schemaSource.path))
+  const [watcher, setWatcher] = useState<FSWatcher>()
 
   useInput(async (_input, key) => {
     if (key.escape) {
-      await watcher.close()
+      await watcher?.close()
 
       dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
     }
   })
 
   useEffect(() => {
+    setWatcher(chokidar.watch(view.schemaSourceString))
+
+    return () => {
+      setWatcher(undefined)
+    }
+  }, [view.schemaSourceString])
+
+  useEffect(() => {
     if (run) {
-      generate({ project, skmtcRoot, interactive: true })
+      SchemaFile.getFromSource(toSchemaSource(view.schemaSourceString))
+        .then(({ contents }) => {
+          return generate({
+            project,
+            skmtcRoot: state.skmtcRoot,
+            interactive: state.interactive,
+            schemaContents: contents,
+            clientSettings: project.clientJson?.contents?.settings,
+            prettier: project.prettierJson?.contents
+          })
+        })
         .catch(error => {
           console.error(error)
         })
@@ -139,15 +165,19 @@ const WatchGenerate = ({ skmtcRoot, project }: WatchGenerateProps) => {
     }
   }, [run])
 
-  watcher.on('change', () => {
-    if (!run) {
-      setRun(true)
+  useEffect(() => {
+    if (watcher) {
+      watcher.on('change', () => {
+        if (!run) {
+          setRun(true)
+        }
+      })
     }
-  })
+  }, [watcher])
 
   return (
     <Box flexDirection="column">
-      <Spinner label={`Watching ${schemaSource.path}`} />
+      <Spinner label={`Watching ${view.schemaSourceString}`} />
       <Text dimColor>Hit 'escape' key to stop.</Text>
     </Box>
   )

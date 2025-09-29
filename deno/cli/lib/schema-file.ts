@@ -171,7 +171,7 @@ const toFileType = (path: string): FileType => {
     })
 }
 
-const toSchemaSource = (source: string): SchemaSource => {
+export const toSchemaSource = (source: string): SchemaSource => {
   if (source.startsWith('http://') || source.startsWith('https://')) {
     return { type: 'remote', url: source }
   } else {
