@@ -20,7 +20,7 @@ type GenerateProps = {
 }
 
 export const GenerateView = ({ project, view }: GenerateProps) => {
-  const { dispatch } = useSkmtc()
+  const { dispatch, state } = useSkmtc()
 
   const schemaSource = project.schemaFile?.schemaSource
 
@@ -46,7 +46,11 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
             prompt: 'This project has not been deployed. Would you like to deploy it now?',
             setValue: async value => {
               if (project instanceof Project && value === true) {
-                await project.deploy({ logSuccess: 'Generators deployed', dispatch })
+                await project.deploy({
+                  logSuccess: 'Generators deployed',
+                  interactive: state.interactive,
+                  dispatch
+                })
               }
             }
           },

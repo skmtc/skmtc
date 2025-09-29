@@ -46,6 +46,7 @@ type ConstructorArgs = {
 
 type DeployOptions = {
   logSuccess?: string
+  interactive: boolean
   dispatch: SkmtcDispatch
 }
 
@@ -295,7 +296,7 @@ export class Project {
     return hasWriteAccess
   }
 
-  async deploy({ logSuccess, dispatch }: DeployOptions) {
+  async deploy({ logSuccess, interactive, dispatch }: DeployOptions) {
     await this.manager.auth.ensureAuth()
 
     const startTime = Date.now()
@@ -319,7 +320,10 @@ export class Project {
       await this.manager.success()
 
       dispatch({ type: 'set-execution', payload: null })
-      dispatch({ type: 'set-view', payload: { page: 'project', projectName: this.name } })
+
+      if (interactive) {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: this.name } })
+      }
     } catch (error) {
       console.error(error)
 

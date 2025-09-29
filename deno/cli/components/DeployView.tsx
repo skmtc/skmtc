@@ -10,10 +10,10 @@ type DeployViewProps = {
 }
 
 export const DeployView = ({ project, view }: DeployViewProps) => {
-  const { dispatch } = useSkmtc()
+  const { state, dispatch } = useSkmtc()
 
   useEffect(() => {
-    project.deploy({ logSuccess: 'Generators deployed', dispatch })
+    project.deploy({ logSuccess: 'Generators deployed', interactive: state.interactive, dispatch })
   }, [])
 
   return <Box></Box>
