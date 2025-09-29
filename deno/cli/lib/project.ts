@@ -17,7 +17,8 @@ import { join } from '@std/path/join'
 import type { ApiClient } from './api-client.ts'
 import { Manifest } from './manifest.ts'
 import { getApiServersServerNameHasWriteAccess } from '../services/getApiServersServerNameHasWriteAccess.generated.ts'
-import { Confirm } from '@cliffy/prompt/confirm'
+import type { SkmtcDispatch } from '../components/SkmtcContext.tsx'
+
 type AddGeneratorArgs = {
   moduleName: string
   type: 'operation' | 'model'
@@ -45,6 +46,7 @@ type ConstructorArgs = {
 
 type DeployOptions = {
   logSuccess?: string
+  dispatch: SkmtcDispatch
 }
 
 type InstallGeneratorArgs = {
@@ -293,7 +295,7 @@ export class Project {
     return hasWriteAccess
   }
 
-  async deploy({ logSuccess }: DeployOptions = {}) {
+  async deploy({ logSuccess, dispatch }: DeployOptions) {
     await this.manager.auth.ensureAuth()
 
     const startTime = Date.now()
@@ -306,14 +308,18 @@ export class Project {
       await deployment.deploy({
         assets,
         serverName: toServerName(this),
-        project: this
+        project: this,
+        dispatch
       })
 
       const duration = (Date.now() - startTime) / 1000
 
-      console.log(`Deployed in ${formatNumber(duration)}secs`)
+      dispatch({ type: 'set-message', payload: `Deployed in ${formatNumber(duration)}secs` })
 
       await this.manager.success()
+
+      dispatch({ type: 'set-execution', payload: null })
+      dispatch({ type: 'set-view', payload: { page: 'project', projectName: this.name } })
     } catch (error) {
       console.error(error)
 

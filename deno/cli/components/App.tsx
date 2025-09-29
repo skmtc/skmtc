@@ -1,4 +1,4 @@
-import { Box } from 'ink'
+import { Box, Text } from 'ink'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 import { HomeView } from './HomeView.tsx'
 import { match } from 'ts-pattern'
@@ -9,6 +9,8 @@ import { LoginView } from './LoginView.tsx'
 import { AppInfo } from './AppInfo.tsx'
 import type { Session } from '@supabase/supabase-js'
 import { GenerateView } from './GenerateView.tsx'
+import { Spinner } from '@inkjs/ui'
+import { DeployView } from './DeployView.tsx'
 
 type AppProps = {
   skmtcRoot: SkmtcRoot
@@ -23,6 +25,8 @@ export const App = (props: AppProps) => {
         <AppInfo />
 
         <ViewManager />
+
+        <ExecutionManager />
       </Box>
     </SkmtcProvider>
   )
@@ -41,5 +45,25 @@ const ViewManager = () => {
     .with({ page: 'generate' }, view => (
       <GenerateView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
+    .with({ page: 'deploy' }, view => (
+      <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    ))
     .exhaustive()
+}
+
+const ExecutionManager = () => {
+  const { state } = useSkmtc()
+
+  if (state.execution) {
+    const { title, subtitle } = state.execution
+
+    return (
+      <Box flexDirection="column">
+        <Spinner label={title} />
+        {subtitle ? <Text dimColor>{subtitle}</Text> : null}
+      </Box>
+    )
+  }
+
+  return <Box></Box>
 }

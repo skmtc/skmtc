@@ -1,18 +1,19 @@
 import type { DenoFile } from '../deploy/types.ts'
 import { ApiClient } from './api-client.ts'
 import type { Manager } from './manager.ts'
-import { Spinner } from './spinner.ts'
 import { getApiDeploymentsDeploymentId } from '../services/getApiDeploymentsDeploymentId.generated.ts'
 import { getApiDeploymentsDeploymentIdDeploymentLogs } from '../services/getApiDeploymentsDeploymentIdDeploymentLogs.generated.ts'
 import { createApiServers } from '../services/createApiServers.generated.ts'
 import invariant from 'tiny-invariant'
 import type { Project } from './project.ts'
 import type { RemoteProject } from './remote-project.ts'
+import type { SkmtcDispatch } from '../components/SkmtcContext.tsx'
 
 type DeployArgs = {
   serverName: string
   assets: Record<string, DenoFile>
   project: Project
+  dispatch: SkmtcDispatch
 }
 
 export class Deployment {
@@ -23,10 +24,8 @@ export class Deployment {
     this.apiClient = new ApiClient(manager)
   }
 
-  async deploy({ serverName, assets, project }: DeployArgs) {
-    const spinner = new Spinner({ message: 'Uploading...', color: 'yellow' })
-
-    spinner.start()
+  async deploy({ serverName, assets, project, dispatch }: DeployArgs) {
+    dispatch({ type: 'set-execution', payload: { type: 'deploy', title: 'Uploading...' } })
 
     const serverDeployment = await createApiServers({
       supabase: this.apiClient.manager.auth.supabase,
@@ -39,7 +38,7 @@ export class Deployment {
 
     this.denoDeploymentId = serverDeployment.latestDenoDeploymentId ?? undefined
 
-    spinner.message = 'Deploying...'
+    dispatch({ type: 'set-execution', payload: { type: 'deploy', title: 'Deploying...' } })
 
     return new Promise((resolve, reject) => {
       const interval = setInterval(async () => {
@@ -56,7 +55,9 @@ export class Deployment {
           updateProjectKey({ project, projectKey: `@${userName}/${project.name}` })
 
           clearInterval(interval)
-          spinner.stop()
+
+          dispatch({ type: 'set-execution', payload: null })
+
           resolve(true)
         }
 
@@ -64,7 +65,9 @@ export class Deployment {
           updateProjectKey({ project, projectKey: `@${userName}/${project.name}` })
 
           clearInterval(interval)
-          spinner.stop()
+
+          dispatch({ type: 'set-execution', payload: null })
+
           reject('Deployment failed')
         }
       }, 8000)

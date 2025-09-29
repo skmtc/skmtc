@@ -69,6 +69,12 @@ export const ProjectView = ({ project }: ProjectProps) => {
                 payload: { page: 'generate', projectName: project.name }
               })
             })
+            .with({ value: 'deploy' }, () => {
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'deploy', projectName: project.name }
+              })
+            })
             .otherwise(() => {
               console.log(item)
             })

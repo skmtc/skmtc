@@ -24,9 +24,9 @@ export const QuestionManager = ({ questions }: QuestionManagerProps) => {
           <BooleanPrompt
             key={prompt}
             prompt={prompt}
-            setValue={value => {
+            setValue={async value => {
+              await setValue(value)
               setCurrentQuestion(q => q + 1)
-              setValue(value)
             }}
           />
         ))
@@ -35,9 +35,9 @@ export const QuestionManager = ({ questions }: QuestionManagerProps) => {
             key={prompt}
             prompt={prompt}
             defaultValue={defaultValue}
-            setValue={value => {
+            setValue={async value => {
+              await setValue(value)
               setCurrentQuestion(q => q + 1)
-              setValue(value)
             }}
           />
         ))
@@ -45,9 +45,9 @@ export const QuestionManager = ({ questions }: QuestionManagerProps) => {
           <NumberPrompt
             key={prompt}
             prompt={prompt}
-            setValue={value => {
+            setValue={async value => {
+              await setValue(value)
               setCurrentQuestion(q => q + 1)
-              setValue(value)
             }}
           />
         ))

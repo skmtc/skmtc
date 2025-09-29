@@ -1,4 +1,4 @@
-import { Box, Text, useInput } from 'ink'
+import { Box, useInput } from 'ink'
 import {
   useSkmtc,
   type ViewStateGenerate,
@@ -9,10 +9,10 @@ import type { RemoteProject } from '../lib/remote-project.ts'
 import { useEffect, useState } from 'react'
 import { generate, toGenerateStatus } from '../workspaces/generate.tsx'
 import { match, P } from 'ts-pattern'
-import { Spinner } from '@inkjs/ui'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '../lib/schema-file.ts'
 import { QuestionManager } from './QuestionManager.tsx'
+import { useMemo } from 'react'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -24,32 +24,35 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
 
   const schemaSource = project.schemaFile?.schemaSource
 
-  return match(view)
-    .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
-      return view.watchMode ? (
-        <WatchGenerate project={project} view={confirmedView} />
-      ) : (
-        <RunGenerate project={project} view={confirmedView} />
-      )
-    })
-    .otherwise(() => (
+  const includeDeployQuestion = useMemo(() => {
+    return project instanceof Project && typeof project.clientJson.contents?.projectKey !== 'string'
+  }, [])
+
+  const includeSchemaQuestion = useMemo(() => {
+    return typeof view.schemaSourceString !== 'string'
+  }, [])
+
+  const includeWatchQuestion = useMemo(() => {
+    return typeof view.watchMode !== 'boolean'
+  }, [])
+
+  return (
+    <>
       <QuestionManager
         questions={[
           {
             type: 'boolean',
-            include:
-              project instanceof Project &&
-              typeof project.clientJson.contents?.projectKey !== 'string',
+            include: includeDeployQuestion,
             prompt: 'This project has not been deployed. Would you like to deploy it now?',
             setValue: async value => {
               if (project instanceof Project && value === true) {
-                await project.deploy({ logSuccess: 'Generators deployed' })
+                await project.deploy({ logSuccess: 'Generators deployed', dispatch })
               }
             }
           },
           {
             type: 'string',
-            include: typeof view.schemaSourceString !== 'string',
+            include: includeSchemaQuestion,
             prompt: 'Path or URL for input OpenAPI schema',
             defaultValue: schemaSource?.type === 'local' ? schemaSource.path : undefined,
             setValue: value => {
@@ -67,7 +70,7 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
           },
           {
             type: 'boolean',
-            include: typeof view.watchMode !== 'boolean',
+            include: includeWatchQuestion,
             prompt: 'Watch for changes?',
             setValue: value => {
               dispatch({ type: 'set-view', payload: { ...view, watchMode: value } })
@@ -75,7 +78,26 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
           }
         ]}
       />
-    ))
+      <GenerateViewContent project={project} view={view} />
+    </>
+  )
+}
+
+type GenerateViewContentProps = {
+  project: Project | RemoteProject
+  view: ViewStateGenerate
+}
+
+const GenerateViewContent = ({ project, view }: GenerateViewContentProps) => {
+  return match(view)
+    .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
+      return view.watchMode ? (
+        <WatchGenerate project={project} view={confirmedView} />
+      ) : (
+        <RunGenerate project={project} view={confirmedView} />
+      )
+    })
+    .otherwise(() => null)
 }
 
 type RunGenerateProps = {
@@ -86,37 +108,38 @@ type RunGenerateProps = {
 const RunGenerate = ({ project, view }: RunGenerateProps) => {
   const { state, dispatch } = useSkmtc()
 
-  const [run, setRun] = useState(true)
-
   useEffect(() => {
-    if (run) {
-      toSchemaContents(view.schemaSourceString)
-        .then(schemaContents => {
-          return generate({
-            project,
-            skmtcRoot: state.skmtcRoot,
-            interactive: state.interactive,
-            schemaContents,
-            clientSettings: project.clientJson?.contents?.settings,
-            prettier: project.prettierJson?.contents
-          })
-        })
-        .then(stats => {
-          if (stats) {
-            dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
-          }
-        })
-        .catch(error => {
-          console.error(error)
-        })
-        .finally(() => {
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
-          setRun(false)
-        })
-    }
-  }, [run])
+    dispatch({ type: 'set-execution', payload: { type: 'generate', title: `Generating...` } })
 
-  return <Spinner label="Generating..." />
+    toSchemaContents(view.schemaSourceString)
+      .then(schemaContents => {
+        return generate({
+          project,
+          skmtcRoot: state.skmtcRoot,
+          interactive: state.interactive,
+          schemaContents,
+          clientSettings: project.clientJson?.contents?.settings,
+          prettier: project.prettierJson?.contents
+        })
+      })
+      .then(stats => {
+        if (stats) {
+          dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
+        }
+      })
+      .catch(error => {
+        console.error(error)
+      })
+      .finally(() => {
+        if (state.interactive) {
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        }
+
+        dispatch({ type: 'set-execution', payload: null })
+      })
+  }, [])
+
+  return <Box></Box>
 }
 
 const toSchemaContents = async (schemaSourceString: string): Promise<string> => {
@@ -133,8 +156,6 @@ type WatchGenerateProps = {
 
 const WatchGenerate = ({ project, view }: WatchGenerateProps) => {
   const { state, dispatch } = useSkmtc()
-
-  const [run, setRun] = useState(false)
 
   const [watcher, setWatcher] = useState<FSWatcher>()
 
@@ -155,7 +176,7 @@ const WatchGenerate = ({ project, view }: WatchGenerateProps) => {
   }, [view.schemaSourceString])
 
   useEffect(() => {
-    if (run) {
+    if (state.execution?.type === 'generate') {
       SchemaFile.getFromSource(toSchemaSource(view.schemaSourceString))
         .then(({ contents }) => {
           return generate({
@@ -176,25 +197,34 @@ const WatchGenerate = ({ project, view }: WatchGenerateProps) => {
           console.error(error)
         })
         .finally(() => {
-          setRun(false)
+          dispatch({
+            type: 'set-execution',
+            payload: {
+              type: 'generate:watch',
+              title: `Watching ${view.schemaSourceString}`,
+              subtitle: `Hit 'escape' key to stop.`
+            }
+          })
         })
     }
-  }, [run])
+  }, [state.execution?.type])
 
   useEffect(() => {
     if (watcher) {
       watcher.on('change', () => {
-        if (!run) {
-          setRun(true)
+        if (state.execution?.type !== 'generate') {
+          dispatch({
+            type: 'set-execution',
+            payload: {
+              type: 'generate',
+              title: `Generating...`,
+              subtitle: `Hit 'escape' key to stop.`
+            }
+          })
         }
       })
     }
   }, [watcher])
 
-  return (
-    <Box flexDirection="column">
-      <Spinner label={run ? `Generating...` : `Watching ${view.schemaSourceString}`} />
-      <Text dimColor>Hit 'escape' key to stop.</Text>
-    </Box>
-  )
+  return <Box></Box>
 }

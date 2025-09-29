@@ -15,7 +15,12 @@ type SkmtcAction =
       type: 'set-message'
       payload: string | null
     }
-type SkmtcDispatch = (action: SkmtcAction) => void
+  | {
+      type: 'set-execution'
+      payload: ExecutionInfo | null
+    }
+
+export type SkmtcDispatch = (action: SkmtcAction) => void
 
 export type ViewStateHome = {
   page: 'home'
@@ -40,6 +45,16 @@ export type ViewStateGenerate = {
   watchMode?: boolean
 }
 
+export type ViewStateDeploy = {
+  page: 'deploy'
+  projectName: string
+}
+type ExecutionInfo = {
+  type: 'generate' | 'deploy' | 'generate:watch'
+  title: string
+  subtitle?: string
+}
+
 export type ViewStateGenerateConfirmed = {
   page: 'generate'
   projectName: string
@@ -53,6 +68,7 @@ export type ViewState =
   | ViewStateLogin
   | ViewStateProject
   | ViewStateGenerate
+  | ViewStateDeploy
 
 type State = {
   view: ViewState
@@ -60,6 +76,7 @@ type State = {
   session: Session | null
   message: string | null
   interactive: boolean
+  execution: ExecutionInfo | null
 }
 
 type SkmtcProviderProps = {
@@ -79,6 +96,7 @@ const skmtcReducer = (state: State, action: SkmtcAction) => {
     .with({ type: 'set-view' }, ({ payload }) => ({ ...state, view: payload }))
     .with({ type: 'set-session' }, ({ payload }) => ({ ...state, session: payload.session }))
     .with({ type: 'set-message' }, ({ payload }) => ({ ...state, message: payload }))
+    .with({ type: 'set-execution' }, ({ payload }) => ({ ...state, execution: payload }))
     .exhaustive()
 }
 
@@ -88,7 +106,8 @@ const SkmtcProvider = ({ children, skmtcRoot, session, interactive, view }: Skmt
     skmtcRoot,
     session,
     message: null,
-    interactive
+    interactive,
+    execution: null
   })
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context
