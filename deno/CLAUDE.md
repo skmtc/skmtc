@@ -123,3 +123,8 @@ The CLI uses Cliffy framework with these patterns:
 - CLI: `cli/mod.ts`
 - MCP: `mcp/mod.ts`
 - Server: `server/mod.ts`
+
+## Instructions
+
+- Always run a type check using `deno check ./**/*.ts*` at the end of session to verify results
+- 

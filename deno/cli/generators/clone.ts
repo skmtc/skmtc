@@ -44,10 +44,12 @@ export const toClonePrompt = async (skmtcRoot: SkmtcRoot, projectName: string) =
 
   await Promise.all(
     generators.map(async generator => {
-      await project.cloneGenerator(
-        { moduleName: generator, projectName, generatorsDenoJson },
-        { logSuccess: `Generator "${generator}" is cloned` }
-      )
+      await project.cloneGenerator({
+        moduleName: generator,
+        projectName,
+        generatorsDenoJson
+      })
+      console.log(`Generator "${generator}" is cloned`)
     })
   )
 }

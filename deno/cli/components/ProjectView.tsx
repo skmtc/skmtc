@@ -75,6 +75,42 @@ export const ProjectView = ({ project }: ProjectProps) => {
                 payload: { page: 'deploy', projectName: project.name }
               })
             })
+            .with({ value: 'runtime-logs' }, () => {
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'runtime-logs', projectName: project.name }
+              })
+            })
+            .with({ value: 'install-generator' }, () => {
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'install-generator', projectName: project.name }
+              })
+            })
+            .with({ value: 'add-generator' }, () => {
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'add-generator', projectName: project.name }
+              })
+            })
+            .with({ value: 'clone-generator' }, () => {
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'clone-generator', projectName: project.name }
+              })
+            })
+            .with({ value: 'list-generators' }, () => {
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'list-generators', projectName: project.name }
+              })
+            })
+            .with({ value: 'remove-generator' }, () => {
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'remove-generator', projectName: project.name }
+              })
+            })
             .otherwise(() => {
               console.log(item)
             })

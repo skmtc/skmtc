@@ -67,6 +67,34 @@ export type ViewStateRuntimeLogs = {
   projectName: string
 }
 
+export type ViewStateListGenerators = {
+  page: 'list-generators'
+  projectName: string
+}
+
+export type ViewStateAddGenerator = {
+  page: 'add-generator'
+  projectName: string
+  generatorName?: string
+  generatorType?: 'operation' | 'model'
+}
+
+export type ViewStateInstallGenerator = {
+  page: 'install-generator'
+  projectName: string
+}
+
+export type ViewStateCloneGenerator = {
+  page: 'clone-generator'
+  projectName: string
+}
+
+export type ViewStateRemoveGenerator = {
+  page: 'remove-generator'
+  projectName: string
+  generatorName?: string
+}
+
 export type ViewState =
   | ViewStateHome
   | ViewStateCreateProject
@@ -75,6 +103,11 @@ export type ViewState =
   | ViewStateGenerate
   | ViewStateDeploy
   | ViewStateRuntimeLogs
+  | ViewStateListGenerators
+  | ViewStateAddGenerator
+  | ViewStateInstallGenerator
+  | ViewStateCloneGenerator
+  | ViewStateRemoveGenerator
 
 type State = {
   view: ViewState

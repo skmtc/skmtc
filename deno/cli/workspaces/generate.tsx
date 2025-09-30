@@ -40,10 +40,6 @@ type GenerateArgs = {
   prettier: PrettierConfigType | undefined
 }
 
-type GenerateOptions = {
-  logSuccess?: string
-}
-
 export const generate = async ({
   project,
   skmtcRoot,

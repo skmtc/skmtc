@@ -12,6 +12,11 @@ import { GenerateView } from './GenerateView.tsx'
 import { Spinner } from '@inkjs/ui'
 import { DeployView } from './DeployView.tsx'
 import { RuntimeLogsView } from './RuntimeLogsView.tsx'
+import { ListGeneratorsView } from './ListGeneratorsView.tsx'
+import { AddGeneratorView } from './AddGeneratorView.tsx'
+import { InstallGeneratorView } from './InstallGeneratorView.tsx'
+import { CloneGeneratorView } from './CloneGeneratorView.tsx'
+import { RemoveGeneratorView } from './RemoveGeneratorView.tsx'
 
 type AppProps = {
   skmtcRoot: SkmtcRoot
@@ -51,6 +56,21 @@ const ViewManager = () => {
     ))
     .with({ page: 'runtime-logs' }, view => (
       <RuntimeLogsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    ))
+    .with({ page: 'list-generators' }, view => (
+      <ListGeneratorsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    ))
+    .with({ page: 'add-generator' }, view => (
+      <AddGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    ))
+    .with({ page: 'install-generator' }, view => (
+      <InstallGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    ))
+    .with({ page: 'clone-generator' }, view => (
+      <CloneGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    ))
+    .with({ page: 'remove-generator' }, view => (
+      <RemoveGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
     .exhaustive()
 }
