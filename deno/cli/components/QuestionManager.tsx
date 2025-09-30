@@ -5,6 +5,7 @@ import { BooleanPrompt } from '@/components/BooleanPrompt.tsx'
 import { StringPrompt } from '@/components/StringPrompt.tsx'
 import { NumberPrompt } from '@/components/NumberPrompt.tsx'
 import { FilePathPrompt } from '@/components/FilePathPrompt.tsx'
+import { SelectPrompt } from '@/components/SelectPrompt.tsx'
 
 export type QuestionManagerProps = {
   questions: Question[]
@@ -59,6 +60,17 @@ export const QuestionManager = ({ questions }: QuestionManagerProps) => {
             defaultValue={defaultValue}
             extensions={extensions}
             basePath={basePath}
+            setValue={async value => {
+              await setValue(value)
+              setCurrentQuestion(q => q + 1)
+            }}
+          />
+        ))
+        .with({ type: 'select' }, ({ prompt, options, setValue }) => (
+          <SelectPrompt
+            key={prompt}
+            prompt={prompt}
+            options={options}
             setValue={async value => {
               await setValue(value)
               setCurrentQuestion(q => q + 1)

@@ -19,23 +19,19 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
     view.generatorType ?? null
   )
   const [isExecuting, setIsExecuting] = useState(false)
-
-  const includeNameQuestion = useMemo(() => {
-    return typeof generatorName !== 'string'
-  }, [generatorName])
+  const username = state.session?.user.user_metadata.user_name
 
   const includeTypeQuestion = useMemo(() => {
-    return typeof generatorType !== 'string' && typeof generatorName === 'string'
+    return typeof generatorType !== 'string'
+  }, [generatorType])
+
+  const includeNameQuestion = useMemo(() => {
+    return typeof generatorName !== 'string' && typeof generatorType === 'string'
   }, [generatorName, generatorType])
 
   // Execute add generator when all inputs are collected
   useEffect(() => {
-    if (
-      generatorName &&
-      generatorType &&
-      project instanceof Project &&
-      !isExecuting
-    ) {
+    if (generatorName && generatorType && project instanceof Project && !isExecuting) {
       setIsExecuting(true)
 
       dispatch({
@@ -45,7 +41,7 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
 
       project
         .addGenerator(
-          { moduleName: generatorName, type: generatorType },
+          { moduleName: generatorName, type: generatorType, username },
           { logSuccess: `Generator "${generatorName}" created` }
         )
         .then(() => {
@@ -84,6 +80,16 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
     <QuestionManager
       questions={[
         {
+          type: 'select',
+          include: includeTypeQuestion,
+          prompt: 'Generator type',
+          options: [
+            { label: 'operation', value: 'operation' },
+            { label: 'model', value: 'model' }
+          ],
+          setValue: value => setGeneratorType(value as 'operation' | 'model')
+        },
+        {
           type: 'string',
           include: includeNameQuestion,
           prompt: 'Generator name',
@@ -91,7 +97,10 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
             const error = checkProjectName(value)
             if (error) {
               console.error(error)
-              dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+              dispatch({
+                type: 'set-view',
+                payload: { page: 'project', projectName: project.name }
+              })
               return
             }
             setGeneratorName(value)

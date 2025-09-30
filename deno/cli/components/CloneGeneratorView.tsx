@@ -16,14 +16,15 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
   const { dispatch } = useSkmtc()
   const [isExecuting, setIsExecuting] = useState(false)
 
-  const cloneableGenerators = project instanceof Project
-    ? Object.entries(project.rootDenoJson.contents.imports ?? {})
-        .filter(([_, source]) => {
-          const { scheme, packageName } = parseModuleName(String(source))
-          return Boolean(scheme) && packageName.startsWith('gen-')
-        })
-        .map(([moduleName]) => moduleName)
-    : []
+  const cloneableGenerators =
+    project instanceof Project
+      ? Object.entries(project.rootDenoJson.contents.imports ?? {})
+          .filter(([_, source]) => {
+            const { scheme, packageName } = parseModuleName(String(source))
+            return Boolean(scheme) && packageName.startsWith('gen-')
+          })
+          .map(([moduleName]) => moduleName)
+      : []
 
   useInput((input, key) => {
     if (isExecuting) return
@@ -96,7 +97,8 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
 
   return (
     <Box flexDirection="column">
-      <Text>Select generators to clone (Space to toggle, Enter to submit, Escape to cancel):</Text>
+      <Text>Select generators to clone:</Text>
+      <Text dimColor>Space to toggle, Enter to submit, Escape to cancel</Text>
       <Text></Text>
 
       <MultiSelect

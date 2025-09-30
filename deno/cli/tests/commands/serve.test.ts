@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert/equals'
-import { toServeCommand } from '@/workspaces/serve.ts'
+import { toServeCommand } from '@/workspaces/serve.tsx'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'

@@ -86,7 +86,8 @@ export const CreateProject = () => {
 
     return (
       <Box flexDirection="column">
-        <Text>Select generators (Space to toggle, Enter to submit, Escape to cancel):</Text>
+        <Text>Select generators:</Text>
+        <Text dimColor>Space to toggle, Enter to submit, Escape to cancel</Text>
         <Text></Text>
 
         <MultiSelect

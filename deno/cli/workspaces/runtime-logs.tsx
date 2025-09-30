@@ -4,6 +4,8 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import type { Project } from '@/lib/project.ts'
 import { getApiDeploymentsDeploymentIdRuntimeLogs } from '@/services/getApiDeploymentsDeploymentIdRuntimeLogs.generated.ts'
+import { render } from 'ink'
+import { App } from '@/components/App.tsx'
 
 export const description = 'View runtime logs'
 
@@ -12,20 +14,17 @@ export const toRuntimeLogsCommand = (skmtcRoot: SkmtcRoot) => {
     .description(description)
     .arguments('<project:string>')
     .action(async (_, projectName) => {
-      const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+      const session = await skmtcRoot.manager.auth.toSession()
 
-      invariant(project, 'Project not found')
-
-      await runtimeLogs({ project, skmtcRoot })
+      render(
+        <App
+          skmtcRoot={skmtcRoot}
+          session={session}
+          view={{ page: 'runtime-logs', projectName }}
+          interactive={false}
+        />
+      )
     })
-}
-
-export const toRuntimeLogsPrompt = async (skmtcRoot: SkmtcRoot, projectName: string) => {
-  const project = skmtcRoot.projects.find(({ name }) => name === projectName)
-
-  invariant(project, 'Project not found')
-
-  await runtimeLogs({ project, skmtcRoot })
 }
 
 type GenerateArgs = {

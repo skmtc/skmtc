@@ -30,4 +30,22 @@ export type QuestionFilePath = {
   setValue: (value: string) => Promise<void> | void
 }
 
-export type Question = QuestionBoolean | QuestionString | QuestionNumber | QuestionFilePath
+export type Option = {
+  label: string
+  value: string
+}
+
+export type QuestionSelect = {
+  type: 'select'
+  include: boolean
+  prompt: string
+  options: Option[]
+  setValue: (value: string) => Promise<void> | void
+}
+
+export type Question =
+  | QuestionBoolean
+  | QuestionString
+  | QuestionNumber
+  | QuestionFilePath
+  | QuestionSelect

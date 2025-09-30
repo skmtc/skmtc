@@ -7,25 +7,26 @@ import { availableGenerators } from '@/available-generators.ts'
 import { isGeneratorName } from '@skmtc/core'
 import type { Project } from '@/lib/project.ts'
 import { runPrompt } from '@/prompt/run-prompt.tsx'
+import { render } from 'ink'
+import { App } from '@/components/App.tsx'
 
 export const description = 'Install generator'
 
 export const toInstallCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
-    .arguments('<project:string> [generator:string]')
-    .action(async (_options, projectName, generatorName) => {
-      const { project, moduleName, isNewProject } = await toProject({
-        skmtcRoot,
-        projectName,
-        generatorName
-      })
+    .arguments('<project:string>')
+    .action(async (_options, projectName) => {
+      const session = await skmtcRoot.manager.auth.toSession()
 
-      const generator = await project.installGenerator({ moduleName })
-
-      if (isNewProject && generator) {
-        setTimeout(() => runPrompt(skmtcRoot), 0)
-      }
+      render(
+        <App
+          skmtcRoot={skmtcRoot}
+          session={session}
+          view={{ page: 'install-generator', projectName }}
+          interactive={false}
+        />
+      )
     })
 
   return command

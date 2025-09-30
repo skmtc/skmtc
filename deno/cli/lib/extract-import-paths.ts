@@ -15,8 +15,8 @@ export function extractImportPaths(content: string): string[] {
   let match
   while ((match = importRegex.exec(cleanContent)) !== null) {
     const importPath = match[1]
-    // Only include non-relative imports (those that don't start with . or /)
-    if (!importPath.startsWith('.') && !importPath.startsWith('/')) {
+    // Only include non-relative imports (those that don't start with . or / or @/)
+    if (!importPath.startsWith('.') && !importPath.startsWith('/') && !importPath.startsWith('@/')) {
       imports.add(importPath)
     }
   }

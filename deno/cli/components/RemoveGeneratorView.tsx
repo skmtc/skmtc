@@ -1,7 +1,7 @@
 import { type ViewStateRemoveGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { Box, Text } from 'ink'
+import { Box, Text, useInput } from 'ink'
 import { useState } from 'react'
 import SelectInput from 'ink-select-input'
 import { QuestionManager } from '@/components/QuestionManager.tsx'
@@ -20,6 +20,12 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
 
   const generators = project instanceof Project ? project.toGeneratorIds() : []
 
+  useInput((_input, key) => {
+    if (key.escape && !selectedGenerator) {
+      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+    }
+  })
+
   if (generators.length === 0) {
     return (
       <Box flexDirection="column">
@@ -34,6 +40,8 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
     return (
       <Box flexDirection="column">
         <Text>Select generator to remove:</Text>
+        <Text dimColor>Hit 'escape' key to go back</Text>
+        <Text></Text>
         <SelectInput
           items={generators.map(gen => ({ label: gen, value: gen }))}
           onSelect={item => setSelectedGenerator(item.value)}

@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert/equals'
-import { toRuntimeLogsCommand } from '@/workspaces/runtime-logs.ts'
+import { toRuntimeLogsCommand } from '@/workspaces/runtime-logs.tsx'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'

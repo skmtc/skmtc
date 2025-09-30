@@ -22,6 +22,7 @@ import type { SkmtcDispatch } from '@/components/SkmtcContext.tsx'
 type AddGeneratorArgs = {
   moduleName: string
   type: 'operation' | 'model'
+  username: string
 }
 
 type CloneGeneratorArgs = {
@@ -350,7 +351,7 @@ export class Project {
   }
 
   async addGenerator(
-    { moduleName, type }: AddGeneratorArgs,
+    { moduleName, type, username }: AddGeneratorArgs,
     { logSuccess }: AddGeneratorOptions = {}
   ) {
     try {
@@ -360,7 +361,7 @@ export class Project {
 
       const generator = Generator.fromName({
         projectName: this.name,
-        scopeName,
+        scopeName: scopeName ?? username,
         packageName,
         version: version ?? '0.0.1'
       })

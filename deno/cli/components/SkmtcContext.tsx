@@ -50,7 +50,7 @@ export type ViewStateDeploy = {
   projectName: string
 }
 type ExecutionInfo = {
-  type: 'generate' | 'deploy' | 'generate:watch'
+  type: 'generate' | 'deploy' | 'generate:watch' | 'serve'
   title: string
   subtitle?: string
 }
@@ -67,6 +67,12 @@ export type ViewStateRuntimeLogs = {
   projectName: string
 }
 
+export type ViewStateServe = {
+  page: 'serve'
+  projectName: string
+  port?: string
+}
+
 export type ViewStateListGenerators = {
   page: 'list-generators'
   projectName: string
@@ -77,6 +83,15 @@ export type ViewStateAddGenerator = {
   projectName: string
   generatorName?: string
   generatorType?: 'operation' | 'model'
+  username?: string
+}
+
+export type ViewStateAddGeneratorConfirmed = {
+  page: 'add-generator'
+  projectName: string
+  generatorName: string
+  generatorType: 'operation' | 'model'
+  username: string
 }
 
 export type ViewStateInstallGenerator = {
@@ -103,6 +118,7 @@ export type ViewState =
   | ViewStateGenerate
   | ViewStateDeploy
   | ViewStateRuntimeLogs
+  | ViewStateServe
   | ViewStateListGenerators
   | ViewStateAddGenerator
   | ViewStateInstallGenerator

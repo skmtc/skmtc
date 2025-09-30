@@ -4,19 +4,26 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { parseModuleName } from '@skmtc/core'
 import { getGeneratorsRootDenoJson } from '@/lib/generator.ts'
+import { render } from 'ink'
+import { App } from '@/components/App.tsx'
 
 export const description = 'Clone generator'
 
 export const toCloneCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
-    .arguments('<project:string> <generator:string>')
-    .action(async (_options, project, generator) => {
-      const generatorsDenoJson = await getGeneratorsRootDenoJson()
+    .arguments('<project:string>')
+    .action(async (_options, projectName) => {
+      const session = await skmtcRoot.manager.auth.toSession()
 
-      return skmtcRoot.projects
-        .find(({ name }) => name === project)
-        ?.cloneGenerator({ projectName: project, moduleName: generator, generatorsDenoJson })
+      render(
+        <App
+          skmtcRoot={skmtcRoot}
+          session={session}
+          view={{ page: 'clone-generator', projectName }}
+          interactive={false}
+        />
+      )
     })
 
   return command
