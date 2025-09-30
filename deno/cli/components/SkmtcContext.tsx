@@ -3,6 +3,8 @@ import { createContext, type ReactNode, useContext, useReducer } from 'react'
 import { match } from 'ts-pattern'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Session } from '@supabase/supabase-js'
+import type { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
 
 type SkmtcAction =
   | { type: 'set-view'; payload: ViewState }
@@ -41,7 +43,7 @@ export type ViewStateProject = {
 
 export type ViewStateGenerate = {
   page: 'generate'
-  projectName: string
+  project: Project | RemoteProject
   schemaSourceString?: string
   watchMode?: boolean
 }
@@ -58,7 +60,7 @@ type ExecutionInfo = {
 
 export type ViewStateGenerateConfirmed = {
   page: 'generate'
-  projectName: string
+  project: Project | RemoteProject
   schemaSourceString: string
   watchMode: boolean
 }

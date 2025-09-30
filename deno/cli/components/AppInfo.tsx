@@ -14,6 +14,10 @@ export const AppInfo = () => {
     return null
   }
 
+  if (!state.interactive) {
+    return null
+  }
+
   return (
     <>
       <Box

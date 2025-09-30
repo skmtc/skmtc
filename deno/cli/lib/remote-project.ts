@@ -51,6 +51,7 @@ export class RemoteProject {
     const [accountName, name] = projectKey.split('/')
 
     const prettierJson = prettierPath ? await PrettierJson.openFromPath(prettierPath) : null
+
     const scrubbedAccountName = accountName.replace(/^@/, '')
 
     const clientJson = await ClientJson.open({

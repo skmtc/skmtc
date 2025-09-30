@@ -3,13 +3,14 @@ import { Command } from '@cliffy/command'
 import * as Sentry from '@sentry/node'
 import { Workspace } from '@/lib/workspace.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import type { Project } from '@/lib/project.ts'
+import { isProjectKey, type Project } from '@/lib/project.ts'
 import { formatNumber, toGenerationStats, type GenerationStats } from '@skmtc/core'
-import type { RemoteProject } from '@/lib/remote-project.ts'
+import { RemoteProject } from '@/lib/remote-project.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { PrettierConfigType } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
+import { SchemaFile } from '@/lib/schema-file.ts'
 
 export const description = 'Generate artifacts'
 
@@ -21,11 +22,21 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
     .action(async ({ watch }, projectName, schemaSourceString) => {
       const session = await skmtcRoot.manager.auth.toSession()
 
+      const project = isProjectKey(projectName)
+        ? await RemoteProject.fromKey({
+            projectKey: projectName,
+            schemaFile: schemaSourceString
+              ? await SchemaFile.openFromSource(schemaSourceString)
+              : SchemaFile.create(),
+            manager: skmtcRoot.manager
+          })
+        : skmtcRoot.findProject(projectName)
+
       render(
         <App
           skmtcRoot={skmtcRoot}
           session={session}
-          view={{ page: 'generate', projectName, schemaSourceString, watchMode: Boolean(watch) }}
+          view={{ page: 'generate', project, schemaSourceString, watchMode: Boolean(watch) }}
           interactive={false}
         />
       )

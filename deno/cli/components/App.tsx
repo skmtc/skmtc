@@ -19,6 +19,9 @@ import { AddGeneratorView } from '@/components/AddGeneratorView.tsx'
 import { InstallGeneratorView } from '@/components/InstallGeneratorView.tsx'
 import { CloneGeneratorView } from '@/components/CloneGeneratorView.tsx'
 import { RemoveGeneratorView } from '@/components/RemoveGeneratorView.tsx'
+import { isProjectKey } from '@/lib/project.ts'
+import { RemoteProject } from '@/lib/remote-project.ts'
+import { SchemaFile } from '@/lib/schema-file.ts'
 
 type AppProps = {
   skmtcRoot: SkmtcRoot
@@ -50,12 +53,12 @@ const ViewManager = () => {
     .with({ page: 'project' }, ({ projectName }) => (
       <ProjectView project={state.skmtcRoot.findProject(projectName)} />
     ))
-    .with({ page: 'generate' }, view => (
-      <GenerateView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    ))
-    .with({ page: 'deploy' }, view => (
-      <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    ))
+    .with({ page: 'generate' }, view => {
+      return <GenerateView project={view.project} view={view} />
+    })
+    .with({ page: 'deploy' }, view => {
+      return <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    })
     .with({ page: 'runtime-logs' }, view => (
       <RuntimeLogsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
