@@ -1,7 +1,7 @@
 import { assertEquals } from '@std/assert/equals'
-import { toLoginCommand } from '../../auth/auth.ts'
-import { createMockManager } from '../mocks/manager.mock.ts'
-import { createMockSkmtcRoot } from '../mocks/skmtc-root.mock.ts'
+import { toLoginCommand } from '@/auth/auth.ts'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
+import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 
 Deno.test('login command - logs in successfully', async () => {
   const manager = createMockManager()

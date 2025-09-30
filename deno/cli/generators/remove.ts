@@ -1,6 +1,6 @@
 import { Command } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 
 export const description = 'Remove generator'

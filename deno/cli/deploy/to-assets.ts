@@ -1,6 +1,6 @@
 import { walk } from '@std/fs/walk'
 import { relative } from '@std/path/relative'
-import type { AssetEntry, DenoFile } from './types.ts'
+import type { AssetEntry, DenoFile } from '@/deploy/types.ts'
 
 type ToAssetsArgs = {
   projectRoot: string

@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert/equals'
-import { createMockManager } from '../mocks/manager.mock.ts'
-import { createMockProject } from '../mocks/project.mock.ts'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
+import { createMockProject } from '@/tests/mocks/project.mock.ts'
 
 Deno.test('CloneGeneratorView - space key should toggle selection', async () => {
   const manager = createMockManager()

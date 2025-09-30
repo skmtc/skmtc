@@ -1,9 +1,9 @@
-import { type ViewStateAddGenerator, useSkmtc } from './SkmtcContext.tsx'
-import { Project } from '../lib/project.ts'
-import type { RemoteProject } from '../lib/remote-project.ts'
+import { type ViewStateAddGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
+import { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
 import { Box, Text } from 'ink'
 import { useMemo, useState, useEffect } from 'react'
-import { QuestionManager } from './QuestionManager.tsx'
+import { QuestionManager } from '@/components/QuestionManager.tsx'
 import { checkProjectName } from '@skmtc/core'
 import SelectInput from 'ink-select-input'
 

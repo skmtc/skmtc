@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink'
-import { toRelativeRootPath } from '../lib/to-root-path.ts'
+import { toRelativeRootPath } from '@/lib/to-root-path.ts'
 import denoJson from '../deno.json' with { type: 'json' }
-import { useSkmtc } from './SkmtcContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { StatusMessage } from '@inkjs/ui'
 
 export const AppInfo = () => {

@@ -1,11 +1,11 @@
 import { existsSync } from '@std/fs/exists'
 import { join } from '@std/path/join'
-import { writeFileSafeDir } from './file.ts'
+import { writeFileSafeDir } from '@/lib/file.ts'
 import * as v from 'valibot'
 import { parseModuleName, rootDenoJson, type RootDenoJson as RootDenoJsonType } from '@skmtc/core'
-import type { Generator } from './generator.ts'
-import type { Manager } from './manager.ts'
-import { toProjectPath } from './to-project-path.ts'
+import type { Generator } from '@/lib/generator.ts'
+import type { Manager } from '@/lib/manager.ts'
+import { toProjectPath } from '@/lib/to-project-path.ts'
 import invariant from 'tiny-invariant'
 
 type ConstructorArgs = {

@@ -1,5 +1,5 @@
 import { join } from '@std/path/join'
-import { readTextFile } from './file.ts'
+import { readTextFile } from '@/lib/file.ts'
 import * as v from 'valibot'
 
 export const toPackageJson = async () => {

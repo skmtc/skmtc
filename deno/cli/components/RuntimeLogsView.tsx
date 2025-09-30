@@ -1,9 +1,9 @@
-import { type ViewStateRuntimeLogs, useSkmtc } from './SkmtcContext.tsx'
-import { Project } from '../lib/project.ts'
-import type { RemoteProject } from '../lib/remote-project.ts'
+import { type ViewStateRuntimeLogs, useSkmtc } from '@/components/SkmtcContext.tsx'
+import { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
 import { Box, Text, useInput } from 'ink'
 import { useEffect, useState } from 'react'
-import { getApiDeploymentsDeploymentIdRuntimeLogs } from '../services/getApiDeploymentsDeploymentIdRuntimeLogs.generated.ts'
+import { getApiDeploymentsDeploymentIdRuntimeLogs } from '@/services/getApiDeploymentsDeploymentIdRuntimeLogs.generated.ts'
 
 type RuntimeLogsViewProps = {
   project: Project | RemoteProject

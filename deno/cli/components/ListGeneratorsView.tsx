@@ -1,6 +1,6 @@
-import { type ViewStateListGenerators, useSkmtc } from './SkmtcContext.tsx'
-import { Project } from '../lib/project.ts'
-import type { RemoteProject } from '../lib/remote-project.ts'
+import { type ViewStateListGenerators, useSkmtc } from '@/components/SkmtcContext.tsx'
+import { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
 import { Box, Text, useInput } from 'ink'
 import SelectInput from 'ink-select-input'
 

@@ -1,4 +1,4 @@
-import type { Generator } from './generator.ts'
+import type { Generator } from '@/lib/generator.ts'
 import { maxSatisfying } from '@std/semver/max-satisfying'
 import { parse } from '@std/semver/parse'
 import { parseRange } from '@std/semver/parse-range'

@@ -1,8 +1,8 @@
 import { assertEquals } from '@std/assert/equals'
-import { toGenerateCommand } from '../../workspaces/generate.tsx'
-import { createMockManager } from '../mocks/manager.mock.ts'
-import { createMockSkmtcRoot } from '../mocks/skmtc-root.mock.ts'
-import { createMockProject } from '../mocks/project.mock.ts'
+import { toGenerateCommand } from '@/workspaces/generate.tsx'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
+import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
+import { createMockProject } from '@/tests/mocks/project.mock.ts'
 
 Deno.test('generate command - parses project name argument', async () => {
   const manager = createMockManager()

@@ -1,7 +1,7 @@
 import SelectInput from 'ink-select-input'
 import { Box, Newline, Text, useApp } from 'ink'
 import { match, P } from 'ts-pattern'
-import { useSkmtc } from './SkmtcContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
 
 type HomeActionType = `select-project:${string}` | 'create-project' | 'login' | 'logout' | 'exit'
 

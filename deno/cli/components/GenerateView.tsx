@@ -3,16 +3,20 @@ import {
   useSkmtc,
   type ViewStateGenerate,
   type ViewStateGenerateConfirmed
-} from './SkmtcContext.tsx'
-import { Project } from '../lib/project.ts'
-import type { RemoteProject } from '../lib/remote-project.ts'
+} from '@/components/SkmtcContext.tsx'
+import { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
 import { useEffect, useState } from 'react'
-import { generate, toGenerateStatus } from '../workspaces/generate.tsx'
+import { generate, toGenerateStatus } from '@/workspaces/generate.tsx'
 import { match, P } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
-import { SchemaFile, toSchemaSource } from '../lib/schema-file.ts'
-import { QuestionManager } from './QuestionManager.tsx'
+import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
+import { QuestionManager } from '@/components/QuestionManager.tsx'
 import { useMemo } from 'react'
+import type { Question } from '@/components/types.ts'
+import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
+import { join, relative } from 'node:path'
+import { isAbsolute } from '@std/path/is-absolute'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -23,6 +27,10 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
   const { dispatch, state } = useSkmtc()
 
   const schemaSource = project.schemaFile?.schemaSource
+
+  const projectPath = useMemo(() => {
+    return project instanceof Project ? project.toPath() : null
+  }, [project])
 
   const includeDeployQuestion = useMemo(() => {
     return project instanceof Project && typeof project.clientJson.contents?.projectKey !== 'string'
@@ -36,52 +44,57 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     return typeof view.watchMode !== 'boolean'
   }, [])
 
+  const absoluteRootPath = toAbsoluteRootPath()
+
+  const questions: Question[] = [
+    {
+      type: 'boolean',
+      include: includeDeployQuestion,
+      prompt: 'This project has not been deployed. Would you like to deploy it now?',
+      setValue: async value => {
+        if (project instanceof Project && value === true) {
+          await project.deploy({
+            logSuccess: 'Generators deployed',
+            interactive: state.interactive,
+            dispatch
+          })
+        }
+      }
+    },
+    {
+      type: 'filepath',
+      include: includeSchemaQuestion,
+      prompt: 'Input OpenAPI schema path or URL',
+      defaultValue:
+        schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined,
+      extensions: ['.json', '.yaml', '.yml'],
+      basePath: projectPath ?? undefined,
+      setValue: (value: string) => {
+        const isRemote = value.startsWith('http://') || value.startsWith('https://')
+
+        dispatch({
+          type: 'set-view',
+          payload: {
+            ...view,
+            schemaSourceString: value,
+            watchMode: isRemote ? false : view.watchMode
+          }
+        })
+      }
+    },
+    {
+      type: 'boolean',
+      include: includeWatchQuestion,
+      prompt: 'Watch for changes?',
+      setValue: value => {
+        dispatch({ type: 'set-view', payload: { ...view, watchMode: value } })
+      }
+    }
+  ]
+
   return (
     <>
-      <QuestionManager
-        questions={[
-          {
-            type: 'boolean',
-            include: includeDeployQuestion,
-            prompt: 'This project has not been deployed. Would you like to deploy it now?',
-            setValue: async value => {
-              if (project instanceof Project && value === true) {
-                await project.deploy({
-                  logSuccess: 'Generators deployed',
-                  interactive: state.interactive,
-                  dispatch
-                })
-              }
-            }
-          },
-          {
-            type: 'string',
-            include: includeSchemaQuestion,
-            prompt: 'Path or URL for input OpenAPI schema',
-            defaultValue: schemaSource?.type === 'local' ? schemaSource.path : undefined,
-            setValue: value => {
-              const isRemote = value.startsWith('http://') || value.startsWith('https://')
-
-              dispatch({
-                type: 'set-view',
-                payload: {
-                  ...view,
-                  schemaSourceString: value,
-                  watchMode: isRemote ? false : view.watchMode
-                }
-              })
-            }
-          },
-          {
-            type: 'boolean',
-            include: includeWatchQuestion,
-            prompt: 'Watch for changes?',
-            setValue: value => {
-              dispatch({ type: 'set-view', payload: { ...view, watchMode: value } })
-            }
-          }
-        ]}
-      />
+      <QuestionManager questions={questions} />
       <GenerateViewContent project={project} view={view} />
     </>
   )
@@ -148,6 +161,11 @@ const RunGenerate = ({ project, view }: RunGenerateProps) => {
 
 const toSchemaContents = async (schemaSourceString: string): Promise<string> => {
   const schemaSource = toSchemaSource(schemaSourceString)
+
+  if (schemaSource.type === 'local' && !isAbsolute(schemaSource.path)) {
+    schemaSource.path = join(toAbsoluteRootPath(), schemaSource.path)
+  }
+
   const { contents } = await SchemaFile.getFromSource(schemaSource)
 
   return contents

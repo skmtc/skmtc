@@ -1,6 +1,6 @@
-import type { Manager } from './manager.ts'
+import type { Manager } from '@/lib/manager.ts'
 import * as v from 'valibot'
-import type { OpenApiSchema } from './openapi-schema.ts'
+import type { OpenApiSchema } from '@/lib/openapi-schema.ts'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 
 type UploadBaseFilesArgs = {

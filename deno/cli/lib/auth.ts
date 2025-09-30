@@ -1,7 +1,7 @@
 import invariant from 'tiny-invariant'
-import { createSupabaseClient } from '../auth/supabase-client.ts'
+import { createSupabaseClient } from '@/auth/supabase-client.ts'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
-import { createAuthHandler } from '../auth/auth-handler.ts'
+import { createAuthHandler } from '@/auth/auth-handler.ts'
 
 // Cross-platform server creation
 async function createServer(

@@ -1,9 +1,9 @@
 import { Command } from '@cliffy/command'
 import * as Sentry from '@sentry/node'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
-import type { Project } from '../lib/project.ts'
-import { getApiDeploymentsDeploymentIdRuntimeLogs } from '../services/getApiDeploymentsDeploymentIdRuntimeLogs.generated.ts'
+import type { Project } from '@/lib/project.ts'
+import { getApiDeploymentsDeploymentIdRuntimeLogs } from '@/services/getApiDeploymentsDeploymentIdRuntimeLogs.generated.ts'
 
 export const description = 'View runtime logs'
 

@@ -1,10 +1,10 @@
-import { type ViewStateInstallGenerator, useSkmtc } from './SkmtcContext.tsx'
-import { Project } from '../lib/project.ts'
-import type { RemoteProject } from '../lib/remote-project.ts'
-import { Box, Text, useInput } from 'ink'
-import { useEffect, useState } from 'react'
+import { type ViewStateInstallGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
+import { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
+import { Box, Newline, Text, useInput } from 'ink'
+import { useState } from 'react'
 import { MultiSelect } from '@inkjs/ui'
-import { availableGenerators } from '../available-generators.ts'
+import { availableGenerators } from '@/available-generators.ts'
 
 type InstallGeneratorViewProps = {
   project: Project | RemoteProject
@@ -15,7 +15,7 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
   const { dispatch } = useSkmtc()
   const [isExecuting, setIsExecuting] = useState(false)
 
-  const imports = project instanceof Project ? project.rootDenoJson.contents.imports ?? {} : {}
+  const imports = project instanceof Project ? (project.rootDenoJson.contents.imports ?? {}) : {}
 
   const availableToInstall = availableGenerators
     .filter(item => !imports[item.name])
@@ -87,7 +87,11 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
 
   return (
     <Box flexDirection="column">
-      <Text>Select generators to install (Space to toggle, Enter to submit, Escape to cancel):</Text>
+      <Text>
+        Select generators to install
+        <Newline />
+        <Text dimColor>Space to toggle, Enter to submit, Escape to cancel</Text>
+      </Text>
       <Text></Text>
 
       <MultiSelect

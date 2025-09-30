@@ -1,13 +1,13 @@
-import type { DenoFile } from '../deploy/types.ts'
-import { ApiClient } from './api-client.ts'
-import type { Manager } from './manager.ts'
-import { getApiDeploymentsDeploymentId } from '../services/getApiDeploymentsDeploymentId.generated.ts'
-import { getApiDeploymentsDeploymentIdDeploymentLogs } from '../services/getApiDeploymentsDeploymentIdDeploymentLogs.generated.ts'
-import { createApiServers } from '../services/createApiServers.generated.ts'
+import type { DenoFile } from '@/deploy/types.ts'
+import { ApiClient } from '@/lib/api-client.ts'
+import type { Manager } from '@/lib/manager.ts'
+import { getApiDeploymentsDeploymentId } from '@/services/getApiDeploymentsDeploymentId.generated.ts'
+import { getApiDeploymentsDeploymentIdDeploymentLogs } from '@/services/getApiDeploymentsDeploymentIdDeploymentLogs.generated.ts'
+import { createApiServers } from '@/services/createApiServers.generated.ts'
 import invariant from 'tiny-invariant'
-import type { Project } from './project.ts'
-import type { RemoteProject } from './remote-project.ts'
-import type { SkmtcDispatch } from '../components/SkmtcContext.tsx'
+import type { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
+import type { SkmtcDispatch } from '@/components/SkmtcContext.tsx'
 
 type DeployArgs = {
   serverName: string

@@ -1,9 +1,9 @@
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
-import { writeFileSafeDir } from './file.ts'
+import { writeFileSafeDir } from '@/lib/file.ts'
 import * as v from 'valibot'
 import { prettierConfigType, type PrettierConfigType } from '@skmtc/core'
-import { toProjectPath } from './to-project-path.ts'
+import { toProjectPath } from '@/lib/to-project-path.ts'
 
 type ConstructorArgs = {
   path: string

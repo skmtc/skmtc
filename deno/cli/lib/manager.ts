@@ -1,4 +1,4 @@
-import { Auth } from './auth.ts'
+import { Auth } from '@/lib/auth.ts'
 type AsyncAction = () => Promise<void>
 
 export class Manager {

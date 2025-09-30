@@ -1,7 +1,7 @@
 import { Box } from 'ink'
-import type { Project } from '../lib/project.ts'
-import type { ViewStateDeploy } from './SkmtcContext.tsx'
-import { useSkmtc } from './SkmtcContext.tsx'
+import type { Project } from '@/lib/project.ts'
+import type { ViewStateDeploy } from '@/components/SkmtcContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useEffect } from 'react'
 
 type DeployViewProps = {

@@ -1,8 +1,8 @@
 import { assertEquals } from '@std/assert/equals'
-import { toRuntimeLogsCommand } from '../../workspaces/runtime-logs.ts'
-import { createMockManager } from '../mocks/manager.mock.ts'
-import { createMockSkmtcRoot } from '../mocks/skmtc-root.mock.ts'
-import { createMockProject } from '../mocks/project.mock.ts'
+import { toRuntimeLogsCommand } from '@/workspaces/runtime-logs.ts'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
+import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
+import { createMockProject } from '@/tests/mocks/project.mock.ts'
 
 Deno.test('runtime-logs command - has correct description', async () => {
   const manager = createMockManager()

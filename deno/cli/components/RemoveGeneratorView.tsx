@@ -1,10 +1,10 @@
-import { type ViewStateRemoveGenerator, useSkmtc } from './SkmtcContext.tsx'
-import { Project } from '../lib/project.ts'
-import type { RemoteProject } from '../lib/remote-project.ts'
+import { type ViewStateRemoveGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
+import { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
 import { Box, Text } from 'ink'
 import { useState } from 'react'
 import SelectInput from 'ink-select-input'
-import { QuestionManager } from './QuestionManager.tsx'
+import { QuestionManager } from '@/components/QuestionManager.tsx'
 
 type RemoveGeneratorViewProps = {
   project: Project | RemoteProject

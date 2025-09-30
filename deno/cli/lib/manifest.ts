@@ -1,9 +1,9 @@
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
-import { toProjectPath } from './to-project-path.ts'
+import { toProjectPath } from '@/lib/to-project-path.ts'
 import { type ManifestContent, manifestContent, toManifestErrors } from '@skmtc/core'
 import * as v from 'valibot'
-import { writeFileSafeDir } from './file.ts'
+import { writeFileSafeDir } from '@/lib/file.ts'
 
 type ConstructorArgs = {
   projectName: string

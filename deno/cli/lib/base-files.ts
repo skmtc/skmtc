@@ -1,8 +1,8 @@
 import { join } from '@std/path/join'
-import type { ApiClient } from './api-client.ts'
-import { IgnoreFile } from './ignore-file.ts'
-import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
-import { patchApiWorkspacesWorkspaceId } from '../services/patchApiWorkspacesWorkspaceId.generated.ts'
+import type { ApiClient } from '@/lib/api-client.ts'
+import { IgnoreFile } from '@/lib/ignore-file.ts'
+import { getApiWorkspacesWorkspaceName } from '@/services/getApiWorkspacesWorkspaceName.generated.ts'
+import { patchApiWorkspacesWorkspaceId } from '@/services/patchApiWorkspacesWorkspaceId.generated.ts'
 
 type PushArgs = {
   projectName: string

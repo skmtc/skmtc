@@ -1,9 +1,9 @@
 import { Box, Text, useInput } from 'ink'
-import { useSkmtc } from './SkmtcContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useState, useEffect, useMemo } from 'react'
-import { QuestionManager } from './QuestionManager.tsx'
+import { QuestionManager } from '@/components/QuestionManager.tsx'
 import { MultiSelect } from '@inkjs/ui'
-import { availableGenerators } from '../available-generators.ts'
+import { availableGenerators } from '@/available-generators.ts'
 
 export const CreateProject = () => {
   const { state, dispatch } = useSkmtc()

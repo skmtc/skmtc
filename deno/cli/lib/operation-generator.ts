@@ -1,4 +1,4 @@
-import type { Generator } from './generator.ts'
+import type { Generator } from '@/lib/generator.ts'
 import { camelCase } from '@skmtc/core'
 import { join } from '@std/path/join'
 

@@ -1,6 +1,6 @@
-import type { Manager } from '../../lib/manager.ts'
-import type { Auth } from '../../lib/auth.ts'
-import { createMockSupabaseClient } from './supabase.mock.ts'
+import type { Manager } from '@/lib/manager.ts'
+import type { Auth } from '@/lib/auth.ts'
+import { createMockSupabaseClient } from '@/tests/mocks/supabase.mock.ts'
 
 export function createMockManager(): Manager {
   const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()

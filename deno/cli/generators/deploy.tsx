@@ -1,7 +1,7 @@
 import { Command } from '@cliffy/command'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { render } from 'ink'
-import { App } from '../components/App.tsx'
+import { App } from '@/components/App.tsx'
 
 export const description = 'Deploy generators'
 

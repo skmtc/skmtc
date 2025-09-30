@@ -1,7 +1,7 @@
 import { assertEquals } from '@std/assert/equals'
-import { toInitCommand } from '../../lib/init.ts'
-import { createMockManager } from '../mocks/manager.mock.ts'
-import { createMockSkmtcRoot } from '../mocks/skmtc-root.mock.ts'
+import { toInitCommand } from '@/lib/init.ts'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
+import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 
 Deno.test('init command - creates new project', async () => {
   const manager = createMockManager()
@@ -17,7 +17,7 @@ Deno.test('init command - creates new project', async () => {
     createdProject.name = name
     createdProject.basePath = basePath
     createdProject.generators = generators
-    const mockProject = (await import('../mocks/project.mock.ts')).createMockProject(manager, {
+    const mockProject = (await import('@/tests/mocks/project.mock.ts')).createMockProject(manager, {
       name,
       generators
     })
@@ -51,7 +51,7 @@ Deno.test('init command - handles project creation with single generator', async
     createdProject.name = name
     createdProject.basePath = basePath
     createdProject.generators = generators
-    const mockProject = (await import('../mocks/project.mock.ts')).createMockProject(manager, {
+    const mockProject = (await import('@/tests/mocks/project.mock.ts')).createMockProject(manager, {
       name,
       generators
     })

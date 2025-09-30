@@ -1,11 +1,11 @@
-import type { Project } from '../../lib/project.ts'
-import type { Manager } from '../../lib/manager.ts'
-import { RootDenoJson } from '../../lib/root-deno-json.ts'
-import { ClientJson } from '../../lib/client-json.ts'
-import { Manifest } from '../../lib/manifest.ts'
-import { SchemaFile } from '../../lib/schema-file.ts'
-import { mockRootDenoJsonContents } from '../fixtures/deno-json.fixture.ts'
-import { mockClientJsonContents } from '../fixtures/client-json.fixture.ts'
+import type { Project } from '@/lib/project.ts'
+import type { Manager } from '@/lib/manager.ts'
+import { RootDenoJson } from '@/lib/root-deno-json.ts'
+import { ClientJson } from '@/lib/client-json.ts'
+import { Manifest } from '@/lib/manifest.ts'
+import { SchemaFile } from '@/lib/schema-file.ts'
+import { mockRootDenoJsonContents } from '@/tests/fixtures/deno-json.fixture.ts'
+import { mockClientJsonContents } from '@/tests/fixtures/client-json.fixture.ts'
 
 type MockProjectOptions = {
   name?: string

@@ -1,5 +1,5 @@
 import { Newline, Text } from 'ink'
-import { useSkmtc } from './SkmtcContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useEffect } from 'react'
 import { useState } from 'react'
 import Link from 'ink-link'

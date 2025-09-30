@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 
 export const description = 'Run project server locally'
 

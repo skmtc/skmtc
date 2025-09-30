@@ -1,16 +1,16 @@
-import { Project, isProjectKey } from './project.ts'
-import type { Manager } from './manager.ts'
+import { Project, isProjectKey } from '@/lib/project.ts'
+import type { Manager } from '@/lib/manager.ts'
 import { exists } from '@std/fs/exists'
-import { ApiClient } from './api-client.ts'
-import { toRootPath } from './to-root-path.ts'
-import { Jsr } from './jsr.ts'
+import { ApiClient } from '@/lib/api-client.ts'
+import { toRootPath } from '@/lib/to-root-path.ts'
+import { Jsr } from '@/lib/jsr.ts'
 import cliDenoJson from '../deno.json' with { type: 'json' }
 import { compare } from '@std/semver/compare'
 import { parse } from '@std/semver/parse'
-import { createApiServers } from '../services/createApiServers.generated.ts'
-import { RemoteProject } from './remote-project.ts'
+import { createApiServers } from '@/services/createApiServers.generated.ts'
+import { RemoteProject } from '@/lib/remote-project.ts'
 import invariant from 'tiny-invariant'
-import { SchemaFile } from './schema-file.ts'
+import { SchemaFile } from '@/lib/schema-file.ts'
 type CreateProjectArgs = {
   name: string
   basePath: string

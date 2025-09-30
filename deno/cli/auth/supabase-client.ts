@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { toAuthStore } from './store.ts'
+import { toAuthStore } from '@/auth/store.ts'
 
 export const createSupabaseClient = () => {
   const authStore = toAuthStore()

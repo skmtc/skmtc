@@ -1,9 +1,9 @@
 import { Box, Newline, Text } from 'ink'
 import SelectInput from 'ink-select-input'
-import { useSkmtc } from './SkmtcContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { match } from 'ts-pattern'
-import type { Project } from '../lib/project.ts'
-import type { RemoteProject } from '../lib/remote-project.ts'
+import type { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
 type ProjectProps = {
   project: Project | RemoteProject
 }

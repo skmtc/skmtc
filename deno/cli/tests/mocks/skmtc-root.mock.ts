@@ -1,7 +1,7 @@
-import type { SkmtcRoot } from '../../lib/skmtc-root.ts'
-import type { Manager } from '../../lib/manager.ts'
-import type { Project } from '../../lib/project.ts'
-import { createMockProject } from './project.mock.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import type { Manager } from '@/lib/manager.ts'
+import type { Project } from '@/lib/project.ts'
+import { createMockProject } from '@/tests/mocks/project.mock.ts'
 
 type MockSkmtcRootOptions = {
   projects?: Project[]

@@ -1,8 +1,8 @@
 import { assertEquals } from '@std/assert/equals'
-import { toAddCommand } from '../../generators/add.ts'
-import { createMockManager } from '../mocks/manager.mock.ts'
-import { createMockSkmtcRoot } from '../mocks/skmtc-root.mock.ts'
-import { createMockProject } from '../mocks/project.mock.ts'
+import { toAddCommand } from '@/generators/add.ts'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
+import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
+import { createMockProject } from '@/tests/mocks/project.mock.ts'
 
 Deno.test('add command - adds operation generator', async () => {
   const manager = createMockManager()

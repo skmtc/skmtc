@@ -1,12 +1,12 @@
 import { Command } from '@cliffy/command'
 import { Checkbox, Select } from '@cliffy/prompt'
-import { textInputPrompt } from '../lib/text-input-prompt.tsx'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import { textInputPrompt } from '@/lib/text-input-prompt.tsx'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
-import { availableGenerators } from '../available-generators.ts'
+import { availableGenerators } from '@/available-generators.ts'
 import { isGeneratorName } from '@skmtc/core'
-import type { Project } from '../lib/project.ts'
-import { runPrompt } from '../prompt/run-prompt.tsx'
+import type { Project } from '@/lib/project.ts'
+import { runPrompt } from '@/prompt/run-prompt.tsx'
 
 export const description = 'Install generator'
 

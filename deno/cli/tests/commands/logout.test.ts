@@ -1,7 +1,7 @@
 import { assertEquals } from '@std/assert/equals'
-import { toLogoutCommand } from '../../auth/auth.ts'
-import { createMockManager } from '../mocks/manager.mock.ts'
-import { createMockSkmtcRoot } from '../mocks/skmtc-root.mock.ts'
+import { toLogoutCommand } from '@/auth/auth.ts'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
+import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 
 Deno.test('logout command - logs out successfully', async () => {
   const manager = createMockManager()

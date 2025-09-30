@@ -1,11 +1,11 @@
-import type { SchemaFile } from './schema-file.ts'
-import { ClientJson } from './client-json.ts'
+import type { SchemaFile } from '@/lib/schema-file.ts'
+import { ClientJson } from '@/lib/client-json.ts'
 import { join } from '@std/path/join'
-import type { Manager } from './manager.ts'
-import { PrettierJson } from './prettier-json.ts'
-import type { ProjectKey } from './project.ts'
-import { toRemoteProjectPath } from './to-remote-project-path.ts'
-import { toRootPath } from './to-root-path.ts'
+import type { Manager } from '@/lib/manager.ts'
+import { PrettierJson } from '@/lib/prettier-json.ts'
+import type { ProjectKey } from '@/lib/project.ts'
+import { toRemoteProjectPath } from '@/lib/to-remote-project-path.ts'
+import { toRootPath } from '@/lib/to-root-path.ts'
 
 type ConstructorArgs = {
   accountName: string

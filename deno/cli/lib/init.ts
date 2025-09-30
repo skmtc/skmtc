@@ -1,9 +1,9 @@
 import { Command } from '@cliffy/command'
 import { Checkbox } from '@cliffy/prompt'
-import { textInputPrompt } from './text-input-prompt.tsx'
-import { toNameSuggest } from './to-name-suggest.ts'
-import type { SkmtcRoot } from './skmtc-root.ts'
-import { availableGenerators } from '../available-generators.ts'
+import { textInputPrompt } from '@/lib/text-input-prompt.tsx'
+import { toNameSuggest } from '@/lib/to-name-suggest.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { availableGenerators } from '@/available-generators.ts'
 
 type InitArgs = {
   projectName: string

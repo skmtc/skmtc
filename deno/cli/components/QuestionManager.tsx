@@ -1,9 +1,10 @@
 import { match } from 'ts-pattern'
-import type { Question } from './types.ts'
+import type { Question } from '@/components/types.ts'
 import { useState } from 'react'
-import { BooleanPrompt } from './BooleanPrompt.tsx'
-import { StringPrompt } from './StringPrompt.tsx'
-import { NumberPrompt } from './NumberPrompt.tsx'
+import { BooleanPrompt } from '@/components/BooleanPrompt.tsx'
+import { StringPrompt } from '@/components/StringPrompt.tsx'
+import { NumberPrompt } from '@/components/NumberPrompt.tsx'
+import { FilePathPrompt } from '@/components/FilePathPrompt.tsx'
 
 export type QuestionManagerProps = {
   questions: Question[]
@@ -45,6 +46,19 @@ export const QuestionManager = ({ questions }: QuestionManagerProps) => {
           <NumberPrompt
             key={prompt}
             prompt={prompt}
+            setValue={async value => {
+              await setValue(value)
+              setCurrentQuestion(q => q + 1)
+            }}
+          />
+        ))
+        .with({ type: 'filepath' }, ({ prompt, defaultValue, extensions, basePath, setValue }) => (
+          <FilePathPrompt
+            key={prompt}
+            prompt={prompt}
+            defaultValue={defaultValue}
+            extensions={extensions}
+            basePath={basePath}
             setValue={async value => {
               await setValue(value)
               setCurrentQuestion(q => q + 1)

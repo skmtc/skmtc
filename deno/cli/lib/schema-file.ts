@@ -1,14 +1,14 @@
 import { exists } from '@std/fs/exists'
 import { resolve } from '@std/path/resolve'
 import { join } from '@std/path/join'
-import { toProjectPath } from './to-project-path.ts'
-import { toRootPath } from './to-root-path.ts'
+import { toProjectPath } from '@/lib/to-project-path.ts'
+import { toRootPath } from '@/lib/to-root-path.ts'
 import invariant from 'tiny-invariant'
 import { match, P } from 'ts-pattern'
-import type { Project } from './project.ts'
-import type { RemoteProject } from './remote-project.ts'
-import { textInputPrompt } from './text-input-prompt.tsx'
-import { toMessage } from './to-message.tsx'
+import type { Project } from '@/lib/project.ts'
+import type { RemoteProject } from '@/lib/remote-project.ts'
+import { textInputPrompt } from '@/lib/text-input-prompt.tsx'
+import { toMessage } from '@/lib/to-message.tsx'
 
 type FileType = 'json' | 'yaml'
 
@@ -83,27 +83,31 @@ export class SchemaFile {
   static async getFromSource(
     source: SchemaSource
   ): Promise<{ contents: string; fileType: FileType }> {
-    if (source.type === 'remote') {
-      const response = await fetch(source.url)
+    return await match(source)
+      .returnType<Promise<{ contents: string; fileType: FileType }>>()
+      .with({ type: 'remote' }, async matched => {
+        const response = await fetch(matched.url)
 
-      const contents = await response.text()
-      const url = new URL(source.url)
+        const contents = await response.text()
+        const url = new URL(matched.url)
 
-      const fileType = toFileType(url.pathname)
+        const fileType = toFileType(url.pathname)
 
-      return {
-        contents,
-        fileType
-      }
-    } else {
-      const contents = await openPath(resolve(source.path))
-      const fileType = toFileType(source.path)
+        return {
+          contents,
+          fileType
+        }
+      })
+      .with({ type: 'local' }, async matched => {
+        const contents = await openPath(resolve(matched.path))
+        const fileType = toFileType(matched.path)
 
-      return {
-        contents,
-        fileType
-      }
-    }
+        return {
+          contents,
+          fileType
+        }
+      })
+      .exhaustive()
   }
 
   async promptOrFail(project: Project | RemoteProject) {

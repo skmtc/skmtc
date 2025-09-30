@@ -2,9 +2,9 @@ import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { type SkmtcClientConfig, skmtcClientConfig } from '@skmtc/core'
 import * as v from 'valibot'
-import type { Manager } from './manager.ts'
-import { writeFileSafeDir } from './file.ts'
-import type { ProjectKey } from './project.ts'
+import type { Manager } from '@/lib/manager.ts'
+import { writeFileSafeDir } from '@/lib/file.ts'
+import type { ProjectKey } from '@/lib/project.ts'
 
 type CreateArgs = {
   path: string

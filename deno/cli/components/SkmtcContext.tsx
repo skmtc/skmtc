@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useContext, useReducer } from 'react'
 import { match } from 'ts-pattern'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Session } from '@supabase/supabase-js'
 
 type SkmtcAction =

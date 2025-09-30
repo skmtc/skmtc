@@ -1,9 +1,9 @@
 import { Command } from '@cliffy/command'
 import { Checkbox } from '@cliffy/prompt'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 import { parseModuleName } from '@skmtc/core'
-import { getGeneratorsRootDenoJson } from '../lib/generator.ts'
+import { getGeneratorsRootDenoJson } from '@/lib/generator.ts'
 
 export const description = 'Clone generator'
 

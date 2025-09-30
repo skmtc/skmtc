@@ -1,8 +1,8 @@
 import { assertEquals } from '@std/assert/equals'
-import { toListCommand } from '../../generators/list.ts'
-import { createMockManager } from '../mocks/manager.mock.ts'
-import { createMockSkmtcRoot } from '../mocks/skmtc-root.mock.ts'
-import { createMockProject } from '../mocks/project.mock.ts'
+import { toListCommand } from '@/generators/list.ts'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
+import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
+import { createMockProject } from '@/tests/mocks/project.mock.ts'
 
 Deno.test('list command - lists generators for project', async () => {
   const manager = createMockManager()

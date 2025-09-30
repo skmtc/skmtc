@@ -1,8 +1,8 @@
 import { Command, EnumType } from '@cliffy/command'
 import { Input } from '@cliffy/prompt'
-import { textInputPrompt } from '../lib/text-input-prompt.tsx'
+import { textInputPrompt } from '@/lib/text-input-prompt.tsx'
 import { checkProjectName } from '@skmtc/core'
-import type { SkmtcRoot } from '../lib/skmtc-root.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import invariant from 'tiny-invariant'
 
 const generatorType = new EnumType(['operation', 'model'])

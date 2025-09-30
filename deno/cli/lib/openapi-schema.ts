@@ -1,9 +1,9 @@
 import { exists } from '@std/fs/exists'
-import type { SkmtcRoot } from './skmtc-root.ts'
-import { getApiWorkspacesWorkspaceName } from '../services/getApiWorkspacesWorkspaceName.generated.ts'
-import { patchApiSchemasSchemaId } from '../services/patchApiSchemasSchemaId.generated.ts'
-import { CreateSchemaBodyFile } from '../types/createSchemaBodyFile.generated.ts'
-import { createApiSchemas } from '../services/createApiSchemas.generated.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { getApiWorkspacesWorkspaceName } from '@/services/getApiWorkspacesWorkspaceName.generated.ts'
+import { patchApiSchemasSchemaId } from '@/services/patchApiSchemasSchemaId.generated.ts'
+import { CreateSchemaBodyFile } from '@/types/createSchemaBodyFile.generated.ts'
+import { createApiSchemas } from '@/services/createApiSchemas.generated.ts'
 
 type OpenApiSchemaArgs = {
   path: string

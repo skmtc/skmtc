@@ -127,4 +127,4 @@ The CLI uses Cliffy framework with these patterns:
 ## Instructions
 
 - Always run a type check using `deno check ./**/*.ts*` at the end of session to verify results
-- 
+- Use absolute import paths prefixed with `@/`, not of relative path imports 

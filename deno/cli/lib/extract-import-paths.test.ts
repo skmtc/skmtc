@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert/equals'
-import { extractImportPaths } from './extract-import-paths.ts'
+import { extractImportPaths } from '@/lib/extract-import-paths.ts'
 
 Deno.test('extractImportPaths - extracts named imports', () => {
   const content = `
@@ -30,7 +30,7 @@ Deno.test('extractImportPaths - extracts namespace imports', () => {
 
 Deno.test('extractImportPaths - extracts type imports', () => {
   const content = `
-    import type { RootDenoJson } from './root-deno-json.ts'
+    import type { RootDenoJson } from '@/lib/root-deno-json.ts'
     import type { Manager } from '@skmtc/core'
   `
   const result = extractImportPaths(content)
@@ -58,8 +58,8 @@ Deno.test('extractImportPaths - extracts export from statements', () => {
 
 Deno.test('extractImportPaths - ignores relative imports', () => {
   const content = `
-    import { something } from './local-file.ts'
-    import { another } from '../parent-file.ts'
+    import { something } from '@/lib/local-file.ts'
+    import { another } from '@/parent-file.ts'
     import { absolute } from '/absolute/path.ts'
     import { external } from 'external-package'
   `

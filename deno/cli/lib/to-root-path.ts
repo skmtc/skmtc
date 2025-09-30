@@ -35,7 +35,7 @@ const isInsideHomedir = (path: string) => {
 export const toRelativeRootPath = () => {
   const homePath = Deno.env.get('HOME')
 
-  const appRootPath = join(toRootPath(), '..')
+  const appRootPath = toAbsoluteRootPath()
 
   if (!homePath) {
     return appRootPath
@@ -44,4 +44,10 @@ export const toRelativeRootPath = () => {
   const relativePath = relative(homePath, appRootPath)
 
   return join('~', relativePath)
+}
+
+export const toAbsoluteRootPath = () => {
+  const appRootPath = join(toRootPath(), '..')
+
+  return appRootPath
 }
