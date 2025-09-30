@@ -44,10 +44,14 @@ type GenerateOptions = {
   logSuccess?: string
 }
 
-export const generate = async (
-  { project, skmtcRoot, interactive, schemaContents, clientSettings, prettier }: GenerateArgs,
-  { logSuccess }: GenerateOptions = {}
-) => {
+export const generate = async ({
+  project,
+  skmtcRoot,
+  interactive,
+  schemaContents,
+  clientSettings,
+  prettier
+}: GenerateArgs) => {
   try {
     const workspace = new Workspace()
 

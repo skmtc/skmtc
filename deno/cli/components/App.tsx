@@ -11,6 +11,7 @@ import type { Session } from '@supabase/supabase-js'
 import { GenerateView } from './GenerateView.tsx'
 import { Spinner } from '@inkjs/ui'
 import { DeployView } from './DeployView.tsx'
+import { RuntimeLogsView } from './RuntimeLogsView.tsx'
 
 type AppProps = {
   skmtcRoot: SkmtcRoot
@@ -47,6 +48,9 @@ const ViewManager = () => {
     ))
     .with({ page: 'deploy' }, view => (
       <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    ))
+    .with({ page: 'runtime-logs' }, view => (
+      <RuntimeLogsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
     .exhaustive()
 }

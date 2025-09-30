@@ -62,6 +62,11 @@ export type ViewStateGenerateConfirmed = {
   watchMode: boolean
 }
 
+export type ViewStateRuntimeLogs = {
+  page: 'runtime-logs'
+  projectName: string
+}
+
 export type ViewState =
   | ViewStateHome
   | ViewStateCreateProject
@@ -69,6 +74,7 @@ export type ViewState =
   | ViewStateProject
   | ViewStateGenerate
   | ViewStateDeploy
+  | ViewStateRuntimeLogs
 
 type State = {
   view: ViewState
