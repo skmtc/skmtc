@@ -67,7 +67,11 @@ export function createMockProject(
     installGenerator: async () => ({ name: 'test-gen', version: '0.0.1', exports: {} }),
     removeGenerator: async () => {},
     cloneGenerator: async () => {},
-    deploy: async () => {}
+    deploy: async () => {},
+    ensureSchemaFile: async () => {},
+    toManifestPath: () => `/mock/projects/${name}/.settings/manifest.json`,
+    toPath: () => `/mock/projects/${name}`,
+    toProjectKey: () => `@mock/${name}` as any
   } as unknown as Project
 
   return mockProject

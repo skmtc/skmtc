@@ -67,7 +67,7 @@ export const ProjectView = ({ project }: ProjectProps) => {
             .with({ value: 'generate-artifacts' }, () => {
               dispatch({
                 type: 'set-view',
-                payload: { page: 'generate', projectName: project.name }
+                payload: { page: 'generate', project }
               })
             })
             .with({ value: 'deploy' }, () => {
