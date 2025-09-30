@@ -1,3 +1,4 @@
+import React from 'react'
 import { type ViewStateCloneGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'

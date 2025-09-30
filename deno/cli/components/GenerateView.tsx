@@ -1,3 +1,4 @@
+import React from 'react'
 import { Box, useInput } from 'ink'
 import {
   useSkmtc,

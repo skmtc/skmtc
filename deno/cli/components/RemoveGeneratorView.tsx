@@ -1,3 +1,4 @@
+import React from 'react'
 import { type ViewStateRemoveGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
@@ -62,7 +63,10 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
               if (value) {
                 setConfirmed(true)
               } else {
-                dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+                dispatch({
+                  type: 'set-view',
+                  payload: { page: 'project', projectName: project.name }
+                })
               }
             }
           }

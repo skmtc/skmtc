@@ -1,3 +1,4 @@
+import React from 'react'
 import { type ViewStateListGenerators, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
@@ -28,9 +29,7 @@ export const ListGeneratorsView = ({ project }: ListGeneratorsViewProps) => {
       {generators.length === 0 ? (
         <Text dimColor>No generators found</Text>
       ) : (
-        generators.map(generator => (
-          <Text key={generator}>  • {generator}</Text>
-        ))
+        generators.map(generator => <Text key={generator}> • {generator}</Text>)
       )}
 
       <Text></Text>

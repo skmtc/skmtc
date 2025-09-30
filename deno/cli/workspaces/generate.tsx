@@ -1,3 +1,4 @@
+import React from 'react'
 import { Command } from '@cliffy/command'
 import * as Sentry from '@sentry/node'
 import { Workspace } from '@/lib/workspace.ts'

@@ -1,3 +1,4 @@
+import React from 'react'
 import { Box, Newline, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'

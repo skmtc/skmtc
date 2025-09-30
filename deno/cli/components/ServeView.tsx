@@ -1,3 +1,4 @@
+import React from 'react'
 import { Box } from 'ink'
 import type { Project } from '@/lib/project.ts'
 import type { ViewStateServe } from '@/components/SkmtcContext.tsx'

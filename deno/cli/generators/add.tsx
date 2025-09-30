@@ -1,3 +1,4 @@
+import React from 'react'
 import { Command, EnumType } from '@cliffy/command'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { render } from 'ink'

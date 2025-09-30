@@ -1,3 +1,4 @@
+import React from 'react'
 import { createContext, type ReactNode, useContext, useReducer } from 'react'
 import { match } from 'ts-pattern'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'

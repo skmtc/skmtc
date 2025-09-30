@@ -17,7 +17,8 @@ await build({
     timers: true
   },
   mappings: {
-    './workspaces/serve.ts': './workspaces/serve.node.ts'
+    './workspaces/serve.tsx': './workspaces/serve.node.tsx',
+    './components/ServeView.tsx': './components/ServeView.node.tsx'
   },
   scriptModule: false,
   package: {

@@ -1,3 +1,4 @@
+import React from 'react'
 import { Box, Text } from 'ink'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { HomeView } from '@/components/HomeView.tsx'

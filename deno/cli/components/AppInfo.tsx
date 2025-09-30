@@ -1,3 +1,4 @@
+import React from 'react'
 import { Box, Text } from 'ink'
 import { toRelativeRootPath } from '@/lib/to-root-path.ts'
 import denoJson from '../deno.json' with { type: 'json' }
@@ -26,7 +27,7 @@ export const AppInfo = () => {
       >
         <Box flexDirection="row" marginBottom={1} justifyContent="space-between">
           <Box flexDirection="row">
-            <Text dimColor>{'>_ '}</Text>
+            <Text color="#4f46e5">＊ </Text>
             <Text color="white">Skmtc CLI </Text>
             <Text dimColor>{`(v${denoJson.version})`}</Text>
           </Box>

@@ -1,3 +1,4 @@
+import React from 'react'
 import { Command } from '@cliffy/command'
 import { Checkbox } from '@cliffy/prompt'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'

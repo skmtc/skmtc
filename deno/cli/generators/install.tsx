@@ -1,3 +1,4 @@
+import React from 'react'
 import { Command } from '@cliffy/command'
 import { Checkbox, Select } from '@cliffy/prompt'
 import { textInputPrompt } from '@/lib/text-input-prompt.tsx'

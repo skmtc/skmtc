@@ -1,3 +1,4 @@
+import React from 'react'
 import { type ViewStateRuntimeLogs, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
@@ -32,7 +33,8 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
       payload: { type: 'generate', title: 'Fetching runtime logs...' }
     })
 
-    project.manifest.refresh()
+    project.manifest
+      .refresh()
       .then(() => {
         const manifest = project.manifest.contents
 
@@ -75,9 +77,7 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
       {error ? (
         <Text color="red">{error}</Text>
       ) : logs.length > 0 ? (
-        logs.map((log, index) => (
-          <Text key={index}>{log}</Text>
-        ))
+        logs.map((log, index) => <Text key={index}>{log}</Text>)
       ) : !state.execution ? (
         <Text dimColor>No logs found</Text>
       ) : null}

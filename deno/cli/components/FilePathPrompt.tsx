@@ -1,3 +1,4 @@
+import React from 'react'
 import { Box, Text, useInput } from 'ink'
 import { useState, useEffect } from 'react'
 import { getFilePathSuggestions, findSuggestionToApply } from '@/lib/file-path-suggestions.ts'

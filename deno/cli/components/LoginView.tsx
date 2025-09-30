@@ -1,7 +1,7 @@
+import React from 'react'
 import { Newline, Text } from 'ink'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import { useEffect } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'ink-link'
 export const LoginView = () => {
   const { state, dispatch } = useSkmtc()
