@@ -139,6 +139,8 @@ export class Project {
 
     await project.rootDenoJson.write()
 
+    skmtcRoot.projects.push(project)
+
     return project
   }
 
@@ -239,10 +241,6 @@ export class Project {
 
       await this.manager.fail('Failed to rename project')
     }
-  }
-
-  async ensureSchemaFile() {
-    await this.schemaFile.promptOrFail(this)
   }
 
   async removeGenerator({ moduleName }: RemoveGeneratorArgs, { logSuccess }: RemoveOptions = {}) {

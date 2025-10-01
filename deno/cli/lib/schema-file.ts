@@ -110,55 +110,6 @@ export class SchemaFile {
       .exhaustive()
   }
 
-  async promptOrFail(project: Project | RemoteProject) {
-    if (!this.schemaSource) {
-      const source = await textInputPrompt({
-        message: 'Enter path or url of OpenAPI schema:',
-        suggestions: ['https://petstore3.swagger.io/api/v3/openapi.json'],
-        validate: value => {
-          if (value.length === 0) {
-            return 'Schema source is required'
-          }
-
-          if (value.length > 2048) {
-            return 'Schema source cannot be longer than 2048 characters'
-          }
-
-          if (!value.startsWith('http://') && !value.startsWith('https://')) {
-            return 'Schema source must start with http:// or https://'
-          }
-
-          return true
-        }
-      })
-
-      toMessage({ messages: [] })
-
-      invariant(source, `Schema source is required`)
-
-      const schemaSource = toSchemaSource(source)
-      const { contents } = await SchemaFile.getFromSource(schemaSource)
-
-      invariant(contents, `Failed to load OpenAPI schema from "${source}"`)
-
-      project.clientJson.updateContents({ source })
-
-      await project.clientJson.write()
-
-      this.contents = contents
-      this.schemaSource = schemaSource
-      this.fileType = toFileType(source)
-    }
-
-    if (this.schemaSource?.type === 'local') {
-      const { contents } = await SchemaFile.getFromSource(this.schemaSource)
-
-      invariant(contents, `Failed to load OpenAPI schema from "${this.schemaSource.path}"`)
-
-      this.contents = contents
-    }
-  }
-
   static create() {
     return new SchemaFile()
   }

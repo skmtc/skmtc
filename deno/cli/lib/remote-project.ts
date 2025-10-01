@@ -69,10 +69,6 @@ export class RemoteProject {
     })
   }
 
-  async ensureSchemaFile() {
-    await this.schemaFile.promptOrFail(this)
-  }
-
   toProjectKey() {
     return `@${this.accountName}/${this.name}`
   }

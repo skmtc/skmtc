@@ -13,10 +13,7 @@ type MockProjectOptions = {
   hasProjectKey?: boolean
 }
 
-export function createMockProject(
-  manager: Manager,
-  options: MockProjectOptions = {}
-): Project {
+export function createMockProject(manager: Manager, options: MockProjectOptions = {}): Project {
   const {
     name = 'test-project',
     generators = ['@skmtc/gen-typescript', '@skmtc/gen-zod'],
@@ -26,17 +23,22 @@ export function createMockProject(
   const rootDenoJson = {
     contents: {
       ...mockRootDenoJsonContents,
-      imports: generators.reduce((acc, gen) => {
-        acc[gen] = `jsr:${gen}@^0.0.1`
-        return acc
-      }, {} as Record<string, string>)
+      imports: generators.reduce(
+        (acc, gen) => {
+          acc[gen] = `jsr:${gen}@^0.0.1`
+          return acc
+        },
+        {} as Record<string, string>
+      )
     },
     path: `/mock/projects/${name}/deno.json`,
     refresh: async () => {}
   } as unknown as RootDenoJson
 
   const clientJson = {
-    contents: hasProjectKey ? mockClientJsonContents : { settings: mockClientJsonContents.settings },
+    contents: hasProjectKey
+      ? mockClientJsonContents
+      : { settings: mockClientJsonContents.settings },
     path: `/mock/projects/${name}/.skmtc/client.json`,
     refresh: async () => {},
     write: async () => {}
@@ -68,7 +70,6 @@ export function createMockProject(
     removeGenerator: async () => {},
     cloneGenerator: async () => {},
     deploy: async () => {},
-    ensureSchemaFile: async () => {},
     toManifestPath: () => `/mock/projects/${name}/.settings/manifest.json`,
     toPath: () => `/mock/projects/${name}`,
     toProjectKey: () => `@mock/${name}` as any

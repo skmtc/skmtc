@@ -93,8 +93,6 @@ export class Workspace {
     clientSettings,
     prettier
   }: GenerateArtifactsArgs): Promise<GenerateResponse> {
-    await project.ensureSchemaFile()
-
     const manifestPath = project.toManifestPath()
 
     const { artifacts, manifest } = project.clientJson.contents?.serverUrl

@@ -7,6 +7,7 @@ import { StringPrompt } from '@/components/StringPrompt.tsx'
 import { NumberPrompt } from '@/components/NumberPrompt.tsx'
 import { FilePathPrompt } from '@/components/FilePathPrompt.tsx'
 import { SelectPrompt } from '@/components/SelectPrompt.tsx'
+import { MultiselectPrompt } from '@/components/MultiselectPrompt.tsx'
 
 export type QuestionManagerProps = {
   questions: Question[]
@@ -74,6 +75,17 @@ export const QuestionManager = ({ questions }: QuestionManagerProps) => {
             options={options}
             setValue={async value => {
               await setValue(value)
+              setCurrentQuestion(q => q + 1)
+            }}
+          />
+        ))
+        .with({ type: 'multiselect' }, ({ prompt, options, setValues }) => (
+          <MultiselectPrompt
+            key={prompt}
+            prompt={prompt}
+            options={options}
+            setValues={async values => {
+              await setValues(values)
               setCurrentQuestion(q => q + 1)
             }}
           />

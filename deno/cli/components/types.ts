@@ -43,9 +43,18 @@ export type QuestionSelect = {
   setValue: (value: string) => Promise<void> | void
 }
 
+export type QuestionMultiSelect = {
+  type: 'multiselect'
+  include: boolean
+  prompt: string
+  options: Option[]
+  setValues: (values: string[]) => Promise<void> | void
+}
+
 export type Question =
   | QuestionBoolean
   | QuestionString
   | QuestionNumber
   | QuestionFilePath
   | QuestionSelect
+  | QuestionMultiSelect

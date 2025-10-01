@@ -31,9 +31,9 @@ export const ServeView = ({ project, view }: ServeViewProps) => {
 
         await project.clientJson?.refresh()
 
-        if (project) {
-          await project.schemaFile.promptOrFail(project)
-        }
+        // if (project) {
+        //   await project.schemaFile.promptOrFail(project)
+        // }
 
         await project.prettierJson?.refresh()
 

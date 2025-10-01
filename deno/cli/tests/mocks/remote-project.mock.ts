@@ -49,8 +49,7 @@ export function createMockRemoteProject(
     prettierJson: null,
     manager,
     toProjectKey: () => projectKey as any,
-    toManifestPath: () => `/mock/remote-projects/${accountName}/${name}/.settings/manifest.json`,
-    ensureSchemaFile: async () => {}
+    toManifestPath: () => `/mock/remote-projects/${accountName}/${name}/.settings/manifest.json`
   } as unknown as RemoteProject
 
   return mockRemoteProject
