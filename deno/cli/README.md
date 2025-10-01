@@ -2,6 +2,8 @@
   <img src="./skmtc.svg" />
 </p>
 
+![Coverage](https://raw.githubusercontent.com/skmtc/skmtc/gh-pages/badges/cli/coverage.svg)
+
 **Skmtc is a declarative code generation framework**. It lets you generate TypeScript code from OpenAPI schemas without comples ASTs.
 
 ## ✨ Features
