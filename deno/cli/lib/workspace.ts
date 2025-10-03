@@ -4,7 +4,7 @@ import { ensureDirSync } from '@std/fs/ensure-dir'
 import { ensureFileSync } from '@std/fs/ensure-file'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import * as v from 'valibot'
-import type { Project } from '@/lib/project.ts'
+import { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { getApiWorkspacesWorkspaceName } from '@/services/getApiWorkspacesWorkspaceName.generated.ts'
 import { existsSync } from '@std/fs/exists'
@@ -15,6 +15,9 @@ import { toRootPath } from '@/lib/to-root-path.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
 import type { PrettierConfigType } from '@/types/prettierConfigType.generated.ts'
 import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
+import { DenoFile } from '../types/denoFile.generated.ts'
+import { toAssets } from '../deploy/to-assets.ts'
+import { generateSandboxApi } from '../services/generateSandboxApi.ts'
 export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
@@ -92,22 +95,34 @@ export class Workspace {
     schemaContents,
     clientSettings,
     prettier
-  }: GenerateArtifactsArgs): Promise<GenerateResponse> {
+  }: GenerateArtifactsArgs): Promise<GenerateResponse | null> {
     const manifestPath = project.toManifestPath()
 
-    const { artifacts, manifest } = project.clientJson.contents?.serverUrl
+    const result = project.clientJson.contents?.serverUrl
       ? await generateLocal({
           schema: schemaContents,
           clientSettings,
           prettier,
           localUrl: project.clientJson.contents?.serverUrl
         })
-      : await generateRemote({
-          project,
-          schema: schemaContents,
-          clientSettings,
-          prettier
-        })
+      : project instanceof Project
+        ? await generateSandboxApi({
+            schema: schemaContents,
+            generatorIds: project.toGeneratorIds(),
+            assets: await toAssets({ projectRoot: project.toPath() })
+          })
+        : await generateRemote({
+            project,
+            schema: schemaContents,
+            clientSettings,
+            prettier
+          })
+
+    if (!result) {
+      return null
+    }
+
+    const { artifacts, manifest } = result
 
     const skmtcRootPath = toRootPath()
 
@@ -163,6 +178,20 @@ const generateRemote = async ({
     }
   })
 }
+
+// type GenerateSandboxArgs = {
+//   schema: string
+//   generatorIds: string[]
+//   assets: Record<string, DenoFile>
+// }
+
+// const generateSandbox = async ({ schema, generatorIds, assets }: GenerateSandboxArgs) => {
+//   return await generateSandbox({
+//     schema,
+//     generatorIds,
+//     assets
+//   })
+// }
 
 type GenerateLocalArgs = {
   localUrl: string

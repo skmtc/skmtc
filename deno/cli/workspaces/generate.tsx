@@ -63,12 +63,19 @@ export const generate = async ({
   try {
     const workspace = new Workspace()
 
-    const { artifacts, manifest } = await workspace.generateArtifacts({
+    const result = await workspace.generateArtifacts({
       project,
       schemaContents,
       clientSettings,
       prettier
     })
+
+    if (!result) {
+      console.error('Failed to generate artifacts')
+      return null
+    }
+
+    const { artifacts, manifest } = result
 
     const stats = toGenerationStats({ manifest, artifacts })
 

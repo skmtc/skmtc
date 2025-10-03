@@ -1,6 +1,6 @@
 import React from 'react'
 import { Box, Text, useInput } from 'ink'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getFilePathSuggestions, findSuggestionToApply } from '@/lib/file-path-suggestions.ts'
 import { isUrl } from '@/lib/is-url.ts'
 
@@ -25,6 +25,16 @@ export const FilePathPrompt = ({
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [lastTabValue, setLastTabValue] = useState<string | null>(null)
   const [cursorPosition, setCursorPosition] = useState((defaultValue || '').length)
+
+  // Use refs to track the latest values for paste handling
+  const currentValueRef = useRef(currentValue)
+  const cursorPositionRef = useRef(cursorPosition)
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentValueRef.current = currentValue
+    cursorPositionRef.current = cursorPosition
+  }, [currentValue, cursorPosition])
 
   // Update suggestions when value changes
   useEffect(() => {
@@ -54,8 +64,9 @@ export const FilePathPrompt = ({
 
     // Handle tab key - Linux-style completion
     if (key.tab) {
+      const currentVal = currentValueRef.current
       // Check if this is a second tab press with no change
-      if (lastTabValue === currentValue && suggestions.length > 1) {
+      if (lastTabValue === currentVal && suggestions.length > 1) {
         // Second tab - show all suggestions
         setShowSuggestions(true)
         setLastTabValue(null)
@@ -63,7 +74,7 @@ export const FilePathPrompt = ({
       }
 
       // First tab or value changed - try to complete
-      const completion = findSuggestionToApply(currentValue, suggestions)
+      const completion = findSuggestionToApply(currentVal, suggestions)
       if (completion) {
         setCurrentValue(completion)
         setCursorPosition(completion.length)
@@ -74,7 +85,7 @@ export const FilePathPrompt = ({
         if (suggestions.length > 1) {
           setShowSuggestions(true)
         }
-        setLastTabValue(currentValue)
+        setLastTabValue(currentVal)
       }
       return
     }
@@ -85,8 +96,9 @@ export const FilePathPrompt = ({
 
     // Handle return key - submit
     if (key.return) {
-      setValue(currentValue)
-      setResponse(currentValue)
+      const currentVal = currentValueRef.current
+      setValue(currentVal)
+      setResponse(currentVal)
       return
     }
 
@@ -98,27 +110,32 @@ export const FilePathPrompt = ({
 
     // Handle backspace
     if (key.backspace || key.delete) {
-      if (cursorPosition > 0) {
+      const currentVal = currentValueRef.current
+      const cursorPos = cursorPositionRef.current
+      if (cursorPos > 0) {
         const newValue =
-          currentValue.slice(0, cursorPosition - 1) + currentValue.slice(cursorPosition)
+          currentVal.slice(0, cursorPos - 1) + currentVal.slice(cursorPos)
         setCurrentValue(newValue)
-        setCursorPosition(cursorPosition - 1)
+        setCursorPosition(cursorPos - 1)
       }
       return
     }
 
     // Handle left arrow
     if (key.leftArrow) {
-      if (cursorPosition > 0) {
-        setCursorPosition(cursorPosition - 1)
+      const cursorPos = cursorPositionRef.current
+      if (cursorPos > 0) {
+        setCursorPosition(cursorPos - 1)
       }
       return
     }
 
     // Handle right arrow
     if (key.rightArrow) {
-      if (cursorPosition < currentValue.length) {
-        setCursorPosition(cursorPosition + 1)
+      const currentVal = currentValueRef.current
+      const cursorPos = cursorPositionRef.current
+      if (cursorPos < currentVal.length) {
+        setCursorPosition(cursorPos + 1)
       }
       return
     }
@@ -131,16 +148,19 @@ export const FilePathPrompt = ({
 
     // Handle end key (Ctrl+E)
     if (key.ctrl && input === 'e') {
-      setCursorPosition(currentValue.length)
+      const currentVal = currentValueRef.current
+      setCursorPosition(currentVal.length)
       return
     }
 
     // Handle regular character input
     if (input && !key.ctrl && !key.meta) {
+      const currentVal = currentValueRef.current
+      const cursorPos = cursorPositionRef.current
       const newValue =
-        currentValue.slice(0, cursorPosition) + input + currentValue.slice(cursorPosition)
+        currentVal.slice(0, cursorPos) + input + currentVal.slice(cursorPos)
       setCurrentValue(newValue)
-      setCursorPosition(cursorPosition + input.length)
+      setCursorPosition(cursorPos + input.length)
     }
   })
 
