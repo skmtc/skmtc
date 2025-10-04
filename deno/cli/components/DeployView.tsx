@@ -14,7 +14,7 @@ export const DeployView = ({ project, view }: DeployViewProps) => {
   const { state, dispatch } = useSkmtc()
 
   useEffect(() => {
-    project.deploy({ logSuccess: 'Generators deployed', interactive: state.interactive, dispatch })
+    project.deploy({ state, dispatch })
   }, [])
 
   return <Box></Box>

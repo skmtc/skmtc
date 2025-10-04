@@ -68,7 +68,9 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
       .then(() => {
         dispatch({
           type: 'set-message',
-          payload: `Cloned ${selectedValues.length} generator(s) successfully`
+          payload: {
+            main: `Cloned ${selectedValues.length} generator(s) successfully`
+          }
         })
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
       })

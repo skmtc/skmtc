@@ -58,7 +58,9 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
         .then(() => {
           dispatch({
             type: 'set-message',
-            payload: `Installed ${selectedValues.length} generator(s) successfully`
+            payload: {
+              main: `Installed ${selectedValues.length} generator(s) successfully`
+            }
           })
           dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
         })

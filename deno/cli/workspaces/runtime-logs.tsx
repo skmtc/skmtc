@@ -2,11 +2,10 @@ import React from 'react'
 import { Command } from '@cliffy/command'
 import * as Sentry from '@sentry/node'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import invariant from 'tiny-invariant'
 import type { Project } from '@/lib/project.ts'
-import { getApiDeploymentsDeploymentIdRuntimeLogs } from '@/services/getApiDeploymentsDeploymentIdRuntimeLogs.generated.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
+import { getRuntimeLogs } from '@/services/getRuntimeLogs.ts'
 
 export const description = 'View runtime logs'
 
@@ -31,6 +30,8 @@ export const toRuntimeLogsCommand = (skmtcRoot: SkmtcRoot) => {
 type GenerateArgs = {
   project: Project
   skmtcRoot: SkmtcRoot
+  accountName: string
+  token: string
 }
 
 type GenerateOptions = {
@@ -38,7 +39,7 @@ type GenerateOptions = {
 }
 
 export const runtimeLogs = async (
-  { project, skmtcRoot }: GenerateArgs,
+  { project, skmtcRoot, accountName, token }: GenerateArgs,
   { logSuccess }: GenerateOptions = {}
 ) => {
   try {
@@ -50,22 +51,23 @@ export const runtimeLogs = async (
       throw new Error('Project has no manifest. Has generation been run?')
     }
 
-    const runtimeLogs = await getApiDeploymentsDeploymentIdRuntimeLogs({
-      deploymentId: manifest.deploymentId,
-      q: manifest.spanId,
-      since: new Date(manifest.startAt).toISOString(),
-      until: new Date(manifest.endAt).toISOString(),
-      supabase: skmtcRoot.manager.auth.supabase
+    const runtimeLogs = await getRuntimeLogs({
+      accountName,
+      serverName: project.name,
+      spanId: manifest.spanId,
+      token
     })
 
-    runtimeLogs.forEach(log => {
-      try {
-        const message = JSON.parse(log.message)
-        console.error(message)
-      } catch (error) {
-        console.error(log.message)
-      }
-    })
+    console.log('LOGS', runtimeLogs)
+
+    // runtimeLogs.forEach(log => {
+    //   try {
+    //     const message = JSON.parse(log.message)
+    //     console.error(message)
+    //   } catch (error) {
+    //     console.error(log.message)
+    //   }
+    // })
 
     await skmtcRoot.manager.success()
   } catch (error) {

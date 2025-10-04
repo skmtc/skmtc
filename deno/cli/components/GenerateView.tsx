@@ -18,6 +18,7 @@ import type { Question } from '@/components/types.ts'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
+import invariant from 'tiny-invariant'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -54,22 +55,18 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
       prompt: 'This project has not been deployed. Would you like to deploy it now?',
       setValue: async value => {
         if (project instanceof Project && value === true) {
-          await project.deploy({
-            logSuccess: 'Generators deployed',
-            interactive: state.interactive,
-            dispatch
-          })
+          await project.deploy({ state, dispatch })
         }
       }
     },
     {
-      type: 'filepath',
+      type: 'string',
       include: includeSchemaQuestion,
       prompt: 'Input OpenAPI schema path or URL',
       defaultValue:
         schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined,
-      extensions: ['.json', '.yaml', '.yml'],
-      basePath: projectPath ?? undefined,
+      // extensions: ['.json', '.yaml', '.yml'],
+      // basePath: projectPath ?? undefined,
       setValue: (value: string) => {
         const isRemote = value.startsWith('http://') || value.startsWith('https://')
 
@@ -93,10 +90,14 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     }
   ]
 
+  const token = state.session?.access_token
+
+  invariant(token, 'Session access token is required')
+
   return (
     <>
       <QuestionManager questions={questions} />
-      <GenerateViewContent project={project} view={view} />
+      <GenerateViewContent project={project} view={view} token={token} />
     </>
   )
 }
@@ -104,15 +105,16 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
 type GenerateViewContentProps = {
   project: Project | RemoteProject
   view: ViewStateGenerate
+  token: string
 }
 
-const GenerateViewContent = ({ project, view }: GenerateViewContentProps) => {
+const GenerateViewContent = ({ project, view, token }: GenerateViewContentProps) => {
   return match(view)
     .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
       return view.watchMode ? (
-        <WatchGenerate project={project} view={confirmedView} />
+        <WatchGenerate project={project} view={confirmedView} token={token} />
       ) : (
-        <RunGenerate project={project} view={confirmedView} />
+        <RunGenerate project={project} view={confirmedView} token={token} />
       )
     })
     .otherwise(() => null)
@@ -121,9 +123,10 @@ const GenerateViewContent = ({ project, view }: GenerateViewContentProps) => {
 type RunGenerateProps = {
   project: Project | RemoteProject
   view: ViewStateGenerateConfirmed
+  token: string
 }
 
-const RunGenerate = ({ project, view }: RunGenerateProps) => {
+const RunGenerate = ({ project, view, token }: RunGenerateProps) => {
   const { state, dispatch } = useSkmtc()
 
   useEffect(() => {
@@ -134,10 +137,12 @@ const RunGenerate = ({ project, view }: RunGenerateProps) => {
         return generate({
           project,
           skmtcRoot: state.skmtcRoot,
+          accountName: state.session?.user?.user_metadata?.user_name,
           interactive: state.interactive,
           schemaContents,
           clientSettings: project.clientJson?.contents?.settings,
-          prettier: project.prettierJson?.contents
+          prettier: project.prettierJson?.contents,
+          token
         })
       })
       .then(stats => {
@@ -175,9 +180,10 @@ const toSchemaContents = async (schemaSourceString: string): Promise<string> => 
 type WatchGenerateProps = {
   project: Project | RemoteProject
   view: ViewStateGenerateConfirmed
+  token: string
 }
 
-const WatchGenerate = ({ project, view }: WatchGenerateProps) => {
+const WatchGenerate = ({ project, view, token }: WatchGenerateProps) => {
   const { state, dispatch } = useSkmtc()
 
   const [watcher, setWatcher] = useState<FSWatcher>()
@@ -204,11 +210,13 @@ const WatchGenerate = ({ project, view }: WatchGenerateProps) => {
         .then(({ contents }) => {
           return generate({
             project,
+            accountName: state.session?.user?.user_metadata?.user_name,
             skmtcRoot: state.skmtcRoot,
             interactive: state.interactive,
             schemaContents: contents,
             clientSettings: project.clientJson?.contents?.settings,
-            prettier: project.prettierJson?.contents
+            prettier: project.prettierJson?.contents,
+            token
           })
         })
         .then(stats => {

@@ -17,7 +17,7 @@ import { join } from '@std/path/join'
 import type { ApiClient } from '@/lib/api-client.ts'
 import { Manifest } from '@/lib/manifest.ts'
 import { getApiServersServerNameHasWriteAccess } from '@/services/getApiServersServerNameHasWriteAccess.generated.ts'
-import type { SkmtcDispatch } from '@/components/SkmtcContext.tsx'
+import type { SkmtcDispatch, SkmtcState } from '@/components/SkmtcContext.tsx'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -45,9 +45,8 @@ type ConstructorArgs = {
   schemaFile: SchemaFile
 }
 
-type DeployOptions = {
-  logSuccess?: string
-  interactive: boolean
+type DeployArgs = {
+  state: SkmtcState
   dispatch: SkmtcDispatch
 }
 
@@ -72,10 +71,6 @@ type CreateArgs = {
   basePath: string
   generators: string[]
   skmtcRoot: SkmtcRoot
-}
-
-type CloneOptions = {
-  logSuccess?: string
 }
 
 export class Project {
@@ -295,7 +290,7 @@ export class Project {
     return hasWriteAccess
   }
 
-  async deploy({ logSuccess, interactive, dispatch }: DeployOptions) {
+  async deploy({ state, dispatch }: DeployArgs) {
     await this.manager.auth.ensureAuth()
 
     const startTime = Date.now()
@@ -306,6 +301,7 @@ export class Project {
 
     try {
       await deployment.deploy({
+        state,
         assets,
         serverName: toServerName(this),
         project: this,
@@ -314,13 +310,16 @@ export class Project {
 
       const duration = (Date.now() - startTime) / 1000
 
-      dispatch({ type: 'set-message', payload: `Deployed in ${formatNumber(duration)}secs` })
+      dispatch({
+        type: 'set-message',
+        payload: { main: `Deployed in ${formatNumber(duration)}secs` }
+      })
 
       await this.manager.success()
 
       dispatch({ type: 'set-execution', payload: null })
 
-      if (interactive) {
+      if (state.interactive) {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: this.name } })
       }
     } catch (error) {
@@ -330,21 +329,21 @@ export class Project {
 
       await Sentry.flush()
 
-      if (error === 'Deployment failed' && deployment.denoDeploymentId) {
-        const buildLogs = await deployment.getBuildLogs(deployment.denoDeploymentId)
+      // if (error === 'Deployment failed' && deployment.denoDeploymentId) {
+      //   const buildLogs = await deployment.getBuildLogs(deployment.denoDeploymentId)
 
-        buildLogs.forEach(log => {
-          if (log?.message) {
-            console.error(log.message)
-          }
-        })
-        await this.manager.fail('')
-      } else if (error) {
-        console.error(error)
-        await this.manager.fail('Failed to deploy generators')
-      } else {
-        await this.manager.fail('Failed to deploy generators')
-      }
+      //   buildLogs.forEach(log => {
+      //     if (log?.message) {
+      //       console.error(log.message)
+      //     }
+      //   })
+      //   await this.manager.fail('')
+      // } else if (error) {
+      //   console.error(error)
+      //   await this.manager.fail('Failed to deploy generators')
+      // } else {
+      //   await this.manager.fail('Failed to deploy generators')
+      // }
     }
   }
 

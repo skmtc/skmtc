@@ -1,25 +1,33 @@
 import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
-import type { DenoFile } from '@/types/denoFile.generated.ts'
+import type { ClientSettings } from '@/types/clientSettings.generated.ts'
+import type { PrettierConfigType } from '@/types/prettierConfigType.generated.ts'
 
 export type GenerateSandboxApiArgs = {
+  accountName: string
+  serverName: string
   schema: string
-  generatorIds: string[]
-  assets: Record<string, DenoFile>
+  clientSettings: ClientSettings | undefined
+  prettier: PrettierConfigType | undefined
+  token: string
 }
 
 export const generateSandboxApi = async ({
+  accountName,
+  serverName,
   schema,
-  generatorIds,
-  assets
+  clientSettings,
+  prettier,
+  token
 }: GenerateSandboxApiArgs) => {
-  console.log('GENERATING SANDBOX API')
-  console.log('SCHEMA', schema.slice(0, 100))
-  console.log('GENERATOR IDS', generatorIds)
-  console.log('ASSETS', assets)
+  const sandboxUrl = `https://skmtc-sandbox.dmitrigrabov.deno.net/${accountName}/${serverName}/artifacts`
 
-  const res = await fetch(`https://skmtc-sandbox.dmitrigrabov.deno.net/artifacts`, {
+  const res = await fetch(sandboxUrl, {
     method: 'POST',
-    body: JSON.stringify({ schema, generatorIds, assets })
+    body: JSON.stringify({ schema, clientSettings, prettier }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
   })
 
   if (!res.ok) {

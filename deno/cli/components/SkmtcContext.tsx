@@ -6,6 +6,11 @@ import type { Session } from '@supabase/supabase-js'
 import type { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 
+type Message = {
+  main: string
+  sub?: string
+}
+
 type SkmtcAction =
   | { type: 'set-view'; payload: ViewState }
   | {
@@ -16,7 +21,7 @@ type SkmtcAction =
     }
   | {
       type: 'set-message'
-      payload: string | null
+      payload: Message | null
     }
   | {
       type: 'set-execution'
@@ -128,11 +133,11 @@ export type ViewState =
   | ViewStateCloneGenerator
   | ViewStateRemoveGenerator
 
-type State = {
+export type SkmtcState = {
   view: ViewState
   skmtcRoot: SkmtcRoot
   session: Session | null
-  message: string | null
+  message: Message | null
   interactive: boolean
   execution: ExecutionInfo | null
 }
@@ -145,11 +150,11 @@ type SkmtcProviderProps = {
   interactive: boolean
 }
 
-const SkmtcStateContext = createContext<{ state: State; dispatch: SkmtcDispatch } | undefined>(
+const SkmtcStateContext = createContext<{ state: SkmtcState; dispatch: SkmtcDispatch } | undefined>(
   undefined
 )
 
-const skmtcReducer = (state: State, action: SkmtcAction) => {
+const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
   return match(action)
     .with({ type: 'set-view' }, ({ payload }) => ({ ...state, view: payload }))
     .with({ type: 'set-session' }, ({ payload }) => ({ ...state, session: payload.session }))

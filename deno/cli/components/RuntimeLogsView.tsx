@@ -4,7 +4,8 @@ import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { Box, Text, useInput } from 'ink'
 import { useEffect, useState } from 'react'
-import { getApiDeploymentsDeploymentIdRuntimeLogs } from '@/services/getApiDeploymentsDeploymentIdRuntimeLogs.generated.ts'
+import { getRuntimeLogs } from '@/services/getRuntimeLogs.ts'
+import invariant from 'tiny-invariant'
 
 type RuntimeLogsViewProps = {
   project: Project | RemoteProject
@@ -42,25 +43,19 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
           throw new Error('Project has no manifest. Has generation been run?')
         }
 
-        return getApiDeploymentsDeploymentIdRuntimeLogs({
-          deploymentId: manifest.deploymentId,
-          q: manifest.spanId,
-          since: new Date(manifest.startAt).toISOString(),
-          until: new Date(manifest.endAt).toISOString(),
-          supabase: state.skmtcRoot.manager.auth.supabase
+        invariant(state.session?.access_token, 'No access token')
+
+        return getRuntimeLogs({
+          accountName: state.session?.user.user_metadata.user_name,
+          serverName: project.name,
+          spanId: manifest.spanId,
+          token: state.session?.access_token
         })
       })
       .then(runtimeLogs => {
-        const formattedLogs = runtimeLogs.map(log => {
-          try {
-            const message = JSON.parse(log.message)
-            return JSON.stringify(message, null, 2)
-          } catch {
-            return log.message
-          }
-        })
+        runtimeLogs.forEach(console.log)
 
-        setLogs(formattedLogs)
+        setLogs(runtimeLogs)
         dispatch({ type: 'set-execution', payload: null })
       })
       .catch(err => {

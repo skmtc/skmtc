@@ -1,4 +1,3 @@
-import { Jsr } from '@/lib/jsr.ts'
 import type { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { join } from '@std/path/join'
 import { ensureFile } from '@std/fs/ensure-file'

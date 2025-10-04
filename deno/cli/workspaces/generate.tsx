@@ -46,47 +46,51 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
 type GenerateArgs = {
   project: Project | RemoteProject
   skmtcRoot: SkmtcRoot
+  accountName: string
   interactive: boolean
   schemaContents: string
   clientSettings: ClientSettings | undefined
   prettier: PrettierConfigType | undefined
+  token: string
 }
 
 export const generate = async ({
   project,
   skmtcRoot,
+  accountName,
   interactive,
   schemaContents,
   clientSettings,
-  prettier
+  prettier,
+  token
 }: GenerateArgs) => {
   try {
     const workspace = new Workspace()
 
     const result = await workspace.generateArtifacts({
       project,
+      accountName,
       schemaContents,
       clientSettings,
-      prettier
+      prettier,
+      token
     })
 
     if (!result) {
       console.error('Failed to generate artifacts')
-      return null
+      return
     }
 
     const { artifacts, manifest } = result
 
     const stats = toGenerationStats({ manifest, artifacts })
 
-    if (stats.errors.length) {
-      console.error(
-        `Generation completed with ${formatNumber(stats.errors.length)} errors. View runtime logs for more info.`
-      )
-    }
-
     if (!interactive) {
-      console.log(toGenerateStatus(stats))
+      const statusMessages = toGenerateStatus(stats)
+
+      const message = Object.values(statusMessages).join('\n')
+
+      console.log(message)
     }
 
     await skmtcRoot.manager.success()
@@ -105,6 +109,20 @@ export const generate = async ({
   }
 }
 
-export const toGenerateStatus = ({ files, lines, tokens, totalTime }: GenerationStats) => {
-  return `Generated ${formatNumber(files)} files (${formatNumber(lines)} lines, ${formatNumber(tokens)} tokens) in ${formatNumber(totalTime)}ms`
+type StatusMessages = {
+  main: string
+  sub?: string
+}
+
+export const toGenerateStatus = (stats: GenerationStats): StatusMessages => {
+  const { files, tokens, totalTime, errors } = stats
+
+  const main = `Generated ${formatNumber(tokens)} tokens, ${formatNumber(files)} files in ${formatNumber(totalTime)}ms.`
+
+  return errors.length
+    ? {
+        main,
+        sub: `${formatNumber(errors.length)} errors detected - view runtime logs for details`
+      }
+    : { main }
 }

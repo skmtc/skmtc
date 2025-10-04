@@ -63,8 +63,9 @@ export const AppInfo = () => {
         </Box>
       </Box>
       {state.message ? (
-        <Box flexDirection="row" paddingLeft={2} paddingBottom={1}>
-          <StatusMessage variant="success">{state.message}</StatusMessage>
+        <Box flexDirection="column" paddingLeft={2} paddingBottom={1}>
+          <StatusMessage variant="success">{state.message.main}</StatusMessage>
+          {state.message.sub ? <Text dimColor>{`  ${state.message.sub}`}</Text> : null}
         </Box>
       ) : null}
     </>

@@ -4,19 +4,16 @@ import { ensureDirSync } from '@std/fs/ensure-dir'
 import { ensureFileSync } from '@std/fs/ensure-file'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import * as v from 'valibot'
-import { Project } from '@/lib/project.ts'
+import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { getApiWorkspacesWorkspaceName } from '@/services/getApiWorkspacesWorkspaceName.generated.ts'
 import { existsSync } from '@std/fs/exists'
 import { type ManifestContent, manifestContent } from '@skmtc/core'
-import { createApiServersAccountNameServerNameArtifacts } from '@/services/createApiServersAccountNameServerNameArtifacts.generated.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
 import type { PrettierConfigType } from '@/types/prettierConfigType.generated.ts'
 import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
-import { DenoFile } from '../types/denoFile.generated.ts'
-import { toAssets } from '../deploy/to-assets.ts'
 import { generateSandboxApi } from '../services/generateSandboxApi.ts'
 export type GenerateResponse = {
   artifacts: Record<string, string>
@@ -71,6 +68,8 @@ type GenerateArtifactsArgs = {
   schemaContents: string
   clientSettings: ClientSettings | undefined
   prettier: PrettierConfigType | undefined
+  accountName: string
+  token: string
 }
 
 type GetWorkspaceArgs = {
@@ -94,7 +93,9 @@ export class Workspace {
     project,
     schemaContents,
     clientSettings,
-    prettier
+    prettier,
+    accountName,
+    token
   }: GenerateArtifactsArgs): Promise<GenerateResponse | null> {
     const manifestPath = project.toManifestPath()
 
@@ -105,18 +106,14 @@ export class Workspace {
           prettier,
           localUrl: project.clientJson.contents?.serverUrl
         })
-      : project instanceof Project
-        ? await generateSandboxApi({
-            schema: schemaContents,
-            generatorIds: project.toGeneratorIds(),
-            assets: await toAssets({ projectRoot: project.toPath() })
-          })
-        : await generateRemote({
-            project,
-            schema: schemaContents,
-            clientSettings,
-            prettier
-          })
+      : await generateSandboxApi({
+          accountName: accountName,
+          serverName: project.name,
+          schema: schemaContents,
+          clientSettings,
+          prettier,
+          token
+        })
 
     if (!result) {
       return null
@@ -143,55 +140,12 @@ export class Workspace {
 
       ensureDirSync(dir)
 
-      Deno.writeTextFileSync(absolutePath, artifactContent)
+      Deno.writeTextFileSync(absolutePath, String(artifactContent))
     })
 
     return { manifest, artifacts }
   }
 }
-
-type GenerateRemoteArgs = {
-  project: Project | RemoteProject
-  schema: string
-  clientSettings: ClientSettings | undefined
-  prettier: PrettierConfigType | undefined
-}
-
-const generateRemote = async ({
-  project,
-  schema,
-  clientSettings,
-  prettier
-}: GenerateRemoteArgs) => {
-  const projectKey = project.toProjectKey()
-
-  const [accountName, serverName] = projectKey.split('/')
-
-  return await createApiServersAccountNameServerNameArtifacts({
-    supabase: project.manager.auth.supabase,
-    accountName,
-    serverName,
-    body: {
-      schema,
-      clientSettings,
-      prettier
-    }
-  })
-}
-
-// type GenerateSandboxArgs = {
-//   schema: string
-//   generatorIds: string[]
-//   assets: Record<string, DenoFile>
-// }
-
-// const generateSandbox = async ({ schema, generatorIds, assets }: GenerateSandboxArgs) => {
-//   return await generateSandbox({
-//     schema,
-//     generatorIds,
-//     assets
-//   })
-// }
 
 type GenerateLocalArgs = {
   localUrl: string

@@ -20,15 +20,15 @@ export type QuestionNumber = {
   setValue: (value: number) => Promise<void> | void
 }
 
-export type QuestionFilePath = {
-  type: 'filepath'
-  include: boolean
-  prompt: string
-  defaultValue?: string
-  extensions?: string[]
-  basePath?: string
-  setValue: (value: string) => Promise<void> | void
-}
+// export type QuestionFilePath = {
+//   type: 'filepath'
+//   include: boolean
+//   prompt: string
+//   defaultValue?: string
+//   extensions?: string[]
+//   basePath?: string
+//   setValue: (value: string) => Promise<void> | void
+// }
 
 export type Option = {
   label: string
@@ -55,6 +55,6 @@ export type Question =
   | QuestionBoolean
   | QuestionString
   | QuestionNumber
-  | QuestionFilePath
+  // | QuestionFilePath
   | QuestionSelect
   | QuestionMultiSelect
