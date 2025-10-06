@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 export type QuestionBoolean = {
   type: 'boolean'
   include: boolean
@@ -11,6 +12,7 @@ export type QuestionString = {
   prompt: string
   defaultValue?: string
   setValue: (value: string) => Promise<void> | void
+  render?: (value: string) => ReactNode
 }
 
 export type QuestionNumber = {

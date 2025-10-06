@@ -41,15 +41,12 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
       })
 
       project
-        .addGenerator(
-          { moduleName: generatorName, type: generatorType, username },
-          { logSuccess: `Generator "${generatorName}" created` }
-        )
+        .addGenerator({ moduleName: generatorName, type: generatorType, username })
         .then(() => {
           dispatch({
             type: 'set-message',
             payload: {
-              main: `Generator "${generatorName}" created successfully`
+              success: `Generator "${generatorName}" created successfully`
             }
           })
           dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })

@@ -15,7 +15,7 @@ export const deploySandboxApi = async ({
   generatorIds,
   token
 }: DeploySandboxApiArgs): Promise<boolean> => {
-  const sandboxUrl = `https://skmtc-sandbox.dmitrigrabov.deno.net/${accountName}/${serverName}`
+  const sandboxUrl = `${Deno.env.get('SANDBOX_API_ORIGIN')}/${accountName}/${serverName}`
 
   const res = await fetch(sandboxUrl, {
     method: 'PUT',

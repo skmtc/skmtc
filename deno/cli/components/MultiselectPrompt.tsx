@@ -29,9 +29,8 @@ export const MultiselectPrompt = ({ prompt, options, setValues }: MultiselectPro
       <MultiSelect
         options={options}
         onChange={values => setResponse(values.join(', '))}
+        visibleOptionCount={7}
         onSubmit={values => {
-          console.log('values', values)
-
           if (!values.length) {
             console.error('No values selected')
 

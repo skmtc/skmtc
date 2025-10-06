@@ -41,13 +41,9 @@ export class Deployment {
 
     dispatch({ type: 'set-execution', payload: null })
 
-    if (!deployed) {
-      dispatch({ type: 'set-message', payload: { main: 'Deployment failed' } })
-
-      return
-    }
-
     updateProjectKey({ project, projectKey: `@${accountName}/${project.name}` })
+
+    return deployed
   }
 
   async getBuildLogs(denoDeploymentId: string) {

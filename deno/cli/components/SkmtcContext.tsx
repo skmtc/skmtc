@@ -6,8 +6,13 @@ import type { Session } from '@supabase/supabase-js'
 import type { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 
-type Message = {
-  main: string
+export type ErrorMessage = {
+  error: string
+  sub?: string
+}
+
+export type SuccessMessage = {
+  success: string
   sub?: string
 }
 
@@ -21,7 +26,7 @@ type SkmtcAction =
     }
   | {
       type: 'set-message'
-      payload: Message | null
+      payload: ErrorMessage | SuccessMessage | null
     }
   | {
       type: 'set-execution'
@@ -137,7 +142,7 @@ export type SkmtcState = {
   view: ViewState
   skmtcRoot: SkmtcRoot
   session: Session | null
-  message: Message | null
+  message: ErrorMessage | SuccessMessage | null
   interactive: boolean
   execution: ExecutionInfo | null
 }

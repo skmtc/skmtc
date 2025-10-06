@@ -68,7 +68,7 @@ export const CreateProject = () => {
             label: gen.id,
             value: gen.id
           })),
-          prompt: 'Select a generator',
+          prompt: 'Select generators to install',
           setValues: values => {
             setSelectedGenerators(values)
           }

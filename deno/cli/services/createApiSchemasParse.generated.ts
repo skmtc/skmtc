@@ -1,6 +1,6 @@
-import { ParseSchemaBody } from '@/types/parseSchemaBody.generated.ts'
+import type { ParseSchemaBody } from '@/types/parseSchemaBody.generated.ts'
 import { z } from 'zod'
-import { SupabaseClient, FunctionsHttpError } from '@supabase/supabase-js'
+import { type SupabaseClient, FunctionsHttpError } from '@supabase/supabase-js'
 
 export type CreateApiSchemasParseArgs = {
   supabase: SupabaseClient
@@ -9,13 +9,10 @@ export type CreateApiSchemasParseArgs = {
 
 export const createApiSchemasParseResponse = z.record(z.string(), z.unknown())
 
-export const createApiSchemasParse = async ({
-  supabase,
-  body,
-}: CreateApiSchemasParseArgs) => {
+export const createApiSchemasParse = async ({ supabase, body }: CreateApiSchemasParseArgs) => {
   const { data, error } = await supabase.functions.invoke(`/schemas/parse`, {
     method: 'POST',
-    body,
+    body
   })
 
   if (error) {

@@ -19,11 +19,13 @@ export const HomeView = () => {
   const { skmtcRoot, session } = state
   const { projects } = skmtcRoot
 
-  const projectOptions: HomeActionItem[] = projects.map(({ name }, index, array) => ({
-    value: `select-project:${name}`,
-    label: name,
-    space: index === array.length - 1
-  }))
+  const projectOptions: HomeActionItem[] = projects
+    .toSorted((a, b) => a.name.localeCompare(b.name))
+    .map(({ name }, index, array) => ({
+      value: `select-project:${name}`,
+      label: name,
+      space: index === array.length - 1
+    }))
 
   const items: HomeActionItem[] = [
     ...projectOptions,

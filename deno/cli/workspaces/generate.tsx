@@ -11,6 +11,7 @@ import { App } from '@/components/App.tsx'
 import type { PrettierConfigType } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { SchemaFile } from '@/lib/schema-file.ts'
+import type { SuccessMessage } from '@/components/SkmtcContext.tsx'
 
 export const description = 'Generate artifacts'
 
@@ -109,20 +110,15 @@ export const generate = async ({
   }
 }
 
-type StatusMessages = {
-  main: string
-  sub?: string
-}
-
-export const toGenerateStatus = (stats: GenerationStats): StatusMessages => {
+export const toGenerateStatus = (stats: GenerationStats): SuccessMessage => {
   const { files, tokens, totalTime, errors } = stats
 
-  const main = `Generated ${formatNumber(tokens)} tokens, ${formatNumber(files)} files in ${formatNumber(totalTime)}ms.`
+  const success = `Generated ${formatNumber(tokens)} tokens, ${formatNumber(files)} files in ${formatNumber(totalTime)}ms.`
 
   return errors.length
     ? {
-        main,
+        success,
         sub: `${formatNumber(errors.length)} errors detected - view runtime logs for details`
       }
-    : { main }
+    : { success }
 }

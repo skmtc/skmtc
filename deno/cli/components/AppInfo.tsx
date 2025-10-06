@@ -4,6 +4,7 @@ import { toRelativeRootPath } from '@/lib/to-root-path.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { StatusMessage } from '@inkjs/ui'
+import { match, P } from 'ts-pattern'
 
 export const AppInfo = () => {
   const { state } = useSkmtc()
@@ -64,7 +65,14 @@ export const AppInfo = () => {
       </Box>
       {state.message ? (
         <Box flexDirection="column" paddingLeft={2} paddingBottom={1}>
-          <StatusMessage variant="success">{state.message.main}</StatusMessage>
+          {match(state.message)
+            .with({ success: P.string }, ({ success }) => (
+              <StatusMessage variant="success">{success}</StatusMessage>
+            ))
+            .with({ error: P.string }, ({ error }) => (
+              <StatusMessage variant="error">{error}</StatusMessage>
+            ))
+            .exhaustive()}
           {state.message.sub ? <Text dimColor>{`  ${state.message.sub}`}</Text> : null}
         </Box>
       ) : null}

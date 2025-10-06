@@ -86,7 +86,7 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
         dispatch({
           type: 'set-message',
           payload: {
-            main: `Generator "${selectedGenerator}" removed successfully`
+            success: `Generator "${selectedGenerator}" removed successfully`
           }
         })
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })

@@ -31,10 +31,6 @@ type CloneGeneratorArgs = {
   generatorsDenoJson: Record<string, unknown>
 }
 
-type AddGeneratorOptions = {
-  logSuccess?: string
-}
-
 type ConstructorArgs = {
   name: string
   rootDenoJson: RootDenoJson
@@ -300,7 +296,7 @@ export class Project {
     const assets = await toAssets({ projectRoot: toProjectPath(this.name) })
 
     try {
-      await deployment.deploy({
+      const deployed = await deployment.deploy({
         state,
         assets,
         serverName: toServerName(this),
@@ -312,7 +308,7 @@ export class Project {
 
       dispatch({
         type: 'set-message',
-        payload: { main: `Deployed in ${formatNumber(duration)}secs` }
+        payload: { success: `Deployed in ${formatNumber(duration)}secs` }
       })
 
       await this.manager.success()
@@ -344,13 +340,14 @@ export class Project {
       // } else {
       //   await this.manager.fail('Failed to deploy generators')
       // }
+    } finally {
+      dispatch({ type: 'set-execution', payload: null })
+
+      dispatch({ type: 'set-message', payload: { error: 'Deployment failed' } })
     }
   }
 
-  async addGenerator(
-    { moduleName, type, username }: AddGeneratorArgs,
-    { logSuccess }: AddGeneratorOptions = {}
-  ) {
+  async addGenerator({ moduleName, type, username }: AddGeneratorArgs) {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
 
