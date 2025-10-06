@@ -2,11 +2,12 @@ import React from 'react'
 import { type ViewStateCloneGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { Box, Text, useInput } from 'ink'
+import { Box, Text } from 'ink'
 import { useState } from 'react'
 import { MultiSelect } from '@inkjs/ui'
 import { parseModuleName } from '@skmtc/core'
 import { getGeneratorsRootDenoJson } from '@/lib/generator.ts'
+import { useShortcut } from './useShortcut.tsx'
 
 type CloneGeneratorViewProps = {
   project: Project | RemoteProject
@@ -27,11 +28,12 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
           .map(([moduleName]) => moduleName)
       : []
 
-  useInput((input, key) => {
-    if (isExecuting) return
-
-    if (key.escape) {
-      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+  useShortcut({
+    label: `'esc' to ${project.name}`,
+    action: (input, key) => {
+      if (key.escape) {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      }
     }
   })
 
@@ -85,11 +87,8 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
 
   if (cloneableGenerators.length === 0) {
     return (
-      <Box flexDirection="column">
+      <Box flexDirection="column" marginLeft={2}>
         <Text color="yellow">No generators available to clone</Text>
-        <Text dimColor>Only installed generators starting with "gen-" can be cloned</Text>
-        <Text></Text>
-        <Text dimColor>Hit 'escape' key to go back</Text>
       </Box>
     )
   }

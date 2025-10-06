@@ -2,8 +2,8 @@ import React from 'react'
 import { type ViewStateListGenerators, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { Box, Text, useInput } from 'ink'
-import SelectInput from 'ink-select-input'
+import { Box, Text } from 'ink'
+import { useShortcut } from './useShortcut.tsx'
 
 type ListGeneratorsViewProps = {
   project: Project | RemoteProject
@@ -15,9 +15,12 @@ export const ListGeneratorsView = ({ project }: ListGeneratorsViewProps) => {
 
   const generators = project instanceof Project ? project.toGeneratorIds() : []
 
-  useInput((_input, key) => {
-    if (key.escape) {
-      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+  useShortcut({
+    label: `'esc' to ${project.name}`,
+    action: (input, key) => {
+      if (key.escape) {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      }
     }
   })
 
@@ -31,9 +34,6 @@ export const ListGeneratorsView = ({ project }: ListGeneratorsViewProps) => {
       ) : (
         generators.map(generator => <Text key={generator}> • {generator}</Text>)
       )}
-
-      <Text></Text>
-      <Text dimColor>Hit 'escape' key to go back</Text>
     </Box>
   )
 }

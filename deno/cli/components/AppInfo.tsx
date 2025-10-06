@@ -49,14 +49,23 @@ export const AppInfo = () => {
         </Box>
 
         <Box flexDirection="row" justifyContent="space-between">
-          {'projectName' in state.view ? (
-            <Box flexDirection="row">
-              <Text dimColor>project: </Text>
-              <Text>{state.view.projectName}</Text>
-            </Box>
-          ) : (
-            <Box></Box>
-          )}
+          {match(state.view)
+            .with({ projectName: P.string }, ({ projectName }) => (
+              <Box flexDirection="row">
+                <Text dimColor>project: </Text>
+                <Text>{projectName}</Text>
+              </Box>
+            ))
+            .with({ project: P.any }, ({ project }) => (
+              <Box flexDirection="row">
+                <Text dimColor>project: </Text>
+                <Text>{project.name}</Text>
+              </Box>
+            ))
+            .otherwise(() => (
+              <Box></Box>
+            ))}
+
           <Box flexDirection="row">
             <Text dimColor>directory: </Text>
             <Text>{appRootPath}</Text>
