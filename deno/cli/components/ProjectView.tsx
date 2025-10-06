@@ -1,5 +1,5 @@
-import React from 'react'
-import { Box, Newline, Text } from 'ink'
+import React, { useEffect, useId } from 'react'
+import { Box, Newline, Text, useInput } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { match } from 'ts-pattern'
@@ -19,7 +19,6 @@ type ProjectActionValue =
   | 'clone-generator'
   | 'list-generators'
   | 'remove-generator'
-  | 'back-to-home'
 
 type ProjectAction = {
   value: ProjectActionValue
@@ -37,13 +36,31 @@ const projectActions: ProjectAction[] = [
   { value: 'add-generator', label: 'Add generator' },
   { value: 'clone-generator', label: 'Clone generator' },
   { value: 'list-generators', label: 'List generators' },
-  { value: 'remove-generator', label: 'Remove generator', space: true },
-
-  { value: 'back-to-home', label: 'Back to home' }
+  { value: 'remove-generator', label: 'Remove generator' }
 ]
 
 export const ProjectView = ({ project }: ProjectProps) => {
-  const { state, dispatch } = useSkmtc()
+  const { dispatch } = useSkmtc()
+  const shortcutId = useId()
+
+  useEffect(() => {
+    dispatch({
+      type: 'add-shortcut',
+      payload: {
+        id: shortcutId,
+        label: `'esc' to home`,
+        action: (_input, key) => {
+          if (key.escape) {
+            dispatch({ type: 'set-view', payload: { page: 'home' } })
+          }
+        }
+      }
+    })
+
+    return () => {
+      dispatch({ type: 'remove-shortcut', payload: shortcutId })
+    }
+  }, [])
 
   return (
     <Box flexDirection="column">
@@ -61,9 +78,6 @@ export const ProjectView = ({ project }: ProjectProps) => {
         }}
         onSelect={item => {
           match(item)
-            .with({ value: 'back-to-home' }, () => {
-              dispatch({ type: 'set-view', payload: { page: 'home' } })
-            })
             .with({ value: 'generate-artifacts' }, () => {
               dispatch({
                 type: 'set-view',

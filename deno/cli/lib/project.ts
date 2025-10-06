@@ -287,8 +287,6 @@ export class Project {
   }
 
   async deploy({ state, dispatch }: DeployArgs) {
-    await this.manager.auth.ensureAuth()
-
     const startTime = Date.now()
 
     const deployment = new Deployment(this.manager)
@@ -315,15 +313,17 @@ export class Project {
 
       dispatch({ type: 'set-execution', payload: null })
 
-      if (state.interactive) {
-        dispatch({ type: 'set-view', payload: { page: 'project', projectName: this.name } })
-      }
+      dispatch({ type: 'set-message', payload: { success: 'Deployment successful' } })
     } catch (error) {
       console.error(error)
 
       Sentry.captureException(error)
 
       await Sentry.flush()
+
+      dispatch({ type: 'set-execution', payload: null })
+
+      dispatch({ type: 'set-message', payload: { error: 'Deployment failed' } })
 
       // if (error === 'Deployment failed' && deployment.denoDeploymentId) {
       //   const buildLogs = await deployment.getBuildLogs(deployment.denoDeploymentId)
@@ -340,10 +340,6 @@ export class Project {
       // } else {
       //   await this.manager.fail('Failed to deploy generators')
       // }
-    } finally {
-      dispatch({ type: 'set-execution', payload: null })
-
-      dispatch({ type: 'set-message', payload: { error: 'Deployment failed' } })
     }
   }
 

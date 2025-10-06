@@ -2,10 +2,11 @@ import React from 'react'
 import { type ViewStateRuntimeLogs, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { Box, Text, useInput } from 'ink'
+import { Box, Text } from 'ink'
 import { useEffect, useState } from 'react'
 import { getRuntimeLogs } from '@/services/getRuntimeLogs.ts'
 import invariant from 'tiny-invariant'
+import { useShortcut } from './useShortcut.tsx'
 
 type RuntimeLogsViewProps = {
   project: Project | RemoteProject
@@ -17,9 +18,12 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
   const [logs, setLogs] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  useInput((_input, key) => {
-    if (key.escape) {
-      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+  useShortcut({
+    label: `'esc' to ${project.name}`,
+    action: (input, key) => {
+      if (key.escape) {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      }
     }
   })
 
@@ -66,9 +70,6 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
 
   return (
     <Box flexDirection="column">
-      <Text dimColor>Hit 'escape' key to go back</Text>
-      <Text></Text>
-
       {error ? (
         <Text color="red">{error}</Text>
       ) : logs.length > 0 ? (

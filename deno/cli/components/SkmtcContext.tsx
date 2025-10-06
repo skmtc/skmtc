@@ -5,6 +5,7 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Session } from '@supabase/supabase-js'
 import type { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
+import type { Key } from 'ink'
 
 export type ErrorMessage = {
   error: string
@@ -32,6 +33,20 @@ type SkmtcAction =
       type: 'set-execution'
       payload: ExecutionInfo | null
     }
+  | {
+      type: 'add-shortcut'
+      payload: Shortcut
+    }
+  | {
+      type: 'remove-shortcut'
+      payload: string
+    }
+
+type Shortcut = {
+  id: string
+  label: string
+  action: (input: string, key: Key) => void
+}
 
 export type SkmtcDispatch = (action: SkmtcAction) => void
 
@@ -145,6 +160,7 @@ export type SkmtcState = {
   message: ErrorMessage | SuccessMessage | null
   interactive: boolean
   execution: ExecutionInfo | null
+  shortcuts: Shortcut[]
 }
 
 type SkmtcProviderProps = {
@@ -165,6 +181,14 @@ const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
     .with({ type: 'set-session' }, ({ payload }) => ({ ...state, session: payload.session }))
     .with({ type: 'set-message' }, ({ payload }) => ({ ...state, message: payload }))
     .with({ type: 'set-execution' }, ({ payload }) => ({ ...state, execution: payload }))
+    .with({ type: 'add-shortcut' }, ({ payload }) => ({
+      ...state,
+      shortcuts: [...state.shortcuts, payload]
+    }))
+    .with({ type: 'remove-shortcut' }, ({ payload }) => ({
+      ...state,
+      shortcuts: state.shortcuts.filter(shortcut => shortcut.id !== payload)
+    }))
     .exhaustive()
 }
 
@@ -175,7 +199,8 @@ const SkmtcProvider = ({ children, skmtcRoot, session, interactive, view }: Skmt
     session,
     message: null,
     interactive,
-    execution: null
+    execution: null,
+    shortcuts: []
   })
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context

@@ -14,7 +14,15 @@ export const DeployView = ({ project, view }: DeployViewProps) => {
   const { state, dispatch } = useSkmtc()
 
   useEffect(() => {
-    project.deploy({ state, dispatch })
+    const run = async () => {
+      await project.deploy({ state, dispatch })
+
+      if (state.interactive) {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      }
+    }
+
+    run()
   }, [])
 
   return <Box></Box>
