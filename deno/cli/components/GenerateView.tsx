@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, useInput } from 'ink'
+import { Box } from 'ink'
 import {
   useSkmtc,
   type ViewStateGenerate,
@@ -339,13 +339,13 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
   }, [watcher, activity])
 
   return (
-    <Box>
+    <TaskBox id={`watch-generate-container`} active>
       <Spinner
         label={match(activity)
           .with('generating', () => 'Generating...')
           .with('watching', () => 'Watching...')
           .exhaustive()}
       />
-    </Box>
+    </TaskBox>
   )
 }

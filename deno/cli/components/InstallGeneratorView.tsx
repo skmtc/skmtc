@@ -2,10 +2,11 @@ import React from 'react'
 import { type ViewStateInstallGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { Box, Newline, Text, useInput } from 'ink'
+import { Box, Newline, Text } from 'ink'
 import { useState } from 'react'
-import { MultiSelect } from '@inkjs/ui'
+import { MultiSelect, Spinner } from '@inkjs/ui'
 import { availableGenerators } from '@/available-generators.ts'
+import { useShortcut } from './useShortcut.tsx'
 
 type InstallGeneratorViewProps = {
   project: Project | RemoteProject
@@ -14,7 +15,7 @@ type InstallGeneratorViewProps = {
 
 export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => {
   const { dispatch } = useSkmtc()
-  const [isExecuting, setIsExecuting] = useState(false)
+  const [installing, setInstalling] = useState(false)
 
   const imports = project instanceof Project ? (project.rootDenoJson.contents.imports ?? {}) : {}
 
@@ -22,11 +23,30 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
     .filter(item => !imports[item.name])
     .map(({ name }) => `jsr:${name}`)
 
-  useInput((input, key) => {
-    if (isExecuting) return
+  useShortcut({
+    label: `'esc' to ${project.name}`,
+    action: (input, key) => {
+      if (!installing) {
+        return
+      }
 
-    if (key.escape) {
-      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      if (key.escape) {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      }
+    }
+  })
+
+  useShortcut({
+    label: `'space' to toggle`,
+    action: (input, key) => {
+      // behaviour handled in MultiSelect component
+    }
+  })
+
+  useShortcut({
+    label: `'enter' to submit`,
+    action: (input, key) => {
+      // behaviour handled in MultiSelect component
     }
   })
 
@@ -36,15 +56,7 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
       return
     }
 
-    setIsExecuting(true)
-
-    dispatch({
-      type: 'set-execution',
-      payload: {
-        type: 'generate',
-        title: `Installing ${selectedValues.length} generator(s)...`
-      }
-    })
+    setInstalling(true)
 
     if (project instanceof Project) {
       Promise.all(
@@ -62,14 +74,20 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
               success: `Installed ${selectedValues.length} generator(s) successfully`
             }
           })
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
         })
         .catch(error => {
           console.error(error)
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+
+          dispatch({
+            type: 'set-message',
+            payload: {
+              error: `Failed to install generator(s)`
+            }
+          })
         })
         .finally(() => {
-          dispatch({ type: 'set-execution', payload: null })
+          setInstalling(false)
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
         })
     }
   }
@@ -77,25 +95,18 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
   if (availableToInstall.length === 0) {
     return (
       <Box flexDirection="column">
-        <Text color="yellow">All available generators are already installed</Text>
-        <Text></Text>
-        <Text dimColor>Hit 'escape' key to go back</Text>
+        <Text color="yellow">No generators available to install</Text>
       </Box>
     )
   }
 
-  if (isExecuting) {
-    return <Box></Box>
+  if (installing) {
+    return <Spinner label="Installing generators..." />
   }
 
   return (
     <Box flexDirection="column">
-      <Text>
-        Select generators to install
-        <Newline />
-        <Text dimColor>Space to toggle, Enter to submit, Escape to cancel</Text>
-      </Text>
-      <Text></Text>
+      <Text>Select generators to install</Text>
 
       <MultiSelect
         options={availableToInstall.map(gen => ({

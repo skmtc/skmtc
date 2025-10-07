@@ -30,10 +30,6 @@ type SkmtcAction =
       payload: ErrorMessage | SuccessMessage | null
     }
   | {
-      type: 'set-execution'
-      payload: ExecutionInfo | null
-    }
-  | {
       type: 'add-shortcut'
       payload: Shortcut
     }
@@ -55,6 +51,9 @@ export type ViewStateHome = {
 }
 export type ViewStateCreateProject = {
   page: 'create-project'
+  projectName?: string
+  generators?: string[]
+  basePath?: string
 }
 
 export type ViewStateLogin = {
@@ -180,7 +179,6 @@ const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
     .with({ type: 'set-view' }, ({ payload }) => ({ ...state, view: payload }))
     .with({ type: 'set-session' }, ({ payload }) => ({ ...state, session: payload.session }))
     .with({ type: 'set-message' }, ({ payload }) => ({ ...state, message: payload }))
-    .with({ type: 'set-execution' }, ({ payload }) => ({ ...state, execution: payload }))
     .with({ type: 'add-shortcut' }, ({ payload }) => ({
       ...state,
       shortcuts: [...state.shortcuts, payload]
@@ -228,9 +226,7 @@ export const toProjectName = ({ view }: ToProjectNameArgs) => {
   return match(view)
     .with({ project: P.any }, ({ project }) => project.name)
     .with({ projectName: P.string }, ({ projectName }) => projectName)
-    .otherwise(() => {
-      throw new Error('No project name found in view')
-    })
+    .otherwise(() => 'home')
 }
 
 export const useProjectName = () => {

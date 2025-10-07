@@ -2,11 +2,13 @@ import React from 'react'
 import { type ViewStateAddGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { Box, Text } from 'ink'
 import { useMemo, useState, useEffect } from 'react'
-import { QuestionManager } from '@/components/QuestionManager.tsx'
-import { checkProjectName } from '@skmtc/core'
-import SelectInput from 'ink-select-input'
+import { SelectTask } from './SelectTask.tsx'
+import invariant from 'tiny-invariant'
+import type { Task } from './TaskContext.tsx'
+import { TaskListView } from './TaskListView.tsx'
+import { TaskProvider } from './TaskContext.tsx'
+import { StringTask } from './StringTask.tsx'
 
 type AddGeneratorViewProps = {
   project: Project | RemoteProject
@@ -15,98 +17,121 @@ type AddGeneratorViewProps = {
 
 export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
   const { dispatch, state } = useSkmtc()
-  const [generatorName, setGeneratorName] = useState<string | null>(view.generatorName ?? null)
-  const [generatorType, setGeneratorType] = useState<'operation' | 'model' | null>(
-    view.generatorType ?? null
-  )
-  const [isExecuting, setIsExecuting] = useState(false)
+
+  const [adding, setAdding] = useState(false)
   const username = state.session?.user.user_metadata.user_name
 
   const includeTypeQuestion = useMemo(() => {
-    return typeof generatorType !== 'string'
-  }, [generatorType])
+    return typeof view.generatorType !== 'string'
+  }, [view.generatorType])
 
   const includeNameQuestion = useMemo(() => {
-    return typeof generatorName !== 'string' && typeof generatorType === 'string'
-  }, [generatorName, generatorType])
+    return typeof view.generatorName !== 'string' && typeof view.generatorType === 'string'
+  }, [view.generatorName, view.generatorType])
 
   // Execute add generator when all inputs are collected
   useEffect(() => {
-    if (generatorName && generatorType && project instanceof Project && !isExecuting) {
-      setIsExecuting(true)
-
-      dispatch({
-        type: 'set-execution',
-        payload: { type: 'generate', title: `Adding generator "${generatorName}"...` }
-      })
+    if (view.generatorName && view.generatorType && project instanceof Project && !adding) {
+      setAdding(true)
 
       project
-        .addGenerator({ moduleName: generatorName, type: generatorType, username })
+        .addGenerator({ moduleName: view.generatorName, type: view.generatorType, username })
         .then(() => {
           dispatch({
             type: 'set-message',
             payload: {
-              success: `Generator "${generatorName}" created successfully`
+              success: `Generator "${view.generatorName}" created successfully`
             }
           })
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
         })
         .catch(error => {
           console.error(error)
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+
+          dispatch({
+            type: 'set-message',
+            payload: {
+              error: `Failed to add generator "${view.generatorName}"`
+            }
+          })
         })
         .finally(() => {
-          dispatch({ type: 'set-execution', payload: null })
+          setAdding(false)
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
         })
     }
-  }, [generatorName, generatorType, isExecuting])
+  }, [view.generatorName, view.generatorType, adding])
 
-  if (includeTypeQuestion && !isExecuting) {
-    return (
-      <Box flexDirection="column">
-        <Text>Select generator type:</Text>
-        <SelectInput
-          items={[
-            { label: 'operation', value: 'operation' },
-            { label: 'model', value: 'model' }
-          ]}
-          onSelect={item => setGeneratorType(item.value as 'operation' | 'model')}
-        />
-      </Box>
-    )
-  }
+  const tasks: Task[] = [
+    {
+      key: 'generator-type-task',
+      include: includeTypeQuestion,
+      render: () => <GeneratorTypeTask />
+    },
+    {
+      key: 'generator-name-task',
+      include: includeNameQuestion,
+      render: () => <GeneratorNameTask />
+    }
+  ]
 
   return (
-    <QuestionManager
-      questions={[
-        {
-          type: 'select',
-          include: includeTypeQuestion,
-          prompt: 'Generator type',
-          options: [
-            { label: 'operation', value: 'operation' },
-            { label: 'model', value: 'model' }
-          ],
-          setValue: value => setGeneratorType(value as 'operation' | 'model')
-        },
-        {
-          type: 'string',
-          include: includeNameQuestion,
-          prompt: 'Generator name',
-          setValue: value => {
-            const error = checkProjectName(value)
-            if (error) {
-              console.error(error)
-              dispatch({
-                type: 'set-view',
-                payload: { page: 'project', projectName: project.name }
-              })
-              return
-            }
-            setGeneratorName(value)
-          }
-        }
+    <TaskProvider
+      tasks={tasks}
+      leave={() => {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      }}
+    >
+      <TaskListView />
+    </TaskProvider>
+  )
+}
+
+const GeneratorTypeTask = () => {
+  const { state, dispatch } = useSkmtc()
+
+  return (
+    <SelectTask
+      prompt="Generator type"
+      options={[
+        { label: 'operation', value: 'operation' },
+        { label: 'model', value: 'model' }
       ]}
+      setValue={value => {
+        const { view } = state
+
+        invariant(view.page === 'add-generator', 'Generator type is required')
+
+        dispatch({
+          type: 'set-view',
+          payload: {
+            ...view,
+            generatorType: value as 'operation' | 'model'
+          }
+        })
+      }}
+    />
+  )
+}
+
+const GeneratorNameTask = () => {
+  const { state, dispatch } = useSkmtc()
+
+  return (
+    <StringTask
+      prompt="Generator name"
+      setValue={value => {
+        const { view } = state
+
+        invariant(view.page === 'add-generator', 'Generator name is required')
+
+        dispatch({
+          type: 'set-view',
+          payload: {
+            ...view,
+            generatorName: value
+          }
+        })
+      }}
     />
   )
 }

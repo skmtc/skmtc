@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { getRuntimeLogs } from '@/services/getRuntimeLogs.ts'
 import invariant from 'tiny-invariant'
 import { useShortcut } from './useShortcut.tsx'
+import { Spinner } from '@inkjs/ui'
 
 type RuntimeLogsViewProps = {
   project: Project | RemoteProject
@@ -15,8 +16,9 @@ type RuntimeLogsViewProps = {
 
 export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
   const { state, dispatch } = useSkmtc()
-  const [logs, setLogs] = useState<string[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const [logs, setLogs] = useState<string[] | null>(null)
+
+  const [fetching, setFetching] = useState(false)
 
   useShortcut({
     label: `'esc' to ${project.name}`,
@@ -28,15 +30,32 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
   })
 
   useEffect(() => {
+    if (!fetching && logs && logs.length === 0) {
+      dispatch({
+        type: 'set-message',
+        payload: {
+          error: 'No logs found'
+        }
+      })
+
+      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+    }
+  }, [logs])
+
+  useEffect(() => {
     if (!(project instanceof Project)) {
-      setError('Runtime logs are only available for local projects')
+      dispatch({
+        type: 'set-message',
+        payload: {
+          error: 'Runtime logs are only available for local projects'
+        }
+      })
+
+      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
       return
     }
 
-    dispatch({
-      type: 'set-execution',
-      payload: { type: 'generate', title: 'Fetching runtime logs...' }
-    })
+    setFetching(true)
 
     project.manifest
       .refresh()
@@ -44,7 +63,15 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
         const manifest = project.manifest.contents
 
         if (!manifest) {
-          throw new Error('Project has no manifest. Has generation been run?')
+          dispatch({
+            type: 'set-message',
+            payload: {
+              error: 'Project has no manifest. Has generation been run?'
+            }
+          })
+
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+          return
         }
 
         invariant(state.session?.access_token, 'No access token')
@@ -60,23 +87,27 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
         runtimeLogs.forEach(console.log)
 
         setLogs(runtimeLogs)
-        dispatch({ type: 'set-execution', payload: null })
       })
       .catch(err => {
-        setError(err.message || 'Failed to fetch runtime logs')
-        dispatch({ type: 'set-execution', payload: null })
+        dispatch({
+          type: 'set-message',
+          payload: {
+            error: err.message || 'Failed to fetch runtime logs'
+          }
+        })
+
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      })
+      .finally(() => {
+        setFetching(false)
       })
   }, [])
 
+  if (fetching) {
+    return <Spinner label="Fetching runtime logs..." />
+  }
+
   return (
-    <Box flexDirection="column">
-      {error ? (
-        <Text color="red">{error}</Text>
-      ) : logs.length > 0 ? (
-        logs.map((log, index) => <Text key={index}>{log}</Text>)
-      ) : !state.execution ? (
-        <Text dimColor>No logs found</Text>
-      ) : null}
-    </Box>
+    <Box flexDirection="column">{logs?.map((log, index) => <Text key={index}>{log}</Text>)}</Box>
   )
 }

@@ -1,88 +1,173 @@
 import React from 'react'
-import { useInput } from 'ink'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import { useState, useEffect, useMemo } from 'react'
-import { QuestionManager } from '@/components/QuestionManager.tsx'
+import { useEffect } from 'react'
 import { availableGenerators } from '@/available-generators.ts'
 import { Project } from '../lib/project.ts'
+import { type Task, TaskProvider, useTask } from './TaskContext.tsx'
+import { StringTask } from './StringTask.tsx'
+import { MultiselectTask } from './MultiselectTask.tsx'
+import invariant from 'tiny-invariant'
+import { TaskListView } from './TaskListView.tsx'
+import { TaskBox } from './TaskBox.tsx'
+import { Spinner } from '@inkjs/ui'
 
 export const CreateProject = () => {
-  const { state, dispatch } = useSkmtc()
-  const { skmtcRoot } = state
+  const { dispatch } = useSkmtc()
 
-  const [projectName, setProjectName] = useState<string | null>(null)
-  const [selectedGenerators, setSelectedGenerators] = useState<string[] | null>(null)
-  const [basePath, setBasePath] = useState<string | null>(null)
-  const [isExecuting, setIsExecuting] = useState(false)
-
-  useInput((input, key) => {
-    if (isExecuting) return
-
-    if (key.escape) {
-      dispatch({ type: 'set-view', payload: { page: 'home' } })
+  const tasks: Task[] = [
+    {
+      key: 'project-name',
+      include: true,
+      render: () => <ProjectNameTask />
+    },
+    {
+      key: 'generators',
+      include: true,
+      render: () => <GeneratorsTask />
+    },
+    {
+      key: 'base-path',
+      include: true,
+      render: () => <BasePathTask />
+    },
+    {
+      key: 'create-project',
+      include: true,
+      render: () => <CreateProjectTask />
     }
-  })
+  ]
+
+  return (
+    <TaskProvider
+      tasks={tasks}
+      leave={() => dispatch({ type: 'set-view', payload: { page: 'home' } })}
+    >
+      <TaskListView />
+    </TaskProvider>
+  )
+}
+
+const ProjectNameTask = () => {
+  const { state, dispatch } = useSkmtc()
+
+  return (
+    <StringTask
+      prompt="Project name"
+      setValue={value => {
+        const { skmtcRoot, view } = state
+
+        invariant(
+          view.page === 'create-project',
+          `Expecting view to be "create-project", got "${view.page}"`
+        )
+
+        const payload = { ...view, projectName: value }
+
+        if (value.length < 3) {
+          console.error('Project name must be at least 3 characters long')
+          return
+        }
+
+        // Check if project already exists
+        const existingProject = skmtcRoot.projects.find(p => p.name === value)
+        if (existingProject) {
+          console.error(`Project "${value}" already exists`)
+          return
+        }
+
+        dispatch({ type: 'set-view', payload })
+      }}
+    />
+  )
+}
+
+const GeneratorsTask = () => {
+  const { state, dispatch } = useSkmtc()
+
+  return (
+    <MultiselectTask
+      prompt="Select generators"
+      options={availableGenerators.map(gen => ({
+        label: gen.id,
+        value: gen.id
+      }))}
+      setValues={values => {
+        console.log('Selected generators: ', values)
+
+        const { view } = state
+
+        invariant(
+          view.page === 'create-project',
+          `Expecting view to be "create-project", got "${view.page}"`
+        )
+
+        const payload = { ...view, generators: values }
+        dispatch({ type: 'set-view', payload })
+      }}
+    />
+  )
+}
+
+const BasePathTask = () => {
+  const { state, dispatch } = useSkmtc()
+
+  return (
+    <StringTask
+      prompt="Base path for generated files"
+      defaultValue="src"
+      setValue={value => {
+        const { view } = state
+
+        invariant(
+          view.page === 'create-project',
+          `Expecting view to be "create-project", got "${view.page}"`
+        )
+
+        const payload = { ...view, basePath: value }
+
+        console.log('Payload: ', payload)
+        dispatch({ type: 'set-view', payload })
+      }}
+    />
+  )
+}
+
+const CreateProjectTask = () => {
+  const { state, dispatch } = useSkmtc()
+
+  const { leave } = useTask()
 
   // Execute project creation when all inputs are collected
   useEffect(() => {
-    if (projectName && selectedGenerators?.length && basePath && !isExecuting) {
+    const { skmtcRoot, view } = state
+    invariant(
+      view.page === 'create-project',
+      `Expecting view to be "create-project", got "${view.page}"`
+    )
+    const { projectName, generators, basePath } = view
+
+    console.log('VIEW: ', view)
+    console.log('Selected generators: ', generators)
+    console.log('Base path: ', basePath)
+
+    if (projectName && generators?.length && basePath) {
+      console.log('Creating project...')
+
       Project.create({
         skmtcRoot,
         name: projectName,
         basePath,
-        generators: selectedGenerators
+        generators
       }).then(project => {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        leave()
       })
     }
-  }, [projectName, selectedGenerators, basePath, isExecuting])
+  }, [state.view])
 
   return (
-    <QuestionManager
-      questions={[
-        {
-          type: 'string',
-          include: true,
-          prompt: 'Project name',
-          setValue: value => {
-            // Validate name length
-            if (value.length < 3) {
-              console.error('Project name must be at least 3 characters long')
-              return
-            }
-
-            // Check if project already exists
-            const existingProject = skmtcRoot.projects.find(p => p.name === value)
-            if (existingProject) {
-              console.error(`Project "${value}" already exists`)
-              return
-            }
-
-            setProjectName(value)
-          }
-        },
-        {
-          type: 'multiselect',
-          include: true,
-          options: availableGenerators.map(gen => ({
-            label: gen.id,
-            value: gen.id
-          })),
-          prompt: 'Select generators to install',
-          setValues: values => {
-            setSelectedGenerators(values)
-          }
-        },
-        {
-          type: 'string',
-          include: true,
-          prompt: 'Base path for generated files',
-          defaultValue: 'src',
-          setValue: value => {
-            setBasePath(value)
-          }
-        }
-      ]}
-    />
+    <TaskBox id={`create-project-container`} active>
+      <Spinner label="Creating project..." />
+    </TaskBox>
   )
 }

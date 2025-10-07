@@ -2,10 +2,12 @@ import React from 'react'
 import { type ViewStateRemoveGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { Box, Text, useInput } from 'ink'
+import { Box, Text } from 'ink'
 import { useState } from 'react'
 import SelectInput from 'ink-select-input'
 import { QuestionManager } from '@/components/QuestionManager.tsx'
+import { useShortcut } from './useShortcut.tsx'
+import { ConfirmInput } from '@inkjs/ui'
 
 type RemoveGeneratorViewProps = {
   project: Project | RemoteProject
@@ -21,9 +23,12 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
 
   const generators = project instanceof Project ? project.toGeneratorIds() : []
 
-  useInput((_input, key) => {
-    if (key.escape && !selectedGenerator) {
-      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+  useShortcut({
+    label: `'esc' to ${project.name}`,
+    action: (input, key) => {
+      if (key.escape && !selectedGenerator) {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      }
     }
   })
 
@@ -31,8 +36,6 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
     return (
       <Box flexDirection="column">
         <Text color="yellow">No generators found to remove</Text>
-        <Text></Text>
-        <Text dimColor>Hit 'escape' key to go back</Text>
       </Box>
     )
   }
@@ -41,8 +44,7 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
     return (
       <Box flexDirection="column">
         <Text>Select generator to remove:</Text>
-        <Text dimColor>Hit 'escape' key to go back</Text>
-        <Text></Text>
+
         <SelectInput
           items={generators.map(gen => ({ label: gen, value: gen }))}
           onSelect={item => setSelectedGenerator(item.value)}
@@ -53,25 +55,17 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
 
   if (!confirmed) {
     return (
-      <QuestionManager
-        questions={[
-          {
-            type: 'boolean',
-            include: true,
-            prompt: `Are you sure you want to remove "${selectedGenerator}"?`,
-            setValue: async value => {
-              if (value) {
-                setConfirmed(true)
-              } else {
-                dispatch({
-                  type: 'set-view',
-                  payload: { page: 'project', projectName: project.name }
-                })
-              }
-            }
-          }
-        ]}
-      />
+      <Box flexDirection="column">
+        <Text>Are you sure you want to remove "{selectedGenerator}"?</Text>
+        <ConfirmInput
+          onConfirm={() => {
+            setConfirmed(true)
+          }}
+          onCancel={() => {
+            dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+          }}
+        />
+      </Box>
     )
   }
 
@@ -89,10 +83,18 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
             success: `Generator "${selectedGenerator}" removed successfully`
           }
         })
-        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
       })
       .catch(error => {
         console.error(error)
+
+        dispatch({
+          type: 'set-message',
+          payload: {
+            error: `Failed to remove generator "${selectedGenerator}"`
+          }
+        })
+      })
+      .finally(() => {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
       })
   }

@@ -302,6 +302,10 @@ export class Project {
         dispatch
       })
 
+      if (!deployed) {
+        throw new Error('Deployment failed')
+      }
+
       const duration = (Date.now() - startTime) / 1000
 
       dispatch({
@@ -311,8 +315,6 @@ export class Project {
 
       await this.manager.success()
 
-      dispatch({ type: 'set-execution', payload: null })
-
       dispatch({ type: 'set-message', payload: { success: 'Deployment successful' } })
     } catch (error) {
       console.error(error)
@@ -320,8 +322,6 @@ export class Project {
       Sentry.captureException(error)
 
       await Sentry.flush()
-
-      dispatch({ type: 'set-execution', payload: null })
 
       dispatch({ type: 'set-message', payload: { error: 'Deployment failed' } })
 

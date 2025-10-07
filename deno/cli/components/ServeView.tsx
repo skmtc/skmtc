@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box } from 'ink'
+import { Box, Text } from 'ink'
 import type { Project } from '@/lib/project.ts'
 import type { ViewStateServe } from '@/components/SkmtcContext.tsx'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
@@ -7,6 +7,8 @@ import { useEffect } from 'react'
 import * as Sentry from '@sentry/node'
 import { toMod } from '@/lib/to-mod.ts'
 import { join } from '@std/path/join'
+import { TaskBox } from './TaskBox.tsx'
+import { Spinner } from '@inkjs/ui'
 
 type ServeViewProps = {
   project: Project
@@ -20,15 +22,6 @@ export const ServeView = ({ project, view }: ServeViewProps) => {
   useEffect(() => {
     const serve = async () => {
       try {
-        dispatch({
-          type: 'set-execution',
-          payload: {
-            type: 'serve',
-            title: 'Serving...',
-            subtitle: `Starting server on port ${port}`
-          }
-        })
-
         await project.clientJson?.refresh()
 
         // if (project) {
@@ -78,7 +71,14 @@ export const ServeView = ({ project, view }: ServeViewProps) => {
     serve()
   }, [])
 
-  return <Box></Box>
+  return (
+    <TaskBox id={`serve-project-task`} active>
+      <Box flexDirection="column">
+        <Spinner label="Serving..." />
+        <Text dimColor>Serving on port {port}</Text>
+      </Box>
+    </TaskBox>
+  )
 }
 
 type RunServerArgs = {
