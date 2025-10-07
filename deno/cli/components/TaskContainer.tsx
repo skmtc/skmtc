@@ -1,8 +1,8 @@
-import { Box, Text } from 'ink'
 import { useId } from 'react'
 import { useShortcut } from './useShortcut.tsx'
 import { useTask } from './TaskContext.tsx'
 import { useProjectName } from './SkmtcContext.tsx'
+import { TaskBox } from './TaskBox.tsx'
 
 type TaskContainerProps = {
   prompt: string
@@ -24,17 +24,8 @@ export const TaskContainer = ({ prompt, children }: TaskContainerProps) => {
   })
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderTop={false}
-      borderBottom={false}
-      borderRight={false}
-      paddingLeft={2}
-      key={`${id}-container`}
-    >
-      <Text>{prompt}</Text>
+    <TaskBox id={`${id}-container`} prompt={prompt} active>
       {children}
-    </Box>
+    </TaskBox>
   )
 }

@@ -2,8 +2,9 @@ import React, { useId } from 'react'
 import { TextInput } from '@inkjs/ui'
 import { useState } from 'react'
 import { useTask } from './TaskContext.tsx'
-import { TaskResult } from './TaskResult.tsx'
 import { TaskContainer } from './TaskContainer.tsx'
+import { TaskBox } from './TaskBox.tsx'
+import { Text } from 'ink'
 
 type StringTaskProps = {
   prompt: string
@@ -18,9 +19,9 @@ export const StringTask = ({ prompt, defaultValue, setValue }: StringTaskProps) 
 
   if (response !== null) {
     return (
-      <TaskResult prompt={prompt} key={`${id}-response`}>
-        {response}
-      </TaskResult>
+      <TaskBox prompt={prompt} id={`${id}-response`} active={false}>
+        <Text dimColor>{response}</Text>
+      </TaskBox>
     )
   }
 

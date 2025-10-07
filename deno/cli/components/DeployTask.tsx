@@ -4,6 +4,7 @@ import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useEffect, useState } from 'react'
 import { Spinner } from '@inkjs/ui'
 import { useTask } from './TaskContext.tsx'
+import { TaskBox } from './TaskBox.tsx'
 
 type ToDeployTaskProps = {
   project: Project
@@ -36,5 +37,17 @@ export const DeployTaskView = ({ project }: DeployTaskViewProps) => {
     run()
   }, [])
 
-  return <Box>{deployed ? <Text>Deployed</Text> : <Spinner label="Deploying..." />}</Box>
+  if (deployed) {
+    return (
+      <TaskBox id={`deploy-project-task`} active={false}>
+        <Text>Deployed</Text>
+      </TaskBox>
+    )
+  }
+
+  return (
+    <TaskBox id={`deploy-project-task`} active>
+      <Spinner label="Deploying..." />
+    </TaskBox>
+  )
 }

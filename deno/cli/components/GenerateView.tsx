@@ -17,13 +17,16 @@ import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
-import { type Task, TaskProvider } from './TaskContext.tsx'
+import { type Task, TaskProvider, useTask } from './TaskContext.tsx'
 import { ConfirmTask } from './ConfirmTask.tsx'
 import { toDeployTask } from './DeployTask.tsx'
 import { TaskListView } from './TaskListView.tsx'
 import type { SchemaSource } from '@/lib/schema-file.ts'
 import { StringTask } from './StringTask.tsx'
 import { BooleanTask } from './BooleanTask.tsx'
+import { Spinner } from '@inkjs/ui'
+import { useShortcut } from './useShortcut.tsx'
+import { TaskBox } from './TaskBox.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -55,8 +58,6 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
 
   invariant(token, 'Session access token is required')
 
-  console.log('VIEW: ', view.schemaSourceString, view.watchMode)
-
   const tasks: Task[] = [
     {
       key: 'confirm-deployment-task',
@@ -66,17 +67,17 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     {
       key: 'schema-location-task',
       include: includeSchemaQuestion,
-      render: () => <SchemaLocationTask schemaSource={schemaSource} view={view} />
+      render: () => <SchemaLocationTask schemaSource={schemaSource} />
     },
     {
       key: 'watch-mode-task',
       include: includeWatchQuestion,
-      render: () => <WatchModeTask project={project} view={view} />
+      render: () => <WatchModeTask project={project} />
     },
     {
       key: 'generate-view-content-task',
       include: true,
-      render: () => <GenerateTask project={project} view={view} token={token} />
+      render: () => <GenerateTask project={project} token={token} />
     }
   ]
 
@@ -94,22 +95,21 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
 
 type WatchModeTaskProps = {
   project: Project | RemoteProject
-  view: ViewStateGenerate
 }
 
-const WatchModeTask = ({ project, view }: WatchModeTaskProps) => {
-  const { dispatch } = useSkmtc()
+const WatchModeTask = ({ project }: WatchModeTaskProps) => {
+  const { state, dispatch } = useSkmtc()
 
   return (
     <BooleanTask
       prompt="Watch for changes?"
       projectName={project.name}
       setValue={({ value }) => {
+        const { view } = state
+
+        invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
+
         const payload = { ...view, watchMode: value }
-
-        console.log('SCHEMA SOURCE on WATCH MODE: ', view.schemaSourceString)
-
-        console.log('PAYLOAD - WATCH MODE: ', JSON.stringify(Object.keys(payload), null, 2))
 
         dispatch({ type: 'set-view', payload })
       }}
@@ -119,11 +119,10 @@ const WatchModeTask = ({ project, view }: WatchModeTaskProps) => {
 
 type SchemaLocationTaskProps = {
   schemaSource: SchemaSource | null
-  view: ViewStateGenerate
 }
 
-const SchemaLocationTask = ({ schemaSource, view }: SchemaLocationTaskProps) => {
-  const { dispatch } = useSkmtc()
+const SchemaLocationTask = ({ schemaSource }: SchemaLocationTaskProps) => {
+  const { state, dispatch } = useSkmtc()
 
   const absoluteRootPath = toAbsoluteRootPath()
   return (
@@ -133,6 +132,10 @@ const SchemaLocationTask = ({ schemaSource, view }: SchemaLocationTaskProps) => 
         schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined
       }
       setValue={value => {
+        const { view } = state
+
+        invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
+
         const isRemote = value.startsWith('http://') || value.startsWith('https://')
 
         const payload = {
@@ -152,22 +155,24 @@ const SchemaLocationTask = ({ schemaSource, view }: SchemaLocationTaskProps) => 
 
 type GenerateTaskProps = {
   project: Project | RemoteProject
-  view: ViewStateGenerate
   token: string
 }
 
-const GenerateTask = ({ project, view, token }: GenerateTaskProps) => {
+const GenerateTask = ({ project, token }: GenerateTaskProps) => {
+  const { state } = useSkmtc()
+
+  const { view } = state
+  invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
+
   return match(view)
     .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
       return view.watchMode ? (
-        <WatchGenerate project={project} view={confirmedView} token={token} />
+        <WatchGenerateTask project={project} view={confirmedView} token={token} />
       ) : (
-        <RunGenerate project={project} view={confirmedView} token={token} />
+        <RunGenerateTask project={project} view={confirmedView} token={token} />
       )
     })
     .otherwise(() => {
-      console.log('NO VIEW')
-
       return <Box></Box>
     })
 }
@@ -200,12 +205,20 @@ type RunGenerateProps = {
   token: string
 }
 
-const RunGenerate = ({ project, view, token }: RunGenerateProps) => {
+const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
   const { state, dispatch } = useSkmtc()
+  const { leave } = useTask()
+
+  useShortcut({
+    label: `'esc' to ${project.name}`,
+    action: (input, key) => {
+      if (key.escape) {
+        leave()
+      }
+    }
+  })
 
   useEffect(() => {
-    dispatch({ type: 'set-execution', payload: { type: 'generate', title: `Generating...` } })
-
     toSchemaContents(view.schemaSourceString)
       .then(schemaContents => {
         return generate({
@@ -228,15 +241,15 @@ const RunGenerate = ({ project, view, token }: RunGenerateProps) => {
         console.error(error)
       })
       .finally(() => {
-        if (state.interactive) {
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
-        }
-
-        dispatch({ type: 'set-execution', payload: null })
+        leave()
       })
   }, [])
 
-  return <Box></Box>
+  return (
+    <TaskBox id={`run-generate-container`} active>
+      <Spinner label="Generating..." />
+    </TaskBox>
+  )
 }
 
 const toSchemaContents = async (schemaSourceString: string): Promise<string> => {
@@ -251,22 +264,28 @@ const toSchemaContents = async (schemaSourceString: string): Promise<string> => 
   return contents
 }
 
+type Activity = 'watching' | 'generating'
+
 type WatchGenerateProps = {
   project: Project | RemoteProject
   view: ViewStateGenerateConfirmed
   token: string
 }
 
-const WatchGenerate = ({ project, view, token }: WatchGenerateProps) => {
+const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
   const { state, dispatch } = useSkmtc()
-
+  const { leave } = useTask()
   const [watcher, setWatcher] = useState<FSWatcher>()
+  const [activity, setActivity] = useState<Activity>('watching')
 
-  useInput(async (_input, key) => {
-    if (key.escape) {
-      await watcher?.close()
+  useShortcut({
+    label: `'esc' to ${project.name}`,
+    action: async (input, key) => {
+      if (key.escape) {
+        await watcher?.close()
 
-      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        leave()
+      }
     }
   })
 
@@ -279,57 +298,54 @@ const WatchGenerate = ({ project, view, token }: WatchGenerateProps) => {
   }, [view.schemaSourceString])
 
   useEffect(() => {
-    if (state.execution?.type === 'generate') {
-      SchemaFile.getFromSource(toSchemaSource(view.schemaSourceString))
-        .then(({ contents }) => {
-          return generate({
-            project,
-            accountName: state.session?.user?.user_metadata?.user_name,
-            skmtcRoot: state.skmtcRoot,
-            interactive: state.interactive,
-            schemaContents: contents,
-            clientSettings: project.clientJson?.contents?.settings,
-            prettier: project.prettierJson?.contents,
-            token
-          })
-        })
-        .then(stats => {
-          if (stats) {
-            dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
-          }
-        })
-        .catch(error => {
-          console.error(error)
-        })
-        .finally(() => {
-          dispatch({
-            type: 'set-execution',
-            payload: {
-              type: 'generate:watch',
-              title: `Watching ${view.schemaSourceString}`,
-              subtitle: `Hit 'escape' key to stop.`
-            }
-          })
-        })
+    if (activity === 'watching') {
+      return
     }
-  }, [state.execution?.type])
 
-  useEffect(() => {
-    if (watcher) {
-      watcher.on('change', () => {
-        if (state.execution?.type !== 'generate') {
-          dispatch({
-            type: 'set-execution',
-            payload: {
-              type: 'generate',
-              title: `Generating...`,
-              subtitle: `Hit 'escape' key to stop.`
-            }
-          })
+    SchemaFile.getFromSource(toSchemaSource(view.schemaSourceString))
+      .then(({ contents }) => {
+        return generate({
+          project,
+          accountName: state.session?.user?.user_metadata?.user_name,
+          skmtcRoot: state.skmtcRoot,
+          interactive: state.interactive,
+          schemaContents: contents,
+          clientSettings: project.clientJson?.contents?.settings,
+          prettier: project.prettierJson?.contents,
+          token
+        })
+      })
+      .then(stats => {
+        if (stats) {
+          dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
         }
       })
-    }
-  }, [watcher])
+      .catch(error => {
+        console.error(error)
 
-  return <Box></Box>
+        dispatch({ type: 'set-message', payload: { error: 'Failed to generate' } })
+      })
+      .finally(() => {
+        setActivity('watching')
+      })
+  }, [watcher, activity])
+
+  useEffect(() => {
+    watcher?.on('change', () => {
+      if (activity !== 'generating') {
+        setActivity('generating')
+      }
+    })
+  }, [watcher, activity])
+
+  return (
+    <Box>
+      <Spinner
+        label={match(activity)
+          .with('generating', () => 'Generating...')
+          .with('watching', () => 'Watching...')
+          .exhaustive()}
+      />
+    </Box>
+  )
 }

@@ -1,13 +1,13 @@
 import React, { useId } from 'react'
-import { Box, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useTask } from '@/components/TaskContext.tsx'
 import { useShortcut } from './useShortcut.tsx'
 import { useState } from 'react'
-import { TaskAction, TaskState } from '@/components/TaskContext.tsx'
-import { Dispatch } from 'react'
-import { TaskResult } from './TaskResult.tsx'
+import type { TaskAction, TaskState } from '@/components/TaskContext.tsx'
+import type { Dispatch } from 'react'
 import { TaskContainer } from './TaskContainer.tsx'
+import { TaskBox } from './TaskBox.tsx'
+import { Text } from 'ink'
 
 type BooleanTaskArgs = {
   value: boolean
@@ -24,6 +24,7 @@ type BooleanTaskProps = {
 export const BooleanTask = ({ prompt, projectName, setValue }: BooleanTaskProps) => {
   const { state, dispatch, leave } = useTask()
   const [confirmed, setConfirmed] = useState<boolean | null>(null)
+  const id = useId()
 
   useShortcut({
     label: `'esc' to ${projectName}`,
@@ -35,7 +36,11 @@ export const BooleanTask = ({ prompt, projectName, setValue }: BooleanTaskProps)
   })
 
   if (confirmed !== null) {
-    return <TaskResult prompt={prompt}>{confirmed ? 'Yes' : 'No'}</TaskResult>
+    return (
+      <TaskBox prompt={prompt} id={`${id}-result`} active={false}>
+        <Text dimColor>{confirmed ? 'Yes' : 'No'}</Text>
+      </TaskBox>
+    )
   }
 
   return (
