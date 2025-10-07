@@ -12,7 +12,6 @@ import { generate, toGenerateStatus } from '@/workspaces/generate.tsx'
 import { match, P } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
-import { QuestionManager } from '@/components/QuestionManager.tsx'
 import { useMemo } from 'react'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
@@ -22,6 +21,9 @@ import { Task, TaskProvider } from './TaskContext.tsx'
 import { ConfirmTask } from './ConfirmTask.tsx'
 import { toDeployTask } from './DeployTask.tsx'
 import { TaskListView } from './TaskListView.tsx'
+import type { SchemaSource } from '@/lib/schema-file.ts'
+import { StringTask } from './StringTask.tsx'
+import { BooleanTask } from './BooleanTask.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -49,76 +51,92 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     return typeof view.watchMode !== 'boolean'
   }, [])
 
-  const absoluteRootPath = toAbsoluteRootPath()
-
-  const tasks: Task[] = [
-    {
-      include: true,
-      render: () => (
-        <ConfirmTask
-          prompt="This project has not been deployed. Would you like to deploy it now?"
-          projectName={project.name}
-          onConfirm={({ state: taskState, dispatch: taskDispatch }) => {
-            if (project instanceof Project) {
-              taskDispatch({
-                type: 'insert-task',
-                payload: {
-                  task: toDeployTask({ project }),
-                  index: taskState.currentTask + 1
-                }
-              })
-            }
-          }}
-        />
-      )
-    }
-    // {
-    //   type: 'string',
-    //   include: includeSchemaQuestion,
-    //   prompt: 'Input OpenAPI schema path or URL',
-    //   defaultValue:
-    //     schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined,
-    //   // extensions: ['.json', '.yaml', '.yml'],
-    //   // basePath: projectPath ?? undefined,
-    //   setValue: (value: string) => {
-    //     const isRemote = value.startsWith('http://') || value.startsWith('https://')
-
-    //     dispatch({
-    //       type: 'set-view',
-    //       payload: {
-    //         ...view,
-    //         schemaSourceString: value,
-    //         watchMode: isRemote ? false : view.watchMode
-    //       }
-    //     })
-    //   }
-    // },
-    // {
-    //   type: 'boolean',
-    //   include: includeWatchQuestion,
-    //   prompt: 'Watch for changes?',
-    //   setValue: value => {
-    //     dispatch({ type: 'set-view', payload: { ...view, watchMode: value } })
-    //   }
-    // }
-  ]
-
   const token = state.session?.access_token
 
   invariant(token, 'Session access token is required')
 
+  const tasks: Task[] = [
+    {
+      key: 'confirm-deployment-task',
+      include: includeDeployQuestion,
+      render: () => <ConfirmDeploymentTask project={project} />
+    },
+    {
+      key: 'schema-location-task',
+      include: includeSchemaQuestion,
+      render: () => <SchemaLocationTask schemaSource={schemaSource} view={view} />
+    },
+    {
+      key: 'watch-mode-task',
+      include: includeWatchQuestion,
+      render: () => <WatchModeTask project={project} view={view} />
+    },
+    {
+      key: 'generate-view-content-task',
+      include: true,
+      render: () => <GenerateViewContent project={project} view={view} token={token} />
+    }
+  ]
+
   return (
-    <>
-      <TaskProvider
-        tasks={tasks}
-        leave={() =>
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
-        }
-      >
-        <TaskListView />
-      </TaskProvider>
-      <GenerateViewContent project={project} view={view} token={token} />
-    </>
+    <TaskProvider
+      tasks={tasks}
+      leave={() =>
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      }
+    >
+      <TaskListView />
+    </TaskProvider>
+  )
+}
+
+type WatchModeTaskProps = {
+  project: Project | RemoteProject
+  view: ViewStateGenerate
+}
+
+const WatchModeTask = ({ project, view }: WatchModeTaskProps) => {
+  const { dispatch } = useSkmtc()
+
+  return (
+    <BooleanTask
+      prompt="Watch for changes?"
+      projectName={project.name}
+      setValue={({ value }) => {
+        dispatch({ type: 'set-view', payload: { ...view, watchMode: value } })
+      }}
+    />
+  )
+}
+
+type SchemaLocationTaskProps = {
+  schemaSource: SchemaSource | null
+  view: ViewStateGenerate
+}
+
+const SchemaLocationTask = ({ schemaSource, view }: SchemaLocationTaskProps) => {
+  const { dispatch } = useSkmtc()
+
+  const absoluteRootPath = toAbsoluteRootPath()
+  return (
+    <StringTask
+      prompt="Input OpenAPI schema path or URL"
+      defaultValue={
+        schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined
+      }
+      setValue={value => {
+        const isRemote = value.startsWith('http://') || value.startsWith('https://')
+
+        dispatch({
+          type: 'set-view',
+          payload: {
+            ...view,
+            schemaSourceString: value,
+            watchMode: isRemote ? false : view.watchMode
+          }
+        })
+      }}
+    />
   )
 }
 
@@ -140,6 +158,28 @@ const GenerateViewContent = ({ project, view, token }: GenerateViewContentProps)
     .otherwise(() => null)
 }
 
+type ConfirmDeploymentTaskProps = {
+  project: Project | RemoteProject
+}
+
+export const ConfirmDeploymentTask = ({ project }: ConfirmDeploymentTaskProps) => {
+  return (
+    <ConfirmTask
+      prompt="This project has not been deployed. Would you like to deploy it now?"
+      onConfirm={({ state: taskState, dispatch: taskDispatch }) => {
+        if (project instanceof Project) {
+          taskDispatch({
+            type: 'insert-task',
+            payload: {
+              task: toDeployTask({ project }),
+              index: taskState.currentTask + 1
+            }
+          })
+        }
+      }}
+    />
+  )
+}
 type RunGenerateProps = {
   project: Project | RemoteProject
   view: ViewStateGenerateConfirmed

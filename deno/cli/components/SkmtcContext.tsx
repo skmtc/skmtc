@@ -1,6 +1,6 @@
 import React from 'react'
 import { createContext, type ReactNode, useContext, useReducer } from 'react'
-import { match } from 'ts-pattern'
+import { match, P } from 'ts-pattern'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Session } from '@supabase/supabase-js'
 import type { Project } from '@/lib/project.ts'
@@ -219,3 +219,22 @@ const useSkmtc = () => {
 }
 
 export { SkmtcProvider, useSkmtc }
+
+type ToProjectNameArgs = {
+  view: ViewState
+}
+
+export const toProjectName = ({ view }: ToProjectNameArgs) => {
+  return match(view)
+    .with({ project: P.any }, ({ project }) => project.name)
+    .with({ projectName: P.string }, ({ projectName }) => projectName)
+    .otherwise(() => {
+      throw new Error('No project name found in view')
+    })
+}
+
+export const useProjectName = () => {
+  const { state } = useSkmtc()
+
+  return toProjectName({ view: state.view })
+}

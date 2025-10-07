@@ -1,27 +1,40 @@
 import React, { useId } from 'react'
+import { Box, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useTask } from '@/components/TaskContext.tsx'
+import { useShortcut } from './useShortcut.tsx'
 import { useState } from 'react'
 import { TaskAction, TaskState } from '@/components/TaskContext.tsx'
 import { Dispatch } from 'react'
 import { TaskResult } from './TaskResult.tsx'
 import { TaskContainer } from './TaskContainer.tsx'
 
-type ConfirmTaskArgs = {
+type BooleanTaskArgs = {
+  value: boolean
   state: TaskState
   dispatch: Dispatch<TaskAction>
 }
 
-type ConfirmTaskProps = {
+type BooleanTaskProps = {
   prompt: string
-  onConfirm: ({ state, dispatch }: ConfirmTaskArgs) => Promise<void> | void
+  projectName: string
+  setValue: ({ state, dispatch }: BooleanTaskArgs) => Promise<void> | void
 }
 
-export const ConfirmTask = ({ prompt, onConfirm }: ConfirmTaskProps) => {
+export const BooleanTask = ({ prompt, projectName, setValue }: BooleanTaskProps) => {
   const { state, dispatch, leave } = useTask()
-  const [confirmed, setConfirmed] = useState(false)
+  const [confirmed, setConfirmed] = useState<boolean | null>(null)
 
-  if (confirmed) {
+  useShortcut({
+    label: `'esc' to ${projectName}`,
+    action: (input, key) => {
+      if (key.escape) {
+        leave()
+      }
+    }
+  })
+
+  if (confirmed !== null) {
     return <TaskResult prompt={prompt}>{confirmed ? 'Yes' : 'No'}</TaskResult>
   }
 
@@ -36,7 +49,7 @@ export const ConfirmTask = ({ prompt, onConfirm }: ConfirmTaskProps) => {
           if (value) {
             setConfirmed(value)
             dispatch({ type: 'set-current-task', payload: state.currentTask + 1 })
-            onConfirm({ state, dispatch })
+            setValue({ state, dispatch, value })
           } else {
             leave()
           }

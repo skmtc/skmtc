@@ -10,6 +10,7 @@ type ToDeployTaskProps = {
 }
 
 export const toDeployTask = ({ project }: ToDeployTaskProps) => ({
+  key: 'deploy-project-task',
   include: true,
   render: () => <DeployTaskView project={project} />
 })

@@ -7,9 +7,10 @@ export const TaskListView = () => {
   return (
     <Box flexDirection="column">
       {state.tasks
-        .filter(({ include }, index) => include && index <= state.currentTask)
+        .filter(({ include }) => include)
+        .filter((_task, index) => index <= state.currentTask)
         .map(task => {
-          return task.render()
+          return <Box key={task.key}>{task.render()}</Box>
         })}
     </Box>
   )

@@ -26,6 +26,7 @@ type TaskProviderProps = {
 }
 
 export type Task = {
+  key: string
   include: boolean
   render: () => ReactNode
 }
@@ -49,6 +50,7 @@ const TaskProvider = ({ children, leave, tasks }: TaskProviderProps) => {
     currentTask: 0,
     tasks
   })
+
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context
   const value = { state, dispatch, leave }

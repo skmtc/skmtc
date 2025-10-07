@@ -5,6 +5,7 @@ import denoJson from '../deno.json' with { type: 'json' }
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { StatusMessage } from '@inkjs/ui'
 import { match, P } from 'ts-pattern'
+import { focusColor } from '@/lib/colors.ts'
 
 export const AppInfo = () => {
   const { state } = useSkmtc()
@@ -32,7 +33,7 @@ export const AppInfo = () => {
       >
         <Box flexDirection="row" marginBottom={1} justifyContent="space-between">
           <Box flexDirection="row">
-            <Text color="#4f46e5">＊ </Text>
+            <Text color={focusColor}>＊ </Text>
             <Text color="white">Skmtc CLI </Text>
             <Text dimColor>{`(v${denoJson.version})`}</Text>
           </Box>

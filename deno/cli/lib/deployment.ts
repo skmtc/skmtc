@@ -23,9 +23,7 @@ export class Deployment {
     this.apiClient = new ApiClient(manager)
   }
 
-  async deploy({ serverName, assets, project, state, dispatch }: DeployArgs) {
-    dispatch({ type: 'set-execution', payload: { type: 'deploy', title: 'Deploying...' } })
-
+  async deploy({ serverName, assets, project, state }: DeployArgs) {
     const accountName = await this.apiClient.manager.auth.toUserName()
     const token = state.session?.access_token
 
@@ -38,8 +36,6 @@ export class Deployment {
       generatorIds: project.toGeneratorIds(),
       token
     })
-
-    dispatch({ type: 'set-execution', payload: null })
 
     updateProjectKey({ project, projectKey: `@${accountName}/${project.name}` })
 

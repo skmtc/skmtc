@@ -5,10 +5,6 @@ import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import invariant from 'tiny-invariant'
 import { match, P } from 'ts-pattern'
-import type { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
-import { textInputPrompt } from '@/lib/text-input-prompt.tsx'
-import { toMessage } from '@/lib/to-message.tsx'
 
 type FileType = 'json' | 'yaml'
 
@@ -24,7 +20,7 @@ type ToPathArgs = {
   useParent: boolean
 }
 
-type SchemaSource =
+export type SchemaSource =
   | {
       type: 'local'
       path: string
