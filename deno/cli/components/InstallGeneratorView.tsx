@@ -2,11 +2,11 @@ import React from 'react'
 import { type ViewStateInstallGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { Box, Newline, Text } from 'ink'
+import { Box, Text } from 'ink'
 import { useState } from 'react'
 import { MultiSelect, Spinner } from '@inkjs/ui'
-import { availableGenerators } from '@/available-generators.ts'
 import { useShortcut } from './useShortcut.tsx'
+import { useGetGenerators } from './useGetGenerators.ts'
 
 type InstallGeneratorViewProps = {
   project: Project | RemoteProject
@@ -19,9 +19,11 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
 
   const imports = project instanceof Project ? (project.rootDenoJson.contents.imports ?? {}) : {}
 
-  const availableToInstall = availableGenerators
-    .filter(item => !imports[item.name])
-    .map(({ name }) => `jsr:${name}`)
+  const generators = useGetGenerators()
+
+  const availableToInstall = generators
+    ?.filter(({ scope, packageName }) => !imports[`@${scope}/${packageName}`])
+    .map(({ scope, packageName }) => `jsr:@${scope}/${packageName}`)
 
   useShortcut({
     label: `'esc' to ${project.name}`,
@@ -92,7 +94,7 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
     }
   }
 
-  if (availableToInstall.length === 0) {
+  if (!availableToInstall || availableToInstall.length === 0) {
     return (
       <Box flexDirection="column">
         <Text color="yellow">No generators available to install</Text>

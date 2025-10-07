@@ -2,13 +2,14 @@ import React from 'react'
 import { Box, Text } from 'ink'
 import { toRelativeRootPath } from '@/lib/to-root-path.ts'
 import denoJson from '../deno.json' with { type: 'json' }
-import { useSkmtc } from '@/components/SkmtcContext.tsx'
+import { useSkmtc, useProjectName } from '@/components/SkmtcContext.tsx'
 import { StatusMessage } from '@inkjs/ui'
 import { match, P } from 'ts-pattern'
 import { focusColor } from '@/lib/colors.ts'
 
 export const AppInfo = () => {
   const { state } = useSkmtc()
+  const projectName = useProjectName()
 
   const appRootPath = toRelativeRootPath()
 
@@ -50,22 +51,14 @@ export const AppInfo = () => {
         </Box>
 
         <Box flexDirection="row" justifyContent="space-between">
-          {match(state.view)
-            .with({ projectName: P.string }, ({ projectName }) => (
-              <Box flexDirection="row">
-                <Text dimColor>project: </Text>
-                <Text>{projectName}</Text>
-              </Box>
-            ))
-            .with({ project: P.any }, ({ project }) => (
-              <Box flexDirection="row">
-                <Text dimColor>project: </Text>
-                <Text>{project.name}</Text>
-              </Box>
-            ))
-            .otherwise(() => (
-              <Box></Box>
-            ))}
+          {projectName ? (
+            <Box flexDirection="row">
+              <Text dimColor>project: </Text>
+              <Text>{projectName}</Text>
+            </Box>
+          ) : (
+            <Box></Box>
+          )}
 
           <Box flexDirection="row">
             <Text dimColor>directory: </Text>

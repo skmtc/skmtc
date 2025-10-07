@@ -10,7 +10,6 @@ import { toAssets } from '@/deploy/to-assets.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { PrettierJson } from '@/lib/prettier-json.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { availableGenerators, type AvailableGenerator } from '@/available-generators.ts'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import { formatNumber, parseModuleName } from '@skmtc/core'
 import { join } from '@std/path/join'
@@ -18,6 +17,8 @@ import type { ApiClient } from '@/lib/api-client.ts'
 import { Manifest } from '@/lib/manifest.ts'
 import { getApiServersServerNameHasWriteAccess } from '@/services/getApiServersServerNameHasWriteAccess.generated.ts'
 import type { SkmtcDispatch, SkmtcState } from '@/components/SkmtcContext.tsx'
+import { useGetGenerators } from '@/components/useGetGenerators.ts'
+import type { Generator as GeneratorType } from '@/types/generator.generated.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -101,6 +102,7 @@ export class Project {
   }
 
   static async create({ name, basePath, generators, skmtcRoot }: CreateArgs) {
+    const availableGenerators = useGetGenerators()
     const project = new Project({
       name,
       rootDenoJson: RootDenoJson.create(name),
@@ -421,30 +423,31 @@ const toServerName = (project: Project) => {
 
 type GetDependencyIdsArgs = {
   checkedIds: Set<string>
-  options: AvailableGenerator[]
+  options: GeneratorType[] | undefined
   generatorIds: Set<string>
 }
 
 export const getDependencyIds = ({
   checkedIds,
-  options,
+  options = [],
   generatorIds
 }: GetDependencyIdsArgs): Set<string> => {
   let count = 0
 
   for (const option of options) {
+    const generatorId = `@${option.scope}/${option.packageName}`
     // Skip if already checked
-    if (checkedIds.has(option.id)) {
+    if (checkedIds.has(generatorId)) {
       continue
     }
 
     // Skip if not in TODO list
-    if (!generatorIds.has(option.id)) {
+    if (!generatorIds.has(generatorId)) {
       continue
     }
 
     // Add to checked ids
-    checkedIds.add(option.id)
+    checkedIds.add(generatorId)
 
     const sizeBefore = generatorIds.size
 

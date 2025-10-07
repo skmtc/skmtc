@@ -1,7 +1,6 @@
 import React from 'react'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useEffect } from 'react'
-import { availableGenerators } from '@/available-generators.ts'
 import { Project } from '../lib/project.ts'
 import { type Task, TaskProvider, useTask } from './TaskContext.tsx'
 import { StringTask } from './StringTask.tsx'
@@ -10,6 +9,8 @@ import invariant from 'tiny-invariant'
 import { TaskListView } from './TaskListView.tsx'
 import { TaskBox } from './TaskBox.tsx'
 import { Spinner } from '@inkjs/ui'
+import { Text } from 'ink'
+import { useGetGenerators } from './useGetGenerators.ts'
 
 export const CreateProject = () => {
   const { dispatch } = useSkmtc()
@@ -83,13 +84,30 @@ const ProjectNameTask = () => {
 
 const GeneratorsTask = () => {
   const { state, dispatch } = useSkmtc()
+  const generators = useGetGenerators()
+
+  if (!generators) {
+    return (
+      <TaskBox id={`generators-task`} active>
+        <Spinner label="Loading generators..." />
+      </TaskBox>
+    )
+  }
+
+  if (generators.length === 0) {
+    return (
+      <TaskBox id={`generators-task`} active>
+        <Text>No generators found</Text>
+      </TaskBox>
+    )
+  }
 
   return (
     <MultiselectTask
-      prompt="Select generators"
-      options={availableGenerators.map(gen => ({
-        label: gen.id,
-        value: gen.id
+      prompt="Select generators to install"
+      options={generators.map(gen => ({
+        label: `@${gen.scope}/${gen.packageName}`,
+        value: `@${gen.scope}/${gen.packageName}`
       }))}
       setValues={values => {
         const { view } = state
@@ -132,8 +150,6 @@ const BasePathTask = () => {
 const CreateProjectTask = () => {
   const { state, dispatch } = useSkmtc()
 
-  const { leave } = useTask()
-
   // Execute project creation when all inputs are collected
   useEffect(() => {
     const { skmtcRoot, view } = state
@@ -150,8 +166,9 @@ const CreateProjectTask = () => {
         basePath,
         generators
       }).then(project => {
+        dispatch({ type: 'set-message', payload: { success: `Project "${project.name}" created` } })
+
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
-        leave()
       })
     }
   }, [state.view])

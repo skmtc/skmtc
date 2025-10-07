@@ -224,9 +224,18 @@ type ToProjectNameArgs = {
 
 export const toProjectName = ({ view }: ToProjectNameArgs) => {
   return match(view)
-    .with({ project: P.any }, ({ project }) => project.name)
-    .with({ projectName: P.string }, ({ projectName }) => projectName)
-    .otherwise(() => 'home')
+    .with({ page: 'add-generator' }, ({ projectName }) => projectName)
+    .with({ page: 'create-project' }, ({ projectName }) => projectName)
+    .with({ page: 'project' }, ({ projectName }) => projectName)
+    .with({ page: 'generate' }, ({ project }) => project.name)
+    .with({ page: 'deploy' }, ({ projectName }) => projectName)
+    .with({ page: 'serve' }, ({ projectName }) => projectName)
+    .with({ page: 'runtime-logs' }, ({ projectName }) => projectName)
+    .with({ page: 'list-generators' }, ({ projectName }) => projectName)
+    .with({ page: 'install-generator' }, ({ projectName }) => projectName)
+    .with({ page: 'clone-generator' }, ({ projectName }) => projectName)
+    .with({ page: 'remove-generator' }, ({ projectName }) => projectName)
+    .otherwise(() => undefined)
 }
 
 export const useProjectName = () => {
