@@ -1,4 +1,4 @@
-import React, { useId } from 'react'
+import React, { ReactNode, useId } from 'react'
 import SelectInput from 'ink-select-input'
 import { useTask } from '@/components/TaskContext.tsx'
 import { useState } from 'react'
@@ -35,7 +35,7 @@ export const ConfirmTask = ({ prompt, onConfirm }: ConfirmTaskProps) => {
         onSelect={({ value }) => {
           if (value) {
             setConfirmed(value)
-            dispatch({ type: 'set-current-task', payload: state.currentTask + 1 })
+            dispatch({ type: 'increment-current-task' })
             onConfirm({ state, dispatch })
           } else {
             leave()

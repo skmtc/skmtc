@@ -21,7 +21,7 @@ type DeployTaskViewProps = {
 
 export const DeployTaskView = ({ project }: DeployTaskViewProps) => {
   const { state, dispatch } = useSkmtc()
-  const { state: taskState, dispatch: taskDispatch } = useTask()
+  const { dispatch: taskDispatch } = useTask()
   const [deployed, setDeployed] = useState(false)
 
   useEffect(() => {
@@ -30,10 +30,7 @@ export const DeployTaskView = ({ project }: DeployTaskViewProps) => {
 
       setDeployed(true)
 
-      taskDispatch({
-        type: 'set-current-task',
-        payload: taskState.currentTask + 1
-      })
+      taskDispatch({ type: 'increment-current-task' })
     }
 
     run()

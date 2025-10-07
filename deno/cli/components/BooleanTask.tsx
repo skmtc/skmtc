@@ -46,13 +46,9 @@ export const BooleanTask = ({ prompt, projectName, setValue }: BooleanTaskProps)
           { label: 'No', value: false }
         ]}
         onSelect={({ value }) => {
-          if (value) {
-            setConfirmed(value)
-            dispatch({ type: 'set-current-task', payload: state.currentTask + 1 })
-            setValue({ state, dispatch, value })
-          } else {
-            leave()
-          }
+          setConfirmed(value)
+          dispatch({ type: 'increment-current-task' })
+          setValue({ state, dispatch, value })
         }}
       />
     </TaskContainer>

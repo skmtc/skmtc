@@ -12,7 +12,7 @@ type StringTaskProps = {
 }
 
 export const StringTask = ({ prompt, defaultValue, setValue }: StringTaskProps) => {
-  const { state, dispatch } = useTask()
+  const { dispatch } = useTask()
   const [response, setResponse] = useState<string | null>(null)
   const id = useId()
 
@@ -30,7 +30,7 @@ export const StringTask = ({ prompt, defaultValue, setValue }: StringTaskProps) 
         defaultValue={defaultValue}
         onSubmit={value => {
           setResponse(value)
-          dispatch({ type: 'set-current-task', payload: state.currentTask + 1 })
+          dispatch({ type: 'increment-current-task' })
           setValue(value)
         }}
       />

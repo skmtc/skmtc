@@ -17,7 +17,7 @@ import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
-import { Task, TaskProvider } from './TaskContext.tsx'
+import { type Task, TaskProvider } from './TaskContext.tsx'
 import { ConfirmTask } from './ConfirmTask.tsx'
 import { toDeployTask } from './DeployTask.tsx'
 import { TaskListView } from './TaskListView.tsx'
@@ -55,6 +55,8 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
 
   invariant(token, 'Session access token is required')
 
+  console.log('VIEW: ', view.schemaSourceString, view.watchMode)
+
   const tasks: Task[] = [
     {
       key: 'confirm-deployment-task',
@@ -74,7 +76,7 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     {
       key: 'generate-view-content-task',
       include: true,
-      render: () => <GenerateViewContent project={project} view={view} token={token} />
+      render: () => <GenerateTask project={project} view={view} token={token} />
     }
   ]
 
@@ -103,7 +105,13 @@ const WatchModeTask = ({ project, view }: WatchModeTaskProps) => {
       prompt="Watch for changes?"
       projectName={project.name}
       setValue={({ value }) => {
-        dispatch({ type: 'set-view', payload: { ...view, watchMode: value } })
+        const payload = { ...view, watchMode: value }
+
+        console.log('SCHEMA SOURCE on WATCH MODE: ', view.schemaSourceString)
+
+        console.log('PAYLOAD - WATCH MODE: ', JSON.stringify(Object.keys(payload), null, 2))
+
+        dispatch({ type: 'set-view', payload })
       }}
     />
   )
@@ -127,26 +135,28 @@ const SchemaLocationTask = ({ schemaSource, view }: SchemaLocationTaskProps) => 
       setValue={value => {
         const isRemote = value.startsWith('http://') || value.startsWith('https://')
 
+        const payload = {
+          ...view,
+          schemaSourceString: value,
+          watchMode: isRemote ? false : view.watchMode
+        }
+
         dispatch({
           type: 'set-view',
-          payload: {
-            ...view,
-            schemaSourceString: value,
-            watchMode: isRemote ? false : view.watchMode
-          }
+          payload
         })
       }}
     />
   )
 }
 
-type GenerateViewContentProps = {
+type GenerateTaskProps = {
   project: Project | RemoteProject
   view: ViewStateGenerate
   token: string
 }
 
-const GenerateViewContent = ({ project, view, token }: GenerateViewContentProps) => {
+const GenerateTask = ({ project, view, token }: GenerateTaskProps) => {
   return match(view)
     .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
       return view.watchMode ? (
@@ -155,7 +165,11 @@ const GenerateViewContent = ({ project, view, token }: GenerateViewContentProps)
         <RunGenerate project={project} view={confirmedView} token={token} />
       )
     })
-    .otherwise(() => null)
+    .otherwise(() => {
+      console.log('NO VIEW')
+
+      return <Box></Box>
+    })
 }
 
 type ConfirmDeploymentTaskProps = {
