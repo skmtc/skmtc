@@ -19,9 +19,6 @@ import { AddGeneratorView } from '@/components/AddGeneratorView.tsx'
 import { InstallGeneratorView } from '@/components/InstallGeneratorView.tsx'
 import { CloneGeneratorView } from '@/components/CloneGeneratorView.tsx'
 import { RemoveGeneratorView } from '@/components/RemoveGeneratorView.tsx'
-import { isProjectKey } from '@/lib/project.ts'
-import { RemoteProject } from '@/lib/remote-project.ts'
-import { SchemaFile } from '@/lib/schema-file.ts'
 import { ShortcutsView } from './ShortcutsView.tsx'
 
 type AppProps = {

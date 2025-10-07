@@ -127,7 +127,7 @@ export const ProjectView = ({ project }: ProjectProps) => {
               })
             })
             .otherwise(() => {
-              console.log(item)
+              throw new Error(`Invalid project action: ${item}`)
             })
         }}
       />

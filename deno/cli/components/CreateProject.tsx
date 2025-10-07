@@ -92,8 +92,6 @@ const GeneratorsTask = () => {
         value: gen.id
       }))}
       setValues={values => {
-        console.log('Selected generators: ', values)
-
         const { view } = state
 
         invariant(
@@ -125,7 +123,6 @@ const BasePathTask = () => {
 
         const payload = { ...view, basePath: value }
 
-        console.log('Payload: ', payload)
         dispatch({ type: 'set-view', payload })
       }}
     />
@@ -146,13 +143,7 @@ const CreateProjectTask = () => {
     )
     const { projectName, generators, basePath } = view
 
-    console.log('VIEW: ', view)
-    console.log('Selected generators: ', generators)
-    console.log('Base path: ', basePath)
-
     if (projectName && generators?.length && basePath) {
-      console.log('Creating project...')
-
       Project.create({
         skmtcRoot,
         name: projectName,

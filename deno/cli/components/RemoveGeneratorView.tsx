@@ -5,7 +5,6 @@ import type { RemoteProject } from '@/lib/remote-project.ts'
 import { Box, Text } from 'ink'
 import { useState } from 'react'
 import SelectInput from 'ink-select-input'
-import { QuestionManager } from '@/components/QuestionManager.tsx'
 import { useShortcut } from './useShortcut.tsx'
 import { ConfirmInput } from '@inkjs/ui'
 

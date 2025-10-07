@@ -1,9 +1,5 @@
 import { Command } from '@cliffy/command'
-import { Checkbox } from '@cliffy/prompt'
-import { textInputPrompt } from '@/lib/text-input-prompt.tsx'
-import { toNameSuggest } from '@/lib/to-name-suggest.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { availableGenerators } from '@/available-generators.ts'
 
 type InitArgs = {
   projectName: string
@@ -14,6 +10,17 @@ type InitArgs = {
 
 type CreateProjectFolderOptions = {
   logSuccess?: boolean
+}
+
+export const toInitCommand = (skmtcRoot: SkmtcRoot) => {
+  const command = new Command()
+    .description('Initialize a new project in current directory')
+    .arguments('<name:string> <generators:string[]> <basePath:string>')
+    .action((_options, name, generators, basePath) => {
+      return init({ projectName: name, skmtcRoot, generators, basePath }, { logSuccess: false })
+    })
+
+  return command
 }
 
 export const init = async (
@@ -33,62 +40,4 @@ export const init = async (
   if (logSuccess) {
     console.log('Created new project folder')
   }
-}
-
-export const toInitCommand = (skmtcRoot: SkmtcRoot) => {
-  const command = new Command()
-    .description('Initialize a new project in current directory')
-    .arguments('<name:string> <generators:string[]> <basePath:string>')
-    .action((_options, name, generators, basePath) => {
-      return init({ projectName: name, skmtcRoot, generators, basePath }, { logSuccess: false })
-    })
-
-  return command
-}
-
-export const toInitPrompt = async (skmtcRoot: SkmtcRoot) => {
-  const name = await toNamePrompt({ skmtcRoot })
-
-  const generators = await Checkbox.prompt({
-    message: 'Select generators to use',
-
-    options: availableGenerators.map(({ id }) => ({
-      label: id,
-      value: id
-    }))
-  })
-
-  const basePath = await textInputPrompt({
-    message: 'Base path for generated files',
-    default: 'src'
-  })
-
-  await init({ projectName: name, skmtcRoot, generators, basePath }, { logSuccess: true })
-}
-
-type ToNamePromptArgs = {
-  skmtcRoot: SkmtcRoot
-}
-
-export const toNamePrompt = async ({ skmtcRoot }: ToNamePromptArgs) => {
-  const suggestedName = toNameSuggest()
-
-  const name: string = await textInputPrompt({
-    message: `Enter a project name`,
-    validate: value => {
-      if (value.length < 3) {
-        return 'Project name must be at least 3 characters long'
-      }
-
-      const project = skmtcRoot.projects.find(project => project.name === value)
-
-      if (project) {
-        return `Project "${value}" already exists`
-      }
-
-      return true
-    }
-  })
-
-  return name
 }

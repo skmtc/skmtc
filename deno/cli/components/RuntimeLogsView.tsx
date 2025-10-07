@@ -84,8 +84,6 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
         })
       })
       .then(runtimeLogs => {
-        runtimeLogs.forEach(console.log)
-
         setLogs(runtimeLogs)
       })
       .catch(err => {
