@@ -1,10 +1,8 @@
 <img src="./skmtc-animate.gif" />
 
 
+[![Coverage Status](https://coveralls.io/repos/github/skmtc/skmtc/badge.svg?branch=main)](https://coveralls.io/github/skmtc/skmtc?branch=main)
 
-<p align="right">
-  [![Coverage Status](https://coveralls.io/repos/github/skmtc/skmtc/badge.svg?branch=main)](https://coveralls.io/github/skmtc/skmtc?branch=main)
-</p>
 
 **Skmtc is a declarative code generation framework**. It lets you generate TypeScript code from OpenAPI schemas without complex ASTs.
 
