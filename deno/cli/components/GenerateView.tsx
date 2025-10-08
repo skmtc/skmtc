@@ -72,7 +72,7 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     {
       key: 'watch-mode-task',
       include: includeWatchQuestion,
-      render: () => <WatchModeTask project={project} />
+      render: () => <WatchModeTask />
     },
     {
       key: 'generate-view-content-task',
@@ -93,17 +93,12 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
   )
 }
 
-type WatchModeTaskProps = {
-  project: Project | RemoteProject
-}
-
-const WatchModeTask = ({ project }: WatchModeTaskProps) => {
+const WatchModeTask = () => {
   const { state, dispatch } = useSkmtc()
 
   return (
     <BooleanTask
       prompt="Watch for changes?"
-      projectName={project.name}
       setValue={({ value }) => {
         const { view } = state
 

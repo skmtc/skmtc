@@ -68,6 +68,7 @@ type CreateArgs = {
   basePath: string
   generators: string[]
   skmtcRoot: SkmtcRoot
+  availableGenerators: GeneratorType[]
 }
 
 export class Project {
@@ -101,8 +102,13 @@ export class Project {
     return toProjectPath(this.name)
   }
 
-  static async create({ name, basePath, generators, skmtcRoot }: CreateArgs) {
-    const availableGenerators = useGetGenerators()
+  static async create({
+    name,
+    basePath,
+    generators,
+    skmtcRoot,
+    availableGenerators = []
+  }: CreateArgs) {
     const project = new Project({
       name,
       rootDenoJson: RootDenoJson.create(name),

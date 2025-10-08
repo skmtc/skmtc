@@ -8,9 +8,9 @@ export const useGetGenerators = () => {
   const [generators, setGenerators] = useState<Generator[] | undefined>(undefined)
 
   useEffect(() => {
-    getApiGenerators({ supabase: state.skmtcRoot.manager.auth.supabase }).then(res =>
-      setGenerators(res)
-    )
+    getApiGenerators({ supabase: state.skmtcRoot.manager.auth.supabase }).then(items => {
+      setGenerators(items.toSorted((a, b) => a.packageName.localeCompare(b.packageName)))
+    })
   }, [])
 
   return generators

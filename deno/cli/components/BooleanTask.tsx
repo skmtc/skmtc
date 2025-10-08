@@ -1,7 +1,6 @@
 import React, { useId } from 'react'
 import SelectInput from 'ink-select-input'
 import { useTask } from '@/components/TaskContext.tsx'
-import { useShortcut } from './useShortcut.tsx'
 import { useState } from 'react'
 import type { TaskAction, TaskState } from '@/components/TaskContext.tsx'
 import type { Dispatch } from 'react'
@@ -17,23 +16,13 @@ type BooleanTaskArgs = {
 
 type BooleanTaskProps = {
   prompt: string
-  projectName: string
   setValue: ({ state, dispatch }: BooleanTaskArgs) => Promise<void> | void
 }
 
-export const BooleanTask = ({ prompt, projectName, setValue }: BooleanTaskProps) => {
-  const { state, dispatch, leave } = useTask()
+export const BooleanTask = ({ prompt, setValue }: BooleanTaskProps) => {
+  const { state, dispatch } = useTask()
   const [confirmed, setConfirmed] = useState<boolean | null>(null)
   const id = useId()
-
-  useShortcut({
-    label: `'esc' to ${projectName}`,
-    action: (input, key) => {
-      if (key.escape) {
-        leave()
-      }
-    }
-  })
 
   if (confirmed !== null) {
     return (

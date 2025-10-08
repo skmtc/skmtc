@@ -149,6 +149,7 @@ const BasePathTask = () => {
 
 const CreateProjectTask = () => {
   const { state, dispatch } = useSkmtc()
+  const availableGenerators = useGetGenerators()
 
   // Execute project creation when all inputs are collected
   useEffect(() => {
@@ -159,19 +160,30 @@ const CreateProjectTask = () => {
     )
     const { projectName, generators, basePath } = view
 
-    if (projectName && generators?.length && basePath) {
+    if (projectName && generators?.length && basePath && availableGenerators?.length) {
       Project.create({
         skmtcRoot,
         name: projectName,
         basePath,
-        generators
-      }).then(project => {
-        dispatch({ type: 'set-message', payload: { success: `Project "${project.name}" created` } })
-
-        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        generators,
+        availableGenerators
       })
+        .then(project => {
+          dispatch({
+            type: 'set-message',
+            payload: { success: `Project "${project.name}" created` }
+          })
+
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        })
+        .catch(error => {
+          console.error(error)
+
+          dispatch({ type: 'set-message', payload: { error: 'Failed to create project' } })
+          dispatch({ type: 'set-view', payload: { page: 'home' } })
+        })
     }
-  }, [state.view])
+  }, [state.view, availableGenerators])
 
   return (
     <TaskBox id={`create-project-container`} active>

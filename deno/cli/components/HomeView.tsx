@@ -36,9 +36,11 @@ export const HomeView = () => {
 
   return (
     <Box flexDirection="column">
-      <Box marginLeft={2}>
-        <Text>Select a project</Text>
-      </Box>
+      {projects.length > 0 && (
+        <Box marginLeft={2}>
+          <Text>Select a project</Text>
+        </Box>
+      )}
       <SelectInput
         items={items}
         itemComponent={({ label, isSelected, ...props }) => {

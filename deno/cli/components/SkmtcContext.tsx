@@ -1,11 +1,13 @@
 import React from 'react'
-import { createContext, type ReactNode, useContext, useReducer } from 'react'
-import { match, P } from 'ts-pattern'
+import { createContext, type ReactNode, useContext, useReducer, useEffect } from 'react'
+import { match } from 'ts-pattern'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Session } from '@supabase/supabase-js'
 import type { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import type { Key } from 'ink'
+import type { Generator } from '@/types/generator.generated.ts'
+import { getApiGenerators } from '../services/getApiGenerators.generated.ts'
 
 export type ErrorMessage = {
   error: string
@@ -36,6 +38,10 @@ type SkmtcAction =
   | {
       type: 'remove-shortcut'
       payload: string
+    }
+  | {
+      type: 'set-generators'
+      payload: Generator[]
     }
 
 type Shortcut = {
@@ -75,11 +81,6 @@ export type ViewStateGenerate = {
 export type ViewStateDeploy = {
   page: 'deploy'
   projectName: string
-}
-type ExecutionInfo = {
-  type: 'generate' | 'deploy' | 'generate:watch' | 'serve'
-  title: string
-  subtitle?: string
 }
 
 export type ViewStateGenerateConfirmed = {
@@ -158,8 +159,8 @@ export type SkmtcState = {
   session: Session | null
   message: ErrorMessage | SuccessMessage | null
   interactive: boolean
-  execution: ExecutionInfo | null
   shortcuts: Shortcut[]
+  generators: Generator[]
 }
 
 type SkmtcProviderProps = {
@@ -187,6 +188,7 @@ const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
       ...state,
       shortcuts: state.shortcuts.filter(shortcut => shortcut.id !== payload)
     }))
+    .with({ type: 'set-generators' }, ({ payload }) => ({ ...state, generators: payload }))
     .exhaustive()
 }
 
@@ -197,9 +199,12 @@ const SkmtcProvider = ({ children, skmtcRoot, session, interactive, view }: Skmt
     session,
     message: null,
     interactive,
-    execution: null,
+    generators: [],
     shortcuts: []
   })
+
+  useInitialLoad({ state, dispatch })
+
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context
   const value = { state, dispatch }
@@ -217,6 +222,22 @@ const useSkmtc = () => {
 }
 
 export { SkmtcProvider, useSkmtc }
+
+type UseInitialLoadArgs = {
+  state: SkmtcState
+  dispatch: SkmtcDispatch
+}
+
+const useInitialLoad = ({ state, dispatch }: UseInitialLoadArgs) => {
+  useEffect(() => {
+    getApiGenerators({ supabase: state.skmtcRoot.manager.auth.supabase }).then(generators => {
+      const sortedGenerators = generators.toSorted((a, b) =>
+        a.packageName.localeCompare(b.packageName)
+      )
+      dispatch({ type: 'set-generators', payload: sortedGenerators })
+    })
+  }, [])
+}
 
 type ToProjectNameArgs = {
   view: ViewState

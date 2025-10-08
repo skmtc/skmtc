@@ -11,10 +11,13 @@ import { createApiServers } from '@/services/createApiServers.generated.ts'
 import { RemoteProject } from '@/lib/remote-project.ts'
 import invariant from 'tiny-invariant'
 import { SchemaFile } from '@/lib/schema-file.ts'
+import type { Generator } from '@/types/generator.generated.ts'
+
 type CreateProjectArgs = {
   name: string
   basePath: string
   generators: string[]
+  availableGenerators: Generator[]
 }
 
 type ToProjectArgs = {
@@ -103,8 +106,14 @@ export class SkmtcRoot {
     return project
   }
 
-  async createProject({ name, basePath, generators }: CreateProjectArgs) {
-    const project = await Project.create({ name, basePath, generators, skmtcRoot: this })
+  async createProject({ name, basePath, generators, availableGenerators }: CreateProjectArgs) {
+    const project = await Project.create({
+      name,
+      basePath,
+      generators,
+      skmtcRoot: this,
+      availableGenerators
+    })
 
     this.projects.push(project)
 

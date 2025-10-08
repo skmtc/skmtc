@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Text } from 'ink'
+import { Box } from 'ink'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { HomeView } from '@/components/HomeView.tsx'
 import { match } from 'ts-pattern'
@@ -10,7 +10,6 @@ import { LoginView } from '@/components/LoginView.tsx'
 import { AppInfo } from '@/components/AppInfo.tsx'
 import type { Session } from '@supabase/supabase-js'
 import { GenerateView } from '@/components/GenerateView.tsx'
-import { Spinner } from '@inkjs/ui'
 import { DeployView } from '@/components/DeployView.tsx'
 import { RuntimeLogsView } from '@/components/RuntimeLogsView.tsx'
 import { ServeView } from '@/components/ServeView.tsx'
@@ -34,8 +33,6 @@ export const App = (props: AppProps) => {
         <AppInfo />
 
         <ViewManager />
-
-        <ExecutionManager />
 
         <ShortcutsView />
       </Box>
@@ -81,21 +78,4 @@ const ViewManager = () => {
       <RemoveGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
     .exhaustive()
-}
-
-const ExecutionManager = () => {
-  const { state } = useSkmtc()
-
-  if (state.execution) {
-    const { title, subtitle } = state.execution
-
-    return (
-      <Box flexDirection="column">
-        <Spinner label={title} />
-        {subtitle ? <Text dimColor>{subtitle}</Text> : null}
-      </Box>
-    )
-  }
-
-  return <Box></Box>
 }

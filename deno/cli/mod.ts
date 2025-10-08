@@ -1,5 +1,5 @@
 import { Command } from '@cliffy/command'
-import { toInitCommand } from '@/lib/init.ts'
+import { toInitCommand } from './lib/init.tsx'
 import { toLoginCommand, toLogoutCommand } from '@/auth/auth.ts'
 import { toDeployCommand } from '@/generators/deploy.tsx'
 import { toAddCommand } from '@/generators/add.tsx'

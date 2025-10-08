@@ -2,6 +2,34 @@ import { assertEquals } from '@std/assert/equals'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
+import type { Generator } from '@/types/generator.generated.ts'
+
+const availableGenerators: Generator[] = [
+  {
+    id: 'a1e74f3b-c78d-4764-97c7-e4401a4c3317',
+    name: 'TypeScript generator',
+    description: 'Generate TypeScript types from OpenAPI schema',
+    dependencies: [],
+    sourceUrl: 'https://github.com/skmtc/skmtc-generators/tree/main/gen-typescript',
+    registryUrl: 'https://jsr.io/@skmtc/gen-typescript',
+    readme: '# Skmtc Typescript Generator',
+    scope: 'skmtc',
+    packageName: 'gen-typescript',
+    createdAt: '2025-09-14T10:52:07.242474+00:00'
+  },
+  {
+    id: 'f5635b51-bb29-4e35-be2c-42d78212ee8d',
+    name: 'Zod schema generator',
+    description: 'Generate Zod schemas from OpenAPI schema',
+    dependencies: [],
+    sourceUrl: 'https://github.com/skmtc/skmtc-generators/tree/main/gen-zod',
+    registryUrl: 'https://jsr.io/@skmtc/gen-zod',
+    readme: '# Skmtc Zod Generator',
+    scope: 'skmtc',
+    packageName: 'gen-zod',
+    createdAt: '2025-09-14T10:54:14.966204+00:00'
+  }
+]
 
 Deno.test('CreateProjectView - project name validation requires min 3 characters', async () => {
   const manager = createMockManager()
@@ -100,7 +128,8 @@ Deno.test('CreateProjectView - creates project with all inputs', async () => {
   await skmtcRoot.createProject({
     name: projectName,
     basePath,
-    generators: selectedGenerators
+    generators: selectedGenerators,
+    availableGenerators: [...availableGenerators]
   })
 
   assertEquals(denoProjectCreated, true)

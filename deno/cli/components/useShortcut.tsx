@@ -12,6 +12,8 @@ export const useShortcut = ({ label, action }: UseShortcutArgs) => {
   const shortcutId = useId()
 
   useEffect(() => {
+    console.log('USE SHORTCUT:', label, shortcutId)
+
     dispatch({
       type: 'add-shortcut',
       payload: {
@@ -22,6 +24,8 @@ export const useShortcut = ({ label, action }: UseShortcutArgs) => {
     })
 
     return () => {
+      console.log('USE SHORTCUT: REMOVE', label, shortcutId)
+
       dispatch({ type: 'remove-shortcut', payload: shortcutId })
     }
   }, [])
