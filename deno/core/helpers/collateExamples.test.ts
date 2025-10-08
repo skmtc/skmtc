@@ -8,6 +8,7 @@ import { OasObject } from '../oas/object/Object.ts'
 import { OasArray } from '../oas/array/Array.ts'
 import { OasUnion } from '../oas/union/Union.ts'
 import { OasUnknown } from '../oas/unknown/Unknown.ts'
+import { OasRef } from '../oas/ref/Ref.ts'
 
 Deno.test('collateExamples - returns undefined for undefined schema', () => {
   const result = collateExamples({ objectSchema: undefined, depth: 0 })
@@ -230,3 +231,4 @@ Deno.test('collateExamples - increments depth for nested structures', () => {
     }
   })
 })
+

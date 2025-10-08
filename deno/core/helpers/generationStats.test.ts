@@ -1,6 +1,26 @@
 import { assertEquals } from '@std/assert/equals'
-import { toGenerationStats, toManifestLines, toTotalTime, toManifestErrors, checkResult } from './generationStats.ts'
+import { toGenerationStats, toManifestLines, toTotalTime, toManifestErrors, checkResult, toManifestTokens } from './generationStats.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
+
+Deno.test('toManifestTokens - counts tokens in artifacts', () => {
+  const artifacts = {
+    './file1.ts': 'export const hello = "world";',
+    './file2.ts': 'export const foo = "bar";'
+  }
+
+  const tokens = toManifestTokens(artifacts)
+
+  assertEquals(typeof tokens, 'number')
+  assertEquals(tokens > 0, true)
+})
+
+Deno.test('toManifestTokens - returns zero for empty artifacts', () => {
+  const artifacts = {}
+
+  const tokens = toManifestTokens(artifacts)
+
+  assertEquals(tokens, 0)
+})
 
 Deno.test('toManifestLines - calculates total lines from manifest', () => {
   const manifest: Partial<ManifestContent> = {

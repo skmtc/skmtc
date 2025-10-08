@@ -1,22 +1,22 @@
-import type { LogSkippedValuesArgs, ProvisionalParseArgs } from '../context/ParseContext.ts'
+import type { LogSkippedValuesArgs, ParseContext, ProvisionalParseArgs } from '../context/ParseContext.ts'
 
 /**
  * Mock implementation of ParseContext for testing purposes.
- * 
+ *
  * Provides simplified implementations of ParseContext methods that
  * can be used in unit tests without requiring a full parse context
  * setup. Methods perform minimal operations to enable testing of
  * parsing logic without side effects.
- * 
+ *
  * @example Usage in tests
  * ```typescript
  * import { mockParseContext } from '@skmtc/core/test';
- * 
+ *
  * const result = someParsingFunction({
  *   context: mockParseContext,
  *   value: testValue
  * });
- * 
+ *
  * // Test the result without worrying about logging or tracing
  * expect(result).toEqual(expectedValue);
  * ```
@@ -39,4 +39,4 @@ export const mockParseContext = {
   logIssue(): void {
     //do nothing
   }
-}
+} as unknown as ParseContext
