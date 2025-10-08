@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'deno/cli/**'
-      - '.github/workflows/cli-coverage.yml'
+      - 'deno/**'
+      - '.github/workflows/coverage.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'deno/cli/**'
+      - 'deno/**'
 
 jobs:
   coverage:
@@ -25,15 +25,15 @@ jobs:
         deno-version: v2.x
 
     - name: Run tests with coverage
-      working-directory: deno/cli
+      working-directory: deno
       run: deno task test:coverage
 
     - name: Generate LCOV report
-      working-directory: deno/cli
+      working-directory: deno
       run: deno task coverage:report
 
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: deno/cli/coverage.lcov
+        path-to-lcov: deno/coverage.lcov

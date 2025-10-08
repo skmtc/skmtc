@@ -50,6 +50,10 @@
     "release": "deno check ./**/*.ts && deno task increment-patch && deno task publish",
     "publish": "deno task --cwd=core publish && deno task --cwd=cli publish && deno task --cwd=server publish",
     "publish:deno:ga": "deno task --cwd=core publish:deno:ga && deno task --cwd=cli publish:deno:ga && deno task --cwd=server publish:deno:ga",
-    "increment-patch": "deno run --allow-read --allow-write .scripts/increment-patch.ts"
+    "increment-patch": "deno run --allow-read --allow-write .scripts/increment-patch.ts",
+    "test:watch": "deno test --allow-all --watch",
+    "test:coverage": "deno test --allow-all --coverage=coverage",
+    "coverage:report": "deno coverage coverage --lcov > coverage.lcov",
+    "coverage:html": "deno coverage coverage --html"
   }
-}
+} 
