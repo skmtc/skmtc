@@ -57,6 +57,36 @@ Deno.test("toPathParams handles complex parameter names", () => {
 
 Deno.test("toPathParams handles nested path segments", () => {
   const result = toPathParams("/api/v1/users/{userId}/profiles/{profileId}/settings");
-  
+
   assertEquals(result, "/api/v1/users/:userId/profiles/:profileId/settings");
+});
+
+Deno.test("toPathParams single letter parameter", () => {
+  const result = toPathParams("/api/{v}");
+
+  assertEquals(result, "/api/:v");
+});
+
+Deno.test("toPathParams numeric in parameter name", () => {
+  const result = toPathParams("/items/{id1}/{id2}");
+
+  assertEquals(result, "/items/:id1/:id2");
+});
+
+Deno.test("toPathParams very long path with many parameters", () => {
+  const result = toPathParams("/a/{a1}/b/{b1}/c/{c1}/d/{d1}/e/{e1}");
+
+  assertEquals(result, "/a/:a1/b/:b1/c/:c1/d/:d1/e/:e1");
+});
+
+Deno.test("toPathParams path with trailing slash", () => {
+  const result = toPathParams("/users/{id}/");
+
+  assertEquals(result, "/users/:id/");
+});
+
+Deno.test("toPathParams camelCase parameter names", () => {
+  const result = toPathParams("/users/{userId}/projects/{projectId}");
+
+  assertEquals(result, "/users/:userId/projects/:projectId");
 });

@@ -29,3 +29,40 @@ Deno.test('handlePropertyName - chains multiple accesses', () => {
   const second = handlePropertyName('user-id', first)
   assertEquals(second, "response.data['user-id']")
 })
+
+Deno.test('handleKey - underscore prefixed names', () => {
+  assertEquals(handleKey('_private'), '_private')
+  assertEquals(handleKey('__proto__'), '__proto__')
+})
+
+Deno.test('handleKey - dollar sign prefixed names', () => {
+  assertEquals(handleKey('$scope'), '$scope')
+  assertEquals(handleKey('$element'), '$element')
+})
+
+Deno.test('handleKey - numbers in identifiers', () => {
+  assertEquals(handleKey('user1'), 'user1')
+  assertEquals(handleKey('1user'), "'1user'")
+  assertEquals(handleKey('user-1'), "'user-1'")
+})
+
+Deno.test('handleKey - empty string', () => {
+  assertEquals(handleKey(''), "''")
+})
+
+Deno.test('handlePropertyName - underscore properties', () => {
+  assertEquals(handlePropertyName('_id', 'doc'), 'doc._id')
+  assertEquals(handlePropertyName('__typename', 'data'), 'data.__typename')
+})
+
+Deno.test('handlePropertyName - dollar sign properties', () => {
+  assertEquals(handlePropertyName('$meta', 'result'), 'result.$meta')
+})
+
+Deno.test('handlePropertyName - mixed valid and invalid chain', () => {
+  let result = 'obj'
+  result = handlePropertyName('user', result)
+  result = handlePropertyName('first-name', result)
+  result = handlePropertyName('length', result)
+  assertEquals(result, "obj.user['first-name'].length")
+})

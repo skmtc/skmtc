@@ -30,3 +30,28 @@ Deno.test('toPathTemplate - with qualified complex path', () => {
   const result = toPathTemplate('/users/{userId}/posts/{postId}', 'params')
   assertEquals(result, '/users/${params.userId}/posts/${params.postId}')
 })
+
+Deno.test('toPathTemplate - parameter at path start', () => {
+  const result = toPathTemplate('/{id}/details')
+  assertEquals(result, '/${id}/details')
+})
+
+Deno.test('toPathTemplate - consecutive parameters', () => {
+  const result = toPathTemplate('/items/{id}/{version}')
+  assertEquals(result, '/items/${id}/${version}')
+})
+
+Deno.test('toPathTemplate - single character parameter', () => {
+  const result = toPathTemplate('/api/{v}')
+  assertEquals(result, '/api/${v}')
+})
+
+Deno.test('toPathTemplate - underscore in parameter names', () => {
+  const result = toPathTemplate('/users/{user_id}/orders/{order_id}')
+  assertEquals(result, '/users/${user_id}/orders/${order_id}')
+})
+
+Deno.test('toPathTemplate - with query arg and single param', () => {
+  const result = toPathTemplate('/users/{userId}', 'pathParams')
+  assertEquals(result, '/users/${pathParams.userId}')
+})

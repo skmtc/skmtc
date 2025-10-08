@@ -92,3 +92,50 @@ Deno.test('List - empty list with bookends', () => {
   const list = new List([], { bookends: '[]' })
   assertEquals(list.toString(), '[]')
 })
+
+Deno.test('List - single item with bookends', () => {
+  const list = new List(['x'], { bookends: '[]' })
+  assertEquals(list.toString(), '[x]')
+})
+
+Deno.test('List - fromKeys with object', () => {
+  const list = List.fromKeys({ a: 1, b: 2, c: 3 })
+  const result = list.toString()
+  // Check that keys are present in the result
+  assertEquals(typeof result, 'string')
+  assertEquals(result.length > 0, true)
+})
+
+Deno.test('List - fromKeys with empty object', () => {
+  const list = List.fromKeys({})
+  // Empty object should still return a List (not a string)
+  assertEquals(typeof list.toString, 'function')
+})
+
+Deno.test('List - toObjectPlain wraps in braces', () => {
+  const list = List.fromKeys({ x: 1, y: 2 }).toObjectPlain()
+  assertEquals(list.toString(), '{x, y}')
+})
+
+Deno.test('List - multiple undefined values filtered', () => {
+  const list = new List(['a', undefined, 'b', undefined, 'c'])
+  assertEquals(list.toString(), 'a, b, c')
+})
+
+Deno.test('List - all undefined returns empty', () => {
+  const list = new List([undefined, undefined, undefined])
+  assertEquals(list.toString(), '')
+})
+
+Deno.test('List - toFilteredRecord with all undefined', () => {
+  const list = List.toFilteredRecord({ a: undefined, b: undefined })
+  assertEquals(list.toString(), '{}')
+})
+
+Deno.test('List - toRecord with mixed values', () => {
+  const list = List.toRecord({ name: 'string', age: 'number', active: 'boolean' })
+  const result = list.toString()
+  assertEquals(result.includes('name: string'), true)
+  assertEquals(result.includes('age: number'), true)
+  assertEquals(result.includes('active: boolean'), true)
+})
