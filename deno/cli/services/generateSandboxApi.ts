@@ -19,7 +19,10 @@ export const generateSandboxApi = async ({
   prettier,
   token
 }: GenerateSandboxApiArgs) => {
-  const sandboxUrl = `${Deno.env.get('SANDBOX_API_ORIGIN')}/${accountName}/${serverName}/artifacts`
+  const sandboxOrigin =
+    Deno.env.get('SANDBOX_API_ORIGIN') ?? 'https://skmtc-sandbox.dmitrigrabov.deno.net'
+
+  const sandboxUrl = `${sandboxOrigin}/${accountName}/${serverName}/artifacts`
 
   const res = await fetch(sandboxUrl, {
     method: 'POST',

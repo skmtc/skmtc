@@ -11,7 +11,9 @@ export const getRuntimeLogs = async ({
   spanId,
   token
 }: GetRuntimeLogsArgs) => {
-  const sandboxUrl = `${Deno.env.get('SANDBOX_API_ORIGIN')}/${accountName}/${serverName}/${spanId}/logs`
+  const sandboxOrigin =
+    Deno.env.get('SANDBOX_API_ORIGIN') ?? 'https://skmtc-sandbox.dmitrigrabov.deno.net'
+  const sandboxUrl = `${sandboxOrigin}/${accountName}/${serverName}/${spanId}/logs`
 
   const res = await fetch(sandboxUrl, {
     method: 'GET',
