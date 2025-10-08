@@ -56,8 +56,6 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
 
   const token = state.session?.access_token
 
-  invariant(token, 'Session access token is required')
-
   const tasks: Task[] = [
     {
       key: 'confirm-deployment-task',
@@ -150,7 +148,7 @@ const SchemaLocationTask = ({ schemaSource }: SchemaLocationTaskProps) => {
 
 type GenerateTaskProps = {
   project: Project | RemoteProject
-  token: string
+  token: string | undefined
 }
 
 const GenerateTask = ({ project, token }: GenerateTaskProps) => {
@@ -197,7 +195,7 @@ export const ConfirmDeploymentTask = ({ project }: ConfirmDeploymentTaskProps) =
 type RunGenerateProps = {
   project: Project | RemoteProject
   view: ViewStateGenerateConfirmed
-  token: string
+  token: string | undefined
 }
 
 const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
@@ -264,7 +262,7 @@ type Activity = 'watching' | 'generating'
 type WatchGenerateProps = {
   project: Project | RemoteProject
   view: ViewStateGenerateConfirmed
-  token: string
+  token: string | undefined
 }
 
 const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {

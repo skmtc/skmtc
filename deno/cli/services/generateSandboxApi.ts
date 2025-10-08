@@ -8,7 +8,7 @@ export type GenerateSandboxApiArgs = {
   schema: string
   clientSettings: ClientSettings | undefined
   prettier: PrettierConfigType | undefined
-  token: string
+  token: string | undefined
 }
 
 export const generateSandboxApi = async ({
@@ -25,7 +25,7 @@ export const generateSandboxApi = async ({
     method: 'POST',
     body: JSON.stringify({ schema, clientSettings, prettier }),
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       'Content-Type': 'application/json'
     }
   })

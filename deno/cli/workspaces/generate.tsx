@@ -52,7 +52,7 @@ type GenerateArgs = {
   schemaContents: string
   clientSettings: ClientSettings | undefined
   prettier: PrettierConfigType | undefined
-  token: string
+  token: string | undefined
 }
 
 export const generate = async ({

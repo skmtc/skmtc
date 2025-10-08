@@ -69,7 +69,7 @@ type GenerateArtifactsArgs = {
   clientSettings: ClientSettings | undefined
   prettier: PrettierConfigType | undefined
   accountName: string
-  token: string
+  token: string | undefined
 }
 
 type GetWorkspaceArgs = {
