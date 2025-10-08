@@ -1,3 +1,4 @@
+import React from 'react'
 import { Box, Text } from 'ink'
 import { Project } from '@/lib/project.ts'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'

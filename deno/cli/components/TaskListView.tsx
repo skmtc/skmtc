@@ -1,3 +1,4 @@
+import React from 'react'
 import { useTask } from './TaskContext.tsx'
 import { Box } from 'ink'
 
