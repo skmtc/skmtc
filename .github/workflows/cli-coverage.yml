@@ -36,5 +36,4 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        file: deno/cli/coverage.lcov
-        base-path: deno/cli
+        path-to-lcov: deno/cli/coverage.lcov
