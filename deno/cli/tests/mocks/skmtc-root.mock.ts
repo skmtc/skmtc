@@ -25,7 +25,9 @@ export function createMockSkmtcRoot(
     manager,
     apiClient: {} as any,
     findProject: (projectName: string) => {
-      const project = projects.find(p => p.name === projectName)
+      const project = projects.find(p => {
+        return p.name === projectName
+      })
       if (!project) {
         throw new Error(`Project "${projectName}" not found`)
       }

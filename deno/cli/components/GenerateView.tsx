@@ -13,7 +13,7 @@ import { match, P } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
 import { useMemo } from 'react'
-import { toAbsoluteRootPath, toRelativeRootPath } from '@/lib/to-root-path.ts'
+import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
@@ -27,7 +27,6 @@ import { BooleanTask } from './BooleanTask.tsx'
 import { Spinner } from '@inkjs/ui'
 import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
-import { Text } from 'ink'
 
 type GenerateProps = {
   project: Project | RemoteProject

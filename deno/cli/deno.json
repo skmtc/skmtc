@@ -1,15 +1,16 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.287",
+  "version": "0.0.288",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.866",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.867",
     "ink": "npm:ink@^6.2.3",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
     "ink-select-input": "npm:ink-select-input@^6.2.0",
     "ink-link": "npm:ink-link@^5.0.0",
-    "react": "npm:react@^19.1.1"
+    "react": "npm:react@^19.1.1",
+    "ink-testing-library": "npm:ink-testing-library@^4.0.0"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

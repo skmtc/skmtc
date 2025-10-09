@@ -22,7 +22,7 @@ import { ShortcutsView } from './ShortcutsView.tsx'
 import { MessageBox } from './MessageBox.tsx'
 import { ExitView } from './ExitView.tsx'
 
-type AppProps = {
+export type AppProps = {
   skmtcRoot: SkmtcRoot
   session: Session | null
   view: ViewState
