@@ -15,7 +15,7 @@ export const MessageBox = () => {
 
   return (
     <Box flexDirection="column" paddingLeft={2} paddingBottom={1} paddingTop={paddingTop}>
-      {match(state.message)
+      {match(state.message.content)
         .with({ error: P.any }, ({ error }) => (
           <StatusMessage variant="error">{error}</StatusMessage>
         ))
@@ -25,7 +25,7 @@ export const MessageBox = () => {
         .with({ info: P.any }, ({ info }) => <StatusMessage variant="info">{info}</StatusMessage>)
 
         .exhaustive()}
-      {state.message.sub ? <Text dimColor>{`  ${state.message.sub}`}</Text> : null}
+      {state.message.content.sub ? <Text dimColor>{`  ${state.message.content.sub}`}</Text> : null}
     </Box>
   )
 }

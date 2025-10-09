@@ -68,7 +68,11 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
     <TaskProvider
       tasks={tasks}
       leave={() => {
-        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        if (state.interactive) {
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        } else {
+          dispatch({ type: 'set-view', payload: { page: 'exit' } })
+        }
       }}
     >
       <TaskListView />

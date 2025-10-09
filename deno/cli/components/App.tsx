@@ -20,6 +20,7 @@ import { CloneGeneratorView } from '@/components/CloneGeneratorView.tsx'
 import { RemoveGeneratorView } from '@/components/RemoveGeneratorView.tsx'
 import { ShortcutsView } from './ShortcutsView.tsx'
 import { MessageBox } from './MessageBox.tsx'
+import { ExitView } from './ExitView.tsx'
 
 type AppProps = {
   skmtcRoot: SkmtcRoot
@@ -77,5 +78,6 @@ const ViewManager = () => {
     .with({ page: 'remove-generator' }, view => (
       <RemoveGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
+    .with({ page: 'exit' }, () => <ExitView />)
     .exhaustive()
 }

@@ -13,7 +13,7 @@ import { Text } from 'ink'
 import { useGetGenerators } from './useGetGenerators.ts'
 
 export const CreateProject = () => {
-  const { dispatch } = useSkmtc()
+  const { state, dispatch } = useSkmtc()
 
   const tasks: Task[] = [
     {
@@ -41,7 +41,13 @@ export const CreateProject = () => {
   return (
     <TaskProvider
       tasks={tasks}
-      leave={() => dispatch({ type: 'set-view', payload: { page: 'home' } })}
+      leave={() => {
+        if (state.interactive) {
+          dispatch({ type: 'set-view', payload: { page: 'home' } })
+        } else {
+          dispatch({ type: 'set-view', payload: { page: 'exit' } })
+        }
+      }}
     >
       <TaskListView />
     </TaskProvider>

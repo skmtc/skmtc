@@ -36,7 +36,7 @@ type SkmtcAction =
     }
   | {
       type: 'set-message'
-      payload: SkmtcMessage | null
+      payload: TimedMessage | null
     }
   | {
       type: 'add-shortcut'
@@ -81,6 +81,7 @@ export type ViewStateProject = {
 export type ViewStateGenerate = {
   page: 'generate'
   project: Project | RemoteProject
+  basePath?: string
   schemaSourceString?: string
   watchMode?: boolean
 }
@@ -93,6 +94,7 @@ export type ViewStateDeploy = {
 export type ViewStateGenerateConfirmed = {
   page: 'generate'
   project: Project | RemoteProject
+  basePath: string
   schemaSourceString: string
   watchMode: boolean
 }
@@ -145,6 +147,10 @@ export type ViewStateRemoveGenerator = {
   generatorName?: string
 }
 
+export type ViewStateExit = {
+  page: 'exit'
+}
+
 export type ViewState =
   | ViewStateHome
   | ViewStateCreateProject
@@ -159,12 +165,18 @@ export type ViewState =
   | ViewStateInstallGenerator
   | ViewStateCloneGenerator
   | ViewStateRemoveGenerator
+  | ViewStateExit
+
+export type TimedMessage = {
+  content: SkmtcMessage
+  timeout: number
+}
 
 export type SkmtcState = {
   view: ViewState
   skmtcRoot: SkmtcRoot
   session: Session | null
-  message: SkmtcMessage | null
+  message: TimedMessage | null
   interactive: boolean
   shortcuts: Shortcut[]
   generators: Generator[]
@@ -228,11 +240,15 @@ const useSkmtc = () => {
   const { dispatch, state } = context
 
   const dispatchMessage = (payload: SkmtcMessage) => {
-    dispatch({ type: 'set-message', payload })
-
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       dispatch({ type: 'set-message', payload: null })
     }, 30000)
+
+    if (state.message?.timeout) {
+      clearTimeout(state.message.timeout)
+    }
+
+    dispatch({ type: 'set-message', payload: { content: payload, timeout } })
   }
 
   return { state, dispatch, dispatchMessage }

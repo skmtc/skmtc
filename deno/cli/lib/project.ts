@@ -320,7 +320,7 @@ export class Project {
 
       await this.manager.success()
 
-      dispatch({ type: 'set-message', payload: { success: 'Deployment successful' } })
+      dispatchMessage({ success: 'Deployment successful' })
     } catch (error) {
       console.error(error)
 
@@ -328,7 +328,7 @@ export class Project {
 
       await Sentry.flush()
 
-      dispatch({ type: 'set-message', payload: { error: 'Deployment failed' } })
+      dispatchMessage({ error: 'Deployment failed' })
 
       // if (error === 'Deployment failed' && deployment.denoDeploymentId) {
       //   const buildLogs = await deployment.getBuildLogs(deployment.denoDeploymentId)

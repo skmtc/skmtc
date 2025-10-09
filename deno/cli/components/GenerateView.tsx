@@ -43,6 +43,10 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     return project instanceof Project && typeof project.clientJson.contents?.projectKey !== 'string'
   }, [])
 
+  const includeBasePathQuestion = useMemo(() => {
+    return typeof project.clientJson.contents?.settings.basePath !== 'string'
+  }, [])
+
   const includeSchemaQuestion = useMemo(() => {
     return typeof view.schemaSourceString !== 'string'
   }, [])
@@ -61,8 +65,8 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     },
     {
       key: 'display-output-directory-task',
-      include: true,
-      render: () => <DisplayOutputDirectoryTask project={project} />
+      include: includeBasePathQuestion,
+      render: () => <BasePathTask />
     },
     {
       key: 'schema-location-task',
@@ -84,12 +88,36 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
   return (
     <TaskProvider
       tasks={tasks}
-      leave={() =>
-        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
-      }
+      leave={() => {
+        if (state.interactive) {
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        } else {
+          dispatch({ type: 'set-view', payload: { page: 'exit' } })
+        }
+      }}
     >
       <TaskListView />
     </TaskProvider>
+  )
+}
+
+const BasePathTask = () => {
+  const { state, dispatch } = useSkmtc()
+
+  return (
+    <StringTask
+      prompt="Output directory:"
+      defaultValue="./"
+      setValue={value => {
+        const { view } = state
+
+        invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
+
+        const payload = { ...view, basePath: value }
+
+        dispatch({ type: 'set-view', payload })
+      }}
+    />
   )
 }
 
@@ -148,32 +176,6 @@ const SchemaLocationTask = ({ schemaSource }: SchemaLocationTaskProps) => {
   )
 }
 
-type DisplayOutputDirectoryTaskProps = {
-  project: Project | RemoteProject
-}
-
-const DisplayOutputDirectoryTask = ({ project }: DisplayOutputDirectoryTaskProps) => {
-  const { dispatchMessage } = useSkmtc()
-  const { dispatch: taskDispatch } = useTask()
-
-  const relativeRootPath = toRelativeRootPath()
-  const basePath = project.clientJson.contents?.settings.basePath
-
-  const outputDirectory = join(relativeRootPath, basePath ?? '')
-  useEffect(() => {
-    dispatchMessage({
-      info: (
-        <Text>
-          <Text dimColor>Generated code will be written in:</Text> {outputDirectory}
-        </Text>
-      )
-    })
-    taskDispatch({ type: 'increment-current-task' })
-  }, [outputDirectory])
-
-  return <Box></Box>
-}
-
 type GenerateTaskProps = {
   project: Project | RemoteProject
   token: string | undefined
@@ -186,13 +188,16 @@ const GenerateTask = ({ project, token }: GenerateTaskProps) => {
   invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
 
   return match(view)
-    .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
-      return view.watchMode ? (
-        <WatchGenerateTask project={project} view={confirmedView} token={token} />
-      ) : (
-        <RunGenerateTask project={project} view={confirmedView} token={token} />
-      )
-    })
+    .with(
+      { schemaSourceString: P.string, watchMode: P.boolean, basePath: P.string },
+      confirmedView => {
+        return view.watchMode ? (
+          <WatchGenerateTask project={project} view={confirmedView} token={token} />
+        ) : (
+          <RunGenerateTask project={project} view={confirmedView} token={token} />
+        )
+      }
+    )
     .otherwise(() => {
       return <Box></Box>
     })
@@ -247,11 +252,11 @@ const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
           project,
           skmtcRoot: state.skmtcRoot,
           accountName: state.session?.user?.user_metadata?.user_name,
-          interactive: state.interactive,
           schemaContents,
           clientSettings: project.clientJson?.contents?.settings,
           prettier: project.prettierJson?.contents,
-          token
+          token,
+          dispatchMessage
         })
       })
       .then(stats => {
@@ -331,7 +336,7 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
           project,
           accountName: state.session?.user?.user_metadata?.user_name,
           skmtcRoot: state.skmtcRoot,
-          interactive: state.interactive,
+          dispatchMessage,
           schemaContents: contents,
           clientSettings: project.clientJson?.contents?.settings,
           prettier: project.prettierJson?.contents,
