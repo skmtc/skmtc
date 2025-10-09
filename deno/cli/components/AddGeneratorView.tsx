@@ -16,7 +16,7 @@ type AddGeneratorViewProps = {
 }
 
 export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
-  const { dispatch, state } = useSkmtc()
+  const { dispatch, dispatchMessage, state } = useSkmtc()
 
   const [adding, setAdding] = useState(false)
   const username = state.session?.user.user_metadata.user_name
@@ -37,22 +37,12 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
       project
         .addGenerator({ moduleName: view.generatorName, type: view.generatorType, username })
         .then(() => {
-          dispatch({
-            type: 'set-message',
-            payload: {
-              success: `Generator "${view.generatorName}" created successfully`
-            }
-          })
+          dispatchMessage({ success: `Generator "${view.generatorName}" created successfully` })
         })
         .catch(error => {
           console.error(error)
 
-          dispatch({
-            type: 'set-message',
-            payload: {
-              error: `Failed to add generator "${view.generatorName}"`
-            }
-          })
+          dispatchMessage({ error: `Failed to add generator "${view.generatorName}"` })
         })
         .finally(() => {
           setAdding(false)

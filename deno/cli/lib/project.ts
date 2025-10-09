@@ -16,8 +16,7 @@ import { join } from '@std/path/join'
 import type { ApiClient } from '@/lib/api-client.ts'
 import { Manifest } from '@/lib/manifest.ts'
 import { getApiServersServerNameHasWriteAccess } from '@/services/getApiServersServerNameHasWriteAccess.generated.ts'
-import type { SkmtcDispatch, SkmtcState } from '@/components/SkmtcContext.tsx'
-import { useGetGenerators } from '@/components/useGetGenerators.ts'
+import type { SkmtcDispatch, SkmtcState, SkmtcMessage } from '@/components/SkmtcContext.tsx'
 import type { Generator as GeneratorType } from '@/types/generator.generated.ts'
 
 type AddGeneratorArgs = {
@@ -45,6 +44,7 @@ type ConstructorArgs = {
 type DeployArgs = {
   state: SkmtcState
   dispatch: SkmtcDispatch
+  dispatchMessage: (payload: SkmtcMessage) => void
 }
 
 type InstallGeneratorArgs = {
@@ -294,7 +294,7 @@ export class Project {
     return hasWriteAccess
   }
 
-  async deploy({ state, dispatch }: DeployArgs) {
+  async deploy({ state, dispatch, dispatchMessage }: DeployArgs) {
     const startTime = Date.now()
 
     const deployment = new Deployment(this.manager)
@@ -316,10 +316,7 @@ export class Project {
 
       const duration = (Date.now() - startTime) / 1000
 
-      dispatch({
-        type: 'set-message',
-        payload: { success: `Deployed in ${formatNumber(duration)}secs` }
-      })
+      dispatchMessage({ success: `Deployed in ${formatNumber(duration)}secs` })
 
       await this.manager.success()
 

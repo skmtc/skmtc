@@ -10,14 +10,21 @@ import type { Generator } from '@/types/generator.generated.ts'
 import { getApiGenerators } from '../services/getApiGenerators.generated.ts'
 
 export type ErrorMessage = {
-  error: string
+  error: ReactNode
+  sub?: string
+}
+
+export type InfoMessage = {
+  info: ReactNode
   sub?: string
 }
 
 export type SuccessMessage = {
-  success: string
+  success: ReactNode
   sub?: string
 }
+
+export type SkmtcMessage = ErrorMessage | SuccessMessage | InfoMessage
 
 type SkmtcAction =
   | { type: 'set-view'; payload: ViewState }
@@ -29,7 +36,7 @@ type SkmtcAction =
     }
   | {
       type: 'set-message'
-      payload: ErrorMessage | SuccessMessage | null
+      payload: SkmtcMessage | null
     }
   | {
       type: 'add-shortcut'
@@ -157,7 +164,7 @@ export type SkmtcState = {
   view: ViewState
   skmtcRoot: SkmtcRoot
   session: Session | null
-  message: ErrorMessage | SuccessMessage | null
+  message: SkmtcMessage | null
   interactive: boolean
   shortcuts: Shortcut[]
   generators: Generator[]
@@ -218,7 +225,17 @@ const useSkmtc = () => {
     throw new Error('useSkmtc must be used within a SkmtcProvider')
   }
 
-  return context
+  const { dispatch, state } = context
+
+  const dispatchMessage = (payload: SkmtcMessage) => {
+    dispatch({ type: 'set-message', payload })
+
+    setTimeout(() => {
+      dispatch({ type: 'set-message', payload: null })
+    }, 30000)
+  }
+
+  return { state, dispatch, dispatchMessage }
 }
 
 export { SkmtcProvider, useSkmtc }

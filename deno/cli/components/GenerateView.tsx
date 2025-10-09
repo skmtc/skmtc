@@ -8,12 +8,12 @@ import {
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { useEffect, useState } from 'react'
-import { generate, toGenerateStatus } from '@/workspaces/generate.tsx'
+import { generate, toGenerateMessage } from '@/workspaces/generate.tsx'
 import { match, P } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
 import { useMemo } from 'react'
-import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
+import { toAbsoluteRootPath, toRelativeRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
@@ -27,6 +27,7 @@ import { BooleanTask } from './BooleanTask.tsx'
 import { Spinner } from '@inkjs/ui'
 import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
+import { Text } from 'ink'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -37,10 +38,6 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
   const { dispatch, state } = useSkmtc()
 
   const schemaSource = project.schemaFile?.schemaSource
-
-  const projectPath = useMemo(() => {
-    return project instanceof Project ? project.toPath() : null
-  }, [project])
 
   const includeDeployQuestion = useMemo(() => {
     return project instanceof Project && typeof project.clientJson.contents?.projectKey !== 'string'
@@ -61,6 +58,11 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
       key: 'confirm-deployment-task',
       include: includeDeployQuestion,
       render: () => <ConfirmDeploymentTask project={project} />
+    },
+    {
+      key: 'display-output-directory-task',
+      include: true,
+      render: () => <DisplayOutputDirectoryTask project={project} />
     },
     {
       key: 'schema-location-task',
@@ -146,6 +148,32 @@ const SchemaLocationTask = ({ schemaSource }: SchemaLocationTaskProps) => {
   )
 }
 
+type DisplayOutputDirectoryTaskProps = {
+  project: Project | RemoteProject
+}
+
+const DisplayOutputDirectoryTask = ({ project }: DisplayOutputDirectoryTaskProps) => {
+  const { dispatchMessage } = useSkmtc()
+  const { dispatch: taskDispatch } = useTask()
+
+  const relativeRootPath = toRelativeRootPath()
+  const basePath = project.clientJson.contents?.settings.basePath
+
+  const outputDirectory = join(relativeRootPath, basePath ?? '')
+  useEffect(() => {
+    dispatchMessage({
+      info: (
+        <Text>
+          <Text dimColor>Generated code will be written in:</Text> {outputDirectory}
+        </Text>
+      )
+    })
+    taskDispatch({ type: 'increment-current-task' })
+  }, [outputDirectory])
+
+  return <Box></Box>
+}
+
 type GenerateTaskProps = {
   project: Project | RemoteProject
   token: string | undefined
@@ -199,11 +227,12 @@ type RunGenerateProps = {
 }
 
 const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
-  const { state, dispatch } = useSkmtc()
+  const { state, dispatchMessage } = useSkmtc()
   const { leave } = useTask()
 
   useShortcut({
-    label: `'esc' to ${project.name}`,
+    key: 'esc',
+    name: project.name,
     action: (input, key) => {
       if (key.escape) {
         leave()
@@ -227,7 +256,7 @@ const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
       })
       .then(stats => {
         if (stats) {
-          dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
+          dispatchMessage(toGenerateMessage(stats))
         }
       })
       .catch(error => {
@@ -266,13 +295,14 @@ type WatchGenerateProps = {
 }
 
 const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
-  const { state, dispatch } = useSkmtc()
+  const { state, dispatchMessage } = useSkmtc()
   const { leave } = useTask()
   const [watcher, setWatcher] = useState<FSWatcher>()
   const [activity, setActivity] = useState<Activity>('watching')
 
   useShortcut({
-    label: `'esc' to ${project.name}`,
+    key: 'esc',
+    name: project.name,
     action: async (input, key) => {
       if (key.escape) {
         await watcher?.close()
@@ -310,13 +340,13 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
       })
       .then(stats => {
         if (stats) {
-          dispatch({ type: 'set-message', payload: toGenerateStatus(stats) })
+          dispatchMessage(toGenerateMessage(stats))
         }
       })
       .catch(error => {
         console.error(error)
 
-        dispatch({ type: 'set-message', payload: { error: 'Failed to generate' } })
+        dispatchMessage({ error: 'Failed to generate' })
       })
       .finally(() => {
         setActivity('watching')

@@ -148,7 +148,7 @@ const BasePathTask = () => {
 }
 
 const CreateProjectTask = () => {
-  const { state, dispatch } = useSkmtc()
+  const { state, dispatch, dispatchMessage } = useSkmtc()
   const availableGenerators = useGetGenerators()
 
   // Execute project creation when all inputs are collected
@@ -169,17 +169,14 @@ const CreateProjectTask = () => {
         availableGenerators
       })
         .then(project => {
-          dispatch({
-            type: 'set-message',
-            payload: { success: `Project "${project.name}" created` }
-          })
+          dispatchMessage({ success: `Project "${project.name}" created` })
 
           dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
         })
         .catch(error => {
           console.error(error)
 
-          dispatch({ type: 'set-message', payload: { error: 'Failed to create project' } })
+          dispatchMessage({ error: 'Failed to create project' })
           dispatch({ type: 'set-view', payload: { page: 'home' } })
         })
     }

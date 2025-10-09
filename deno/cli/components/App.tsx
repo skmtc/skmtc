@@ -19,6 +19,7 @@ import { InstallGeneratorView } from '@/components/InstallGeneratorView.tsx'
 import { CloneGeneratorView } from '@/components/CloneGeneratorView.tsx'
 import { RemoveGeneratorView } from '@/components/RemoveGeneratorView.tsx'
 import { ShortcutsView } from './ShortcutsView.tsx'
+import { MessageBox } from './MessageBox.tsx'
 
 type AppProps = {
   skmtcRoot: SkmtcRoot
@@ -31,9 +32,8 @@ export const App = (props: AppProps) => {
     <SkmtcProvider {...props}>
       <Box flexDirection="column">
         <AppInfo />
-
+        <MessageBox />
         <ViewManager />
-
         <ShortcutsView />
       </Box>
     </SkmtcProvider>

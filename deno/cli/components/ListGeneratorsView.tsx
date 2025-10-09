@@ -16,7 +16,8 @@ export const ListGeneratorsView = ({ project }: ListGeneratorsViewProps) => {
   const generators = project instanceof Project ? project.toGeneratorIds() : []
 
   useShortcut({
-    label: `'esc' to ${project.name}`,
+    key: 'esc',
+    name: project.name,
     action: (input, key) => {
       if (key.escape) {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })

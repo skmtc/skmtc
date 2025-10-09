@@ -15,13 +15,14 @@ type RuntimeLogsViewProps = {
 }
 
 export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
-  const { state, dispatch } = useSkmtc()
+  const { state, dispatch, dispatchMessage } = useSkmtc()
   const [logs, setLogs] = useState<string[] | null>(null)
 
   const [fetching, setFetching] = useState(false)
 
   useShortcut({
-    label: `'esc' to ${project.name}`,
+    key: 'esc',
+    name: project.name,
     action: (input, key) => {
       if (key.escape) {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
@@ -31,12 +32,7 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
 
   useEffect(() => {
     if (!fetching && logs && logs.length === 0) {
-      dispatch({
-        type: 'set-message',
-        payload: {
-          error: 'No logs found'
-        }
-      })
+      dispatchMessage({ error: 'No logs found' })
 
       dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
     }
@@ -44,12 +40,7 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
 
   useEffect(() => {
     if (!(project instanceof Project)) {
-      dispatch({
-        type: 'set-message',
-        payload: {
-          error: 'Runtime logs are only available for local projects'
-        }
-      })
+      dispatchMessage({ error: 'Runtime logs are only available for local projects' })
 
       dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
       return
@@ -63,12 +54,7 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
         const manifest = project.manifest.contents
 
         if (!manifest) {
-          dispatch({
-            type: 'set-message',
-            payload: {
-              error: 'Project has no manifest. Has generation been run?'
-            }
-          })
+          dispatchMessage({ error: 'Project has no manifest. Has generation been run?' })
 
           dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
           return
@@ -87,12 +73,7 @@ export const RuntimeLogsView = ({ project }: RuntimeLogsViewProps) => {
         setLogs(runtimeLogs)
       })
       .catch(err => {
-        dispatch({
-          type: 'set-message',
-          payload: {
-            error: err.message || 'Failed to fetch runtime logs'
-          }
-        })
+        dispatchMessage({ error: err.message || 'Failed to fetch runtime logs' })
 
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
       })

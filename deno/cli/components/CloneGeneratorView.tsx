@@ -15,7 +15,7 @@ type CloneGeneratorViewProps = {
 }
 
 export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
-  const { dispatch } = useSkmtc()
+  const { dispatch, dispatchMessage } = useSkmtc()
   const [cloning, setCloning] = useState(false)
 
   const cloneableGenerators =
@@ -29,7 +29,8 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
       : []
 
   useShortcut({
-    label: `'esc' to ${project.name}`,
+    key: 'esc',
+    name: project.name,
     action: (input, key) => {
       if (key.escape) {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
@@ -38,14 +39,16 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
   })
 
   useShortcut({
-    label: `'space' to toggle`,
+    key: 'space',
+    name: 'toggle',
     action: (input, key) => {
       // behaviour handled in MultiSelect component
     }
   })
 
   useShortcut({
-    label: `'enter' to submit`,
+    key: 'enter',
+    name: 'submit',
     action: (input, key) => {
       // behaviour handled in MultiSelect component
     }
@@ -74,22 +77,12 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
         }
       })
       .then(() => {
-        dispatch({
-          type: 'set-message',
-          payload: {
-            success: `Cloned ${selectedValues.length} generator(s) successfully`
-          }
-        })
+        dispatchMessage({ success: `Cloned ${selectedValues.length} generator(s) successfully` })
       })
       .catch(error => {
         console.error(error)
 
-        dispatch({
-          type: 'set-message',
-          payload: {
-            error: `Failed to clone generator(s)`
-          }
-        })
+        dispatchMessage({ error: `Failed to clone generator(s)` })
       })
       .finally(() => {
         setCloning(false)

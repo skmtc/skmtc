@@ -22,13 +22,13 @@ type DeployTaskViewProps = {
 }
 
 export const DeployTaskView = ({ project }: DeployTaskViewProps) => {
-  const { state, dispatch } = useSkmtc()
+  const { state, dispatch, dispatchMessage } = useSkmtc()
   const { dispatch: taskDispatch } = useTask()
   const [deployed, setDeployed] = useState(false)
 
   useEffect(() => {
     const run = async () => {
-      await project.deploy({ state, dispatch })
+      await project.deploy({ state, dispatch, dispatchMessage })
 
       setDeployed(true)
 

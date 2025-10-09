@@ -11,11 +11,11 @@ type DeployViewProps = {
 }
 
 export const DeployView = ({ project, view }: DeployViewProps) => {
-  const { state, dispatch } = useSkmtc()
+  const { state, dispatch, dispatchMessage } = useSkmtc()
 
   useEffect(() => {
     const run = async () => {
-      await project.deploy({ state, dispatch })
+      await project.deploy({ state, dispatch, dispatchMessage })
 
       if (state.interactive) {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })

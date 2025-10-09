@@ -3,20 +3,25 @@ import type { Key } from 'ink'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 
 type UseShortcutArgs = {
-  label: string
+  key: string
+  name: string
   action: (input: string, key: Key) => void
 }
 
-export const useShortcut = ({ label, action }: UseShortcutArgs) => {
-  const { dispatch } = useSkmtc()
+export const useShortcut = ({ key, name, action }: UseShortcutArgs) => {
+  const { state, dispatch } = useSkmtc()
   const shortcutId = useId()
 
   useEffect(() => {
+    if (!state.interactive && key === 'esc') {
+      return
+    }
+
     dispatch({
       type: 'add-shortcut',
       payload: {
         id: shortcutId,
-        label,
+        label: `'${key}' to ${name}`,
         action
       }
     })

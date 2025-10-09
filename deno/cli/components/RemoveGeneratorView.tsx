@@ -14,7 +14,7 @@ type RemoveGeneratorViewProps = {
 }
 
 export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps) => {
-  const { dispatch, state } = useSkmtc()
+  const { dispatch, dispatchMessage } = useSkmtc()
   const [selectedGenerator, setSelectedGenerator] = useState<string | null>(
     view.generatorName ?? null
   )
@@ -23,7 +23,8 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
   const generators = project instanceof Project ? project.toGeneratorIds() : []
 
   useShortcut({
-    label: `'esc' to ${project.name}`,
+    key: 'esc',
+    name: project.name,
     action: (input, key) => {
       if (key.escape && !selectedGenerator) {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
@@ -76,22 +77,12 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
         { logSuccess: `Generator "${selectedGenerator}" removed` }
       )
       .then(() => {
-        dispatch({
-          type: 'set-message',
-          payload: {
-            success: `Generator "${selectedGenerator}" removed successfully`
-          }
-        })
+        dispatchMessage({ success: `Generator "${selectedGenerator}" removed successfully` })
       })
       .catch(error => {
         console.error(error)
 
-        dispatch({
-          type: 'set-message',
-          payload: {
-            error: `Failed to remove generator "${selectedGenerator}"`
-          }
-        })
+        dispatchMessage({ error: `Failed to remove generator "${selectedGenerator}"` })
       })
       .finally(() => {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })

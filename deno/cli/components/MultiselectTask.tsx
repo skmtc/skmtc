@@ -21,14 +21,16 @@ export const MultiselectTask = ({ prompt, options, setValues }: MultiselectTaskP
   const id = useId()
 
   useShortcut({
-    label: `'space' to toggle`,
+    key: 'space',
+    name: 'toggle',
     action: (input, key) => {
       // behaviour handled in MultiSelect component
     }
   })
 
   useShortcut({
-    label: `'enter' to submit`,
+    key: 'enter',
+    name: 'submit',
     action: (input, key) => {
       // behaviour handled in MultiSelect component
     }

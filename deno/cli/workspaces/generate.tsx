@@ -87,7 +87,7 @@ export const generate = async ({
     const stats = toGenerationStats({ manifest, artifacts })
 
     if (!interactive) {
-      const statusMessages = toGenerateStatus(stats)
+      const statusMessages = toGenerateMessage(stats)
 
       const message = Object.values(statusMessages).join('\n')
 
@@ -110,7 +110,7 @@ export const generate = async ({
   }
 }
 
-export const toGenerateStatus = (stats: GenerationStats): SuccessMessage => {
+export const toGenerateMessage = (stats: GenerationStats): SuccessMessage => {
   const { files, tokens, totalTime, errors } = stats
 
   const success = `Generated ${formatNumber(tokens)} tokens, ${formatNumber(files)} files in ${formatNumber(totalTime)}ms.`

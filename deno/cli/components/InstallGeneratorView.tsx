@@ -14,7 +14,7 @@ type InstallGeneratorViewProps = {
 }
 
 export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => {
-  const { dispatch } = useSkmtc()
+  const { dispatch, dispatchMessage } = useSkmtc()
   const [installing, setInstalling] = useState(false)
 
   const imports = project instanceof Project ? (project.rootDenoJson.contents.imports ?? {}) : {}
@@ -26,7 +26,8 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
     .map(({ scope, packageName }) => `jsr:@${scope}/${packageName}`)
 
   useShortcut({
-    label: `'esc' to ${project.name}`,
+    key: 'esc',
+    name: project.name,
     action: (input, key) => {
       if (!installing) {
         return
@@ -39,14 +40,16 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
   })
 
   useShortcut({
-    label: `'space' to toggle`,
+    key: 'space',
+    name: 'toggle',
     action: (input, key) => {
       // behaviour handled in MultiSelect component
     }
   })
 
   useShortcut({
-    label: `'enter' to submit`,
+    key: 'enter',
+    name: 'submit',
     action: (input, key) => {
       // behaviour handled in MultiSelect component
     }
@@ -70,22 +73,14 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
         })
       )
         .then(() => {
-          dispatch({
-            type: 'set-message',
-            payload: {
-              success: `Installed ${selectedValues.length} generator(s) successfully`
-            }
+          dispatchMessage({
+            success: `Installed ${selectedValues.length} generator(s) successfully`
           })
         })
         .catch(error => {
           console.error(error)
 
-          dispatch({
-            type: 'set-message',
-            payload: {
-              error: `Failed to install generator(s)`
-            }
-          })
+          dispatchMessage({ error: `Failed to install generator(s)` })
         })
         .finally(() => {
           setInstalling(false)

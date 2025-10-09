@@ -15,7 +15,8 @@ export const TaskContainer = ({ prompt, children }: TaskContainerProps) => {
   const projectName = useProjectName()
 
   useShortcut({
-    label: `'esc' c to ${projectName}`,
+    key: 'esc',
+    name: projectName ?? 'home',
     action: (input, key) => {
       if (key.escape) {
         leave()
