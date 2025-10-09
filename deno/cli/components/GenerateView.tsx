@@ -65,7 +65,7 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     {
       key: 'display-output-directory-task',
       include: includeBasePathQuestion,
-      render: () => <BasePathTask />
+      render: () => <BasePathTask project={project} />
     },
     {
       key: 'schema-location-task',
@@ -100,17 +100,30 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
   )
 }
 
-const BasePathTask = () => {
+type BasePathTaskProps = {
+  project: Project | RemoteProject
+}
+
+const BasePathTask = ({ project }: BasePathTaskProps) => {
   const { state, dispatch } = useSkmtc()
 
   return (
     <StringTask
       prompt="Output directory:"
       defaultValue="./"
-      setValue={value => {
+      setValue={async value => {
         const { view } = state
 
         invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
+
+        if (!project.clientJson.contents) {
+          project.clientJson.contents = { settings: { basePath: value } }
+        } else {
+          project.clientJson.contents.settings.basePath = value
+        }
+
+        // TODO handle this in cleanup actions
+        await project.clientJson.write()
 
         const payload = { ...view, basePath: value }
 
@@ -186,17 +199,23 @@ const GenerateTask = ({ project, token }: GenerateTaskProps) => {
   const { view } = state
   invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
 
+  const basePath = view.basePath ?? project.clientJson.contents?.settings.basePath ?? ''
+
   return match(view)
-    .with(
-      { schemaSourceString: P.string, watchMode: P.boolean, basePath: P.string },
-      confirmedView => {
-        return view.watchMode ? (
-          <WatchGenerateTask project={project} view={confirmedView} token={token} />
-        ) : (
-          <RunGenerateTask project={project} view={confirmedView} token={token} />
-        )
-      }
-    )
+    .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
+      return view.watchMode ? (
+        <WatchGenerateTask
+          project={project}
+          view={{
+            ...confirmedView,
+            basePath
+          }}
+          token={token}
+        />
+      ) : (
+        <RunGenerateTask project={project} view={{ ...confirmedView, basePath }} token={token} />
+      )
+    })
     .otherwise(() => {
       return <Box></Box>
     })

@@ -37,7 +37,13 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
         <App
           skmtcRoot={skmtcRoot}
           session={session}
-          view={{ page: 'generate', project, schemaSourceString, watchMode: Boolean(watch) }}
+          view={{
+            page: 'generate',
+            project,
+            schemaSourceString,
+            watchMode: Boolean(watch),
+            basePath: project.clientJson.contents?.settings.basePath
+          }}
           interactive={false}
         />
       )
