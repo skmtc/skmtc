@@ -11,8 +11,10 @@ export const MessageBox = () => {
     return null
   }
 
+  const paddingTop = state.interactive ? 0 : 1
+
   return (
-    <Box flexDirection="column" paddingLeft={2} paddingBottom={1}>
+    <Box flexDirection="column" paddingLeft={2} paddingBottom={1} paddingTop={paddingTop}>
       {match(state.message)
         .with({ error: P.any }, ({ error }) => (
           <StatusMessage variant="error">{error}</StatusMessage>
