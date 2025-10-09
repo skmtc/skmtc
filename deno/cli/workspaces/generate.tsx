@@ -12,6 +12,7 @@ import type { PrettierConfigType } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcMessage } from '@/components/SkmtcContext.tsx'
+import { PrettierJson } from '../lib/prettier-json.ts'
 
 export const description = 'Generate artifacts'
 
@@ -29,6 +30,7 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
             schemaFile: schemaSourceString
               ? await SchemaFile.openFromSource(schemaSourceString)
               : SchemaFile.create(),
+            prettierPath: PrettierJson.toPath(projectName),
             manager: skmtcRoot.manager
           })
         : skmtcRoot.findProject(projectName)
