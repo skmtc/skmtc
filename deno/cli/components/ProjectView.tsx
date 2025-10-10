@@ -13,9 +13,10 @@ type ProjectActionValue =
   | 'generate-artifacts'
   | 'generate-artifacts-watch'
   | 'deploy'
+  | 'serve'
   | 'runtime-logs'
   | 'install-generator'
-  | 'add-generator'
+  | 'create-generator'
   | 'clone-generator'
   | 'list-generators'
   | 'remove-generator'
@@ -27,17 +28,12 @@ type ProjectAction = {
 }
 
 const projectActions: ProjectAction[] = [
-  { value: 'generate-artifacts', label: 'Generate artifacts' },
-
-  { value: 'deploy', label: 'Deploy' },
-  { value: 'runtime-logs', label: 'View runtime logs', space: true },
-
+  { value: 'generate-artifacts', label: 'Generate artifacts', space: true },
   { value: 'install-generator', label: 'Install generator' },
-  { value: 'add-generator', label: 'Add generator' },
+  { value: 'create-generator', label: 'Create new generator' },
   { value: 'clone-generator', label: 'Clone generator' },
-  { value: 'list-generators', label: 'List generators' },
   { value: 'remove-generator', label: 'Remove generator' }
-]
+].filter((item): item is ProjectAction => item !== undefined)
 
 export const ProjectView = ({ project }: ProjectProps) => {
   const { dispatch } = useSkmtc()
@@ -84,40 +80,22 @@ export const ProjectView = ({ project }: ProjectProps) => {
                 payload: { page: 'generate', project }
               })
             })
-            .with({ value: 'deploy' }, () => {
-              dispatch({
-                type: 'set-view',
-                payload: { page: 'deploy', projectName: project.name }
-              })
-            })
-            .with({ value: 'runtime-logs' }, () => {
-              dispatch({
-                type: 'set-view',
-                payload: { page: 'runtime-logs', projectName: project.name }
-              })
-            })
             .with({ value: 'install-generator' }, () => {
               dispatch({
                 type: 'set-view',
                 payload: { page: 'install-generator', projectName: project.name }
               })
             })
-            .with({ value: 'add-generator' }, () => {
+            .with({ value: 'create-generator' }, () => {
               dispatch({
                 type: 'set-view',
-                payload: { page: 'add-generator', projectName: project.name }
+                payload: { page: 'create-generator', projectName: project.name }
               })
             })
             .with({ value: 'clone-generator' }, () => {
               dispatch({
                 type: 'set-view',
                 payload: { page: 'clone-generator', projectName: project.name }
-              })
-            })
-            .with({ value: 'list-generators' }, () => {
-              dispatch({
-                type: 'set-view',
-                payload: { page: 'list-generators', projectName: project.name }
               })
             })
             .with({ value: 'remove-generator' }, () => {

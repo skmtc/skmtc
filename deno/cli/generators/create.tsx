@@ -8,7 +8,7 @@ const generatorType = new EnumType(['operation', 'model'])
 
 export const description = 'Create new generator'
 
-export const toAddCommand = (skmtcRoot: SkmtcRoot) => {
+export const toCreateCommand = (skmtcRoot: SkmtcRoot) => {
   const command = new Command()
     .description(description)
     .type('generator-type', generatorType)
@@ -21,7 +21,7 @@ export const toAddCommand = (skmtcRoot: SkmtcRoot) => {
           skmtcRoot={skmtcRoot}
           session={session}
           view={{
-            page: 'add-generator',
+            page: 'create-generator',
             projectName,
             generatorName: generator,
             generatorType: type

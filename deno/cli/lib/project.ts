@@ -18,6 +18,7 @@ import { Manifest } from '@/lib/manifest.ts'
 import { getApiServersServerNameHasWriteAccess } from '@/services/getApiServersServerNameHasWriteAccess.generated.ts'
 import type { SkmtcDispatch, SkmtcState, SkmtcMessage } from '@/components/SkmtcContext.tsx'
 import type { Generator as GeneratorType } from '@/types/generator.generated.ts'
+import { toMod } from './to-mod.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -182,6 +183,16 @@ export class Project {
 
       await this.manager.fail('Failed to clone generator')
     }
+  }
+
+  async createServer() {
+    const mod = toMod(this.toGeneratorIds())
+
+    const modPath = join(this.toPath(), 'mod.ts')
+
+    await Deno.writeTextFile(modPath, mod)
+
+    return modPath
   }
 
   async installGenerator(
@@ -352,11 +363,9 @@ export class Project {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
 
-      invariant(scopeName, 'Scope name is required')
-
       const generator = Generator.fromName({
         projectName: this.name,
-        scopeName: scopeName ?? username,
+        scopeName: scopeName ?? (username ? `@${username}` : undefined) ?? 'jsr-user',
         packageName,
         version: version ?? '0.0.1'
       })

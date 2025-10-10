@@ -33,8 +33,8 @@ export const SelectTask = ({ prompt, options, setValue }: SelectTaskProps) => {
         items={options}
         onSelect={item => {
           setResponse(item.value)
-          setValue(item.value)
           dispatch({ type: 'increment-current-task' })
+          setValue(item.value)
         }}
       />
     </TaskContainer>

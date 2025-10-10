@@ -21,14 +21,6 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
   const [adding, setAdding] = useState(false)
   const username = state.session?.user.user_metadata.user_name
 
-  const includeTypeQuestion = useMemo(() => {
-    return typeof view.generatorType !== 'string'
-  }, [view.generatorType])
-
-  const includeNameQuestion = useMemo(() => {
-    return typeof view.generatorName !== 'string' && typeof view.generatorType === 'string'
-  }, [view.generatorName, view.generatorType])
-
   // Execute add generator when all inputs are collected
   useEffect(() => {
     if (view.generatorName && view.generatorType && project instanceof Project && !adding) {
@@ -54,12 +46,12 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
   const tasks: Task[] = [
     {
       key: 'generator-type-task',
-      include: includeTypeQuestion,
+      include: true,
       render: () => <GeneratorTypeTask />
     },
     {
       key: 'generator-name-task',
-      include: includeNameQuestion,
+      include: true,
       render: () => <GeneratorNameTask />
     }
   ]
@@ -93,7 +85,7 @@ const GeneratorTypeTask = () => {
       setValue={value => {
         const { view } = state
 
-        invariant(view.page === 'add-generator', 'Generator type is required')
+        invariant(view.page === 'create-generator', 'Generator type is required')
 
         dispatch({
           type: 'set-view',
@@ -116,7 +108,7 @@ const GeneratorNameTask = () => {
       setValue={value => {
         const { view } = state
 
-        invariant(view.page === 'add-generator', 'Generator name is required')
+        invariant(view.page === 'create-generator', 'Generator name is required')
 
         dispatch({
           type: 'set-view',

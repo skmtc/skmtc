@@ -7,7 +7,7 @@ import {
 } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { useEffect, useState } from 'react'
+import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
 import { generate, toGenerateMessage } from '@/workspaces/generate.tsx'
 import { match, P } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
@@ -27,6 +27,7 @@ import { BooleanTask } from './BooleanTask.tsx'
 import { Spinner } from '@inkjs/ui'
 import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
+import { ServerTask } from './ServerTask.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -35,6 +36,7 @@ type GenerateProps = {
 
 export const GenerateView = ({ project, view }: GenerateProps) => {
   const { dispatch, state } = useSkmtc()
+  const [child, setChild] = useState<Deno.ChildProcess>()
 
   const schemaSource = project.schemaFile?.schemaSource
 
@@ -51,8 +53,8 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
   }, [])
 
   const includeWatchQuestion = useMemo(() => {
-    return typeof view.watchMode !== 'boolean'
-  }, [])
+    return typeof view.watchMode !== 'boolean' && !isRemoteSchema(view.schemaSourceString)
+  }, [view.schemaSourceString])
 
   const token = state.session?.access_token
 
@@ -61,6 +63,11 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
       key: 'confirm-deployment-task',
       include: includeDeployQuestion,
       render: () => <ConfirmDeploymentTask project={project} />
+    },
+    {
+      key: 'start-server-task',
+      include: project instanceof Project,
+      render: () => <StartServerTask project={project as Project} setChild={setChild} />
     },
     {
       key: 'display-output-directory-task',
@@ -88,6 +95,8 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     <TaskProvider
       tasks={tasks}
       leave={() => {
+        child?.kill()
+
         if (state.interactive) {
           dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
         } else {
@@ -133,8 +142,32 @@ const BasePathTask = ({ project }: BasePathTaskProps) => {
   )
 }
 
+type StartServerTaskProps = {
+  project: Project
+  setChild: Dispatch<SetStateAction<Deno.ChildProcess | undefined>>
+}
+
+const StartServerTask = ({ project, setChild }: StartServerTaskProps) => {
+  return <ServerTask project={project} setChild={setChild} />
+}
+
 const WatchModeTask = () => {
   const { state, dispatch } = useSkmtc()
+  const { dispatch: taskDispatch } = useTask()
+
+  const { view } = state
+
+  invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
+
+  useEffect(() => {
+    if (isRemoteSchema(view.schemaSourceString)) {
+      taskDispatch({ type: 'increment-current-task' })
+    }
+  }, [view.schemaSourceString])
+
+  if (isRemoteSchema(view.schemaSourceString)) {
+    return null
+  }
 
   return (
     <BooleanTask
@@ -171,12 +204,10 @@ const SchemaLocationTask = ({ schemaSource }: SchemaLocationTaskProps) => {
 
         invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
 
-        const isRemote = value.startsWith('http://') || value.startsWith('https://')
-
         const payload = {
           ...view,
           schemaSourceString: value,
-          watchMode: isRemote ? false : view.watchMode
+          watchMode: isRemoteSchema(value) ? false : view.watchMode
         }
 
         dispatch({
@@ -394,4 +425,8 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
       />
     </TaskBox>
   )
+}
+
+const isRemoteSchema = (string: string | undefined): boolean => {
+  return Boolean(string?.startsWith('http://') || string?.startsWith('https://'))
 }

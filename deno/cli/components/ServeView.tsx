@@ -9,6 +9,8 @@ import { toMod } from '@/lib/to-mod.ts'
 import { join } from '@std/path/join'
 import { TaskBox } from './TaskBox.tsx'
 import { Spinner } from '@inkjs/ui'
+import { dirname } from '@std/path/dirname'
+import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 
 type ServeViewProps = {
   project: Project
@@ -24,17 +26,9 @@ export const ServeView = ({ project, view }: ServeViewProps) => {
       try {
         await project.clientJson?.refresh()
 
-        // if (project) {
-        //   await project.schemaFile.promptOrFail(project)
-        // }
-
         await project.prettierJson?.refresh()
 
-        const mod = toMod(project.toGeneratorIds())
-
-        const modPath = join(project.toPath(), 'mod.ts')
-
-        await Deno.writeTextFile(modPath, mod)
+        const modPath = await project.createServer()
 
         const serverUrl = `http://localhost:${port}`
 
@@ -86,9 +80,10 @@ type RunServerArgs = {
   port: string
 }
 
-const runServer = async ({ modPath, port = '8001' }: RunServerArgs) => {
+export const runServer = async ({ modPath, port = '8001' }: RunServerArgs) => {
   const command = new Deno.Command('deno', {
-    args: ['serve', '--allow-env', '--allow-sys', '--port', port, modPath]
+    args: ['serve', '--allow-env', '--allow-sys', '--port', port, modPath],
+    cwd: dirname(modPath)
   })
 
   // create subprocess and collect output
@@ -104,4 +99,58 @@ const runServer = async ({ modPath, port = '8001' }: RunServerArgs) => {
       reject(new Error(`Server exited with code ${code}`))
     }
   })
+}
+
+type ServeArgs = {
+  skmtcRoot: SkmtcRoot
+  project: Project
+  port: string
+}
+
+export const serve = async ({ skmtcRoot, project, port }: ServeArgs) => {
+  try {
+    await project.clientJson?.refresh()
+
+    // if (project) {
+    //   await project.schemaFile.promptOrFail(project)
+    // }
+
+    await project.prettierJson?.refresh()
+
+    const mod = toMod(project.toGeneratorIds())
+
+    const modPath = join(project.toPath(), 'mod.ts')
+
+    await Deno.writeTextFile(modPath, mod)
+
+    const serverUrl = `http://localhost:${port}`
+
+    project.clientJson.contents = project.clientJson.contents
+      ? {
+          ...project.clientJson.contents,
+          serverUrl
+        }
+      : {
+          serverUrl,
+          settings: {}
+        }
+
+    await project.clientJson.write()
+
+    await runServer({ modPath, port })
+
+    delete project.clientJson.contents?.serverUrl
+
+    await project.clientJson.write()
+
+    await skmtcRoot.manager.success()
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : 'Failed to serve')
+
+    Sentry.captureException(error)
+
+    await Sentry.flush()
+
+    await skmtcRoot.manager.fail()
+  }
 }

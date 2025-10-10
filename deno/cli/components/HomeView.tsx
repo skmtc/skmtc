@@ -4,7 +4,7 @@ import { Box, Newline, Text, useApp } from 'ink'
 import { match, P } from 'ts-pattern'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 
-type HomeActionType = `select-project:${string}` | 'create-project' | 'login' | 'logout' | 'exit'
+type HomeActionType = `select-project:${string}` | 'create-project' | 'exit'
 
 type HomeActionItem = {
   value: HomeActionType
@@ -30,7 +30,7 @@ export const HomeView = () => {
   const items: HomeActionItem[] = [
     ...projectOptions,
     { value: 'create-project', label: 'Create new project', space: true },
-    session ? { value: 'logout', label: 'Log out' } : { value: 'login', label: 'Log in to Skmtc' },
+    // session ? { value: 'logout', label: 'Log out' } : { value: 'login', label: 'Log in to Skmtc' },
     { value: 'exit', label: 'Exit' }
   ]
 
@@ -64,13 +64,6 @@ export const HomeView = () => {
             )
             .with({ value: 'create-project' }, () => {
               dispatch({ type: 'set-view', payload: { page: 'create-project' } })
-            })
-            .with({ value: 'login' }, () => {
-              dispatch({ type: 'set-view', payload: { page: 'login' } })
-            })
-            .with({ value: 'logout' }, async () => {
-              await skmtcRoot.logout({ silent: true })
-              dispatch({ type: 'set-session', payload: { session: null } })
             })
             .with({ value: 'exit' }, () => exit())
             .exhaustive()

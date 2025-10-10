@@ -23,7 +23,7 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
 
   const availableToInstall = generators
     ?.filter(({ scope, packageName }) => !imports[`@${scope}/${packageName}`])
-    .map(({ scope, packageName }) => `jsr:@${scope}/${packageName}`)
+    .map(({ scope, packageName }) => `@${scope}/${packageName}`)
 
   useShortcut({
     key: 'esc',
@@ -67,7 +67,7 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
       Promise.all(
         selectedValues.map(async generator => {
           await project.installGenerator(
-            { moduleName: generator },
+            { moduleName: `jsr:${generator}` },
             { logSuccess: `Generator "${generator}" installed` }
           )
         })
@@ -89,7 +89,15 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
     }
   }
 
-  if (!availableToInstall || availableToInstall.length === 0) {
+  if (!availableToInstall) {
+    return (
+      <Box flexDirection="column">
+        <Spinner label="Fetching generators..." />
+      </Box>
+    )
+  }
+
+  if (availableToInstall.length === 0) {
     return (
       <Box flexDirection="column">
         <Text color="yellow">No generators available to install</Text>

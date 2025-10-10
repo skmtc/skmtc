@@ -66,7 +66,7 @@ const ViewManager = () => {
     .with({ page: 'list-generators' }, view => (
       <ListGeneratorsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
-    .with({ page: 'add-generator' }, view => (
+    .with({ page: 'create-generator' }, view => (
       <AddGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
     .with({ page: 'install-generator' }, view => (

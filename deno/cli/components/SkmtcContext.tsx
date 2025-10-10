@@ -116,7 +116,7 @@ export type ViewStateListGenerators = {
 }
 
 export type ViewStateAddGenerator = {
-  page: 'add-generator'
+  page: 'create-generator'
   projectName: string
   generatorName?: string
   generatorType?: 'operation' | 'model'
@@ -124,7 +124,7 @@ export type ViewStateAddGenerator = {
 }
 
 export type ViewStateAddGeneratorConfirmed = {
-  page: 'add-generator'
+  page: 'create-generator'
   projectName: string
   generatorName: string
   generatorType: 'operation' | 'model'
@@ -278,7 +278,7 @@ type ToProjectNameArgs = {
 
 export const toProjectName = ({ view }: ToProjectNameArgs) => {
   return match(view)
-    .with({ page: 'add-generator' }, ({ projectName }) => projectName)
+    .with({ page: 'create-generator' }, ({ projectName }) => projectName)
     .with({ page: 'create-project' }, ({ projectName }) => projectName)
     .with({ page: 'project' }, ({ projectName }) => projectName)
     .with({ page: 'generate' }, ({ project }) => project.name)
