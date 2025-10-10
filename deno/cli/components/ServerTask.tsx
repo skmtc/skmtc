@@ -19,7 +19,23 @@ export const ServerTask = ({ project, setChild }: ServerTaskProps) => {
     const serve = async () => {
       const modPath = await project.createServer()
 
-      const child = runServer({ modPath, port: '8001' })
+      const port = '8001'
+
+      const serverUrl = `http://localhost:${port}`
+
+      project.clientJson.contents = project.clientJson.contents
+        ? {
+            ...project.clientJson.contents,
+            serverUrl
+          }
+        : {
+            serverUrl,
+            settings: {}
+          }
+
+      await project.clientJson.write()
+
+      const child = runServer({ modPath, port })
 
       setChild(child)
       dispatch({ type: 'increment-current-task' })
