@@ -1,11 +1,11 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.753",
+  "version": "0.0.754",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.872"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.873"
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",

@@ -40,10 +40,6 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
 
   const schemaSource = project.schemaFile?.schemaSource
 
-  const includeDeployQuestion = useMemo(() => {
-    return project instanceof Project && typeof project.clientJson.contents?.projectKey !== 'string'
-  }, [])
-
   const includeBasePathQuestion = useMemo(() => {
     return typeof project.clientJson.contents?.settings.basePath !== 'string'
   }, [])
@@ -59,11 +55,6 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
   const token = state.session?.access_token
 
   const tasks: Task[] = [
-    {
-      key: 'confirm-deployment-task',
-      include: includeDeployQuestion,
-      render: () => <ConfirmDeploymentTask project={project} />
-    },
     {
       key: 'start-server-task',
       include: project instanceof Project,
@@ -252,28 +243,6 @@ const GenerateTask = ({ project, token }: GenerateTaskProps) => {
     })
 }
 
-type ConfirmDeploymentTaskProps = {
-  project: Project | RemoteProject
-}
-
-export const ConfirmDeploymentTask = ({ project }: ConfirmDeploymentTaskProps) => {
-  return (
-    <ConfirmTask
-      prompt="This project has not been deployed. Would you like to deploy it now?"
-      onConfirm={({ state: taskState, dispatch: taskDispatch }) => {
-        if (project instanceof Project) {
-          taskDispatch({
-            type: 'insert-task',
-            payload: {
-              task: toDeployTask({ project }),
-              index: taskState.currentTask + 1
-            }
-          })
-        }
-      }}
-    />
-  )
-}
 type RunGenerateProps = {
   project: Project | RemoteProject
   view: ViewStateGenerateConfirmed
