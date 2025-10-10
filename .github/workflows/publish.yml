@@ -41,6 +41,3 @@ jobs:
         run: cd deno && deno task build
       - name: Publish core to npm
         run: cd packages/core && npm publish
-
-      - name: Publish cli to npm
-        run: cd packages/cli && npm publish
