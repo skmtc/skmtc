@@ -2234,7 +2234,7 @@
     "members": {
       "cli": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.881",
+          "jsr:@skmtc/core@^0.0.882",
           "npm:@inkjs/ui@2",
           "npm:@types/react@19",
           "npm:ink-link@5",
@@ -2261,7 +2261,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.302",
+          "jsr:@skmtc/cli@^0.0.303",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/yaml@^1.0.5",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
@@ -2270,7 +2270,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.881"
+          "jsr:@skmtc/core@^0.0.882"
         ]
       }
     }

@@ -20,7 +20,6 @@ export const protectedKeywords: Record<string, string> = {
   else: 'elseValue',
   'enum *': 'enumStarValue',
   eval: 'evalValue',
-  export: 'exportValue',
   'export *': 'exportStarValue',
   'extends *': 'extendsStarValue',
   false: 'falseValue',
