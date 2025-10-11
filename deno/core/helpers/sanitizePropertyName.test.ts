@@ -2,61 +2,61 @@ import { assertEquals } from '@std/assert/equals'
 import { sanitizePropertyName } from './sanitizePropertyName.ts'
 
 // Protected Keywords Tests
-// Note: These keywords are in the protectedKeywords map and get converted to {keyword}Value
-Deno.test('sanitizePropertyName converts "return" protected keyword to "returnValue"', () => {
+// Note: These keywords are in the protectedKeywords map and get converted to key-value format
+Deno.test('sanitizePropertyName converts "return" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('return')
-  assertEquals(sanitized, 'returnValue')
+  assertEquals(sanitized.toString(), 'return: returnValue')
 })
 
-Deno.test('sanitizePropertyName converts "default" protected keyword to "defaultValue"', () => {
+Deno.test('sanitizePropertyName converts "default" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('default')
-  assertEquals(sanitized, 'defaultValue')
+  assertEquals(sanitized.toString(), 'default: defaultValue')
 })
 
-Deno.test('sanitizePropertyName converts "if" protected keyword to "ifValue"', () => {
+Deno.test('sanitizePropertyName converts "if" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('if')
-  assertEquals(sanitized, 'ifValue')
+  assertEquals(sanitized.toString(), 'if: ifValue')
 })
 
-Deno.test('sanitizePropertyName converts "function" protected keyword to "functionValue"', () => {
+Deno.test('sanitizePropertyName converts "function" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('function')
-  assertEquals(sanitized, 'functionValue')
+  assertEquals(sanitized.toString(), 'function: functionValue')
 })
 
-Deno.test('sanitizePropertyName converts "var" protected keyword to "varValue"', () => {
+Deno.test('sanitizePropertyName converts "var" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('var')
-  assertEquals(sanitized, 'varValue')
+  assertEquals(sanitized.toString(), 'var: varValue')
 })
 
-Deno.test('sanitizePropertyName converts "null" protected keyword to "nullValue"', () => {
+Deno.test('sanitizePropertyName converts "null" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('null')
-  assertEquals(sanitized, 'nullValue')
+  assertEquals(sanitized.toString(), 'null: nullValue')
 })
 
-Deno.test('sanitizePropertyName converts "true" protected keyword to "trueValue"', () => {
+Deno.test('sanitizePropertyName converts "true" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('true')
-  assertEquals(sanitized, 'trueValue')
+  assertEquals(sanitized.toString(), 'true: trueValue')
 })
 
-Deno.test('sanitizePropertyName converts "false" protected keyword to "falseValue"', () => {
+Deno.test('sanitizePropertyName converts "false" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('false')
-  assertEquals(sanitized, 'falseValue')
+  assertEquals(sanitized.toString(), 'false: falseValue')
 })
 
 // Protected keywords with asterisk patterns
-Deno.test('sanitizePropertyName converts "enum *" protected keyword to "enumStarValue"', () => {
+Deno.test('sanitizePropertyName converts "enum *" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('enum *')
-  assertEquals(sanitized, 'enumStarValue')
+  assertEquals(sanitized.toString(), 'enum *: enumStarValue')
 })
 
-Deno.test('sanitizePropertyName converts "class *" protected keyword to "classStarValue"', () => {
+Deno.test('sanitizePropertyName converts "class *" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('class *')
-  assertEquals(sanitized, 'classStarValue')
+  assertEquals(sanitized.toString(), 'class *: classStarValue')
 })
 
-Deno.test('sanitizePropertyName converts "const *" protected keyword to "constStarValue"', () => {
+Deno.test('sanitizePropertyName converts "const *" protected keyword to key-value format', () => {
   const sanitized = sanitizePropertyName('const *')
-  assertEquals(sanitized, 'constStarValue')
+  assertEquals(sanitized.toString(), 'const *: constStarValue')
 })
 
 // Invalid Identifiers Tests - Spaces

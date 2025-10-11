@@ -276,14 +276,11 @@ const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
         })
       })
       .then(stats => {
-        console.log('YAY')
-
         dispatchMessage(toGenerateMessage(stats))
 
         leave()
       })
       .catch(error => {
-        console.log('NAY')
         console.error(error)
 
         leave()
