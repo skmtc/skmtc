@@ -72,10 +72,7 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
   // Execute removal
   if (project instanceof Project) {
     project
-      .removeGenerator(
-        { moduleName: selectedGenerator },
-        { logSuccess: `Generator "${selectedGenerator}" removed` }
-      )
+      .removeGenerator({ moduleName: selectedGenerator })
       .then(() => {
         dispatchMessage({ success: `Generator "${selectedGenerator}" removed successfully` })
       })

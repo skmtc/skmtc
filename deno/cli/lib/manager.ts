@@ -15,22 +15,4 @@ export class Manager {
 
     await Promise.all(promises)
   }
-
-  async success(logSuccess?: string) {
-    await this.cleanup()
-
-    if (logSuccess) {
-      console.log(logSuccess)
-    }
-  }
-
-  async fail(message?: string) {
-    await this.cleanup()
-
-    if (message) {
-      console.error(message)
-    }
-
-    Deno.exit(1)
-  }
 }

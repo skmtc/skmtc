@@ -26,6 +26,7 @@ import { Spinner } from '@inkjs/ui'
 import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
 import { ServerTask } from './ServerTask.tsx'
+import console from 'node:console'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -271,19 +272,20 @@ const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
           schemaContents,
           clientSettings: project.clientJson?.contents?.settings,
           prettier: project.prettierJson?.contents,
-          token,
-          dispatchMessage
+          token
         })
       })
       .then(stats => {
-        if (stats) {
-          dispatchMessage(toGenerateMessage(stats))
-        }
+        console.log('YAY')
+
+        dispatchMessage(toGenerateMessage(stats))
+
+        leave()
       })
       .catch(error => {
+        console.log('NAY')
         console.error(error)
-      })
-      .finally(() => {
+
         leave()
       })
   }, [])
@@ -352,7 +354,6 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
           project,
           accountName: state.session?.user?.user_metadata?.user_name,
           skmtcRoot: state.skmtcRoot,
-          dispatchMessage,
           schemaContents: contents,
           clientSettings: project.clientJson?.contents?.settings,
           prettier: project.prettierJson?.contents,
@@ -360,17 +361,16 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
         })
       })
       .then(stats => {
-        if (stats) {
-          dispatchMessage(toGenerateMessage(stats))
-        }
+        dispatchMessage(toGenerateMessage(stats))
+
+        setActivity('watching')
       })
       .catch(error => {
         console.error(error)
 
         dispatchMessage({ error: 'Failed to generate' })
-      })
-      .finally(() => {
-        setActivity('watching')
+
+        leave()
       })
   }, [watcher, activity])
 

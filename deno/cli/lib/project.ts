@@ -52,10 +52,6 @@ type InstallGeneratorArgs = {
   moduleName: string
 }
 
-type InstallOptions = {
-  logSuccess?: string
-}
-
 type RemoveGeneratorArgs = {
   moduleName: string
 }
@@ -172,16 +168,14 @@ export class Project {
       })
 
       this.rootDenoJson.write()
-
-      await this.manager.success()
     } catch (error) {
       console.error(error)
 
       Sentry.captureException(error)
 
       await Sentry.flush()
-
-      await this.manager.fail('Failed to clone generator')
+    } finally {
+      await this.manager.cleanup()
     }
   }
 
@@ -195,10 +189,7 @@ export class Project {
     return modPath
   }
 
-  async installGenerator(
-    { moduleName }: InstallGeneratorArgs,
-    { logSuccess }: InstallOptions = {}
-  ) {
+  async installGenerator({ moduleName }: InstallGeneratorArgs) {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
 
@@ -214,8 +205,6 @@ export class Project {
 
       generator.install({ denoJson: this.rootDenoJson })
 
-      await this.manager.success()
-
       return generator
     } catch (error) {
       console.error(error)
@@ -223,8 +212,8 @@ export class Project {
       Sentry.captureException(error)
 
       await Sentry.flush()
-
-      await this.manager.fail('Failed to install generator')
+    } finally {
+      await this.manager.cleanup()
     }
   }
 
@@ -240,20 +229,18 @@ export class Project {
 
       this.clientJson.path = ClientJson.toPath({ projectPath: toProjectPath(newName) })
       this.rootDenoJson.projectName = newName
-
-      await this.manager.success()
     } catch (error) {
       console.error(error)
 
       Sentry.captureException(error)
 
       await Sentry.flush()
-
-      await this.manager.fail('Failed to rename project')
+    } finally {
+      await this.manager.cleanup()
     }
   }
 
-  async removeGenerator({ moduleName }: RemoveGeneratorArgs, { logSuccess }: RemoveOptions = {}) {
+  async removeGenerator({ moduleName }: RemoveGeneratorArgs) {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
 
@@ -267,16 +254,14 @@ export class Project {
       })
 
       generator.remove(this)
-
-      await this.manager.success()
     } catch (error) {
       console.error(error)
 
       Sentry.captureException(error)
 
       await Sentry.flush()
-
-      await this.manager.fail('Failed to remove generator')
+    } finally {
+      await this.manager.cleanup()
     }
   }
 
@@ -329,8 +314,6 @@ export class Project {
 
       dispatchMessage({ success: `Deployed in ${formatNumber(duration)}secs` })
 
-      await this.manager.success()
-
       dispatchMessage({ success: 'Deployment successful' })
     } catch (error) {
       console.error(error)
@@ -356,6 +339,8 @@ export class Project {
       // } else {
       //   await this.manager.fail('Failed to deploy generators')
       // }
+    } finally {
+      await this.manager.cleanup()
     }
   }
 
@@ -377,8 +362,8 @@ export class Project {
       Sentry.captureException(error)
 
       await Sentry.flush()
-
-      await this.manager.fail('Failed to add generator')
+    } finally {
+      await this.manager.cleanup()
     }
   }
 

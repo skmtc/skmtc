@@ -68,15 +68,13 @@ export const runtimeLogs = async (
     //     console.error(log.message)
     //   }
     // })
-
-    await skmtcRoot.manager.success()
   } catch (error) {
     console.error(error)
 
     Sentry.captureException(error)
 
     await Sentry.flush()
-
-    await skmtcRoot.manager.fail('Failed to get runtime logs')
+  } finally {
+    await skmtcRoot.manager.cleanup()
   }
 }

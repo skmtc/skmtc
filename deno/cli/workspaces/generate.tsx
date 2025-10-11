@@ -11,7 +11,7 @@ import { App } from '@/components/App.tsx'
 import type { PrettierConfigType } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { SchemaFile } from '@/lib/schema-file.ts'
-import type { SuccessMessage, SkmtcMessage } from '@/components/SkmtcContext.tsx'
+import type { SuccessMessage } from '@/components/SkmtcContext.tsx'
 import { PrettierJson } from '../lib/prettier-json.ts'
 
 export const description = 'Generate artifacts'
@@ -60,7 +60,6 @@ type GenerateArgs = {
   clientSettings: ClientSettings | undefined
   prettier: PrettierConfigType | undefined
   token: string | undefined
-  dispatchMessage: (message: SkmtcMessage) => void
 }
 
 export const generate = async ({
@@ -70,7 +69,6 @@ export const generate = async ({
   schemaContents,
   clientSettings,
   prettier,
-  dispatchMessage,
   token
 }: GenerateArgs) => {
   try {
@@ -85,28 +83,23 @@ export const generate = async ({
       token
     })
 
-    if (!result) {
-      dispatchMessage({ error: 'Failed to generate artifacts' })
-      return
-    }
-
     const { artifacts, manifest } = result
 
     const stats = toGenerationStats({ manifest, artifacts })
 
-    await skmtcRoot.manager.success()
+    await skmtcRoot.manager.cleanup()
 
     return stats
   } catch (error) {
-    console.log('ERROR', error)
-
-    console.error(error instanceof Error ? error.message : 'Failed to generate artifacts')
+    console.error(error instanceof Error ? error : 'Failed to generate artifacts')
 
     Sentry.captureException(error)
 
     await Sentry.flush()
 
-    await skmtcRoot.manager.fail()
+    await skmtcRoot.manager.cleanup()
+
+    throw error
   }
 }
 

@@ -96,7 +96,7 @@ export class Workspace {
     prettier,
     accountName,
     token
-  }: GenerateArtifactsArgs): Promise<GenerateResponse | null> {
+  }: GenerateArtifactsArgs): Promise<GenerateResponse> {
     const manifestPath = project.toManifestPath()
 
     const result = project.clientJson.contents?.serverUrl
@@ -114,10 +114,6 @@ export class Workspace {
           prettier,
           token
         })
-
-    if (!result) {
-      return null
-    }
 
     const { artifacts, manifest } = result
 

@@ -117,7 +117,7 @@ export class SkmtcRoot {
 
     this.projects.push(project)
 
-    await this.manager.success(`Project created in "${project.toPath()}"`)
+    await this.manager.cleanup()
 
     return project
   }

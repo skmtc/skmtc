@@ -36,7 +36,7 @@ export const generateSandboxApi = async ({
   if (!res.ok) {
     console.log('ERROR', await res.text())
 
-    return null
+    throw new Error('Failed to generate artifacts')
   }
 
   const data = await res.json()

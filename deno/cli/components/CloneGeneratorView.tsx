@@ -56,7 +56,8 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
 
   const handleSubmit = (selectedValues: string[]) => {
     if (selectedValues.length === 0) {
-      dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      dispatchMessage({ error: 'No generators selected' })
+
       return
     }
 

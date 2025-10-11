@@ -49,16 +49,14 @@ export const ServeView = ({ project, view }: ServeViewProps) => {
         delete project.clientJson.contents?.serverUrl
 
         await project.clientJson.write()
-
-        await state.skmtcRoot.manager.success()
       } catch (error) {
         console.error(error instanceof Error ? error.message : 'Failed to serve')
 
         Sentry.captureException(error)
 
         await Sentry.flush()
-
-        await state.skmtcRoot.manager.fail()
+      } finally {
+        await state.skmtcRoot.manager.cleanup()
       }
     }
 
@@ -142,15 +140,13 @@ export const serve = async ({ skmtcRoot, project, port }: ServeArgs) => {
     delete project.clientJson.contents?.serverUrl
 
     await project.clientJson.write()
-
-    await skmtcRoot.manager.success()
   } catch (error) {
     console.error(error instanceof Error ? error.message : 'Failed to serve')
 
     Sentry.captureException(error)
 
     await Sentry.flush()
-
-    await skmtcRoot.manager.fail()
+  } finally {
+    await skmtcRoot.manager.cleanup()
   }
 }

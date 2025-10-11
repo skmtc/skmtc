@@ -66,10 +66,7 @@ export const InstallGeneratorView = ({ project }: InstallGeneratorViewProps) => 
     if (project instanceof Project) {
       Promise.all(
         selectedValues.map(async generator => {
-          await project.installGenerator(
-            { moduleName: `jsr:${generator}` },
-            { logSuccess: `Generator "${generator}" installed` }
-          )
+          await project.installGenerator({ moduleName: `jsr:${generator}` })
         })
       )
         .then(() => {
