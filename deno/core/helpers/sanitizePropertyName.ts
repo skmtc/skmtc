@@ -9,7 +9,7 @@ export const sanitizePropertyName = (propertyName: string) => {
   }
 
   if (!isIdentifierName(propertyName)) {
-    return List.toKeyValue(name, camelCase(name))
+    return List.toKeyValue(propertyName, camelCase(propertyName))
   }
 
   return propertyName
