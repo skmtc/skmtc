@@ -129,7 +129,7 @@ export const tracer = <T>(
   stackTrail: StackTrail,
   token: string | string[],
   fn: () => T,
-  log: Logger
+  _log: Logger
 ) => {
   stackTrail.append(token)
   try {
@@ -139,9 +139,7 @@ export const tracer = <T>(
 
     return result
   } catch (error) {
-    log.error(error)
-
-    log.info('REMOVE', token)
+    // log.error(error)
 
     stackTrail.remove(token)
 

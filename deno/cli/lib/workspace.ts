@@ -162,5 +162,7 @@ const generateLocal = async ({ localUrl, schema, clientSettings, prettier }: Gen
 
   const data = await res.json()
 
-  return createArtifactsResponse.parse(data)
+  return data
+
+  // return createArtifactsResponse.parse(data)
 }
