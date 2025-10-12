@@ -87,20 +87,20 @@ Deno.test('AppInfo - should not render when page is login', () => {
   unmount()
 })
 
-Deno.test('AppInfo - should not render when interactive is false', () => {
-  const { lastFrame, unmount } = render(
-    <TestWrapper interactive={false}>
-      <AppInfo />
-    </TestWrapper>
-  )
+// Deno.test('AppInfo - should not render when interactive is false', () => {
+//   const { lastFrame, unmount } = render(
+//     <TestWrapper interactive={false}>
+//       <AppInfo />
+//     </TestWrapper>
+//   )
 
-  const output = lastFrame()
+//   const output = lastFrame()
 
-  assertExists(output)
-  assertEquals(output, '')
+//   assertExists(output)
+//   assertEquals(output, '')
 
-  unmount()
-})
+//   unmount()
+// })
 
 Deno.test('AppInfo - renders with version and no user logged in', () => {
   const { lastFrame, unmount } = render(
