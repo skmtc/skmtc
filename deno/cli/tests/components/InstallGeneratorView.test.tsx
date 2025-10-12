@@ -1,96 +1,109 @@
-import { assertEquals } from '@std/assert/equals'
+import { render } from 'ink-testing-library'
+import { assertExists, assertEquals } from '@std/assert'
+import { InstallGeneratorView } from '@/components/InstallGeneratorView.tsx'
+import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
+import { createTestSession } from '../mocks/session.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import type { Generator } from '@/types/generator.generated.ts'
+import { _joinExpects } from 'valibot'
+import { assertStringIncludes } from '@std/assert/string-includes'
 
-Deno.test('InstallGeneratorView - space key should toggle selection', async () => {
-  const manager = createMockManager()
-  const mockProject = createMockProject(manager, {
-    name: 'test-project',
-    generators: ['@skmtc/gen-typescript']
+const mockGenerators: Generator[] = [
+  {
+    id: '1',
+    name: 'test-generator-1',
+    description: 'Test generator 1',
+    dependencies: [],
+    sourceUrl: 'https://example.com',
+    registryUrl: 'https://jsr.io/@test/generator1',
+    readme: 'Test readme 1',
+    scope: 'test',
+    packageName: 'generator1',
+    createdAt: '2024-01-01'
+  },
+  {
+    id: '2',
+    name: 'test-generator-2',
+    description: 'Test generator 2',
+    dependencies: [],
+    sourceUrl: 'https://example.com',
+    registryUrl: 'https://jsr.io/@test/generator2',
+    readme: 'Test readme 2',
+    scope: 'test',
+    packageName: 'generator2',
+    createdAt: '2024-01-01'
+  }
+]
+
+Deno.test('InstallGeneratorView - moves down and selects generator', async () => {
+  const mockSession = createTestSession()
+  const mockExit = () => {}
+  const mockManager = createMockManager()
+  const mockProject = createMockProject(mockManager)
+
+  // Set up mock response for generators API
+  // @ts-ignore: access mock for testing
+  const supabaseMock = mockManager._supabaseMock
+  supabaseMock.mockResponse('/generators', {
+    data: mockGenerators,
+    error: null
   })
 
-  const installedGenerators: string[] = []
-  mockProject.installGenerator = async ({ moduleName }) => {
-    installedGenerators.push(moduleName)
-    return undefined
-  }
+  const mockSkmtcRoot = {
+    projects: [],
+    manager: mockManager
+  } as unknown as SkmtcRoot
 
-  // Simulate the space toggle behavior
-  const selectedGenerators = new Set<string>()
-  const generator = 'jsr:@skmtc/gen-zod'
-
-  // First space press - add to selection
-  if (selectedGenerators.has(generator)) {
-    selectedGenerators.delete(generator)
-  } else {
-    selectedGenerators.add(generator)
-  }
-  assertEquals(selectedGenerators.has(generator), true)
-
-  // Second space press - remove from selection
-  if (selectedGenerators.has(generator)) {
-    selectedGenerators.delete(generator)
-  } else {
-    selectedGenerators.add(generator)
-  }
-  assertEquals(selectedGenerators.has(generator), false)
-})
-
-Deno.test('InstallGeneratorView - escape key should cancel without installing', async () => {
-  const manager = createMockManager()
-  const mockProject = createMockProject(manager, {
-    name: 'test-project',
-    generators: ['@skmtc/gen-typescript']
-  })
-
-  let installCalled = false
-  mockProject.installGenerator = async () => {
-    installCalled = true
-    return undefined
-  }
-
-  // Simulate escape press behavior - should not trigger installation
-  const selectedGenerators = new Set<string>(['jsr:@skmtc/gen-zod'])
-  const escapePressedBeforeConfirm = true
-
-  if (!escapePressedBeforeConfirm) {
-    // Installation would happen here
-    await mockProject.installGenerator({ moduleName: 'jsr:@skmtc/gen-zod' })
-  }
-
-  assertEquals(installCalled, false)
-  assertEquals(selectedGenerators.size, 1) // Selection remains but installation never triggered
-})
-
-Deno.test('InstallGeneratorView - multiple generators can be selected', async () => {
-  const manager = createMockManager()
-  const mockProject = createMockProject(manager, {
-    name: 'test-project',
+  const initialState: SkmtcState = {
+    view: { page: 'install-generator', projectName: 'test-project' },
+    skmtcRoot: mockSkmtcRoot,
+    session: mockSession,
+    interactive: true,
+    message: null,
+    shortcuts: [],
     generators: []
-  })
-
-  const installedGenerators: string[] = []
-  mockProject.installGenerator = async ({ moduleName }) => {
-    installedGenerators.push(moduleName)
-    return undefined
   }
 
-  // Simulate selecting multiple generators
-  const selectedGenerators = new Set<string>()
-  const generators = ['jsr:@skmtc/gen-typescript', 'jsr:@skmtc/gen-zod', 'jsr:@skmtc/gen-msw']
-
-  generators.forEach(gen => selectedGenerators.add(gen))
-  assertEquals(selectedGenerators.size, 3)
-
-  // Simulate installation of all selected
-  await Promise.all(
-    Array.from(selectedGenerators).map(gen =>
-      mockProject.installGenerator({ moduleName: gen })
-    )
+  const { lastFrame, unmount, stdin } = render(
+    <SkmtcProvider initialState={initialState} exit={mockExit}>
+      <InstallGeneratorView
+        project={mockProject}
+        view={{ page: 'install-generator', projectName: 'test-project' }}
+      />
+    </SkmtcProvider>
   )
 
-  assertEquals(installedGenerators.length, 3)
-  assertEquals(installedGenerators.includes('jsr:@skmtc/gen-typescript'), true)
-  assertEquals(installedGenerators.includes('jsr:@skmtc/gen-zod'), true)
-  assertEquals(installedGenerators.includes('jsr:@skmtc/gen-msw'), true)
+  const output = lastFrame()
+
+  assertExists(output)
+  assertStringIncludes(output, 'Fetching generators...')
+
+  await new Promise(resolve => setTimeout(resolve, 0))
+
+  assertEquals(
+    lastFrame(),
+    `Select generators to install
+❯ @test/generator1
+  @test/generator2`
+  )
+
+  await new Promise(resolve => setTimeout(resolve, 20))
+
+  stdin.write('\u001B[B')
+  stdin.write(' ')
+
+  await new Promise(resolve => setTimeout(resolve, 50))
+
+  stdin.write('\r')
+
+  assertEquals(
+    lastFrame(),
+    `Select generators to install
+  @test/generator1
+❯ @test/generator2 ✔`
+  )
+
+  unmount()
 })
