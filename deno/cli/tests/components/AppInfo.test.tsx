@@ -9,6 +9,7 @@ import { assertExists } from "@std/assert/exists";
 import type { Session } from '@supabase/supabase-js'
 import type { Generator } from '@/types/generator.generated.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { createTestSession } from "../mocks/session.mock.ts";
 
 // Mock modules before importing components that use them
 const mockGenerators: Generator[] = [
@@ -68,25 +69,7 @@ const TestWrapper = ({
 }
 
 // Helper to create test session
-const createTestSession = (username = 'testuser'): Session => {
-  return {
-    access_token: 'test-token',
-    refresh_token: 'test-refresh',
-    expires_in: 3600,
-    token_type: 'bearer',
-    user: {
-      id: 'test-id',
-      app_metadata: {
-        provider: 'test-provider'
-      },
-      aud: 'test-aud',
-      created_at: '2024-01-01',
-      user_metadata: {
-        user_name: username
-      }
-    }
-  }
-}
+
 
 Deno.test('AppInfo - should not render when page is login', () => {
   const { lastFrame, unmount } = render(

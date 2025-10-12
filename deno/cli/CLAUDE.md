@@ -117,3 +117,8 @@ Each command follows a consistent pattern:
 - `/components/` - React/Ink UI components
 - `/prompt/` - Interactive prompt system
 - `/services/` - Generated API service clients
+
+## TypeScript
+
+- Do not use `any` types
+- Avoid casting with `as` unless absoloutely necessary. Use `as const` is fine
