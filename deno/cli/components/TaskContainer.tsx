@@ -18,6 +18,7 @@ export const TaskContainer = ({ prompt, children }: TaskContainerProps) => {
     key: 'esc',
     name: projectName ?? 'home',
     action: (input, key) => {
+      console.log('KEY', key)
       if (key.escape) {
         leave()
       }
