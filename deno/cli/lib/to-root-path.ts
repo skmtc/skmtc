@@ -33,6 +33,13 @@ const isInsideHomedir = (path: string) => {
 }
 
 export const toRelativeRootPath = () => {
+  // Check if we're in test mode with a mock path
+  // @ts-ignore - mock for testing
+  if (globalThis.__mockToRelativeRootPath) {
+    // @ts-ignore - mock for testing
+    return globalThis.__mockToRelativeRootPath
+  }
+
   const homePath = Deno.env.get('HOME')
 
   const appRootPath = toAbsoluteRootPath()
