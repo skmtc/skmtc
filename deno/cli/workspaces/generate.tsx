@@ -11,7 +11,7 @@ import { App } from '@/components/App.tsx'
 import type { PrettierConfigType } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { SchemaFile } from '@/lib/schema-file.ts'
-import type { SuccessMessage } from '@/components/SkmtcContext.tsx'
+import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import { PrettierJson } from '../lib/prettier-json.ts'
 
 export const description = 'Generate artifacts'
@@ -35,20 +35,23 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
           })
         : skmtcRoot.findProject(projectName)
 
-      render(
-        <App
-          skmtcRoot={skmtcRoot}
-          session={session}
-          view={{
-            page: 'generate',
-            project,
-            schemaSourceString,
-            watchMode: Boolean(watch),
-            basePath: project.clientJson.contents?.settings.basePath
-          }}
-          interactive={false}
-        />
-      )
+      const initialState: SkmtcState = {
+        view: {
+          page: 'generate',
+          project,
+          schemaSourceString,
+          watchMode: Boolean(watch),
+          basePath: project.clientJson.contents?.settings.basePath
+        },
+        skmtcRoot,
+        session,
+        message: null,
+        interactive: false,
+        shortcuts: [],
+        generators: []
+      }
+
+      render(<App initialState={initialState} />)
     })
 }
 

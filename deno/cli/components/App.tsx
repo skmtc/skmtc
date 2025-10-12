@@ -22,18 +22,17 @@ import { ShortcutsView } from './ShortcutsView.tsx'
 import { MessageBox } from './MessageBox.tsx'
 import { ExitView } from './ExitView.tsx'
 import { useApp } from 'ink'
+import type { SkmtcState } from './SkmtcContext.tsx'
 
-export type AppProps = {
-  skmtcRoot: SkmtcRoot
-  session: Session | null
-  view: ViewState
-  interactive: boolean
+type AppProps = {
+  initialState: SkmtcState
 }
-export const App = (props: AppProps) => {
+
+export const App = ({ initialState }: AppProps) => {
   const { exit } = useApp()
 
   return (
-    <SkmtcProvider {...props} exit={exit}>
+    <SkmtcProvider initialState={initialState} exit={exit}>
       <Box flexDirection="column">
         <AppInfo />
         <MessageBox />

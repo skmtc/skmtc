@@ -6,6 +6,7 @@ import type { Project } from '@/lib/project.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import { getRuntimeLogs } from '@/services/getRuntimeLogs.ts'
+import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 
 export const description = 'View runtime logs'
 
@@ -16,14 +17,17 @@ export const toRuntimeLogsCommand = (skmtcRoot: SkmtcRoot) => {
     .action(async (_, projectName) => {
       const session = await skmtcRoot.manager.auth.toSession()
 
-      render(
-        <App
-          skmtcRoot={skmtcRoot}
-          session={session}
-          view={{ page: 'runtime-logs', projectName }}
-          interactive={false}
-        />
-      )
+      const initialState: SkmtcState = {
+        view: { page: 'runtime-logs', projectName },
+        skmtcRoot,
+        session,
+        message: null,
+        interactive: false,
+        shortcuts: [],
+        generators: []
+      }
+
+      render(<App initialState={initialState} />)
     })
 }
 

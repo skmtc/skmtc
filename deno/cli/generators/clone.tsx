@@ -3,6 +3,7 @@ import { Command } from '@cliffy/command'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
+import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 
 export const description = 'Clone generator'
 
@@ -13,14 +14,17 @@ export const toCloneCommand = (skmtcRoot: SkmtcRoot) => {
     .action(async (_options, projectName) => {
       const session = await skmtcRoot.manager.auth.toSession()
 
-      render(
-        <App
-          skmtcRoot={skmtcRoot}
-          session={session}
-          view={{ page: 'clone-generator', projectName }}
-          interactive={false}
-        />
-      )
+      const initialState: SkmtcState = {
+        view: { page: 'clone-generator', projectName },
+        skmtcRoot,
+        session,
+        message: null,
+        interactive: false,
+        shortcuts: [],
+        generators: []
+      }
+
+      render(<App initialState={initialState} />)
     })
 
   return command

@@ -183,17 +183,14 @@ export type SkmtcState = {
 }
 
 type SkmtcProviderProps = {
-  view: ViewState
-  skmtcRoot: SkmtcRoot
   children: ReactNode
-  session: Session | null
-  interactive: boolean
+  initialState: SkmtcState
   exit: () => void
 }
 
-const SkmtcStateContext = createContext<{ state: SkmtcState; dispatch: SkmtcDispatch; exit: () => void } | undefined>(
-  undefined
-)
+const SkmtcStateContext = createContext<
+  { state: SkmtcState; dispatch: SkmtcDispatch; exit: () => void } | undefined
+>(undefined)
 
 const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
   return match(action)
@@ -212,16 +209,8 @@ const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
     .exhaustive()
 }
 
-const SkmtcProvider = ({ children, skmtcRoot, session, interactive, view, exit }: SkmtcProviderProps) => {
-  const [state, dispatch] = useReducer(skmtcReducer, {
-    view,
-    skmtcRoot,
-    session,
-    message: null,
-    interactive,
-    generators: [],
-    shortcuts: []
-  })
+const SkmtcProvider = ({ initialState, children, exit }: SkmtcProviderProps) => {
+  const [state, dispatch] = useReducer(skmtcReducer, initialState)
 
   useInitialLoad({ state, dispatch })
 
