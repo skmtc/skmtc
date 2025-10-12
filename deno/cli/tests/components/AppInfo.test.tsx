@@ -62,6 +62,7 @@ const TestWrapper = ({
       skmtcRoot={skmtcRoot}
       session={session}
       interactive={interactive}
+      exit={() => {}}
     >
       {children}
     </SkmtcProvider>
@@ -78,7 +79,9 @@ Deno.test('AppInfo - should not render when page is login', () => {
     </TestWrapper>
   )
 
-  const output = lastFrame() || ''
+  const output = lastFrame()
+
+  assertExists(output)
   assertEquals(output, '')
 
   unmount()
@@ -91,7 +94,9 @@ Deno.test('AppInfo - should not render when interactive is false', () => {
     </TestWrapper>
   )
 
-  const output = lastFrame() || ''
+  const output = lastFrame()
+
+  assertExists(output)
   assertEquals(output, '')
 
   unmount()

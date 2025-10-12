@@ -188,9 +188,10 @@ type SkmtcProviderProps = {
   children: ReactNode
   session: Session | null
   interactive: boolean
+  exit: () => void
 }
 
-const SkmtcStateContext = createContext<{ state: SkmtcState; dispatch: SkmtcDispatch } | undefined>(
+const SkmtcStateContext = createContext<{ state: SkmtcState; dispatch: SkmtcDispatch; exit: () => void } | undefined>(
   undefined
 )
 
@@ -211,7 +212,7 @@ const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
     .exhaustive()
 }
 
-const SkmtcProvider = ({ children, skmtcRoot, session, interactive, view }: SkmtcProviderProps) => {
+const SkmtcProvider = ({ children, skmtcRoot, session, interactive, view, exit }: SkmtcProviderProps) => {
   const [state, dispatch] = useReducer(skmtcReducer, {
     view,
     skmtcRoot,
@@ -226,7 +227,7 @@ const SkmtcProvider = ({ children, skmtcRoot, session, interactive, view }: Skmt
 
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context
-  const value = { state, dispatch }
+  const value = { state, dispatch, exit }
   return <SkmtcStateContext.Provider value={value}>{children}</SkmtcStateContext.Provider>
 }
 
@@ -237,7 +238,7 @@ const useSkmtc = () => {
     throw new Error('useSkmtc must be used within a SkmtcProvider')
   }
 
-  const { dispatch, state } = context
+  const { dispatch, state, exit } = context
 
   const dispatchMessage = (payload: SkmtcMessage) => {
     const timeout = setTimeout(() => {
@@ -251,7 +252,7 @@ const useSkmtc = () => {
     dispatch({ type: 'set-message', payload: { content: payload, timeout } })
   }
 
-  return { state, dispatch, dispatchMessage }
+  return { state, dispatch, dispatchMessage, exit }
 }
 
 export { SkmtcProvider, useSkmtc }

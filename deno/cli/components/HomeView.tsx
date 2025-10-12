@@ -1,6 +1,6 @@
-import React, { useEffect, useId } from 'react'
+import React from 'react'
 import SelectInput from 'ink-select-input'
-import { Box, Newline, Text, useApp } from 'ink'
+import { Box, Newline, Text } from 'ink'
 import { match, P } from 'ts-pattern'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 
@@ -13,10 +13,9 @@ type HomeActionItem = {
 }
 
 export const HomeView = () => {
-  const { state, dispatch } = useSkmtc()
-  const { exit } = useApp()
+  const { state, dispatch, exit } = useSkmtc()
 
-  const { skmtcRoot, session } = state
+  const { skmtcRoot } = state
   const { projects } = skmtcRoot
 
   const projectOptions: HomeActionItem[] = projects

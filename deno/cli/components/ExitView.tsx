@@ -1,12 +1,11 @@
 import React from 'react'
-import { Box, useApp } from 'ink'
+import { Box } from 'ink'
 import { useEffect } from 'react'
 import { useSkmtc } from './SkmtcContext.tsx'
 
 export const ExitView = () => {
-  const { state } = useSkmtc()
+  const { state, exit } = useSkmtc()
 
-  const { exit } = useApp()
   useEffect(() => {
     if (state.message?.timeout) {
       clearTimeout(state.message.timeout)

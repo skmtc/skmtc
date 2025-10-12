@@ -21,6 +21,7 @@ import { RemoveGeneratorView } from '@/components/RemoveGeneratorView.tsx'
 import { ShortcutsView } from './ShortcutsView.tsx'
 import { MessageBox } from './MessageBox.tsx'
 import { ExitView } from './ExitView.tsx'
+import { useApp } from 'ink'
 
 export type AppProps = {
   skmtcRoot: SkmtcRoot
@@ -29,8 +30,10 @@ export type AppProps = {
   interactive: boolean
 }
 export const App = (props: AppProps) => {
+  const { exit } = useApp()
+
   return (
-    <SkmtcProvider {...props}>
+    <SkmtcProvider {...props} exit={exit}>
       <Box flexDirection="column">
         <AppInfo />
         <MessageBox />
