@@ -1,4 +1,4 @@
-<img src="./skmtc-animate.gif" />
+<img src="./assets/skmtc-animate.gif" />
 
 [![Coverage Status](https://coveralls.io/repos/github/skmtc/skmtc/badge.svg?branch=main)](https://coveralls.io/github/skmtc/skmtc?branch=main)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](https://opensource.org/licenses/Apache-2.0)

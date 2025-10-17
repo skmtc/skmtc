@@ -16,7 +16,7 @@ export const ShortcutsView = () => {
   }
 
   return (
-    <Box flexDirection="row" marginLeft={2} marginTop={2}>
+    <Box flexDirection="row" marginLeft={2} marginTop={1}>
       <Box flexDirection="row" justifyContent="space-between">
         {state.shortcuts.map(({ id, label }, index, array) => (
           <Box marginRight={1} key={id}>

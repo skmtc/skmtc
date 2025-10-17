@@ -47,3 +47,7 @@ packages/core
 packages/cli
 
 deno/test-one
+
+.mcp.json
+.claude
+.cursor
