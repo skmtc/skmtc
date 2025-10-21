@@ -55,28 +55,33 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
 
   const tasks: Task[] = [
     {
-      key: 'start-server-task',
+      taskKey: 'start-server-task',
       include: project instanceof Project,
+      state: undefined,
       render: () => <StartServerTask project={project as Project} setChild={setChild} />
     },
     {
-      key: 'display-output-directory-task',
+      taskKey: 'display-output-directory-task',
       include: includeBasePathQuestion,
+      state: undefined,
       render: () => <BasePathTask project={project} />
     },
     {
-      key: 'schema-location-task',
+      taskKey: 'schema-location-task',
       include: includeSchemaQuestion,
+      state: undefined,
       render: () => <SchemaLocationTask schemaSource={schemaSource} />
     },
     {
-      key: 'watch-mode-task',
+      taskKey: 'watch-mode-task',
       include: includeWatchQuestion,
+      state: undefined,
       render: () => <WatchModeTask />
     },
     {
-      key: 'generate-view-content-task',
+      taskKey: 'generate-view-content-task',
       include: true,
+      state: undefined,
       render: () => <GenerateTask project={project} token={token} />
     }
   ]

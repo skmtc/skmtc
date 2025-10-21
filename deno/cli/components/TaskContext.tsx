@@ -5,16 +5,38 @@ import { match } from 'ts-pattern'
 type SetCurrentTaskAction = { type: 'increment-current-task' }
 type InsertTaskAction = { type: 'insert-task'; payload: InsertTaskPayload }
 
-export type TaskAction = SetCurrentTaskAction | InsertTaskAction
+type SetStateAction = { type: 'set-task-state'; payload: SetStatePayload }
+
+type SetStatePayload<TaskKey extends keyof TaskState = keyof TaskState> = {
+  taskKey: TaskKey
+  state: TaskState[TaskKey]
+}
+
+export type TaskAction = SetCurrentTaskAction | InsertTaskAction | SetStateAction
 
 type InsertTaskPayload = {
   task: Task
   index: number
 }
 
+type TaskState = {
+  'project-name': string
+  generators: string[]
+  'base-path': string
+  'create-project': boolean
+  'generator-type-task': 'operation' | 'model'
+  'generator-name-task': string
+  'start-server-task': undefined
+  'display-output-directory-task': boolean
+  'schema-location-task': string
+  'watch-mode-task': boolean
+  'generate-view-content-task': undefined
+  'confirm-task': boolean
+}
+
 export type TaskDispatch = (action: TaskAction) => void
 
-export type TaskState = {
+export type TaskContextState = {
   currentTask: number
   tasks: Task[]
 }
@@ -25,17 +47,18 @@ type TaskProviderProps = {
   children: ReactNode
 }
 
-export type Task = {
-  key: string
+export type Task<TaskKey extends keyof TaskState = keyof TaskState> = {
+  taskKey: TaskKey
+  state: TaskState[TaskKey] | undefined
   include: boolean
   render: () => ReactNode
 }
 
 const TaskStateContext = createContext<
-  { state: TaskState; dispatch: TaskDispatch; leave: () => void } | undefined
+  { state: TaskContextState; dispatch: TaskDispatch; leave: () => void } | undefined
 >(undefined)
 
-const taskReducer = (state: TaskState, action: TaskAction) => {
+const taskReducer = (state: TaskContextState, action: TaskAction) => {
   return match(action)
     .with({ type: 'increment-current-task' }, () => ({
       ...state,
@@ -45,6 +68,14 @@ const taskReducer = (state: TaskState, action: TaskAction) => {
       ...state,
       tasks: [...state.tasks.slice(0, index), task, ...state.tasks.slice(index)]
     }))
+    .with({ type: 'set-task-state' }, ({ payload }) => {
+      return {
+        ...state,
+        tasks: state.tasks.map(task =>
+          task.taskKey === payload.taskKey ? { ...task, state: payload.state } : task
+        )
+      }
+    })
     .exhaustive()
 }
 

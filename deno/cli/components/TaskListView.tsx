@@ -15,7 +15,7 @@ export const TaskListView = () => {
         .filter(({ include }) => include)
         .filter((_task, index) => index <= taskState.currentTask)
         .map(task => {
-          return <Box key={task.key}>{task.render()}</Box>
+          return <Box key={task.taskKey}>{task.render()}</Box>
         })}
     </Box>
   )

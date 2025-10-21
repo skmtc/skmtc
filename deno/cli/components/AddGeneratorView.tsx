@@ -45,13 +45,15 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
 
   const tasks: Task[] = [
     {
-      key: 'generator-type-task',
+      taskKey: 'generator-type-task',
       include: true,
+      state: undefined,
       render: () => <GeneratorTypeTask />
     },
     {
-      key: 'generator-name-task',
+      taskKey: 'generator-name-task',
       include: true,
+      state: undefined,
       render: () => <GeneratorNameTask />
     }
   ]
