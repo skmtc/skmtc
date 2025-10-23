@@ -50,7 +50,7 @@ const waitForServerReady = async (port: number): Promise<void> => {
 
     // Exponential backoff with cap
     const backoffMs = Math.min(initialBackoff * Math.pow(2, attempt), maxBackoff)
-    await new Promise((resolve) => setTimeout(resolve, backoffMs))
+    await new Promise(resolve => setTimeout(resolve, backoffMs))
   }
 
   throw new Error('Server startup timeout: maximum retries exceeded')
@@ -94,20 +94,6 @@ export const ServerTask = ({ project, setChild }: ServerTaskProps) => {
   }, [])
 
   return <Box></Box>
-
-  // if (serving) {
-  //   return (
-  //     <TaskBox id={`${id}-result`} active={false}>
-  //       <Spinner label="Serving..." />
-  //     </TaskBox>
-  //   )
-  // }
-
-  // return (
-  //   <TaskContainer>
-  //     <Spinner label="Starting server..." />
-  //   </TaskContainer>
-  // )
 }
 
 type RunServerArgs = {
