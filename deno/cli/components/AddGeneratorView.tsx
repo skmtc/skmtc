@@ -2,65 +2,47 @@ import React from 'react'
 import { type ViewStateAddGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { SelectTask } from './SelectTask.tsx'
-import invariant from 'tiny-invariant'
-import type { Task } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
-import { TaskProvider } from './TaskContext.tsx'
+import { TaskProvider, useTask } from './TaskContext.tsx'
 import { StringTask } from './StringTask.tsx'
+import invariant from 'tiny-invariant'
+import { TaskBox } from './TaskBox.tsx'
+import { Spinner } from '@inkjs/ui'
 
 type AddGeneratorViewProps = {
   project: Project | RemoteProject
   view: ViewStateAddGenerator
 }
 
-export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
-  const { dispatch, dispatchMessage, state } = useSkmtc()
+export const AddGeneratorView = ({ project }: AddGeneratorViewProps) => {
+  const { dispatch, state } = useSkmtc()
 
-  const [adding, setAdding] = useState(false)
-  const username = state.session?.user.user_metadata.user_name
-
-  // Execute add generator when all inputs are collected
-  useEffect(() => {
-    if (view.generatorName && view.generatorType && project instanceof Project && !adding) {
-      setAdding(true)
-
-      project
-        .addGenerator({ moduleName: view.generatorName, type: view.generatorType, username })
-        .then(() => {
-          dispatchMessage({ success: `Generator "${view.generatorName}" created successfully` })
-        })
-        .catch(error => {
-          console.error(error)
-
-          dispatchMessage({ error: `Failed to add generator "${view.generatorName}"` })
-        })
-        .finally(() => {
-          setAdding(false)
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
-        })
-    }
-  }, [view.generatorName, view.generatorType, adding])
-
-  const tasks: Task[] = [
-    {
-      taskKey: 'generator-type-task',
-      include: true,
-      state: undefined,
-      render: () => <GeneratorTypeTask />
-    },
-    {
-      taskKey: 'generator-name-task',
-      include: true,
-      state: undefined,
-      render: () => <GeneratorNameTask />
-    }
-  ]
+  invariant(project instanceof Project, 'Local project is required')
 
   return (
     <TaskProvider
-      tasks={tasks}
+      tasks={[
+        {
+          taskKey: 'generator-type-task',
+          include: true,
+          state: undefined,
+          render: () => <GeneratorTypeTask />
+        },
+        {
+          taskKey: 'generator-name-task',
+          include: true,
+          state: undefined,
+          render: () => <GeneratorNameTask />
+        },
+        {
+          taskKey: 'add-generator-task',
+          include: true,
+          state: undefined,
+          render: () => <AddGeneratorTask project={project} />
+        }
+      ]}
       leave={() => {
         if (state.interactive) {
           dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
@@ -74,8 +56,53 @@ export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
   )
 }
 
+type AddGeneratorTaskProps = {
+  project: Project
+}
+
+const AddGeneratorTask = ({ project }: AddGeneratorTaskProps) => {
+  const { state: skmtcState, dispatch, dispatchMessage } = useSkmtc()
+  const { state: taskState } = useTask()
+
+  const username = skmtcState.session?.user.user_metadata.user_name
+
+  useEffect(() => {
+    const taskEntries = taskState.tasks.map(task => [task.taskKey, task.state])
+
+    const taskMap = Object.fromEntries(taskEntries)
+
+    const generatorName = taskMap['generator-name-task']
+    const generatorType = taskMap['generator-type-task']
+
+    invariant(generatorName, 'Generator name is required')
+    invariant(generatorType, 'Generator type is required')
+
+    project
+      .addGenerator({ moduleName: generatorName, type: generatorType, username })
+      .then(() => {
+        dispatchMessage({
+          success: `"${generatorName}" (${generatorType}) generator added to ${project.name}`
+        })
+      })
+      .catch(error => {
+        console.error(error)
+
+        dispatchMessage({ error: `Failed to add generator "${generatorName}"` })
+      })
+      .finally(() => {
+        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      })
+  }, [taskState.tasks, project])
+
+  return (
+    <TaskBox id={`deploy-project-task`} active>
+      <Spinner label="Adding generator..." />
+    </TaskBox>
+  )
+}
+
 const GeneratorTypeTask = () => {
-  const { state, dispatch } = useSkmtc()
+  const { dispatch } = useTask()
 
   return (
     <SelectTask
@@ -85,16 +112,9 @@ const GeneratorTypeTask = () => {
         { label: 'model', value: 'model' }
       ]}
       setValue={value => {
-        const { view } = state
-
-        invariant(view.page === 'create-generator', 'Generator type is required')
-
         dispatch({
-          type: 'set-view',
-          payload: {
-            ...view,
-            generatorType: value as 'operation' | 'model'
-          }
+          type: 'set-task-state',
+          payload: { taskKey: 'generator-type-task', state: value as 'operation' | 'model' }
         })
       }}
     />
@@ -102,22 +122,15 @@ const GeneratorTypeTask = () => {
 }
 
 const GeneratorNameTask = () => {
-  const { state, dispatch } = useSkmtc()
+  const { dispatch } = useTask()
 
   return (
     <StringTask
       prompt="Generator name"
       setValue={value => {
-        const { view } = state
-
-        invariant(view.page === 'create-generator', 'Generator name is required')
-
         dispatch({
-          type: 'set-view',
-          payload: {
-            ...view,
-            generatorName: value
-          }
+          type: 'set-task-state',
+          payload: { taskKey: 'generator-name-task', state: value }
         })
       }}
     />

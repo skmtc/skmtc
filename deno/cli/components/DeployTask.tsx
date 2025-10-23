@@ -1,6 +1,6 @@
 import React from 'react'
-import { Box, Text } from 'ink'
-import { Project } from '@/lib/project.ts'
+import { Text } from 'ink'
+import type { Project } from '@/lib/project.ts'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useEffect, useState } from 'react'
 import { Spinner } from '@inkjs/ui'

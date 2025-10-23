@@ -21,8 +21,13 @@ const createMockSkmtcRoot = (): SkmtcRoot => ({
   }
 }) as unknown as SkmtcRoot
 
-const createMockTask = (key: string, content: string, include = true): Task => ({
-  key,
+const createMockTask = (
+  taskKey: 'project-name' | 'generators' | 'base-path' | 'create-project' | 'generator-type-task',
+  content: string,
+  include = true
+): Task => ({
+  taskKey,
+  state: undefined,
   include,
   render: () => <Text>{content}</Text>
 })
@@ -64,9 +69,9 @@ Deno.test('TaskListView - renders only included tasks', () => {
   const mockLeave = () => {}
 
   const tasks: Task[] = [
-    createMockTask('task-1', 'Included Task 1', true),
-    createMockTask('task-2', 'Excluded Task', false),
-    createMockTask('task-3', 'Included Task 2', true)
+    createMockTask('project-name', 'Included Task 1', true),
+    createMockTask('generators', 'Excluded Task', false),
+    createMockTask('base-path', 'Included Task 2', true)
   ]
 
   const skmtcState: SkmtcState = {
@@ -108,10 +113,10 @@ Deno.test('TaskListView - respects currentTask index', () => {
   const mockLeave = () => {}
 
   const tasks: Task[] = [
-    createMockTask('task-1', 'Task 1', true),
-    createMockTask('task-2', 'Task 2', true),
-    createMockTask('task-3', 'Task 3', true),
-    createMockTask('task-4', 'Task 4', true)
+    createMockTask('project-name', 'Task 1', true),
+    createMockTask('generators', 'Task 2', true),
+    createMockTask('base-path', 'Task 3', true),
+    createMockTask('create-project', 'Task 4', true)
   ]
 
   const skmtcState: SkmtcState = {
@@ -149,7 +154,7 @@ Deno.test('TaskListView - applies paddingTop based on interactive mode', () => {
   const mockExit = () => {}
   const mockLeave = () => {}
 
-  const tasks: Task[] = [createMockTask('task-1', 'Test Task', true)]
+  const tasks: Task[] = [createMockTask('project-name', 'Test Task', true)]
 
   // Test with interactive: false (should have paddingTop: 1)
   const skmtcStateNonInteractive: SkmtcState = {
@@ -208,11 +213,11 @@ Deno.test('TaskListView - combined filtering with include and currentTask', () =
   const mockLeave = () => {}
 
   const tasks: Task[] = [
-    createMockTask('task-1', 'Included Task 1', true),
-    createMockTask('task-2', 'Excluded Task 1', false),
-    createMockTask('task-3', 'Included Task 2', true),
-    createMockTask('task-4', 'Excluded Task 2', false),
-    createMockTask('task-5', 'Included Task 3', true)
+    createMockTask('project-name', 'Included Task 1', true),
+    createMockTask('generators', 'Excluded Task 1', false),
+    createMockTask('base-path', 'Included Task 2', true),
+    createMockTask('create-project', 'Excluded Task 2', false),
+    createMockTask('generator-type-task', 'Included Task 3', true)
   ]
 
   const skmtcState: SkmtcState = {
@@ -256,12 +261,14 @@ Deno.test('TaskListView - renders multiple tasks with custom render functions', 
 
   const tasks: Task[] = [
     {
-      key: 'custom-1',
+      taskKey: 'project-name',
+      state: undefined,
       include: true,
       render: () => <Text color="green">Green Task</Text>
     },
     {
-      key: 'custom-2',
+      taskKey: 'generators',
+      state: undefined,
       include: true,
       render: () => <Text color="red">Red Task</Text>
     }

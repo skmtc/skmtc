@@ -148,10 +148,6 @@ const CreateProjectTask = () => {
     const generators = taskMap['generators']
     const basePath = taskMap['base-path']
 
-    console.log('PROJECT NAME', projectName)
-    console.log('GENERATORS', generators)
-    console.log('BASE PATH', basePath)
-
     if (projectName && generators?.length && basePath && availableGenerators?.length) {
       Project.create({
         skmtcRoot,

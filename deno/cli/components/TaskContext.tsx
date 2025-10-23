@@ -32,6 +32,7 @@ type TaskState = {
   'watch-mode-task': boolean
   'generate-view-content-task': undefined
   'confirm-task': boolean
+  'add-generator-task': undefined
 }
 
 export type TaskDispatch = (action: TaskAction) => void
