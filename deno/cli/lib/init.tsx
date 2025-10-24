@@ -5,7 +5,9 @@ import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 
-export const toInitCommand = (skmtcRoot: SkmtcRoot) => {
+type RenderInitFn = (args: RenderInitArgs) => Promise<void>
+
+export const toInitCommand = (skmtcRoot: SkmtcRoot, renderInit: RenderInitFn) => {
   const command = new Command()
     .description('Initialize a new project in current directory')
     .arguments('[projectName:string] [generators:string[]] [basePath:string]')
@@ -23,7 +25,12 @@ type RenderInitArgs = {
   basePath: string | undefined
 }
 
-const renderInit = async ({ skmtcRoot, projectName, generators, basePath }: RenderInitArgs) => {
+export const renderInit = async ({
+  skmtcRoot,
+  projectName,
+  generators,
+  basePath
+}: RenderInitArgs) => {
   const session = await skmtcRoot.manager.auth.toSession()
 
   const initialState: SkmtcState = {
