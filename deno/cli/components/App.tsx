@@ -46,7 +46,9 @@ const ViewManager = () => {
 
   return match(state.view)
     .with({ page: 'home' }, () => <HomeView />)
-    .with({ page: 'create-project' }, () => <CreateProject />)
+    .with({ page: 'create-project' }, ({ projectName, generators, basePath }) => (
+      <CreateProject projectName={projectName} generators={generators} basePath={basePath} />
+    ))
     .with({ page: 'login' }, () => <LoginView />)
     .with({ page: 'project' }, ({ projectName }) => (
       <ProjectView project={state.skmtcRoot.findProject(projectName)} />

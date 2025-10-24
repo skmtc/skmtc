@@ -10,29 +10,48 @@ import { TaskBox } from './TaskBox.tsx'
 import { Spinner } from '@inkjs/ui'
 import { Text } from 'ink'
 import { useGetGenerators } from './useGetGenerators.ts'
+import { useMemo } from 'react'
 
-export const CreateProject = () => {
+type CreateProjectProps = {
+  projectName: string | undefined
+  generators: string[] | undefined
+  basePath: string | undefined
+}
+
+export const CreateProject = ({ projectName, generators, basePath }: CreateProjectProps) => {
   const { state, dispatch } = useSkmtc()
+
+  const includeProjectName = useMemo(() => {
+    return !projectName
+  }, [])
+
+  const includeGenerators = useMemo(() => {
+    return !generators
+  }, [])
+
+  const includeBasePath = useMemo(() => {
+    return !basePath
+  }, [])
 
   return (
     <TaskProvider
       tasks={[
         {
           taskKey: 'project-name',
-          include: true,
-          state: undefined,
+          include: includeProjectName,
+          state: projectName,
           render: () => <ProjectNameTask />
         },
         {
           taskKey: 'generators',
-          include: true,
-          state: undefined,
+          include: includeGenerators,
+          state: generators,
           render: () => <GeneratorsTask />
         },
         {
           taskKey: 'base-path',
-          include: true,
-          state: undefined,
+          include: includeBasePath,
+          state: basePath,
           render: () => <BasePathTask />
         },
         {
@@ -167,6 +186,13 @@ const CreateProjectTask = () => {
           dispatchMessage({ error: 'Failed to create project' })
           dispatch({ type: 'set-view', payload: { page: 'home' } })
         })
+    } else {
+      console.log('Project name, generators, or base path is missing')
+      console.log('projectName', projectName)
+      console.log('generators', generators)
+      console.log('basePath', basePath)
+      console.log('availableGenerators', availableGenerators)
+      console.log('taskState', taskState)
     }
   }, [state.view, availableGenerators])
 
