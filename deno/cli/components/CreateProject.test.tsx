@@ -112,7 +112,7 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 
   stdin.write('test-project')
 
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const projectName = lastFrame()
 
@@ -124,7 +124,7 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const generatorsPrompt = lastFrame()
 
@@ -141,15 +141,15 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
   // Arrow down to select the Zod generator
   stdin.write('\u001B[B')
 
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   stdin.write(' ')
 
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const basePathPrompt = lastFrame()
 
@@ -167,7 +167,7 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const creatingProject = lastFrame()
 
@@ -185,7 +185,7 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 │  ⠋ Creating project...`
   )
 
-  await new Promise(resolve => setTimeout(resolve, 50))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   assertSpyCall(projectCreateStub, 0, {
     args: [
