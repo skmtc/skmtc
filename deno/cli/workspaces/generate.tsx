@@ -13,46 +13,70 @@ import type { ClientSettings } from '@skmtc/core/Settings'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import { PrettierJson } from '../lib/prettier-json.ts'
+import type { InkRenderFn } from '@/lib/init.tsx'
 
 export const description = 'Generate artifacts'
 
-export const toGenerateCommand = (skmtcRoot: SkmtcRoot) => {
+type RenderGenerateFn = (args: RenderGenerateArgs) => Promise<void>
+
+export const toGenerateCommand = (skmtcRoot: SkmtcRoot, renderGenerate: RenderGenerateFn) => {
   return new Command()
     .description(description)
     .arguments('<project:string> [schema:string]')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
     .action(async ({ watch }, projectName, schemaSourceString) => {
-      const session = await skmtcRoot.manager.auth.toSession()
-
-      const project = isProjectKey(projectName)
-        ? await RemoteProject.fromKey({
-            projectKey: projectName,
-            schemaFile: schemaSourceString
-              ? await SchemaFile.openFromSource(schemaSourceString)
-              : SchemaFile.create(),
-            prettierPath: PrettierJson.toPath(projectName),
-            manager: skmtcRoot.manager
-          })
-        : skmtcRoot.findProject(projectName)
-
-      const initialState: SkmtcState = {
-        view: {
-          page: 'generate',
-          project,
-          schemaSourceString,
-          watchMode: Boolean(watch),
-          basePath: project.clientJson.contents?.settings.basePath
-        },
-        skmtcRoot,
-        session,
-        message: null,
-        interactive: false,
-        shortcuts: [],
-        generators: []
-      }
-
-      render(<App initialState={initialState} />)
+      await renderGenerate({ skmtcRoot, projectName, schemaSourceString, watch })
     })
+}
+
+type RenderGenerateArgs = {
+  skmtcRoot: SkmtcRoot
+  projectName: string
+  schemaSourceString: string | undefined
+  watch: boolean | undefined
+  // Optional dependencies for testing
+  renderFn?: InkRenderFn
+  AppComponent?: typeof App
+}
+
+export const renderGenerate = async ({
+  skmtcRoot,
+  projectName,
+  schemaSourceString,
+  watch,
+  renderFn = render,
+  AppComponent = App
+}: RenderGenerateArgs) => {
+  const session = await skmtcRoot.manager.auth.toSession()
+
+  const project = isProjectKey(projectName)
+    ? await RemoteProject.fromKey({
+        projectKey: projectName,
+        schemaFile: schemaSourceString
+          ? await SchemaFile.openFromSource(schemaSourceString)
+          : SchemaFile.create(),
+        prettierPath: PrettierJson.toPath(projectName),
+        manager: skmtcRoot.manager
+      })
+    : skmtcRoot.findProject(projectName)
+
+  const initialState: SkmtcState = {
+    view: {
+      page: 'generate',
+      project,
+      schemaSourceString,
+      watchMode: Boolean(watch),
+      basePath: project.clientJson.contents?.settings.basePath
+    },
+    skmtcRoot,
+    session,
+    message: null,
+    interactive: false,
+    shortcuts: [],
+    generators: []
+  }
+
+  renderFn(<AppComponent initialState={initialState} />)
 }
 
 type GenerateArgs = {
