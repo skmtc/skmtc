@@ -138,6 +138,7 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 │    @skmtc/gen-zod`
   )
 
+  // Arrow down to select the Zod generator
   stdin.write('\u001B[B')
 
   await new Promise(resolve => setTimeout(resolve, 20))

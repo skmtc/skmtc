@@ -175,6 +175,8 @@ const WatchModeTask = () => {
         const payload = { ...view, watchMode: value }
 
         dispatch({ type: 'set-view', payload })
+
+        taskDispatch({ type: 'increment-current-task' })
       }}
     />
   )
