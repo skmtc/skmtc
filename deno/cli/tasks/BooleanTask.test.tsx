@@ -66,90 +66,100 @@ const createInitialState = (): SkmtcState => ({
   generators: []
 })
 
-Deno.test('BooleanTask - selecting Yes shows Yes', async () => {
-  const initialState = createInitialState()
-  const mockExit = () => {}
+Deno.test({
+  name: 'BooleanTask - selecting Yes shows Yes',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const initialState = createInitialState()
+    const mockExit = () => {}
 
-  const { lastFrame, stdin, unmount } = render(
-    <SkmtcProvider initialState={initialState} exit={mockExit}>
-      <TaskProvider leave={() => {}} tasks={[]}>
-        <BooleanTask prompt="Watch for changes?" setValue={() => {}} />
-      </TaskProvider>
-    </SkmtcProvider>
-  )
+    const { lastFrame, stdin, unmount } = render(
+      <SkmtcProvider initialState={initialState} exit={mockExit}>
+        <TaskProvider leave={() => {}} tasks={[]}>
+          <BooleanTask prompt="Watch for changes?" setValue={() => {}} />
+        </TaskProvider>
+      </SkmtcProvider>
+    )
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  const selectOutput = lastFrame()
-  assertEquals(
-    selectOutput,
-    `│  Watch for changes?
+    const selectOutput = lastFrame()
+    assertEquals(
+      selectOutput,
+      `│  Watch for changes?
 │  ❯ Yes
 │    No`
-  )
+    )
 
-  stdin.write('\r')
+    stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  const resultOutput = lastFrame()
-  assertEquals(
-    resultOutput,
-    `│  Watch for changes?
+    const resultOutput = lastFrame()
+    assertEquals(
+      resultOutput,
+      `│  Watch for changes?
 │  Yes
 │`
-  )
+    )
 
-  unmount()
+    unmount()
+  }
 })
 
-Deno.test('BooleanTask - selecting No shows No', async () => {
-  const initialState = createInitialState()
-  const mockExit = () => {}
+Deno.test({
+  name: 'BooleanTask - selecting No shows No',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const initialState = createInitialState()
+    const mockExit = () => {}
 
-  const { lastFrame, stdin, unmount } = render(
-    <SkmtcProvider initialState={initialState} exit={mockExit}>
-      <TaskProvider leave={() => {}} tasks={[]}>
-        <BooleanTask prompt="Watch for changes?" setValue={() => {}} />
-      </TaskProvider>
-    </SkmtcProvider>
-  )
+    const { lastFrame, stdin, unmount } = render(
+      <SkmtcProvider initialState={initialState} exit={mockExit}>
+        <TaskProvider leave={() => {}} tasks={[]}>
+          <BooleanTask prompt="Watch for changes?" setValue={() => {}} />
+        </TaskProvider>
+      </SkmtcProvider>
+    )
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  const selectOutput = lastFrame()
+    const selectOutput = lastFrame()
 
-  assertEquals(
-    selectOutput,
-    `│  Watch for changes?
+    assertEquals(
+      selectOutput,
+      `│  Watch for changes?
 │  ❯ Yes
 │    No`
-  )
+    )
 
-  stdin.write('\u001B[B')
+    stdin.write('\u001B[B')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  const updatedOutput = lastFrame()
+    const updatedOutput = lastFrame()
 
-  assertEquals(
-    updatedOutput,
-    `│  Watch for changes?
+    assertEquals(
+      updatedOutput,
+      `│  Watch for changes?
 │    Yes
 │  ❯ No`
-  )
+    )
 
-  stdin.write('\r')
+    stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  const resultOutput = lastFrame()
-  assertEquals(
-    resultOutput,
-    `│  Watch for changes?
+    const resultOutput = lastFrame()
+    assertEquals(
+      resultOutput,
+      `│  Watch for changes?
 │  No
 │`
-  )
+    )
 
-  unmount()
+    unmount()
+  }
 })

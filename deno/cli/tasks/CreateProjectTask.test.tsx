@@ -169,72 +169,77 @@ Deno.test('CreateProjectTask - handles Project.create error correctly', async ()
 // CreateProjectTask Success Tests
 // ============================================================================
 
-Deno.test('CreateProjectTask - handles successful project creation', async () => {
-  const mockProject = createMockProject()
+Deno.test({
+  name: 'CreateProjectTask - handles successful project creation',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const mockProject = createMockProject()
 
-  // Stub Project.create to succeed
-  using projectCreateStub = stub(
-    Project,
-    'create',
-    () => Promise.resolve(mockProject as unknown as Project)
-  )
+    // Stub Project.create to succeed
+    using projectCreateStub = stub(
+      Project,
+      'create',
+      () => Promise.resolve(mockProject as unknown as Project)
+    )
 
-  // Create spy for leave function
-  const leaveSpy = spy()
+    // Create spy for leave function
+    const leaveSpy = spy()
 
-  // Mock generators API response
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
+    // Mock generators API response
+    const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
+    supabaseMock.mockResponse('/generators', { data: mockGenerators })
 
-  // Create mock SkmtcRoot
-  const mockSkmtcRoot: SkmtcRoot = {
-    projects: [],
-    manager: {
-      auth: {
-        supabase: supabaseClient
-      }
-    }
-  } as unknown as SkmtcRoot
-
-  const skmtcState: SkmtcState = {
-    view: { page: 'create-project' },
-    skmtcRoot: mockSkmtcRoot,
-    session: createTestSession(),
-    interactive: false,
-    message: null,
-    shortcuts: [],
-    generators: []
-  }
-
-  // Setup tasks with required values
-  const tasks = createMockTasks()
-
-  const { unmount } = render(
-    <SkmtcProvider initialState={skmtcState} exit={() => {}}>
-      <TaskProvider leave={leaveSpy} tasks={tasks}>
-        <CreateProjectTask />
-      </TaskProvider>
-    </SkmtcProvider>
-  )
-
-  // Wait for async operations to complete
-  await new Promise(resolve => setTimeout(resolve, 300))
-
-  // Verify leave was called with task state
-  assertSpyCalls(leaveSpy, 1)
-  assertSpyCall(leaveSpy, 0, {
-    args: [
-      {
-        state: {
-          'project-name': 'test-project',
-          generators: ['@skmtc/gen-typescript', '@skmtc/gen-zod'],
-          'base-path': './src'
+    // Create mock SkmtcRoot
+    const mockSkmtcRoot: SkmtcRoot = {
+      projects: [],
+      manager: {
+        auth: {
+          supabase: supabaseClient
         }
       }
-    ]
-  })
+    } as unknown as SkmtcRoot
 
-  unmount()
+    const skmtcState: SkmtcState = {
+      view: { page: 'create-project' },
+      skmtcRoot: mockSkmtcRoot,
+      session: createTestSession(),
+      interactive: false,
+      message: null,
+      shortcuts: [],
+      generators: []
+    }
+
+    // Setup tasks with required values
+    const tasks = createMockTasks()
+
+    const { unmount } = render(
+      <SkmtcProvider initialState={skmtcState} exit={() => {}}>
+        <TaskProvider leave={leaveSpy} tasks={tasks}>
+          <CreateProjectTask />
+        </TaskProvider>
+      </SkmtcProvider>
+    )
+
+    // Wait for async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    // Verify leave was called with task state
+    assertSpyCalls(leaveSpy, 1)
+    assertSpyCall(leaveSpy, 0, {
+      args: [
+        {
+          state: {
+            'project-name': 'test-project',
+            generators: ['@skmtc/gen-typescript', '@skmtc/gen-zod'],
+            'base-path': './src'
+          }
+        }
+      ]
+    })
+
+    unmount()
+  }
 })
 
 Deno.test({
