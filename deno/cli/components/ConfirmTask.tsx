@@ -2,14 +2,14 @@ import React, { useId } from 'react'
 import SelectInput from 'ink-select-input'
 import { useTask } from '@/components/TaskContext.tsx'
 import { useState } from 'react'
-import type { TaskAction, TaskState } from '@/components/TaskContext.tsx'
+import type { TaskAction, TaskContextState } from '@/components/TaskContext.tsx'
 import type { Dispatch } from 'react'
 import { TaskContainer } from './TaskContainer.tsx'
 import { TaskBox } from './TaskBox.tsx'
 import { Text } from 'ink'
 
 type ConfirmTaskArgs = {
-  state: TaskState
+  state: TaskContextState
   dispatch: Dispatch<TaskAction>
 }
 

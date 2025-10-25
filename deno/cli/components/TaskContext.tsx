@@ -19,7 +19,7 @@ type InsertTaskPayload = {
   index: number
 }
 
-type TaskState = {
+export type TaskState = {
   'project-name': string
   generators: string[]
   'base-path': string

@@ -8,7 +8,7 @@ import {
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
-import { generate, toGenerateMessage } from '@/workspaces/generate.tsx'
+import { generate, toGenerateMessage } from '@/commands/generate.tsx'
 import { match, P } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
