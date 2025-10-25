@@ -57,9 +57,14 @@ export const CreateProject = ({ projectName, generators, basePath }: CreateProje
           render: () => <CreateProjectTask />
         }
       ]}
-      leave={() => {
-        if (state.interactive) {
-          dispatch({ type: 'set-view', payload: { page: 'home' } })
+      leave={({ state: taskState }) => {
+        const project = taskState['create-project-task']
+
+        if (state.interactive && project) {
+          dispatch({
+            type: 'set-view',
+            payload: { page: 'project', projectName: project.name }
+          })
         } else {
           dispatch({ type: 'set-view', payload: { page: 'exit' } })
         }

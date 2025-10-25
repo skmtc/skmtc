@@ -17,7 +17,7 @@ import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
-import { type Task, TaskProvider, useTask } from './TaskContext.tsx'
+import { type Task, TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
 import type { SchemaSource } from '@/lib/schema-file.ts'
 import { StringTask } from './StringTask.tsx'
@@ -255,14 +255,14 @@ type RunGenerateProps = {
 
 const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
-  const { leave } = useTask()
+  const { state: taskState, leave } = useTask()
 
   useShortcut({
     key: 'esc',
     name: project.name,
     action: (input, key) => {
       if (key.escape) {
-        leave()
+        leave({ state: tasksToState(taskState.tasks) })
       }
     }
   })
@@ -283,12 +283,12 @@ const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
       .then(stats => {
         dispatchMessage(toGenerateMessage(stats))
 
-        leave()
+        leave({ state: tasksToState(taskState.tasks) })
       })
       .catch(error => {
         console.error(error)
 
-        leave()
+        leave({ state: tasksToState(taskState.tasks) })
       })
   }, [])
 
@@ -321,7 +321,7 @@ type WatchGenerateProps = {
 
 const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
-  const { leave } = useTask()
+  const { state: taskState, leave } = useTask()
   const [watcher, setWatcher] = useState<FSWatcher>()
   const [activity, setActivity] = useState<Activity>('watching')
 
@@ -332,7 +332,7 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
       if (key.escape) {
         await watcher?.close()
 
-        leave()
+        leave({ state: tasksToState(taskState.tasks) })
       }
     }
   })
@@ -372,7 +372,7 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
 
         dispatchMessage({ error: 'Failed to generate' })
 
-        leave()
+        leave({ state: tasksToState(taskState.tasks) })
       })
   }, [watcher, activity])
 

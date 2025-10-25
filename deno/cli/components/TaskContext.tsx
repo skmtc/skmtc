@@ -1,6 +1,7 @@
 import React from 'react'
 import { createContext, type ReactNode, useContext, useReducer } from 'react'
 import { match } from 'ts-pattern'
+import type { Project } from '@/lib/project.ts'
 
 type SetCurrentTaskAction = { type: 'increment-current-task' }
 type InsertTaskAction = { type: 'insert-task'; payload: InsertTaskPayload }
@@ -33,6 +34,7 @@ export type TaskState = {
   'generate-view-content-task': undefined
   'confirm-task': boolean
   'add-generator-task': undefined
+  'create-project-task': Project | null
 }
 
 export type TaskDispatch = (action: TaskAction) => void
@@ -42,8 +44,12 @@ export type TaskContextState = {
   tasks: Task[]
 }
 
+type LeaveArgs = {
+  state: Partial<TaskState>
+}
+
 type TaskProviderProps = {
-  leave: () => void
+  leave: (args: LeaveArgs) => void
   tasks: Task[]
   children: ReactNode
 }
@@ -56,10 +62,10 @@ export type Task<TaskKey extends keyof TaskState = keyof TaskState> = {
 }
 
 const TaskStateContext = createContext<
-  { state: TaskContextState; dispatch: TaskDispatch; leave: () => void } | undefined
+  { state: TaskContextState; dispatch: TaskDispatch; leave: (args: LeaveArgs) => void } | undefined
 >(undefined)
 
-const taskReducer = (state: TaskContextState, action: TaskAction) => {
+export const taskReducer = (state: TaskContextState, action: TaskAction) => {
   return match(action)
     .with({ type: 'increment-current-task' }, () => ({
       ...state,
@@ -103,3 +109,7 @@ const useTask = () => {
 }
 
 export { TaskProvider, useTask }
+
+export const tasksToState = (tasks: Task[]): Partial<TaskState> => {
+  return Object.fromEntries(tasks.map(task => [task.taskKey, task.state]))
+}

@@ -1,5 +1,5 @@
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import { useTask } from '@/components/TaskContext.tsx'
+import { tasksToState, useTask } from '@/components/TaskContext.tsx'
 import { useGetGenerators } from '@/components/useGetGenerators.ts'
 import { useEffect } from 'react'
 import { Project } from '@/lib/project.ts'
@@ -7,8 +7,8 @@ import { TaskBox } from '@/components/TaskBox.tsx'
 import { Spinner } from '@inkjs/ui'
 
 export const CreateProjectTask = () => {
-  const { state, dispatch, dispatchMessage } = useSkmtc()
-  const { state: taskState, leave } = useTask()
+  const { state, dispatchMessage } = useSkmtc()
+  const { state: taskState, dispatch: taskDispatch, leave } = useTask()
   const availableGenerators = useGetGenerators()
 
   // Execute project creation when all inputs are collected
@@ -34,13 +34,21 @@ export const CreateProjectTask = () => {
         .then(project => {
           dispatchMessage({ success: `Project "${project.name}" created` })
 
-          leave()
+          taskDispatch({
+            type: 'set-task-state',
+            payload: { taskKey: 'create-project-task', state: project }
+          })
+          leave({ state: tasksToState(taskState.tasks) })
         })
         .catch(error => {
           console.error(error)
 
           dispatchMessage({ error: 'Failed to create project' })
-          dispatch({ type: 'set-view', payload: { page: 'home' } })
+          taskDispatch({
+            type: 'set-task-state',
+            payload: { taskKey: 'create-project-task', state: null }
+          })
+          leave({ state: tasksToState(taskState.tasks) })
         })
     }
   }, [state.view, availableGenerators])

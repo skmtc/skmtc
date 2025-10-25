@@ -1,6 +1,6 @@
 import React, { useId } from 'react'
 import { useShortcut } from './useShortcut.tsx'
-import { useTask } from './TaskContext.tsx'
+import { tasksToState, useTask } from './TaskContext.tsx'
 import { useProjectName } from './SkmtcContext.tsx'
 import { TaskBox } from './TaskBox.tsx'
 
@@ -11,7 +11,7 @@ type TaskContainerProps = {
 
 export const TaskContainer = ({ prompt, children }: TaskContainerProps) => {
   const id = useId()
-  const { leave } = useTask()
+  const { state: taskState, leave } = useTask()
   const projectName = useProjectName()
 
   useShortcut({
@@ -19,7 +19,7 @@ export const TaskContainer = ({ prompt, children }: TaskContainerProps) => {
     name: projectName ?? 'home',
     action: (input, key) => {
       if (key.escape) {
-        leave()
+        leave({ state: tasksToState(taskState.tasks) })
       }
     }
   })
