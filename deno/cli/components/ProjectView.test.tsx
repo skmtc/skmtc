@@ -179,3 +179,229 @@ Deno.test({
     unmount()
   }
 })
+
+Deno.test({
+  name: 'ProjectView - select Install generator',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const initialState = createInitialState()
+    const mockProject = createMockProject()
+    const mockExit = () => {}
+
+    const { stdin, lastFrame, unmount } = render(
+      <SkmtcProvider initialState={initialState} exit={mockExit}>
+        <ProjectView project={mockProject} />
+      </SkmtcProvider>
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    // Navigate to Install generator
+    stdin.write('\x1B[B')
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    const navOutput = lastFrame()
+    assertEquals(
+      navOutput,
+      `  Generate artifacts
+
+❯ Install generator
+  Create new generator
+  Clone generator
+  Remove generator`
+    )
+
+    // Select Install generator
+    stdin.write('\r')
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    unmount()
+  }
+})
+
+Deno.test({
+  name: 'ProjectView - navigate to and select Create generator',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const initialState = createInitialState()
+    const mockProject = createMockProject()
+    const mockExit = () => {}
+
+    const { stdin, lastFrame, unmount } = render(
+      <SkmtcProvider initialState={initialState} exit={mockExit}>
+        <ProjectView project={mockProject} />
+      </SkmtcProvider>
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    // Navigate down twice to Create generator
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    const navOutput = lastFrame()
+    assertEquals(
+      navOutput,
+      `  Generate artifacts
+
+  Install generator
+❯ Create new generator
+  Clone generator
+  Remove generator`
+    )
+
+    // Select Create generator
+    stdin.write('\r')
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    unmount()
+  }
+})
+
+Deno.test({
+  name: 'ProjectView - navigate to and select Clone generator',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const initialState = createInitialState()
+    const mockProject = createMockProject()
+    const mockExit = () => {}
+
+    const { stdin, lastFrame, unmount } = render(
+      <SkmtcProvider initialState={initialState} exit={mockExit}>
+        <ProjectView project={mockProject} />
+      </SkmtcProvider>
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    // Navigate down 3 times to Clone generator
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    const navOutput = lastFrame()
+    assertEquals(
+      navOutput,
+      `  Generate artifacts
+
+  Install generator
+  Create new generator
+❯ Clone generator
+  Remove generator`
+    )
+
+    // Select Clone generator
+    stdin.write('\r')
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    unmount()
+  }
+})
+
+Deno.test({
+  name: 'ProjectView - navigate to and select Remove generator',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const initialState = createInitialState()
+    const mockProject = createMockProject()
+    const mockExit = () => {}
+
+    const { stdin, lastFrame, unmount } = render(
+      <SkmtcProvider initialState={initialState} exit={mockExit}>
+        <ProjectView project={mockProject} />
+      </SkmtcProvider>
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    // Navigate down 4 times to Remove generator
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    stdin.write('\x1B[B')
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    const navOutput = lastFrame()
+    assertEquals(
+      navOutput,
+      `  Generate artifacts
+
+  Install generator
+  Create new generator
+  Clone generator
+❯ Remove generator`
+    )
+
+    // Select Remove generator
+    stdin.write('\r')
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    unmount()
+  }
+})
+
+Deno.test({
+  name: 'ProjectView - escape key press',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const initialState = createInitialState()
+    const mockProject = createMockProject()
+    const mockExit = () => {}
+
+    const { stdin, lastFrame, unmount } = render(
+      <SkmtcProvider initialState={initialState} exit={mockExit}>
+        <ProjectView project={mockProject} />
+      </SkmtcProvider>
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    const beforeEscape = lastFrame()
+    assertEquals(
+      beforeEscape,
+      `❯ Generate artifacts
+
+  Install generator
+  Create new generator
+  Clone generator
+  Remove generator`
+    )
+
+    // Press escape key
+    stdin.write('\x1B')
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    // Component should still be rendering (we can't verify dispatch was called)
+    const afterEscape = lastFrame()
+    assertEquals(
+      afterEscape,
+      `❯ Generate artifacts
+
+  Install generator
+  Create new generator
+  Clone generator
+  Remove generator`
+    )
+
+    unmount()
+  }
+})
