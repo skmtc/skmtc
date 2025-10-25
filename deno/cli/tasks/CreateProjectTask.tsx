@@ -8,7 +8,7 @@ import { Spinner } from '@inkjs/ui'
 
 export const CreateProjectTask = () => {
   const { state, dispatch, dispatchMessage } = useSkmtc()
-  const { state: taskState } = useTask()
+  const { state: taskState, leave } = useTask()
   const availableGenerators = useGetGenerators()
 
   // Execute project creation when all inputs are collected
@@ -34,7 +34,7 @@ export const CreateProjectTask = () => {
         .then(project => {
           dispatchMessage({ success: `Project "${project.name}" created` })
 
-          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+          leave()
         })
         .catch(error => {
           console.error(error)
