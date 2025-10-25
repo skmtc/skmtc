@@ -45,16 +45,13 @@ const mockGenerators: Generator[] = [
 // Create a stubbed version of renderInit that prints parameters
 const renderInitStub = async ({
   projectName,
-  generators,
   basePath
 }: {
   skmtcRoot: SkmtcRoot
   projectName: string | undefined
-  generators: string[] | undefined
   basePath: string | undefined
 }) => {
   console.log('projectName:', projectName)
-  console.log('generators:', generators)
   console.log('basePath:', basePath)
 
   return await Promise.resolve()
@@ -63,7 +60,7 @@ const renderInitStub = async ({
 await snapshotTest({
   name: 'should log Deno.args',
   meta: import.meta,
-  args: ['test-project', '@skmtc/gen-typescript', './lib'],
+  args: ['test-project', './lib'],
   denoArgs: ['--allow-all'],
   async fn() {
     const command = toInitCommand(createMockSkmtcRoot(createMockManager()), renderInitStub)
@@ -84,7 +81,6 @@ Deno.test('renderInit - should call toSession, render, and App with expected pro
 
   // Test input values
   const testProjectName = 'test-project'
-  const testGenerators = ['@skmtc/gen-typescript', '@skmtc/gen-zod']
   const testBasePath = './src'
 
   // Mock render function that captures what it receives
@@ -102,7 +98,6 @@ Deno.test('renderInit - should call toSession, render, and App with expected pro
   await renderInit({
     skmtcRoot,
     projectName: testProjectName,
-    generators: testGenerators,
     basePath: testBasePath,
     renderFn: renderSpy as InkRenderFn,
     AppComponent: AppSpy
@@ -122,7 +117,6 @@ Deno.test('renderInit - should call toSession, render, and App with expected pro
           view: {
             page: 'create-project',
             projectName: testProjectName,
-            generators: testGenerators,
             basePath: testBasePath
           },
           skmtcRoot,

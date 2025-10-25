@@ -57,7 +57,7 @@ Deno.test('InstallGeneratorView - moves down and selects generator', async () =>
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {
-    view: { page: 'install-generator', projectName: 'test-project' },
+    view: { page: 'install-generator', projectName: 'test-project', generators: undefined },
     skmtcRoot: mockSkmtcRoot,
     session: mockSession,
     interactive: true,
@@ -69,8 +69,7 @@ Deno.test('InstallGeneratorView - moves down and selects generator', async () =>
   const { lastFrame, unmount, stdin } = render(
     <SkmtcProvider initialState={initialState} exit={mockExit}>
       <InstallGeneratorView
-        project={mockProject}
-        view={{ page: 'install-generator', projectName: 'test-project' }}
+        view={{ page: 'install-generator', projectName: mockProject.name, generators: undefined }}
       />
     </SkmtcProvider>
   )
@@ -78,15 +77,15 @@ Deno.test('InstallGeneratorView - moves down and selects generator', async () =>
   const output = lastFrame()
 
   assertExists(output)
-  assertStringIncludes(output, 'Fetching generators...')
+  assertStringIncludes(output, 'Loading generators...')
 
   await new Promise(resolve => setTimeout(resolve, 0))
 
   assertEquals(
     lastFrame(),
-    `Select generators to install
-❯ @test/generator1
-  @test/generator2`
+    `│  Select generators to install
+│  ❯ @test/generator1
+│    @test/generator2`
   )
 
   await new Promise(resolve => setTimeout(resolve, 20))
@@ -100,9 +99,9 @@ Deno.test('InstallGeneratorView - moves down and selects generator', async () =>
 
   assertEquals(
     lastFrame(),
-    `Select generators to install
-  @test/generator1
-❯ @test/generator2 ✔`
+    `│  Select generators to install
+│    @test/generator1
+│  ❯ @test/generator2 ✔`
   )
 
   unmount()

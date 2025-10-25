@@ -15,7 +15,7 @@ const renderInstallStub = async ({
   projectName
 }: {
   skmtcRoot: SkmtcRoot
-  projectName: string
+  projectName: string | undefined
 }) => {
   console.log('projectName:', projectName)
 
@@ -25,7 +25,18 @@ const renderInstallStub = async ({
 await snapshotTest({
   name: 'should log Deno.args',
   meta: import.meta,
-  args: ['test-project'],
+  args: ['@skmtc/gen-typescript', 'test-project'],
+  denoArgs: ['--allow-all'],
+  async fn() {
+    const command = toInstallCommand(createMockSkmtcRoot(createMockManager()), renderInstallStub)
+    await command.parse()
+  }
+})
+
+await snapshotTest({
+  name: 'should log Deno.args',
+  meta: import.meta,
+  args: ['@skmtc/gen-typescript'],
   denoArgs: ['--allow-all'],
   async fn() {
     const command = toInstallCommand(createMockSkmtcRoot(createMockManager()), renderInstallStub)
@@ -63,6 +74,7 @@ Deno.test(
     await renderInstall({
       skmtcRoot,
       projectName: testProjectName,
+      generators: undefined,
       renderFn: renderSpy as InkRenderFn,
       AppComponent: AppSpy
     })
@@ -80,7 +92,8 @@ Deno.test(
           initialState={{
             view: {
               page: 'install-generator',
-              projectName: testProjectName
+              projectName: testProjectName,
+              generators: undefined
             },
             skmtcRoot,
             session: mockSession,

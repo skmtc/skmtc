@@ -3,6 +3,16 @@ export const snapshot = {};
 snapshot[`should log Deno.args 1`] = `
 stdout:
 "projectName: test-project
+projectName: test-project
+"
+stderr:
+""
+`;
+
+snapshot[`should log Deno.args 2`] = `
+stdout:
+"projectName: undefined
+projectName: undefined
 "
 stderr:
 ""
