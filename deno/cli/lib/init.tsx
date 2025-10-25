@@ -1,9 +1,15 @@
 import React from 'react'
 import { Command } from '@cliffy/command'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import type { Instance, RenderOptions } from 'ink'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
+
+export type InkRenderFn = (
+  node: React.ReactNode,
+  options?: NodeJS.WriteStream | RenderOptions
+) => Instance
 
 type RenderInitFn = (args: RenderInitArgs) => Promise<void>
 
@@ -23,13 +29,18 @@ type RenderInitArgs = {
   projectName: string | undefined
   generators: string[] | undefined
   basePath: string | undefined
+  // Optional dependencies for testing
+  renderFn?: typeof render
+  AppComponent?: typeof App
 }
 
 export const renderInit = async ({
   skmtcRoot,
   projectName,
   generators,
-  basePath
+  basePath,
+  renderFn = render,
+  AppComponent = App
 }: RenderInitArgs) => {
   const session = await skmtcRoot.manager.auth.toSession()
 
@@ -43,5 +54,5 @@ export const renderInit = async ({
     generators: []
   }
 
-  render(<App initialState={initialState} />)
+  renderFn(<AppComponent initialState={initialState} />)
 }

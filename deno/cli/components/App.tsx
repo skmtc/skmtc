@@ -21,8 +21,7 @@ import { MessageBox } from './MessageBox.tsx'
 import { ExitView } from './ExitView.tsx'
 import { useApp } from 'ink'
 import type { SkmtcState } from './SkmtcContext.tsx'
-
-type AppProps = {
+export type AppProps = {
   initialState: SkmtcState
 }
 
