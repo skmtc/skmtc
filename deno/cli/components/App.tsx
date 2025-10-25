@@ -40,7 +40,7 @@ export const App = ({ initialState }: AppProps) => {
   )
 }
 
-const ViewManager = () => {
+export const ViewManager = () => {
   const { state } = useSkmtc()
 
   return match(state.view)

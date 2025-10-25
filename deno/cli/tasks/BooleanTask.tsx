@@ -4,8 +4,8 @@ import { useTask } from '@/components/TaskContext.tsx'
 import { useState } from 'react'
 import type { TaskAction, TaskContextState } from '@/components/TaskContext.tsx'
 import type { Dispatch } from 'react'
-import { TaskContainer } from './TaskContainer.tsx'
-import { TaskBox } from './TaskBox.tsx'
+import { TaskContainer } from '@/components/TaskContainer.tsx'
+import { TaskBox } from '@/components/TaskBox.tsx'
 import { Text } from 'ink'
 
 type BooleanTaskArgs = {

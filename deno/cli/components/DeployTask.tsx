@@ -10,7 +10,6 @@ import { TaskBox } from './TaskBox.tsx'
 type ToDeployTaskProps = {
   project: Project
 }
-
 export const toDeployTask = ({ project }: ToDeployTaskProps) => ({
   key: 'deploy-project-task',
   include: true,

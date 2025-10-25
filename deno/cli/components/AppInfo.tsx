@@ -40,7 +40,7 @@ type TopRowProps = {
   session: Session | null
 }
 
-const TopRow = ({ session }: TopRowProps) => {
+export const TopRow = ({ session }: TopRowProps) => {
   return (
     <Box flexDirection="row" marginBottom={1} justifyContent="space-between">
       <Box flexDirection="row">
@@ -67,7 +67,7 @@ type BottomRowProps = {
   appRootPath: string
 }
 
-const BottomRow = ({ projectName, appRootPath }: BottomRowProps) => {
+export const BottomRow = ({ projectName, appRootPath }: BottomRowProps) => {
   return (
     <Box flexDirection="row" justifyContent="space-between">
       {projectName ? (
