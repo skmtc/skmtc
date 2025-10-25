@@ -86,7 +86,7 @@ Deno.test('ProjectView - renders project action menu', async () => {
     </SkmtcProvider>
   )
 
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await new Promise(resolve => setTimeout(resolve, 150))
 
   const output = lastFrame()
   assertEquals(
@@ -121,7 +121,7 @@ Deno.test({
       </SkmtcProvider>
     )
 
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await new Promise(resolve => setTimeout(resolve, 150))
 
     const beforeOutput = lastFrame()
     assertEquals(
@@ -137,7 +137,7 @@ Deno.test({
     // Select first option (Generate artifacts)
     stdin.write('\r')
 
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await new Promise(resolve => setTimeout(resolve, 150))
 
     unmount()
   }
@@ -158,12 +158,12 @@ Deno.test({
       </SkmtcProvider>
     )
 
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await new Promise(resolve => setTimeout(resolve, 150))
 
     // Navigate to second option (Install generator)
     stdin.write('\x1B[B')
 
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await new Promise(resolve => setTimeout(resolve, 150))
 
     const output = lastFrame()
     assertEquals(

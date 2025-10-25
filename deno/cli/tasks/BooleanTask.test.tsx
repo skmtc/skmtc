@@ -78,7 +78,7 @@ Deno.test('BooleanTask - selecting Yes shows Yes', async () => {
     </SkmtcProvider>
   )
 
-  await new Promise(resolve => setTimeout(resolve, 150))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const selectOutput = lastFrame()
   assertEquals(
@@ -90,7 +90,7 @@ Deno.test('BooleanTask - selecting Yes shows Yes', async () => {
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 150))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const resultOutput = lastFrame()
   assertEquals(
@@ -115,7 +115,7 @@ Deno.test('BooleanTask - selecting No shows No', async () => {
     </SkmtcProvider>
   )
 
-  await new Promise(resolve => setTimeout(resolve, 150))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const selectOutput = lastFrame()
 
@@ -128,7 +128,7 @@ Deno.test('BooleanTask - selecting No shows No', async () => {
 
   stdin.write('\u001B[B')
 
-  await new Promise(resolve => setTimeout(resolve, 150))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const updatedOutput = lastFrame()
 
@@ -141,7 +141,7 @@ Deno.test('BooleanTask - selecting No shows No', async () => {
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 150))
+  await new Promise(resolve => setTimeout(resolve, 250))
 
   const resultOutput = lastFrame()
   assertEquals(
