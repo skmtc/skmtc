@@ -5,52 +5,56 @@ import { useEffect } from 'react'
 import { Project } from '@/lib/project.ts'
 import { TaskBox } from '@/components/TaskBox.tsx'
 import { Spinner } from '@inkjs/ui'
+import invariant from 'tiny-invariant'
 
 export const CreateProjectTask = () => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, dispatch: taskDispatch, leave } = useTask()
   const availableGenerators = useGetGenerators()
 
-  // Execute project creation when all inputs are collected
   useEffect(() => {
+    if (!availableGenerators) {
+      return
+    }
+
     const { skmtcRoot } = state
 
-    const taskEntries = taskState.tasks.map(task => [task.taskKey, task.state])
+    const {
+      'project-name': projectName,
+      generators,
+      'base-path': basePath
+    } = tasksToState(taskState.tasks)
 
-    const taskMap = Object.fromEntries(taskEntries)
+    invariant(projectName, 'Project name is required')
+    invariant(generators, 'Generators are required')
+    invariant(basePath, 'Base path is required')
 
-    const projectName = taskMap['project-name']
-    const generators = taskMap['generators']
-    const basePath = taskMap['base-path']
+    Project.create({
+      skmtcRoot,
+      name: projectName,
+      basePath,
+      generators,
+      availableGenerators
+    })
+      .then(project => {
+        dispatchMessage({ success: `Project "${project.name}" created` })
 
-    if (projectName && generators?.length && basePath && availableGenerators?.length) {
-      Project.create({
-        skmtcRoot,
-        name: projectName,
-        basePath,
-        generators,
-        availableGenerators
+        taskDispatch({
+          type: 'set-task-state',
+          payload: { taskKey: 'create-project-task', state: project }
+        })
+        leave({ state: tasksToState(taskState.tasks) })
       })
-        .then(project => {
-          dispatchMessage({ success: `Project "${project.name}" created` })
+      .catch(error => {
+        console.error(error)
 
-          taskDispatch({
-            type: 'set-task-state',
-            payload: { taskKey: 'create-project-task', state: project }
-          })
-          leave({ state: tasksToState(taskState.tasks) })
+        dispatchMessage({ error: 'Failed to create project' })
+        taskDispatch({
+          type: 'set-task-state',
+          payload: { taskKey: 'create-project-task', state: null }
         })
-        .catch(error => {
-          console.error(error)
-
-          dispatchMessage({ error: 'Failed to create project' })
-          taskDispatch({
-            type: 'set-task-state',
-            payload: { taskKey: 'create-project-task', state: null }
-          })
-          leave({ state: tasksToState(taskState.tasks) })
-        })
-    }
+        leave({ state: tasksToState(taskState.tasks) })
+      })
   }, [state.view, availableGenerators])
 
   return (
