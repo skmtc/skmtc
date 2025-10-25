@@ -1,0 +1,11 @@
+export const snapshot = {};
+
+snapshot[`should log Deno.args 1`] = `
+stdout:
+"projectName: test-project
+generator: my-generator
+type: operation
+"
+stderr:
+""
+`;

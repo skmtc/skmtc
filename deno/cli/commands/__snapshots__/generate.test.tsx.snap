@@ -1,0 +1,21 @@
+export const snapshot = {};
+
+snapshot[`should log Deno.args 1`] = `
+stdout:
+"projectName: test-project
+schemaSourceString: https://example.com/schema.json
+watch: undefined
+"
+stderr:
+""
+`;
+
+snapshot[`should log Deno.args with watch flag 1`] = `
+stdout:
+"projectName: test-project
+schemaSourceString: undefined
+watch: true
+"
+stderr:
+""
+`;
