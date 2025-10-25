@@ -39,10 +39,10 @@ Deno.test('MessageBox - renders nothing when no message', () => {
   )
 
   const output = lastFrame()
-  
+
   assertExists(output)
   assertEquals(output, '')
-  
+
   unmount()
 })
 
@@ -69,8 +69,7 @@ Deno.test('MessageBox - renders error message', () => {
     session: mockSession,
     interactive: true,
     message: {
-      content: { error: 'Something went wrong' },
-      timeout: 123
+      content: { error: 'Something went wrong' }
     },
     shortcuts: [],
     generators: []
@@ -83,10 +82,10 @@ Deno.test('MessageBox - renders error message', () => {
   )
 
   const output = lastFrame()
-  
+
   assertExists(output)
   assertStringIncludes(output, 'Something went wrong')
-  
+
   unmount()
 })
 
@@ -113,8 +112,7 @@ Deno.test('MessageBox - renders success message', () => {
     session: mockSession,
     interactive: true,
     message: {
-      content: { success: 'Operation completed successfully' },
-      timeout: 123
+      content: { success: 'Operation completed successfully' }
     },
     shortcuts: [],
     generators: []
@@ -127,10 +125,10 @@ Deno.test('MessageBox - renders success message', () => {
   )
 
   const output = lastFrame()
-  
+
   assertExists(output)
   assertStringIncludes(output, 'Operation completed successfully')
-  
+
   unmount()
 })
 
@@ -157,8 +155,7 @@ Deno.test('MessageBox - renders info message', () => {
     session: mockSession,
     interactive: true,
     message: {
-      content: { info: 'This is some information' },
-      timeout: 123
+      content: { info: 'This is some information' }
     },
     shortcuts: [],
     generators: []
@@ -171,10 +168,10 @@ Deno.test('MessageBox - renders info message', () => {
   )
 
   const output = lastFrame()
-  
+
   assertExists(output)
   assertStringIncludes(output, 'This is some information')
-  
+
   unmount()
 })
 
@@ -201,11 +198,10 @@ Deno.test('MessageBox - renders message with sub-text', () => {
     session: mockSession,
     interactive: true,
     message: {
-      content: { 
+      content: {
         success: 'Main message',
         sub: 'Additional details here'
-      },
-      timeout: 123
+      }
     },
     shortcuts: [],
     generators: []
@@ -218,11 +214,11 @@ Deno.test('MessageBox - renders message with sub-text', () => {
   )
 
   const output = lastFrame()
-  
+
   assertExists(output)
   assertStringIncludes(output, 'Main message')
   assertStringIncludes(output, 'Additional details here')
-  
+
   unmount()
 })
 
@@ -249,8 +245,7 @@ Deno.test('MessageBox - renders correctly in non-interactive mode', () => {
     session: mockSession,
     interactive: false,
     message: {
-      content: { info: 'Non-interactive message' },
-      timeout: 123
+      content: { info: 'Non-interactive message' }
     },
     shortcuts: [],
     generators: []
@@ -263,9 +258,9 @@ Deno.test('MessageBox - renders correctly in non-interactive mode', () => {
   )
 
   const output = lastFrame()
-  
+
   assertExists(output)
   assertStringIncludes(output, 'Non-interactive message')
-  
+
   unmount()
 })

@@ -4,12 +4,9 @@ import { useEffect } from 'react'
 import { useSkmtc } from './SkmtcContext.tsx'
 
 export const ExitView = () => {
-  const { state, exit } = useSkmtc()
+  const { exit } = useSkmtc()
 
   useEffect(() => {
-    if (state.message?.timeout) {
-      clearTimeout(state.message.timeout)
-    }
     exit()
   }, [])
 

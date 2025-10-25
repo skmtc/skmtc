@@ -36,7 +36,7 @@ type SkmtcAction =
     }
   | {
       type: 'set-message'
-      payload: TimedMessage | null
+      payload: AppMessage | null
     }
   | {
       type: 'add-shortcut'
@@ -167,7 +167,7 @@ export type ViewState =
   | ViewStateRemoveGenerator
   | ViewStateExit
 
-export type TimedMessage = {
+export type AppMessage = {
   content: SkmtcMessage
 }
 
@@ -175,7 +175,7 @@ export type SkmtcState = {
   view: ViewState
   skmtcRoot: SkmtcRoot
   session: Session | null
-  message: TimedMessage | null
+  message: AppMessage | null
   interactive: boolean
   shortcuts: Shortcut[]
   generators: Generator[]
