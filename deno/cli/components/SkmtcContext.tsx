@@ -169,7 +169,6 @@ export type ViewState =
 
 export type TimedMessage = {
   content: SkmtcMessage
-  timeout: number
 }
 
 export type SkmtcState = {
@@ -230,15 +229,7 @@ const useSkmtc = () => {
   const { dispatch, state, exit } = context
 
   const dispatchMessage = (payload: SkmtcMessage) => {
-    const timeout = setTimeout(() => {
-      dispatch({ type: 'set-message', payload: null })
-    }, 30000)
-
-    if (state.message?.timeout) {
-      clearTimeout(state.message.timeout)
-    }
-
-    dispatch({ type: 'set-message', payload: { content: payload, timeout } })
+    dispatch({ type: 'set-message', payload: { content: payload } })
   }
 
   return { state, dispatch, dispatchMessage, exit }

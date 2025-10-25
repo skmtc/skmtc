@@ -56,11 +56,7 @@ type RemoveGeneratorArgs = {
   moduleName: string
 }
 
-type RemoveOptions = {
-  logSuccess?: string
-}
-
-type CreateArgs = {
+export type CreateProjectArgs = {
   name: string
   basePath: string
   generators: string[]
@@ -105,7 +101,7 @@ export class Project {
     generators,
     skmtcRoot,
     availableGenerators = []
-  }: CreateArgs) {
+  }: CreateProjectArgs) {
     const project = new Project({
       name,
       rootDenoJson: RootDenoJson.create(name),
