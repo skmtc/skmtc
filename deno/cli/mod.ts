@@ -1,6 +1,6 @@
 import { Command } from '@cliffy/command'
 import { toInitCommand, renderInit } from './lib/init.tsx'
-import { toCreateCommand } from './generators/create.tsx'
+import { toCreateCommand, renderCreate } from './generators/create.tsx'
 import { toInstallCommand } from '@/generators/install.tsx'
 import { toRemoveCommand } from '@/generators/remove.tsx'
 import { toListCommand } from '@/generators/list.tsx'
@@ -27,7 +27,7 @@ const run = async () => {
       await runPrompt(skmtcRoot)
     })
     .command('init', toInitCommand(skmtcRoot, renderInit))
-    .command('create', toCreateCommand(skmtcRoot))
+    .command('create', toCreateCommand(skmtcRoot, renderCreate))
     .command('clone', toCloneCommand(skmtcRoot))
     .command('install', toInstallCommand(skmtcRoot))
     .command('list', toListCommand(skmtcRoot))
