@@ -29,6 +29,31 @@ export const toGenerateCommand = (skmtcRoot: SkmtcRoot, renderGenerate: RenderGe
     })
 }
 
+type ToProjectArgs = {
+  skmtcRoot: SkmtcRoot
+  projectName: string
+  schemaSourceString: string | undefined
+}
+
+export const toProject = async ({
+  skmtcRoot,
+  projectName,
+  schemaSourceString
+}: ToProjectArgs): Promise<Project | RemoteProject> => {
+  if (isProjectKey(projectName)) {
+    return await RemoteProject.fromKey({
+      projectKey: projectName,
+      schemaFile: schemaSourceString
+        ? await SchemaFile.openFromSource(schemaSourceString)
+        : SchemaFile.create(),
+      prettierPath: PrettierJson.toPath(projectName),
+      manager: skmtcRoot.manager
+    })
+  }
+
+  return skmtcRoot.findProject(projectName)
+}
+
 type RenderGenerateArgs = {
   skmtcRoot: SkmtcRoot
   projectName: string
@@ -49,16 +74,7 @@ export const renderGenerate = async ({
 }: RenderGenerateArgs) => {
   const session = await skmtcRoot.manager.auth.toSession()
 
-  const project = isProjectKey(projectName)
-    ? await RemoteProject.fromKey({
-        projectKey: projectName,
-        schemaFile: schemaSourceString
-          ? await SchemaFile.openFromSource(schemaSourceString)
-          : SchemaFile.create(),
-        prettierPath: PrettierJson.toPath(projectName),
-        manager: skmtcRoot.manager
-      })
-    : skmtcRoot.findProject(projectName)
+  const project = await toProject({ skmtcRoot, projectName, schemaSourceString })
 
   const initialState: SkmtcState = {
     view: {
