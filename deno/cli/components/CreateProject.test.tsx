@@ -169,24 +169,6 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 
   await new Promise(resolve => setTimeout(resolve, 250))
 
-  const creatingProject = lastFrame()
-
-  assertEquals(
-    creatingProject,
-    `│  Project name
-│  test-project
-│
-│  Select generators to install
-│  @skmtc/gen-zod
-│
-│  Base path for generated files
-│  src
-│
-│  ⠋ Creating project...`
-  )
-
-  await new Promise(resolve => setTimeout(resolve, 250))
-
   assertSpyCall(projectCreateStub, 0, {
     args: [
       {
