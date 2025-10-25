@@ -10,9 +10,9 @@ type RenderInitFn = (args: RenderInitArgs) => Promise<void>
 export const toInitCommand = (skmtcRoot: SkmtcRoot, renderInit: RenderInitFn) => {
   const command = new Command()
     .description('Initialize a new project in current directory')
-    .arguments('[projectName:string] [generators:string[]] [basePath:string]')
-    .action(async (_options, projectName, generators, basePath) => {
-      await renderInit({ skmtcRoot, projectName, generators, basePath })
+    .arguments('[projectName:string] [basePath:string]')
+    .action(async (_options, projectName, basePath) => {
+      await renderInit({ skmtcRoot, projectName, basePath })
     })
 
   return command
@@ -21,7 +21,6 @@ export const toInitCommand = (skmtcRoot: SkmtcRoot, renderInit: RenderInitFn) =>
 type RenderInitArgs = {
   skmtcRoot: SkmtcRoot
   projectName: string | undefined
-  generators: string[] | undefined
   basePath: string | undefined
   // Optional dependencies for testing
   renderFn?: typeof render
@@ -31,7 +30,6 @@ type RenderInitArgs = {
 export const renderInit = async ({
   skmtcRoot,
   projectName,
-  generators,
   basePath,
   renderFn = render,
   AppComponent = App
@@ -39,7 +37,7 @@ export const renderInit = async ({
   const session = await skmtcRoot.manager.auth.toSession()
 
   const initialState: SkmtcState = {
-    view: { page: 'create-project', projectName, generators, basePath },
+    view: { page: 'create-project', projectName, basePath },
     skmtcRoot,
     session,
     message: null,

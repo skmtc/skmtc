@@ -133,7 +133,8 @@ export type ViewStateAddGeneratorConfirmed = {
 
 export type ViewStateInstallGenerator = {
   page: 'install-generator'
-  projectName: string
+  projectName: string | undefined
+  generators: string[] | undefined
 }
 
 export type ViewStateCloneGenerator = {

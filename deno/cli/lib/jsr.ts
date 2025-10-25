@@ -52,9 +52,15 @@ export class Jsr {
     scopeName,
     packageName
   }: GetLatestMetaArgs): Promise<JsrPkgMetaVersions> {
-    const res = await fetch(`https://jsr.io/${scopeName}/${packageName}/meta.json`)
+    const url = `https://jsr.io/${scopeName}/${packageName}/meta.json`
+
+    const res = await fetch(url)
 
     if (!res.ok) {
+      const resText = await res.text()
+
+      console.error(resText)
+
       throw new Error(`Failed to get latest meta for jsr:${scopeName}/${packageName}`)
     }
 

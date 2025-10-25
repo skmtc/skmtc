@@ -35,6 +35,8 @@ export type TaskState = {
   'confirm-task': boolean
   'add-generator-task': undefined
   'create-project-task': Project | null
+  'select-project-task': Project
+  'install-generators-task': boolean
 }
 
 export type TaskDispatch = (action: TaskAction) => void

@@ -13,9 +13,9 @@ type RenderInstallFn = (args: RenderInstallArgs) => Promise<void>
 export const toInstallCommand = (skmtcRoot: SkmtcRoot, renderInstall: RenderInstallFn) => {
   const command = new Command()
     .description(description)
-    .arguments('<project:string>')
-    .action(async (_options, projectName) => {
-      await renderInstall({ skmtcRoot, projectName })
+    .arguments('[generators:string[]] [project:string]')
+    .action(async (_options, generators, projectName) => {
+      await renderInstall({ skmtcRoot, generators, projectName })
     })
 
   return command
@@ -23,7 +23,8 @@ export const toInstallCommand = (skmtcRoot: SkmtcRoot, renderInstall: RenderInst
 
 type RenderInstallArgs = {
   skmtcRoot: SkmtcRoot
-  projectName: string
+  generators: string[] | undefined
+  projectName: string | undefined
   // Optional dependencies for testing
   renderFn?: InkRenderFn
   AppComponent?: typeof App
@@ -31,6 +32,7 @@ type RenderInstallArgs = {
 
 export const renderInstall = async ({
   skmtcRoot,
+  generators,
   projectName,
   renderFn = render,
   AppComponent = App
@@ -38,7 +40,7 @@ export const renderInstall = async ({
   const session = await skmtcRoot.manager.auth.toSession()
 
   const initialState: SkmtcState = {
-    view: { page: 'install-generator', projectName },
+    view: { page: 'install-generator', projectName, generators },
     skmtcRoot,
     session,
     message: null,

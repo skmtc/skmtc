@@ -83,7 +83,11 @@ export const ProjectView = ({ project }: ProjectProps) => {
             .with({ value: 'install-generator' }, () => {
               dispatch({
                 type: 'set-view',
-                payload: { page: 'install-generator', projectName: project.name }
+                payload: {
+                  page: 'install-generator',
+                  projectName: project.name,
+                  generators: undefined
+                }
               })
             })
             .with({ value: 'create-generator' }, () => {
