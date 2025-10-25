@@ -36,7 +36,6 @@ const mockGenerators: Generator[] = [
     createdAt: '2024-01-01T00:00:00Z'
   }
 ]
-
 // Mock setup helpers
 const createMockSkmtcRoot = (): SkmtcRoot =>
   ({
