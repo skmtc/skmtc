@@ -1,10 +1,10 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.325",
+  "version": "0.0.326",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.904",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.905",
     "ink": "npm:ink@^6.2.3",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
     "ink-select-input": "npm:ink-select-input@^6.2.0",

@@ -1,6 +1,7 @@
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useTask } from '@/components/TaskContext.tsx'
 import { StringTask } from '@/components/StringTask.tsx'
+import { validateProjectName } from '@/lib/validate-project-name.ts'
 
 export const ProjectNameTask = () => {
   const { state } = useSkmtc()
@@ -12,19 +13,15 @@ export const ProjectNameTask = () => {
       setValue={value => {
         const { skmtcRoot } = state
 
-        if (value.length < 3) {
-          console.error('Project name must be at least 3 characters long')
+        const existingNames = skmtcRoot.projects.map(p => p.name)
+        const result = validateProjectName(value, existingNames)
+
+        if (!result.valid) {
+          console.error(result.error)
           return
         }
 
-        // Check if project already exists
-        const existingProject = skmtcRoot.projects.find(p => p.name === value)
-        if (existingProject) {
-          console.error(`Project "${value}" already exists`)
-          return
-        }
-
-        dispatch({ type: 'set-task-state', payload: { taskKey: 'project-name', state: value } })
+        dispatch({ type: 'set-task-state', payload: { taskKey: 'project-name', state: result.value } })
       }}
     />
   )
