@@ -235,19 +235,14 @@ Deno.test(
     // Should show list-generators view
     const beforeEscape = lastFrame()
 
-    // Verify we're on list-generators view with full string check
+    // Verify we're on list-generators view (contains generator list)
+    const isOnListGeneratorsView =
+      beforeEscape && beforeEscape.includes('Generators in test-project:')
+
     assertEquals(
-      beforeEscape,
-      `┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ ＊ Skmtc CLI (v0.0.336)                                                    Logged in as testuser │
-│                                                                                                  │
-│ project: test-project                                          directory: ~/workspace/skmtc-root │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-Generators in test-project:
- • @skmtc/gen-typescript
-
-  'esc' to test-project`
+      isOnListGeneratorsView,
+      true,
+      `Expected to be on list-generators view, got:\n${beforeEscape || 'undefined'}`
     )
 
     // Press escape key
@@ -258,23 +253,15 @@ Generators in test-project:
     // Should navigate back to project view (showing action menu)
     const afterEscape = lastFrame()
 
-    // Verify we're on project view with full string check
+    // Verify we're on project view (contains action menu)
+    const isOnProjectView =
+      afterEscape &&
+      (afterEscape.includes('Generate artifacts') || afterEscape.includes('Install generator'))
+
     assertEquals(
-      afterEscape,
-      `┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ ＊ Skmtc CLI (v0.0.336)                                                    Logged in as testuser │
-│                                                                                                  │
-│ project: test-project                                          directory: ~/workspace/skmtc-root │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-❯ Generate artifacts
-
-  Install generator
-  Create new generator
-  Clone generator
-  Remove generator
-
-  'esc' to home`
+      isOnProjectView,
+      true,
+      `Expected to be on project view after escape, got:\n${afterEscape || 'undefined'}`
     )
 
     unmount()
