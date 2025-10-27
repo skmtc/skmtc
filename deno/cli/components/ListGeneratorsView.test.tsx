@@ -245,8 +245,6 @@ Deno.test(
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 Generators in test-project:
-
-
  • @skmtc/gen-typescript
 
   'esc' to test-project`
