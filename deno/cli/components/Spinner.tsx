@@ -6,6 +6,7 @@ type SpinnerProps = {
 }
 
 export const Spinner = ({ label }: SpinnerProps) => {
+  // @ts-ignore - Check global test flag
   if (globalThis.__DENO_TEST__ === true) {
     return <Text>{`⠋ ${label}`}</Text>
   }
