@@ -70,9 +70,6 @@ const TaskStateContext = createContext<
 export const taskReducer = (state: TaskContextState, action: TaskAction) => {
   return match(action)
     .with({ type: 'increment-current-task' }, () => {
-      console.log('INCREMENTING CURRENT TASK FROM:', state.tasks[state.currentTask].taskKey)
-      console.log('TO:', state.tasks[state.currentTask + 1].taskKey)
-
       return {
         ...state,
         currentTask: state.currentTask + 1

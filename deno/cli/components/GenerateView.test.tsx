@@ -175,8 +175,6 @@ Deno.test(
       // Should prompt for watch mode
       const watchPrompt = lastFrame()
 
-      console.log('WATCH PROMPT:', watchPrompt)
-
       assertEquals(
         watchPrompt,
         `│  Input OpenAPI schema path or URL
@@ -194,8 +192,6 @@ Deno.test(
 
       // Should show watching spinner (not generating, since we selected Yes for watch mode)
       const watchingFrame = lastFrame()
-
-      console.log('WATCHING FRAME:', watchingFrame)
 
       const hasWatchingSpinner =
         watchingFrame &&

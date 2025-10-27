@@ -61,9 +61,6 @@ export const GenerateView = ({
     return watchMode
   }, [])
 
-  console.log('INCLUDE WATCH TASK:', includeWatchTask)
-  console.log('WATCH MODE STATE:', watchModeState)
-
   return (
     <TaskProvider
       tasks={[
@@ -128,16 +125,16 @@ const WatchModeTask = () => {
 
   const { 'schema-location-task': schemaSourceString } = tasksToState(taskState.tasks)
 
-  useEffect(() => {
-    if (isRemoteSchema(schemaSourceString)) {
-      taskDispatch({
-        type: 'set-task-state',
-        payload: { taskKey: 'watch-mode-task', state: false }
-      })
+  // useEffect(() => {
+  //   if (isRemoteSchema(schemaSourceString)) {
+  //     taskDispatch({
+  //       type: 'set-task-state',
+  //       payload: { taskKey: 'watch-mode-task', state: false }
+  //     })
 
-      taskDispatch({ type: 'increment-current-task' })
-    }
-  }, [])
+  //     taskDispatch({ type: 'increment-current-task' })
+  //   }
+  // }, [])
 
   return (
     <BooleanTask
@@ -181,8 +178,6 @@ const SchemaLocationTask = ({ project }: SchemaLocationTaskProps) => {
         //     payload: { taskKey: 'watch-mode-task', state: false }
         //   })
         // }
-
-        taskDispatch({ type: 'increment-current-task' })
       }}
     />
   )
