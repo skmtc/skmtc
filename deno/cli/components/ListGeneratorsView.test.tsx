@@ -2,6 +2,7 @@ import '@/tests/setup.ts'
 import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { ListGeneratorsView } from './ListGeneratorsView.tsx'
+import { App } from './App.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
@@ -22,7 +23,8 @@ const createMockSkmtcRoot = (project: Project): SkmtcRoot =>
         }
       },
       cleanup: () => Promise.resolve()
-    }
+    },
+    findProject: (name: string) => (name === project.name ? project : null)
   }) as unknown as SkmtcRoot
 
 // Helper to create initial state
@@ -187,6 +189,94 @@ Deno.test(
  • @skmtc/gen-zod
  • @skmtc/gen-tanstack-query
  • @custom/my-generator`
+    )
+
+    unmount()
+  }
+)
+
+// Test 5: Integration test - escape key navigates back to project view
+Deno.test(
+  'ListGeneratorsView - escape key navigates to project view (integration)',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    const manager = createMockManager()
+    const mockProject = createMockProject(manager, {
+      name: 'test-project',
+      generators: ['@skmtc/gen-typescript']
+    })
+
+    const skmtcRoot = createMockSkmtcRoot(mockProject)
+
+    // Start with list-generators view
+    const initialState: SkmtcState = {
+      view: {
+        page: 'list-generators',
+        projectName: mockProject.name
+      },
+      skmtcRoot,
+      session: createTestSession(),
+      interactive: true,
+      message: null,
+      shortcuts: [],
+      generators: []
+    }
+
+    const mockExit = () => {}
+
+    const { lastFrame, unmount, stdin } = render(
+      <SkmtcProvider initialState={initialState} exit={mockExit}>
+        <App initialState={initialState} />
+      </SkmtcProvider>
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    // Should show list-generators view
+    const beforeEscape = lastFrame()
+
+    // Verify we're on list-generators view with full string check
+    assertEquals(
+      beforeEscape,
+      `┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ＊ Skmtc CLI (v0.0.336)                                                    Logged in as testuser │
+│                                                                                                  │
+│ project: test-project                                          directory: ~/workspace/skmtc-root │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Generators in test-project:
+
+
+ • @skmtc/gen-typescript
+
+  'esc' to test-project`
+    )
+
+    // Press escape key
+    stdin.write('\x1B')
+
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    // Should navigate back to project view (showing action menu)
+    const afterEscape = lastFrame()
+
+    // Verify we're on project view with full string check
+    assertEquals(
+      afterEscape,
+      `┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ＊ Skmtc CLI (v0.0.336)                                                    Logged in as testuser │
+│                                                                                                  │
+│ project: test-project                                          directory: ~/workspace/skmtc-root │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+❯ Generate artifacts
+
+  Install generator
+  Create new generator
+  Clone generator
+  Remove generator
+
+  'esc' to home`
     )
 
     unmount()
