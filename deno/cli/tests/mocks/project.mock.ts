@@ -1,4 +1,4 @@
-import type { Project } from '@/lib/project.ts'
+import { Project } from '@/lib/project.ts'
 import type { Manager } from '@/lib/manager.ts'
 import { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { ClientJson } from '@/lib/client-json.ts'
@@ -56,7 +56,9 @@ export function createMockProject(manager: Manager, options: MockProjectOptions 
     refresh: async () => {}
   } as unknown as SchemaFile
 
-  const mockProject: Project = {
+  const mockProject = Object.create(Project.prototype)
+
+  Object.assign(mockProject, {
     name,
     rootDenoJson,
     clientJson,
@@ -72,8 +74,8 @@ export function createMockProject(manager: Manager, options: MockProjectOptions 
     deploy: async () => {},
     toManifestPath: () => `/mock/projects/${name}/.settings/manifest.json`,
     toPath: () => `/mock/projects/${name}`,
-    toProjectKey: () => `@mock/${name}` as any
-  } as unknown as Project
+    toProjectKey: () => `@mock/${name}`
+  })
 
-  return mockProject
+  return mockProject as Project
 }
