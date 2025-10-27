@@ -91,14 +91,6 @@ export type ViewStateDeploy = {
   projectName: string
 }
 
-export type ViewStateGenerateConfirmed = {
-  page: 'generate'
-  project: Project | RemoteProject
-  basePath: string
-  schemaSourceString: string
-  watchMode: boolean
-}
-
 export type ViewStateRuntimeLogs = {
   page: 'runtime-logs'
   projectName: string

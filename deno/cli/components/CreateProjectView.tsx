@@ -8,13 +8,17 @@ import { BasePathTask } from '@/tasks/BasePathTask.tsx'
 import { ProjectNameTask } from '@/tasks/ProjectNameTask.tsx'
 import { CreateProjectTask } from '@/tasks/CreateProjectTask.tsx'
 
-type CreateProjectProps = {
+type CreateProjectViewProps = {
   projectName: string | undefined
   generators: string[] | undefined
   basePath: string | undefined
 }
 
-export const CreateProject = ({ projectName, generators, basePath }: CreateProjectProps) => {
+export const CreateProjectView = ({
+  projectName,
+  generators,
+  basePath
+}: CreateProjectViewProps) => {
   const { state, dispatch } = useSkmtc()
 
   const includeProjectName = useMemo(() => {

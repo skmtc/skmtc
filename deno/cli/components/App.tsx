@@ -4,7 +4,7 @@ import { HomeView } from '@/components/HomeView.tsx'
 import { match } from 'ts-pattern'
 import { ProjectView } from '@/components/ProjectView.tsx'
 import { SkmtcProvider, useSkmtc } from '@/components/SkmtcContext.tsx'
-import { CreateProject } from '@/components/CreateProject.tsx'
+import { CreateProjectView } from './CreateProjectView.tsx'
 import { LoginView } from '@/components/LoginView.tsx'
 import { AppInfo } from '@/components/AppInfo.tsx'
 import { GenerateView } from '@/components/GenerateView.tsx'
@@ -46,14 +46,21 @@ export const ViewManager = () => {
   return match(state.view)
     .with({ page: 'home' }, () => <HomeView />)
     .with({ page: 'create-project' }, ({ projectName, generators, basePath }) => (
-      <CreateProject projectName={projectName} generators={generators} basePath={basePath} />
+      <CreateProjectView projectName={projectName} generators={generators} basePath={basePath} />
     ))
     .with({ page: 'login' }, () => <LoginView />)
     .with({ page: 'project' }, ({ projectName }) => (
       <ProjectView project={state.skmtcRoot.findProject(projectName)} />
     ))
     .with({ page: 'generate' }, view => {
-      return <GenerateView project={view.project} view={view} />
+      return (
+        <GenerateView
+          project={view.project}
+          schemaSourceString={view.schemaSourceString}
+          watchMode={view.watchMode}
+          basePath={view.basePath}
+        />
+      )
     })
     .with({ page: 'deploy' }, view => {
       return <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />

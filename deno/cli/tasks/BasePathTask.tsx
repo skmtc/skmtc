@@ -6,7 +6,7 @@ export const BasePathTask = () => {
 
   return (
     <StringTask
-      prompt="Base path for generated files"
+      prompt="Output directory for generated files"
       defaultValue="src"
       setValue={value => {
         dispatch({ type: 'set-task-state', payload: { taskKey: 'base-path', state: value } })

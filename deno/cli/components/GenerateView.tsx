@@ -1,15 +1,10 @@
 import React from 'react'
-import { Box } from 'ink'
-import {
-  useSkmtc,
-  type ViewStateGenerate,
-  type ViewStateGenerateConfirmed
-} from '@/components/SkmtcContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
 import { generate, toGenerateMessage } from '@/commands/generate.tsx'
-import { match, P } from 'ts-pattern'
+import { match } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
 import { useMemo } from 'react'
@@ -17,78 +12,79 @@ import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
-import { type Task, TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
+import { TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
 import type { SchemaSource } from '@/lib/schema-file.ts'
 import { StringTask } from './StringTask.tsx'
-import { BooleanTask } from '../tasks/BooleanTask.tsx'
+import { BooleanTask } from '@/tasks/BooleanTask.tsx'
 import { Spinner } from '@inkjs/ui'
 import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
 import { ServerTask } from './ServerTask.tsx'
-import console from 'node:console'
+import { BasePathTask } from '@/tasks/BasePathTask.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
-  view: ViewStateGenerate
+  schemaSourceString: string | undefined
+  watchMode: boolean | undefined
+  basePath: string | undefined
 }
 
-export const GenerateView = ({ project, view }: GenerateProps) => {
+export const GenerateView = ({
+  project,
+  schemaSourceString,
+  watchMode,
+  basePath
+}: GenerateProps) => {
   const { dispatch, state } = useSkmtc()
   const [child, setChild] = useState<Deno.ChildProcess>()
 
-  const schemaSource = project.schemaFile?.schemaSource
-
-  const includeBasePathQuestion = useMemo(() => {
-    return typeof project.clientJson.contents?.settings.basePath !== 'string'
+  const includeBasePathTask = useMemo(() => {
+    return Boolean(basePath)
   }, [])
 
-  const includeSchemaQuestion = useMemo(() => {
-    return typeof view.schemaSourceString !== 'string'
+  const includeSchemaTask = useMemo(() => {
+    return typeof schemaSourceString !== 'string'
   }, [])
 
-  const includeWatchQuestion = useMemo(() => {
-    return typeof view.watchMode !== 'boolean' && !isRemoteSchema(view.schemaSourceString)
-  }, [view.schemaSourceString])
-
-  const token = state.session?.access_token
-
-  const tasks: Task[] = [
-    {
-      taskKey: 'start-server-task',
-      include: project instanceof Project,
-      state: undefined,
-      render: () => <StartServerTask project={project as Project} setChild={setChild} />
-    },
-    {
-      taskKey: 'display-output-directory-task',
-      include: includeBasePathQuestion,
-      state: undefined,
-      render: () => <BasePathTask project={project} />
-    },
-    {
-      taskKey: 'schema-location-task',
-      include: includeSchemaQuestion,
-      state: undefined,
-      render: () => <SchemaLocationTask schemaSource={schemaSource} />
-    },
-    {
-      taskKey: 'watch-mode-task',
-      include: includeWatchQuestion,
-      state: undefined,
-      render: () => <WatchModeTask />
-    },
-    {
-      taskKey: 'generate-view-content-task',
-      include: true,
-      state: undefined,
-      render: () => <GenerateTask project={project} token={token} />
-    }
-  ]
+  const includeWatchTask = useMemo(() => {
+    return typeof watchMode !== 'boolean' && !isRemoteSchema(schemaSourceString)
+  }, [schemaSourceString])
 
   return (
     <TaskProvider
-      tasks={tasks}
+      tasks={[
+        {
+          taskKey: 'start-server-task',
+          include: project instanceof Project,
+          state: undefined,
+          render: () => <StartServerTask project={project as Project} setChild={setChild} />
+        },
+        {
+          taskKey: 'display-output-directory-task',
+          include: includeBasePathTask,
+          state: undefined,
+          render: () => <BasePathTask />
+        },
+        {
+          taskKey: 'schema-location-task',
+          include: includeSchemaTask,
+          state: undefined,
+          render: () => <SchemaLocationTask project={project} />
+        },
+        {
+          taskKey: 'watch-mode-task',
+          include: includeWatchTask,
+          state: undefined,
+          render: () => <WatchModeTask />
+        },
+        {
+          taskKey: 'generate-view-content-task',
+          include: true,
+          state: undefined,
+          render: () => <GenerateTask project={project} />
+        }
+      ]}
       leave={() => {
         child?.kill()
 
@@ -101,39 +97,6 @@ export const GenerateView = ({ project, view }: GenerateProps) => {
     >
       <TaskListView />
     </TaskProvider>
-  )
-}
-
-type BasePathTaskProps = {
-  project: Project | RemoteProject
-}
-
-const BasePathTask = ({ project }: BasePathTaskProps) => {
-  const { state, dispatch } = useSkmtc()
-
-  return (
-    <StringTask
-      prompt="Output directory:"
-      defaultValue="./"
-      setValue={async value => {
-        const { view } = state
-
-        invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
-
-        if (!project.clientJson.contents) {
-          project.clientJson.contents = { settings: { basePath: value } }
-        } else {
-          project.clientJson.contents.settings.basePath = value
-        }
-
-        // TODO handle this in cleanup actions
-        await project.clientJson.write()
-
-        const payload = { ...view, basePath: value }
-
-        dispatch({ type: 'set-view', payload })
-      }}
-    />
   )
 }
 
@@ -183,13 +146,14 @@ const WatchModeTask = () => {
 }
 
 type SchemaLocationTaskProps = {
-  schemaSource: SchemaSource | null
+  project: Project | RemoteProject
 }
 
-const SchemaLocationTask = ({ schemaSource }: SchemaLocationTaskProps) => {
+const SchemaLocationTask = ({ project }: SchemaLocationTaskProps) => {
   const { state, dispatch } = useSkmtc()
-
+  const schemaSource = project.schemaFile?.schemaSource
   const absoluteRootPath = toAbsoluteRootPath()
+
   return (
     <StringTask
       prompt="Input OpenAPI schema path or URL"
@@ -218,44 +182,38 @@ const SchemaLocationTask = ({ schemaSource }: SchemaLocationTaskProps) => {
 
 type GenerateTaskProps = {
   project: Project | RemoteProject
-  token: string | undefined
 }
 
-const GenerateTask = ({ project, token }: GenerateTaskProps) => {
+const GenerateTask = ({ project }: GenerateTaskProps) => {
   const { state } = useSkmtc()
+  const { state: taskState } = useTask()
 
-  const { view } = state
-  invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
+  const token = state.session?.access_token
 
-  const basePath = view.basePath ?? project.clientJson.contents?.settings.basePath ?? ''
+  const {
+    'base-path': basePath,
+    'schema-location-task': schemaLocation,
+    'watch-mode-task': watchMode
+  } = tasksToState(taskState.tasks)
 
-  return match(view)
-    .with({ schemaSourceString: P.string, watchMode: P.boolean }, confirmedView => {
-      return view.watchMode ? (
-        <WatchGenerateTask
-          project={project}
-          view={{
-            ...confirmedView,
-            basePath
-          }}
-          token={token}
-        />
-      ) : (
-        <RunGenerateTask project={project} view={{ ...confirmedView, basePath }} token={token} />
-      )
-    })
-    .otherwise(() => {
-      return <Box></Box>
-    })
+  invariant(basePath, 'Base path is required')
+  invariant(schemaLocation, 'Schema location is required')
+  invariant(watchMode, 'Watch mode is required')
+
+  return watchMode ? (
+    <WatchGenerateTask project={project} schemaSourceString={schemaLocation} token={token} />
+  ) : (
+    <RunGenerateTask project={project} schemaSourceString={schemaLocation} token={token} />
+  )
 }
 
 type RunGenerateProps = {
   project: Project | RemoteProject
-  view: ViewStateGenerateConfirmed
+  schemaSourceString: string
   token: string | undefined
 }
 
-const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
+const RunGenerateTask = ({ project, schemaSourceString, token }: RunGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
 
@@ -270,7 +228,7 @@ const RunGenerateTask = ({ project, view, token }: RunGenerateProps) => {
   })
 
   useEffect(() => {
-    toSchemaContents(view.schemaSourceString)
+    toSchemaContents(schemaSourceString)
       .then(schemaContents => {
         return generate({
           project,
@@ -317,11 +275,11 @@ type Activity = 'watching' | 'generating'
 
 type WatchGenerateProps = {
   project: Project | RemoteProject
-  view: ViewStateGenerateConfirmed
+  schemaSourceString: string
   token: string | undefined
 }
 
-const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
+const WatchGenerateTask = ({ project, schemaSourceString, token }: WatchGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
   const [watcher, setWatcher] = useState<FSWatcher>()
@@ -340,19 +298,19 @@ const WatchGenerateTask = ({ project, view, token }: WatchGenerateProps) => {
   })
 
   useEffect(() => {
-    setWatcher(chokidar.watch(view.schemaSourceString))
+    setWatcher(chokidar.watch(schemaSourceString))
 
     return () => {
       setWatcher(undefined)
     }
-  }, [view.schemaSourceString])
+  }, [schemaSourceString])
 
   useEffect(() => {
     if (activity === 'watching') {
       return
     }
 
-    SchemaFile.getFromSource(toSchemaSource(view.schemaSourceString))
+    SchemaFile.getFromSource(toSchemaSource(schemaSourceString))
       .then(({ contents }) => {
         return generate({
           project,

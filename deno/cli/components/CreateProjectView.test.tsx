@@ -1,7 +1,7 @@
 import React from 'react'
 import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
-import { CreateProject } from '@/components/CreateProject.tsx'
+import { CreateProjectView } from './CreateProjectView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
@@ -81,7 +81,7 @@ const renderCreateProject = ({ initialState, ...props }: RenderCreateProjectProp
 
   return render(
     <SkmtcProvider initialState={initialState} exit={mockExit}>
-      <CreateProject {...props} />
+      <CreateProjectView {...props} />
     </SkmtcProvider>
   )
 }
