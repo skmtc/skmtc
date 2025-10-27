@@ -58,10 +58,9 @@ const waitForServerReady = async (port: number): Promise<void> => {
 
 type ServerTaskProps = {
   project: Project
-  setChild: Dispatch<SetStateAction<Deno.ChildProcess | undefined>>
 }
 
-export const ServerTask = ({ project, setChild }: ServerTaskProps) => {
+export const ServerTask = ({ project }: ServerTaskProps) => {
   const { dispatch } = useTask()
 
   useEffect(() => {
@@ -86,7 +85,7 @@ export const ServerTask = ({ project, setChild }: ServerTaskProps) => {
 
       const child = await runServer({ modPath, port })
 
-      setChild(child)
+      dispatch({ type: 'set-task-state', payload: { taskKey: 'start-server-task', state: child } })
       dispatch({ type: 'increment-current-task' })
     }
 

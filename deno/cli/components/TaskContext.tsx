@@ -27,7 +27,7 @@ export type TaskState = {
   'create-project': boolean
   'generator-type-task': 'operation' | 'model'
   'generator-name-task': string
-  'start-server-task': undefined
+  'start-server-task': Deno.ChildProcess
   'display-output-directory-task': boolean
   'schema-location-task': string
   'watch-mode-task': boolean
@@ -69,10 +69,15 @@ const TaskStateContext = createContext<
 
 export const taskReducer = (state: TaskContextState, action: TaskAction) => {
   return match(action)
-    .with({ type: 'increment-current-task' }, () => ({
-      ...state,
-      currentTask: state.currentTask + 1
-    }))
+    .with({ type: 'increment-current-task' }, () => {
+      console.log('INCREMENTING CURRENT TASK FROM:', state.tasks[state.currentTask].taskKey)
+      console.log('TO:', state.tasks[state.currentTask + 1].taskKey)
+
+      return {
+        ...state,
+        currentTask: state.currentTask + 1
+      }
+    })
     .with({ type: 'insert-task' }, ({ payload: { task, index } }) => ({
       ...state,
       tasks: [...state.tasks.slice(0, index), task, ...state.tasks.slice(index)]

@@ -2,7 +2,7 @@ import React from 'react'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
-import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { generate, toGenerateMessage } from '@/commands/generate.tsx'
 import { match } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
@@ -14,7 +14,6 @@ import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
 import { TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
-import type { SchemaSource } from '@/lib/schema-file.ts'
 import { StringTask } from './StringTask.tsx'
 import { BooleanTask } from '@/tasks/BooleanTask.tsx'
 import { Spinner } from '@inkjs/ui'
@@ -37,10 +36,9 @@ export const GenerateView = ({
   basePath
 }: GenerateProps) => {
   const { dispatch, state } = useSkmtc()
-  const [child, setChild] = useState<Deno.ChildProcess>()
 
   const includeBasePathTask = useMemo(() => {
-    return Boolean(basePath)
+    return Boolean(!basePath)
   }, [])
 
   const includeSchemaTask = useMemo(() => {
@@ -48,8 +46,23 @@ export const GenerateView = ({
   }, [])
 
   const includeWatchTask = useMemo(() => {
-    return typeof watchMode !== 'boolean' && !isRemoteSchema(schemaSourceString)
-  }, [schemaSourceString])
+    if (isRemoteSchema(schemaSourceString)) {
+      return false
+    }
+
+    return typeof watchMode !== 'boolean'
+  }, [])
+
+  const watchModeState = useMemo(() => {
+    if (isRemoteSchema(schemaSourceString)) {
+      return false
+    }
+
+    return watchMode
+  }, [])
+
+  console.log('INCLUDE WATCH TASK:', includeWatchTask)
+  console.log('WATCH MODE STATE:', watchModeState)
 
   return (
     <TaskProvider
@@ -58,24 +71,24 @@ export const GenerateView = ({
           taskKey: 'start-server-task',
           include: project instanceof Project,
           state: undefined,
-          render: () => <StartServerTask project={project as Project} setChild={setChild} />
+          render: () => <StartServerTask project={project as Project} />
         },
         {
-          taskKey: 'display-output-directory-task',
+          taskKey: 'base-path',
           include: includeBasePathTask,
-          state: undefined,
+          state: basePath,
           render: () => <BasePathTask />
         },
         {
           taskKey: 'schema-location-task',
           include: includeSchemaTask,
-          state: undefined,
+          state: schemaSourceString,
           render: () => <SchemaLocationTask project={project} />
         },
         {
           taskKey: 'watch-mode-task',
           include: includeWatchTask,
-          state: undefined,
+          state: watchModeState,
           render: () => <WatchModeTask />
         },
         {
@@ -85,7 +98,9 @@ export const GenerateView = ({
           render: () => <GenerateTask project={project} />
         }
       ]}
-      leave={() => {
+      leave={({ state: taskState }) => {
+        const { 'start-server-task': child } = taskState
+
         child?.kill()
 
         if (state.interactive) {
@@ -102,42 +117,36 @@ export const GenerateView = ({
 
 type StartServerTaskProps = {
   project: Project
-  setChild: Dispatch<SetStateAction<Deno.ChildProcess | undefined>>
 }
 
-const StartServerTask = ({ project, setChild }: StartServerTaskProps) => {
-  return <ServerTask project={project} setChild={setChild} />
+const StartServerTask = ({ project }: StartServerTaskProps) => {
+  return <ServerTask project={project} />
 }
 
 const WatchModeTask = () => {
-  const { state, dispatch } = useSkmtc()
-  const { dispatch: taskDispatch } = useTask()
+  const { state: taskState, dispatch: taskDispatch } = useTask()
 
-  const { view } = state
-
-  invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
+  const { 'schema-location-task': schemaSourceString } = tasksToState(taskState.tasks)
 
   useEffect(() => {
-    if (isRemoteSchema(view.schemaSourceString)) {
+    if (isRemoteSchema(schemaSourceString)) {
+      taskDispatch({
+        type: 'set-task-state',
+        payload: { taskKey: 'watch-mode-task', state: false }
+      })
+
       taskDispatch({ type: 'increment-current-task' })
     }
-  }, [view.schemaSourceString])
-
-  if (isRemoteSchema(view.schemaSourceString)) {
-    return null
-  }
+  }, [])
 
   return (
     <BooleanTask
       prompt="Watch for changes?"
       setValue={({ value }) => {
-        const { view } = state
-
-        invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
-
-        const payload = { ...view, watchMode: value }
-
-        dispatch({ type: 'set-view', payload })
+        taskDispatch({
+          type: 'set-task-state',
+          payload: { taskKey: 'watch-mode-task', state: value }
+        })
 
         taskDispatch({ type: 'increment-current-task' })
       }}
@@ -150,7 +159,7 @@ type SchemaLocationTaskProps = {
 }
 
 const SchemaLocationTask = ({ project }: SchemaLocationTaskProps) => {
-  const { state, dispatch } = useSkmtc()
+  const { dispatch: taskDispatch } = useTask()
   const schemaSource = project.schemaFile?.schemaSource
   const absoluteRootPath = toAbsoluteRootPath()
 
@@ -161,20 +170,19 @@ const SchemaLocationTask = ({ project }: SchemaLocationTaskProps) => {
         schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined
       }
       setValue={value => {
-        const { view } = state
-
-        invariant(view.page === 'generate', `Expecting view to be "generate", got "${view.page}"`)
-
-        const payload = {
-          ...view,
-          schemaSourceString: value,
-          watchMode: isRemoteSchema(value) ? false : view.watchMode
-        }
-
-        dispatch({
-          type: 'set-view',
-          payload
+        taskDispatch({
+          type: 'set-task-state',
+          payload: { taskKey: 'schema-location-task', state: value }
         })
+
+        // if (isRemoteSchema(value)) {
+        //   taskDispatch({
+        //     type: 'set-task-state',
+        //     payload: { taskKey: 'watch-mode-task', state: false }
+        //   })
+        // }
+
+        taskDispatch({ type: 'increment-current-task' })
       }}
     />
   )
@@ -198,7 +206,7 @@ const GenerateTask = ({ project }: GenerateTaskProps) => {
 
   invariant(basePath, 'Base path is required')
   invariant(schemaLocation, 'Schema location is required')
-  invariant(watchMode, 'Watch mode is required')
+  invariant(typeof watchMode === 'boolean', 'Watch mode is required')
 
   return watchMode ? (
     <WatchGenerateTask project={project} schemaSourceString={schemaLocation} token={token} />
