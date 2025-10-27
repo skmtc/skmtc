@@ -1,8 +1,8 @@
 import { render } from 'ink-testing-library'
 import { assertExists, assertStringIncludes, assertEquals } from '@std/assert'
 import { MessageBox } from '@/components/MessageBox.tsx'
-import { SkmtcProvider, SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '../mocks/session.mock.ts'
+import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
+import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 
 Deno.test('MessageBox - renders nothing when no message', () => {

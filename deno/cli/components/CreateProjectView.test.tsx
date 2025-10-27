@@ -161,7 +161,7 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 │  Select generators to install
 │  @skmtc/gen-zod
 │
-│  Base path for generated files
+│  Output directory for generated files
 │  src`
   )
 

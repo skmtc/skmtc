@@ -23,7 +23,7 @@ export const InstallGeneratorsTask = () => {
       )
         .then(() => {
           dispatchMessage({
-            success: `Installed ${generators.length} generator(s) successfully`
+            success: `Installed ${generators.join(', ')} in "${project.name}"`
           })
 
           taskDispatch({
