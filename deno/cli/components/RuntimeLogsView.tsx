@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { getRuntimeLogs } from '@/services/getRuntimeLogs.ts'
 import invariant from 'tiny-invariant'
 import { useShortcut } from './useShortcut.tsx'
-import { Spinner } from '@inkjs/ui'
+import { Spinner } from '@/components/Spinner.tsx'
 
 type RuntimeLogsViewProps = {
   project: Project | RemoteProject

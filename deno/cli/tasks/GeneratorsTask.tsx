@@ -1,7 +1,7 @@
 import { useTask } from '@/components/TaskContext.tsx'
 import { useGetGenerators } from '@/components/useGetGenerators.ts'
 import { TaskBox } from '@/components/TaskBox.tsx'
-import { Spinner } from '@inkjs/ui'
+import { Spinner } from '@/components/Spinner.tsx'
 import { Text } from 'ink'
 import { MultiselectTask } from '@/components/MultiselectTask.tsx'
 

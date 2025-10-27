@@ -1,6 +1,6 @@
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { tasksToState, useTask } from '@/components/TaskContext.tsx'
-import { Spinner } from '@inkjs/ui'
+import { Spinner } from '@/components/Spinner.tsx'
 import invariant from 'tiny-invariant'
 import { useEffect } from 'react'
 

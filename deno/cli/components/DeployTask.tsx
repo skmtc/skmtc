@@ -3,7 +3,7 @@ import { Text } from 'ink'
 import type { Project } from '@/lib/project.ts'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useEffect, useState } from 'react'
-import { Spinner } from '@inkjs/ui'
+import { Spinner } from '@/components/Spinner.tsx'
 import { useTask } from './TaskContext.tsx'
 import { TaskBox } from './TaskBox.tsx'
 

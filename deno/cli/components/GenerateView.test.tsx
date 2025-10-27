@@ -1,3 +1,4 @@
+import '@/tests/setup.ts'
 import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { GenerateView } from '@/components/GenerateView.tsx'
@@ -8,6 +9,7 @@ import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import type { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { stub } from '@std/testing/mock'
+import { Workspace } from '@/lib/workspace.ts'
 
 // Minimal OpenAPI schema for testing
 const minimalOpenAPISchema = JSON.stringify({
@@ -31,6 +33,29 @@ const mockGenerators = [
     createdAt: '2024-01-01T00:00:00Z'
   }
 ]
+
+// Mock GenerateResponse to prevent API calls
+const mockGenerateResponse = {
+  artifacts: {
+    'test-file.ts': 'export const test = "hello"'
+  },
+  manifest: {
+    deploymentId: 'test-deployment',
+    traceId: 'test-trace',
+    spanId: 'test-span',
+    files: {
+      'test-file.ts': {
+        lines: 1,
+        characters: 28,
+        destinationPath: 'src/test-file.ts'
+      }
+    },
+    previews: {},
+    results: {},
+    startAt: Date.now() - 1000,
+    endAt: Date.now()
+  }
+}
 
 // Helper to create a mock project without schema for interactive testing
 const createMockProjectWithoutSchema = (
@@ -65,7 +90,8 @@ const createMockSkmtcRoot = (project: Project): SkmtcRoot =>
             }
           }
         }
-      }
+      },
+      cleanup: () => Promise.resolve()
     }
   }) as unknown as SkmtcRoot
 
@@ -133,6 +159,11 @@ Deno.test(
     // Stub file read to return minimal OpenAPI schema
     const readTextFileStub = stub(Deno, 'readTextFile', () => Promise.resolve(minimalOpenAPISchema))
 
+    // Stub generateArtifacts to prevent API calls
+    const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
+      Promise.resolve(mockGenerateResponse)
+    )
+
     try {
       const { lastFrame, unmount, stdin } = renderGenerateView({
         initialState,
@@ -156,7 +187,7 @@ Deno.test(
       // Enter schema path
       stdin.write('schema.json')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
+      await new Promise(resolve => setTimeout(resolve, 25))
 
       const schemaPath = lastFrame()
 
@@ -166,11 +197,11 @@ Deno.test(
 │  schema.json`
       )
 
-      await new Promise(resolve => setTimeout(resolve, 250))
+      await new Promise(resolve => setTimeout(resolve, 25))
 
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 50))
 
       // Should prompt for watch mode
       const watchPrompt = lastFrame()
@@ -188,7 +219,7 @@ Deno.test(
       // Select Yes (default) - just hit enter
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 50))
 
       // Should show watching spinner (not generating, since we selected Yes for watch mode)
       const watchingFrame = lastFrame()
@@ -210,6 +241,7 @@ Deno.test(
       unmount()
     } finally {
       readTextFileStub.restore()
+      generateStub.restore()
     }
   }
 )
@@ -247,7 +279,7 @@ Deno.test(
     // Select Yes
     stdin.write('\r')
 
-    await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 25))
 
     // Should show watching spinner (different from generating)
     const watchingFrame = lastFrame()
@@ -277,6 +309,11 @@ Deno.test(
     // Stub file read to return minimal OpenAPI schema
     const readTextFileStub = stub(Deno, 'readTextFile', () => Promise.resolve(minimalOpenAPISchema))
 
+    // Stub generateArtifacts to prevent API calls
+    const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
+      Promise.resolve(mockGenerateResponse)
+    )
+
     try {
       const { lastFrame, unmount } = renderGenerateView({
         initialState,
@@ -302,6 +339,7 @@ Deno.test(
       unmount()
     } finally {
       readTextFileStub.restore()
+      generateStub.restore()
     }
   }
 )
@@ -324,6 +362,11 @@ Deno.test(
           headers: { 'Content-Type': 'application/json' }
         })
       )
+    )
+
+    // Stub generateArtifacts to prevent API calls
+    const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
+      Promise.resolve(mockGenerateResponse)
     )
 
     try {
@@ -351,13 +394,14 @@ Deno.test(
       unmount()
     } finally {
       fetchStub.restore()
+      generateStub.restore()
     }
   }
 )
 
 // Test 5: Interactive with remote URL input
 Deno.test(
-  'GenerateView - user enters remote URL, skips watch prompt',
+  'GenerateView - user enters remote URL and selects watch mode',
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
     const manager = createMockManager()
@@ -373,6 +417,11 @@ Deno.test(
           headers: { 'Content-Type': 'application/json' }
         })
       )
+    )
+
+    // Stub generateArtifacts to prevent API calls
+    const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
+      Promise.resolve(mockGenerateResponse)
     )
 
     try {
@@ -398,31 +447,52 @@ Deno.test(
       // Enter remote URL
       stdin.write('https://api.example.com/openapi.json')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
+      await new Promise(resolve => setTimeout(resolve, 25))
 
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 50))
 
-      // Should skip watch prompt and go directly to generating
-      const generatingFrame = lastFrame()
-
-      const hasGeneratingSpinner =
-        generatingFrame &&
-        generatingFrame.includes('Input OpenAPI schema path or URL') &&
-        generatingFrame.includes('https://api.example.com/openapi.json') &&
-        generatingFrame.includes('Generating...') &&
-        !generatingFrame.includes('Watch for changes?')
+      // Should show watch prompt even for remote URL
+      const watchPrompt = lastFrame()
 
       assertEquals(
-        hasGeneratingSpinner,
-        true,
-        `Expected generating frame without watch prompt, got:\n${generatingFrame || 'undefined'}`
+        watchPrompt,
+        `│  Input OpenAPI schema path or URL
+│  https://api.example.com/openapi.json
+│
+│  Watch for changes?
+│  ❯ Yes
+│    No`
+      )
+
+      // Select No for remote URL (can't watch remote)
+      stdin.write('\u001B[B') // Arrow down to "No"
+
+      await new Promise(resolve => setTimeout(resolve, 25))
+
+      stdin.write('\r')
+
+      await new Promise(resolve => setTimeout(resolve, 50))
+
+      // Should now show generating
+      const generatingFrame = lastFrame()
+
+      assertEquals(
+        generatingFrame,
+        `│  Input OpenAPI schema path or URL
+│  https://api.example.com/openapi.json
+│
+│  Watch for changes?
+│  No
+│
+│  ⠋ Generating...`
       )
 
       unmount()
     } finally {
       fetchStub.restore()
+      generateStub.restore()
     }
   }
 )

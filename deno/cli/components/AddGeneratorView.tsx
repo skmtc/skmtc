@@ -9,7 +9,7 @@ import { TaskProvider, useTask } from './TaskContext.tsx'
 import { StringTask } from './StringTask.tsx'
 import invariant from 'tiny-invariant'
 import { TaskBox } from './TaskBox.tsx'
-import { Spinner } from '@inkjs/ui'
+import { Spinner } from '@/components/Spinner.tsx'
 
 type AddGeneratorViewProps = {
   project: Project | RemoteProject

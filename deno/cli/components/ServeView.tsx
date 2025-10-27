@@ -8,7 +8,7 @@ import * as Sentry from '@sentry/node'
 import { toMod } from '@/lib/to-mod.ts'
 import { join } from '@std/path/join'
 import { TaskBox } from './TaskBox.tsx'
-import { Spinner } from '@inkjs/ui'
+import { Spinner } from '@/components/Spinner.tsx'
 import { dirname } from '@std/path/dirname'
 import type { SkmtcRoot } from '../lib/skmtc-root.ts'
 

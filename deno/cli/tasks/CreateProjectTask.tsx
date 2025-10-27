@@ -4,7 +4,7 @@ import { useGetGenerators } from '@/components/useGetGenerators.ts'
 import { useEffect } from 'react'
 import { Project } from '@/lib/project.ts'
 import { TaskBox } from '@/components/TaskBox.tsx'
-import { Spinner } from '@inkjs/ui'
+import { Spinner } from '@/components/Spinner.tsx'
 import invariant from 'tiny-invariant'
 
 export const CreateProjectTask = () => {
