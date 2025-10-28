@@ -3,10 +3,11 @@ import { type ViewStateRemoveGenerator, useSkmtc } from '@/components/SkmtcConte
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { Box, Text } from 'ink'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import SelectInput from 'ink-select-input'
 import { useShortcut } from './useShortcut.tsx'
 import { ConfirmInput } from '@inkjs/ui'
+import { Spinner } from '@/components/Spinner.tsx'
 
 type RemoveGeneratorViewProps = {
   project: Project | RemoteProject
@@ -19,6 +20,8 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
     view.generatorName ?? null
   )
   const [confirmed, setConfirmed] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const removalInitiated = useRef(false)
 
   const generators = project instanceof Project ? project.toGeneratorIds() : []
 
@@ -31,6 +34,28 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
       }
     }
   })
+
+  // Execute removal when confirmed
+  useEffect(() => {
+    if (confirmed && !removalInitiated.current && selectedGenerator && project instanceof Project) {
+      removalInitiated.current = true
+      setRemoving(true)
+
+      project
+        .removeGenerator({ moduleName: selectedGenerator })
+        .then(() => {
+          dispatchMessage({ success: `Generator "${selectedGenerator}" removed successfully` })
+        })
+        .catch(error => {
+          console.error(error)
+          dispatchMessage({ error: `Failed to remove generator "${selectedGenerator}"` })
+        })
+        .finally(() => {
+          setRemoving(false)
+          dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+        })
+    }
+  }, [confirmed, selectedGenerator, project, dispatch, dispatchMessage])
 
   if (generators.length === 0) {
     return (
@@ -69,21 +94,8 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
     )
   }
 
-  // Execute removal
-  if (project instanceof Project) {
-    project
-      .removeGenerator({ moduleName: selectedGenerator })
-      .then(() => {
-        dispatchMessage({ success: `Generator "${selectedGenerator}" removed successfully` })
-      })
-      .catch(error => {
-        console.error(error)
-
-        dispatchMessage({ error: `Failed to remove generator "${selectedGenerator}"` })
-      })
-      .finally(() => {
-        dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
-      })
+  if (removing) {
+    return <Spinner label="Removing generator..." />
   }
 
   return <Box></Box>
