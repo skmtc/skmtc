@@ -13,7 +13,7 @@ import type * as log from '@std/log'
 import type { Logger } from '../types/Logger.ts'
 import { File } from '../dsl/File.ts'
 import type { Preview, Mapping } from '../types/Preview.ts'
-import * as prettier from 'npm:prettier@^3.6.2'
+import { Biome, Distribution } from '@biomejs/js-api'
 import type { JsonFile } from '../dsl/JsonFile.ts'
 
 /**
@@ -26,7 +26,7 @@ type ConstructorArgs = {
   previews: Record<string, Record<string, Preview>>
   /** Mapping data for file relationships */
   mappings: Record<string, Record<string, Mapping>>
-  /** Optional Prettier configuration for code formatting */
+  /** Optional formatter configuration (using Prettier format for compatibility) */
   prettierConfig?: PrettierConfigType
   /** Base path for resolving file paths */
   basePath: string | undefined
@@ -79,7 +79,7 @@ type RenderOutput = {
  *
  * `RenderContext` is responsible for taking the generated artifacts from the generation
  * phase and rendering them into their final form with proper formatting, path resolution,
- * and file preparation. It handles code formatting via Prettier, path normalization,
+ * and file preparation. It handles code formatting via Biome, path normalization,
  * and produces the final artifacts ready for writing to the filesystem.
  *
  * This context represents the culmination of the three-phase SKMTC pipeline, transforming
@@ -87,7 +87,7 @@ type RenderOutput = {
  *
  * ## Key Features
  *
- * - **Code Formatting**: Automatic Prettier formatting for generated TypeScript/JavaScript code
+ * - **Code Formatting**: Automatic Biome formatting for generated TypeScript/JavaScript code
  * - **Path Resolution**: Intelligent path resolution with base path support
  * - **Content Collation**: Combines all generated content into organized file structures
  * - **Metadata Generation**: Tracks file statistics (lines, characters) and relationships
@@ -123,14 +123,13 @@ type RenderOutput = {
  * });
  * ```
  *
- * @example With custom Prettier configuration
+ * @example With custom formatter configuration
  * ```typescript
  * const renderContext = new RenderContext({
  *   files: generatedFiles,
  *   previews: {},
  *   mappings: {},
  *   prettierConfig: {
- *     parser: 'typescript',
  *     printWidth: 120,
  *     tabWidth: 2,
  *     semi: true,
@@ -260,7 +259,7 @@ export class RenderContext {
   previews: Record<string, Record<string, Preview>>
   /** Mapping data for file relationships */
   mappings: Record<string, Record<string, Mapping>>
-  /** Optional Prettier configuration for code formatting */
+  /** Optional formatter configuration (using Prettier format for compatibility) */
   #prettierConfig?: PrettierConfigType
   /** Base path for resolving file paths */
   basePath: string | undefined
@@ -303,7 +302,7 @@ export class RenderContext {
    * Renders all files in the context to their final formatted form.
    *
    * This is the main rendering method that orchestrates the collation and
-   * formatting of all generated files. It processes files through Prettier
+   * formatting of all generated files. It processes files through Biome
    * formatting (if configured), resolves paths, and produces the final
    * artifacts ready for writing to the filesystem.
    *
@@ -354,11 +353,11 @@ export class RenderContext {
    * Collates all files in the context into a unified render result.
    *
    * This method processes each file in the context through the rendering pipeline,
-   * applying Prettier formatting and path resolution. It coordinates the parallel
+   * applying Biome formatting and path resolution. It coordinates the parallel
    * processing of all files and aggregates the results into a single output structure.
    *
    * The collation process includes:
-   * - File content rendering with optional Prettier formatting
+   * - File content rendering with optional Biome formatting
    * - Path resolution using base path configuration
    * - Metadata calculation (line count, character count)
    * - Result aggregation into artifacts and file metadata maps
@@ -431,7 +430,7 @@ export class RenderContext {
    * @example
    * ```typescript
    * const result = renderContext.trace('format-file', () => {
-   *   return prettier.format(content, prettierConfig);
+   *   return biome.formatContent(projectKey, content, { filePath: 'file.ts' });
    * });
    *
    * // With hierarchical tracing
@@ -525,7 +524,7 @@ type RenderFileArgs = {
   destinationPath: string
   /** Optional base path for path resolution */
   basePath?: string
-  /** Optional Prettier configuration for formatting */
+  /** Optional formatter configuration (using Prettier format for compatibility) */
   prettierConfig?: PrettierConfigType
 }
 
@@ -533,7 +532,7 @@ type RenderFileArgs = {
  * Renders a single file with formatting and metadata calculation.
  *
  * This function processes a single file through the rendering pipeline,
- * applying Prettier formatting if configured and calculating file metadata
+ * applying Biome formatting if configured and calculating file metadata
  * such as line count and character count. It resolves the final path using
  * the base path configuration.
  *
@@ -579,14 +578,84 @@ type FormatFileArgs = {
   prettierConfig?: PrettierConfigType
 }
 
+/**
+ * Maps Prettier configuration to Biome configuration format.
+ * Maintains backward compatibility with existing .prettierrc.json files.
+ */
+const toBiomeConfig = (prettierConfig: PrettierConfigType) => {
+  return {
+    formatter: {
+      enabled: true,
+      formatWithErrors: false,
+      indentStyle: prettierConfig.useTabs ? 'tab' : 'space',
+      indentWidth: prettierConfig.tabWidth ?? 2,
+      lineWidth: prettierConfig.printWidth ?? 80,
+      lineEnding: prettierConfig.endOfLine === 'crlf' ? 'crlf' : 'lf'
+    },
+    javascript: {
+      formatter: {
+        enabled: true,
+        quoteStyle: prettierConfig.singleQuote ? 'single' : 'double',
+        jsxQuoteStyle: prettierConfig.jsxSingleQuote ? 'single' : 'double',
+        quoteProperties: 'asNeeded',
+        trailingCommas:
+          prettierConfig.trailingComma === 'all'
+            ? 'all'
+            : prettierConfig.trailingComma === 'es5'
+              ? 'es5'
+              : 'none',
+        semicolons: prettierConfig.semi ? 'always' : 'asNeeded',
+        arrowParentheses: prettierConfig.arrowParens === 'always' ? 'always' : 'asNeeded',
+        bracketSpacing: prettierConfig.bracketSpacing ?? true,
+        bracketSameLine: prettierConfig.bracketSameLine ?? false
+      }
+    }
+  }
+}
+
+/**
+ * Biome instance cache to avoid recreating instances
+ */
+let biomeInstance: Biome | null = null
+let biomeProjectKey: number | null = null
+
+const getBiomeInstance = async (): Promise<{ biome: Biome; projectKey: number }> => {
+  if (!biomeInstance || biomeProjectKey === null) {
+    // Initialize Biome with the Node distribution
+    biomeInstance = await Biome.create({
+      distribution: Distribution.NODE
+    })
+    const { projectKey } = biomeInstance.openProject(Deno.cwd())
+    biomeProjectKey = projectKey
+  }
+
+  return { biome: biomeInstance, projectKey: biomeProjectKey }
+}
+
 const formatFile = async ({ content, prettierConfig }: FormatFileArgs): Promise<string> => {
   try {
-    return prettierConfig
-      ? await prettier.format(content, { ...prettierConfig, parser: 'typescript' })
-      : content
-  } catch (e) {
-    console.error(e)
+    if (!prettierConfig) {
+      console.log('NO PRETTIER CONFIG')
+      return content
+    }
 
+    const { biome, projectKey } = await getBiomeInstance()
+
+    // Apply configuration from Prettier config
+    const biomeConfig = toBiomeConfig(prettierConfig)
+    biome.applyConfiguration(projectKey, biomeConfig)
+
+    // Format content - using .ts extension for TypeScript parser
+    const result = biome.formatContent(projectKey, content, {
+      filePath: 'generated.ts'
+    })
+
+    console.log('FORMATTED', result.content)
+
+    return result.content
+  } catch (e) {
+    console.error('Biome formatting error:', e)
+    // Fallback to unformatted content on error
     return content
   }
 }
