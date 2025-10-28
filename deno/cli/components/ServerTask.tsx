@@ -1,11 +1,9 @@
-import React, { useId, useEffect } from 'react'
-import { useState } from 'react'
+import React, { useEffect } from 'react'
 import type { Project } from '@/lib/project.ts'
 import { useTask } from './TaskContext.tsx'
 import { Box } from 'ink'
 import { dirname } from '@std/path/dirname'
 import { join } from '@std/path/join'
-import type { Dispatch, SetStateAction } from 'react'
 
 const isPortAvailable = async (port: number): Promise<boolean> => {
   try {

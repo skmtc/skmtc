@@ -96,12 +96,6 @@ export type ViewStateRuntimeLogs = {
   projectName: string
 }
 
-export type ViewStateServe = {
-  page: 'serve'
-  projectName: string
-  port?: string
-}
-
 export type ViewStateListGenerators = {
   page: 'list-generators'
   projectName: string
@@ -152,7 +146,6 @@ export type ViewState =
   | ViewStateGenerate
   | ViewStateDeploy
   | ViewStateRuntimeLogs
-  | ViewStateServe
   | ViewStateListGenerators
   | ViewStateAddGenerator
   | ViewStateInstallGenerator
@@ -257,7 +250,6 @@ export const toProjectName = ({ view }: ToProjectNameArgs) => {
     .with({ page: 'project' }, ({ projectName }) => projectName)
     .with({ page: 'generate' }, ({ project }) => project.name)
     .with({ page: 'deploy' }, ({ projectName }) => projectName)
-    .with({ page: 'serve' }, ({ projectName }) => projectName)
     .with({ page: 'runtime-logs' }, ({ projectName }) => projectName)
     .with({ page: 'list-generators' }, ({ projectName }) => projectName)
     .with({ page: 'install-generator' }, ({ projectName }) => projectName)

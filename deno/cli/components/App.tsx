@@ -10,7 +10,6 @@ import { AppInfo } from '@/components/AppInfo.tsx'
 import { GenerateView } from '@/components/GenerateView.tsx'
 import { DeployView } from '@/components/DeployView.tsx'
 import { RuntimeLogsView } from '@/components/RuntimeLogsView.tsx'
-import { ServeView } from '@/components/ServeView.tsx'
 import { ListGeneratorsView } from '@/components/ListGeneratorsView.tsx'
 import { AddGeneratorView } from '@/components/AddGeneratorView.tsx'
 import { InstallGeneratorView } from '@/components/InstallGeneratorView.tsx'
@@ -67,9 +66,6 @@ export const ViewManager = () => {
     })
     .with({ page: 'runtime-logs' }, view => (
       <RuntimeLogsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    ))
-    .with({ page: 'serve' }, view => (
-      <ServeView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     ))
     .with({ page: 'list-generators' }, view => (
       <ListGeneratorsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />

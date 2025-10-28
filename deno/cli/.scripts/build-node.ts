@@ -16,9 +16,6 @@ await build({
     deno: true,
     timers: true
   },
-  mappings: {
-    './components/ServeView.tsx': './components/ServeView.node.tsx'
-  },
   scriptModule: false,
   package: {
     // package.json properties
