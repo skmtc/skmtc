@@ -159,6 +159,42 @@ Deno.test(
     // Stub file read to return minimal OpenAPI schema
     const readTextFileStub = stub(Deno, 'readTextFile', () => Promise.resolve(minimalOpenAPISchema))
 
+    // Stub filesystem operations to prevent actual file/directory creation
+    const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
+    const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
+
+    // Stub Deno.Command to prevent process spawning
+    const commandStub = stub(Deno, 'Command', () => ({
+      spawn: () => ({
+        stdout: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        stderr: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        kill: () => {}
+      })
+    }))
+
+    // Stub Deno.open to prevent log file operations
+    const openStub = stub(Deno, 'open', () =>
+      Promise.resolve({
+        write: () => Promise.resolve(0),
+        close: () => {}
+      } as unknown as Deno.FsFile)
+    )
+
+    // Stub Deno.connect to make ports appear available
+    const connectStub = stub(Deno, 'connect', () => {
+      throw new Error('Connection refused')
+    })
+
     // Stub generateArtifacts to prevent API calls
     const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
       Promise.resolve(mockGenerateResponse)
@@ -241,6 +277,11 @@ Deno.test(
       unmount()
     } finally {
       readTextFileStub.restore()
+      mkdirSyncStub.restore()
+      writeTextFileStub.restore()
+      commandStub.restore()
+      openStub.restore()
+      connectStub.restore()
       generateStub.restore()
     }
   }
@@ -256,7 +297,49 @@ Deno.test(
 
     const initialState = createInitialState(mockProject)
 
-    const { lastFrame, unmount, stdin } = renderGenerateView({
+    // Stub filesystem operations to prevent actual file/directory creation
+    const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
+    const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
+
+    // Stub Deno.Command to prevent process spawning
+    const commandStub = stub(Deno, 'Command', () => ({
+      spawn: () => ({
+        stdout: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        stderr: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        kill: () => {}
+      })
+    }))
+
+    // Stub Deno.open to prevent log file operations
+    const openStub = stub(Deno, 'open', () =>
+      Promise.resolve({
+        write: () => Promise.resolve(0),
+        close: () => {}
+      } as unknown as Deno.FsFile)
+    )
+
+    // Stub Deno.connect to make ports appear available
+    const connectStub = stub(Deno, 'connect', () => {
+      throw new Error('Connection refused')
+    })
+
+    // Stub fetch to make server ready check succeed immediately
+    const fetchStub = stub(globalThis, 'fetch', () =>
+      Promise.resolve(new Response('{}', { status: 200 }))
+    )
+
+    try {
+      const { lastFrame, unmount, stdin } = renderGenerateView({
       initialState,
       project: mockProject,
       schemaSourceString: 'schema.json',
@@ -292,7 +375,15 @@ Deno.test(
       `Expected watching frame, got:\n${watchingFrame || 'undefined'}`
     )
 
-    unmount()
+      unmount()
+    } finally {
+      mkdirSyncStub.restore()
+      writeTextFileStub.restore()
+      commandStub.restore()
+      openStub.restore()
+      connectStub.restore()
+      fetchStub.restore()
+    }
   }
 )
 
@@ -308,6 +399,47 @@ Deno.test(
 
     // Stub file read to return minimal OpenAPI schema
     const readTextFileStub = stub(Deno, 'readTextFile', () => Promise.resolve(minimalOpenAPISchema))
+
+    // Stub filesystem operations to prevent actual file/directory creation
+    const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
+    const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
+
+    // Stub Deno.Command to prevent process spawning
+    const commandStub = stub(Deno, 'Command', () => ({
+      spawn: () => ({
+        stdout: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        stderr: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        kill: () => {}
+      })
+    }))
+
+    // Stub Deno.open to prevent log file operations
+    const openStub = stub(Deno, 'open', () =>
+      Promise.resolve({
+        write: () => Promise.resolve(0),
+        close: () => {}
+      } as unknown as Deno.FsFile)
+    )
+
+    // Stub Deno.connect to make ports appear available
+    const connectStub = stub(Deno, 'connect', () => {
+      throw new Error('Connection refused')
+    })
+
+    // Stub fetch to make server ready check succeed immediately
+    const fetchStub = stub(globalThis, 'fetch', () =>
+      Promise.resolve(new Response('{}', { status: 200 }))
+    )
 
     // Stub generateArtifacts to prevent API calls
     const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
@@ -339,6 +471,12 @@ Deno.test(
       unmount()
     } finally {
       readTextFileStub.restore()
+      mkdirSyncStub.restore()
+      writeTextFileStub.restore()
+      commandStub.restore()
+      openStub.restore()
+      connectStub.restore()
+      fetchStub.restore()
       generateStub.restore()
     }
   }
@@ -363,6 +501,42 @@ Deno.test(
         })
       )
     )
+
+    // Stub filesystem operations to prevent actual file/directory creation
+    const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
+    const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
+
+    // Stub Deno.Command to prevent process spawning
+    const commandStub = stub(Deno, 'Command', () => ({
+      spawn: () => ({
+        stdout: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        stderr: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        kill: () => {}
+      })
+    }))
+
+    // Stub Deno.open to prevent log file operations
+    const openStub = stub(Deno, 'open', () =>
+      Promise.resolve({
+        write: () => Promise.resolve(0),
+        close: () => {}
+      } as unknown as Deno.FsFile)
+    )
+
+    // Stub Deno.connect to make ports appear available
+    const connectStub = stub(Deno, 'connect', () => {
+      throw new Error('Connection refused')
+    })
 
     // Stub generateArtifacts to prevent API calls
     const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
@@ -394,6 +568,11 @@ Deno.test(
       unmount()
     } finally {
       fetchStub.restore()
+      mkdirSyncStub.restore()
+      writeTextFileStub.restore()
+      commandStub.restore()
+      openStub.restore()
+      connectStub.restore()
       generateStub.restore()
     }
   }
@@ -418,6 +597,42 @@ Deno.test(
         })
       )
     )
+
+    // Stub filesystem operations to prevent actual file/directory creation
+    const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
+    const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
+
+    // Stub Deno.Command to prevent process spawning
+    const commandStub = stub(Deno, 'Command', () => ({
+      spawn: () => ({
+        stdout: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        stderr: {
+          getReader: () => ({
+            read: () => Promise.resolve({ done: true, value: undefined }),
+            releaseLock: () => {}
+          })
+        },
+        kill: () => {}
+      })
+    }))
+
+    // Stub Deno.open to prevent log file operations
+    const openStub = stub(Deno, 'open', () =>
+      Promise.resolve({
+        write: () => Promise.resolve(0),
+        close: () => {}
+      } as unknown as Deno.FsFile)
+    )
+
+    // Stub Deno.connect to make ports appear available
+    const connectStub = stub(Deno, 'connect', () => {
+      throw new Error('Connection refused')
+    })
 
     // Stub generateArtifacts to prevent API calls
     const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
@@ -492,6 +707,11 @@ Deno.test(
       unmount()
     } finally {
       fetchStub.restore()
+      mkdirSyncStub.restore()
+      writeTextFileStub.restore()
+      commandStub.restore()
+      openStub.restore()
+      connectStub.restore()
       generateStub.restore()
     }
   }

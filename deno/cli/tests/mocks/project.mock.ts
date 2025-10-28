@@ -72,6 +72,7 @@ export function createMockProject(manager: Manager, options: MockProjectOptions 
     removeGenerator: async () => {},
     cloneGenerator: async () => {},
     deploy: async () => {},
+    createServer: async () => `/mock/projects/${name}/mod.ts`,
     toManifestPath: () => `/mock/projects/${name}/.settings/manifest.json`,
     toPath: () => `/mock/projects/${name}`,
     toProjectKey: () => `@mock/${name}`

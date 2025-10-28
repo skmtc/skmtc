@@ -178,7 +178,11 @@ export class Project {
   async createServer() {
     const mod = toMod(this.toGeneratorIds())
 
-    const modPath = join(this.toPath(), 'mod.ts')
+    const path = this.toPath()
+
+    const modPath = join(path, 'mod.ts')
+
+    Deno.mkdirSync(path, { recursive: true })
 
     await Deno.writeTextFile(modPath, mod)
 
