@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { MultiSelect } from '@inkjs/ui'
 import { Spinner } from '@/components/Spinner.tsx'
 import { parseModuleName } from '@skmtc/core'
-import { getGeneratorsRootDenoJson } from '@/lib/generator.ts'
+import { Generator } from '@/lib/generator.ts'
 import { useShortcut } from './useShortcut.tsx'
 
 type CloneGeneratorViewProps = {
@@ -64,7 +64,7 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
 
     setCloning(true)
 
-    getGeneratorsRootDenoJson()
+    Generator.getGeneratorsRootDenoJson()
       .then(generatorsDenoJson => {
         if (project instanceof Project) {
           return Promise.all(
