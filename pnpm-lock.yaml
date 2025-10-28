@@ -395,6 +395,9 @@ importers:
       '@babel/helper-validator-identifier':
         specifier: 7.27.1
         version: 7.27.1
+      '@biomejs/js-api':
+        specifier: ^4.0.0
+        version: 4.0.0
       '@deno/shim-deno':
         specifier: ^0.19.2
         version: 0.19.2
@@ -419,9 +422,6 @@ importers:
       openapi-types:
         specifier: ^12.1.3
         version: 12.1.3
-      prettier:
-        specifier: ^3.6.2
-        version: 3.6.2
       swagger2openapi:
         specifier: ^7.0.8
         version: 7.0.8
@@ -468,6 +468,20 @@ packages:
   '@babel/runtime@7.28.4':
     resolution: {integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==}
     engines: {node: '>=6.9.0'}
+
+  '@biomejs/js-api@4.0.0':
+    resolution: {integrity: sha512-EOArR/6drRzM1/hwOIz1pZw90FL31Ud4Y7hEHGWVtMNmAwS9SrwZ8hMENGlLVXCeGW/kL46p8kX7eO6x9Nmezg==}
+    peerDependencies:
+      '@biomejs/wasm-bundler': ^2.3.0
+      '@biomejs/wasm-nodejs': ^2.3.0
+      '@biomejs/wasm-web': ^2.3.0
+    peerDependenciesMeta:
+      '@biomejs/wasm-bundler':
+        optional: true
+      '@biomejs/wasm-nodejs':
+        optional: true
+      '@biomejs/wasm-web':
+        optional: true
 
   '@code-hike/lighter@1.0.1':
     resolution: {integrity: sha512-mccvcsk5UTScRrE02oBz1/qzckyhD8YE3VQlQv++2bSVVZgNuCUX8MpokSCi5OmfRAAxbj6kmNiqq1Um8eXPrw==}
@@ -5998,6 +6012,8 @@ snapshots:
   '@babel/helper-validator-identifier@7.27.1': {}
 
   '@babel/runtime@7.28.4': {}
+
+  '@biomejs/js-api@4.0.0': {}
 
   '@code-hike/lighter@1.0.1':
     dependencies:
