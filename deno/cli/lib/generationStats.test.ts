@@ -1,6 +1,13 @@
 import { assertEquals } from '@std/assert/equals'
-import { toGenerationStats, toManifestLines, toTotalTime, toManifestErrors, checkResult, toManifestTokens } from './generationStats.ts'
-import type { ManifestContent } from '../types/Manifest.ts'
+import {
+  toGenerationStats,
+  toManifestLines,
+  toTotalTime,
+  toManifestErrors,
+  checkResult,
+  toManifestTokens
+} from './generationStats.ts'
+import type { ManifestContent } from '@skmtc/core/Manifest'
 
 Deno.test('toManifestTokens - counts tokens in artifacts', () => {
   const artifacts = {
@@ -101,8 +108,8 @@ Deno.test('toManifestErrors - ignores non-error results', () => {
 Deno.test('toManifestErrors - extracts nested error paths', () => {
   const results = {
     'models.ts': {
-      'User': 'success' as const,
-      'Product': 'error' as const
+      User: 'success' as const,
+      Product: 'error' as const
     }
   }
 
@@ -112,10 +119,10 @@ Deno.test('toManifestErrors - extracts nested error paths', () => {
 
 Deno.test('toManifestErrors - handles deeply nested errors', () => {
   const results = {
-    'generation': {
-      'models': {
-        'User': {
-          'validation': 'error' as const
+    generation: {
+      models: {
+        User: {
+          validation: 'error' as const
         }
       }
     }
@@ -162,7 +169,7 @@ Deno.test('checkResult - traverses nested objects', () => {
   checkResult({
     path: ['root'],
     result: {
-      'nested': 'error' as const
+      nested: 'error' as const
     },
     errors
   })
@@ -191,11 +198,7 @@ Deno.test('checkResult - handles null values in arrays', () => {
 
   checkResult({
     path: ['batch'],
-    result: [
-      { item: 'success' as const },
-      null,
-      { item: 'error' as const }
-    ],
+    result: [{ item: 'success' as const }, null, { item: 'error' as const }],
     errors
   })
 
@@ -255,9 +258,9 @@ Deno.test('toGenerationStats - includes errors in stats', () => {
       './models.ts': { lines: 50, characters: 1500, destinationPath: './models.ts' }
     },
     results: {
-      'models': {
-        'User': 'error' as const,
-        'Product': 'success' as const
+      models: {
+        User: 'error' as const,
+        Product: 'success' as const
       }
     }
   }

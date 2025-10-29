@@ -1,12 +1,12 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.346",
+  "version": "0.0.347",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.925",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.926",
     "@biomejs/js-api": "npm:@biomejs/js-api@^4.0.0",
-    "@biomejs/wasm-bundler": "npm:@biomejs/wasm-bundler@^2.3.0",
+    "@biomejs/wasm-nodejs": "npm:@biomejs/wasm-nodejs@^2.3.0",
     "ink": "npm:ink@^6.2.3",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
     "ink-select-input": "npm:ink-select-input@^6.2.0",

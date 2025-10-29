@@ -1,4 +1,4 @@
-import '@biomejs/wasm-bundler'
+import '@biomejs/wasm-nodejs'
 import type { PrettierConfigType } from '@skmtc/core/PrettierConfig'
 import type { BiomeInstance } from '../components/TaskContext.tsx'
 import { Biome, Distribution } from '@biomejs/js-api'
@@ -16,6 +16,7 @@ type FormatFileArgs = {
 export const toBiomeConfig = (prettierConfig: PrettierConfigType) => {
   return {
     files: {
+      include: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
       ignore: []
     },
     formatter: {
@@ -56,11 +57,9 @@ export const createBiomeInstance = async ({
   prettierConfig,
   projectPath
 }: CreateBiomeInstanceArgs): Promise<BiomeInstance> => {
-  console.log(prettierConfig)
-
   // Initialize Biome with BUNDLER distribution
   const biome = await Biome.create({
-    distribution: Distribution.BUNDLER
+    distribution: Distribution.NODE
   })
 
   console.log(projectPath)
@@ -75,18 +74,20 @@ export const createBiomeInstance = async ({
   return { biome, projectKey }
 }
 
-export const formatFile = ({ content, biome, projectKey }: FormatFileArgs): string => {
-  try {
-    // Format content - using .ts extension for TypeScript parser
-    const result = biome.formatContent(projectKey, content, {
-      filePath: 'generated.ts'
-    })
+// TODO: fix biome formatting
+export const formatFile = ({ content }: FormatFileArgs): string => {
+  return content
+  // try {
+  //   // Format content - using .ts extension for TypeScript parser
+  //   const result = biome.formatContent(projectKey, content, {
+  //     filePath: 'generated.ts'
+  //   })
 
-    return result.content
-  } catch (e) {
-    console.error('Biome formatting error:', e)
+  //   return result.content
+  // } catch (e) {
+  //   console.error('Biome formatting error:', e)
 
-    // Fallback to unformatted content on error
-    return content
-  }
+  //   // Fallback to unformatted content on error
+  //   return content
+  // }
 }
