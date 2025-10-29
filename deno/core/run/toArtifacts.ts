@@ -7,7 +7,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 
 /**
  * Arguments for the {@link toArtifacts} transformation function.
- * 
+ *
  * @example
  * ```typescript
  * const args: TransformArgs = {
@@ -47,23 +47,23 @@ type TransformArgs = {
 
 /**
  * Transforms an OpenAPI v3 document into generated code artifacts and metadata.
- * 
+ *
  * This is the primary function for the SKMTC transformation pipeline. It orchestrates
  * the three-phase process of parsing OpenAPI documents, generating code artifacts,
  * and rendering them to formatted files.
- * 
+ *
  * The function creates a {@link CoreContext} instance and executes the full pipeline:
  * 1. **Parse**: Converts the OpenAPI document into internal OAS objects
  * 2. **Generate**: Transforms OAS objects using the provided generator configuration
  * 3. **Render**: Formats and prepares the final code artifacts
- * 
+ *
  * @param args - Configuration for the transformation process
  * @returns A promise resolving to the generated artifacts and manifest
- * 
+ *
  * @example Basic usage
  * ```typescript
  * import { toArtifacts } from '@skmtc/core';
- * 
+ *
  * const result = await toArtifacts({
  *   traceId: 'my-api-generation',
  *   spanId: 'user-service',
@@ -84,18 +84,18 @@ type TransformArgs = {
  *   startAt: Date.now(),
  *   silent: false
  * });
- * 
+ *
  * // Access generated files
  * Object.entries(result.artifacts).forEach(([path, content]) => {
  *   console.log(`Generated: ${path}`);
  *   await Deno.writeTextFile(path, content);
  * });
- * 
+ *
  * // Access generation metadata
  * console.log(`Generated ${Object.keys(result.manifest.files).length} files`);
  * console.log(`Generation took ${result.manifest.endAt - result.manifest.startAt}ms`);
  * ```
- * 
+ *
  * @example With Prettier formatting
  * ```typescript
  * const result = await toArtifacts({
@@ -113,16 +113,16 @@ type TransformArgs = {
  *   silent: true
  * });
  * ```
- * 
+ *
  * @example Error handling
  * ```typescript
  * try {
  *   const result = await toArtifacts(transformArgs);
- *   
+ *
  *   // Check for generation errors in the results
  *   const hasErrors = Object.values(result.manifest.results)
  *     .some(result => result === 'error');
- *   
+ *
  *   if (hasErrors) {
  *     console.warn('Generation completed with errors');
  *   }
@@ -131,7 +131,7 @@ type TransformArgs = {
  * }
  * ```
  */
-export const toArtifacts = async ({
+export const toArtifacts = ({
   traceId,
   spanId,
   documentObject,
@@ -141,10 +141,10 @@ export const toArtifacts = async ({
   logsPath,
   startAt,
   silent
-}: TransformArgs): Promise<{ artifacts: Record<string, string>; manifest: ManifestContent }> => {
+}: TransformArgs): { artifacts: Record<string, string>; manifest: ManifestContent } => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  const { artifacts, files, previews, results, mappings } = await context.toArtifacts({
+  const { artifacts, files, previews, results, mappings } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     prettier,

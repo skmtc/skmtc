@@ -31,7 +31,6 @@ await build({
       test: 'exit 0'
     },
     devDependencies: {
-      '@types/lodash-es': '4.17.12',
       'openapi-types': '12.1.3',
       valibot: '1.1.0'
     },

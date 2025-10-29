@@ -2,6 +2,7 @@ import React from 'react'
 import { createContext, type ReactNode, useContext, useReducer } from 'react'
 import { match } from 'ts-pattern'
 import type { Project } from '@/lib/project.ts'
+import { Biome } from '@biomejs/js-api'
 
 type SetCurrentTaskAction = { type: 'increment-current-task' }
 type InsertTaskAction = { type: 'insert-task'; payload: InsertTaskPayload }
@@ -18,6 +19,11 @@ export type TaskAction = SetCurrentTaskAction | InsertTaskAction | SetStateActio
 type InsertTaskPayload = {
   task: Task
   index: number
+}
+
+export type BiomeInstance = {
+  biome: Biome
+  projectKey: number
 }
 
 export type TaskState = {
@@ -37,6 +43,7 @@ export type TaskState = {
   'create-project-task': Project | null
   'select-project-task': Project
   'install-generators-task': boolean
+  'start-biome-task': Promise<BiomeInstance> | undefined
 }
 
 export type TaskDispatch = (action: TaskAction) => void

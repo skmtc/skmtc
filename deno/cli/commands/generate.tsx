@@ -4,16 +4,17 @@ import * as Sentry from '@sentry/node'
 import { Workspace } from '@/lib/workspace.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { isProjectKey, type Project } from '@/lib/project.ts'
-import { formatNumber, toGenerationStats, type GenerationStats } from '@skmtc/core'
+import { formatNumber } from '@skmtc/core'
+import { toGenerationStats, type GenerationStats } from '@/lib/generationStats.ts'
 import { RemoteProject } from '@/lib/remote-project.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
-import type { PrettierConfigType } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import { PrettierJson } from '../lib/prettier-json.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
+import { BiomeInstance } from '../components/TaskContext.tsx'
 
 export const description = 'Generate artifacts'
 
@@ -101,7 +102,7 @@ type GenerateArgs = {
   accountName: string
   schemaContents: string
   clientSettings: ClientSettings | undefined
-  prettier: PrettierConfigType | undefined
+  biomeInstance: Promise<BiomeInstance> | undefined
   token: string | undefined
 }
 
@@ -111,7 +112,7 @@ export const generate = async ({
   accountName,
   schemaContents,
   clientSettings,
-  prettier,
+  biomeInstance,
   token
 }: GenerateArgs) => {
   try {
@@ -122,7 +123,7 @@ export const generate = async ({
       accountName,
       schemaContents,
       clientSettings,
-      prettier,
+      biomeInstance,
       token
     })
 

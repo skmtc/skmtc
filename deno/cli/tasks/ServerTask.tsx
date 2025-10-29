@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import type { Project } from '@/lib/project.ts'
-import { useTask } from './TaskContext.tsx'
+import { useTask } from '@/components/TaskContext.tsx'
 import { Box } from 'ink'
 import { dirname } from '@std/path/dirname'
 import { join } from '@std/path/join'
@@ -25,7 +25,8 @@ const findAvailablePort = async (startPort: number): Promise<number> => {
 
 const waitForServerReady = async (port: number): Promise<void> => {
   const maxRetries = 60 // 60 attempts
-  const initialBackoff = 100 // Start with 100ms
+  const firstBackoff = 250 // Start with 250ms
+  const initialBackoff = 20 // Start with 20ms
   const maxBackoff = 2000 // Cap at 2 seconds
   const timeout = 30000 // 30 second total timeout
 
@@ -47,7 +48,9 @@ const waitForServerReady = async (port: number): Promise<void> => {
     }
 
     // Exponential backoff with cap
-    const backoffMs = Math.min(initialBackoff * Math.pow(2, attempt), maxBackoff)
+    const backoffMs =
+      attempt === 0 ? firstBackoff : Math.min(initialBackoff * Math.pow(1.1, attempt), maxBackoff)
+
     await new Promise(resolve => setTimeout(resolve, backoffMs))
   }
 
@@ -66,7 +69,6 @@ export const ServerTask = ({ project }: ServerTaskProps) => {
       const modPath = await project.createServer()
 
       const port = String(await findAvailablePort(8001))
-
       const serverUrl = `http://localhost:${port}`
 
       project.clientJson.contents = project.clientJson.contents
@@ -103,7 +105,7 @@ export const runServer = async ({
   port = '8001'
 }: RunServerArgs): Promise<Deno.ChildProcess> => {
   const command = new Deno.Command('deno', {
-    args: ['serve', '--allow-env', '--allow-sys', '--port', port, modPath],
+    args: ['serve', '-A', '--port', port, modPath],
     cwd: dirname(modPath),
     stdout: 'piped',
     stderr: 'piped'
@@ -128,6 +130,7 @@ export const runServer = async ({
         const { done, value } = await reader.read()
         if (done) break
         const text = decoder.decode(value, { stream: true })
+
         await file.write(new TextEncoder().encode(text))
       }
     } finally {
@@ -146,6 +149,7 @@ export const runServer = async ({
         const { done, value } = await reader.read()
         if (done) break
         const text = decoder.decode(value, { stream: true })
+
         await file.write(new TextEncoder().encode(text))
       }
     } finally {

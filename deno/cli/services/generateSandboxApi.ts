@@ -1,13 +1,11 @@
 import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
-import type { PrettierConfigType } from '@/types/prettierConfigType.generated.ts'
 
 export type GenerateSandboxApiArgs = {
   accountName: string
   serverName: string
   schema: string
   clientSettings: ClientSettings | undefined
-  prettier: PrettierConfigType | undefined
   token: string | undefined
 }
 
@@ -16,7 +14,6 @@ export const generateSandboxApi = async ({
   serverName,
   schema,
   clientSettings,
-  prettier,
   token
 }: GenerateSandboxApiArgs) => {
   const sandboxOrigin =
@@ -26,7 +23,7 @@ export const generateSandboxApi = async ({
 
   const res = await fetch(sandboxUrl, {
     method: 'POST',
-    body: JSON.stringify({ schema, clientSettings, prettier }),
+    body: JSON.stringify({ schema, clientSettings }),
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       'Content-Type': 'application/json'

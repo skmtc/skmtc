@@ -12,15 +12,16 @@ import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
-import { TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
+import { type BiomeInstance, TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
 import { StringTask } from './StringTask.tsx'
 import { BooleanTask } from '@/tasks/BooleanTask.tsx'
 import { Spinner } from '@/components/Spinner.tsx'
 import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
-import { ServerTask } from './ServerTask.tsx'
+import { ServerTask } from '@/tasks/ServerTask.tsx'
 import { BasePathTask } from '@/tasks/BasePathTask.tsx'
+import { StartBiomeTask } from '../tasks/StartBiomeTask.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -68,13 +69,20 @@ export const GenerateView = ({
           taskKey: 'start-server-task',
           include: project instanceof Project,
           state: undefined,
-          render: () => <StartServerTask project={project as Project} />
+          render: () => <ServerTask project={project as Project} />
         },
+
         {
           taskKey: 'base-path',
           include: includeBasePathTask,
           state: basePath,
           render: () => <BasePathTask />
+        },
+        {
+          taskKey: 'start-biome-task',
+          include: true,
+          state: undefined,
+          render: () => <StartBiomeTask prettierConfig={project.prettierJson?.contents} />
         },
         {
           taskKey: 'schema-location-task',
@@ -110,14 +118,6 @@ export const GenerateView = ({
       <TaskListView />
     </TaskProvider>
   )
-}
-
-type StartServerTaskProps = {
-  project: Project
-}
-
-const StartServerTask = ({ project }: StartServerTaskProps) => {
-  return <ServerTask project={project} />
 }
 
 const WatchModeTask = () => {
@@ -239,7 +239,8 @@ const RunGenerateTask = ({ project, schemaSourceString, token }: RunGenerateProp
           accountName: state.session?.user?.user_metadata?.user_name,
           schemaContents,
           clientSettings: project.clientJson?.contents?.settings,
-          prettier: project.prettierJson?.contents,
+          biomeInstance: taskState.tasks.find(task => task.taskKey === 'start-biome-task')
+            ?.state as Promise<BiomeInstance> | undefined,
           token
         })
       })
@@ -321,7 +322,8 @@ const WatchGenerateTask = ({ project, schemaSourceString, token }: WatchGenerate
           skmtcRoot: state.skmtcRoot,
           schemaContents: contents,
           clientSettings: project.clientJson?.contents?.settings,
-          prettier: project.prettierJson?.contents,
+          biomeInstance: taskState.tasks.find(task => task.taskKey === 'start-biome-task')
+            ?.state as Promise<BiomeInstance> | undefined,
           token
         })
       })

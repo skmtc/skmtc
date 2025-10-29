@@ -1,5 +1,5 @@
-import type { ManifestContent } from '../types/Manifest.ts'
-import type { ResultsItem, ResultType } from '../types/Results.ts'
+import type { ManifestContent } from '@skmtc/core/Manifest'
+import type { ResultsItem, ResultType } from '@skmtc/core/Results'
 import { match, P } from 'ts-pattern'
 import { countTokens } from 'gpt-tokenizer'
 

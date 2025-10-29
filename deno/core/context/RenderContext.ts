@@ -13,7 +13,6 @@ import type * as log from '@std/log'
 import type { Logger } from '../types/Logger.ts'
 import { File } from '../dsl/File.ts'
 import type { Preview, Mapping } from '../types/Preview.ts'
-import { Biome, Distribution } from '@biomejs/js-api'
 import type { JsonFile } from '../dsl/JsonFile.ts'
 
 /**
@@ -332,10 +331,10 @@ export class RenderContext {
    * });
    * ```
    */
-  async render(): Promise<Omit<RenderResult, 'results'>> {
-    return await Sentry.startSpan({ name: 'Render artifacts' }, async () => {
-      const result = await Sentry.startSpan({ name: 'Collate content' }, async () => {
-        return await this.collate()
+  render(): Omit<RenderResult, 'results'> {
+    return Sentry.startSpan({ name: 'Render artifacts' }, () => {
+      const result = Sentry.startSpan({ name: 'Collate content' }, () => {
+        return this.collate()
       })
 
       const rendered: Omit<RenderResult, 'results'> = {
@@ -376,13 +375,13 @@ export class RenderContext {
    * console.log(collated.files['/path/to/file.ts'].characters);
    * ```
    */
-  async collate(): Promise<FilesRenderResult> {
+  collate(): FilesRenderResult {
     const fileEntries = Array.from(this.files.entries())
 
-    const fileObjectPromises: Promise<FileObject>[] = fileEntries
+    const fileObjects: FileObject[] = fileEntries
       .map(([destinationPath, file]) => {
         return this.trace(destinationPath, () => {
-          const renderedFile: Promise<FileObject> = renderFile({
+          const renderedFile: FileObject = renderFile({
             content: file.toString(),
             destinationPath,
             basePath: this.basePath,
@@ -395,8 +394,6 @@ export class RenderContext {
         })
       })
       .filter(fileObject => fileObject !== undefined)
-
-    const fileObjects = await Promise.all(fileObjectPromises)
 
     const output: FilesRenderResult = {
       artifacts: {},
@@ -554,108 +551,14 @@ type RenderFileArgs = {
  * console.log(fileObject.characters); // 11
  * ```
  */
-const renderFile = async ({
-  content,
-  destinationPath,
-  basePath,
-  prettierConfig
-}: RenderFileArgs): Promise<FileObject> => {
+const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {
   const path = toResolvedArtifactPath({ basePath, destinationPath })
 
-  const formatted = await formatFile({ content, prettierConfig })
-
   return {
-    content: formatted,
+    content: content,
     path,
     destinationPath,
-    lines: formatted.split('\n').length,
-    characters: formatted.length
-  }
-}
-
-type FormatFileArgs = {
-  content: string
-  prettierConfig?: PrettierConfigType
-}
-
-/**
- * Maps Prettier configuration to Biome configuration format.
- * Maintains backward compatibility with existing .prettierrc.json files.
- */
-const toBiomeConfig = (prettierConfig: PrettierConfigType) => {
-  return {
-    formatter: {
-      enabled: true,
-      formatWithErrors: false,
-      indentStyle: prettierConfig.useTabs ? 'tab' : 'space',
-      indentWidth: prettierConfig.tabWidth ?? 2,
-      lineWidth: prettierConfig.printWidth ?? 80,
-      lineEnding: prettierConfig.endOfLine === 'crlf' ? 'crlf' : 'lf'
-    },
-    javascript: {
-      formatter: {
-        enabled: true,
-        quoteStyle: prettierConfig.singleQuote ? 'single' : 'double',
-        jsxQuoteStyle: prettierConfig.jsxSingleQuote ? 'single' : 'double',
-        quoteProperties: 'asNeeded',
-        trailingCommas:
-          prettierConfig.trailingComma === 'all'
-            ? 'all'
-            : prettierConfig.trailingComma === 'es5'
-              ? 'es5'
-              : 'none',
-        semicolons: prettierConfig.semi ? 'always' : 'asNeeded',
-        arrowParentheses: prettierConfig.arrowParens === 'always' ? 'always' : 'asNeeded',
-        bracketSpacing: prettierConfig.bracketSpacing ?? true,
-        bracketSameLine: prettierConfig.bracketSameLine ?? false
-      }
-    }
-  }
-}
-
-/**
- * Biome instance cache to avoid recreating instances
- */
-let biomeInstance: Biome | null = null
-let biomeProjectKey: number | null = null
-
-const getBiomeInstance = async (): Promise<{ biome: Biome; projectKey: number }> => {
-  if (!biomeInstance || biomeProjectKey === null) {
-    // Initialize Biome with the Node distribution
-    biomeInstance = await Biome.create({
-      distribution: Distribution.NODE
-    })
-    const { projectKey } = biomeInstance.openProject(Deno.cwd())
-    biomeProjectKey = projectKey
-  }
-
-  return { biome: biomeInstance, projectKey: biomeProjectKey }
-}
-
-const formatFile = async ({ content, prettierConfig }: FormatFileArgs): Promise<string> => {
-  try {
-    if (!prettierConfig) {
-      console.log('NO PRETTIER CONFIG')
-      return content
-    }
-
-    const { biome, projectKey } = await getBiomeInstance()
-
-    // Apply configuration from Prettier config
-    const biomeConfig = toBiomeConfig(prettierConfig)
-    biome.applyConfiguration(projectKey, biomeConfig)
-
-    // Format content - using .ts extension for TypeScript parser
-    const result = biome.formatContent(projectKey, content, {
-      filePath: 'generated.ts'
-    })
-
-    console.log('FORMATTED', result.content)
-
-    return result.content
-  } catch (e) {
-    console.error('Biome formatting error:', e)
-    // Fallback to unformatted content on error
-    return content
+    lines: content.split('\n').length,
+    characters: content.length
   }
 }

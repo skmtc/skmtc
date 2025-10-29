@@ -1,18 +1,19 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.345",
+  "version": "0.0.346",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.924",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.925",
     "@biomejs/js-api": "npm:@biomejs/js-api@^4.0.0",
-    "@biomejs/wasm-nodejs": "npm:@biomejs/wasm-nodejs@^2.3.2",
+    "@biomejs/wasm-bundler": "npm:@biomejs/wasm-bundler@^2.3.0",
     "ink": "npm:ink@^6.2.3",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
     "ink-select-input": "npm:ink-select-input@^6.2.0",
     "ink-link": "npm:ink-link@^5.0.0",
     "react": "npm:react@^19.1.1",
-    "ink-testing-library": "npm:ink-testing-library@^4.0.0"
+    "ink-testing-library": "npm:ink-testing-library@^4.0.0",
+    "gpt-tokenizer": "npm:gpt-tokenizer@^3.2.0"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

@@ -12,9 +12,9 @@ import { type ManifestContent, manifestContent } from '@skmtc/core'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
-import type { PrettierConfigType } from '@/types/prettierConfigType.generated.ts'
-import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
 import { generateSandboxApi } from '../services/generateSandboxApi.ts'
+import { BiomeInstance } from '../components/TaskContext.tsx'
+import { formatFile } from './formatting.ts'
 export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
@@ -67,8 +67,8 @@ type GenerateArtifactsArgs = {
   project: Project | RemoteProject
   schemaContents: string
   clientSettings: ClientSettings | undefined
-  prettier: PrettierConfigType | undefined
   accountName: string
+  biomeInstance: Promise<BiomeInstance> | undefined
   token: string | undefined
 }
 
@@ -93,8 +93,8 @@ export class Workspace {
     project,
     schemaContents,
     clientSettings,
-    prettier,
     accountName,
+    biomeInstance: biomeInstancePromise,
     token
   }: GenerateArtifactsArgs): Promise<GenerateResponse> {
     const manifestPath = project.toManifestPath()
@@ -103,7 +103,6 @@ export class Workspace {
       ? await generateLocal({
           schema: schemaContents,
           clientSettings,
-          prettier,
           localUrl: project.clientJson.contents?.serverUrl
         })
       : await generateSandboxApi({
@@ -111,7 +110,6 @@ export class Workspace {
           serverName: project.name,
           schema: schemaContents,
           clientSettings,
-          prettier,
           token
         })
 
@@ -129,14 +127,25 @@ export class Workspace {
 
     Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
 
+    const biomeInstance = biomeInstancePromise ? await biomeInstancePromise : undefined
+
     Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
+      const content = String(artifactContent)
       const absolutePath = join(skmtcRootPath, '..', artifactPath)
 
       const { dir } = parse(absolutePath)
 
       ensureDirSync(dir)
 
-      Deno.writeTextFileSync(absolutePath, String(artifactContent))
+      const formatted = biomeInstance
+        ? formatFile({
+            content,
+            biome: biomeInstance.biome,
+            projectKey: biomeInstance.projectKey
+          })
+        : content
+
+      Deno.writeTextFileSync(absolutePath, formatted)
     })
 
     return { manifest, artifacts }
@@ -147,16 +156,14 @@ type GenerateLocalArgs = {
   localUrl: string
   schema: string
   clientSettings: ClientSettings | undefined
-  prettier: PrettierConfigType | undefined
 }
 
-const generateLocal = async ({ localUrl, schema, clientSettings, prettier }: GenerateLocalArgs) => {
+const generateLocal = async ({ localUrl, schema, clientSettings }: GenerateLocalArgs) => {
   const res = await fetch(`${localUrl}/artifacts`, {
     method: 'POST',
     body: JSON.stringify({
       schema,
-      clientSettings,
-      prettier
+      clientSettings
     })
   })
 

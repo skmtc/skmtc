@@ -1,7 +1,8 @@
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { toProjectPath } from '@/lib/to-project-path.ts'
-import { type ManifestContent, manifestContent, toManifestErrors } from '@skmtc/core'
+import { type ManifestContent, manifestContent } from '@skmtc/core'
+import { toManifestErrors } from '@/lib/generationStats.ts'
 import * as v from 'valibot'
 import { writeFileSafeDir } from '@/lib/file.ts'
 
