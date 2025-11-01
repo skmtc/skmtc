@@ -31,6 +31,7 @@
     "jsr:@std/log@~0.224.6": "0.224.14",
     "jsr:@std/media-types@^1.1.0": "1.1.0",
     "jsr:@std/net@^1.0.4": "1.0.6",
+    "jsr:@std/path@*": "1.1.2",
     "jsr:@std/path@1": "1.1.2",
     "jsr:@std/path@^1.0.9": "1.1.2",
     "jsr:@std/path@^1.1.1": "1.1.2",
@@ -39,6 +40,7 @@
     "jsr:@std/testing@^1.0.15": "1.0.15",
     "jsr:@std/testing@^1.0.8": "1.0.15",
     "jsr:@std/text@~1.0.7": "1.0.16",
+    "jsr:@std/yaml@^1.0.5": "1.0.10",
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
     "jsr:@ts-morph/common@0.27": "0.27.0",
     "npm:@apiture/openapi-down-convert@0.14.0": "0.14.0",
@@ -64,6 +66,7 @@
     "npm:react@^19.1.1": "19.2.0",
     "npm:swagger2openapi@^7.0.8": "7.0.8",
     "npm:tiny-invariant@1.3.3": "1.3.3",
+    "npm:ts-pattern@*": "5.9.0",
     "npm:ts-pattern@^5.8.0": "5.9.0",
     "npm:type-fest@4.35.0": "4.35.0",
     "npm:unique-names-generator@^4.7.1": "4.7.1",
@@ -200,6 +203,9 @@
     },
     "@std/text@1.0.16": {
       "integrity": "ddb9853b75119a2473857d691cf1ec02ad90793a2e8b4a4ac49d7354281a0cf8"
+    },
+    "@std/yaml@1.0.10": {
+      "integrity": "245706ea3511cc50c8c6d00339c23ea2ffa27bd2c7ea5445338f8feff31fa58e"
     },
     "@ts-morph/bootstrap@0.27.0": {
       "integrity": "b8d7bc8f7942ce853dde4161b28f9aa96769cef3d8eebafb379a81800b9e2448",
