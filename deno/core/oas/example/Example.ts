@@ -29,8 +29,6 @@ export class OasExample {
   extensionFields?: Record<string, unknown>
 
   constructor(fields: ExampleFields) {
-    console.log('VALUE', fields.value)
-
     this.summary = fields.summary
     this.description = fields.description
     this.value = fields.value

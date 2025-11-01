@@ -77,14 +77,16 @@ export const toExamplesV3 = ({
   }
 
   if (examples) {
-    tracer(context.stackTrail, 'examples', () => {
+    return tracer(context.stackTrail, 'examples', () => {
       const output: Record<string, OasExample | OasRef<'example'>> = {}
       const entries = Object.entries(examples)
+
       for (const [key, value] of entries) {
         output[key] = tracer(context.stackTrail, key, () =>
           toExampleV3({ example: value, context })
         )
       }
+
       return output
     })
   }
