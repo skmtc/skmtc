@@ -1,4 +1,3 @@
-import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { toMod } from '@/lib/to-mod.ts'
 
@@ -38,7 +37,10 @@ Deno.test('toMod - generates empty generators array when no generators provided'
   const result = toMod(generatorIds)
 
   assertStringIncludes(result, "import { createServer } from 'jsr:@skmtc/server'")
-  assertStringIncludes(result, 'toGeneratorConfigMap: () => Object.fromEntries([].map(g => [g.id, g]))')
+  assertStringIncludes(
+    result,
+    'toGeneratorConfigMap: () => Object.fromEntries([].map(g => [g.id, g]))'
+  )
   assertStringIncludes(result, 'logsPath: undefined')
 })
 

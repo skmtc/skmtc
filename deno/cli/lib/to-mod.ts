@@ -25,7 +25,7 @@ export const toMod = (generatorIds: string[]) => {
   const generators = generatorAcc.generators.join(',\n')
 
   const server = `
-import { createServer } from '@skmtc/server'
+import { createServer } from 'jsr:@skmtc/server'
 ${imports}
 
 export default createServer({toGeneratorConfigMap: () => Object.fromEntries([${generators}].map(g => [g.id, g])), logsPath: undefined})`

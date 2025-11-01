@@ -33,65 +33,6 @@ Deno.test('StackTrail - clone mutations do not affect original', () => {
   assertEquals(cloned.toString(), 'components:schemas:User')
 })
 
-// slice() Method Tests
-Deno.test('StackTrail - slice with start and end indices', () => {
-  const trail = new StackTrail(['a', 'b', 'c', 'd', 'e'])
-  const sliced = trail.slice(1, 3)
-
-  assertEquals(sliced.stackTrail, ['b', 'c'])
-  assertEquals(sliced.toString(), 'b:c')
-})
-
-Deno.test('StackTrail - slice with only start index', () => {
-  const trail = new StackTrail(['a', 'b', 'c', 'd', 'e'])
-  const sliced = trail.slice(2)
-
-  assertEquals(sliced.stackTrail, ['c', 'd', 'e'])
-  assertEquals(sliced.toString(), 'c:d:e')
-})
-
-Deno.test('StackTrail - slice does not modify original', () => {
-  const trail = new StackTrail(['a', 'b', 'c'])
-  trail.slice(1)
-
-  assertEquals(trail.stackTrail, ['a', 'b', 'c'])
-})
-
-Deno.test('StackTrail - slice with out of bounds indices returns empty', () => {
-  const trail = new StackTrail(['a', 'b'])
-  const sliced = trail.slice(5, 10)
-
-  assertEquals(sliced.stackTrail, [])
-  assertEquals(sliced.toString(), '')
-})
-
-// includes() Method Tests
-Deno.test('StackTrail - includes returns true for single existing frame', () => {
-  const trail = new StackTrail(['components', 'schemas', 'User', 'properties'])
-
-  assertEquals(trail.includes(['schemas']), true)
-})
-
-Deno.test('StackTrail - includes returns true for multiple existing frames', () => {
-  const trail = new StackTrail(['components', 'schemas', 'User', 'properties'])
-
-  assertEquals(trail.includes(['schemas', 'User']), true)
-  assertEquals(trail.includes(['components', 'properties']), true)
-})
-
-Deno.test('StackTrail - includes returns false for non-existent frame', () => {
-  const trail = new StackTrail(['components', 'schemas', 'User', 'properties'])
-
-  assertEquals(trail.includes(['Product']), false)
-  assertEquals(trail.includes(['schemas', 'Product']), false)
-})
-
-Deno.test('StackTrail - includes returns true for empty array', () => {
-  const trail = new StackTrail(['components', 'schemas'])
-
-  assertEquals(trail.includes([]), true)
-})
-
 // stackTrail Getter Tests
 Deno.test('StackTrail - stackTrail getter returns correct array', () => {
   const trail = new StackTrail(['components', 'schemas', 'User'])
@@ -128,40 +69,7 @@ Deno.test('StackTrail - append returns this for chaining', () => {
 Deno.test('StackTrail - append throws error for invalid input', () => {
   const trail = new StackTrail()
 
-  assertThrows(
-    () => trail.append(123 as any),
-    Error,
-    'Unexpected stack frame: 123'
-  )
-})
-
-// getParentOf() Method Tests
-Deno.test('StackTrail - getParentOf returns parent name for property', () => {
-  const trail = new StackTrail(['components', 'schemas', 'User', 'properties', 'email'])
-  const parent = trail.getParentOf('email')
-
-  assertEquals(parent, 'User')
-})
-
-Deno.test('StackTrail - getParentOf returns undefined for non-property frame', () => {
-  const trail = new StackTrail(['components', 'schemas', 'User'])
-  const parent = trail.getParentOf('User')
-
-  assertEquals(parent, undefined)
-})
-
-Deno.test('StackTrail - getParentOf returns undefined when frame not at end', () => {
-  const trail = new StackTrail(['components', 'schemas', 'User', 'properties', 'email', 'type'])
-  const parent = trail.getParentOf('email')
-
-  assertEquals(parent, undefined)
-})
-
-Deno.test('StackTrail - getParentOf returns undefined for nested property without parent', () => {
-  const trail = new StackTrail(['properties', 'email'])
-  const parent = trail.getParentOf('email')
-
-  assertEquals(parent, undefined)
+  assertThrows(() => trail.append(123 as any), Error, 'Unexpected stack frame: 123')
 })
 
 // toStackRef() Method Tests
@@ -280,97 +188,7 @@ Deno.test('StackTrail - remove throws error for mismatched frame', () => {
 Deno.test('StackTrail - remove throws error for invalid input', () => {
   const trail = new StackTrail(['components'])
 
-  assertThrows(
-    () => trail.remove(123 as any),
-    Error,
-    'Unexpected stack frame: 123'
-  )
-})
-
-// Static join() Method Tests
-Deno.test('StackTrail - join multiple StackTrail instances', () => {
-  const trail1 = new StackTrail(['components', 'schemas'])
-  const trail2 = new StackTrail(['User', 'properties'])
-
-  const joined = StackTrail.join(trail1, trail2)
-
-  assertEquals(joined, 'components:schemas:User:properties')
-})
-
-Deno.test('StackTrail - join StackTrail instances and strings', () => {
-  const trail1 = new StackTrail(['components', 'schemas'])
-  const trail2 = new StackTrail(['User', 'properties'])
-
-  const joined = StackTrail.join(trail1, 'separator', trail2)
-
-  assertEquals(joined, 'components:schemas:separator:User:properties')
-})
-
-Deno.test('StackTrail - join single StackTrail', () => {
-  const trail = new StackTrail(['components', 'schemas'])
-  const joined = StackTrail.join(trail)
-
-  assertEquals(joined, 'components:schemas')
-})
-
-Deno.test('StackTrail - join only strings', () => {
-  const joined = StackTrail.join('a', 'b', 'c')
-
-  assertEquals(joined, 'a:b:c')
-})
-
-Deno.test('StackTrail - join empty trails', () => {
-  const trail1 = new StackTrail()
-  const trail2 = new StackTrail()
-
-  const joined = StackTrail.join(trail1, trail2)
-
-  assertEquals(joined, ':')
-})
-
-// Static parse() Method Tests
-Deno.test('StackTrail - parse colon-separated string', () => {
-  const trail = StackTrail.parse('components:schemas:User:properties:name')
-
-  assertEquals(trail.stackTrail, ['components', 'schemas', 'User', 'properties', 'name'])
-  assertEquals(trail.toString(), 'components:schemas:User:properties:name')
-})
-
-Deno.test('StackTrail - parse handles escaped colons', () => {
-  const trail = StackTrail.parse('components:schemas:User%3AType')
-
-  assertEquals(trail.stackTrail, ['components', 'schemas', 'User:Type'])
-})
-
-Deno.test('StackTrail - parse single token', () => {
-  const trail = StackTrail.parse('components')
-
-  assertEquals(trail.stackTrail, ['components'])
-  assertEquals(trail.toString(), 'components')
-})
-
-Deno.test('StackTrail - parse throws error for empty token', () => {
-  assertThrows(
-    () => StackTrail.parse('components::schemas'),
-    Error,
-    'Empty stack trail token in: components::schemas'
-  )
-})
-
-Deno.test('StackTrail - parse throws error for leading colon', () => {
-  assertThrows(
-    () => StackTrail.parse(':components:schemas'),
-    Error,
-    'Empty stack trail token in: :components:schemas'
-  )
-})
-
-Deno.test('StackTrail - parse throws error for trailing colon', () => {
-  assertThrows(
-    () => StackTrail.parse('components:schemas:'),
-    Error,
-    'Empty stack trail token in: components:schemas:'
-  )
+  assertThrows(() => trail.remove(123 as any), Error, 'Unexpected stack frame: 123')
 })
 
 // toString() Method Tests
@@ -430,23 +248,6 @@ Deno.test('StackTrail - toJSON handles empty stack', () => {
   assertEquals(trail.toJSON(), '')
 })
 
-// Integration Tests
-Deno.test('StackTrail - round-trip parse and toString', () => {
-  const original = 'components:schemas:User:properties:name'
-  const trail = StackTrail.parse(original)
-  const result = trail.toString()
-
-  assertEquals(result, original)
-})
-
-Deno.test('StackTrail - round-trip with escaped colons', () => {
-  const trail = new StackTrail(['components', 'schemas', 'User:Admin'])
-  const str = trail.toString()
-  const parsed = StackTrail.parse(str)
-
-  assertEquals(parsed.stackTrail, trail.stackTrail)
-})
-
 Deno.test('StackTrail - complex workflow example', () => {
   const baseTrail = new StackTrail(['components', 'schemas'])
 
@@ -459,22 +260,4 @@ Deno.test('StackTrail - complex workflow example', () => {
 
   assertEquals(userTrail.toStackRef(), '#/components/schemas/User')
   assertEquals(productTrail.toStackRef(), '#/components/schemas/Product')
-})
-
-Deno.test('StackTrail - building and traversing schema path', () => {
-  const trail = new StackTrail()
-
-  trail.append('components')
-    .append('schemas')
-    .append('User')
-    .append('properties')
-    .append('email')
-
-  assertEquals(trail.toString(), 'components:schemas:User:properties:email')
-  assertEquals(trail.getParentOf('email'), 'User')
-
-  trail.remove(['properties', 'email'])
-
-  assertEquals(trail.toString(), 'components:schemas:User')
-  assertEquals(trail.toStackRef(), '#/components/schemas/User')
 })

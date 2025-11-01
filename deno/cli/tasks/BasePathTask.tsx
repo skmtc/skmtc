@@ -4,8 +4,6 @@ import { StringTask } from '@/components/StringTask.tsx'
 export const BasePathTask = () => {
   const { dispatch } = useTask()
 
-  console.log('BASE PATH TASK')
-
   return (
     <StringTask
       prompt="Output directory for generated files"

@@ -1,6 +1,6 @@
-import { camelCase } from '../helpers/strings.ts'
-import type { OasOperation } from '../oas/operation/Operation.ts'
-import type { Method } from '../types/Method.ts'
+import { camelCase, capitalize } from '@/helpers/strings.ts'
+import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { Method } from '@/types/Method.ts'
 import { match } from 'npm:ts-pattern@^5.8.0'
 
 /**
@@ -96,5 +96,5 @@ export const toMethodVerb = (method: Method): string => {
   return match(method)
     .with('post', () => 'Create')
     .with('put', () => 'Update')
-    .otherwise(matched => matched)
+    .otherwise(matched => capitalize(matched))
 }

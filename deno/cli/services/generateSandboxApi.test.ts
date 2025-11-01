@@ -2,7 +2,6 @@ import { assertEquals } from '@std/assert/equals'
 import { assertRejects } from '@std/assert/rejects'
 import { generateSandboxApi, type GenerateSandboxApiArgs } from '@/services/generateSandboxApi.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
-import type { PrettierConfigType } from '@/types/prettierConfigType.generated.ts'
 
 // Store originals to restore after tests
 const originalFetch = globalThis.fetch
@@ -22,10 +21,6 @@ const createTestArgs = (includeToken = true): GenerateSandboxApiArgs => ({
     basePath: '/api',
     auth: { type: 'bearer' }
   } as ClientSettings,
-  prettier: {
-    semi: false,
-    singleQuote: true
-  } as PrettierConfigType,
   token: includeToken ? 'test-token-123' : undefined
 })
 
@@ -101,7 +96,6 @@ Deno.test('generateSandboxApi - returns artifacts with token', async () => {
     const body = JSON.parse(fetchOptions?.body as string)
     assertEquals(typeof body.schema, 'string')
     assertEquals(body.clientSettings.basePath, '/api')
-    assertEquals(body.prettier.semi, false)
   } finally {
     globalThis.fetch = originalFetch
   }
@@ -215,10 +209,7 @@ Deno.test('generateSandboxApi - uses custom SANDBOX_API_ORIGIN', async () => {
     const args = createTestArgs()
     await generateSandboxApi(args)
 
-    assertEquals(
-      fetchUrl,
-      'https://custom-sandbox.example.com/test-account/test-server/artifacts'
-    )
+    assertEquals(fetchUrl, 'https://custom-sandbox.example.com/test-account/test-server/artifacts')
   } finally {
     globalThis.fetch = originalFetch
     Deno.env.get = originalEnvGet

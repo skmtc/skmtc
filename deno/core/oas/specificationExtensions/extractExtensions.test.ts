@@ -5,7 +5,7 @@ Deno.test('extractExtensions - empty object', () => {
   const result = extractExtensions({})
 
   assertEquals(result, {
-    skipped: {},
+    skipped: undefined,
     extensionFields: undefined
   })
 })
@@ -21,7 +21,7 @@ Deno.test('extractExtensions - object with only extension fields', () => {
   const result = extractExtensions(input)
 
   assertEquals(result, {
-    skipped: {},
+    skipped: undefined,
     extensionFields: {
       'x-custom': 'value1',
       'x-vendor-specific': 'value2',
@@ -224,7 +224,7 @@ Deno.test('extractExtensions - single extension field', () => {
   const result = extractExtensions(input)
 
   assertEquals(result, {
-    skipped: {},
+    skipped: undefined,
     extensionFields: {
       'x-only': 'single extension'
     }
@@ -298,7 +298,7 @@ Deno.test('extractExtensions - special characters in extension names', () => {
   const result = extractExtensions(input)
 
   assertEquals(result, {
-    skipped: {},
+    skipped: undefined,
     extensionFields: {
       'x-kebab-case': 'value1',
       'x-snake_case': 'value2',

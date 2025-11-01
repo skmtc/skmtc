@@ -1,5 +1,11 @@
 import { assertEquals } from '@std/assert/equals'
-import { toEndpointType, toEndpointName, toResponseName, toArgsName, toMethodVerb } from './naming.ts'
+import {
+  toEndpointType,
+  toEndpointName,
+  toResponseName,
+  toArgsName,
+  toMethodVerb
+} from './naming.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
 
 Deno.test('toEndpointType - returns query for GET method', () => {
@@ -53,7 +59,7 @@ Deno.test('toEndpointName - generates name for simple GET path', () => {
     path: '/users'
   } as OasOperation
 
-  assertEquals(toEndpointName(operation), 'getApiUsers')
+  assertEquals(toEndpointName(operation), 'GetApiUsers')
 })
 
 Deno.test('toEndpointName - generates name for POST with path params', () => {
@@ -62,7 +68,7 @@ Deno.test('toEndpointName - generates name for POST with path params', () => {
     path: '/users/{id}/profile'
   } as OasOperation
 
-  assertEquals(toEndpointName(operation), 'createApiUsersIdProfile')
+  assertEquals(toEndpointName(operation), 'CreateApiUsersIdProfile')
 })
 
 Deno.test('toEndpointName - generates name for PUT', () => {
@@ -71,7 +77,7 @@ Deno.test('toEndpointName - generates name for PUT', () => {
     path: '/users/{id}'
   } as OasOperation
 
-  assertEquals(toEndpointName(operation), 'updateApiUsersId')
+  assertEquals(toEndpointName(operation), 'UpdateApiUsersId')
 })
 
 Deno.test('toEndpointName - generates name for DELETE', () => {
@@ -80,7 +86,7 @@ Deno.test('toEndpointName - generates name for DELETE', () => {
     path: '/products/{productId}'
   } as OasOperation
 
-  assertEquals(toEndpointName(operation), 'deleteApiProductsProductId')
+  assertEquals(toEndpointName(operation), 'DeleteApiProductsProductId')
 })
 
 Deno.test('toEndpointName - handles complex nested paths', () => {
@@ -89,7 +95,7 @@ Deno.test('toEndpointName - handles complex nested paths', () => {
     path: '/organizations/{orgId}/teams/{teamId}/members'
   } as OasOperation
 
-  assertEquals(toEndpointName(operation), 'getApiOrganizationsOrgIdTeamsTeamIdMembers')
+  assertEquals(toEndpointName(operation), 'GetApiOrganizationsOrgIdTeamsTeamIdMembers')
 })
 
 Deno.test('toResponseName - adds Response suffix', () => {
@@ -98,7 +104,7 @@ Deno.test('toResponseName - adds Response suffix', () => {
     path: '/users'
   } as OasOperation
 
-  assertEquals(toResponseName(operation), 'getApiUsersResponse')
+  assertEquals(toResponseName(operation), 'GetApiUsersResponse')
 })
 
 Deno.test('toResponseName - adds Response suffix to complex name', () => {
@@ -107,7 +113,7 @@ Deno.test('toResponseName - adds Response suffix to complex name', () => {
     path: '/users/{id}/settings'
   } as OasOperation
 
-  assertEquals(toResponseName(operation), 'createApiUsersIdSettingsResponse')
+  assertEquals(toResponseName(operation), 'CreateApiUsersIdSettingsResponse')
 })
 
 Deno.test('toArgsName - adds Args suffix', () => {
@@ -116,7 +122,7 @@ Deno.test('toArgsName - adds Args suffix', () => {
     path: '/users/{id}'
   } as OasOperation
 
-  assertEquals(toArgsName(operation), 'updateApiUsersIdArgs')
+  assertEquals(toArgsName(operation), 'UpdateApiUsersIdArgs')
 })
 
 Deno.test('toArgsName - adds Args suffix to GET operation', () => {
@@ -125,7 +131,7 @@ Deno.test('toArgsName - adds Args suffix to GET operation', () => {
     path: '/products'
   } as OasOperation
 
-  assertEquals(toArgsName(operation), 'getApiProductsArgs')
+  assertEquals(toArgsName(operation), 'GetApiProductsArgs')
 })
 
 Deno.test('toMethodVerb - returns Create for post', () => {
@@ -137,13 +143,13 @@ Deno.test('toMethodVerb - returns Update for put', () => {
 })
 
 Deno.test('toMethodVerb - returns get for get', () => {
-  assertEquals(toMethodVerb('get'), 'get')
+  assertEquals(toMethodVerb('get'), 'Get')
 })
 
 Deno.test('toMethodVerb - returns delete for delete', () => {
-  assertEquals(toMethodVerb('delete'), 'delete')
+  assertEquals(toMethodVerb('delete'), 'Delete')
 })
 
 Deno.test('toMethodVerb - returns patch for patch', () => {
-  assertEquals(toMethodVerb('patch'), 'patch')
+  assertEquals(toMethodVerb('patch'), 'Patch')
 })
