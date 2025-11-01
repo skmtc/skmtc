@@ -26,6 +26,8 @@ export type BooleanFields<Nullable extends boolean | undefined> = {
   readOnly?: boolean
   /** Whether the boolean is write-only */
   writeOnly?: boolean
+  /** Whether the boolean is deprecated */
+  deprecated?: boolean
 }
 export class OasBoolean<Nullable extends boolean | undefined = boolean | undefined> {
   /**
@@ -70,7 +72,8 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
   readOnly: boolean | undefined
   /** Whether the boolean is write-only */
   writeOnly: boolean | undefined
-
+  /** Whether the boolean is deprecated */
+  deprecated: boolean | undefined
   /**
    * Creates a new OasBoolean instance.
    *
@@ -86,6 +89,7 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
     this.default = fields.default
     this.readOnly = fields.readOnly
     this.writeOnly = fields.writeOnly
+    this.deprecated = fields.deprecated
   }
 
   /**
@@ -132,7 +136,8 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
       enum: this.enums,
       default: this.default,
       readOnly: this.readOnly,
-      writeOnly: this.writeOnly
+      writeOnly: this.writeOnly,
+      deprecated: this.deprecated
     }
   }
 }

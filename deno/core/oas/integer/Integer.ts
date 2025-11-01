@@ -37,6 +37,8 @@ export type IntegerFields<Nullable extends boolean | undefined> = {
   readOnly?: boolean
   /** Whether the integer is write-only */
   writeOnly?: boolean
+  /** Whether the integer is deprecated */
+  deprecated?: boolean
 }
 
 export class OasInteger<Nullable extends boolean | undefined = boolean | undefined> {
@@ -107,6 +109,10 @@ export class OasInteger<Nullable extends boolean | undefined = boolean | undefin
    * Whether the integer is write-only.
    */
   writeOnly: boolean | undefined
+  /**
+   * Whether the integer is deprecated.
+   */
+  deprecated: boolean | undefined
   constructor(fields: IntegerFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
@@ -123,6 +129,7 @@ export class OasInteger<Nullable extends boolean | undefined = boolean | undefin
     this.default = fields.default
     this.readOnly = fields.readOnly
     this.writeOnly = fields.writeOnly
+    this.deprecated = fields.deprecated
   }
 
   isRef(): this is OasRef<'schema'> {

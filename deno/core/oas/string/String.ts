@@ -34,6 +34,8 @@ export type StringFields<Nullable extends boolean | undefined> = {
   readOnly?: boolean
   /** Whether the string is write-only */
   writeOnly?: boolean
+  /** Whether the string is deprecated */
+  deprecated?: boolean
 }
 
 export class OasString<Nullable extends boolean | undefined = boolean | undefined> {
@@ -94,6 +96,10 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
    * Whether the string is write-only.
    */
   writeOnly: boolean | undefined
+  /**
+   * Whether the string is deprecated.
+   */
+  deprecated: boolean | undefined
   constructor(fields: StringFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
@@ -108,6 +114,7 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
     this.default = fields.default
     this.readOnly = fields.readOnly
     this.writeOnly = fields.writeOnly
+    this.deprecated = fields.deprecated
   }
 
   isRef(): this is OasRef<'schema'> {

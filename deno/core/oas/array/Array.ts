@@ -34,6 +34,8 @@ export type ArrayFields<Nullable extends boolean | undefined> = {
   readOnly?: boolean
   /** Whether the array is write-only */
   writeOnly?: boolean
+  /** Whether the array is deprecated */
+  deprecated?: boolean
 }
 
 export class OasArray<Nullable extends boolean | undefined = boolean | undefined> {
@@ -106,6 +108,10 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
    * Whether the array is write-only.
    */
   writeOnly: boolean | undefined
+  /**
+   * Whether the array is deprecated.
+   */
+  deprecated: boolean | undefined
   constructor(fields: ArrayFields<Nullable>) {
     this.items = fields.items
     this.title = fields.title
@@ -120,6 +126,7 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
     this.defaultValue = fields.defaultValue
     this.readOnly = fields.readOnly
     this.writeOnly = fields.writeOnly
+    this.deprecated = fields.deprecated
   }
 
   /**

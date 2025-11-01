@@ -248,8 +248,6 @@ export class ParseContext {
    */
   logSkippedFields({ skipped, parent, parentType }: LogSkippedValuesArgs) {
     Object.keys(skipped).forEach(key => {
-      console.log('SKIPPED FIELD', key)
-
       this.logIssue({
         key,
         parent,

@@ -53,3 +53,5 @@ deno/test-one
 .cursor
 
 plans/
+
+openapi.json

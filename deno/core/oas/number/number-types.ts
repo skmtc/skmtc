@@ -26,7 +26,10 @@ export const oasNumberData = v.object({
   maximum: v.optional(v.number()),
   exclusiveMaximum: v.optional(v.boolean()),
   minimum: v.optional(v.number()),
-  exclusiveMinimum: v.optional(v.boolean())
+  exclusiveMinimum: v.optional(v.boolean()),
+  readOnly: v.optional(v.boolean()),
+  writeOnly: v.optional(v.boolean()),
+  deprecated: v.optional(v.boolean())
 })
 
 export type OasNumberData = {
@@ -43,4 +46,7 @@ export type OasNumberData = {
   exclusiveMaximum?: boolean
   minimum?: number
   exclusiveMinimum?: boolean
+  readOnly?: boolean
+  writeOnly?: boolean
+  deprecated?: boolean
 }

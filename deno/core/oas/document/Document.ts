@@ -9,10 +9,11 @@ import { match } from 'ts-pattern'
 import type { RefName } from '../../types/RefName.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
+import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 
 /**
  * Fields that define the structure of an OpenAPI v3 document.
- * 
+ *
  * This type represents the normalized structure of an OpenAPI document after
  * parsing, with operations flattened from the nested paths structure into
  * a simple array for easier processing.
@@ -34,27 +35,29 @@ export type DocumentFields = {
   security?: OasSecurityRequirement[] | undefined
   /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
+  /** External documentation for the API */
+  externalDocs?: OasExternalDocs | undefined
 }
 
 /**
  * Represents a complete OpenAPI v3 document in the SKMTC OAS processing system.
- * 
+ *
  * The `OasDocument` class is the root object in the OAS hierarchy, containing all
  * the information needed to describe a complete REST API. It provides normalized
  * access to document properties with built-in validation and error handling.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Normalized Structure**: Operations are flattened from nested paths for easier processing
  * - **Lazy Initialization**: Fields are set after construction during parsing
  * - **Type Safety**: All properties are typed and validated on access
  * - **Extensibility**: Supports OpenAPI extension fields (x-* properties)
  * - **JSON Serialization**: Can be converted back to standard OpenAPI JSON format
- * 
+ *
  * @example Basic document access
  * ```typescript
  * import { OasDocument } from '@skmtc/core';
- * 
+ *
  * // Document is typically created during parsing
  * const document = new OasDocument();
  * document.fields = {
@@ -69,23 +72,23 @@ export type DocumentFields = {
  *     }
  *   }
  * };
- * 
+ *
  * console.log(document.info.title); // 'My API'
  * console.log(document.operations.length); // Number of operations
  * ```
- * 
+ *
  * @example Iterating over operations
  * ```typescript
  * // Process all operations in the document
  * for (const operation of document.operations) {
  *   console.log(`${operation.method.toUpperCase()} ${operation.path}`);
- *   
+ *
  *   if (operation.operationId) {
  *     console.log(`Operation ID: ${operation.operationId}`);
  *   }
  * }
  * ```
- * 
+ *
  * @example Working with components
  * ```typescript
  * if (document.components?.schemas) {
@@ -99,24 +102,24 @@ export type DocumentFields = {
 export class OasDocument {
   /** Static identifier property for OasDocument */
   oasType: 'openapi' = 'openapi'
-  
+
   /** @internal Private fields storage */
   #fields: DocumentFields | undefined
 
   /**
    * Creates a new OasDocument instance.
-   * 
+   *
    * The document is typically created with undefined fields and populated
    * later during the parsing process. This allows for lazy initialization
    * and proper error handling during document processing.
-   * 
+   *
    * @param fields - Optional document fields (usually set later during parsing)
-   * 
+   *
    * @example
    * ```typescript
    * // Usually created without fields during parsing
    * const document = new OasDocument();
-   * 
+   *
    * // Fields are set later by the parser
    * document.fields = parsedDocumentFields;
    * ```
@@ -127,21 +130,21 @@ export class OasDocument {
 
   /**
    * Removes an item from the document based on a stack trail path.
-   * 
+   *
    * This method is used internally during document processing to remove
    * specific operations or schema components. The stack trail indicates
    * the path to the item within the document structure.
-   * 
+   *
    * @param stackTrail - Path to the item to remove
    * @returns The removed item, or undefined if not found
-   * 
+   *
    * @internal This method is primarily used by the processing pipeline
-   * 
+   *
    * @example
    * ```typescript
    * // Remove an operation at /users POST
    * const removed = document.removeItem(new StackTrail(['paths', '/users', 'post']));
-   * 
+   *
    * // Remove a schema component
    * const removedSchema = document.removeItem(new StackTrail(['components', 'schemas', 'User']));
    * ```
@@ -177,13 +180,13 @@ export class OasDocument {
 
   /**
    * Sets the document fields after parsing.
-   * 
+   *
    * This setter is called by the parsing pipeline to populate the document
    * with parsed OpenAPI data. It enables lazy initialization and proper
    * error handling during document processing.
-   * 
+   *
    * @param fields - The parsed document fields
-   * 
+   *
    * @example
    * ```typescript
    * const document = new OasDocument();
@@ -270,23 +273,31 @@ export class OasDocument {
     return this.#fields.extensionFields
   }
 
+  /** External documentation for the API */
+  get externalDocs(): OasExternalDocs | undefined {
+    if (!this.#fields) {
+      throw new Error(`Accessing 'externalDocs' before fields are set`)
+    }
+
+    return this.#fields.externalDocs
+  }
   /**
    * Converts the document back to a JSON-serializable OpenAPI object.
-   * 
+   *
    * This method serializes the document to a standard OpenAPI v3 format,
    * which can be used for output, validation, or further processing. The
    * resulting object follows the OpenAPI specification structure.
-   * 
+   *
    * @returns A JSON-serializable object representing the OpenAPI document
-   * 
+   *
    * @example
    * ```typescript
    * // Convert document back to standard OpenAPI format
    * const openApiJson = document.toJSON();
-   * 
+   *
    * // Can be stringified for output
    * const yamlString = JSON.stringify(openApiJson, null, 2);
-   * 
+   *
    * // Or used with OpenAPI tools
    * await validateOpenApiDocument(openApiJson);
    * ```

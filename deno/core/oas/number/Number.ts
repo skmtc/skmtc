@@ -38,6 +38,8 @@ export type NumberFields<Nullable extends boolean | undefined> = {
   readOnly?: boolean
   /** Whether the number is write-only */
   writeOnly?: boolean
+  /** Whether the number is deprecated */
+  deprecated?: boolean
 }
 
 export class OasNumber<Nullable extends boolean | undefined = boolean | undefined> {
@@ -108,6 +110,10 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
    * Whether the number is write-only.
    */
   writeOnly: boolean | undefined
+  /**
+   * Whether the number is deprecated.
+   */
+  deprecated: boolean | undefined
   constructor(fields: NumberFields<Nullable> = {}) {
     this.title = fields.title
     this.description = fields.description
@@ -124,6 +130,7 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
     this.exclusiveMinimum = fields.exclusiveMinimum
     this.readOnly = fields.readOnly
     this.writeOnly = fields.writeOnly
+    this.deprecated = fields.deprecated
   }
 
   isRef(): this is OasRef<'schema'> {

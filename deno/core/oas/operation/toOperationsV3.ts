@@ -14,6 +14,7 @@ import invariant from 'tiny-invariant'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import { tracer } from '@/helpers/tracer.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
+import { toOptionalServersV3 } from '../server/toServerV3.ts'
 
 type OperationInfo = {
   method: Method
@@ -50,6 +51,7 @@ export const toOperationV3 = ({
     deprecated,
     security,
     externalDocs,
+    servers,
     ...skipped
   } = operation
 
@@ -82,6 +84,7 @@ export const toOperationV3 = ({
     externalDocs: tracer(context.stackTrail, 'externalDocs', () =>
       toExternalDocs({ externalDocs, context })
     ),
+    servers: tracer(context.stackTrail, 'servers', () => toOptionalServersV3({ servers, context })),
     extensionFields
   })
 }

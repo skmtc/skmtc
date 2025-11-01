@@ -11,6 +11,7 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
 import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
+import type { OasServer } from '../server/Server.ts'
 
 /**
  * Fields for configuring an OpenAPI operation object.
@@ -48,6 +49,7 @@ export type OperationFields = {
   externalDocs?: OasExternalDocs | undefined
   /** OpenAPI specification extensions */
   extensionFields?: Record<string, unknown>
+  servers?: OasServer[] | undefined
 }
 
 /**
@@ -90,7 +92,8 @@ export class OasOperation {
   externalDocs: OasExternalDocs | undefined
   /** OpenAPI specification extensions */
   extensionFields: Record<string, unknown> | undefined
-
+  /** Servers for this operation */
+  servers: OasServer[] | undefined
   /**
    * Creates a new OasOperation instance from operation field data.
    *
@@ -111,6 +114,7 @@ export class OasOperation {
     this.deprecated = fields.deprecated
     this.externalDocs = fields.externalDocs
     this.extensionFields = fields.extensionFields
+    this.servers = fields.servers
   }
 
   /**

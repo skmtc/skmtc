@@ -38,7 +38,10 @@ export const oasIntegerData = v.object({
   maximum: v.optional(integerSchema),
   exclusiveMaximum: v.optional(v.boolean()),
   minimum: v.optional(integerSchema),
-  exclusiveMinimum: v.optional(v.boolean())
+  exclusiveMinimum: v.optional(v.boolean()),
+  readOnly: v.optional(v.boolean()),
+  writeOnly: v.optional(v.boolean()),
+  deprecated: v.optional(v.boolean())
 })
 
 export type OasIntegerData = {
@@ -55,4 +58,7 @@ export type OasIntegerData = {
   exclusiveMaximum?: boolean
   minimum?: number
   exclusiveMinimum?: boolean
+  readOnly?: boolean
+  writeOnly?: boolean
+  deprecated?: boolean
 }

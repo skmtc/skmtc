@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContext } from '@/context/ParseContext.ts'
 import { match } from 'ts-pattern'
 import {
   OasHttpSecurityScheme,
@@ -20,6 +20,7 @@ import { toRefV31 } from '../ref/toRefV31.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { isRef } from '@/helpers/refFns.ts'
 import { tracer } from '@/helpers/tracer.ts'
+import { isEmpty } from '@/helpers/isEmpty.ts'
 type ToSecuritySchemesArgs = {
   securitySchemes:
     | Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject>
@@ -76,8 +77,9 @@ const toSecuritySchemeV3 = ({
         ...skipped
       } = v.parse(oasHttpSecuritySchemeData, matched)
 
-      context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:http' })
-
+      if (!isEmpty(skipped)) {
+        context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:http' })
+      }
       return new OasHttpSecurityScheme({
         description,
         scheme,
@@ -94,7 +96,9 @@ const toSecuritySchemeV3 = ({
         ...skipped
       } = v.parse(oasApiKeySecuritySchemeData, matched)
 
-      context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:apiKey' })
+      if (!isEmpty(skipped)) {
+        context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:apiKey' })
+      }
 
       return new OasApiKeySecurityScheme({
         description,
@@ -110,7 +114,9 @@ const toSecuritySchemeV3 = ({
         ...skipped
       } = v.parse(oasOAuth2SecuritySchemeData, matched)
 
-      context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:oauth2' })
+      if (!isEmpty(skipped)) {
+        context.logSkippedFields({ skipped, parent: matched, parentType: 'securityScheme:oauth2' })
+      }
 
       return new OasOAuth2SecurityScheme({
         description,
@@ -125,11 +131,13 @@ const toSecuritySchemeV3 = ({
         ...skipped
       } = v.parse(oasOpenIdSecuritySchemeData, matched)
 
-      context.logSkippedFields({
-        skipped,
-        parent: matched,
-        parentType: 'securityScheme:openIdConnect'
-      })
+      if (!isEmpty(skipped)) {
+        context.logSkippedFields({
+          skipped,
+          parent: matched,
+          parentType: 'securityScheme:openIdConnect'
+        })
+      }
 
       return new OasOpenIdSecurityScheme({
         description,

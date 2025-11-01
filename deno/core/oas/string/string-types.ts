@@ -165,87 +165,12 @@ export const oasStringData = v.object({
   enum: v.optional(v.array(v.string())),
   format: v.optional(v.string()),
   nullable: v.optional(v.boolean()),
-  example: v.optional(v.string())
+  example: v.optional(v.string()),
+  readOnly: v.optional(v.boolean()),
+  writeOnly: v.optional(v.boolean()),
+  deprecated: v.optional(v.boolean())
 })
 
-/**
- * Data type for OpenAPI string schema objects.
- *
- * Represents the complete structure of OpenAPI string schemas as processed by the
- * SKMTC pipeline. This type includes all standard OpenAPI string schema properties
- * including validation constraints (length, pattern), format specifiers, enumeration
- * values, and metadata fields. It's used throughout the string processing pipeline
- * for type-safe handling of string schema definitions.
- *
- * ## Usage in SKMTC Pipeline
- *
- * This type is used by:
- * - Schema parsers to validate incoming string schema data
- * - String processors to transform OpenAPI schemas into OAS objects
- * - Code generators to access string constraints and generate validation code
- * - UI generators to create appropriate form controls based on formats and constraints
- *
- * @example Basic string schema
- * ```typescript
- * import type { OasStringData } from '@skmtc/core/oas/string';
- *
- * const nameSchema: OasStringData = {
- *   type: 'string',
- *   title: 'Full Name',
- *   description: 'User full name',
- *   minLength: 1,
- *   maxLength: 200,
- *   example: 'John Doe'
- * };
- * ```
- *
- * @example Email string with format
- * ```typescript
- * const emailSchema: OasStringData = {
- *   type: 'string',
- *   format: 'email',
- *   title: 'Email Address',
- *   description: 'User email for notifications',
- *   example: 'john.doe@example.com'
- * };
- * ```
- *
- * @example Enumerated string values
- * ```typescript
- * const roleSchema: OasStringData = {
- *   type: 'string',
- *   title: 'User Role',
- *   description: 'User access level',
- *   enum: ['admin', 'moderator', 'user', 'guest'],
- *   default: 'user'
- * };
- * ```
- *
- * @example Pattern-constrained string
- * ```typescript
- * const phoneSchema: OasStringData = {
- *   type: 'string',
- *   title: 'Phone Number',
- *   description: 'US phone number',
- *   pattern: '^\\+?1?[2-9]\\d{9}$',
- *   example: '+1234567890',
- *   minLength: 10,
- *   maxLength: 15
- * };
- * ```
- *
- * @example Nullable string with constraints
- * ```typescript
- * const commentSchema: OasStringData = {
- *   type: 'string',
- *   title: 'Comment',
- *   description: 'Optional user comment',
- *   maxLength: 500,
- *   nullable: true,
- *   default: null
- * };
- * ```
- */
 export type OasStringData = {
   /** Human-readable title for the string schema */
   title?: string
@@ -269,4 +194,10 @@ export type OasStringData = {
   nullable?: boolean
   /** Example value for documentation and testing */
   example?: string
+  /** Whether the string is read-only */
+  readOnly?: boolean
+  /** Whether the string is write-only */
+  writeOnly?: boolean
+  /** Whether the string is deprecated */
+  deprecated?: boolean
 }

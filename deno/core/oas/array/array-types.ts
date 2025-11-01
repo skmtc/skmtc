@@ -51,7 +51,10 @@ export const oasArrayDataWithoutItems: v.GenericSchema<OasArrayDataWithoutItems>
   maxItems: v.optional(v.number()),
   minItems: v.optional(v.number()),
   uniqueItems: v.optional(v.boolean()),
-  enums: v.optional(v.array(v.unknown()))
+  enums: v.optional(v.array(v.unknown())),
+  readOnly: v.optional(v.boolean()),
+  writeOnly: v.optional(v.boolean()),
+  deprecated: v.optional(v.boolean())
 })
 
 /**
@@ -116,4 +119,10 @@ export type OasArrayDataWithoutItems = {
   uniqueItems?: boolean
   /** Array of valid enumeration values for the entire array */
   enums?: unknown[]
+  /** Whether the array is read-only */
+  readOnly?: boolean
+  /** Whether the array is write-only */
+  writeOnly?: boolean
+  /** Whether the array is deprecated */
+  deprecated?: boolean
 }

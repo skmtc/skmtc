@@ -141,7 +141,7 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
     v.parse(oasBooleanData, value)
   }
 
-  const { type: _type, title, description, readOnly, writeOnly, ...skipped } = value
+  const { type: _type, title, description, readOnly, writeOnly, deprecated, ...skipped } = value
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -159,7 +159,8 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
     default: defaultValue,
     extensionFields,
     readOnly,
-    writeOnly
+    writeOnly,
+    deprecated
   })
 }
 

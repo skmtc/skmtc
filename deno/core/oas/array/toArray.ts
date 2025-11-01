@@ -129,58 +129,6 @@ type ToParsedArrayArgs<Nullable extends boolean | undefined> = {
   defaultValue: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined
 }
 
-/**
- * Creates an OAS array instance from pre-parsed array schema components.
- *
- * This function is the final step in the array transformation pipeline, taking
- * already-parsed nullable, example, enum, and default values and combining them
- * with the remaining array properties to create the complete OasArray instance.
- *
- * The function handles type-safe nullable parsing, items schema resolution,
- * and specification extension processing. It uses Valibot for schema validation
- * and maintains proper type relationships between nullable flags and value types.
- *
- * @template Nullable - Boolean type indicating if the array can be null
- * @param args - Pre-parsed array components
- * @param args.value - OpenAPI array object without parsed fields
- * @param args.context - Parse context for tracing and utilities
- * @param args.nullable - Parsed nullable flag
- * @param args.example - Parsed example value (type-safe with nullable)
- * @param args.enums - Parsed enumeration constraints (type-safe with nullable)
- * @param args.defaultValue - Parsed default value (type-safe with nullable)
- * @returns Complete OAS array instance with all properties
- *
- * @example Type-safe nullable array
- * ```typescript
- * const nullableArray = toParsedArray({
- *   context: parseContext,
- *   nullable: true,
- *   example: [1, 2, 3], // Can be null due to nullable: true
- *   enums: [[1], [2], null], // Null allowed in enums
- *   defaultValue: null,
- *   value: {
- *     type: 'array',
- *     items: { type: 'number' },
- *     maxItems: 5
- *   }
- * });
- * ```
- *
- * @example Non-nullable array
- * ```typescript
- * const regularArray = toParsedArray({
- *   context: parseContext,
- *   nullable: false,
- *   example: ['a', 'b'], // Cannot be null
- *   enums: [['x'], ['y']], // No null values allowed
- *   defaultValue: [],
- *   value: {
- *     type: 'array',
- *     items: { type: 'string' }
- *   }
- * });
- * ```
- */
 export const toParsedArray = <Nullable extends boolean | undefined>({
   context,
   nullable,
@@ -197,7 +145,18 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
     v.parse(oasArrayDataWithoutItems, rest)
   }
 
-  const { type: _type, title, description, uniqueItems, maxItems, minItems, ...skipped } = rest
+  const {
+    type: _type,
+    title,
+    description,
+    uniqueItems,
+    maxItems,
+    minItems,
+    readOnly,
+    writeOnly,
+    deprecated,
+    ...skipped
+  } = rest
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -216,17 +175,16 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
     description,
     nullable,
     defaultValue,
-    items: tracer(
-      context.stackTrail,
-      'items',
-      () => toSchemaV3({ schema: items, context })
-    ),
+    items: tracer(context.stackTrail, 'items', () => toSchemaV3({ schema: items, context })),
     extensionFields,
     example,
     uniqueItems,
     maxItems,
     minItems,
-    enums
+    enums,
+    readOnly,
+    writeOnly,
+    deprecated
   })
 }
 

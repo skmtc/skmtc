@@ -7,6 +7,7 @@ export type UnknownFields = {
   description?: string
   extensionFields?: Record<string, unknown>
   example?: unknown
+  nullable?: boolean
 }
 
 /**
@@ -39,12 +40,14 @@ export class OasUnknown {
   extensionFields: Record<string, unknown> | undefined
   /** An example of the unknown type. */
   example: unknown | undefined
-
+  /** Whether the unknown type is nullable */
+  nullable: boolean | undefined
   constructor(fields: UnknownFields = {}) {
     this.title = fields.title
     this.description = fields.description
     this.extensionFields = fields.extensionFields
     this.example = fields.example
+    this.nullable = fields.nullable
   }
 
   isRef(): this is OasRef<'schema'> {

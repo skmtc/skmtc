@@ -84,6 +84,9 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     exclusiveMaximum,
     minimum,
     exclusiveMinimum,
+    readOnly,
+    writeOnly,
+    deprecated,
     ...skipped
   } = valueWithoutFormat
 
@@ -107,7 +110,10 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     minimum,
     exclusiveMinimum,
     default: defaultValue,
-    extensionFields
+    readOnly,
+    writeOnly,
+    extensionFields,
+    deprecated
   })
 }
 

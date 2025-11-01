@@ -10,7 +10,7 @@ type ToUnknownArgs = {
 }
 
 export const toUnknown = ({ value, context }: ToUnknownArgs): OasUnknown => {
-  const { type: _type, title, description, example, ...skipped } = value
+  const { type: _type, title, description, example, nullable, ...skipped } = value
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,

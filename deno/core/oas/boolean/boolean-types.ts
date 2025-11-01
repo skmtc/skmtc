@@ -40,7 +40,10 @@ export const oasBooleanData = v.object({
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   default: v.optional(v.boolean()),
-  enum: v.optional(v.array(v.boolean()))
+  enum: v.optional(v.array(v.boolean())),
+  readOnly: v.optional(v.boolean()),
+  writeOnly: v.optional(v.boolean()),
+  deprecated: v.optional(v.boolean())
 })
 
 /**
@@ -103,4 +106,8 @@ export type OasBooleanData = {
   default?: boolean
   /** Array of valid boolean values for enumeration constraints */
   enum?: boolean[]
+  readOnly?: boolean
+  writeOnly?: boolean
+  /** Whether the boolean is deprecated */
+  deprecated?: boolean
 }

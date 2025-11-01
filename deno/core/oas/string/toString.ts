@@ -211,6 +211,9 @@ export const toParsedString = <Nullable extends boolean | undefined>({
     maxLength,
     minLength,
     pattern,
+    readOnly,
+    writeOnly,
+    deprecated,
     ...skipped
   } = value
 
@@ -241,8 +244,11 @@ export const toParsedString = <Nullable extends boolean | undefined>({
     maxLength,
     minLength,
     pattern,
+    readOnly,
+    writeOnly,
     default: defaultValue,
-    extensionFields
+    extensionFields,
+    deprecated
   })
 }
 
