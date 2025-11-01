@@ -8,7 +8,6 @@
     "ts-pattern": "npm:ts-pattern@^5.8.0"
   },
   "compilerOptions": {
-    "target": "esnext",
     "lib": ["deno.worker"]
   },
   "tasks": {
