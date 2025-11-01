@@ -52,6 +52,7 @@ export type StringFormat =
   | 'password' // Password hint for UI
   | 'byte' // Base64 encoded
   | 'binary' // Binary data
+  | 'uri-template' // URI template
 
 /**
  * Valibot enum schema for valid OpenAPI string format values.
@@ -99,7 +100,8 @@ export const stringFormat: v.GenericSchema<StringFormat> = v.enum({
   regex: 'regex',
   password: 'password',
   byte: 'byte',
-  binary: 'binary'
+  binary: 'binary',
+  'uri-template': 'uri-template'
 })
 
 /**

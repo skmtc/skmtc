@@ -96,22 +96,17 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     nullable,
     example,
     enums,
-    properties: tracer(
-      context.stackTrail,
-      'properties',
-      () =>
-        toOptionalSchemasV3({
-          schemas: properties,
-          context
-        })
+    properties: tracer(context.stackTrail, 'properties', () =>
+      toOptionalSchemasV3({
+        schemas: properties,
+        context
+      })
     ),
     required,
     maxProperties,
     minProperties,
-    additionalProperties: tracer(
-      context.stackTrail,
-      'additionalProperties',
-      () => toAdditionalPropertiesV3({ additionalProperties, context })
+    additionalProperties: tracer(context.stackTrail, 'additionalProperties', () =>
+      toAdditionalPropertiesV3({ additionalProperties, context })
     ),
     extensionFields,
     default: defaultValue,
@@ -129,6 +124,10 @@ type ParseExampleArgs = {
 }
 
 const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+  if (example === undefined) {
+    return undefined
+  }
+
   if (nullable && example === null) {
     return example
   }

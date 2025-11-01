@@ -123,6 +123,10 @@ type ParseNumberFormatArgs = {
 }
 
 const parseNumberFormat = ({ format, context, parent }: ParseNumberFormatArgs) => {
+  if (format === undefined) {
+    return undefined
+  }
+
   if (!v.is(numberFormat, format)) {
     context.logIssue({
       key: 'format',
@@ -145,6 +149,10 @@ type ParseExampleArgs = {
 }
 
 const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+  if (example === undefined) {
+    return undefined
+  }
+
   if (nullable && example === null) {
     return example
   }

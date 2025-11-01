@@ -124,6 +124,10 @@ type ParseIntegerFormatArgs = {
 }
 
 const parseIntegerFormat = ({ format, context, parent }: ParseIntegerFormatArgs) => {
+  if (format === undefined) {
+    return undefined
+  }
+
   if (!v.is(integerFormat, format)) {
     context.logIssue({
       key: 'format',
@@ -145,6 +149,10 @@ type ParseExampleArgs = {
 }
 
 const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+  if (example === undefined) {
+    return undefined
+  }
+
   if (nullable && example === null) {
     return example
   }

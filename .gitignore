@@ -39,6 +39,7 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+logs/
 
 
 # Emitted by Deno and not needed

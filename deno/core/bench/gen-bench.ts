@@ -15,7 +15,7 @@ Deno.bench('gen', async () => {
     settings: undefined,
     // @ts-expect-error - TODO: fix this
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),
-    logsPath: './',
+    logsPath: undefined,
     silent: true
   })
 })

@@ -142,9 +142,16 @@ export const parseNullable = <Value extends OpenAPIV3.SchemaObject>({
   value,
   context
 }: ParseNullableArgs<Value>): ParseNullableReturn<Value> => {
+  if (value.nullable === undefined) {
+    return {
+      nullable: undefined,
+      value: value
+    }
+  }
+
   const { nullable, ...rest } = value
 
-  if (typeof nullable === 'boolean' && typeof nullable === 'undefined') {
+  if (typeof nullable === 'boolean') {
     return {
       nullable: nullable,
       value: rest

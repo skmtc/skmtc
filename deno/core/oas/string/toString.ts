@@ -6,7 +6,6 @@ import { oasStringData, stringFormat } from './string-types.ts'
 import * as v from 'valibot'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
-import { outputErrors } from '../../helpers/compiled-validate.ts'
 
 /**
  * Arguments for transforming an OpenAPI string schema into OAS representation.
@@ -264,6 +263,10 @@ type ParseExampleArgs = {
 }
 
 const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+  if (example === undefined) {
+    return undefined
+  }
+
   if (nullable && example === null) {
     return example
   }
@@ -290,6 +293,10 @@ type ParseDefaultArgs = {
 }
 
 const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultArgs) => {
+  if (defaultValue === undefined) {
+    return undefined
+  }
+
   if (nullable && defaultValue === null) {
     return defaultValue
   }

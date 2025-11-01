@@ -196,6 +196,10 @@ type ParseExampleArgs = {
 }
 
 const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+  if (example === undefined) {
+    return undefined
+  }
+
   if (nullable && example === null) {
     return example
   }
@@ -222,6 +226,10 @@ type ParseDefaultArgs = {
 }
 
 const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultArgs) => {
+  if (defaultValue === undefined) {
+    return undefined
+  }
+
   if (nullable && defaultValue === null) {
     return defaultValue
   }
