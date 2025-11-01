@@ -13,6 +13,7 @@
   },
   "tasks": {
     "publish": "deno publish --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:deno:ga": "deno publish --allow-slow-types",
     "test": "deno test --allow-all",
     "test:watch": "deno test --allow-all --watch"
   },
