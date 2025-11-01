@@ -1,6 +1,5 @@
 import React from 'react'
-import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { SkmtcRoot as SkmtcRootClass } from '@/lib/skmtc-root.ts'
+import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
@@ -23,8 +22,7 @@ export const renderInit = async ({
   AppComponent = App
 }: RenderInitArgs) => {
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
-  const manager = new Manager()
-  const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRootClass.open(manager))
+  const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
   const session = await skmtcRoot.manager.auth.toSession()
 

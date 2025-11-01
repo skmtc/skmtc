@@ -10,8 +10,7 @@ export const toAuthStore = (): AuthStore => {
   const denoGlobal = (globalThis as unknown as { Deno?: { openKv?: () => Promise<KvLike> } }).Deno
   if (typeof denoGlobal?.openKv === 'function') {
     try {
-      const kv = denoGlobal.openKv()
-      return new KvStore(kv)
+      return new KvStore(denoGlobal.openKv())
     } catch (_error) {
       return new FileStore()
     }

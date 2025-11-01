@@ -25,10 +25,15 @@
     "publish": "deno task publish:deno",
     "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
     "publish:deno:ga": "deno publish --allow-slow-types",
-    "test": "deno test --allow-all",
+    "test": "deno test --allow-all --trace-leaks",
     "test:watch": "deno test --allow-all --watch",
     "test:coverage": "deno test --allow-all --coverage=coverage",
     "coverage:report": "deno coverage coverage --lcov > coverage.lcov",
     "coverage:html": "deno coverage coverage --html"
+  },
+  "lint": {
+    "rules": {
+      "include": ["no-await-in-sync-fn", "require-await"]
+    }
   }
 }

@@ -10,7 +10,7 @@ export function createMockManager(): Manager {
     isLoggedIn: () => false,
     login: async () => {},
     logout: async () => {},
-    toSession: async () => null
+    toSession: async () => {}
   } as unknown as Auth
 
   const mockManager: Manager = {
@@ -18,9 +18,6 @@ export function createMockManager(): Manager {
     cleanupActions: [],
     cleanup: async () => {},
     success: async (_logSuccess?: string) => {},
-    fail: async (_message?: string) => {
-      throw new Error('Manager.fail called')
-    },
     _supabaseMock: supabaseMock
   } as unknown as Manager
 
