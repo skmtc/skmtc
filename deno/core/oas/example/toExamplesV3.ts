@@ -8,7 +8,7 @@ import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { tracer } from '@/helpers/tracer.ts'
 type ToExampleSimpleV3Args = {
-  example: unknown
+  example: OpenAPIV3.ExampleObject
 }
 
 /**
@@ -24,9 +24,10 @@ export const toExampleSimpleV3 = ({
   example
 }: ToExampleSimpleV3Args): OasExample | OasRef<'example'> => {
   const fields: ExampleFields = {
-    value: example,
-    summary: undefined,
-    description: undefined
+    value: example.value,
+    summary: example.summary,
+    description: example.description,
+    externalValue: example.externalValue
   }
 
   return new OasExample(fields)
@@ -71,31 +72,21 @@ export const toExamplesV3 = ({
 
   if (example) {
     return {
-      [exampleKey]: tracer(
-        context.stackTrail,
-        'example',
-        () => toExampleSimpleV3({ example })
-      )
+      [exampleKey]: tracer(context.stackTrail, 'example', () => toExampleSimpleV3({ example }))
     }
   }
 
   if (examples) {
-    tracer(
-      context.stackTrail,
-      'examples',
-      () => {
-        const output: Record<string, OasExample | OasRef<'example'>> = {}
-        const entries = Object.entries(examples)
-        for (const [key, value] of entries) {
-          output[key] = tracer(
-            context.stackTrail,
-            key,
-            () => toExampleV3({ example: value, context })
-          )
-        }
-        return output
+    tracer(context.stackTrail, 'examples', () => {
+      const output: Record<string, OasExample | OasRef<'example'>> = {}
+      const entries = Object.entries(examples)
+      for (const [key, value] of entries) {
+        output[key] = tracer(context.stackTrail, key, () =>
+          toExampleV3({ example: value, context })
+        )
       }
-    )
+      return output
+    })
   }
 
   return undefined

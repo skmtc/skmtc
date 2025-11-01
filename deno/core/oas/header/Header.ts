@@ -10,17 +10,17 @@ import type { OpenAPIV3 } from 'openapi-types'
  */
 export type HeaderFields = {
   /** A brief description of the header */
-  description: string | undefined
+  description?: string
   /** Whether the header is required */
-  required: boolean | undefined
+  required?: boolean
   /** Whether the header is deprecated */
-  deprecated: boolean | undefined
+  deprecated?: boolean
   /** Schema defining the header's data type */
-  schema: OasSchema | OasRef<'schema'> | undefined
+  schema?: OasSchema | OasRef<'schema'>
   /** Example values for the header */
-  examples: Record<string, OasExample | OasRef<'example'>> | undefined
+  examples?: Record<string, OasExample | OasRef<'example'>>
   /** Content definitions for complex header values */
-  content: Record<string, OasMediaType> | undefined
+  content?: Record<string, OasMediaType>
   /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
 }

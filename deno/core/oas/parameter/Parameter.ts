@@ -18,52 +18,52 @@ export type ParameterFields = {
   /** The location of the parameter (path, query, header, cookie) */
   location: OasParameterLocation
   /** A brief description of the parameter */
-  description?: string | undefined
+  description?: string
   /** Determines whether this parameter is mandatory */
-  required?: boolean | undefined
+  required?: boolean
   /** Specifies that the parameter is deprecated */
-  deprecated?: boolean | undefined
+  deprecated?: boolean
   /** Whether to allow empty values for the parameter */
-  allowEmptyValue?: boolean | undefined
+  allowEmptyValue?: boolean
   /** Whether reserved characters are allowed in the parameter value */
-  allowReserved?: boolean | undefined
+  allowReserved?: boolean
   /** The schema defining the parameter's data type */
-  schema?: OasSchema | OasRef<'schema'> | undefined
+  schema?: OasSchema | OasRef<'schema'>
   /** Example values for the parameter */
-  examples?: Record<string, OasExample | OasRef<'example'>> | undefined
+  examples?: Record<string, OasExample | OasRef<'example'>>
   /** Media type definitions for the parameter content */
-  content?: Record<string, OasMediaType> | undefined
+  content?: Record<string, OasMediaType>
   /** The serialization style for the parameter */
-  style: OasParameterStyle
+  style?: OasParameterStyle
   /** Whether to explode parameter values */
-  explode: boolean
+  explode?: boolean
   /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
 }
 
 /**
  * Represents a Parameter Object in the OpenAPI Specification.
- * 
+ *
  * The `OasParameter` class encapsulates the definition of a single operation parameter,
  * including its location, data type, validation rules, and serialization behavior.
  * Parameters can be located in the path, query string, headers, or cookies.
- * 
+ *
  * This class provides comprehensive support for parameter validation, serialization
  * styles, and complex data types through schema definitions or content specifications.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Location Support**: Path, query, header, and cookie parameters
  * - **Schema Validation**: Comprehensive data type validation through schemas
  * - **Serialization Styles**: Various parameter serialization formats
  * - **Content Types**: Support for complex parameter content with media types
  * - **Examples & Documentation**: Parameter examples and descriptive documentation
  * - **Advanced Options**: Empty values, reserved characters, and explode behavior
- * 
+ *
  * @example Basic path parameter
  * ```typescript
  * import { OasParameter, OasString } from '@skmtc/core';
- * 
+ *
  * const userIdParam = new OasParameter({
  *   name: 'userId',
  *   location: 'path',
@@ -76,10 +76,10 @@ export type ParameterFields = {
  *   style: 'simple',
  *   explode: false
  * });
- * 
+ *
  * // Used in path: /users/{userId}
  * ```
- * 
+ *
  * @example Query parameter with validation
  * ```typescript
  * const pageSizeParam = new OasParameter({
@@ -100,10 +100,10 @@ export type ParameterFields = {
  *     large: new OasExample({ value: 50 })
  *   }
  * });
- * 
+ *
  * // Used in query: ?pageSize=20
  * ```
- * 
+ *
  * @example Header parameter
  * ```typescript
  * const authHeaderParam = new OasParameter({
@@ -119,7 +119,7 @@ export type ParameterFields = {
  *   explode: false
  * });
  * ```
- * 
+ *
  * @example Complex parameter with content
  * ```typescript
  * const filterParam = new OasParameter({
@@ -145,10 +145,10 @@ export type ParameterFields = {
  *   style: 'deepObject',
  *   explode: true
  * });
- * 
+ *
  * // Used as: ?filter[category]=electronics&filter[priceRange][min]=100
  * ```
- * 
+ *
  * @example Array parameter with explode
  * ```typescript
  * const tagsParam = new OasParameter({
@@ -164,11 +164,11 @@ export type ParameterFields = {
  *   style: 'form',
  *   explode: true // Results in: ?tags=tech&tags=api&tags=rest
  * });
- * 
+ *
  * // Without explode: ?tags=tech,api,rest
  * // With explode: ?tags=tech&tags=api&tags=rest
  * ```
- * 
+ *
  * @example Cookie parameter
  * ```typescript
  * const sessionParam = new OasParameter({
@@ -209,14 +209,14 @@ export class OasParameter {
   /** Media type definitions for complex parameter content */
   content?: Record<string, OasMediaType> | undefined
   /** The serialization style for the parameter (form, simple, etc.) */
-  style: OasParameterStyle
+  style: OasParameterStyle | undefined
   /** Whether to explode parameter values into separate key-value pairs */
-  explode: boolean
+  explode: boolean | undefined
   /** Custom extension fields (x-* properties) defined for this parameter */
   extensionFields: Record<string, unknown> | undefined
   /**
    * Creates a new OasParameter instance.
-   * 
+   *
    * @param fields - Parameter configuration fields including name, location, schema, and serialization options
    */
   constructor(fields: ParameterFields) {
@@ -232,14 +232,12 @@ export class OasParameter {
     this.schema = fields.schema
     this.examples = fields.examples
     this.content = fields.content
-    this.style = fields.style
-    this.explode = fields.explode
     this.extensionFields = fields.extensionFields
   }
 
   /**
    * Determines if this parameter is a reference object.
-   * 
+   *
    * @returns Always false since this is a concrete parameter instance, not a reference
    */
   isRef(): this is OasRef<'parameter'> {
@@ -248,7 +246,7 @@ export class OasParameter {
 
   /**
    * Resolves this parameter object.
-   * 
+   *
    * @returns The parameter instance itself since it's already a concrete object
    */
   resolve(): OasParameter {
@@ -257,7 +255,7 @@ export class OasParameter {
 
   /**
    * Resolves this parameter object one level.
-   * 
+   *
    * @returns The parameter instance itself since it's already a concrete object
    */
   resolveOnce(): OasParameter {
@@ -266,10 +264,10 @@ export class OasParameter {
 
   /**
    * Extracts the schema for this parameter.
-   * 
+   *
    * Returns the direct schema if available, or extracts schema from content
    * for the specified media type.
-   * 
+   *
    * @param mediaType - Media type to extract schema from when using content definitions
    * @returns The parameter's schema object
    * @throws Error if no schema is found for the specified media type
@@ -290,7 +288,7 @@ export class OasParameter {
 
   /**
    * Converts this OAS parameter to an OpenAPI v3 JSON schema representation.
-   * 
+   *
    * @param options - Conversion options including reference handling and formatting preferences
    * @returns OpenAPI v3 parameter object with all properties and validation constraints
    */

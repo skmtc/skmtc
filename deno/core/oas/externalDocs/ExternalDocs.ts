@@ -1,6 +1,6 @@
 export type ExternalDocsFields = {
   url: string
-  description: string | undefined
+  description?: string
 }
 
 export class OasExternalDocs {

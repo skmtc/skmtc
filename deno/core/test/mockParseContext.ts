@@ -42,5 +42,11 @@ export const mockParseContext = {
 
   logIssue(): void {
     //do nothing
+  },
+
+  stackTrail: {
+    append: () => {},
+    remove: () => {},
+    clone: () => ({ append: () => {}, remove: () => {}, clone: () => ({}) })
   }
 } as unknown as ParseContext
