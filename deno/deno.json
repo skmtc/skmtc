@@ -5,6 +5,7 @@
     "@skmtc/cli": "./cli/mod.ts",
     "@skmtc/convert": "./convert/mod.ts",
     "@skmtc/core": "./core/mod.ts",
+    "@skmtc/worker": "./worker/mod.ts",
     "@std/assert": "jsr:@std/assert@^1.0.10",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@std/fmt": "jsr:@std/fmt@^1.0.8",
@@ -28,7 +29,8 @@
     "./convert",
     "./core",
     "./mcp",
-    "./server"
+    "./server",
+    "./worker"
   ],
   "tasks": {
     "build": "deno task --cwd=core build",
