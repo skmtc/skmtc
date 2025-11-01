@@ -3,6 +3,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { OasServer } from './Server.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toOptionalServerVariablesV3 } from '../serverVariable/toServerVariableV3.ts'
+import { tracer } from '@/helpers/tracer.ts'
 type ToServersV3Args = {
   servers: OpenAPIV3.ServerObject[]
   context: ParseContext
@@ -10,7 +11,7 @@ type ToServersV3Args = {
 
 export const toServersV3 = ({ servers, context }: ToServersV3Args): OasServer[] => {
   return servers.map((server, index) => {
-    return context.trace(server.url ?? index, () => toServerV3({ server, context }))
+    return tracer(context.stackTrail, server.url ?? index, () => toServerV3({ server, context }))
   })
 }
 

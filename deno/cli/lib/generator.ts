@@ -9,12 +9,41 @@ import { PackageDenoJson } from '@/lib/package-deno-json.ts'
 import type { Manager } from '@/lib/manager.ts'
 import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
-import { Octokit } from 'octokit'
 import { extractImportPaths } from '@/lib/extract-import-paths.ts'
+import * as v from 'valibot'
+import { githubContentsResponse, type GitHubContentItem } from '@/lib/github-api-types.ts'
 
-const octokit = new Octokit({
-  auth: Deno.env.get('GITHUB_READ_ONLY_TOKEN')
-})
+/**
+ * Fetches repository contents from GitHub API.
+ *
+ * @param path - Path to file or directory in the repository
+ * @returns Array of content items (normalized from single or array response)
+ */
+async function fetchGitHubContents(path: string): Promise<GitHubContentItem[]> {
+  const token = Deno.env.get('GITHUB_READ_ONLY_TOKEN')
+
+  const url = `https://api.github.com/repos/skmtc/skmtc-generators/contents/${path}`
+
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
+  }
+
+  const data = await response.json()
+
+  // Validate response with valibot
+  const validated = v.parse(githubContentsResponse, data)
+
+  // Normalize to array
+  return Array.isArray(validated) ? validated : [validated]
+}
 
 type GeneratorArgs = {
   projectName: string
@@ -195,16 +224,7 @@ export class Generator {
   }
 
   static async getGeneratorsRootDenoJson() {
-    const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-      owner: 'skmtc',
-      repo: 'skmtc-generators',
-      path: 'deno.json',
-      headers: {
-        'X-GitHub-Api-Version': '2022-11-28'
-      }
-    })
-
-    const items = Array.isArray(response.data) ? response.data : [response.data]
+    const items = await fetchGitHubContents('deno.json')
 
     const promises = items.map(async item => {
       if (item.type === 'file' && item.path === 'deno.json' && item.download_url) {
@@ -234,16 +254,7 @@ type FromNameArgs = {
 }
 
 const getGeneratorFiles = async (path: string, files: Record<string, string> = {}) => {
-  const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-    owner: 'skmtc',
-    repo: 'skmtc-generators',
-    path: path,
-    headers: {
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
-  })
-
-  const items = Array.isArray(response.data) ? response.data : [response.data]
+  const items = await fetchGitHubContents(path)
 
   const promises = items.map(async item => {
     if (item.type === 'dir') {

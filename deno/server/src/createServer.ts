@@ -1,13 +1,8 @@
-import * as Sentry from '@sentry/node'
 import { cors } from 'hono/cors'
 import { Hono } from 'hono'
-import {
-  clientSettings as settingsSchema,
-  toArtifacts,
-  stringToSchema,
-  toV3Document
-} from '@skmtc/core'
+import { clientSettings as settingsSchema, toArtifacts } from '@skmtc/core'
 import type { GeneratorsMapContainer } from '@skmtc/core'
+import { stringToSchema, toV3Document } from '@skmtc/convert'
 import * as v from 'valibot'
 
 const postArtifactsBody = v.object({
@@ -38,50 +33,39 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
   app.post('/artifacts', async c => {
     const startAt = Date.now()
 
-    const result = await Sentry.startSpan({ name: 'POST /artifacts' }, async span => {
-      const body = await c.req.json()
+    const body = await c.req.json()
 
-      const { schema, clientSettings, prettier } = v.parse(postArtifactsBody, body)
+    const { schema, clientSettings, prettier } = v.parse(postArtifactsBody, body)
 
-      const documentObject = await toV3Document(stringToSchema(schema))
-      return await Sentry.startSpan({ name: 'Generate' }, async () => {
-        const { traceId, spanId } = span.spanContext()
+    const documentObject = await toV3Document(stringToSchema(schema))
 
-        const { artifacts, manifest } = await toArtifacts({
-          traceId,
-          spanId,
-          startAt,
-          documentObject,
-          prettier,
-          settings: clientSettings,
-          toGeneratorConfigMap,
-          logsPath,
-          silent: true
-        })
-
-        return { artifacts, manifest }
-      })
+    const { artifacts, manifest } = toArtifacts({
+      traceId: `trace-${Date.now()}`,
+      spanId: `span-${Date.now()}`,
+      startAt,
+      documentObject,
+      prettier,
+      settings: clientSettings,
+      toGeneratorConfigMap,
+      logsPath,
+      silent: true
     })
 
-    return c.json(result, 200)
+    return c.json({ artifacts, manifest }, 200)
   })
 
   app.get('/generators', c => {
-    return Sentry.startSpan({ name: 'GET /generators' }, () => {
-      return c.json({ generators: Object.keys(toGeneratorConfigMap()) })
-    })
+    return c.json({ generators: Object.keys(toGeneratorConfigMap()) })
   })
 
   app.post('/to-v3-json', async c => {
-    return await Sentry.startSpan({ name: 'POST /to-v3-json' }, async () => {
-      const body = await c.req.json()
+    const body = await c.req.json()
 
-      const { schema } = v.parse(v.object({ schema: v.string() }), body)
+    const { schema } = v.parse(v.object({ schema: v.string() }), body)
 
-      const oas30Document = await toV3Document(stringToSchema(schema))
+    const oas30Document = await toV3Document(stringToSchema(schema))
 
-      return c.json({ schema: oas30Document })
-    })
+    return c.json({ schema: oas30Document })
   })
 
   return app

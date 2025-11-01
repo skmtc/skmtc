@@ -10,6 +10,7 @@ import { OasComponents } from './Components.ts'
 import type { ComponentsFields } from './Components.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecuritySchemesV3 } from '../securitySchemes/toSecuritySchemes.ts'
+import { tracer } from '@/helpers/tracer.ts'
 
 type ToComponentsV3Args = {
   components: OpenAPIV3.ComponentsObject | undefined
@@ -43,13 +44,20 @@ export const toComponentsV3 = ({
   })
 
   const fields: ComponentsFields = {
-    schemas: context.trace('schemas', () => toOptionalSchemasV3({ schemas, context })),
-    responses: context.trace('responses', () => toOptionalResponsesV3({ responses, context })),
-    parameters: context.trace('parameters', () =>
-      toOptionalParametersV3({
-        parameters,
-        context
-      })
+    schemas: tracer(
+      context.stackTrail,
+      'schemas',
+      () => toOptionalSchemasV3({ schemas, context })
+    ),
+    responses: tracer(
+      context.stackTrail,
+      'responses',
+      () => toOptionalResponsesV3({ responses, context })
+    ),
+    parameters: tracer(
+      context.stackTrail,
+      'parameters',
+      () => toOptionalParametersV3({ parameters, context })
     ),
     examples: toExamplesV3({
       examples,
@@ -57,12 +65,20 @@ export const toComponentsV3 = ({
       exampleKey: 'TEMP',
       context
     }),
-    requestBodies: context.trace('requestBodies', () =>
-      toRequestBodiesV3({ requestBodies, context })
+    requestBodies: tracer(
+      context.stackTrail,
+      'requestBodies',
+      () => toRequestBodiesV3({ requestBodies, context })
     ),
-    headers: context.trace('headers', () => toHeadersV3({ headers, context })),
-    securitySchemes: context.trace('securitySchemes', () =>
-      toSecuritySchemesV3({ securitySchemes, context })
+    headers: tracer(
+      context.stackTrail,
+      'headers',
+      () => toHeadersV3({ headers, context })
+    ),
+    securitySchemes: tracer(
+      context.stackTrail,
+      'securitySchemes',
+      () => toSecuritySchemesV3({ securitySchemes, context })
     ),
     extensionFields
   }

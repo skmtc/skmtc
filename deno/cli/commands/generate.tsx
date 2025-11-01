@@ -1,8 +1,8 @@
 import React from 'react'
-import { Command } from '@cliffy/command'
-import * as Sentry from '@sentry/node'
 import { Workspace } from '@/lib/workspace.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { SkmtcRoot as SkmtcRootClass } from '@/lib/skmtc-root.ts'
+import { Manager } from '@/lib/manager.ts'
 import { isProjectKey, type Project } from '@/lib/project.ts'
 import { formatNumber } from '@skmtc/core'
 import { toGenerationStats, type GenerationStats } from '@/lib/generationStats.ts'
@@ -14,21 +14,6 @@ import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import { PrettierJson } from '../lib/prettier-json.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
-import { BiomeInstance } from '../components/TaskContext.tsx'
-
-export const description = 'Generate artifacts'
-
-type RenderGenerateFn = (args: RenderGenerateArgs) => Promise<void>
-
-export const toGenerateCommand = (skmtcRoot: SkmtcRoot, renderGenerate: RenderGenerateFn) => {
-  return new Command()
-    .description(description)
-    .arguments('<project:string> [schema:string]')
-    .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
-    .action(async ({ watch }, projectName, schemaSourceString) => {
-      await renderGenerate({ skmtcRoot, projectName, schemaSourceString, watch })
-    })
-}
 
 type ToProjectArgs = {
   skmtcRoot: SkmtcRoot
@@ -56,7 +41,7 @@ export const toProject = async ({
 }
 
 type RenderGenerateArgs = {
-  skmtcRoot: SkmtcRoot
+  skmtcRoot?: SkmtcRoot
   projectName: string
   schemaSourceString: string | undefined
   watch: boolean | undefined
@@ -66,13 +51,17 @@ type RenderGenerateArgs = {
 }
 
 export const renderGenerate = async ({
-  skmtcRoot,
+  skmtcRoot: providedSkmtcRoot,
   projectName,
   schemaSourceString,
   watch,
   renderFn = render,
   AppComponent = App
 }: RenderGenerateArgs) => {
+  // Instantiate Manager and SkmtcRoot if not provided (for testing)
+  const manager = new Manager()
+  const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRootClass.open(manager))
+
   const session = await skmtcRoot.manager.auth.toSession()
 
   const project = await toProject({ skmtcRoot, projectName, schemaSourceString })
@@ -102,7 +91,6 @@ type GenerateArgs = {
   accountName: string
   schemaContents: string
   clientSettings: ClientSettings | undefined
-  biomeInstance: Promise<BiomeInstance> | undefined
   token: string | undefined
 }
 
@@ -112,7 +100,6 @@ export const generate = async ({
   accountName,
   schemaContents,
   clientSettings,
-  biomeInstance,
   token
 }: GenerateArgs) => {
   try {
@@ -123,7 +110,6 @@ export const generate = async ({
       accountName,
       schemaContents,
       clientSettings,
-      biomeInstance,
       token
     })
 
@@ -137,9 +123,9 @@ export const generate = async ({
   } catch (error) {
     console.error(error instanceof Error ? error : 'Failed to generate artifacts')
 
-    Sentry.captureException(error)
+    // Sentry.captureException(error)
 
-    await Sentry.flush()
+    // await Sentry.flush()
 
     await skmtcRoot.manager.cleanup()
 

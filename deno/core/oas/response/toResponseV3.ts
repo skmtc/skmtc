@@ -8,7 +8,7 @@ import { OasResponse } from './Response.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import invariant from 'tiny-invariant'
-
+import { tracer } from '@/helpers/tracer.ts'
 type ToResponsesV3Args = {
   responses: OpenAPIV3.ResponsesObject
   context: ParseContext
@@ -18,27 +18,27 @@ export const toResponsesV3 = ({
   responses,
   context
 }: ToResponsesV3Args): Record<string, OasResponse | OasRef<'response'>> => {
-  return Object.fromEntries(
-    Object.entries(responses)
-      .map(([key, value]) => {
-        try {
-          return [key, context.trace(key, () => toResponseV3({ response: value, context }))]
-        } catch (error) {
-          invariant(error instanceof Error, 'Invalid error')
+  const output: Record<string, OasResponse | OasRef<'response'>> = {}
+  const entries = Object.entries(responses)
 
-          context.logIssue({
-            key,
-            level: 'error',
-            error,
-            parent: value,
-            type: 'INVALID_RESPONSE'
-          })
+  for (const [key, value] of entries) {
+    try {
+      output[key] = tracer(context.stackTrail, key, () =>
+        toResponseV3({ response: value, context })
+      )
+    } catch (error) {
+      invariant(error instanceof Error, 'Invalid error')
 
-          return undefined
-        }
+      context.logIssue({
+        key,
+        level: 'error',
+        error,
+        parent: value,
+        type: 'INVALID_RESPONSE'
       })
-      .filter(item => item !== undefined)
-  )
+    }
+  }
+  return output
 }
 
 type ToOptionalResponsesV3Args = {
@@ -81,8 +81,10 @@ export const toResponseV3 = ({
 
   return new OasResponse({
     description,
-    headers: context.trace('headers', () => toHeadersV3({ headers, context })),
-    content: context.trace('content', () => toOptionalMediaTypeItemsV3({ content, context })),
+    headers: tracer(context.stackTrail, 'headers', () => toHeadersV3({ headers, context })),
+    content: tracer(context.stackTrail, 'content', () =>
+      toOptionalMediaTypeItemsV3({ content, context })
+    ),
     extensionFields
   })
 }

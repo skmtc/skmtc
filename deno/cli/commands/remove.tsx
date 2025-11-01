@@ -1,28 +1,14 @@
 import React from 'react'
-import { Command } from '@cliffy/command'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { SkmtcRoot as SkmtcRootClass } from '@/lib/skmtc-root.ts'
+import { Manager } from '@/lib/manager.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 
-export const description = 'Remove generator'
-
-type RenderRemoveFn = (args: RenderRemoveArgs) => Promise<void>
-
-export const toRemoveCommand = (skmtcRoot: SkmtcRoot, renderRemove: RenderRemoveFn) => {
-  const command = new Command()
-    .description(description)
-    .arguments('<project:string> <generator:string>')
-    .action(async (_options, projectName, generator) => {
-      await renderRemove({ skmtcRoot, projectName, generator })
-    })
-
-  return command
-}
-
 type RenderRemoveArgs = {
-  skmtcRoot: SkmtcRoot
+  skmtcRoot?: SkmtcRoot
   projectName: string
   generator: string
   // Optional dependencies for testing
@@ -31,12 +17,16 @@ type RenderRemoveArgs = {
 }
 
 export const renderRemove = async ({
-  skmtcRoot,
+  skmtcRoot: providedSkmtcRoot,
   projectName,
   generator,
   renderFn = render,
   AppComponent = App
 }: RenderRemoveArgs) => {
+  // Instantiate Manager and SkmtcRoot if not provided (for testing)
+  const manager = new Manager()
+  const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRootClass.open(manager))
+
   const session = await skmtcRoot.manager.auth.toSession()
 
   const initialState: SkmtcState = {

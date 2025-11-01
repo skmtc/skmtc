@@ -54,7 +54,7 @@ The CLI features a React/Ink-based interactive interface:
 
 - Uses Supabase for authentication (`auth/supabase-client.ts`)
 - Deno KV or file system for local state storage
-- Sentry integration for error tracking
+
 
 ### Generator System
 
@@ -92,7 +92,6 @@ Each command follows a consistent pattern:
 
 ### CLI Framework
 - `@cliffy/command` - CLI framework for command handling
-- `@cliffy/prompt` - Interactive prompts and selection
 
 ### UI & Rendering
 - `ink` - React for terminal interfaces
@@ -102,7 +101,6 @@ Each command follows a consistent pattern:
 
 ### Core Functionality
 - `@skmtc/core` - Core SKMTC functionality for OpenAPI processing
-- `@sentry/node` - Error tracking and monitoring
 - `@std/*` - Deno standard library modules
 - `ts-pattern` - Pattern matching utilities
 - `tiny-invariant` - Runtime assertions

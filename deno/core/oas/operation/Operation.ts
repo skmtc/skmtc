@@ -10,9 +10,11 @@ import { OasObject } from '../object/Object.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
+import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
+
 /**
  * Fields for configuring an OpenAPI operation object.
- * 
+ *
  * Contains all the properties needed to define a complete OpenAPI operation,
  * including path information, parameters, request/response specifications,
  * security requirements, and metadata.
@@ -42,6 +44,8 @@ export type OperationFields = {
   security?: OasSecurityRequirement[] | undefined
   /** Whether this operation is deprecated */
   deprecated?: boolean | undefined
+  /** External documentation for this operation */
+  externalDocs?: OasExternalDocs | undefined
   /** OpenAPI specification extensions */
   extensionFields?: Record<string, unknown>
 }
@@ -54,113 +58,6 @@ export type ToRequestBodyMapArgs = {
   requestBody: OasRequestBody
 }
 
-/**
- * Represents an OpenAPI Operation Object in the SKMTC OAS processing system.
- * 
- * The `OasOperation` class encapsulates a single API operation (path + method combination)
- * with all its associated metadata, parameters, request/response specifications, and
- * security requirements. It provides utilities for extracting common operation data
- * like success responses and request bodies.
- * 
- * ## Key Features
- * 
- * - **Path and Method**: Unique combination identifying the operation
- * - **Metadata Access**: Operation ID, summary, description, tags, and deprecation status
- * - **Parameter Handling**: Query, path, header, and cookie parameters
- * - **Request/Response Specs**: Type-safe access to request body and response definitions
- * - **Security Context**: Operation-specific security requirements
- * - **Success Response Utils**: Helper methods to identify and extract successful responses
- * 
- * @example Basic operation properties
- * ```typescript
- * import { OasOperation } from '@skmtc/core';
- * 
- * // Typically created during document parsing
- * const getUserOp = new OasOperation({
- *   path: '/users/{id}',
- *   method: 'get',
- *   operationId: 'getUserById',
- *   summary: 'Get user by ID',
- *   description: 'Retrieves a single user by their unique identifier',
- *   parameters: [
- *     // Path parameter for user ID
- *     { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
- *   ],
- *   responses: {
- *     '200': { description: 'User found', content: { ... } },
- *     '404': { description: 'User not found' }
- *   }
- * });
- * 
- * console.log(getUserOp.path);        // '/users/{id}'
- * console.log(getUserOp.method);      // 'get'
- * console.log(getUserOp.operationId); // 'getUserById'
- * ```
- * 
- * @example Working with success responses
- * ```typescript
- * // Find the primary success response
- * const successResponse = operation.toSuccessResponse();
- * if (successResponse) {
- *   const resolved = successResponse.resolve();
- *   console.log('Success response:', resolved.description);
- * }
- * 
- * // Get the HTTP status code for success
- * const successCode = operation.toSuccessResponseCode();
- * console.log('Success status:', successCode); // '200', '201', 'default', etc.
- * ```
- * 
- * @example Extracting request body data
- * ```typescript
- * // Extract request body with custom transformation
- * const requestData = operation.toRequestBody(({ schema, requestBody }) => {
- *   return {
- *     schema: schema,
- *     contentType: 'application/json',
- *     required: requestBody.required ?? false,
- *     description: requestBody.description
- *   };
- * });
- * 
- * if (requestData) {
- *   console.log('Request schema:', requestData.schema);
- *   console.log('Required:', requestData.required);
- * }
- * ```
- * 
- * @example Parameter processing
- * ```typescript
- * // Process operation parameters by location
- * const pathParams = operation.parameters?.filter(param => {
- *   const resolved = param.resolve();
- *   return resolved.in === 'path';
- * });
- * 
- * const queryParams = operation.parameters?.filter(param => {
- *   const resolved = param.resolve();
- *   return resolved.in === 'query';
- * });
- * 
- * console.log('Path parameters:', pathParams?.length);
- * console.log('Query parameters:', queryParams?.length);
- * ```
- * 
- * @example Security requirements
- * ```typescript
- * if (operation.security) {
- *   console.log('Operation has specific security requirements');
- *   for (const requirement of operation.security) {
- *     // Process security schemes for this operation
- *     Object.keys(requirement.schemes).forEach(scheme => {
- *       console.log(`Security scheme: ${scheme}`);
- *     });
- *   }
- * } else {
- *   console.log('Operation uses default document security');
- * }
- * ```
- */
 export class OasOperation {
   /** Type identifier for OAS operation objects */
   oasType: 'operation' = 'operation'
@@ -189,12 +86,14 @@ export class OasOperation {
   security: OasSecurityRequirement[] | undefined
   /** Whether this operation is deprecated */
   deprecated: boolean | undefined
+  /** External documentation for this operation */
+  externalDocs: OasExternalDocs | undefined
   /** OpenAPI specification extensions */
   extensionFields: Record<string, unknown> | undefined
 
   /**
    * Creates a new OasOperation instance from operation field data.
-   * 
+   *
    * @param fields - Operation field data from OpenAPI specification
    */
   constructor(fields: OperationFields) {
@@ -210,14 +109,15 @@ export class OasOperation {
     this.responses = fields.responses
     this.security = fields.security
     this.deprecated = fields.deprecated
+    this.externalDocs = fields.externalDocs
     this.extensionFields = fields.extensionFields
   }
 
   /**
    * Returns the successful response definition for this operation.
-   * 
+   *
    * Looks for the lowest numbered 2xx response code and returns its response definition.
-   * 
+   *
    * @returns Success response object or undefined if none found
    */
   toSuccessResponse(): OasResponse | OasRef<'response'> | undefined {
@@ -228,9 +128,9 @@ export class OasOperation {
 
   /**
    * Returns the HTTP status code for the primary success response.
-   * 
+   *
    * Finds the lowest numbered 2xx status code in the responses.
-   * 
+   *
    * @returns Success status code as string or undefined if none found
    */
   toSuccessResponseCode(): string | undefined {
@@ -252,7 +152,7 @@ export class OasOperation {
 
   /**
    * Maps the request body schema to a custom value using the provided mapping function.
-   * 
+   *
    * @param map - Function to transform the request body schema and metadata
    * @param mediaType - Media type to extract schema from (default: 'application/json')
    * @returns Mapped value or undefined if no request body schema found
@@ -283,7 +183,7 @@ export class OasOperation {
 
   /**
    * Creates an OAS object representation of operation parameters.
-   * 
+   *
    * @param filter - Optional array of parameter locations to include
    * @returns OAS object with parameter properties
    */
@@ -301,7 +201,7 @@ export class OasOperation {
 
   /**
    * Converts the operation to OpenAPI v3 JSON schema format.
-   * 
+   *
    * @param options - Conversion options for nested components
    * @returns OpenAPI v3 operation object
    */
@@ -324,7 +224,7 @@ export class OasOperation {
 
   /**
    * Serializes the operation to a plain JavaScript object.
-   * 
+   *
    * @returns Plain object representation of the operation
    */
   toJSON(): object {

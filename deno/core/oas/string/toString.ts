@@ -5,9 +5,9 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { oasStringData, stringFormat } from './string-types.ts'
 import * as v from 'valibot'
 import { parseNullable } from '../_helpers/parseNullable.ts'
-import { parseExample } from '../_helpers/parseExample.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
-import { parseDefault } from '../_helpers/parseDefault.ts'
+import { outputErrors } from '../../helpers/compiled-validate.ts'
+
 /**
  * Arguments for transforming an OpenAPI string schema into OAS representation.
  */
@@ -20,44 +20,44 @@ type ToStringArgs = {
 
 /**
  * Transforms an OpenAPI v3 string schema object into an internal OAS string representation.
- * 
+ *
  * This function processes OpenAPI string schemas by extracting and parsing nullable values,
  * examples, enumerations, and default values. It handles the complete transformation from
  * raw OpenAPI JSON to the SKMTC internal string representation with proper validation
  * of string formats and constraints.
- * 
+ *
  * The transformation follows a pipeline approach:
  * 1. Parse nullable flag and extract base value
- * 2. Parse example values with nullable support  
+ * 2. Parse example values with nullable support
  * 3. Parse enumeration constraints
  * 4. Parse default values
  * 5. Create final OasString instance with format validation
- * 
+ *
  * @param args - Transformation arguments
  * @param args.context - Parse context providing utilities and tracing
  * @param args.value - The OpenAPI v3 string schema object to transform
  * @returns Transformed OAS string object with parsed properties
- * 
+ *
  * @example Basic string transformation
  * ```typescript
  * import { toString } from '@skmtc/core';
- * 
+ *
  * const openApiString = {
  *   type: 'string',
  *   format: 'email',
  *   maxLength: 255,
  *   pattern: '^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$'
  * };
- * 
+ *
  * const oasString = toString({
  *   context: parseContext,
  *   value: openApiString
  * });
- * 
+ *
  * console.log(oasString.format); // 'email'
  * console.log(oasString.maxLength); // 255
  * ```
- * 
+ *
  * @example String with nullable and enums
  * ```typescript
  * const statusString = {
@@ -67,12 +67,12 @@ type ToStringArgs = {
  *   default: 'active',
  *   example: 'pending'
  * };
- * 
+ *
  * const oasString = toString({
  *   context: parseContext,
  *   value: statusString
  * });
- * 
+ *
  * console.log(oasString.nullable); // true
  * console.log(oasString.enums); // ['active', 'inactive', 'pending', null]
  * ```
@@ -83,25 +83,33 @@ export const toString = ({ context, value }: ToStringArgs): OasString => {
     context
   })
 
-  const { example, value: valueWithoutExample } = parseExample({
-    value: valueWithoutNullable,
-    nullable,
-    valibotSchema: v.string(),
-    context
+  const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
+
+  const example = parseExample({
+    example: unparsedExample,
+    context,
+    parent: valueWithoutNullable,
+    nullable
   })
 
-  const { enum: enums, value: valueWithoutEnums } = parseEnum({
-    value: valueWithoutExample,
+  const { enum: unparsedEnums, ...valueWithoutEnums } = valueWithoutExample
+
+  const enums = parseEnum({
+    value: unparsedEnums,
     nullable,
-    valibotSchema: v.string(),
-    context
+    parent: valueWithoutExample,
+    context,
+    check: isString,
+    toMessage: item => `Removed invalid enum. Expected "string", got: ${item}`
   })
 
-  const { default: defaultValue, value: valueWithoutDefault } = parseDefault({
-    value: valueWithoutEnums,
-    nullable,
-    valibotSchema: v.string(),
-    context
+  const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
+
+  const defaultValue = parseDefault({
+    defaultValue: unparsedDefaultValue,
+    context,
+    parent: valueWithoutEnums,
+    nullable
   })
 
   return toParsedString({
@@ -125,16 +133,16 @@ type ToParsedStringArgs<Nullable extends boolean | undefined> = {
 
 /**
  * Creates an OAS string instance from pre-parsed string schema components.
- * 
+ *
  * This function is the final step in the string transformation pipeline, taking
  * already-parsed nullable, example, enum, and default values and combining them
  * with the remaining string properties to create the complete OasString instance.
- * 
+ *
  * The function handles format validation against known OpenAPI string formats,
  * length constraints parsing, pattern validation, and specification extension
  * processing. It logs warnings for unrecognized formats while still preserving
  * them in the output.
- * 
+ *
  * @template Nullable - Boolean type indicating if the string can be null
  * @param args - Pre-parsed string components
  * @param args.context - Parse context for tracing and issue logging
@@ -144,7 +152,7 @@ type ToParsedStringArgs<Nullable extends boolean | undefined> = {
  * @param args.defaultValue - Parsed default value (type-safe with nullable)
  * @param args.value - OpenAPI string object without parsed fields
  * @returns Complete OAS string instance with all properties and validation
- * 
+ *
  * @example Date-time string with validation
  * ```typescript
  * const dateTimeString = toParsedString({
@@ -160,10 +168,10 @@ type ToParsedStringArgs<Nullable extends boolean | undefined> = {
  *     description: 'When the event occurs'
  *   }
  * });
- * 
+ *
  * console.log(dateTimeString.format); // 'date-time'
  * ```
- * 
+ *
  * @example String with custom format (generates warning)
  * ```typescript
  * const customFormatString = toParsedString({
@@ -178,7 +186,7 @@ type ToParsedStringArgs<Nullable extends boolean | undefined> = {
  *     pattern: '^[A-Z]{3}[0-9]{3}$'
  *   }
  * });
- * 
+ *
  * // Logs: "Unexpected format: custom-id"
  * console.log(customFormatString.format); // 'custom-id' (still preserved)
  * ```
@@ -191,6 +199,10 @@ export const toParsedString = <Nullable extends boolean | undefined>({
   defaultValue,
   value
 }: ToParsedStringArgs<Nullable>): OasString<Nullable> => {
+  if (!v.is(oasStringData, value)) {
+    v.parse(oasStringData, value)
+  }
+
   const {
     type: _type,
     title,
@@ -200,7 +212,7 @@ export const toParsedString = <Nullable extends boolean | undefined>({
     minLength,
     pattern,
     ...skipped
-  } = v.parse(oasStringData, value)
+  } = value
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -232,4 +244,60 @@ export const toParsedString = <Nullable extends boolean | undefined>({
     default: defaultValue,
     extensionFields
   })
+}
+
+const isString = (value: unknown): value is string => {
+  return typeof value === 'string'
+}
+
+type ParseExampleArgs = {
+  example: unknown
+  context: ParseContext
+  parent: unknown
+  nullable: boolean | undefined
+}
+
+const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+  if (nullable && example === null) {
+    return example
+  }
+
+  if (!isString(example)) {
+    context.logIssue({
+      key: 'example',
+      level: 'warning',
+      message: `Removed invalid example. Expected "string", got: ${example}`,
+      parent,
+      type: 'INVALID_EXAMPLE'
+    })
+    return undefined
+  }
+
+  return example
+}
+
+type ParseDefaultArgs = {
+  defaultValue: unknown
+  context: ParseContext
+  parent: unknown
+  nullable: boolean | undefined
+}
+
+const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultArgs) => {
+  if (nullable && defaultValue === null) {
+    return defaultValue
+  }
+
+  if (!isString(defaultValue)) {
+    context.logIssue({
+      key: 'default',
+      level: 'warning',
+      message: `Removed invalid default. Expected "string", got: ${defaultValue}`,
+      parent,
+      type: 'INVALID_DEFAULT'
+    })
+    return undefined
+  }
+
+  return defaultValue
 }

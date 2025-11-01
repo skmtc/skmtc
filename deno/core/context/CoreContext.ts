@@ -11,7 +11,6 @@ import { ResultsHandler } from './ResultsHandler.ts'
 import { StackTrail } from './StackTrail.ts'
 import { tracer } from '../helpers/tracer.ts'
 import { ResultsLog } from '../helpers/ResultsLog.ts'
-import * as Sentry from 'npm:@sentry/node@^10.8.0'
 import type { File } from '../dsl/File.ts'
 import { join } from '@std/path/join'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
@@ -368,12 +367,15 @@ export class CoreContext {
     prettier
   }: ToArtifactsArgs): RenderResult {
     try {
+      console.time('PARSE')
       const oasDocument = this.trace('parse', () => {
         this.#phase = this.#setupParsePhase(documentObject)
 
         return this.#phase.context.parse()
       })
+      console.timeEnd('PARSE')
 
+      console.time('GENERATE')
       const { files, previews, mappings } = this.trace('generate', () => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
@@ -383,9 +385,9 @@ export class CoreContext {
 
         return this.#phase.context.toArtifacts()
       })
+      console.timeEnd('GENERATE')
 
-      this.logger.debug(`${files.size} files generated`)
-
+      console.time('RENDER')
       const renderOutput = this.trace('render', () => {
         this.#phase = this.#setupRenderPhase({
           files,
@@ -397,6 +399,7 @@ export class CoreContext {
 
         return this.#phase.context.render()
       })
+      console.timeEnd('RENDER')
 
       return {
         ...renderOutput,
@@ -406,8 +409,6 @@ export class CoreContext {
       console.error(error)
 
       this.logger.error(error)
-
-      Sentry.captureException(error)
 
       return {
         artifacts: {},
@@ -453,10 +454,8 @@ export class CoreContext {
    * });
    * ```
    */
-  trace<T>(token: string | string[], fn: () => T): T {
-    console.log('trace', token)
-    this.logger.info('trace', token)
-    return tracer(this.#stackTrail, token, fn, this.logger)
+  trace<T>(token: string, fn: () => T): T {
+    return tracer(this.#stackTrail, token, fn)
   }
 
   #setupParsePhase(documentObject: OpenAPIV3.Document): ParsePhase {

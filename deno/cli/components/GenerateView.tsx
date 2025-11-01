@@ -12,7 +12,7 @@ import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join, relative } from 'node:path'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
-import { type BiomeInstance, TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
+import { TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
 import { StringTask } from './StringTask.tsx'
 import { BooleanTask } from '@/tasks/BooleanTask.tsx'
@@ -21,7 +21,6 @@ import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
 import { ServerTask } from '@/tasks/ServerTask.tsx'
 import { BasePathTask } from '@/tasks/BasePathTask.tsx'
-import { StartBiomeTask } from '../tasks/StartBiomeTask.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -77,12 +76,6 @@ export const GenerateView = ({
           include: includeBasePathTask,
           state: basePath,
           render: () => <BasePathTask />
-        },
-        {
-          taskKey: 'start-biome-task',
-          include: true,
-          state: undefined,
-          render: () => <StartBiomeTask prettierConfig={project.prettierJson?.contents} />
         },
         {
           taskKey: 'schema-location-task',
@@ -239,8 +232,6 @@ const RunGenerateTask = ({ project, schemaSourceString, token }: RunGenerateProp
           accountName: state.session?.user?.user_metadata?.user_name,
           schemaContents,
           clientSettings: project.clientJson?.contents?.settings,
-          biomeInstance: taskState.tasks.find(task => task.taskKey === 'start-biome-task')
-            ?.state as Promise<BiomeInstance> | undefined,
           token
         })
       })
@@ -322,8 +313,6 @@ const WatchGenerateTask = ({ project, schemaSourceString, token }: WatchGenerate
           skmtcRoot: state.skmtcRoot,
           schemaContents: contents,
           clientSettings: project.clientJson?.contents?.settings,
-          biomeInstance: taskState.tasks.find(task => task.taskKey === 'start-biome-task')
-            ?.state as Promise<BiomeInstance> | undefined,
           token
         })
       })

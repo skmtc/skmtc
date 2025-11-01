@@ -1,7 +1,6 @@
 import React from 'react'
-import { snapshotTest } from '@cliffy/testing'
 import { assertEquals } from '@std/assert/equals'
-import { toGenerateCommand, renderGenerate, toProject } from '@/commands/generate.tsx'
+import { renderGenerate, toProject } from '@/commands/generate.tsx'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
@@ -10,70 +9,6 @@ import { toMockSession } from '@/tests/commands/session.test.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
-import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-
-// Create a stubbed version of renderGenerate that prints parameters
-const renderGenerateStub = async ({
-  projectName,
-  schemaSourceString,
-  watch
-}: {
-  skmtcRoot: SkmtcRoot
-  projectName: string
-  schemaSourceString: string | undefined
-  watch: boolean | undefined
-}) => {
-  console.log('projectName:', projectName)
-  console.log('schemaSourceString:', schemaSourceString)
-  console.log('watch:', watch)
-
-  return await Promise.resolve()
-}
-
-await snapshotTest({
-  name: 'should log Deno.args',
-  meta: import.meta,
-  args: ['test-project', 'https://example.com/schema.json'],
-  denoArgs: ['--allow-all'],
-  async fn() {
-    const command = toGenerateCommand(createMockSkmtcRoot(createMockManager()), renderGenerateStub)
-    await command.parse()
-  }
-})
-
-await snapshotTest({
-  name: 'should log Deno.args with watch flag',
-  meta: import.meta,
-  args: ['test-project', '--watch'],
-  denoArgs: ['--allow-all'],
-  async fn() {
-    const command = toGenerateCommand(createMockSkmtcRoot(createMockManager()), renderGenerateStub)
-    await command.parse()
-  }
-})
-
-Deno.test('generate command - parses project name argument', async () => {
-  const manager = createMockManager()
-  const mockProject = createMockProject(manager, { name: 'test-project' })
-  const skmtcRoot = createMockSkmtcRoot(manager, { projects: [mockProject] })
-
-  const command = toGenerateCommand(skmtcRoot, renderGenerateStub)
-
-  // The command should be created successfully
-  assertEquals(command.getDescription(), 'Generate artifacts')
-})
-
-Deno.test('generate command - has watch option', async () => {
-  const manager = createMockManager()
-  const skmtcRoot = createMockSkmtcRoot(manager, { projects: [] })
-
-  const command = toGenerateCommand(skmtcRoot, renderGenerateStub)
-  const options = command.getOptions()
-
-  const watchOption = options.find(opt => opt.name === 'watch')
-  assertEquals(watchOption !== undefined, true)
-  assertEquals(watchOption?.flags?.join(', '), '-w, --watch')
-})
 
 Deno.test(
   'renderGenerate - should call toSession, render, and App with expected props',

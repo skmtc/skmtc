@@ -1,4 +1,3 @@
-import type { Logger } from '@std/log/logger'
 import type { StackTrail } from '../context/StackTrail.ts'
 
 /**
@@ -125,12 +124,7 @@ import type { StackTrail } from '../context/StackTrail.ts'
  * }
  * ```
  */
-export const tracer = <T>(
-  stackTrail: StackTrail,
-  token: string | string[],
-  fn: () => T,
-  _log: Logger
-) => {
+export const tracer = <T>(stackTrail: StackTrail, token: string, fn: () => T) => {
   stackTrail.append(token)
   try {
     const result = fn()

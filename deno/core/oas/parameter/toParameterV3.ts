@@ -18,7 +18,7 @@ import { match } from 'npm:ts-pattern@^5.8.0'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
 import invariant from 'tiny-invariant'
-
+import { tracer } from '@/helpers/tracer.ts'
 type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
   context: ParseContext
@@ -33,7 +33,7 @@ export const toParameterListV3 = ({
   }
 
   return parameters.map((parameter, index) => {
-    return context.trace(`${index}`, () => toParameterV3({ parameter, context }))
+    return tracer(context.stackTrail, `${index}`, () => toParameterV3({ parameter, context }))
   })
 }
 
@@ -46,25 +46,24 @@ export const toParametersV3 = ({
   parameters,
   context
 }: ToParametersV3Args): Record<string, OasParameter | OasRef<'parameter'>> => {
-  return Object.fromEntries(
-    Object.entries(parameters).map(([key, parameter]) => {
-      try {
-        return [key, context.trace(key, () => toParameterV3({ parameter, context }))]
-      } catch (error: unknown) {
-        invariant(error instanceof Error, 'Invalid error')
+  const output: Record<string, OasParameter | OasRef<'parameter'>> = {}
+  const entries = Object.entries(parameters)
+  for (const [key, parameter] of entries) {
+    try {
+      output[key] = tracer(context.stackTrail, key, () => toParameterV3({ parameter, context }))
+    } catch (error) {
+      invariant(error instanceof Error, 'Invalid error')
 
-        context.logIssue({
-          key: key,
-          level: 'error',
-          error,
-          parent: parameter,
-          type: 'INVALID_PARAMETER'
-        })
-
-        return []
-      }
-    })
-  )
+      context.logIssue({
+        key,
+        level: 'error',
+        error,
+        parent: parameter,
+        type: 'INVALID_PARAMETER'
+      })
+    }
+  }
+  return output
 }
 
 type ToOptionalParametersV3Args = {
@@ -136,12 +135,12 @@ const toParameterV3 = ({
     description,
     required: defaultRequired,
     deprecated,
-    style: context.trace('style', () => toStyle({ style, location: parsedLocation })),
-    explode: context.trace('explode', () => toExplode({ explode, style })),
+    style: tracer(context.stackTrail, 'style', () => toStyle({ style, location: parsedLocation })),
+    explode: tracer(context.stackTrail, 'explode', () => toExplode({ explode, style })),
     allowEmptyValue,
     allowReserved,
-    schema: context.trace('schema', () => toOptionalSchemaV3({ schema, context })),
-    examples: context.trace('examples', () =>
+    schema: tracer(context.stackTrail, 'schema', () => toOptionalSchemaV3({ schema, context })),
+    examples: tracer(context.stackTrail, 'examples', () =>
       toExamplesV3({
         examples,
         example,
@@ -149,7 +148,9 @@ const toParameterV3 = ({
         context
       })
     ),
-    content: context.trace('content', () => toOptionalMediaTypeItemsV3({ content, context })),
+    content: tracer(context.stackTrail, 'content', () =>
+      toOptionalMediaTypeItemsV3({ content, context })
+    ),
     extensionFields
   }
 

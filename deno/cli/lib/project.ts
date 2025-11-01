@@ -1,7 +1,6 @@
 import { RootDenoJson } from '@/lib/root-deno-json.ts'
 import type { Manager } from '@/lib/manager.ts'
 import { Generator } from '@/lib/generator.ts'
-import * as Sentry from '@sentry/node'
 import invariant from 'tiny-invariant'
 import { Jsr } from '@/lib/jsr.ts'
 import { Deployment } from '@/lib/deployment.ts'
@@ -167,9 +166,9 @@ export class Project {
     } catch (error) {
       console.error(error)
 
-      Sentry.captureException(error)
+      // Sentry.captureException(error)
 
-      await Sentry.flush()
+      // await Sentry.flush()
     } finally {
       await this.manager.cleanup()
     }
@@ -209,9 +208,9 @@ export class Project {
     } catch (error) {
       console.error(error)
 
-      Sentry.captureException(error)
+      // Sentry.captureException(error)
 
-      await Sentry.flush()
+      // await Sentry.flush()
     } finally {
       await this.manager.cleanup()
     }
@@ -232,9 +231,9 @@ export class Project {
     } catch (error) {
       console.error(error)
 
-      Sentry.captureException(error)
+      // Sentry.captureException(error)
 
-      await Sentry.flush()
+      // await Sentry.flush()
     } finally {
       await this.manager.cleanup()
     }
@@ -257,9 +256,9 @@ export class Project {
     } catch (error) {
       console.error(error)
 
-      Sentry.captureException(error)
+      // Sentry.captureException(error)
 
-      await Sentry.flush()
+      // await Sentry.flush()
     } finally {
       await this.manager.cleanup()
     }
@@ -318,9 +317,9 @@ export class Project {
     } catch (error) {
       console.error(error)
 
-      Sentry.captureException(error)
+      // Sentry.captureException(error)
 
-      await Sentry.flush()
+      // await Sentry.flush()
 
       dispatchMessage({ error: 'Deployment failed' })
 
@@ -359,9 +358,9 @@ export class Project {
     } catch (error) {
       console.error(error)
 
-      Sentry.captureException(error)
+      // Sentry.captureException(error)
 
-      await Sentry.flush()
+      // await Sentry.flush()
     } finally {
       await this.manager.cleanup()
     }

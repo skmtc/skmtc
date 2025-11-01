@@ -3,7 +3,7 @@ import type { ParseContext } from '../../context/ParseContext.ts'
 import { toParameterListV3 } from '../parameter/toParameterV3.ts'
 import { OasPathItem } from './PathItem.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-
+import { tracer } from '@/helpers/tracer.ts'
 type ToPathItemV3Args = {
   pathItem: OpenAPIV3.PathItemObject
   context: ParseContext
@@ -15,7 +15,9 @@ export const toPathItemV3 = ({ pathItem, context }: ToPathItemV3Args): OasPathIt
   return new OasPathItem({
     summary,
     description,
-    parameters: context.trace('parameters', () => toParameterListV3({ parameters, context })),
+    parameters: tracer(context.stackTrail, 'parameters', () =>
+      toParameterListV3({ parameters, context })
+    ),
     extensionFields: toSpecificationExtensionsV3({
       skipped,
       parent: pathItem,

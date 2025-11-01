@@ -17,6 +17,7 @@ import { toGetRef } from '../../helpers/refFns.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
 import invariant from 'tiny-invariant'
+import { tracer } from '@/helpers/tracer.ts'
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
   context: ParseContext
@@ -26,32 +27,26 @@ export const toSchemasV3 = ({
   schemas,
   context
 }: ToSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> => {
-  return Object.fromEntries(
-    Object.entries(schemas)
-      .map(([key, schema]) => {
-        try {
-          return [
-            key,
-            context.trace(key, () => {
-              return toSchemaV3({ schema, context })
-            })
-          ]
-        } catch (error) {
-          invariant(error instanceof Error, 'Invalid error')
+  const output: Record<string, OasSchema | OasRef<'schema'>> = {}
+  const entries = Object.entries(schemas)
 
-          context.logIssue({
-            key,
-            level: 'error',
-            error,
-            parent: schema,
-            type: 'INVALID_SCHEMA'
-          })
+  for (const [key, schema] of entries) {
+    try {
+      output[key] = tracer(context.stackTrail, key, () => toSchemaV3({ schema, context }))
+    } catch (error) {
+      invariant(error instanceof Error, 'Invalid error')
 
-          return undefined
-        }
+      context.logIssue({
+        key,
+        level: 'error',
+        error,
+        parent: schema,
+        type: 'INVALID_SCHEMA'
       })
-      .filter(item => item !== undefined)
-  )
+    }
+  }
+
+  return output
 }
 
 type ToOptionalSchemasV3Args = {
@@ -82,7 +77,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
 
   return match(schema)
     .with({ allOf: P.array() }, schema => {
-      return context.trace('allOf', () => {
+      return tracer(context.stackTrail, 'allOf', () => {
         const merged = mergeIntersection({
           schema,
           getRef: toGetRef(context.documentObject)
@@ -92,7 +87,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
       })
     })
     .with({ oneOf: P.array() }, oneOf => {
-      return context.trace('oneOf', () => {
+      return tracer(context.stackTrail, 'oneOf', () => {
         const merged = mergeUnion({
           schema: oneOf,
           getRef: toGetRef(context.documentObject),
@@ -117,11 +112,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
       })
     })
     .with({ anyOf: P.array() }, matched => {
-      return context.trace('anyOf', () => {
-        const _lastThree = context.stackTrail.slice(-3).toString()
-
-        const _lastFive = context.stackTrail.slice(-5).toString()
-
+      return tracer(context.stackTrail, 'anyOf', () => {
         // deno-lint-ignore ban-ts-comment
         // @ts-expect-error
         if (matched['x-expansionResources']) {

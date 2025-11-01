@@ -11,7 +11,9 @@ import { methodValues } from '../../types/Method.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
 import invariant from 'tiny-invariant'
-import { isEmpty } from '../../helpers/isEmpty.ts'
+import { isEmpty } from '@/helpers/isEmpty.ts'
+import { tracer } from '@/helpers/tracer.ts'
+import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 
 type OperationInfo = {
   method: Method
@@ -47,6 +49,7 @@ export const toOperationV3 = ({
     responses,
     deprecated,
     security,
+    externalDocs,
     ...skipped
   } = operation
 
@@ -65,11 +68,20 @@ export const toOperationV3 = ({
     summary,
     tags,
     description,
-    parameters: context.trace('parameters', () => toParameterListV3({ parameters, context })),
-    requestBody: context.trace('requestBody', () => toRequestBodyV3({ requestBody, context })),
-    responses: context.trace('responses', () => toResponsesV3({ responses, context })),
+    parameters: tracer(context.stackTrail, 'parameters', () =>
+      toParameterListV3({ parameters, context })
+    ),
+    requestBody: tracer(context.stackTrail, 'requestBody', () =>
+      toRequestBodyV3({ requestBody, context })
+    ),
+    responses: tracer(context.stackTrail, 'responses', () => toResponsesV3({ responses, context })),
     deprecated,
-    security: context.trace('security', () => toSecurityRequirementsV3({ security, context })),
+    security: tracer(context.stackTrail, 'security', () =>
+      toSecurityRequirementsV3({ security, context })
+    ),
+    externalDocs: tracer(context.stackTrail, 'externalDocs', () =>
+      toExternalDocs({ externalDocs, context })
+    ),
     extensionFields
   })
 }
@@ -81,7 +93,7 @@ type ToOperationsV3Args = {
 
 export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOperation[] => {
   return Object.entries(paths).flatMap(([path, pathItem]) => {
-    return context.trace(path, () => {
+    return tracer(context.stackTrail, path, () => {
       if (!pathItem) {
         return []
       }
@@ -116,7 +128,7 @@ export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOpera
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {
-          return context.trace(method, () => {
+          return tracer(context.stackTrail, method, () => {
             if (!operation) {
               return
             }

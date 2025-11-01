@@ -1,6 +1,5 @@
 import React from 'react'
 import { Command } from '@cliffy/command'
-import * as Sentry from '@sentry/node'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Project } from '@/lib/project.ts'
 import { render } from 'ink'
@@ -74,10 +73,6 @@ export const runtimeLogs = async (
     // })
   } catch (error) {
     console.error(error)
-
-    Sentry.captureException(error)
-
-    await Sentry.flush()
   } finally {
     await skmtcRoot.manager.cleanup()
   }

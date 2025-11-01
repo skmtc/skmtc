@@ -1,28 +1,14 @@
 import React from 'react'
-import { Command } from '@cliffy/command'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { SkmtcRoot as SkmtcRootClass } from '@/lib/skmtc-root.ts'
+import { Manager } from '@/lib/manager.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 
-export const description = 'List generators'
-
-type RenderListFn = (args: RenderListArgs) => Promise<void>
-
-export const toListCommand = (skmtcRoot: SkmtcRoot, renderList: RenderListFn) => {
-  const command = new Command()
-    .description(description)
-    .arguments('<project:string>')
-    .action(async (_options, projectName) => {
-      await renderList({ skmtcRoot, projectName })
-    })
-
-  return command
-}
-
 type RenderListArgs = {
-  skmtcRoot: SkmtcRoot
+  skmtcRoot?: SkmtcRoot
   projectName: string
   // Optional dependencies for testing
   renderFn?: InkRenderFn
@@ -30,11 +16,15 @@ type RenderListArgs = {
 }
 
 export const renderList = async ({
-  skmtcRoot,
+  skmtcRoot: providedSkmtcRoot,
   projectName,
   renderFn = render,
   AppComponent = App
 }: RenderListArgs) => {
+  // Instantiate Manager and SkmtcRoot if not provided (for testing)
+  const manager = new Manager()
+  const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRootClass.open(manager))
+
   const session = await skmtcRoot.manager.auth.toSession()
 
   const initialState: SkmtcState = {

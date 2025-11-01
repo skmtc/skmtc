@@ -4,9 +4,10 @@
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
+    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
     "@skmtc/core": "jsr:@skmtc/core@^0.0.926",
-    "@biomejs/js-api": "npm:@biomejs/js-api@^4.0.0",
-    "@biomejs/wasm-nodejs": "npm:@biomejs/wasm-nodejs@^2.3.0",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.57.4",
+    "chokidar": "npm:chokidar@^4.0.3",
     "ink": "npm:ink@^6.2.3",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
     "ink-select-input": "npm:ink-select-input@^6.2.0",

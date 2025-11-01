@@ -1,0 +1,22 @@
+{
+  "name": "@skmtc/convert",
+  "version": "0.0.1",
+  "imports": {
+    "@std/yaml": "jsr:@std/yaml@^1.0.5",
+    "openapi-types": "npm:openapi-types@^12.1.3",
+    "ts-pattern": "npm:ts-pattern@^5.8.0",
+    "swagger2openapi": "npm:swagger2openapi@^7.0.8",
+    "@apiture/openapi-down-convert": "npm:@apiture/openapi-down-convert@0.14.0"
+  },
+  "exports": {
+    ".": "./mod.ts"
+  },
+  "tasks": {
+    "publish": "deno publish --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "test": "deno test --allow-all",
+    "test:watch": "deno test --allow-all --watch"
+  },
+  "compilerOptions": {
+    "noImplicitAny": true
+  }
+}

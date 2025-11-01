@@ -9,7 +9,7 @@ import { OasHeader } from './Header.ts'
 import type { HeaderFields } from './Header.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-
+import { tracer } from '@/helpers/tracer.ts'
 type ToHeadersV3Args = {
   headers: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject> | undefined
   context: ParseContext
@@ -23,11 +23,18 @@ export const toHeadersV3 = ({
     return undefined
   }
 
-  return Object.fromEntries(
-    Object.entries(headers).map(([key, value]) => {
-      return [key, context.trace(key, () => toHeaderV3({ header: value, context }))]
-    })
-  )
+  const output: Record<string, OasHeader | OasRef<'header'>> = {}
+  const entries = Object.entries(headers)
+
+  for (const [key, value] of entries) {
+    output[key] = tracer(
+      context.stackTrail,
+      key,
+      () => toHeaderV3({ header: value, context })
+    )
+  }
+
+  return output
 }
 
 type ToHeaderV3Args = {
@@ -54,14 +61,22 @@ const toHeaderV3 = ({ header, context }: ToHeaderV3Args): OasHeader | OasRef<'he
     description,
     required,
     deprecated,
-    schema: context.trace('schema', () => toOptionalSchemaV3({ schema, context })),
+    schema: tracer(
+      context.stackTrail,
+      'schema',
+      () => toOptionalSchemaV3({ schema, context })
+    ),
     examples: toExamplesV3({
       examples,
       example,
       exampleKey: `TEMP`,
       context
     }),
-    content: context.trace('content', () => toOptionalMediaTypeItemsV3({ content, context })),
+    content: tracer(
+      context.stackTrail,
+      'content',
+      () => toOptionalMediaTypeItemsV3({ content, context })
+    ),
     extensionFields
   }
 

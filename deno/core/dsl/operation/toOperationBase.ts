@@ -3,10 +3,10 @@ import type { GenerateContext } from '../../context/GenerateContext.ts'
 import type { OasOperation } from '../../oas/operation/Operation.ts'
 import { OperationBase } from './OperationBase.ts'
 import type { Identifier } from '../Identifier.ts'
-import type { OperationInsertable, OperationInsertableArgs } from './types.ts'
+import type { OperationInsertableArgs } from './types.ts'
 import * as v from 'valibot'
-// @deno-types="npm:@types/lodash-es@4.17.12"
-import { get } from 'npm:lodash-es@4.17.21'
+// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
+import get from 'lodash-es/get'
 
 /**
  * Configuration for creating a base operation class.

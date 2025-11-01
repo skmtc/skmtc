@@ -1,0 +1,27 @@
+import { OasExternalDocs } from './ExternalDocs.ts'
+import * as v from 'valibot'
+import { oasExternalDocsData } from '@/oas/externalDocs/externalDocsTypes.ts'
+import type { OpenAPIV3 } from 'openapi-types'
+import type { ParseContext } from '@/context/ParseContext.ts'
+
+type ToExternalDocsArgs = {
+  externalDocs: OpenAPIV3.ExternalDocumentationObject | undefined
+  context: ParseContext
+}
+
+export const toExternalDocs = ({
+  externalDocs
+}: ToExternalDocsArgs): OasExternalDocs | undefined => {
+  if (!externalDocs) {
+    return undefined
+  }
+
+  if (!v.is(oasExternalDocsData, externalDocs)) {
+    v.parse(oasExternalDocsData, externalDocs)
+  }
+
+  return new OasExternalDocs({
+    url: externalDocs.url,
+    description: externalDocs.description
+  })
+}

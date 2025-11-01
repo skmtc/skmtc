@@ -1,4 +1,5 @@
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContext } from '@/context/ParseContext.ts'
+import { isEmpty } from '@/helpers/isEmpty.ts'
 
 type ToSpecificationExtensionsV3Args = {
   skipped: Record<string, unknown>
@@ -15,33 +16,29 @@ export const toSpecificationExtensionsV3 = ({
 }: ToSpecificationExtensionsV3Args): Record<string, unknown> | undefined => {
   const { skipped, extensionFields } = extractExtensions(s)
 
-  context.logSkippedFields({ skipped, parent, parentType })
+  if (skipped) {
+    context.logSkippedFields({ skipped, parent, parentType })
+  }
 
   return extensionFields
 }
 
 export const extractExtensions = (item: Record<string, unknown>) => {
-  return Object.entries(item).reduce<{
-    skipped: Record<string, unknown>
-    extensionFields: Record<string, unknown> | undefined
-  }>(
-    (acc, [key, value]) => {
-      if (!key.startsWith('x-')) {
-        return acc
-      }
+  const entries = Object.entries(item)
 
-      const { skipped, extensionFields } = acc
+  const skipped: Record<string, unknown> = {}
+  const extensionFields: Record<string, unknown> = {}
 
-      const { [key]: _key, ...rest } = skipped
+  for (const [key, value] of entries) {
+    if (!key.startsWith('x-')) {
+      skipped[key] = value
+    } else {
+      extensionFields[key] = value
+    }
+  }
 
-      return {
-        skipped: rest,
-        extensionFields: {
-          ...(extensionFields ?? {}),
-          [key]: value
-        }
-      }
-    },
-    { skipped: item, extensionFields: undefined }
-  )
+  return {
+    skipped: isEmpty(skipped) ? undefined : skipped,
+    extensionFields: isEmpty(extensionFields) ? undefined : extensionFields
+  }
 }

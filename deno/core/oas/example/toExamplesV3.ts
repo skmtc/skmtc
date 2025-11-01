@@ -6,17 +6,17 @@ import { OasExample } from './Example.ts'
 import type { ExampleFields } from './Example.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-
+import { tracer } from '@/helpers/tracer.ts'
 type ToExampleSimpleV3Args = {
   example: unknown
 }
 
 /**
  * Creates a simple OAS example from a value.
- * 
+ *
  * Converts a raw example value into an OasExample object with basic
  * fields. Used for simple example scenarios where only the value matters.
- * 
+ *
  * @param args - Arguments containing the example value
  * @returns OasExample object with the provided value
  */
@@ -34,7 +34,7 @@ export const toExampleSimpleV3 = ({
 
 /**
  * Arguments for processing OpenAPI v3 examples into OAS example objects.
- * 
+ *
  * Handles both single example and examples collection scenarios,
  * with context for tracing and error handling.
  */
@@ -51,11 +51,11 @@ export type ToExamplesV3Args = {
 
 /**
  * Processes OpenAPI v3 examples into OAS example objects.
- * 
+ *
  * Handles both single example and examples collection scenarios,
  * converting them to the internal OAS representation. Provides
  * warnings when both formats are specified simultaneously.
- * 
+ *
  * @param args - Arguments containing example data and context
  * @returns Record of processed examples, or undefined if no examples
  */
@@ -71,18 +71,31 @@ export const toExamplesV3 = ({
 
   if (example) {
     return {
-      [exampleKey]: context.trace('example', () => toExampleSimpleV3({ example }))
+      [exampleKey]: tracer(
+        context.stackTrail,
+        'example',
+        () => toExampleSimpleV3({ example })
+      )
     }
   }
 
   if (examples) {
-    context.trace('examples', () => {
-      return Object.fromEntries(
-        Object.entries(examples).map(([key, value]) => {
-          return [key, context.trace(key, () => toExampleV3({ example: value, context }))]
-        })
-      )
-    })
+    tracer(
+      context.stackTrail,
+      'examples',
+      () => {
+        const output: Record<string, OasExample | OasRef<'example'>> = {}
+        const entries = Object.entries(examples)
+        for (const [key, value] of entries) {
+          output[key] = tracer(
+            context.stackTrail,
+            key,
+            () => toExampleV3({ example: value, context })
+          )
+        }
+        return output
+      }
+    )
   }
 
   return undefined
@@ -95,11 +108,11 @@ type ToExampleV3Args = {
 
 /**
  * Processes a single OpenAPI v3 example into an OAS example object.
- * 
+ *
  * Converts OpenAPI v3 example objects or references into the internal
  * OAS representation, handling both direct examples and $ref references.
  * Processes specification extensions and maintains all example metadata.
- * 
+ *
  * @param args - Arguments containing the example and parsing context
  * @returns OasExample object or reference to an example
  */

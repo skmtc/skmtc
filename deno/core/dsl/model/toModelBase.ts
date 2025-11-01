@@ -5,9 +5,8 @@ import type { ContentSettings } from '../ContentSettings.ts'
 import { ModelBase } from './ModelBase.ts'
 import type { Identifier } from '../Identifier.ts'
 import * as v from 'valibot'
-// @deno-types="npm:@types/lodash-es@4.17.12"
-import { get } from 'npm:lodash-es@4.17.21'
-import type { ModelInsertable } from './types.ts'
+// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
+import get from 'lodash-es/get'
 
 /**
  * Arguments for creating a model insertable instance.

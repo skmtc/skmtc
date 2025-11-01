@@ -51,3 +51,5 @@ deno/test-one
 .mcp.json
 .claude
 .cursor
+
+plans/

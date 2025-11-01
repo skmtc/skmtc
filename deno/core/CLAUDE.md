@@ -79,6 +79,5 @@ The system follows a three-phase pipeline orchestrated by `CoreContext`:
 ### Advanced Features
 
 - **Schema Merging**: Complex `allOf` merging with conflict detection in `oas/_merge-all-of/`
-- **Tracing & Logging**: Built-in distributed tracing with Sentry integration
 - **Generator Plugins**: Extensible generator system with enrichment support
 - **Brand Types**: Type-safe identifiers and references using TypeScript branded types

@@ -16,7 +16,6 @@ import { ModelDriver } from '../dsl/model/ModelDriver.ts'
 import type { GenerationType, GeneratedValue } from '../types/GeneratedValue.ts'
 import { ContentSettings } from '../dsl/ContentSettings.ts'
 import type { RefName } from '../types/RefName.ts'
-import * as Sentry from 'npm:@sentry/node@^10.8.0'
 import type * as log from '@std/log'
 import type { Logger } from '../types/Logger.ts'
 import type { ResultType } from '../types/Results.ts'
@@ -478,40 +477,38 @@ export class GenerateContext {
   toArtifacts(): GenerateResult {
     const generators = Object.values(this.toGeneratorConfigMap())
 
-    Sentry.startSpan({ name: 'toArtifacts' }, () =>
-      generators.forEach(generatorConfig => {
-        this.trace(generatorConfig.id, () => {
-          if (this.settings?.skip?.includes(generatorConfig.id)) {
-            return
+    generators.forEach(generatorConfig => {
+      this.trace(generatorConfig.id, () => {
+        if (this.settings?.skip?.includes(generatorConfig.id)) {
+          return
+        }
+
+        const skip: SkipOperations | SkipModels | undefined = this.settings?.skip?.find(
+          (skip): skip is SkipOperations | SkipModels => {
+            return typeof skip === 'object' && Boolean(skip[generatorConfig.id])
           }
+        )
 
-          const skip: SkipOperations | SkipModels | undefined = this.settings?.skip?.find(
-            (skip): skip is SkipOperations | SkipModels => {
-              return typeof skip === 'object' && Boolean(skip[generatorConfig.id])
-            }
+        match(generatorConfig.type)
+          .with('operation', () =>
+            this.#runOperationGenerator(
+              this.oasDocument,
+              generatorConfig,
+              toSkipPaths(skip, generatorConfig.id)
+            )
           )
-
-          match(generatorConfig.type)
-            .with('operation', () =>
-              this.#runOperationGenerator(
-                this.oasDocument,
-                generatorConfig,
-                toSkipPaths(skip, generatorConfig.id)
-              )
+          .with('model', () =>
+            this.#runModelGenerator(
+              this.oasDocument,
+              generatorConfig,
+              toSkipModels(skip, generatorConfig.id)
             )
-            .with('model', () =>
-              this.#runModelGenerator(
-                this.oasDocument,
-                generatorConfig,
-                toSkipModels(skip, generatorConfig.id)
-              )
-            )
-            .otherwise(matched => {
-              throw new Error(`Invalid generator type: '${matched}' on ${generatorConfig.id}`)
-            })
-        })
+          )
+          .otherwise(matched => {
+            throw new Error(`Invalid generator type: '${matched}' on ${generatorConfig.id}`)
+          })
       })
-    )
+    })
 
     return {
       files: this.#files,
@@ -525,7 +522,7 @@ export class GenerateContext {
     skip: SkipPaths | undefined
   ) {
     oasDocument.operations.reduce((acc, operation) => {
-      return this.trace([operation.path, operation.method], () => {
+      return this.trace(`${operation.path}:${operation.method}`, () => {
         try {
           if (
             typeof generatorConfig?.isSupported === 'function' &&
@@ -639,8 +636,8 @@ export class GenerateContext {
    * @param fn - Function to execute within the trace context
    * @returns The result of the traced function execution
    */
-  trace<T>(token: string | string[], fn: () => T): T {
-    return tracer(this.stackTrail, token, fn, this.logger)
+  trace<T>(token: string, fn: () => T): T {
+    return tracer(this.stackTrail, token, fn)
   }
 
   #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File | JsonFile {

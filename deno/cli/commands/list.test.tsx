@@ -1,32 +1,12 @@
 import React from 'react'
-import { snapshotTest } from '@cliffy/testing'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
-import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { toListCommand, renderList } from './list.tsx'
+import { renderList } from './list.tsx'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { toMockSession } from '../tests/commands/session.test.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
-
-// Create a stubbed version of renderList that prints parameters
-const renderListStub = async ({ projectName }: { skmtcRoot: SkmtcRoot; projectName: string }) => {
-  console.log('projectName:', projectName)
-
-  return await Promise.resolve()
-}
-
-await snapshotTest({
-  name: 'should log Deno.args',
-  meta: import.meta,
-  args: ['test-project'],
-  denoArgs: ['--allow-all'],
-  async fn() {
-    const command = toListCommand(createMockSkmtcRoot(createMockManager()), renderListStub)
-    await command.parse()
-  }
-})
 
 Deno.test('renderList - should call toSession, render, and App with expected props', async () => {
   // Set up mocks

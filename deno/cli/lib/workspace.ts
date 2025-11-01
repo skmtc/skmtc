@@ -13,8 +13,6 @@ import type { RemoteProject } from '@/lib/remote-project.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
 import { generateSandboxApi } from '../services/generateSandboxApi.ts'
-import { BiomeInstance } from '../components/TaskContext.tsx'
-import { formatFile } from './formatting.ts'
 export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
@@ -68,7 +66,6 @@ type GenerateArtifactsArgs = {
   schemaContents: string
   clientSettings: ClientSettings | undefined
   accountName: string
-  biomeInstance: Promise<BiomeInstance> | undefined
   token: string | undefined
 }
 
@@ -94,7 +91,6 @@ export class Workspace {
     schemaContents,
     clientSettings,
     accountName,
-    biomeInstance: biomeInstancePromise,
     token
   }: GenerateArtifactsArgs): Promise<GenerateResponse> {
     const manifestPath = project.toManifestPath()
@@ -127,8 +123,6 @@ export class Workspace {
 
     Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
 
-    const biomeInstance = biomeInstancePromise ? await biomeInstancePromise : undefined
-
     Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
       const content = String(artifactContent)
       const absolutePath = join(skmtcRootPath, '..', artifactPath)
@@ -137,15 +131,7 @@ export class Workspace {
 
       ensureDirSync(dir)
 
-      const formatted = biomeInstance
-        ? formatFile({
-            content,
-            biome: biomeInstance.biome,
-            projectKey: biomeInstance.projectKey
-          })
-        : content
-
-      Deno.writeTextFileSync(absolutePath, formatted)
+      Deno.writeTextFileSync(absolutePath, content)
     })
 
     return { manifest, artifacts }

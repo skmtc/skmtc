@@ -1,12 +1,10 @@
 import React from 'react'
-import { snapshotTest } from '@cliffy/testing'
 import { assertEquals } from '@std/assert/equals'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockSupabaseClient } from '@/tests/mocks/supabase.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
-import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { toInitCommand, renderInit } from './init.tsx'
+import { renderInit } from './init.tsx'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { toMockSession } from '../tests/commands/session.test.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
@@ -41,32 +39,6 @@ const mockGenerators: Generator[] = [
     createdAt: '2024-01-01T00:00:00Z'
   }
 ]
-
-// Create a stubbed version of renderInit that prints parameters
-const renderInitStub = async ({
-  projectName,
-  basePath
-}: {
-  skmtcRoot: SkmtcRoot
-  projectName: string | undefined
-  basePath: string | undefined
-}) => {
-  console.log('projectName:', projectName)
-  console.log('basePath:', basePath)
-
-  return await Promise.resolve()
-}
-
-await snapshotTest({
-  name: 'should log Deno.args',
-  meta: import.meta,
-  args: ['test-project', './lib'],
-  denoArgs: ['--allow-all'],
-  async fn() {
-    const command = toInitCommand(createMockSkmtcRoot(createMockManager()), renderInitStub)
-    await command.parse()
-  }
-})
 
 Deno.test('renderInit - should call toSession, render, and App with expected props', async () => {
   // Set up mocks

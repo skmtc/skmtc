@@ -6,7 +6,7 @@ import { toSchemaV3 } from '../schema/toSchemasV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
-
+import { tracer } from '@/helpers/tracer.ts'
 type ToUnionArgs = {
   value: OpenAPIV3.SchemaObject
   members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
@@ -37,7 +37,7 @@ export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): O
     description,
     nullable,
     default: defaultValue,
-    discriminator: context.trace('discriminator', () =>
+    discriminator: tracer(context.stackTrail, 'discriminator', () =>
       toDiscriminatorV3({ discriminator, context })
     ),
     members: members.reduce<(OasSchema | OasRef<'schema'>)[]>((acc, item, index) => {
@@ -45,7 +45,10 @@ export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): O
         return acc
       }
 
-      return [...acc, context.trace(`${index}`, () => toSchemaV3({ schema: item, context }))]
+      return [
+        ...acc,
+        tracer(context.stackTrail, `${index}`, () => toSchemaV3({ schema: item, context }))
+      ]
     }, []),
     example,
     extensionFields

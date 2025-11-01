@@ -8,7 +8,7 @@ import type { DocumentFields } from './Document.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toOptionalServersV3 } from '../server/toServerV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
-
+import { tracer } from '@/helpers/tracer.ts'
 type ToDocumentV3Args = {
   documentObject: OpenAPIV3.Document
   context: ParseContext
@@ -29,12 +29,28 @@ export const toDocumentFieldsV3 = ({
 
   return {
     openapi,
-    info: context.trace('info', () => toInfoV3({ info, context })),
-    servers: context.trace('servers', () => toOptionalServersV3({ servers, context })),
-    operations: context.trace('paths', () => toOperationsV3({ paths, context })),
-    components: context.trace('components', () => toComponentsV3({ components, context })),
-    tags: context.trace('tags', () => toTagsV3({ tags, context })),
-    security: context.trace('security', () => toSecurityRequirementsV3({ security, context })),
+    info: tracer(context.stackTrail, 'info', () => toInfoV3({ info, context })),
+    servers: tracer(
+      context.stackTrail,
+      'servers',
+      () => toOptionalServersV3({ servers, context })
+    ),
+    operations: tracer(
+      context.stackTrail,
+      'paths',
+      () => toOperationsV3({ paths, context })
+    ),
+    components: tracer(
+      context.stackTrail,
+      'components',
+      () => toComponentsV3({ components, context })
+    ),
+    tags: tracer(context.stackTrail, 'tags', () => toTagsV3({ tags, context })),
+    security: tracer(
+      context.stackTrail,
+      'security',
+      () => toSecurityRequirementsV3({ security, context })
+    ),
     extensionFields
   }
 }

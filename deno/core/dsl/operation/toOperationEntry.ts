@@ -9,14 +9,14 @@ import type {
 } from './types.ts'
 import type { IsSupportedOperationConfigArgs } from './types.ts'
 import type { MappingModule, PreviewModule } from '../../types/Preview.ts'
-// @deno-types="npm:@types/lodash-es@4.17.12"
-import { get } from 'npm:lodash-es@4.17.21'
+// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
+import get from 'lodash-es/get'
 /**
  * Configuration arguments for creating operation generator entries.
- * 
+ *
  * Defines the structure for operation generator configuration including transform functions,
  * enrichment schemas, preview/mapping modules, and support validation.
- * 
+ *
  * @template EnrichmentType - Type of enrichment data this operation can provide
  * @template Acc - Accumulator type used during operation processing
  */
@@ -34,20 +34,20 @@ export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
 
 /**
  * Creates a configured operation generator entry.
- * 
+ *
  * Transforms operation configuration arguments into a standardized operation generator entry
  * that can be used within the SKMTC generation pipeline. Provides type-safe operation processing
  * with optional enrichment support and preview capabilities.
- * 
+ *
  * @template EnrichmentType - Type of enrichment data this operation provides
  * @template Acc - Accumulator type used during operation processing
  * @param config - Configuration object defining operation behavior
  * @returns Configured operation generator entry ready for pipeline integration
- * 
+ *
  * @example Basic operation entry
  * ```typescript
  * import { toOperationEntry } from '@skmtc/core';
- * 
+ *
  * const operationEntry = toOperationEntry({
  *   id: 'my-operation-generator',
  *   transform: ({ context, operation, acc }) => {
@@ -69,16 +69,16 @@ export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
   toMappingModule,
   toEnrichmentRequest
 }: ToOperationConfigArgs<EnrichmentType, Acc>): {
-  id: string;
-  type: 'operation';
-  transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc;
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>;
-  isSupported: ({ context, operation }: IsSupportedArgs) => boolean;
-  toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule;
-  toMappingModule?: ({ context, operation }: ToOperationMappingArgs) => MappingModule;
+  id: string
+  type: 'operation'
+  transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
+  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  isSupported: ({ context, operation }: IsSupportedArgs) => boolean
+  toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, operation }: ToOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined;
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined
 } => {
   return {
     id,

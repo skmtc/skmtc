@@ -1,43 +1,12 @@
 import React from 'react'
-import { snapshotTest } from '@cliffy/testing'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
-import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { toCreateCommand, renderCreate } from './create.tsx'
+import { renderCreate } from './create.tsx'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { toMockSession } from '../tests/commands/session.test.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
-
-// Create a stubbed version of renderCreate that prints parameters
-const renderCreateStub = async ({
-  projectName,
-  generator,
-  type
-}: {
-  skmtcRoot: SkmtcRoot
-  projectName: string
-  generator: string
-  type: 'operation' | 'model'
-}) => {
-  console.log('projectName:', projectName)
-  console.log('generator:', generator)
-  console.log('type:', type)
-
-  return await Promise.resolve()
-}
-
-await snapshotTest({
-  name: 'should log Deno.args',
-  meta: import.meta,
-  args: ['test-project', 'my-generator', 'operation'],
-  denoArgs: ['--allow-all'],
-  async fn() {
-    const command = toCreateCommand(createMockSkmtcRoot(createMockManager()), renderCreateStub)
-    await command.parse()
-  }
-})
 
 Deno.test('renderCreate - should call toSession, render, and App with expected props', async () => {
   // Set up mocks

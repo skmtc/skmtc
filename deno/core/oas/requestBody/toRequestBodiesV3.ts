@@ -7,7 +7,7 @@ import { OasRequestBody } from './RequestBody.ts'
 import type { RequestBodyFields } from './RequestBody.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-
+import { tracer } from '@/helpers/tracer.ts'
 type ToRequestBodyV3Args = {
   requestBody: OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject | undefined
   forceRef?: boolean
@@ -37,7 +37,7 @@ export const toRequestBodyV3 = ({
 
   const fields: RequestBodyFields = {
     description,
-    content: context.trace('content', () => {
+    content: tracer(context.stackTrail, 'content', () => {
       return toMediaTypeItemsV3({ content, context })
     }),
     required,
@@ -62,7 +62,10 @@ export const toRequestBodiesV3 = ({
 
   const entries = Object.entries(requestBodies)
     .map(([key, value]) => {
-      return [key, context.trace(key, () => toRequestBodyV3({ requestBody: value, context }))]
+      return [
+        key,
+        tracer(context.stackTrail, key, () => toRequestBodyV3({ requestBody: value, context }))
+      ]
     })
     .filter(([, value]) => Boolean(value))
 

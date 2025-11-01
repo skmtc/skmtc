@@ -1,4 +1,8 @@
-import type { LogSkippedValuesArgs, ParseContext, ProvisionalParseArgs } from '../context/ParseContext.ts'
+import type {
+  LogSkippedValuesArgs,
+  ParseContext,
+  ProvisionalParseArgs
+} from '../context/ParseContext.ts'
 
 /**
  * Mock implementation of ParseContext for testing purposes.
@@ -26,11 +30,11 @@ export const mockParseContext = {
     return fn()
   },
 
-  provisionalParse<T>(args: ProvisionalParseArgs<T>): T {
-    return args.value as T
-  },
-
-  logSkippedFields({ skipped, parent: _parent, parentType: _parentType }: LogSkippedValuesArgs): void {
+  logSkippedFields({
+    skipped,
+    parent: _parent,
+    parentType: _parentType
+  }: LogSkippedValuesArgs): void {
     Object.entries(skipped).forEach(([_key, _value]) => {
       // console.log(`Skipped field: ${key}, value: ${value}`)
     })

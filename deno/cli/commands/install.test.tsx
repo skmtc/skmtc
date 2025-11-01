@@ -1,48 +1,12 @@
 import React from 'react'
-import { snapshotTest } from '@cliffy/testing'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
-import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { toInstallCommand, renderInstall } from './install.tsx'
+import { renderInstall } from './install.tsx'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { toMockSession } from '../tests/commands/session.test.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
-
-// Create a stubbed version of renderInstall that prints parameters
-const renderInstallStub = async ({
-  projectName
-}: {
-  skmtcRoot: SkmtcRoot
-  projectName: string | undefined
-}) => {
-  console.log('projectName:', projectName)
-
-  return await Promise.resolve()
-}
-
-await snapshotTest({
-  name: 'should log Deno.args',
-  meta: import.meta,
-  args: ['@skmtc/gen-typescript', 'test-project'],
-  denoArgs: ['--allow-all'],
-  async fn() {
-    const command = toInstallCommand(createMockSkmtcRoot(createMockManager()), renderInstallStub)
-    await command.parse()
-  }
-})
-
-await snapshotTest({
-  name: 'should log Deno.args',
-  meta: import.meta,
-  args: ['@skmtc/gen-typescript'],
-  denoArgs: ['--allow-all'],
-  async fn() {
-    const command = toInstallCommand(createMockSkmtcRoot(createMockManager()), renderInstallStub)
-    await command.parse()
-  }
-})
 
 Deno.test(
   'renderInstall - should call toSession, render, and App with expected props',

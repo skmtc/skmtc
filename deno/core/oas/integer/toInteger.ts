@@ -2,12 +2,10 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContext } from '../../context/ParseContext.ts'
 import { OasInteger } from './Integer.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { oasIntegerData, integerSchema, integerFormat } from './integer-types.ts'
-import * as v from 'valibot'
+import { oasIntegerData, integerFormat } from './integer-types.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
-import { parseExample } from '../_helpers/parseExample.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
-import { parseFormat } from '../_helpers/parseFormat.ts'
+import * as v from 'valibot'
 
 type ToIntegerArgs = {
   value: OpenAPIV3.SchemaObject
@@ -20,18 +18,24 @@ export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
     context
   })
 
-  const { example, value: valueWithoutExample } = parseExample({
-    value: valueWithoutNullable,
-    nullable,
-    valibotSchema: integerSchema,
-    context
+  const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
+
+  const example = parseExample({
+    example: unparsedExample,
+    context,
+    parent: valueWithoutNullable,
+    nullable
   })
 
-  const { enum: enums, value: valueWithoutEnums } = parseEnum({
-    value: valueWithoutExample,
+  const { enum: unparsedEnums, ...valueWithoutEnums } = valueWithoutExample
+
+  const enums = parseEnum({
+    value: unparsedEnums,
     nullable,
-    valibotSchema: integerSchema,
-    context
+    parent: valueWithoutExample,
+    context,
+    check: Number.isInteger,
+    toMessage: item => `Removed invalid enum. Expected "integer", got: ${item}`
   })
 
   return toParsedInteger({
@@ -58,11 +62,17 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
   enums,
   value: valueWithoutEnums
 }: ToParsedIntegerArgs<Nullable>): OasInteger<Nullable> => {
-  const { format, value: valueWithoutFormat } = parseFormat({
-    value: valueWithoutEnums,
-    valibotSchema: integerFormat,
-    context
+  const { format: unparsedFormat, ...valueWithoutFormat } = valueWithoutEnums
+
+  const format = parseIntegerFormat({
+    format: unparsedFormat,
+    context,
+    parent: valueWithoutEnums
   })
+
+  if (!v.is(oasIntegerData, valueWithoutFormat)) {
+    v.parse(oasIntegerData, valueWithoutFormat)
+  }
 
   const {
     type: _type,
@@ -75,7 +85,7 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     minimum,
     exclusiveMinimum,
     ...skipped
-  } = v.parse(oasIntegerData, valueWithoutFormat)
+  } = valueWithoutFormat
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -99,4 +109,54 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     default: defaultValue,
     extensionFields
   })
+}
+
+type ParseIntegerFormatArgs = {
+  format: unknown
+  context: ParseContext
+  parent: unknown
+}
+
+const parseIntegerFormat = ({ format, context, parent }: ParseIntegerFormatArgs) => {
+  if (!v.is(integerFormat, format)) {
+    context.logIssue({
+      key: 'format',
+      level: 'warning',
+      message: `Invalid format: ${format}`,
+      parent,
+      type: 'INVALID_FORMAT'
+    })
+    return undefined
+  }
+  return format
+}
+
+type ParseExampleArgs = {
+  example: unknown
+  context: ParseContext
+  parent: unknown
+  nullable: boolean | undefined
+}
+
+const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+  if (nullable && example === null) {
+    return example
+  }
+
+  if (!isInteger(example)) {
+    context.logIssue({
+      key: 'example',
+      level: 'warning',
+      message: `Removed invalid example. Expected "integer", got: ${example}`,
+      parent,
+      type: 'INVALID_EXAMPLE'
+    })
+    return undefined
+  }
+
+  return example
+}
+
+const isInteger = (value: unknown): value is number => {
+  return Number.isInteger(value)
 }

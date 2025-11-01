@@ -1,4 +1,3 @@
-import * as Sentry from 'npm:@sentry/node@^10.8.0'
 import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { FilesRenderResult, RenderResult } from './types.ts'
@@ -90,7 +89,6 @@ type RenderOutput = {
  * - **Path Resolution**: Intelligent path resolution with base path support
  * - **Content Collation**: Combines all generated content into organized file structures
  * - **Metadata Generation**: Tracks file statistics (lines, characters) and relationships
- * - **Error Tracking**: Comprehensive error handling with Sentry integration
  * - **Performance Monitoring**: Built-in tracing and performance measurement
  *
  * @example Basic rendering usage
@@ -247,7 +245,6 @@ type RenderOutput = {
  *
  * } catch (error) {
  *   console.error('Render operation failed:', error);
- *   // Sentry automatically captures the error
  * }
  * ```
  */
@@ -305,9 +302,6 @@ export class RenderContext {
    * formatting (if configured), resolves paths, and produces the final
    * artifacts ready for writing to the filesystem.
    *
-   * The method is wrapped in Sentry tracing spans for performance monitoring
-   * and includes both collation and artifact preparation phases.
-   *
    * @returns Promise resolving to render result containing artifacts, file metadata, previews, and mappings
    *
    * @example
@@ -332,20 +326,16 @@ export class RenderContext {
    * ```
    */
   render(): Omit<RenderResult, 'results'> {
-    return Sentry.startSpan({ name: 'Render artifacts' }, () => {
-      const result = Sentry.startSpan({ name: 'Collate content' }, () => {
-        return this.collate()
-      })
+    const result = this.collate()
 
-      const rendered: Omit<RenderResult, 'results'> = {
-        artifacts: result.artifacts,
-        files: result.files,
-        previews: this.previews,
-        mappings: this.mappings
-      }
+    const rendered: Omit<RenderResult, 'results'> = {
+      artifacts: result.artifacts,
+      files: result.files,
+      previews: this.previews,
+      mappings: this.mappings
+    }
 
-      return rendered
-    })
+    return rendered
   }
 
   /**
@@ -436,8 +426,8 @@ export class RenderContext {
    * });
    * ```
    */
-  trace<T>(token: string | string[], fn: () => T): T {
-    return tracer(this.#stackTrail, token, fn, this.logger)
+  trace<T>(token: string, fn: () => T): T {
+    return tracer(this.#stackTrail, token, fn)
   }
 
   /**

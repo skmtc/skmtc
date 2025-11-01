@@ -50,7 +50,6 @@ await build({
     { name: './Stringable', path: './dsl/Stringable.ts' },
     { name: './strings', path: './helpers/strings.ts' },
     { name: './toResolvedArtifactPath', path: './helpers/toResolvedArtifactPath.ts' },
-    { name: './toV3JsonDocument', path: './run/toV3JsonDocument.ts' },
     { name: './TypeSystem', path: './types/TypeSystem.ts' },
     { name: './validate', path: './app/validate.ts' }
   ],

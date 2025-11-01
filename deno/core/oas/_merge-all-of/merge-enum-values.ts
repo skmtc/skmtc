@@ -30,7 +30,7 @@ export function mergeEnumValues<T>(
   // Find intersection of enum values
   const intersection = first
     .enum!.filter(value => second.enum!.some(bValue => isEqual(value, bValue)))
-    .map(value => (typeCheck ? v.parse(typeCheck, value) : value))
+    .map(value => (typeCheck ? (v.is(typeCheck, value) ? value : undefined) : value))
 
   // If intersection is empty, throw error
   if (intersection.length === 0) {

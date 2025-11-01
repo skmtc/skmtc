@@ -18,8 +18,8 @@ import {
 import type { OasSecurityScheme } from './SecurityScheme.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'
 import type { OasRef } from '../ref/Ref.ts'
-import { isRef } from '../../helpers/refFns.ts'
-
+import { isRef } from '@/helpers/refFns.ts'
+import { tracer } from '@/helpers/tracer.ts'
 type ToSecuritySchemesArgs = {
   securitySchemes:
     | Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject>
@@ -38,7 +38,12 @@ Record<string, OasSecurityScheme> | undefined => {
 
   return Object.fromEntries(
     Object.entries(securitySchemes).map(([key, value]) => {
-      return [key, context.trace(key, () => toSecuritySchemeV3({ securityScheme: value, context }))]
+      return [
+        key,
+        tracer(context.stackTrail, key, () =>
+          toSecuritySchemeV3({ securityScheme: value, context })
+        )
+      ]
     })
   ) as Record<string, OasSecurityScheme>
 }
