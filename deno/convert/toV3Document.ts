@@ -55,10 +55,6 @@
 
 import type { OpenAPIV2, OpenAPIV3 } from 'openapi-types'
 import { parse as parseYaml } from '@std/yaml/parse'
-import {
-  Converter as ThreeOneToThreeZeroConverter,
-  type ConverterOptions
-} from '@apiture/openapi-down-convert'
 import { match, P } from 'ts-pattern'
 // @deno-types="npm:@types/swagger2openapi@7.0.4"
 import converter from 'swagger2openapi'
@@ -159,17 +155,17 @@ export const stringToSchema = (schema: string): AnyOasDocument => {
 export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Document> => {
   return await match(schema)
     .with({ openapi: P.string.startsWith('3.0') }, doc => doc as OpenAPIV3.Document)
-    .with({ openapi: P.string.startsWith('3.1') }, doc => {
-      const options: ConverterOptions = {
-        verbose: false,
-        deleteExampleWithId: false,
-        allOfTransform: true
-      }
+    // .with({ openapi: P.string.startsWith('3.1') }, doc => {
+    //   const options: ConverterOptions = {
+    //     verbose: false,
+    //     deleteExampleWithId: false,
+    //     allOfTransform: true
+    //   }
 
-      const converter = new ThreeOneToThreeZeroConverter(doc, options)
+    //   const converter = new ThreeOneToThreeZeroConverter(doc, options)
 
-      return converter.convert() as OpenAPIV3.Document
-    })
+    //   return converter.convert() as OpenAPIV3.Document
+    // })
     .with({ swagger: P.string.startsWith('2.0') }, async (doc: OpenAPIV2.Document) => {
       const parsed = await converter.convertObj(doc, {})
 

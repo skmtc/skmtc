@@ -56,3 +56,5 @@ deno/test-one
 plans/
 
 openapi.json
+
+.skmtc

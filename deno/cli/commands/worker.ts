@@ -3,7 +3,8 @@ import { Command } from '@cliffy/command'
 import { join } from '@std/path'
 import { toGenerationStats } from '@/lib/generationStats.ts'
 
-export const description = 'Web worker proof of concept - test generator execution in isolated worker'
+export const description =
+  'Web worker proof of concept - test generator execution in isolated worker'
 
 type RenderWorkerArgs = {
   project: string
@@ -14,7 +15,7 @@ export const renderWorker = async ({ project }: RenderWorkerArgs) => {
 
   // Resolve paths
   const projectPath = join(SkmtcRoot.toPath(), project)
-  const workerPath = join(projectPath, 'mod.ts')
+  const workerPath = join(projectPath, 'bundle.js')
   const schemaPath = join(projectPath, 'openapi.json')
   const clientSettingsPath = join(projectPath, '.settings', 'client.json')
 
@@ -36,8 +37,10 @@ export const renderWorker = async ({ project }: RenderWorkerArgs) => {
   console.time('WORKER_LAUNCH')
 
   // Create worker
-  const workerUrl = new URL(`file://${workerPath}`)
-  const worker = new Worker(workerUrl, {
+  const workerUrl = new URL(workerPath, import.meta.url)
+
+  console.log('WORKER URL:', workerUrl.href)
+  const worker = new Worker(workerUrl.href, {
     type: 'module',
     deno: {
       permissions: {

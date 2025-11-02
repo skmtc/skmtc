@@ -1,7 +1,6 @@
 import { ParseContext } from './ParseContext.ts'
 import { StackTrail } from './StackTrail.ts'
 import type { Logger } from '@std/log'
-import cfCycleSchema from '../_schemas/cf-cycle.json' with { type: 'json' }
 import type { OpenAPIV3 } from 'openapi-types'
 import { assertEquals } from '@std/assert/equals'
 import { assertObjectMatch } from '@std/assert/object-match'
@@ -185,67 +184,3 @@ Deno.test.ignore('Handles response error', () => {
     }
   })
 })
-
-// Deno.test('Handles cycle merges', () => {
-//   const parseContext = new ParseContext({
-//     documentObject: cfCycleSchema as unknown as OpenAPIV3.Document,
-//     logger: console as unknown as Logger,
-//     stackTrail: new StackTrail(),
-//     silent: true
-//   })
-
-//   const parsed = parseContext.parse()
-
-//   console.log(parseContext.issues)
-//   console.log('PARSED', JSON.stringify(parsed, null, 2))
-// })
-
-// const parseContext = new ParseContext({
-//   documentObject: denoSchema as unknown as OpenAPIV3.Document,
-//   logger: console as any,
-//   stackTrail: new StackTrail(),
-//   silent: true
-// })
-
-// const startTime = performance.now()
-
-// parseContext.parse()
-
-// const endTime = performance.now()
-
-// const filteredIssues = parseContext.issues.filter(issue => {
-//   return (
-//     issue.type === 'UNEXPECTED_PROPERTY' &&
-//     issue.level === 'warning' &&
-//     ![
-//       `Unexpected property 'items' in 'schema:object'`,
-//       `Unexpected property 'uniqueItems' in 'schema:object'`
-//     ].includes(issue.message)
-//   )
-// })
-
-// const issuesByProperty = filteredIssues.reduce<Record<string, number>>((acc, issue) => {
-//   const stackTrail = issue.location.split(':')
-
-//   const property = stackTrail[stackTrail.length - 1]
-
-//   console.log(`STACK TRACE: ${stackTrail.toString()}`)
-//   console.log(`ISSUE: ${issue.level === 'warning' ? issue.message : issue.error.message}`)
-//   console.log(`PARENT: ${JSON.stringify(issue.parent, null, 2)}`)
-//   console.log('')
-
-//   return {
-//     ...acc,
-//     [property]: (acc[property] ?? 0) + 1
-//   }
-// }, {})
-
-// const items = Object.entries(issuesByProperty).sort((a, b) => a[1] - b[1])
-
-// if (items.length > 0) {
-//   console.log(JSON.stringify(Object.fromEntries(items), null, 2))
-// }
-
-// console.log(`Time taken: ${endTime - startTime} milliseconds`)
-
-// console.log(`Number of issues: ${filteredIssues.length}`)

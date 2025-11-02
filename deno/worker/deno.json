@@ -1,14 +1,16 @@
 {
   "name": "@skmtc/worker",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "exports": "./mod.ts",
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.930",
-    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.5",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.931",
+    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.6",
     "ts-pattern": "npm:ts-pattern@^5.8.0"
   },
   "compilerOptions": {
-    "lib": ["deno.worker"]
+    "lib": [
+      "deno.worker"
+    ]
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",

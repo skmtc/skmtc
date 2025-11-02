@@ -1,6 +1,6 @@
 {
   "deno.enable": false,
-  "deno.enablePaths": ["./deno"],
+  "deno.enablePaths": ["./deno", ".skmtc"],
   "deno.suggest.imports.autoDiscover": true,
   "deno.lint": true,
   "eslint.enable": false,
