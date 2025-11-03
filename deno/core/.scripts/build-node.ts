@@ -13,7 +13,7 @@ await build({
     { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' },
     { name: './Enrichments', path: './types/Enrichments.ts' },
     { name: './formatNumber', path: './helpers/formatNumber.ts' },
-    { name: './GeneratorKeys', path: './types/GeneratorKeys.ts' },
+    { name: './GeneratorKeys', path: './dsl/GeneratorKeys.ts' },
     { name: './isEmpty', path: './helpers/isEmpty.ts' },
     { name: './Manifest', path: './types/Manifest.ts' },
     { name: './Method', path: './types/Method.ts' },

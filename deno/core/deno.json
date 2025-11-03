@@ -17,7 +17,7 @@
     ".": "./mod.ts",
     "./Brand": "./types/Brand.ts",
     "./EnrichmentRequest": "./types/EnrichmentRequest.ts",
-    "./GeneratorKeys": "./types/GeneratorKeys.ts",
+    "./GeneratorKeys": "./dsl/GeneratorKeys.ts",
     "./Manifest": "./types/Manifest.ts",
     "./Method": "./types/Method.ts",
     "./Modifiers": "./types/Modifiers.ts",
