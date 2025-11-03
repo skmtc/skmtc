@@ -8,7 +8,7 @@ await build({
     './mod.ts',
     { name: './Brand', path: './types/Brand.ts' },
     { name: './collateExamples', path: './helpers/collateExamples.ts' },
-    { name: './CustomValue', path: './types/CustomValue.ts' },
+    { name: './CustomValue', path: './dsl/CustomValue.ts' },
     { name: './DenoJson', path: './types/DenoJson.ts' },
     { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' },
     { name: './Enrichments', path: './types/Enrichments.ts' },
