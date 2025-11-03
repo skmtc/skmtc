@@ -77,7 +77,7 @@ export const renderWorker = async ({ project }: RenderWorkerArgs) => {
         worker.postMessage({
           type: 'TRANSFORM',
           payload: {
-            schema: schemaContent,
+            documentObject: JSON.parse(schemaContent),
             clientSettings: JSON.parse(clientSettings)
           }
         })

@@ -2,7 +2,7 @@ import { assertEquals } from '@std/assert/equals'
 import { mockParseContext } from '../../test/mockParseContext.ts'
 import { toOperationsV3 } from './toOperationsV3.ts'
 import { mockPaths } from './mocks.ts'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasOperation } from './Operation.ts'
 import { OasPathItem } from '../pathItem/PathItem.ts'
 import { OasResponse } from '../response/Response.ts'
@@ -22,7 +22,7 @@ Deno.test({
   fn: () => {
     const operations = toOperationsV3({
       paths: mockPaths,
-      context: mockParseContext as unknown as ParseContext
+      context: mockParseContext as unknown as ParseContextType
     })
 
     assertEquals(

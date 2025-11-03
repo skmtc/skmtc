@@ -1,4 +1,4 @@
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { OasServer } from './Server.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
@@ -6,7 +6,7 @@ import { toOptionalServerVariablesV3 } from '../serverVariable/toServerVariableV
 import { tracer } from '@/helpers/tracer.ts'
 type ToServersV3Args = {
   servers: OpenAPIV3.ServerObject[]
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toServersV3 = ({ servers, context }: ToServersV3Args): OasServer[] => {
@@ -17,7 +17,7 @@ export const toServersV3 = ({ servers, context }: ToServersV3Args): OasServer[] 
 
 type ToOptionalServersV3Args = {
   servers: OpenAPIV3.ServerObject[] | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toOptionalServersV3 = ({
@@ -33,7 +33,7 @@ export const toOptionalServersV3 = ({
 
 type ToServerV3Args = {
   server: OpenAPIV3.ServerObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toServerV3 = ({ server, context }: ToServerV3Args): OasServer => {

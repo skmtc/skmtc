@@ -1,12 +1,12 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toParameterListV3 } from '../parameter/toParameterV3.ts'
 import { OasPathItem } from './PathItem.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { tracer } from '@/helpers/tracer.ts'
 type ToPathItemV3Args = {
   pathItem: OpenAPIV3.PathItemObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toPathItemV3 = ({ pathItem, context }: ToPathItemV3Args): OasPathItem => {

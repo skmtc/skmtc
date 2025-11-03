@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toOptionalSchemaV3 } from '../schema/toSchemasV3.ts'
 import { toExamplesV3 } from '../example/toExamplesV3.ts'
 import { OasMediaType } from './MediaType.ts'
@@ -16,7 +16,7 @@ type ToMediaTypeItemV3Args = {
   /** The media type string (e.g., 'application/json', 'text/plain') */
   mediaType: string
   /** The parsing context for tracing and processing */
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**
@@ -138,21 +138,14 @@ export const toMediaTypeItemV3 = ({
   const fields: MediaTypeFields = {
     mediaType,
     encoding,
-    schema: tracer(
-      context.stackTrail,
-      'schema',
-      () => toOptionalSchemaV3({ schema, context })
-    ),
-    examples: tracer(
-      context.stackTrail,
-      'examples',
-      () =>
-        toExamplesV3({
-          example,
-          examples,
-          exampleKey: mediaType,
-          context
-        })
+    schema: tracer(context.stackTrail, 'schema', () => toOptionalSchemaV3({ schema, context })),
+    examples: tracer(context.stackTrail, 'examples', () =>
+      toExamplesV3({
+        example,
+        examples,
+        exampleKey: mediaType,
+        context
+      })
     ),
     extensionFields
   }
@@ -167,7 +160,7 @@ type ToMediaTypeItemsV3Args = {
   /** Map of media type strings to OpenAPI v3 MediaType objects */
   content: Record<string, OpenAPIV3.MediaTypeObject>
   /** The parsing context for tracing and processing */
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**
@@ -261,10 +254,8 @@ export const toMediaTypeItemsV3 = ({
   const entries = Object.entries(content)
 
   for (const [mediaType, value] of entries) {
-    output[mediaType] = tracer(
-      context.stackTrail,
-      mediaType,
-      () => toMediaTypeItemV3({ mediaTypeItem: value, mediaType, context })
+    output[mediaType] = tracer(context.stackTrail, mediaType, () =>
+      toMediaTypeItemV3({ mediaTypeItem: value, mediaType, context })
     )
   }
 
@@ -278,7 +269,7 @@ type ToOptionalMediaTypeItemsV3Args = {
   /** Optional map of media type strings to OpenAPI v3 MediaType objects */
   content: Record<string, OpenAPIV3.MediaTypeObject> | undefined
   /** The parsing context for tracing and processing */
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**

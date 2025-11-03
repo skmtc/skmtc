@@ -1,11 +1,11 @@
-import type { GenerateContext } from '../context/GenerateContext.ts'
+import type { GenerateContextType } from '../context/generateTypes.ts'
 import { ContentBase } from './ContentBase.ts'
 import type { Stringable } from './Stringable.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
 
 type CreateArgs = {
-  context: GenerateContext
+  context: GenerateContextType
   value: Stringable
   generatorKey?: GeneratorKey
 }

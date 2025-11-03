@@ -1,11 +1,11 @@
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { OasServerVariable } from './ServerVariable.ts'
 
 type ToServerVariablesV3Args = {
   serverVariables: Record<string, OpenAPIV3.ServerVariableObject>
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toServerVariablesV3 = ({
@@ -22,7 +22,7 @@ export const toServerVariablesV3 = ({
 
 type ToOptionalServerVariablesV3Args = {
   serverVariables: Record<string, OpenAPIV3.ServerVariableObject> | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toOptionalServerVariablesV3 = ({
@@ -38,7 +38,7 @@ export const toOptionalServerVariablesV3 = ({
 
 type ToServerVariableV3Args = {
   serverVariable: OpenAPIV3.ServerVariableObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toServerVariableV3 = ({

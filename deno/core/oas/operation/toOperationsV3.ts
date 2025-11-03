@@ -1,6 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { Method } from '../../types/Method.ts'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toRequestBodyV3 } from '../requestBody/toRequestBodiesV3.ts'
 import { toResponsesV3 } from '../response/toResponseV3.ts'
 import { toParameterListV3 } from '../parameter/toParameterV3.ts'
@@ -25,7 +25,7 @@ type OperationInfo = {
 type ToOperationV3Args = {
   operation: OpenAPIV3.OperationObject
   operationInfo: OperationInfo
-  context: ParseContext
+  context: ParseContextType
 }
 
 type MethodObjects = {
@@ -91,7 +91,7 @@ export const toOperationV3 = ({
 
 type ToOperationsV3Args = {
   paths: OpenAPIV3.PathsObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOperation[] => {

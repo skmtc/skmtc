@@ -7,7 +7,7 @@ import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition, GenerationType } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import { toOperationGeneratorKey } from '../GeneratorKeys.ts'
-import type { GenerateContextType } from '@/context/types.ts'
+import type { GenerateContextType } from '../../context/generateTypes.ts'
 
 type CreateOperationArgs<
   V extends GeneratedValue,

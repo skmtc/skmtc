@@ -1,11 +1,11 @@
-import { toRefV31 } from '../ref/toRefV31.ts'
-import type { ParseContext } from '../../context/ParseContext.ts'
-import { isRef } from '../../helpers/refFns.ts'
+import { toRefV31 } from '@/oas/ref/toRefV31.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import { isRef } from '@/helpers/refFns.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { match, P } from 'npm:ts-pattern@^5.8.0'
 import type { OasSchema } from './Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
-import { toArray } from '../array/toArray.ts'
+import { toArray } from '@/oas/array/toArray.ts'
 import { toObject } from '../object/toObject.ts'
 import { toInteger } from '../integer/toInteger.ts'
 import { toNumber } from '../number/toNumber.ts'
@@ -20,7 +20,7 @@ import invariant from 'tiny-invariant'
 import { tracer } from '@/helpers/tracer.ts'
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toSchemasV3 = ({
@@ -51,7 +51,7 @@ export const toSchemasV3 = ({
 
 type ToOptionalSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject> | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toOptionalSchemasV3 = ({
@@ -67,7 +67,7 @@ export const toOptionalSchemasV3 = ({
 
 type ToSchemaV3Args = {
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
@@ -272,7 +272,7 @@ const possibleObject = (value: unknown) => {
 
 type ToOptionalSchemaV3Args = {
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toOptionalSchemaV3 = ({

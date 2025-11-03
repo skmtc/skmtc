@@ -1,4 +1,4 @@
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { isRef } from '../../helpers/refFns.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'
@@ -47,7 +47,7 @@ export type ToExamplesV3Args = {
   /** Key name for the example context */
   exampleKey: string
   /** Parse context for tracing and error handling */
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**
@@ -67,7 +67,13 @@ export const toExamplesV3 = ({
   context
 }: ToExamplesV3Args): Record<string, OasExample | OasRef<'example'>> | undefined => {
   if (example && examples) {
-    context.logger.warn(`Both example and examples are defined for ${exampleKey}`)
+    context.logIssue({
+      key: 'example',
+      level: 'warning',
+      message: `Both example and examples are defined for ${exampleKey}`,
+      parent: examples,
+      type: 'EXAMPLE_AND_EXAMPLES_DEFINED'
+    })
   }
 
   if (example) {
@@ -96,7 +102,7 @@ export const toExamplesV3 = ({
 
 type ToExampleV3Args = {
   example: OpenAPIV3.ExampleObject | OpenAPIV3.ReferenceObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**

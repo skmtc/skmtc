@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasBoolean } from './Boolean.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { oasBooleanData } from './boolean-types.ts'
@@ -9,7 +9,7 @@ import * as v from 'valibot'
 
 type ToBooleanArgs = {
   value: OpenAPIV3.SchemaObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**
@@ -122,7 +122,7 @@ export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
 
 type ToParsedBooleanArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
-  context: ParseContext
+  context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? boolean | null | undefined : boolean | undefined
   enums: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
@@ -166,7 +166,7 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
 
 type ParseExampleArgs = {
   example: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }
@@ -196,7 +196,7 @@ const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) 
 
 type ParseDefaultArgs = {
   defaultValue: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }

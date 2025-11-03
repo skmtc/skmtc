@@ -3,7 +3,7 @@ import { toHeadersV3 } from '../header/toHeadersV3.ts'
 import { toOptionalSchemasV3 } from '../schema/toSchemasV3.ts'
 import { toOptionalParametersV3 } from '../parameter/toParameterV3.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toExamplesV3 } from '../example/toExamplesV3.ts'
 import { toRequestBodiesV3 } from '../requestBody/toRequestBodiesV3.ts'
 import { OasComponents } from './Components.ts'
@@ -14,7 +14,7 @@ import { tracer } from '@/helpers/tracer.ts'
 
 type ToComponentsV3Args = {
   components: OpenAPIV3.ComponentsObject | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toComponentsV3 = ({
@@ -44,20 +44,12 @@ export const toComponentsV3 = ({
   })
 
   const fields: ComponentsFields = {
-    schemas: tracer(
-      context.stackTrail,
-      'schemas',
-      () => toOptionalSchemasV3({ schemas, context })
+    schemas: tracer(context.stackTrail, 'schemas', () => toOptionalSchemasV3({ schemas, context })),
+    responses: tracer(context.stackTrail, 'responses', () =>
+      toOptionalResponsesV3({ responses, context })
     ),
-    responses: tracer(
-      context.stackTrail,
-      'responses',
-      () => toOptionalResponsesV3({ responses, context })
-    ),
-    parameters: tracer(
-      context.stackTrail,
-      'parameters',
-      () => toOptionalParametersV3({ parameters, context })
+    parameters: tracer(context.stackTrail, 'parameters', () =>
+      toOptionalParametersV3({ parameters, context })
     ),
     examples: toExamplesV3({
       examples,
@@ -65,20 +57,12 @@ export const toComponentsV3 = ({
       exampleKey: 'TEMP',
       context
     }),
-    requestBodies: tracer(
-      context.stackTrail,
-      'requestBodies',
-      () => toRequestBodiesV3({ requestBodies, context })
+    requestBodies: tracer(context.stackTrail, 'requestBodies', () =>
+      toRequestBodiesV3({ requestBodies, context })
     ),
-    headers: tracer(
-      context.stackTrail,
-      'headers',
-      () => toHeadersV3({ headers, context })
-    ),
-    securitySchemes: tracer(
-      context.stackTrail,
-      'securitySchemes',
-      () => toSecuritySchemesV3({ securitySchemes, context })
+    headers: tracer(context.stackTrail, 'headers', () => toHeadersV3({ headers, context })),
+    securitySchemes: tracer(context.stackTrail, 'securitySchemes', () =>
+      toSecuritySchemesV3({ securitySchemes, context })
     ),
     extensionFields
   }

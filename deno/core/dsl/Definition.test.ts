@@ -2,7 +2,7 @@ import { assertEquals } from '@std/assert/equals'
 import { Definition } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import type { GenerateContextType } from '@/context/types.ts'
+import type { GenerateContextType } from '../context/generateTypes.ts'
 
 // Minimal mock context for testing
 const mockContext = {} as GenerateContextType

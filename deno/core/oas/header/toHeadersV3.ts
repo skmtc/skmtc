@@ -1,7 +1,7 @@
 import { toExamplesV3 } from '../example/toExamplesV3.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'
 import { toOptionalSchemaV3 } from '../schema/toSchemasV3.ts'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isRef } from '../../helpers/refFns.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toOptionalMediaTypeItemsV3 } from '../mediaType/toMediaTypeItemV3.ts'
@@ -12,7 +12,7 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { tracer } from '@/helpers/tracer.ts'
 type ToHeadersV3Args = {
   headers: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject> | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toHeadersV3 = ({
@@ -27,11 +27,7 @@ export const toHeadersV3 = ({
   const entries = Object.entries(headers)
 
   for (const [key, value] of entries) {
-    output[key] = tracer(
-      context.stackTrail,
-      key,
-      () => toHeaderV3({ header: value, context })
-    )
+    output[key] = tracer(context.stackTrail, key, () => toHeaderV3({ header: value, context }))
   }
 
   return output
@@ -39,7 +35,7 @@ export const toHeadersV3 = ({
 
 type ToHeaderV3Args = {
   header: OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 const toHeaderV3 = ({ header, context }: ToHeaderV3Args): OasHeader | OasRef<'header'> => {
@@ -61,21 +57,15 @@ const toHeaderV3 = ({ header, context }: ToHeaderV3Args): OasHeader | OasRef<'he
     description,
     required,
     deprecated,
-    schema: tracer(
-      context.stackTrail,
-      'schema',
-      () => toOptionalSchemaV3({ schema, context })
-    ),
+    schema: tracer(context.stackTrail, 'schema', () => toOptionalSchemaV3({ schema, context })),
     examples: toExamplesV3({
       examples,
       example,
       exampleKey: `TEMP`,
       context
     }),
-    content: tracer(
-      context.stackTrail,
-      'content',
-      () => toOptionalMediaTypeItemsV3({ content, context })
+    content: tracer(context.stackTrail, 'content', () =>
+      toOptionalMediaTypeItemsV3({ content, context })
     ),
     extensionFields
   }

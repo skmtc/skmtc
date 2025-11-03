@@ -1,6 +1,6 @@
 import { toRefV31 } from '../ref/toRefV31.ts'
 import { toHeadersV3 } from '../header/toHeadersV3.ts'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isRef } from '../../helpers/refFns.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toOptionalMediaTypeItemsV3 } from '../mediaType/toMediaTypeItemV3.ts'
@@ -11,7 +11,7 @@ import invariant from 'tiny-invariant'
 import { tracer } from '@/helpers/tracer.ts'
 type ToResponsesV3Args = {
   responses: OpenAPIV3.ResponsesObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toResponsesV3 = ({
@@ -43,7 +43,7 @@ export const toResponsesV3 = ({
 
 type ToOptionalResponsesV3Args = {
   responses: OpenAPIV3.ResponsesObject | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toOptionalResponsesV3 = ({
@@ -59,7 +59,7 @@ export const toOptionalResponsesV3 = ({
 
 type ToResponseV3Args = {
   response: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toResponseV3 = ({

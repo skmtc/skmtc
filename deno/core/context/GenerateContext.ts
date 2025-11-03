@@ -1,9 +1,9 @@
 import { normalize } from '@std/path/normalize'
-import { Import } from '../dsl/Import.ts'
-import { Definition } from '../dsl/Definition.ts'
-import type { OasDocument } from '../oas/document/Document.ts'
-import type { OasSchema } from '../oas/schema/Schema.ts'
-import type { OasRef } from '../oas/ref/Ref.ts'
+import { Import } from '@/dsl/Import.ts'
+import { Definition } from '@/dsl/Definition.ts'
+import type { OasDocument } from '@/oas/document/Document.ts'
+import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
 import type {
   BuildModelSettingsArgs,
   DefineAndRegisterArgs,
@@ -19,7 +19,7 @@ import type {
   RegisterArgs,
   RegisterJsonArgs,
   ToOperationSettingsArgs
-} from './types.ts'
+} from './generateTypes.ts'
 import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '@/types/Settings.ts'
 import type { Method } from '@/types/Method.ts'
 import type { OperationConfig, OperationInsertable } from '@/dsl/operation/types.ts'

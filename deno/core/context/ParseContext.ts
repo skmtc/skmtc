@@ -4,8 +4,14 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import type { Logger } from '@/types/Logger.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { tracer } from '@/helpers/tracer.ts'
-import type { IssueType } from '@/context/types.ts'
+import type { IssueType } from './generateTypes.ts'
 import type * as v from 'valibot'
+import type {
+  LogIssueArgs,
+  LogIssueNoKeyArgs,
+  LogSkippedValuesArgs,
+  ParseContextType
+} from './parseTypes.ts'
 
 /**
  * Constructor arguments for {@link ParseContext}.
@@ -32,53 +38,6 @@ export type ParseReturn = {
 }
 
 /**
- * Base type for parse warning messages.
- */
-export type ParseWarningBase = {
-  /** Issue severity level */
-  level: 'warning'
-  /** Warning message */
-  message: string
-}
-
-/**
- * Base type for parse error messages.
- */
-export type ParseErrorBase = {
-  /** Issue severity level */
-  level: 'error'
-  /** The error that occurred */
-  error: Error
-}
-
-/**
- * Base union type for parse issues.
- */
-export type ParseIssueBase = ParseErrorBase | ParseWarningBase
-
-/**
- * Arguments for logging issues with a specific key.
- */
-export type LogIssueArgs = ParseIssueBase & {
-  /** The key where the issue occurred */
-  key: string
-  /** The parent object containing the issue */
-  parent: unknown
-  /** The type of issue for categorization */
-  type: IssueType
-}
-
-/**
- * Arguments for logging issues without a specific key.
- */
-export type LogIssueNoKeyArgs = ParseIssueBase & {
-  /** The parent object containing the issue */
-  parent: unknown
-  /** The type of issue for categorization */
-  type: IssueType
-}
-
-/**
  * Arguments for provisional parsing with validation.
  */
 export type ProvisionalParseArgs<T> = {
@@ -94,18 +53,6 @@ export type ProvisionalParseArgs<T> = {
   toMessage: (value: unknown) => string
   /** The type of issue for categorization */
   type: IssueType
-}
-
-/**
- * Arguments for logging skipped values during parsing.
- */
-export type LogSkippedValuesArgs = {
-  /** Record of skipped key-value pairs */
-  skipped: Record<string, unknown>
-  /** The parent object context */
-  parent: unknown
-  /** String description of the parent type */
-  parentType: string
 }
 
 /**
@@ -145,7 +92,7 @@ export type ParseWarning = {
  */
 export type ParseIssue = ParseError | ParseWarning
 
-export class ParseContext {
+export class ParseContext implements ParseContextType {
   /** The original OpenAPI v3 document being parsed */
   documentObject: OpenAPIV3.Document
   /** Logger instance for tracking parse progress and issues */

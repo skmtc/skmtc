@@ -1,11 +1,11 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { OasLicense } from './License.ts'
 
 export const toLicenseV3 = (
   license: OpenAPIV3.LicenseObject,
-  context: ParseContext
+  context: ParseContextType
 ): OasLicense => {
   const { name, url, ...skipped } = license
 

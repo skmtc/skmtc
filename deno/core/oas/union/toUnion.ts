@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasUnion } from './Union.ts'
 import { toDiscriminatorV3 } from '../discriminator/toDiscriminatorV3.ts'
 import { toSchemaV3 } from '../schema/toSchemasV3.ts'
@@ -11,7 +11,7 @@ type ToUnionArgs = {
   value: OpenAPIV3.SchemaObject
   members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
   parentType: 'anyOf' | 'oneOf'
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): OasUnion => {

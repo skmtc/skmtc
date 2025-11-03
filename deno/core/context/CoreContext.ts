@@ -17,7 +17,7 @@ import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { Mapping, Preview } from '@/types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
-import type { RenderResult } from '@/context/types.ts'
+import type { RenderResult } from './generateTypes.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.

@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasNumber } from './Number.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { oasNumberData, numberFormat } from './number-types.ts'
@@ -8,7 +8,7 @@ import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
 type ToNumberArgs = {
   value: OpenAPIV3.SchemaObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toNumber = ({ context, value }: ToNumberArgs): OasNumber => {
@@ -48,7 +48,7 @@ export const toNumber = ({ context, value }: ToNumberArgs): OasNumber => {
 
 type ToParsedNumberArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
-  context: ParseContext
+  context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? number | null | undefined : number | undefined
   enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
@@ -118,7 +118,7 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
 
 type ParseNumberFormatArgs = {
   format: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
 }
 
@@ -143,7 +143,7 @@ const parseNumberFormat = ({ format, context, parent }: ParseNumberFormatArgs) =
 
 type ParseExampleArgs = {
   example: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }

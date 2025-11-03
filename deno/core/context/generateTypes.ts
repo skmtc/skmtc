@@ -116,6 +116,7 @@ export type IssueType =
   | 'INVALID_SCHEMA'
   | 'INVALID_PARAMETER'
   | 'INVALID_DEPENDENCY_REF'
+  | 'EXAMPLE_AND_EXAMPLES_DEFINED'
 
 export type GenerateResult = {
   files: Map<string, File | JsonFile>

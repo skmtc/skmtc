@@ -1,11 +1,11 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { OasContact } from './Contact.ts'
 
 export const toContactV3 = (
   contact: OpenAPIV3.ContactObject,
-  context: ParseContext
+  context: ParseContextType
 ): OasContact => {
   const { name, url, email, ...skipped } = contact
 

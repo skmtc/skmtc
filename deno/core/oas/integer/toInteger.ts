@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasInteger } from './Integer.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { oasIntegerData, integerFormat } from './integer-types.ts'
@@ -9,7 +9,7 @@ import * as v from 'valibot'
 
 type ToIntegerArgs = {
   value: OpenAPIV3.SchemaObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
@@ -49,7 +49,7 @@ export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
 
 type ToParsedIntegerArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
-  context: ParseContext
+  context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? number | null | undefined : number | undefined
   enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
@@ -119,7 +119,7 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
 
 type ParseIntegerFormatArgs = {
   format: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
 }
 
@@ -143,7 +143,7 @@ const parseIntegerFormat = ({ format, context, parent }: ParseIntegerFormatArgs)
 
 type ParseExampleArgs = {
   example: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }

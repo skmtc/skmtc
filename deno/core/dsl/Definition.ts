@@ -1,4 +1,4 @@
-import type { GenerateContextType } from '@/context/types.ts'
+import type { GenerateContextType } from '../context/generateTypes.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import { ContentBase } from '@/dsl/ContentBase.ts'
 import { withDescription } from '@/typescript/withDescription.ts'

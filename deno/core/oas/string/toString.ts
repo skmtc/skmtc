@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasString } from './String.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { oasStringData, stringFormat } from './string-types.ts'
@@ -14,7 +14,7 @@ type ToStringArgs = {
   /** The OpenAPI v3 schema object to transform (must be type 'string') */
   value: OpenAPIV3.SchemaObject
   /** Parse context providing utilities and tracing capabilities */
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**
@@ -123,7 +123,7 @@ export const toString = ({ context, value }: ToStringArgs): OasString => {
 
 type ToParsedStringArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums' | 'default'>
-  context: ParseContext
+  context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? string | null | undefined : string | undefined
   enums: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
@@ -257,7 +257,7 @@ const isString = (value: unknown): value is string => {
 
 type ParseExampleArgs = {
   example: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }
@@ -287,7 +287,7 @@ const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) 
 
 type ParseDefaultArgs = {
   defaultValue: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }

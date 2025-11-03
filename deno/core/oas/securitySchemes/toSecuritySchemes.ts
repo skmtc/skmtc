@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '@/context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { match } from 'ts-pattern'
 import {
   OasHttpSecurityScheme,
@@ -25,7 +25,7 @@ type ToSecuritySchemesArgs = {
   securitySchemes:
     | Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject>
     | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toSecuritySchemesV3 = ({
@@ -51,7 +51,7 @@ Record<string, OasSecurityScheme> | undefined => {
 
 type ToSecuritySchemeV3Args = {
   securityScheme: OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 const toSecuritySchemeV3 = ({

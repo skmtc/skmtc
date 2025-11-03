@@ -1,13 +1,13 @@
 import type { OpenAPIV3_1 } from 'openapi-types'
 import type { OasRefData } from './ref-types.ts'
-import type { ParseContext } from '@/context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasRef } from './Ref.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 
 type ToRefV31Args<T extends OasRefData['refType']> = {
   ref: OpenAPIV3_1.ReferenceObject
   refType: T
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toRefV31 = <T extends OasRefData['refType']>({

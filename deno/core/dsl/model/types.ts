@@ -1,4 +1,4 @@
-import type { GenerateContextType } from '@/context/types.ts'
+import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'

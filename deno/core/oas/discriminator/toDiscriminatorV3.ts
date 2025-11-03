@@ -1,11 +1,11 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '@/context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasDiscriminator } from './Discriminator.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 
 type ToDiscriminatorV3Args = {
   discriminator: OpenAPIV3.DiscriminatorObject | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toDiscriminatorV3 = ({

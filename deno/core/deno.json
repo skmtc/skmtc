@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.938",
+  "version": "0.0.939",
   "imports": {
     "@/": "./",
     "@std/assert": "jsr:@std/assert@^1.0.10",
@@ -32,7 +32,8 @@
     "./TypeSystem": "./types/TypeSystem.ts",
     "./refFns": "./helpers/refFns.ts",
     "./dsl": "./dsl/mod.ts",
-    "./context": "./context/types.ts",
+    "./generate": "./context/generateTypes.ts",
+    "./parse": "./context/parseTypes.ts",
     "./oas": "./oas/mod.ts"
   },
   "tasks": {

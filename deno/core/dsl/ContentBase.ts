@@ -1,5 +1,5 @@
-import type { GenerateContextType } from '@/context/types.ts'
-import type { RegisterArgs } from '@/context/types.ts'
+import type { GenerateContextType } from '../context/generateTypes.ts'
+import type { RegisterArgs } from '../context/generateTypes.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
 
 /**

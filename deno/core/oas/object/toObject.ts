@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasObject } from './Object.ts'
 import { toOptionalSchemasV3 } from '../schema/toSchemasV3.ts'
 import { toAdditionalPropertiesV3 } from './toAdditionalPropertiesV3.ts'
@@ -10,7 +10,7 @@ import { tracer } from '@/helpers/tracer.ts'
 
 type ToObjectArgs = {
   value: OpenAPIV3.SchemaObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
@@ -50,7 +50,7 @@ export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
 
 type ToParsedObjectArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
-  context: ParseContext
+  context: ParseContextType
   nullable: Nullable
   example: Nullable extends true
     ? Record<string, unknown> | null | undefined
@@ -118,7 +118,7 @@ const toParsedObject = <Nullable extends boolean | undefined>({
 
 type ParseExampleArgs = {
   example: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }

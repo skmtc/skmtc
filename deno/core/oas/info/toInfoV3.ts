@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasInfo } from './Info.ts'
 import { toContactV3 } from '../contact/toContactV3.ts'
 import { toLicenseV3 } from '../license/toLicenseV3.ts'
@@ -7,7 +7,7 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 
 type ToInfoV3Args = {
   info: OpenAPIV3.InfoObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toInfoV3 = ({ info, context }: ToInfoV3Args): OasInfo => {

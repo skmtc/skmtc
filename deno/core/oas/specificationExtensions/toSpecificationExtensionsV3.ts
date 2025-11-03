@@ -1,11 +1,11 @@
-import type { ParseContext } from '@/context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 
 type ToSpecificationExtensionsV3Args = {
   skipped: Record<string, unknown>
   parent: unknown
   parentType: string
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toSpecificationExtensionsV3 = ({

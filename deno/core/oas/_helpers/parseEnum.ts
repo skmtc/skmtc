@@ -1,13 +1,12 @@
-import type { ParseContext } from '@skmtc/core'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 type ParseEnumArgs = {
   value: unknown
-
   nullable: boolean | undefined
   parent: unknown
   check: (item: unknown) => boolean
   toMessage: (item: unknown) => string
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const parseEnum = ({

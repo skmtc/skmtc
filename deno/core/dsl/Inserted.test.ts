@@ -4,7 +4,7 @@ import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { Definition } from '@/dsl/Definition.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import type { GenerateContextType } from '@/context/types.ts'
+import type { GenerateContextType } from '../context/generateTypes.ts'
 
 // Minimal mock context for testing
 const mockContext = {} as GenerateContextType

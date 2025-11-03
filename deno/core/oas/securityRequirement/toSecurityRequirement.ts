@@ -1,9 +1,9 @@
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasSecurityRequirement } from './SecurityRequirement.ts'
 
 type ToSecurityRequirementsV3Args = {
   security: Record<string, string[]>[] | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toSecurityRequirementsV3 = ({

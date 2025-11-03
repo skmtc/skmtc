@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Arguments for parsing the nullable property from OpenAPI schemas.
@@ -10,7 +10,7 @@ export type ParseNullableArgs<Value extends OpenAPIV3.SchemaObject> = {
   /** The OpenAPI schema object containing the nullable property */
   value: Value
   /** Parse context for error handling */
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**

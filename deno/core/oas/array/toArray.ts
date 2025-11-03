@@ -1,7 +1,7 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { OasArray } from './Array.ts'
-import { toSchemaV3 } from '../schema/toSchemasV3.ts'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import { toSchemaV3 } from '@/oas/schema/toSchemasV3.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
@@ -10,7 +10,7 @@ import { oasArrayDataWithoutItems } from './array-types.ts'
 import { tracer } from '../../helpers/tracer.ts'
 type ToArrayArgs = {
   value: OpenAPIV3.ArraySchemaObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 /**
@@ -122,7 +122,7 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
 
 type ToParsedArrayArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.ArraySchemaObject, 'nullable' | 'example' | 'enums' | 'default'>
-  context: ParseContext
+  context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined
   enums: Nullable extends true ? (unknown[] | null)[] | undefined : unknown[] | undefined
@@ -190,7 +190,7 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
 
 type ParseExampleArgs = {
   example: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }
@@ -220,7 +220,7 @@ const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) 
 
 type ParseDefaultArgs = {
   defaultValue: unknown
-  context: ParseContext
+  context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
 }

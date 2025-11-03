@@ -1,5 +1,5 @@
 import type { ModelInsertable } from './types.ts'
-import type { GenerateContextType } from '@/context/types.ts'
+import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import { Definition } from '@/dsl/Definition.ts'

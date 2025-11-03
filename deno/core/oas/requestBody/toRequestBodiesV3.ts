@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isRef } from '../../helpers/refFns.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'
 import { toMediaTypeItemsV3 } from '../mediaType/toMediaTypeItemV3.ts'
@@ -11,7 +11,7 @@ import { tracer } from '@/helpers/tracer.ts'
 type ToRequestBodyV3Args = {
   requestBody: OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject | undefined
   forceRef?: boolean
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toRequestBodyV3 = ({
@@ -49,7 +49,7 @@ export const toRequestBodyV3 = ({
 
 type ToRequestBodiesV3Args = {
   requestBodies: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject> | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toRequestBodiesV3 = ({

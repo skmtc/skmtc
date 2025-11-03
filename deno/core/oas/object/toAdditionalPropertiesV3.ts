@@ -1,12 +1,12 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '../../context/ParseContext.ts'
-import { toSchemaV3 } from '../schema/toSchemasV3.ts'
-import type { OasSchema } from '../schema/Schema.ts'
-import type { OasRef } from '../ref/Ref.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import { toSchemaV3 } from '@/oas/schema/toSchemasV3.ts'
+import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
 
 type ToAdditionalPropertiesV3Args = {
   additionalProperties: boolean | OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toAdditionalPropertiesV3 = ({

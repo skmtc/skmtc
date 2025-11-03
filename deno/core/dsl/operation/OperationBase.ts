@@ -9,7 +9,7 @@ import type {
   InsertNormalisedModelReturn,
   BaseRegisterArgs,
   GenerateContextType
-} from '@/context/types.ts'
+} from '../../context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { ContentBase } from '@/dsl/ContentBase.ts'

@@ -1,4 +1,4 @@
-import type { ParseContext } from '../../context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isRef } from '../../helpers/refFns.ts'
 import {
   oasParameterLocation,
@@ -21,7 +21,7 @@ import invariant from 'tiny-invariant'
 import { tracer } from '@/helpers/tracer.ts'
 type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toParameterListV3 = ({
@@ -39,7 +39,7 @@ export const toParameterListV3 = ({
 
 type ToParametersV3Args = {
   parameters: Record<string, OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject>
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toParametersV3 = ({
@@ -68,7 +68,7 @@ export const toParametersV3 = ({
 
 type ToOptionalParametersV3Args = {
   parameters: Record<string, OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject> | undefined
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toOptionalParametersV3 = ({
@@ -84,7 +84,7 @@ export const toOptionalParametersV3 = ({
 
 type ToParameterV3Args = {
   parameter: OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject
-  context: ParseContext
+  context: ParseContextType
 }
 
 const toParameterV3 = ({

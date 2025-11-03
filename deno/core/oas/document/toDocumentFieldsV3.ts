@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ParseContext } from '@/context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toTagsV3 } from '@/oas/tag/toTagsV3.ts'
 import { toOperationsV3 } from '@/oas/operation/toOperationsV3.ts'
 import { toComponentsV3 } from '@/oas/components/toComponentsV3.ts'
@@ -13,7 +13,7 @@ import { toExternalDocs } from '@/oas/externalDocs/toExternalDocs.ts'
 
 type ToDocumentV3Args = {
   documentObject: OpenAPIV3.Document
-  context: ParseContext
+  context: ParseContextType
 }
 
 export const toDocumentFieldsV3 = ({
