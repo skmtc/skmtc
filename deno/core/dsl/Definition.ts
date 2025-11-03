@@ -1,4 +1,4 @@
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import { ContentBase } from '@/dsl/ContentBase.ts'
 import { withDescription } from '@/typescript/withDescription.ts'
@@ -11,7 +11,7 @@ import type { GeneratedValue } from './GeneratedValue.ts'
  */
 type ConstructorArgs<V extends GeneratedValue> = {
   /** The generation context providing pipeline access */
-  context: GenerateContext
+  context: GenerateContextType
   /** Optional description for JSDoc comments */
   description?: string
   /** The identifier for this definition */

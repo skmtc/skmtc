@@ -1,5 +1,4 @@
 import { normalize } from '@std/path/normalize'
-import type { ImportNameArg } from '../dsl/Import.ts'
 import { Import } from '../dsl/Import.ts'
 import { Definition } from '../dsl/Definition.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
@@ -74,21 +73,6 @@ export type ApplyPackageImportsArgs = {
   destinationPath: string
   /** The export path for the module being imported */
   exportPath: string
-}
-
-/**
- * Base arguments for registering generated content in the generation context.
- *
- * Provides the fundamental configuration options for registering imports,
- * re-exports, and definitions that will be included in generated files.
- */
-export type BaseRegisterArgs = {
-  /** Import statements to include, organized by module path */
-  imports?: Record<string, ImportNameArg[]>
-  /** Re-export statements to include, organized by module path */
-  reExports?: Record<string, Identifier[]>
-  /** Definition objects to include in the generated content */
-  definitions?: (Definition | undefined)[]
 }
 
 /**

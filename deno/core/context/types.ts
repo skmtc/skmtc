@@ -18,6 +18,7 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { File } from '@/dsl/File.ts'
+import type { ClientSettings } from '@/types/Settings.ts'
 
 /**
  * Options for inserting an operation into the generation context.
@@ -73,6 +74,21 @@ export type RenderResult = {
   mappings: Record<string, Record<string, Mapping>>
   /** Hierarchical results tracking */
   results: ResultsItem
+}
+
+/**
+ * Base arguments for registering generated content in the generation context.
+ *
+ * Provides the fundamental configuration options for registering imports,
+ * re-exports, and definitions that will be included in generated files.
+ */
+export type BaseRegisterArgs = {
+  /** Import statements to include, organized by module path */
+  imports?: Record<string, ImportNameArg[]>
+  /** Re-export statements to include, organized by module path */
+  reExports?: Record<string, Identifier[]>
+  /** Definition objects to include in the generated content */
+  definitions?: (Definition | undefined)[]
 }
 
 /**
@@ -252,6 +268,8 @@ export type InsertNormalisedModelReturn<
     : Definition<TypeSystemOutput<SchemaToNonRef<Schema>['type']>>
 
 export type GenerateContextType = {
+  settings: ClientSettings | undefined
+  modelDepth: Record<string, number>
   toArtifacts: () => GenerateResult
   trace: <T>(token: string, fn: () => T) => T
   defineAndRegister: <V extends GeneratedValue>({

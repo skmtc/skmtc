@@ -1,4 +1,4 @@
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
@@ -13,7 +13,7 @@ import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
 export type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
-  context: GenerateContext
+  context: GenerateContextType
   refName: RefName
   settings: ContentSettings<EnrichmentType>
   destinationPath: string
@@ -35,7 +35,7 @@ export type WithTransformModel = {
  */
 export type ToModelEnrichmentsArgs = {
   refName: RefName
-  context: GenerateContext
+  context: GenerateContextType
 }
 
 /**
@@ -44,7 +44,7 @@ export type ToModelEnrichmentsArgs = {
  * @template Acc - Accumulator type for collecting transformation results
  */
 export type TransformModelArgs<Acc> = {
-  context: GenerateContext
+  context: GenerateContextType
   refName: RefName
   acc: Acc | undefined
 }
@@ -56,7 +56,7 @@ export type TransformModelArgs<Acc> = {
  * without full code generation.
  */
 export type ToModelPreviewModuleArgs = {
-  context: GenerateContext
+  context: GenerateContextType
   refName: RefName
 }
 
@@ -67,7 +67,7 @@ export type ToModelPreviewModuleArgs = {
  * enabling cross-references and dependency analysis.
  */
 export type ToModelMappingArgs = {
-  context: GenerateContext
+  context: GenerateContextType
   refName: RefName
 }
 

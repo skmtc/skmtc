@@ -1,6 +1,6 @@
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
@@ -11,7 +11,7 @@ import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
 export type OperationInsertableArgs<EnrichmentType = undefined> = {
-  context: GenerateContext
+  context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
 }
@@ -22,7 +22,7 @@ export type OperationInsertableArgs<EnrichmentType = undefined> = {
  * @template Acc - Accumulator type for collecting transformation results
  */
 export type TransformOperationArgs<Acc> = {
-  context: GenerateContext
+  context: GenerateContextType
   operation: OasOperation
   acc: Acc | undefined
 }
@@ -43,7 +43,7 @@ export type WithTransformOperation = {
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
 export type IsSupportedOperationConfigArgs<EnrichmentType = undefined> = {
-  context: GenerateContext
+  context: GenerateContextType
   operation: OasOperation
   enrichments: EnrichmentType
 }
@@ -52,7 +52,7 @@ export type IsSupportedOperationConfigArgs<EnrichmentType = undefined> = {
  * Arguments for checking if an operation is supported for code generation.
  */
 export type IsSupportedOperationArgs = {
-  context: GenerateContext
+  context: GenerateContextType
   operation: OasOperation
 }
 
@@ -61,7 +61,7 @@ export type IsSupportedOperationArgs = {
  */
 export type ToOperationEnrichmentsArgs = {
   operation: OasOperation
-  context: GenerateContext
+  context: GenerateContextType
 }
 
 /**
@@ -71,7 +71,7 @@ export type ToOperationEnrichmentsArgs = {
  * without full code generation.
  */
 export type ToOperationPreviewModuleArgs = {
-  context: GenerateContext
+  context: GenerateContextType
   operation: OasOperation
 }
 
@@ -82,7 +82,7 @@ export type ToOperationPreviewModuleArgs = {
  * enabling cross-references and dependency analysis.
  */
 export type ToOperationMappingArgs = {
-  context: GenerateContext
+  context: GenerateContextType
   operation: OasOperation
 }
 
@@ -109,7 +109,7 @@ export type OperationInsertable<V, EnrichmentType = undefined> = { prototype: V 
  * Arguments for checking if an operation is supported for generation.
  */
 export type IsSupportedArgs = {
-  context: GenerateContext
+  context: GenerateContextType
   operation: OasOperation
 }
 

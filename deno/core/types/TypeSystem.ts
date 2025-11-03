@@ -1,12 +1,12 @@
-import type { OasRef } from '../oas/ref/Ref.ts'
-import type { OasSchema } from '../oas/schema/Schema.ts'
-import type { Modifiers } from './Modifiers.ts'
-import type { Stringable } from '../dsl/Stringable.ts'
-import type { GenerateContext } from '../context/GenerateContext.ts'
-import type { CustomValue } from './CustomValue.ts'
-import type { OasVoid } from '../oas/void/Void.ts'
-import type { GeneratorKey } from '../dsl/GeneratorKeys.ts'
-import type { RefName } from './RefName.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { Modifiers } from '@/types/Modifiers.ts'
+import type { Stringable } from '@/dsl/Stringable.ts'
+import type { GenerateContextType } from '@/context/types.ts'
+import type { CustomValue } from '@/types/CustomValue.ts'
+import type { OasVoid } from '@/oas/void/Void.ts'
+import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 /**
  * Union type representing all possible type system values in the SKMTC code generation system.
@@ -571,7 +571,7 @@ export type TypeSystemOutput<T extends keyof SchemaToTypeSystemMap> =
  */
 export type TypeSystemArgs<Schema extends SchemaType> = {
   /** The generation context containing utilities and state */
-  context: GenerateContext
+  context: GenerateContextType
   /** The destination path for the generated artifact */
   destinationPath: string
   /** The schema to transform */

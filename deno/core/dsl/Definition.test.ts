@@ -2,10 +2,10 @@ import { assertEquals } from '@std/assert/equals'
 import { Definition } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 
 // Minimal mock context for testing
-const mockContext = {} as GenerateContext
+const mockContext = {} as GenerateContextType
 const testGeneratorKey = toGeneratorOnlyKey({ generatorId: 'test' })
 
 Deno.test('Definition - creates type definition with export', () => {
@@ -18,10 +18,7 @@ Deno.test('Definition - creates type definition with export', () => {
     }
   })
 
-  assertEquals(
-    definition.toString(),
-    'export type User = { id: string; name: string; };\n'
-  )
+  assertEquals(definition.toString(), 'export type User = { id: string; name: string; };\n')
 })
 
 Deno.test('Definition - creates const definition with type annotation', () => {
@@ -34,10 +31,7 @@ Deno.test('Definition - creates const definition with type annotation', () => {
     }
   })
 
-  assertEquals(
-    definition.toString(),
-    'export const API_URL: string = "https://api.example.com";\n'
-  )
+  assertEquals(definition.toString(), 'export const API_URL: string = "https://api.example.com";\n')
 })
 
 Deno.test('Definition - creates definition without type annotation', () => {
@@ -66,7 +60,7 @@ Deno.test('Definition - creates definition with JSDoc description', () => {
 
   assertEquals(
     definition.toString(),
-    '/** Possible status values */\nexport type Status = \'pending\' | \'complete\' | \'failed\';\n'
+    "/** Possible status values */\nexport type Status = 'pending' | 'complete' | 'failed';\n"
   )
 })
 

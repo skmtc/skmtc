@@ -1,5 +1,5 @@
 import { toOperationGeneratorKey } from '../GeneratorKeys.ts'
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import { OperationBase } from '@/dsl/operation/OperationBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
@@ -29,7 +29,7 @@ export type BaseOperationConfig<EnrichmentType = undefined> = {
 
 type ToEnrichmentsArgs = {
   operation: OasOperation
-  context: GenerateContext
+  context: GenerateContextType
 }
 
 /**

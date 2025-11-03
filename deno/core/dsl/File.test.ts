@@ -3,10 +3,10 @@ import { File, normaliseModuleName } from './File.ts'
 import { Definition } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 
 // Minimal mock context for testing
-const mockContext = {} as GenerateContext
+const mockContext = {} as GenerateContextType
 const testGeneratorKey = toGeneratorOnlyKey({ generatorId: 'test' })
 
 Deno.test('normaliseModuleName - uses appRoot for internal imports when provided', () => {
@@ -24,15 +24,18 @@ Deno.test('normaliseModuleName - uses appRoot for internal imports when provided
   assertEquals(normalisedModuleName, '@/some/item.ts')
 })
 
-Deno.test('normaliseModuleName - uses full path for internal imports when appRoot is not provided', () => {
-  const normalisedModuleName = normaliseModuleName({
-    destinationPath: '@/apps/dashboard/src/components/component.ts',
-    exportPath: '@/apps/dashboard/src/some/item.ts',
-    packages: undefined
-  })
+Deno.test(
+  'normaliseModuleName - uses full path for internal imports when appRoot is not provided',
+  () => {
+    const normalisedModuleName = normaliseModuleName({
+      destinationPath: '@/apps/dashboard/src/components/component.ts',
+      exportPath: '@/apps/dashboard/src/some/item.ts',
+      packages: undefined
+    })
 
-  assertEquals(normalisedModuleName, '@/apps/dashboard/src/some/item.ts')
-})
+    assertEquals(normalisedModuleName, '@/apps/dashboard/src/some/item.ts')
+  }
+)
 
 Deno.test('normaliseModuleName - uses module name for external imports when provided', () => {
   const normalisedModuleName = normaliseModuleName({
@@ -117,8 +120,8 @@ Deno.test('File - generates file with re-exports', () => {
   })
 
   file.reExports.set('./models', {
-    'type': new Set(['User', 'Product']),
-    'const': new Set(['DEFAULT_CONFIG'])
+    type: new Set(['User', 'Product']),
+    const: new Set(['DEFAULT_CONFIG'])
   })
 
   const output = file.toString()

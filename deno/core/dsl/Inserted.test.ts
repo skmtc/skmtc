@@ -4,10 +4,10 @@ import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { Definition } from '@/dsl/Definition.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 
 // Minimal mock context for testing
-const mockContext = {} as GenerateContext
+const mockContext = {} as GenerateContextType
 const testGeneratorKey = toGeneratorOnlyKey({ generatorId: 'test' })
 
 Deno.test('Inserted - toName returns identifier name', () => {

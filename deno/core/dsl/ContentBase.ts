@@ -1,4 +1,4 @@
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 import type { RegisterArgs } from '@/context/types.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
 
@@ -7,7 +7,7 @@ import type { GeneratorKey } from './GeneratorKeys.ts'
  */
 type ContentBaseArgs = {
   /** The generation context providing OAS objects and utilities */
-  context: GenerateContext
+  context: GenerateContextType
   /** Optional generator key for tracking and identification */
   generatorKey?: GeneratorKey
 }
@@ -82,7 +82,7 @@ type ContentBaseArgs = {
  */
 export class ContentBase {
   /** The generation context providing access to OAS objects and utilities */
-  context: GenerateContext
+  context: GenerateContextType
 
   /** Whether this generator has been skipped */
   skipped: boolean = false

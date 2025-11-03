@@ -1,4 +1,4 @@
-import type { BaseRegisterArgs, GenerateContext } from '@/context/GenerateContext.ts'
+import type { BaseRegisterArgs, GenerateContextType } from '@/context/types.ts'
 import type {
   InsertModelOptions,
   InsertNormalisedModelArgs,
@@ -22,7 +22,7 @@ import type { OasVoid } from '@/oas/void/Void.ts'
  */
 export type ModelBaseArgs<EnrichmentType = undefined> = {
   /** The generation context providing access to the processing pipeline */
-  context: GenerateContext
+  context: GenerateContextType
   /** Content settings including export path and enrichment configuration */
   settings: ContentSettings<EnrichmentType>
   /** Unique identifier for this generator type */

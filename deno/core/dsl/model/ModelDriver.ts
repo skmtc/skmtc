@@ -1,5 +1,5 @@
 import type { ModelInsertable } from './types.ts'
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import { Definition } from '@/dsl/Definition.ts'
@@ -10,7 +10,7 @@ import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 
 type CreateModelArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
-  context: GenerateContext
+  context: GenerateContextType
   insertable: ModelInsertable<V, EnrichmentType>
   refName: RefName
   generation?: T
@@ -38,7 +38,7 @@ type GetDefinitionArgs = {
  */
 export class ModelDriver<V extends GeneratedValue, T extends GenerationType, EnrichmentType> {
   /** The generation context */
-  context: GenerateContext
+  context: GenerateContextType
   /** The insertable model configuration */
   insertable: ModelInsertable<V, EnrichmentType>
   /** Reference name for the model */

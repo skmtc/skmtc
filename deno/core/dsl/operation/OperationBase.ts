@@ -1,13 +1,14 @@
 import type { OperationInsertable } from './types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { BaseRegisterArgs, GenerateContext } from '@/context/GenerateContext.ts'
 import type {
   DefineAndRegisterArgs,
   InsertOperationOptions,
   InsertModelOptions,
   InsertNormalisedModelArgs,
-  InsertNormalisedModelReturn
+  InsertNormalisedModelReturn,
+  BaseRegisterArgs,
+  GenerateContextType
 } from '@/context/types.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
@@ -27,7 +28,7 @@ import type { OasVoid } from '@/oas/void/Void.ts'
  */
 export type OperationBaseArgs<EnrichmentType = undefined> = {
   /** The generation context providing access to the processing pipeline */
-  context: GenerateContext
+  context: GenerateContextType
   /** Content settings including export path and enrichment configuration */
   settings: ContentSettings<EnrichmentType>
   /** Unique identifier for this generator type */

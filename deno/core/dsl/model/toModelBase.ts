@@ -1,4 +1,4 @@
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -15,7 +15,7 @@ import get from 'lodash-es/get'
  */
 export type ModelInsertableArgs<EnrichmentType = undefined> = {
   /** The generation context providing access to OAS objects and utilities */
-  context: GenerateContext
+  context: GenerateContextType
   /** Content settings for customizing model generation behavior */
   settings: ContentSettings<EnrichmentType>
   /** Reference name identifying the model schema */
@@ -24,7 +24,7 @@ export type ModelInsertableArgs<EnrichmentType = undefined> = {
 
 type ToEnrichmentsArgs = {
   refName: RefName
-  context: GenerateContext
+  context: GenerateContextType
 }
 
 /**

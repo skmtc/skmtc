@@ -7,14 +7,14 @@ import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition, GenerationType } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import { toOperationGeneratorKey } from '../GeneratorKeys.ts'
-import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { GenerateContextType } from '@/context/types.ts'
 
 type CreateOperationArgs<
   V extends GeneratedValue,
   T extends GenerationType,
   EnrichmentType = undefined
 > = {
-  context: GenerateContext
+  context: GenerateContextType
   insertable: OperationInsertable<V, EnrichmentType>
   operation: OasOperation
   generation?: T
@@ -68,7 +68,7 @@ export class OperationDriver<
   EnrichmentType = undefined
 > {
   /** The generation context providing access to OAS objects and utilities */
-  context: GenerateContext
+  context: GenerateContextType
   /** The insertable object that provides generation configuration */
   insertable: OperationInsertable<V, EnrichmentType>
   /** The OpenAPI operation object being processed */
