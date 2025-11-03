@@ -1,17 +1,16 @@
 import type { OperationInsertable } from './types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
+import type { BaseRegisterArgs, GenerateContext } from '@/context/GenerateContext.ts'
 import type {
-  BaseRegisterArgs,
-  GenerateContext,
   DefineAndRegisterArgs,
   InsertOperationOptions,
   InsertModelOptions,
   InsertNormalisedModelArgs,
   InsertNormalisedModelReturn
-} from '@/context/GenerateContext.ts'
-import type { GeneratedValue } from '@/types/GeneratedValue.ts'
-import type { GeneratorKey } from '@/types/GeneratorKeys.ts'
+} from '@/context/types.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { ContentBase } from '@/dsl/ContentBase.ts'
 import type { Definition } from '@/dsl/Definition.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'

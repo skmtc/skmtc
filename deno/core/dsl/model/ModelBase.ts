@@ -1,12 +1,11 @@
+import type { BaseRegisterArgs, GenerateContext } from '@/context/GenerateContext.ts'
 import type {
-  BaseRegisterArgs,
-  GenerateContext,
   InsertModelOptions,
   InsertNormalisedModelArgs,
   InsertNormalisedModelReturn
-} from '@/context/GenerateContext.ts'
-import type { GeneratedValue } from '@/types/GeneratedValue.ts'
-import type { GeneratorKey } from '@/types/GeneratorKeys.ts'
+} from '@/context/types.ts'
+import type { GeneratedValue } from '../GeneratedValue.ts'
+import type { GeneratorKey } from '../GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { ModelInsertable } from '@/dsl/model/types.ts'

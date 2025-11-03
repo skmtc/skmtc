@@ -5,28 +5,28 @@ import type { Stringable } from '../dsl/Stringable.ts'
 import type { GenerateContext } from '../context/GenerateContext.ts'
 import type { CustomValue } from './CustomValue.ts'
 import type { OasVoid } from '../oas/void/Void.ts'
-import type { GeneratorKey } from './GeneratorKeys.ts'
+import type { GeneratorKey } from '../dsl/GeneratorKeys.ts'
 import type { RefName } from './RefName.ts'
 
 /**
  * Union type representing all possible type system values in the SKMTC code generation system.
- * 
+ *
  * The `TypeSystemValue` represents the normalized intermediate representation used by SKMTC
  * to convert OpenAPI schemas into target language types. This type system abstracts away
  * OpenAPI-specific details and provides a consistent interface for generating code in
  * different target languages and frameworks.
- * 
+ *
  * ## Type Categories
- * 
+ *
  * - **Primitive Types**: `string`, `number`, `integer`, `boolean`, `null`
  * - **Complex Types**: `array`, `object`, `union`
  * - **Special Types**: `void`, `never`, `unknown`, `custom`
  * - **Reference Types**: `ref` for schema references
- * 
+ *
  * @example Discriminated union usage
  * ```typescript
  * import { TypeSystemValue } from '@skmtc/core';
- * 
+ *
  * function processType(type: TypeSystemValue): string {
  *   switch (type.type) {
  *     case 'string':
@@ -42,7 +42,7 @@ import type { RefName } from './RefName.ts'
  *   }
  * }
  * ```
- * 
+ *
  * @example In generator contexts
  * ```typescript
  * class TypeScriptGenerator {
@@ -52,11 +52,11 @@ import type { RefName } from './RefName.ts'
  *         .map(member => this.generateType(member))
  *         .join(' | ');
  *     }
- *     
+ *
  *     if (typeValue.type === 'array') {
  *       return `${this.generateType(typeValue.items)}[]`;
  *     }
- *     
+ *
  *     // Handle other types...
  *     return typeValue.type;
  *   }
@@ -80,11 +80,11 @@ export type TypeSystemValue =
 
 /**
  * Type system representation of a reference to another schema.
- * 
+ *
  * `TypeSystemRef` represents references to other schemas, typically used for
  * complex types that are defined elsewhere in the schema and referenced
  * through `$ref` in OpenAPI specifications.
- * 
+ *
  * @example
  * ```typescript
  * const userRef: TypeSystemRef = {
@@ -108,11 +108,11 @@ export type TypeSystemRef = {
 
 /**
  * Type system representation for custom, generator-specific types.
- * 
+ *
  * `TypeSystemCustom` allows generators to inject custom type representations
  * that don't fit into standard OpenAPI types. The value is a `Stringable`
  * that will be rendered directly in the generated code.
- * 
+ *
  * @example
  * ```typescript
  * const customType: TypeSystemCustom = {
@@ -133,7 +133,7 @@ export type TypeSystemCustom = {
 
 /**
  * Type system representation of array types.
- * 
+ *
  * @example
  * ```typescript
  * const stringArray: TypeSystemArray = {
@@ -156,7 +156,7 @@ export type TypeSystemArray = {
 
 /**
  * Type system representation of floating-point number types.
- * 
+ *
  * @example
  * ```typescript
  * const priceType: TypeSystemNumber = {
@@ -176,7 +176,7 @@ export type TypeSystemNumber = {
 
 /**
  * Type system representation of void types (no value).
- * 
+ *
  * @example
  * ```typescript
  * const voidType: TypeSystemVoid = {
@@ -193,7 +193,7 @@ export type TypeSystemVoid = {
 
 /**
  * Type system representation of never types (impossible values).
- * 
+ *
  * @example
  * ```typescript
  * const neverType: TypeSystemNever = {
@@ -210,7 +210,7 @@ export type TypeSystemNever = {
 
 /**
  * Type system representation of integer number types.
- * 
+ *
  * @example
  * ```typescript
  * const countType: TypeSystemInteger = {
@@ -230,7 +230,7 @@ export type TypeSystemInteger = {
 
 /**
  * Type system representation of boolean types.
- * 
+ *
  * @example
  * ```typescript
  * const flagType: TypeSystemBoolean = {
@@ -250,7 +250,7 @@ export type TypeSystemBoolean = {
 
 /**
  * Type system representation of unknown types.
- * 
+ *
  * @example
  * ```typescript
  * const unknownType: TypeSystemUnknown = {
@@ -267,7 +267,7 @@ export type TypeSystemUnknown = {
 
 /**
  * Type system representation of null types.
- * 
+ *
  * @example
  * ```typescript
  * const nullType: TypeSystemNull = {
@@ -284,7 +284,7 @@ export type TypeSystemNull = {
 
 /**
  * Type system representation of record types (key-value mappings).
- * 
+ *
  * @example
  * ```typescript
  * const recordType: TypeSystemRecord = {
@@ -301,7 +301,7 @@ export type TypeSystemRecord = {
 
 /**
  * Type system representation of object properties.
- * 
+ *
  * @example
  * ```typescript
  * const objectProps: TypeSystemObjectProperties = {
@@ -321,7 +321,7 @@ export type TypeSystemObjectProperties = {
 
 /**
  * Type system representation of string types.
- * 
+ *
  * @example
  * ```typescript
  * const emailString: TypeSystemString = {
@@ -330,7 +330,7 @@ export type TypeSystemObjectProperties = {
  *   enums: undefined,
  *   modifiers: { optional: false, nullable: false }
  * };
- * 
+ *
  * const statusEnum: TypeSystemString = {
  *   type: 'string',
  *   format: undefined,
@@ -354,7 +354,7 @@ export type TypeSystemString = {
 
 /**
  * Type system representation of union types.
- * 
+ *
  * @example
  * ```typescript
  * const stringOrNumber: TypeSystemUnion = {
@@ -366,7 +366,7 @@ export type TypeSystemString = {
  *   discriminator: undefined,
  *   modifiers: { optional: false, nullable: false }
  * };
- * 
+ *
  * const discriminatedUnion: TypeSystemUnion = {
  *   type: 'union',
  *   members: [userType, adminType, guestType],
@@ -390,10 +390,10 @@ export type TypeSystemUnion = {
 
 /**
  * Type system representation of object types.
- * 
+ *
  * Objects can have either fixed properties (objectProperties) or
  * dynamic key-value pairs (recordProperties), or both.
- * 
+ *
  * @example Fixed properties object
  * ```typescript
  * const userObject: TypeSystemObject = {
@@ -409,7 +409,7 @@ export type TypeSystemUnion = {
  *   modifiers: { optional: false, nullable: false }
  * };
  * ```
- * 
+ *
  * @example Record-like object
  * ```typescript
  * const configObject: TypeSystemObject = {
@@ -437,10 +437,10 @@ export type TypeSystemObject = {
 
 /**
  * Mapping of schema types to their type system representations.
- * 
+ *
  * This type maps OpenAPI schema types to their corresponding type system
  * value types, enabling type-safe transformations during code generation.
- * 
+ *
  * @example
  * ```typescript
  * // Used internally by the type system transformation process
@@ -501,7 +501,7 @@ export type SchemaToTypeSystemMap = {
 
 /**
  * Union of all possible schema types that can be transformed.
- * 
+ *
  * @example
  * ```typescript
  * function transformSchema(schema: SchemaType): TypeSystemValue {
@@ -514,7 +514,7 @@ export type SchemaType = OasSchema | OasRef<'schema'> | OasVoid | CustomValue
 
 /**
  * Extracts only reference types from a schema type.
- * 
+ *
  * @template Schema - The schema type to filter
  * @example
  * ```typescript
@@ -527,7 +527,7 @@ export type SchemaToRef<Schema extends SchemaType> =
 
 /**
  * Extracts only non-reference types from a schema type.
- * 
+ *
  * @template Schema - The schema type to filter
  * @example
  * ```typescript
@@ -540,7 +540,7 @@ export type SchemaToNonRef<Schema extends SchemaType> =
 
 /**
  * Gets the output type for a given schema type key.
- * 
+ *
  * @template T - The schema type key
  * @example
  * ```typescript
@@ -553,7 +553,7 @@ export type TypeSystemOutput<T extends keyof SchemaToTypeSystemMap> =
 
 /**
  * Arguments for type system transformation functions.
- * 
+ *
  * @template Schema - The specific schema type being transformed
  * @example
  * ```typescript
@@ -584,11 +584,11 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
 
 /**
  * Function type for transforming schemas to type system values.
- * 
+ *
  * @template Schema - The schema type being transformed
  * @param args - Transformation arguments
  * @returns The corresponding type system value
- * 
+ *
  * @example
  * ```typescript
  * const transformSchema: SchemaToValueFn = (args) => {

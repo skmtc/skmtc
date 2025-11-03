@@ -1,72 +1,72 @@
 /**
  * @fileoverview Generator Key System for SKMTC Core
- * 
+ *
  * This module provides a comprehensive type-safe key system for identifying and
  * organizing generated content within the SKMTC pipeline. Generator keys provide
  * unique identification for operations, models, and other generated artifacts,
  * ensuring proper organization and preventing collisions.
- * 
+ *
  * The key system uses branded types to ensure type safety and provides utilities
  * for creating, parsing, and manipulating keys throughout the generation process.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Type Safety**: Branded types prevent mixing different kinds of keys
  * - **Unique Identification**: Composite keys ensure global uniqueness
  * - **Parsing Utilities**: Safe extraction of components from composite keys
  * - **Generator Organization**: Clear mapping between generators and their artifacts
  * - **Reference Integration**: Seamless integration with OpenAPI reference system
- * 
+ *
  * @example Creating operation generator keys
  * ```typescript
  * import { toOperationGeneratorKey, parseOperationGeneratorKey } from '@skmtc/core/GeneratorKeys';
- * 
+ *
  * // Create a key for a GET /users operation in api-client generator
  * const key = toOperationGeneratorKey({
  *   generatorId: 'api-client',
  *   path: '/users',
  *   method: 'GET'
  * });
- * 
+ *
  * // Parse the key back into components
  * const parsed = parseOperationGeneratorKey(key);
  * console.log(parsed); // { generatorId: 'api-client', path: '/users', method: 'GET' }
  * ```
- * 
+ *
  * @example Working with model keys
  * ```typescript
  * import { toModelGeneratorKey } from '@skmtc/core/GeneratorKeys';
- * 
+ *
  * const modelKey = toModelGeneratorKey({
  *   generatorId: 'typescript-models',
  *   refName: 'User' as RefName
  * });
  * ```
- * 
+ *
  * @example Type-safe key handling
  * ```typescript
  * import type { OperationGeneratorKey, ModelGeneratorKey } from '@skmtc/core/GeneratorKeys';
- * 
+ *
  * function handleOperationKey(key: OperationGeneratorKey) {
  *   // TypeScript ensures this is specifically an operation key
  *   const parsed = parseOperationGeneratorKey(key);
  *   return `Processing ${parsed.method} ${parsed.path}`;
  * }
- * 
+ *
  * function handleModelKey(key: ModelGeneratorKey) {
  *   // TypeScript ensures this is specifically a model key
  *   const parsed = parseModelGeneratorKey(key);
  *   return `Processing model ${parsed.refName}`;
  * }
  * ```
- * 
+ *
  * @module GeneratorKeys
  */
 
-import type { OasOperation } from '../oas/operation/Operation.ts'
-import type { Brand } from './Brand.ts'
-import type { RefName } from './RefName.ts'
-import { type Method, isMethod } from './Method.ts'
+import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { Brand } from '@skmtc/core/Brand'
+import type { RefName } from '@skmtc/core/RefName'
+import { type Method, isMethod } from '@skmtc/core/Method'
 
 /**
  * Template literal type for operation generator keys before branding.
@@ -82,31 +82,25 @@ export type NakedModelGeneratorKey = `${string}|${string}`
 
 /**
  * Branded type for operation generator keys.
- * 
+ *
  * Operation generator keys uniquely identify generators that process
  * OpenAPI operations (HTTP methods on API paths). The key encodes
  * the generator ID, API path, and HTTP method.
  */
-export type OperationGeneratorKey = Brand<
-  NakedOperationGeneratorKey,
-  'OperationGeneratorKey'
->
+export type OperationGeneratorKey = Brand<NakedOperationGeneratorKey, 'OperationGeneratorKey'>
 
 /**
  * Branded type for model generator keys.
- * 
+ *
  * Model generator keys uniquely identify generators that process
  * OpenAPI schema models. The key encodes the generator ID and
  * the schema reference name.
  */
-export type ModelGeneratorKey = Brand<
-  NakedModelGeneratorKey,
-  'ModelGeneratorKey'
->
+export type ModelGeneratorKey = Brand<NakedModelGeneratorKey, 'ModelGeneratorKey'>
 
 /**
  * Branded type for generator-only keys.
- * 
+ *
  * Generator-only keys identify generators that don't process specific
  * operations or models, but generate global artifacts like configuration
  * files, base classes, or utility modules.
@@ -115,11 +109,11 @@ export type GeneratorOnlyKey = Brand<string, 'GeneratorOnlyKey'>
 
 /**
  * Union type of all possible generator key types.
- * 
+ *
  * Generator keys serve as unique identifiers for different types of
  * code generators in the SKMTC system. They enable tracking, caching,
  * and dependency management between generated artifacts.
- * 
+ *
  * @example
  * ```typescript
  * // Operation generator key
@@ -128,27 +122,24 @@ export type GeneratorOnlyKey = Brand<string, 'GeneratorOnlyKey'>
  *   path: '/users/{id}',
  *   method: 'get'
  * });
- * 
- * // Model generator key 
+ *
+ * // Model generator key
  * const modelKey: GeneratorKey = toModelGeneratorKey({
  *   generatorId: 'typescript-types',
  *   refName: 'User'
  * });
- * 
+ *
  * // Generator-only key
  * const globalKey: GeneratorKey = toGeneratorOnlyKey({
  *   generatorId: 'api-config'
  * });
  * ```
  */
-export type GeneratorKey =
-  | OperationGeneratorKey
-  | ModelGeneratorKey
-  | GeneratorOnlyKey
+export type GeneratorKey = OperationGeneratorKey | ModelGeneratorKey | GeneratorOnlyKey
 
 /**
  * Arguments for {@link toOperationGeneratorKey}.
- * 
+ *
  * Can specify operation details directly or provide an OasOperation
  * object from which the path and method will be extracted.
  */
@@ -170,13 +161,13 @@ type ToOperationGeneratorKeyArgs =
 
 /**
  * Creates an operation generator key from generator ID and operation details.
- * 
+ *
  * Operation generator keys uniquely identify generators processing specific
  * API operations. The key format is: `generatorId|path|method`
- * 
+ *
  * @param args - Operation generator key arguments
  * @returns A branded OperationGeneratorKey
- * 
+ *
  * @example With explicit path and method
  * ```typescript
  * const key = toOperationGeneratorKey({
@@ -186,7 +177,7 @@ type ToOperationGeneratorKeyArgs =
  * });
  * // Result: 'api-client|/users/{id}|get' (branded)
  * ```
- * 
+ *
  * @example With OasOperation object
  * ```typescript
  * const operation = new OasOperation({
@@ -194,7 +185,7 @@ type ToOperationGeneratorKeyArgs =
  *   method: 'post',
  *   // ... other operation details
  * });
- * 
+ *
  * const key = toOperationGeneratorKey({
  *   generatorId: 'rest-client',
  *   operation
@@ -225,13 +216,13 @@ type ToModelGeneratorKeyArgs = {
 
 /**
  * Creates a model generator key from generator ID and schema reference name.
- * 
+ *
  * Model generator keys uniquely identify generators processing specific
  * OpenAPI schema models. The key format is: `generatorId|refName`
- * 
+ *
  * @param args - Model generator key arguments
  * @returns A branded ModelGeneratorKey
- * 
+ *
  * @example
  * ```typescript
  * const key = toModelGeneratorKey({
@@ -239,9 +230,9 @@ type ToModelGeneratorKeyArgs = {
  *   refName: 'User'
  * });
  * // Result: 'typescript-interfaces|User' (branded)
- * 
+ *
  * const validationKey = toModelGeneratorKey({
- *   generatorId: 'zod-schemas', 
+ *   generatorId: 'zod-schemas',
  *   refName: 'CreateUserRequest'
  * });
  * // Result: 'zod-schemas|CreateUserRequest' (branded)
@@ -266,30 +257,28 @@ type ToGeneratorOnlyKeyArgs = {
 
 /**
  * Creates a generator-only key for global/utility generators.
- * 
+ *
  * Generator-only keys identify generators that produce artifacts not tied
  * to specific operations or models, such as configuration files, base classes,
  * utilities, or documentation.
- * 
+ *
  * @param args - Generator-only key arguments
  * @returns A branded GeneratorOnlyKey
- * 
+ *
  * @example
  * ```typescript
  * const configKey = toGeneratorOnlyKey({
  *   generatorId: 'api-config'
  * });
  * // Result: 'api-config' (branded)
- * 
+ *
  * const utilsKey = toGeneratorOnlyKey({
  *   generatorId: 'common-utilities'
  * });
  * // Result: 'common-utilities' (branded)
  * ```
  */
-export const toGeneratorOnlyKey = ({
-  generatorId
-}: ToGeneratorOnlyKeyArgs): GeneratorOnlyKey => {
+export const toGeneratorOnlyKey = ({ generatorId }: ToGeneratorOnlyKeyArgs): GeneratorOnlyKey => {
   const nakedKey: string = `${generatorId}`
 
   return nakedKey as GeneratorOnlyKey
@@ -297,17 +286,17 @@ export const toGeneratorOnlyKey = ({
 
 /**
  * Type guard to check if a value is a valid GeneratorKey.
- * 
+ *
  * This function validates that the argument is one of the three
  * generator key types: operation, model, or generator-only.
- * 
+ *
  * @param arg - Value to check
  * @returns True if the value is a valid GeneratorKey
- * 
+ *
  * @example
  * ```typescript
  * const key = 'api-client|/users|get';
- * 
+ *
  * if (isGeneratorKey(key)) {
  *   // key is now typed as GeneratorKey
  *   const generatorId = toGeneratorId(key);
@@ -316,27 +305,23 @@ export const toGeneratorOnlyKey = ({
  * ```
  */
 export const isGeneratorKey = (arg: unknown): arg is GeneratorKey => {
-  return (
-    isModelGeneratorKey(arg) ||
-    isOperationGeneratorKey(arg) ||
-    isGeneratorOnlyKey(arg)
-  )
+  return isModelGeneratorKey(arg) || isOperationGeneratorKey(arg) || isGeneratorOnlyKey(arg)
 }
 
 /**
  * Type guard to check if a value is a valid OperationGeneratorKey.
- * 
+ *
  * Validates that the argument is a string with the correct format:
  * `generatorId|path|method` where each part is non-empty and method
  * is a valid HTTP method.
- * 
+ *
  * @param arg - Value to check
  * @returns True if the value is a valid OperationGeneratorKey
- * 
+ *
  * @example
  * ```typescript
  * const key = 'api-client|/users/{id}|get';
- * 
+ *
  * if (isOperationGeneratorKey(key)) {
  *   // key is now typed as OperationGeneratorKey
  *   const obj = fromGeneratorKey(key);
@@ -347,9 +332,7 @@ export const isGeneratorKey = (arg: unknown): arg is GeneratorKey => {
  * }
  * ```
  */
-export const isOperationGeneratorKey = (
-  arg: unknown
-): arg is OperationGeneratorKey => {
+export const isOperationGeneratorKey = (arg: unknown): arg is OperationGeneratorKey => {
   if (typeof arg !== 'string') {
     return false
   }
@@ -379,17 +362,17 @@ export const isOperationGeneratorKey = (
 
 /**
  * Type guard to check if a value is a valid ModelGeneratorKey.
- * 
+ *
  * Validates that the argument is a string with the correct format:
  * `generatorId|refName` where both parts are non-empty strings.
- * 
+ *
  * @param arg - Value to check
  * @returns True if the value is a valid ModelGeneratorKey
- * 
+ *
  * @example
  * ```typescript
  * const key = 'zod-schemas|User';
- * 
+ *
  * if (isModelGeneratorKey(key)) {
  *   // key is now typed as ModelGeneratorKey
  *   const obj = fromGeneratorKey(key);
@@ -425,17 +408,17 @@ export const isModelGeneratorKey = (arg: unknown): arg is ModelGeneratorKey => {
 
 /**
  * Type guard to check if a value is a valid GeneratorOnlyKey.
- * 
+ *
  * Validates that the argument is a non-empty string. Generator-only keys
  * are simple strings containing just the generator ID.
- * 
+ *
  * @param arg - Value to check
  * @returns True if the value is a valid GeneratorOnlyKey
- * 
+ *
  * @example
  * ```typescript
  * const key = 'api-config';
- * 
+ *
  * if (isGeneratorOnlyKey(key)) {
  *   // key is now typed as GeneratorOnlyKey
  *   const obj = fromGeneratorKey(key);
@@ -454,15 +437,15 @@ export const isGeneratorOnlyKey = (arg: unknown): arg is GeneratorOnlyKey => {
 
 /**
  * Extracts the generator ID from any type of GeneratorKey.
- * 
+ *
  * This utility function parses the generator key to extract just the
  * generator identifier, regardless of the key type. For operation and
  * model keys, it extracts the first part before the pipe. For generator-only
  * keys, it returns the entire key since it's just the generator ID.
- * 
+ *
  * @param generatorKey - Any type of generator key
  * @returns The generator ID string
- * 
+ *
  * @example
  * ```typescript
  * const opKey = toOperationGeneratorKey({
@@ -471,13 +454,13 @@ export const isGeneratorOnlyKey = (arg: unknown): arg is GeneratorOnlyKey => {
  *   method: 'get'
  * });
  * console.log(toGeneratorId(opKey)); // 'api-client'
- * 
+ *
  * const modelKey = toModelGeneratorKey({
  *   generatorId: 'typescript-types',
  *   refName: 'User'
  * });
  * console.log(toGeneratorId(modelKey)); // 'typescript-types'
- * 
+ *
  * const globalKey = toGeneratorOnlyKey({
  *   generatorId: 'utilities'
  * });
@@ -498,7 +481,7 @@ export const toGeneratorId = (generatorKey: GeneratorKey): string => {
 
 /**
  * Object representation of a parsed GeneratorKey.
- * 
+ *
  * This discriminated union type represents the parsed components of any
  * generator key, making it easier to work with key data in a structured way.
  * The `type` field discriminates between the three key types.
@@ -531,50 +514,48 @@ export type GeneratorKeyObject =
 
 /**
  * Parses a GeneratorKey into its structured object representation.
- * 
+ *
  * This function decomposes any generator key into a structured object
  * with discriminated union types, making it easier to work with the
  * key components in a type-safe manner.
- * 
+ *
  * @param generatorKey - Any type of generator key to parse
  * @returns Parsed generator key object with discriminated type
- * 
+ *
  * @example Operation key parsing
  * ```typescript
  * const opKey = 'api-client|/users/{id}|get' as OperationGeneratorKey;
  * const parsed = fromGeneratorKey(opKey);
- * 
+ *
  * if (parsed.type === 'operation') {
  *   console.log(parsed.generatorId); // 'api-client'
  *   console.log(parsed.path);        // '/users/{id}'
  *   console.log(parsed.method);      // 'get'
  * }
  * ```
- * 
+ *
  * @example Model key parsing
  * ```typescript
  * const modelKey = 'zod-schemas|User' as ModelGeneratorKey;
  * const parsed = fromGeneratorKey(modelKey);
- * 
+ *
  * if (parsed.type === 'model') {
  *   console.log(parsed.generatorId); // 'zod-schemas'
  *   console.log(parsed.refName);     // 'User'
  * }
  * ```
- * 
+ *
  * @example Generator-only key parsing
  * ```typescript
  * const globalKey = 'utilities' as GeneratorOnlyKey;
  * const parsed = fromGeneratorKey(globalKey);
- * 
+ *
  * if (parsed.type === 'generator-only') {
  *   console.log(parsed.generatorId); // 'utilities'
  * }
  * ```
  */
-export const fromGeneratorKey = (
-  generatorKey: GeneratorKey
-): GeneratorKeyObject => {
+export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject => {
   if (isOperationGeneratorKey(generatorKey)) {
     const [generatorId, path, method] = generatorKey.split('|')
     return { type: 'operation', generatorId, path, method: method as Method }

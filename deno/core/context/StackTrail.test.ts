@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import { StackTrail } from './StackTrail.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
 
 // Constructor Tests
 Deno.test('StackTrail - constructor with empty array creates empty stack', () => {

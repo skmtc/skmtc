@@ -5,34 +5,44 @@ import { Definition } from '../dsl/Definition.ts'
 import type { OasDocument } from '../oas/document/Document.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
-import type { GetFileOptions } from './types.ts'
-import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '../types/Settings.ts'
-import type { Method } from '../types/Method.ts'
-import type { OperationConfig, OperationInsertable } from '../dsl/operation/types.ts'
-import type { OasOperation } from '../oas/operation/Operation.ts'
-import type { ModelConfig, ModelInsertable } from '../dsl/model/types.ts'
-import { OperationDriver } from '../dsl/operation/OperationDriver.ts'
-import { ModelDriver } from '../dsl/model/ModelDriver.ts'
-import type { GenerationType, GeneratedValue } from '../types/GeneratedValue.ts'
-import { ContentSettings } from '../dsl/ContentSettings.ts'
-import type { RefName } from '../types/RefName.ts'
-import type * as log from '@std/log'
-import type { Logger } from '../types/Logger.ts'
-import type { ResultType } from '../types/Results.ts'
-import type { StackTrail } from './StackTrail.ts'
-import { tracer } from '../helpers/tracer.ts'
-import type { Identifier } from '../dsl/Identifier.ts'
 import type {
-  SchemaToNonRef,
-  SchemaToValueFn,
-  SchemaType,
-  TypeSystemOutput
-} from '../types/TypeSystem.ts'
-import { Inserted } from '../dsl/Inserted.ts'
-import { File } from '../dsl/File.ts'
-import { JsonFile } from '../dsl/JsonFile.ts'
+  BuildModelSettingsArgs,
+  DefineAndRegisterArgs,
+  GenerateContextType,
+  GenerateResult,
+  GetFileOptions,
+  InsertModelOptions,
+  InsertNormalisedModelArgs,
+  InsertNormalisedModelOptions,
+  InsertNormalisedModelReturn,
+  InsertOperationOptions,
+  PickArgs,
+  RegisterArgs,
+  RegisterJsonArgs,
+  ToOperationSettingsArgs
+} from './types.ts'
+import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '@/types/Settings.ts'
+import type { Method } from '@/types/Method.ts'
+import type { OperationConfig, OperationInsertable } from '@/dsl/operation/types.ts'
+import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { ModelConfig, ModelInsertable } from '@/dsl/model/types.ts'
+import { OperationDriver } from '@/dsl/operation/OperationDriver.ts'
+import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
+import type { GenerationType, GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import { ContentSettings } from '@/dsl/ContentSettings.ts'
+import type { RefName } from '@/types/RefName.ts'
+import type * as log from '@std/log'
+import type { Logger } from '@/types/Logger.ts'
+import type { ResultType } from '@/types/Results.ts'
+import type { StackTrail } from './StackTrail.ts'
+import { tracer } from '@/helpers/tracer.ts'
+import type { Identifier } from '@/dsl/Identifier.ts'
+import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
+import { Inserted } from '@/dsl/Inserted.ts'
+import { File } from '@/dsl/File.ts'
+import { JsonFile } from '@/dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
-import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
+import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type {
   OperationSource,
   ModelSource,
@@ -40,9 +50,9 @@ import type {
   PreviewModule,
   MappingModule,
   Mapping
-} from '../types/Preview.ts'
+} from '@/types/Preview.ts'
 import { match } from 'ts-pattern'
-import type { OasVoid } from '../oas/void/Void.ts'
+import type { OasVoid } from '@/oas/void/Void.ts'
 
 type ConstructorArgs = {
   oasDocument: OasDocument
@@ -51,32 +61,6 @@ type ConstructorArgs = {
   stackTrail: StackTrail
   captureCurrentResult: (result: ResultType) => void
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-}
-
-/**
- * Arguments for picking a specific export from a generator module.
- *
- * Used to select and configure specific exports from generator modules
- * during the artifact generation process.
- */
-export type PickArgs = {
-  /** The name of the export to pick from the generator module */
-  name: string
-  /** The file path where the export should be made available */
-  exportPath: string
-}
-
-/**
- * Arguments for registering a JSON file in the generation context.
- *
- * Used to register JSON configuration files, manifests, or other JSON
- * data that should be included in the generated output artifacts.
- */
-export type RegisterJsonArgs = {
-  /** The destination file path where the JSON should be written */
-  destinationPath: string
-  /** The JSON object to write to the file */
-  json: Record<string, unknown>
 }
 
 /**
@@ -108,23 +92,6 @@ export type BaseRegisterArgs = {
 }
 
 /**
- * Arguments for registering generated content with a specific destination.
- *
- * Extends BaseRegisterArgs to include a destination path, allowing content
- * to be registered and associated with a specific output file location.
- */
-export type RegisterArgs = {
-  /** Import statements to include, organized by module path */
-  imports?: Record<string, ImportNameArg[]>
-  /** Re-export statements to include, organized by module path */
-  reExports?: Record<string, Identifier[]>
-  /** Definition objects to include in the generated content */
-  definitions?: (Definition | undefined)[]
-  /** The destination file path where the content should be registered */
-  destinationPath: string
-}
-
-/**
  * Arguments for creating and registering a definition from a schema.
  *
  * Used to transform OpenAPI schema objects into code definitions and
@@ -143,25 +110,6 @@ export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   schemaToValueFn: SchemaToValueFn
   /** Optional root reference name for the schema */
   rootRef?: RefName
-  /** Whether to exclude this definition from exports */
-  noExport?: boolean
-}
-
-/**
- * Arguments for defining and registering a value in the generation context.
- *
- * Used to create definitions from pre-generated values and register them
- * in the generation context for inclusion in output files.
- *
- * @template V - The generated value type extending GeneratedValue
- */
-export type DefineAndRegisterArgs<V extends GeneratedValue> = {
-  /** The identifier for the definition */
-  identifier: Identifier
-  /** The generated value to define */
-  value: V
-  /** The destination file path where the definition should be registered */
-  destinationPath: string
   /** Whether to exclude this definition from exports */
   noExport?: boolean
 }
@@ -210,86 +158,6 @@ export type ToModelSettingsArgs = {
 }
 
 /**
- * Options for inserting an operation into the generation context.
- *
- * Configures how an OpenAPI operation should be processed and
- * included in the generated code output.
- *
- * @template T - The generation type extending GenerationType
- */
-export type InsertOperationOptions<T extends GenerationType> = {
-  /** Whether to exclude this operation from exports */
-  noExport?: boolean
-  /** The type of generation to apply */
-  generation?: T
-  /** Custom destination path for the operation */
-  destinationPath?: string
-}
-
-/**
- * Arguments for inserting a normalized model into the generation context.
- *
- * Used to process and register OpenAPI schema objects as normalized
- * model definitions with fallback naming when schema names are unavailable.
- *
- * @template Schema - The schema type (OasSchema, OasRef, or OasVoid)
- */
-export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'> | OasVoid> = {
-  /** Fallback name to use if the schema doesn't have a name */
-  fallbackName: string
-  /** The OpenAPI schema to normalize and insert */
-  schema: Schema
-  /** The destination file path for the model */
-  destinationPath: string
-}
-
-/**
- * Options for inserting a normalized model.
- *
- * Configures how a normalized model should be processed and
- * included in the generated code output.
- */
-export type InsertNormalisedModelOptions = {
-  /** Whether to exclude this model from exports */
-  noExport?: boolean
-}
-
-/**
- * Return type for inserting a normalized model.
- *
- * Provides type-safe return values based on the schema type being processed.
- * Returns different Definition types depending on whether the schema is a
- * reference or a concrete schema.
- *
- * @template V - The generated value type
- * @template Schema - The schema type being processed
- */
-export type InsertNormalisedModelReturn<
-  V extends GeneratedValue,
-  Schema extends OasSchema | OasRef<'schema'> | OasVoid
-> =
-  Schema extends OasRef<'schema'>
-    ? Definition<V>
-    : Definition<TypeSystemOutput<SchemaToNonRef<Schema>['type']>>
-
-/**
- * Options for inserting a model into the generation context.
- *
- * Configures how a model should be processed and included in
- * the generated code output.
- *
- * @template T - The generation type extending GenerationType
- */
-export type InsertModelOptions<T extends GenerationType> = {
-  /** Whether to exclude this model from exports */
-  noExport?: boolean
-  /** The type of generation to apply */
-  generation?: T
-  /** Custom destination path for the model */
-  destinationPath?: string
-}
-
-/**
  * Return type for insert operations in the generation context.
  *
  * Represents the result of inserting content into the generation
@@ -304,34 +172,6 @@ export type InsertReturn<
   T extends GenerationType,
   EnrichmentType
 > = Inserted<V, T, EnrichmentType>
-
-/**
- * Arguments for generating operation content settings.
- *
- * @template V - The value type for the operation
- * @template EnrichmentType - Optional enrichment type for the operation
- */
-export type ToOperationSettingsArgs<V, EnrichmentType = undefined> = {
-  operation: OasOperation
-  insertable: OperationInsertable<V, EnrichmentType>
-}
-
-/**
- * Arguments for building model content settings.
- *
- * @template V - The value type for the model
- * @template EnrichmentType - Optional enrichment type for the model
- */
-export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
-  refName: RefName
-  insertable: ModelInsertable<V, EnrichmentType>
-}
-
-type GenerateResult = {
-  files: Map<string, File | JsonFile>
-  previews: Record<string, Record<string, Preview>>
-  mappings: Record<string, Record<string, Mapping>>
-}
 
 /**
  * The generation context for the second phase of the SKMTC transformation pipeline.
@@ -377,7 +217,7 @@ type GenerateResult = {
  * ```
  */
 
-export class GenerateContext {
+export class GenerateContext implements GenerateContextType {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
   #mappings: Record<string, Record<string, Mapping>>

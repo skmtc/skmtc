@@ -1,5 +1,5 @@
 import type { GenerateContext } from '@/context/GenerateContext.ts'
-import { toModelGeneratorKey } from '@/types/GeneratorKeys.ts'
+import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { ModelBase } from '@/dsl/model/ModelBase.ts'

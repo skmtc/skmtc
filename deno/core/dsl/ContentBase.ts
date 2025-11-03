@@ -1,6 +1,6 @@
 import type { GenerateContext } from '@/context/GenerateContext.ts'
-import type { RegisterArgs } from '@/context/GenerateContext.ts'
-import type { GeneratorKey } from '@/types/GeneratorKeys.ts'
+import type { RegisterArgs } from '@/context/types.ts'
+import type { GeneratorKey } from './GeneratorKeys.ts'
 
 /**
  * Constructor arguments for {@link ContentBase}.

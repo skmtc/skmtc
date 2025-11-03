@@ -4,9 +4,9 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import { Definition } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { GeneratedDefinition, GenerationType } from '@/types/GeneratedValue.ts'
-import type { GeneratedValue } from '@/types/GeneratedValue.ts'
-import { toOperationGeneratorKey } from '@/types/GeneratorKeys.ts'
+import type { GeneratedDefinition, GenerationType } from '../GeneratedValue.ts'
+import type { GeneratedValue } from '../GeneratedValue.ts'
+import { toOperationGeneratorKey } from '../GeneratorKeys.ts'
 import type { GenerateContext } from '@/context/GenerateContext.ts'
 
 type CreateOperationArgs<

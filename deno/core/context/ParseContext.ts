@@ -1,10 +1,10 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import { toDocumentFieldsV3 } from '../oas/document/toDocumentFieldsV3.ts'
-import { OasDocument } from '../oas/document/Document.ts'
-import type { Logger } from '../types/Logger.ts'
-import type { StackTrail } from './StackTrail.ts'
-import { tracer } from '../helpers/tracer.ts'
-import type { IssueType } from './types.ts'
+import { toDocumentFieldsV3 } from '@/oas/document/toDocumentFieldsV3.ts'
+import { OasDocument } from '@/oas/document/Document.ts'
+import type { Logger } from '@/types/Logger.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
+import { tracer } from '@/helpers/tracer.ts'
+import type { IssueType } from '@/context/types.ts'
 import type * as v from 'valibot'
 
 /**

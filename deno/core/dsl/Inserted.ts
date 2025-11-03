@@ -1,4 +1,4 @@
-import type { GeneratedDefinition, GeneratedValue, GenerationType } from '@/types/GeneratedValue.ts'
+import type { GeneratedDefinition, GeneratedValue, GenerationType } from './GeneratedValue.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 

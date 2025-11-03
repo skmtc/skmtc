@@ -1,4 +1,4 @@
-import type { GeneratedValue } from '@/types/GeneratedValue.ts'
+import type { GeneratedValue } from './GeneratedValue.ts'
 import { EMPTY } from '@/dsl/constants.ts'
 
 /**

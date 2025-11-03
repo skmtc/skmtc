@@ -1,4 +1,4 @@
-import { componentsKeys } from '../oas/components/Components.ts'
+import { componentsKeys } from '@/oas/components/Components.ts'
 
 export class StackTrail {
   /** Internal stack of traversal frames */

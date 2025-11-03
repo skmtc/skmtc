@@ -1,4 +1,4 @@
-import { toOperationGeneratorKey } from '@/types/GeneratorKeys.ts'
+import { toOperationGeneratorKey } from '../GeneratorKeys.ts'
 import type { GenerateContext } from '@/context/GenerateContext.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import { OperationBase } from '@/dsl/operation/OperationBase.ts'

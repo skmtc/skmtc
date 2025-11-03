@@ -4,10 +4,10 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import { Definition } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { GeneratedDefinition, GenerationType } from '../../types/GeneratedValue.ts'
-import type { GeneratedValue } from '@/types/GeneratedValue.ts'
+import type { GeneratedDefinition, GenerationType } from '../GeneratedValue.ts'
+import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
-import { toModelGeneratorKey } from '@/types/GeneratorKeys.ts'
+import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 
 type CreateModelArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
   context: GenerateContext
