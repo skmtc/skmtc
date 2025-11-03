@@ -35,8 +35,8 @@
   "tasks": {
     "build": "deno task --cwd=core build",
     "release": "deno check ./**/*.ts && deno task increment-patch && deno task publish",
-    "publish": "deno task --cwd=convert publish && deno task --cwd=core publish && deno task --cwd=cli publish && deno task --cwd=server publish",
-    "publish:deno:ga": "deno task --cwd=convert publish:deno:ga && deno task --cwd=core publish:deno:ga && deno task --cwd=cli publish:deno:ga && deno task --cwd=server publish:deno:ga",
+    "publish": "deno task --cwd=convert publish && deno task --cwd=core publish && deno task --cwd=worker publish && deno task --cwd=cli publish && deno task --cwd=server publish",
+    "publish:deno:ga": "deno task --cwd=convert publish:deno:ga && deno task --cwd=core publish:deno:ga && deno task --cwd=worker publish:deno:ga && deno task --cwd=cli publish:deno:ga && deno task --cwd=server publish:deno:ga",
     "increment-patch": "deno run --allow-read --allow-write .scripts/increment-patch.ts",
     "test:watch": "deno test --allow-all --watch",
     "test:coverage": "deno test --allow-all --coverage=coverage",

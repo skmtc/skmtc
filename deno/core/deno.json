@@ -20,6 +20,7 @@
     "./GeneratorKeys": "./types/GeneratorKeys.ts",
     "./Manifest": "./types/Manifest.ts",
     "./Method": "./types/Method.ts",
+    "./Modifiers": "./types/Modifiers.ts",
     "./Preview": "./types/Preview.ts",
     "./RefName": "./types/RefName.ts",
     "./Results": "./types/Results.ts",
@@ -27,7 +28,8 @@
     "./Enrichments": "./types/Enrichments.ts",
     "./PrettierConfig": "./types/PrettierConfig.ts",
     "./strings": "./helpers/strings.ts",
-    "./toResolvedArtifactPath": "./helpers/toResolvedArtifactPath.ts"
+    "./toResolvedArtifactPath": "./helpers/toResolvedArtifactPath.ts",
+    "./dsl": "./dsl/mod.ts"
   },
   "tasks": {
     "publish": "deno task build && deno task publish:deno && deno task publish:npm",

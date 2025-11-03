@@ -1,13 +1,13 @@
 import type { ModelInsertable } from './types.ts'
-import type { GenerateContext } from '../../context/GenerateContext.ts'
-import type { ContentSettings } from '../ContentSettings.ts'
+import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
-import { Definition } from '../Definition.ts'
-import type { Identifier } from '../Identifier.ts'
+import { Definition } from '@/dsl/Definition.ts'
+import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition, GenerationType } from '../../types/GeneratedValue.ts'
-import type { GeneratedValue } from '../../types/GeneratedValue.ts'
-import type { RefName } from '../../types/RefName.ts'
-import { toModelGeneratorKey } from '../../types/GeneratorKeys.ts'
+import type { GeneratedValue } from '@/types/GeneratedValue.ts'
+import type { RefName } from '@/types/RefName.ts'
+import { toModelGeneratorKey } from '@/types/GeneratorKeys.ts'
 
 type CreateModelArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
   context: GenerateContext
@@ -31,7 +31,7 @@ type GetDefinitionArgs = {
 
 /**
  * Driver class responsible for managing model generation lifecycle.
- * 
+ *
  * @template V - The generated value type
  * @template T - The generation type
  * @template EnrichmentType - Optional enrichment type
@@ -56,7 +56,7 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
 
   /**
    * Creates a new ModelDriver instance.
-   * 
+   *
    * @param args - Constructor arguments
    * @param args.context - Generation context
    * @param args.insertable - Model insertable configuration
@@ -92,10 +92,10 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
 
   /**
    * Applies generation configuration to create the model definition.
-   * 
+   *
    * This method handles the core generation logic, including identifier resolution,
    * export path management, and import registration for cross-file dependencies.
-   * 
+   *
    * @template T - The generation type
    * @param args - Apply configuration arguments
    * @param args.generation - Optional generation type (unused currently)
@@ -127,11 +127,11 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
 
   /**
    * Retrieves or creates a definition for the model.
-   * 
+   *
    * This method first checks for cached definitions to avoid duplicate generation,
    * then creates a new definition if none exists. It handles the complete model
    * transformation process including schema resolution and value generation.
-   * 
+   *
    * @param args - Definition retrieval arguments
    * @param args.identifier - The identifier for the definition
    * @param args.exportPath - The export path for the definition
@@ -182,11 +182,11 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
 
   /**
    * Type guard to verify a definition matches the expected generated value type.
-   * 
+   *
    * This method performs type narrowing to ensure a cached definition is compatible
    * with the current generation requirements, including export path validation.
-   * 
-   * @template V - The expected generated value type  
+   *
+   * @template V - The expected generated value type
    * @param definition - The definition to verify (may be undefined)
    * @param exportPath - Expected export path for validation
    * @returns True if definition matches expected type and constraints

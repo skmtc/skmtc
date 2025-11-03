@@ -1,11 +1,11 @@
-import type { GenerateContext } from '../../context/GenerateContext.ts'
-import type { ContentSettings } from '../ContentSettings.ts'
-import type { RefName } from '../../types/RefName.ts'
-import type { Identifier } from '../Identifier.ts'
-import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
+import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { ContentSettings } from '@/dsl/ContentSettings.ts'
+import type { RefName } from '@/types/RefName.ts'
+import type { Identifier } from '@/dsl/Identifier.ts'
+import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
-import type { MappingModule, PreviewModule } from '../../types/Preview.ts'
-import type { SchemaToValueFn } from '../../types/TypeSystem.ts'
+import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
 
 /**
  * Constructor arguments for model insertable instances.

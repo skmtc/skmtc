@@ -1,8 +1,8 @@
-import type { GenerateContext } from '../context/GenerateContext.ts'
-import type { Identifier } from './Identifier.ts'
-import { ContentBase } from './ContentBase.ts'
-import { withDescription } from '../typescript/withDescription.ts'
-import type { GeneratedValue } from '../types/GeneratedValue.ts'
+import type { GenerateContext } from '@/context/GenerateContext.ts'
+import type { Identifier } from '@/dsl/Identifier.ts'
+import { ContentBase } from '@/dsl/ContentBase.ts'
+import { withDescription } from '@/typescript/withDescription.ts'
+import type { GeneratedValue } from '@/types/GeneratedValue.ts'
 
 /**
  * Constructor arguments for {@link Definition}.

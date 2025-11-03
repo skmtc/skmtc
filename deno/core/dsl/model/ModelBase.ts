@@ -4,17 +4,17 @@ import type {
   InsertModelOptions,
   InsertNormalisedModelArgs,
   InsertNormalisedModelReturn
-} from '../../context/GenerateContext.ts'
-import type { GeneratedValue } from '../../types/GeneratedValue.ts'
-import type { GeneratorKey } from '../../types/GeneratorKeys.ts'
-import type { RefName } from '../../types/RefName.ts'
-import type { ContentSettings } from '../ContentSettings.ts'
-import type { ModelInsertable } from './types.ts'
-import { ContentBase } from '../ContentBase.ts'
-import type { Inserted } from '../Inserted.ts'
-import type { OasSchema } from '../../oas/schema/Schema.ts'
-import type { OasRef } from '../../oas/ref/Ref.ts'
-import type { OasVoid } from '../../oas/void/Void.ts'
+} from '@/context/GenerateContext.ts'
+import type { GeneratedValue } from '@/types/GeneratedValue.ts'
+import type { GeneratorKey } from '@/types/GeneratorKeys.ts'
+import type { RefName } from '@/types/RefName.ts'
+import type { ContentSettings } from '@/dsl/ContentSettings.ts'
+import type { ModelInsertable } from '@/dsl/model/types.ts'
+import { ContentBase } from '@/dsl/ContentBase.ts'
+import type { Inserted } from '@/dsl/Inserted.ts'
+import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasVoid } from '@/oas/void/Void.ts'
 
 /**
  * Constructor arguments for {@link ModelBase}.

@@ -1,6 +1,6 @@
-import { Import } from './Import.ts'
-import type { Definition } from './Definition.ts'
-import type { ClientSettings, ModulePackage } from '../types/Settings.ts'
+import { Import } from '@/dsl/Import.ts'
+import type { Definition } from '@/dsl/Definition.ts'
+import type { ClientSettings, ModulePackage } from '@/types/Settings.ts'
 
 /**
  * Constructor arguments for {@link File}.
@@ -14,45 +14,45 @@ type FileArgs = {
 
 /**
  * Represents a TypeScript file in the SKMTC DSL system.
- * 
+ *
  * The `File` class is a core component for generating TypeScript files with proper
  * import management, re-exports, and content organization. It automatically handles
  * module resolution, import optimization, and package-aware path normalization.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Import Management**: Automatically tracks and organizes imports from other modules
  * - **Re-export Handling**: Supports re-exporting symbols from other modules
  * - **Package Awareness**: Handles module packages for complex project structures
  * - **Definition Tracking**: Manages code definitions and their relationships
  * - **Path Normalization**: Automatically resolves paths based on package configuration
- * 
+ *
  * @example Basic file creation
  * ```typescript
  * import { File } from '@skmtc/core';
- * 
+ *
  * const file = new File({
  *   path: './src/models/User.ts',
  *   settings: clientSettings
  * });
- * 
+ *
  * // Add imports
  * file.imports.set('./types', new Set(['BaseModel', 'Validator']));
- * 
+ *
  * // Add definitions
  * file.definitions.set('User', userInterface);
- * 
+ *
  * // Generate file content
  * const content = file.toString();
  * console.log(content);
  * // import { BaseModel, Validator } from './types'
- * // 
+ * //
  * // export interface User extends BaseModel {
  * //   id: string;
  * //   name: string;
  * // }
  * ```
- * 
+ *
  * @example With package configuration
  * ```typescript
  * const file = new File({
@@ -66,26 +66,26 @@ type FileArgs = {
  *     ]
  *   }
  * });
- * 
+ *
  * // Import from another package
  * file.imports.set('./packages/types/models', new Set(['User']));
- * 
+ *
  * // Will generate: import { User } from '@myorg/types/models'
  * ```
- * 
+ *
  * @example Re-exports
  * ```typescript
  * const file = new File({
  *   path: './src/index.ts',
  *   settings: clientSettings
  * });
- * 
+ *
  * // Add re-exports
  * file.reExports.set('./models', {
  *   'type': new Set(['User', 'Product']),
  *   'const': new Set(['DEFAULT_CONFIG'])
  * });
- * 
+ *
  * // Will generate:
  * // export type { User, Product } from './models'
  * // export { DEFAULT_CONFIG } from './models'
@@ -94,29 +94,29 @@ type FileArgs = {
 export class File {
   /** The file type, always 'ts' for TypeScript files */
   fileType: 'ts' = 'ts'
-  
+
   /** The file path for this generated file */
   path: string
-  
+
   /** Map of module paths to re-exported symbols organized by export type */
   reExports: Map<string, Record<string, Set<string>>>
-  
+
   /** Map of module paths to imported symbols */
   imports: Map<string, Set<string>>
-  
+
   /** Map of definition names to their Definition objects */
   definitions: Map<string, Definition>
-  
+
   /** Package configuration for path resolution */
   packages: ModulePackage[] | undefined
 
   /**
    * Creates a new File instance.
-   * 
+   *
    * @param args - File configuration
    * @param args.path - The output path for this file
    * @param args.settings - Client settings containing package configuration
-   * 
+   *
    * @example
    * ```typescript
    * const file = new File({
@@ -139,39 +139,39 @@ export class File {
 
   /**
    * Generates the complete TypeScript file content.
-   * 
+   *
    * This method orchestrates the rendering of all file components in the correct order:
    * re-exports first, then imports, and finally definitions. It automatically handles
    * module path normalization based on package configuration and filters out empty sections.
-   * 
+   *
    * @returns The complete TypeScript file content as a string
-   * 
+   *
    * @example Basic file generation
    * ```typescript
    * const file = new File({ path: './api.ts', settings: undefined });
-   * 
+   *
    * // Add some imports and definitions
    * file.imports.set('./types', new Set(['User', 'Product']));
    * file.definitions.set('ApiClient', someDefinition);
-   * 
+   *
    * const content = file.toString();
    * console.log(content);
    * // import { User, Product } from './types'
-   * // 
+   * //
    * // export class ApiClient {
    * //   // ... definition content
    * // }
    * ```
-   * 
+   *
    * @example With re-exports
    * ```typescript
    * const file = new File({ path: './index.ts', settings: undefined });
-   * 
+   *
    * file.reExports.set('./models', {
    *   'type': new Set(['User', 'Product']),
    *   'const': new Set(['DEFAULT_CONFIG'])
    * });
-   * 
+   *
    * const content = file.toString();
    * console.log(content);
    * // export type { User, Product } from './models'
@@ -228,21 +228,21 @@ export type NormaliseModuleNameArgs = {
 
 /**
  * Normalizes module import/export paths based on package configuration.
- * 
+ *
  * This function handles path resolution for complex project structures with multiple
  * packages. It converts file system paths to appropriate module names based on:
  * - Whether the destination and export paths are in the same package
  * - Package-specific module naming conventions
  * - Root path truncation for intra-package imports
- * 
+ *
  * @param args - Path normalization arguments
  * @param args.destinationPath - The path of the file that will contain the import/export
- * @param args.exportPath - The original path being imported/exported from  
+ * @param args.exportPath - The original path being imported/exported from
  * @param args.packages - Package configuration for path resolution (defaults to empty array)
  * @returns The normalized module name to use in import/export statements
- * 
+ *
  * @throws {Error} When a matching package is found but has no moduleName configured
- * 
+ *
  * @example Cross-package import
  * ```typescript
  * const normalized = normaliseModuleName({
@@ -255,19 +255,19 @@ export type NormaliseModuleNameArgs = {
  * });
  * console.log(normalized); // '@company/types'
  * ```
- * 
+ *
  * @example Intra-package import (same package)
  * ```typescript
  * const normalized = normaliseModuleName({
  *   destinationPath: './packages/types/src/index.ts',
- *   exportPath: './packages/types/models/User.ts', 
+ *   exportPath: './packages/types/models/User.ts',
  *   packages: [
  *     { rootPath: './packages/types', moduleName: '@company/types' }
  *   ]
  * });
  * console.log(normalized); // '@/models/User.ts' (truncates root path)
  * ```
- * 
+ *
  * @example No package match (returns original path)
  * ```typescript
  * const normalized = normaliseModuleName({

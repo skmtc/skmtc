@@ -1,8 +1,8 @@
-import type { RefName } from '../../types/RefName.ts'
-import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
+import type { RefName } from '@/types/RefName.ts'
+import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type { TransformModelArgs, ToModelPreviewModuleArgs, ToModelMappingArgs } from './types.ts'
 import type * as v from 'valibot'
-import type { MappingModule, PreviewModule } from '../../types/Preview.ts'
+import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 
 type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
@@ -17,29 +17,29 @@ type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
 
 /**
  * Creates a model transformation entry for the SKMTC pipeline.
- * 
+ *
  * This function creates a standardized model entry that defines how to transform
  * OpenAPI schema objects into model artifacts. Model entries are used by the
  * generation pipeline to process schemas and create output files.
- * 
+ *
  * The resulting entry includes transformation logic, preview generation,
  * mapping generation, enrichment handling, and schema validation.
- * 
+ *
  * @template EnrichmentType - Type of enrichments that can be applied to models
  * @template Acc - Accumulator type for the transformation process
  * @param args - Configuration for the model entry
  * @param args.id - Unique identifier for this model entry
  * @param args.transform - Function to transform schemas into artifacts
  * @param args.toPreviewModule - Optional function to generate preview modules
- * @param args.toMappingModule - Optional function to generate mapping modules  
+ * @param args.toMappingModule - Optional function to generate mapping modules
  * @param args.toEnrichmentSchema - Optional function to provide enrichment validation
  * @param args.toEnrichmentRequest - Optional function to request enrichments
  * @returns Model entry object for use in the generation pipeline
- * 
+ *
  * @example Basic model entry
  * ```typescript
  * import { toModelEntry } from '@skmtc/core';
- * 
+ *
  * const typeScriptModelEntry = toModelEntry({
  *   id: 'typescript-models',
  *   transform: ({ context, refName, acc }) => {
@@ -54,7 +54,7 @@ type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
  *   })
  * });
  * ```
- * 
+ *
  * @example Model entry with enrichments
  * ```typescript
  * const validationModelEntry = toModelEntry({
@@ -86,15 +86,15 @@ export const toModelEntry = <EnrichmentType = undefined, Acc = void>({
   toEnrichmentSchema,
   toEnrichmentRequest
 }: ToModelEntryArgs<EnrichmentType, Acc>): {
-  id: string;
-  type: 'model';
-  transform: ({ context, refName, acc }: TransformModelArgs<Acc>) => Acc;
-  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule;
-  toMappingModule?: ({ context, refName }: ToModelMappingArgs) => MappingModule;
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>;
+  id: string
+  type: 'model'
+  transform: ({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
+  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, refName }: ToModelMappingArgs) => MappingModule
+  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined;
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined
 } => {
   return {
     id,

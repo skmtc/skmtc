@@ -375,59 +375,8 @@ type GenerateResult = {
  *   }
  * }
  * ```
- *
- * @example Operation generator usage
- * ```typescript
- * class ApiClientGenerator extends OperationBase {
- *   generate(): Definition {
- *     const operation = this.context.getOperation(this.path, this.method);
- *
- *     const functionName = this.context.createOperationName(this.path, this.method);
- *
- *     return new Definition({
- *       context: this.context,
- *       identifier: Identifier.createVariable(functionName),
- *       value: {
- *         generatorKey: this.generatorKey,
- *         content: this.generateClientFunction(operation)
- *       }
- *     });
- *   }
- * }
- * ```
- *
- * @example Schema and type system integration
- * ```typescript
- * class MyGenerator extends ModelBase {
- *   generate(): Definition {
- *     const schema = this.context.getSchema(this.refName);
- *
- *     // Transform schema using type system
- *     const typeOutput = this.context.transformSchema(schema, {
- *       stringType: 'string',
- *       numberType: 'number',
- *       arrayType: (items) => `Array<${items}>`
- *     });
- *
- *     // Register dependencies
- *     if (schema.hasReferences()) {
- *       this.context.addImportsToFile('./models/types.ts', {
- *         './common': ['BaseModel']
- *       });
- *     }
- *
- *     return new Definition({
- *       context: this.context,
- *       identifier: Identifier.createType(this.refName),
- *       value: {
- *         generatorKey: this.generatorKey,
- *         content: typeOutput.content
- *       }
- *     });
- *   }
- * }
- * ```
  */
+
 export class GenerateContext {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>

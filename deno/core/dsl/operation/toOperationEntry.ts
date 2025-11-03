@@ -1,14 +1,14 @@
 import * as v from 'valibot'
-import type { OasOperation } from '../../oas/operation/Operation.ts'
-import type { EnrichmentRequest } from '../../types/EnrichmentRequest.ts'
+import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type {
   IsSupportedArgs,
   ToOperationPreviewModuleArgs,
   ToOperationMappingArgs,
   TransformOperationArgs
-} from './types.ts'
-import type { IsSupportedOperationConfigArgs } from './types.ts'
-import type { MappingModule, PreviewModule } from '../../types/Preview.ts'
+} from '@/dsl/operation/types.ts'
+import type { IsSupportedOperationConfigArgs } from '@/dsl/operation/types.ts'
+import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
 /**

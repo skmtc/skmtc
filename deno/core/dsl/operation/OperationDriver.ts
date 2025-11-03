@@ -1,13 +1,13 @@
 import type { OperationInsertable } from './types.ts'
-import type { OasOperation } from '../../oas/operation/Operation.ts'
-import type { ContentSettings } from '../ContentSettings.ts'
+import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
-import { Definition } from '../Definition.ts'
-import type { Identifier } from '../Identifier.ts'
-import type { GeneratedDefinition, GenerationType } from '../../types/GeneratedValue.ts'
-import type { GeneratedValue } from '../../types/GeneratedValue.ts'
-import { toOperationGeneratorKey } from '../../types/GeneratorKeys.ts'
-import type { GenerateContext } from '../../context/GenerateContext.ts'
+import { Definition } from '@/dsl/Definition.ts'
+import type { Identifier } from '@/dsl/Identifier.ts'
+import type { GeneratedDefinition, GenerationType } from '@/types/GeneratedValue.ts'
+import type { GeneratedValue } from '@/types/GeneratedValue.ts'
+import { toOperationGeneratorKey } from '@/types/GeneratorKeys.ts'
+import type { GenerateContext } from '@/context/GenerateContext.ts'
 
 type CreateOperationArgs<
   V extends GeneratedValue,
@@ -34,16 +34,16 @@ type GetDefinitionArgs = {
 
 /**
  * Driver class for generating operation-based artifacts from OpenAPI operations.
- * 
+ *
  * The `OperationDriver` manages the transformation of OpenAPI operation objects
  * into code artifacts, handling path generation, identifier resolution, and
  * definition management. It serves as the core orchestrator for operation-based
  * code generation in the SKMTC pipeline.
- * 
+ *
  * @template V - Type of generated values produced by this driver
  * @template T - Type of generation strategy (e.g., 'function', 'class', 'hook')
  * @template EnrichmentType - Type of enrichments that can be applied
- * 
+ *
  * @example Basic usage in an operation generator
  * ```typescript
  * class APIClientGenerator extends OperationBase {
@@ -54,7 +54,7 @@ type GetDefinitionArgs = {
  *       operation: this.operation,
  *       generation: 'function'
  *     });
- * 
+ *
  *     const functionCode = driver.definition.toValueString();
  *     const file = this.createFile(functionCode);
  *     this.register({ file });
@@ -84,7 +84,7 @@ export class OperationDriver<
 
   /**
    * Creates a new OperationDriver instance.
-   * 
+   *
    * @param args - Configuration for the operation driver
    * @param args.context - Generation context
    * @param args.insertable - Insertable providing generation configuration
@@ -116,11 +116,11 @@ export class OperationDriver<
 
   /**
    * Applies generation configuration to create the operation definition.
-   * 
+   *
    * This method handles the core generation logic for operations, including
    * identifier resolution, export path management, and import registration
    * for cross-file dependencies.
-   * 
+   *
    * @template T - The generation type
    * @param args - Apply configuration arguments
    * @param args.generation - Optional generation type (unused currently)
@@ -152,11 +152,11 @@ export class OperationDriver<
 
   /**
    * Retrieves or creates a definition for the operation.
-   * 
+   *
    * This method first checks for cached definitions to avoid duplicate generation,
    * then creates a new definition if none exists. It handles the complete operation
    * transformation process including schema resolution and value generation.
-   * 
+   *
    * @param args - Definition retrieval arguments
    * @param args.identifier - The identifier for the definition
    * @param args.exportPath - The export path for the definition
@@ -195,10 +195,10 @@ export class OperationDriver<
 
   /**
    * Type guard to verify a definition matches the expected generated value type.
-   * 
+   *
    * This method performs type narrowing to ensure a cached definition is compatible
    * with the current generation requirements, including export path validation.
-   * 
+   *
    * @template V - The expected generated value type
    * @param definition - The definition to verify (may be undefined)
    * @param exportPath - Expected export path for validation

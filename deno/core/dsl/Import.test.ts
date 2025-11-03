@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert/equals'
-import { Import, ImportName } from './Import.ts'
+import { Import, ImportName } from '@/dsl/Import.ts'
 
 Deno.test('Import - generates basic named imports', () => {
   const importStatement = new Import({
@@ -22,7 +22,7 @@ Deno.test('Import - generates single import', () => {
 Deno.test('Import - generates aliased imports', () => {
   const importStatement = new Import({
     module: 'react',
-    importNames: [{ 'Component': 'ReactComponent' }]
+    importNames: [{ Component: 'ReactComponent' }]
   })
 
   assertEquals(importStatement.toString(), "import { Component as ReactComponent } from 'react'")
@@ -31,10 +31,13 @@ Deno.test('Import - generates aliased imports', () => {
 Deno.test('Import - generates mixed simple and aliased imports', () => {
   const importStatement = new Import({
     module: './api',
-    importNames: ['ApiClient', { 'RequestOptions': 'Options' }]
+    importNames: ['ApiClient', { RequestOptions: 'Options' }]
   })
 
-  assertEquals(importStatement.toString(), "import { ApiClient, RequestOptions as Options } from './api'")
+  assertEquals(
+    importStatement.toString(),
+    "import { ApiClient, RequestOptions as Options } from './api'"
+  )
 })
 
 Deno.test('Import - handles scoped packages', () => {
@@ -62,13 +65,13 @@ Deno.test('Import - toRecord returns correct format for simple imports', () => {
 Deno.test('Import - toRecord returns correct format for aliased imports', () => {
   const importStatement = new Import({
     module: 'react',
-    importNames: [{ 'Component': 'ReactComponent' }, 'useState']
+    importNames: [{ Component: 'ReactComponent' }, 'useState']
   })
 
   const record = importStatement.toRecord()
 
   assertEquals(record, {
-    'react': [{ 'Component': 'ReactComponent' }, 'useState']
+    react: [{ Component: 'ReactComponent' }, 'useState']
   })
 })
 
@@ -81,7 +84,7 @@ Deno.test('ImportName - simple import name', () => {
 })
 
 Deno.test('ImportName - aliased import name', () => {
-  const importName = new ImportName({ 'Component': 'ReactComponent' })
+  const importName = new ImportName({ Component: 'ReactComponent' })
 
   assertEquals(importName.name, 'Component')
   assertEquals(importName.alias, 'ReactComponent')
@@ -89,7 +92,7 @@ Deno.test('ImportName - aliased import name', () => {
 })
 
 Deno.test('ImportName - handles default import alias', () => {
-  const importName = new ImportName({ 'default': 'React' })
+  const importName = new ImportName({ default: 'React' })
 
   assertEquals(importName.name, 'default')
   assertEquals(importName.alias, 'React')
@@ -108,11 +111,7 @@ Deno.test('Import - empty import names array', () => {
 Deno.test('Import - multiple aliased imports', () => {
   const importStatement = new Import({
     module: './models',
-    importNames: [
-      { 'User': 'UserModel' },
-      { 'Product': 'ProductModel' },
-      { 'Order': 'OrderModel' }
-    ]
+    importNames: [{ User: 'UserModel' }, { Product: 'ProductModel' }, { Order: 'OrderModel' }]
   })
 
   assertEquals(
