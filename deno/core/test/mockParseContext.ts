@@ -1,9 +1,5 @@
-import type {
-  LogSkippedValuesArgs,
-  ParseContext,
-  ProvisionalParseArgs
-} from '../context/ParseContext.ts'
-
+import type { ParseContextType } from '../context/parseTypes.ts'
+import type { LogSkippedValuesArgs } from '../context/parseTypes.ts'
 /**
  * Mock implementation of ParseContext for testing purposes.
  *
@@ -49,4 +45,4 @@ export const mockParseContext = {
     remove: () => {},
     clone: () => ({ append: () => {}, remove: () => {}, clone: () => ({}) })
   }
-} as unknown as ParseContext
+} as unknown as ParseContextType
