@@ -1,6 +1,5 @@
 import { match } from 'ts-pattern'
 import { type GeneratorsMapContainer, toArtifacts } from '@skmtc/core'
-import { toV3Document, stringToSchema } from '@skmtc/convert'
 
 const toWorker = (
   toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
@@ -18,10 +17,10 @@ const toWorker = (
           })
         })
         .with('TRANSFORM', async () => {
-          const { schema, clientSettings } = payload
-          console.time('TO_V3_DOCUMENT')
-          const documentObject = await toV3Document(stringToSchema(schema))
-          console.timeEnd('TO_V3_DOCUMENT')
+          const { documentObject, clientSettings } = payload
+          // console.time('TO_V3_DOCUMENT')
+          // const documentObject = await toV3Document(stringToSchema(schema))
+          // console.timeEnd('TO_V3_DOCUMENT')
 
           const now = Date.now()
 
