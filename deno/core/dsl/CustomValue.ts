@@ -1,7 +1,7 @@
 import type { GenerateContext } from '../context/GenerateContext.ts'
-import { ContentBase } from '../dsl/ContentBase.ts'
-import type { Stringable } from '../dsl/Stringable.ts'
-import type { GeneratorKey } from '../dsl/GeneratorKeys.ts'
+import { ContentBase } from './ContentBase.ts'
+import type { Stringable } from './Stringable.ts'
+import type { GeneratorKey } from './GeneratorKeys.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
 
 type CreateArgs = {

@@ -1,6 +1,6 @@
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
-import type { CustomValue } from '../../types/CustomValue.ts'
+import type { CustomValue } from '../../dsl/CustomValue.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { match, P } from 'ts-pattern'
 

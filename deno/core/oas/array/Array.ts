@@ -1,5 +1,5 @@
-import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
-import type { OasRef } from '../ref/Ref.ts'
+import type { OasSchema, ToJsonSchemaOptions } from '@/oas/schema/Schema.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
 /**
