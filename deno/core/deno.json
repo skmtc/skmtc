@@ -1,9 +1,9 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.936",
+  "version": "0.0.937",
   "imports": {
     "@/": "./",
-    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.11",
+    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.12",
     "@std/assert": "jsr:@std/assert@^1.0.10",
     "@std/testing": "jsr:@std/testing@^1.0.8",
     "@std/log": "jsr:@std/log@^0.224.6",

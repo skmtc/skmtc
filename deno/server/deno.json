@@ -1,13 +1,13 @@
 {
   "name": "@skmtc/server",
-  "version": "0.0.817",
+  "version": "0.0.818",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
     "hono": "npm:hono@4.7.2",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.936",
-    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.11"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.937",
+    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.12"
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
