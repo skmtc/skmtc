@@ -64,9 +64,9 @@
  */
 
 import type { OasOperation } from '@/oas/operation/Operation.ts'
-import type { Brand } from '@skmtc/core/Brand'
-import type { RefName } from '@skmtc/core/RefName'
-import { type Method, isMethod } from '@skmtc/core/Method'
+import type { Brand } from '@/types/Brand.ts'
+import type { RefName } from '@/types/RefName.ts'
+import { type Method, isMethod } from '@/types/Method.ts'
 
 /**
  * Template literal type for operation generator keys before branding.
