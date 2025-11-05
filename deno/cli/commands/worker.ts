@@ -1,45 +1,41 @@
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Command } from '@cliffy/command'
 import { join } from '@std/path'
-import { toGenerationStats } from '@/lib/generationStats.ts'
+import { Manager } from '@/lib/manager.ts'
+import { toV3Document, stringToSchema } from '@skmtc/convert'
+import invariant from 'tiny-invariant'
 
 export const description =
   'Web worker proof of concept - test generator execution in isolated worker'
 
 type RenderWorkerArgs = {
-  project: string
+  projectName: string
+  skmtcRoot?: SkmtcRoot
 }
 
-export const renderWorker = async ({ project }: RenderWorkerArgs) => {
-  console.time('WORKER_COMMAND')
+export const renderWorker = async ({
+  projectName,
+  skmtcRoot: providedSkmtcRoot
+}: RenderWorkerArgs) => {
+  // Instantiate Manager and SkmtcRoot if not provided (for testing)
+  const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  // Resolve paths
-  const projectPath = join(SkmtcRoot.toPath(), project)
-  const workerPath = join(projectPath, 'bundle.js')
-  const schemaPath = join(projectPath, 'openapi.json')
-  const clientSettingsPath = join(projectPath, '.settings', 'client.json')
+  const project = skmtcRoot.findProject(projectName)
 
-  // Check if files exist
-  try {
-    await Deno.stat(workerPath)
-    await Deno.stat(schemaPath)
-  } catch (_error) {
-    console.error(`Error: Required files not found in ${projectPath}`)
-    console.error('Make sure mod.ts and openapi.json exist')
-    return
-  }
+  const workerPath = join(project.toPath(), 'mod.ts')
 
-  console.log('🧪 Web Worker Proof of Concept')
-  console.log('Creating worker...')
-
-  console.log('WORKER PATH:', workerPath)
-
-  console.time('WORKER_LAUNCH')
-
-  // Create worker
   const workerUrl = new URL(workerPath, import.meta.url)
 
-  console.log('WORKER URL:', workerUrl.href)
+  const schemaContents = project.schemaFile.contents
+
+  invariant(schemaContents, 'Schema contents not found')
+
+  const documentObject = await toV3Document(stringToSchema(schemaContents))
+
+  const clientSettings = project.clientJson.contents
+
+  invariant(clientSettings, 'Client settings not found')
+
   const worker = new Worker(workerUrl.href, {
     type: 'module',
     deno: {
@@ -53,48 +49,21 @@ export const renderWorker = async ({ project }: RenderWorkerArgs) => {
     }
   })
 
-  console.timeEnd('WORKER_LAUNCH')
-
-  console.time('WORKER_READY')
-
   // Set up message handler
-  worker.onmessage = async (e: MessageEvent) => {
+  worker.onmessage = (e: MessageEvent) => {
     const { type } = e.data
 
     switch (type) {
       case 'READY': {
-        console.timeEnd('WORKER_READY')
-
-        console.log(`✓ Worker ready (generator: ${e.data.generatorId})`)
-
-        // Load and send schema
-        const schemaContent = await Deno.readTextFile(schemaPath)
-
-        const clientSettings = await Deno.readTextFile(clientSettingsPath)
-
-        console.log('Sending TRANSFORM message...')
-        console.time('TRANSFORM')
         worker.postMessage({
           type: 'TRANSFORM',
-          payload: {
-            documentObject: JSON.parse(schemaContent),
-            clientSettings: JSON.parse(clientSettings)
-          }
+          payload: { documentObject, clientSettings }
         })
         break
       }
 
       case 'RESULT': {
-        console.log(`✓ Transform complete`)
-        console.log(`  Generated ${Object.keys(e.data.artifacts).length} artifacts`)
-
-        console.timeEnd('TRANSFORM')
-
-        const stats = toGenerationStats(e.data)
-
-        console.log('STATS:', stats)
-
-        console.timeEnd('WORKER_COMMAND')
+        // Write artifacts to disk
         // Cleanup
         worker.terminate()
         Deno.exit(0)
@@ -102,8 +71,6 @@ export const renderWorker = async ({ project }: RenderWorkerArgs) => {
       }
 
       case 'ERROR': {
-        console.error('❌ Worker error:', e.data.error)
-        console.timeEnd('WORKER_COMMAND')
         worker.terminate()
         Deno.exit(1)
         break
@@ -119,17 +86,4 @@ export const renderWorker = async ({ project }: RenderWorkerArgs) => {
     console.timeEnd('WORKER_COMMAND')
     Deno.exit(1)
   }
-}
-
-export const toWorkerCommand = (_skmtcRoot: SkmtcRoot) => {
-  const command = new Command()
-    .description(description)
-    .option('-p, --project <path:string>', 'Project path (defaults to skmtc-zod)', {
-      default: 'skmtc-zod'
-    })
-    .action(async options => {
-      await renderWorker({ project: options.project })
-    })
-
-  return command
 }

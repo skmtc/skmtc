@@ -364,15 +364,12 @@ export class CoreContext {
     prettier
   }: ToArtifactsArgs): RenderResult {
     try {
-      console.time('PARSE')
       const oasDocument = stackTrail.trace('parse', st => {
         this.#phase = this.#setupParsePhase(documentObject)
 
         return this.#phase.context.parse(st)
       })
-      console.timeEnd('PARSE')
 
-      console.time('GENERATE')
       const { files, previews, mappings } = stackTrail.trace('generate', st => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
@@ -382,9 +379,7 @@ export class CoreContext {
 
         return this.#phase.context.toArtifacts(st)
       })
-      console.timeEnd('GENERATE')
 
-      console.time('RENDER')
       const renderOutput = stackTrail.trace('render', st => {
         this.#phase = this.#setupRenderPhase({
           files,
@@ -396,7 +391,6 @@ export class CoreContext {
 
         return this.#phase.context.render(st)
       })
-      console.timeEnd('RENDER')
 
       return {
         ...renderOutput,

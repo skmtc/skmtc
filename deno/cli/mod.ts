@@ -68,12 +68,10 @@ const run = async () => {
 
   const workerCommand = new Command()
     .description('Web worker proof of concept - test generator execution in isolated worker')
-    .option('-p, --project <path:string>', 'Project path (defaults to skmtc-zod)', {
-      default: 'skmtc-zod'
-    })
-    .action(async options => {
+    .arguments('<project:string>')
+    .action(async (_options, projectName) => {
       const { renderWorker } = await import('./commands/worker.ts')
-      await renderWorker({ project: options.project })
+      await renderWorker({ projectName })
     })
 
   await new Command()

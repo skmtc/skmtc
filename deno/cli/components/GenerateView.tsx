@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import { Project } from '@/lib/project.ts'
+import type { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { useEffect, useState } from 'react'
 import { generate, toGenerateMessage } from '@/commands/generate.tsx'
@@ -19,7 +19,6 @@ import { BooleanTask } from '@/tasks/BooleanTask.tsx'
 import { Spinner } from '@/components/Spinner.tsx'
 import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
-import { ServerTask } from '@/tasks/ServerTask.tsx'
 import { BasePathTask } from '@/tasks/BasePathTask.tsx'
 
 type GenerateProps = {
@@ -64,13 +63,6 @@ export const GenerateView = ({
   return (
     <TaskProvider
       tasks={[
-        {
-          taskKey: 'start-server-task',
-          include: project instanceof Project,
-          state: undefined,
-          render: () => <ServerTask project={project as Project} />
-        },
-
         {
           taskKey: 'base-path',
           include: includeBasePathTask,

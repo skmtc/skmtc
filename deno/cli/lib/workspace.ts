@@ -4,7 +4,7 @@ import { ensureDirSync } from '@std/fs/ensure-dir'
 import { ensureFileSync } from '@std/fs/ensure-file'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import * as v from 'valibot'
-import type { Project } from '@/lib/project.ts'
+import { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { getApiWorkspacesWorkspaceName } from '@/services/getApiWorkspacesWorkspaceName.generated.ts'
 import { existsSync } from '@std/fs/exists'
@@ -13,6 +13,7 @@ import type { RemoteProject } from '@/lib/remote-project.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
 import { generateSandboxApi } from '../services/generateSandboxApi.ts'
+import { generateWithWorker } from './generate-worker.ts'
 export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
@@ -95,19 +96,20 @@ export class Workspace {
   }: GenerateArtifactsArgs): Promise<GenerateResponse> {
     const manifestPath = project.toManifestPath()
 
-    const result = project.clientJson.contents?.serverUrl
-      ? await generateLocal({
-          schema: schemaContents,
-          clientSettings,
-          localUrl: project.clientJson.contents?.serverUrl
-        })
-      : await generateSandboxApi({
-          accountName: accountName,
-          serverName: project.name,
-          schema: schemaContents,
-          clientSettings,
-          token
-        })
+    const result =
+      project instanceof Project
+        ? await generateWithWorker({
+            schemaContents,
+            clientSettings,
+            workerPath: join(project.toPath(), 'mod.ts')
+          })
+        : await generateSandboxApi({
+            accountName: accountName,
+            serverName: project.name,
+            schema: schemaContents,
+            clientSettings,
+            token
+          })
 
     const { artifacts, manifest } = result
 
@@ -138,24 +140,24 @@ export class Workspace {
   }
 }
 
-type GenerateLocalArgs = {
-  localUrl: string
-  schema: string
-  clientSettings: ClientSettings | undefined
-}
+// type GenerateLocalArgs = {
+//   localUrl: string
+//   schema: string
+//   clientSettings: ClientSettings | undefined
+// }
 
-const generateLocal = async ({ localUrl, schema, clientSettings }: GenerateLocalArgs) => {
-  const res = await fetch(`${localUrl}/artifacts`, {
-    method: 'POST',
-    body: JSON.stringify({
-      schema,
-      clientSettings
-    })
-  })
+// const generateLocal = async ({ localUrl, schema, clientSettings }: GenerateLocalArgs) => {
+//   const res = await fetch(`${localUrl}/artifacts`, {
+//     method: 'POST',
+//     body: JSON.stringify({
+//       schema,
+//       clientSettings
+//     })
+//   })
 
-  const data = await res.json()
+//   const data = await res.json()
 
-  return data
+//   return data
 
-  // return createArtifactsResponse.parse(data)
-}
+//   // return createArtifactsResponse.parse(data)
+// }

@@ -1,5 +1,6 @@
 import { match } from 'ts-pattern'
 import { type GeneratorsMapContainer, toArtifacts } from '@skmtc/core'
+import { StackTrail } from '@skmtc/core'
 
 const toWorker = (
   toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
@@ -9,28 +10,23 @@ const toWorker = (
 
     try {
       await match(type)
-        .with('PING', () => {
-          // Health check
-          self.postMessage({
-            type: 'PONG',
-            generatorIds: Object.keys(toGeneratorConfigMap())
-          })
-        })
-        .with('TRANSFORM', async () => {
+        .with('GENERATE', async () => {
           const { documentObject, clientSettings } = payload
-          // console.time('TO_V3_DOCUMENT')
-          // const documentObject = await toV3Document(stringToSchema(schema))
-          // console.timeEnd('TO_V3_DOCUMENT')
 
           const now = Date.now()
+          const traceId = `trace-${now}`
+          const spanId = `span-${now}`
+
+          const stackTrail = new StackTrail([traceId, spanId])
 
           const { artifacts, manifest } = toArtifacts({
-            traceId: `trace-${now}`,
-            spanId: `span-${now}`,
+            traceId,
+            spanId,
             startAt: now,
             documentObject,
             prettier: undefined,
             settings: clientSettings,
+            stackTrail,
             toGeneratorConfigMap,
             logsPath: undefined,
             silent: true
