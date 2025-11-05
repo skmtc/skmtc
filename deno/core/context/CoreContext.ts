@@ -8,8 +8,7 @@ import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
-import { StackTrail } from '@/context/StackTrail.ts'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 import { ResultsLog } from '@/helpers/ResultsLog.ts'
 import type { File } from '@/dsl/File.ts'
 import { join } from '@std/path/join'
@@ -93,6 +92,8 @@ type RenderArgs = {
  * into code artifacts through the SKMTC pipeline.
  */
 export type ToArtifactsArgs = {
+  /** Stack trail for distributed tracing */
+  stackTrail: StackTrail
   /** The OpenAPI v3 document to process */
   documentObject: OpenAPIV3.Document
   /** Client settings for customization (optional) */
@@ -166,9 +167,6 @@ export class CoreContext {
   /** Results log for tracking generation outcomes */
   #results: ResultsLog
 
-  /** Stack trail for distributed tracing */
-  #stackTrail: StackTrail
-
   /** Whether to suppress console output */
   silent: boolean
 
@@ -197,8 +195,6 @@ export class CoreContext {
    * ```
    */
   constructor({ spanId, logsPath, silent }: CoreContextArgs) {
-    this.#stackTrail = new StackTrail([spanId])
-
     this.#results = new ResultsLog()
 
     this.logger = this.#setupLogger({ spanId, logsPath })
@@ -215,7 +211,7 @@ export class CoreContext {
           formatter: logRecord =>
             skmtcFormatter({
               logRecord,
-              stackTrail: this.#stackTrail.toString()
+              stackTrail: 'SKIPPED'
             }),
           useColors: false
         }),
@@ -226,7 +222,7 @@ export class CoreContext {
             formatter: logRecord => {
               return skmtcFormatter({
                 logRecord,
-                stackTrail: this.#stackTrail.toString()
+                stackTrail: 'SKIPPED'
               })
             }
           })
@@ -279,10 +275,10 @@ export class CoreContext {
    * }
    * ```
    */
-  parse(documentObject: OpenAPIV3.Document): { oasDocument: OasDocument } {
+  parse(documentObject: OpenAPIV3.Document, stackTrail: StackTrail): { oasDocument: OasDocument } {
     this.#phase = this.#setupParsePhase(documentObject)
 
-    const oasDocument = this.#phase.context.parse()
+    const oasDocument = this.#phase.context.parse(stackTrail)
 
     return {
       oasDocument
@@ -364,31 +360,32 @@ export class CoreContext {
     documentObject,
     settings,
     toGeneratorConfigMap,
+    stackTrail,
     prettier
   }: ToArtifactsArgs): RenderResult {
     try {
       console.time('PARSE')
-      const oasDocument = this.trace('parse', () => {
+      const oasDocument = stackTrail.trace('parse', st => {
         this.#phase = this.#setupParsePhase(documentObject)
 
-        return this.#phase.context.parse()
+        return this.#phase.context.parse(st)
       })
       console.timeEnd('PARSE')
 
       console.time('GENERATE')
-      const { files, previews, mappings } = this.trace('generate', () => {
+      const { files, previews, mappings } = stackTrail.trace('generate', st => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           oasDocument,
           settings
         })
 
-        return this.#phase.context.toArtifacts()
+        return this.#phase.context.toArtifacts(st)
       })
       console.timeEnd('GENERATE')
 
       console.time('RENDER')
-      const renderOutput = this.trace('render', () => {
+      const renderOutput = stackTrail.trace('render', st => {
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
@@ -397,7 +394,7 @@ export class CoreContext {
           basePath: settings?.basePath
         })
 
-        return this.#phase.context.render()
+        return this.#phase.context.render(st)
       })
       console.timeEnd('RENDER')
 
@@ -426,43 +423,10 @@ export class CoreContext {
     }
   }
 
-  /**
-   * Executes a function with distributed tracing and logging.
-   *
-   * This method wraps function execution with tracing capabilities, updating the
-   * stack trail for context tracking and logging execution details. It's used
-   * throughout the SKMTC pipeline to maintain execution context and debugging information.
-   *
-   * @template T - The return type of the traced function
-   * @param token - Single token or array of tokens to add to the trace stack
-   * @param fn - The function to execute within the trace context
-   * @returns The result of executing the traced function
-   *
-   * @example Single token tracing
-   * ```typescript
-   * const result = context.trace('parse-schema', () => {
-   *   // Schema parsing logic here
-   *   return parsedSchema;
-   * });
-   * ```
-   *
-   * @example Multiple token tracing (nested context)
-   * ```typescript
-   * const result = context.trace(['components', 'schemas', 'User'], () => {
-   *   // Process User schema
-   *   return processedUserSchema;
-   * });
-   * ```
-   */
-  trace<T>(token: string, fn: () => T): T {
-    return tracer(this.#stackTrail, token, fn)
-  }
-
   #setupParsePhase(documentObject: OpenAPIV3.Document): ParsePhase {
     const parseContext = new ParseContext({
       documentObject,
       logger: this.logger,
-      stackTrail: this.#stackTrail,
       silent: this.silent
     })
 
@@ -478,7 +442,6 @@ export class CoreContext {
       oasDocument,
       settings,
       logger: this.logger,
-      stackTrail: this.#stackTrail,
       captureCurrentResult: this.captureCurrentResult.bind(this),
       toGeneratorConfigMap
     })
@@ -514,8 +477,8 @@ export class CoreContext {
    * });
    * ```
    */
-  captureCurrentResult(result: ResultType): void {
-    this.#results.capture(this.#stackTrail.toString(), result)
+  captureCurrentResult(result: ResultType, stackTrail: StackTrail): void {
+    this.#results.capture(stackTrail.toString(), result)
   }
 
   #setupRenderPhase({ files, previews, mappings, prettier, basePath }: RenderArgs): RenderPhase {
@@ -526,7 +489,6 @@ export class CoreContext {
       prettierConfig: prettier,
       basePath,
       logger: this.logger,
-      stackTrail: this.#stackTrail,
       captureCurrentResult: this.captureCurrentResult.bind(this)
     })
 

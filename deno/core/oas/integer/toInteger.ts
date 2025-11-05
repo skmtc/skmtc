@@ -6,16 +6,19 @@ import { oasIntegerData, integerFormat } from './integer-types.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 type ToIntegerArgs = {
   value: OpenAPIV3.SchemaObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
-export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
+export const toInteger = ({ value, stackTrail, context }: ToIntegerArgs): OasInteger => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,
-    context
+    context,
+    stackTrail
   })
 
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
@@ -24,7 +27,8 @@ export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
     example: unparsedExample,
     context,
     parent: valueWithoutNullable,
-    nullable
+    nullable,
+    stackTrail
   })
 
   const { enum: unparsedEnums, ...valueWithoutEnums } = valueWithoutExample
@@ -35,7 +39,8 @@ export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
     parent: valueWithoutExample,
     context,
     check: Number.isInteger,
-    toMessage: item => `Removed invalid enum. Expected "integer", got: ${item}`
+    toMessage: item => `Removed invalid enum. Expected "integer", got: ${item}`,
+    stackTrail
   })
 
   return toParsedInteger({
@@ -43,12 +48,14 @@ export const toInteger = ({ value, context }: ToIntegerArgs): OasInteger => {
     nullable,
     example,
     enums,
-    value: valueWithoutEnums
+    value: valueWithoutEnums,
+    stackTrail
   })
 }
 
 type ToParsedIntegerArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
+  stackTrail: StackTrail
   context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? number | null | undefined : number | undefined
@@ -60,14 +67,16 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
   nullable,
   example,
   enums,
-  value: valueWithoutEnums
+  value: valueWithoutEnums,
+  stackTrail
 }: ToParsedIntegerArgs<Nullable>): OasInteger<Nullable> => {
   const { format: unparsedFormat, ...valueWithoutFormat } = valueWithoutEnums
 
   const format = parseIntegerFormat({
     format: unparsedFormat,
     context,
-    parent: valueWithoutEnums
+    parent: valueWithoutEnums,
+    stackTrail
   })
 
   if (!v.is(oasIntegerData, valueWithoutFormat)) {
@@ -94,6 +103,7 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     skipped,
     parent: valueWithoutEnums,
     context,
+    stackTrail,
     parentType: 'schema:integer'
   })
 
@@ -121,9 +131,10 @@ type ParseIntegerFormatArgs = {
   format: unknown
   context: ParseContextType
   parent: unknown
+  stackTrail: StackTrail
 }
 
-const parseIntegerFormat = ({ format, context, parent }: ParseIntegerFormatArgs) => {
+const parseIntegerFormat = ({ format, context, parent, stackTrail }: ParseIntegerFormatArgs) => {
   if (format === undefined) {
     return undefined
   }
@@ -134,6 +145,7 @@ const parseIntegerFormat = ({ format, context, parent }: ParseIntegerFormatArgs)
       level: 'warning',
       message: `Invalid format: ${format}`,
       parent,
+      stackTrail,
       type: 'INVALID_FORMAT'
     })
     return undefined
@@ -146,9 +158,10 @@ type ParseExampleArgs = {
   context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
+  stackTrail: StackTrail
 }
 
-const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
   if (example === undefined) {
     return undefined
   }
@@ -163,6 +176,7 @@ const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) 
       level: 'warning',
       message: `Removed invalid example. Expected "integer", got: ${example}`,
       parent,
+      stackTrail,
       type: 'INVALID_EXAMPLE'
     })
     return undefined

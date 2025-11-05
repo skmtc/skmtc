@@ -6,17 +6,20 @@ import { toAdditionalPropertiesV3 } from './toAdditionalPropertiesV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
-import { tracer } from '@/helpers/tracer.ts'
+
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 type ToObjectArgs = {
   value: OpenAPIV3.SchemaObject
   context: ParseContextType
+  stackTrail: StackTrail
 }
 
-export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
+export const toObject = ({ value, context, stackTrail }: ToObjectArgs): OasObject => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,
-    context
+    context,
+    stackTrail
   })
 
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
@@ -25,7 +28,8 @@ export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
     example: unparsedExample,
     context,
     parent: valueWithoutNullable,
-    nullable
+    nullable,
+    stackTrail
   })
 
   const { enum: unparsedEnums, ...valueWithoutEnums } = valueWithoutExample
@@ -35,6 +39,7 @@ export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
     nullable,
     parent: valueWithoutExample,
     context,
+    stackTrail,
     check: isObject,
     toMessage: item => `Removed invalid enum. Expected "object", got: ${item}`
   })
@@ -44,12 +49,14 @@ export const toObject = ({ value, context }: ToObjectArgs): OasObject => {
     nullable,
     example,
     enums,
-    value: valueWithoutEnums
+    value: valueWithoutEnums,
+    stackTrail
   })
 }
 
 type ToParsedObjectArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
+  stackTrail: StackTrail
   context: ParseContextType
   nullable: Nullable
   example: Nullable extends true
@@ -62,6 +69,7 @@ type ToParsedObjectArgs<Nullable extends boolean | undefined> = {
 
 const toParsedObject = <Nullable extends boolean | undefined>({
   context,
+  stackTrail,
   nullable,
   example,
   enums,
@@ -87,6 +95,7 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     skipped,
     parent: value,
     context,
+    stackTrail,
     parentType: 'schema:object'
   })
 
@@ -96,17 +105,18 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     nullable,
     example,
     enums,
-    properties: tracer(context.stackTrail, 'properties', () =>
+    properties: stackTrail.trace('properties', st =>
       toOptionalSchemasV3({
         schemas: properties,
+        stackTrail: st,
         context
       })
     ),
     required,
     maxProperties,
     minProperties,
-    additionalProperties: tracer(context.stackTrail, 'additionalProperties', () =>
-      toAdditionalPropertiesV3({ additionalProperties, context })
+    additionalProperties: stackTrail.trace('additionalProperties', st =>
+      toAdditionalPropertiesV3({ additionalProperties, stackTrail: st, context })
     ),
     extensionFields,
     default: defaultValue,
@@ -121,9 +131,10 @@ type ParseExampleArgs = {
   context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
+  stackTrail: StackTrail
 }
 
-const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
   if (example === undefined) {
     return undefined
   }
@@ -138,6 +149,7 @@ const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) 
       level: 'warning',
       message: `Invalid example: ${example}`,
       parent,
+      stackTrail,
       type: 'INVALID_EXAMPLE'
     })
     return undefined

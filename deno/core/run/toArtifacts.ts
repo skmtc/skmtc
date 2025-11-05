@@ -4,6 +4,7 @@ import { CoreContext } from '../context/CoreContext.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import type { StackTrail } from '../context/StackTrail.ts'
 
 /**
  * Arguments for the {@link toArtifacts} transformation function.
@@ -37,6 +38,8 @@ type TransformArgs = {
   prettier?: PrettierConfigType
   /** Optional path for writing log files */
   logsPath?: string
+  /** Stack trail for distributed tracing */
+  stackTrail: StackTrail
   /** Function that returns the generator configuration map */
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   /** Timestamp when transformation started */
@@ -140,7 +143,8 @@ export const toArtifacts = ({
   toGeneratorConfigMap,
   logsPath,
   startAt,
-  silent
+  silent,
+  stackTrail
 }: TransformArgs): { artifacts: Record<string, string>; manifest: ManifestContent } => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
@@ -149,6 +153,7 @@ export const toArtifacts = ({
     toGeneratorConfigMap,
     prettier,
     documentObject,
+    stackTrail,
     silent
   })
 

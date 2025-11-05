@@ -8,16 +8,18 @@ import type { DocumentFields } from '@/oas/document/Document.ts'
 import { toSpecificationExtensionsV3 } from '@/oas/specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toOptionalServersV3 } from '@/oas/server/toServerV3.ts'
 import { toSecurityRequirementsV3 } from '@/oas/securityRequirement/toSecurityRequirement.ts'
-import { tracer } from '@/helpers/tracer.ts'
 import { toExternalDocs } from '@/oas/externalDocs/toExternalDocs.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 type ToDocumentV3Args = {
   documentObject: OpenAPIV3.Document
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toDocumentFieldsV3 = ({
   documentObject,
+  stackTrail,
   context
 }: ToDocumentV3Args): DocumentFields => {
   const { openapi, info, paths, components, tags, servers, security, externalDocs, ...skipped } =
@@ -27,24 +29,29 @@ export const toDocumentFieldsV3 = ({
     skipped,
     parent: documentObject,
     context,
+    stackTrail,
     parentType: 'document'
   })
 
   return {
     openapi,
-    info: tracer(context.stackTrail, 'info', () => toInfoV3({ info, context })),
-    servers: tracer(context.stackTrail, 'servers', () => toOptionalServersV3({ servers, context })),
-    operations: tracer(context.stackTrail, 'paths', () => toOperationsV3({ paths, context })),
-    components: tracer(context.stackTrail, 'components', () =>
-      toComponentsV3({ components, context })
+    info: stackTrail.trace('info', st => toInfoV3({ info, stackTrail: st, context })),
+    servers: stackTrail.trace('servers', st =>
+      toOptionalServersV3({ servers, stackTrail: st, context })
     ),
-    tags: tracer(context.stackTrail, 'tags', () => toTagsV3({ tags, context })),
-    security: tracer(context.stackTrail, 'security', () =>
-      toSecurityRequirementsV3({ security, context })
+    operations: stackTrail.trace('paths', st => toOperationsV3({ paths, stackTrail: st, context })),
+    components: stackTrail.trace('components', st =>
+      toComponentsV3({ components, stackTrail: st, context })
+    ),
+    tags: stackTrail.trace('tags', st => toTagsV3({ tags, stackTrail: st, context })),
+    security: stackTrail.trace('security', st =>
+      toSecurityRequirementsV3({ security, stackTrail: st, context })
     ),
     extensionFields,
-    externalDocs: tracer(context.stackTrail, 'externalDocs', () =>
-      toExternalDocs({ externalDocs, context })
+    externalDocs: stackTrail.trace('externalDocs', st =>
+      toExternalDocs({ externalDocs, stackTrail: st, context })
     )
   }
 }
+
+// stackTrail.trace('info', (x) => formatNumber(x))

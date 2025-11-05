@@ -17,14 +17,16 @@ import { toGetRef } from '../../helpers/refFns.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
 import invariant from 'tiny-invariant'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toSchemasV3 = ({
   schemas,
+  stackTrail,
   context
 }: ToSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> => {
   const output: Record<string, OasSchema | OasRef<'schema'>> = {}
@@ -32,7 +34,7 @@ export const toSchemasV3 = ({
 
   for (const [key, schema] of entries) {
     try {
-      output[key] = tracer(context.stackTrail, key, () => toSchemaV3({ schema, context }))
+      output[key] = stackTrail.trace(key, st => toSchemaV3({ schema, stackTrail: st, context }))
     } catch (error) {
       invariant(error instanceof Error, 'Invalid error')
 
@@ -41,6 +43,7 @@ export const toSchemasV3 = ({
         level: 'error',
         error,
         parent: schema,
+        stackTrail,
         type: 'INVALID_SCHEMA'
       })
     }
@@ -51,43 +54,50 @@ export const toSchemasV3 = ({
 
 type ToOptionalSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject> | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toOptionalSchemasV3 = ({
   schemas,
+  stackTrail,
   context
 }: ToOptionalSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> | undefined => {
   if (!schemas) {
     return undefined
   }
 
-  return toSchemasV3({ schemas, context })
+  return toSchemasV3({ schemas, stackTrail, context })
 }
 
 type ToSchemaV3Args = {
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
-export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
+export const toSchemaV3 = ({
+  schema,
+  stackTrail,
+  context
+}: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
   if (isRef(schema)) {
-    return toRefV31({ ref: schema, refType: 'schema', context })
+    return toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
   return match(schema)
     .with({ allOf: P.array() }, schema => {
-      return tracer(context.stackTrail, 'allOf', () => {
+      return stackTrail.trace('allOf', st => {
         const merged = mergeIntersection({
           schema,
           getRef: toGetRef(context.documentObject)
         })
 
-        return toSchemaV3({ schema: merged, context })
+        return toSchemaV3({ schema: merged, stackTrail: st, context })
       })
     })
     .with({ oneOf: P.array() }, oneOf => {
-      return tracer(context.stackTrail, 'oneOf', () => {
+      return stackTrail.trace('oneOf', st => {
         const merged = mergeUnion({
           schema: oneOf,
           getRef: toGetRef(context.documentObject),
@@ -105,19 +115,19 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         }
 
         if (members.length === 1) {
-          return toSchemaV3({ schema: members[0], context })
+          return toSchemaV3({ schema: members[0], stackTrail: st, context })
         }
 
-        return toUnion({ value, members, parentType: 'oneOf', context })
+        return toUnion({ value, members, parentType: 'oneOf', stackTrail: st, context })
       })
     })
     .with({ anyOf: P.array() }, matched => {
-      return tracer(context.stackTrail, 'anyOf', () => {
+      return stackTrail.trace('anyOf', st => {
         // deno-lint-ignore ban-ts-comment
         // @ts-expect-error
         if (matched['x-expansionResources']) {
           const { anyOf, ...value } = matched
-          return toUnion({ value, members: anyOf, parentType: 'anyOf', context })
+          return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
         }
 
         const merged = mergeUnion({
@@ -137,24 +147,25 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
         }
 
         if (members.length === 1) {
-          return toSchemaV3({ schema: members[0], context })
+          return toSchemaV3({ schema: members[0], stackTrail: st, context })
         }
 
-        return toUnion({ value, members, parentType: 'anyOf', context })
+        return toUnion({ value, members, parentType: 'anyOf', stackTrail: st, context })
       })
     })
-    .with({ type: 'object' }, value => toObject({ value, context }))
-    .with({ type: 'array' }, value => toArray({ value, context }))
-    .with({ type: 'integer' }, value => toInteger({ value, context }))
-    .with({ type: 'number' }, value => toNumber({ value, context }))
-    .with({ type: 'boolean' }, value => toBoolean({ value, context }))
-    .with({ type: 'string' }, value => toString({ value, context }))
+    .with({ type: 'object' }, value => toObject({ value, stackTrail, context }))
+    .with({ type: 'array' }, value => toArray({ value, stackTrail, context }))
+    .with({ type: 'integer' }, value => toInteger({ value, stackTrail, context }))
+    .with({ type: 'number' }, value => toNumber({ value, stackTrail, context }))
+    .with({ type: 'boolean' }, value => toBoolean({ value, stackTrail, context }))
+    .with({ type: 'string' }, value => toString({ value, stackTrail, context }))
     .otherwise(value => {
       if (possibleObject(value)) {
         context.logIssueNoKey({
           level: 'warning',
           message: 'Object has "properties" property, but is missing type="object" property',
           parent: value,
+          stackTrail,
           type: 'MISSING_OBJECT_TYPE'
         })
 
@@ -163,6 +174,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
             ...value,
             type: 'object'
           },
+          stackTrail,
           context
         })
       }
@@ -172,6 +184,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
           level: 'warning',
           message: 'Object has "items" property, but is missing type="array" property',
           parent: value,
+          stackTrail,
           type: 'MISSING_ARRAY_TYPE'
         })
 
@@ -181,6 +194,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
             type: 'array'
             // Adding cast here since {} is a valid value for items
           } as OpenAPIV3.ArraySchemaObject,
+          stackTrail,
           context
         })
       }
@@ -191,6 +205,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
           message:
             'Object has a boolean "default" or "example" property, but is missing type="boolean" property',
           parent: value,
+          stackTrail,
           type: 'MISSING_BOOLEAN_TYPE'
         })
 
@@ -199,6 +214,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
             ...value,
             type: 'boolean'
           },
+          stackTrail,
           context
         })
       }
@@ -209,6 +225,7 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
           message:
             'Object has a string "default" or "example" property, but is missing type="string" property',
           parent: value,
+          stackTrail,
           type: 'MISSING_STRING_TYPE'
         })
 
@@ -217,11 +234,12 @@ export const toSchemaV3 = ({ schema, context }: ToSchemaV3Args): OasSchema | Oas
             ...value,
             type: 'string'
           },
+          stackTrail,
           context
         })
       }
 
-      return toUnknown({ value, context })
+      return toUnknown({ value, stackTrail, context })
     })
 }
 
@@ -272,16 +290,18 @@ const possibleObject = (value: unknown) => {
 
 type ToOptionalSchemaV3Args = {
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toOptionalSchemaV3 = ({
   schema,
+  stackTrail,
   context
 }: ToOptionalSchemaV3Args): OasSchema | OasRef<'schema'> | undefined => {
   if (!schema) {
     return undefined
   }
 
-  return toSchemaV3({ schema, context })
+  return toSchemaV3({ schema, stackTrail, context })
 }

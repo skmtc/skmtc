@@ -2,47 +2,54 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { OasServerVariable } from './ServerVariable.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 type ToServerVariablesV3Args = {
   serverVariables: Record<string, OpenAPIV3.ServerVariableObject>
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toServerVariablesV3 = ({
   serverVariables,
+  stackTrail,
   context
 }: ToServerVariablesV3Args): Record<string, OasServerVariable> => {
   return Object.fromEntries(
     Object.entries(serverVariables).map(([key, serverVariable]) => [
       key,
-      toServerVariableV3({ serverVariable, context })
+      toServerVariableV3({ serverVariable, stackTrail, context })
     ])
   )
 }
 
 type ToOptionalServerVariablesV3Args = {
   serverVariables: Record<string, OpenAPIV3.ServerVariableObject> | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toOptionalServerVariablesV3 = ({
   serverVariables,
+  stackTrail,
   context
 }: ToOptionalServerVariablesV3Args): Record<string, OasServerVariable> | undefined => {
   if (!serverVariables) {
     return undefined
   }
 
-  return toServerVariablesV3({ serverVariables, context })
+  return toServerVariablesV3({ serverVariables, stackTrail, context })
 }
 
 type ToServerVariableV3Args = {
   serverVariable: OpenAPIV3.ServerVariableObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toServerVariableV3 = ({
   serverVariable,
+  stackTrail,
   context
 }: ToServerVariableV3Args): OasServerVariable => {
   const { description, default: defaultValue, enum: enums, ...skipped } = serverVariable
@@ -51,6 +58,7 @@ export const toServerVariableV3 = ({
     skipped,
     parent: serverVariable,
     context,
+    stackTrail,
     parentType: 'serverVariable'
   })
 

@@ -6,6 +6,7 @@ import { oasStringData, stringFormat } from './string-types.ts'
 import * as v from 'valibot'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 /**
  * Arguments for transforming an OpenAPI string schema into OAS representation.
@@ -13,6 +14,8 @@ import { parseEnum } from '../_helpers/parseEnum.ts'
 type ToStringArgs = {
   /** The OpenAPI v3 schema object to transform (must be type 'string') */
   value: OpenAPIV3.SchemaObject
+  /** The stack trail for tracing */
+  stackTrail: StackTrail
   /** Parse context providing utilities and tracing capabilities */
   context: ParseContextType
 }
@@ -76,10 +79,11 @@ type ToStringArgs = {
  * console.log(oasString.enums); // ['active', 'inactive', 'pending', null]
  * ```
  */
-export const toString = ({ context, value }: ToStringArgs): OasString => {
+export const toString = ({ context, value, stackTrail }: ToStringArgs): OasString => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,
-    context
+    context,
+    stackTrail
   })
 
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
@@ -88,7 +92,8 @@ export const toString = ({ context, value }: ToStringArgs): OasString => {
     example: unparsedExample,
     context,
     parent: valueWithoutNullable,
-    nullable
+    nullable,
+    stackTrail
   })
 
   const { enum: unparsedEnums, ...valueWithoutEnums } = valueWithoutExample
@@ -99,7 +104,8 @@ export const toString = ({ context, value }: ToStringArgs): OasString => {
     parent: valueWithoutExample,
     context,
     check: isString,
-    toMessage: item => `Removed invalid enum. Expected "string", got: ${item}`
+    toMessage: item => `Removed invalid enum. Expected "string", got: ${item}`,
+    stackTrail
   })
 
   const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
@@ -108,7 +114,8 @@ export const toString = ({ context, value }: ToStringArgs): OasString => {
     defaultValue: unparsedDefaultValue,
     context,
     parent: valueWithoutEnums,
-    nullable
+    nullable,
+    stackTrail
   })
 
   return toParsedString({
@@ -117,7 +124,8 @@ export const toString = ({ context, value }: ToStringArgs): OasString => {
     example,
     enums,
     defaultValue,
-    value: valueWithoutDefault
+    value: valueWithoutDefault,
+    stackTrail
   })
 }
 
@@ -128,6 +136,7 @@ type ToParsedStringArgs<Nullable extends boolean | undefined> = {
   example: Nullable extends true ? string | null | undefined : string | undefined
   enums: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
   defaultValue: Nullable extends true ? string | null | undefined : string | undefined
+  stackTrail: StackTrail
 }
 
 /**
@@ -196,7 +205,8 @@ export const toParsedString = <Nullable extends boolean | undefined>({
   example,
   enums,
   defaultValue,
-  value
+  value,
+  stackTrail
 }: ToParsedStringArgs<Nullable>): OasString<Nullable> => {
   if (!v.is(oasStringData, value)) {
     v.parse(oasStringData, value)
@@ -220,6 +230,7 @@ export const toParsedString = <Nullable extends boolean | undefined>({
     skipped,
     parent: value,
     context,
+    stackTrail,
     parentType: 'schema:string'
   })
 
@@ -229,6 +240,7 @@ export const toParsedString = <Nullable extends boolean | undefined>({
       level: 'warning',
       message: `Unexpected format: ${format}`,
       parent: value,
+      stackTrail,
       type: 'UNEXPECTED_FORMAT'
     })
   }
@@ -260,9 +272,10 @@ type ParseExampleArgs = {
   context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
+  stackTrail: StackTrail
 }
 
-const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
   if (example === undefined) {
     return undefined
   }
@@ -277,6 +290,7 @@ const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) 
       level: 'warning',
       message: `Removed invalid example. Expected "string", got: ${example}`,
       parent,
+      stackTrail,
       type: 'INVALID_EXAMPLE'
     })
     return undefined
@@ -290,9 +304,16 @@ type ParseDefaultArgs = {
   context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
+  stackTrail: StackTrail
 }
 
-const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultArgs) => {
+const parseDefault = ({
+  defaultValue,
+  context,
+  parent,
+  nullable,
+  stackTrail
+}: ParseDefaultArgs) => {
   if (defaultValue === undefined) {
     return undefined
   }
@@ -307,6 +328,7 @@ const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultA
       level: 'warning',
       message: `Removed invalid default. Expected "string", got: ${defaultValue}`,
       parent,
+      stackTrail,
       type: 'INVALID_DEFAULT'
     })
     return undefined

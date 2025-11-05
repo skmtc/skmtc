@@ -18,14 +18,16 @@ import { match } from 'npm:ts-pattern@^5.8.0'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
 import invariant from 'tiny-invariant'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toParameterListV3 = ({
   parameters,
+  stackTrail,
   context
 }: ToParameterListV3Args): (OasParameter | OasRef<'parameter'>)[] | undefined => {
   if (!parameters) {
@@ -33,24 +35,28 @@ export const toParameterListV3 = ({
   }
 
   return parameters.map((parameter, index) => {
-    return tracer(context.stackTrail, `${index}`, () => toParameterV3({ parameter, context }))
+    return stackTrail.trace(`${index}`, st => toParameterV3({ parameter, stackTrail: st, context }))
   })
 }
 
 type ToParametersV3Args = {
   parameters: Record<string, OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject>
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toParametersV3 = ({
   parameters,
+  stackTrail,
   context
 }: ToParametersV3Args): Record<string, OasParameter | OasRef<'parameter'>> => {
   const output: Record<string, OasParameter | OasRef<'parameter'>> = {}
   const entries = Object.entries(parameters)
   for (const [key, parameter] of entries) {
     try {
-      output[key] = tracer(context.stackTrail, key, () => toParameterV3({ parameter, context }))
+      output[key] = stackTrail.trace(key, st =>
+        toParameterV3({ parameter, stackTrail: st, context })
+      )
     } catch (error) {
       invariant(error instanceof Error, 'Invalid error')
 
@@ -59,6 +65,7 @@ export const toParametersV3 = ({
         level: 'error',
         error,
         parent: parameter,
+        stackTrail,
         type: 'INVALID_PARAMETER'
       })
     }
@@ -68,31 +75,35 @@ export const toParametersV3 = ({
 
 type ToOptionalParametersV3Args = {
   parameters: Record<string, OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject> | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toOptionalParametersV3 = ({
   parameters,
+  stackTrail,
   context
 }: ToOptionalParametersV3Args): Record<string, OasParameter | OasRef<'parameter'>> | undefined => {
   if (!parameters) {
     return undefined
   }
 
-  return toParametersV3({ parameters, context })
+  return toParametersV3({ parameters, stackTrail, context })
 }
 
 type ToParameterV3Args = {
   parameter: OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 const toParameterV3 = ({
   parameter,
+  stackTrail,
   context
 }: ToParameterV3Args): OasParameter | OasRef<'parameter'> => {
   if (isRef(parameter)) {
-    return toRefV31({ ref: parameter, refType: 'parameter', context })
+    return toRefV31({ ref: parameter, refType: 'parameter', stackTrail, context })
   }
 
   const {
@@ -116,6 +127,7 @@ const toParameterV3 = ({
     skipped,
     parent: parameter,
     context,
+    stackTrail,
     parentType: 'parameter'
   })
 
@@ -135,21 +147,26 @@ const toParameterV3 = ({
     description,
     required: defaultRequired,
     deprecated,
-    style: tracer(context.stackTrail, 'style', () => toStyle({ style, location: parsedLocation })),
-    explode: tracer(context.stackTrail, 'explode', () => toExplode({ explode, style })),
+    style: stackTrail.trace('style', st =>
+      toStyle({ style, location: parsedLocation, stackTrail: st })
+    ),
+    explode: stackTrail.trace('explode', st => toExplode({ explode, style, stackTrail: st })),
     allowEmptyValue,
     allowReserved,
-    schema: tracer(context.stackTrail, 'schema', () => toOptionalSchemaV3({ schema, context })),
-    examples: tracer(context.stackTrail, 'examples', () =>
+    schema: stackTrail.trace('schema', st =>
+      toOptionalSchemaV3({ schema, stackTrail: st, context })
+    ),
+    examples: stackTrail.trace('examples', st =>
       toExamplesV3({
         examples,
         example,
         exampleKey: `${name}-${parsedLocation}`,
+        stackTrail: st,
         context
       })
     ),
-    content: tracer(context.stackTrail, 'content', () =>
-      toOptionalMediaTypeItemsV3({ content, context })
+    content: stackTrail.trace('content', st =>
+      toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
     ),
     extensionFields
   }
@@ -160,9 +177,10 @@ const toParameterV3 = ({
 type ToStyleArgs = {
   style: string | undefined
   location: OasParameterLocation
+  stackTrail: StackTrail
 }
 
-const toStyle = ({ style, location }: ToStyleArgs): OasParameterStyle => {
+const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyle => {
   const parsed = v.parse(v.optional(oasParameterStyle), style)
   return (
     parsed ??
@@ -179,9 +197,10 @@ const toStyle = ({ style, location }: ToStyleArgs): OasParameterStyle => {
 type ToExplodeArgs = {
   explode: boolean | undefined
   style: string | undefined
+  stackTrail: StackTrail
 }
 
-const toExplode = ({ explode, style }: ToExplodeArgs): boolean => {
+const toExplode = ({ explode, style, stackTrail }: ToExplodeArgs): boolean => {
   return (
     explode ??
     match(style)

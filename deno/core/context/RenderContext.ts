@@ -6,13 +6,12 @@ import type { Definition } from '@/dsl/Definition.ts'
 import type { PickArgs } from './generateTypes.ts'
 import type { ResultType } from '@/types/Results.ts'
 import { toResolvedArtifactPath } from '@/helpers/toResolvedArtifactPath.ts'
-import { tracer } from '@/helpers/tracer.ts'
-import type { StackTrail } from '@/context/StackTrail.ts'
 import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
 import { File } from '@/dsl/File.ts'
 import type { Preview, Mapping } from '@/types/Preview.ts'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
+import type { StackTrail } from './StackTrail.ts'
 
 /**
  * Constructor arguments for {@link RenderContext}.
@@ -28,12 +27,10 @@ type ConstructorArgs = {
   prettierConfig?: PrettierConfigType
   /** Base path for resolving file paths */
   basePath: string | undefined
-  /** Stack trail for distributed tracing */
-  stackTrail: StackTrail
   /** Logger instance for debug information */
   logger: log.Logger
   /** Function to capture result status */
-  captureCurrentResult: (result: ResultType) => void
+  captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
 }
 
 /**
@@ -72,182 +69,6 @@ type RenderOutput = {
   >
 }
 
-/**
- * The rendering context for the final phase of the SKMTC transformation pipeline.
- *
- * `RenderContext` is responsible for taking the generated artifacts from the generation
- * phase and rendering them into their final form with proper formatting, path resolution,
- * and file preparation. It handles code formatting via Biome, path normalization,
- * and produces the final artifacts ready for writing to the filesystem.
- *
- * This context represents the culmination of the three-phase SKMTC pipeline, transforming
- * generator outputs into production-ready code files with proper formatting and structure.
- *
- * ## Key Features
- *
- * - **Code Formatting**: Automatic Biome formatting for generated TypeScript/JavaScript code
- * - **Path Resolution**: Intelligent path resolution with base path support
- * - **Content Collation**: Combines all generated content into organized file structures
- * - **Metadata Generation**: Tracks file statistics (lines, characters) and relationships
- * - **Performance Monitoring**: Built-in tracing and performance measurement
- *
- * @example Basic rendering usage
- * ```typescript
- * import { RenderContext } from '@skmtc/core';
- *
- * const renderContext = new RenderContext({
- *   files: generatedFiles,
- *   previews: previewData,
- *   mappings: mappingData,
- *   prettierConfig: {
- *     semi: false,
- *     singleQuote: true,
- *     trailingComma: 'all'
- *   },
- *   basePath: './src/generated',
- *   stackTrail: traceStack,
- *   logger: myLogger,
- *   captureCurrentResult: (result) => console.log(result)
- * });
- *
- * const rendered = await renderContext.render();
- *
- * // Access rendered files
- * Object.entries(rendered.artifacts).forEach(([path, content]) => {
- *   console.log(`Rendered ${path}: ${rendered.files[path].lines} lines`);
- *   // Write to filesystem
- *   await Deno.writeTextFile(path, content);
- * });
- * ```
- *
- * @example With custom formatter configuration
- * ```typescript
- * const renderContext = new RenderContext({
- *   files: generatedFiles,
- *   previews: {},
- *   mappings: {},
- *   prettierConfig: {
- *     printWidth: 120,
- *     tabWidth: 2,
- *     semi: true,
- *     singleQuote: true,
- *     trailingComma: 'es5',
- *     bracketSpacing: true,
- *     arrowParens: 'avoid'
- *   },
- *   basePath: './packages/api-client/src',
- *   stackTrail: stack,
- *   logger: logger,
- *   captureCurrentResult: resultHandler
- * });
- *
- * const result = await renderContext.render();
- *
- * // All TypeScript files are automatically formatted
- * console.log('Formatted files:', Object.keys(result.artifacts).length);
- * ```
- *
- * @example Processing render results
- * ```typescript
- * const rendered = await renderContext.render();
- *
- * // Analyze file statistics
- * const totalLines = Object.values(rendered.files)
- *   .reduce((sum, file) => sum + file.lines, 0);
- * const totalChars = Object.values(rendered.files)
- *   .reduce((sum, file) => sum + file.characters, 0);
- *
- * console.log(`Generated ${Object.keys(rendered.artifacts).length} files`);
- * console.log(`Total lines: ${totalLines}`);
- * console.log(`Total characters: ${totalChars}`);
- *
- * // Check for large files
- * const largeFiles = Object.entries(rendered.files)
- *   .filter(([_, metadata]) => metadata.lines > 1000)
- *   .map(([path, metadata]) => ({ path, lines: metadata.lines }));
- *
- * if (largeFiles.length > 0) {
- *   console.log('Large files detected:', largeFiles);
- * }
- *
- * // Access preview and mapping data
- * console.log('Previews available:', Object.keys(rendered.previews));
- * console.log('Mappings available:', Object.keys(rendered.mappings));
- * ```
- *
- * @example Integration with CoreContext
- * ```typescript
- * // Typically used within CoreContext.toArtifacts()
- * class CustomCoreContext extends CoreContext {
- *   async renderWithPostProcessing(
- *     files: Map<string, File | JsonFile>,
- *     previews: Record<string, Record<string, Preview>>,
- *     mappings: Record<string, Record<string, Mapping>>
- *   ) {
- *     const renderContext = new RenderContext({
- *       files,
- *       previews,
- *       mappings,
- *       prettierConfig: this.prettierConfig,
- *       basePath: this.settings?.basePath,
- *       stackTrail: this.stackTrail,
- *       logger: this.logger,
- *       captureCurrentResult: this.captureCurrentResult.bind(this)
- *     });
- *
- *     const rendered = await renderContext.render();
- *
- *     // Post-process rendered files
- *     const processedArtifacts: Record<string, string> = {};
- *
- *     for (const [path, content] of Object.entries(rendered.artifacts)) {
- *       // Add file headers, license notices, etc.
- *       const processedContent = this.addFileHeader(content, path);
- *       processedArtifacts[path] = processedContent;
- *     }
- *
- *     return {
- *       ...rendered,
- *       artifacts: processedArtifacts
- *     };
- *   }
- * }
- * ```
- *
- * @example Error handling during rendering
- * ```typescript
- * try {
- *   const renderContext = new RenderContext({
- *     files: generatedFiles,
- *     previews: {},
- *     mappings: {},
- *     prettierConfig: prettierConfig,
- *     basePath: './invalid-path', // This might cause issues
- *     stackTrail: stack,
- *     logger: logger,
- *     captureCurrentResult: (result) => {
- *       if (result === 'error') {
- *         console.error('Render error detected');
- *       }
- *     }
- *   });
- *
- *   const result = await renderContext.render();
- *
- *   // Check if any files failed to render
- *   const failedFiles = Object.entries(result.files)
- *     .filter(([path, metadata]) => metadata.lines === 0)
- *     .map(([path]) => path);
- *
- *   if (failedFiles.length > 0) {
- *     console.warn('Files with no content:', failedFiles);
- *   }
- *
- * } catch (error) {
- *   console.error('Render operation failed:', error);
- * }
- * ```
- */
 export class RenderContext {
   /** Map of generated files to render */
   files: Map<string, File | JsonFile>
@@ -261,10 +82,8 @@ export class RenderContext {
   basePath: string | undefined
   /** Logger instance for debug information */
   logger: Logger
-  /** Stack trail for distributed tracing */
-  #stackTrail: StackTrail
   /** Function to capture result status */
-  captureCurrentResult: (result: ResultType) => void
+  captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
 
   /**
    * Creates a new RenderContext instance with the specified configuration.
@@ -281,7 +100,6 @@ export class RenderContext {
     prettierConfig,
     basePath,
     logger,
-    stackTrail,
     captureCurrentResult
   }: ConstructorArgs) {
     this.files = files
@@ -290,7 +108,6 @@ export class RenderContext {
     this.#prettierConfig = prettierConfig
     this.basePath = basePath
     this.logger = logger
-    this.#stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
   }
 
@@ -325,8 +142,8 @@ export class RenderContext {
    * });
    * ```
    */
-  render(): Omit<RenderResult, 'results'> {
-    const result = this.collate()
+  render(stackTrail: StackTrail): Omit<RenderResult, 'results'> {
+    const result = this.collate(stackTrail)
 
     const rendered: Omit<RenderResult, 'results'> = {
       artifacts: result.artifacts,
@@ -365,12 +182,12 @@ export class RenderContext {
    * console.log(collated.files['/path/to/file.ts'].characters);
    * ```
    */
-  collate(): FilesRenderResult {
+  collate(stackTrail: StackTrail): FilesRenderResult {
     const fileEntries = Array.from(this.files.entries())
 
     const fileObjects: FileObject[] = fileEntries
       .map(([destinationPath, file]) => {
-        return this.trace(destinationPath, () => {
+        return stackTrail.trace(destinationPath, st => {
           const renderedFile: FileObject = renderFile({
             content: file.toString(),
             destinationPath,
@@ -378,7 +195,7 @@ export class RenderContext {
             prettierConfig: this.#prettierConfig
           })
 
-          this.captureCurrentResult('success')
+          this.captureCurrentResult('success', st)
 
           return renderedFile
         })
@@ -400,34 +217,6 @@ export class RenderContext {
     }
 
     return output
-  }
-
-  /**
-   * Executes a function within a tracing context for performance monitoring.
-   *
-   * This method wraps function execution with distributed tracing capabilities,
-   * allowing performance monitoring and debugging of the rendering pipeline.
-   * It integrates with the stack trail to provide hierarchical tracing.
-   *
-   * @template T - The return type of the traced function
-   * @param token - Trace identifier (string or array of strings)
-   * @param fn - Function to execute within the trace context
-   * @returns The result of executing the traced function
-   *
-   * @example
-   * ```typescript
-   * const result = renderContext.trace('format-file', () => {
-   *   return biome.formatContent(projectKey, content, { filePath: 'file.ts' });
-   * });
-   *
-   * // With hierarchical tracing
-   * const result = renderContext.trace(['render', 'format'], () => {
-   *   return complexFormattingOperation();
-   * });
-   * ```
-   */
-  trace<T>(token: string, fn: () => T): T {
-    return tracer(this.#stackTrail, token, fn)
   }
 
   /**

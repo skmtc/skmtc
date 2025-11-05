@@ -6,9 +6,11 @@ import { oasBooleanData } from './boolean-types.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 type ToBooleanArgs = {
   value: OpenAPIV3.SchemaObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
@@ -69,10 +71,11 @@ type ToBooleanArgs = {
  * console.log(oasBoolean.enums); // [true, null]
  * ```
  */
-export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
+export const toBoolean = ({ value, stackTrail, context }: ToBooleanArgs): OasBoolean => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,
-    context
+    context,
+    stackTrail
   })
 
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
@@ -81,7 +84,8 @@ export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
     example: unparsedExample,
     context,
     parent: valueWithoutNullable,
-    nullable
+    nullable,
+    stackTrail
   })
   // const { enum: enums, value: valueWithoutEnums } = parseEnum({
   //   value: valueWithoutExample,
@@ -96,6 +100,7 @@ export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
     value: unparsedEnums,
     nullable,
     parent: valueWithoutExample,
+    stackTrail,
     context,
     check: isBoolean,
     toMessage: item => `Removed invalid enum. Expected "boolean", got: ${item}`
@@ -107,7 +112,8 @@ export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
     defaultValue: unparsedDefaultValue,
     context,
     parent: valueWithoutEnums,
-    nullable
+    nullable,
+    stackTrail
   })
 
   return toParsedBoolean({
@@ -116,7 +122,8 @@ export const toBoolean = ({ value, context }: ToBooleanArgs): OasBoolean => {
     example,
     enums,
     defaultValue,
-    value: valueWithoutDefault
+    value: valueWithoutDefault,
+    stackTrail
   })
 }
 
@@ -127,6 +134,7 @@ type ToParsedBooleanArgs<Nullable extends boolean | undefined> = {
   example: Nullable extends true ? boolean | null | undefined : boolean | undefined
   enums: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
   defaultValue: Nullable extends true ? boolean | null | undefined : boolean | undefined
+  stackTrail: StackTrail
 }
 
 export const toParsedBoolean = <Nullable extends boolean | undefined>({
@@ -135,7 +143,8 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
   example,
   enums,
   defaultValue,
-  value
+  value,
+  stackTrail
 }: ToParsedBooleanArgs<Nullable>): OasBoolean<Nullable> => {
   if (!v.is(oasBooleanData, value)) {
     v.parse(oasBooleanData, value)
@@ -147,6 +156,7 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
     skipped,
     parent: value,
     context,
+    stackTrail,
     parentType: 'schema:boolean'
   })
 
@@ -169,9 +179,10 @@ type ParseExampleArgs = {
   context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
+  stackTrail: StackTrail
 }
 
-const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
   if (example === undefined) {
     return undefined
   }
@@ -186,6 +197,7 @@ const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) 
       level: 'warning',
       message: `Removed invalid example. Expected "boolean", got: ${example}`,
       parent,
+      stackTrail,
       type: 'INVALID_EXAMPLE'
     })
     return undefined
@@ -199,9 +211,16 @@ type ParseDefaultArgs = {
   context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
+  stackTrail: StackTrail
 }
 
-const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultArgs) => {
+const parseDefault = ({
+  defaultValue,
+  context,
+  parent,
+  nullable,
+  stackTrail
+}: ParseDefaultArgs) => {
   if (defaultValue === undefined) {
     return undefined
   }
@@ -216,6 +235,7 @@ const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultA
       level: 'warning',
       message: `Removed invalid default. Expected "boolean", got: ${defaultValue}`,
       parent,
+      stackTrail,
       type: 'INVALID_DEFAULT'
     })
     return undefined

@@ -3,7 +3,6 @@ import { toDocumentFieldsV3 } from '@/oas/document/toDocumentFieldsV3.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import type { Logger } from '@/types/Logger.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-import { tracer } from '@/helpers/tracer.ts'
 import type { IssueType } from './generateTypes.ts'
 import type * as v from 'valibot'
 import type {
@@ -21,8 +20,6 @@ type ConstructorArgs = {
   documentObject: OpenAPIV3.Document
   /** Logger instance for debug information */
   logger: Logger
-  /** Stack trail for distributed tracing */
-  stackTrail: StackTrail
   /** Whether to suppress console output */
   silent: boolean
 }
@@ -99,8 +96,7 @@ export class ParseContext implements ParseContextType {
   logger: Logger
   /** The parsed OAS document result */
   oasDocument: OasDocument
-  /** Stack trail for tracking current parsing context */
-  stackTrail: StackTrail
+
   /** Collection of parsing issues encountered during processing */
   issues: ParseIssue[]
   /** Whether to suppress console output during parsing */
@@ -112,10 +108,9 @@ export class ParseContext implements ParseContextType {
    *
    * @param args - Constructor arguments including document object, logger, and options
    */
-  constructor({ documentObject, logger, stackTrail, silent = true }: ConstructorArgs) {
+  constructor({ documentObject, logger, silent = true }: ConstructorArgs) {
     this.documentObject = documentObject
     this.logger = logger
-    this.stackTrail = stackTrail
     this.oasDocument = new OasDocument()
     this.silent = silent
     this.issues = []
@@ -128,9 +123,10 @@ export class ParseContext implements ParseContextType {
    *
    * @returns Parsed OAS document with all components and operations
    */
-  parse(): OasDocument {
+  parse(stackTrail: StackTrail): OasDocument {
     this.oasDocument.fields = toDocumentFieldsV3({
       documentObject: this.documentObject,
+      stackTrail: stackTrail,
       context: this
     })
 
@@ -193,10 +189,11 @@ export class ParseContext implements ParseContextType {
    *
    * @param args - Arguments containing skipped fields and parent context
    */
-  logSkippedFields({ skipped, parent, parentType }: LogSkippedValuesArgs) {
+  logSkippedFields({ skipped, stackTrail, parent, parentType }: LogSkippedValuesArgs) {
     Object.keys(skipped).forEach(key => {
       this.logIssue({
         key,
+        stackTrail,
         parent,
         level: 'warning',
         message: `Unexpected property '${key}' in '${parentType}'`,
@@ -221,8 +218,8 @@ export class ParseContext implements ParseContextType {
    *
    * @param args - Issue arguments including key, parent object, and issue details
    */
-  logIssue({ key, parent, type, ...issue }: LogIssueArgs) {
-    tracer(this.stackTrail, key, () => this.logIssueNoKey({ parent, type, ...issue }))
+  logIssue({ key, parent, type, stackTrail, ...issue }: LogIssueArgs) {
+    stackTrail.trace(key, st => this.logIssueNoKey({ parent, type, stackTrail: st, ...issue }))
   }
 
   /**
@@ -230,14 +227,14 @@ export class ParseContext implements ParseContextType {
    *
    * @param args - Issue arguments including parent object and issue details
    */
-  logIssueNoKey({ parent, type, ...issue }: LogIssueNoKeyArgs) {
+  logIssueNoKey({ parent, type, stackTrail, ...issue }: LogIssueNoKeyArgs) {
     if (issue.level === 'error') {
-      this.registerRefError(issue.error, this.stackTrail.toStackRef())
+      this.registerRefError(issue.error, stackTrail.toStackRef())
     }
 
     this.issues.push({
       ...issue,
-      location: this.stackTrail.toString(),
+      location: stackTrail.toString(),
       parent,
       type
     })
@@ -245,7 +242,7 @@ export class ParseContext implements ParseContextType {
     if (!this.silent) {
       this.logger.warn({
         ...issue,
-        location: this.stackTrail.toString(),
+        location: stackTrail.toString(),
         parent: JSON.stringify(parent),
         type
       })

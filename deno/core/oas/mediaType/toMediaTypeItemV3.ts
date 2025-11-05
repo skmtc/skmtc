@@ -5,7 +5,7 @@ import { toExamplesV3 } from '../example/toExamplesV3.ts'
 import { OasMediaType } from './MediaType.ts'
 import type { MediaTypeFields } from './MediaType.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 /**
  * Arguments for transforming an OpenAPI v3 media type item into an OAS media type.
@@ -15,6 +15,8 @@ type ToMediaTypeItemV3Args = {
   mediaTypeItem: OpenAPIV3.MediaTypeObject
   /** The media type string (e.g., 'application/json', 'text/plain') */
   mediaType: string
+  /** The stack trail for tracing */
+  stackTrail: StackTrail
   /** The parsing context for tracing and processing */
   context: ParseContextType
 }
@@ -124,6 +126,7 @@ type ToMediaTypeItemV3Args = {
 export const toMediaTypeItemV3 = ({
   mediaTypeItem,
   mediaType,
+  stackTrail,
   context
 }: ToMediaTypeItemV3Args): OasMediaType => {
   const { schema, example, examples, encoding, ...skipped } = mediaTypeItem
@@ -132,18 +135,22 @@ export const toMediaTypeItemV3 = ({
     skipped,
     parent: mediaTypeItem,
     context,
+    stackTrail,
     parentType: 'mediaType'
   })
 
   const fields: MediaTypeFields = {
     mediaType,
     encoding,
-    schema: tracer(context.stackTrail, 'schema', () => toOptionalSchemaV3({ schema, context })),
-    examples: tracer(context.stackTrail, 'examples', () =>
+    schema: stackTrail.trace('schema', st =>
+      toOptionalSchemaV3({ schema, stackTrail: st, context })
+    ),
+    examples: stackTrail.trace('examples', st =>
       toExamplesV3({
         example,
         examples,
         exampleKey: mediaType,
+        stackTrail: st,
         context
       })
     ),
@@ -159,6 +166,8 @@ export const toMediaTypeItemV3 = ({
 type ToMediaTypeItemsV3Args = {
   /** Map of media type strings to OpenAPI v3 MediaType objects */
   content: Record<string, OpenAPIV3.MediaTypeObject>
+  /** The stack trail for tracing */
+  stackTrail: StackTrail
   /** The parsing context for tracing and processing */
   context: ParseContextType
 }
@@ -248,14 +257,15 @@ type ToMediaTypeItemsV3Args = {
  */
 export const toMediaTypeItemsV3 = ({
   content,
+  stackTrail,
   context
 }: ToMediaTypeItemsV3Args): Record<string, OasMediaType> => {
   const output: Record<string, OasMediaType> = {}
   const entries = Object.entries(content)
 
   for (const [mediaType, value] of entries) {
-    output[mediaType] = tracer(context.stackTrail, mediaType, () =>
-      toMediaTypeItemV3({ mediaTypeItem: value, mediaType, context })
+    output[mediaType] = stackTrail.trace(mediaType, st =>
+      toMediaTypeItemV3({ mediaTypeItem: value, mediaType, stackTrail: st, context })
     )
   }
 
@@ -268,6 +278,8 @@ export const toMediaTypeItemsV3 = ({
 type ToOptionalMediaTypeItemsV3Args = {
   /** Optional map of media type strings to OpenAPI v3 MediaType objects */
   content: Record<string, OpenAPIV3.MediaTypeObject> | undefined
+  /** The stack trail for tracing */
+  stackTrail: StackTrail
   /** The parsing context for tracing and processing */
   context: ParseContextType
 }
@@ -361,11 +373,12 @@ type ToOptionalMediaTypeItemsV3Args = {
  */
 export const toOptionalMediaTypeItemsV3 = ({
   content,
+  stackTrail,
   context
 }: ToOptionalMediaTypeItemsV3Args): Record<string, OasMediaType> | undefined => {
   if (!content) {
     return
   }
 
-  return toMediaTypeItemsV3({ content, context })
+  return toMediaTypeItemsV3({ content, stackTrail, context })
 }

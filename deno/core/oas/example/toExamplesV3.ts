@@ -6,9 +6,13 @@ import { OasExample } from './Example.ts'
 import type { ExampleFields } from './Example.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 type ToExampleSimpleV3Args = {
   example: OpenAPIV3.ExampleObject
+  /** The stack trail for tracing */
+  stackTrail: StackTrail
+  /** Parse context for tracing and error handling */
+  context: ParseContextType
 }
 
 /**
@@ -46,6 +50,8 @@ export type ToExamplesV3Args = {
   examples: Record<string, OpenAPIV3.ExampleObject | OpenAPIV3.ReferenceObject> | undefined
   /** Key name for the example context */
   exampleKey: string
+  /** The stack trail for tracing */
+  stackTrail: StackTrail
   /** Parse context for tracing and error handling */
   context: ParseContextType
 }
@@ -64,6 +70,7 @@ export const toExamplesV3 = ({
   example,
   examples,
   exampleKey,
+  stackTrail,
   context
 }: ToExamplesV3Args): Record<string, OasExample | OasRef<'example'>> | undefined => {
   if (example && examples) {
@@ -72,24 +79,27 @@ export const toExamplesV3 = ({
       level: 'warning',
       message: `Both example and examples are defined for ${exampleKey}`,
       parent: examples,
+      stackTrail,
       type: 'EXAMPLE_AND_EXAMPLES_DEFINED'
     })
   }
 
   if (example) {
     return {
-      [exampleKey]: tracer(context.stackTrail, 'example', () => toExampleSimpleV3({ example }))
+      [exampleKey]: stackTrail.trace('example', st =>
+        toExampleSimpleV3({ example, stackTrail: st, context })
+      )
     }
   }
 
   if (examples) {
-    return tracer(context.stackTrail, 'examples', () => {
+    return stackTrail.trace('examples', st => {
       const output: Record<string, OasExample | OasRef<'example'>> = {}
       const entries = Object.entries(examples)
 
       for (const [key, value] of entries) {
-        output[key] = tracer(context.stackTrail, key, () =>
-          toExampleV3({ example: value, context })
+        output[key] = st.trace(key, st2 =>
+          toExampleV3({ example: value, stackTrail: st2, context })
         )
       }
 
@@ -102,6 +112,7 @@ export const toExamplesV3 = ({
 
 type ToExampleV3Args = {
   example: OpenAPIV3.ExampleObject | OpenAPIV3.ReferenceObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
@@ -117,10 +128,11 @@ type ToExampleV3Args = {
  */
 export const toExampleV3 = ({
   example,
+  stackTrail,
   context
 }: ToExampleV3Args): OasExample | OasRef<'example'> => {
   if (isRef(example)) {
-    return toRefV31({ ref: example, refType: 'example', context })
+    return toRefV31({ ref: example, refType: 'example', stackTrail, context })
   }
 
   const { summary, description, value, ...skipped } = example
@@ -129,6 +141,7 @@ export const toExampleV3 = ({
     skipped,
     parent: example,
     context,
+    stackTrail,
     parentType: 'example'
   })
 

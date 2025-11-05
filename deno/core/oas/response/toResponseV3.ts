@@ -8,14 +8,17 @@ import { OasResponse } from './Response.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import invariant from 'tiny-invariant'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
+
 type ToResponsesV3Args = {
   responses: OpenAPIV3.ResponsesObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toResponsesV3 = ({
   responses,
+  stackTrail,
   context
 }: ToResponsesV3Args): Record<string, OasResponse | OasRef<'response'>> => {
   const output: Record<string, OasResponse | OasRef<'response'>> = {}
@@ -23,8 +26,8 @@ export const toResponsesV3 = ({
 
   for (const [key, value] of entries) {
     try {
-      output[key] = tracer(context.stackTrail, key, () =>
-        toResponseV3({ response: value, context })
+      output[key] = stackTrail.trace(key, st =>
+        toResponseV3({ response: value, stackTrail: st, context })
       )
     } catch (error) {
       invariant(error instanceof Error, 'Invalid error')
@@ -34,6 +37,7 @@ export const toResponsesV3 = ({
         level: 'error',
         error,
         parent: value,
+        stackTrail,
         type: 'INVALID_RESPONSE'
       })
     }
@@ -43,31 +47,35 @@ export const toResponsesV3 = ({
 
 type ToOptionalResponsesV3Args = {
   responses: OpenAPIV3.ResponsesObject | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toOptionalResponsesV3 = ({
   responses,
+  stackTrail,
   context
 }: ToOptionalResponsesV3Args): Record<string, OasResponse | OasRef<'response'>> | undefined => {
   if (!responses) {
     return undefined
   }
 
-  return toResponsesV3({ responses, context })
+  return toResponsesV3({ responses, stackTrail, context })
 }
 
 type ToResponseV3Args = {
   response: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toResponseV3 = ({
   response,
+  stackTrail,
   context
 }: ToResponseV3Args): OasResponse | OasRef<'response'> => {
   if (isRef(response)) {
-    return toRefV31({ ref: response, refType: 'response', context })
+    return toRefV31({ ref: response, refType: 'response', stackTrail, context })
   }
 
   const { description, headers, content, ...skipped } = response
@@ -76,14 +84,15 @@ export const toResponseV3 = ({
     skipped,
     parent: response,
     context,
+    stackTrail,
     parentType: 'response'
   })
 
   return new OasResponse({
     description,
-    headers: tracer(context.stackTrail, 'headers', () => toHeadersV3({ headers, context })),
-    content: tracer(context.stackTrail, 'content', () =>
-      toOptionalMediaTypeItemsV3({ content, context })
+    headers: stackTrail.trace('headers', st => toHeadersV3({ headers, stackTrail: st, context })),
+    content: stackTrail.trace('content', st =>
+      toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
     ),
     extensionFields
   })

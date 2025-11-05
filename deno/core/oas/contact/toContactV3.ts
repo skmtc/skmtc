@@ -2,9 +2,11 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { OasContact } from './Contact.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 export const toContactV3 = (
   contact: OpenAPIV3.ContactObject,
+  stackTrail: StackTrail,
   context: ParseContextType
 ): OasContact => {
   const { name, url, email, ...skipped } = contact
@@ -13,6 +15,7 @@ export const toContactV3 = (
     skipped,
     parent: contact,
     context,
+    stackTrail,
     parentType: 'contact'
   })
 

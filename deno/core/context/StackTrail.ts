@@ -81,6 +81,38 @@ export class StackTrail {
     throw new Error(`Unexpected stack frame: ${frame}`)
   }
 
+  trace<T>(key: string, fn: (st: StackTrail) => T): T {
+    const stackTrail = this.clone()
+    stackTrail.append(key)
+    try {
+      const result = fn(stackTrail)
+
+      stackTrail.remove(key)
+
+      return result
+    } catch (error) {
+      stackTrail.remove(key)
+
+      throw error
+    }
+  }
+
+  async traceAsync<T>(key: string, fn: (st: StackTrail) => Promise<T>): Promise<T> {
+    const stackTrail = this.clone()
+    stackTrail.append(key)
+    try {
+      const result = await fn(stackTrail)
+
+      stackTrail.remove(key)
+
+      return result
+    } catch (error) {
+      stackTrail.remove(key)
+
+      throw error
+    }
+  }
+
   /**
    * Converts the trail to an OpenAPI reference string if applicable.
    *

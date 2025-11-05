@@ -21,6 +21,8 @@ export type LogIssueNoKeyArgs = ParseIssueBase & {
   parent: unknown
   /** The type of issue for categorization */
   type: IssueType
+  /** Stack trail for tracking current parsing context */
+  stackTrail: StackTrail
 }
 
 /**
@@ -42,6 +44,8 @@ export type ParseIssueBase = ParseErrorBase | ParseWarningBase
  * Arguments for logging issues with a specific key.
  */
 export type LogIssueArgs = ParseIssueBase & {
+  /** Stack trail for tracking current parsing context */
+  stackTrail: StackTrail
   /** The key where the issue occurred */
   key: string
   /** The parent object containing the issue */
@@ -54,6 +58,8 @@ export type LogIssueArgs = ParseIssueBase & {
  * Arguments for logging skipped values during parsing.
  */
 export type LogSkippedValuesArgs = {
+  /** Stack trail for tracking current parsing context */
+  stackTrail: StackTrail
   /** Record of skipped key-value pairs */
   skipped: Record<string, unknown>
   /** The parent object context */
@@ -65,8 +71,7 @@ export type LogSkippedValuesArgs = {
 export type ParseContextType = {
   oasDocument: OasDocument
   documentObject: OpenAPIV3.Document
-  stackTrail: StackTrail
-  parse: () => OasDocument
+  parse: (stackTrail: StackTrail) => OasDocument
   removeErroredItems: () => void
   registerRef: (stackTrail: StackTrail, $ref: string) => void
   registerRefError: (error: Error, $ref: string | undefined) => void

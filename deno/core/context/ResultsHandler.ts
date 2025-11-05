@@ -3,6 +3,7 @@ import type { LogRecord } from '@std/log/logger'
 import { BaseHandler } from '@std/log/base-handler'
 import type { CoreContext } from '@/context/CoreContext.ts'
 import { match } from 'npm:ts-pattern@^5.8.0'
+import { StackTrail } from './StackTrail.ts'
 
 /**
  * Base log handler interface for extending Deno standard library handlers.
@@ -20,74 +21,6 @@ export interface ResultsHandlerOptions {
   /** Formatter function for log messages */
   formatter?: (logRecord: LogRecord) => string
 }
-
-/**
- * Custom log handler that captures warning and error results for SKMTC processing.
- *
- * The `ResultsHandler` extends Deno's standard library BaseHandler to provide
- * specialized logging behavior for the SKMTC pipeline. It integrates with the
- * CoreContext to capture warnings and errors as structured results that can be
- * analyzed and reported after processing completes.
- *
- * This handler ensures that important processing issues are captured and stored
- * in the context's results system rather than just being logged to the console.
- *
- * ## Key Features
- *
- * - **Result Capture**: Automatically captures WARN and ERROR logs as results
- * - **Immediate Flushing**: Critical errors trigger immediate flush
- * - **Lifecycle Management**: Proper setup and cleanup with event handlers
- * - **Context Integration**: Seamlessly integrates with CoreContext results system
- *
- * @example Setting up the handler
- * ```typescript
- * import { getLogger } from '@std/log';
- * import { ResultsHandler, CoreContext } from '@skmtc/core';
- *
- * const context = new CoreContext({
- *   // ... context options
- * });
- *
- * const handler = new ResultsHandler('WARN', {
- *   context: context,
- *   formatter: '[{levelName}] {msg}'
- * });
- *
- * const logger = getLogger();
- * logger.addHandler(handler);
- *
- * // Now warnings and errors will be captured as results
- * logger.warning('Schema validation issue detected');
- * logger.error('Failed to process operation');
- * ```
- *
- * @example Integration in pipeline
- * ```typescript
- * class ProcessingPipeline {
- *   async process(document: OasDocument) {
- *     const context = new CoreContext(options);
- *
- *     // Set up results handler
- *     const handler = new ResultsHandler('WARN', { context });
- *     const logger = getLogger();
- *     logger.addHandler(handler);
- *
- *     try {
- *       const result = await this.processDocument(document, context);
- *
- *       // Check captured results
- *       if (context.results.hasWarnings()) {
- *         console.log('Processing completed with warnings');
- *       }
- *
- *       return result;
- *     } finally {
- *       handler.destroy();
- *     }
- *   }
- * }
- * ```
- */
 export class ResultsHandler extends BaseHandler implements LogHandlerBase {
   /** The CoreContext instance for capturing results */
   context: CoreContext
@@ -175,7 +108,8 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
         .with('ERROR', () => 'error' as const)
         .otherwise(() => {
           throw new Error(`Unexpected log level name: ${levelName}`)
-        })
+        }),
+      new StackTrail(['SKIPPED'])
     )
   }
 

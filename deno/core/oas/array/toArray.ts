@@ -8,8 +8,11 @@ import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
 import { oasArrayDataWithoutItems } from './array-types.ts'
 import { tracer } from '../../helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
+
 type ToArrayArgs = {
   value: OpenAPIV3.ArraySchemaObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
@@ -72,10 +75,11 @@ type ToArrayArgs = {
  * console.log(oasArray.example); // [1, 2, 3]
  * ```
  */
-export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
+export const toArray = ({ value, context, stackTrail }: ToArrayArgs): OasArray => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,
-    context
+    context,
+    stackTrail
   })
 
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
@@ -84,7 +88,8 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
     example: unparsedExample,
     context,
     parent: valueWithoutNullable,
-    nullable
+    nullable,
+    stackTrail
   })
 
   const { enum: unparsedEnums, ...valueWithoutEnums } = valueWithoutExample
@@ -92,6 +97,7 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
   const enums = parseEnum({
     value: unparsedEnums,
     nullable,
+    stackTrail,
     parent: valueWithoutExample,
     context,
     check: Array.isArray,
@@ -104,7 +110,8 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
     defaultValue: unparsedDefaultValue,
     context,
     parent: valueWithoutEnums,
-    nullable
+    nullable,
+    stackTrail
   })
 
   return toParsedArray({
@@ -113,6 +120,7 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
     example,
     enums,
     defaultValue,
+    stackTrail,
     value: valueWithoutDefault as Omit<
       OpenAPIV3.ArraySchemaObject,
       'nullable' | 'example' | 'enums' | 'default'
@@ -122,6 +130,7 @@ export const toArray = ({ value, context }: ToArrayArgs): OasArray => {
 
 type ToParsedArrayArgs<Nullable extends boolean | undefined> = {
   value: Omit<OpenAPIV3.ArraySchemaObject, 'nullable' | 'example' | 'enums' | 'default'>
+  stackTrail: StackTrail
   context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined
@@ -131,6 +140,7 @@ type ToParsedArrayArgs<Nullable extends boolean | undefined> = {
 
 export const toParsedArray = <Nullable extends boolean | undefined>({
   context,
+  stackTrail,
   nullable,
   example,
   enums,
@@ -162,6 +172,7 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
     skipped,
     parent: value,
     context,
+    stackTrail,
     parentType: 'schema:array'
   })
 
@@ -175,7 +186,7 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
     description,
     nullable,
     defaultValue,
-    items: tracer(context.stackTrail, 'items', () => toSchemaV3({ schema: items, context })),
+    items: stackTrail.trace('items', st => toSchemaV3({ schema: items, stackTrail: st, context })),
     extensionFields,
     example,
     uniqueItems,
@@ -193,9 +204,10 @@ type ParseExampleArgs = {
   context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
+  stackTrail: StackTrail
 }
 
-const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) => {
+const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
   if (example === undefined) {
     return undefined
   }
@@ -210,6 +222,7 @@ const parseExample = ({ example, context, parent, nullable }: ParseExampleArgs) 
       level: 'warning',
       message: `Removed invalid example. Expected "array", got: ${example}`,
       parent,
+      stackTrail,
       type: 'INVALID_EXAMPLE'
     })
     return undefined
@@ -223,9 +236,16 @@ type ParseDefaultArgs = {
   context: ParseContextType
   parent: unknown
   nullable: boolean | undefined
+  stackTrail: StackTrail
 }
 
-const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultArgs) => {
+const parseDefault = ({
+  defaultValue,
+  context,
+  parent,
+  nullable,
+  stackTrail
+}: ParseDefaultArgs) => {
   if (defaultValue === undefined) {
     return undefined
   }
@@ -240,6 +260,7 @@ const parseDefault = ({ defaultValue, context, parent, nullable }: ParseDefaultA
       level: 'warning',
       message: `Invalid default: ${defaultValue}`,
       parent,
+      stackTrail,
       type: 'INVALID_DEFAULT'
     })
     return undefined

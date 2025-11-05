@@ -2,14 +2,17 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasDiscriminator } from './Discriminator.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 type ToDiscriminatorV3Args = {
   discriminator: OpenAPIV3.DiscriminatorObject | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toDiscriminatorV3 = ({
   discriminator,
+  stackTrail,
   context
 }: ToDiscriminatorV3Args): OasDiscriminator | undefined => {
   if (!discriminator) {
@@ -19,7 +22,12 @@ export const toDiscriminatorV3 = ({
   const { propertyName, mapping, ...skipped } = discriminator
 
   if (!isEmpty(skipped)) {
-    context.logSkippedFields({ skipped, parent: discriminator, parentType: 'discriminator' })
+    context.logSkippedFields({
+      skipped,
+      parent: discriminator,
+      parentType: 'discriminator',
+      stackTrail
+    })
   }
 
   return new OasDiscriminator({

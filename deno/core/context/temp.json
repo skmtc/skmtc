@@ -1,0 +1,9 @@
+{
+  "stackTrail": "SKIPPED",
+  "level": "WARN",
+  "datetime": 1762338700091
+}
+
+{
+    "level":"warning",
+    "message":"Object has \"properties\" property, but is missing type=\"object\" property","location":"AAA:BBB:parse:paths:post:requestBody:content:application/json:schema","parent":"{"properties":{"query_suite":{"description":"CodeQL query suite to be used. If you specify the `query_suite` parameter, the default setup will be configured with this query suite only on all repositories that didn't have default setup already configured. It will not change the query suite on repositories that already have default setup configured.\\nIf you don't specify any `query_suite` in your request, the preferred query suite of the organization will be applied.","type":"string","enum":["default","extended"]}}}","type":"MISSING_OBJECT_TYPE"}

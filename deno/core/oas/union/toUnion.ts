@@ -6,15 +6,22 @@ import { toSchemaV3 } from '../schema/toSchemasV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 type ToUnionArgs = {
   value: OpenAPIV3.SchemaObject
   members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
   parentType: 'anyOf' | 'oneOf'
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
-export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): OasUnion => {
+export const toUnion = ({
+  value,
+  members,
+  parentType,
+  stackTrail,
+  context
+}: ToUnionArgs): OasUnion => {
   const {
     discriminator,
     title,
@@ -29,6 +36,7 @@ export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): O
     skipped,
     parent: value,
     context,
+    stackTrail,
     parentType: `schema:${parentType}`
   })
 
@@ -37,8 +45,8 @@ export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): O
     description,
     nullable,
     default: defaultValue,
-    discriminator: tracer(context.stackTrail, 'discriminator', () =>
-      toDiscriminatorV3({ discriminator, context })
+    discriminator: stackTrail.trace('discriminator', st =>
+      toDiscriminatorV3({ discriminator, stackTrail: st, context })
     ),
     members: members.reduce<(OasSchema | OasRef<'schema'>)[]>((acc, item, index) => {
       if (item === undefined || item === null) {
@@ -47,7 +55,7 @@ export const toUnion = ({ value, members, parentType, context }: ToUnionArgs): O
 
       return [
         ...acc,
-        tracer(context.stackTrail, `${index}`, () => toSchemaV3({ schema: item, context }))
+        stackTrail.trace(`${index}`, st => toSchemaV3({ schema: item, stackTrail: st, context }))
       ]
     }, []),
     example,

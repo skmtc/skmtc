@@ -1,4 +1,5 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 type ParseEnumArgs = {
   value: unknown
@@ -7,6 +8,7 @@ type ParseEnumArgs = {
   check: (item: unknown) => boolean
   toMessage: (item: unknown) => string
   context: ParseContextType
+  stackTrail: StackTrail
 }
 
 export const parseEnum = ({
@@ -15,7 +17,8 @@ export const parseEnum = ({
   parent,
   context,
   check,
-  toMessage
+  toMessage,
+  stackTrail
 }: ParseEnumArgs) => {
   if (Array.isArray(value)) {
     for (const item of value) {
@@ -32,6 +35,7 @@ export const parseEnum = ({
         level: 'warning',
         message: toMessage(item),
         parent,
+        stackTrail,
         type: 'INVALID_DEFAULT'
       })
 

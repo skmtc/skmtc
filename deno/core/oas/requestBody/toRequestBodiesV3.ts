@@ -7,15 +7,17 @@ import { OasRequestBody } from './RequestBody.ts'
 import type { RequestBodyFields } from './RequestBody.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 type ToRequestBodyV3Args = {
   requestBody: OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject | undefined
   forceRef?: boolean
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toRequestBodyV3 = ({
   requestBody,
+  stackTrail,
   context
 }: ToRequestBodyV3Args): OasRequestBody | OasRef<'requestBody'> | undefined => {
   if (!requestBody) {
@@ -23,7 +25,7 @@ export const toRequestBodyV3 = ({
   }
 
   if (isRef(requestBody)) {
-    return toRefV31({ ref: requestBody, refType: 'requestBody', context })
+    return toRefV31({ ref: requestBody, refType: 'requestBody', stackTrail, context })
   }
 
   const { description, content, required, ...skipped } = requestBody
@@ -32,13 +34,14 @@ export const toRequestBodyV3 = ({
     skipped,
     parent: requestBody,
     context,
+    stackTrail,
     parentType: 'requestBody'
   })
 
   const fields: RequestBodyFields = {
     description,
-    content: tracer(context.stackTrail, 'content', () => {
-      return toMediaTypeItemsV3({ content, context })
+    content: stackTrail.trace('content', st => {
+      return toMediaTypeItemsV3({ content, stackTrail: st, context })
     }),
     required,
     extensionFields
@@ -49,11 +52,13 @@ export const toRequestBodyV3 = ({
 
 type ToRequestBodiesV3Args = {
   requestBodies: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject> | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toRequestBodiesV3 = ({
   requestBodies,
+  stackTrail,
   context
 }: ToRequestBodiesV3Args): Record<string, OasRequestBody | OasRef<'requestBody'>> | undefined => {
   if (!requestBodies) {
@@ -64,7 +69,9 @@ export const toRequestBodiesV3 = ({
     .map(([key, value]) => {
       return [
         key,
-        tracer(context.stackTrail, key, () => toRequestBodyV3({ requestBody: value, context }))
+        stackTrail.trace(key, st =>
+          toRequestBodyV3({ requestBody: value, stackTrail: st, context })
+        )
       ]
     })
     .filter(([, value]) => Boolean(value))

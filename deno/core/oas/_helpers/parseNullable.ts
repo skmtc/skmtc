@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 /**
  * Arguments for parsing the nullable property from OpenAPI schemas.
@@ -9,6 +10,8 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 export type ParseNullableArgs<Value extends OpenAPIV3.SchemaObject> = {
   /** The OpenAPI schema object containing the nullable property */
   value: Value
+  /** Stack trail for tracking current parsing context */
+  stackTrail: StackTrail
   /** Parse context for error handling */
   context: ParseContextType
 }
@@ -140,6 +143,7 @@ export type ParseNullableReturn<Value extends OpenAPIV3.SchemaObject> = {
  */
 export const parseNullable = <Value extends OpenAPIV3.SchemaObject>({
   value,
+  stackTrail,
   context
 }: ParseNullableArgs<Value>): ParseNullableReturn<Value> => {
   if (value.nullable === undefined) {
@@ -160,6 +164,7 @@ export const parseNullable = <Value extends OpenAPIV3.SchemaObject>({
 
   context.logIssue({
     key: 'nullable',
+    stackTrail,
     parent: value,
     level: 'warning',
     message: `Invalid nullable: ${value}`,

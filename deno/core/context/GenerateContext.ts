@@ -34,7 +34,6 @@ import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
 import type { ResultType } from '@/types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
-import { tracer } from '@/helpers/tracer.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
 import { Inserted } from '@/dsl/Inserted.ts'
@@ -57,8 +56,7 @@ type ConstructorArgs = {
   oasDocument: OasDocument
   settings: ClientSettings | undefined
   logger: log.Logger
-  stackTrail: StackTrail
-  captureCurrentResult: (result: ResultType) => void
+  captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
 
@@ -212,11 +210,10 @@ export class GenerateContext implements GenerateContextType {
   /** Logger instance for tracking generation progress */
   logger: Logger
   /** Function to capture processing results at current stack position */
-  captureCurrentResult: (result: ResultType) => void
+  captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   /** Function that returns the generator configuration map */
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-  /** Stack trail for tracking current processing context */
-  stackTrail: StackTrail
+
   /** Tracking model nesting depth to prevent infinite recursion */
   modelDepth: Record<string, number>
   /**
@@ -229,7 +226,6 @@ export class GenerateContext implements GenerateContextType {
     settings,
     logger,
     captureCurrentResult,
-    stackTrail,
     toGeneratorConfigMap
   }: ConstructorArgs) {
     this.logger = logger
@@ -238,7 +234,6 @@ export class GenerateContext implements GenerateContextType {
     this.#mappings = {}
     this.oasDocument = oasDocument
     this.settings = settings
-    this.stackTrail = stackTrail
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
     this.modelDepth = {}
@@ -247,11 +242,11 @@ export class GenerateContext implements GenerateContextType {
   /**
    * @internal
    */
-  toArtifacts(): GenerateResult {
+  toArtifacts(stackTrail: StackTrail): GenerateResult {
     const generators = Object.values(this.toGeneratorConfigMap())
 
     generators.forEach(generatorConfig => {
-      this.trace(generatorConfig.id, () => {
+      stackTrail.trace(generatorConfig.id, st => {
         if (this.settings?.skip?.includes(generatorConfig.id)) {
           return
         }
@@ -267,14 +262,16 @@ export class GenerateContext implements GenerateContextType {
             this.#runOperationGenerator(
               this.oasDocument,
               generatorConfig,
-              toSkipPaths(skip, generatorConfig.id)
+              toSkipPaths(skip, generatorConfig.id),
+              st
             )
           )
           .with('model', () =>
             this.#runModelGenerator(
               this.oasDocument,
               generatorConfig,
-              toSkipModels(skip, generatorConfig.id)
+              toSkipModels(skip, generatorConfig.id),
+              st
             )
           )
           .otherwise(matched => {
@@ -292,21 +289,22 @@ export class GenerateContext implements GenerateContextType {
   #runOperationGenerator(
     oasDocument: OasDocument,
     generatorConfig: OperationConfig,
-    skip: SkipPaths | undefined
+    skip: SkipPaths | undefined,
+    stackTrail: StackTrail
   ) {
     oasDocument.operations.reduce((acc, operation) => {
-      return this.trace(`${operation.path}:${operation.method}`, () => {
+      return stackTrail.trace(`${operation.path}:${operation.method}`, st => {
         try {
           if (
             typeof generatorConfig?.isSupported === 'function' &&
             !generatorConfig.isSupported({ operation, context: this })
           ) {
-            this.captureCurrentResult('notSupported')
+            this.captureCurrentResult('notSupported', st)
             return acc
           }
 
           if (skip?.[operation.path]?.includes(operation.method)) {
-            this.captureCurrentResult('skipped')
+            this.captureCurrentResult('skipped', st)
             return acc
           }
 
@@ -318,13 +316,13 @@ export class GenerateContext implements GenerateContextType {
 
           this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, operation }))
 
-          this.captureCurrentResult('success')
+          this.captureCurrentResult('success', st)
 
           return result
         } catch (error) {
           this.logger.error(error)
 
-          this.captureCurrentResult('error')
+          this.captureCurrentResult('error', st)
         }
       })
     }, undefined)
@@ -333,15 +331,16 @@ export class GenerateContext implements GenerateContextType {
   #runModelGenerator(
     oasDocument: OasDocument,
     generatorConfig: ModelConfig,
-    skip: string[] | undefined
+    skip: string[] | undefined,
+    stackTrail: StackTrail
   ) {
     const refNames = oasDocument.components?.toSchemasRefNames() ?? []
 
     return refNames.reduce((acc, refName) => {
-      return this.trace(refName, () => {
+      return stackTrail.trace(refName, st => {
         try {
           if (skip?.includes(refName)) {
-            this.captureCurrentResult('skipped')
+            this.captureCurrentResult('skipped', st)
             return acc
           }
 
@@ -353,12 +352,12 @@ export class GenerateContext implements GenerateContextType {
 
           this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, refName }))
 
-          this.captureCurrentResult('success')
+          this.captureCurrentResult('success', st)
 
           return result
         } catch (error) {
           this.logger.error(error)
-          this.captureCurrentResult('error')
+          this.captureCurrentResult('error', st)
         }
       })
     }, undefined)
@@ -400,17 +399,6 @@ export class GenerateContext implements GenerateContextType {
       module,
       source
     }
-  }
-
-  /**
-   * Executes a function within a traced context for debugging and monitoring.
-   *
-   * @param token - Trace identifier or path segments
-   * @param fn - Function to execute within the trace context
-   * @returns The result of the traced function execution
-   */
-  trace<T>(token: string, fn: () => T): T {
-    return tracer(this.stackTrail, token, fn)
   }
 
   #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File | JsonFile {

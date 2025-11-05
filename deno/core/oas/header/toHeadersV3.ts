@@ -9,14 +9,16 @@ import { OasHeader } from './Header.ts'
 import type { HeaderFields } from './Header.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { tracer } from '@/helpers/tracer.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 type ToHeadersV3Args = {
   headers: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject> | undefined
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toHeadersV3 = ({
   headers,
+  stackTrail,
   context
 }: ToHeadersV3Args): Record<string, OasHeader | OasRef<'header'>> | undefined => {
   if (!headers) {
@@ -27,7 +29,9 @@ export const toHeadersV3 = ({
   const entries = Object.entries(headers)
 
   for (const [key, value] of entries) {
-    output[key] = tracer(context.stackTrail, key, () => toHeaderV3({ header: value, context }))
+    output[key] = stackTrail.trace(key, st =>
+      toHeaderV3({ header: value, stackTrail: st, context })
+    )
   }
 
   return output
@@ -35,12 +39,17 @@ export const toHeadersV3 = ({
 
 type ToHeaderV3Args = {
   header: OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
-const toHeaderV3 = ({ header, context }: ToHeaderV3Args): OasHeader | OasRef<'header'> => {
+const toHeaderV3 = ({
+  header,
+  stackTrail,
+  context
+}: ToHeaderV3Args): OasHeader | OasRef<'header'> => {
   if (isRef(header)) {
-    return toRefV31({ ref: header, refType: 'header', context })
+    return toRefV31({ ref: header, refType: 'header', stackTrail, context })
   }
 
   const { description, required, deprecated, schema, example, examples, content, ...skipped } =
@@ -50,6 +59,7 @@ const toHeaderV3 = ({ header, context }: ToHeaderV3Args): OasHeader | OasRef<'he
     skipped,
     parent: header,
     context,
+    stackTrail,
     parentType: 'header'
   })
 
@@ -57,15 +67,18 @@ const toHeaderV3 = ({ header, context }: ToHeaderV3Args): OasHeader | OasRef<'he
     description,
     required,
     deprecated,
-    schema: tracer(context.stackTrail, 'schema', () => toOptionalSchemaV3({ schema, context })),
+    schema: stackTrail.trace('schema', st =>
+      toOptionalSchemaV3({ schema, stackTrail: st, context })
+    ),
     examples: toExamplesV3({
       examples,
       example,
       exampleKey: `TEMP`,
+      stackTrail,
       context
     }),
-    content: tracer(context.stackTrail, 'content', () =>
-      toOptionalMediaTypeItemsV3({ content, context })
+    content: stackTrail.trace('content', st =>
+      toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
     ),
     extensionFields
   }

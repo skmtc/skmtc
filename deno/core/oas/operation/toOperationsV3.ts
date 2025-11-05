@@ -12,9 +12,9 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
 import invariant from 'tiny-invariant'
 import { isEmpty } from '@/helpers/isEmpty.ts'
-import { tracer } from '@/helpers/tracer.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import { toOptionalServersV3 } from '../server/toServerV3.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 type OperationInfo = {
   method: Method
@@ -25,6 +25,7 @@ type OperationInfo = {
 type ToOperationV3Args = {
   operation: OpenAPIV3.OperationObject
   operationInfo: OperationInfo
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
@@ -36,6 +37,7 @@ type MethodObjects = {
 export const toOperationV3 = ({
   operation,
   operationInfo,
+  stackTrail,
   context
 }: ToOperationV3Args): OasOperation => {
   const { method, path, pathItem } = operationInfo
@@ -59,6 +61,7 @@ export const toOperationV3 = ({
     skipped,
     parent: operation,
     context,
+    stackTrail,
     parentType: 'operation'
   })
 
@@ -70,33 +73,42 @@ export const toOperationV3 = ({
     summary,
     tags,
     description,
-    parameters: tracer(context.stackTrail, 'parameters', () =>
-      toParameterListV3({ parameters, context })
+    parameters: stackTrail.trace('parameters', st =>
+      toParameterListV3({ parameters, stackTrail: st, context })
     ),
-    requestBody: tracer(context.stackTrail, 'requestBody', () =>
-      toRequestBodyV3({ requestBody, context })
+    requestBody: stackTrail.trace('requestBody', st =>
+      toRequestBodyV3({ requestBody, stackTrail: st, context })
     ),
-    responses: tracer(context.stackTrail, 'responses', () => toResponsesV3({ responses, context })),
+    responses: stackTrail.trace('responses', st =>
+      toResponsesV3({ responses, stackTrail: st, context })
+    ),
     deprecated,
-    security: tracer(context.stackTrail, 'security', () =>
-      toSecurityRequirementsV3({ security, context })
+    security: stackTrail.trace('security', st =>
+      toSecurityRequirementsV3({ security, stackTrail: st, context })
     ),
-    externalDocs: tracer(context.stackTrail, 'externalDocs', () =>
-      toExternalDocs({ externalDocs, context })
+    externalDocs: stackTrail.trace('externalDocs', st =>
+      toExternalDocs({ externalDocs, stackTrail: st, context })
     ),
-    servers: tracer(context.stackTrail, 'servers', () => toOptionalServersV3({ servers, context })),
+    servers: stackTrail.trace('servers', st =>
+      toOptionalServersV3({ servers, stackTrail: st, context })
+    ),
     extensionFields
   })
 }
 
 type ToOperationsV3Args = {
   paths: OpenAPIV3.PathsObject
+  stackTrail: StackTrail
   context: ParseContextType
 }
 
-export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOperation[] => {
+export const toOperationsV3 = ({
+  paths,
+  stackTrail,
+  context
+}: ToOperationsV3Args): OasOperation[] => {
   return Object.entries(paths).flatMap(([path, pathItem]) => {
-    return tracer(context.stackTrail, path, () => {
+    return stackTrail.trace(path, st => {
       if (!pathItem) {
         return []
       }
@@ -126,12 +138,12 @@ export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOpera
       )
 
       const pathItemObject = !isEmpty(cleaned.rest)
-        ? toPathItemV3({ pathItem: cleaned.rest, context })
+        ? toPathItemV3({ pathItem: cleaned.rest, stackTrail: st, context })
         : undefined
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {
-          return tracer(context.stackTrail, method, () => {
+          return stackTrail.trace(method, st => {
             if (!operation) {
               return
             }
@@ -144,6 +156,7 @@ export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOpera
                   path,
                   pathItem: pathItemObject
                 },
+                stackTrail: st,
                 context
               })
             } catch (error) {
@@ -154,6 +167,7 @@ export const toOperationsV3 = ({ paths, context }: ToOperationsV3Args): OasOpera
                 parent: operation,
                 level: 'error',
                 error,
+                stackTrail: st,
                 type: 'INVALID_OPERATION'
               })
 

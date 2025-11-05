@@ -19,7 +19,7 @@ import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { File } from '@/dsl/File.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
-
+import type { StackTrail } from './StackTrail.ts'
 /**
  * Options for inserting an operation into the generation context.
  *
@@ -271,8 +271,7 @@ export type InsertNormalisedModelReturn<
 export type GenerateContextType = {
   settings: ClientSettings | undefined
   modelDepth: Record<string, number>
-  toArtifacts: () => GenerateResult
-  trace: <T>(token: string, fn: () => T) => T
+  toArtifacts: (stackTrail: StackTrail) => GenerateResult
   defineAndRegister: <V extends GeneratedValue>({
     identifier,
     value,
