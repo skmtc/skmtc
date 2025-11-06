@@ -2,16 +2,17 @@ import { assertEquals } from '@std/assert/equals'
 import { parseNullable } from './parseNullable.ts'
 import { mockParseContext } from '../../test/mockParseContext.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-
+import { StackTrail } from '@/context/StackTrail.ts'
 Deno.test('parseNullable - returns true when nullable is true', () => {
   const schema: OpenAPIV3.SchemaObject = {
     type: 'string',
     nullable: true,
     description: 'A nullable string'
   }
-
+  const stackTrail = new StackTrail(['TEST'])
   const result = parseNullable({
     value: schema,
+    stackTrail,
     context: mockParseContext
   })
 
@@ -29,8 +30,10 @@ Deno.test('parseNullable - returns false when nullable is false', () => {
     minimum: 0
   }
 
+  const stackTrail = new StackTrail(['TEST'])
   const result = parseNullable({
     value: schema,
+    stackTrail,
     context: mockParseContext
   })
 
@@ -47,8 +50,10 @@ Deno.test('parseNullable - returns undefined when nullable is not present', () =
     format: 'int32'
   }
 
+  const stackTrail = new StackTrail(['TEST'])
   const result = parseNullable({
     value: schema,
+    stackTrail,
     context: mockParseContext
   })
 
@@ -70,8 +75,10 @@ Deno.test('parseNullable - preserves other schema properties', () => {
     example: 'hello'
   }
 
+  const stackTrail = new StackTrail(['TEST'])
   const result = parseNullable({
     value: schema,
+    stackTrail,
     context: mockParseContext
   })
 
@@ -96,8 +103,10 @@ Deno.test('parseNullable - handles object schema with nullable', () => {
     }
   }
 
+  const stackTrail = new StackTrail(['TEST'])
   const result = parseNullable({
     value: schema,
+    stackTrail,
     context: mockParseContext
   })
 
@@ -117,7 +126,9 @@ Deno.test('parseNullable - handles array schema with nullable', () => {
     minItems: 1
   }
 
+  const stackTrail = new StackTrail(['TEST'])
   const result = parseNullable({
+    stackTrail,
     value: schema,
     context: mockParseContext
   })
@@ -136,8 +147,10 @@ Deno.test('parseNullable - handles boolean schema', () => {
     nullable: true
   }
 
+  const stackTrail = new StackTrail(['TEST'])
   const result = parseNullable({
     value: schema,
+    stackTrail,
     context: mockParseContext
   })
 
@@ -150,7 +163,9 @@ Deno.test('parseNullable - handles schema with only nullable property', () => {
     nullable: false
   }
 
+  const stackTrail = new StackTrail(['TEST'])
   const result = parseNullable({
+    stackTrail,
     value: schema,
     context: mockParseContext
   })

@@ -3,9 +3,13 @@ import { toSecurityRequirementsV3 } from './toSecurityRequirement.ts'
 import { assertEquals } from '@std/assert/equals'
 import { OasSecurityRequirement } from './SecurityRequirement.ts'
 import { OasDocument } from '../document/Document.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
 
 Deno.test('toSecurityRequirementsV3 - undefined security requirements', () => {
+  const stackTrail = new StackTrail(['TEST'])
+
   const result = toSecurityRequirementsV3({
+    stackTrail,
     security: [{ api_key: [] }],
     context: mockParseContext
   })

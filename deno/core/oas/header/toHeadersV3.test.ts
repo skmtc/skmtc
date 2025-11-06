@@ -3,9 +3,11 @@ import { toHeadersV3 } from './toHeadersV3.ts'
 import { assertEquals } from '@std/assert/equals'
 import { OasHeader } from './Header.ts'
 import { OasString } from '../string/String.ts'
-
+import { StackTrail } from '@/context/StackTrail.ts'
 Deno.test('toHeadersV3 - undefined headers', () => {
+  const stackTrail = new StackTrail(['TEST'])
   const result = toHeadersV3({
+    stackTrail,
     headers: {
       'x-test': {
         schema: {

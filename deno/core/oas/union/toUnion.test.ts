@@ -4,14 +4,17 @@ import { toUnion } from './toUnion.ts'
 import { assertEquals } from '@std/assert/equals'
 import { OasUnion } from './Union.ts'
 import { OasString } from '../string/String.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
 
 Deno.test('toUnion - basic anyOf union type', () => {
+  const stackTrail = new StackTrail(['TEST'])
   const schema: OpenAPIV3.SchemaObject = { anyOf: [{ type: 'string' }] }
   const members = [{ type: 'string' }] as OpenAPIV3.SchemaObject[]
   const oasUnion = toUnion({
     value: schema,
     members,
     parentType: 'anyOf',
+    stackTrail,
     context: mockParseContext
   })
 

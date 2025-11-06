@@ -5,8 +5,9 @@ import { assertEquals } from '@std/assert/equals'
 import { OasRef } from './Ref.ts'
 import { OasDocument } from '../document/Document.ts'
 import { OasInfo } from '../info/Info.ts'
-
+import { StackTrail } from '@/context/StackTrail.ts'
 Deno.test('toRefV31 - basic schema reference', () => {
+  const stackTrail = new StackTrail(['TEST'])
   const ref: OpenAPIV3_1.ReferenceObject = { $ref: '#/components/schemas/TestSchema' }
   const mockDocument = new OasDocument({
     openapi: '3.0.0',
@@ -24,8 +25,12 @@ Deno.test('toRefV31 - basic schema reference', () => {
   const oasRef = toRefV31({
     ref,
     refType: 'schema',
+    stackTrail,
     context: contextWithDocument as any
   })
 
-  assertEquals(oasRef, new OasRef({ refType: 'schema', $ref: '#/components/schemas/TestSchema' }, mockDocument))
+  assertEquals(
+    oasRef,
+    new OasRef({ refType: 'schema', $ref: '#/components/schemas/TestSchema' }, mockDocument)
+  )
 })

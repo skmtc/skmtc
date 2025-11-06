@@ -18,7 +18,6 @@ export const toParseContext = () => {
   return new ParseContext({
     documentObject,
     logger: new log.Logger('test', 'ERROR'),
-    stackTrail: new StackTrail(),
     silent: true
   })
 }

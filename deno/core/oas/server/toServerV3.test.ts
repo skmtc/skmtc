@@ -3,10 +3,11 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { toServerV3 } from './toServerV3.ts'
 import { assertEquals } from '@std/assert/equals'
 import { OasServer } from './Server.ts'
-
+import { StackTrail } from '@/context/StackTrail.ts'
 Deno.test('toServerV3 - basic server', () => {
+  const stackTrail = new StackTrail(['TEST'])
   const server: OpenAPIV3.ServerObject = { url: 'https://api.example.com' }
-  const oasServer = toServerV3({ server, context: mockParseContext })
+  const oasServer = toServerV3({ server, stackTrail, context: mockParseContext })
 
   assertEquals(oasServer, new OasServer({ url: 'https://api.example.com' }))
 })

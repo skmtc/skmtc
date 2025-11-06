@@ -15,13 +15,15 @@ import { OasObject } from '../object/Object.ts'
 import { OasInfo } from '../info/Info.ts'
 import { OasRef } from '../ref/Ref.ts'
 import { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
-
+import { StackTrail } from '@/context/StackTrail.ts'
 Deno.test({
   name: 'Parse operations',
   ignore: true,
   fn: () => {
+    const stackTrail = new StackTrail(['TEST'])
     const operations = toOperationsV3({
       paths: mockPaths,
+      stackTrail,
       context: mockParseContext as unknown as ParseContextType
     })
 

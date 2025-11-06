@@ -14,6 +14,8 @@ import { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ParseError } from '@/context/ParseContext.ts'
 
 Deno.test.ignore('Handles schema warnings', () => {
+  const stackTrail = new StackTrail(['TEST'])
+
   const parseContext = new ParseContext({
     documentObject: {
       openapi: '3.0.3',
@@ -49,11 +51,10 @@ Deno.test.ignore('Handles schema warnings', () => {
       }
     },
     logger: console as unknown as Logger,
-    stackTrail: new StackTrail(),
     silent: true
   })
 
-  const parsed = parseContext.parse()
+  const parsed = parseContext.parse(stackTrail)
 
   assertEquals(parseContext.issues, [
     {
@@ -98,6 +99,7 @@ Deno.test.ignore('Handles schema warnings', () => {
 })
 
 Deno.test.ignore('Handles response error', () => {
+  const stackTrail = new StackTrail(['TEST'])
   const parseContext = new ParseContext({
     documentObject: {
       openapi: '3.0.3',
@@ -144,11 +146,10 @@ Deno.test.ignore('Handles response error', () => {
       }
     },
     logger: console as unknown as Logger,
-    stackTrail: new StackTrail(),
     silent: true
   })
 
-  const parsed = parseContext.parse()
+  const parsed = parseContext.parse(stackTrail)
 
   // Behaviour below is not correct
   // Ref errors should remove the operation

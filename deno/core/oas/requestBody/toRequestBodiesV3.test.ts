@@ -4,9 +4,11 @@ import { assertEquals } from '@std/assert/equals'
 import { OasRequestBody } from './RequestBody.ts'
 import { OasMediaType } from '../mediaType/MediaType.ts'
 import { OasObject } from '../object/Object.ts'
-
+import { StackTrail } from '@/context/StackTrail.ts'
 Deno.test('toRequestBodyV3 - undefined request body', () => {
+  const stackTrail = new StackTrail(['TEST'])
   const result = toRequestBodyV3({
+    stackTrail,
     requestBody: {
       content: {
         'application/json': {

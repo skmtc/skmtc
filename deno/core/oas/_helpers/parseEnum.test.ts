@@ -1,14 +1,18 @@
 import { mockParseContext } from '@/test/mockParseContext.ts'
 import { parseEnum } from './parseEnum.ts'
 import { assertEquals } from '@std/assert/equals'
+import { StackTrail } from '@/context/StackTrail.ts'
 
 Deno.test('parseEnum - undefined when not array', () => {
+  const stackTrail = new StackTrail(['TEST'])
+
   const result = parseEnum({
+    stackTrail,
     value: 'not-an-array',
     nullable: false,
     parent: {},
-    check: (item) => typeof item === 'string',
-    toMessage: (item) => `Invalid: ${item}`,
+    check: item => typeof item === 'string',
+    toMessage: item => `Invalid: ${item}`,
     context: mockParseContext
   })
 
