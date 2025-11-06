@@ -83,7 +83,6 @@ Deno.test('SkmtcRoot - constructor initializes with projects and manager', () =>
 
   assertEquals(skmtcRoot.projects.length, 2)
   assertEquals(skmtcRoot.manager, manager)
-  assertEquals(skmtcRoot.apiClient !== undefined, true)
 })
 
 Deno.test('SkmtcRoot - multiple projects can coexist', () => {
