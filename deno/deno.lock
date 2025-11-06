@@ -1383,8 +1383,8 @@
       "cli": {
         "dependencies": [
           "jsr:@cliffy/command@1.0.0-rc.8",
-          "jsr:@skmtc/convert@^0.0.19",
-          "jsr:@skmtc/core@^0.0.944",
+          "jsr:@skmtc/convert@^0.0.20",
+          "jsr:@skmtc/core@^0.0.945",
           "npm:@inkjs/ui@2",
           "npm:@supabase/supabase-js@^2.57.4",
           "npm:@types/react@19",
@@ -1418,7 +1418,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.365",
+          "jsr:@skmtc/cli@^0.0.366",
           "jsr:@std/log@~0.224.6",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
           "npm:zod@^3.25.76"
@@ -1426,14 +1426,14 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/convert@^0.0.19",
-          "jsr:@skmtc/core@^0.0.944",
+          "jsr:@skmtc/convert@^0.0.20",
+          "jsr:@skmtc/core@^0.0.945",
           "npm:hono@4.7.2"
         ]
       },
       "worker": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.944",
+          "jsr:@skmtc/core@^0.0.945",
           "npm:ts-pattern@^5.8.0"
         ]
       }
