@@ -1,13 +1,13 @@
 {
   "name": "@skmtc/mcp",
-  "version": "0.0.232",
+  "version": "0.0.233",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
     "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.17.3",
     "zod": "npm:zod@^3.25.76",
-    "@skmtc/cli": "jsr:@skmtc/cli@^0.0.362",
+    "@skmtc/cli": "jsr:@skmtc/cli@^0.0.363",
     "@std/log": "jsr:@std/log@^0.224.6"
   },
   "tasks": {
