@@ -4,6 +4,7 @@ import { clientSettings as settingsSchema, toArtifacts } from '@skmtc/core'
 import type { GeneratorsMapContainer } from '@skmtc/core'
 import { stringToSchema, toV3Document } from '@skmtc/convert'
 import * as v from 'valibot'
+import { StackTrail } from '@skmtc/core'
 
 const postArtifactsBody = v.object({
   schema: v.string(),
@@ -39,14 +40,20 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
     const documentObject = await toV3Document(stringToSchema(schema))
 
+    const traceId = `trace-${Date.now()}`
+    const spanId = `span-${Date.now()}`
+
+    const stackTrail = new StackTrail([traceId, spanId])
+
     const { artifacts, manifest } = toArtifacts({
-      traceId: `trace-${Date.now()}`,
-      spanId: `span-${Date.now()}`,
+      traceId,
+      spanId,
       startAt,
       documentObject,
       prettier,
       settings: clientSettings,
       toGeneratorConfigMap,
+      stackTrail,
       logsPath,
       silent: true
     })
