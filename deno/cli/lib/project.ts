@@ -12,9 +12,7 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import { formatNumber, parseModuleName } from '@skmtc/core'
 import { join } from '@std/path/join'
-import type { ApiClient } from '@/lib/api-client.ts'
 import { Manifest } from '@/lib/manifest.ts'
-import { getApiServersServerNameHasWriteAccess } from '@/services/getApiServersServerNameHasWriteAccess.generated.ts'
 import type { SkmtcDispatch, SkmtcState, SkmtcMessage } from '@/components/SkmtcContext.tsx'
 import type { Generator as GeneratorType } from '@/types/generator.generated.ts'
 import { toMod } from './to-mod.ts'
@@ -266,27 +264,6 @@ export class Project {
 
   toGeneratorIds() {
     return this.rootDenoJson.toGeneratorIds()
-  }
-
-  async hasServerWriteAccess(apiClient: ApiClient) {
-    const projectKey = this.clientJson.contents?.projectKey
-
-    if (!projectKey) {
-      return true
-    }
-
-    const [_accountName, serverName] = projectKey.split('/')
-
-    if (!serverName) {
-      return true
-    }
-
-    const { hasWriteAccess } = await getApiServersServerNameHasWriteAccess({
-      serverName,
-      supabase: apiClient.manager.auth.supabase
-    })
-
-    return hasWriteAccess
   }
 
   async deploy({ state, dispatch, dispatchMessage }: DeployArgs) {

@@ -1,7 +1,6 @@
 import { Project, isProjectKey } from '@/lib/project.ts'
 import type { Manager } from '@/lib/manager.ts'
 import { exists } from '@std/fs/exists'
-import { ApiClient } from '@/lib/api-client.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { Jsr } from '@/lib/jsr.ts'
 import cliDenoJson from '../deno.json' with { type: 'json' }
@@ -29,13 +28,10 @@ type ToProjectArgs = {
 export class SkmtcRoot {
   projects: Project[]
   manager: Manager
-  apiClient: ApiClient
 
   private constructor(projects: Project[], manager: Manager) {
     this.projects = projects
     this.manager = manager
-
-    this.apiClient = new ApiClient(manager)
   }
 
   static toPath() {

@@ -1,5 +1,4 @@
 import type { DenoFile } from '@/deploy/types.ts'
-import { ApiClient } from '@/lib/api-client.ts'
 import type { Manager } from '@/lib/manager.ts'
 import { getApiDeploymentsDeploymentIdDeploymentLogs } from '@/services/getApiDeploymentsDeploymentIdDeploymentLogs.generated.ts'
 import invariant from 'tiny-invariant'
@@ -18,13 +17,13 @@ type DeployArgs = {
 }
 
 export class Deployment {
-  apiClient: ApiClient
+  manager: Manager
   constructor(manager: Manager) {
-    this.apiClient = new ApiClient(manager)
+    this.manager = manager
   }
 
   async deploy({ serverName, assets, project, state }: DeployArgs) {
-    const accountName = await this.apiClient.manager.auth.toUserName()
+    const accountName = await this.manager.auth.toUserName()
     const token = state.session?.access_token
 
     invariant(token, 'Token is missing')
@@ -45,7 +44,7 @@ export class Deployment {
   async getBuildLogs(denoDeploymentId: string) {
     const buildLogs = await getApiDeploymentsDeploymentIdDeploymentLogs({
       deploymentId: denoDeploymentId,
-      supabase: this.apiClient.manager.auth.supabase
+      supabase: this.manager.auth.supabase
     })
 
     return buildLogs
