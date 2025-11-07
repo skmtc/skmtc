@@ -106,7 +106,7 @@ export const generate = async ({
     const { artifacts, manifest } =
       project instanceof Project
         ? await GenerateArtifacts.generateWithWorker({
-            workerPath: join(project.toPath(), 'worker.ts'),
+            workerPath: join(project.toPath(), 'bundle.js'),
             schemaContents,
             clientSettings
           })

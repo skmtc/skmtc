@@ -69,10 +69,10 @@ export const generateWithWorker = ({
       }
     }
 
-    worker.onerror = ({ error }) => {
+    worker.onerror = error => {
       console.error('❌ Worker error:', error)
 
-      reject(new Error(error))
+      reject(error)
     }
   })
 }
