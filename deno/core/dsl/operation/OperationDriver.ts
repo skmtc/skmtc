@@ -4,26 +4,20 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import { Definition } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { GeneratedDefinition, GenerationType } from '../GeneratedValue.ts'
+import type { GeneratedDefinition } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import { toOperationGeneratorKey } from '../GeneratorKeys.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 
-type CreateOperationArgs<
-  V extends GeneratedValue,
-  T extends GenerationType,
-  EnrichmentType = undefined
-> = {
+type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
   insertable: OperationInsertable<V, EnrichmentType>
   operation: OasOperation
-  generation?: T
   destinationPath?: string
   noExport?: boolean
 }
 
-type ApplyArgs<T extends GenerationType> = {
-  generation?: T
+type ApplyArgs = {
   destinationPath?: string
 }
 
@@ -62,11 +56,7 @@ type GetDefinitionArgs = {
  * }
  * ```
  */
-export class OperationDriver<
-  V extends GeneratedValue,
-  T extends GenerationType,
-  EnrichmentType = undefined
-> {
+export class OperationDriver<V extends GeneratedValue, EnrichmentType = undefined> {
   /** The generation context providing access to OAS objects and utilities */
   context: GenerateContextType
   /** The insertable object that provides generation configuration */
@@ -78,7 +68,7 @@ export class OperationDriver<
   /** Optional custom destination path for generated files */
   destinationPath?: string
   /** The generated definition containing the transformed operation */
-  definition: GeneratedDefinition<V, T>
+  definition: GeneratedDefinition<V>
   /** Whether to exclude this operation from exports */
   noExport?: boolean
 
@@ -89,7 +79,6 @@ export class OperationDriver<
    * @param args.context - Generation context
    * @param args.insertable - Insertable providing generation configuration
    * @param args.operation - OpenAPI operation to process
-   * @param args.generation - Optional generation type
    * @param args.destinationPath - Optional custom destination path
    * @param args.noExport - Whether to exclude from exports
    */
@@ -97,10 +86,9 @@ export class OperationDriver<
     context,
     insertable,
     operation,
-    generation,
     destinationPath,
     noExport
-  }: CreateOperationArgs<V, T, EnrichmentType>) {
+  }: CreateOperationArgs<V, EnrichmentType>) {
     this.context = context
     this.insertable = insertable
     this.operation = operation
@@ -111,7 +99,7 @@ export class OperationDriver<
       insertable
     })
 
-    this.definition = this.apply({ generation, destinationPath })
+    this.definition = this.apply({ destinationPath })
   }
 
   /**
@@ -127,16 +115,8 @@ export class OperationDriver<
    * @param args.destinationPath - Optional destination path for imports
    * @returns Generated definition for the operation
    */
-  private apply<T extends GenerationType>({
-    generation: _generation,
-    destinationPath
-  }: ApplyArgs<T> = {}): GeneratedDefinition<V, T> {
+  private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {
     const { identifier, exportPath } = this.settings
-
-    // Everything is selected (for now)
-    // if (/*!selected && */ generation !== 'force') {
-    //   return undefined as GeneratedDefinition<V, T>
-    // }
 
     const definition = this.getDefinition({ identifier, exportPath })
 

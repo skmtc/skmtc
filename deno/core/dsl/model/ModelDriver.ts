@@ -4,22 +4,20 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import { Definition } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { GeneratedDefinition, GenerationType } from '../GeneratedValue.ts'
+import type { GeneratedDefinition } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 
-type CreateModelArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
+type CreateModelArgs<V extends GeneratedValue, EnrichmentType> = {
   context: GenerateContextType
   insertable: ModelInsertable<V, EnrichmentType>
   refName: RefName
-  generation?: T
   destinationPath?: string
   rootRef?: RefName
   noExport?: boolean
 }
-type ApplyArgs<T extends GenerationType> = {
-  generation?: T
+type ApplyArgs = {
   destinationPath?: string
 }
 
@@ -36,7 +34,7 @@ type GetDefinitionArgs = {
  * @template T - The generation type
  * @template EnrichmentType - Optional enrichment type
  */
-export class ModelDriver<V extends GeneratedValue, T extends GenerationType, EnrichmentType> {
+export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
   /** The generation context */
   context: GenerateContextType
   /** The insertable model configuration */
@@ -48,7 +46,7 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
   /** Optional destination path for the generated file */
   destinationPath?: string
   /** The generated definition */
-  definition: GeneratedDefinition<V, T>
+  definition: GeneratedDefinition<V>
   /** Optional root reference name */
   rootRef?: RefName
   /** Whether to skip export declaration */
@@ -61,7 +59,6 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
    * @param args.context - Generation context
    * @param args.insertable - Model insertable configuration
    * @param args.refName - Reference name for the model
-   * @param args.generation - Optional generation type
    * @param args.destinationPath - Optional destination path
    * @param args.rootRef - Optional root reference name
    * @param args.noExport - Whether to skip export declaration
@@ -70,11 +67,10 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
     context,
     insertable,
     refName,
-    generation,
     destinationPath,
     rootRef,
     noExport
-  }: CreateModelArgs<V, T, EnrichmentType>) {
+  }: CreateModelArgs<V, EnrichmentType>) {
     this.context = context
     this.insertable = insertable
     this.refName = refName
@@ -85,7 +81,7 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
     this.context.modelDepth[`${insertable.id}:${refName}`] = 0
 
     this.settings = this.context.toModelContentSettings({ refName, insertable })
-    this.definition = this.apply({ generation, destinationPath })
+    this.definition = this.apply({ destinationPath })
 
     this.context.modelDepth[`${insertable.id}:${refName}`] = 0
   }
@@ -96,22 +92,12 @@ export class ModelDriver<V extends GeneratedValue, T extends GenerationType, Enr
    * This method handles the core generation logic, including identifier resolution,
    * export path management, and import registration for cross-file dependencies.
    *
-   * @template T - The generation type
    * @param args - Apply configuration arguments
-   * @param args.generation - Optional generation type (unused currently)
    * @param args.destinationPath - Optional destination path for imports
    * @returns Generated definition for the model
    */
-  private apply<T extends GenerationType>({
-    generation: _generation,
-    destinationPath
-  }: ApplyArgs<T> = {}): GeneratedDefinition<V, T> {
+  private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {
     const { identifier, exportPath } = this.settings
-
-    // Everything is selected (for now)
-    // if (/*!selected && */ generation !== 'force') {
-    //   return undefined as GeneratedDefinition<V, T>
-    // }
 
     const definition = this.getDefinition({ identifier, exportPath })
 

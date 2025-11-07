@@ -1,9 +1,9 @@
 import { Project } from '@/lib/project.ts'
 import type { Manager } from '@/lib/manager.ts'
-import { RootDenoJson } from '@/lib/root-deno-json.ts'
-import { ClientJson } from '@/lib/client-json.ts'
-import { Manifest } from '@/lib/manifest.ts'
-import { SchemaFile } from '@/lib/schema-file.ts'
+import type { RootDenoJson } from '@/lib/root-deno-json.ts'
+import type { ClientJson } from '@/lib/client-json.ts'
+import type { Manifest } from '@/lib/manifest.ts'
+import type { SchemaFile } from '@/lib/schema-file.ts'
 import { mockRootDenoJsonContents } from '@/tests/fixtures/deno-json.fixture.ts'
 import { mockClientJsonContents } from '@/tests/fixtures/client-json.fixture.ts'
 
@@ -68,11 +68,13 @@ export function createMockProject(manager: Manager, options: MockProjectOptions 
     schemaFile,
     toGeneratorIds: () => generators,
     addGenerator: async () => {},
-    installGenerator: async () => ({ name: 'test-gen', version: '0.0.1', exports: {} }),
+    installGenerator: async () =>
+      await Promise.resolve({ name: 'test-gen', version: '0.0.1', exports: {} }),
     removeGenerator: async () => {},
     cloneGenerator: async () => {},
     deploy: async () => {},
-    createServer: async () => `/mock/projects/${name}/mod.ts`,
+    createServer: async () => await Promise.resolve(`/mock/projects/${name}/server.ts`),
+    createWorker: async () => await Promise.resolve(`/mock/projects/${name}/worker.ts`),
     toManifestPath: () => `/mock/projects/${name}/.settings/manifest.json`,
     toPath: () => `/mock/projects/${name}`,
     toProjectKey: () => `@mock/${name}`

@@ -15,7 +15,8 @@ import { join } from '@std/path/join'
 import { Manifest } from '@/lib/manifest.ts'
 import type { SkmtcDispatch, SkmtcState, SkmtcMessage } from '@/components/SkmtcContext.tsx'
 import type { Generator as GeneratorType } from '@/types/generator.generated.ts'
-import { toMod } from './to-mod.ts'
+import { toServer } from './to-server.ts'
+import { toWorker } from './to-worker.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -173,13 +174,27 @@ export class Project {
   }
 
   async createServer() {
-    const mod = toMod(this.toGeneratorIds())
+    const mod = toServer(this.toGeneratorIds())
 
     const path = this.toPath()
 
-    const modPath = join(path, 'mod.ts')
+    const modPath = join(path, 'worker.ts')
 
-    Deno.mkdirSync(path, { recursive: true })
+    await Deno.mkdir(path, { recursive: true })
+
+    await Deno.writeTextFile(modPath, mod)
+
+    return modPath
+  }
+
+  async createWorker() {
+    const mod = toWorker(this.toGeneratorIds())
+
+    const path = this.toPath()
+
+    const modPath = join(path, 'worker.ts')
+
+    await Deno.mkdir(path, { recursive: true })
 
     await Deno.writeTextFile(modPath, mod)
 

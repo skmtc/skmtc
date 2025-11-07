@@ -1,4 +1,4 @@
-import type { GeneratedDefinition, GeneratedValue, GenerationType } from './GeneratedValue.ts'
+import type { GeneratedDefinition, GeneratedValue } from './GeneratedValue.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 
@@ -6,14 +6,13 @@ import type { Identifier } from '@/dsl/Identifier.ts'
  * Constructor arguments for {@link Inserted}.
  *
  * @template V - The type of generated value
- * @template T - The generation type ('force' or 'lazy')
  * @template EnrichmentType - Optional enrichment data type
  */
-type ConstructorArgs<V extends GeneratedValue, T extends GenerationType, EnrichmentType> = {
+type ConstructorArgs<V extends GeneratedValue, EnrichmentType> = {
   /** Content settings including identifier and export path */
   settings: ContentSettings<EnrichmentType>
   /** The generated definition with its value */
-  definition: GeneratedDefinition<V, T>
+  definition: GeneratedDefinition<V>
 }
 
 /**
@@ -31,13 +30,11 @@ type ConstructorArgs<V extends GeneratedValue, T extends GenerationType, Enrichm
  * ## Key Features
  *
  * - **Type Safety**: Generic parameters preserve exact types from generators
- * - **Generation Modes**: Handles both 'force' and 'lazy' generation strategies
  * - **Metadata Access**: Provides access to identifiers, export paths, and settings
  * - **Value Extraction**: Type-safe value extraction with proper optionality
  * - **Enrichment Support**: Full support for custom enrichment data types
  *
  * @template V - The type of generated value (preserves generator output type)
- * @template T - The generation type ('force' ensures non-null, 'lazy' allows undefined)
  * @template EnrichmentType - Optional type for custom enrichment data
  *
  * @example Basic usage with forced generation
@@ -50,7 +47,7 @@ type ConstructorArgs<V extends GeneratedValue, T extends GenerationType, Enrichm
  *     const userModel = this.insertModel(
  *       new UserModelGenerator({ ... }),
  *       'User'
- *     ); // Returns Inserted<UserModelValue, 'force', EnrichmentType>
+ *     ); // Returns Inserted<UserModelValue, EnrichmentType>
  *
  *     // Access the generated value (guaranteed to be present)
  *     const userTypeName = userModel.toValue(); // UserModelValue (not undefined)
@@ -68,12 +65,12 @@ type ConstructorArgs<V extends GeneratedValue, T extends GenerationType, Enrichm
  * }
  * ```
  */
-export class Inserted<V extends GeneratedValue, T extends GenerationType, EnrichmentType> {
+export class Inserted<V extends GeneratedValue, EnrichmentType> {
   /** Content settings including identifier and export path */
   settings: ContentSettings<EnrichmentType>
 
   /** The generated definition with its value */
-  definition: GeneratedDefinition<V, T>
+  definition: GeneratedDefinition<V>
 
   /**
    * Creates a new Inserted instance.
@@ -82,7 +79,7 @@ export class Inserted<V extends GeneratedValue, T extends GenerationType, Enrich
    * @param args.settings - Content settings with identifier and export path
    * @param args.definition - The generated definition containing the value
    */
-  constructor({ settings, definition }: ConstructorArgs<V, T, EnrichmentType>) {
+  constructor({ settings, definition }: ConstructorArgs<V, EnrichmentType>) {
     this.settings = settings
     this.definition = definition
   }
@@ -157,36 +154,19 @@ export class Inserted<V extends GeneratedValue, T extends GenerationType, Enrich
    * Gets the generated value from the inserted artifact.
    *
    * This method returns the actual generated content with proper type safety
-   * based on the generation mode. For 'force' generation, the value is guaranteed
-   * to be present. For 'lazy' generation, the value might be undefined if
-   * generation was skipped.
    *
-   * @returns The generated value, with optionality based on generation type
+   * @returns The generated value
    *
-   * @example Forced generation (guaranteed value)
+   * @example
    * ```typescript
-   * const userModel = this.insertModel(generator, 'User'); // 'force' by default
-   * const value = userModel.toValue(); // UserModelValue (never undefined)
+   * const userModel = this.insertModel(generator, 'User');
+   * const value = userModel.toValue(); // UserModelValue
    *
-   * // Safe to use directly
+   * // Use the generated value
    * const code = `type OrderUser = ${value};`;
    * ```
-   *
-   * @example Lazy generation (optional value)
-   * ```typescript
-   * const optionalModel = this.insertModel(generator, 'Optional', { generation: 'lazy' });
-   * const value = optionalModel.toValue(); // OptionalValue | undefined
-   *
-   * if (value) {
-   *   // Use the generated value
-   *   const code = `type Optional = ${value};`;
-   * } else {
-   *   // Handle missing value (generation was skipped)
-   *   const code = 'type Optional = any; // Fallback';
-   * }
-   * ```
    */
-  toValue(): T extends 'force' ? V : V | undefined {
-    return this.definition?.value as T extends 'force' ? V : V | undefined
+  toValue(): V {
+    return this.definition.value
   }
 }

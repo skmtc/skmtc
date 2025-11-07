@@ -37,7 +37,7 @@ export const GenerateView = ({
   const { dispatch, state } = useSkmtc()
 
   const includeBasePathTask = useMemo(() => {
-    return Boolean(!basePath)
+    return !basePath
   }, [])
 
   const includeSchemaTask = useMemo(() => {
@@ -218,14 +218,20 @@ const RunGenerateTask = ({ project, schemaSourceString, token }: RunGenerateProp
   useEffect(() => {
     toSchemaContents(schemaSourceString)
       .then(schemaContents => {
-        return generate({
-          project,
-          skmtcRoot: state.skmtcRoot,
-          accountName: state.session?.user?.user_metadata?.user_name,
-          schemaContents,
-          clientSettings: project.clientJson?.contents?.settings,
-          token
-        })
+        try {
+          return generate({
+            project,
+            skmtcRoot: state.skmtcRoot,
+            accountName: state.session?.user?.user_metadata?.user_name,
+            schemaContents,
+            clientSettings: project.clientJson?.contents?.settings,
+            token
+          })
+        } catch (error) {
+          console.error(error)
+
+          throw error
+        }
       })
       .then(stats => {
         dispatchMessage(toGenerateMessage(stats))

@@ -221,10 +221,9 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
   insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: OperationInsertable<V, EnrichmentType>,
     operation: OasOperation,
-    options: Pick<InsertOperationOptions<'force'>, 'noExport'> = {}
-  ): Inserted<V, 'force', EnrichmentType> {
+    options: Pick<InsertOperationOptions, 'noExport'> = {}
+  ): Inserted<V, EnrichmentType> {
     return this.context.insertOperation(insertable, operation, {
-      generation: 'force',
       destinationPath: this.settings.exportPath,
       noExport: options.noExport
     })
@@ -274,10 +273,9 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
   insertModel<V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName,
-    options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
-  ): Inserted<V, 'force', EnrichmentType> {
+    options: Pick<InsertModelOptions, 'noExport'> = {}
+  ): Inserted<V, EnrichmentType> {
     return this.context.insertModel(insertable, refName, {
-      generation: 'force',
       destinationPath: this.settings.exportPath,
       noExport: options.noExport
     })
@@ -346,7 +344,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
   >(
     insertable: ModelInsertable<V, EnrichmentType>,
     { schema, fallbackName }: Omit<InsertNormalisedModelArgs<Schema>, 'destinationPath'>,
-    options: Pick<InsertModelOptions<'force'>, 'noExport'> = {}
+    options: Pick<InsertModelOptions, 'noExport'> = {}
   ): InsertNormalisedModelReturn<V, Schema> {
     return this.context.insertNormalisedModel(
       insertable,

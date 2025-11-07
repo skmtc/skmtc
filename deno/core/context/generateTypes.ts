@@ -3,7 +3,7 @@ import type { Mapping, Preview } from '@/types/Preview.ts'
 import type { ResultsItem } from '@/types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
-import type { GeneratedValue, GenerationType } from '@/dsl/GeneratedValue.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Definition } from '@/dsl/Definition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OperationInsertable } from '@/dsl/operation/types.ts'
@@ -28,11 +28,9 @@ import type { StackTrail } from './StackTrail.ts'
  *
  * @template T - The generation type extending GenerationType
  */
-export type InsertOperationOptions<T extends GenerationType> = {
+export type InsertOperationOptions = {
   /** Whether to exclude this operation from exports */
   noExport?: boolean
-  /** The type of generation to apply */
-  generation?: T
   /** Custom destination path for the operation */
   destinationPath?: string
 }
@@ -196,13 +194,10 @@ export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'
  * Configures how a model should be processed and included in
  * the generated code output.
  *
- * @template T - The generation type extending GenerationType
  */
-export type InsertModelOptions<T extends GenerationType> = {
+export type InsertModelOptions = {
   /** Whether to exclude this model from exports */
   noExport?: boolean
-  /** The type of generation to apply */
-  generation?: T
   /** Custom destination path for the model */
   destinationPath?: string
 }
@@ -280,11 +275,11 @@ export type GenerateContextType = {
   }: DefineAndRegisterArgs<V>) => Definition<V>
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   register: ({ imports, definitions, destinationPath, reExports }: RegisterArgs) => void
-  insertOperation: <V extends GeneratedValue, T extends GenerationType, EnrichmentType = undefined>(
+  insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: OperationInsertable<V, EnrichmentType>,
     operation: OasOperation,
-    { generation, destinationPath, noExport }: InsertOperationOptions<T>
-  ) => Inserted<V, T, EnrichmentType>
+    { destinationPath, noExport }: InsertOperationOptions
+  ) => Inserted<V, EnrichmentType>
   insertNormalisedModel: <
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
@@ -294,11 +289,11 @@ export type GenerateContextType = {
     { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
     { noExport }: InsertNormalisedModelOptions
   ) => InsertNormalisedModelReturn<V, Schema>
-  insertModel: <V extends GeneratedValue, T extends GenerationType, EnrichmentType>(
+  insertModel: <V extends GeneratedValue, EnrichmentType>(
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName,
-    { generation, destinationPath, noExport }: InsertModelOptions<T>
-  ) => Inserted<V, T, EnrichmentType>
+    { destinationPath, noExport }: InsertModelOptions
+  ) => Inserted<V, EnrichmentType>
   toOperationContentSettings: <V, EnrichmentType>({
     operation,
     insertable

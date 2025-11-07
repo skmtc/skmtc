@@ -1,5 +1,6 @@
 import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
+import type { GenerateResponse } from '@/lib/generate-worker.ts'
 
 export type GenerateSandboxApiArgs = {
   accountName: string
@@ -15,7 +16,7 @@ export const generateSandboxApi = async ({
   schema,
   clientSettings,
   token
-}: GenerateSandboxApiArgs) => {
+}: GenerateSandboxApiArgs): Promise<GenerateResponse> => {
   const sandboxOrigin =
     Deno.env.get('SANDBOX_API_ORIGIN') ?? 'https://skmtc-sandbox.dmitrigrabov.deno.net'
 

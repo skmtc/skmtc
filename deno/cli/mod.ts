@@ -66,14 +66,6 @@ const run = async () => {
       await renderGenerate({ projectName, schemaSourceString, watch })
     })
 
-  const workerCommand = new Command()
-    .description('Web worker proof of concept - test generator execution in isolated worker')
-    .arguments('<project:string>')
-    .action(async (_options, projectName) => {
-      const { renderWorker } = await import('./commands/worker.ts')
-      await renderWorker({ projectName })
-    })
-
   await new Command()
     .description('Generate code from OpenAPI schema')
     .action(async _flags => {
@@ -87,7 +79,6 @@ const run = async () => {
     .command('list', listCommand)
     .command('remove', removeCommand)
     .command('generate', generateCommand)
-    .command('worker', workerCommand)
     .parse(Deno.args)
 }
 

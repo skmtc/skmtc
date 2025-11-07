@@ -27,7 +27,7 @@ import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ModelConfig, ModelInsertable } from '@/dsl/model/types.ts'
 import { OperationDriver } from '@/dsl/operation/OperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
-import type { GenerationType, GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type * as log from '@std/log'
@@ -149,11 +149,7 @@ export type ToModelSettingsArgs = {
  * @template T - The generation type
  * @template EnrichmentType - The enrichment data type
  */
-export type InsertReturn<
-  V extends GeneratedValue,
-  T extends GenerationType,
-  EnrichmentType
-> = Inserted<V, T, EnrichmentType>
+export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V, EnrichmentType>
 
 /**
  * The generation context for the second phase of the SKMTC transformation pipeline.
@@ -569,16 +565,15 @@ export class GenerateContext implements GenerateContextType {
    *    insertable's driver
    * @mutates this.files
    */
-  insertOperation<V extends GeneratedValue, T extends GenerationType, EnrichmentType = undefined>(
+  insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: OperationInsertable<V, EnrichmentType>,
     operation: OasOperation,
-    { generation, destinationPath, noExport = false }: InsertOperationOptions<T> = {}
-  ): Inserted<V, T, EnrichmentType> {
+    { destinationPath, noExport = false }: InsertOperationOptions = {}
+  ): Inserted<V, EnrichmentType> {
     const { settings, definition } = new OperationDriver({
       context: this,
       insertable,
       operation,
-      generation,
       destinationPath,
       noExport
     })
@@ -605,7 +600,6 @@ export class GenerateContext implements GenerateContextType {
   ): InsertNormalisedModelReturn<V, Schema> {
     if (schema.isRef()) {
       const { definition } = this.insertModel(insertable, schema.toRefName(), {
-        generation: 'force',
         destinationPath,
         noExport
       })
@@ -658,16 +652,15 @@ export class GenerateContext implements GenerateContextType {
    * @mutates this.files
    */
 
-  insertModel<V extends GeneratedValue, T extends GenerationType, EnrichmentType>(
+  insertModel<V extends GeneratedValue, EnrichmentType>(
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName,
-    { generation, destinationPath, noExport = false }: InsertModelOptions<T> = {}
-  ): Inserted<V, T, EnrichmentType> {
+    { destinationPath, noExport = false }: InsertModelOptions = {}
+  ): Inserted<V, EnrichmentType> {
     const { settings, definition } = new ModelDriver({
       context: this,
       insertable,
       refName,
-      generation,
       destinationPath,
       rootRef: refName,
       noExport

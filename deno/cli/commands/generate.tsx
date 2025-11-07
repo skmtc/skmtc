@@ -1,5 +1,4 @@
 import React from 'react'
-import { Workspace } from '@/lib/workspace.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { isProjectKey, type Project } from '@/lib/project.ts'
@@ -11,8 +10,10 @@ import { App } from '@/components/App.tsx'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
-import { PrettierJson } from '../lib/prettier-json.ts'
+import { PrettierJson } from '@/lib/prettier-json.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
+import { generateArtifacts } from '@/lib/generate-artifacts.ts'
+import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
 
 type ToProjectArgs = {
   skmtcRoot: SkmtcRoot
@@ -101,9 +102,7 @@ export const generate = async ({
   token
 }: GenerateArgs) => {
   try {
-    const workspace = new Workspace()
-
-    const result = await workspace.generateArtifacts({
+    const { artifacts, manifest } = await generateArtifacts({
       project,
       accountName,
       schemaContents,
@@ -111,7 +110,13 @@ export const generate = async ({
       token
     })
 
-    const { artifacts, manifest } = result
+    const manifestPath = project.toManifestPath()
+
+    writeGeneratedFiles({
+      manifestPath,
+      artifacts,
+      manifest
+    })
 
     const stats = toGenerationStats({ manifest, artifacts })
 

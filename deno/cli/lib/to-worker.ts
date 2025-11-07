@@ -5,7 +5,7 @@ type GeneratorsAcc = {
   generators: string[]
 }
 
-export const toMod = (generatorIds: string[]) => {
+export const toWorker = (generatorIds: string[]) => {
   const generatorAcc = generatorIds.reduce<GeneratorsAcc>(
     (acc, generatorId) => {
       const name = camelCase(generatorId)
@@ -25,10 +25,10 @@ export const toMod = (generatorIds: string[]) => {
   const generators = generatorAcc.generators.join(',\n')
 
   const server = `
-import { createServer } from 'jsr:@skmtc/server'
+import toWorker from 'jsr:@skmtc/worker'
 ${imports}
 
-export default createServer({toGeneratorConfigMap: () => Object.fromEntries([${generators}].map(g => [g.id, g])), logsPath: undefined})`
+export default toWorker(() => Object.fromEntries([${generators}].map(g => [g.id, g])))`
 
   return server
 }
