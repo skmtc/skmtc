@@ -1,43 +1,49 @@
-import { join } from '@std/path/join'
-import { Project } from '@/lib/project.ts'
-import { RemoteProject } from '@/lib/remote-project.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
 import { generateSandboxApi } from '@/services/generateSandboxApi.ts'
 import { generateWithWorker } from './generate-worker.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 
-type GenerateArtifactsArgs = {
-  project: Project | RemoteProject
+type GenerateWithSandboxApiArgs = {
+  projectName: string
   schemaContents: string
   clientSettings: ClientSettings | undefined
   accountName: string
   token: string | undefined
 }
 
-export const generateArtifacts = async ({
-  project,
-  schemaContents,
-  clientSettings,
-  accountName,
-  token
-}: GenerateArtifactsArgs): Promise<GenerateResponse> => {
-  if (project instanceof Project) {
+type GenerateWithWorkerArgs = {
+  workerPath: string
+  schemaContents: string
+  clientSettings: ClientSettings | undefined
+}
+
+// Class is used as a proxy for easy mocking in tests
+export class GenerateArtifacts {
+  static async generateWithWorker({
+    workerPath,
+    schemaContents,
+    clientSettings
+  }: GenerateWithWorkerArgs): Promise<GenerateResponse> {
     return await generateWithWorker({
       schemaContents,
       clientSettings,
-      workerPath: join(project.toPath(), 'bundle.js')
+      workerPath
     })
   }
 
-  if (project instanceof RemoteProject) {
+  static async generateWithSandboxApi({
+    projectName,
+    schemaContents,
+    clientSettings,
+    accountName,
+    token
+  }: GenerateWithSandboxApiArgs): Promise<GenerateResponse> {
     return await generateSandboxApi({
       accountName: accountName,
-      serverName: project.name,
+      serverName: projectName,
       schema: schemaContents,
       clientSettings,
       token
     })
   }
-
-  throw new Error('Invalid project')
 }

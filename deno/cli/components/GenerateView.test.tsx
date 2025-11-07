@@ -9,7 +9,7 @@ import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import type { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { stub } from '@std/testing/mock'
-import { Workspace } from '@/lib/workspace.ts'
+import { GenerateArtifacts } from '../lib/generate-artifacts.ts'
 
 // Minimal OpenAPI schema for testing
 const minimalOpenAPISchema = JSON.stringify({
@@ -196,7 +196,7 @@ Deno.test(
     })
 
     // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
+    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
       Promise.resolve(mockGenerateResponse)
     )
 
@@ -340,40 +340,40 @@ Deno.test(
 
     try {
       const { lastFrame, unmount, stdin } = renderGenerateView({
-      initialState,
-      project: mockProject,
-      schemaSourceString: 'schema.json',
-      watchMode: undefined,
-      basePath: 'src'
-    })
+        initialState,
+        project: mockProject,
+        schemaSourceString: 'schema.json',
+        watchMode: undefined,
+        basePath: 'src'
+      })
 
-    await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise(resolve => setTimeout(resolve, 200))
 
-    // Should skip schema prompt and go to watch mode
-    const watchPrompt = lastFrame()
+      // Should skip schema prompt and go to watch mode
+      const watchPrompt = lastFrame()
 
-    assertEquals(
-      watchPrompt,
-      `│  Watch for changes?
+      assertEquals(
+        watchPrompt,
+        `│  Watch for changes?
 │  ❯ Yes
 │    No`
-    )
+      )
 
-    // Select Yes
-    stdin.write('\r')
+      // Select Yes
+      stdin.write('\r')
 
-    await new Promise(resolve => setTimeout(resolve, 25))
+      await new Promise(resolve => setTimeout(resolve, 25))
 
-    // Should show watching spinner (different from generating)
-    const watchingFrame = lastFrame()
+      // Should show watching spinner (different from generating)
+      const watchingFrame = lastFrame()
 
-    const hasWatchingSpinner = watchingFrame && watchingFrame.includes('Watching...')
+      const hasWatchingSpinner = watchingFrame && watchingFrame.includes('Watching...')
 
-    assertEquals(
-      hasWatchingSpinner,
-      true,
-      `Expected watching frame, got:\n${watchingFrame || 'undefined'}`
-    )
+      assertEquals(
+        hasWatchingSpinner,
+        true,
+        `Expected watching frame, got:\n${watchingFrame || 'undefined'}`
+      )
 
       unmount()
     } finally {
@@ -442,7 +442,7 @@ Deno.test(
     )
 
     // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
+    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
       Promise.resolve(mockGenerateResponse)
     )
 
@@ -539,7 +539,7 @@ Deno.test(
     })
 
     // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
+    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
       Promise.resolve(mockGenerateResponse)
     )
 
@@ -635,7 +635,7 @@ Deno.test(
     })
 
     // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(Workspace.prototype, 'generateArtifacts', () =>
+    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
       Promise.resolve(mockGenerateResponse)
     )
 

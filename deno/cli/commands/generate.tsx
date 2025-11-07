@@ -1,7 +1,7 @@
 import React from 'react'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
-import { isProjectKey, type Project } from '@/lib/project.ts'
+import { isProjectKey, Project } from '@/lib/project.ts'
 import { formatNumber } from '@skmtc/core'
 import { toGenerationStats, type GenerationStats } from '@/lib/generationStats.ts'
 import { RemoteProject } from '@/lib/remote-project.ts'
@@ -12,8 +12,9 @@ import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import { PrettierJson } from '@/lib/prettier-json.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
-import { generateArtifacts } from '@/lib/generate-artifacts.ts'
+import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
+import { join } from 'node:path'
 
 type ToProjectArgs = {
   skmtcRoot: SkmtcRoot
@@ -102,13 +103,20 @@ export const generate = async ({
   token
 }: GenerateArgs) => {
   try {
-    const { artifacts, manifest } = await generateArtifacts({
-      project,
-      accountName,
-      schemaContents,
-      clientSettings,
-      token
-    })
+    const { artifacts, manifest } =
+      project instanceof Project
+        ? await GenerateArtifacts.generateWithWorker({
+            workerPath: join(project.toPath(), 'worker.ts'),
+            schemaContents,
+            clientSettings
+          })
+        : await GenerateArtifacts.generateWithSandboxApi({
+            projectName: project.name,
+            accountName,
+            schemaContents,
+            clientSettings,
+            token
+          })
 
     const manifestPath = project.toManifestPath()
 

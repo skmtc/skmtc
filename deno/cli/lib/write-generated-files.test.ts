@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { deletePreviousArtifacts } from '@/lib/workspace.ts'
+import { deletePreviousArtifacts } from '@/lib/write-generated-files.ts'
 import { join } from '@std/path/join'
 
 // Helper to create a valid manifest structure
