@@ -441,8 +441,8 @@ Deno.test(
       Promise.resolve(new Response('{}', { status: 200 }))
     )
 
-    // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
+    // Stub generateArtifacts to prevent worker execution
+    const generateStub = stub(GenerateArtifacts, 'generateWithWorker', () =>
       Promise.resolve(mockGenerateResponse)
     )
 
@@ -538,8 +538,8 @@ Deno.test(
       throw new Error('Connection refused')
     })
 
-    // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
+    // Stub generateArtifacts to prevent worker execution
+    const generateStub = stub(GenerateArtifacts, 'generateWithWorker', () =>
       Promise.resolve(mockGenerateResponse)
     )
 
@@ -634,8 +634,8 @@ Deno.test(
       throw new Error('Connection refused')
     })
 
-    // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
+    // Stub generateArtifacts to prevent worker execution
+    const generateStub = stub(GenerateArtifacts, 'generateWithWorker', () =>
       Promise.resolve(mockGenerateResponse)
     )
 
