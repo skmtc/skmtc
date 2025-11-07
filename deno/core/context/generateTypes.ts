@@ -287,12 +287,12 @@ export type GenerateContextType = {
   >(
     insertable: ModelInsertable<V, EnrichmentType>,
     { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
-    { noExport }: InsertNormalisedModelOptions
+    { noExport }?: InsertNormalisedModelOptions
   ) => InsertNormalisedModelReturn<V, Schema>
   insertModel: <V extends GeneratedValue, EnrichmentType>(
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName,
-    { destinationPath, noExport }: InsertModelOptions
+    { destinationPath, noExport }?: InsertModelOptions
   ) => Inserted<V, EnrichmentType>
   toOperationContentSettings: <V, EnrichmentType>({
     operation,
