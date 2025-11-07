@@ -23,7 +23,7 @@
     "valibot": "npm:valibot@1.1.0",
     "zod": "npm:zod@^4.0.14"
   },
-  "unstable": ["kv"],
+  "unstable": ["kv", "worker-options"],
   "workspace": [
     "./cli",
     "./convert",

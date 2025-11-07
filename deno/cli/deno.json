@@ -1,12 +1,12 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.370",
+  "version": "0.0.371",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
     "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.949",
-    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.24",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.950",
+    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.25",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.57.4",
     "chokidar": "npm:chokidar@^4.0.3",
     "ink": "npm:ink@^6.2.3",
@@ -16,6 +16,26 @@
     "react": "npm:react@^19.1.1",
     "ink-testing-library": "npm:ink-testing-library@^4.0.0",
     "gpt-tokenizer": "npm:gpt-tokenizer@^3.2.0"
+  },
+  "permissions": {
+    "default": {
+      "read": [
+        "*"
+      ],
+      "write": [
+        "*"
+      ],
+      "env": [
+        "*"
+      ],
+      "sys": [
+        "homedir"
+      ],
+      "net": [
+        "jsr.io",
+        "skm.tc"
+      ]
+    }
   },
   "compilerOptions": {
     "jsx": "react-jsx",
