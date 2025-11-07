@@ -10,23 +10,14 @@ import { CreateProjectTask } from '@/tasks/CreateProjectTask.tsx'
 
 type CreateProjectViewProps = {
   projectName: string | undefined
-  generators: string[] | undefined
   basePath: string | undefined
 }
 
-export const CreateProjectView = ({
-  projectName,
-  generators,
-  basePath
-}: CreateProjectViewProps) => {
+export const CreateProjectView = ({ projectName, basePath }: CreateProjectViewProps) => {
   const { state, dispatch } = useSkmtc()
 
   const includeProjectName = useMemo(() => {
     return !projectName
-  }, [])
-
-  const includeGenerators = useMemo(() => {
-    return !generators
   }, [])
 
   const includeBasePath = useMemo(() => {
@@ -41,12 +32,6 @@ export const CreateProjectView = ({
           include: includeProjectName,
           state: projectName,
           render: () => <ProjectNameTask />
-        },
-        {
-          taskKey: 'generators',
-          include: includeGenerators,
-          state: generators,
-          render: () => <GeneratorsTask />
         },
         {
           taskKey: 'base-path',

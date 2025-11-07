@@ -68,6 +68,8 @@ const TaskStateContext = createContext<
 >(undefined)
 
 export const taskReducer = (state: TaskContextState, action: TaskAction) => {
+  console.log('ACTION', action)
+
   return match(action)
     .with({ type: 'increment-current-task' }, () => {
       return {
