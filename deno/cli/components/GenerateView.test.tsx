@@ -10,6 +10,7 @@ import type { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { stub } from '@std/testing/mock'
 import { GenerateArtifacts } from '../lib/generate-artifacts.ts'
+import { existsSync } from '@std/fs/exists'
 
 // Minimal OpenAPI schema for testing
 const minimalOpenAPISchema = JSON.stringify({
@@ -199,6 +200,13 @@ Deno.test(
       Promise.resolve(mockGenerateResponse)
     )
 
+    // Stub existsSync to skip GenerateBundleTask
+    const existsSyncStub = stub(
+      { existsSync },
+      'existsSync',
+      (path: string) => typeof path === 'string' && path.endsWith('bundle.js')
+    )
+
     try {
       const { lastFrame, unmount, stdin } = renderGenerateView({
         initialState,
@@ -282,6 +290,7 @@ Deno.test(
       openStub.restore()
       connectStub.restore()
       generateStub.restore()
+      existsSyncStub.restore()
     }
   }
 )
@@ -337,6 +346,13 @@ Deno.test(
       Promise.resolve(new Response('{}', { status: 200 }))
     )
 
+    // Stub existsSync to skip GenerateBundleTask
+    const existsSyncStub = stub(
+      { existsSync },
+      'existsSync',
+      (path: string) => typeof path === 'string' && path.endsWith('bundle.js')
+    )
+
     try {
       const { lastFrame, unmount, stdin } = renderGenerateView({
         initialState,
@@ -382,6 +398,7 @@ Deno.test(
       openStub.restore()
       connectStub.restore()
       fetchStub.restore()
+      existsSyncStub.restore()
     }
   }
 )
