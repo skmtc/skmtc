@@ -28,7 +28,7 @@ export const SelectTask = ({ prompt, options, setValue }: SelectTaskProps) => {
   }
 
   return (
-    <TaskContainer prompt={prompt} key={`${id}-container`}>
+    <TaskContainer prompt={prompt}>
       <SelectInput
         items={options}
         onSelect={item => {

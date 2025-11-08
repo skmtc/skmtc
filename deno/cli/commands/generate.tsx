@@ -74,7 +74,7 @@ export const renderGenerate = async ({
     skmtcRoot,
     session,
     message: null,
-    interactive: false,
+    interactive: true,
     shortcuts: [],
     generators: []
   }

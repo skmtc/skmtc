@@ -26,7 +26,7 @@ export const StringTask = ({ prompt, defaultValue, setValue }: StringTaskProps) 
   }
 
   return (
-    <TaskContainer prompt={prompt} key={`${id}-container`}>
+    <TaskContainer prompt={prompt}>
       <TextInput
         defaultValue={defaultValue}
         onSubmit={value => {
