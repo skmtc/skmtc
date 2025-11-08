@@ -12,7 +12,7 @@ type BundleViewProps = {
 }
 
 export const BundleView = ({ project, view }: BundleViewProps) => {
-  const { state, dispatch, dispatchMessage } = useSkmtc()
+  const { state, dispatch, dispatchMessage, exit } = useSkmtc()
 
   useEffect(() => {
     const run = async () => {
@@ -31,7 +31,7 @@ export const BundleView = ({ project, view }: BundleViewProps) => {
       if (state.interactive) {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
       } else {
-        Deno.exit(0)
+        exit()
       }
     }
 

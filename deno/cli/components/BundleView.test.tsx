@@ -203,3 +203,62 @@ Deno.test(
     }
   }
 )
+
+Deno.test(
+  'BundleView - calls exit when interactive is false',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    const manager = createMockManager()
+    const mockProject = createMockProject(manager, { name: 'test-project' })
+
+    // Mock project.createWorker
+    mockProject.createWorker = () => Promise.resolve('/mock/worker.ts')
+
+    const initialState = createInitialState('test-project', false) // interactive: false
+
+    // Mock Deno.Command to simulate successful bundle
+    const mockCommand = {
+      output: () =>
+        Promise.resolve({
+          success: true,
+          stdout: new Uint8Array(),
+          stderr: new Uint8Array()
+        })
+    }
+    const commandStub = stub(Deno, 'Command', () => mockCommand as unknown as Deno.Command)
+
+    // Mock Deno.open for log file writing
+    const mockFile = {
+      write: () => Promise.resolve(0),
+      close: () => {}
+    }
+    const openStub = stub(Deno, 'open', () => Promise.resolve(mockFile as unknown as Deno.FsFile))
+
+    try {
+      let exitCalled = false
+      const mockExit = () => {
+        exitCalled = true
+      }
+
+      const { unmount } = render(
+        <SkmtcProvider initialState={initialState} exit={mockExit}>
+          <BundleView
+            project={mockProject}
+            view={{ page: 'bundle', projectName: 'test-project' }}
+          />
+        </SkmtcProvider>
+      )
+
+      // Wait for async operations to complete
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // Verify exit was called
+      assertEquals(exitCalled, true, 'exit should be called when interactive is false')
+
+      unmount()
+    } finally {
+      commandStub.restore()
+      openStub.restore()
+    }
+  }
+)
