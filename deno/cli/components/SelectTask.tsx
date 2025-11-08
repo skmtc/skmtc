@@ -1,4 +1,4 @@
-import React, { useId } from 'react'
+import React from 'react'
 import { Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useState } from 'react'
@@ -17,11 +17,9 @@ export const SelectTask = ({ prompt, options, setValue }: SelectTaskProps) => {
   const [response, setResponse] = useState<string | null>(null)
   const { dispatch } = useTask()
 
-  const id = useId()
-
   if (response !== null) {
     return (
-      <TaskBox prompt={prompt} id={`${id}-response`} active={false}>
+      <TaskBox prompt={prompt} active={false}>
         <Text dimColor>{response}</Text>
       </TaskBox>
     )

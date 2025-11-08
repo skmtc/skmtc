@@ -229,7 +229,7 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString, token }: Run
   }, [])
 
   return (
-    <TaskBox id={`run-generate-container`} active>
+    <TaskBox active>
       <Spinner label="Generating..." />
     </TaskBox>
   )
@@ -327,7 +327,7 @@ const WatchGenerateTask = ({
   }, [watcher, activity])
 
   return (
-    <TaskBox id={`watch-generate-container`} active>
+    <TaskBox active>
       <Spinner
         label={match(activity)
           .with('generating', () => 'Generating...')

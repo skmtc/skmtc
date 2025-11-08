@@ -1,12 +1,12 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.378",
+  "version": "0.0.379",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
     "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.957",
-    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.32",
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.958",
+    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.33",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.57.4",
     "chokidar": "npm:chokidar@^4.0.3",
     "ink": "npm:ink@^6.2.3",

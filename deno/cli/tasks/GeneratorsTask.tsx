@@ -11,7 +11,7 @@ export const GeneratorsTask = () => {
 
   if (!generators) {
     return (
-      <TaskBox id={`generators-task`} active>
+      <TaskBox active>
         <Spinner label="Loading generators..." />
       </TaskBox>
     )
@@ -19,7 +19,7 @@ export const GeneratorsTask = () => {
 
   if (generators.length === 0) {
     return (
-      <TaskBox id={`generators-task`} active>
+      <TaskBox active>
         <Text>No generators found</Text>
       </TaskBox>
     )

@@ -58,7 +58,7 @@ export const CreateProjectTask = () => {
   }, [state.view, availableGenerators])
 
   return (
-    <TaskBox id={`create-project-container`} active>
+    <TaskBox active>
       <Spinner label="Creating project..." />
     </TaskBox>
   )

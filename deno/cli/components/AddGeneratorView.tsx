@@ -95,7 +95,7 @@ const AddGeneratorTask = ({ project }: AddGeneratorTaskProps) => {
   }, [taskState.tasks, project])
 
   return (
-    <TaskBox id={`deploy-project-task`} active>
+    <TaskBox active>
       <Spinner label="Adding generator..." />
     </TaskBox>
   )

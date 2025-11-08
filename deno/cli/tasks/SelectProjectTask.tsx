@@ -2,7 +2,7 @@ import { useTask } from '@/components/TaskContext.tsx'
 import { TaskBox } from '@/components/TaskBox.tsx'
 import { Text } from 'ink'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import { useState, useId } from 'react'
+import { useState } from 'react'
 import { TextInput } from '@inkjs/ui'
 import { TaskContainer } from '@/components/TaskContainer.tsx'
 import SelectInput from 'ink-select-input'
@@ -63,7 +63,6 @@ export const SelectProjectTask = () => {
   const [response, setResponse] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const availableGenerators = useGetGenerators()
-  const id = useId()
 
   const handleCustomValueChange = (value: string) => {
     setCustomProjectName(value)
@@ -78,7 +77,7 @@ export const SelectProjectTask = () => {
 
   if (isCreating) {
     return (
-      <TaskBox id={`${id}-creating`} active>
+      <TaskBox active>
         <Spinner label={`Creating project "${customProjectName}"...`} />
       </TaskBox>
     )
@@ -86,7 +85,7 @@ export const SelectProjectTask = () => {
 
   if (response !== null) {
     return (
-      <TaskBox prompt="Select project" id={`${id}-response`} active={false}>
+      <TaskBox prompt="Select project" active={false}>
         <Text dimColor>{response}</Text>
       </TaskBox>
     )
@@ -94,7 +93,7 @@ export const SelectProjectTask = () => {
 
   if (state.skmtcRoot.projects.length === 0) {
     return (
-      <TaskBox id={`select-project-task`} active>
+      <TaskBox active>
         <Text>No projects found</Text>
       </TaskBox>
     )
@@ -151,7 +150,7 @@ export const SelectProjectTask = () => {
   }
 
   return (
-    <TaskContainer prompt="Select project" key={`${id}-container`}>
+    <TaskContainer prompt="Select project">
       <SelectInput
         items={options}
         itemComponent={props => (

@@ -1,4 +1,4 @@
-import React, { useId } from 'react'
+import React from 'react'
 import SelectInput from 'ink-select-input'
 import { useState } from 'react'
 import { TaskContainer } from '@/components/TaskContainer.tsx'
@@ -16,11 +16,10 @@ type BooleanTaskProps = {
 
 export const BooleanTask = ({ prompt, setValue }: BooleanTaskProps) => {
   const [confirmed, setConfirmed] = useState<boolean | null>(null)
-  const id = useId()
 
   if (confirmed !== null) {
     return (
-      <TaskBox prompt={prompt} id={`${id}-result`} active={false}>
+      <TaskBox prompt={prompt} active={false}>
         <Text dimColor>{confirmed ? 'Yes' : 'No'}</Text>
       </TaskBox>
     )

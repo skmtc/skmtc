@@ -38,7 +38,7 @@ export const MultiselectTask = ({ prompt, options, setValues }: MultiselectTaskP
 
   if (submitted) {
     return (
-      <TaskBox prompt={prompt} id={`${id}-result`} active={false}>
+      <TaskBox prompt={prompt} active={false}>
         <Text dimColor>{response}</Text>
       </TaskBox>
     )

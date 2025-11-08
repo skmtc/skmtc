@@ -1,4 +1,4 @@
-import React, { useId } from 'react'
+import React from 'react'
 import { TextInput } from '@inkjs/ui'
 import { useState } from 'react'
 import { useTask } from './TaskContext.tsx'
@@ -15,11 +15,10 @@ type StringTaskProps = {
 export const StringTask = ({ prompt, defaultValue, setValue }: StringTaskProps) => {
   const { dispatch } = useTask()
   const [response, setResponse] = useState<string | null>(null)
-  const id = useId()
 
   if (response !== null) {
     return (
-      <TaskBox prompt={prompt} id={`${id}-response`} active={false}>
+      <TaskBox prompt={prompt} active={false}>
         <Text dimColor>{response}</Text>
       </TaskBox>
     )

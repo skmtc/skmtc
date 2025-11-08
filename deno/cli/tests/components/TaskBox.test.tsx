@@ -6,7 +6,7 @@ import { Text } from 'ink'
 
 Deno.test('TaskBox - renders children content', () => {
   const { lastFrame, unmount } = render(
-    <TaskBox id="test-1" active>
+    <TaskBox active>
       <Text>Test content</Text>
     </TaskBox>
   )
@@ -14,15 +14,15 @@ Deno.test('TaskBox - renders children content', () => {
   const output = lastFrame()
 
   assertExists(output)
-  
+
   assertStringIncludes(output, 'Test content')
-  
+
   unmount()
 })
 
 Deno.test('TaskBox - renders with prompt', () => {
   const { lastFrame, unmount } = render(
-    <TaskBox id="test-2" prompt="Enter your name:" active={false}>
+    <TaskBox prompt="Enter your name:" active={false}>
       <Text>Child content</Text>
     </TaskBox>
   )
@@ -30,16 +30,16 @@ Deno.test('TaskBox - renders with prompt', () => {
   const output = lastFrame()
 
   assertExists(output)
-  
+
   assertStringIncludes(output, 'Enter your name:')
   assertStringIncludes(output, 'Child content')
-  
+
   unmount()
 })
 
 Deno.test('TaskBox - renders without prompt', () => {
   const { lastFrame, unmount } = render(
-    <TaskBox id="test-3" active={false}>
+    <TaskBox active={false}>
       <Text>Just children</Text>
     </TaskBox>
   )
@@ -47,9 +47,9 @@ Deno.test('TaskBox - renders without prompt', () => {
   const output = lastFrame()
 
   assertExists(output)
-  
+
   assertStringIncludes(output, 'Just children')
   // Should not have any prompt text
-  
+
   unmount()
 })
