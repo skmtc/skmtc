@@ -1,7 +1,7 @@
 import React from 'react'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
-import { isProjectKey, type Project } from '@/lib/project.ts'
+import { isProjectKey, Project } from '@/lib/project.ts'
 import { formatNumber } from '@skmtc/core'
 import type { GenerationStats } from '@/lib/generationStats.ts'
 import { RemoteProject } from '@/lib/remote-project.ts'
@@ -12,6 +12,11 @@ import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import { PrettierJson } from '@/lib/prettier-json.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
+import { existsSync } from '@std/fs/exists'
+import { join } from '@std/path/join'
+import invariant from 'tiny-invariant'
+import { generate } from '../lib/generate.ts'
+import { toSchemaContents } from '../lib/to-schema-contents.ts'
 
 type ToProjectArgs = {
   skmtcRoot: SkmtcRoot
@@ -63,6 +68,28 @@ export const renderGenerate = async ({
 
   const project = await toProject({ skmtcRoot, projectName, schemaSourceString })
 
+  const checks = checkGenerateParams({ project, schemaSourceString })
+
+  if (hasRequiredParams(checks)) {
+    invariant(project instanceof Project, 'Project must be a local project')
+
+    const schemaContents = await toSchemaContents(
+      schemaSourceString ?? project.clientJson.contents?.settings.schemaSource ?? ''
+    )
+
+    await generate({
+      project,
+      bundlePath: `file://${join(project.toPath(), 'bundle.js')}`,
+      skmtcRoot,
+      accountName: session?.user.user_metadata.user_name,
+      schemaContents,
+      clientSettings: project.clientJson.contents?.settings,
+      token: session?.access_token
+    })
+
+    Deno.exit(0)
+  }
+
   const initialState: SkmtcState = {
     view: {
       page: 'generate',
@@ -82,6 +109,10 @@ export const renderGenerate = async ({
   renderFn(<AppComponent initialState={initialState} />)
 }
 
+const hasRequiredParams = (checks: GenerateChecks): boolean => {
+  return checks.hasBasePath && checks.hasSchemaSource && checks.hasBundle && checks.hasWatchMode
+}
+
 export const toGenerateMessage = (stats: GenerationStats): SuccessMessage => {
   const { files, tokens, totalTime, errors } = stats
 
@@ -93,4 +124,39 @@ export const toGenerateMessage = (stats: GenerationStats): SuccessMessage => {
         sub: `${formatNumber(errors.length)} errors detected - view runtime logs for details`
       }
     : { success }
+}
+
+type GenerateChecks = {
+  hasBasePath: boolean
+  hasSchemaSource: boolean
+  hasBundle: boolean
+  hasWatchMode: boolean
+}
+
+type CheckGenerateParamsArgs = {
+  project: Project | RemoteProject
+  schemaSourceString: string | undefined
+}
+
+const checkGenerateParams = ({
+  project,
+  schemaSourceString
+}: CheckGenerateParamsArgs): GenerateChecks => {
+  invariant(project instanceof Project, 'Project must be a local project')
+
+  const basePath = project.clientJson.contents?.settings.basePath
+  const schemaSource = schemaSourceString ?? project.clientJson.contents?.settings.schemaSource
+  const hasBundle = existsSync(join(project.toPath(), 'bundle.js'))
+
+  const hasBasePath = typeof basePath === 'string'
+  const hasSchemaSource = typeof schemaSource === 'string'
+
+  const checks = {
+    hasBasePath,
+    hasSchemaSource,
+    hasBundle,
+    hasWatchMode: true
+  }
+
+  return checks
 }

@@ -9,9 +9,7 @@ import { match } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
 import { useMemo } from 'react'
-import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { join } from '@std/path/join'
-import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
 import { TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
@@ -23,7 +21,8 @@ import { BasePathTask } from '@/tasks/BasePathTask.tsx'
 import { isHttp } from '@/lib/is-http.ts'
 import { existsSync } from '@std/fs/exists'
 import { GenerateBundleTask } from '@/tasks/GenerateBundleTask.tsx'
-import { SchemaLocationTask } from '../tasks/SchemaLocationTask.tsx'
+import { SchemaLocationTask } from '@/tasks/SchemaLocationTask.tsx'
+import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -233,18 +232,6 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString, token }: Run
       <Spinner label="Generating..." />
     </TaskBox>
   )
-}
-
-const toSchemaContents = async (schemaSourceString: string): Promise<string> => {
-  const schemaSource = toSchemaSource(schemaSourceString)
-
-  if (schemaSource.type === 'local' && !isAbsolute(schemaSource.path)) {
-    schemaSource.path = join(toAbsoluteRootPath(), schemaSource.path)
-  }
-
-  const { contents } = await SchemaFile.getFromSource(schemaSource)
-
-  return contents
 }
 
 type Activity = 'watching' | 'generating'
