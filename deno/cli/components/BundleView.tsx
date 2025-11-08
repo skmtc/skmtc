@@ -30,6 +30,8 @@ export const BundleView = ({ project, view }: BundleViewProps) => {
 
       if (state.interactive) {
         dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
+      } else {
+        Deno.exit(0)
       }
     }
 
