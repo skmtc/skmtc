@@ -48,7 +48,7 @@ type CreateBundleArgs = {
 export const createBundle = async ({ project }: CreateBundleArgs): Promise<string> => {
   const fileName = 'bundle.js'
   const projectPath = project.toPath()
-  const bundlePath = join(project.toPath(), fileName)
+  const bundlePath = `file://${join(project.toPath(), fileName)}`
 
   await project.createWorker()
 

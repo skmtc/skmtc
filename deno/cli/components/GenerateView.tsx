@@ -55,14 +55,14 @@ export const GenerateView = ({
     if (project instanceof RemoteProject) {
       return false
     }
-    const bundlePath = join(project.toPath(), 'bundle.js')
+    const bundlePath = `file://${join(project.toPath(), 'bundle.js')}`
 
     return !existsSync(bundlePath)
   }, [])
 
   const bundlePath = useMemo(() => {
     if (project instanceof Project) {
-      const bundlePath = join(project.toPath(), 'bundle.js')
+      const bundlePath = `file://${join(project.toPath(), 'bundle.js')}`
 
       return existsSync(bundlePath) ? bundlePath : undefined
     }

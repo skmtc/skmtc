@@ -45,7 +45,7 @@ export const ProjectView = ({ project }: ProjectProps) => {
 
   const hasBundleFile = useMemo(() => {
     if (project instanceof Project) {
-      const bundlePath = join(project.toPath(), 'bundle.js')
+      const bundlePath = `file://${join(project.toPath(), 'bundle.js')}`
       return existsSync(bundlePath)
     }
     return false
@@ -76,8 +76,7 @@ export const ProjectView = ({ project }: ProjectProps) => {
         items={projectActions}
         itemComponent={({ label, isSelected, ...props }) => {
           const space = 'space' in props && typeof props.space === 'boolean' ? props.space : false
-          const isGenerateArtifacts =
-            'value' in props && props.value === 'generate-artifacts'
+          const isGenerateArtifacts = 'value' in props && props.value === 'generate-artifacts'
           const shouldDim = isGenerateArtifacts && !hasBundleFile
 
           return (
