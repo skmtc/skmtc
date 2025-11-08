@@ -66,6 +66,14 @@ const run = async () => {
       await renderGenerate({ projectName, schemaSourceString, watch })
     })
 
+  const bundleCommand = new Command()
+    .description('Create bundle from project')
+    .arguments('<project:string>')
+    .action(async (_options, projectName) => {
+      const { renderBundle } = await import('@/commands/bundle.tsx')
+      await renderBundle({ projectName })
+    })
+
   await new Command()
     .description('Generate code from OpenAPI schema')
     .action(async _flags => {
@@ -79,6 +87,7 @@ const run = async () => {
     .command('list', listCommand)
     .command('remove', removeCommand)
     .command('generate', generateCommand)
+    .command('bundle', bundleCommand)
     .parse(Deno.args)
 }
 

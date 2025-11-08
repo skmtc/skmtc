@@ -91,6 +91,11 @@ export type ViewStateDeploy = {
   projectName: string
 }
 
+export type ViewStateBundle = {
+  page: 'bundle'
+  projectName: string
+}
+
 export type ViewStateRuntimeLogs = {
   page: 'runtime-logs'
   projectName: string
@@ -145,6 +150,7 @@ export type ViewState =
   | ViewStateProject
   | ViewStateGenerate
   | ViewStateDeploy
+  | ViewStateBundle
   | ViewStateRuntimeLogs
   | ViewStateListGenerators
   | ViewStateAddGenerator
@@ -250,6 +256,7 @@ export const toProjectName = ({ view }: ToProjectNameArgs) => {
     .with({ page: 'project' }, ({ projectName }) => projectName)
     .with({ page: 'generate' }, ({ project }) => project.name)
     .with({ page: 'deploy' }, ({ projectName }) => projectName)
+    .with({ page: 'bundle' }, ({ projectName }) => projectName)
     .with({ page: 'runtime-logs' }, ({ projectName }) => projectName)
     .with({ page: 'list-generators' }, ({ projectName }) => projectName)
     .with({ page: 'install-generator' }, ({ projectName }) => projectName)
