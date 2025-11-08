@@ -132,7 +132,8 @@ Deno.test('InstallGenerator - requests project selection and generators', async 
   assertEquals(
     projectPrompt,
     `│  Select project
-│  ❯ test-project`
+│  ❯ test-project
+│    Create new project`
   )
 
   // Select the project

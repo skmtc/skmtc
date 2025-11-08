@@ -10,7 +10,6 @@ import type { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { stub } from '@std/testing/mock'
 import { GenerateArtifacts } from '../lib/generate-artifacts.ts'
-import { existsSync } from '@std/fs/exists'
 
 // Minimal OpenAPI schema for testing
 const minimalOpenAPISchema = JSON.stringify({
@@ -163,7 +162,7 @@ Deno.test(
     const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
     const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
 
-    // Stub Deno.Command to prevent process spawning
+    // Stub Deno.Command to prevent process spawning and bundle creation
     const commandStub = stub(Deno, 'Command', () => ({
       spawn: () => ({
         stdout: {
@@ -179,6 +178,11 @@ Deno.test(
           })
         },
         kill: () => {}
+      }),
+      output: () => Promise.resolve({
+        success: true,
+        stdout: new Uint8Array(),
+        stderr: new Uint8Array()
       })
     }))
 
@@ -198,13 +202,6 @@ Deno.test(
     // Stub generateArtifacts to prevent API calls
     const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
       Promise.resolve(mockGenerateResponse)
-    )
-
-    // Stub existsSync to skip GenerateBundleTask
-    const existsSyncStub = stub(
-      { existsSync },
-      'existsSync',
-      (path: string) => typeof path === 'string' && path.endsWith('bundle.js')
     )
 
     try {
@@ -246,6 +243,24 @@ Deno.test(
 
       await new Promise(resolve => setTimeout(resolve, 50))
 
+      // Should prompt for bundle creation
+      const bundlePrompt = lastFrame()
+
+      assertEquals(
+        bundlePrompt,
+        `│  Input OpenAPI schema path or URL
+│  schema.json
+│
+│  Worker bundle not found. Create it?
+│  ❯ Yes
+│    No`
+      )
+
+      // Select Yes for bundle (to continue task flow)
+      stdin.write('\r')
+
+      await new Promise(resolve => setTimeout(resolve, 250))
+
       // Should prompt for watch mode
       const watchPrompt = lastFrame()
 
@@ -253,6 +268,9 @@ Deno.test(
         watchPrompt,
         `│  Input OpenAPI schema path or URL
 │  schema.json
+│
+│  Worker bundle not found. Create it?
+│  Yes
 │
 │  Watch for changes?
 │  ❯ Yes
@@ -271,8 +289,9 @@ Deno.test(
         watchingFrame &&
         watchingFrame.includes('Input OpenAPI schema path or URL') &&
         watchingFrame.includes('schema.json') &&
+        watchingFrame.includes('Worker bundle not found. Create it?') &&
         watchingFrame.includes('Watch for changes?') &&
-        watchingFrame.includes('Yes') &&
+        watchingFrame.split('Yes').length >= 3 && // Should have 2 "Yes" responses (bundle + watch)
         watchingFrame.includes('Watching...')
 
       assertEquals(
@@ -290,7 +309,6 @@ Deno.test(
       openStub.restore()
       connectStub.restore()
       generateStub.restore()
-      existsSyncStub.restore()
     }
   }
 )
@@ -309,7 +327,7 @@ Deno.test(
     const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
     const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
 
-    // Stub Deno.Command to prevent process spawning
+    // Stub Deno.Command to prevent process spawning and bundle creation
     const commandStub = stub(Deno, 'Command', () => ({
       spawn: () => ({
         stdout: {
@@ -325,6 +343,11 @@ Deno.test(
           })
         },
         kill: () => {}
+      }),
+      output: () => Promise.resolve({
+        success: true,
+        stdout: new Uint8Array(),
+        stderr: new Uint8Array()
       })
     }))
 
@@ -346,13 +369,6 @@ Deno.test(
       Promise.resolve(new Response('{}', { status: 200 }))
     )
 
-    // Stub existsSync to skip GenerateBundleTask
-    const existsSyncStub = stub(
-      { existsSync },
-      'existsSync',
-      (path: string) => typeof path === 'string' && path.endsWith('bundle.js')
-    )
-
     try {
       const { lastFrame, unmount, stdin } = renderGenerateView({
         initialState,
@@ -364,12 +380,30 @@ Deno.test(
 
       await new Promise(resolve => setTimeout(resolve, 200))
 
-      // Should skip schema prompt and go to watch mode
+      // Should show bundle prompt first
+      const bundlePrompt = lastFrame()
+
+      assertEquals(
+        bundlePrompt,
+        `│  Worker bundle not found. Create it?
+│  ❯ Yes
+│    No`
+      )
+
+      // Select Yes for bundle (to continue task flow)
+      stdin.write('\r')
+
+      await new Promise(resolve => setTimeout(resolve, 250))
+
+      // Should now show watch mode prompt
       const watchPrompt = lastFrame()
 
       assertEquals(
         watchPrompt,
-        `│  Watch for changes?
+        `│  Worker bundle not found. Create it?
+│  Yes
+│
+│  Watch for changes?
 │  ❯ Yes
 │    No`
       )
@@ -398,7 +432,6 @@ Deno.test(
       openStub.restore()
       connectStub.restore()
       fetchStub.restore()
-      existsSyncStub.restore()
     }
   }
 )
@@ -420,7 +453,7 @@ Deno.test(
     const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
     const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
 
-    // Stub Deno.Command to prevent process spawning
+    // Stub Deno.Command to prevent process spawning and bundle creation
     const commandStub = stub(Deno, 'Command', () => ({
       spawn: () => ({
         stdout: {
@@ -436,6 +469,11 @@ Deno.test(
           })
         },
         kill: () => {}
+      }),
+      output: () => Promise.resolve({
+        success: true,
+        stdout: new Uint8Array(),
+        stderr: new Uint8Array()
       })
     }))
 
@@ -463,7 +501,7 @@ Deno.test(
     )
 
     try {
-      const { lastFrame, unmount } = renderGenerateView({
+      const { lastFrame, unmount, stdin } = renderGenerateView({
         initialState,
         project: mockProject,
         schemaSourceString: 'schema.json',
@@ -473,7 +511,22 @@ Deno.test(
 
       await new Promise(resolve => setTimeout(resolve, 200))
 
-      // Should go directly to generating
+      // Should show bundle prompt first
+      const bundlePrompt = lastFrame()
+
+      assertEquals(
+        bundlePrompt,
+        `│  Worker bundle not found. Create it?
+│  ❯ Yes
+│    No`
+      )
+
+      // Select Yes for bundle (to continue task flow)
+      stdin.write('\r')
+
+      await new Promise(resolve => setTimeout(resolve, 250))
+
+      // Should go directly to generating (watchMode: false was provided)
       const generatingFrame = lastFrame()
 
       const hasGeneratingSpinner = generatingFrame && generatingFrame.includes('Generating...')
@@ -522,7 +575,7 @@ Deno.test(
     const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
     const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
 
-    // Stub Deno.Command to prevent process spawning
+    // Stub Deno.Command to prevent process spawning and bundle creation
     const commandStub = stub(Deno, 'Command', () => ({
       spawn: () => ({
         stdout: {
@@ -538,6 +591,11 @@ Deno.test(
           })
         },
         kill: () => {}
+      }),
+      output: () => Promise.resolve({
+        success: true,
+        stdout: new Uint8Array(),
+        stderr: new Uint8Array()
       })
     }))
 
@@ -560,7 +618,7 @@ Deno.test(
     )
 
     try {
-      const { lastFrame, unmount } = renderGenerateView({
+      const { lastFrame, unmount, stdin } = renderGenerateView({
         initialState,
         project: mockProject,
         schemaSourceString: 'https://api.example.com/openapi.json',
@@ -570,7 +628,22 @@ Deno.test(
 
       await new Promise(resolve => setTimeout(resolve, 200))
 
-      // Should skip watch mode prompt and go directly to generating
+      // Should show bundle prompt first
+      const bundlePrompt = lastFrame()
+
+      assertEquals(
+        bundlePrompt,
+        `│  Worker bundle not found. Create it?
+│  ❯ Yes
+│    No`
+      )
+
+      // Select Yes for bundle (to continue task flow)
+      stdin.write('\r')
+
+      await new Promise(resolve => setTimeout(resolve, 250))
+
+      // Should go directly to generating (remote schema skips watch mode)
       const generatingFrame = lastFrame()
 
       const hasGeneratingSpinner = generatingFrame && generatingFrame.includes('Generating...')
@@ -618,7 +691,7 @@ Deno.test(
     const mkdirSyncStub = stub(Deno, 'mkdirSync', () => {})
     const writeTextFileStub = stub(Deno, 'writeTextFile', () => Promise.resolve())
 
-    // Stub Deno.Command to prevent process spawning
+    // Stub Deno.Command to prevent process spawning and bundle creation
     const commandStub = stub(Deno, 'Command', () => ({
       spawn: () => ({
         stdout: {
@@ -634,6 +707,11 @@ Deno.test(
           })
         },
         kill: () => {}
+      }),
+      output: () => Promise.resolve({
+        success: true,
+        stdout: new Uint8Array(),
+        stderr: new Uint8Array()
       })
     }))
 
@@ -684,6 +762,24 @@ Deno.test(
 
       await new Promise(resolve => setTimeout(resolve, 50))
 
+      // Should show bundle prompt
+      const bundlePrompt = lastFrame()
+
+      assertEquals(
+        bundlePrompt,
+        `│  Input OpenAPI schema path or URL
+│  https://api.example.com/openapi.json
+│
+│  Worker bundle not found. Create it?
+│  ❯ Yes
+│    No`
+      )
+
+      // Select Yes for bundle (to continue task flow)
+      stdin.write('\r')
+
+      await new Promise(resolve => setTimeout(resolve, 250))
+
       // Should show watch prompt even for remote URL
       const watchPrompt = lastFrame()
 
@@ -691,6 +787,9 @@ Deno.test(
         watchPrompt,
         `│  Input OpenAPI schema path or URL
 │  https://api.example.com/openapi.json
+│
+│  Worker bundle not found. Create it?
+│  Yes
 │
 │  Watch for changes?
 │  ❯ Yes
@@ -713,6 +812,9 @@ Deno.test(
         generatingFrame,
         `│  Input OpenAPI schema path or URL
 │  https://api.example.com/openapi.json
+│
+│  Worker bundle not found. Create it?
+│  Yes
 │
 │  Watch for changes?
 │  No
