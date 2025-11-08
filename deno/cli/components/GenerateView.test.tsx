@@ -63,15 +63,14 @@ const createMockProjectWithoutSchema = (
   name: string
 ): Project => {
   const mockProject = createMockProject(manager, { name })
-  // Override schemaFile to have no path
-  return {
-    ...mockProject,
-    schemaFile: {
-      contents: null,
-      schemaSource: undefined,
-      refresh: async () => {}
-    }
-  } as unknown as Project
+  // Override schemaFile to have no path - modify directly to preserve prototype chain
+  mockProject.schemaFile = {
+    contents: null,
+    schemaSource: undefined,
+    refresh: async () => {}
+  } as unknown as typeof mockProject.schemaFile
+
+  return mockProject
 }
 
 // Mock SkmtcRoot with proper Supabase mocking
