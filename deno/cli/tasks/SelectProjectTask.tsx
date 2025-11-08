@@ -1,6 +1,6 @@
 import { useTask } from '@/components/TaskContext.tsx'
 import { TaskBox } from '@/components/TaskBox.tsx'
-import { Text, Box } from 'ink'
+import { Text } from 'ink'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useState, useId } from 'react'
 import { TextInput } from '@inkjs/ui'
@@ -13,26 +13,25 @@ import { Spinner } from '@/components/Spinner.tsx'
 type ProjectOption = {
   label: string
   value: string
-  path?: string
   isCustom?: boolean
 }
 
 type ProjectItemProps = {
   label: string
   isSelected?: boolean
-  path?: string
   isCustom?: boolean
   customValue?: string
   hasCustomValue?: boolean
   onCustomValueChange?: (value: string) => void
 }
 
+const PLACEHOLDER = 'Create new project'
+
 const ProjectItem = ({
   label,
   isSelected = false,
-  path,
   isCustom,
-  customValue = 'project-name',
+  customValue = PLACEHOLDER,
   hasCustomValue = false,
   onCustomValueChange
 }: ProjectItemProps) => {
@@ -42,32 +41,24 @@ const ProjectItem = ({
     const inputValue = isSelected && !hasCustomValue ? '' : customValue
 
     // When not selected, show placeholder if value is empty
-    const displayValue = customValue || 'project-name'
+    const displayValue = customValue || PLACEHOLDER
 
-    return (
-      <Box flexDirection="column">
-        <Text color={isSelected ? 'white' : undefined}>{label}</Text>
-        {isSelected ? (
-          <TextInput defaultValue={inputValue} onSubmit={() => {}} onChange={onCustomValueChange} />
-        ) : (
-          <Text dimColor>{displayValue}</Text>
-        )}
-      </Box>
+    return isSelected ? (
+      <TextInput defaultValue={inputValue} onSubmit={() => {}} onChange={onCustomValueChange} />
+    ) : (
+      <Text color={isSelected ? 'white' : undefined} dimColor={hasCustomValue}>
+        {displayValue}
+      </Text>
     )
   }
 
-  return (
-    <Box flexDirection="column">
-      <Text color={isSelected ? 'white' : undefined}>{label}</Text>
-      {path && <Text dimColor>{path}</Text>}
-    </Box>
-  )
+  return <Text color={isSelected ? 'white' : undefined}>{label}</Text>
 }
 
 export const SelectProjectTask = () => {
   const { dispatch } = useTask()
   const { state, dispatchMessage } = useSkmtc()
-  const [customProjectName, setCustomProjectName] = useState('project-name')
+  const [customProjectName, setCustomProjectName] = useState(PLACEHOLDER)
   const [hasCustomValue, setHasCustomValue] = useState(false)
   const [response, setResponse] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
@@ -77,7 +68,7 @@ export const SelectProjectTask = () => {
   const handleCustomValueChange = (value: string) => {
     setCustomProjectName(value)
     // Mark as custom if user has typed anything different from empty or placeholder
-    if (value && value !== 'project-name') {
+    if (value && value !== PLACEHOLDER) {
       setHasCustomValue(true)
     } else {
       // User cleared the input or it's back to placeholder
@@ -112,8 +103,7 @@ export const SelectProjectTask = () => {
   const options: ProjectOption[] = [
     ...state.skmtcRoot.projects.map(project => ({
       label: project.name,
-      value: project.name,
-      path: project.toPath()
+      value: project.name
     })),
     {
       label: 'Create new project',
@@ -124,7 +114,7 @@ export const SelectProjectTask = () => {
 
   const handleCreateProject = async () => {
     // Validate that user has entered a custom project name
-    if (!hasCustomValue || !customProjectName || customProjectName === 'project-name') {
+    if (!hasCustomValue || !customProjectName || customProjectName === PLACEHOLDER) {
       dispatchMessage({ error: 'Please enter a valid project name' })
       return
     }

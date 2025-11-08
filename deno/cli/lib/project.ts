@@ -89,6 +89,10 @@ export class Project {
     this.schemaFile = schemaFile
   }
 
+  isRemote() {
+    return false
+  }
+
   toPath() {
     return toProjectPath(this.name)
   }

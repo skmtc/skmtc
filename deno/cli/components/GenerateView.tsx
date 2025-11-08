@@ -1,25 +1,29 @@
 import React from 'react'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import type { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
+import { Project } from '@/lib/project.ts'
+import { RemoteProject } from '@/lib/remote-project.ts'
 import { useEffect, useState } from 'react'
-import { generate, toGenerateMessage } from '@/commands/generate.tsx'
+import { toGenerateMessage } from '@/commands/generate.tsx'
+import { generate } from '@/lib/generate.ts'
 import { match } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
 import { useMemo } from 'react'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
-import { join, relative } from 'node:path'
+import { join } from '@std/path/join'
 import { isAbsolute } from '@std/path/is-absolute'
 import invariant from 'tiny-invariant'
 import { TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
-import { StringTask } from './StringTask.tsx'
-import { BooleanTask } from '@/tasks/BooleanTask.tsx'
+import { WatchModeTask } from '@/tasks/WatchModeTask.tsx'
 import { Spinner } from '@/components/Spinner.tsx'
 import { useShortcut } from './useShortcut.tsx'
 import { TaskBox } from './TaskBox.tsx'
 import { BasePathTask } from '@/tasks/BasePathTask.tsx'
+import { isHttp } from '@/lib/is-http.ts'
+import { existsSync } from '@std/fs/exists'
+import { GenerateBundleTask } from '@/tasks/GenerateBundleTask.tsx'
+import { SchemaLocationTask } from '../tasks/SchemaLocationTask.tsx'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -37,15 +41,37 @@ export const GenerateView = ({
   const { dispatch, state } = useSkmtc()
 
   const includeBasePathTask = useMemo(() => {
-    return !basePath
+    return typeof basePath !== 'string'
   }, [])
 
   const includeSchemaTask = useMemo(() => {
-    return typeof schemaSourceString !== 'string'
+    return (
+      typeof schemaSourceString !== 'string' &&
+      !project.clientJson?.contents?.settings?.schemaSource
+    )
+  }, [])
+
+  const includeGenerateBundleTask = useMemo(() => {
+    if (project instanceof RemoteProject) {
+      return false
+    }
+    const bundlePath = join(project.toPath(), 'bundle.js')
+
+    return !existsSync(bundlePath)
+  }, [])
+
+  const bundlePath = useMemo(() => {
+    if (project instanceof Project) {
+      const bundlePath = join(project.toPath(), 'bundle.js')
+
+      return existsSync(bundlePath) ? bundlePath : undefined
+    }
+
+    return undefined
   }, [])
 
   const includeWatchTask = useMemo(() => {
-    if (isRemoteSchema(schemaSourceString)) {
+    if (isHttp(schemaSourceString)) {
       return false
     }
 
@@ -53,11 +79,7 @@ export const GenerateView = ({
   }, [])
 
   const watchModeState = useMemo(() => {
-    if (isRemoteSchema(schemaSourceString)) {
-      return false
-    }
-
-    return watchMode
+    return isHttp(schemaSourceString) ? false : watchMode
   }, [])
 
   return (
@@ -72,8 +94,18 @@ export const GenerateView = ({
         {
           taskKey: 'schema-location-task',
           include: includeSchemaTask,
-          state: schemaSourceString,
+          state: schemaSourceString ?? project.clientJson?.contents?.settings?.schemaSource,
           render: () => <SchemaLocationTask project={project} />
+        },
+        {
+          taskKey: 'generate-bundle-task',
+          include: includeGenerateBundleTask,
+          state: bundlePath,
+          render: () => {
+            invariant(project instanceof Project, 'Local project is required to generate bundle')
+
+            return <GenerateBundleTask project={project} />
+          }
         },
         {
           taskKey: 'watch-mode-task',
@@ -105,69 +137,6 @@ export const GenerateView = ({
   )
 }
 
-const WatchModeTask = () => {
-  const { state: taskState, dispatch: taskDispatch } = useTask()
-
-  const { 'schema-location-task': schemaSourceString } = tasksToState(taskState.tasks)
-
-  // useEffect(() => {
-  //   if (isRemoteSchema(schemaSourceString)) {
-  //     taskDispatch({
-  //       type: 'set-task-state',
-  //       payload: { taskKey: 'watch-mode-task', state: false }
-  //     })
-
-  //     taskDispatch({ type: 'increment-current-task' })
-  //   }
-  // }, [])
-
-  return (
-    <BooleanTask
-      prompt="Watch for changes?"
-      setValue={({ value }) => {
-        taskDispatch({
-          type: 'set-task-state',
-          payload: { taskKey: 'watch-mode-task', state: value }
-        })
-
-        taskDispatch({ type: 'increment-current-task' })
-      }}
-    />
-  )
-}
-
-type SchemaLocationTaskProps = {
-  project: Project | RemoteProject
-}
-
-const SchemaLocationTask = ({ project }: SchemaLocationTaskProps) => {
-  const { dispatch: taskDispatch } = useTask()
-  const schemaSource = project.schemaFile?.schemaSource
-  const absoluteRootPath = toAbsoluteRootPath()
-
-  return (
-    <StringTask
-      prompt="Input OpenAPI schema path or URL"
-      defaultValue={
-        schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined
-      }
-      setValue={value => {
-        taskDispatch({
-          type: 'set-task-state',
-          payload: { taskKey: 'schema-location-task', state: value }
-        })
-
-        // if (isRemoteSchema(value)) {
-        //   taskDispatch({
-        //     type: 'set-task-state',
-        //     payload: { taskKey: 'watch-mode-task', state: false }
-        //   })
-        // }
-      }}
-    />
-  )
-}
-
 type GenerateTaskProps = {
   project: Project | RemoteProject
 }
@@ -181,27 +150,40 @@ const GenerateTask = ({ project }: GenerateTaskProps) => {
   const {
     'base-path': basePath,
     'schema-location-task': schemaLocation,
-    'watch-mode-task': watchMode
+    'watch-mode-task': watchMode,
+    'generate-bundle-task': bundlePath
   } = tasksToState(taskState.tasks)
 
   invariant(basePath, 'Base path is required')
   invariant(schemaLocation, 'Schema location is required')
   invariant(typeof watchMode === 'boolean', 'Watch mode is required')
+  invariant(bundlePath, 'Bundle path is required')
 
   return watchMode ? (
-    <WatchGenerateTask project={project} schemaSourceString={schemaLocation} token={token} />
+    <WatchGenerateTask
+      project={project}
+      bundlePath={bundlePath}
+      schemaSourceString={schemaLocation}
+      token={token}
+    />
   ) : (
-    <RunGenerateTask project={project} schemaSourceString={schemaLocation} token={token} />
+    <RunGenerateTask
+      project={project}
+      bundlePath={bundlePath}
+      schemaSourceString={schemaLocation}
+      token={token}
+    />
   )
 }
 
 type RunGenerateProps = {
   project: Project | RemoteProject
+  bundlePath: string
   schemaSourceString: string
   token: string | undefined
 }
 
-const RunGenerateTask = ({ project, schemaSourceString, token }: RunGenerateProps) => {
+const RunGenerateTask = ({ project, bundlePath, schemaSourceString, token }: RunGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
 
@@ -221,6 +203,7 @@ const RunGenerateTask = ({ project, schemaSourceString, token }: RunGenerateProp
         try {
           return generate({
             project,
+            bundlePath,
             skmtcRoot: state.skmtcRoot,
             accountName: state.session?.user?.user_metadata?.user_name,
             schemaContents,
@@ -268,11 +251,17 @@ type Activity = 'watching' | 'generating'
 
 type WatchGenerateProps = {
   project: Project | RemoteProject
+  bundlePath: string
   schemaSourceString: string
   token: string | undefined
 }
 
-const WatchGenerateTask = ({ project, schemaSourceString, token }: WatchGenerateProps) => {
+const WatchGenerateTask = ({
+  project,
+  bundlePath,
+  schemaSourceString,
+  token
+}: WatchGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
   const [watcher, setWatcher] = useState<FSWatcher>()
@@ -307,6 +296,7 @@ const WatchGenerateTask = ({ project, schemaSourceString, token }: WatchGenerate
       .then(({ contents }) => {
         return generate({
           project,
+          bundlePath,
           accountName: state.session?.user?.user_metadata?.user_name,
           skmtcRoot: state.skmtcRoot,
           schemaContents: contents,
@@ -346,8 +336,4 @@ const WatchGenerateTask = ({ project, schemaSourceString, token }: WatchGenerate
       />
     </TaskBox>
   )
-}
-
-const isRemoteSchema = (string: string | undefined): boolean => {
-  return Boolean(string?.startsWith('http://') || string?.startsWith('https://'))
 }

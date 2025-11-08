@@ -1,11 +1,8 @@
 import { toArtifacts } from '@skmtc/core'
 import skmtcGenZod from '../../../../.skmtc/skmtc-zod/gen-zod/mod.ts'
-import console from 'node:console'
 import { StackTrail } from '../context/StackTrail.ts'
 
 export const gen = async () => {
-  debugger
-
   const schemaPath = new URL('./openapi.json', import.meta.url)
 
   const schema = await Deno.readTextFile(schemaPath)

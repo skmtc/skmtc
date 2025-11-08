@@ -37,6 +37,7 @@ export type TaskState = {
   'create-project-task': Project | null
   'select-project-task': Project
   'install-generators-task': boolean
+  'generate-bundle-task': string
 }
 
 export type TaskDispatch = (action: TaskAction) => void
@@ -68,8 +69,6 @@ const TaskStateContext = createContext<
 >(undefined)
 
 export const taskReducer = (state: TaskContextState, action: TaskAction) => {
-  console.log('ACTION', action)
-
   return match(action)
     .with({ type: 'increment-current-task' }, () => {
       return {

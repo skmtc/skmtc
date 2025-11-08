@@ -119,6 +119,7 @@ const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.strin
  */
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(v.string()),
+  schemaSource: v.optional(v.string()),
   packages: v.optional(v.array(modulePackage)),
   enrichments: v.optional(generatorEnrichments),
   skip: v.optional(v.array(skip))
@@ -235,6 +236,8 @@ export type Skip = SkipOperations | SkipModels | string
 export type ClientSettings = {
   /** Base output path for generated files */
   basePath?: string
+  /** Path or URL to the OpenAPI schema */
+  schemaSource?: string
   /** Array of module package configurations */
   packages?: ModulePackage[]
   /** Custom enrichments for extending generation */

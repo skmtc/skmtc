@@ -13,15 +13,15 @@ export const description =
 type GenerateWithWorkerArgs = {
   schemaContents: string
   clientSettings: ClientSettings | undefined
-  workerPath: string
+  bundlePath: string
 }
 
 export const generateWithWorker = ({
   schemaContents,
   clientSettings,
-  workerPath
+  bundlePath
 }: GenerateWithWorkerArgs): Promise<GenerateResponse> => {
-  const workerUrl = new URL(workerPath, import.meta.url)
+  const workerUrl = new URL(bundlePath, import.meta.url)
 
   const worker = new Worker(workerUrl.href, {
     type: 'module',

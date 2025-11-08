@@ -69,6 +69,10 @@ export class RemoteProject {
     })
   }
 
+  isRemote() {
+    return true
+  }
+
   toProjectKey() {
     return `@${this.accountName}/${this.name}`
   }

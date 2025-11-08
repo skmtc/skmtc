@@ -12,7 +12,7 @@ type GenerateWithSandboxApiArgs = {
 }
 
 type GenerateWithWorkerArgs = {
-  workerPath: string
+  bundlePath: string
   schemaContents: string
   clientSettings: ClientSettings | undefined
 }
@@ -20,14 +20,14 @@ type GenerateWithWorkerArgs = {
 // Class is used as a proxy for easy mocking in tests
 export class GenerateArtifacts {
   static async generateWithWorker({
-    workerPath,
+    bundlePath,
     schemaContents,
     clientSettings
   }: GenerateWithWorkerArgs): Promise<GenerateResponse> {
     return await generateWithWorker({
       schemaContents,
       clientSettings,
-      workerPath
+      bundlePath
     })
   }
 
