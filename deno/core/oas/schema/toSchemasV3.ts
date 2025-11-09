@@ -2,7 +2,6 @@ import { toRefV31 } from '@/oas/ref/toRefV31.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isRef } from '@/helpers/refFns.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import { match, P } from 'npm:ts-pattern@^5.8.0'
 import type { OasSchema } from './Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toArray } from '@/oas/array/toArray.ts'
@@ -85,162 +84,174 @@ export const toSchemaV3 = ({
     return toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
-  return match(schema)
-    .with({ allOf: P.array() }, schema => {
-      return stackTrail.trace('allOf', st => {
-        const merged = mergeIntersection({
-          schema,
-          getRef: toGetRef(context.documentObject)
-        })
-
-        return toSchemaV3({ schema: merged, stackTrail: st, context })
+  if ('allOf' in schema && Array.isArray(schema.allOf)) {
+    return stackTrail.trace('allOf', st => {
+      const merged = mergeIntersection({
+        schema,
+        getRef: toGetRef(context.documentObject)
       })
-    })
-    .with({ oneOf: P.array() }, oneOf => {
-      return stackTrail.trace('oneOf', st => {
-        const merged = mergeUnion({
-          schema: oneOf,
-          getRef: toGetRef(context.documentObject),
-          groupType: 'oneOf'
-        })
 
-        if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
-          throw new Error('Missing "oneOf" array')
-        }
+      return toSchemaV3({ schema: merged, stackTrail: st, context })
+    });
+  }
 
-        const { oneOf: members, ...value } = merged
-
-        if (members.length === 0) {
-          throw new Error('"oneOf" array is empty')
-        }
-
-        if (members.length === 1) {
-          return toSchemaV3({ schema: members[0], stackTrail: st, context })
-        }
-
-        return toUnion({ value, members, parentType: 'oneOf', stackTrail: st, context })
+  if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
+    return stackTrail.trace('oneOf', st => {
+      const merged = mergeUnion({
+        schema,
+        getRef: toGetRef(context.documentObject),
+        groupType: 'oneOf'
       })
-    })
-    .with({ anyOf: P.array() }, matched => {
-      return stackTrail.trace('anyOf', st => {
-        // deno-lint-ignore ban-ts-comment
-        // @ts-expect-error
-        if (matched['x-expansionResources']) {
-          const { anyOf, ...value } = matched
-          return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
-        }
 
-        const merged = mergeUnion({
-          schema: matched,
-          getRef: toGetRef(context.documentObject),
-          groupType: 'anyOf'
-        })
+      if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
+        throw new Error('Missing "oneOf" array')
+      }
 
-        if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
-          throw new Error('Missing "anyOf" array')
-        }
+      const { oneOf: members, ...value } = merged
 
-        const { anyOf: members, ...value } = merged
+      if (members.length === 0) {
+        throw new Error('"oneOf" array is empty')
+      }
 
-        if (members.length === 0) {
-          throw new Error('"anyOf" array is empty')
-        }
+      if (members.length === 1) {
+        return toSchemaV3({ schema: members[0], stackTrail: st, context })
+      }
 
-        if (members.length === 1) {
-          return toSchemaV3({ schema: members[0], stackTrail: st, context })
-        }
+      return toUnion({ value, members, parentType: 'oneOf', stackTrail: st, context })
+    });
+  }
 
-        return toUnion({ value, members, parentType: 'anyOf', stackTrail: st, context })
+  if ('anyOf' in schema && Array.isArray(schema.anyOf)) {
+    return stackTrail.trace('anyOf', st => {
+      // deno-lint-ignore ban-ts-comment
+      // @ts-expect-error
+      if (schema['x-expansionResources'] && Array.isArray(schema.anyOf)) {
+        const { anyOf, ...value } = schema
+        return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
+      }
+
+      const merged = mergeUnion({
+        schema,
+        getRef: toGetRef(context.documentObject),
+        groupType: 'anyOf'
       })
+
+      if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
+        throw new Error('Missing "anyOf" array')
+      }
+
+      const { anyOf: members, ...value } = merged
+
+      if (members.length === 0) {
+        throw new Error('"anyOf" array is empty')
+      }
+
+      if (members.length === 1) {
+        return toSchemaV3({ schema: members[0], stackTrail: st, context })
+      }
+
+      return toUnion({ value, members, parentType: 'anyOf', stackTrail: st, context })
+    });
+  }
+
+  if ('type' in schema) {
+    switch (schema.type) {
+      case 'object':
+        return toObject({ value: schema, stackTrail, context });
+      case 'array':
+        return toArray({ value: schema, stackTrail, context });
+      case 'integer':
+        return toInteger({ value: schema, stackTrail, context });
+      case 'number':
+        return toNumber({ value: schema, stackTrail, context });
+      case 'boolean':
+        return toBoolean({ value: schema, stackTrail, context });
+      case 'string':
+        return toString({ value: schema, stackTrail, context });
+    }
+  }
+
+  // Otherwise cases
+  if (possibleObject(schema)) {
+    context.logIssueNoKey({
+      level: 'warning',
+      message: 'Object has "properties" property, but is missing type="object" property',
+      parent: schema,
+      stackTrail,
+      type: 'MISSING_OBJECT_TYPE'
     })
-    .with({ type: 'object' }, value => toObject({ value, stackTrail, context }))
-    .with({ type: 'array' }, value => toArray({ value, stackTrail, context }))
-    .with({ type: 'integer' }, value => toInteger({ value, stackTrail, context }))
-    .with({ type: 'number' }, value => toNumber({ value, stackTrail, context }))
-    .with({ type: 'boolean' }, value => toBoolean({ value, stackTrail, context }))
-    .with({ type: 'string' }, value => toString({ value, stackTrail, context }))
-    .otherwise(value => {
-      if (possibleObject(value)) {
-        context.logIssueNoKey({
-          level: 'warning',
-          message: 'Object has "properties" property, but is missing type="object" property',
-          parent: value,
-          stackTrail,
-          type: 'MISSING_OBJECT_TYPE'
-        })
 
-        return toObject({
-          value: {
-            ...value,
-            type: 'object'
-          },
-          stackTrail,
-          context
-        })
-      }
-
-      if (possibleArray(value)) {
-        context.logIssueNoKey({
-          level: 'warning',
-          message: 'Object has "items" property, but is missing type="array" property',
-          parent: value,
-          stackTrail,
-          type: 'MISSING_ARRAY_TYPE'
-        })
-
-        return toArray({
-          value: {
-            ...value,
-            type: 'array'
-            // Adding cast here since {} is a valid value for items
-          } as OpenAPIV3.ArraySchemaObject,
-          stackTrail,
-          context
-        })
-      }
-
-      if (possibleBoolean(value)) {
-        context.logIssueNoKey({
-          level: 'warning',
-          message:
-            'Object has a boolean "default" or "example" property, but is missing type="boolean" property',
-          parent: value,
-          stackTrail,
-          type: 'MISSING_BOOLEAN_TYPE'
-        })
-
-        return toBoolean({
-          value: {
-            ...value,
-            type: 'boolean'
-          },
-          stackTrail,
-          context
-        })
-      }
-
-      if (possibleString(value)) {
-        context.logIssueNoKey({
-          level: 'warning',
-          message:
-            'Object has a string "default" or "example" property, but is missing type="string" property',
-          parent: value,
-          stackTrail,
-          type: 'MISSING_STRING_TYPE'
-        })
-
-        return toString({
-          value: {
-            ...value,
-            type: 'string'
-          },
-          stackTrail,
-          context
-        })
-      }
-
-      return toUnknown({ value, stackTrail, context })
+    return toObject({
+      value: {
+        ...schema,
+        type: 'object'
+      },
+      stackTrail,
+      context
     })
+  }
+
+  if (possibleArray(schema)) {
+    context.logIssueNoKey({
+      level: 'warning',
+      message: 'Object has "items" property, but is missing type="array" property',
+      parent: schema,
+      stackTrail,
+      type: 'MISSING_ARRAY_TYPE'
+    })
+
+    return toArray({
+      value: {
+        ...schema,
+        type: 'array'
+        // Adding cast here since {} is a valid value for items
+      } as OpenAPIV3.ArraySchemaObject,
+      stackTrail,
+      context
+    })
+  }
+
+  if (possibleBoolean(schema)) {
+    context.logIssueNoKey({
+      level: 'warning',
+      message:
+        'Object has a boolean "default" or "example" property, but is missing type="boolean" property',
+      parent: schema,
+      stackTrail,
+      type: 'MISSING_BOOLEAN_TYPE'
+    })
+
+    return toBoolean({
+      value: {
+        ...schema,
+        type: 'boolean'
+      },
+      stackTrail,
+      context
+    })
+  }
+
+  if (possibleString(schema)) {
+    context.logIssueNoKey({
+      level: 'warning',
+      message:
+        'Object has a string "default" or "example" property, but is missing type="string" property',
+      parent: schema,
+      stackTrail,
+      type: 'MISSING_STRING_TYPE'
+    })
+
+    return toString({
+      value: {
+        ...schema,
+        type: 'string'
+      },
+      stackTrail,
+      context
+    })
+  }
+
+  return toUnknown({ value: schema, stackTrail, context })
 }
 
 const possibleString = (value: unknown) => {

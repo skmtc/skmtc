@@ -49,7 +49,6 @@ import type {
   MappingModule,
   Mapping
 } from '@/types/Preview.ts'
-import { match } from 'ts-pattern'
 import type { OasVoid } from '@/oas/void/Void.ts'
 
 type ConstructorArgs = {
@@ -253,26 +252,26 @@ export class GenerateContext implements GenerateContextType {
           }
         )
 
-        match(generatorConfig.type)
-          .with('operation', () =>
+        switch (generatorConfig.type) {
+          case 'operation':
             this.#runOperationGenerator(
               this.oasDocument,
               generatorConfig,
               toSkipPaths(skip, generatorConfig.id),
               st
-            )
-          )
-          .with('model', () =>
+            );
+            break;
+          case 'model':
             this.#runModelGenerator(
               this.oasDocument,
               generatorConfig,
               toSkipModels(skip, generatorConfig.id),
               st
-            )
-          )
-          .otherwise(matched => {
-            throw new Error(`Invalid generator type: '${matched}' on ${generatorConfig.id}`)
-          })
+            );
+            break;
+          default:
+            throw new Error(`Invalid generator type: '${generatorConfig.type}' on ${generatorConfig.id}`);
+        }
       })
     })
 
@@ -717,9 +716,15 @@ export class GenerateContext implements GenerateContextType {
 
     const extension = normalisedPath.split('.').pop()
 
-    const newFile = match(extension)
-      .with('json', () => new JsonFile({ path: normalisedPath, content: {} }))
-      .otherwise(() => new File({ path: normalisedPath, settings: this.settings }))
+    let newFile: File | JsonFile;
+    switch (extension) {
+      case 'json':
+        newFile = new JsonFile({ path: normalisedPath, content: {} });
+        break;
+      default:
+        newFile = new File({ path: normalisedPath, settings: this.settings });
+        break;
+    }
 
     this.#files.set(normalisedPath, newFile)
 

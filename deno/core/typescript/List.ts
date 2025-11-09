@@ -1,5 +1,4 @@
 import type { Stringable } from '../dsl/Stringable.ts'
-import { match } from 'ts-pattern'
 
 /** Type alias for object-style lists with curly braces: `{item1, item2}` */
 export type ListObject<V extends Stringable> = List<V[], ', ', '{}'>
@@ -202,15 +201,20 @@ export class List<
 
     const joined = this.values.map(value => value.toString()).join(this.separator)
 
-    return (
-      match(this.bookends satisfies BookendsType)
-        .with('[]', () => `[${joined}]`)
-        .with('{}', () => `{${joined}}`)
-        .with('()', () => `(${joined})`)
-        // .with('<>', () => `<${joined}>`)
-        .with('none', () => joined)
-        .exhaustive()
-    )
+    switch (this.bookends) {
+      case '[]':
+        return `[${joined}]`;
+      case '{}':
+        return `{${joined}}`;
+      case '()':
+        return `(${joined})`;
+      case 'none':
+        return joined;
+      default: {
+        const _exhaustive: never = this.bookends;
+        throw new Error(`Unhandled bookends type: ${_exhaustive}`);
+      }
+    }
   }
 
   /**

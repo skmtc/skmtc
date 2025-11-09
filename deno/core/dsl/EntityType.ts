@@ -1,4 +1,3 @@
-import { match } from 'npm:ts-pattern@^5.8.0'
 
 /**
  * Represents the type of a TypeScript entity for code generation.
@@ -91,9 +90,15 @@ export class EntityType {
    * ```
    */
   toString(): string {
-    return match(this.type)
-      .with('variable', () => 'const')
-      .with('type', () => 'type')
-      .exhaustive()
+    switch (this.type) {
+      case 'variable':
+        return 'const';
+      case 'type':
+        return 'type';
+      default: {
+        const _exhaustive: never = this.type;
+        throw new Error(`Unhandled entity type: ${_exhaustive}`);
+      }
+    }
   }
 }

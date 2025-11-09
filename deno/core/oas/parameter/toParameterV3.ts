@@ -14,7 +14,6 @@ import { toOptionalMediaTypeItemsV3 } from '../mediaType/toMediaTypeItemV3.ts'
 import { OasParameter } from './Parameter.ts'
 import type { ParameterFields } from './Parameter.ts'
 import type { OasRef } from '../ref/Ref.ts'
-import { match } from 'npm:ts-pattern@^5.8.0'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
 import invariant from 'tiny-invariant'
@@ -182,16 +181,22 @@ type ToStyleArgs = {
 
 const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyle => {
   const parsed = v.parse(v.optional(oasParameterStyle), style)
-  return (
-    parsed ??
-    match(location)
-      .with('path', () => 'simple' as const)
+  if (parsed !== undefined) {
+    return parsed;
+  }
 
-      .with('header', () => 'simple' as const)
-      .with('query', () => 'form' as const)
-      .with('cookie', () => 'form' as const)
-      .exhaustive()
-  )
+  switch (location) {
+    case 'path':
+    case 'header':
+      return 'simple';
+    case 'query':
+    case 'cookie':
+      return 'form';
+    default: {
+      const _exhaustive: never = location;
+      throw new Error(`Unhandled location: ${_exhaustive}`);
+    }
+  }
 }
 
 type ToExplodeArgs = {
@@ -201,10 +206,14 @@ type ToExplodeArgs = {
 }
 
 const toExplode = ({ explode, style, stackTrail }: ToExplodeArgs): boolean => {
-  return (
-    explode ??
-    match(style)
-      .with('form', () => true)
-      .otherwise(() => false)
-  )
+  if (explode !== undefined) {
+    return explode;
+  }
+
+  switch (style) {
+    case 'form':
+      return true;
+    default:
+      return false;
+  }
 }

@@ -1,6 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import { match } from 'ts-pattern'
 import {
   OasHttpSecurityScheme,
   OasApiKeySecurityScheme,
@@ -71,20 +70,20 @@ const toSecuritySchemeV3 = ({
     return toRefV31({ ref: securityScheme, refType: 'securityScheme', stackTrail, context })
   }
 
-  return match(securityScheme)
-    .with({ type: 'http' }, matched => {
+  switch (securityScheme.type) {
+    case 'http': {
       const {
         type: _type,
         description,
         scheme,
         bearerFormat,
         ...skipped
-      } = v.parse(oasHttpSecuritySchemeData, matched)
+      } = v.parse(oasHttpSecuritySchemeData, securityScheme)
 
       if (!isEmpty(skipped)) {
         context.logSkippedFields({
           skipped,
-          parent: matched,
+          parent: securityScheme,
           stackTrail,
           parentType: 'securityScheme:http'
         })
@@ -93,22 +92,22 @@ const toSecuritySchemeV3 = ({
         description,
         scheme,
         bearerFormat
-      })
-    })
+      });
+    }
 
-    .with({ type: 'apiKey' }, matched => {
+    case 'apiKey': {
       const {
         type: _type,
         in: location,
         description,
         name,
         ...skipped
-      } = v.parse(oasApiKeySecuritySchemeData, matched)
+      } = v.parse(oasApiKeySecuritySchemeData, securityScheme)
 
       if (!isEmpty(skipped)) {
         context.logSkippedFields({
           skipped,
-          parent: matched,
+          parent: securityScheme,
           stackTrail,
           parentType: 'securityScheme:apiKey'
         })
@@ -118,20 +117,21 @@ const toSecuritySchemeV3 = ({
         description,
         name,
         in: location as 'header' | 'query' | 'cookie'
-      })
-    })
-    .with({ type: 'oauth2' }, matched => {
+      });
+    }
+
+    case 'oauth2': {
       const {
         type: _type,
         flows,
         description,
         ...skipped
-      } = v.parse(oasOAuth2SecuritySchemeData, matched)
+      } = v.parse(oasOAuth2SecuritySchemeData, securityScheme)
 
       if (!isEmpty(skipped)) {
         context.logSkippedFields({
           skipped,
-          parent: matched,
+          parent: securityScheme,
           stackTrail,
           parentType: 'securityScheme:oauth2'
         })
@@ -140,20 +140,21 @@ const toSecuritySchemeV3 = ({
       return new OasOAuth2SecurityScheme({
         description,
         flows
-      })
-    })
-    .with({ type: 'openIdConnect' }, matched => {
+      });
+    }
+
+    case 'openIdConnect': {
       const {
         type: _type,
         description,
         openIdConnectUrl,
         ...skipped
-      } = v.parse(oasOpenIdSecuritySchemeData, matched)
+      } = v.parse(oasOpenIdSecuritySchemeData, securityScheme)
 
       if (!isEmpty(skipped)) {
         context.logSkippedFields({
           skipped,
-          parent: matched,
+          parent: securityScheme,
           stackTrail,
           parentType: 'securityScheme:openIdConnect'
         })
@@ -162,10 +163,11 @@ const toSecuritySchemeV3 = ({
       return new OasOpenIdSecurityScheme({
         description,
         openIdConnectUrl
-      })
-    })
-    .otherwise(other => {
+      });
+    }
+
+    default:
       // TODO: skip ref
-      throw new Error(`Unknown security scheme type: ${other}`)
-    })
+      throw new Error(`Unknown security scheme type: ${(securityScheme as any).type}`);
+  }
 }

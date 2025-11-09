@@ -1,6 +1,5 @@
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
-import { match } from 'ts-pattern'
 import { isEmpty } from './isEmpty.ts'
 
 /**
@@ -167,21 +166,22 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
     throw new Error('Depth limit reached')
   }
 
-  const result = match(objectSchema)
-    .with({ type: 'ref' }, matched => {
+  switch (objectSchema.type) {
+    case 'ref': {
       return collateExamples({
-        objectSchema: matched.resolve(),
+        objectSchema: objectSchema.resolve(),
         depth: depth + 1
-      })
-    })
-    .with({ type: 'object' }, matched => {
-      if (matched.example) {
-        return matched.example
+      });
+    }
+
+    case 'object': {
+      if (objectSchema.example) {
+        return objectSchema.example;
       }
 
       const output: Record<string, unknown> = {}
 
-      Object.entries(matched.properties ?? {}).forEach(([key, value]) => {
+      Object.entries(objectSchema.properties ?? {}).forEach(([key, value]) => {
         if (value.type === 'custom') {
           return
         }
@@ -196,27 +196,39 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
         }
       })
 
-      return isEmpty(output) ? undefined : output
-    })
-    .with({ type: 'array' }, matched => {
-      if (matched.example) {
-        return matched.example
+      return isEmpty(output) ? undefined : output;
+    }
+
+    case 'array': {
+      if (objectSchema.example) {
+        return objectSchema.example;
       }
 
       const itemsExample = collateExamples({
-        objectSchema: matched.items,
+        objectSchema: objectSchema.items,
         depth: depth + 1
       })
 
-      return itemsExample ? [itemsExample] : undefined
-    })
-    .with({ type: 'string' }, ({ example }) => example)
-    .with({ type: 'number' }, ({ example }) => example)
-    .with({ type: 'integer' }, ({ example }) => example)
-    .with({ type: 'boolean' }, ({ example }) => example)
-    .with({ type: 'unknown' }, ({ example }) => example)
-    .with({ type: 'union' }, ({ members }) => {
-      for (const member of members) {
+      return itemsExample ? [itemsExample] : undefined;
+    }
+
+    case 'string':
+      return objectSchema.example;
+
+    case 'number':
+      return objectSchema.example;
+
+    case 'integer':
+      return objectSchema.example;
+
+    case 'boolean':
+      return objectSchema.example;
+
+    case 'unknown':
+      return objectSchema.example;
+
+    case 'union': {
+      for (const member of objectSchema.members) {
         const unionExample = collateExamples({
           objectSchema: member,
           depth: depth + 1
@@ -226,8 +238,12 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
           return unionExample
         }
       }
-    })
-    .exhaustive()
+      return undefined;
+    }
 
-  return result
+    default: {
+      const _exhaustive: never = objectSchema;
+      throw new Error(`Unhandled schema type: ${(_exhaustive as any).type}`);
+    }
+  }
 }

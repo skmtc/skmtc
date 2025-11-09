@@ -1,7 +1,6 @@
 import { camelCase, capitalize } from '@/helpers/strings.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Method } from '@/types/Method.ts'
-import { match } from 'npm:ts-pattern@^5.8.0'
 
 /**
  * Determines the endpoint type based on HTTP method.
@@ -93,8 +92,12 @@ export const toArgsName = (operation: OasOperation): string => {
  * ```
  */
 export const toMethodVerb = (method: Method): string => {
-  return match(method)
-    .with('post', () => 'Create')
-    .with('put', () => 'Update')
-    .otherwise(matched => capitalize(matched))
+  switch (method) {
+    case 'post':
+      return 'Create';
+    case 'put':
+      return 'Update';
+    default:
+      return capitalize(method);
+  }
 }

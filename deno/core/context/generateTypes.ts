@@ -278,7 +278,7 @@ export type GenerateContextType = {
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
     insertable: OperationInsertable<V, EnrichmentType>,
     operation: OasOperation,
-    { destinationPath, noExport }?: InsertOperationOptions
+    options?: InsertOperationOptions
   ) => Inserted<V, EnrichmentType>
   insertNormalisedModel: <
     V extends GeneratedValue,
@@ -287,12 +287,12 @@ export type GenerateContextType = {
   >(
     insertable: ModelInsertable<V, EnrichmentType>,
     { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
-    { noExport }?: InsertNormalisedModelOptions
+    options?: InsertNormalisedModelOptions
   ) => InsertNormalisedModelReturn<V, Schema>
   insertModel: <V extends GeneratedValue, EnrichmentType>(
     insertable: ModelInsertable<V, EnrichmentType>,
     refName: RefName,
-    { destinationPath, noExport }?: InsertModelOptions
+    options?: InsertModelOptions
   ) => Inserted<V, EnrichmentType>
   toOperationContentSettings: <V, EnrichmentType>({
     operation,

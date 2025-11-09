@@ -1,20 +1,16 @@
 import { assertEquals } from '@std/assert/equals'
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeIntersection } from './merge-intersection.ts'
-import { match } from 'ts-pattern'
+
 // Mock getRef function for testing
 const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
-  return match(ref)
-    .with(
-      { $ref: '#/components/schemas/User' },
-      (): OpenAPIV3.SchemaObject => ({
-        type: 'string',
-        description: 'Mock resolved reference'
-      })
-    )
-    .otherwise(() => {
-      throw new Error(`Unknown ref: ${JSON.stringify(ref)}`)
-    })
+  if (ref.$ref === '#/components/schemas/User') {
+    return {
+      type: 'string',
+      description: 'Mock resolved reference'
+    };
+  }
+  throw new Error(`Unknown ref: ${JSON.stringify(ref)}`);
 }
 
 Deno.test('mergeAllOf - basic property merging', () => {

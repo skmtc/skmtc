@@ -5,7 +5,6 @@ import type { OasInfo } from '@/oas/info/Info.ts'
 import type { OasServer } from '@/oas/server/Server.ts'
 import type { OasSecurityRequirement } from '@/oas/securityRequirement/SecurityRequirement.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-import { match } from 'ts-pattern'
 import type { RefName } from '@/types/RefName.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -152,8 +151,8 @@ export class OasDocument {
   removeItem(stackTrail: StackTrail): OasOperation | OasSchema | OasRef<'schema'> | undefined {
     const [first, second, third] = stackTrail.stackTrail
 
-    return match(first)
-      .with('paths', () => {
+    switch (first) {
+      case 'paths': {
         const index = this.#fields!.operations.findIndex(
           ({ path, method }) => path === second && method === third
         )
@@ -164,18 +163,20 @@ export class OasDocument {
 
         const [removed] = this.#fields!.operations.splice(index, 1)
 
-        return removed
-      })
-      .with('components', () => {
+        return removed;
+      }
+
+      case 'components': {
         if (typeof third !== 'string') {
           throw new Error(`RefName cannot be a number: ${third}`)
         }
 
-        return this.#fields!.components!.removeSchema(third as RefName)
-      })
-      .otherwise(() => {
-        throw new Error(`Unexpected stack trail: ${stackTrail}`)
-      })
+        return this.#fields!.components!.removeSchema(third as RefName);
+      }
+
+      default:
+        throw new Error(`Unexpected stack trail: ${stackTrail}`);
+    }
   }
 
   /**

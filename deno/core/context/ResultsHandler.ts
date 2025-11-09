@@ -2,7 +2,6 @@ import { type LevelName, LogLevels } from '@std/log/levels'
 import type { LogRecord } from '@std/log/logger'
 import { BaseHandler } from '@std/log/base-handler'
 import type { CoreContext } from '@/context/CoreContext.ts'
-import { match } from 'npm:ts-pattern@^5.8.0'
 import { StackTrail } from './StackTrail.ts'
 
 /**
@@ -102,15 +101,22 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
    * ```
    */
   log(levelName: string) {
+    let resultType: 'warning' | 'error';
+    switch (levelName) {
+      case 'WARN':
+        resultType = 'warning';
+        break;
+      case 'ERROR':
+        resultType = 'error';
+        break;
+      default:
+        throw new Error(`Unexpected log level name: ${levelName}`);
+    }
+
     this.context.captureCurrentResult(
-      match(levelName)
-        .with('WARN', () => 'warning' as const)
-        .with('ERROR', () => 'error' as const)
-        .otherwise(() => {
-          throw new Error(`Unexpected log level name: ${levelName}`)
-        }),
+      resultType,
       new StackTrail(['SKIPPED'])
-    )
+    );
   }
 
   /**

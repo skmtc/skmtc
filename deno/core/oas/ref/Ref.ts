@@ -1,6 +1,5 @@
 import type { OasRefData } from './ref-types.ts'
 import { toRefName } from '../../helpers/refFns.ts'
-import { match } from 'npm:ts-pattern@^5.8.0'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OasResponse } from '../response/Response.ts'
 import type { OasParameter } from '../parameter/Parameter.ts'
@@ -13,6 +12,32 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 
 const MAX_LOOKUPS = 10
+
+/**
+ * Converts a ref type to its plural components path.
+ */
+function refTypeToPluralPath(refType: OasRefData['refType']): string {
+  switch (refType) {
+    case 'schema':
+      return 'schemas';
+    case 'requestBody':
+      return 'requestBodies';
+    case 'parameter':
+      return 'parameters';
+    case 'response':
+      return 'responses';
+    case 'example':
+      return 'examples';
+    case 'header':
+      return 'headers';
+    case 'securityScheme':
+      return 'securitySchemes';
+    default: {
+      const _exhaustive: never = refType;
+      throw new Error(`Unhandled ref type: ${_exhaustive}`);
+    }
+  }
+}
 
 /**
  * Field data for creating OAS reference objects.
@@ -170,15 +195,34 @@ export class OasRef<T extends OasRefData['refType']> {
 
     const refType: OasRefData['refType'] = this.refType
 
-    const resolved = match(refType)
-      .with('schema', () => c?.schemas?.[refName])
-      .with('requestBody', () => c?.requestBodies?.[refName])
-      .with('parameter', () => c?.parameters?.[refName])
-      .with('response', () => c?.responses?.[refName])
-      .with('example', () => c?.examples?.[refName])
-      .with('header', () => c?.headers?.[refName])
-      .with('securityScheme', () => c?.securitySchemes?.[refName])
-      .exhaustive()
+    let resolved: ResolvedRef<T> | OasRef<T> | undefined;
+    switch (refType) {
+      case 'schema':
+        resolved = c?.schemas?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
+        break;
+      case 'requestBody':
+        resolved = c?.requestBodies?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
+        break;
+      case 'parameter':
+        resolved = c?.parameters?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
+        break;
+      case 'response':
+        resolved = c?.responses?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
+        break;
+      case 'example':
+        resolved = c?.examples?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
+        break;
+      case 'header':
+        resolved = c?.headers?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
+        break;
+      case 'securityScheme':
+        resolved = c?.securitySchemes?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
+        break;
+      default: {
+        const _exhaustive: never = refType;
+        throw new Error(`Unhandled ref type: ${_exhaustive}`);
+      }
+    }
 
     if (!resolved) {
       throw new Error(`Ref "${this.#fields.$ref}" not found`)
@@ -227,15 +271,7 @@ export class OasRef<T extends OasRefData['refType']> {
     }
 
     const ref: OpenAPIV3.ReferenceObject = {
-      $ref: `#/components/${match(this.refType)
-        .with('schema', () => 'schemas')
-        .with('requestBody', () => 'requestBodies')
-        .with('parameter', () => 'parameters')
-        .with('response', () => 'responses')
-        .with('example', () => 'examples')
-        .with('header', () => 'headers')
-        .with('securityScheme', () => 'securitySchemes')
-        .exhaustive()}/${this.toRefName()}`
+      $ref: `#/components/${refTypeToPluralPath(this.refType)}/${this.toRefName()}`
     }
 
     return ref
@@ -243,15 +279,7 @@ export class OasRef<T extends OasRefData['refType']> {
 
   toJSON(): object {
     return {
-      $ref: `#/components/${match(this.refType)
-        .with('schema', () => 'schemas')
-        .with('requestBody', () => 'requestBodies')
-        .with('parameter', () => 'parameters')
-        .with('response', () => 'responses')
-        .with('example', () => 'examples')
-        .with('header', () => 'headers')
-        .with('securityScheme', () => 'securitySchemes')
-        .exhaustive()}/${this.toRefName()}`
+      $ref: `#/components/${refTypeToPluralPath(this.refType)}/${this.toRefName()}`
     }
   }
 }

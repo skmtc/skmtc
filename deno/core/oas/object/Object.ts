@@ -2,7 +2,6 @@ import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { CustomValue } from '../../dsl/CustomValue.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import { match, P } from 'ts-pattern'
 
 /**
  * Constructor fields for {@link OasObject}.
@@ -462,10 +461,15 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
       maxProperties: this.maxProperties,
       minProperties: this.minProperties,
       enum: this.enums,
-      additionalProperties: match(this.additionalProperties)
-        .with(P.nullish, () => false)
-        .with(P.boolean, value => value)
-        .otherwise(value => value.toJsonSchema(options)),
+      additionalProperties: (() => {
+        if (this.additionalProperties === null || this.additionalProperties === undefined) {
+          return false;
+        } else if (typeof this.additionalProperties === 'boolean') {
+          return this.additionalProperties;
+        } else {
+          return this.additionalProperties.toJsonSchema(options);
+        }
+      })(),
       readOnly: this.readOnly,
       writeOnly: this.writeOnly,
       deprecated: this.deprecated
