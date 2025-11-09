@@ -6,7 +6,7 @@ import { Box, Text } from 'ink'
 import { useState } from 'react'
 import { MultiSelect } from '@inkjs/ui'
 import { Spinner } from '@/components/Spinner.tsx'
-import { parseModuleName } from '@skmtc/core'
+import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { Generator } from '@/lib/generator.ts'
 import { useShortcut } from './useShortcut.tsx'
 

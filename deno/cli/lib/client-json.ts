@@ -1,6 +1,6 @@
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
-import { type SkmtcClientConfig, skmtcClientConfig } from '@skmtc/core'
+import { type SkmtcClientConfig, skmtcClientConfig } from '@skmtc/core/Settings'
 import * as v from 'valibot'
 import type { Manager } from '@/lib/manager.ts'
 import { writeFileSafeDir } from '@/lib/file.ts'

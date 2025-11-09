@@ -1,7 +1,7 @@
 import { exists } from '@std/fs/exists'
 import { writeFileSafeDir } from '@/lib/file.ts'
 import * as v from 'valibot'
-import { packageDenoJson, type PackageDenoJson as PackageDenoJsonType } from '@skmtc/core'
+import { packageDenoJson, type PackageDenoJson as PackageDenoJsonType } from '@skmtc/core/DenoJson'
 import type { Manager } from '@/lib/manager.ts'
 
 type PackageDenoJsonArgs = {

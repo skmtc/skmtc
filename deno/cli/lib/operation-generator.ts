@@ -1,5 +1,5 @@
 import type { Generator } from '@/lib/generator.ts'
-import { camelCase } from '@skmtc/core'
+import { camelCase } from '@skmtc/core/strings'
 import { join } from '@std/path/join'
 
 export class OperationGenerator {

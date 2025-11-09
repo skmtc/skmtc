@@ -4,7 +4,7 @@ import { ensureDirSync } from '@std/fs/ensure-dir'
 import { ensureFileSync } from '@std/fs/ensure-file'
 import * as v from 'valibot'
 import { existsSync } from '@std/fs/exists'
-import { type ManifestContent, manifestContent } from '@skmtc/core'
+import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 

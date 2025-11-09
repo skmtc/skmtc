@@ -1,4 +1,4 @@
-import { camelCase } from '@skmtc/core'
+import { camelCase } from '@skmtc/core/strings'
 
 type GeneratorsAcc = {
   imports: string[]
