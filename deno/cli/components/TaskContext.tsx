@@ -1,6 +1,5 @@
 import React from 'react'
 import { createContext, type ReactNode, useContext, useReducer } from 'react'
-import { match } from 'ts-pattern'
 import type { Project } from '@/lib/project.ts'
 
 type SetCurrentTaskAction = { type: 'increment-current-task' }
@@ -69,26 +68,30 @@ const TaskStateContext = createContext<
 >(undefined)
 
 export const taskReducer = (state: TaskContextState, action: TaskAction) => {
-  return match(action)
-    .with({ type: 'increment-current-task' }, () => {
+  switch (action.type) {
+    case 'increment-current-task': {
       return {
         ...state,
         currentTask: state.currentTask + 1
       }
-    })
-    .with({ type: 'insert-task' }, ({ payload: { task, index } }) => ({
-      ...state,
-      tasks: [...state.tasks.slice(0, index), task, ...state.tasks.slice(index)]
-    }))
-    .with({ type: 'set-task-state' }, ({ payload }) => {
+    }
+    case 'insert-task': {
+      const { task, index } = action.payload
+      return {
+        ...state,
+        tasks: [...state.tasks.slice(0, index), task, ...state.tasks.slice(index)]
+      }
+    }
+    case 'set-task-state': {
+      const { payload } = action
       return {
         ...state,
         tasks: state.tasks.map(task =>
           task.taskKey === payload.taskKey ? { ...task, state: payload.state } : task
         )
       }
-    })
-    .exhaustive()
+    }
+  }
 }
 
 const TaskProvider = ({ children, leave, tasks }: TaskProviderProps) => {

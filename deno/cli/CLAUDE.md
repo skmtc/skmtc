@@ -102,7 +102,6 @@ Each command follows a consistent pattern:
 ### Core Functionality
 - `@skmtc/core` - Core SKMTC functionality for OpenAPI processing
 - `@std/*` - Deno standard library modules
-- `ts-pattern` - Pattern matching utilities
 - `tiny-invariant` - Runtime assertions
 
 ## Project Structure

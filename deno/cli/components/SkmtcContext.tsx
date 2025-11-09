@@ -1,6 +1,5 @@
 import React from 'react'
 import { createContext, type ReactNode, useContext, useReducer, useEffect } from 'react'
-import { match } from 'ts-pattern'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Session } from '@supabase/supabase-js'
 import type { Project } from '@/lib/project.ts'
@@ -184,20 +183,32 @@ const SkmtcStateContext = createContext<
 >(undefined)
 
 const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
-  return match(action)
-    .with({ type: 'set-view' }, ({ payload }) => ({ ...state, view: payload }))
-    .with({ type: 'set-session' }, ({ payload }) => ({ ...state, session: payload.session }))
-    .with({ type: 'set-message' }, ({ payload }) => ({ ...state, message: payload }))
-    .with({ type: 'add-shortcut' }, ({ payload }) => ({
-      ...state,
-      shortcuts: [...state.shortcuts, payload]
-    }))
-    .with({ type: 'remove-shortcut' }, ({ payload }) => ({
-      ...state,
-      shortcuts: state.shortcuts.filter(shortcut => shortcut.id !== payload)
-    }))
-    .with({ type: 'set-generators' }, ({ payload }) => ({ ...state, generators: payload }))
-    .exhaustive()
+  switch (action.type) {
+    case 'set-view': {
+      return { ...state, view: action.payload }
+    }
+    case 'set-session': {
+      return { ...state, session: action.payload.session }
+    }
+    case 'set-message': {
+      return { ...state, message: action.payload }
+    }
+    case 'add-shortcut': {
+      return {
+        ...state,
+        shortcuts: [...state.shortcuts, action.payload]
+      }
+    }
+    case 'remove-shortcut': {
+      return {
+        ...state,
+        shortcuts: state.shortcuts.filter(shortcut => shortcut.id !== action.payload)
+      }
+    }
+    case 'set-generators': {
+      return { ...state, generators: action.payload }
+    }
+  }
 }
 
 const SkmtcProvider = ({ initialState, children, exit }: SkmtcProviderProps) => {
@@ -250,19 +261,26 @@ type ToProjectNameArgs = {
 }
 
 export const toProjectName = ({ view }: ToProjectNameArgs) => {
-  return match(view)
-    .with({ page: 'create-generator' }, ({ projectName }) => projectName)
-    .with({ page: 'create-project' }, ({ projectName }) => projectName)
-    .with({ page: 'project' }, ({ projectName }) => projectName)
-    .with({ page: 'generate' }, ({ project }) => project.name)
-    .with({ page: 'deploy' }, ({ projectName }) => projectName)
-    .with({ page: 'bundle' }, ({ projectName }) => projectName)
-    .with({ page: 'runtime-logs' }, ({ projectName }) => projectName)
-    .with({ page: 'list-generators' }, ({ projectName }) => projectName)
-    .with({ page: 'install-generator' }, ({ projectName }) => projectName)
-    .with({ page: 'clone-generator' }, ({ projectName }) => projectName)
-    .with({ page: 'remove-generator' }, ({ projectName }) => projectName)
-    .otherwise(() => undefined)
+  switch (view.page) {
+    case 'create-generator':
+    case 'create-project':
+    case 'project':
+    case 'deploy':
+    case 'bundle':
+    case 'runtime-logs':
+    case 'list-generators':
+    case 'install-generator':
+    case 'clone-generator':
+    case 'remove-generator': {
+      return view.projectName
+    }
+    case 'generate': {
+      return view.project.name
+    }
+    default: {
+      return undefined
+    }
+  }
 }
 
 export const useProjectName = () => {

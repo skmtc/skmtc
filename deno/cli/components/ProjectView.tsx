@@ -2,7 +2,6 @@ import React, { useEffect, useId, useMemo } from 'react'
 import { Box, Newline, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import { match } from 'ts-pattern'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { existsSync } from '@std/fs/exists'
@@ -87,8 +86,8 @@ export const ProjectView = ({ project }: ProjectProps) => {
           )
         }}
         onSelect={item => {
-          match(item)
-            .with({ value: 'generate-artifacts' }, () => {
+          switch (item.value) {
+            case 'generate-artifacts': {
               if (!hasBundleFile) {
                 return
               }
@@ -96,14 +95,16 @@ export const ProjectView = ({ project }: ProjectProps) => {
                 type: 'set-view',
                 payload: { page: 'generate', project }
               })
-            })
-            .with({ value: 'bundle' }, () => {
+              break
+            }
+            case 'bundle': {
               dispatch({
                 type: 'set-view',
                 payload: { page: 'bundle', projectName: project.name }
               })
-            })
-            .with({ value: 'install-generator' }, () => {
+              break
+            }
+            case 'install-generator': {
               dispatch({
                 type: 'set-view',
                 payload: {
@@ -112,28 +113,33 @@ export const ProjectView = ({ project }: ProjectProps) => {
                   generators: undefined
                 }
               })
-            })
-            .with({ value: 'create-generator' }, () => {
+              break
+            }
+            case 'create-generator': {
               dispatch({
                 type: 'set-view',
                 payload: { page: 'create-generator', projectName: project.name }
               })
-            })
-            .with({ value: 'clone-generator' }, () => {
+              break
+            }
+            case 'clone-generator': {
               dispatch({
                 type: 'set-view',
                 payload: { page: 'clone-generator', projectName: project.name }
               })
-            })
-            .with({ value: 'remove-generator' }, () => {
+              break
+            }
+            case 'remove-generator': {
               dispatch({
                 type: 'set-view',
                 payload: { page: 'remove-generator', projectName: project.name }
               })
-            })
-            .otherwise(() => {
+              break
+            }
+            default: {
               throw new Error(`Invalid project action: ${item}`)
-            })
+            }
+          }
         }}
       />
     </Box>

@@ -1,7 +1,6 @@
 import React from 'react'
 import SelectInput from 'ink-select-input'
 import { Box, Newline, Text } from 'ink'
-import { match, P } from 'ts-pattern'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 
 type HomeActionType = `select-project:${string}` | 'create-project' | 'exit'
@@ -56,17 +55,15 @@ export const HomeView = () => {
             </Text>
           )
         }}
-        onSelect={async item =>
-          await match(item)
-            .with({ value: P.string.startsWith('select-project:') }, ({ label }) =>
-              dispatch({ type: 'set-view', payload: { page: 'project', projectName: label } })
-            )
-            .with({ value: 'create-project' }, () => {
-              dispatch({ type: 'set-view', payload: { page: 'create-project' } })
-            })
-            .with({ value: 'exit' }, () => exit())
-            .exhaustive()
-        }
+        onSelect={async item => {
+          if (typeof item.value === 'string' && item.value.startsWith('select-project:')) {
+            dispatch({ type: 'set-view', payload: { page: 'project', projectName: item.label } })
+          } else if (item.value === 'create-project') {
+            dispatch({ type: 'set-view', payload: { page: 'create-project' } })
+          } else if (item.value === 'exit') {
+            exit()
+          }
+        }}
       />
     </Box>
   )

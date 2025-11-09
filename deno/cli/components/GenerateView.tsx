@@ -5,7 +5,6 @@ import { RemoteProject } from '@/lib/remote-project.ts'
 import { useEffect, useState } from 'react'
 import { toGenerateMessage } from '@/commands/generate.tsx'
 import { generate } from '@/lib/generate.ts'
-import { match } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
 import { useMemo } from 'react'
@@ -312,12 +311,7 @@ const WatchGenerateTask = ({
 
   return (
     <TaskBox active>
-      <Spinner
-        label={match(activity)
-          .with('generating', () => 'Generating...')
-          .with('watching', () => 'Watching...')
-          .exhaustive()}
-      />
+      <Spinner label={activity === 'generating' ? 'Generating...' : 'Watching...'} />
     </TaskBox>
   )
 }

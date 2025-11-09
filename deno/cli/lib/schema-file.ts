@@ -4,7 +4,6 @@ import { join } from '@std/path/join'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import invariant from 'tiny-invariant'
-import { match, P } from 'ts-pattern'
 
 type FileType = 'json' | 'yaml'
 
@@ -79,31 +78,28 @@ export class SchemaFile {
   static async getFromSource(
     source: SchemaSource
   ): Promise<{ contents: string; fileType: FileType }> {
-    return await match(source)
-      .returnType<Promise<{ contents: string; fileType: FileType }>>()
-      .with({ type: 'remote' }, async matched => {
-        const response = await fetch(matched.url)
-
+    switch (source.type) {
+      case 'remote': {
+        const response = await fetch(source.url)
         const contents = await response.text()
-        const url = new URL(matched.url)
-
+        const url = new URL(source.url)
         const fileType = toFileType(url.pathname)
 
         return {
           contents,
           fileType
         }
-      })
-      .with({ type: 'local' }, async matched => {
-        const contents = await openPath(resolve(matched.path))
-        const fileType = toFileType(matched.path)
+      }
+      case 'local': {
+        const contents = await openPath(resolve(source.path))
+        const fileType = toFileType(source.path)
 
         return {
           contents,
           fileType
         }
-      })
-      .exhaustive()
+      }
+    }
   }
 
   static create() {
@@ -112,14 +108,13 @@ export class SchemaFile {
 }
 
 const toFileType = (path: string): FileType => {
-  return match(path)
-    .returnType<FileType>()
-    .with(P.string.endsWith('.json'), () => 'json')
-    .with(P.string.endsWith('.yaml'), () => 'yaml')
-    .with(P.string.endsWith('.yml'), () => 'yaml')
-    .otherwise(() => {
-      throw new Error(`File type is not JSON or YAML: ${path}`)
-    })
+  if (path.endsWith('.json')) {
+    return 'json'
+  } else if (path.endsWith('.yaml') || path.endsWith('.yml')) {
+    return 'yaml'
+  } else {
+    throw new Error(`File type is not JSON or YAML: ${path}`)
+  }
 }
 
 export const toSchemaSource = (source: string): SchemaSource => {

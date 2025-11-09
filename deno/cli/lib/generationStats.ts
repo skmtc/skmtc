@@ -1,6 +1,5 @@
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { ResultsItem, ResultType } from '@skmtc/core/Results'
-import { match, P } from 'ts-pattern'
 import { countTokens } from 'gpt-tokenizer'
 
 /**
@@ -361,29 +360,25 @@ type CheckResultArgs = {
  * ```
  */
 export const checkResult = ({ path, result, errors }: CheckResultArgs): void => {
-  match(result)
-    .with(P.array(), matchedResult => {
-      return matchedResult.map(item => {
-        if (item !== null) {
-          checkResult({ path, result: item, errors })
-        }
+  if (Array.isArray(result)) {
+    return result.map(item => {
+      if (item !== null) {
+        checkResult({ path, result: item, errors })
+      }
+    })
+  } else if (typeof result === 'string') {
+    if (result === 'error') {
+      errors.push(path)
+    }
+  } else if (result == null) {
+    return checkResult({ path, result, errors })
+  } else {
+    if (typeof result === 'object') {
+      return Object.entries(result).map(([key, value]) => {
+        return checkResult({ path: [...path, key], result: value, errors })
       })
-    })
-    .with(P.string, matchedResult => {
-      if (matchedResult === 'error') {
-        errors.push(path)
-      }
-    })
-    .with(P.nullish, matchedResult => {
-      return checkResult({ path, result: matchedResult, errors })
-    })
-    .otherwise(matched => {
-      if (typeof matched === 'object') {
-        return Object.entries(matched).map(([key, value]) => {
-          return checkResult({ path: [...path, key], result: value, errors })
-        })
-      } else {
-        throw new Error('Invalid result type')
-      }
-    })
+    } else {
+      throw new Error('Invalid result type')
+    }
+  }
 }

@@ -2,7 +2,6 @@ import type { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { join } from '@std/path/join'
 import { ensureFile } from '@std/fs/ensure-file'
 import { toProjectPath } from '@/lib/to-project-path.ts'
-import { match } from 'ts-pattern'
 import { OperationGenerator } from '@/lib/operation-generator.ts'
 import { ModelGenerator } from '@/lib/model-generator.ts'
 import { PackageDenoJson } from '@/lib/package-deno-json.ts'
@@ -104,16 +103,18 @@ export class Generator {
     const generatorPath = join(toProjectPath(project.name), this.packageName)
     await this.createFiles(generatorPath, project.manager)
 
-    await match(generatorType)
-      .with('operation', async () => {
+    switch (generatorType) {
+      case 'operation': {
         const operationGenerator = new OperationGenerator(this)
         await operationGenerator.createOperationFiles(generatorPath)
-      })
-      .with('model', async () => {
+        break
+      }
+      case 'model': {
         const modelGenerator = new ModelGenerator(this)
         await modelGenerator.createModelFiles(generatorPath)
-      })
-      .exhaustive()
+        break
+      }
+    }
 
     project.rootDenoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
     project.rootDenoJson.addWorkspace(this.toPath({ relative: true }))

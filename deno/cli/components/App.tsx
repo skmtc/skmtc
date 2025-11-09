@@ -1,7 +1,6 @@
 import React from 'react'
 import { Box } from 'ink'
 import { HomeView } from '@/components/HomeView.tsx'
-import { match } from 'ts-pattern'
 import { ProjectView } from '@/components/ProjectView.tsx'
 import { SkmtcProvider, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { CreateProjectView } from './CreateProjectView.tsx'
@@ -43,16 +42,22 @@ export const App = ({ initialState }: AppProps) => {
 export const ViewManager = () => {
   const { state } = useSkmtc()
 
-  return match(state.view)
-    .with({ page: 'home' }, () => <HomeView />)
-    .with({ page: 'create-project' }, ({ projectName, generators, basePath }) => (
-      <CreateProjectView projectName={projectName} generators={generators} basePath={basePath} />
-    ))
-    .with({ page: 'login' }, () => <LoginView />)
-    .with({ page: 'project' }, ({ projectName }) => (
-      <ProjectView project={state.skmtcRoot.findProject(projectName)} />
-    ))
-    .with({ page: 'generate' }, view => {
+  switch (state.view.page) {
+    case 'home': {
+      return <HomeView />
+    }
+    case 'create-project': {
+      const { projectName, generators, basePath } = state.view
+      return <CreateProjectView projectName={projectName} generators={generators} basePath={basePath} />
+    }
+    case 'login': {
+      return <LoginView />
+    }
+    case 'project': {
+      return <ProjectView project={state.skmtcRoot.findProject(state.view.projectName)} />
+    }
+    case 'generate': {
+      const view = state.view
       return (
         <GenerateView
           project={view.project}
@@ -61,29 +66,41 @@ export const ViewManager = () => {
           basePath={view.basePath}
         />
       )
-    })
-    .with({ page: 'deploy' }, view => {
+    }
+    case 'deploy': {
+      const view = state.view
       return <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    })
-    .with({ page: 'bundle' }, view => {
+    }
+    case 'bundle': {
+      const view = state.view
       return <BundleView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    })
-    .with({ page: 'runtime-logs' }, view => (
-      <RuntimeLogsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    ))
-    .with({ page: 'list-generators' }, view => (
-      <ListGeneratorsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    ))
-    .with({ page: 'create-generator' }, view => (
-      <AddGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    ))
-    .with({ page: 'install-generator' }, view => <InstallGeneratorView view={view} />)
-    .with({ page: 'clone-generator' }, view => (
-      <CloneGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    ))
-    .with({ page: 'remove-generator' }, view => (
-      <RemoveGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    ))
-    .with({ page: 'exit' }, () => <ExitView />)
-    .exhaustive()
+    }
+    case 'runtime-logs': {
+      const view = state.view
+      return <RuntimeLogsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    }
+    case 'list-generators': {
+      const view = state.view
+      return <ListGeneratorsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    }
+    case 'create-generator': {
+      const view = state.view
+      return <AddGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    }
+    case 'install-generator': {
+      const view = state.view
+      return <InstallGeneratorView view={view} />
+    }
+    case 'clone-generator': {
+      const view = state.view
+      return <CloneGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    }
+    case 'remove-generator': {
+      const view = state.view
+      return <RemoveGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+    }
+    case 'exit': {
+      return <ExitView />
+    }
+  }
 }

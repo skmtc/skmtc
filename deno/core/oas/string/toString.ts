@@ -80,6 +80,10 @@ type ToStringArgs = {
  * ```
  */
 export const toString = ({ context, value, stackTrail }: ToStringArgs): OasString => {
+  if (value.type === 'string' && Object.keys(value).length === 1) {
+    return new OasString()
+  }
+
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,
     context,
