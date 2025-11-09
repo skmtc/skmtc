@@ -3,8 +3,7 @@
   "version": "0.0.35",
   "exports": "./mod.ts",
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.963",
-    "ts-pattern": "npm:ts-pattern@^5.8.0"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.963"
   },
   "compilerOptions": {
     "lib": [

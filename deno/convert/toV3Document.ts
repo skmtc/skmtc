@@ -55,7 +55,6 @@
 
 import type { OpenAPIV2, OpenAPIV3 } from 'openapi-types'
 import { parse as parseYaml } from '@std/yaml/parse'
-import { match, P } from 'ts-pattern'
 // @deno-types="npm:@types/swagger2openapi@7.0.4"
 import converter from 'swagger2openapi'
 import type { AnyOasDocument } from './types.ts'
@@ -153,29 +152,34 @@ export const stringToSchema = (schema: string): AnyOasDocument => {
  * @throws {Error} If the document version is not recognized or supported
  */
 export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Document> => {
-  return await match(schema)
-    .with({ openapi: P.string.startsWith('3.0') }, doc => doc as OpenAPIV3.Document)
-    // .with({ openapi: P.string.startsWith('3.1') }, doc => {
-    //   const options: ConverterOptions = {
-    //     verbose: false,
-    //     deleteExampleWithId: false,
-    //     allOfTransform: true
-    //   }
+  // Check for OpenAPI 3.0.x
+  if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.0')) {
+    return schema as OpenAPIV3.Document
+  }
 
-    //   const converter = new ThreeOneToThreeZeroConverter(doc, options)
+  // Check for OpenAPI 3.1.x (currently commented out)
+  // if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.1')) {
+  //   const options: ConverterOptions = {
+  //     verbose: false,
+  //     deleteExampleWithId: false,
+  //     allOfTransform: true
+  //   }
+  //
+  //   const converter = new ThreeOneToThreeZeroConverter(schema, options)
+  //
+  //   return converter.convert() as OpenAPIV3.Document
+  // }
 
-    //   return converter.convert() as OpenAPIV3.Document
-    // })
-    .with({ swagger: P.string.startsWith('2.0') }, async (doc: OpenAPIV2.Document) => {
-      const parsed = await converter.convertObj(doc, {})
+  // Check for Swagger 2.0
+  if ('swagger' in schema && typeof schema.swagger === 'string' && schema.swagger.startsWith('2.0')) {
+    const parsed = await converter.convertObj(schema as OpenAPIV2.Document, {})
+    return parsed.openapi
+  }
 
-      return parsed.openapi
-    })
-    .otherwise(() => {
-      console.log(
-        'Unrecognized OpenAPI version',
-        JSON.stringify(schema, null, 2).substring(0, 1000)
-      )
-      throw new Error('Unrecognized OpenAPI version')
-    })
+  // Unrecognized version
+  console.log(
+    'Unrecognized OpenAPI version',
+    JSON.stringify(schema, null, 2).substring(0, 1000)
+  )
+  throw new Error('Unrecognized OpenAPI version')
 }

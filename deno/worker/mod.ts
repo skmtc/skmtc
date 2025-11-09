@@ -1,4 +1,3 @@
-import { match } from 'ts-pattern'
 import { type GeneratorsMapContainer, toArtifacts } from '@skmtc/core'
 import { StackTrail } from '@skmtc/core'
 
@@ -9,8 +8,8 @@ const toWorker = (
     const { type, payload } = e.data
 
     try {
-      await match(type)
-        .with('GENERATE', async () => {
+      switch (type) {
+        case 'GENERATE': {
           const { documentObject, clientSettings } = payload
 
           const now = Date.now()
@@ -37,13 +36,16 @@ const toWorker = (
             artifacts: artifacts,
             manifest: manifest
           })
-        })
-        .otherwise(() => {
+          break
+        }
+        default: {
           self.postMessage({
             type: 'ERROR',
             error: `Unknown message type: ${type}`
           })
-        })
+          break
+        }
+      }
     } catch (error) {
       if (error instanceof Error) {
         self.postMessage({
