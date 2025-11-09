@@ -12,9 +12,10 @@ export const MessageBox = () => {
   }
 
   const paddingTop = state.interactive ? 0 : 1
+  const message = state.message
 
   const renderMessage = () => {
-    const content = state.message.content
+    const content = message.content
     if ('error' in content) {
       return <StatusMessage variant="error">{content.error}</StatusMessage>
     } else if ('success' in content) {
@@ -27,7 +28,7 @@ export const MessageBox = () => {
   return (
     <Box flexDirection="column" paddingLeft={2} paddingBottom={1} paddingTop={paddingTop}>
       {renderMessage()}
-      {state.message.content.sub ? <Text dimColor>{`  ${state.message.content.sub}`}</Text> : null}
+      {message.content.sub ? <Text dimColor>{`  ${message.content.sub}`}</Text> : null}
     </Box>
   )
 }

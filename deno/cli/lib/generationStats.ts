@@ -361,7 +361,7 @@ type CheckResultArgs = {
  */
 export const checkResult = ({ path, result, errors }: CheckResultArgs): void => {
   if (Array.isArray(result)) {
-    return result.map(item => {
+    result.forEach(item => {
       if (item !== null) {
         checkResult({ path, result: item, errors })
       }
@@ -371,11 +371,11 @@ export const checkResult = ({ path, result, errors }: CheckResultArgs): void => 
       errors.push(path)
     }
   } else if (result == null) {
-    return checkResult({ path, result, errors })
+    checkResult({ path, result, errors })
   } else {
     if (typeof result === 'object') {
-      return Object.entries(result).map(([key, value]) => {
-        return checkResult({ path: [...path, key], result: value, errors })
+      Object.entries(result).forEach(([key, value]) => {
+        checkResult({ path: [...path, key], result: value, errors })
       })
     } else {
       throw new Error('Invalid result type')
