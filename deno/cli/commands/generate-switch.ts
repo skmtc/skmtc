@@ -1,4 +1,5 @@
 import { toGenerateLocalArgs } from '@/lib/to-generate-local-args.ts'
+import { toGenerateMessageString } from '@/lib/to-generate-message-string.ts'
 
 type GenerateSwitchArgs = {
   projectName: string
@@ -15,7 +16,12 @@ export const generateSwitch = async ({
 
   if (generateLocalArgs) {
     const { generateLocal } = await import('@/lib/generate-local.ts')
-    return await generateLocal(generateLocalArgs)
+    const stats = await generateLocal(generateLocalArgs)
+
+    const message = toGenerateMessageString(stats)
+
+    console.log(message)
+    Deno.exit(0)
   } else {
     const { renderGenerate } = await import('@/commands/generate.tsx')
 

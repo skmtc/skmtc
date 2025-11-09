@@ -11,7 +11,6 @@ export const toClientJsonContents = (projectPath: string) => {
 
     return v.parse(skmtcClientConfig, clientJson)
   } catch (error) {
-    console.error(error)
     return undefined
   }
 }
