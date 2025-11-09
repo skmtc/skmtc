@@ -6,7 +6,7 @@ import { match } from 'ts-pattern'
 import { Project } from '@/lib/project.ts'
 import type { RemoteProject } from '@/lib/remote-project.ts'
 import { existsSync } from '@std/fs/exists'
-import { join } from '@std/path/join'
+import { toBundlePath } from '@/lib/to-bundle-path.ts'
 type ProjectProps = {
   project: Project | RemoteProject
 }
@@ -45,7 +45,7 @@ export const ProjectView = ({ project }: ProjectProps) => {
 
   const hasBundleFile = useMemo(() => {
     if (project instanceof Project) {
-      const bundlePath = `file://${join(project.toPath(), 'bundle.js')}`
+      const bundlePath = toBundlePath(project.toPath())
       return existsSync(bundlePath)
     }
     return false

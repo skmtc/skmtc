@@ -62,8 +62,9 @@ const run = async () => {
     .arguments('<project:string> [schema:string]')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
     .action(async ({ watch }, projectName, schemaSourceString) => {
-      const { renderGenerate } = await import('@/commands/generate.tsx')
-      await renderGenerate({ projectName, schemaSourceString, watch })
+      const { generateSwitch } = await import('@/commands/generate-switch.ts')
+
+      await generateSwitch({ projectName, schemaSourceString, watch })
     })
 
   const bundleCommand = new Command()
@@ -71,6 +72,7 @@ const run = async () => {
     .arguments('<project:string>')
     .action(async (_options, projectName) => {
       const { renderBundle } = await import('@/commands/bundle.tsx')
+
       await renderBundle({ projectName })
     })
 

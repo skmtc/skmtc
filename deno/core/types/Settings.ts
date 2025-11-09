@@ -236,8 +236,6 @@ export type Skip = SkipOperations | SkipModels | string
 export type ClientSettings = {
   /** Base output path for generated files */
   basePath?: string
-  /** Path or URL to the OpenAPI schema */
-  schemaSource?: string
   /** Array of module package configurations */
   packages?: ModulePackage[]
   /** Custom enrichments for extending generation */

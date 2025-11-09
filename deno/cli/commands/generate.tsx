@@ -7,16 +7,15 @@ import type { GenerationStats } from '@/lib/generationStats.ts'
 import { RemoteProject } from '@/lib/remote-project.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
-
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import { PrettierJson } from '@/lib/prettier-json.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { existsSync } from '@std/fs/exists'
-import { join } from '@std/path/join'
 import invariant from 'tiny-invariant'
 import { generate } from '../lib/generate.ts'
-import { toSchemaContents } from '../lib/to-schema-contents.ts'
+import { toSchemaContents } from '@/lib/to-schema-contents.ts'
+import { toBundlePath } from '@/lib/to-bundle-path.ts'
 
 type ToProjectArgs = {
   skmtcRoot: SkmtcRoot
@@ -74,12 +73,12 @@ export const renderGenerate = async ({
     invariant(project instanceof Project, 'Project must be a local project')
 
     const schemaContents = await toSchemaContents(
-      schemaSourceString ?? project.clientJson.contents?.settings.schemaSource ?? ''
+      schemaSourceString ?? project.clientJson.contents?.source ?? ''
     )
 
     await generate({
       project,
-      bundlePath: `file://${join(project.toPath(), 'bundle.js')}`,
+      bundlePath: toBundlePath(project.toPath()),
       skmtcRoot,
       accountName: session?.user.user_metadata.user_name,
       schemaContents,
@@ -145,8 +144,8 @@ const checkGenerateParams = ({
   invariant(project instanceof Project, 'Project must be a local project')
 
   const basePath = project.clientJson.contents?.settings.basePath
-  const schemaSource = schemaSourceString ?? project.clientJson.contents?.settings.schemaSource
-  const hasBundle = existsSync(join(project.toPath(), 'bundle.js'))
+  const schemaSource = schemaSourceString ?? project.clientJson.contents?.source
+  const hasBundle = existsSync(toBundlePath(project.toPath()))
 
   const hasBasePath = typeof basePath === 'string'
   const hasSchemaSource = typeof schemaSource === 'string'

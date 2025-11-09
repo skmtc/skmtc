@@ -4,6 +4,7 @@ import { BooleanTask } from './BooleanTask.tsx'
 import { tasksToState } from '@/components/TaskContext.tsx'
 import { join } from '@std/path/join'
 import type { Project } from '@/lib/project.ts'
+import { toBundlePath } from '@/lib/to-bundle-path.ts'
 
 type GenerateBundleTaskProps = {
   project: Project
@@ -48,7 +49,7 @@ type CreateBundleArgs = {
 export const createBundle = async ({ project }: CreateBundleArgs): Promise<string> => {
   const fileName = 'bundle.js'
   const projectPath = project.toPath()
-  const bundlePath = `file://${join(project.toPath(), fileName)}`
+  const bundlePath = toBundlePath(project.toPath())
 
   await project.createWorker()
 

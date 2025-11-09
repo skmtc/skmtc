@@ -9,7 +9,6 @@ import { match } from 'ts-pattern'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
 import { useMemo } from 'react'
-import { join } from '@std/path/join'
 import invariant from 'tiny-invariant'
 import { TaskProvider, tasksToState, useTask } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'
@@ -23,6 +22,7 @@ import { existsSync } from '@std/fs/exists'
 import { GenerateBundleTask } from '@/tasks/GenerateBundleTask.tsx'
 import { SchemaLocationTask } from '@/tasks/SchemaLocationTask.tsx'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
+import { toBundlePath } from '../lib/to-bundle-path.ts'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -44,24 +44,21 @@ export const GenerateView = ({
   }, [])
 
   const includeSchemaTask = useMemo(() => {
-    return (
-      typeof schemaSourceString !== 'string' &&
-      !project.clientJson?.contents?.settings?.schemaSource
-    )
+    return typeof schemaSourceString !== 'string' && !project.clientJson?.contents?.source
   }, [])
 
   const includeGenerateBundleTask = useMemo(() => {
     if (project instanceof RemoteProject) {
       return false
     }
-    const bundlePath = `file://${join(project.toPath(), 'bundle.js')}`
+    const bundlePath = toBundlePath(project.toPath())
 
     return !existsSync(bundlePath)
   }, [])
 
   const bundlePath = useMemo(() => {
     if (project instanceof Project) {
-      const bundlePath = `file://${join(project.toPath(), 'bundle.js')}`
+      const bundlePath = toBundlePath(project.toPath())
 
       return existsSync(bundlePath) ? bundlePath : undefined
     }
@@ -93,7 +90,7 @@ export const GenerateView = ({
         {
           taskKey: 'schema-location-task',
           include: includeSchemaTask,
-          state: schemaSourceString ?? project.clientJson?.contents?.settings?.schemaSource,
+          state: schemaSourceString ?? project.clientJson?.contents?.source,
           render: () => <SchemaLocationTask project={project} />
         },
         {
