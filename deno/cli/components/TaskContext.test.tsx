@@ -78,14 +78,14 @@ Deno.test('tasksToState - handles all TaskState key types', () => {
     createMockTask('generate-view-content-task', undefined),
     createMockTask('confirm-task', true),
     createMockTask('add-generator-task', undefined),
-    createMockTask('create-project-task', null)
+    createMockTask('create-project', null)
   ]
   const result = tasksToState(tasks)
 
   assertEquals(Object.keys(result).length, 14)
   assertEquals(result['project-name'], 'proj')
   assertEquals(result['generator-type-task'], 'operation')
-  assertEquals(result['create-project-task'], null)
+  assertEquals(result['create-project'], null)
 })
 
 Deno.test('tasksToState - last task wins with duplicate taskKeys', () => {

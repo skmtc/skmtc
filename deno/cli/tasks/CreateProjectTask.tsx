@@ -41,9 +41,18 @@ export const CreateProjectTask = () => {
 
         taskDispatch({
           type: 'set-task-state',
-          payload: { taskKey: 'create-project-task', state: project }
+          payload: { taskKey: 'create-project', state: project }
         })
-        leave({ state: tasksToState(taskState.tasks) })
+
+        leave({
+          state: tasksToState(
+            taskState.tasks.map(task => {
+              // Append new project since it will not be in state yet
+              // TODO: find a better way to do this
+              return task.taskKey === 'create-project' ? { ...task, state: project } : task
+            })
+          )
+        })
       })
       .catch(error => {
         console.error(error)
@@ -51,7 +60,7 @@ export const CreateProjectTask = () => {
         dispatchMessage({ error: 'Failed to create project' })
         taskDispatch({
           type: 'set-task-state',
-          payload: { taskKey: 'create-project-task', state: null }
+          payload: { taskKey: 'create-project', state: null }
         })
         leave({ state: tasksToState(taskState.tasks) })
       })

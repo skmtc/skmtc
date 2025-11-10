@@ -44,7 +44,7 @@ export const InstallGeneratorView = ({ view }: InstallGeneratorViewProps) => {
         }
       ]}
       leave={({ state: taskState }) => {
-        const project = taskState['create-project-task']
+        const project = taskState['create-project']
 
         if (state.interactive && project) {
           dispatch({

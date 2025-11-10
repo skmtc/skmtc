@@ -23,7 +23,7 @@ export type TaskState = {
   'project-name': string
   generators: string[]
   'base-path': string
-  'create-project': boolean
+  'create-project': Project | null
   'generator-type-task': 'operation' | 'model'
   'generator-name-task': string
   'start-server-task': Deno.ChildProcess
@@ -33,7 +33,6 @@ export type TaskState = {
   'generate-view-content-task': undefined
   'confirm-task': boolean
   'add-generator-task': undefined
-  'create-project-task': Project | null
   'select-project-task': Project
   'install-generators-task': boolean
   'generate-bundle-task': string
