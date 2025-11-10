@@ -9,7 +9,7 @@
 [![Deno](https://img.shields.io/badge/Deno-2.5+-green.svg)](https://deno.land/)
 [![Discord](https://img.shields.io/badge/Discord-join%20chat-1dce73.svg)](https://discord.com/invite/Mg88C8Xu5Y)
 
-# Skmtc is the fastest OpenAPI code generation framework for TypeScript
+## Skmtc is the fastest OpenAPI code generation framework for TypeScript
 
 - **Strings not ASTs** - because nobody wants to edit ASTs by hand
 - **Code not config** - full control over output
