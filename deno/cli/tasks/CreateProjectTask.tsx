@@ -26,7 +26,6 @@ export const CreateProjectTask = () => {
     } = tasksToState(taskState.tasks)
 
     invariant(projectName, 'Project name is required')
-    invariant(generators, 'Generators are required')
     invariant(basePath, 'Base path is required')
 
     Project.create({

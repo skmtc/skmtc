@@ -58,7 +58,7 @@ type RemoveGeneratorArgs = {
 export type CreateProjectArgs = {
   name: string
   basePath: string
-  generators: string[]
+  generators: string[] | undefined
   skmtcRoot: SkmtcRoot
   availableGenerators: GeneratorType[]
 }
