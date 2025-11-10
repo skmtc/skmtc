@@ -30,9 +30,9 @@ openapi-ts-zod  11.95s  ██████████████████�
 ```
 See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchmarks) for full details
 
-**Available generators**
+## Available generators
 
-## Schemas and types
+### Schemas and types
 
 |                       | Install                                  | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
@@ -41,14 +41,14 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 | ![](assets/valibot.svg) | `skmtc install @skmtc/gen-valibot` | [Skmtc](https://skm.tc/generators/gen-valibot) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-valibot) |
 | ![](assets/zod.svg) | `skmtc install @skmtc/gen-zod` | [Skmtc](https://skm.tc/generators/gen-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-zod) |
 
-## Servers
+### Servers
 
 |                       | Install                                  | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
 | ![](assets/msw.svg) | `skmtc install @skmtc/gen-msw` | [Skmtc](https://skm.tc/generators/gen-msw) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-msw) |
 | ![](assets/supabase.svg) ![](assets/hono.svg) | `skmtc install @skmtc/gen-supabase-hono` | [Skmtc](https://skm.tc/generators/gen-supabase-hono) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
 
-## Clients
+### Clients
 
 |                       | Install                                  | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
@@ -56,7 +56,7 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 | ![](assets/reactquery.svg) ![](assets/zod.svg) | `skmtc install @skmtc/gen-tanstack-query-fetch-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-fetch-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-fetch-zod) |
 | ![](assets/reactquery.svg) ![](assets/supabase.svg) ![](assets/zod.svg) | `skmtc install @skmtc/gen-tanstack-query-supabase-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-supabase-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-supabase-zod) |
 
-## UI
+### UI
 
 |                       | Install                                  | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
