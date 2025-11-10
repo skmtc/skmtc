@@ -1,36 +1,36 @@
-<img src="./assets/skmtc-animate.gif" />
-
 [![Coverage Status](https://coveralls.io/repos/github/skmtc/skmtc/badge.svg?branch=main)](https://coveralls.io/github/skmtc/skmtc?branch=main)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Deno](https://img.shields.io/badge/Deno-2.5+-green.svg)](https://deno.land/)
 [![Discord](https://img.shields.io/badge/Discord-join%20chat-1dce73.svg)](https://discord.com/invite/Mg88C8Xu5Y)
 
-**Skmtc is a declarative code generation framework**. It lets you generate TypeScript code from OpenAPI schemas without complex ASTs.
+```
+🚀 Time to convert Github OpenAPI to Zod schemas (lower is better)
 
-## ✨ Features
-
-- 🏎️ **Fast** - Generates 550k+ tokens per second
-- 🧵 **Easy to edit code generators** - Outputs specified using string templates, not ASTs
-- 🥞 **Stackable generators** - Compose complex functionality by combining generators
-- 🗄️ **Use your own code conventions** - Full control over naming and file structure
-
-## 🚀 Quick Start
-
-```bash
-# Run directly with npx
-npx skmtc
-
+skmtc-zod       0.51s   ██▎ 1.0x
+orval-zod       4.85s   ████████████████████▎ 9.5x
+kubb-zod        7.63s   ███████████████████████████████▉ 14.9x
+openapi-ts-zod  11.95s  █████████████████████████████████████████████████▉ 23.3x
+                        ◺ 0.00                                     12.00 ◿
 ```
 
-### Running code generators
+**Skmtc is the fastest code generation framework for TypeScript**. Generate TypeScript from OpenAPI without complex ASTs.
+
+## Install Skmtc
 
 ```bash
-npx skmtc generate @skmtc/supabase-backend https://petstore3.swagger.io/api/v3/openapi.json
-# Generated 9 files (507 lines, 3,383 tokens) in 9ms
-
-npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.com/cloudflare/api-schemas/refs/heads/main/openapi.json
-# Generated 6,797 files (104,752 lines, 1,635,227 tokens) in 2,969ms
+deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.388 -n skmtc -f
 ```
+
+## Create project and generate artifacts using TUI (recommended)
+
+```bash
+# Create project then Generate artifacts 
+skmtc
+```
+
+https://github.com/user-attachments/assets/375aedde-aed8-42a3-bd13-3004f736dee7
+
+https://github.com/user-attachments/assets/c830e57a-4767-46e3-b27e-e518c9f6b0d7
 
 ## How does it work?
 
