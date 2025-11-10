@@ -71,7 +71,6 @@ Deno.test('tasksToState - handles all TaskState key types', () => {
     createMockTask('create-project', true),
     createMockTask('generator-type-task', 'operation'),
     createMockTask('generator-name-task', 'my-gen'),
-    createMockTask('start-server-task', undefined),
     createMockTask('display-output-directory-task', false),
     createMockTask('schema-location-task', './schema.yaml'),
     createMockTask('watch-mode-task', true),

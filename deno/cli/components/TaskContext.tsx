@@ -26,7 +26,6 @@ export type TaskState = {
   'create-project': Project | null
   'generator-type-task': 'operation' | 'model'
   'generator-name-task': string
-  'start-server-task': Deno.ChildProcess
   'display-output-directory-task': boolean
   'schema-location-task': string
   'watch-mode-task': boolean

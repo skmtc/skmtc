@@ -115,11 +115,7 @@ export const GenerateView = ({
           render: () => <GenerateTask project={project} />
         }
       ]}
-      leave={({ state: taskState }) => {
-        const { 'start-server-task': child } = taskState
-
-        child?.kill()
-
+      leave={() => {
         if (state.interactive) {
           dispatch({ type: 'set-view', payload: { page: 'project', projectName: project.name } })
         } else {
