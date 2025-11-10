@@ -26,6 +26,16 @@ openapi-ts-zod  11.95s  ██████████████████�
 ```
 See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchmarks) for full details
 
+### Install Deno if needed
+
+```bash
+# On MacOS/Linus
+curl -fsSL https://deno.land/install.sh | sh
+
+# On Windows
+irm https://deno.land/install.ps1 | iex
+```
+
 ### Install Skmtc
 
 ```bash
