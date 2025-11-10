@@ -32,19 +32,19 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 
 ## Available generators
 
-|                       | Library | Install                                  | Info                              |
-| --------------------- | ------- | ---------------------------------------- | --------------------------------- |
-| ![](assets/arktype.svg) | Arktype | `skmtc install @skmtc/gen-arktype` | [Skmtc](https://skm.tc/generators/gen-arktype) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-arktype) |
-| ![](assets/msw.svg) | Mock Service Worker | `skmtc install @skmtc/gen-msw` | [Skmtc](https://skm.tc/generators/gen-msw) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-msw) |
-| ![](assets/shadcnui.svg) | shadcn/ui | `skmtc install @skmtc/gen-shadcn-form` | [Skmtc](https://skm.tc/generators/gen-shadcn-form) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-form) |
-| ![](assets/shadcnui.svg) | shadcn/ui | `skmtc install @skmtc/gen-shadcn-select` | [Skmtc](https://skm.tc/generators/gen-shadcn-select) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
-| ![](assets/shadcnui.svg) | shadcn/ui | `skmtc install @skmtc/gen-shadcn-table` | [Skmtc](https://skm.tc/generators/gen-shadcn-table) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-table) |
-| ![](assets/supabase.svg) ![](assets/hono.svg) | Supabase, Hono | `skmtc install @skmtc/gen-supabase-hono` | [Skmtc](https://skm.tc/generators/gen-supabase-hono) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
-| ![](assets/reactquery.svg) ![](assets/zod.svg) | TanStack Query, Zod | `skmtc install @skmtc/gen-tanstack-query-fetch-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-fetch-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-fetch-zod) |
-| ![](assets/reactquery.svg) ![](assets/supabase.svg) ![](assets/zod.svg) | TanStack Query, Supabase, Zod | `skmtc install @skmtc/gen-tanstack-query-supabase-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-supabase-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-supabase-zod) |
-| ![](assets/typescript.svg) | TypeScript | `skmtc install @skmtc/gen-typescript` | [Skmtc](https://skm.tc/generators/gen-typescript) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-typescript) |
-| ![](assets/valibot.svg) | Valibot | `skmtc install @skmtc/gen-valibot` | [Skmtc](https://skm.tc/generators/gen-valibot) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-valibot) |
-| ![](assets/zod.svg) | Zod | `skmtc install @skmtc/gen-zod` | [Skmtc](https://skm.tc/generators/gen-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-zod) |
+|                       | Install                                  | Info                              |
+| --------------------- | ---------------------------------------- | --------------------------------- |
+| ![](assets/arktype.svg) | `skmtc install @skmtc/gen-arktype` | [Skmtc](https://skm.tc/generators/gen-arktype) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-arktype) |
+| ![](assets/msw.svg) | `skmtc install @skmtc/gen-msw` | [Skmtc](https://skm.tc/generators/gen-msw) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-msw) |
+| ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-form` | [Skmtc](https://skm.tc/generators/gen-shadcn-form) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-form) |
+| ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-select` | [Skmtc](https://skm.tc/generators/gen-shadcn-select) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
+| ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-table` | [Skmtc](https://skm.tc/generators/gen-shadcn-table) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-table) |
+| ![](assets/supabase.svg) ![](assets/hono.svg) | `skmtc install @skmtc/gen-supabase-hono` | [Skmtc](https://skm.tc/generators/gen-supabase-hono) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
+| ![](assets/reactquery.svg) ![](assets/zod.svg) | `skmtc install @skmtc/gen-tanstack-query-fetch-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-fetch-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-fetch-zod) |
+| ![](assets/reactquery.svg) ![](assets/supabase.svg) ![](assets/zod.svg) | `skmtc install @skmtc/gen-tanstack-query-supabase-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-supabase-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-supabase-zod) |
+| ![](assets/typescript.svg) | `skmtc install @skmtc/gen-typescript` | [Skmtc](https://skm.tc/generators/gen-typescript) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-typescript) |
+| ![](assets/valibot.svg) | `skmtc install @skmtc/gen-valibot` | [Skmtc](https://skm.tc/generators/gen-valibot) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-valibot) |
+| ![](assets/zod.svg) | `skmtc install @skmtc/gen-zod` | [Skmtc](https://skm.tc/generators/gen-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-zod) |
 
 ### Install Deno
 
