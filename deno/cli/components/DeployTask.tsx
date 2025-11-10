@@ -39,14 +39,14 @@ export const DeployTaskView = ({ project }: DeployTaskViewProps) => {
 
   if (deployed) {
     return (
-      <TaskBox id={`deploy-project-task`} active={false}>
+      <TaskBox active={false}>
         <Text>Deployed</Text>
       </TaskBox>
     )
   }
 
   return (
-    <TaskBox id={`deploy-project-task`} active>
+    <TaskBox active>
       <Spinner label="Deploying..." />
     </TaskBox>
   )

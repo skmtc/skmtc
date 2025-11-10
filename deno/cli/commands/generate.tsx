@@ -94,8 +94,7 @@ export const renderGenerate = async ({
       page: 'generate',
       project,
       schemaSourceString,
-      watchMode: Boolean(watch),
-      basePath: project.clientJson.contents?.settings.basePath
+      watchMode: Boolean(watch)
     },
     skmtcRoot,
     session,

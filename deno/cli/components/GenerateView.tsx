@@ -27,19 +27,13 @@ type GenerateProps = {
   project: Project | RemoteProject
   schemaSourceString: string | undefined
   watchMode: boolean | undefined
-  basePath: string | undefined
 }
 
-export const GenerateView = ({
-  project,
-  schemaSourceString,
-  watchMode,
-  basePath
-}: GenerateProps) => {
+export const GenerateView = ({ project, schemaSourceString, watchMode }: GenerateProps) => {
   const { dispatch, state } = useSkmtc()
 
-  const includeBasePathTask = useMemo(() => {
-    return typeof basePath !== 'string' && !project.clientJson?.contents?.settings.basePath
+  const basePath = useMemo(() => {
+    return project.clientJson?.contents?.settings.basePath
   }, [])
 
   const includeSchemaTask = useMemo(() => {
@@ -82,8 +76,8 @@ export const GenerateView = ({
       tasks={[
         {
           taskKey: 'base-path',
-          include: includeBasePathTask,
-          state: basePath ?? project.clientJson?.contents?.settings.basePath,
+          include: typeof basePath !== 'string',
+          state: basePath,
           render: () => <BasePathTask />
         },
         {

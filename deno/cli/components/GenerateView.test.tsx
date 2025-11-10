@@ -103,8 +103,7 @@ const createInitialState = (project: Project): SkmtcState => {
       page: 'generate',
       project,
       schemaSourceString: undefined,
-      watchMode: undefined,
-      basePath: undefined
+      watchMode: undefined
     },
     skmtcRoot,
     session: createTestSession(),
@@ -120,7 +119,6 @@ type RenderGenerateViewProps = {
   project: Project
   schemaSourceString: string | undefined
   watchMode: boolean | undefined
-  basePath: string | undefined
 }
 
 // Test helper to render component with context
@@ -128,8 +126,7 @@ const renderGenerateView = ({
   initialState,
   project,
   schemaSourceString,
-  watchMode,
-  basePath
+  watchMode
 }: RenderGenerateViewProps) => {
   const mockExit = () => {}
 
@@ -139,7 +136,6 @@ const renderGenerateView = ({
         project={project}
         schemaSourceString={schemaSourceString}
         watchMode={watchMode}
-        basePath={basePath}
       />
     </SkmtcProvider>
   )
@@ -179,11 +175,12 @@ Deno.test(
         },
         kill: () => {}
       }),
-      output: () => Promise.resolve({
-        success: true,
-        stdout: new Uint8Array(),
-        stderr: new Uint8Array()
-      })
+      output: () =>
+        Promise.resolve({
+          success: true,
+          stdout: new Uint8Array(),
+          stderr: new Uint8Array()
+        })
     }))
 
     // Stub Deno.open to prevent log file operations
@@ -209,8 +206,7 @@ Deno.test(
         initialState,
         project: mockProject,
         schemaSourceString: undefined,
-        watchMode: undefined,
-        basePath: 'src'
+        watchMode: undefined
       })
 
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -344,11 +340,12 @@ Deno.test(
         },
         kill: () => {}
       }),
-      output: () => Promise.resolve({
-        success: true,
-        stdout: new Uint8Array(),
-        stderr: new Uint8Array()
-      })
+      output: () =>
+        Promise.resolve({
+          success: true,
+          stdout: new Uint8Array(),
+          stderr: new Uint8Array()
+        })
     }))
 
     // Stub Deno.open to prevent log file operations
@@ -374,8 +371,7 @@ Deno.test(
         initialState,
         project: mockProject,
         schemaSourceString: 'schema.json',
-        watchMode: undefined,
-        basePath: 'src'
+        watchMode: undefined
       })
 
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -470,11 +466,12 @@ Deno.test(
         },
         kill: () => {}
       }),
-      output: () => Promise.resolve({
-        success: true,
-        stdout: new Uint8Array(),
-        stderr: new Uint8Array()
-      })
+      output: () =>
+        Promise.resolve({
+          success: true,
+          stdout: new Uint8Array(),
+          stderr: new Uint8Array()
+        })
     }))
 
     // Stub Deno.open to prevent log file operations
@@ -505,8 +502,7 @@ Deno.test(
         initialState,
         project: mockProject,
         schemaSourceString: 'schema.json',
-        watchMode: false,
-        basePath: 'src'
+        watchMode: false
       })
 
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -592,11 +588,12 @@ Deno.test(
         },
         kill: () => {}
       }),
-      output: () => Promise.resolve({
-        success: true,
-        stdout: new Uint8Array(),
-        stderr: new Uint8Array()
-      })
+      output: () =>
+        Promise.resolve({
+          success: true,
+          stdout: new Uint8Array(),
+          stderr: new Uint8Array()
+        })
     }))
 
     // Stub Deno.open to prevent log file operations
@@ -622,8 +619,7 @@ Deno.test(
         initialState,
         project: mockProject,
         schemaSourceString: 'https://api.example.com/openapi.json',
-        watchMode: undefined,
-        basePath: 'src'
+        watchMode: undefined
       })
 
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -708,11 +704,12 @@ Deno.test(
         },
         kill: () => {}
       }),
-      output: () => Promise.resolve({
-        success: true,
-        stdout: new Uint8Array(),
-        stderr: new Uint8Array()
-      })
+      output: () =>
+        Promise.resolve({
+          success: true,
+          stdout: new Uint8Array(),
+          stderr: new Uint8Array()
+        })
     }))
 
     // Stub Deno.open to prevent log file operations
@@ -738,8 +735,7 @@ Deno.test(
         initialState,
         project: mockProject,
         schemaSourceString: undefined,
-        watchMode: undefined,
-        basePath: 'src'
+        watchMode: undefined
       })
 
       await new Promise(resolve => setTimeout(resolve, 200))

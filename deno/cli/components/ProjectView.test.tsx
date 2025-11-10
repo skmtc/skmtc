@@ -1,7 +1,6 @@
 import React from 'react'
 import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
-import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { ProjectView } from './ProjectView.tsx'
 import { SkmtcProvider, type SkmtcState } from './SkmtcContext.tsx'
 import { createTestSession } from '@/tests/mocks/session.mock.ts'
@@ -92,7 +91,6 @@ Deno.test('ProjectView - renders project action menu', async () => {
   assertEquals(
     output,
     `❯ Generate artifacts
-  Bundle
 
   Install generator
   Create new generator
@@ -128,7 +126,6 @@ Deno.test({
     assertEquals(
       beforeOutput,
       `❯ Generate artifacts
-  Bundle
 
   Install generator
   Create new generator
@@ -161,10 +158,6 @@ Deno.test({
     )
 
     await new Promise(resolve => setTimeout(resolve, 150))
-
-    // Navigate to Install generator (now third option due to Bundle)
-    stdin.write('\x1B[B')
-    await new Promise(resolve => setTimeout(resolve, 150))
     stdin.write('\x1B[B')
 
     await new Promise(resolve => setTimeout(resolve, 150))
@@ -173,7 +166,6 @@ Deno.test({
     assertEquals(
       output,
       `  Generate artifacts
-  Bundle
 
 ❯ Install generator
   Create new generator
@@ -201,10 +193,6 @@ Deno.test({
     )
 
     await new Promise(resolve => setTimeout(resolve, 150))
-
-    // Navigate to Install generator (now third option due to Bundle)
-    stdin.write('\x1B[B')
-    await new Promise(resolve => setTimeout(resolve, 150))
     stdin.write('\x1B[B')
 
     await new Promise(resolve => setTimeout(resolve, 150))
@@ -213,7 +201,6 @@ Deno.test({
     assertEquals(
       navOutput,
       `  Generate artifacts
-  Bundle
 
 ❯ Install generator
   Create new generator
@@ -247,9 +234,6 @@ Deno.test({
 
     await new Promise(resolve => setTimeout(resolve, 150))
 
-    // Navigate down three times to Create generator (due to Bundle option)
-    stdin.write('\x1B[B')
-    await new Promise(resolve => setTimeout(resolve, 150))
     stdin.write('\x1B[B')
     await new Promise(resolve => setTimeout(resolve, 150))
     stdin.write('\x1B[B')
@@ -259,7 +243,6 @@ Deno.test({
     assertEquals(
       navOutput,
       `  Generate artifacts
-  Bundle
 
   Install generator
 ❯ Create new generator
@@ -293,9 +276,6 @@ Deno.test({
 
     await new Promise(resolve => setTimeout(resolve, 150))
 
-    // Navigate down 4 times to Clone generator (due to Bundle option)
-    stdin.write('\x1B[B')
-    await new Promise(resolve => setTimeout(resolve, 150))
     stdin.write('\x1B[B')
     await new Promise(resolve => setTimeout(resolve, 150))
     stdin.write('\x1B[B')
@@ -307,7 +287,6 @@ Deno.test({
     assertEquals(
       navOutput,
       `  Generate artifacts
-  Bundle
 
   Install generator
   Create new generator
@@ -341,9 +320,6 @@ Deno.test({
 
     await new Promise(resolve => setTimeout(resolve, 150))
 
-    // Navigate down 5 times to Remove generator (due to Bundle option)
-    stdin.write('\x1B[B')
-    await new Promise(resolve => setTimeout(resolve, 150))
     stdin.write('\x1B[B')
     await new Promise(resolve => setTimeout(resolve, 150))
     stdin.write('\x1B[B')
@@ -357,7 +333,6 @@ Deno.test({
     assertEquals(
       navOutput,
       `  Generate artifacts
-  Bundle
 
   Install generator
   Create new generator
@@ -395,7 +370,6 @@ Deno.test({
     assertEquals(
       beforeEscape,
       `❯ Generate artifacts
-  Bundle
 
   Install generator
   Create new generator
@@ -413,7 +387,6 @@ Deno.test({
     assertEquals(
       afterEscape,
       `❯ Generate artifacts
-  Bundle
 
   Install generator
   Create new generator

@@ -80,7 +80,6 @@ export type ViewStateProject = {
 export type ViewStateGenerate = {
   page: 'generate'
   project: Project | RemoteProject
-  basePath?: string
   schemaSourceString?: string
   watchMode?: boolean
 }

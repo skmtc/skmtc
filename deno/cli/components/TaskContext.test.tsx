@@ -81,7 +81,7 @@ Deno.test('tasksToState - handles all TaskState key types', () => {
   ]
   const result = tasksToState(tasks)
 
-  assertEquals(Object.keys(result).length, 14)
+  assertEquals(Object.keys(result).length, 12)
   assertEquals(result['project-name'], 'proj')
   assertEquals(result['generator-type-task'], 'operation')
   assertEquals(result['create-project'], null)

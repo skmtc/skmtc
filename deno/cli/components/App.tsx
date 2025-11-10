@@ -48,7 +48,9 @@ export const ViewManager = () => {
     }
     case 'create-project': {
       const { projectName, generators, basePath } = state.view
-      return <CreateProjectView projectName={projectName} generators={generators} basePath={basePath} />
+      return (
+        <CreateProjectView projectName={projectName} generators={generators} basePath={basePath} />
+      )
     }
     case 'login': {
       return <LoginView />
@@ -63,7 +65,6 @@ export const ViewManager = () => {
           project={view.project}
           schemaSourceString={view.schemaSourceString}
           watchMode={view.watchMode}
-          basePath={view.basePath}
         />
       )
     }
@@ -81,11 +82,15 @@ export const ViewManager = () => {
     }
     case 'list-generators': {
       const view = state.view
-      return <ListGeneratorsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      return (
+        <ListGeneratorsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      )
     }
     case 'create-generator': {
       const view = state.view
-      return <AddGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      return (
+        <AddGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      )
     }
     case 'install-generator': {
       const view = state.view
@@ -93,11 +98,15 @@ export const ViewManager = () => {
     }
     case 'clone-generator': {
       const view = state.view
-      return <CloneGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      return (
+        <CloneGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      )
     }
     case 'remove-generator': {
       const view = state.view
-      return <RemoveGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      return (
+        <RemoveGeneratorView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      )
     }
     case 'exit': {
       return <ExitView />
