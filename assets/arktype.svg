@@ -1,0 +1,22 @@
+<svg role="img" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <title>Arktype</title>
+  <defs>
+    <style>
+      #arktype-background {
+        fill: rgb(51, 51, 51);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        #arktype-background {
+          fill: rgb(240, 246, 252);
+        }
+      }
+    </style>
+    <mask id="arktype-mask">
+      <!-- White rectangle = visible, black letters = cutouts -->
+      <rect width="24" height="24" rx="2" fill="white" />
+      <text x="13.5" y="21.5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="16" fill="black">AT</text>
+    </mask>
+  </defs>
+  <rect id="arktype-background" width="24" height="24" rx="2" mask="url(#arktype-mask)" />
+</svg>
