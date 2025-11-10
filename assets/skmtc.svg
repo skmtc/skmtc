@@ -14,7 +14,7 @@
 
       @media (prefers-color-scheme: dark) {
         #skmtc-text {
-          fill: rgb(255, 255, 255);
+          fill: rgb(240, 246, 252);
         }
       }
     </style>
