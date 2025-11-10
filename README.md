@@ -15,7 +15,7 @@
 - **Code not config** - full control over output
 - **Modular and extensible** - think React, but for code generation
 
-Performance vs other code generators
+## Performance vs other code generators
 
 ```
 🚀 Time to convert Github OpenAPI to Zod schemas (lower is better)
