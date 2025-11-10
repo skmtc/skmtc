@@ -32,10 +32,10 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 
 ## Available generators
 
-|                     | Library | Generator | Install |  |
-| :-----------------: | ------------- | --- | --- | :---: |
-| ![](assets/zod.svg) | Zod | [https://skm.tc/generators/gen-zod](https://skm.tc/generators/gen-zod) | `skmtc install @skmtc/gen-zod` | [Source](https://github.com/skmtc/skmtc-generators/tree/main/gen-zod) |
-| ![](assets/hono.svg)  | Hono  | [https://skm.tc/generators/gen-supabase-hono](https://skm.tc/generators/gen-supabase-hono) | `skmtc install @skmtc/gen-supabase-hono` | [Source](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
+|                       | Library | Install                                  |                                   |
+| :-------------------: | ------- | ---------------------------------------- | --------------------------------- |
+| ![](assets/zod.svg)   | Zod     | `skmtc install @skmtc/gen-zod`           | [Home](https://skm.tc/generators/gen-zod) \| [Source](https://github.com/skmtc/skmtc-generators/tree/main/gen-zod) |
+| ![](assets/hono.svg)  | Hono    | `skmtc install @skmtc/gen-supabase-hono` | [Home](https://skm.tc/generators/gen-supabase-hono) \| [Source](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
 
 ### Install Deno
 
