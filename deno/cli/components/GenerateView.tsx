@@ -21,7 +21,7 @@ import { existsSync } from '@std/fs/exists'
 import { GenerateBundleTask } from '@/tasks/GenerateBundleTask.tsx'
 import { SchemaLocationTask } from '@/tasks/SchemaLocationTask.tsx'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
-import { toBundlePath } from '../lib/to-bundle-path.ts'
+import { join } from '@std/path/join'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -39,7 +39,7 @@ export const GenerateView = ({
   const { dispatch, state } = useSkmtc()
 
   const includeBasePathTask = useMemo(() => {
-    return typeof basePath !== 'string'
+    return typeof basePath !== 'string' && !project.clientJson?.contents?.settings.basePath
   }, [])
 
   const includeSchemaTask = useMemo(() => {
@@ -50,14 +50,14 @@ export const GenerateView = ({
     if (project instanceof RemoteProject) {
       return false
     }
-    const bundlePath = toBundlePath(project.toPath())
+    const bundlePath = join(project.toPath(), 'bundle.js')
 
     return !existsSync(bundlePath)
   }, [])
 
   const bundlePath = useMemo(() => {
     if (project instanceof Project) {
-      const bundlePath = toBundlePath(project.toPath())
+      const bundlePath = join(project.toPath(), 'bundle.js')
 
       return existsSync(bundlePath) ? bundlePath : undefined
     }
@@ -83,7 +83,7 @@ export const GenerateView = ({
         {
           taskKey: 'base-path',
           include: includeBasePathTask,
-          state: basePath,
+          state: basePath ?? project.clientJson?.contents?.settings.basePath,
           render: () => <BasePathTask />
         },
         {
