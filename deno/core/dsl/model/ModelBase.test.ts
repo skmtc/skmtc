@@ -1,5 +1,6 @@
 import { ModelBase } from './ModelBase.ts'
 import { assertEquals } from '@std/assert/equals'
+import { assertSpyCalls, spy } from '@std/testing/mock'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
@@ -157,4 +158,147 @@ Deno.test('ModelBase - works with different generatorKeys', () => {
 
   const zodModel = createModel('zod|Test' as GeneratorKey)
   assertEquals(zodModel.generatorKey, 'zod|Test')
+})
+
+Deno.test('ModelBase - insertModel calls context.insertModel with correct params', () => {
+  const exportPath = './models/user.ts'
+
+  const mockContext = {
+    insertModel: () => ({} as any)
+  } as unknown as GenerateContextType
+
+  const insertModelSpy = spy(mockContext, 'insertModel')
+
+  const model = new ModelBase({
+    context: mockContext,
+    settings: ContentSettings.empty({
+      identifier: Identifier.createType('User'),
+      exportPath
+    }),
+    generatorKey: 'test-generator|User' as GeneratorKey,
+    refName: 'User' as RefName
+  })
+
+  const mockInsertable = { toDefinition: () => ({}) }
+  const refName = 'Address' as RefName
+
+  model.insertModel(mockInsertable as any, refName, { noExport: false })
+
+  assertSpyCalls(insertModelSpy, 1)
+  assertEquals(insertModelSpy.calls[0].args[0] as any, mockInsertable)
+  assertEquals(insertModelSpy.calls[0].args[1] as any, refName)
+  assertEquals(insertModelSpy.calls[0].args[2] as any, {
+    destinationPath: exportPath,
+    noExport: false
+  })
+
+  insertModelSpy.restore()
+})
+
+Deno.test('ModelBase - insertModel without noExport option', () => {
+  const exportPath = './generated/models.ts'
+
+  const mockContext = {
+    insertModel: () => ({} as any)
+  } as unknown as GenerateContextType
+
+  const insertModelSpy = spy(mockContext, 'insertModel')
+
+  const model = new ModelBase({
+    context: mockContext,
+    settings: ContentSettings.empty({
+      identifier: Identifier.createType('Product'),
+      exportPath
+    }),
+    generatorKey: 'test-generator|Product' as GeneratorKey,
+    refName: 'Product' as RefName
+  })
+
+  const mockInsertable = { toDefinition: () => ({}) }
+  const refName = 'Category' as RefName
+
+  model.insertModel(mockInsertable as any, refName)
+
+  assertSpyCalls(insertModelSpy, 1)
+  assertEquals(insertModelSpy.calls[0].args[2] as any, {
+    destinationPath: exportPath,
+    noExport: undefined
+  })
+
+  insertModelSpy.restore()
+})
+
+Deno.test('ModelBase - insertNormalizedModel calls context.insertNormalisedModel with correct params', () => {
+  const exportPath = './schemas/types.ts'
+
+  const mockContext = {
+    insertNormalisedModel: () => ({} as any)
+  } as unknown as GenerateContextType
+
+  const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
+
+  const model = new ModelBase({
+    context: mockContext,
+    settings: ContentSettings.empty({
+      identifier: Identifier.createType('Order'),
+      exportPath
+    }),
+    generatorKey: 'test-generator|Order' as GeneratorKey,
+    refName: 'Order' as RefName
+  })
+
+  const mockInsertable = { toDefinition: () => ({}) }
+  const mockSchema = { type: 'object', properties: {} }
+  const fallbackName = 'OrderItem'
+
+  model.insertNormalizedModel(
+    mockInsertable as any,
+    { schema: mockSchema as any, fallbackName },
+    { noExport: true }
+  )
+
+  assertSpyCalls(insertNormalisedModelSpy, 1)
+  assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockInsertable)
+  assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
+    schema: mockSchema,
+    fallbackName,
+    destinationPath: exportPath
+  })
+  assertEquals(insertNormalisedModelSpy.calls[0].args[2] as any, { noExport: true })
+
+  insertNormalisedModelSpy.restore()
+})
+
+Deno.test('ModelBase - register calls context.register with correct params', () => {
+  const exportPath = './types/models.ts'
+
+  const mockContext = {
+    register: () => {}
+  } as unknown as GenerateContextType
+
+  const registerSpy = spy(mockContext, 'register')
+
+  const model = new ModelBase({
+    context: mockContext,
+    settings: ContentSettings.empty({
+      identifier: Identifier.createType('Base'),
+      exportPath
+    }),
+    generatorKey: 'test-generator|Base' as GeneratorKey,
+    refName: 'Base' as RefName
+  })
+
+  const imports = { './utils': ['helper'] }
+  const reExports = { './types': [Identifier.createType('BaseType')] }
+
+  model.register({ imports, reExports })
+
+  assertSpyCalls(registerSpy, 1)
+  assertEquals(registerSpy.calls[0].args[0] as any, {
+    imports,
+    reExports,
+    destinationPath: exportPath
+  })
+
+  registerSpy.restore()
 })

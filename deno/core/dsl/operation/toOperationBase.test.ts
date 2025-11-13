@@ -3,6 +3,8 @@ import { assertEquals } from '@std/assert/equals'
 import { Identifier } from '@/dsl/Identifier.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
+import { OperationBase } from '@/dsl/operation/OperationBase.ts'
+import * as v from 'valibot'
 
 Deno.test('toOperationBase - returns a class constructor', () => {
   const OperationClass = toOperationBase({
@@ -180,4 +182,149 @@ Deno.test('toOperationBase - toExportPath works with different operations', () =
     responses: {}
   })
   assertEquals(OperationClass.toExportPath(createProductOperation), './types/post-product.d.ts')
+})
+
+Deno.test('toOperationBase - constructor creates correct generatorKey', () => {
+  const OperationClass = toOperationBase({
+    id: 'api-client',
+    toIdentifier: (operation) => Identifier.createVariable(operation.operationId || 'operation'),
+    toExportPath: (operation) => `./operations/${operation.operationId}.ts`
+  })
+
+  const mockOperation = new OasOperation({
+    path: '/users',
+    method: 'get',
+    pathItem: undefined,
+    operationId: 'getUsers',
+    responses: {}
+  })
+
+  const mockContext = {} as GenerateContextType
+
+  const instance = new OperationClass({
+    context: mockContext,
+    operation: mockOperation,
+    settings: {
+      identifier: Identifier.createVariable('getUsers'),
+      exportPath: './operations/users.ts',
+      enrichments: undefined
+    } as any
+  })
+
+  // Verify generatorKey has expected format: id|path|method
+  assertEquals(instance.generatorKey, 'api-client|/users|get')
+})
+
+Deno.test('toOperationBase - instance is OperationBase', () => {
+  const OperationClass = toOperationBase({
+    id: 'test-operation',
+    toIdentifier: (operation) => Identifier.createVariable(operation.operationId || 'operation'),
+    toExportPath: (operation) => `./operations/${operation.operationId}.ts`
+  })
+
+  const mockOperation = new OasOperation({
+    path: '/products',
+    method: 'post',
+    pathItem: undefined,
+    operationId: 'createProduct',
+    responses: {}
+  })
+
+  const mockContext = {} as GenerateContextType
+
+  const instance = new OperationClass({
+    context: mockContext,
+    operation: mockOperation,
+    settings: {
+      identifier: Identifier.createVariable('createProduct'),
+      exportPath: './operations/products.ts',
+      enrichments: undefined
+    } as any
+  })
+
+  assertEquals(instance instanceof OperationBase, true)
+  assertEquals(instance instanceof OperationClass, true)
+})
+
+Deno.test('toOperationBase - toEnrichments validates with schema', () => {
+  const OperationClass = toOperationBase<{ enabled: boolean; timeout?: number }>({
+    id: 'api-client',
+    toIdentifier: (operation) => Identifier.createVariable(operation.operationId || 'operation'),
+    toExportPath: (operation) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () =>
+      v.object({
+        enabled: v.boolean(),
+        timeout: v.optional(v.number())
+      })
+  })
+
+  const mockOperation = new OasOperation({
+    path: '/users',
+    method: 'get',
+    pathItem: undefined,
+    operationId: 'getUsers',
+    responses: {}
+  })
+
+  const mockContext = {
+    settings: {
+      enrichments: {
+        'api-client': {
+          '/users': {
+            get: {
+              enabled: true,
+              timeout: 5000
+            }
+          }
+        }
+      }
+    }
+  } as any
+
+  const enrichments = OperationClass.toEnrichments({
+    operation: mockOperation,
+    context: mockContext
+  })
+
+  assertEquals(enrichments, {
+    enabled: true,
+    timeout: 5000
+  })
+})
+
+Deno.test('toOperationBase - toEnrichments retrieves from correct nested path', () => {
+  const OperationClass = toOperationBase({
+    id: 'rest-api',
+    toIdentifier: (operation) => Identifier.createVariable(operation.operationId || 'operation'),
+    toExportPath: (operation) => `./operations/${operation.operationId}.ts`
+  })
+
+  const mockOperation = new OasOperation({
+    path: '/products/{id}',
+    method: 'put',
+    pathItem: undefined,
+    operationId: 'updateProduct',
+    responses: {}
+  })
+
+  // Place enrichments at the specific nested path that should be retrieved
+  const mockContext = {
+    settings: {
+      enrichments: {
+        'rest-api': {
+          '/products/{id}': {
+            put: { customValue: 'found-it', flag: true }
+          }
+        }
+      }
+    }
+  } as any
+
+  const enrichments = OperationClass.toEnrichments({
+    operation: mockOperation,
+    context: mockContext
+  })
+
+  // Verify it retrieved from the correct path: enrichments.{id}.{path}.{method}
+  assertEquals(enrichments, { customValue: 'found-it', flag: true })
 })

@@ -71,7 +71,7 @@ Deno.test('File - generates file with imports only', () => {
 
   file.imports.set('./types', new Set(['User', 'Product']))
 
-  assertEquals(file.toString(), "import { User, Product } from './types'")
+  assertEquals(file.toString(), "import {User, Product} from './types'")
 })
 
 Deno.test('File - generates file with definitions only', () => {
@@ -109,7 +109,7 @@ Deno.test('File - generates file with imports and definitions', () => {
 
   assertEquals(
     file.toString(),
-    "import { BaseModel } from './types'\n\nexport type User = BaseModel & { name: string };\n"
+    "import {BaseModel} from './types'\n\nexport type User = BaseModel & { name: string };\n"
   )
 })
 
@@ -143,6 +143,6 @@ Deno.test('File - generates file with multiple imports', () => {
   const output = file.toString()
 
   // Check both imports exist
-  assertEquals(output.includes("import { User } from './types'"), true)
-  assertEquals(output.includes("import { validator } from './utils'"), true)
+  assertEquals(output.includes("import {User} from './types'"), true)
+  assertEquals(output.includes("import {validator} from './utils'"), true)
 })

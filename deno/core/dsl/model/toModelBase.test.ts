@@ -3,6 +3,8 @@ import { assertEquals } from '@std/assert/equals'
 import { Identifier } from '@/dsl/Identifier.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
+import { ModelBase } from '@/dsl/model/ModelBase.ts'
+import * as v from 'valibot'
 
 Deno.test('toModelBase - returns a class constructor', () => {
   const ModelClass = toModelBase({
@@ -127,4 +129,118 @@ Deno.test('toModelBase - toExportPath works with different refNames', () => {
 
   assertEquals(ModelClass.toExportPath('User' as RefName), './types/user.d.ts')
   assertEquals(ModelClass.toExportPath('Product' as RefName), './types/product.d.ts')
+})
+
+Deno.test('toModelBase - constructor creates correct generatorKey', () => {
+  const ModelClass = toModelBase({
+    id: 'typescript-models',
+    toIdentifier: (refName) => Identifier.createType(refName),
+    toExportPath: (refName) => `./models/${refName}.ts`
+  })
+
+  const mockContext = {} as GenerateContextType
+
+  const instance = new ModelClass({
+    context: mockContext,
+    refName: 'User' as RefName,
+    settings: {
+      identifier: Identifier.createType('User'),
+      exportPath: './models/User.ts',
+      enrichments: undefined
+    } as any
+  })
+
+  // Verify generatorKey has expected format: id|refName
+  assertEquals(instance.generatorKey, 'typescript-models|User')
+})
+
+Deno.test('toModelBase - instance is ModelBase', () => {
+  const ModelClass = toModelBase({
+    id: 'test-model',
+    toIdentifier: (refName) => Identifier.createType(refName),
+    toExportPath: (refName) => `./models/${refName}.ts`
+  })
+
+  const mockContext = {} as GenerateContextType
+
+  const instance = new ModelClass({
+    context: mockContext,
+    refName: 'Product' as RefName,
+    settings: {
+      identifier: Identifier.createType('Product'),
+      exportPath: './models/Product.ts',
+      enrichments: undefined
+    } as any
+  })
+
+  assertEquals(instance instanceof ModelBase, true)
+  assertEquals(instance instanceof ModelClass, true)
+})
+
+Deno.test('toModelBase - toEnrichments validates with schema', () => {
+  const ModelClass = toModelBase<{ readonly: boolean; nullable?: boolean }>({
+    id: 'typescript-interfaces',
+    toIdentifier: (refName) => Identifier.createType(refName),
+    toExportPath: (refName) => `./models/${refName}.ts`,
+    toEnrichmentSchema: () =>
+      v.object({
+        readonly: v.boolean(),
+        nullable: v.optional(v.boolean())
+      })
+  })
+
+  const mockContext = {
+    settings: {
+      enrichments: {
+        'typescript-interfaces': {
+          User: {
+            readonly: true,
+            nullable: false
+          }
+        }
+      }
+    }
+  } as any
+
+  const enrichments = ModelClass.toEnrichments({
+    refName: 'User' as RefName,
+    context: mockContext
+  })
+
+  assertEquals(enrichments, {
+    readonly: true,
+    nullable: false
+  })
+})
+
+Deno.test('toModelBase - toEnrichments retrieves from correct nested path', () => {
+  const ModelClass = toModelBase<{ strictMode: boolean; customRule: string }>({
+    id: 'zod-schemas',
+    toIdentifier: (refName) => Identifier.createType(refName),
+    toExportPath: (refName) => `./schemas/${refName}.ts`,
+    toEnrichmentSchema: () =>
+      v.object({
+        strictMode: v.boolean(),
+        customRule: v.string()
+      })
+  })
+
+  // Place enrichments at path: enrichments.{id}.{refName}
+  const mockContext = {
+    settings: {
+      enrichments: {
+        'zod-schemas': {
+          Product: { strictMode: true, customRule: 'validate-stock' }
+        }
+      }
+    }
+  } as any
+
+  const enrichments = ModelClass.toEnrichments({
+    refName: 'Product' as RefName,
+    context: mockContext
+  })
+
+  // Verify it retrieved from the correct path: enrichments.{id}.{refName}
+  assertEquals(enrichments, { strictMode: true, customRule: 'validate-stock' })
 })
