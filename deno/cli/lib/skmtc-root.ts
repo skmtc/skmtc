@@ -29,7 +29,7 @@ export class SkmtcRoot {
   projects: Project[]
   manager: Manager
 
-  private constructor(projects: Project[], manager: Manager) {
+  constructor(projects: Project[], manager: Manager) {
     this.projects = projects
     this.manager = manager
   }
