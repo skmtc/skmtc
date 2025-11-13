@@ -7,7 +7,7 @@ Deno.test('Import - generates basic named imports', () => {
     importNames: ['User', 'Product']
   })
 
-  assertEquals(importStatement.toString(), "import { User, Product } from './types'")
+  assertEquals(importStatement.toString(), "import {User, Product} from './types'")
 })
 
 Deno.test('Import - generates single import', () => {
@@ -16,7 +16,7 @@ Deno.test('Import - generates single import', () => {
     importNames: ['useState']
   })
 
-  assertEquals(importStatement.toString(), "import { useState } from 'react'")
+  assertEquals(importStatement.toString(), "import {useState} from 'react'")
 })
 
 Deno.test('Import - generates aliased imports', () => {
@@ -25,7 +25,7 @@ Deno.test('Import - generates aliased imports', () => {
     importNames: [{ Component: 'ReactComponent' }]
   })
 
-  assertEquals(importStatement.toString(), "import { Component as ReactComponent } from 'react'")
+  assertEquals(importStatement.toString(), "import {Component as ReactComponent} from 'react'")
 })
 
 Deno.test('Import - generates mixed simple and aliased imports', () => {
@@ -36,7 +36,7 @@ Deno.test('Import - generates mixed simple and aliased imports', () => {
 
   assertEquals(
     importStatement.toString(),
-    "import { ApiClient, RequestOptions as Options } from './api'"
+    "import {ApiClient, RequestOptions as Options} from './api'"
   )
 })
 
@@ -46,7 +46,7 @@ Deno.test('Import - handles scoped packages', () => {
     importNames: ['join']
   })
 
-  assertEquals(importStatement.toString(), "import { join } from '@std/path/join'")
+  assertEquals(importStatement.toString(), "import {join} from '@std/path/join'")
 })
 
 Deno.test('Import - toRecord returns correct format for simple imports', () => {
@@ -105,7 +105,7 @@ Deno.test('Import - empty import names array', () => {
     importNames: []
   })
 
-  assertEquals(importStatement.toString(), "import {  } from './types'")
+  assertEquals(importStatement.toString(), "import {} from './types'")
 })
 
 Deno.test('Import - multiple aliased imports', () => {
@@ -116,6 +116,27 @@ Deno.test('Import - multiple aliased imports', () => {
 
   assertEquals(
     importStatement.toString(),
-    "import { User as UserModel, Product as ProductModel, Order as OrderModel } from './models'"
+    "import {User as UserModel, Product as ProductModel, Order as OrderModel} from './models'"
+  )
+})
+
+Deno.test('Import - generates import all (namespace) imports', () => {
+  const importStatement = new Import({
+    module: 'react',
+    importNames: [{ '*': 'React' }]
+  })
+
+  assertEquals(importStatement.toString(), "import * as React from 'react'")
+})
+
+Deno.test('Import - generates import all with other named imports', () => {
+  const importStatement = new Import({
+    module: 'react',
+    importNames: [{ '*': 'React' }, 'useState', 'useEffect']
+  })
+
+  assertEquals(
+    importStatement.toString(),
+    "import * as React, {useState, useEffect} from 'react'"
   )
 })

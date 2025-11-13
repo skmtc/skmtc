@@ -22,6 +22,7 @@ import { GenerateBundleTask } from '@/tasks/GenerateBundleTask.tsx'
 import { SchemaLocationTask } from '@/tasks/SchemaLocationTask.tsx'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { join } from '@std/path/join'
+import { toBundlePath } from '@/lib/to-bundle-path.ts'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -51,7 +52,7 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
 
   const bundlePath = useMemo(() => {
     if (project instanceof Project) {
-      const bundlePath = join(project.toPath(), 'bundle.js')
+      const bundlePath = toBundlePath(project.toPath())
 
       return existsSync(bundlePath) ? bundlePath : undefined
     }
