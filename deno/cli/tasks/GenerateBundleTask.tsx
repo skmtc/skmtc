@@ -71,6 +71,7 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
     const logsFile = await Deno.open(logsPath, { create: true, append: true })
     await logsFile.write(stdout)
   } catch (error) {
+    console.error(error)
     throw error
   } finally {
     logsFile?.close()
@@ -81,6 +82,7 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
     const errorLogsFile = await Deno.open(errorLogsPath, { create: true, append: true })
     await errorLogsFile.write(stderr)
   } catch (error) {
+    console.error(error)
     throw error
   } finally {
     errorLogsFile?.close()
