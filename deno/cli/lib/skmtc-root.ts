@@ -38,6 +38,10 @@ export class SkmtcRoot {
     return toRootPath()
   }
 
+  static async checkRootExists(path: string): Promise<boolean> {
+    return await exists(path, { isDirectory: true })
+  }
+
   async upgradeCheck() {
     const meta = await Jsr.getLatestMeta({ scopeName: '@skmtc', packageName: 'cli' })
 
@@ -121,7 +125,7 @@ export class SkmtcRoot {
   static async open(manager: Manager) {
     const rootPath = SkmtcRoot.toPath()
 
-    const hasRoot = await exists(rootPath, { isDirectory: true })
+    const hasRoot = await SkmtcRoot.checkRootExists(rootPath)
 
     if (!hasRoot) {
       return new SkmtcRoot([], manager)

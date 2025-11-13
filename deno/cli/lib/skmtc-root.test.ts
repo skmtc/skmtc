@@ -403,6 +403,13 @@ Deno.test('SkmtcRoot.open - loads projects from directory', async () => {
   const mockProject1 = { name: 'project1' } as Project
   const mockProject2 = { name: 'project2' } as Project
 
+  // Stub checkRootExists to return true so the test proceeds
+  const existsStub = stub(
+    SkmtcRoot,
+    'checkRootExists',
+    () => Promise.resolve(true)
+  )
+
   const readDirStub = stub(
     Deno,
     'readDirSync',
@@ -429,6 +436,7 @@ Deno.test('SkmtcRoot.open - loads projects from directory', async () => {
     assertEquals(result.projects[0], mockProject1)
     assertEquals(result.projects[1], mockProject2)
   } finally {
+    existsStub.restore()
     readDirStub.restore()
     projectOpenStub.restore()
   }
@@ -444,6 +452,13 @@ Deno.test('SkmtcRoot.open - filters out @ prefixed directories', async () => {
   ]
 
   const mockProject = { name: 'valid-project' } as Project
+
+  // Stub checkRootExists to return true so the test proceeds
+  const existsStub = stub(
+    SkmtcRoot,
+    'checkRootExists',
+    () => Promise.resolve(true)
+  )
 
   const readDirStub = stub(
     Deno,
@@ -466,6 +481,7 @@ Deno.test('SkmtcRoot.open - filters out @ prefixed directories', async () => {
     assertEquals(result.projects.length, 1)
     assertEquals(result.projects[0].name, 'valid-project')
   } finally {
+    existsStub.restore()
     readDirStub.restore()
     projectOpenStub.restore()
   }
