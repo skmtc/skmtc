@@ -101,22 +101,19 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
    * ```
    */
   log(levelName: string) {
-    let resultType: 'warning' | 'error';
+    let resultType: 'warning' | 'error'
     switch (levelName) {
       case 'WARN':
-        resultType = 'warning';
-        break;
+        resultType = 'warning'
+        break
       case 'ERROR':
-        resultType = 'error';
-        break;
+        resultType = 'error'
+        break
       default:
-        throw new Error(`Unexpected log level name: ${levelName}`);
+        throw new Error(`Unexpected log level name: ${levelName}`)
     }
 
-    this.context.captureCurrentResult(
-      resultType,
-      new StackTrail(['SKIPPED'])
-    );
+    this.context.captureCurrentResult(resultType, new StackTrail(['SKIPPED_C']))
   }
 
   /**
