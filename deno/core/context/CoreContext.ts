@@ -212,7 +212,7 @@ export class CoreContext {
           formatter: logRecord =>
             skmtcFormatter({
               logRecord,
-              stackTrail: 'SKIPPED_A'
+              stackTrail: 'SKIPPED'
             }),
           useColors: true
         }),
@@ -223,7 +223,7 @@ export class CoreContext {
             formatter: logRecord => {
               return skmtcJsonFormatter({
                 logRecord,
-                stackTrail: 'SKIPPED_B'
+                stackTrail: 'SKIPPED'
               })
             }
           })

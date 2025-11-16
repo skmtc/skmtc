@@ -113,7 +113,7 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
         throw new Error(`Unexpected log level name: ${levelName}`)
     }
 
-    this.context.captureCurrentResult(resultType, new StackTrail(['SKIPPED_C']))
+    this.context.captureCurrentResult(resultType, new StackTrail(['SKIPPED']))
   }
 
   /**
