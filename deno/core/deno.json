@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.0.974",
+  "version": "0.0.975",
   "imports": {
     "@/": "./",
     "@std/assert": "jsr:@std/assert@^1.0.10",

@@ -17,6 +17,7 @@ import type { Mapping, Preview } from '@/types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { RenderResult } from './generateTypes.ts'
+import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -213,14 +214,14 @@ export class CoreContext {
               logRecord,
               stackTrail: 'SKIPPED'
             }),
-          useColors: false
+          useColors: true
         }),
         ...(logsPath && {
           file: new log.FileHandler('DEBUG', {
             filename,
-            // you can change format of output message using any keys in `LogRecord`.
+            // JSON format for file logs (easier to parse and analyze)
             formatter: logRecord => {
-              return skmtcFormatter({
+              return skmtcJsonFormatter({
                 logRecord,
                 stackTrail: 'SKIPPED'
               })
@@ -491,10 +492,10 @@ export class CoreContext {
 }
 
 /**
- * Arguments for the SKMTC JSON log formatter.
+ * Arguments for the SKMTC log formatter.
  *
  * Contains the log record and stack trail information needed to format
- * structured JSON log entries for the SKMTC processing pipeline.
+ * human-readable log entries for the SKMTC processing pipeline.
  */
 export type JsonFormatterArgs = {
   /** The Deno log record containing log level, message, and metadata */
@@ -513,14 +514,14 @@ export type JsonFormatterArgs = {
 }
 
 /**
- * Custom JSON formatter for SKMTC log entries.
+ * Custom pretty-print formatter for SKMTC log entries.
  *
- * Formats log records into structured JSON that includes stack trail context,
- * making it easier to trace execution and debug issues in the SKMTC pipeline.
- * The formatter flattens log arguments and includes execution context.
+ * Formats log records into human-readable, color-coded output with properly
+ * formatted stack traces, making it easier to trace execution and debug issues
+ * in the SKMTC pipeline.
  *
  * @param args - Formatter arguments containing log record and stack trail
- * @returns Formatted JSON string for the log entry
+ * @returns Formatted string for the log entry
  *
  * @example Usage in logger setup
  * ```typescript
@@ -533,6 +534,60 @@ export type JsonFormatterArgs = {
  * ```
  *
  * @example Output format
+ * ```
+ * [ERROR] 2024-01-16 10:32:59.772
+ * Error: Invariant failed: Expected object schema
+ *     at invariant (file:///.../bundle.js:4445:9)
+ *     at new Table (file:///.../bundle.js:17632:5)
+ * ```
+ */
+export function skmtcFormatter({ logRecord, stackTrail }: JsonFormatterArgs): string {
+  const { levelName, datetime, msg } = logRecord
+
+  // Format timestamp as readable date/time
+  const timestamp = datetime.toISOString().replace('T', ' ').replace('Z', '')
+
+  // Choose color based on log level
+  let levelColor: (str: string) => string
+  switch (levelName) {
+    case 'ERROR':
+      levelColor = red
+      break
+    case 'WARN':
+      levelColor = yellow
+      break
+    case 'INFO':
+      levelColor = blue
+      break
+    case 'DEBUG':
+      levelColor = gray
+      break
+    default:
+      levelColor = (str: string) => str
+  }
+
+  // Format the header with colored level
+  const header = `${levelColor(bold(`[${levelName}]`))} ${gray(timestamp)}`
+
+  // Add stack trail if it's not "SKIPPED"
+  const stackTrailLine = stackTrail !== 'SKIPPED' ? `\n${gray('Stack:')} ${stackTrail}` : ''
+
+  // Format the message (preserve multi-line errors and stack traces)
+  const formattedMessage = msg
+
+  return `${header}${stackTrailLine}\n${formattedMessage}\n`
+}
+
+/**
+ * JSON formatter for SKMTC file logs.
+ *
+ * Formats log records into structured JSON for file-based logging,
+ * making it easier to parse and analyze logs programmatically.
+ *
+ * @param args - Formatter arguments containing log record and stack trail
+ * @returns Formatted JSON string for the log entry
+ *
+ * @example Output format
  * ```json
  * {
  *   "stackTrail": "components.schemas.User.properties.email",
@@ -543,7 +598,7 @@ export type JsonFormatterArgs = {
  * }
  * ```
  */
-export function skmtcFormatter({ logRecord, stackTrail }: JsonFormatterArgs): string {
+export function skmtcJsonFormatter({ logRecord, stackTrail }: JsonFormatterArgs): string {
   return JSON.stringify({
     stackTrail,
     level: logRecord.levelName,
