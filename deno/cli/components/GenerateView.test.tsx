@@ -268,7 +268,8 @@ Deno.test(
 │  Worker not found. Create it?
 │  Yes
 │
-│  ⠋ Creating bundle...
+│  Bundle created
+│
 │  Watch for changes?
 │  ❯ Yes
 │    No`
@@ -292,7 +293,8 @@ Deno.test(
 │  Worker not found. Create it?
 │  Yes
 │
-│  ⠋ Creating bundle...
+│  Bundle created
+│
 │  Watch for changes?
 │  Yes
 │
@@ -402,7 +404,8 @@ Deno.test(
         `│  Worker not found. Create it?
 │  Yes
 │
-│  ⠋ Creating bundle...
+│  Bundle created
+│
 │  Watch for changes?
 │  ❯ Yes
 │    No`
@@ -791,7 +794,8 @@ Deno.test(
 │  Worker not found. Create it?
 │  Yes
 │
-│  ⠋ Creating bundle...
+│  Bundle created
+│
 │  Watch for changes?
 │  ❯ Yes
 │    No`
@@ -817,7 +821,8 @@ Deno.test(
 │  Worker not found. Create it?
 │  Yes
 │
-│  ⠋ Creating bundle...
+│  Bundle created
+│
 │  Watch for changes?
 │  No
 │

@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTask } from '@/components/TaskContext.tsx'
 import { join } from '@std/path/join'
 import type { Project } from '@/lib/project.ts'
 import { toBundlePath } from '@/lib/to-bundle-path.ts'
 import { TaskBox } from '../components/TaskBox.tsx'
 import { Spinner } from '../components/Spinner.tsx'
+import { Text } from 'ink'
 
 type GenerateBundleTaskProps = {
   project: Project
@@ -12,6 +13,7 @@ type GenerateBundleTaskProps = {
 
 export const GenerateBundleTask = ({ project }: GenerateBundleTaskProps) => {
   const { dispatch: taskDispatch } = useTask()
+  const [done, setDone] = useState(false)
 
   useEffect(() => {
     const run = async () => {
@@ -21,11 +23,20 @@ export const GenerateBundleTask = ({ project }: GenerateBundleTaskProps) => {
         type: 'set-task-state',
         payload: { taskKey: 'generate-bundle-task', state: bundlePath }
       })
+      setDone(true)
       taskDispatch({ type: 'increment-current-task' })
     }
 
     run()
   }, [])
+
+  if (done) {
+    return (
+      <TaskBox active={false}>
+        <Text>Bundle created</Text>
+      </TaskBox>
+    )
+  }
 
   return (
     <TaskBox active>
