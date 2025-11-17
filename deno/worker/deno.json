@@ -1,9 +1,9 @@
 {
   "name": "@skmtc/worker",
-  "version": "0.0.49",
+  "version": "0.0.50",
   "exports": "./mod.ts",
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.977"
+    "@skmtc/core": "jsr:@skmtc/core@^0.0.978"
   },
   "compilerOptions": {
     "lib": [

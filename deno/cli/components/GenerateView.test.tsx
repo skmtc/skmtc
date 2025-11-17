@@ -247,7 +247,7 @@ Deno.test(
         `│  Input OpenAPI schema path or URL
 │  schema.json
 │
-│  Worker bundle not found. Create it?
+│  Worker not found. Create it?
 │  ❯ Yes
 │    No`
       )
@@ -265,35 +265,38 @@ Deno.test(
         `│  Input OpenAPI schema path or URL
 │  schema.json
 │
-│  Worker bundle not found. Create it?
+│  Worker not found. Create it?
 │  Yes
 │
+│  ⠋ Creating bundle...
 │  Watch for changes?
 │  ❯ Yes
 │    No`
       )
 
+      await new Promise(resolve => setTimeout(resolve, 50))
+
       // Select Yes (default) - just hit enter
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise(resolve => setTimeout(resolve, 150))
 
       // Should show watching spinner (not generating, since we selected Yes for watch mode)
       const watchingFrame = lastFrame()
 
-      const hasWatchingSpinner =
-        watchingFrame &&
-        watchingFrame.includes('Input OpenAPI schema path or URL') &&
-        watchingFrame.includes('schema.json') &&
-        watchingFrame.includes('Worker bundle not found. Create it?') &&
-        watchingFrame.includes('Watch for changes?') &&
-        watchingFrame.split('Yes').length >= 3 && // Should have 2 "Yes" responses (bundle + watch)
-        watchingFrame.includes('Watching...')
-
       assertEquals(
-        hasWatchingSpinner,
-        true,
-        `Expected watching frame, got:\n${watchingFrame || 'undefined'}`
+        watchingFrame,
+        `│  Input OpenAPI schema path or URL
+│  schema.json
+│
+│  Worker not found. Create it?
+│  Yes
+│
+│  ⠋ Creating bundle...
+│  Watch for changes?
+│  Yes
+│
+│  ⠋ Watching...`
       )
 
       unmount()
@@ -381,7 +384,7 @@ Deno.test(
 
       assertEquals(
         bundlePrompt,
-        `│  Worker bundle not found. Create it?
+        `│  Worker not found. Create it?
 │  ❯ Yes
 │    No`
       )
@@ -396,9 +399,10 @@ Deno.test(
 
       assertEquals(
         watchPrompt,
-        `│  Worker bundle not found. Create it?
+        `│  Worker not found. Create it?
 │  Yes
 │
+│  ⠋ Creating bundle...
 │  Watch for changes?
 │  ❯ Yes
 │    No`
@@ -512,7 +516,7 @@ Deno.test(
 
       assertEquals(
         bundlePrompt,
-        `│  Worker bundle not found. Create it?
+        `│  Worker not found. Create it?
 │  ❯ Yes
 │    No`
       )
@@ -629,7 +633,7 @@ Deno.test(
 
       assertEquals(
         bundlePrompt,
-        `│  Worker bundle not found. Create it?
+        `│  Worker not found. Create it?
 │  ❯ Yes
 │    No`
       )
@@ -766,7 +770,7 @@ Deno.test(
         `│  Input OpenAPI schema path or URL
 │  https://api.example.com/openapi.json
 │
-│  Worker bundle not found. Create it?
+│  Worker not found. Create it?
 │  ❯ Yes
 │    No`
       )
@@ -784,9 +788,10 @@ Deno.test(
         `│  Input OpenAPI schema path or URL
 │  https://api.example.com/openapi.json
 │
-│  Worker bundle not found. Create it?
+│  Worker not found. Create it?
 │  Yes
 │
+│  ⠋ Creating bundle...
 │  Watch for changes?
 │  ❯ Yes
 │    No`
@@ -809,9 +814,10 @@ Deno.test(
         `│  Input OpenAPI schema path or URL
 │  https://api.example.com/openapi.json
 │
-│  Worker bundle not found. Create it?
+│  Worker not found. Create it?
 │  Yes
 │
+│  ⠋ Creating bundle...
 │  Watch for changes?
 │  No
 │

@@ -35,6 +35,7 @@ export type TaskState = {
   'select-project-task': Project
   'install-generators-task': boolean
   'generate-bundle-task': string
+  'generate-worker-task': string
 }
 
 export type TaskDispatch = (action: TaskAction) => void

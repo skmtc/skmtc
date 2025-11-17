@@ -1,24 +1,19 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useTask } from '@/components/TaskContext.tsx'
-import { BooleanTask } from './BooleanTask.tsx'
-import { tasksToState } from '@/components/TaskContext.tsx'
 import { join } from '@std/path/join'
 import type { Project } from '@/lib/project.ts'
 import { toBundlePath } from '@/lib/to-bundle-path.ts'
+import { TaskBox } from '../components/TaskBox.tsx'
+import { Spinner } from '../components/Spinner.tsx'
 
 type GenerateBundleTaskProps = {
   project: Project
 }
 
 export const GenerateBundleTask = ({ project }: GenerateBundleTaskProps) => {
-  const [confirmed, setConfirmed] = useState(false)
-  const { state: taskState, dispatch: taskDispatch, leave } = useTask()
+  const { dispatch: taskDispatch } = useTask()
 
   useEffect(() => {
-    if (!confirmed) {
-      return
-    }
-
     const run = async () => {
       const bundlePath = await createBundle({ project })
 
@@ -30,15 +25,12 @@ export const GenerateBundleTask = ({ project }: GenerateBundleTaskProps) => {
     }
 
     run()
-  }, [confirmed])
+  }, [])
 
   return (
-    <BooleanTask
-      prompt="Worker bundle not found. Create it?"
-      setValue={({ value }) => {
-        value ? setConfirmed(value) : leave({ state: tasksToState(taskState.tasks) })
-      }}
-    />
+    <TaskBox active>
+      <Spinner label="Creating bundle..." />
+    </TaskBox>
   )
 }
 

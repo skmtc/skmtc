@@ -22,7 +22,8 @@ import { GenerateBundleTask } from '@/tasks/GenerateBundleTask.tsx'
 import { SchemaLocationTask } from '@/tasks/SchemaLocationTask.tsx'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { join } from '@std/path/join'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
+import { GenerateWorkerTask } from '../tasks/GenerateWorkerTask.tsx'
+import { toWorkerPath } from '../lib/to-worker-path.ts'
 
 type GenerateProps = {
   project: Project | RemoteProject
@@ -41,20 +42,20 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
     return typeof schemaSourceString !== 'string' && !project.clientJson?.contents?.source
   }, [])
 
-  const includeGenerateBundleTask = useMemo(() => {
+  const includeGenerateWorkerTask = useMemo(() => {
     if (project instanceof RemoteProject) {
       return false
     }
-    const bundlePath = join(project.toPath(), 'bundle.js')
+    const workerPath = join(project.toPath(), 'worker.ts')
 
-    return !existsSync(bundlePath)
+    return !existsSync(workerPath)
   }, [])
 
-  const bundlePath = useMemo(() => {
+  const workerPath = useMemo(() => {
     if (project instanceof Project) {
-      const bundlePath = toBundlePath(project.toPath())
+      const workerPath = toWorkerPath(project.toPath())
 
-      return existsSync(bundlePath) ? bundlePath : undefined
+      return existsSync(workerPath) ? workerPath : undefined
     }
 
     return undefined
@@ -88,9 +89,19 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
           render: () => <SchemaLocationTask project={project} />
         },
         {
+          taskKey: 'generate-worker-task',
+          include: includeGenerateWorkerTask,
+          state: workerPath,
+          render: () => {
+            invariant(project instanceof Project, 'Local project is required to generate worker')
+
+            return <GenerateWorkerTask project={project} />
+          }
+        },
+        {
           taskKey: 'generate-bundle-task',
-          include: includeGenerateBundleTask,
-          state: bundlePath,
+          include: true,
+          state: undefined,
           render: () => {
             invariant(project instanceof Project, 'Local project is required to generate bundle')
 
