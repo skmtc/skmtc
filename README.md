@@ -34,10 +34,10 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 
 |                       | Schemas and types                                | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
-| ![](assets/arktype.svg) | Arktype | [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-arktype) |
-| ![](assets/typescript.svg) | TypeScript | [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-typescript) |
-| ![](assets/valibot.svg) | Valibot | [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-valibot) |
-| ![](assets/zod.svg) | Zod | [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-zod) |
+| ![](assets/arktype.svg) | Arktype | [@skmtc/gen-arktype](https://github.com/skmtc/skmtc-generators/tree/main/gen-arktype) |
+| ![](assets/typescript.svg) | TypeScript | [@skmtc/gen-typescript](https://github.com/skmtc/skmtc-generators/tree/main/gen-typescript) |
+| ![](assets/valibot.svg) | Valibot | [@skmtc/gen-valibot](https://github.com/skmtc/skmtc-generators/tree/main/gen-valibot) |
+| ![](assets/zod.svg) | Zod | [@skmtc/gen-zod](https://github.com/skmtc/skmtc-generators/tree/main/gen-zod) |
 
 ### Servers
 
