@@ -64,21 +64,13 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 | ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-select` | [Skmtc](https://skm.tc/generators/gen-shadcn-select) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
 | ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-table` | [Skmtc](https://skm.tc/generators/gen-shadcn-table) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-table) |
 
-### Install Deno
-
-```bash
-# On MacOS/Linus
-curl -fsSL https://deno.land/install.sh | sh
-
-# On Windows
-irm https://deno.land/install.ps1 | iex
-```
-
 ### Install Skmtc
 
 ```bash
-deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.388 -n skmtc -f
+deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.400 -n skmtc -f
 ```
+
+**Skmtc** runs on [Deno](https://deno.com). You can install it using `curl -fsSL https://deno.land/install.sh | sh` on MacOS/Linux or `irm https://deno.land/install.ps1 | iex` on Windows
 
 ### Create project and generate artifacts using TUI
 
