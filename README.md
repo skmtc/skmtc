@@ -70,7 +70,9 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.400 -n skmtc -f
 ```
 
-**Skmtc** runs on [Deno](https://deno.com). You can install it using `curl -fsSL https://deno.land/install.sh | sh` on MacOS/Linux or `irm https://deno.land/install.ps1 | iex` on Windows
+**Skmtc** runs on [Deno](https://deno.com). You can install it using 
+- **MacOS/Linux** - `curl -fsSL https://deno.land/install.sh | sh`
+- **Windows** - `irm https://deno.land/install.ps1 | iex`
 
 ### Create project and generate artifacts using TUI
 
