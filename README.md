@@ -32,7 +32,7 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 
 ## Available generators
 
-|                       | Schemas and types                                | Info                              |
+|                       | Schemas and types                        | Generator repo                    |
 | --------------------- | ---------------------------------------- | --------------------------------- |
 | ![](assets/arktype.svg) | Arktype | [@skmtc/gen-arktype](https://github.com/skmtc/skmtc-generators/tree/main/gen-arktype) |
 | ![](assets/typescript.svg) | TypeScript | [@skmtc/gen-typescript](https://github.com/skmtc/skmtc-generators/tree/main/gen-typescript) |
