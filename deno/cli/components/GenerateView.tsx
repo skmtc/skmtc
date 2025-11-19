@@ -203,7 +203,7 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString, token }: Run
             bundlePath,
             skmtcRoot: state.skmtcRoot,
             accountName: state.session?.user?.user_metadata?.user_name,
-            schemaContents,
+            schemaContents: schemaContents.contents,
             clientSettings: project.clientJson?.contents?.settings,
             token
           })

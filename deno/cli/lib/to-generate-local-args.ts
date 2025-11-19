@@ -19,10 +19,12 @@ export const toGenerateLocalArgs = async ({
   const clientJsonContents = toClientJsonContents(projectPath)
 
   if (schemaSourceString) {
+    const schemaContents = await toSchemaContents(schemaSourceString)
+
     return {
       bundlePath: toBundlePath(projectPath),
       manifestPath: toManifestPath(projectPath),
-      schemaContents: await toSchemaContents(schemaSourceString),
+      schemaContents: schemaContents.contents,
       clientSettings: clientJsonContents?.settings
     }
   }
@@ -40,7 +42,7 @@ export const toGenerateLocalArgs = async ({
   return {
     bundlePath: toBundlePath(projectPath),
     manifestPath: toManifestPath(projectPath),
-    schemaContents,
+    schemaContents: schemaContents.contents,
     clientSettings: clientJsonContents.settings
   }
 }

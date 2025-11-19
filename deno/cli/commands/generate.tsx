@@ -81,7 +81,7 @@ export const renderGenerate = async ({
       bundlePath: toBundlePath(project.toPath()),
       skmtcRoot,
       accountName: session?.user.user_metadata.user_name,
-      schemaContents,
+      schemaContents: schemaContents.contents,
       clientSettings: project.clientJson.contents?.settings,
       token: session?.access_token
     })

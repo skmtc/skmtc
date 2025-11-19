@@ -4,8 +4,8 @@ import { join } from '@std/path/join'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import invariant from 'tiny-invariant'
-
-type FileType = 'json' | 'yaml'
+import type { FileType, SchemaSource } from '@/lib/types.ts'
+import { toSchemaContents } from './to-schema-contents.ts'
 
 type ConstructorArgs = {
   schemaSource: SchemaSource
@@ -18,16 +18,6 @@ type ToPathArgs = {
   fileType: FileType
   useParent: boolean
 }
-
-export type SchemaSource =
-  | {
-      type: 'local'
-      path: string
-    }
-  | {
-      type: 'remote'
-      url: string
-    }
 
 export class SchemaFile {
   contents: string | null
@@ -67,36 +57,36 @@ export class SchemaFile {
     })
   }
 
-  static async openFromSource(source: string): Promise<SchemaFile> {
-    const schemaSource = toSchemaSource(source)
-
-    const { contents, fileType } = await SchemaFile.getFromSource(schemaSource)
+  static async openFromSource(schemaSourceString: string): Promise<SchemaFile> {
+    const { contents, schemaSource, fileType } = await toSchemaContents(schemaSourceString)
 
     return new SchemaFile({ schemaSource, contents, fileType })
   }
 
   static async getFromSource(
-    source: SchemaSource
-  ): Promise<{ contents: string; fileType: FileType }> {
-    switch (source.type) {
+    schemaSource: SchemaSource
+  ): Promise<{ contents: string; fileType: FileType; schemaSource: SchemaSource }> {
+    switch (schemaSource.type) {
       case 'remote': {
-        const response = await fetch(source.url)
+        const response = await fetch(schemaSource.url)
         const contents = await response.text()
-        const url = new URL(source.url)
+        const url = new URL(schemaSource.url)
         const fileType = toFileType(url.pathname)
 
         return {
           contents,
-          fileType
+          fileType,
+          schemaSource
         }
       }
       case 'local': {
-        const contents = await openPath(resolve(source.path))
-        const fileType = toFileType(source.path)
+        const contents = await openPath(resolve(schemaSource.path))
+        const fileType = toFileType(schemaSource.path)
 
         return {
           contents,
-          fileType
+          fileType,
+          schemaSource
         }
       }
     }
