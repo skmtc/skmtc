@@ -12,10 +12,9 @@
 ## Skmtc is an OpenAPI code generation framework for TypeScript
 
 - **Fast** - Github OpenAPI to Zod in 0.51 seconds - 9.5x faster than Orval
-- **Strings not ASTs** - because nobody wants to edit ASTs by hand
-- **Code not config** - full control over output
-- **Modular and extensible** - compose your own code generator
-
+- **Composable and modular** - Encapsulate generation logic in modules and reuse
+- **Code not config** - Full control over output, variable names and file structure
+- **Customisable** - Supports custom edge case handling
 
 ## Performance vs other code generators
 
