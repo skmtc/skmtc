@@ -46,15 +46,14 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 
 |                       | Clients                                  | Generator repo                    |
 | --------------------- | ---------------------------------------- | --------------------------------- |
-| ![](assets/supabase.svg) ![](assets/hono.svg) | Supabase + Hono | [@skmtc/gen-supabase-hono](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
 | ![](assets/reactquery.svg) ![](assets/zod.svg) | Tanstack Query + Fetch + Zod | [@skmtc/gen-tanstack-query-fetch-zod](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-fetch-zod) |
 | ![](assets/reactquery.svg) ![](assets/supabase.svg) ![](assets/zod.svg) | Tanstack Query + Supabase + Zod | [@skmtc/gen-tanstack-query-supabase-zod](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-supabase-zod) |
 
 |                       | UI                                       | Generator repo                    |
 | --------------------- | ---------------------------------------- | --------------------------------- |
-| ![](assets/shadcnui.svg) | Shadcn Form | [@skmtc/gen-shadcn-form](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-form) |
-| ![](assets/shadcnui.svg) | Shadcn Select | [@skmtc/gen-shadcn-select](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
-| ![](assets/shadcnui.svg) | Shadcn Table | [@skmtc/gen-shadcn-table](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-table) |
+| ![](assets/shadcnui.svg) | Shadcn Form ![](assets/flask-conical.svg) | [@skmtc/gen-shadcn-form](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-form) |
+| ![](assets/shadcnui.svg) | Shadcn Select ![](assets/flask-conical.svg) | [@skmtc/gen-shadcn-select](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
+| ![](assets/shadcnui.svg) | Shadcn Table ![](assets/flask-conical.svg) | [@skmtc/gen-shadcn-table](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-table) |
 
 ## Getting started
 
