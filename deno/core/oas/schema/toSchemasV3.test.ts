@@ -14,23 +14,24 @@ import { OasRef } from '../ref/Ref.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 
 // Create a testable context with methods that can be spied on
-const createTestContext = (): ParseContextType => ({
-  trace<T>(_token: string | string[], fn: () => T): T {
-    return fn()
-  },
-  logSkippedFields(): void {},
-  logIssue(): void {},
-  logIssueNoKey(): void {},
-  registerRef(): void {},
-  stackTrail: {
-    append: () => {},
-    remove: () => {},
-    clone: () => ({ append: () => {}, remove: () => {}, clone: () => ({}) })
-  },
-  documentObject: {} as any
-} as unknown as ParseContextType)
+const createTestContext = (): ParseContextType =>
+  ({
+    trace<T>(_token: string | string[], fn: () => T): T {
+      return fn()
+    },
+    logSkippedFields(): void {},
+    logIssue(): void {},
+    logIssueNoKey(): void {},
+    registerRef(): void {},
+    stackTrail: {
+      append: () => {},
+      remove: () => {},
+      clone: () => ({ append: () => {}, remove: () => {}, clone: () => ({}) })
+    },
+    documentObject: {} as any
+  }) as unknown as ParseContextType
 
-Deno.test('toSchemasV3', async (t) => {
+Deno.test('toSchemasV3', async t => {
   await t.step('should process multiple valid schemas', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
@@ -126,7 +127,7 @@ Deno.test('toSchemasV3', async (t) => {
   })
 })
 
-Deno.test('toOptionalSchemasV3', async (t) => {
+Deno.test('toOptionalSchemasV3', async t => {
   await t.step('should return undefined when input is undefined', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
@@ -159,7 +160,7 @@ Deno.test('toOptionalSchemasV3', async (t) => {
   })
 })
 
-Deno.test('toSchemaV3 - references', async (t) => {
+Deno.test('toSchemaV3 - references', async t => {
   await t.step('should handle basic $ref', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
@@ -194,7 +195,7 @@ Deno.test('toSchemaV3 - references', async (t) => {
   })
 })
 
-Deno.test('toSchemaV3 - allOf', async (t) => {
+Deno.test('toSchemaV3 - allOf', async t => {
   await t.step('should handle basic allOf merging', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
@@ -218,9 +219,7 @@ Deno.test('toSchemaV3 - allOf', async (t) => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
-      allOf: [
-        { type: 'string', minLength: 5 }
-      ]
+      allOf: [{ type: 'string', minLength: 5 }]
     }
 
     const result = toSchemaV3({
@@ -236,9 +235,7 @@ Deno.test('toSchemaV3 - allOf', async (t) => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
-      allOf: [
-        { type: 'object', properties: { id: { type: 'string' } } }
-      ]
+      allOf: [{ type: 'object', properties: { id: { type: 'string' } } }]
     }
 
     const result = toSchemaV3({
@@ -251,15 +248,12 @@ Deno.test('toSchemaV3 - allOf', async (t) => {
   })
 })
 
-Deno.test('toSchemaV3 - oneOf', async (t) => {
+Deno.test('toSchemaV3 - oneOf', async t => {
   await t.step('should handle oneOf with multiple members', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
-      oneOf: [
-        { type: 'string' },
-        { type: 'number' }
-      ]
+      oneOf: [{ type: 'string' }, { type: 'number' }]
     }
 
     const result = toSchemaV3({
@@ -275,9 +269,7 @@ Deno.test('toSchemaV3 - oneOf', async (t) => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
-      oneOf: [
-        { type: 'string' }
-      ]
+      oneOf: [{ type: 'string' }]
     }
 
     const result = toSchemaV3({
@@ -315,10 +307,7 @@ Deno.test('toSchemaV3 - oneOf', async (t) => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
-      oneOf: [
-        { type: 'string' },
-        { type: 'number' }
-      ]
+      oneOf: [{ type: 'string' }, { type: 'number' }]
     }
 
     const result = toSchemaV3({
@@ -335,10 +324,7 @@ Deno.test('toSchemaV3 - oneOf', async (t) => {
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
       title: 'Union Type',
-      oneOf: [
-        { type: 'string' },
-        { type: 'boolean' }
-      ]
+      oneOf: [{ type: 'string' }, { type: 'boolean' }]
     }
 
     const result = toSchemaV3({
@@ -353,15 +339,12 @@ Deno.test('toSchemaV3 - oneOf', async (t) => {
   })
 })
 
-Deno.test('toSchemaV3 - anyOf', async (t) => {
+Deno.test('toSchemaV3 - anyOf', async t => {
   await t.step('should handle anyOf with multiple members', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
-      anyOf: [
-        { type: 'string' },
-        { type: 'number' }
-      ]
+      anyOf: [{ type: 'string' }, { type: 'number' }]
     }
 
     const result = toSchemaV3({
@@ -377,9 +360,7 @@ Deno.test('toSchemaV3 - anyOf', async (t) => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
-      anyOf: [
-        { type: 'boolean' }
-      ]
+      anyOf: [{ type: 'boolean' }]
     }
 
     const result = toSchemaV3({
@@ -417,10 +398,7 @@ Deno.test('toSchemaV3 - anyOf', async (t) => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema = {
-      anyOf: [
-        { type: 'string' },
-        { type: 'number' }
-      ],
+      anyOf: [{ type: 'string' }, { type: 'number' }],
       'x-expansionResources': { oneOf: [] }
     } as any
 
@@ -437,10 +415,7 @@ Deno.test('toSchemaV3 - anyOf', async (t) => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
-      anyOf: [
-        { type: 'integer' },
-        { type: 'string' }
-      ]
+      anyOf: [{ type: 'integer' }, { type: 'string' }]
     }
 
     const result = toSchemaV3({
@@ -457,10 +432,7 @@ Deno.test('toSchemaV3 - anyOf', async (t) => {
     const stackTrail = new StackTrail(['TEST'])
     const schema: OpenAPIV3.SchemaObject = {
       description: 'Flexible union',
-      anyOf: [
-        { type: 'integer' },
-        { type: 'boolean' }
-      ]
+      anyOf: [{ type: 'integer' }, { type: 'boolean' }]
     }
 
     const result = toSchemaV3({
@@ -475,7 +447,7 @@ Deno.test('toSchemaV3 - anyOf', async (t) => {
   })
 })
 
-Deno.test('toSchemaV3 - typed schemas', async (t) => {
+Deno.test('toSchemaV3 - typed schemas', async t => {
   await t.step('should handle string type', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
@@ -569,7 +541,7 @@ Deno.test('toSchemaV3 - typed schemas', async (t) => {
   })
 })
 
-Deno.test('toSchemaV3 - type inference with warnings', async (t) => {
+Deno.test('toSchemaV3 - type inference with warnings', async t => {
   await t.step('should infer object type from properties and log warning', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
@@ -635,6 +607,7 @@ Deno.test('toSchemaV3 - type inference with warnings', async (t) => {
     })
 
     assert(result instanceof OasBoolean)
+    assertEquals(result, new OasBoolean({ example: false }))
   })
 
   await t.step('should infer string type from string default and log warning', () => {
@@ -651,6 +624,7 @@ Deno.test('toSchemaV3 - type inference with warnings', async (t) => {
     })
 
     assert(result instanceof OasString)
+    assertEquals(result, new OasString({ default: 'default value' }))
   })
 
   await t.step('should infer string type from string example and log warning', () => {
@@ -667,6 +641,7 @@ Deno.test('toSchemaV3 - type inference with warnings', async (t) => {
     })
 
     assert(result instanceof OasString)
+    assertEquals(result, new OasString({ example: 'example value' }))
   })
 
   await t.step('should infer string type from string enum and log warning', () => {
@@ -683,6 +658,7 @@ Deno.test('toSchemaV3 - type inference with warnings', async (t) => {
     })
 
     assert(result instanceof OasString)
+    assertEquals(result, new OasString({ enums: ['option1', 'option2', 'option3'] }))
   })
 
   await t.step('should infer string type from format and log warning', () => {
@@ -699,10 +675,11 @@ Deno.test('toSchemaV3 - type inference with warnings', async (t) => {
     })
 
     assert(result instanceof OasString)
+    assertEquals(result, new OasString({ format: 'date-time' }))
   })
 })
 
-Deno.test('toSchemaV3 - edge cases', async (t) => {
+Deno.test('toSchemaV3 - edge cases', async t => {
   await t.step('should fall back to Unknown for empty schema', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
@@ -723,7 +700,7 @@ Deno.test('toSchemaV3 - edge cases', async (t) => {
     const schema = {
       'x-custom': 'value',
       'x-internal': true
-    } as any
+    } as OpenAPIV3.SchemaObject
 
     const result = toSchemaV3({
       schema,
@@ -732,6 +709,10 @@ Deno.test('toSchemaV3 - edge cases', async (t) => {
     })
 
     assert(result instanceof OasUnknown)
+    assertEquals(
+      result,
+      new OasUnknown({ extensionFields: { 'x-custom': 'value', 'x-internal': true } })
+    )
   })
 
   await t.step('should handle complex nested schema', () => {
@@ -760,11 +741,77 @@ Deno.test('toSchemaV3 - edge cases', async (t) => {
       context
     })
 
-    assert(result instanceof OasObject)
+    assertEquals(
+      result,
+      new OasObject({
+        properties: {
+          user: new OasObject({
+            properties: {
+              name: new OasString(),
+              age: new OasNumber()
+            }
+          }),
+          tags: new OasArray({
+            items: new OasString()
+          })
+        }
+      })
+    )
   })
 })
 
-Deno.test('toOptionalSchemaV3', async (t) => {
+Deno.test('toSchemaV3 - extension fields', async t => {
+  await t.step('should handle extension fields', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+
+    const schema: OpenAPIV3.SchemaObject = {
+      type: 'object',
+      required: ['id', 'name', 'weight', 'color'],
+      properties: {
+        id: {
+          type: 'string'
+        },
+        name: {
+          type: 'string',
+          minLength: 3,
+          maxLength: 50
+        },
+        weight: {
+          type: 'integer',
+          format: 'int32',
+          minimum: 0,
+          maximum: 100
+        },
+        color: {
+          type: 'string',
+          enum: ['red', 'blue']
+        }
+      }
+    }
+
+    const result = toSchemaV3({
+      schema,
+      stackTrail,
+      context
+    })
+
+    assertEquals(
+      result,
+      new OasObject({
+        required: ['id', 'name', 'weight', 'color'],
+        properties: {
+          id: new OasString(),
+          name: new OasString({ minLength: 3, maxLength: 50 }),
+          weight: new OasInteger({ format: 'int32', minimum: 0, maximum: 100 }),
+          color: new OasString({ enums: ['red', 'blue'] })
+        }
+      })
+    )
+  })
+})
+
+Deno.test('toOptionalSchemaV3', async t => {
   await t.step('should return undefined when input is undefined', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])

@@ -11,3 +11,27 @@ Deno.test('toNumber - basic number type', () => {
 
   assertEquals(oasNumber, new OasNumber())
 })
+
+Deno.test('toNumber - validation fields', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  const schema: OpenAPIV3.SchemaObject = {
+    type: 'number',
+    multipleOf: 10,
+    maximum: 100,
+    minimum: 0,
+    exclusiveMaximum: true,
+    exclusiveMinimum: true
+  }
+  const oasNumber = toNumber({ value: schema, stackTrail, context: mockParseContext })
+
+  assertEquals(
+    oasNumber,
+    new OasNumber({
+      multipleOf: 10,
+      maximum: 100,
+      minimum: 0,
+      exclusiveMaximum: true,
+      exclusiveMinimum: true
+    })
+  )
+})

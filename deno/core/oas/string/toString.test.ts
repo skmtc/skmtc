@@ -4,37 +4,37 @@ import { toString, toParsedString } from './toString.ts'
 import { assertEquals, assertExists } from '@std/assert'
 import { OasString } from './String.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
+import { spy } from '@std/testing/mock'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
-Deno.test('toString', async (t) => {
-  await t.step('minimal schema', async (t) => {
+Deno.test('toString', async t => {
+  await t.step('minimal schema', async t => {
     await t.step('should return empty OasString for basic string type', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = { type: 'string' }
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString, new OasString())
     })
   })
 
-  await t.step('nullable handling', async (t) => {
+  await t.step('nullable handling', async t => {
     await t.step('should handle nullable: true', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
         nullable: true,
-        description: 'A nullable string',
+        description: 'A nullable string'
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.nullable, true)
@@ -46,13 +46,13 @@ Deno.test('toString', async (t) => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
         nullable: false,
-        description: 'A non-nullable string',
+        description: 'A non-nullable string'
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.nullable, false)
@@ -63,31 +63,31 @@ Deno.test('toString', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
-        description: 'A string without nullable',
+        description: 'A string without nullable'
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.nullable, undefined)
     })
   })
 
-  await t.step('example handling', async (t) => {
+  await t.step('example handling', async t => {
     await t.step('should preserve valid string example', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
-        example: 'test example',
+        example: 'test example'
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.example, 'test example')
@@ -98,13 +98,13 @@ Deno.test('toString', async (t) => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
         nullable: true,
-        example: null,
+        example: null
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.example, null)
@@ -114,7 +114,7 @@ Deno.test('toString', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema = {
         type: 'string',
-        example: 123,
+        example: 123
       } as unknown as OpenAPIV3.SchemaObject
 
       const contextSpy = spy(mockParseContext, 'logIssue')
@@ -122,7 +122,7 @@ Deno.test('toString', async (t) => {
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(oasString.example, undefined)
@@ -135,31 +135,31 @@ Deno.test('toString', async (t) => {
     await t.step('should handle undefined example', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.example, undefined)
     })
   })
 
-  await t.step('enum handling', async (t) => {
+  await t.step('enum handling', async t => {
     await t.step('should preserve valid string enums', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
-        enum: ['active', 'inactive', 'pending'],
+        enum: ['active', 'inactive', 'pending']
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.enums, ['active', 'inactive', 'pending'])
@@ -170,13 +170,13 @@ Deno.test('toString', async (t) => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
         nullable: true,
-        enum: ['active', null, 'inactive'],
+        enum: ['active', null, 'inactive']
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.enums, ['active', null, 'inactive'])
@@ -186,7 +186,7 @@ Deno.test('toString', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema = {
         type: 'string',
-        enum: ['valid', 123, 'another'],
+        enum: ['valid', 123, 'another']
       } as unknown as OpenAPIV3.SchemaObject
 
       const contextSpy = spy(mockParseContext, 'logIssue')
@@ -194,7 +194,7 @@ Deno.test('toString', async (t) => {
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(oasString.enums, undefined)
@@ -205,18 +205,18 @@ Deno.test('toString', async (t) => {
     })
   })
 
-  await t.step('default value handling', async (t) => {
+  await t.step('default value handling', async t => {
     await t.step('should preserve valid string default', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
-        default: 'default value',
+        default: 'default value'
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.default, 'default value')
@@ -227,13 +227,13 @@ Deno.test('toString', async (t) => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
         nullable: true,
-        default: null,
+        default: null
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.default, null)
@@ -243,7 +243,7 @@ Deno.test('toString', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema = {
         type: 'string',
-        default: 456,
+        default: 456
       } as unknown as OpenAPIV3.SchemaObject
 
       const contextSpy = spy(mockParseContext, 'logIssue')
@@ -251,7 +251,7 @@ Deno.test('toString', async (t) => {
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(oasString.default, undefined)
@@ -262,7 +262,7 @@ Deno.test('toString', async (t) => {
     })
   })
 
-  await t.step('string properties', async (t) => {
+  await t.step('string properties', async t => {
     await t.step('should preserve all string metadata', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = {
@@ -272,13 +272,13 @@ Deno.test('toString', async (t) => {
         format: 'email',
         minLength: 5,
         maxLength: 100,
-        pattern: '^[a-z]+$',
+        pattern: '^[a-z]+$'
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.title, 'User Name')
@@ -295,13 +295,13 @@ Deno.test('toString', async (t) => {
         type: 'string',
         readOnly: true,
         writeOnly: false,
-        deprecated: true,
+        deprecated: true
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.readOnly, true)
@@ -310,7 +310,7 @@ Deno.test('toString', async (t) => {
     })
   })
 
-  await t.step('complex schemas', async (t) => {
+  await t.step('complex schemas', async t => {
     await t.step('should handle complete schema with all properties', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.SchemaObject = {
@@ -327,13 +327,13 @@ Deno.test('toString', async (t) => {
         pattern: '^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$',
         readOnly: false,
         writeOnly: false,
-        deprecated: false,
+        deprecated: false
       }
 
       const oasString = toString({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(oasString.title, 'Email')
@@ -342,44 +342,37 @@ Deno.test('toString', async (t) => {
       assertEquals(oasString.nullable, true)
       assertEquals(oasString.example, 'user@example.com')
       assertEquals(oasString.default, 'default@example.com')
-      assertEquals(oasString.enums, [
-        'user@example.com',
-        'admin@example.com',
-        null,
-      ])
+      assertEquals(oasString.enums, ['user@example.com', 'admin@example.com', null])
       assertEquals(oasString.minLength, 5)
       assertEquals(oasString.maxLength, 255)
       assertEquals(oasString.pattern, '^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$')
     })
 
-    await t.step(
-      'should handle schema with extension fields (x-* properties)',
-      () => {
-        const stackTrail = new StackTrail(['TEST'])
-        const schema = {
-          type: 'string',
-          description: 'With extensions',
-          'x-custom-field': 'custom value',
-          'x-internal-id': 123,
-        } as OpenAPIV3.SchemaObject
+    await t.step('should handle schema with extension fields (x-* properties)', () => {
+      const stackTrail = new StackTrail(['TEST'])
+      const schema = {
+        type: 'string',
+        description: 'With extensions',
+        'x-custom-field': 'custom value',
+        'x-internal-id': 123
+      } as OpenAPIV3.SchemaObject
 
-        const oasString = toString({
-          value: schema,
-          stackTrail,
-          context: mockParseContext,
-        })
+      const oasString = toString({
+        value: schema,
+        stackTrail,
+        context: mockParseContext
+      })
 
-        assertEquals(oasString.description, 'With extensions')
-        assertExists(oasString.extensionFields)
-        assertEquals(oasString.extensionFields?.['x-custom-field'], 'custom value')
-        assertEquals(oasString.extensionFields?.['x-internal-id'], 123)
-      },
-    )
+      assertEquals(oasString.description, 'With extensions')
+      assertExists(oasString.extensionFields)
+      assertEquals(oasString.extensionFields?.['x-custom-field'], 'custom value')
+      assertEquals(oasString.extensionFields?.['x-internal-id'], 123)
+    })
   })
 })
 
-Deno.test('toParsedString', async (t) => {
-  await t.step('format validation', async (t) => {
+Deno.test('toParsedString', async t => {
+  await t.step('format validation', async t => {
     await t.step('should accept valid string formats', () => {
       const stackTrail = new StackTrail(['TEST'])
       const validFormats = [
@@ -397,10 +390,10 @@ Deno.test('toParsedString', async (t) => {
         'password',
         'byte',
         'binary',
-        'uri-template',
+        'uri-template'
       ] as const
 
-      validFormats.forEach((format) => {
+      validFormats.forEach(format => {
         const oasString = toParsedString({
           context: mockParseContext,
           nullable: false,
@@ -410,8 +403,8 @@ Deno.test('toParsedString', async (t) => {
           stackTrail,
           value: {
             type: 'string',
-            format,
-          },
+            format
+          }
         })
 
         assertEquals(oasString.format, format)
@@ -431,8 +424,8 @@ Deno.test('toParsedString', async (t) => {
         stackTrail,
         value: {
           type: 'string',
-          format: 'custom-format',
-        },
+          format: 'custom-format'
+        }
       })
 
       assertEquals(oasString.format, 'custom-format')
@@ -443,7 +436,7 @@ Deno.test('toParsedString', async (t) => {
     })
   })
 
-  await t.step('property preservation', async (t) => {
+  await t.step('property preservation', async t => {
     await t.step('should preserve all standard string properties', () => {
       const stackTrail = new StackTrail(['TEST'])
       const oasString = toParsedString({
@@ -463,8 +456,8 @@ Deno.test('toParsedString', async (t) => {
           pattern: '^[a-z]+$',
           readOnly: true,
           writeOnly: false,
-          deprecated: true,
-        },
+          deprecated: true
+        }
       })
 
       assertEquals(oasString.title, 'Title')
@@ -492,8 +485,8 @@ Deno.test('toParsedString', async (t) => {
         defaultValue: undefined,
         stackTrail,
         value: {
-          type: 'string',
-        },
+          type: 'string'
+        }
       })
 
       assertEquals(oasString.type, 'string')
@@ -504,7 +497,7 @@ Deno.test('toParsedString', async (t) => {
     })
   })
 
-  await t.step('length constraints', async (t) => {
+  await t.step('length constraints', async t => {
     await t.step('should handle minLength and maxLength', () => {
       const stackTrail = new StackTrail(['TEST'])
       const oasString = toParsedString({
@@ -517,8 +510,8 @@ Deno.test('toParsedString', async (t) => {
         value: {
           type: 'string',
           minLength: 10,
-          maxLength: 50,
-        },
+          maxLength: 50
+        }
       })
 
       assertEquals(oasString.minLength, 10)
@@ -536,25 +529,25 @@ Deno.test('toParsedString', async (t) => {
         stackTrail,
         value: {
           type: 'string',
-          minLength: 0,
-        },
+          minLength: 0
+        }
       })
 
       assertEquals(oasString.minLength, 0)
     })
   })
 
-  await t.step('pattern validation', async (t) => {
+  await t.step('pattern validation', async t => {
     await t.step('should preserve regex patterns', () => {
       const stackTrail = new StackTrail(['TEST'])
       const patterns = [
         '^[a-z]+$',
         '\\d{3}-\\d{2}-\\d{4}',
         '^[A-Z][a-z]*$',
-        '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+        '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
       ]
 
-      patterns.forEach((pattern) => {
+      patterns.forEach(pattern => {
         const oasString = toParsedString({
           context: mockParseContext,
           nullable: false,
@@ -564,8 +557,8 @@ Deno.test('toParsedString', async (t) => {
           stackTrail,
           value: {
             type: 'string',
-            pattern,
-          },
+            pattern
+          }
         })
 
         assertEquals(oasString.pattern, pattern)
@@ -573,7 +566,7 @@ Deno.test('toParsedString', async (t) => {
     })
   })
 
-  await t.step('extension fields', async (t) => {
+  await t.step('extension fields', async t => {
     await t.step('should preserve extension fields', () => {
       const stackTrail = new StackTrail(['TEST'])
       const oasString = toParsedString({
@@ -587,8 +580,8 @@ Deno.test('toParsedString', async (t) => {
           type: 'string',
           'x-custom': 'value',
           'x-internal-id': 123,
-          'x-metadata': { key: 'value' },
-        } as OpenAPIV3.SchemaObject,
+          'x-metadata': { key: 'value' }
+        } as OpenAPIV3.SchemaObject
       })
 
       assertExists(oasString.extensionFields)
