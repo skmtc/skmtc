@@ -34,7 +34,6 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 
 ### Schemas and types
 
-|                       | Install                                  | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
 | ![](assets/arktype.svg) | `skmtc install @skmtc/gen-arktype` | [Skmtc](https://skm.tc/generators/gen-arktype) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-arktype) |
 | ![](assets/typescript.svg) | `skmtc install @skmtc/gen-typescript` | [Skmtc](https://skm.tc/generators/gen-typescript) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-typescript) |
@@ -43,14 +42,12 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 
 ### Servers
 
-|                       | Install                                  | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
 | ![](assets/msw.svg) | `skmtc install @skmtc/gen-msw` | [Skmtc](https://skm.tc/generators/gen-msw) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-msw) |
 | ![](assets/supabase.svg) ![](assets/hono.svg) | `skmtc install @skmtc/gen-supabase-hono` | [Skmtc](https://skm.tc/generators/gen-supabase-hono) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
 
 ### Clients
 
-|                       | Install                                  | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
 | ![](assets/supabase.svg) ![](assets/hono.svg) | `skmtc install @skmtc/gen-supabase-hono` | [Skmtc](https://skm.tc/generators/gen-supabase-hono) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
 | ![](assets/reactquery.svg) ![](assets/zod.svg) | `skmtc install @skmtc/gen-tanstack-query-fetch-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-fetch-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-fetch-zod) |
@@ -58,7 +55,6 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 
 ### UI
 
-|                       | Install                                  | Info                              |
 | --------------------- | ---------------------------------------- | --------------------------------- |
 | ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-form` | [Skmtc](https://skm.tc/generators/gen-shadcn-form) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-form) |
 | ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-select` | [Skmtc](https://skm.tc/generators/gen-shadcn-select) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
