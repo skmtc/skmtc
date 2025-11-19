@@ -39,28 +39,24 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 | ![](assets/valibot.svg) | Valibot | [@skmtc/gen-valibot](https://github.com/skmtc/skmtc-generators/tree/main/gen-valibot) |
 | ![](assets/zod.svg) | Zod | [@skmtc/gen-zod](https://github.com/skmtc/skmtc-generators/tree/main/gen-zod) |
 
-### Servers
-
-|                       | Install                                  | Info                              |
+|                       | Servers                                  | Generator repo                    |
 | --------------------- | ---------------------------------------- | --------------------------------- |
-| ![](assets/msw.svg) | `skmtc install @skmtc/gen-msw` | [Skmtc](https://skm.tc/generators/gen-msw) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-msw) |
-| ![](assets/supabase.svg) ![](assets/hono.svg) | `skmtc install @skmtc/gen-supabase-hono` | [Skmtc](https://skm.tc/generators/gen-supabase-hono) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
+| ![](assets/msw.svg) | MSW | [@skmtc/gen-msw](https://github.com/skmtc/skmtc-generators/tree/main/gen-msw) |
+| ![](assets/supabase.svg) ![](assets/hono.svg) | Supabase + Hono | [@skmtc/gen-supabase-hono](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
 
-### Clients
-
-|                       | Install                                  | Info                              |
+|                       | Clients                                  | Generator repo                    |
 | --------------------- | ---------------------------------------- | --------------------------------- |
-| ![](assets/supabase.svg) ![](assets/hono.svg) | `skmtc install @skmtc/gen-supabase-hono` | [Skmtc](https://skm.tc/generators/gen-supabase-hono) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
-| ![](assets/reactquery.svg) ![](assets/zod.svg) | `skmtc install @skmtc/gen-tanstack-query-fetch-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-fetch-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-fetch-zod) |
-| ![](assets/reactquery.svg) ![](assets/supabase.svg) ![](assets/zod.svg) | `skmtc install @skmtc/gen-tanstack-query-supabase-zod` | [Skmtc](https://skm.tc/generators/gen-tanstack-query-supabase-zod) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-supabase-zod) |
+| ![](assets/supabase.svg) ![](assets/hono.svg) | Supabase + Hono | [@skmtc/gen-supabase-hono](https://github.com/skmtc/skmtc-generators/tree/main/gen-supabase-hono) |
+| ![](assets/reactquery.svg) ![](assets/zod.svg) | Tanstack Query + Fetch + Zod | [@skmtc/gen-tanstack-query-fetch-zod](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-fetch-zod) |
+| ![](assets/reactquery.svg) ![](assets/supabase.svg) ![](assets/zod.svg) | Tanstack Query + Supabase + Zod | [@skmtc/gen-tanstack-query-supabase-zod](https://github.com/skmtc/skmtc-generators/tree/main/gen-tanstack-query-supabase-zod) |
 
-### UI
-
-|                       | Install                                  | Info                              |
+|                       | UI                                       | Generator repo                    |
 | --------------------- | ---------------------------------------- | --------------------------------- |
-| ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-form` | [Skmtc](https://skm.tc/generators/gen-shadcn-form) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-form) |
-| ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-select` | [Skmtc](https://skm.tc/generators/gen-shadcn-select) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
-| ![](assets/shadcnui.svg) | `skmtc install @skmtc/gen-shadcn-table` | [Skmtc](https://skm.tc/generators/gen-shadcn-table) \| [Github](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-table) |
+| ![](assets/shadcnui.svg) | Shadcn Form | [@skmtc/gen-shadcn-form](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-form) |
+| ![](assets/shadcnui.svg) | Shadcn Select | [@skmtc/gen-shadcn-select](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
+| ![](assets/shadcnui.svg) | Shadcn Table | [@skmtc/gen-shadcn-table](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-table) |
+
+## Getting started
 
 ### Install Skmtc
 
