@@ -71,8 +71,8 @@ deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.400 -n skmtc -f
 ```
 
 **Skmtc** runs on [Deno](https://deno.com). You can install it using 
-- `curl -fsSL https://deno.land/install.sh | sh` - MacOS/Linux
-- `irm https://deno.land/install.ps1 | iex` - Windows
+- `curl -fsSL https://deno.land/install.sh | sh` on MacOS/Linux
+- `irm https://deno.land/install.ps1 | iex` on Windows
 
 ### Create project and generate artifacts using TUI
 
