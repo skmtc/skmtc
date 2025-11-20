@@ -16,6 +16,8 @@
 - **Code not config** - Full control over output, variable names and file structure
 - **Customisable** - Supports custom edge case handling
 
+![](assets/demo.gif)
+
 ## Performance vs other code generators
 
 ```
@@ -63,8 +65,6 @@ deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.405 -n skmtc -f
 # Create project then Generate artifacts 
 skmtc
 ```
-
-![](assets/demo.gif)
 
 ## How does it work?
 
