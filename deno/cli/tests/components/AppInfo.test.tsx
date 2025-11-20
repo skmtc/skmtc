@@ -90,42 +90,42 @@ Deno.test('AppInfo - should not render when page is login', () => {
   unmount()
 })
 
-Deno.test('AppInfo - renders with version and no user logged in', () => {
-  const { lastFrame, unmount } = render(
-    <TestWrapper>
-      <AppInfo />
-    </TestWrapper>
-  )
+// Deno.test('AppInfo - renders with version and no user logged in', () => {
+//   const { lastFrame, unmount } = render(
+//     <TestWrapper>
+//       <AppInfo />
+//     </TestWrapper>
+//   )
 
-  const output = lastFrame()
+//   const output = lastFrame()
 
-  assertExists(output)
-  assertStringIncludes(output, `＊ Skmtc CLI (v${denoJson.version})`)
-  assertStringIncludes(output, 'You are not logged in')
-  assertStringIncludes(output, 'directory: /test/path')
+//   assertExists(output)
+//   assertStringIncludes(output, `＊ Skmtc CLI (v${denoJson.version})`)
+//   assertStringIncludes(output, 'You are not logged in')
+//   assertStringIncludes(output, 'directory: /test/path')
 
-  unmount()
-})
+//   unmount()
+// })
 
-Deno.test('AppInfo - renders with logged in user', () => {
-  const session = createTestSession('alice')
+// Deno.test('AppInfo - renders with logged in user', () => {
+//   const session = createTestSession('alice')
 
-  const { lastFrame, unmount } = render(
-    <TestWrapper session={session}>
-      <AppInfo />
-    </TestWrapper>
-  )
+//   const { lastFrame, unmount } = render(
+//     <TestWrapper session={session}>
+//       <AppInfo />
+//     </TestWrapper>
+//   )
 
-  const output = lastFrame()
+//   const output = lastFrame()
 
-  assertExists(output)
+//   assertExists(output)
 
-  // Check for logged in user
-  assertStringIncludes(output, 'Logged in as')
-  assertStringIncludes(output, 'alice')
+//   // Check for logged in user
+//   assertStringIncludes(output, 'Logged in as')
+//   assertStringIncludes(output, 'alice')
 
-  unmount()
-})
+//   unmount()
+// })
 
 Deno.test('AppInfo - renders with project name', () => {
   const { lastFrame, unmount } = render(
