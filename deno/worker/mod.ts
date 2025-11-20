@@ -10,7 +10,7 @@ const toWorker = (
     try {
       switch (type) {
         case 'GENERATE': {
-          const { documentObject, clientSettings } = payload
+          const { documentObject, clientSettings, silent } = payload
 
           const now = Date.now()
           const traceId = `trace-${now}`
@@ -28,7 +28,7 @@ const toWorker = (
             stackTrail,
             toGeneratorConfigMap,
             logsPath: undefined,
-            silent: true
+            silent: silent ?? false
           })
 
           self.postMessage({
