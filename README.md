@@ -108,25 +108,7 @@ class ZodFetch extends BaseProjection {
 }
 ```
 
-## ❓ FAQ
-
-### **What OpenAPI versions are supported?**
-Skmtc supports OpenAPI v3.0. Swagger 2.0 and OpenAPI v3.1 are automatically converted to OpenAPI v3.0.
-
-### **Can I customize the generated code?**
-Yes! Each Transformer specifies its output using plain string templates, which means you can
-edit them as would you edit any other code.
-
-### **Can I use this with my existing React app?**
-Yes! Skmtc generates standalone code that integrates with any React application. The generated components work with your existing setup.
-
-### **How does this compare to OpenAPI Generator?**
-Skmtc is the only code generation framework that provides full control over the generated code. You are not limited by library-specific settings and you do not need to write complex AST code.
-
-### **Does it work with Next.js/Remix/Vite?**
-Yes! The generated code is framework-agnostic TypeScript that works with any build tool or library.
-
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.
 
@@ -137,11 +119,11 @@ We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to
 - [Custom Generators Guide](https://docs.skmtc.dev/generators)
 - [Examples](https://github.com/skmtc/skmtc/tree/main/examples) -->
 
-## 🛟 Support
+## Support
 
 - [GitHub Issues](https://github.com/skmtc/skmtc/issues) - Bug reports and feature requests
 - [Discord Community](https://discord.com/invite/Mg88C8Xu5Y) - Get help and share your experience
 
-## 📄 License
+## License
 
 Apache 2.0 © [Skmtc Contributors](LICENSE.md)
