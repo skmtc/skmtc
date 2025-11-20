@@ -29,9 +29,6 @@ openapi-ts-zod  11.95s  ██████████████████�
 ```
 See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchmarks) for full details
 
-
-![](assets/demo.gif)
-
 ## Getting started
 
 ### Install Skmtc
@@ -50,6 +47,8 @@ deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.405 -n skmtc -f
 # Create project then Generate artifacts 
 skmtc
 ```
+
+![](assets/demo.gif)
 
 ## Available generators
 
