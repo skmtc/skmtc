@@ -44,7 +44,6 @@ deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.405 -n skmtc -f
 ### Create project and generate artifacts using TUI
 
 ```bash
-# Create project then Generate artifacts 
 skmtc
 ```
 
