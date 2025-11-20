@@ -16,19 +16,6 @@
 - **Code not config** - Full control over output, variable names and file structure
 - **Customisable** - Supports custom edge case handling
 
-## Performance vs other code generators
-
-```
-🚀 Time to convert Github OpenAPI to Zod schemas (lower is better)
-
-skmtc-zod       0.51s   ██▎ 1.0x
-orval-zod       4.85s   ████████████████████▎ 9.5x
-kubb-zod        7.63s   ███████████████████████████████▉ 14.9x
-openapi-ts-zod  11.95s  █████████████████████████████████████████████████▉ 23.3x
-                        ◺ 0.00                                     12.00 ◿
-```
-See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchmarks) for full details
-
 ## Getting started
 
 ### Install Skmtc
@@ -65,6 +52,18 @@ skmtc
 | ![](assets/shadcnui.svg) | Shadcn Select | [@skmtc/gen-shadcn-select](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-select) |
 | ![](assets/shadcnui.svg) | Shadcn Table | [@skmtc/gen-shadcn-table](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-table) |
 
+## Performance vs other code generators
+
+```
+🚀 Time to convert Github OpenAPI to Zod schemas (lower is better)
+
+skmtc-zod       0.51s   ██▎ 1.0x
+orval-zod       4.85s   ████████████████████▎ 9.5x
+kubb-zod        7.63s   ███████████████████████████████▉ 14.9x
+openapi-ts-zod  11.95s  █████████████████████████████████████████████████▉ 23.3x
+                        ◺ 0.00                                     12.00 ◿
+```
+See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchmarks) for full details
 
 ## How does it work?
 
