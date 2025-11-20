@@ -49,14 +49,14 @@ export const TopRow = ({ session }: TopRowProps) => {
         <Text dimColor>{`(v${denoJson.version})`}</Text>
       </Box>
       <Box flexDirection="row">
-        {session ? (
+        {/* {session ? (
           <Text>
             <Text dimColor>Logged in as </Text>
             <Text>{session.user.user_metadata.user_name}</Text>
           </Text>
         ) : (
           <Text>You are not logged in</Text>
-        )}
+        )} */}
       </Box>
     </Box>
   )
