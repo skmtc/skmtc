@@ -16,8 +16,6 @@
 - **Code not config** - Full control over output, variable names and file structure
 - **Customisable** - Supports custom edge case handling
 
-![](assets/demo.gif)
-
 ## Performance vs other code generators
 
 ```
@@ -30,6 +28,10 @@ openapi-ts-zod  11.95s  ██████████████████�
                         ◺ 0.00                                     12.00 ◿
 ```
 See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchmarks) for full details
+
+
+![](assets/demo.gif)
+
 
 ## Available generators
 
