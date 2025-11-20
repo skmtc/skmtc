@@ -108,19 +108,6 @@ class ZodFetch extends BaseProjection {
 }
 ```
 
-
-
-## 📦 Available Generators
-
-Choose from our growing collection of generators, combone them or create your own:
-
-- **Tanstack Query** - React Query hooks with Zod validation
-- **MSW** - Mock Service Worker handlers from OpenAPI examples
-- **Zod Schemas** - Runtime validation schemas
-- **TypeScript Types** - Pure type definitions
-- **Supabase/Hono Functions** - Edge function handlers
-- See full list at https://github.com/skmtc/skmtc-generators
-
 ## ❓ FAQ
 
 ### **What OpenAPI versions are supported?**
