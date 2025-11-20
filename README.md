@@ -65,6 +65,7 @@ openapi-ts-zod  11.95s  ██████████████████�
 ```
 See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchmarks) for full details
 
+<!-- ## 
 ## How does it work?
 
 Skmtc handles all OpenAPI parsing and output rendering, which means each generator only needs to specify how to represent its API schema input as a code string.
@@ -107,6 +108,7 @@ class ZodFetch extends BaseProjection {
   }
 }
 ```
+-->
 
 ## Contributing
 
