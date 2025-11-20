@@ -50,7 +50,7 @@ See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchm
 ### Install Skmtc
 
 ```bash
-deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.403 -n skmtc -f
+deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.405 -n skmtc -f
 ```
 
 **Skmtc** runs on [Deno](https://deno.com). You can install it using 
@@ -64,9 +64,7 @@ deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.403 -n skmtc -f
 skmtc
 ```
 
-https://github.com/user-attachments/assets/375aedde-aed8-42a3-bd13-3004f736dee7
-
-https://github.com/user-attachments/assets/c830e57a-4767-46e3-b27e-e518c9f6b0d7
+![](assets/demo.gif)
 
 ## How does it work?
 
