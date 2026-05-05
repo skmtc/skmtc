@@ -204,6 +204,7 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString, token }: Run
             skmtcRoot: state.skmtcRoot,
             accountName: state.session?.user?.user_metadata?.user_name,
             schemaContents: schemaContents.contents,
+            fileType: schemaContents.fileType,
             clientSettings: project.clientJson?.contents?.settings,
             token
           })
@@ -278,13 +279,14 @@ const WatchGenerateTask = ({
     }
 
     SchemaFile.getFromSource(toSchemaSource(schemaSourceString))
-      .then(({ contents }) => {
+      .then(({ contents, fileType }) => {
         return generate({
           project,
           bundlePath,
           accountName: state.session?.user?.user_metadata?.user_name,
           skmtcRoot: state.skmtcRoot,
           schemaContents: contents,
+          fileType,
           clientSettings: project.clientJson?.contents?.settings,
           token
         })

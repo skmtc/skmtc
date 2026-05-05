@@ -1,6 +1,7 @@
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import { toV3Document, stringToSchema } from '@skmtc/convert'
 import type { ClientSettings } from '@skmtc/core/Settings'
+import { fileTypeToProtocol, type FileType } from '@/lib/types.ts'
 
 export type GenerateResponse = {
   artifacts: Record<string, string>
@@ -12,12 +13,19 @@ export const description =
 
 type GenerateWithWorkerArgs = {
   schemaContents: string
+  /**
+   * File type of the schema source. `json`/`yaml` route through the
+   * OpenAPI converter; `graphql` is sent as raw SDL — the worker calls
+   * the GraphQL parser internally.
+   */
+  fileType: FileType
   clientSettings: ClientSettings | undefined
   bundlePath: string
 }
 
 export const generateWithWorker = ({
   schemaContents,
+  fileType,
   clientSettings,
   bundlePath
 }: GenerateWithWorkerArgs): Promise<GenerateResponse> => {
@@ -36,6 +44,8 @@ export const generateWithWorker = ({
     }
   })
 
+  const protocol = fileTypeToProtocol(fileType)
+
   return new Promise((resolve, reject) => {
     // Set up message handler
     worker.onmessage = async (e: MessageEvent) => {
@@ -43,12 +53,47 @@ export const generateWithWorker = ({
 
       switch (type) {
         case 'READY': {
-          const documentObject = await toV3Document(stringToSchema(schemaContents))
-
-          worker.postMessage({
-            type: 'GENERATE',
-            payload: { documentObject, clientSettings }
-          })
+          // Build the appropriate worker payload by discriminating on
+          // the source kind:
+          //   - 'oas': convert to OpenAPI v3 document object here on
+          //     the host so the worker receives a JSON-serialisable
+          //     structure (the conversion involves Swagger 2 / OAS 3.1
+          //     → 3.0 normalisation that's fine to do on the host).
+          //   - 'gql': post the raw SDL string. `GqlDocument` instances
+          //     hold class instances and OasRef back-refs that don't
+          //     survive structured clone, so parsing must happen inside
+          //     the worker via `toArtifactsFromGraphQL`.
+          // Switch is exhaustive over `Protocol`; adding a new
+          // protocol forces a compile error here.
+          switch (protocol) {
+            case 'gql': {
+              worker.postMessage({
+                type: 'GENERATE',
+                payload: {
+                  protocol: 'gql',
+                  gqlSource: schemaContents,
+                  clientSettings
+                }
+              })
+              break
+            }
+            case 'oas': {
+              const documentObject = await toV3Document(stringToSchema(schemaContents))
+              worker.postMessage({
+                type: 'GENERATE',
+                payload: {
+                  protocol: 'oas',
+                  documentObject,
+                  clientSettings
+                }
+              })
+              break
+            }
+            default: {
+              const _exhaustive: never = protocol
+              throw new Error(`Unhandled protocol: ${_exhaustive}`)
+            }
+          }
           break
         }
 

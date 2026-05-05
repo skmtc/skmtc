@@ -1378,7 +1378,8 @@
         "dependencies": [
           "jsr:@cliffy/command@1.0.0-rc.8",
           "jsr:@skmtc/convert@^0.0.59",
-          "jsr:@skmtc/core@^0.0.984",
+          "jsr:@skmtc/core@0.1",
+          "jsr:@skmtc/worker@0.1",
           "npm:@inkjs/ui@2",
           "npm:@supabase/supabase-js@^2.57.4",
           "npm:@types/react@19",
@@ -1422,13 +1423,14 @@
       "server": {
         "dependencies": [
           "jsr:@skmtc/convert@^0.0.59",
-          "jsr:@skmtc/core@^0.0.984",
+          "jsr:@skmtc/core@0.1",
           "npm:hono@4.7.2"
         ]
       },
       "worker": {
         "dependencies": [
-          "jsr:@skmtc/core@^0.0.984"
+          "jsr:@skmtc/core@0.1",
+          "npm:openapi-types@^12.1.3"
         ]
       }
     }

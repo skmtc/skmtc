@@ -47,7 +47,7 @@ export class SchemaFile {
     const contents = await openPath(defaultFileInfo.path)
 
     if (!contents) {
-      throw new Error(`OpenAPI schema file at ${defaultFileInfo.path} is empty`)
+      throw new Error(`Schema file at ${defaultFileInfo.path} is empty`)
     }
 
     return new SchemaFile({
@@ -102,8 +102,16 @@ const toFileType = (path: string): FileType => {
     return 'json'
   } else if (path.endsWith('.yaml') || path.endsWith('.yml')) {
     return 'yaml'
+  } else if (
+    path.endsWith('.graphql') ||
+    path.endsWith('.gql') ||
+    path.endsWith('.graphqls')
+  ) {
+    return 'graphql'
   } else {
-    throw new Error(`File type is not JSON or YAML: ${path}`)
+    throw new Error(
+      `Schema file extension not recognised (expected .json, .yaml, .yml, .graphql, .gql, or .graphqls): ${path}`
+    )
   }
 }
 
@@ -115,9 +123,22 @@ export const toSchemaSource = (source: string): SchemaSource => {
   }
 }
 
+/**
+ * Returns the conventional default path for a schema file of the given
+ * type inside a project directory.
+ *
+ * - `json` / `yaml` → `openapi.<ext>` (legacy convention)
+ * - `graphql`       → `schema.graphql`
+ *
+ * Used by {@link findSchemaFile} when discovering the schema file
+ * implicitly (no source string supplied by the user).
+ */
 const projectToPath = ({ projectName, fileType, useParent }: ToPathArgs) => {
   const projectPath = useParent ? toRootPath() : toProjectPath(projectName)
 
+  if (fileType === 'graphql') {
+    return join(projectPath, 'schema.graphql')
+  }
   return join(projectPath, `openapi.${fileType}`)
 }
 
@@ -129,7 +150,7 @@ type FindSchemaFileArgs = {
 const openPath = async (path: string): Promise<string> => {
   const contents = await Deno.readTextFile(path)
 
-  invariant(contents, `OpenAPI schema file at "${path}" is empty`)
+  invariant(contents, `Schema file at "${path}" is empty`)
 
   return contents
 }
@@ -143,24 +164,34 @@ const findSchemaFile = async ({
   projectName,
   useParent = false
 }: FindSchemaFileArgs): Promise<FindSchemaFileResult | null> => {
+  // Probe each supported file type at its conventional location.
+  // If multiple are present we surface a clear error rather than guess.
   const jsonPath = projectToPath({ projectName, fileType: 'json', useParent })
-
-  const hasJson = await exists(jsonPath, { isFile: true })
-
   const yamlPath = projectToPath({ projectName, fileType: 'yaml', useParent })
+  const graphqlPath = projectToPath({ projectName, fileType: 'graphql', useParent })
 
-  const hasYaml = await exists(yamlPath, { isFile: true })
+  const [hasJson, hasYaml, hasGraphql] = await Promise.all([
+    exists(jsonPath, { isFile: true }),
+    exists(yamlPath, { isFile: true }),
+    exists(graphqlPath, { isFile: true })
+  ])
 
-  if (hasJson && hasYaml) {
-    throw new Error('Both JSON and YAML schema files found')
+  const present = [hasJson, hasYaml, hasGraphql].filter(Boolean).length
+
+  if (present > 1) {
+    throw new Error(
+      'Multiple schema files found at the default locations; expected exactly one of openapi.json, openapi.yaml, or schema.graphql'
+    )
   }
 
   if (hasJson) {
     return { fileType: 'json', path: jsonPath }
   }
-
   if (hasYaml) {
     return { fileType: 'yaml', path: yamlPath }
+  }
+  if (hasGraphql) {
+    return { fileType: 'graphql', path: graphqlPath }
   }
 
   if (!useParent) {

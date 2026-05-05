@@ -1,11 +1,19 @@
 import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
 import type { ClientSettings } from '@/types/clientSettings.generated.ts'
 import type { GenerateResponse } from '@/lib/generate-worker.ts'
+import type { Protocol } from '@/lib/types.ts'
 
 export type GenerateSandboxApiArgs = {
   accountName: string
   serverName: string
   schema: string
+  /**
+   * Source-document protocol. Determines which parser the sandbox
+   * server runs over `schema`. The server requires this field to be
+   * present (it's the discriminator on the request body's union
+   * schema), so the CLI always sends a value here.
+   */
+  protocol: Protocol
   clientSettings: ClientSettings | undefined
   token: string | undefined
 }
@@ -14,6 +22,7 @@ export const generateSandboxApi = async ({
   accountName,
   serverName,
   schema,
+  protocol,
   clientSettings,
   token
 }: GenerateSandboxApiArgs): Promise<GenerateResponse> => {
@@ -24,7 +33,7 @@ export const generateSandboxApi = async ({
 
   const res = await fetch(sandboxUrl, {
     method: 'POST',
-    body: JSON.stringify({ schema, clientSettings }),
+    body: JSON.stringify({ schema, protocol, clientSettings }),
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       'Content-Type': 'application/json'

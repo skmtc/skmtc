@@ -1,9 +1,14 @@
 {
   "name": "@skmtc/worker",
-  "version": "0.0.56",
-  "exports": "./mod.ts",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./mod.ts",
+    "./types": "./types.ts"
+  },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.984"
+    "@skmtc/core": "jsr:@skmtc/core@^0.1.0",
+    "@skmtc/core/parsers/graphql": "jsr:@skmtc/core@^0.1.0/parsers/graphql",
+    "openapi-types": "npm:openapi-types@^12.1.3"
   },
   "compilerOptions": {
     "lib": [

@@ -82,6 +82,7 @@ export const renderGenerate = async ({
       skmtcRoot,
       accountName: session?.user.user_metadata.user_name,
       schemaContents: schemaContents.contents,
+      fileType: schemaContents.fileType,
       clientSettings: project.clientJson.contents?.settings,
       token: session?.access_token
     })

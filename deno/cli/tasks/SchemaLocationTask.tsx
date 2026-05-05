@@ -15,7 +15,7 @@ export const SchemaLocationTask = ({ project }: SchemaLocationTaskProps) => {
 
   return (
     <StringTask
-      prompt="Input OpenAPI schema path or URL"
+      prompt="Input schema path or URL (.json / .yaml / .graphql)"
       defaultValue={
         schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined
       }

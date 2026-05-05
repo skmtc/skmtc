@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects } from '@std/assert'
 import { generateWithWorker, description } from './generate-worker.ts'
 import type { ManifestContent } from '@skmtc/core/Manifest'
+import type { GeneratePayload } from '@skmtc/worker/types'
 
 // Store original Worker constructor
 const OriginalWorker = globalThis.Worker
@@ -114,6 +115,7 @@ Deno.test('generateWithWorker - creates Worker with correct URL and permissions'
     await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: createMockClientSettings(),
+      fileType: 'json' as const,
       bundlePath: './worker-bundle.ts'
     })
 
@@ -173,6 +175,7 @@ Deno.test('generateWithWorker - handles READY message and posts GENERATE message
     await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: createMockClientSettings(),
+      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -217,6 +220,7 @@ Deno.test('generateWithWorker - resolves with artifacts and manifest on RESULT m
     const result = await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: createMockClientSettings(),
+      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -253,6 +257,7 @@ Deno.test('generateWithWorker - rejects on ERROR message from worker', async () 
         await generateWithWorker({
           schemaContents: createMockSchemaContents(),
           clientSettings: createMockClientSettings(),
+      fileType: 'json' as const,
           bundlePath: './worker.ts'
         })
       },
@@ -282,6 +287,7 @@ Deno.test('generateWithWorker - rejects on worker.onerror', async () => {
       await generateWithWorker({
         schemaContents: createMockSchemaContents(),
         clientSettings: createMockClientSettings(),
+      fileType: 'json' as const,
         bundlePath: './worker.ts'
       })
     })
@@ -322,6 +328,7 @@ Deno.test('generateWithWorker - terminates worker after successful completion', 
     await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: createMockClientSettings(),
+      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -363,6 +370,7 @@ Deno.test('generateWithWorker - terminates worker after error', async () => {
       await generateWithWorker({
         schemaContents: createMockSchemaContents(),
         clientSettings: createMockClientSettings(),
+      fileType: 'json' as const,
         bundlePath: './worker.ts'
       })
     })
@@ -397,11 +405,102 @@ Deno.test('generateWithWorker - handles undefined clientSettings', async () => {
     const result = await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
+      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
     assertEquals(typeof result.artifacts, 'object')
     assertEquals(typeof result.manifest, 'object')
+  } finally {
+    globalThis.Worker = OriginalWorker
+  }
+})
+
+Deno.test('generateWithWorker - posts GraphQL payload (protocol=gql, gqlSource) for graphql fileType', async () => {
+  let capturedPayload: unknown = null
+
+  globalThis.Worker = class {
+    constructor(url: string | URL, options?: WorkerOptions) {
+      const instance = new MockWorker(url.toString(), options)
+
+      instance.postMessage = (data: unknown) => {
+        const message = data as { type: string; payload: unknown }
+        if (message.type === 'GENERATE') {
+          capturedPayload = message.payload
+          setTimeout(() => {
+            instance.simulateMessage({
+              type: 'RESULT',
+              artifacts: {},
+              manifest: createMockManifest()
+            })
+          }, 0)
+        }
+      }
+
+      setTimeout(() => instance.simulateMessage({ type: 'READY' }), 0)
+
+      return instance as unknown as Worker
+    }
+  } as unknown as typeof Worker
+
+  try {
+    await generateWithWorker({
+      schemaContents: 'type Query { ping: Boolean }',
+      clientSettings: undefined,
+      fileType: 'graphql' as const,
+      bundlePath: './worker.ts'
+    })
+
+    const payload = capturedPayload as GeneratePayload
+    assertEquals(payload.protocol, 'gql')
+    if (payload.protocol === 'gql') {
+      assertEquals(payload.gqlSource, 'type Query { ping: Boolean }')
+    }
+  } finally {
+    globalThis.Worker = OriginalWorker
+  }
+})
+
+Deno.test('generateWithWorker - posts OAS payload (protocol=oas, documentObject) for json fileType', async () => {
+  let capturedPayload: unknown = null
+
+  globalThis.Worker = class {
+    constructor(url: string | URL, options?: WorkerOptions) {
+      const instance = new MockWorker(url.toString(), options)
+
+      instance.postMessage = (data: unknown) => {
+        const message = data as { type: string; payload: unknown }
+        if (message.type === 'GENERATE') {
+          capturedPayload = message.payload
+          setTimeout(() => {
+            instance.simulateMessage({
+              type: 'RESULT',
+              artifacts: {},
+              manifest: createMockManifest()
+            })
+          }, 0)
+        }
+      }
+
+      setTimeout(() => instance.simulateMessage({ type: 'READY' }), 0)
+
+      return instance as unknown as Worker
+    }
+  } as unknown as typeof Worker
+
+  try {
+    await generateWithWorker({
+      schemaContents: createMockSchemaContents(),
+      clientSettings: undefined,
+      fileType: 'json' as const,
+      bundlePath: './worker.ts'
+    })
+
+    const payload = capturedPayload as GeneratePayload
+    assertEquals(payload.protocol, 'oas')
+    if (payload.protocol === 'oas') {
+      assertEquals(payload.documentObject.openapi, '3.0.0')
+    }
   } finally {
     globalThis.Worker = OriginalWorker
   }

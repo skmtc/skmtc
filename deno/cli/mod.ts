@@ -77,7 +77,7 @@ const run = async () => {
     })
 
   await new Command()
-    .description('Generate code from OpenAPI schema')
+    .description('Generate code from an OpenAPI or GraphQL schema')
     .action(async _flags => {
       const { runPrompt } = await import('@/prompt/run-prompt.tsx')
       await runPrompt()

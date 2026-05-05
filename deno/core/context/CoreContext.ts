@@ -18,6 +18,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { RenderResult } from './generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
+import type { SkmtcDocument } from '@/types/SkmtcDocument.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -67,7 +68,7 @@ export type RenderPhase = {
 export type ExecutionPhase = ParsePhase | GeneratePhase | RenderPhase
 
 type GenerateArgs = {
-  oasDocument: OasDocument
+  document: SkmtcDocument
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
@@ -89,14 +90,25 @@ type RenderArgs = {
 /**
  * Arguments for the `toArtifacts` method of CoreContext.
  *
- * Contains all the necessary configuration for transforming an OpenAPI document
- * into code artifacts through the SKMTC pipeline.
+ * Contains all the necessary configuration for transforming a
+ * pre-built source document into code artifacts through the SKMTC
+ * generate + render phases.
+ *
+ * `document` is required. Protocol-specific parsing is the
+ * responsibility of the higher-level `run/toArtifacts.ts` and
+ * `run/toArtifactsFromGraphQL.ts` entry points — each owns the
+ * conversion from raw input (OpenAPI JSON / GraphQL SDL) to a
+ * {@link SkmtcDocument}, then calls this method.
  */
 export type ToArtifactsArgs = {
   /** Stack trail for distributed tracing */
   stackTrail: StackTrail
-  /** The OpenAPI v3 document to process */
-  documentObject: OpenAPIV3.Document
+  /**
+   * Source document wrapped in the discriminated {@link SkmtcDocument}
+   * union. The generate phase reads through the discriminator; both
+   * model and operation generators dispatch on `document.type`.
+   */
+  document: SkmtcDocument
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Function that returns the generator configuration map */
@@ -358,23 +370,17 @@ export class CoreContext {
    * @throws Will throw an error if any phase of the pipeline fails
    */
   toArtifacts({
-    documentObject,
+    document,
     settings,
     toGeneratorConfigMap,
     stackTrail,
     prettier
   }: ToArtifactsArgs): RenderResult {
     try {
-      const oasDocument = stackTrail.trace('parse', st => {
-        this.#phase = this.#setupParsePhase(documentObject)
-
-        return this.#phase.context.parse(st)
-      })
-
       const { files, previews, mappings } = stackTrail.trace('generate', st => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
-          oasDocument,
+          document,
           settings
         })
 
@@ -429,12 +435,12 @@ export class CoreContext {
   }
 
   #setupGeneratePhase({
-    oasDocument,
+    document,
     settings,
     toGeneratorConfigMap
   }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
-      document: { type: 'oas', value: oasDocument },
+      document,
       settings,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),
