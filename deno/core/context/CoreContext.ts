@@ -434,7 +434,7 @@ export class CoreContext {
     toGeneratorConfigMap
   }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
-      oasDocument,
+      document: { type: 'oas', value: oasDocument },
       settings,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),

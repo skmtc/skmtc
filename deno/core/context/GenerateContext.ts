@@ -4,6 +4,8 @@ import { Definition } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
+import type { SkmtcDocument } from '@/types/SkmtcDocument.ts'
 import type {
   BuildModelSettingsArgs,
   DefineAndRegisterArgs,
@@ -52,7 +54,13 @@ import type {
 import type { OasVoid } from '@/oas/void/Void.ts'
 
 type ConstructorArgs = {
-  oasDocument: OasDocument
+  /**
+   * Source document for generation, wrapped in the {@link SkmtcDocument}
+   * discriminated union. Generators that target a specific protocol
+   * narrow on `document.type` (or use the `oasDocument` / `gqlDocument`
+   * convenience accessors which throw on a protocol mismatch).
+   */
+  document: SkmtcDocument
   settings: ClientSettings | undefined
   logger: log.Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
@@ -198,8 +206,12 @@ export class GenerateContext implements GenerateContextType {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
   #mappings: Record<string, Record<string, Mapping>>
-  /** The parsed OpenAPI document being processed */
-  oasDocument: OasDocument
+  /**
+   * Parsed source document, wrapped in the {@link SkmtcDocument}
+   * discriminated union. Canonical representation; both protocol-neutral
+   * (model) and protocol-specific (operation) dispatch reads through this.
+   */
+  document: SkmtcDocument
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Logger instance for tracking generation progress */
@@ -217,7 +229,7 @@ export class GenerateContext implements GenerateContextType {
    * @param args - Constructor arguments including document, settings, and handlers
    */
   constructor({
-    oasDocument,
+    document,
     settings,
     logger,
     captureCurrentResult,
@@ -227,11 +239,50 @@ export class GenerateContext implements GenerateContextType {
     this.#files = new Map()
     this.#previews = {}
     this.#mappings = {}
-    this.oasDocument = oasDocument
+    this.document = document
     this.settings = settings
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
     this.modelDepth = {}
+  }
+
+  /**
+   * Convenience accessor returning the underlying `OasDocument`.
+   *
+   * Throws if the current document's protocol is not `'oas'`. The
+   * dispatcher guarantees HTTP-protocol operation generators are only
+   * invoked when this is safe; this getter exists so existing generator
+   * code that reads `context.oasDocument` keeps working without each
+   * generator having to narrow the discriminated union itself.
+   *
+   * Generators that intentionally span both protocols should read
+   * `context.document` and switch on `document.type` instead.
+   */
+  get oasDocument(): OasDocument {
+    if (this.document.type !== 'oas') {
+      throw new Error(
+        `Expected an OAS document but got '${this.document.type}'. ` +
+          `Use context.document and switch on document.type for protocol-aware generators.`
+      )
+    }
+    return this.document.value
+  }
+
+  /**
+   * Convenience accessor returning the underlying `GqlDocument`.
+   *
+   * Throws if the current document's protocol is not `'gql'`. See
+   * {@link GenerateContext.oasDocument} for the rationale; the same
+   * dispatcher guarantee applies for GraphQL operation generators.
+   */
+  get gqlDocument(): GqlDocument {
+    if (this.document.type !== 'gql') {
+      throw new Error(
+        `Expected a GQL document but got '${this.document.type}'. ` +
+          `Use context.document and switch on document.type for protocol-aware generators.`
+      )
+    }
+    return this.document.value
   }
 
   /**
@@ -253,17 +304,36 @@ export class GenerateContext implements GenerateContextType {
         )
 
         switch (generatorConfig.type) {
-          case 'operation':
-            this.#runOperationGenerator(
-              this.oasDocument,
-              generatorConfig,
-              toSkipPaths(skip, generatorConfig.id),
-              st
-            );
-            break;
+          case 'operation': {
+            // Default protocol to 'http' so generators authored before the
+            // GraphQL pipeline existed continue to work without code changes.
+            const generatorProtocol = generatorConfig.protocol ?? 'http'
+            if (generatorProtocol !== this.document.type) {
+              // Not applicable to the current document; skip silently.
+              return
+            }
+            switch (this.document.type) {
+              case 'oas':
+                this.#runOperationGenerator(
+                  this.document.value,
+                  generatorConfig,
+                  toSkipPaths(skip, generatorConfig.id),
+                  st
+                )
+                break
+              case 'gql':
+                this.#runGqlOperationGenerator(
+                  this.document.value,
+                  generatorConfig,
+                  st
+                )
+                break
+            }
+            break
+          }
           case 'model':
             this.#runModelGenerator(
-              this.oasDocument,
+              this.document,
               generatorConfig,
               toSkipModels(skip, generatorConfig.id),
               st
@@ -323,13 +393,51 @@ export class GenerateContext implements GenerateContextType {
     }, undefined)
   }
 
+  #runGqlOperationGenerator(
+    gqlDocument: GqlDocument,
+    generatorConfig: OperationConfig,
+    stackTrail: StackTrail
+  ) {
+    // GraphQL operations are passed through the same `transform({ context, operation, acc })`
+    // contract as OAS operations, but with `GqlOperation` instead of
+    // `OasOperation`. The structural duck-typed signature on
+    // `OperationConfig.transform` covers this — it's `<Acc>(args) => Acc`,
+    // and the `operation` argument is what each protocol-specific generator
+    // narrows on.
+    gqlDocument.operations.reduce<unknown>((acc, operation) => {
+      return stackTrail.trace(operation.identifier, st => {
+        try {
+          // The current isSupported signature expects an OasOperation; we
+          // skip the optional gate for GraphQL until per-protocol hooks
+          // are introduced. Typed dispatch happens at the generator side.
+          const result = generatorConfig.transform({
+            // deno-lint-ignore no-explicit-any
+            context: this as any,
+            // deno-lint-ignore no-explicit-any
+            operation: operation as any,
+            acc
+          })
+          this.captureCurrentResult('success', st)
+          return result
+        } catch (error) {
+          this.logger.error(error)
+          this.captureCurrentResult('error', st)
+          return acc
+        }
+      })
+    }, undefined)
+  }
+
   #runModelGenerator(
-    oasDocument: OasDocument,
+    document: SkmtcDocument,
     generatorConfig: ModelConfig,
     skip: string[] | undefined,
     stackTrail: StackTrail
   ) {
-    const refNames = oasDocument.components?.toSchemasRefNames() ?? []
+    const refNames =
+      document.type === 'oas'
+        ? document.value.components?.toSchemasRefNames() ?? []
+        : document.value.registry.toSchemasRefNames()
 
     return refNames.reduce((acc, refName) => {
       return stackTrail.trace(refName, st => {
@@ -739,10 +847,19 @@ export class GenerateContext implements GenerateContextType {
   resolveSchemaRefOnce(refName: RefName, generatorId: string): OasSchema | OasRef<'schema'> {
     this.modelDepth[`${generatorId}:${refName}`]++
 
-    const schema = this.oasDocument.components?.schemas?.[refName]?.resolveOnce()
+    const schema =
+      this.document.type === 'oas'
+        ? this.document.value.components?.schemas?.[refName]?.resolveOnce()
+        : this.document.value.registry.schemas[refName]
 
     if (!schema) {
       throw new Error(`Schema not found: ${refName}`)
+    }
+
+    // GqlRegistry stores raw OasSchema | OasRef entries that we need to
+    // resolve once for parity with the OAS code path.
+    if (this.document.type === 'gql' && 'resolveOnce' in schema) {
+      return (schema as OasRef<'schema'>).resolveOnce()
     }
 
     return schema

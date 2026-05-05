@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from '@std/assert'
+import { assertEquals, assertExists, assertThrows } from '@std/assert'
 import { GenerateContext } from './GenerateContext.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
@@ -11,6 +11,10 @@ import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import { File } from '@/dsl/File.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
+import { GqlDocument } from '@/gql/document/GqlDocument.ts'
+import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
+import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
+import { OasString } from '@/oas/string/String.ts'
 
 // Mock logger
 const mockLogger: log.Logger = {
@@ -29,12 +33,14 @@ const createTestContext = (options?: {
 }) => {
   const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
 
+  const oasDocument = options?.oasDocument ?? new OasDocument({
+    openapi: '3.0.0',
+    info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
+    operations: []
+  })
+
   const context = new GenerateContext({
-    oasDocument: options?.oasDocument ?? new OasDocument({
-      openapi: '3.0.0',
-      info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-      operations: []
-    }),
+    document: { type: 'oas', value: oasDocument },
     settings: options?.settings,
     logger: options?.logger ?? mockLogger,
     captureCurrentResult,
@@ -57,7 +63,7 @@ Deno.test('GenerateContext - Constructor', async (t) => {
     const toGeneratorConfigMap = () => ({})
 
     const context = new GenerateContext({
-      oasDocument,
+      document: { type: 'oas', value: oasDocument },
       settings,
       logger: mockLogger,
       captureCurrentResult,
@@ -66,6 +72,7 @@ Deno.test('GenerateContext - Constructor', async (t) => {
     })
 
     assertEquals(context.oasDocument, oasDocument)
+    assertEquals(context.document.type, 'oas')
     assertEquals(context.settings, settings)
     assertEquals(context.logger, mockLogger)
     assertEquals(context.captureCurrentResult, captureCurrentResult)
@@ -459,5 +466,236 @@ Deno.test('GenerateContext - Integration', async (t) => {
 
     assertEquals(context.modelDepth['User'], 1)
     assertEquals(context.modelDepth['Product'], 2)
+  })
+})
+
+// Helper for GraphQL-side testing
+const createGqlContext = (operations: GqlOperation[] = []) => {
+  const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
+
+  const gqlDocument = new GqlDocument({
+    registry: new GqlRegistry({ schemas: {} }),
+    operations,
+    rootTypes: {}
+  })
+
+  const context = new GenerateContext({
+    document: { type: 'gql', value: gqlDocument },
+    settings: undefined,
+    logger: mockLogger,
+    captureCurrentResult,
+    // @ts-expect-error - mock implementation
+    toGeneratorConfigMap: () => ({})
+  })
+
+  return { context, captureCurrentResult, gqlDocument }
+}
+
+Deno.test('GenerateContext - SkmtcDocument discrimination', async (t) => {
+  await t.step('oasDocument getter returns OAS doc for OAS context', () => {
+    const { context } = createTestContext()
+    assertEquals(context.document.type, 'oas')
+    assertExists(context.oasDocument)
+  })
+
+  await t.step('oasDocument getter throws on GQL context', () => {
+    const { context } = createGqlContext()
+    assertThrows(
+      () => context.oasDocument,
+      Error,
+      "Expected an OAS document but got 'gql'"
+    )
+  })
+
+  await t.step('gqlDocument getter returns GQL doc for GQL context', () => {
+    const { context, gqlDocument } = createGqlContext()
+    assertEquals(context.gqlDocument, gqlDocument)
+  })
+
+  await t.step('gqlDocument getter throws on OAS context', () => {
+    const { context } = createTestContext()
+    assertThrows(
+      () => context.gqlDocument,
+      Error,
+      "Expected a GQL document but got 'oas'"
+    )
+  })
+})
+
+Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
+  await t.step('http-protocol generator runs for OAS document', () => {
+    const { context } = createTestContext()
+    const transform = spy(() => undefined)
+
+    // @ts-expect-error - minimal mock
+    context.toGeneratorConfigMap = () => ({
+      'http-gen': {
+        id: 'http-gen',
+        type: 'operation',
+        protocol: 'http',
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    // Operations array on the OAS doc is empty in createTestContext, so
+    // transform is never invoked — but the generator is dispatched without
+    // throwing, which is what we're validating here.
+    assertSpyCalls(transform, 0)
+  })
+
+  await t.step('gql-protocol generator runs for GQL document', () => {
+    const op = new GqlOperation({
+      rootKind: 'query',
+      fieldName: 'getUser',
+      arguments: [],
+      returnType: new OasString({})
+    })
+    const { context } = createGqlContext([op])
+    const transform = spy(() => undefined)
+
+    // @ts-expect-error - minimal mock
+    context.toGeneratorConfigMap = () => ({
+      'gql-gen': {
+        id: 'gql-gen',
+        type: 'operation',
+        protocol: 'gql',
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 1)
+  })
+
+  await t.step('http generator does not run for GQL document', () => {
+    const op = new GqlOperation({
+      rootKind: 'query',
+      fieldName: 'getUser',
+      arguments: [],
+      returnType: new OasString({})
+    })
+    const { context } = createGqlContext([op])
+    const transform = spy(() => undefined)
+
+    // @ts-expect-error - minimal mock
+    context.toGeneratorConfigMap = () => ({
+      'http-gen': {
+        id: 'http-gen',
+        type: 'operation',
+        protocol: 'http',
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 0)
+  })
+
+  await t.step('gql generator does not run for OAS document', () => {
+    const { context } = createTestContext()
+    const transform = spy(() => undefined)
+
+    // @ts-expect-error - minimal mock
+    context.toGeneratorConfigMap = () => ({
+      'gql-gen': {
+        id: 'gql-gen',
+        type: 'operation',
+        protocol: 'gql',
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 0)
+  })
+
+  await t.step('operation generator without protocol defaults to http', () => {
+    const { context } = createTestContext()
+    const transform = spy(() => undefined)
+
+    // @ts-expect-error - minimal mock; no protocol field set
+    context.toGeneratorConfigMap = () => ({
+      'legacy-gen': {
+        id: 'legacy-gen',
+        type: 'operation',
+        // protocol intentionally omitted — should default to 'http'
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    // Should dispatch as HTTP and not throw on the OAS doc.
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 0)
+  })
+
+  await t.step('legacy operation generator (no protocol) is skipped on GQL document', () => {
+    const op = new GqlOperation({
+      rootKind: 'query',
+      fieldName: 'getUser',
+      arguments: [],
+      returnType: new OasString({})
+    })
+    const { context } = createGqlContext([op])
+    const transform = spy(() => undefined)
+
+    // @ts-expect-error - minimal mock; no protocol field set
+    context.toGeneratorConfigMap = () => ({
+      'legacy-gen': {
+        id: 'legacy-gen',
+        type: 'operation',
+        // No protocol field → defaults to 'http' → skipped because doc is gql
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 0)
+  })
+})
+
+Deno.test('GenerateContext - model dispatch is protocol-neutral', async (t) => {
+  await t.step('model generator runs on GQL document via registry', () => {
+    const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
+
+    const registry = new GqlRegistry({
+      schemas: {
+        ['User' as never]: new OasString({})
+      }
+    })
+    const gqlDocument = new GqlDocument({
+      registry,
+      operations: [],
+      rootTypes: {}
+    })
+
+    const context = new GenerateContext({
+      document: { type: 'gql', value: gqlDocument },
+      settings: undefined,
+      logger: mockLogger,
+      captureCurrentResult,
+      // @ts-expect-error - mock
+      toGeneratorConfigMap: () => ({})
+    })
+
+    const transform = spy(() => undefined)
+
+    // @ts-expect-error - minimal mock
+    context.toGeneratorConfigMap = () => ({
+      'model-gen': {
+        id: 'model-gen',
+        type: 'model',
+        transform
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 1)
   })
 })

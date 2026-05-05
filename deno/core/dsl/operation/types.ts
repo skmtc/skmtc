@@ -5,6 +5,7 @@ import type { Identifier } from '@/dsl/Identifier.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import type { SkmtcProtocol } from '@/types/SkmtcDocument.ts'
 /**
  * Arguments passed to operation insertable constructors.
  *
@@ -124,6 +125,13 @@ export type IsSupportedArgs = {
 export type OperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'operation'
+  /**
+   * Source protocol this generator targets. The dispatcher only runs the
+   * generator when the document's protocol matches. Defaults to `'http'`
+   * when omitted to preserve backward compatibility with generators
+   * authored before the GraphQL pipeline existed.
+   */
+  protocol?: SkmtcProtocol
   transform: <Acc = void>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedArgs) => boolean

@@ -53,6 +53,7 @@
     "npm:@types/swagger2openapi@7.0.4": "7.0.4",
     "npm:chokidar@^4.0.3": "4.0.3",
     "npm:gpt-tokenizer@^3.2.0": "3.2.0",
+    "npm:graphql@^16.9.0": "16.13.2",
     "npm:hono@4.7.2": "4.7.2",
     "npm:ignore@7.0.5": "7.0.5",
     "npm:ink-link@5": "5.0.0_ink@6.4.0__@types+react@19.2.2__react@19.2.0_@types+react@19.2.2_react@19.2.0",
@@ -690,6 +691,9 @@
     },
     "gpt-tokenizer@3.2.0": {
       "integrity": "sha512-QRRhzJIHcGbbdzhMGNCHhF+98RVaBaVD5+NYgyPOamqRBEqG5yN9p5j4udnY5FJnkesjdUPsikG/DO4OfJdhpQ=="
+    },
+    "graphql@16.13.2": {
+      "integrity": "sha512-5bJ+nf/UCpAjHM8i06fl7eLyVC9iuNAjm9qzkiu2ZGhM0VscSvS6WDPfAwkdkBuoXGM9FJSbKl6wylMwP9Ktig=="
     },
     "has-flag@5.0.1": {
       "integrity": "sha512-CsNUt5x9LUdx6hnk/E2SZLsDyvfqANZSUq4+D3D8RzDJ2M+HDTIkF60ibS1vHaK55vzgiZw1bEPFG9yH7l33wA=="
@@ -1397,9 +1401,11 @@
       "core": {
         "dependencies": [
           "jsr:@std/assert@^1.0.10",
+          "jsr:@std/fmt@1",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/testing@^1.0.8",
           "npm:@types/lodash-es@4.17.12",
+          "npm:graphql@^16.9.0",
           "npm:lodash-es@4.17.21",
           "npm:openapi-types@^12.1.3",
           "npm:valibot@1.1.0"

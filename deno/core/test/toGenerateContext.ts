@@ -3,7 +3,7 @@ import * as log from 'jsr:@std/log@0.224/logger'
 
 export const toGenerateContext = () => {
   const context = new GenerateContext({
-    oasDocument: new OasDocument(),
+    document: { type: 'oas', value: new OasDocument() },
     settings: undefined,
     logger: new log.Logger('test', 'ERROR'),
     stackTrail: new StackTrail(),

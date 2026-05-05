@@ -177,7 +177,19 @@ export * from './types/Preview.ts'
 export * from './types/RefName.ts'
 export * from './types/Results.ts'
 export * from './types/Settings.ts'
+export * from './types/SkmtcDocument.ts'
 export * from './types/TypeSystem.ts'
+export * from './gql/document/GqlDocument.ts'
+export * from './gql/registry/GqlRegistry.ts'
+export * from './gql/operation/GqlOperation.ts'
+export * from './gql/operation/synthesizeArgsObject.ts'
+export * from './gql/argument/GqlArgument.ts'
+export * from './gql/rootType/GqlRootTypes.ts'
+// Note: GraphQL parser exports live in `./parsers/graphql/mod.ts` and the
+// `./parsers/graphql` sub-export. They are intentionally excluded from
+// the main `mod.ts` so consumers who only need the GraphQL data model
+// (e.g. operation generators) don't pull the `graphql` npm package into
+// their type-check graph.
 export * from './typescript/FunctionParameter.ts'
 export * from './typescript/identifiers.ts'
 export * from './typescript/keyValues.ts'
