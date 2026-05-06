@@ -17,47 +17,47 @@
  * - **Generator Organization**: Clear mapping between generators and their artifacts
  * - **Reference Integration**: Seamless integration with OpenAPI reference system
  *
- * @example Creating operation generator keys
+ * @example Creating an OAS operation generator key
  * ```typescript
- * import { toOasOperationGeneratorKey, parseOperationGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ * import { toOasOperationGeneratorKey, fromGeneratorKey } from '@skmtc/core/GeneratorKeys';
  *
- * // Create a key for a GET /users operation in api-client generator
  * const key = toOasOperationGeneratorKey({
  *   generatorId: 'api-client',
  *   path: '/users',
- *   method: 'GET'
+ *   method: 'get'
  * });
  *
- * // Parse the key back into components
- * const parsed = parseOperationGeneratorKey(key);
- * console.log(parsed); // { generatorId: 'api-client', path: '/users', method: 'GET' }
+ * const parsed = fromGeneratorKey(key);
+ * if (parsed.type === 'oasOperation') {
+ *   console.log(parsed); // { type: 'oasOperation', generatorId: 'api-client', path: '/users', method: 'get' }
+ * }
+ * ```
+ *
+ * @example Creating a GraphQL operation generator key
+ * ```typescript
+ * import { toGqlOperationGeneratorKey, fromGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ *
+ * const key = toGqlOperationGeneratorKey({
+ *   generatorId: 'graphql-client',
+ *   rootKind: 'query',
+ *   fieldName: 'getUser'
+ * });
+ *
+ * const parsed = fromGeneratorKey(key);
+ * if (parsed.type === 'gqlOperation') {
+ *   console.log(parsed); // { type: 'gqlOperation', generatorId: 'graphql-client', rootKind: 'query', fieldName: 'getUser' }
+ * }
  * ```
  *
  * @example Working with model keys
  * ```typescript
  * import { toModelGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ * import type { RefName } from '@skmtc/core/RefName';
  *
  * const modelKey = toModelGeneratorKey({
  *   generatorId: 'typescript-models',
  *   refName: 'User' as RefName
  * });
- * ```
- *
- * @example Type-safe key handling
- * ```typescript
- * import type { OasOperationGeneratorKey, ModelGeneratorKey } from '@skmtc/core/GeneratorKeys';
- *
- * function handleOperationKey(key: OasOperationGeneratorKey) {
- *   // TypeScript ensures this is specifically an operation key
- *   const parsed = parseOperationGeneratorKey(key);
- *   return `Processing ${parsed.method} ${parsed.path}`;
- * }
- *
- * function handleModelKey(key: ModelGeneratorKey) {
- *   // TypeScript ensures this is specifically a model key
- *   const parsed = parseModelGeneratorKey(key);
- *   return `Processing model ${parsed.refName}`;
- * }
  * ```
  *
  * @module GeneratorKeys
@@ -94,11 +94,11 @@ export type NakedGqlOperationGeneratorKey = `${string}|${GqlRootKind}|${string}`
 export type NakedModelGeneratorKey = `${string}|${string}`
 
 /**
- * Branded type for operation generator keys.
+ * Branded type for OAS operation generator keys.
  *
- * Operation generator keys uniquely identify generators that process
- * OpenAPI operations (HTTP methods on API paths). The key encodes
- * the generator ID, API path, and HTTP method.
+ * Uniquely identifies a generator processing a specific OpenAPI operation —
+ * encodes generator ID, API path, and HTTP method. See
+ * {@link GqlOperationGeneratorKey} for the GraphQL counterpart.
  */
 export type OasOperationGeneratorKey = Brand<NakedOasOperationGeneratorKey, 'OasOperationGeneratorKey'>
 
@@ -141,11 +141,18 @@ export type GeneratorOnlyKey = Brand<string, 'GeneratorOnlyKey'>
  *
  * @example
  * ```typescript
- * // Operation generator key
+ * // OAS operation generator key
  * const opKey: GeneratorKey = toOasOperationGeneratorKey({
  *   generatorId: 'api-client',
  *   path: '/users/{id}',
  *   method: 'get'
+ * });
+ *
+ * // GraphQL operation generator key
+ * const gqlKey: GeneratorKey = toGqlOperationGeneratorKey({
+ *   generatorId: 'graphql-client',
+ *   rootKind: 'query',
+ *   fieldName: 'getUser'
  * });
  *
  * // Model generator key
@@ -189,12 +196,13 @@ type ToOasOperationGeneratorKeyArgs =
     }
 
 /**
- * Creates an operation generator key from generator ID and operation details.
+ * Creates an OAS operation generator key from generator ID and operation details.
  *
- * Operation generator keys uniquely identify generators processing specific
- * API operations. The key format is: `generatorId|path|method`
+ * Uniquely identifies a generator processing a specific API operation. The
+ * key format is: `generatorId|path|method`. See
+ * {@link toGqlOperationGeneratorKey} for the GraphQL counterpart.
  *
- * @param args - Operation generator key arguments
+ * @param args - Key construction arguments
  * @returns A branded OasOperationGeneratorKey
  *
  * @example With explicit path and method

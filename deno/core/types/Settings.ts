@@ -203,33 +203,46 @@ export type Skip = SkipOperations | SkipModels | string
  * };
  * ```
  *
- * @example Advanced configuration with packages
+ * @example Advanced configuration with enrichments
  * ```typescript
+ * // OAS enrichment hierarchy: generatorId → path → method → { table | form | input }
  * const settings: ClientSettings = {
  *   basePath: './generated',
  *   packages: [
  *     {
  *       rootPath: './packages/client',
  *       moduleName: '@company/api-client'
- *     },
- *     {
- *       rootPath: './packages/types',
- *       moduleName: '@company/api-types'
  *     }
  *   ],
  *   enrichments: {
- *     models: customModelEnrichments,
- *     operations: customOperationEnrichments
+ *     'react-forms': {
+ *       '/users': {
+ *         post: { form: { title: 'Create User', fields: [] } }
+ *       }
+ *     }
  *   },
  *   skip: [
  *     {
- *       'models': ['Internal*', 'Debug*'],
- *       'operations': {
- *         '/health': ['get'],
- *         '/metrics/**': ['*']
+ *       'api-client': {
+ *         '/health': ['get']
  *       }
  *     }
  *   ]
+ * };
+ * ```
+ *
+ * @example GraphQL enrichment hierarchy
+ * ```typescript
+ * // GraphQL enrichment hierarchy: generatorId → rootKind → fieldName → { table | form | input }
+ * const settings: ClientSettings = {
+ *   basePath: './generated',
+ *   enrichments: {
+ *     'react-forms': {
+ *       mutation: {
+ *         createUser: { form: { title: 'Create User', fields: [] } }
+ *       }
+ *     }
+ *   }
  * };
  * ```
  */

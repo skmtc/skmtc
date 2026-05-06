@@ -8,6 +8,7 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #18592 | 9:24 PM | 🔴 | Import map error blocking graphql-operation generator execution | ~265 |
+| #18381 | 8:22 PM | 🔄 | SkmtcDocument Import Added to CoreContext | ~364 |
 
 ### May 6, 2026
 

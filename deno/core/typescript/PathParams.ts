@@ -158,7 +158,7 @@ type ConstructorArgs = {
  * 
  * @example Integration with operation generation
  * ```typescript
- * class OperationGenerator {
+ * class MyOasOperationGenerator {
  *   generateOperation(operation: OasOperation) {
  *     const pathParameters = this.extractPathParameters(operation);
  *     

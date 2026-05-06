@@ -324,39 +324,35 @@ export class CoreContext {
    *
    * @example Complete pipeline
    * ```typescript
+   * import { CoreContext, StackTrail, toModelEntry, toOasOperationEntry } from '@skmtc/core';
+   *
    * const context = new CoreContext({
    *   spanId: 'api-client-gen',
    *   silent: false
    * });
    *
-   * const result = await context.toArtifacts({
+   * const result = context.toArtifacts({
    *   document: { type: 'oas', value: openApiDoc },
    *   settings: {
-   *     basePath: './src/api',
-   *     skip: {
-   *       models: ['Internal*'],
-   *       operations: {
-   *         '/health': ['get'],
-   *         '/debug/**': ['*']
-   *       }
-   *     }
+   *     basePath: './src/api'
    *   },
    *   toGeneratorConfigMap: () => ({
-   *     models: {
-   *       generator: MyModelGenerator,
-   *       settings: { includeValidation: true }
-   *     },
-   *     operations: {
-   *       generator: MyOperationGenerator,
-   *       settings: { generateTypes: true }
-   *     }
+   *     'typescript-models': toModelEntry({
+   *       id: 'typescript-models',
+   *       transform: ({ context, refName, acc }) => acc
+   *     }),
+   *     'api-client': toOasOperationEntry({
+   *       id: 'api-client',
+   *       transform: ({ context, operation, acc }) => acc
+   *     })
    *   }),
    *   prettier: {
    *     semi: false,
    *     singleQuote: true,
    *     trailingComma: 'all'
    *   },
-   *   silent: false
+   *   silent: false,
+   *   stackTrail: new StackTrail(['gen'])
    * });
    *
    * // Access generated artifacts

@@ -212,45 +212,88 @@ export type OperationEnrichments = {
 }
 
 /**
- * Valibot schema for HTTP method-level enrichments.
- * 
- * Maps HTTP methods (GET, POST, etc.) to their operation enrichment configurations.
+ * Valibot schema for OAS HTTP-method-level enrichments.
+ *
+ * Maps HTTP methods (`get`, `post`, ...) to their operation enrichment
+ * configurations. OAS-only — keyed by HTTP method.
  */
-export const methodEnrichments: v.GenericSchema<MethodEnrichments> = v.record(v.string(), operationEnrichments)
+export const oasMethodEnrichments: v.GenericSchema<OasMethodEnrichments> = v.record(
+  v.string(),
+  operationEnrichments
+)
 
 /**
- * HTTP method to operation enrichments mapping.
- * 
- * Associates HTTP methods with their corresponding operation enrichment configurations.
+ * HTTP method → operation enrichments map (OAS-only).
  */
-export type MethodEnrichments = Record<string, OperationEnrichments>
+export type OasMethodEnrichments = Record<string, OperationEnrichments>
 
 /**
- * Valibot schema for API path-level enrichments.
- * 
- * Maps API paths to their method enrichment configurations.
+ * Valibot schema for OAS path-level enrichments.
+ *
+ * Maps API paths (e.g. `/users/{id}`) to their per-method enrichment
+ * configurations. OAS-only — keyed by HTTP path template.
  */
-export const pathEnrichments: v.GenericSchema<PathEnrichments> = v.record(v.string(), methodEnrichments)
+export const oasPathEnrichments: v.GenericSchema<OasPathEnrichments> = v.record(
+  v.string(),
+  oasMethodEnrichments
+)
 
 /**
- * API path to method enrichments mapping.
- * 
- * Associates API paths with their corresponding method enrichment configurations.
+ * API path → method enrichments map (OAS-only).
  */
-export type PathEnrichments = Record<string, MethodEnrichments>
+export type OasPathEnrichments = Record<string, OasMethodEnrichments>
+
+/**
+ * Valibot schema for GraphQL field-level enrichments.
+ *
+ * Maps root field names (e.g. `getUser`, `createPost`) to their operation
+ * enrichment configurations. GraphQL-only — keyed by root field name.
+ */
+export const gqlFieldEnrichments: v.GenericSchema<GqlFieldEnrichments> = v.record(
+  v.string(),
+  operationEnrichments
+)
+
+/**
+ * Root field name → operation enrichments map (GraphQL-only).
+ */
+export type GqlFieldEnrichments = Record<string, OperationEnrichments>
+
+/**
+ * Valibot schema for GraphQL root-kind-level enrichments.
+ *
+ * Maps root operation kinds (`query` / `mutation` / `subscription`) to their
+ * per-field enrichment configurations. GraphQL-only.
+ */
+export const gqlRootKindEnrichments: v.GenericSchema<GqlRootKindEnrichments> = v.record(
+  v.string(),
+  gqlFieldEnrichments
+)
+
+/**
+ * Root kind → field enrichments map (GraphQL-only).
+ */
+export type GqlRootKindEnrichments = Record<string, GqlFieldEnrichments>
 
 /**
  * Valibot schema for generator-level enrichments.
- * 
- * Maps generator IDs to their path enrichment configurations,
- * creating a complete hierarchy of enrichment data.
+ *
+ * Top-level enrichment structure: maps generator IDs to either an OAS
+ * path-keyed hierarchy or a GraphQL root-kind-keyed hierarchy. Both
+ * variants share the {@link operationEnrichments} leaf shape (`{table,
+ * form, input}`); they differ only in the two intermediate keys
+ * (`path|method` vs `rootKind|fieldName`). The runtime variants are
+ * structurally identical, so this is typed as the union.
  */
-export const generatorEnrichments: v.GenericSchema<GeneratorEnrichments> = v.record(v.string(), pathEnrichments)
+export const generatorEnrichments: v.GenericSchema<GeneratorEnrichments> = v.record(
+  v.string(),
+  v.union([oasPathEnrichments, gqlRootKindEnrichments])
+)
 
 /**
- * Generator ID to path enrichments mapping.
- * 
- * Top-level enrichment structure that organizes enrichment data by generator,
- * then by path, then by HTTP method, providing complete enrichment hierarchies.
+ * Generator ID → enrichment hierarchy (OAS path/method or GraphQL
+ * rootKind/fieldName). The two halves are structurally identical at
+ * runtime — the named alias documents which protocol's lookup keys are
+ * expected at each level.
  */
-export type GeneratorEnrichments = Record<string, PathEnrichments>
+export type GeneratorEnrichments = Record<string, OasPathEnrichments | GqlRootKindEnrichments>
