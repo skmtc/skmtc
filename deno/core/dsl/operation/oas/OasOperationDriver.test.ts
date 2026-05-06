@@ -7,7 +7,7 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { Definition } from '@/dsl/Definition.ts'
-import { toOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Method } from '@/types/Method.ts'
 import { OasOperationBase } from './OasOperationBase.ts'
@@ -72,7 +72,7 @@ const createMockInsertable = (options?: {
 }): OasOperationInsertable<any, undefined> => {
   class MockInsertable extends OasOperationBase<undefined> {
     static id = options?.id ?? 'MockInsertable'
-    static type = 'operation' as const
+    static type = 'oasOperation' as const
 
     static toIdentifier(operation: OasOperation): Identifier {
       return Identifier.createVariable(operation.operationId ?? 'operation')
@@ -96,7 +96,7 @@ const createMockInsertable = (options?: {
       operation: OasOperation
     }) {
       // Calculate generator key for this instance
-      const generatorKey = toOperationGeneratorKey({
+      const generatorKey = toOasOperationGeneratorKey({
         generatorId: MockInsertable.id,
         operation: args.operation
       })
@@ -472,7 +472,7 @@ Deno.test('OasOperationDriver', async t => {
 
       class SpyInsertable extends OasOperationBase<undefined> {
         static id = 'SpyInsertable'
-        static type = 'operation' as const
+        static type = 'oasOperation' as const
         static toIdentifier = (op: OasOperation) =>
           Identifier.createVariable(op.operationId ?? 'op')
         static toExportPath = () => './test.ts'
@@ -484,7 +484,7 @@ Deno.test('OasOperationDriver', async t => {
           settings: ContentSettings<undefined>
           operation: OasOperation
         }) {
-          const generatorKey = toOperationGeneratorKey({
+          const generatorKey = toOasOperationGeneratorKey({
             generatorId: 'SpyInsertable',
             operation: args.operation
           })
@@ -622,7 +622,7 @@ Deno.test('OasOperationDriver', async t => {
 
       class TrackingInsertable extends OasOperationBase<undefined> {
         static id = 'TrackingInsertable'
-        static type = 'operation' as const
+        static type = 'oasOperation' as const
         static toIdentifier = (op: OasOperation) =>
           Identifier.createVariable(op.operationId ?? 'op')
         static toExportPath = () => './test.ts'
@@ -634,7 +634,7 @@ Deno.test('OasOperationDriver', async t => {
           settings: ContentSettings<undefined>
           operation: OasOperation
         }) {
-          const generatorKey = toOperationGeneratorKey({
+          const generatorKey = toOasOperationGeneratorKey({
             generatorId: 'TrackingInsertable',
             operation: args.operation
           })
@@ -693,7 +693,7 @@ Deno.test('OasOperationDriver', async t => {
         context: {} as any,
         identifier: Identifier.createVariable('cached'),
         value: {
-          generatorKey: toOperationGeneratorKey({
+          generatorKey: toOasOperationGeneratorKey({
             generatorId: 'MockInsertable',
             operation: createMockOperation()
           }),
@@ -824,7 +824,7 @@ Deno.test('OasOperationDriver', async t => {
         context: {} as any,
         identifier: Identifier.createVariable('testOperation'),
         value: {
-          generatorKey: toOperationGeneratorKey({
+          generatorKey: toOasOperationGeneratorKey({
             generatorId: 'DifferentGenerator',
             operation
           }),
@@ -852,7 +852,7 @@ Deno.test('OasOperationDriver', async t => {
 
     await t.step('should include both keys in error message', () => {
       const operation = createMockOperation()
-      const cachedKey = toOperationGeneratorKey({
+      const cachedKey = toOasOperationGeneratorKey({
         generatorId: 'CachedGenerator',
         operation
       })
@@ -994,7 +994,7 @@ Deno.test('OasOperationDriver', async t => {
 
     await t.step('should throw on key collision with different generator', () => {
       const operation = createMockOperation()
-      const wrongKey = toOperationGeneratorKey({
+      const wrongKey = toOasOperationGeneratorKey({
         generatorId: 'DifferentGenerator',
         operation
       })
@@ -1292,7 +1292,7 @@ Deno.test('OasOperationDriver', async t => {
 
     await t.step('should throw descriptive errors on failures', () => {
       const operation = createMockOperation()
-      const wrongKey = toOperationGeneratorKey({
+      const wrongKey = toOasOperationGeneratorKey({
         generatorId: 'WrongGenerator',
         operation
       })

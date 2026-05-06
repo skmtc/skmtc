@@ -6,7 +6,7 @@ import { Definition } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import { toOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
 type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
@@ -192,7 +192,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       return false
     }
 
-    const currentKey = toOperationGeneratorKey({
+    const currentKey = toOasOperationGeneratorKey({
       generatorId: this.insertable.id,
       operation: this.operation
     })

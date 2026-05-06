@@ -43,12 +43,9 @@
     "./parsers/graphql": "./parsers/graphql/mod.ts"
   },
   "tasks": {
-    // npm publish step temporarily disabled — re-enable by appending ' && deno task build && deno task publish:npm'
     "publish": "deno task publish:deno",
-    "build": "deno run -A .scripts/build-node.ts",
     "publish:deno": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
     "publish:deno:ga": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types",
-    "publish:npm": "cd ../../packages/core && npm publish",
     "docs": "deno doc --html --name=\"My library\" ./mod.ts",
     "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > ../docs/src/docs.json",
     "test": "deno test --allow-all",

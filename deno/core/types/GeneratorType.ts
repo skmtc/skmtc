@@ -3,38 +3,49 @@ import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { ModelConfig } from '@/dsl/model/types.ts'
 
 /**
- * Union type representing all possible generator configurations.
+ * Discriminated union of every generator configuration the dispatcher
+ * recognises. The `type` field discriminates the variant — `'oasOperation'`
+ * for HTTP-flavoured operation generators, `'gqlOperation'` for GraphQL
+ * operation generators, `'model'` for protocol-neutral model generators.
  *
- * Generator configurations define how different types of generators should
- * process OpenAPI documents. This includes both operation generators (which
- * process API endpoints) and model generators (which process data schemas).
+ * Operation variants are routed only to the matching document protocol; a
+ * `'oasOperation'` config is silently skipped on a GraphQL document and
+ * vice versa. Model generators run against either protocol's registry.
  *
  * @template EnrichmentType - Optional type for custom enrichment data
  *
- * @example
+ * @example OAS operation generator
  * ```typescript
- * import { GeneratorConfig } from '@skmtc/core';
+ * import { toOasOperationEntry } from '@skmtc/core';
  *
- * // Operation generator configuration
- * const apiClientConfig: GeneratorConfig = {
- *   type: 'operation',
- *   generatorId: 'api-client',
- *   settings: {
- *     exportPath: './src/api/client.ts',
- *     enrichment: customEnrichments
- *   },
- *   toGenerator: (args) => new ApiClientGenerator(args)
- * };
+ * const apiClientEntry = toOasOperationEntry({
+ *   id: 'api-client',
+ *   transform: ({ context, operation, acc }) => acc,
+ *   isSupported: ({ operation }) => operation.method === 'get'
+ * });
+ * // apiClientEntry.type === 'oasOperation'
+ * ```
  *
- * // Model generator configuration
- * const typescriptModels: GeneratorConfig = {
- *   type: 'model',
- *   generatorId: 'typescript-models',
- *   settings: {
- *     exportPath: './src/types/models.ts'
- *   },
- *   toGenerator: (args) => new TypeScriptModelGenerator(args)
- * };
+ * @example GraphQL operation generator
+ * ```typescript
+ * import { toGqlOperationEntry } from '@skmtc/core';
+ *
+ * const gqlEntry = toGqlOperationEntry({
+ *   id: 'gql-client',
+ *   transform: ({ context, operation, acc }) => acc
+ * });
+ * // gqlEntry.type === 'gqlOperation'
+ * ```
+ *
+ * @example Model generator
+ * ```typescript
+ * import { toModelEntry } from '@skmtc/core';
+ *
+ * const modelEntry = toModelEntry({
+ *   id: 'typescript-models',
+ *   transform: ({ context, refName, acc }) => acc
+ * });
+ * // modelEntry.type === 'model'
  * ```
  */
 export type GeneratorConfig<EnrichmentType = undefined> =
@@ -79,55 +90,29 @@ export type GeneratorsMap<G extends GeneratorConfig<EnrichmentType>, EnrichmentT
  *
  * @example Basic generators map
  * ```typescript
- * import { GeneratorsMapContainer } from '@skmtc/core';
+ * import { toArtifacts, toOasOperationEntry, toModelEntry, StackTrail } from '@skmtc/core';
  *
- * const generators: GeneratorsMapContainer = {
- *   'api-client': {
- *     type: 'operation',
- *     generatorId: 'api-client',
- *     settings: { exportPath: './src/api.ts' },
- *     toGenerator: (args) => new ApiClientGenerator(args)
- *   },
- *   'typescript-models': {
- *     type: 'model',
- *     generatorId: 'typescript-models',
- *     settings: { exportPath: './src/models.ts' },
- *     toGenerator: (args) => new TypeScriptModels(args)
- *   }
+ * const generators = {
+ *   'api-client': toOasOperationEntry({
+ *     id: 'api-client',
+ *     transform: ({ context, operation, acc }) => acc
+ *   }),
+ *   'typescript-models': toModelEntry({
+ *     id: 'typescript-models',
+ *     transform: ({ context, refName, acc }) => acc
+ *   })
  * };
  *
- * // Use with toArtifacts
- * const result = await toArtifacts({
+ * const result = toArtifacts({
  *   documentObject: openApiDoc,
  *   settings: clientSettings,
  *   toGeneratorConfigMap: () => generators,
  *   traceId: 'generation',
  *   spanId: 'main',
- *   startAt: Date.now()
+ *   startAt: Date.now(),
+ *   silent: false,
+ *   stackTrail: new StackTrail(['gen'])
  * });
- * ```
- *
- * @example With enrichments
- * ```typescript
- * type MyEnrichments = {
- *   customValidation: boolean;
- *   generateComments: boolean;
- * };
- *
- * const enrichedGenerators: GeneratorsMapContainer<MyEnrichments> = {
- *   'enhanced-models': {
- *     type: 'model',
- *     generatorId: 'enhanced-models',
- *     settings: {
- *       exportPath: './src/enhanced.ts',
- *       enrichment: {
- *         customValidation: true,
- *         generateComments: true
- *       }
- *     },
- *     toGenerator: (args) => new EnhancedModelGenerator(args)
- *   }
- * };
  * ```
  */
 export type GeneratorsMapContainer<EnrichmentType = undefined> = GeneratorsMap<

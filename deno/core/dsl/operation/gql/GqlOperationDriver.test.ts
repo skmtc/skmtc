@@ -70,7 +70,7 @@ const createMockInsertable = (options?: {
 }): GqlOperationInsertable<any, undefined> => {
   class MockInsertable extends GqlOperationBase<undefined> {
     static id = options?.id ?? 'MockInsertable'
-    static type = 'operation' as const
+    static type = 'gqlOperation' as const
 
     static toIdentifier(operation: GqlOperation): Identifier {
       return Identifier.createVariable(operation.fieldName)
@@ -455,7 +455,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       class SpyInsertable extends GqlOperationBase<undefined> {
         static id = 'SpyInsertable'
-        static type = 'operation' as const
+        static type = 'gqlOperation' as const
         static toIdentifier = (op: GqlOperation) => Identifier.createVariable(op.fieldName)
         static toExportPath = () => './test.ts'
         static toEnrichments = () => undefined
@@ -597,7 +597,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       class TrackingInsertable extends GqlOperationBase<undefined> {
         static id = 'TrackingInsertable'
-        static type = 'operation' as const
+        static type = 'gqlOperation' as const
         static toIdentifier = (op: GqlOperation) => Identifier.createVariable(op.fieldName)
         static toExportPath = () => './test.ts'
         static toEnrichments = () => undefined

@@ -1,4 +1,4 @@
-import { toOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import { OasOperationBase } from '@/dsl/operation/oas/OasOperationBase.ts'
@@ -102,7 +102,7 @@ export const toOasOperationBase = <EnrichmentType = undefined>(
     constructor(args: OasOperationInsertableArgs<EnrichmentType>) {
       super({
         ...args,
-        generatorKey: toOperationGeneratorKey({
+        generatorKey: toOasOperationGeneratorKey({
           generatorId: config.id,
           operation: args.operation
         })
