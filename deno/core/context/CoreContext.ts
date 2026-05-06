@@ -18,7 +18,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { RenderResult } from './generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
-import type { SkmtcDocument } from '@/types/SkmtcDocument.ts'
+import type { SkmtcDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -91,24 +91,25 @@ type RenderArgs = {
  * Arguments for the `toArtifacts` method of CoreContext.
  *
  * Contains all the necessary configuration for transforming a
- * pre-built source document into code artifacts through the SKMTC
+ * source document into code artifacts through the SKMTC parse +
  * generate + render phases.
  *
- * `document` is required. Protocol-specific parsing is the
- * responsibility of the higher-level `run/toArtifacts.ts` and
- * `run/toArtifactsFromGraphQL.ts` entry points — each owns the
- * conversion from raw input (OpenAPI JSON / GraphQL SDL) to a
- * {@link SkmtcDocument}, then calls this method.
+ * On the OAS side `document.value` is the *raw* OpenAPI v3 document —
+ * `CoreContext.toArtifacts` runs the parse phase itself. On the GQL
+ * side `document.value` is a pre-parsed {@link GqlDocument}, since SDL
+ * parsing lives in the `parsers/graphql` sub-export to keep the
+ * `graphql` npm dependency optional for consumers.
  */
 export type ToArtifactsArgs = {
   /** Stack trail for distributed tracing */
   stackTrail: StackTrail
   /**
-   * Source document wrapped in the discriminated {@link SkmtcDocument}
-   * union. The generate phase reads through the discriminator; both
-   * model and operation generators dispatch on `document.type`.
+   * Source document. OAS variant carries the raw OpenAPI v3 JSON; GQL
+   * variant carries a pre-parsed {@link GqlDocument}. The generate
+   * phase reads the post-parse {@link SkmtcDocument}; both model and
+   * operation generators dispatch on `document.type`.
    */
-  document: SkmtcDocument
+  document: SkmtcDocumentInput
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Function that returns the generator configuration map */
@@ -377,10 +378,18 @@ export class CoreContext {
     prettier
   }: ToArtifactsArgs): RenderResult {
     try {
+      const parsedDocument: SkmtcDocument =
+        document.type === 'oas'
+          ? {
+              type: 'oas',
+              value: stackTrail.trace('parse', st => this.parse(document.value, st).oasDocument)
+            }
+          : { type: 'gql', value: document.value }
+
       const { files, previews, mappings } = stackTrail.trace('generate', st => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
-          document,
+          document: parsedDocument,
           settings
         })
 

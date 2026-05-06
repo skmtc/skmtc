@@ -1,17 +1,17 @@
-import type { OperationInsertable } from './types.ts'
+import type { OasOperationInsertable } from './types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import { Definition } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { GeneratedDefinition } from '../GeneratedValue.ts'
-import type { GeneratedValue } from '../GeneratedValue.ts'
-import { toOperationGeneratorKey } from '../GeneratorKeys.ts'
-import type { GenerateContextType } from '../../context/generateTypes.ts'
+import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import { toOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { GenerateContextType } from '@/context/generateTypes.ts'
 
 type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
-  insertable: OperationInsertable<V, EnrichmentType>
+  insertable: OasOperationInsertable<V, EnrichmentType>
   operation: OasOperation
   destinationPath?: string
   noExport?: boolean
@@ -60,7 +60,7 @@ export class OperationDriver<V extends GeneratedValue, EnrichmentType = undefine
   /** The generation context providing access to OAS objects and utilities */
   context: GenerateContextType
   /** The insertable object that provides generation configuration */
-  insertable: OperationInsertable<V, EnrichmentType>
+  insertable: OasOperationInsertable<V, EnrichmentType>
   /** The OpenAPI operation object being processed */
   operation: OasOperation
   /** Content settings for customizing generation behavior */

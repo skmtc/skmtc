@@ -1,17 +1,16 @@
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { GenerateContextType } from '../../context/generateTypes.ts'
+import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
-import type { SkmtcProtocol } from '@/types/SkmtcDocument.ts'
 /**
  * Arguments passed to operation insertable constructors.
  *
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
-export type OperationInsertableArgs<EnrichmentType = undefined> = {
+export type OasOperationInsertableArgs<EnrichmentType = undefined> = {
   context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
@@ -22,7 +21,7 @@ export type OperationInsertableArgs<EnrichmentType = undefined> = {
  *
  * @template Acc - Accumulator type for collecting transformation results
  */
-export type TransformOperationArgs<Acc> = {
+export type TransformOasOperationArgs<Acc> = {
   context: GenerateContextType
   operation: OasOperation
   acc: Acc | undefined
@@ -43,7 +42,7 @@ export type WithTransformOperation = {
  *
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
-export type IsSupportedOperationConfigArgs<EnrichmentType = undefined> = {
+export type IsSupportedOasOperationConfigArgs<EnrichmentType = undefined> = {
   context: GenerateContextType
   operation: OasOperation
   enrichments: EnrichmentType
@@ -96,10 +95,10 @@ export type ToOperationMappingArgs = {
  * @template V - Generated value type produced by the operation generator
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
-export type OperationInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
-  new ({ context, settings, operation }: OperationInsertableArgs<EnrichmentType>): V
+export type OasOperationInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
+  new ({ context, settings, operation }: OasOperationInsertableArgs<EnrichmentType>): V
   id: string
-  type: 'operation'
+  type: 'oasOperation'
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
   toEnrichments: ({ operation, context }: ToOperationEnrichmentsArgs) => EnrichmentType
@@ -122,17 +121,10 @@ export type IsSupportedArgs = {
  *
  * @template EnrichmentType - Optional enrichment data type for additional metadata
  */
-export type OperationConfig<EnrichmentType = undefined> = {
+export type OasOperationConfig<EnrichmentType = undefined> = {
   id: string
-  type: 'operation'
-  /**
-   * Source protocol this generator targets. The dispatcher only runs the
-   * generator when the document's protocol matches. Defaults to `'http'`
-   * when omitted to preserve backward compatibility with generators
-   * authored before the GraphQL pipeline existed.
-   */
-  protocol?: SkmtcProtocol
-  transform: <Acc = void>({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
+  type: 'oasOperation'
+  transform: <Acc = void>({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule

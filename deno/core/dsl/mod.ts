@@ -22,20 +22,33 @@ export type {
   ModelInsertable,
   ModelConfig
 } from './model/types.ts'
-export { OperationBase } from './operation/OperationBase.ts'
-export { OperationDriver } from './operation/OperationDriver.ts'
-export { toOperationBase } from './operation/toOperationBase.ts'
-export { toOperationEntry } from './operation/toOperationEntry.ts'
+export { OperationBase } from './operation/oas/OperationBase.ts'
+export { OperationDriver } from './operation/oas/OperationDriver.ts'
+export { toOperationBase } from './operation/oas/toOperationBase.ts'
+export { toOperationEntry } from './operation/oas/toOperationEntry.ts'
 export type {
-  OperationInsertableArgs,
-  IsSupportedOperationConfigArgs,
-  TransformOperationArgs,
+  OasOperationInsertableArgs,
+  IsSupportedOasOperationConfigArgs,
+  TransformOasOperationArgs,
   ToOperationPreviewModuleArgs,
   ToOperationMappingArgs,
-  OperationConfig,
-  OperationInsertable,
+  OasOperationConfig,
+  OasOperationInsertable,
   IsSupportedArgs
-} from './operation/types.ts'
+} from './operation/oas/types.ts'
+export { GqlOperationBase } from './operation/gql/OperationBase.ts'
+export { GqlOperationDriver } from './operation/gql/OperationDriver.ts'
+export { toGqlOperationBase } from './operation/gql/toOperationBase.ts'
+export { toGqlOperationEntry } from './operation/gql/toOperationEntry.ts'
+export type {
+  GqlOperationInsertableArgs,
+  IsSupportedGqlOperationConfigArgs,
+  TransformGqlOperationArgs,
+  ToGqlOperationPreviewModuleArgs,
+  ToGqlOperationMappingArgs,
+  GqlOperationConfig,
+  GqlOperationInsertable
+} from './operation/gql/types.ts'
 export { File } from './File.ts'
 export { EntityType } from './EntityType.ts'
 export { GeneratedValueList } from './GeneratedValueList.ts'

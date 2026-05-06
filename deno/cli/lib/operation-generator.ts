@@ -37,7 +37,7 @@ export const ${mainModule}Entry = toOperationEntry({
   },
 
   transform({ context, operation }) {
-    context.insertOperation(${mainModule}, operation)
+    context.insertOperation({ insertable: ${mainModule}, operation })
   }
 })`
   }

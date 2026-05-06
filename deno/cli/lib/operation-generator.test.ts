@@ -21,7 +21,10 @@ Deno.test('OperationGenerator - toOperationMod generates correct mod.ts content'
   assertStringIncludes(result, "id: '@test/user-operations'")
   assertStringIncludes(result, 'isSupported({ operation })')
   assertStringIncludes(result, 'return true')
-  assertStringIncludes(result, 'context.insertOperation(UserOperations, operation)')
+  assertStringIncludes(
+    result,
+    'context.insertOperation({ insertable: UserOperations, operation })'
+  )
 })
 
 Deno.test('OperationGenerator - toOperationBase generates correct base.ts content', () => {

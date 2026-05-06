@@ -1,22 +1,31 @@
 import { assertEquals, assertExists } from '@std/assert'
 import { StackTrail } from '@/context/StackTrail.ts'
-import { toArtifactsFromGraphQL } from './toArtifactsFromGraphQL.ts'
+import { toArtifactsFromGraphQL, type TransformGraphQLArgs } from './toArtifactsFromGraphQL.ts'
 import { toGqlDocument } from '@/parsers/graphql/toGqlDocument.ts'
-import type { ModelConfig, OperationConfig } from '@/types/GeneratorType.ts'
+import type { ModelConfig, TransformModelArgs } from '@/dsl/model/types.ts'
+import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
+import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
+import type { OasOperationConfig, TransformOasOperationArgs } from '@/dsl/operation/oas/types.ts'
 
 const sdl = /* GraphQL */ `
-  type User { id: ID! name: String }
-  type Query { getUser(id: ID!): User }
+  type User {
+    id: ID!
+    name: String
+  }
+  type Query {
+    getUser(id: ID!): User
+  }
 `
 
-const mkArgs = (overrides: Record<string, unknown> = {}) => ({
+const mkArgs = (overrides: Record<string, unknown> = {}): TransformGraphQLArgs => ({
   traceId: 'gql-test',
   spanId: 'main',
   source: sdl,
   settings: undefined,
-  toGeneratorConfigMap: () => ({}),
+  toGeneratorConfigMap: <EnrichmentType = undefined>(): GeneratorsMapContainer<EnrichmentType> =>
+    Object.fromEntries([[]].map(g => [g.id, g])),
   startAt: Date.now(),
   silent: true,
   stackTrail: new StackTrail(['gql-test']),
@@ -43,14 +52,14 @@ Deno.test('toArtifactsFromGraphQL - runs model generators across the registry', 
   const modelGen: ModelConfig = {
     id: 'capture-models',
     type: 'model',
-    transform({ refName }) {
+    transform<Acc = void>({ refName }: TransformModelArgs<Acc>): Acc {
       seen.push(refName)
+      return refName as Acc
     }
   }
 
   toArtifactsFromGraphQL(
     mkArgs({
-      // @ts-expect-error mock map shape
       toGeneratorConfigMap: () => ({ modelGen })
     })
   )
@@ -62,10 +71,9 @@ Deno.test('toArtifactsFromGraphQL - runs model generators across the registry', 
 
 Deno.test('toArtifactsFromGraphQL - runs gql-protocol operation generators', () => {
   const seen: string[] = []
-  const gqlGen: OperationConfig = {
+  const gqlGen: GqlOperationConfig = {
     id: 'capture-ops',
-    type: 'operation',
-    protocol: 'gql',
+    type: 'gqlOperation',
     isSupported: () => true,
     transform: <Acc = void>(args: {
       context: GenerateContextType
@@ -80,7 +88,6 @@ Deno.test('toArtifactsFromGraphQL - runs gql-protocol operation generators', () 
 
   toArtifactsFromGraphQL(
     mkArgs({
-      // @ts-expect-error mock map shape
       toGeneratorConfigMap: () => ({ gqlGen })
     })
   )
@@ -90,19 +97,18 @@ Deno.test('toArtifactsFromGraphQL - runs gql-protocol operation generators', () 
 
 Deno.test('toArtifactsFromGraphQL - http-protocol generators are skipped on GQL', () => {
   let httpRan = false
-  const httpGen: OperationConfig = {
+  const httpGen: OasOperationConfig = {
     id: 'http-only',
-    type: 'operation',
-    protocol: 'http',
+    type: 'oasOperation',
     isSupported: () => true,
-    transform: () => {
+    transform: <Acc = void>({ acc }: TransformOasOperationArgs<Acc>): Acc => {
       httpRan = true
+      return acc as Acc
     }
   }
 
   toArtifactsFromGraphQL(
     mkArgs({
-      // @ts-expect-error mock map shape
       toGeneratorConfigMap: () => ({ httpGen })
     })
   )

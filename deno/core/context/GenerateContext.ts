@@ -12,11 +12,13 @@ import type {
   GenerateContextType,
   GenerateResult,
   GetFileOptions,
+  InsertGqlOperationArgs,
   InsertModelOptions,
   InsertNormalisedModelArgs,
   InsertNormalisedModelOptions,
   InsertNormalisedModelReturn,
-  InsertOperationOptions,
+  InsertOasOperationArgs,
+  InsertOperationArgs,
   PickArgs,
   RegisterArgs,
   RegisterJsonArgs,
@@ -24,10 +26,11 @@ import type {
 } from './generateTypes.ts'
 import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '@/types/Settings.ts'
 import type { Method } from '@/types/Method.ts'
-import type { OperationConfig, OperationInsertable } from '@/dsl/operation/types.ts'
+import type { OasOperationConfig, OasOperationInsertable } from '@/dsl/operation/oas/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ModelConfig, ModelInsertable } from '@/dsl/model/types.ts'
-import { OperationDriver } from '@/dsl/operation/OperationDriver.ts'
+import { OperationDriver } from '@/dsl/operation/oas/OperationDriver.ts'
+import { GqlOperationDriver } from '@/dsl/operation/gql/OperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -202,6 +205,11 @@ export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V,
  * ```
  */
 
+const isGqlInsertOperationArgs = <V extends GeneratedValue, EnrichmentType>(
+  args: InsertOperationArgs<V, EnrichmentType>
+): args is InsertGqlOperationArgs<V, EnrichmentType> =>
+  args.operation.oasType === 'gqlOperation'
+
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
@@ -322,11 +330,7 @@ export class GenerateContext implements GenerateContextType {
                 )
                 break
               case 'gql':
-                this.#runGqlOperationGenerator(
-                  this.document.value,
-                  generatorConfig,
-                  st
-                )
+                this.#runGqlOperationGenerator(this.document.value, generatorConfig, st)
                 break
             }
             break
@@ -337,10 +341,12 @@ export class GenerateContext implements GenerateContextType {
               generatorConfig,
               toSkipModels(skip, generatorConfig.id),
               st
-            );
-            break;
+            )
+            break
           default:
-            throw new Error(`Invalid generator type: '${generatorConfig.type}' on ${generatorConfig.id}`);
+            throw new Error(
+              `Invalid generator type: '${generatorConfig.type}' on ${generatorConfig.id}`
+            )
         }
       })
     })
@@ -353,7 +359,7 @@ export class GenerateContext implements GenerateContextType {
   }
   #runOperationGenerator(
     oasDocument: OasDocument,
-    generatorConfig: OperationConfig,
+    generatorConfig: OasOperationConfig,
     skip: SkipPaths | undefined,
     stackTrail: StackTrail
   ) {
@@ -395,7 +401,7 @@ export class GenerateContext implements GenerateContextType {
 
   #runGqlOperationGenerator(
     gqlDocument: GqlDocument,
-    generatorConfig: OperationConfig,
+    generatorConfig: OasOperationConfig,
     stackTrail: StackTrail
   ) {
     // GraphQL operations are passed through the same `transform({ context, operation, acc })`
@@ -436,7 +442,7 @@ export class GenerateContext implements GenerateContextType {
   ) {
     const refNames =
       document.type === 'oas'
-        ? document.value.components?.toSchemasRefNames() ?? []
+        ? (document.value.components?.toSchemasRefNames() ?? [])
         : document.value.registry.toSchemasRefNames()
 
     return refNames.reduce((acc, refName) => {
@@ -673,16 +679,26 @@ export class GenerateContext implements GenerateContextType {
    * @mutates this.files
    */
   insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
-    insertable: OperationInsertable<V, EnrichmentType>,
-    operation: OasOperation,
-    { destinationPath, noExport = false }: InsertOperationOptions = {}
+    args: InsertOperationArgs<V, EnrichmentType>
   ): Inserted<V, EnrichmentType> {
+    if (isGqlInsertOperationArgs(args)) {
+      const { settings, definition } = new GqlOperationDriver({
+        context: this,
+        insertable: args.insertable,
+        operation: args.operation,
+        destinationPath: args.destinationPath,
+        noExport: args.noExport ?? false
+      })
+
+      return new Inserted({ settings, definition })
+    }
+
     const { settings, definition } = new OperationDriver({
       context: this,
-      insertable,
-      operation,
-      destinationPath,
-      noExport
+      insertable: args.insertable,
+      operation: args.operation,
+      destinationPath: args.destinationPath,
+      noExport: args.noExport ?? false
     })
 
     return new Inserted({ settings, definition })
@@ -824,14 +840,14 @@ export class GenerateContext implements GenerateContextType {
 
     const extension = normalisedPath.split('.').pop()
 
-    let newFile: File | JsonFile;
+    let newFile: File | JsonFile
     switch (extension) {
       case 'json':
-        newFile = new JsonFile({ path: normalisedPath, content: {} });
-        break;
+        newFile = new JsonFile({ path: normalisedPath, content: {} })
+        break
       default:
-        newFile = new File({ path: normalisedPath, settings: this.settings });
-        break;
+        newFile = new File({ path: normalisedPath, settings: this.settings })
+        break
     }
 
     this.#files.set(normalisedPath, newFile)

@@ -40,16 +40,13 @@ const createDocumentWithComponents = (): OpenAPIV3.Document => ({
 
 // Helper function to create empty generator map
 // Using type assertion to work around complex generic type
-const createEmptyGeneratorMap = <EnrichmentType = undefined>() => ({
-  toGenerator: undefined
-} as unknown as GeneratorsMapContainer<EnrichmentType>)
+const createEmptyGeneratorMap = <EnrichmentType = undefined>() =>
+  ({
+    toGenerator: undefined
+  }) as unknown as GeneratorsMapContainer<EnrichmentType>
 
 // Helper function to create test CoreContext
-const createTestContext = (options?: {
-  spanId?: string
-  logsPath?: string
-  silent?: boolean
-}) => {
+const createTestContext = (options?: { spanId?: string; logsPath?: string; silent?: boolean }) => {
   return new CoreContext({
     spanId: options?.spanId ?? 'test-span',
     logsPath: options?.logsPath,
@@ -72,30 +69,31 @@ Deno.test({
   name: 'CoreContext - constructor with logsPath provided',
   sanitizeResources: false,
   fn: async () => {
-  // Create test directory first
-  try {
-    await Deno.mkdir('./test-logs', { recursive: true })
-  } catch {
-    // Directory might already exist
+    // Create test directory first
+    try {
+      await Deno.mkdir('./test-logs', { recursive: true })
+    } catch {
+      // Directory might already exist
+    }
+
+    const context = new CoreContext({
+      spanId: 'test-span',
+      logsPath: './test-logs',
+      silent: false
+    })
+
+    assertExists(context)
+    assertExists(context.logger)
+    assertEquals(context.silent, false)
+
+    // Cleanup
+    try {
+      await Deno.remove('./test-logs', { recursive: true })
+    } catch {
+      // Ignore cleanup errors
+    }
   }
-
-  const context = new CoreContext({
-    spanId: 'test-span',
-    logsPath: './test-logs',
-    silent: false
-  })
-
-  assertExists(context)
-  assertExists(context.logger)
-  assertEquals(context.silent, false)
-
-  // Cleanup
-  try {
-    await Deno.remove('./test-logs', { recursive: true })
-  } catch {
-    // Ignore cleanup errors
-  }
-}})
+})
 
 Deno.test({
   name: 'CoreContext - constructor initializes silent mode correctly',
@@ -140,32 +138,33 @@ Deno.test({
   name: 'CoreContext - logger includes file handler when logsPath provided',
   sanitizeResources: false,
   fn: async () => {
-  // Create test directory first
-  try {
-    await Deno.mkdir('./test-logs', { recursive: true })
-  } catch {
-    // Directory might already exist
+    // Create test directory first
+    try {
+      await Deno.mkdir('./test-logs', { recursive: true })
+    } catch {
+      // Directory might already exist
+    }
+
+    const context = new CoreContext({
+      spanId: 'file-test',
+      logsPath: './test-logs',
+      silent: true
+    })
+
+    const hasFileHandler = context.logger.handlers.some(
+      handler => handler.constructor.name === 'FileHandler'
+    )
+
+    assertEquals(hasFileHandler, true)
+
+    // Cleanup
+    try {
+      await Deno.remove('./test-logs', { recursive: true })
+    } catch {
+      // Ignore cleanup errors
+    }
   }
-
-  const context = new CoreContext({
-    spanId: 'file-test',
-    logsPath: './test-logs',
-    silent: true
-  })
-
-  const hasFileHandler = context.logger.handlers.some(
-    handler => handler.constructor.name === 'FileHandler'
-  )
-
-  assertEquals(hasFileHandler, true)
-
-  // Cleanup
-  try {
-    await Deno.remove('./test-logs', { recursive: true })
-  } catch {
-    // Ignore cleanup errors
-  }
-}})
+})
 
 Deno.test({
   name: 'CoreContext - logger does not include file handler when logsPath undefined',
@@ -253,7 +252,10 @@ Deno.test('CoreContext - toArtifacts() executes complete pipeline', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -274,7 +276,10 @@ Deno.test('CoreContext - toArtifacts() returns RenderResult structure', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -294,7 +299,10 @@ Deno.test('CoreContext - toArtifacts() includes results tree', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -311,7 +319,10 @@ Deno.test('CoreContext - toArtifacts() with empty document', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -329,7 +340,10 @@ Deno.test('CoreContext - toArtifacts() with settings undefined', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -346,7 +360,10 @@ Deno.test('CoreContext - toArtifacts() with settings provided', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: {
       basePath: './src/api'
     },
@@ -365,7 +382,10 @@ Deno.test('CoreContext - toArtifacts() with prettier config', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -386,7 +406,10 @@ Deno.test('CoreContext - toArtifacts() silent mode', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -438,7 +461,10 @@ Deno.test('CoreContext - error in toArtifacts() is caught and logged', () => {
   } as OpenAPIV3.Document
 
   const result = context.toArtifacts({
-    documentObject: invalidDoc,
+    document: {
+      type: 'oas',
+      value: invalidDoc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -460,7 +486,10 @@ Deno.test('CoreContext - error in toArtifacts() returns empty artifacts', () => 
   } as OpenAPIV3.Document
 
   const result = context.toArtifacts({
-    documentObject: invalidDoc,
+    document: {
+      type: 'oas',
+      value: invalidDoc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -482,7 +511,10 @@ Deno.test('CoreContext - error in toArtifacts() still includes results tree', ()
   } as OpenAPIV3.Document
 
   const result = context.toArtifacts({
-    documentObject: invalidDoc,
+    document: {
+      type: 'oas',
+      value: invalidDoc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -558,7 +590,10 @@ Deno.test('CoreContext - toArtifacts() integration with real document', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -575,7 +610,10 @@ Deno.test('CoreContext - toArtifacts() with basePath in settings', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: {
       basePath: './generated'
     },
@@ -617,7 +655,10 @@ Deno.test('CoreContext - toArtifacts() with no generators provided', () => {
   const stackTrail = new StackTrail(['TEST'])
 
   const result = context.toArtifacts({
-    documentObject: doc,
+    document: {
+      type: 'oas',
+      value: doc
+    },
     settings: undefined,
     toGeneratorConfigMap: createEmptyGeneratorMap,
     stackTrail,
@@ -711,8 +752,8 @@ Deno.test('CoreContext - silent flag affects context behavior', () => {
 })
 
 // Tests for skmtcFormatter (pretty-print console formatter)
-Deno.test('skmtcFormatter', async (t) => {
-  await t.step('log level formatting', async (t) => {
+Deno.test('skmtcFormatter', async t => {
+  await t.step('log level formatting', async t => {
     await t.step('formats ERROR level with red color', () => {
       const logRecord = {
         levelName: 'ERROR',
@@ -785,7 +826,7 @@ Deno.test('skmtcFormatter', async (t) => {
     })
   })
 
-  await t.step('timestamp formatting', async (t) => {
+  await t.step('timestamp formatting', async t => {
     await t.step('converts Date to ISO string format', () => {
       const logRecord = {
         levelName: 'INFO',
@@ -816,7 +857,7 @@ Deno.test('skmtcFormatter', async (t) => {
     })
   })
 
-  await t.step('stack trail handling', async (t) => {
+  await t.step('stack trail handling', async t => {
     await t.step('includes stack trail when not SKIPPED', () => {
       const logRecord = {
         levelName: 'INFO',
@@ -864,7 +905,7 @@ Deno.test('skmtcFormatter', async (t) => {
     })
   })
 
-  await t.step('message formatting', async (t) => {
+  await t.step('message formatting', async t => {
     await t.step('preserves single-line messages', () => {
       const logRecord = {
         levelName: 'INFO',
@@ -879,7 +920,8 @@ Deno.test('skmtcFormatter', async (t) => {
     })
 
     await t.step('preserves multi-line error messages with stack traces', () => {
-      const errorMessage = 'Error: Something went wrong\n    at function1 (file.ts:10:5)\n    at function2 (file.ts:20:3)'
+      const errorMessage =
+        'Error: Something went wrong\n    at function1 (file.ts:10:5)\n    at function2 (file.ts:20:3)'
       const logRecord = {
         levelName: 'ERROR',
         datetime: new Date('2024-01-16T10:32:59.772Z'),
@@ -910,7 +952,7 @@ Deno.test('skmtcFormatter', async (t) => {
     })
   })
 
-  await t.step('output structure', async (t) => {
+  await t.step('output structure', async t => {
     await t.step('includes header with level and timestamp', () => {
       const logRecord = {
         levelName: 'INFO',
@@ -967,8 +1009,8 @@ Deno.test('skmtcFormatter', async (t) => {
 })
 
 // Tests for skmtcJsonFormatter (JSON file formatter)
-Deno.test('skmtcJsonFormatter', async (t) => {
-  await t.step('JSON structure', async (t) => {
+Deno.test('skmtcJsonFormatter', async t => {
+  await t.step('JSON structure', async t => {
     await t.step('outputs valid JSON', () => {
       const logRecord = {
         levelName: 'INFO',
@@ -1063,7 +1105,7 @@ Deno.test('skmtcJsonFormatter', async (t) => {
     })
   })
 
-  await t.step('args handling', async (t) => {
+  await t.step('args handling', async t => {
     await t.step('includes args field when args present', () => {
       const logRecord = {
         levelName: 'INFO',
@@ -1109,7 +1151,7 @@ Deno.test('skmtcJsonFormatter', async (t) => {
     })
   })
 
-  await t.step('edge cases', async (t) => {
+  await t.step('edge cases', async t => {
     await t.step('handles empty message', () => {
       const logRecord = {
         levelName: 'INFO',

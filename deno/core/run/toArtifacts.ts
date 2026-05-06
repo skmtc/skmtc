@@ -148,19 +148,11 @@ export const toArtifacts = ({
 }: TransformArgs): { artifacts: Record<string, string>; manifest: ManifestContent } => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  // Run the OpenAPI parse phase here at the run-level entry, then hand
-  // CoreContext.toArtifacts a uniformly-shaped `SkmtcDocument`. The
-  // GraphQL counterpart (`toArtifactsFromGraphQL`) does the same with
-  // its own parser; CoreContext stays protocol-neutral.
-  const oasDocument = stackTrail.trace('parse', st => {
-    return context.parse(documentObject, st).oasDocument
-  })
-
   const { artifacts, files, previews, results, mappings } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     prettier,
-    document: { type: 'oas', value: oasDocument },
+    document: { type: 'oas', value: documentObject },
     stackTrail,
     silent
   })

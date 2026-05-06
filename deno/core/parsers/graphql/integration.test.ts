@@ -4,7 +4,8 @@ import * as log from '@std/log'
 
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import type { OperationConfig, ModelConfig } from '@/types/GeneratorType.ts'
+import type { OasOperationConfig, TransformOasOperationArgs } from '@/dsl/operation/oas/types.ts'
+import type { ModelConfig, TransformModelArgs } from '@/dsl/model/types.ts'
 import type { ResultType } from '@/types/Results.ts'
 import { Definition } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
@@ -14,6 +15,7 @@ import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { synthesizeArgsObject } from '@/gql/operation/synthesizeArgsObject.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasObject } from '@/oas/object/Object.ts'
+import { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -64,8 +66,8 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
   const gqlDocument = toGqlDocument(sdl)
 
   // Sanity-check the parsed document.
-  assertExists(gqlDocument.registry.schemas['User'])
-  assertExists(gqlDocument.registry.schemas['Post'])
+  assertExists(gqlDocument.registry.schemas.User)
+  assertExists(gqlDocument.registry.schemas.Post)
   assertEquals(gqlDocument.operations.length, 3) // 2 query + 1 mutation
   assertEquals(gqlDocument.rootTypes.query, 'Query')
   assertEquals(gqlDocument.rootTypes.mutation, 'Mutation')
@@ -75,8 +77,9 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
   const modelGenerator: ModelConfig = {
     id: 'synthetic-model',
     type: 'model',
-    transform({ refName }) {
+    transform<Acc = void>({ refName }: TransformModelArgs<Acc>): Acc {
       modelRefNames.push(refName)
+      return refName as Acc
     }
   }
 
@@ -89,10 +92,9 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     argsRequired: string[] | undefined
     argsKeys: string[]
   }> = []
-  const operationGenerator: OperationConfig = {
+  const operationGenerator: GqlOperationConfig = {
     id: 'synthetic-gql-op',
-    type: 'operation',
-    protocol: 'gql',
+    type: 'gqlOperation',
     isSupported: () => true,
     transform: <Acc = void>({
       operation,
@@ -181,18 +183,28 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
 
 Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL doc', () => {
   const sdl = /* GraphQL */ `
-    type User { id: ID! }
-    type Query { getUser: User }
+    type User {
+      id: ID!
+    }
+    type Query {
+      getUser: User
+    }
   `
   const gqlDocument = toGqlDocument(sdl)
 
-  const httpTransform = spy(() => undefined)
-  const httpGenerator: OperationConfig = {
+  const httpTransform = spy(() => undefined) as ({
+    context,
+    operation,
+    acc
+  }: TransformOasOperationArgs<unknown>) => unknown
+
+  const httpGenerator: OasOperationConfig = {
     id: 'http-only',
-    type: 'operation',
-    protocol: 'http',
+    type: 'oasOperation',
     isSupported: () => true,
-    transform: httpTransform
+    transform: <Acc = void>({ context, operation, acc }: TransformOasOperationArgs<Acc>): Acc => {
+      return httpTransform({ context, operation, acc }) as Acc
+    }
   }
 
   const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
@@ -214,8 +226,12 @@ Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL d
 
 Deno.test('GraphQL pipeline - return type ref resolves through the registry', () => {
   const sdl = /* GraphQL */ `
-    type User { id: ID! }
-    type Query { getUser(id: ID!): User }
+    type User {
+      id: ID!
+    }
+    type Query {
+      getUser(id: ID!): User
+    }
   `
   const gqlDocument = toGqlDocument(sdl)
 

@@ -6,7 +6,7 @@ import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Definition } from '@/dsl/Definition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
-import type { OperationInsertable } from '@/dsl/operation/types.ts'
+import type { OasOperationInsertable } from '@/dsl/operation/oas/types.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -20,6 +20,9 @@ import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { File } from '@/dsl/File.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
+import type { GqlOperationInsertable } from '@/dsl/operation/gql/types.ts'
+import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
+
 /**
  * Options for inserting an operation into the generation context.
  *
@@ -34,6 +37,44 @@ export type InsertOperationOptions = {
   /** Custom destination path for the operation */
   destinationPath?: string
 }
+
+/**
+ * Arguments for `GenerateContext.insertOperation`.
+ *
+ * @template V - Generated value type
+ * @template EnrichmentType - Optional enrichment data type
+ */
+export type InsertOasOperationArgs<V, EnrichmentType = undefined> = {
+  /** The operation generator to insert */
+  insertable: OasOperationInsertable<V, EnrichmentType>
+  /** The OpenAPI operation to process */
+  operation: OasOperation
+  /** Custom destination path for the operation */
+  destinationPath?: string
+  /** Whether to exclude this operation from exports */
+  noExport?: boolean
+}
+
+/**
+ * Arguments for `GenerateContext.insertOperation`.
+ *
+ * @template V - Generated value type
+ * @template EnrichmentType - Optional enrichment data type
+ */
+export type InsertGqlOperationArgs<V, EnrichmentType = undefined> = {
+  /** The operation generator to insert */
+  insertable: GqlOperationInsertable<V, EnrichmentType>
+  /** The GraphQL operation to process */
+  operation: GqlOperation
+  /** Custom destination path for the operation */
+  destinationPath?: string
+  /** Whether to exclude this operation from exports */
+  noExport?: boolean
+}
+
+export type InsertOperationArgs<V, EnrichmentType = undefined> =
+  | InsertOasOperationArgs<V, EnrichmentType>
+  | InsertGqlOperationArgs<V, EnrichmentType>
 
 /**
  * Type representing the three phases of the SKMTC pipeline.
@@ -242,7 +283,7 @@ export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
  */
 export type ToOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: OasOperation
-  insertable: OperationInsertable<V, EnrichmentType>
+  insertable: OasOperationInsertable<V, EnrichmentType>
 }
 
 /**
@@ -276,9 +317,7 @@ export type GenerateContextType = {
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   register: ({ imports, definitions, destinationPath, reExports }: RegisterArgs) => void
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
-    insertable: OperationInsertable<V, EnrichmentType>,
-    operation: OasOperation,
-    options?: InsertOperationOptions
+    args: InsertOperationArgs<V, EnrichmentType>
   ) => Inserted<V, EnrichmentType>
   insertNormalisedModel: <
     V extends GeneratedValue,

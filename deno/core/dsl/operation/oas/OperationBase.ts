@@ -1,4 +1,4 @@
-import type { OperationInsertable } from './types.ts'
+import type { OasOperationInsertable } from '@/dsl/operation/oas/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type {
@@ -9,7 +9,7 @@ import type {
   InsertNormalisedModelReturn,
   BaseRegisterArgs,
   GenerateContextType
-} from '../../context/generateTypes.ts'
+} from '@/context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { ContentBase } from '@/dsl/ContentBase.ts'
@@ -219,11 +219,13 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    * ```
    */
   insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
-    insertable: OperationInsertable<V, EnrichmentType>,
+    insertable: OasOperationInsertable<V, EnrichmentType>,
     operation: OasOperation,
     options: Pick<InsertOperationOptions, 'noExport'> = {}
   ): Inserted<V, EnrichmentType> {
-    return this.context.insertOperation(insertable, operation, {
+    return this.context.insertOperation({
+      insertable,
+      operation,
       destinationPath: this.settings.exportPath,
       noExport: options.noExport
     })

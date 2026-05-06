@@ -1,5 +1,6 @@
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 /**
  * Discriminated union representing a parsed source document inside the SKMTC
@@ -56,3 +57,20 @@ export const toGqlSkmtcDocument = (value: GqlDocument): SkmtcDocument => ({
   type: 'gql',
   value
 })
+
+/**
+ * Discriminated union representing a *source* document accepted by
+ * `CoreContext.toArtifacts`. Mirrors {@link SkmtcDocument} but carries
+ * the raw OpenAPI v3 document on the OAS side instead of the parsed
+ * {@link OasDocument} — `CoreContext.toArtifacts` runs the parse phase
+ * itself when the input is OAS, then hands the result to the generate
+ * phase as a {@link SkmtcDocument}.
+ *
+ * GraphQL has no parallel parse step at this layer because SDL parsing
+ * is owned by `core/parsers/graphql/toGqlDocument.ts`, which is a
+ * sub-export — keeping it out of `core` proper means consumers that
+ * only need the data model don't pay the `graphql` npm dependency cost.
+ */
+export type SkmtcDocumentInput =
+  | { type: 'oas'; value: OpenAPIV3.Document<Record<string, never>> }
+  | { type: 'gql'; value: GqlDocument }

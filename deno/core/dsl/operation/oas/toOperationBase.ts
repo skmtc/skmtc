@@ -1,9 +1,9 @@
-import { toOperationGeneratorKey } from '../GeneratorKeys.ts'
-import type { GenerateContextType } from '../../context/generateTypes.ts'
+import { toOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import { OperationBase } from '@/dsl/operation/OperationBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { OperationInsertableArgs } from '@/dsl/operation/types.ts'
+import type { OasOperationInsertableArgs } from '@/dsl/operation/oas/types.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
@@ -16,7 +16,7 @@ import get from 'lodash-es/get'
  *
  * @template EnrichmentType - Type of enrichments to apply to generated operations
  */
-export type BaseOperationConfig<EnrichmentType = undefined> = {
+export type BaseOasOperationConfig<EnrichmentType = undefined> = {
   /** Unique identifier for the operation generator */
   id: string
   /** Function to generate identifiers from operations */
@@ -79,7 +79,7 @@ type ToEnrichmentsArgs = {
  * ```
  */
 export const toOperationBase = <EnrichmentType = undefined>(
-  config: BaseOperationConfig<EnrichmentType>
+  config: BaseOasOperationConfig<EnrichmentType>
 ) => {
   return class extends OperationBase<EnrichmentType> {
     static id = config.id
@@ -99,7 +99,7 @@ export const toOperationBase = <EnrichmentType = undefined>(
       return v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType
     }
 
-    constructor(args: OperationInsertableArgs<EnrichmentType>) {
+    constructor(args: OasOperationInsertableArgs<EnrichmentType>) {
       super({
         ...args,
         generatorKey: toOperationGeneratorKey({

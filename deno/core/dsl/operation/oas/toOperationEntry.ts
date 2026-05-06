@@ -5,9 +5,9 @@ import type {
   IsSupportedArgs,
   ToOperationPreviewModuleArgs,
   ToOperationMappingArgs,
-  TransformOperationArgs
-} from '@/dsl/operation/types.ts'
-import type { IsSupportedOperationConfigArgs } from '@/dsl/operation/types.ts'
+  TransformOasOperationArgs
+} from '@/dsl/operation/oas/types.ts'
+import type { IsSupportedOasOperationConfigArgs } from '@/dsl/operation/oas/types.ts'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
@@ -22,9 +22,12 @@ import get from 'lodash-es/get'
  */
 export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
-  transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
+  transform: ({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
-  isSupported?: ({ context, operation }: IsSupportedOperationConfigArgs<EnrichmentType>) => boolean
+  isSupported?: ({
+    context,
+    operation
+  }: IsSupportedOasOperationConfigArgs<EnrichmentType>) => boolean
   toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
@@ -71,7 +74,7 @@ export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
 }: ToOperationConfigArgs<EnrichmentType, Acc>): {
   id: string
   type: 'operation'
-  transform: ({ context, operation, acc }: TransformOperationArgs<Acc>) => Acc
+  transform: ({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule

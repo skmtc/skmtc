@@ -1,22 +1,24 @@
 import { assertEquals, assertExists, assert, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
-import { OperationDriver } from './OperationDriver.ts'
+import { GqlOperationDriver } from './OperationDriver.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { OperationInsertable } from './types.ts'
+import type { GqlOperationInsertable } from './types.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { Definition } from '@/dsl/Definition.ts'
-import { toOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import { OasOperation } from '@/oas/operation/Operation.ts'
-import type { Method } from '@/types/Method.ts'
-import { OperationBase } from './OperationBase.ts'
+import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import { GqlOperation, type GqlRootKind } from '@/gql/operation/GqlOperation.ts'
+import { OasString } from '@/oas/string/String.ts'
+import { GqlOperationBase } from './OperationBase.ts'
 
 // ============================================================================
 // Test Helpers
 // ============================================================================
 
-// Helper to create a mock GenerateContext
+const toKey = (generatorId: string, operation: GqlOperation): GeneratorKey =>
+  `${generatorId}|${operation.rootKind}|${operation.fieldName}` as unknown as GeneratorKey
+
 const createMockContext = (options?: {
   findDefinition?: Definition<any> | undefined
   existingImports?: Record<string, string[]>
@@ -25,7 +27,10 @@ const createMockContext = (options?: {
     return new ContentSettings({
       identifier: args.insertable.toIdentifier(args.operation),
       exportPath: args.insertable.toExportPath(args.operation),
-      enrichments: args.insertable.toEnrichments({ operation: args.operation, context: mockContext })
+      enrichments: args.insertable.toEnrichments({
+        operation: args.operation,
+        context: mockContext
+      })
     })
   })
 
@@ -46,37 +51,33 @@ const createMockContext = (options?: {
   }
 }
 
-// Helper to create a mock OasOperation
 const createMockOperation = (options?: {
-  path?: string
-  method?: Method
-  operationId?: string
-}): OasOperation => {
-  return new OasOperation({
-    path: options?.path ?? '/users',
-    method: (options?.method ?? 'get') as Method,
-    pathItem: undefined,
-    operationId: options?.operationId ?? 'getUsers',
-    responses: {}
+  rootKind?: GqlRootKind
+  fieldName?: string
+}): GqlOperation => {
+  return new GqlOperation({
+    rootKind: options?.rootKind ?? 'query',
+    fieldName: options?.fieldName ?? 'getUsers',
+    arguments: [],
+    returnType: new OasString({})
   })
 }
 
-// Helper to create a mock OperationInsertable
 const createMockInsertable = (options?: {
   id?: string
   exportPath?: string
   enrichments?: any
-}): OperationInsertable<any, undefined> => {
-  class MockInsertable extends OperationBase<undefined> {
+}): GqlOperationInsertable<any, undefined> => {
+  class MockInsertable extends GqlOperationBase<undefined> {
     static id = options?.id ?? 'MockInsertable'
     static type = 'operation' as const
 
-    static toIdentifier(operation: OasOperation): Identifier {
-      return Identifier.createVariable(operation.operationId ?? 'operation')
+    static toIdentifier(operation: GqlOperation): Identifier {
+      return Identifier.createVariable(operation.fieldName)
     }
 
-    static toExportPath(operation: OasOperation): string {
-      return options?.exportPath ?? `./operations/${operation.operationId}.ts`
+    static toExportPath(operation: GqlOperation): string {
+      return options?.exportPath ?? `./operations/${operation.fieldName}.ts`
     }
 
     static toEnrichments(): undefined {
@@ -87,14 +88,13 @@ const createMockInsertable = (options?: {
       return Identifier.createVariable(name)
     }
 
-    constructor(args: { context: GenerateContextType; settings: ContentSettings<undefined>; operation: OasOperation }) {
-      // Calculate generator key for this instance
-      const generatorKey = toOperationGeneratorKey({
-        generatorId: MockInsertable.id,
-        operation: args.operation
-      })
+    constructor(args: {
+      context: GenerateContextType
+      settings: ContentSettings<undefined>
+      operation: GqlOperation
+    }) {
+      const generatorKey = toKey(MockInsertable.id, args.operation)
 
-      // Call parent constructor with all required arguments
       super({
         context: args.context,
         settings: args.settings,
@@ -103,7 +103,6 @@ const createMockInsertable = (options?: {
       })
     }
 
-    // The instance itself is the generated value, so it needs toString()
     override toString(): string {
       return 'mock operation code'
     }
@@ -116,14 +115,14 @@ const createMockInsertable = (options?: {
 // Tests
 // ============================================================================
 
-Deno.test('OperationDriver', async (t) => {
+Deno.test('GqlOperationDriver', async (t) => {
   await t.step('Constructor and Property Initialization', async (t) => {
     await t.step('should initialize all required properties correctly', () => {
       const { context } = createMockContext()
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -141,7 +140,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation,
@@ -158,7 +157,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -176,9 +175,9 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should set settings from toOperationContentSettings result', () => {
       const { context } = createMockContext()
       const insertable = createMockInsertable()
-      const operation = createMockOperation({ operationId: 'testOp' })
+      const operation = createMockOperation({ fieldName: 'testOp' })
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -193,7 +192,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -203,40 +202,40 @@ Deno.test('OperationDriver', async (t) => {
       assert(driver.definition instanceof Definition)
     })
 
-    await t.step('should handle different HTTP methods', () => {
-      const methods: Method[] = ['get', 'post', 'put', 'delete', 'patch']
+    await t.step('should handle different root kinds', () => {
+      const rootKinds: GqlRootKind[] = ['query', 'mutation', 'subscription']
 
-      methods.forEach(method => {
+      rootKinds.forEach((rootKind) => {
         const { context } = createMockContext()
         const insertable = createMockInsertable()
-        const operation = createMockOperation({ method })
+        const operation = createMockOperation({ rootKind })
 
-        const driver = new OperationDriver({
+        const driver = new GqlOperationDriver({
           context,
           insertable,
           operation
         })
 
-        assertEquals(driver.operation.method, method)
+        assertEquals(driver.operation.rootKind, rootKind)
         assertExists(driver.definition)
       })
     })
 
-    await t.step('should handle operations with different paths', () => {
-      const paths = ['/users', '/users/{id}', '/api/v1/posts', '/products/{productId}/reviews']
+    await t.step('should handle operations with different field names', () => {
+      const fieldNames = ['users', 'userById', 'createPost', 'onUserChange']
 
-      paths.forEach(path => {
+      fieldNames.forEach((fieldName) => {
         const { context } = createMockContext()
         const insertable = createMockInsertable()
-        const operation = createMockOperation({ path })
+        const operation = createMockOperation({ fieldName })
 
-        const driver = new OperationDriver({
+        const driver = new GqlOperationDriver({
           context,
           insertable,
           operation
         })
 
-        assertEquals(driver.operation.path, path)
+        assertEquals(driver.operation.fieldName, fieldName)
         assertExists(driver.definition)
       })
     })
@@ -247,7 +246,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable({ enrichments })
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -261,22 +260,18 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should register import when destinationPath differs from exportPath', () => {
       const { context, registerSpy } = createMockContext()
       const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
-      const operation = createMockOperation({ operationId: 'getUsers' })
+      const operation = createMockOperation({ fieldName: 'getUsers' })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation,
         destinationPath: './api/users.ts'
       })
 
-      // registerSpy should be called: once for definition, once for import
       assertSpyCalls(registerSpy, 2)
 
-      // Find the import registration call
-      const importCall = registerSpy.calls.find(call =>
-        call.args[0].imports !== undefined
-      )
+      const importCall = registerSpy.calls.find((call) => call.args[0].imports !== undefined)
 
       assertExists(importCall)
       assertEquals(importCall.args[0].imports?.['./operations/getUsers.ts'], ['getUsers'])
@@ -286,16 +281,15 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should not register import when paths match', () => {
       const { context, registerSpy } = createMockContext()
       const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
-      const operation = createMockOperation({ operationId: 'getUsers' })
+      const operation = createMockOperation({ fieldName: 'getUsers' })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation,
         destinationPath: './operations/getUsers.ts'
       })
 
-      // Only definition registration, no import
       assertSpyCalls(registerSpy, 1)
       assertEquals(registerSpy.calls[0].args[0].imports, undefined)
     })
@@ -305,14 +299,12 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
       const operation = createMockOperation()
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation
-        // destinationPath not provided
       })
 
-      // Only definition registration
       assertSpyCalls(registerSpy, 1)
       assertEquals(registerSpy.calls[0].args[0].imports, undefined)
     })
@@ -322,14 +314,13 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable({ exportPath: './operations//getUsers.ts' })
       const operation = createMockOperation()
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation,
         destinationPath: './operations/getUsers.ts'
       })
 
-      // Paths are the same after normalization, so no import
       assertSpyCalls(registerSpy, 1)
       assertEquals(registerSpy.calls[0].args[0].imports, undefined)
     })
@@ -337,34 +328,33 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should handle relative vs absolute paths', () => {
       const { context, registerSpy } = createMockContext()
       const insertable = createMockInsertable({ exportPath: '/absolute/path/operation.ts' })
-      const operation = createMockOperation({ operationId: 'testOp' })
+      const operation = createMockOperation({ fieldName: 'testOp' })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation,
         destinationPath: './relative/path/file.ts'
       })
 
-      // Different paths should register import
       assertSpyCalls(registerSpy, 2)
-      const importCall = registerSpy.calls.find(call => call.args[0].imports)
+      const importCall = registerSpy.calls.find((call) => call.args[0].imports)
       assertExists(importCall)
     })
 
     await t.step('should register imports with correct structure', () => {
       const { context, registerSpy } = createMockContext()
       const insertable = createMockInsertable({ exportPath: './ops/create.ts' })
-      const operation = createMockOperation({ operationId: 'createUser' })
+      const operation = createMockOperation({ rootKind: 'mutation', fieldName: 'createUser' })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation,
         destinationPath: './api/handlers.ts'
       })
 
-      const importCall = registerSpy.calls.find(call => call.args[0].imports)
+      const importCall = registerSpy.calls.find((call) => call.args[0].imports)
       assertExists(importCall)
 
       assertEquals(importCall.args[0], {
@@ -380,14 +370,13 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
       const operation = createMockOperation()
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation,
-        destinationPath: './operations//getUsers.ts'  // Double slash, should normalize to single
+        destinationPath: './operations//getUsers.ts'
       })
 
-      // After normalization, should be same path (no import registration)
       assertSpyCalls(registerSpy, 1)
       assertEquals(registerSpy.calls[0].args[0].imports, undefined)
     })
@@ -396,24 +385,23 @@ Deno.test('OperationDriver', async (t) => {
       const { context, registerSpy } = createMockContext()
       const insertable1 = createMockInsertable({ exportPath: './ops/op1.ts' })
       const insertable2 = createMockInsertable({ exportPath: './ops/op2.ts' })
-      const operation1 = createMockOperation({ operationId: 'op1' })
-      const operation2 = createMockOperation({ operationId: 'op2' })
+      const operation1 = createMockOperation({ fieldName: 'op1' })
+      const operation2 = createMockOperation({ fieldName: 'op2' })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable: insertable1,
         operation: operation1,
         destinationPath: './api/index.ts'
       })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable: insertable2,
         operation: operation2,
         destinationPath: './api/index.ts'
       })
 
-      // Each driver registers: definition + import = 2 calls each = 4 total
       assertSpyCalls(registerSpy, 4)
     })
   })
@@ -422,9 +410,9 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should call context.findDefinition with correct arguments', () => {
       const { context, findDefinitionSpy } = createMockContext()
       const insertable = createMockInsertable({ exportPath: './ops/test.ts' })
-      const operation = createMockOperation({ operationId: 'testOp' })
+      const operation = createMockOperation({ fieldName: 'testOp' })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -446,7 +434,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -461,19 +449,20 @@ Deno.test('OperationDriver', async (t) => {
       const { context } = createMockContext()
       let capturedArgs: any = null
 
-      class SpyInsertable extends OperationBase<undefined> {
+      class SpyInsertable extends GqlOperationBase<undefined> {
         static id = 'SpyInsertable'
         static type = 'operation' as const
-        static toIdentifier = (op: OasOperation) => Identifier.createVariable(op.operationId ?? 'op')
+        static toIdentifier = (op: GqlOperation) => Identifier.createVariable(op.fieldName)
         static toExportPath = () => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => Identifier.createVariable(name)
 
-        constructor(args: { context: GenerateContextType; settings: ContentSettings<undefined>; operation: OasOperation }) {
-          const generatorKey = toOperationGeneratorKey({
-            generatorId: 'SpyInsertable',
-            operation: args.operation
-          })
+        constructor(args: {
+          context: GenerateContextType
+          settings: ContentSettings<undefined>
+          operation: GqlOperation
+        }) {
+          const generatorKey = toKey('SpyInsertable', args.operation)
           super({
             context: args.context,
             settings: args.settings,
@@ -488,9 +477,9 @@ Deno.test('OperationDriver', async (t) => {
         }
       }
 
-      const operation = createMockOperation({ operationId: 'testOp' })
+      const operation = createMockOperation({ fieldName: 'testOp' })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable: SpyInsertable as any,
         operation
@@ -507,7 +496,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -522,15 +511,14 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation
       })
 
-      // At least one call to register the definition
       assert(registerSpy.calls.length >= 1)
-      const defCall = registerSpy.calls.find(call => call.args[0].definitions)
+      const defCall = registerSpy.calls.find((call) => call.args[0].definitions)
       assertExists(defCall)
     })
 
@@ -539,16 +527,14 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation,
         noExport: true
       })
 
-      // The Definition should have noExport set
       assertExists(driver.definition)
-      // Note: noExport is internal to Definition, tested via integration
     })
 
     await t.step('should return created definition', () => {
@@ -556,7 +542,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -570,7 +556,6 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      // Create a proper cached value by instantiating the insertable
       const mockContext = {} as any
       const mockSettings = new ContentSettings({
         identifier: Identifier.createVariable('cached'),
@@ -594,7 +579,7 @@ Deno.test('OperationDriver', async (t) => {
         findDefinition: cachedDef
       })
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -606,19 +591,20 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should skip instantiation when definition cached', () => {
       let instantiated = false
 
-      class TrackingInsertable extends OperationBase<undefined> {
+      class TrackingInsertable extends GqlOperationBase<undefined> {
         static id = 'TrackingInsertable'
         static type = 'operation' as const
-        static toIdentifier = (op: OasOperation) => Identifier.createVariable(op.operationId ?? 'op')
+        static toIdentifier = (op: GqlOperation) => Identifier.createVariable(op.fieldName)
         static toExportPath = () => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => Identifier.createVariable(name)
 
-        constructor(args: { context: GenerateContextType; settings: ContentSettings<undefined>; operation: OasOperation }) {
-          const generatorKey = toOperationGeneratorKey({
-            generatorId: 'TrackingInsertable',
-            operation: args.operation
-          })
+        constructor(args: {
+          context: GenerateContextType
+          settings: ContentSettings<undefined>
+          operation: GqlOperation
+        }) {
+          const generatorKey = toKey('TrackingInsertable', args.operation)
           super({
             context: args.context,
             settings: args.settings,
@@ -635,8 +621,6 @@ Deno.test('OperationDriver', async (t) => {
 
       const operation = createMockOperation()
 
-      // Create cached value WITHOUT triggering instantiation flag
-      // We do this by creating instance before we set up tracking
       const tempValue = new TrackingInsertable({
         context: {} as any,
         settings: new ContentSettings({
@@ -647,7 +631,6 @@ Deno.test('OperationDriver', async (t) => {
         operation
       })
 
-      // Reset flag after creating cached value
       instantiated = false
 
       const cachedDef = new Definition({
@@ -660,7 +643,7 @@ Deno.test('OperationDriver', async (t) => {
         findDefinition: cachedDef
       })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable: TrackingInsertable as any,
         operation
@@ -670,14 +653,12 @@ Deno.test('OperationDriver', async (t) => {
     })
 
     await t.step('should preserve settings when using cached definition', () => {
+      const operation = createMockOperation({ fieldName: 'testOp' })
       const cachedDef = new Definition({
         context: {} as any,
         identifier: Identifier.createVariable('cached'),
         value: {
-          generatorKey: toOperationGeneratorKey({
-            generatorId: 'MockInsertable',
-            operation: createMockOperation()
-          }),
+          generatorKey: toKey('MockInsertable', operation),
           toString: () => 'cached'
         } as any
       })
@@ -686,15 +667,13 @@ Deno.test('OperationDriver', async (t) => {
         findDefinition: cachedDef
       })
       const insertable = createMockInsertable()
-      const operation = createMockOperation({ operationId: 'testOp' })
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
       })
 
-      // Settings should still be created from toOperationContentSettings
       assertEquals(driver.settings.identifier.name, 'testOp')
       assertExists(driver.settings.exportPath)
     })
@@ -708,8 +687,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      // Should create new definition, not use undefined
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -723,7 +701,6 @@ Deno.test('OperationDriver', async (t) => {
       const operation = createMockOperation()
       const insertable = createMockInsertable()
 
-      // Create a proper cached value by instantiating the insertable
       const cachedValue = new insertable({
         context: {} as any,
         settings: new ContentSettings({
@@ -744,13 +721,12 @@ Deno.test('OperationDriver', async (t) => {
         findDefinition: cachedDef
       })
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
       })
 
-      // Should use cached definition
       assertEquals(driver.definition, cachedDef)
     })
 
@@ -758,8 +734,6 @@ Deno.test('OperationDriver', async (t) => {
       const operation = createMockOperation()
       const insertable = createMockInsertable({ id: 'MockInsertable' })
 
-      // Create a cached value with the SAME insertable class but manually override generatorKey
-      // to simulate a mismatch scenario
       const differentInsertable = createMockInsertable({ id: 'DifferentGenerator' })
 
       const cachedValue = new differentInsertable({
@@ -784,7 +758,7 @@ Deno.test('OperationDriver', async (t) => {
 
       assertThrows(
         () => {
-          new OperationDriver({
+          new GqlOperationDriver({
             context,
             insertable,
             operation
@@ -796,15 +770,12 @@ Deno.test('OperationDriver', async (t) => {
     })
 
     await t.step('should include operation details in error message', () => {
-      const operation = createMockOperation({ operationId: 'testOperation', path: '/test', method: 'get' })
+      const operation = createMockOperation({ fieldName: 'testOperation', rootKind: 'query' })
       const cachedDef = new Definition({
         context: {} as any,
         identifier: Identifier.createVariable('testOperation'),
         value: {
-          generatorKey: toOperationGeneratorKey({
-            generatorId: 'DifferentGenerator',
-            operation
-          }),
+          generatorKey: toKey('DifferentGenerator', operation),
           toString: () => 'cached'
         } as any
       })
@@ -812,11 +783,14 @@ Deno.test('OperationDriver', async (t) => {
       const { context } = createMockContext({
         findDefinition: cachedDef
       })
-      const insertable = createMockInsertable({ id: 'MockInsertable', exportPath: './ops/test.ts' })
+      const insertable = createMockInsertable({
+        id: 'MockInsertable',
+        exportPath: './ops/test.ts'
+      })
 
       assertThrows(
         () => {
-          new OperationDriver({
+          new GqlOperationDriver({
             context,
             insertable,
             operation
@@ -829,10 +803,7 @@ Deno.test('OperationDriver', async (t) => {
 
     await t.step('should include both keys in error message', () => {
       const operation = createMockOperation()
-      const cachedKey = toOperationGeneratorKey({
-        generatorId: 'CachedGenerator',
-        operation
-      })
+      const cachedKey = toKey('CachedGenerator', operation)
       const cachedDef = new Definition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
@@ -849,7 +820,7 @@ Deno.test('OperationDriver', async (t) => {
 
       let errorMessage = ''
       try {
-        new OperationDriver({
+        new GqlOperationDriver({
           context,
           insertable,
           operation
@@ -863,23 +834,22 @@ Deno.test('OperationDriver', async (t) => {
     })
 
     await t.step('should validate generator key format', () => {
-      const operation = createMockOperation({ path: '/test', method: 'get' })
+      const operation = createMockOperation({ rootKind: 'query', fieldName: 'test' })
       const insertable = createMockInsertable({ id: 'TestGen' })
 
       const { context } = createMockContext()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
       })
 
-      // Generator key should be in format: generatorId|path|method
-      const key = driver.definition.generatorKey
+      const key = driver.definition.generatorKey as unknown as string
       assertExists(key)
       assert(key.includes('TestGen'))
-      assert(key.includes('/test'))
-      assert(key.includes('get'))
+      assert(key.includes('query'))
+      assert(key.includes('test'))
     })
 
     await t.step('should handle edge case of wrong value type', () => {
@@ -898,9 +868,8 @@ Deno.test('OperationDriver', async (t) => {
       })
       const insertable = createMockInsertable()
 
-      // Should throw due to type mismatch
       assertThrows(() => {
-        new OperationDriver({
+        new GqlOperationDriver({
           context,
           insertable,
           operation
@@ -913,28 +882,29 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should create correct operation generator key format', () => {
       const { context } = createMockContext()
       const insertable = createMockInsertable({ id: 'TestGenerator' })
-      const operation = createMockOperation({ path: '/users/{id}', method: 'post', operationId: 'updateUser' })
+      const operation = createMockOperation({
+        rootKind: 'mutation',
+        fieldName: 'updateUser'
+      })
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
       })
 
-      const key = driver.definition.generatorKey
+      const key = driver.definition.generatorKey as unknown as string
 
-      // Key should include generatorId, path, and method
       assertExists(key)
       assert(key.includes('TestGenerator'))
-      assert(key.includes('/users/{id}'))
-      assert(key.includes('post'))
+      assert(key.includes('mutation'))
+      assert(key.includes('updateUser'))
     })
 
     await t.step('should use generator key for cache validation', () => {
       const operation = createMockOperation()
       const insertable = createMockInsertable()
 
-      // Create a proper cached value by instantiating the insertable
       const cachedValue = new insertable({
         context: {} as any,
         settings: new ContentSettings({
@@ -955,8 +925,7 @@ Deno.test('OperationDriver', async (t) => {
         findDefinition: cachedDef
       })
 
-      // Should not throw because keys match
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
@@ -967,10 +936,7 @@ Deno.test('OperationDriver', async (t) => {
 
     await t.step('should throw on key collision with different generator', () => {
       const operation = createMockOperation()
-      const wrongKey = toOperationGeneratorKey({
-        generatorId: 'DifferentGenerator',
-        operation
-      })
+      const wrongKey = toKey('DifferentGenerator', operation)
       const cachedDef = new Definition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
@@ -986,7 +952,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable({ id: 'MockInsertable' })
 
       assertThrows(() => {
-        new OperationDriver({
+        new GqlOperationDriver({
           context,
           insertable,
           operation
@@ -994,67 +960,49 @@ Deno.test('OperationDriver', async (t) => {
       })
     })
 
-    await t.step('should include generatorId, path, and method in key', () => {
+    await t.step('should include generatorId, rootKind, and fieldName in key', () => {
       const { context } = createMockContext()
       const insertable = createMockInsertable({ id: 'CustomGen' })
       const operation = createMockOperation({
-        path: '/api/resources',
-        method: 'delete',
-        operationId: 'deleteResource'
+        rootKind: 'subscription',
+        fieldName: 'onResourceChange'
       })
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
       })
 
-      const key = driver.definition.generatorKey
+      const key = driver.definition.generatorKey as unknown as string
 
       assertExists(key)
       assert(key.includes('CustomGen'))
-      assert(key.includes('/api/resources'))
-      assert(key.includes('delete'))
-    })
-
-    await t.step('should handle operations without operationId', () => {
-      const { context } = createMockContext()
-      const insertable = createMockInsertable()
-      const operation = new OasOperation({
-        path: '/test',
-        method: 'get',
-        pathItem: undefined,
-        // operationId is undefined
-        responses: {}
-      })
-
-      const driver = new OperationDriver({
-        context,
-        insertable,
-        operation
-      })
-
-      assertExists(driver.definition)
-      assertExists(driver.definition.generatorKey)
+      assert(key.includes('subscription'))
+      assert(key.includes('onResourceChange'))
     })
   })
 
   await t.step('Integration and Lifecycle Tests', async (t) => {
     await t.step('should complete full construction to definition flow', () => {
-      const { context, toOperationContentSettingsSpy, findDefinitionSpy, registerSpy } = createMockContext()
+      const {
+        context,
+        toOperationContentSettingsSpy,
+        findDefinitionSpy,
+        registerSpy
+      } = createMockContext()
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
       })
 
-      // Verify complete flow
-      assertSpyCalls(toOperationContentSettingsSpy, 1) // Settings created
-      assertSpyCalls(findDefinitionSpy, 1) // Cache checked
-      assert(registerSpy.calls.length >= 1) // Definition registered
+      assertSpyCalls(toOperationContentSettingsSpy, 1)
+      assertSpyCalls(findDefinitionSpy, 1)
+      assert(registerSpy.calls.length >= 1)
       assertExists(driver.settings)
       assertExists(driver.definition)
     })
@@ -1063,7 +1011,6 @@ Deno.test('OperationDriver', async (t) => {
       const operation = createMockOperation()
       const insertable = createMockInsertable()
 
-      // Create a proper cached value by instantiating the insertable
       const cachedValue = new insertable({
         context: {} as any,
         settings: new ContentSettings({
@@ -1084,10 +1031,9 @@ Deno.test('OperationDriver', async (t) => {
         findDefinition: cachedDef
       })
 
-      const driver1 = new OperationDriver({ context, insertable, operation })
-      const driver2 = new OperationDriver({ context, insertable, operation })
+      const driver1 = new GqlOperationDriver({ context, insertable, operation })
+      const driver2 = new GqlOperationDriver({ context, insertable, operation })
 
-      // Both should use same cached definition
       assertEquals(driver1.definition, cachedDef)
       assertEquals(driver2.definition, cachedDef)
     })
@@ -1095,13 +1041,20 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should create separate definitions for different operations', () => {
       const { context } = createMockContext()
       const insertable = createMockInsertable()
-      const operation1 = createMockOperation({ operationId: 'op1', path: '/path1', method: 'get' })
-      const operation2 = createMockOperation({ operationId: 'op2', path: '/path2', method: 'post' })
+      const operation1 = createMockOperation({ fieldName: 'op1', rootKind: 'query' })
+      const operation2 = createMockOperation({ fieldName: 'op2', rootKind: 'mutation' })
 
-      const driver1 = new OperationDriver({ context, insertable, operation: operation1 })
-      const driver2 = new OperationDriver({ context, insertable, operation: operation2 })
+      const driver1 = new GqlOperationDriver({
+        context,
+        insertable,
+        operation: operation1
+      })
+      const driver2 = new GqlOperationDriver({
+        context,
+        insertable,
+        operation: operation2
+      })
 
-      // Should have different definitions
       assert(driver1.definition !== driver2.definition)
       assert(driver1.definition.generatorKey !== driver2.definition.generatorKey)
     })
@@ -1109,17 +1062,16 @@ Deno.test('OperationDriver', async (t) => {
     await t.step('should register cross-file imports correctly', () => {
       const { context, registerSpy } = createMockContext()
       const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
-      const operation = createMockOperation({ operationId: 'getUsers' })
+      const operation = createMockOperation({ fieldName: 'getUsers' })
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation,
         destinationPath: './api/index.ts'
       })
 
-      // Should have import registration
-      const importCall = registerSpy.calls.find(call => call.args[0].imports)
+      const importCall = registerSpy.calls.find((call) => call.args[0].imports)
       assertExists(importCall)
       assertEquals(importCall.args[0].imports?.['./operations/getUsers.ts'], ['getUsers'])
       assertEquals(importCall.args[0].destinationPath, './api/index.ts')
@@ -1130,14 +1082,13 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable({ exportPath: './operations/users.ts' })
       const operation = createMockOperation()
 
-      new OperationDriver({
+      new GqlOperationDriver({
         context,
         insertable,
         operation,
         destinationPath: './operations/users.ts'
       })
 
-      // Should only have definition registration
       assertSpyCalls(registerSpy, 1)
       assertEquals(registerSpy.calls[0].args[0].imports, undefined)
     })
@@ -1147,7 +1098,7 @@ Deno.test('OperationDriver', async (t) => {
       const insertable = createMockInsertable()
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation,
@@ -1156,7 +1107,6 @@ Deno.test('OperationDriver', async (t) => {
 
       assertEquals(driver.noExport, true)
       assertExists(driver.definition)
-      // Definition registration should still happen
       assert(registerSpy.calls.length >= 1)
     })
 
@@ -1171,64 +1121,43 @@ Deno.test('OperationDriver', async (t) => {
       })
       const operation = createMockOperation()
 
-      const driver = new OperationDriver<GeneratedValue, CustomEnrichment>({
+      const driver = new GqlOperationDriver<GeneratedValue, CustomEnrichment>({
         context,
         insertable: insertable as any,
         operation
       })
 
-      // Should preserve type information
       assertExists(driver.settings)
       assertExists(driver.definition)
     })
   })
 
   await t.step('Edge Cases and Error Handling', async (t) => {
-    await t.step('should handle operations with special characters', () => {
+    await t.step('should handle field names with special characters', () => {
       const { context } = createMockContext()
       const insertable = createMockInsertable()
       const operation = createMockOperation({
-        operationId: 'get-users_by-id.v2',
-        path: '/users/{user-id}/posts'
+        fieldName: 'get_users_by_id_v2'
       })
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation
       })
 
       assertExists(driver.definition)
-      assertEquals(driver.settings.identifier.name, 'get-users_by-id.v2')
-    })
-
-    await t.step('should handle operations without operationId', () => {
-      const { context } = createMockContext()
-      const insertable = createMockInsertable()
-      const operation = new OasOperation({
-        path: '/test',
-        method: 'get',
-        pathItem: undefined,
-        responses: {}
-      })
-
-      const driver = new OperationDriver({
-        context,
-        insertable,
-        operation
-      })
-
-      assertExists(driver.definition)
-      assertExists(driver.settings)
+      assertEquals(driver.settings.identifier.name, 'get_users_by_id_v2')
     })
 
     await t.step('should handle very long export paths', () => {
       const { context } = createMockContext()
-      const longPath = './very/long/path/to/operations/in/deeply/nested/directory/structure/operation.ts'
+      const longPath =
+        './very/long/path/to/operations/in/deeply/nested/directory/structure/operation.ts'
       const insertable = createMockInsertable({ exportPath: longPath })
       const operation = createMockOperation()
 
-      const driver = new OperationDriver({
+      const driver = new GqlOperationDriver({
         context,
         insertable,
         operation,
@@ -1238,31 +1167,9 @@ Deno.test('OperationDriver', async (t) => {
       assertExists(driver.definition)
     })
 
-    await t.step('should handle path parameters in operation path', () => {
-      const { context } = createMockContext()
-      const insertable = createMockInsertable()
-      const operation = createMockOperation({
-        path: '/users/{userId}/posts/{postId}/comments/{commentId}',
-        operationId: 'getComment'
-      })
-
-      const driver = new OperationDriver({
-        context,
-        insertable,
-        operation
-      })
-
-      assertExists(driver.definition)
-      assertExists(driver.definition.generatorKey)
-      assert(driver.definition.generatorKey.includes('/users/{userId}/posts/{postId}/comments/{commentId}'))
-    })
-
     await t.step('should throw descriptive errors on failures', () => {
       const operation = createMockOperation()
-      const wrongKey = toOperationGeneratorKey({
-        generatorId: 'WrongGenerator',
-        operation
-      })
+      const wrongKey = toKey('WrongGenerator', operation)
       const cachedDef = new Definition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
@@ -1280,7 +1187,7 @@ Deno.test('OperationDriver', async (t) => {
       let errorThrown = false
       let errorMessage = ''
       try {
-        new OperationDriver({
+        new GqlOperationDriver({
           context,
           insertable,
           operation

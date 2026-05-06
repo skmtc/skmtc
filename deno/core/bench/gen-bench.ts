@@ -10,10 +10,12 @@ Deno.bench('gen', async () => {
     traceId: 'AAA',
     spanId: 'BBB',
     startAt: Date.now(),
-    documentObject: JSON.parse(schema),
+    document: {
+      type: 'oas',
+      value: JSON.parse(schema)
+    },
     prettier: undefined,
     settings: undefined,
-    // @ts-expect-error - TODO: fix this
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),
     logsPath: undefined,
     silent: true

@@ -17,7 +17,6 @@ export const gen = async () => {
     documentObject: JSON.parse(schema),
     prettier: undefined,
     settings: undefined,
-    // @ts-expect-error - TODO: fix this
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),
     stackTrail: new StackTrail([traceId, spanId]),
     logsPath: './logs',
