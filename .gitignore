@@ -58,3 +58,5 @@ plans/
 openapi.json
 
 .skmtc
+
+notes/*

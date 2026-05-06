@@ -91,6 +91,26 @@ Skmtc is the only code generation framework that provides full control over the 
 ### **Does it work with Next.js/Remix/Vite?**
 Yes! The generated code is framework-agnostic TypeScript that works with any build tool or library.
 
+## 🛠️ Local development
+
+For day-to-day work the published JSR install is the right choice:
+
+```bash
+deno install -g -A --unstable-worker-options jsr:@skmtc/cli@<version> -n skmtc -f
+```
+
+To install a binary that tracks your **local checkout** instead, use `deno compile` rather than `deno install`:
+
+```bash
+deno compile --no-check --allow-all \
+  --config /path/to/skmtc/deno/cli/deno.json \
+  --include /path/to/skmtc/deno/cli \
+  -o ~/.deno/bin/skmtc \
+  /path/to/skmtc/deno/cli/mod.ts
+```
+
+`deno install` against local source is not supported because the CLI uses dynamic imports with the `@/` alias (`await import('@/commands/init.tsx')`). When you publish to JSR, `deno publish` resolves alias specifiers in the artifact (so the JSR copy ships with relative paths and `deno install jsr:@skmtc/cli` works). When installing from local source no such resolution happens, and the launcher's runtime cwd cannot resolve `@/` against the original `deno.json`. `deno compile --include` sidesteps this by bundling the entire CLI directory at build time.
+
 ## 🤝 Contributing
 
 We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.

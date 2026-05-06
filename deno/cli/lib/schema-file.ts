@@ -71,7 +71,18 @@ export class SchemaFile {
         const response = await fetch(schemaSource.url)
         const contents = await response.text()
         const url = new URL(schemaSource.url)
-        const fileType = toFileType(url.pathname)
+        // Prefer extension-based detection (cheap, deterministic). Fall
+        // back to the response's Content-Type for endpoints whose URL
+        // has no schema-bearing extension (e.g.
+        // `https://example.com/schema` returning `application/graphql`).
+        // Note: this still expects the *response body* to be a parseable
+        // schema document — for live GraphQL HTTP endpoints that only
+        // accept POSTed introspection queries, you currently need to
+        // run introspection yourself and save the SDL to a file. A
+        // future enhancement could detect a 405/missing-query response
+        // and POST an introspection query automatically.
+        const contentType = response.headers.get('content-type') ?? ''
+        const fileType = toFileTypeFromPathOrContentType(url.pathname, contentType)
 
         return {
           contents,
@@ -112,6 +123,47 @@ const toFileType = (path: string): FileType => {
     throw new Error(
       `Schema file extension not recognised (expected .json, .yaml, .yml, .graphql, .gql, or .graphqls): ${path}`
     )
+  }
+}
+
+/**
+ * Like {@link toFileType} but consults `Content-Type` as a fallback when
+ * the URL pathname doesn't end in a recognised extension. Used only for
+ * remote sources, where servers can hint the format directly.
+ *
+ * Mappings:
+ *   - `application/graphql`             → `graphql`
+ *   - `application/json` / `text/json`  → `json`
+ *   - `application/yaml` / `text/yaml` /
+ *     `application/x-yaml` / `text/x-yaml` → `yaml`
+ *
+ * The header may include a `; charset=...` suffix; we strip it before
+ * matching. If neither path nor content-type yields a recognised type,
+ * we re-throw `toFileType`'s descriptive error so the user sees the
+ * full list of supported formats.
+ */
+const toFileTypeFromPathOrContentType = (path: string, contentType: string): FileType => {
+  try {
+    return toFileType(path)
+  } catch (pathError) {
+    const mime = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? ''
+    switch (mime) {
+      case 'application/graphql':
+        return 'graphql'
+      case 'application/json':
+      case 'text/json':
+        return 'json'
+      case 'application/yaml':
+      case 'text/yaml':
+      case 'application/x-yaml':
+      case 'text/x-yaml':
+        return 'yaml'
+      default:
+        throw new Error(
+          `Could not determine schema format for remote source: URL pathname '${path}' has no recognised extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
+            `For live GraphQL HTTP endpoints, run an introspection query yourself and save the SDL to a local file.`
+        )
+    }
   }
 }
 

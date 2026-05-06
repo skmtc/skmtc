@@ -5,7 +5,7 @@ Deno.test('toMod - generates server code with single generator', () => {
   const generatorIds = ['@skmtc/shadcn-ui']
   const result = toWorker(generatorIds)
 
-  assertStringIncludes(result, "import toWorker from 'jsr:@skmtc/worker'")
+  assertStringIncludes(result, "import toWorker from '@skmtc/worker'")
   assertStringIncludes(result, "import skmtcShadcnUi from '@skmtc/shadcn-ui'")
   assertStringIncludes(result, 'skmtcShadcnUi')
   assertStringIncludes(result, '() => Object.fromEntries([skmtcShadcnUi].map(g => [g.id, g]))')
@@ -17,7 +17,7 @@ Deno.test('toMod - generates server code with multiple generators', () => {
 
   console.log(result)
 
-  assertStringIncludes(result, "import toWorker from 'jsr:@skmtc/worker'")
+  assertStringIncludes(result, "import toWorker from '@skmtc/worker'")
   assertStringIncludes(result, "import skmtcShadcnUi from '@skmtc/shadcn-ui'")
   assertStringIncludes(result, "import skmtcMsw from '@skmtc/msw'")
   assertStringIncludes(result, "import skmtcTanstackQuery from '@skmtc/tanstack-query'")
@@ -33,7 +33,7 @@ Deno.test('toMod - handles generator IDs with hyphens correctly', () => {
   const generatorIds = ['@skmtc/my-custom-generator']
   const result = toWorker(generatorIds)
 
-  assertStringIncludes(result, "import toWorker from 'jsr:@skmtc/worker'")
+  assertStringIncludes(result, "import toWorker from '@skmtc/worker'")
   // camelCase conversion should change @skmtc/my-custom-generator to skmtcMyCustomGenerator
   assertStringIncludes(result, "import skmtcMyCustomGenerator from '@skmtc/my-custom-generator'")
   assertStringIncludes(
@@ -46,7 +46,7 @@ Deno.test('toMod - generates empty generators array when no generators provided'
   const generatorIds: string[] = []
   const result = toWorker(generatorIds)
 
-  assertStringIncludes(result, "import toWorker from 'jsr:@skmtc/worker'")
+  assertStringIncludes(result, "import toWorker from '@skmtc/worker'")
   assertStringIncludes(result, '() => Object.fromEntries([].map(g => [g.id, g]))')
 })
 

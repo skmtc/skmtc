@@ -16,7 +16,7 @@
     ]
   },
   "tasks": {
-    "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
-    "publish:deno:ga": "deno publish --allow-slow-types"
+    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:deno:ga": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types"
   }
 }
