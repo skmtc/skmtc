@@ -40,7 +40,7 @@ type GetDefinitionArgs = {
  *
  * @example Basic usage in an operation generator
  * ```typescript
- * class APIClientGenerator extends OperationBase {
+ * class APIClientGenerator extends OasOperationBase {
  *   generate() {
  *     const driver = new OasOperationDriver({
  *       context: this.context,

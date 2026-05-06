@@ -66,7 +66,7 @@ export type GeneratorConfig<EnrichmentType = undefined> =
  * @example
  * ```typescript
  * type MyGenerators = {
- *   'api-client': OperationConfig<ApiEnrichment>;
+ *   'api-client': OasOperationConfig<ApiEnrichment>;
  *   'typescript-models': ModelConfig<ModelEnrichment>;
  *   'validation': ModelConfig<ValidationEnrichment>;
  * };

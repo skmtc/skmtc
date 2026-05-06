@@ -172,7 +172,7 @@ export type GeneratorKey =
  * Can specify operation details directly or provide an OasOperation
  * object from which the path and method will be extracted.
  */
-type ToOperationGeneratorKeyArgs =
+type ToOasOperationGeneratorKeyArgs =
   | {
       /** Unique identifier for the generator */
       generatorId: string
@@ -225,7 +225,7 @@ type ToOperationGeneratorKeyArgs =
 export const toOasOperationGeneratorKey = ({
   generatorId,
   ...rest
-}: ToOperationGeneratorKeyArgs): OasOperationGeneratorKey => {
+}: ToOasOperationGeneratorKeyArgs): OasOperationGeneratorKey => {
   const { path, method } = 'operation' in rest ? rest.operation : rest
 
   const nakedKey: NakedOasOperationGeneratorKey = `${generatorId}|${path}|${method}`
@@ -652,7 +652,7 @@ export type GeneratorKeyObject =
  * const opKey = 'api-client|/users/{id}|get' as OasOperationGeneratorKey;
  * const parsed = fromGeneratorKey(opKey);
  *
- * if (parsed.type === 'operation') {
+ * if (parsed.type === 'oasOperation') {
  *   console.log(parsed.generatorId); // 'api-client'
  *   console.log(parsed.path);        // '/users/{id}'
  *   console.log(parsed.method);      // 'get'

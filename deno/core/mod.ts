@@ -37,7 +37,7 @@
  * - {@link CoreContext} - Main orchestration class for the pipeline
  * - {@link toArtifacts} - Primary transformation function
  * - {@link ContentBase} - Base class for creating generators
- * - {@link ModelBase} and {@link OperationBase} - DSL building blocks
+ * - {@link ModelBase}, {@link OasOperationBase}, and {@link GqlOperationBase} - DSL building blocks
  * - {@link List} - Powerful string manipulation and code generation utility
  *
  * ## Type System

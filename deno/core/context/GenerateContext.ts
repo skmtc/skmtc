@@ -326,7 +326,7 @@ export class GenerateContext implements GenerateContextType {
               // Generator targets OAS; current document is GraphQL — skip silently.
               return
             }
-            this.#runOperationGenerator(
+            this.#runOasOperationGenerator(
               this.document.value,
               generatorConfig,
               toSkipPaths(skip, generatorConfig.id),
@@ -362,7 +362,7 @@ export class GenerateContext implements GenerateContextType {
       mappings: this.#mappings
     }
   }
-  #runOperationGenerator(
+  #runOasOperationGenerator(
     oasDocument: OasDocument,
     generatorConfig: OasOperationConfig,
     skip: SkipPaths | undefined,

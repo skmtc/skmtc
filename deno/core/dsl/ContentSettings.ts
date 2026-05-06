@@ -32,9 +32,9 @@ type CreateArgs<EnrichmentType = undefined> = {
  * identify the content, and any custom enrichment data for extending
  * the generation process.
  *
- * This class is used by both {@link ModelBase} and {@link OperationBase}
- * to configure their generation behavior, providing a consistent interface
- * for generator settings across the system.
+ * This class is used by {@link ModelBase}, {@link OasOperationBase}, and
+ * {@link GqlOperationBase} to configure their generation behavior,
+ * providing a consistent interface for generator settings across the system.
  *
  * ## Key Features
  *
