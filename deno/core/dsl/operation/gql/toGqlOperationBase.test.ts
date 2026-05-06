@@ -49,7 +49,7 @@ Deno.test('toGqlOperationBase - sets static type to operation', () => {
     toExportPath: operation => `./operations/${operation.fieldName}.ts`
   })
 
-  assertEquals(OperationClass.type, 'operation')
+  assertEquals(OperationClass.type, 'gqlOperation')
 })
 
 Deno.test('toGqlOperationBase - sets static toIdentifier from config', () => {

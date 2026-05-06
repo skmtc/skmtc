@@ -19,7 +19,7 @@ Deno.test('toGqlOperationEntry - returns object with id and type operation', () 
   })
 
   assertEquals(entry.id, 'test-operation')
-  assertEquals(entry.type, 'operation')
+  assertEquals(entry.type, 'gqlOperation')
 })
 
 Deno.test('toGqlOperationEntry - includes provided transform function', () => {
@@ -158,7 +158,7 @@ Deno.test('toGqlOperationEntry - includes all optional functions when provided',
   })
 
   assertEquals(entry.id, 'test-operation')
-  assertEquals(entry.type, 'operation')
+  assertEquals(entry.type, 'gqlOperation')
   assertEquals(entry.transform, transformFn)
   assertEquals(entry.toPreviewModule, previewFn)
   assertEquals(entry.toMappingModule, mappingFn)

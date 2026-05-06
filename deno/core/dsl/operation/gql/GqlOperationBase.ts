@@ -121,12 +121,9 @@ export class GqlOperationBase<EnrichmentType = undefined> extends ContentBase {
     operation: GqlOperation,
     options: Pick<InsertOperationOptions, 'noExport'> = {}
   ): Inserted<V, EnrichmentType> {
-    // GenerateContextType is currently OAS-typed; the dispatcher narrows on
-    // the active document at runtime. Cast bridges the static gap until
-    // GenerateContext gains a protocol-discriminated overload.
     return this.context.insertOperation({
-      insertable: insertable,
-      operation: operation,
+      insertable,
+      operation,
       destinationPath: this.settings.exportPath,
       noExport: options.noExport
     })

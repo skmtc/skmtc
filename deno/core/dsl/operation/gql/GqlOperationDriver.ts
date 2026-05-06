@@ -1,14 +1,13 @@
 import type { GqlOperationInsertable } from './types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
-import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import { Definition } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { GeneratedDefinition } from '../../GeneratedValue.ts'
-import type { GeneratedValue } from '../../GeneratedValue.ts'
-import type { GenerateContextType } from '../../../context/generateTypes.ts'
-import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { GenerateContextType } from '@/context/generateTypes.ts'
+import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 
 type CreateGqlOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
@@ -25,23 +24,6 @@ type ApplyArgs = {
 type GetDefinitionArgs = {
   identifier: Identifier
   exportPath: string
-}
-
-/**
- * Builds the operation generator key for a GraphQL operation.
- *
- * Mirrors the OAS `toOperationGeneratorKey` shape (`generatorId|path|method`)
- * but uses `rootKind` and `fieldName` in the path/method positions —
- * `${generatorId}|${rootKind}|${fieldName}`.
- */
-const toGqlOperationGeneratorKey = ({
-  generatorId,
-  operation
-}: {
-  generatorId: string
-  operation: GqlOperation
-}): GeneratorKey => {
-  return `${generatorId}|${operation.rootKind}|${operation.fieldName}` as unknown as GeneratorKey
 }
 
 /**
@@ -86,12 +68,9 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.operation = operation
     this.destinationPath = destinationPath
     this.noExport = noExport
-    // GenerateContextType.toOperationContentSettings is statically typed
-    // against OasOperation. The runtime path treats both protocols uniformly,
-    // so cast at the call site until the context gains a Gql overload.
     this.settings = this.context.toOperationContentSettings({
-      operation: operation as unknown as OasOperation,
-      insertable: insertable as never
+      operation,
+      insertable
     })
 
     this.definition = this.apply({ destinationPath })

@@ -276,15 +276,38 @@ export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
 }
 
 /**
- * Arguments for generating operation content settings.
+ * Arguments for generating OAS operation content settings.
  *
  * @template V - The value type for the operation
  * @template EnrichmentType - Optional enrichment type for the operation
  */
-export type ToOperationSettingsArgs<V, EnrichmentType = undefined> = {
+export type ToOasOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: OasOperation
   insertable: OasOperationInsertable<V, EnrichmentType>
 }
+
+/**
+ * Arguments for generating GraphQL operation content settings.
+ *
+ * @template V - The value type for the operation
+ * @template EnrichmentType - Optional enrichment type for the operation
+ */
+export type ToGqlOperationSettingsArgs<V, EnrichmentType = undefined> = {
+  operation: GqlOperation
+  insertable: GqlOperationInsertable<V, EnrichmentType>
+}
+
+/**
+ * Arguments accepted by `GenerateContext.toOperationContentSettings`.
+ *
+ * Discriminated by the runtime shape of `operation` — OAS operations carry
+ * an `oasType: 'operation'` discriminator; GraphQL operations carry
+ * `oasType: 'gqlOperation'`. The dispatcher narrows on this discriminator
+ * to look up the right enrichment path and identifier.
+ */
+export type ToOperationSettingsArgs<V, EnrichmentType = undefined> =
+  | ToOasOperationSettingsArgs<V, EnrichmentType>
+  | ToGqlOperationSettingsArgs<V, EnrichmentType>
 
 /**
  * Return type for inserting a normalized model.

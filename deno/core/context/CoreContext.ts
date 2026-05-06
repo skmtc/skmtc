@@ -149,11 +149,12 @@ type SetupLoggerArgs = {
  * });
  *
  * const result = await context.toArtifacts({
- *   documentObject: openApiDoc,
+ *   document: { type: 'oas', value: openApiDoc },
  *   settings: clientSettings,
  *   toGeneratorConfigMap: () => generators,
  *   prettier: prettierConfig,
- *   silent: false
+ *   silent: false,
+ *   stackTrail: new StackTrail(['gen'])
  * });
  * ```
  *
@@ -311,11 +312,14 @@ export class CoreContext {
    * about the generation process, including file mappings, previews, and results.
    *
    * @param args - Configuration for the artifact generation
-   * @param args.documentObject - The OpenAPI v3 document to process
+   * @param args.document - The source document, discriminated by protocol
+   *   (`{ type: 'oas', value: OpenAPIV3.Document }` or
+   *   `{ type: 'gql', value: GqlDocument }`)
    * @param args.settings - Client settings for customization
    * @param args.toGeneratorConfigMap - Function returning generator configuration
    * @param args.prettier - Optional Prettier configuration for code formatting
    * @param args.silent - Whether to suppress console output during generation
+   * @param args.stackTrail - Stack trail for distributed tracing
    * @returns Promise resolving to rendered artifacts and metadata
    *
    * @example Complete pipeline
@@ -326,7 +330,7 @@ export class CoreContext {
    * });
    *
    * const result = await context.toArtifacts({
-   *   documentObject: openApiDoc,
+   *   document: { type: 'oas', value: openApiDoc },
    *   settings: {
    *     basePath: './src/api',
    *     skip: {

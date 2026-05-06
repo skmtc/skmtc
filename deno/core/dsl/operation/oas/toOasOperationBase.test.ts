@@ -34,7 +34,7 @@ Deno.test('toOasOperationBase - sets static type to operation', () => {
     toExportPath: (operation) => `./operations/${operation.operationId}.ts`
   })
 
-  assertEquals(OperationClass.type, 'operation')
+  assertEquals(OperationClass.type, 'oasOperation')
 })
 
 Deno.test('toOasOperationBase - sets static toIdentifier from config', () => {

@@ -3,7 +3,7 @@ import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { GqlOperationBase } from './GqlOperationBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GqlOperationInsertableArgs } from './types.ts'
-import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
@@ -33,25 +33,6 @@ type ToEnrichmentsArgs = {
 }
 
 /**
- * Builds the operation generator key for a GraphQL operation.
- *
- * Mirrors the OAS `toOperationGeneratorKey` shape (`generatorId|path|method`)
- * but uses `rootKind` and `fieldName` in the path/method positions —
- * `${generatorId}|${rootKind}|${fieldName}`. The result is cast to
- * `GeneratorKey` because the brand expects an HTTP `Method` literal in the
- * final segment; for GraphQL we deliberately diverge from that.
- */
-const toGqlOperationGeneratorKey = ({
-  generatorId,
-  operation
-}: {
-  generatorId: string
-  operation: GqlOperation
-}): GeneratorKey => {
-  return `${generatorId}|${operation.rootKind}|${operation.fieldName}` as unknown as GeneratorKey
-}
-
-/**
  * Creates a base GraphQL operation class constructor for generating type-safe
  * operation artifacts.
  *
@@ -69,7 +50,7 @@ export const toGqlOperationBase = <EnrichmentType = undefined>(
 ) => {
   return class extends GqlOperationBase<EnrichmentType> {
     static id = config.id
-    static type = 'operation' as const
+    static type = 'gqlOperation' as const
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)

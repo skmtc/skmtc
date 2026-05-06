@@ -10,7 +10,7 @@ Deno.test('toOasOperationEntry - returns object with id and type operation', () 
   })
 
   assertEquals(entry.id, 'test-operation')
-  assertEquals(entry.type, 'operation')
+  assertEquals(entry.type, 'oasOperation')
 })
 
 Deno.test('toOasOperationEntry - includes provided transform function', () => {
@@ -160,7 +160,7 @@ Deno.test('toOasOperationEntry - includes all optional functions when provided',
   })
 
   assertEquals(entry.id, 'test-operation')
-  assertEquals(entry.type, 'operation')
+  assertEquals(entry.type, 'oasOperation')
   assertEquals(entry.transform, transformFn)
   assertEquals(entry.toPreviewModule, previewFn)
   assertEquals(entry.toMappingModule, mappingFn)

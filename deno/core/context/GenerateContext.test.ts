@@ -523,7 +523,7 @@ Deno.test('GenerateContext - SkmtcDocument discrimination', async (t) => {
 })
 
 Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
-  await t.step('http-protocol generator runs for OAS document', () => {
+  await t.step('oas operation generator runs for OAS document', () => {
     const { context } = createTestContext()
     const transform = spy(() => undefined)
 
@@ -531,8 +531,7 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     context.toGeneratorConfigMap = () => ({
       'http-gen': {
         id: 'http-gen',
-        type: 'operation',
-        protocol: 'http',
+        type: 'oasOperation',
         transform,
         isSupported: () => true
       }
@@ -545,7 +544,7 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     assertSpyCalls(transform, 0)
   })
 
-  await t.step('gql-protocol generator runs for GQL document', () => {
+  await t.step('gql operation generator runs for GQL document', () => {
     const op = new GqlOperation({
       rootKind: 'query',
       fieldName: 'getUser',
@@ -559,8 +558,7 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     context.toGeneratorConfigMap = () => ({
       'gql-gen': {
         id: 'gql-gen',
-        type: 'operation',
-        protocol: 'gql',
+        type: 'gqlOperation',
         transform,
         isSupported: () => true
       }
@@ -570,7 +568,7 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     assertSpyCalls(transform, 1)
   })
 
-  await t.step('http generator does not run for GQL document', () => {
+  await t.step('oas generator does not run for GQL document', () => {
     const op = new GqlOperation({
       rootKind: 'query',
       fieldName: 'getUser',
@@ -584,8 +582,7 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     context.toGeneratorConfigMap = () => ({
       'http-gen': {
         id: 'http-gen',
-        type: 'operation',
-        protocol: 'http',
+        type: 'oasOperation',
         transform,
         isSupported: () => true
       }
@@ -603,53 +600,7 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     context.toGeneratorConfigMap = () => ({
       'gql-gen': {
         id: 'gql-gen',
-        type: 'operation',
-        protocol: 'gql',
-        transform,
-        isSupported: () => true
-      }
-    })
-
-    context.toArtifacts(new StackTrail(['test']))
-    assertSpyCalls(transform, 0)
-  })
-
-  await t.step('operation generator without protocol defaults to http', () => {
-    const { context } = createTestContext()
-    const transform = spy(() => undefined)
-
-    // @ts-expect-error - minimal mock; no protocol field set
-    context.toGeneratorConfigMap = () => ({
-      'legacy-gen': {
-        id: 'legacy-gen',
-        type: 'operation',
-        // protocol intentionally omitted — should default to 'http'
-        transform,
-        isSupported: () => true
-      }
-    })
-
-    // Should dispatch as HTTP and not throw on the OAS doc.
-    context.toArtifacts(new StackTrail(['test']))
-    assertSpyCalls(transform, 0)
-  })
-
-  await t.step('legacy operation generator (no protocol) is skipped on GQL document', () => {
-    const op = new GqlOperation({
-      rootKind: 'query',
-      fieldName: 'getUser',
-      arguments: [],
-      returnType: new OasString({})
-    })
-    const { context } = createGqlContext([op])
-    const transform = spy(() => undefined)
-
-    // @ts-expect-error - minimal mock; no protocol field set
-    context.toGeneratorConfigMap = () => ({
-      'legacy-gen': {
-        id: 'legacy-gen',
-        type: 'operation',
-        // No protocol field → defaults to 'http' → skipped because doc is gql
+        type: 'gqlOperation',
         transform,
         isSupported: () => true
       }

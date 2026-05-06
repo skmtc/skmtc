@@ -22,11 +22,13 @@ import type {
   PickArgs,
   RegisterArgs,
   RegisterJsonArgs,
+  ToGqlOperationSettingsArgs,
   ToOperationSettingsArgs
 } from './generateTypes.ts'
 import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '@/types/Settings.ts'
 import type { Method } from '@/types/Method.ts'
 import type { OasOperationConfig, OasOperationInsertable } from '@/dsl/operation/oas/types.ts'
+import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ModelConfig, ModelInsertable } from '@/dsl/model/types.ts'
 import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
@@ -45,15 +47,17 @@ import { Inserted } from '@/dsl/Inserted.ts'
 import { File } from '@/dsl/File.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
-import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
+import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type {
-  OperationSource,
+  OasOperationSource,
+  GqlOperationSource,
   ModelSource,
   Preview,
   PreviewModule,
   MappingModule,
   Mapping
 } from '@/types/Preview.ts'
+import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 
 type ConstructorArgs = {
@@ -210,6 +214,11 @@ const isGqlInsertOperationArgs = <V extends GeneratedValue, EnrichmentType>(
 ): args is InsertGqlOperationArgs<V, EnrichmentType> =>
   args.operation.oasType === 'gqlOperation'
 
+const isGqlToOperationSettingsArgs = <V, EnrichmentType>(
+  args: ToOperationSettingsArgs<V, EnrichmentType>
+): args is ToGqlOperationSettingsArgs<V, EnrichmentType> =>
+  args.operation.oasType === 'gqlOperation'
+
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, File | JsonFile>
   #previews: Record<string, Record<string, Preview>>
@@ -297,7 +306,7 @@ export class GenerateContext implements GenerateContextType {
    * @internal
    */
   toArtifacts(stackTrail: StackTrail): GenerateResult {
-    const generators = Object.values(this.toGeneratorConfigMap())
+    const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
 
     generators.forEach(generatorConfig => {
       stackTrail.trace(generatorConfig.id, st => {
@@ -312,29 +321,25 @@ export class GenerateContext implements GenerateContextType {
         )
 
         switch (generatorConfig.type) {
-          case 'operation': {
-            // Default protocol to 'http' so generators authored before the
-            // GraphQL pipeline existed continue to work without code changes.
-            const generatorProtocol = generatorConfig.protocol ?? 'http'
-            if (generatorProtocol !== this.document.type) {
-              // Not applicable to the current document; skip silently.
+          case 'oasOperation':
+            if (this.document.type !== 'oas') {
+              // Generator targets OAS; current document is GraphQL — skip silently.
               return
             }
-            switch (this.document.type) {
-              case 'oas':
-                this.#runOperationGenerator(
-                  this.document.value,
-                  generatorConfig,
-                  toSkipPaths(skip, generatorConfig.id),
-                  st
-                )
-                break
-              case 'gql':
-                this.#runGqlOperationGenerator(this.document.value, generatorConfig, st)
-                break
-            }
+            this.#runOperationGenerator(
+              this.document.value,
+              generatorConfig,
+              toSkipPaths(skip, generatorConfig.id),
+              st
+            )
             break
-          }
+          case 'gqlOperation':
+            if (this.document.type !== 'gql') {
+              // Generator targets GraphQL; current document is OAS — skip silently.
+              return
+            }
+            this.#runGqlOperationGenerator(this.document.value, generatorConfig, st)
+            break
           case 'model':
             this.#runModelGenerator(
               this.document,
@@ -343,10 +348,10 @@ export class GenerateContext implements GenerateContextType {
               st
             )
             break
-          default:
-            throw new Error(
-              `Invalid generator type: '${generatorConfig.type}' on ${generatorConfig.id}`
-            )
+          default: {
+            const _exhaustive: never = generatorConfig
+            throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
+          }
         }
       })
     })
@@ -381,7 +386,7 @@ export class GenerateContext implements GenerateContextType {
 
           const result = generatorConfig.transform({ context: this, operation, acc })
 
-          const source = toOperationSource({ operation, generatorId: generatorConfig.id })
+          const source = toOasOperationSource({ operation, generatorId: generatorConfig.id })
 
           this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, operation }))
 
@@ -401,28 +406,28 @@ export class GenerateContext implements GenerateContextType {
 
   #runGqlOperationGenerator(
     gqlDocument: GqlDocument,
-    generatorConfig: OasOperationConfig,
+    generatorConfig: GqlOperationConfig,
     stackTrail: StackTrail
   ) {
-    // GraphQL operations are passed through the same `transform({ context, operation, acc })`
-    // contract as OAS operations, but with `GqlOperation` instead of
-    // `OasOperation`. The structural duck-typed signature on
-    // `OperationConfig.transform` covers this — it's `<Acc>(args) => Acc`,
-    // and the `operation` argument is what each protocol-specific generator
-    // narrows on.
     gqlDocument.operations.reduce<unknown>((acc, operation) => {
       return stackTrail.trace(operation.identifier, st => {
         try {
-          // The current isSupported signature expects an OasOperation; we
-          // skip the optional gate for GraphQL until per-protocol hooks
-          // are introduced. Typed dispatch happens at the generator side.
-          const result = generatorConfig.transform({
-            // deno-lint-ignore no-explicit-any
-            context: this as any,
-            // deno-lint-ignore no-explicit-any
-            operation: operation as any,
-            acc
-          })
+          if (
+            typeof generatorConfig.isSupported === 'function' &&
+            !generatorConfig.isSupported({ operation, context: this })
+          ) {
+            this.captureCurrentResult('notSupported', st)
+            return acc
+          }
+
+          const result = generatorConfig.transform({ context: this, operation, acc })
+
+          const source = toGqlOperationSource({ operation, generatorId: generatorConfig.id })
+
+          this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, operation }))
+
+          this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, operation }))
+
           this.captureCurrentResult('success', st)
           return result
         } catch (error) {
@@ -472,7 +477,10 @@ export class GenerateContext implements GenerateContextType {
     }, undefined)
   }
 
-  #addPreview(source: OperationSource | ModelSource, module: PreviewModule | undefined) {
+  #addPreview(
+    source: OasOperationSource | GqlOperationSource | ModelSource,
+    module: PreviewModule | undefined
+  ) {
     if (!module) {
       return
     }
@@ -491,7 +499,10 @@ export class GenerateContext implements GenerateContextType {
     }
   }
 
-  #addMapping(source: OperationSource | ModelSource, module: MappingModule | undefined) {
+  #addMapping(
+    source: OasOperationSource | GqlOperationSource | ModelSource,
+    module: MappingModule | undefined
+  ) {
     if (!module) {
       return
     }
@@ -802,14 +813,21 @@ export class GenerateContext implements GenerateContextType {
    * @param { operation, insertable }
    * @returns
    */
-  toOperationContentSettings<V, EnrichmentType>({
-    operation,
-    insertable
-  }: ToOperationSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
+  toOperationContentSettings<V, EnrichmentType>(
+    args: ToOperationSettingsArgs<V, EnrichmentType>
+  ): ContentSettings<EnrichmentType> {
+    if (isGqlToOperationSettingsArgs(args)) {
+      return new ContentSettings<EnrichmentType>({
+        identifier: args.insertable.toIdentifier(args.operation),
+        exportPath: args.insertable.toExportPath(args.operation),
+        enrichments: args.insertable.toEnrichments({ operation: args.operation, context: this })
+      })
+    }
+
     return new ContentSettings<EnrichmentType>({
-      identifier: insertable.toIdentifier(operation),
-      exportPath: insertable.toExportPath(operation),
-      enrichments: insertable.toEnrichments({ operation, context: this })
+      identifier: args.insertable.toIdentifier(args.operation),
+      exportPath: args.insertable.toExportPath(args.operation),
+      enrichments: args.insertable.toEnrichments({ operation: args.operation, context: this })
     })
   }
 
@@ -897,28 +915,49 @@ export class GenerateContext implements GenerateContextType {
   }
 }
 
-type ToOperationSourceArgs = {
+type ToOasOperationSourceArgs = {
   operation: OasOperation
   generatorId: string
 }
 
 /**
- * Creates an OperationSource from an operation and generator ID.
+ * Creates an OasOperationSource from an operation and generator ID.
  *
  * Transforms operation and generator information into a source descriptor
  * that can be used for tracking operation origins in the generation pipeline.
  *
  * @param args - Arguments containing operation and generator ID
- * @returns OperationSource descriptor for the operation
+ * @returns OasOperationSource descriptor for the operation
  */
-export const toOperationSource = ({
+export const toOasOperationSource = ({
   operation,
   generatorId
-}: ToOperationSourceArgs): OperationSource => ({
-  type: 'operation',
+}: ToOasOperationSourceArgs): OasOperationSource => ({
+  type: 'oasOperation',
   generatorId,
   operationPath: operation.path,
   operationMethod: operation.method
+})
+
+type ToGqlOperationSourceArgs = {
+  operation: GqlOperation
+  generatorId: string
+}
+
+/**
+ * Creates a GraphQL operation source descriptor.
+ *
+ * Sibling to {@link toOasOperationSource} for the GraphQL protocol — encodes
+ * `rootKind` and `fieldName` instead of `path` / `method`.
+ */
+export const toGqlOperationSource = ({
+  operation,
+  generatorId
+}: ToGqlOperationSourceArgs): GqlOperationSource => ({
+  type: 'gqlOperation',
+  generatorId,
+  rootKind: operation.rootKind,
+  fieldName: operation.fieldName
 })
 
 type ToModelSourceArgs = {

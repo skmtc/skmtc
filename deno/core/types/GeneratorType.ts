@@ -1,4 +1,5 @@
 import type { OasOperationConfig } from '@/dsl/operation/oas/types.ts'
+import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { ModelConfig } from '@/dsl/model/types.ts'
 
 /**
@@ -38,6 +39,7 @@ import type { ModelConfig } from '@/dsl/model/types.ts'
  */
 export type GeneratorConfig<EnrichmentType = undefined> =
   | OasOperationConfig<EnrichmentType>
+  | GqlOperationConfig<EnrichmentType>
   | ModelConfig<EnrichmentType>
 
 /**

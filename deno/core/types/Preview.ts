@@ -75,13 +75,21 @@
  */
 
 import { method, type Method } from './Method.ts'
+import type { GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import * as v from 'valibot'
 
-export type OperationSource = {
-  type: 'operation'
+export type OasOperationSource = {
+  type: 'oasOperation'
   generatorId: string
   operationPath: string
   operationMethod: Method
+}
+
+export type GqlOperationSource = {
+  type: 'gqlOperation'
+  generatorId: string
+  rootKind: GqlRootKind
+  fieldName: string
 }
 
 export type ModelSource = {
@@ -108,12 +116,12 @@ export type MappingModule = {
 
 export type Preview = {
   module: PreviewModule
-  source: OperationSource | ModelSource
+  source: OasOperationSource | GqlOperationSource | ModelSource
 }
 
 export type Mapping = {
   module: MappingModule
-  source: OperationSource | ModelSource
+  source: OasOperationSource | GqlOperationSource | ModelSource
 }
 
 /**
@@ -122,9 +130,9 @@ export type Mapping = {
  * Validates operation source structures including type, generator ID,
  * operation path, and HTTP method information.
  */
-export const operationSource: v.ObjectSchema<
+export const oasOperationSource: v.ObjectSchema<
   {
-    readonly type: v.LiteralSchema<'operation', undefined>
+    readonly type: v.LiteralSchema<'oasOperation', undefined>
     readonly generatorId: v.StringSchema<undefined>
     readonly operationPath: v.StringSchema<undefined>
     readonly operationMethod: v.UnionSchema<
@@ -143,15 +151,36 @@ export const operationSource: v.ObjectSchema<
   },
   undefined
 > = v.object({
-  type: v.literal('operation'),
+  type: v.literal('oasOperation'),
   generatorId: v.string(),
   operationPath: v.string(),
   operationMethod: method
 })
 
 /**
+ * Valibot schema for validating GraphQL operation source objects.
+ *
+ * Sibling to {@link oasOperationSource} for the GraphQL protocol — validates
+ * `rootKind` and `fieldName` instead of `path` / `method`.
+ */
+export const gqlOperationSource: v.ObjectSchema<
+  {
+    readonly type: v.LiteralSchema<'gqlOperation', undefined>
+    readonly generatorId: v.StringSchema<undefined>
+    readonly rootKind: v.PicklistSchema<['query', 'mutation', 'subscription'], undefined>
+    readonly fieldName: v.StringSchema<undefined>
+  },
+  undefined
+> = v.object({
+  type: v.literal('gqlOperation'),
+  generatorId: v.string(),
+  rootKind: v.picklist(['query', 'mutation', 'subscription']),
+  fieldName: v.string()
+})
+
+/**
  * Valibot schema for validating model source objects.
- * 
+ *
  * Validates model source structures including type, generator ID,
  * and reference name information.
  */
@@ -199,8 +228,11 @@ export const mappingModule: v.GenericSchema<MappingModule> = v.object({
   schema: v.string()
 })
 
-const source: v.VariantSchema<'type', [typeof operationSource, typeof modelSource], undefined> =
-  v.variant('type', [operationSource, modelSource])
+const source: v.VariantSchema<
+  'type',
+  [typeof oasOperationSource, typeof gqlOperationSource, typeof modelSource],
+  undefined
+> = v.variant('type', [oasOperationSource, gqlOperationSource, modelSource])
 
 /**
  * Valibot schema for validating preview objects.

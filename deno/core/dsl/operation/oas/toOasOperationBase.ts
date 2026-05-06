@@ -83,7 +83,7 @@ export const toOasOperationBase = <EnrichmentType = undefined>(
 ) => {
   return class extends OasOperationBase<EnrichmentType> {
     static id = config.id
-    static type = 'operation' as const
+    static type = 'oasOperation' as const
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)

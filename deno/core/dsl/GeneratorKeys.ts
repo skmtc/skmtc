@@ -64,15 +64,28 @@
  */
 
 import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { GqlOperation, GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import type { Brand } from '@/types/Brand.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { type Method, isMethod } from '@/types/Method.ts'
 
+const GQL_ROOT_KINDS: readonly GqlRootKind[] = ['query', 'mutation', 'subscription']
+
+const isGqlRootKind = (value: string): value is GqlRootKind =>
+  (GQL_ROOT_KINDS as readonly string[]).includes(value)
+
 /**
- * Template literal type for operation generator keys before branding.
+ * Template literal type for OAS operation generator keys before branding.
  * Format: `generatorId|path|method` (e.g., 'api-client|/users|get')
  */
 export type NakedOperationGeneratorKey = `${string}|${string}|${Method}`
+
+/**
+ * Template literal type for GraphQL operation generator keys before branding.
+ * Format: `generatorId|rootKind|fieldName`
+ * (e.g., 'graphql-client|query|getUser', 'graphql-client|mutation|createPost').
+ */
+export type NakedGqlOperationGeneratorKey = `${string}|${GqlRootKind}|${string}`
 
 /**
  * Template literal type for model generator keys before branding.
@@ -88,6 +101,18 @@ export type NakedModelGeneratorKey = `${string}|${string}`
  * the generator ID, API path, and HTTP method.
  */
 export type OperationGeneratorKey = Brand<NakedOperationGeneratorKey, 'OperationGeneratorKey'>
+
+/**
+ * Branded type for GraphQL operation generator keys.
+ *
+ * Sibling to {@link OperationGeneratorKey} for the GraphQL protocol. The key
+ * encodes the generator ID, the root kind (`query` / `mutation` /
+ * `subscription`), and the root field name.
+ */
+export type GqlOperationGeneratorKey = Brand<
+  NakedGqlOperationGeneratorKey,
+  'GqlOperationGeneratorKey'
+>
 
 /**
  * Branded type for model generator keys.
@@ -135,7 +160,11 @@ export type GeneratorOnlyKey = Brand<string, 'GeneratorOnlyKey'>
  * });
  * ```
  */
-export type GeneratorKey = OperationGeneratorKey | ModelGeneratorKey | GeneratorOnlyKey
+export type GeneratorKey =
+  | OperationGeneratorKey
+  | GqlOperationGeneratorKey
+  | ModelGeneratorKey
+  | GeneratorOnlyKey
 
 /**
  * Arguments for {@link toOperationGeneratorKey}.
@@ -202,6 +231,48 @@ export const toOperationGeneratorKey = ({
   const nakedKey: NakedOperationGeneratorKey = `${generatorId}|${path}|${method}`
 
   return nakedKey as OperationGeneratorKey
+}
+
+/**
+ * Arguments for {@link toGqlOperationGeneratorKey}.
+ *
+ * Can specify operation details directly or provide a {@link GqlOperation}
+ * object from which the root kind and field name will be extracted.
+ */
+type ToGqlOperationGeneratorKeyArgs =
+  | {
+      /** Unique identifier for the generator */
+      generatorId: string
+      /** GraphQL root kind */
+      rootKind: GqlRootKind
+      /** Root field name */
+      fieldName: string
+    }
+  | {
+      /** Unique identifier for the generator */
+      generatorId: string
+      /** GraphQL operation object */
+      operation: GqlOperation
+    }
+
+/**
+ * Creates a GraphQL operation generator key.
+ *
+ * Sibling to {@link toOperationGeneratorKey} for the GraphQL protocol. Format:
+ * `generatorId|rootKind|fieldName`.
+ */
+export const toGqlOperationGeneratorKey = ({
+  generatorId,
+  ...rest
+}: ToGqlOperationGeneratorKeyArgs): GqlOperationGeneratorKey => {
+  const { rootKind, fieldName } =
+    'operation' in rest
+      ? { rootKind: rest.operation.rootKind, fieldName: rest.operation.fieldName }
+      : rest
+
+  const nakedKey: NakedGqlOperationGeneratorKey = `${generatorId}|${rootKind}|${fieldName}`
+
+  return nakedKey as GqlOperationGeneratorKey
 }
 
 /**
@@ -305,7 +376,12 @@ export const toGeneratorOnlyKey = ({ generatorId }: ToGeneratorOnlyKeyArgs): Gen
  * ```
  */
 export const isGeneratorKey = (arg: unknown): arg is GeneratorKey => {
-  return isModelGeneratorKey(arg) || isOperationGeneratorKey(arg) || isGeneratorOnlyKey(arg)
+  return (
+    isModelGeneratorKey(arg) ||
+    isOperationGeneratorKey(arg) ||
+    isGqlOperationGeneratorKey(arg) ||
+    isGeneratorOnlyKey(arg)
+  )
 }
 
 /**
@@ -354,6 +430,41 @@ export const isOperationGeneratorKey = (arg: unknown): arg is OperationGenerator
   }
 
   if (!isMethod(method)) {
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Type guard to check if a value is a valid {@link GqlOperationGeneratorKey}.
+ *
+ * Validates that the argument is a string with the format
+ * `generatorId|rootKind|fieldName`, with `rootKind` constrained to a
+ * GraphQL root operation kind (`query` / `mutation` / `subscription`).
+ */
+export const isGqlOperationGeneratorKey = (arg: unknown): arg is GqlOperationGeneratorKey => {
+  if (typeof arg !== 'string') {
+    return false
+  }
+
+  const keyTokens = arg.split('|')
+
+  if (keyTokens.length !== 3) {
+    return false
+  }
+
+  const [generatorId, rootKind, fieldName] = keyTokens
+
+  if (typeof generatorId !== 'string' || !generatorId.length) {
+    return false
+  }
+
+  if (typeof rootKind !== 'string' || !isGqlRootKind(rootKind)) {
+    return false
+  }
+
+  if (typeof fieldName !== 'string' || !fieldName.length) {
     return false
   }
 
@@ -472,6 +583,10 @@ export const toGeneratorId = (generatorKey: GeneratorKey): string => {
     return generatorKey.split('|')[0]
   }
 
+  if (isGqlOperationGeneratorKey(generatorKey)) {
+    return generatorKey.split('|')[0]
+  }
+
   if (isModelGeneratorKey(generatorKey)) {
     return generatorKey.split('|')[0]
   }
@@ -488,7 +603,7 @@ export const toGeneratorId = (generatorKey: GeneratorKey): string => {
  */
 export type GeneratorKeyObject =
   | {
-      /** Discriminator for operation generator keys */
+      /** Discriminator for OAS operation generator keys */
       type: 'operation'
       /** Generator identifier */
       generatorId: string
@@ -496,6 +611,16 @@ export type GeneratorKeyObject =
       path: string
       /** HTTP method */
       method: Method
+    }
+  | {
+      /** Discriminator for GraphQL operation generator keys */
+      type: 'gqlOperation'
+      /** Generator identifier */
+      generatorId: string
+      /** GraphQL root kind */
+      rootKind: GqlRootKind
+      /** Root field name */
+      fieldName: string
     }
   | {
       /** Discriminator for model generator keys */
@@ -559,6 +684,16 @@ export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject
   if (isOperationGeneratorKey(generatorKey)) {
     const [generatorId, path, method] = generatorKey.split('|')
     return { type: 'operation', generatorId, path, method: method as Method }
+  }
+
+  if (isGqlOperationGeneratorKey(generatorKey)) {
+    const [generatorId, rootKind, fieldName] = generatorKey.split('|')
+    return {
+      type: 'gqlOperation',
+      generatorId,
+      rootKind: rootKind as GqlRootKind,
+      fieldName
+    }
   }
 
   if (isModelGeneratorKey(generatorKey)) {
