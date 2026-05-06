@@ -2,9 +2,9 @@ import * as v from 'valibot'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type {
-  IsSupportedArgs,
-  ToOperationPreviewModuleArgs,
-  ToOperationMappingArgs,
+  IsSupportedOasOperationArgs,
+  ToOasOperationPreviewModuleArgs,
+  ToOasOperationMappingArgs,
   TransformOasOperationArgs
 } from '@/dsl/operation/oas/types.ts'
 import type { IsSupportedOasOperationConfigArgs } from '@/dsl/operation/oas/types.ts'
@@ -20,7 +20,7 @@ import get from 'lodash-es/get'
  * @template EnrichmentType - Type of enrichment data this operation can provide
  * @template Acc - Accumulator type used during operation processing
  */
-export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
+export type ToOasOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
   transform: ({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
@@ -28,8 +28,8 @@ export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
     context,
     operation
   }: IsSupportedOasOperationConfigArgs<EnrichmentType>) => boolean
-  toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToOperationMappingArgs) => MappingModule
+  toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -63,7 +63,7 @@ export type ToOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
  * });
  * ```
  */
-export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
+export const toOasOperationEntry = <EnrichmentType = undefined, Acc = void>({
   id,
   transform,
   toEnrichmentSchema,
@@ -71,24 +71,24 @@ export const toOperationEntry = <EnrichmentType = undefined, Acc = void>({
   toPreviewModule,
   toMappingModule,
   toEnrichmentRequest
-}: ToOperationConfigArgs<EnrichmentType, Acc>): {
+}: ToOasOperationConfigArgs<EnrichmentType, Acc>): {
   id: string
-  type: 'operation'
+  type: 'oasOperation'
   transform: ({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, operation }: IsSupportedArgs) => boolean
-  toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToOperationMappingArgs) => MappingModule
+  isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
+  toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
 } => {
   return {
     id,
-    type: 'operation',
+    type: 'oasOperation',
     transform,
     toEnrichmentSchema,
-    isSupported: ({ context, operation }: IsSupportedArgs) => {
+    isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => {
       if (!isSupported) {
         return true
       }

@@ -29,8 +29,8 @@ import type { Method } from '@/types/Method.ts'
 import type { OasOperationConfig, OasOperationInsertable } from '@/dsl/operation/oas/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ModelConfig, ModelInsertable } from '@/dsl/model/types.ts'
-import { OperationDriver } from '@/dsl/operation/oas/OperationDriver.ts'
-import { GqlOperationDriver } from '@/dsl/operation/gql/OperationDriver.ts'
+import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
+import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -693,7 +693,7 @@ export class GenerateContext implements GenerateContextType {
       return new Inserted({ settings, definition })
     }
 
-    const { settings, definition } = new OperationDriver({
+    const { settings, definition } = new OasOperationDriver({
       context: this,
       insertable: args.insertable,
       operation: args.operation,

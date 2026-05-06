@@ -1,4 +1,4 @@
-import { toArtifacts } from '@skmtc/core'
+import { toArtifacts, StackTrail } from '@skmtc/core'
 import skmtcGenZod from '../../../../.skmtc/skmtc-zod/gen-zod/mod.ts'
 
 Deno.bench('gen', async () => {
@@ -6,18 +6,16 @@ Deno.bench('gen', async () => {
 
   const schema = await Deno.readTextFile(schemaPath)
 
-  const { artifacts, manifest } = toArtifacts({
+  toArtifacts({
     traceId: 'AAA',
     spanId: 'BBB',
     startAt: Date.now(),
-    document: {
-      type: 'oas',
-      value: JSON.parse(schema)
-    },
+    documentObject: JSON.parse(schema),
     prettier: undefined,
     settings: undefined,
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),
     logsPath: undefined,
-    silent: true
+    silent: true,
+    stackTrail: new StackTrail(['bench'])
   })
 })

@@ -22,11 +22,11 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 
 /**
- * Constructor arguments for {@link OperationBase}.
+ * Constructor arguments for {@link OasOperationBase}.
  *
  * @template EnrichmentType - Optional type for custom enrichment data
  */
-export type OperationBaseArgs<EnrichmentType = undefined> = {
+export type OasOperationBaseArgs<EnrichmentType = undefined> = {
   /** The generation context providing access to the processing pipeline */
   context: GenerateContextType
   /** Content settings including export path and enrichment configuration */
@@ -40,7 +40,7 @@ export type OperationBaseArgs<EnrichmentType = undefined> = {
 /**
  * Base class for operation generators in the SKMTC DSL system.
  *
- * `OperationBase` extends {@link ContentBase} to provide specialized functionality for
+ * `OasOperationBase` extends {@link ContentBase} to provide specialized functionality for
  * generating code from OpenAPI operations. It offers type-safe methods for inserting
  * related operations and models, managing complex operation dependencies, and handling
  * enrichments specific to API operations.
@@ -62,9 +62,9 @@ export type OperationBaseArgs<EnrichmentType = undefined> = {
  *
  * @example Basic API client generator
  * ```typescript
- * import { OperationBase, Definition } from '@skmtc/core';
+ * import { OasOperationBase, Definition } from '@skmtc/core';
  *
- * class ApiClientMethod extends OperationBase {
+ * class ApiClientMethod extends OasOperationBase {
  *   toDefinition(): Definition {
  *     const { method, path, operationId } = this.operation;
  *
@@ -80,7 +80,7 @@ export type OperationBaseArgs<EnrichmentType = undefined> = {
  *
  * @example With request/response models
  * ```typescript
- * class TypedApiMethod extends OperationBase {
+ * class TypedApiMethod extends OasOperationBase {
  *   toDefinition(): Definition {
  *     const operation = this.operation;
  *
@@ -121,7 +121,7 @@ export type OperationBaseArgs<EnrichmentType = undefined> = {
  *   permissions: string[];
  * };
  *
- * class SecuredApiMethod extends OperationBase<AuthEnrichment> {
+ * class SecuredApiMethod extends OasOperationBase<AuthEnrichment> {
  *   toDefinition(): Definition {
  *     const enrichment = this.settings.enrichment;
  *     const requiresAuth = enrichment?.requiresAuth ?? false;
@@ -141,7 +141,7 @@ export type OperationBaseArgs<EnrichmentType = undefined> = {
  * }
  * ```
  */
-export class OperationBase<EnrichmentType = undefined> extends ContentBase {
+export class OasOperationBase<EnrichmentType = undefined> extends ContentBase {
   /** Content settings including export path and enrichment configuration */
   settings: ContentSettings<EnrichmentType>
 
@@ -152,7 +152,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
   override generatorKey: GeneratorKey
 
   /**
-   * Creates a new OperationBase instance.
+   * Creates a new OasOperationBase instance.
    *
    * @param args - Operation generator configuration
    * @param args.context - The generation context providing pipeline access
@@ -162,7 +162,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    *
    * @example
    * ```typescript
-   * const operation = new OperationBase({
+   * const operation = new OasOperationBase({
    *   context: generateContext,
    *   settings: {
    *     exportPath: './src/api.ts',
@@ -173,7 +173,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    * });
    * ```
    */
-  constructor({ context, generatorKey, settings, operation }: OperationBaseArgs<EnrichmentType>) {
+  constructor({ context, generatorKey, settings, operation }: OasOperationBaseArgs<EnrichmentType>) {
     super({ context })
 
     this.generatorKey = generatorKey
@@ -198,7 +198,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    *
    * @example Inserting helper operations
    * ```typescript
-   * class CrudApiClient extends OperationBase {
+   * class CrudApiClient extends OasOperationBase {
    *   toDefinition(): Definition {
    *     // Insert a related validation operation
    *     const validator = this.insertOperation(
@@ -248,7 +248,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    *
    * @example Inserting request/response models
    * ```typescript
-   * class ApiOperation extends OperationBase {
+   * class ApiOperation extends OasOperationBase {
    *   toDefinition(): Definition {
    *     // Insert request model
    *     const requestModel = this.insertModel(
@@ -303,7 +303,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    *
    * @example Handling operation request/response schemas
    * ```typescript
-   * class RestApiOperation extends OperationBase {
+   * class RestApiOperation extends OasOperationBase {
    *   toDefinition(): Definition {
    *     const operation = this.operation;
    *
@@ -376,7 +376,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    *
    * @example Creating inline definitions
    * ```typescript
-   * class InlineHelperOperation extends OperationBase {
+   * class InlineHelperOperation extends OasOperationBase {
    *   toDefinition(): Definition {
    *     // Create an inline helper function
    *     const helper = this.defineAndRegister({
@@ -423,7 +423,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    *
    * @example Registering API client imports
    * ```typescript
-   * class HttpOperation extends OperationBase {
+   * class HttpOperation extends OasOperationBase {
    *   toDefinition(): Definition {
    *     // Register imports needed for HTTP operations
    *     this.register({
@@ -443,7 +443,7 @@ export class OperationBase<EnrichmentType = undefined> extends ContentBase {
    *
    * @example Registering utility exports
    * ```typescript
-   * class ApiOperationGroup extends OperationBase {
+   * class ApiOperationGroup extends OasOperationBase {
    *   toDefinition(): Definition {
    *     // Register a utility export after all operations
    *     this.register({

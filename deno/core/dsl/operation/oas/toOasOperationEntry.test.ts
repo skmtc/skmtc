@@ -1,19 +1,10 @@
-import { toGqlOperationEntry } from './toOperationEntry.ts'
+import { toOasOperationEntry } from './toOasOperationEntry.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
-import { OasString } from '@/oas/string/String.ts'
+import { OasOperation } from '@/oas/operation/Operation.ts'
 
-const createMockGqlOperation = () =>
-  new GqlOperation({
-    rootKind: 'query',
-    fieldName: 'test',
-    arguments: [],
-    returnType: new OasString({})
-  })
-
-Deno.test('toGqlOperationEntry - returns object with id and type operation', () => {
-  const entry = toGqlOperationEntry({
+Deno.test('toOasOperationEntry - returns object with id and type operation', () => {
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc
   })
@@ -22,15 +13,21 @@ Deno.test('toGqlOperationEntry - returns object with id and type operation', () 
   assertEquals(entry.type, 'operation')
 })
 
-Deno.test('toGqlOperationEntry - includes provided transform function', () => {
+Deno.test('toOasOperationEntry - includes provided transform function', () => {
   const transformFn = ({ acc }: { acc: number | undefined }) => (acc ?? 0) + 1
-  const entry = toGqlOperationEntry({
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: transformFn
   })
 
   assertEquals(entry.transform, transformFn)
-  const mockOperation = createMockGqlOperation()
+  // Verify transform actually works
+  const mockOperation = new OasOperation({
+    path: '/test',
+    method: 'get',
+    pathItem: undefined,
+    responses: {}
+  })
   const result = entry.transform({
     context: {} as GenerateContextType,
     operation: mockOperation,
@@ -39,13 +36,18 @@ Deno.test('toGqlOperationEntry - includes provided transform function', () => {
   assertEquals(result, 6)
 })
 
-Deno.test('toGqlOperationEntry - isSupported defaults to true when not provided', () => {
-  const entry = toGqlOperationEntry({
+Deno.test('toOasOperationEntry - isSupported defaults to true when not provided', () => {
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc
   })
 
-  const mockOperation = createMockGqlOperation()
+  const mockOperation = new OasOperation({
+    path: '/test',
+    method: 'get',
+    pathItem: undefined,
+    responses: {}
+  })
 
   const result = entry.isSupported({
     context: { settings: {} } as GenerateContextType,
@@ -55,8 +57,8 @@ Deno.test('toGqlOperationEntry - isSupported defaults to true when not provided'
   assertEquals(result, true)
 })
 
-Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided', () => {
-  const entry = toGqlOperationEntry({
+Deno.test('toOasOperationEntry - toPreviewModule is undefined when not provided', () => {
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc
   })
@@ -64,8 +66,8 @@ Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided'
   assertEquals(entry.toPreviewModule, undefined)
 })
 
-Deno.test('toGqlOperationEntry - toMappingModule is undefined when not provided', () => {
-  const entry = toGqlOperationEntry({
+Deno.test('toOasOperationEntry - toMappingModule is undefined when not provided', () => {
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc
   })
@@ -73,8 +75,8 @@ Deno.test('toGqlOperationEntry - toMappingModule is undefined when not provided'
   assertEquals(entry.toMappingModule, undefined)
 })
 
-Deno.test('toGqlOperationEntry - toEnrichmentSchema is undefined when not provided', () => {
-  const entry = toGqlOperationEntry({
+Deno.test('toOasOperationEntry - toEnrichmentSchema is undefined when not provided', () => {
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc
   })
@@ -82,8 +84,8 @@ Deno.test('toGqlOperationEntry - toEnrichmentSchema is undefined when not provid
   assertEquals(entry.toEnrichmentSchema, undefined)
 })
 
-Deno.test('toGqlOperationEntry - toEnrichmentRequest is undefined when not provided', () => {
-  const entry = toGqlOperationEntry({
+Deno.test('toOasOperationEntry - toEnrichmentRequest is undefined when not provided', () => {
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc
   })
@@ -91,7 +93,7 @@ Deno.test('toGqlOperationEntry - toEnrichmentRequest is undefined when not provi
   assertEquals(entry.toEnrichmentRequest, undefined)
 })
 
-Deno.test('toGqlOperationEntry - includes toPreviewModule when provided', () => {
+Deno.test('toOasOperationEntry - includes toPreviewModule when provided', () => {
   const previewFn = () => ({
     name: 'test',
     exportPath: './preview.ts',
@@ -100,7 +102,7 @@ Deno.test('toGqlOperationEntry - includes toPreviewModule when provided', () => 
     description: 'A test operation'
   })
 
-  const entry = toGqlOperationEntry({
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc,
     toPreviewModule: previewFn
@@ -109,7 +111,7 @@ Deno.test('toGqlOperationEntry - includes toPreviewModule when provided', () => 
   assertEquals(entry.toPreviewModule, previewFn)
 })
 
-Deno.test('toGqlOperationEntry - includes toMappingModule when provided', () => {
+Deno.test('toOasOperationEntry - includes toMappingModule when provided', () => {
   const mappingFn = () => ({
     name: 'mapping',
     exportPath: './mapping.ts',
@@ -119,7 +121,7 @@ Deno.test('toGqlOperationEntry - includes toMappingModule when provided', () => 
     items: []
   })
 
-  const entry = toGqlOperationEntry({
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc,
     toMappingModule: mappingFn
@@ -128,7 +130,7 @@ Deno.test('toGqlOperationEntry - includes toMappingModule when provided', () => 
   assertEquals(entry.toMappingModule, mappingFn)
 })
 
-Deno.test('toGqlOperationEntry - includes all optional functions when provided', () => {
+Deno.test('toOasOperationEntry - includes all optional functions when provided', () => {
   const transformFn = ({ acc }: { acc: string | undefined }) => acc ?? 'default'
   const previewFn = () => ({
     name: 'test',
@@ -148,7 +150,7 @@ Deno.test('toGqlOperationEntry - includes all optional functions when provided',
   const isSupportedFn = () => true
   const enrichmentRequestFn = () => undefined
 
-  const entry = toGqlOperationEntry({
+  const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: transformFn,
     toPreviewModule: previewFn,

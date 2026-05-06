@@ -29,7 +29,7 @@ type GetDefinitionArgs = {
 /**
  * Driver class for generating operation-based artifacts from OpenAPI operations.
  *
- * The `OperationDriver` manages the transformation of OpenAPI operation objects
+ * The `OasOperationDriver` manages the transformation of OpenAPI operation objects
  * into code artifacts, handling path generation, identifier resolution, and
  * definition management. It serves as the core orchestrator for operation-based
  * code generation in the SKMTC pipeline.
@@ -42,7 +42,7 @@ type GetDefinitionArgs = {
  * ```typescript
  * class APIClientGenerator extends OperationBase {
  *   generate() {
- *     const driver = new OperationDriver({
+ *     const driver = new OasOperationDriver({
  *       context: this.context,
  *       insertable: this,
  *       operation: this.operation,
@@ -56,7 +56,7 @@ type GetDefinitionArgs = {
  * }
  * ```
  */
-export class OperationDriver<V extends GeneratedValue, EnrichmentType = undefined> {
+export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undefined> {
   /** The generation context providing access to OAS objects and utilities */
   context: GenerateContextType
   /** The insertable object that provides generation configuration */
@@ -73,7 +73,7 @@ export class OperationDriver<V extends GeneratedValue, EnrichmentType = undefine
   noExport?: boolean
 
   /**
-   * Creates a new OperationDriver instance.
+   * Creates a new OasOperationDriver instance.
    *
    * @param args - Configuration for the operation driver
    * @param args.context - Generation context

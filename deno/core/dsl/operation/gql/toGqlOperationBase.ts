@@ -1,6 +1,6 @@
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
-import { GqlOperationBase } from './OperationBase.ts'
+import { GqlOperationBase } from './GqlOperationBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GqlOperationInsertableArgs } from './types.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'

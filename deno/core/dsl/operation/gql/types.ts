@@ -98,20 +98,12 @@ export type ToGqlOperationMappingArgs = {
 export type GqlOperationInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({ context, settings, operation }: GqlOperationInsertableArgs<EnrichmentType>): V
   id: string
-  type: 'operation'
+  type: 'gqlOperation'
   toIdentifier: (operation: GqlOperation) => Identifier
   toExportPath: (operation: GqlOperation) => string
   toEnrichments: ({ operation, context }: ToGqlOperationEnrichmentsArgs) => EnrichmentType
   // deno-lint-ignore ban-types
 } & Function
-
-/**
- * Arguments for checking if a GraphQL operation is supported for generation.
- */
-export type IsSupportedArgs = {
-  context: GenerateContextType
-  operation: GqlOperation
-}
 
 /**
  * Configuration object for GraphQL operation generators.
@@ -126,7 +118,7 @@ export type GqlOperationConfig<EnrichmentType = undefined> = {
   type: 'gqlOperation'
   transform: <Acc = void>({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, operation }: IsSupportedArgs) => boolean
+  isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(

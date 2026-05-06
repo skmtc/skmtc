@@ -1,6 +1,5 @@
 import type { GqlOperationInsertable } from './types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
-import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type {
   DefineAndRegisterArgs,

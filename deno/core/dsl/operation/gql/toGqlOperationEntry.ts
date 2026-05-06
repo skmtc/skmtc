@@ -2,7 +2,7 @@ import * as v from 'valibot'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type {
-  IsSupportedArgs,
+  IsSupportedGqlOperationArgs,
   ToGqlOperationPreviewModuleArgs,
   ToGqlOperationMappingArgs,
   TransformGqlOperationArgs,
@@ -57,10 +57,10 @@ export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
   toEnrichmentRequest
 }: ToGqlOperationConfigArgs<EnrichmentType, Acc>): {
   id: string
-  type: 'operation'
+  type: 'gqlOperation'
   transform: ({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, operation }: IsSupportedArgs) => boolean
+  isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
@@ -69,10 +69,10 @@ export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
 } => {
   return {
     id,
-    type: 'operation',
+    type: 'gqlOperation',
     transform,
     toEnrichmentSchema,
-    isSupported: ({ context, operation }: IsSupportedArgs) => {
+    isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => {
       if (!isSupported) {
         return true
       }

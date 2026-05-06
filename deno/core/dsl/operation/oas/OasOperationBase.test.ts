@@ -1,4 +1,4 @@
-import { OperationBase } from './OperationBase.ts'
+import { OasOperationBase } from './OasOperationBase.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertSpyCalls, spy } from '@std/testing/mock'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -7,7 +7,7 @@ import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 
-Deno.test('OperationBase - constructor stores operation correctly', () => {
+Deno.test('OasOperationBase - constructor stores operation correctly', () => {
   const mockOperation = new OasOperation({
     path: '/users',
     method: 'get',
@@ -16,7 +16,7 @@ Deno.test('OperationBase - constructor stores operation correctly', () => {
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getUsers'),
@@ -29,7 +29,7 @@ Deno.test('OperationBase - constructor stores operation correctly', () => {
   assertEquals(operation.operation, mockOperation)
 })
 
-Deno.test('OperationBase - constructor stores settings correctly', () => {
+Deno.test('OasOperationBase - constructor stores settings correctly', () => {
   const settings = ContentSettings.empty({
     identifier: Identifier.createVariable('createProduct'),
     exportPath: './operations/products.ts'
@@ -43,7 +43,7 @@ Deno.test('OperationBase - constructor stores settings correctly', () => {
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'test-generator|post|/products' as GeneratorKey,
@@ -53,7 +53,7 @@ Deno.test('OperationBase - constructor stores settings correctly', () => {
   assertEquals(operation.settings, settings)
 })
 
-Deno.test('OperationBase - constructor stores generatorKey correctly', () => {
+Deno.test('OasOperationBase - constructor stores generatorKey correctly', () => {
   const mockOperation = new OasOperation({
     path: '/orders',
     method: 'get',
@@ -62,7 +62,7 @@ Deno.test('OperationBase - constructor stores generatorKey correctly', () => {
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getOrders'),
@@ -75,7 +75,7 @@ Deno.test('OperationBase - constructor stores generatorKey correctly', () => {
   assertEquals(operation.generatorKey, 'typescript-operations|get|/orders')
 })
 
-Deno.test('OperationBase - has context property from ContentBase', () => {
+Deno.test('OasOperationBase - has context property from ContentBase', () => {
   const mockContext = { name: 'test-context' } as unknown as GenerateContextType
   const mockOperation = new OasOperation({
     path: '/users',
@@ -85,7 +85,7 @@ Deno.test('OperationBase - has context property from ContentBase', () => {
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getUsers'),
@@ -98,7 +98,7 @@ Deno.test('OperationBase - has context property from ContentBase', () => {
   assertEquals(operation.context, mockContext)
 })
 
-Deno.test('OperationBase - settings.exportPath is accessible', () => {
+Deno.test('OasOperationBase - settings.exportPath is accessible', () => {
   const mockOperation = new OasOperation({
     path: '/types',
     method: 'get',
@@ -107,7 +107,7 @@ Deno.test('OperationBase - settings.exportPath is accessible', () => {
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getTypes'),
@@ -120,7 +120,7 @@ Deno.test('OperationBase - settings.exportPath is accessible', () => {
   assertEquals(operation.settings.exportPath, './generated/types.ts')
 })
 
-Deno.test('OperationBase - settings.enrichments is accessible when provided', () => {
+Deno.test('OasOperationBase - settings.enrichments is accessible when provided', () => {
   const enrichments = { strict: true, nullable: false }
   const settings = new ContentSettings({
     identifier: Identifier.createVariable('validateOperation'),
@@ -136,7 +136,7 @@ Deno.test('OperationBase - settings.enrichments is accessible when provided', ()
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'validation-operations|post|/validate' as GeneratorKey,
@@ -146,7 +146,7 @@ Deno.test('OperationBase - settings.enrichments is accessible when provided', ()
   assertEquals(operation.settings.enrichments, enrichments)
 })
 
-Deno.test('OperationBase - stores all constructor properties correctly', () => {
+Deno.test('OasOperationBase - stores all constructor properties correctly', () => {
   const mockContext = { id: 'context-1' } as unknown as GenerateContextType
   const settings = ContentSettings.empty({
     identifier: Identifier.createVariable('testOperation'),
@@ -161,7 +161,7 @@ Deno.test('OperationBase - stores all constructor properties correctly', () => {
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: mockContext,
     settings,
     generatorKey,
@@ -174,7 +174,7 @@ Deno.test('OperationBase - stores all constructor properties correctly', () => {
   assertEquals(operation.operation, mockOperation)
 })
 
-Deno.test('OperationBase - works with different HTTP methods', () => {
+Deno.test('OasOperationBase - works with different HTTP methods', () => {
   const createOperation = (method: 'get' | 'post' | 'put' | 'delete', operationId: string) => {
     const mockOperation = new OasOperation({
       path: `/${operationId}`,
@@ -184,7 +184,7 @@ Deno.test('OperationBase - works with different HTTP methods', () => {
       responses: {}
     })
 
-    return new OperationBase({
+    return new OasOperationBase({
       context: {} as GenerateContextType,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable(operationId),
@@ -208,62 +208,65 @@ Deno.test('OperationBase - works with different HTTP methods', () => {
   assertEquals(deleteOperation.operation.method, 'delete')
 })
 
-Deno.test('OperationBase - insertOperation calls context.insertOperation with correct params', () => {
-  const exportPath = './operations/users.ts'
+Deno.test(
+  'OasOperationBase - insertOperation calls context.insertOperation with correct params',
+  () => {
+    const exportPath = './operations/users.ts'
 
-  const mockContext = {
-    insertOperation: () => ({} as any)
-  } as unknown as GenerateContextType
+    const mockContext = {
+      insertOperation: () => ({}) as any
+    } as unknown as GenerateContextType
 
-  const insertOperationSpy = spy(mockContext, 'insertOperation')
+    const insertOperationSpy = spy(mockContext, 'insertOperation')
 
-  const mockOperation = new OasOperation({
-    path: '/users',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'getUsers',
-    responses: {}
-  })
+    const mockOperation = new OasOperation({
+      path: '/users',
+      method: 'get',
+      pathItem: undefined,
+      operationId: 'getUsers',
+      responses: {}
+    })
 
-  const operation = new OperationBase({
-    context: mockContext,
-    settings: ContentSettings.empty({
-      identifier: Identifier.createVariable('getUsers'),
-      exportPath
-    }),
-    generatorKey: 'test-gen|get|/users' as GeneratorKey,
-    operation: mockOperation
-  })
+    const operation = new OasOperationBase({
+      context: mockContext,
+      settings: ContentSettings.empty({
+        identifier: Identifier.createVariable('getUsers'),
+        exportPath
+      }),
+      generatorKey: 'test-gen|get|/users' as GeneratorKey,
+      operation: mockOperation
+    })
 
-  const mockInsertable = { toDefinition: () => ({}) }
-  const mockRelatedOperation = new OasOperation({
-    path: '/related',
-    method: 'post',
-    pathItem: undefined,
-    operationId: 'relatedOp',
-    responses: {}
-  })
+    const mockInsertable = { toDefinition: () => ({}) }
+    const mockRelatedOperation = new OasOperation({
+      path: '/related',
+      method: 'post',
+      pathItem: undefined,
+      operationId: 'relatedOp',
+      responses: {}
+    })
 
-  operation.insertOperation(mockInsertable as any, mockRelatedOperation, {
-    noExport: true
-  })
+    operation.insertOperation(mockInsertable as any, mockRelatedOperation, {
+      noExport: true
+    })
 
-  assertSpyCalls(insertOperationSpy, 1)
-  assertEquals(insertOperationSpy.calls[0].args[0] as any, {
-    insertable: mockInsertable,
-    operation: mockRelatedOperation,
-    destinationPath: exportPath,
-    noExport: true
-  })
+    assertSpyCalls(insertOperationSpy, 1)
+    assertEquals(insertOperationSpy.calls[0].args[0] as any, {
+      insertable: mockInsertable,
+      operation: mockRelatedOperation,
+      destinationPath: exportPath,
+      noExport: true
+    })
 
-  insertOperationSpy.restore()
-})
+    insertOperationSpy.restore()
+  }
+)
 
-Deno.test('OperationBase - insertOperation without noExport option', () => {
+Deno.test('OasOperationBase - insertOperation without noExport option', () => {
   const exportPath = './api/endpoints.ts'
 
   const mockContext = {
-    insertOperation: () => ({} as any)
+    insertOperation: () => ({}) as any
   } as unknown as GenerateContextType
 
   const insertOperationSpy = spy(mockContext, 'insertOperation')
@@ -276,7 +279,7 @@ Deno.test('OperationBase - insertOperation without noExport option', () => {
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('testOp'),
@@ -308,11 +311,11 @@ Deno.test('OperationBase - insertOperation without noExport option', () => {
   insertOperationSpy.restore()
 })
 
-Deno.test('OperationBase - insertModel calls context.insertModel with correct params', () => {
+Deno.test('OasOperationBase - insertModel calls context.insertModel with correct params', () => {
   const exportPath = './models/types.ts'
 
   const mockContext = {
-    insertModel: () => ({} as any)
+    insertModel: () => ({}) as any
   } as unknown as GenerateContextType
 
   const insertModelSpy = spy(mockContext, 'insertModel')
@@ -325,7 +328,7 @@ Deno.test('OperationBase - insertModel calls context.insertModel with correct pa
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('createUser'),
@@ -353,103 +356,109 @@ Deno.test('OperationBase - insertModel calls context.insertModel with correct pa
   insertModelSpy.restore()
 })
 
-Deno.test('OperationBase - insertNormalizedModel calls context.insertNormalisedModel with correct params', () => {
-  const exportPath = './schemas/generated.ts'
+Deno.test(
+  'OasOperationBase - insertNormalizedModel calls context.insertNormalisedModel with correct params',
+  () => {
+    const exportPath = './schemas/generated.ts'
 
-  const mockContext = {
-    insertNormalisedModel: () => ({} as any)
-  } as unknown as GenerateContextType
+    const mockContext = {
+      insertNormalisedModel: () => ({}) as any
+    } as unknown as GenerateContextType
 
-  const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
+    const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
 
-  const mockOperation = new OasOperation({
-    path: '/data',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'getData',
-    responses: {}
-  })
+    const mockOperation = new OasOperation({
+      path: '/data',
+      method: 'get',
+      pathItem: undefined,
+      operationId: 'getData',
+      responses: {}
+    })
 
-  const operation = new OperationBase({
-    context: mockContext,
-    settings: ContentSettings.empty({
-      identifier: Identifier.createVariable('getData'),
-      exportPath
-    }),
-    generatorKey: 'test-gen|get|/data' as GeneratorKey,
-    operation: mockOperation
-  })
+    const operation = new OasOperationBase({
+      context: mockContext,
+      settings: ContentSettings.empty({
+        identifier: Identifier.createVariable('getData'),
+        exportPath
+      }),
+      generatorKey: 'test-gen|get|/data' as GeneratorKey,
+      operation: mockOperation
+    })
 
-  const mockInsertable = { toDefinition: () => ({}) }
-  const mockSchema = { type: 'object', properties: {} }
-  const fallbackName = 'GetDataResponse'
+    const mockInsertable = { toDefinition: () => ({}) }
+    const mockSchema = { type: 'object', properties: {} }
+    const fallbackName = 'GetDataResponse'
 
-  operation.insertNormalizedModel(
-    mockInsertable as any,
-    { schema: mockSchema as any, fallbackName },
-    { noExport: true }
-  )
+    operation.insertNormalizedModel(
+      mockInsertable as any,
+      { schema: mockSchema as any, fallbackName },
+      { noExport: true }
+    )
 
-  assertSpyCalls(insertNormalisedModelSpy, 1)
-  assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockInsertable)
-  assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
-    schema: mockSchema,
-    fallbackName,
-    destinationPath: exportPath
-  })
-  assertEquals(insertNormalisedModelSpy.calls[0].args[2] as any, { noExport: true })
+    assertSpyCalls(insertNormalisedModelSpy, 1)
+    assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockInsertable)
+    assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
+      schema: mockSchema,
+      fallbackName,
+      destinationPath: exportPath
+    })
+    assertEquals(insertNormalisedModelSpy.calls[0].args[2] as any, { noExport: true })
 
-  insertNormalisedModelSpy.restore()
-})
+    insertNormalisedModelSpy.restore()
+  }
+)
 
-Deno.test('OperationBase - defineAndRegister calls context.defineAndRegister with correct params', () => {
-  const exportPath = './helpers/utils.ts'
+Deno.test(
+  'OasOperationBase - defineAndRegister calls context.defineAndRegister with correct params',
+  () => {
+    const exportPath = './helpers/utils.ts'
 
-  const mockContext = {
-    defineAndRegister: () => ({} as any)
-  } as unknown as GenerateContextType
+    const mockContext = {
+      defineAndRegister: () => ({}) as any
+    } as unknown as GenerateContextType
 
-  const defineAndRegisterSpy = spy(mockContext, 'defineAndRegister')
+    const defineAndRegisterSpy = spy(mockContext, 'defineAndRegister')
 
-  const mockOperation = new OasOperation({
-    path: '/validate',
-    method: 'post',
-    pathItem: undefined,
-    operationId: 'validate',
-    responses: {}
-  })
+    const mockOperation = new OasOperation({
+      path: '/validate',
+      method: 'post',
+      pathItem: undefined,
+      operationId: 'validate',
+      responses: {}
+    })
 
-  const operation = new OperationBase({
-    context: mockContext,
-    settings: ContentSettings.empty({
-      identifier: Identifier.createVariable('validate'),
-      exportPath
-    }),
-    generatorKey: 'test-gen|post|/validate' as GeneratorKey,
-    operation: mockOperation
-  })
+    const operation = new OasOperationBase({
+      context: mockContext,
+      settings: ContentSettings.empty({
+        identifier: Identifier.createVariable('validate'),
+        exportPath
+      }),
+      generatorKey: 'test-gen|post|/validate' as GeneratorKey,
+      operation: mockOperation
+    })
 
-  const identifier = Identifier.createVariable('validateHelper')
-  const value = 'validation code'
+    const identifier = Identifier.createVariable('validateHelper')
+    const value = 'validation code'
 
-  operation.defineAndRegister({
-    identifier,
-    value,
-    noExport: true
-  })
+    operation.defineAndRegister({
+      identifier,
+      value,
+      noExport: true
+    })
 
-  assertSpyCalls(defineAndRegisterSpy, 1)
-  assertEquals(defineAndRegisterSpy.calls[0].args[0] as any, {
-    identifier,
-    value,
-    destinationPath: exportPath,
-    noExport: true
-  })
+    assertSpyCalls(defineAndRegisterSpy, 1)
+    assertEquals(defineAndRegisterSpy.calls[0].args[0] as any, {
+      identifier,
+      value,
+      destinationPath: exportPath,
+      noExport: true
+    })
 
-  defineAndRegisterSpy.restore()
-})
+    defineAndRegisterSpy.restore()
+  }
+)
 
-Deno.test('OperationBase - register calls context.register with correct params', () => {
+Deno.test('OasOperationBase - register calls context.register with correct params', () => {
   const exportPath = './imports/dependencies.ts'
 
   const mockContext = {
@@ -466,7 +475,7 @@ Deno.test('OperationBase - register calls context.register with correct params',
     responses: {}
   })
 
-  const operation = new OperationBase({
+  const operation = new OasOperationBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('apiCall'),

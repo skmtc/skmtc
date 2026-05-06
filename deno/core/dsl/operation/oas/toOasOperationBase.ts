@@ -1,7 +1,7 @@
 import { toOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
-import { OperationBase } from '@/dsl/operation/OperationBase.ts'
+import { OasOperationBase } from '@/dsl/operation/oas/OasOperationBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { OasOperationInsertableArgs } from '@/dsl/operation/oas/types.ts'
 import * as v from 'valibot'
@@ -35,7 +35,7 @@ type ToEnrichmentsArgs = {
 /**
  * Creates a base operation class constructor for generating type-safe operation artifacts.
  *
- * This factory function creates a specialized OperationBase class that implements
+ * This factory function creates a specialized OasOperationBase class that implements
  * the provided configuration for identifier generation, export paths, and
  * enrichment handling. The resulting class can be instantiated to generate
  * operation artifacts from OpenAPI operations.
@@ -46,9 +46,9 @@ type ToEnrichmentsArgs = {
  *
  * @example Creating a TypeScript function generator
  * ```typescript
- * import { toOperationBase } from '@skmtc/core';
+ * import { toOasOperationBase } from '@skmtc/core';
  *
- * const TypeScriptOperationBase = toOperationBase({
+ * const TypeScriptOasOperationBase = toOasOperationBase({
  *   id: 'typescript-functions',
  *   toIdentifier: (operation) => new Identifier(camelCase(operation.operationId)),
  *   toExportPath: (operation) => `./operations/${kebabCase(operation.operationId)}.ts`,
@@ -58,7 +58,7 @@ type ToEnrichmentsArgs = {
  *   })
  * });
  *
- * class TypeScriptOperationGenerator extends TypeScriptOperationBase {
+ * class TypeScriptOperationGenerator extends TypeScriptOasOperationBase {
  *   generate() {
  *     const enrichments = this.enrichments;
  *     const functionCode = generateFunction(this.operation, {
@@ -71,17 +71,17 @@ type ToEnrichmentsArgs = {
  *
  * @example Creating a React hook generator
  * ```typescript
- * const ReactHookOperationBase = toOperationBase({
+ * const ReactHookOasOperationBase = toOasOperationBase({
  *   id: 'react-hooks',
  *   toIdentifier: (operation) => new Identifier(`use${pascalCase(operation.operationId)}`),
  *   toExportPath: (operation) => `./hooks/${kebabCase(operation.operationId)}.hook.ts`
  * });
  * ```
  */
-export const toOperationBase = <EnrichmentType = undefined>(
+export const toOasOperationBase = <EnrichmentType = undefined>(
   config: BaseOasOperationConfig<EnrichmentType>
 ) => {
-  return class extends OperationBase<EnrichmentType> {
+  return class extends OasOperationBase<EnrichmentType> {
     static id = config.id
     static type = 'operation' as const
 

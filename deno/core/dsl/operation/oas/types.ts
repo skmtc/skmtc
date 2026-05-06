@@ -33,7 +33,7 @@ export type TransformOasOperationArgs<Acc> = {
  * Used by generator configurations to transform operation definitions
  * during the code generation process.
  */
-export type WithTransformOperation = {
+export type WithTransformOasOperation = {
   transformOperation: (operation: OasOperation) => void
 }
 
@@ -51,7 +51,7 @@ export type IsSupportedOasOperationConfigArgs<EnrichmentType = undefined> = {
 /**
  * Arguments for checking if an operation is supported for code generation.
  */
-export type IsSupportedOperationArgs = {
+export type IsSupportedOasOperationArgs = {
   context: GenerateContextType
   operation: OasOperation
 }
@@ -59,7 +59,7 @@ export type IsSupportedOperationArgs = {
 /**
  * Arguments for generating enrichment data for operations.
  */
-export type ToOperationEnrichmentsArgs = {
+export type ToOasOperationEnrichmentsArgs = {
   operation: OasOperation
   context: GenerateContextType
 }
@@ -70,7 +70,7 @@ export type ToOperationEnrichmentsArgs = {
  * Preview modules provide quick insights into generated operations
  * without full code generation.
  */
-export type ToOperationPreviewModuleArgs = {
+export type ToOasOperationPreviewModuleArgs = {
   context: GenerateContextType
   operation: OasOperation
 }
@@ -81,7 +81,7 @@ export type ToOperationPreviewModuleArgs = {
  * Mappings track relationships between OAS operations and generated code,
  * enabling cross-references and dependency analysis.
  */
-export type ToOperationMappingArgs = {
+export type ToOasOperationMappingArgs = {
   context: GenerateContextType
   operation: OasOperation
 }
@@ -101,17 +101,9 @@ export type OasOperationInsertable<V, EnrichmentType = undefined> = { prototype:
   type: 'oasOperation'
   toIdentifier: (operation: OasOperation) => Identifier
   toExportPath: (operation: OasOperation) => string
-  toEnrichments: ({ operation, context }: ToOperationEnrichmentsArgs) => EnrichmentType
+  toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
   // deno-lint-ignore ban-types
 } & Function
-
-/**
- * Arguments for checking if an operation is supported for generation.
- */
-export type IsSupportedArgs = {
-  context: GenerateContextType
-  operation: OasOperation
-}
 
 /**
  * Configuration object for operation generators.
@@ -126,9 +118,9 @@ export type OasOperationConfig<EnrichmentType = undefined> = {
   type: 'oasOperation'
   transform: <Acc = void>({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, operation }: IsSupportedArgs) => boolean
-  toPreviewModule?: ({ context, operation }: ToOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToOperationMappingArgs) => MappingModule
+  isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
+  toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined

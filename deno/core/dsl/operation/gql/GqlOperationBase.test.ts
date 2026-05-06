@@ -1,4 +1,4 @@
-import { GqlOperationBase } from './OperationBase.ts'
+import { GqlOperationBase } from '@/dsl/operation/gql/GqlOperationBase.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertSpyCalls, spy } from '@std/testing/mock'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -178,47 +178,50 @@ Deno.test('GqlOperationBase - works with different root kinds', () => {
   assertEquals(subscriptionOp.operation.rootKind, 'subscription')
 })
 
-Deno.test('GqlOperationBase - insertOperation calls context.insertOperation with correct params', () => {
-  const exportPath = './operations/users.ts'
+Deno.test(
+  'GqlOperationBase - insertOperation calls context.insertOperation with correct params',
+  () => {
+    const exportPath = './operations/users.ts'
 
-  const mockContext = {
-    insertOperation: () => ({}) as any
-  } as unknown as GenerateContextType
+    const mockContext = {
+      insertOperation: () => ({}) as any
+    } as unknown as GenerateContextType
 
-  const insertOperationSpy = spy(mockContext, 'insertOperation')
+    const insertOperationSpy = spy(mockContext, 'insertOperation')
 
-  const mockOperation = createMockGqlOperation()
+    const mockOperation = createMockGqlOperation()
 
-  const operation = new GqlOperationBase({
-    context: mockContext,
-    settings: ContentSettings.empty({
-      identifier: Identifier.createVariable('getUsers'),
-      exportPath
-    }),
-    generatorKey: 'test-gen|query|getUsers' as unknown as GeneratorKey,
-    operation: mockOperation
-  })
+    const operation = new GqlOperationBase({
+      context: mockContext,
+      settings: ContentSettings.empty({
+        identifier: Identifier.createVariable('getUsers'),
+        exportPath
+      }),
+      generatorKey: 'test-gen|query|getUsers' as unknown as GeneratorKey,
+      operation: mockOperation
+    })
 
-  const mockInsertable = { toDefinition: () => ({}) }
-  const mockRelatedOperation = createMockGqlOperation({
-    rootKind: 'mutation',
-    fieldName: 'relatedOp'
-  })
+    const mockInsertable = { toDefinition: () => ({}) }
+    const mockRelatedOperation = createMockGqlOperation({
+      rootKind: 'mutation',
+      fieldName: 'relatedOp'
+    })
 
-  operation.insertOperation(mockInsertable as any, mockRelatedOperation, {
-    noExport: true
-  })
+    operation.insertOperation(mockInsertable as any, mockRelatedOperation, {
+      noExport: true
+    })
 
-  assertSpyCalls(insertOperationSpy, 1)
-  assertEquals(insertOperationSpy.calls[0].args[0] as any, {
-    insertable: mockInsertable,
-    operation: mockRelatedOperation,
-    destinationPath: exportPath,
-    noExport: true
-  })
+    assertSpyCalls(insertOperationSpy, 1)
+    assertEquals(insertOperationSpy.calls[0].args[0] as any, {
+      insertable: mockInsertable,
+      operation: mockRelatedOperation,
+      destinationPath: exportPath,
+      noExport: true
+    })
 
-  insertOperationSpy.restore()
-})
+    insertOperationSpy.restore()
+  }
+)
 
 Deno.test('GqlOperationBase - insertOperation without noExport option', () => {
   const exportPath = './api/endpoints.ts'
@@ -299,92 +302,98 @@ Deno.test('GqlOperationBase - insertModel calls context.insertModel with correct
   insertModelSpy.restore()
 })
 
-Deno.test('GqlOperationBase - insertNormalizedModel calls context.insertNormalisedModel with correct params', () => {
-  const exportPath = './schemas/generated.ts'
+Deno.test(
+  'GqlOperationBase - insertNormalizedModel calls context.insertNormalisedModel with correct params',
+  () => {
+    const exportPath = './schemas/generated.ts'
 
-  const mockContext = {
-    insertNormalisedModel: () => ({}) as any
-  } as unknown as GenerateContextType
+    const mockContext = {
+      insertNormalisedModel: () => ({}) as any
+    } as unknown as GenerateContextType
 
-  const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
+    const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
 
-  const mockOperation = createMockGqlOperation({ fieldName: 'getData' })
+    const mockOperation = createMockGqlOperation({ fieldName: 'getData' })
 
-  const operation = new GqlOperationBase({
-    context: mockContext,
-    settings: ContentSettings.empty({
-      identifier: Identifier.createVariable('getData'),
-      exportPath
-    }),
-    generatorKey: 'test-gen|query|getData' as unknown as GeneratorKey,
-    operation: mockOperation
-  })
+    const operation = new GqlOperationBase({
+      context: mockContext,
+      settings: ContentSettings.empty({
+        identifier: Identifier.createVariable('getData'),
+        exportPath
+      }),
+      generatorKey: 'test-gen|query|getData' as unknown as GeneratorKey,
+      operation: mockOperation
+    })
 
-  const mockInsertable = { toDefinition: () => ({}) }
-  const mockSchema = { type: 'object', properties: {} }
-  const fallbackName = 'GetDataResponse'
+    const mockInsertable = { toDefinition: () => ({}) }
+    const mockSchema = { type: 'object', properties: {} }
+    const fallbackName = 'GetDataResponse'
 
-  operation.insertNormalizedModel(
-    mockInsertable as any,
-    { schema: mockSchema as any, fallbackName },
-    { noExport: true }
-  )
+    operation.insertNormalizedModel(
+      mockInsertable as any,
+      { schema: mockSchema as any, fallbackName },
+      { noExport: true }
+    )
 
-  assertSpyCalls(insertNormalisedModelSpy, 1)
-  assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockInsertable)
-  assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
-    schema: mockSchema,
-    fallbackName,
-    destinationPath: exportPath
-  })
-  assertEquals(insertNormalisedModelSpy.calls[0].args[2] as any, { noExport: true })
+    assertSpyCalls(insertNormalisedModelSpy, 1)
+    assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockInsertable)
+    assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
+      schema: mockSchema,
+      fallbackName,
+      destinationPath: exportPath
+    })
+    assertEquals(insertNormalisedModelSpy.calls[0].args[2] as any, { noExport: true })
 
-  insertNormalisedModelSpy.restore()
-})
+    insertNormalisedModelSpy.restore()
+  }
+)
 
-Deno.test('GqlOperationBase - defineAndRegister calls context.defineAndRegister with correct params', () => {
-  const exportPath = './helpers/utils.ts'
+Deno.test(
+  'GqlOperationBase - defineAndRegister calls context.defineAndRegister with correct params',
+  () => {
+    const exportPath = './helpers/utils.ts'
 
-  const mockContext = {
-    defineAndRegister: () => ({}) as any
-  } as unknown as GenerateContextType
+    const mockContext = {
+      defineAndRegister: () => ({}) as any
+    } as unknown as GenerateContextType
 
-  const defineAndRegisterSpy = spy(mockContext, 'defineAndRegister')
+    const defineAndRegisterSpy = spy(mockContext, 'defineAndRegister')
 
-  const mockOperation = createMockGqlOperation({
-    rootKind: 'mutation',
-    fieldName: 'validate'
-  })
+    const mockOperation = createMockGqlOperation({
+      rootKind: 'mutation',
+      fieldName: 'validate'
+    })
 
-  const operation = new GqlOperationBase({
-    context: mockContext,
-    settings: ContentSettings.empty({
-      identifier: Identifier.createVariable('validate'),
-      exportPath
-    }),
-    generatorKey: 'test-gen|mutation|validate' as unknown as GeneratorKey,
-    operation: mockOperation
-  })
+    const operation = new GqlOperationBase({
+      context: mockContext,
+      settings: ContentSettings.empty({
+        identifier: Identifier.createVariable('validate'),
+        exportPath
+      }),
+      generatorKey: 'test-gen|mutation|validate' as unknown as GeneratorKey,
+      operation: mockOperation
+    })
 
-  const identifier = Identifier.createVariable('validateHelper')
-  const value = 'validation code'
+    const identifier = Identifier.createVariable('validateHelper')
+    const value = 'validation code'
 
-  operation.defineAndRegister({
-    identifier,
-    value,
-    noExport: true
-  })
+    operation.defineAndRegister({
+      identifier,
+      value,
+      noExport: true
+    })
 
-  assertSpyCalls(defineAndRegisterSpy, 1)
-  assertEquals(defineAndRegisterSpy.calls[0].args[0] as any, {
-    identifier,
-    value,
-    destinationPath: exportPath,
-    noExport: true
-  })
+    assertSpyCalls(defineAndRegisterSpy, 1)
+    assertEquals(defineAndRegisterSpy.calls[0].args[0] as any, {
+      identifier,
+      value,
+      destinationPath: exportPath,
+      noExport: true
+    })
 
-  defineAndRegisterSpy.restore()
-})
+    defineAndRegisterSpy.restore()
+  }
+)
 
 Deno.test('GqlOperationBase - register calls context.register with correct params', () => {
   const exportPath = './imports/dependencies.ts'

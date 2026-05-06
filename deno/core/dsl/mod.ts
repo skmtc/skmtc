@@ -22,24 +22,24 @@ export type {
   ModelInsertable,
   ModelConfig
 } from './model/types.ts'
-export { OperationBase } from './operation/oas/OperationBase.ts'
-export { OperationDriver } from './operation/oas/OperationDriver.ts'
-export { toOperationBase } from './operation/oas/toOperationBase.ts'
-export { toOperationEntry } from './operation/oas/toOperationEntry.ts'
+export { OasOperationBase } from './operation/oas/OasOperationBase.ts'
+export { OasOperationDriver } from './operation/oas/OasOperationDriver.ts'
+export { toOasOperationBase } from './operation/oas/toOasOperationBase.ts'
+export { toOasOperationEntry } from './operation/oas/toOasOperationEntry.ts'
 export type {
   OasOperationInsertableArgs,
   IsSupportedOasOperationConfigArgs,
   TransformOasOperationArgs,
-  ToOperationPreviewModuleArgs,
-  ToOperationMappingArgs,
+  ToOasOperationPreviewModuleArgs,
+  ToOasOperationMappingArgs,
   OasOperationConfig,
   OasOperationInsertable,
-  IsSupportedArgs
+  IsSupportedOasOperationArgs
 } from './operation/oas/types.ts'
-export { GqlOperationBase } from './operation/gql/OperationBase.ts'
-export { GqlOperationDriver } from './operation/gql/OperationDriver.ts'
-export { toGqlOperationBase } from './operation/gql/toOperationBase.ts'
-export { toGqlOperationEntry } from './operation/gql/toOperationEntry.ts'
+export { GqlOperationBase } from './operation/gql/GqlOperationBase.ts'
+export { GqlOperationDriver } from './operation/gql/GqlOperationDriver.ts'
+export { toGqlOperationBase } from './operation/gql/toGqlOperationBase.ts'
+export { toGqlOperationEntry } from './operation/gql/toGqlOperationEntry.ts'
 export type {
   GqlOperationInsertableArgs,
   IsSupportedGqlOperationConfigArgs,
