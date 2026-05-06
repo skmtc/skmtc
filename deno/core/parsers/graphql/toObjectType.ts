@@ -4,7 +4,8 @@ import { OasObject } from '@/oas/object/Object.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
-import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
+import type { GqlParseContext } from '@/context/GqlParseContext.ts'
 
 export type ToObjectTypeArgs = {
   objectType: GraphQLObjectType | GraphQLInterfaceType
@@ -24,12 +25,18 @@ export type ToObjectTypeArgs = {
  * model so the user would otherwise have no signal that they exist.
  */
 export const toObjectType = ({ objectType, context }: ToObjectTypeArgs): OasObject => {
+  // Type-level directives (`type User @entity { ... }`).
+  recordAppliedDirectives(objectType.astNode, objectType.name, context)
+
   const fields = objectType.getFields()
   const properties: Record<string, OasSchema | OasRef<'schema'>> = {}
   const required: string[] = []
 
   for (const [fieldName, field] of Object.entries(fields)) {
     const fieldLocation = `${objectType.name}.${fieldName}`
+
+    // Field-level directives (`name: String @auth(role: "admin")`).
+    recordAppliedDirectives(field.astNode, fieldLocation, context)
 
     properties[fieldName] = toFieldSchema({
       type: field.type,

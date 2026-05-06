@@ -8,6 +8,17 @@ export type GqlArgumentFields = {
   name: string
   schema: OasSchema | OasRef<'schema'>
   required: boolean
+  /**
+   * The original GraphQL type string for this argument (e.g. `'ID!'`,
+   * `'CreatePostInput!'`, `'[String!]'`). Captured at parse time so
+   * generators that need to reconstruct an SDL fragment — like
+   * `gen-graphql-typed-document-node` building a `gql\`...\`` template
+   * — don't have to reverse-engineer it from the OAS form.
+   *
+   * Optional at construction so test fixtures don't have to fabricate
+   * one; falls back to `''` when omitted.
+   */
+  gqlType?: string
   defaultValue?: unknown
   description?: string
   deprecated?: boolean
@@ -34,6 +45,7 @@ export class GqlArgument {
   readonly name: string
   readonly schema: OasSchema | OasRef<'schema'>
   readonly required: boolean
+  readonly gqlType: string
   readonly defaultValue: unknown
   readonly description: string | undefined
   readonly deprecated: boolean
@@ -43,6 +55,7 @@ export class GqlArgument {
     this.name = fields.name
     this.schema = fields.schema
     this.required = fields.required
+    this.gqlType = fields.gqlType ?? ''
     this.defaultValue = fields.defaultValue
     this.description = fields.description
     this.deprecated = fields.deprecated ?? false

@@ -16,6 +16,14 @@ export type GqlOperationFields = {
   fieldName: string
   arguments: GqlArgument[]
   returnType: OasSchema | OasRef<'schema'>
+  /**
+   * The original GraphQL return-type string (e.g. `'User'`,
+   * `'[Post!]!'`). Captured at parse time so generators don't have
+   * to reverse-engineer it from the OAS form when emitting SDL
+   * fragments. Optional in construction with `''` fallback so test
+   * fixtures don't have to fabricate one.
+   */
+  returnTypeString?: string
   description?: string
   deprecated?: boolean
   deprecationReason?: string
@@ -41,6 +49,7 @@ export class GqlOperation {
   readonly fieldName: string
   readonly arguments: GqlArgument[]
   readonly returnType: OasSchema | OasRef<'schema'>
+  readonly returnTypeString: string
   readonly description: string | undefined
   readonly deprecated: boolean
   readonly deprecationReason: string | undefined
@@ -50,6 +59,7 @@ export class GqlOperation {
     this.fieldName = fields.fieldName
     this.arguments = fields.arguments
     this.returnType = fields.returnType
+    this.returnTypeString = fields.returnTypeString ?? ''
     this.description = fields.description
     this.deprecated = fields.deprecated ?? false
     this.deprecationReason = fields.deprecationReason

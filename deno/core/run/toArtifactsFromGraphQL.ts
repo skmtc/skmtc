@@ -6,8 +6,7 @@ import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { GraphQLSchema } from 'graphql'
-import { toGqlDocument } from '@/parsers/graphql/toGqlDocument.ts'
-import { GqlParseContext, type GqlParseIssue } from '@/gql/parse/GqlParseContext.ts'
+import { GqlParseContext, type GqlParseIssue } from '@/context/GqlParseContext.ts'
 
 /**
  * Arguments for {@link toArtifactsFromGraphQL}.
@@ -105,10 +104,18 @@ export const toArtifactsFromGraphQL = ({
   // result instead of being silently dropped. When `silent` is false
   // the context also mirrors each issue to `console.warn` as it's
   // recorded — useful for long CLI runs.
-  const parseContext = new GqlParseContext({ silent })
-  const gqlDocument: GqlDocument = isGqlDocument(source)
-    ? source
-    : toGqlDocument(source, {}, parseContext)
+  //
+  // Pre-built `GqlDocument` inputs skip parsing entirely; we still
+  // expose a `parseIssues: []` slot for a uniform return shape.
+  let gqlDocument: GqlDocument
+  let parseIssues: GqlParseIssue[] = []
+  if (isGqlDocument(source)) {
+    gqlDocument = source
+  } else {
+    const parseContext = new GqlParseContext({ source, silent })
+    gqlDocument = parseContext.parse()
+    parseIssues = parseContext.issues
+  }
 
   const { artifacts, files, previews, results, mappings } = context.toArtifacts({
     settings,
@@ -132,5 +139,5 @@ export const toArtifactsFromGraphQL = ({
     endAt: Date.now()
   }
 
-  return { artifacts, manifest, parseIssues: parseContext.issues }
+  return { artifacts, manifest, parseIssues }
 }

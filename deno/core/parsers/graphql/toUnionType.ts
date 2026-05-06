@@ -3,7 +3,8 @@ import { OasUnion } from '@/oas/union/Union.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
 import type { RefName } from '@/types/RefName.ts'
-import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
+import type { GqlParseContext } from '@/context/GqlParseContext.ts'
 
 export type ToUnionTypeArgs = {
   unionType: GraphQLUnionType
@@ -20,6 +21,8 @@ export type ToUnionTypeArgs = {
  * about discrimination ignore it.
  */
 export const toUnionType = ({ unionType, context }: ToUnionTypeArgs): OasUnion => {
+  recordAppliedDirectives(unionType.astNode, unionType.name, context)
+
   const members: OasRef<'schema'>[] = unionType
     .getTypes()
     .map(member => context.registry.createRef(member.name as RefName))

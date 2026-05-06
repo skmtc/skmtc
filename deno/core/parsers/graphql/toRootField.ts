@@ -3,7 +3,8 @@ import { isNonNullType } from 'graphql'
 import { GqlOperation, type GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import { GqlArgument } from '@/gql/argument/GqlArgument.ts'
 import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
-import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
+import type { GqlParseContext } from '@/context/GqlParseContext.ts'
 
 export type ToRootFieldArgs = {
   rootKind: GqlRootKind
@@ -32,6 +33,9 @@ export const toRootField = ({
 }: ToRootFieldArgs): GqlOperation => {
   const operationLocation = `${rootTypeName}.${field.name}`
 
+  // Field-level directives on the root field itself (`me: User @auth`).
+  recordAppliedDirectives(field.astNode, operationLocation, context)
+
   const args: GqlArgument[] = field.args.map((arg: GraphQLArgument) => {
     return new GqlArgument({
       name: arg.name,
@@ -41,6 +45,10 @@ export const toRootField = ({
         location: `${operationLocation}.args.${arg.name}`
       }),
       required: isNonNullType(arg.type),
+      // graphql-js's `GraphQLType.toString()` produces SDL syntax
+      // (`'ID!'`, `'[String!]'`). Stash it for downstream generators
+      // that need to reconstruct an SDL fragment.
+      gqlType: arg.type.toString(),
       defaultValue: arg.defaultValue,
       description: arg.description ?? undefined,
       deprecated: arg.deprecationReason !== null && arg.deprecationReason !== undefined,
@@ -59,6 +67,7 @@ export const toRootField = ({
     fieldName: field.name,
     arguments: args,
     returnType,
+    returnTypeString: field.type.toString(),
     description: field.description ?? undefined,
     deprecated:
       field.deprecationReason !== null && field.deprecationReason !== undefined,

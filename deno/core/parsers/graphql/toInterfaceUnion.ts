@@ -3,7 +3,8 @@ import { OasUnion } from '@/oas/union/Union.ts'
 import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { RefName } from '@/types/RefName.ts'
-import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
+import type { GqlParseContext } from '@/context/GqlParseContext.ts'
 
 export type ToInterfaceUnionArgs = {
   interfaceType: GraphQLInterfaceType
@@ -24,6 +25,8 @@ export type ToInterfaceUnionArgs = {
  * generators select whichever they prefer.
  */
 export const toInterfaceUnion = ({ interfaceType, context }: ToInterfaceUnionArgs): OasUnion => {
+  recordAppliedDirectives(interfaceType.astNode, interfaceType.name, context)
+
   const implementers = context.schema.getImplementations(interfaceType).objects
 
   const members: OasRef<'schema'>[] = implementers.map(impl =>

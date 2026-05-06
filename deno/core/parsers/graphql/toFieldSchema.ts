@@ -16,7 +16,7 @@ import { toScalarType } from '@/parsers/graphql/toScalarType.ts'
 import { toEnumType } from '@/parsers/graphql/toEnumType.ts'
 import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { OasUnion } from '@/oas/union/Union.ts'
-import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+import type { GqlParseContext } from '@/context/GqlParseContext.ts'
 
 /**
  * Args for {@link toFieldSchema}.

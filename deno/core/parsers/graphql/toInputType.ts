@@ -4,7 +4,8 @@ import { OasObject } from '@/oas/object/Object.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
-import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
+import type { GqlParseContext } from '@/context/GqlParseContext.ts'
 
 export type ToInputTypeArgs = {
   inputType: GraphQLInputObjectType
@@ -29,15 +30,20 @@ export type ToInputTypeArgs = {
  * `default` slot when present.
  */
 export const toInputType = ({ inputType, context }: ToInputTypeArgs): OasObject => {
+  recordAppliedDirectives(inputType.astNode, inputType.name, context)
+
   const fields = inputType.getFields()
   const properties: Record<string, OasSchema | OasRef<'schema'>> = {}
   const required: string[] = []
 
   for (const [fieldName, field] of Object.entries(fields)) {
+    const fieldLocation = `${inputType.name}.${fieldName}`
+    recordAppliedDirectives(field.astNode, fieldLocation, context)
+
     properties[fieldName] = toFieldSchema({
       type: field.type,
       context,
-      location: `${inputType.name}.${fieldName}`
+      location: fieldLocation
     })
     if (isNonNullType(field.type)) {
       required.push(fieldName)
