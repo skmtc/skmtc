@@ -15,7 +15,8 @@ import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { synthesizeArgsObject } from '@/gql/operation/synthesizeArgsObject.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasObject } from '@/oas/object/Object.ts'
-import { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
+import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -66,8 +67,8 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
   const gqlDocument = toGqlDocument(sdl)
 
   // Sanity-check the parsed document.
-  assertExists(gqlDocument.registry.schemas.User)
-  assertExists(gqlDocument.registry.schemas.Post)
+  assertExists(gqlDocument.registry.schemas['User' as RefName])
+  assertExists(gqlDocument.registry.schemas['Post' as RefName])
   assertEquals(gqlDocument.operations.length, 3) // 2 query + 1 mutation
   assertEquals(gqlDocument.rootTypes.query, 'Query')
   assertEquals(gqlDocument.rootTypes.mutation, 'Mutation')
@@ -192,18 +193,14 @@ Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL d
   `
   const gqlDocument = toGqlDocument(sdl)
 
-  const httpTransform = spy(() => undefined) as ({
-    context,
-    operation,
-    acc
-  }: TransformOasOperationArgs<unknown>) => unknown
+  const httpTransform = spy((_args: TransformOasOperationArgs<unknown>) => undefined)
 
   const httpGenerator: OasOperationConfig = {
     id: 'http-only',
     type: 'oasOperation',
     isSupported: () => true,
-    transform: <Acc = void>({ context, operation, acc }: TransformOasOperationArgs<Acc>): Acc => {
-      return httpTransform({ context, operation, acc }) as Acc
+    transform: <Acc = void>(args: TransformOasOperationArgs<Acc>): Acc => {
+      return httpTransform(args as TransformOasOperationArgs<unknown>) as Acc
     }
   }
 
