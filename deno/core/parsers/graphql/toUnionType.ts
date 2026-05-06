@@ -2,8 +2,13 @@ import type { GraphQLUnionType } from 'graphql'
 import { OasUnion } from '@/oas/union/Union.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
-import type { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import type { RefName } from '@/types/RefName.ts'
+import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+
+export type ToUnionTypeArgs = {
+  unionType: GraphQLUnionType
+  context: GqlParseContext
+}
 
 /**
  * Converts a GraphQL union type into an `OasUnion` over refs to its
@@ -14,13 +19,10 @@ import type { RefName } from '@/types/RefName.ts'
  * emit discriminated TS unions can read it; generators that don't care
  * about discrimination ignore it.
  */
-export const toUnionType = (
-  unionType: GraphQLUnionType,
-  registry: GqlRegistry
-): OasUnion => {
+export const toUnionType = ({ unionType, context }: ToUnionTypeArgs): OasUnion => {
   const members: OasRef<'schema'>[] = unionType
     .getTypes()
-    .map(member => registry.createRef(member.name as RefName))
+    .map(member => context.registry.createRef(member.name as RefName))
 
   return new OasUnion({
     title: unionType.name,

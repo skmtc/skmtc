@@ -1,6 +1,7 @@
 import { type GeneratorsMapContainer, toArtifacts } from '@skmtc/core'
 import { toArtifactsFromGraphQL } from '@skmtc/core/parsers/graphql'
 import { StackTrail } from '@skmtc/core'
+import type { GqlParseIssue } from '@skmtc/core'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { OpenAPIV3 } from 'openapi-types'
@@ -13,6 +14,12 @@ export type { GeneratePayload, GeneratePayloadShared, WorkerMessage } from './ty
 type GenerateResult = {
   artifacts: Record<string, string>
   manifest: ManifestContent
+  /**
+   * GraphQL parse-time issues. Empty array for OAS runs (the OAS
+   * parser threads its own issues through `ParseContext` rather than
+   * surfacing them here — that's a future alignment).
+   */
+  parseIssues: GqlParseIssue[]
 }
 
 /** Fields shared by every protocol-specific run. */
@@ -42,8 +49,8 @@ type RunArgs =
  */
 const runArtifacts = (args: RunArgs): GenerateResult => {
   switch (args.protocol) {
-    case 'gql':
-      return toArtifactsFromGraphQL({
+    case 'gql': {
+      const { artifacts, manifest, parseIssues } = toArtifactsFromGraphQL({
         traceId: args.traceId,
         spanId: args.spanId,
         startAt: args.startAt,
@@ -55,8 +62,10 @@ const runArtifacts = (args: RunArgs): GenerateResult => {
         logsPath: undefined,
         silent: args.silent
       })
-    case 'oas':
-      return toArtifacts({
+      return { artifacts, manifest, parseIssues }
+    }
+    case 'oas': {
+      const { artifacts, manifest } = toArtifacts({
         traceId: args.traceId,
         spanId: args.spanId,
         startAt: args.startAt,
@@ -68,6 +77,10 @@ const runArtifacts = (args: RunArgs): GenerateResult => {
         logsPath: undefined,
         silent: args.silent
       })
+      // OAS doesn't currently surface parse issues here; pad with []
+      // so the wire shape is uniform across protocols.
+      return { artifacts, manifest, parseIssues: [] }
+    }
     default: {
       const _exhaustive: never = args
       throw new Error(`Unhandled protocol in runArtifacts: ${JSON.stringify(_exhaustive)}`)
@@ -140,9 +153,9 @@ const toWorker = (
             }
           })()
 
-          const { artifacts, manifest } = runArtifacts(runArgs)
+          const { artifacts, manifest, parseIssues } = runArtifacts(runArgs)
 
-          self.postMessage({ type: 'RESULT', artifacts, manifest })
+          self.postMessage({ type: 'RESULT', artifacts, manifest, parseIssues })
           break
         }
         default: {

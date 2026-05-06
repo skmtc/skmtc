@@ -110,32 +110,32 @@ const result = toArtifactsFromGraphQL({
 
 ### Writing a GraphQL-targeted operation generator
 
-Operation generators marked `protocol: 'gql'` are dispatched only
-when the active document is GraphQL. They receive a `GqlOperation`
-(at runtime) via the same `transform({ context, operation, acc })`
-contract as HTTP operation generators receive `OasOperation`. Because
-the static type on `OperationConfig.transform` is shared, narrow with
-a runtime cast at the entry point:
+GraphQL-targeted generators are built with `toGqlOperationEntry` and
+get a `GqlOperation`-typed `operation` parameter on `transform` —
+**no runtime cast required**. The dispatcher routes them only against
+GraphQL documents, so `isSupported` and `transform` can assume a
+`GqlOperation`.
 
 ```typescript
-import type { GqlOperation, OperationConfig } from '@skmtc/core'
+import { toGqlOperationEntry } from '@skmtc/core'
 
-export const myEntry: OperationConfig<undefined> = {
+export const myEntry = toGqlOperationEntry({
   id: '@scope/my-gen',
-  type: 'operation',
-  protocol: 'gql', // routed by GenerateContext dispatcher
   isSupported: () => true,
-  transform: <Acc = void>(args: { ... }): Acc => {
-    const gqlOp = args.operation as unknown as GqlOperation
-    // ... emit using gqlOp.fieldName, gqlOp.arguments, gqlOp.returnType
-    return args.acc as Acc
+  transform: ({ context, operation, acc }) => {
+    // operation is GqlOperation; access fieldName / arguments / returnType
+    // directly. emit via context.register / context.insertNormalisedModel.
+    return acc
   }
-}
+})
 ```
 
-The HTTP / GraphQL discriminator is on `OperationConfig.protocol`. It
-defaults to `'http'` when omitted, so existing HTTP generators don't
-need updating.
+Sibling helpers exist for OpenAPI: `toOperationEntry` (the original
+HTTP form) and `toModelEntry` (protocol-neutral, used by every model
+generator). Each helper produces the right entry `type` —
+`'operation'`, `'gqlOperation'`, or `'model'` — and the dispatcher in
+`GenerateContext.toArtifacts` reads that to pick the right runtime
+contract.
 
 ## Type-mapping rules
 
@@ -215,7 +215,10 @@ The dispatch in `GenerateContext.toArtifacts`:
   `OasComponents` both expose `toSchemasRefNames()` so the model
   dispatch is protocol-neutral.
 - Operation generators run only against the matching protocol —
-  `OperationConfig.protocol` is checked against `document.type`.
+  HTTP entries (built with `toOperationEntry`, `type: 'operation'`)
+  fire only against `{ type: 'oas' }` documents, GraphQL entries
+  (built with `toGqlOperationEntry`, `type: 'gqlOperation'`) fire
+  only against `{ type: 'gql' }` documents.
 - Cross-type schema resolution (`context.resolveSchemaRefOnce`)
   discriminates on `document.type` to read from the right registry.
 
@@ -242,8 +245,8 @@ Do not re-export the parser from the top-level `mod.ts`.
 Each entity has a unit test next to it. The end-to-end pipeline test
 is at `core/parsers/graphql/integration.test.ts` — it parses an SDL,
 constructs a `GenerateContext` with the resulting `GqlDocument`, runs
-both a model generator and a `protocol: 'gql'` operation generator
-through the dispatcher, and asserts on the registered files.
+both a model generator and a `toGqlOperationEntry`-built operation
+generator through the dispatcher, and asserts on the registered files.
 
 Run from `core/`:
 

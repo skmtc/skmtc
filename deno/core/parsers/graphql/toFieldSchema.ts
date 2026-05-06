@@ -1,4 +1,4 @@
-import type { GraphQLType, GraphQLSchema } from 'graphql'
+import type { GraphQLType } from 'graphql'
 import {
   isObjectType,
   isInputObjectType,
@@ -10,12 +10,31 @@ import {
 import { OasArray } from '@/oas/array/Array.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
-import type { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { unwrapType } from '@/parsers/graphql/unwrapType.ts'
 import { toScalarType } from '@/parsers/graphql/toScalarType.ts'
 import { toEnumType } from '@/parsers/graphql/toEnumType.ts'
 import { OasUnknown } from '@/oas/unknown/Unknown.ts'
+import { OasUnion } from '@/oas/union/Union.ts'
+import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+
+/**
+ * Args for {@link toFieldSchema}.
+ *
+ * `context` carries both the GraphQL schema and the in-progress
+ * registry — helpers no longer thread these as separate arguments
+ * (mirrors OAS's `(context, stackTrail)` shape).
+ */
+export type ToFieldSchemaArgs = {
+  type: GraphQLType
+  context: GqlParseContext
+  /**
+   * Schema-level address of this field (e.g. `User.posts`,
+   * `Query.getUser.return`). Threaded into any issue this call
+   * records. Falls back to `'<unknown>'` when omitted.
+   */
+  location?: string
+}
 
 /**
  * Converts a GraphQL field type into an `OasSchema | OasRef<'schema'>`
@@ -31,23 +50,24 @@ import { OasUnknown } from '@/oas/unknown/Unknown.ts'
  * The function also encodes the GraphQL list-nullability matrix:
  * `[T]`, `[T!]`, `[T]!`, `[T!]!` each produce different combinations of
  * `OasArray.nullable` and the inner schema's nullability.
- *
- * @param type      The GraphQL field type (possibly wrapped in NonNull / List).
- * @param schema    The full GraphQL schema (used to look up named-type definitions).
- * @param registry  The GQL registry (used to construct refs for composite types).
- * @returns A schema/ref ready to assign to a property or argument slot.
  */
-export const toFieldSchema = (
-  type: GraphQLType,
-  schema: GraphQLSchema,
-  registry: GqlRegistry
-): OasSchema | OasRef<'schema'> => {
+export const toFieldSchema = ({
+  type,
+  context,
+  location = '<unknown>'
+}: ToFieldSchemaArgs): OasSchema | OasRef<'schema'> => {
   const { named, isList, outerNullable, itemNullable, nestedList } = unwrapType(type)
 
   if (nestedList) {
     // Nested lists (`[[T]]`) aren't representable as a single OasArray of
     // items; fall back to OasUnknown to avoid producing a wrong type.
     // Generators that care can later be extended; this is a v1 limitation.
+    context.log({
+      level: 'warning',
+      location,
+      message: `Nested list type collapsed to 'unknown' — v1 limitation`,
+      type: 'NESTED_LIST_LOSSY'
+    })
     return new OasUnknown({ nullable: outerNullable })
   }
 
@@ -68,9 +88,24 @@ export const toFieldSchema = (
       isUnionType(named)
     ) {
       // Composite types live in the registry; the field gets a ref.
-      return registry.createRef(named.name as RefName)
+      // OasRef has no nullable flag, so when the field is nullable we wrap
+      // the ref in a single-member OasUnion that carries the flag instead.
+      const ref = context.registry.createRef(named.name as RefName)
+      return innerNullable
+        ? new OasUnion({ members: [ref], nullable: true })
+        : ref
     }
-    // Unknown kind — defensive fallback.
+    // Unknown kind — defensive fallback. Shouldn't fire under
+    // graphql-js's type system, but if it does we want a loud signal.
+    // `named` is `never` here per exhaustiveness so we coerce to read
+    // `.name` for the diagnostic without leaking the cast elsewhere.
+    const unrecognised = named as { name?: string }
+    context.log({
+      level: 'error',
+      location,
+      message: `Unknown GraphQL type kind for '${unrecognised.name ?? '<anon>'}' — fell back to 'unknown'`,
+      type: 'UNKNOWN_TYPE_KIND'
+    })
     return new OasUnknown({ nullable: innerNullable })
   })()
 

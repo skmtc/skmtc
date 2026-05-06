@@ -81,5 +81,5 @@ export const writeGeneratedFiles = ({
     Deno.writeTextFileSync(absolutePath, content)
   })
 
-  return { manifest, artifacts }
+  return { manifest, artifacts, parseIssues: [] }
 }

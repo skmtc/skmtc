@@ -16,9 +16,9 @@ export const generateSwitch = async ({
 
   if (generateLocalArgs) {
     const { generateLocal } = await import('@/lib/generate-local.ts')
-    const stats = await generateLocal(generateLocalArgs)
+    const { stats, parseIssues } = await generateLocal(generateLocalArgs)
 
-    const message = toGenerateMessageString(stats)
+    const message = toGenerateMessageString(stats, parseIssues)
 
     console.log(message)
     Deno.exit(0)

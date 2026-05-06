@@ -7,6 +7,7 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { GraphQLSchema } from 'graphql'
 import { toGqlDocument } from '@/parsers/graphql/toGqlDocument.ts'
+import { GqlParseContext, type GqlParseIssue } from '@/gql/parse/GqlParseContext.ts'
 
 /**
  * Arguments for {@link toArtifactsFromGraphQL}.
@@ -93,10 +94,21 @@ export const toArtifactsFromGraphQL = ({
   startAt,
   silent,
   stackTrail
-}: TransformGraphQLArgs): { artifacts: Record<string, string>; manifest: ManifestContent } => {
+}: TransformGraphQLArgs): {
+  artifacts: Record<string, string>
+  manifest: ManifestContent
+  parseIssues: GqlParseIssue[]
+} => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  const gqlDocument: GqlDocument = isGqlDocument(source) ? source : toGqlDocument(source)
+  // Construct a parse context so mapping-time issues surface in the
+  // result instead of being silently dropped. When `silent` is false
+  // the context also mirrors each issue to `console.warn` as it's
+  // recorded — useful for long CLI runs.
+  const parseContext = new GqlParseContext({ silent })
+  const gqlDocument: GqlDocument = isGqlDocument(source)
+    ? source
+    : toGqlDocument(source, {}, parseContext)
 
   const { artifacts, files, previews, results, mappings } = context.toArtifacts({
     settings,
@@ -120,5 +132,5 @@ export const toArtifactsFromGraphQL = ({
     endAt: Date.now()
   }
 
-  return { artifacts, manifest }
+  return { artifacts, manifest, parseIssues: parseContext.issues }
 }

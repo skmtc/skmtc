@@ -227,14 +227,15 @@ Deno.test('GraphQL pipeline - return type ref resolves through the registry', ()
       id: ID!
     }
     type Query {
-      getUser(id: ID!): User
+      getUser(id: ID!): User!
     }
   `
   const gqlDocument = toGqlDocument(sdl)
 
   const op = gqlDocument.operations[0]
-  // Return type is a ref to User; resolving it should land on the
-  // registry's OasObject.
+  // Non-null ref return stays a bare OasRef so it resolves through the
+  // registry directly. (Nullable ref returns are wrapped in OasUnion;
+  // see parsers/graphql/toFieldSchema.test.ts for that path.)
   const ret = op.returnType as OasRef<'schema'>
   assertEquals(ret.isRef(), true)
   assertEquals(ret.toRefName(), 'User')

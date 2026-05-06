@@ -1,9 +1,14 @@
-import type { GraphQLInterfaceType, GraphQLSchema } from 'graphql'
+import type { GraphQLInterfaceType } from 'graphql'
 import { OasUnion } from '@/oas/union/Union.ts'
 import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
-import type { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import type { RefName } from '@/types/RefName.ts'
+import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+
+export type ToInterfaceUnionArgs = {
+  interfaceType: GraphQLInterfaceType
+  context: GqlParseContext
+}
 
 /**
  * Builds an `OasUnion` over the implementers of a GraphQL interface.
@@ -18,20 +23,16 @@ import type { RefName } from '@/types/RefName.ts'
  * Per the v1 design decision, the parser emits both forms by default;
  * generators select whichever they prefer.
  */
-export const toInterfaceUnion = (
-  iface: GraphQLInterfaceType,
-  schema: GraphQLSchema,
-  registry: GqlRegistry
-): OasUnion => {
-  const implementers = schema.getImplementations(iface).objects
+export const toInterfaceUnion = ({ interfaceType, context }: ToInterfaceUnionArgs): OasUnion => {
+  const implementers = context.schema.getImplementations(interfaceType).objects
 
   const members: OasRef<'schema'>[] = implementers.map(impl =>
-    registry.createRef(impl.name as RefName)
+    context.registry.createRef(impl.name as RefName)
   )
 
   return new OasUnion({
-    title: `${iface.name}Union`,
-    description: iface.description ?? undefined,
+    title: `${interfaceType.name}Union`,
+    description: interfaceType.description ?? undefined,
     members,
     discriminator: new OasDiscriminator({ propertyName: '__typename' })
   })

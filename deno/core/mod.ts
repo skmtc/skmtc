@@ -190,6 +190,7 @@ export * from './gql/operation/GqlOperation.ts'
 export * from './gql/operation/synthesizeArgsObject.ts'
 export * from './gql/argument/GqlArgument.ts'
 export * from './gql/rootType/GqlRootTypes.ts'
+export * from './gql/parse/GqlParseContext.ts'
 // Note: GraphQL parser exports live in `./parsers/graphql/mod.ts` and the
 // `./parsers/graphql` sub-export. They are intentionally excluded from
 // the main `mod.ts` so consumers who only need the GraphQL data model

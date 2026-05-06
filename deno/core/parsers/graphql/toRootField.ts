@@ -1,9 +1,21 @@
-import type { GraphQLField, GraphQLArgument, GraphQLSchema } from 'graphql'
+import type { GraphQLField, GraphQLArgument } from 'graphql'
 import { isNonNullType } from 'graphql'
 import { GqlOperation, type GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import { GqlArgument } from '@/gql/argument/GqlArgument.ts'
-import type { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
+import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+
+export type ToRootFieldArgs = {
+  rootKind: GqlRootKind
+  field: GraphQLField<unknown, unknown>
+  /**
+   * Type name of the root operation type that owns this field
+   * (`'Query'`, `'Mutation'`, `'Subscription'` — or whatever the
+   * schema renamed them to). Used for issue location attribution.
+   */
+  rootTypeName: string
+  context: GqlParseContext
+}
 
 /**
  * Converts a single root-level GraphQL field into a {@link GqlOperation}.
@@ -12,16 +24,22 @@ import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
  * Field arguments become {@link GqlArgument} instances; the return type
  * runs through {@link toFieldSchema} like any other field type.
  */
-export const toRootField = (
-  rootKind: GqlRootKind,
-  field: GraphQLField<unknown, unknown>,
-  schema: GraphQLSchema,
-  registry: GqlRegistry
-): GqlOperation => {
+export const toRootField = ({
+  rootKind,
+  field,
+  rootTypeName,
+  context
+}: ToRootFieldArgs): GqlOperation => {
+  const operationLocation = `${rootTypeName}.${field.name}`
+
   const args: GqlArgument[] = field.args.map((arg: GraphQLArgument) => {
     return new GqlArgument({
       name: arg.name,
-      schema: toFieldSchema(arg.type, schema, registry),
+      schema: toFieldSchema({
+        type: arg.type,
+        context,
+        location: `${operationLocation}.args.${arg.name}`
+      }),
       required: isNonNullType(arg.type),
       defaultValue: arg.defaultValue,
       description: arg.description ?? undefined,
@@ -30,7 +48,11 @@ export const toRootField = (
     })
   })
 
-  const returnType = toFieldSchema(field.type, schema, registry)
+  const returnType = toFieldSchema({
+    type: field.type,
+    context,
+    location: `${operationLocation}.return`
+  })
 
   return new GqlOperation({
     rootKind,

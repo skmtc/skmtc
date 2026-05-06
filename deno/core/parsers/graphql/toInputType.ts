@@ -1,10 +1,15 @@
-import type { GraphQLInputObjectType, GraphQLSchema } from 'graphql'
+import type { GraphQLInputObjectType } from 'graphql'
 import { isNonNullType } from 'graphql'
 import { OasObject } from '@/oas/object/Object.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
-import type { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
+import type { GqlParseContext } from '@/gql/parse/GqlParseContext.ts'
+
+export type ToInputTypeArgs = {
+  inputType: GraphQLInputObjectType
+  context: GqlParseContext
+}
 
 /**
  * Converts a GraphQL input object type into an `OasObject`.
@@ -23,17 +28,17 @@ import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
  * the field as well, which is preserved on the inner schema's
  * `default` slot when present.
  */
-export const toInputType = (
-  inputType: GraphQLInputObjectType,
-  schema: GraphQLSchema,
-  registry: GqlRegistry
-): OasObject => {
+export const toInputType = ({ inputType, context }: ToInputTypeArgs): OasObject => {
   const fields = inputType.getFields()
   const properties: Record<string, OasSchema | OasRef<'schema'>> = {}
   const required: string[] = []
 
   for (const [fieldName, field] of Object.entries(fields)) {
-    properties[fieldName] = toFieldSchema(field.type, schema, registry)
+    properties[fieldName] = toFieldSchema({
+      type: field.type,
+      context,
+      location: `${inputType.name}.${fieldName}`
+    })
     if (isNonNullType(field.type)) {
       required.push(fieldName)
     }

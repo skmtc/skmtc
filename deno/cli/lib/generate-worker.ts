@@ -1,12 +1,12 @@
-import type { ManifestContent } from '@skmtc/core/Manifest'
 import { toV3Document, stringToSchema } from '@skmtc/convert'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { fileTypeToProtocol, type FileType } from '@/lib/types.ts'
+import type { GenerateResponse } from '@/types/generateResponse.ts'
 
-export type GenerateResponse = {
-  artifacts: Record<string, string>
-  manifest: ManifestContent
-}
+// Re-export so existing callers (e.g. `services/generateSandboxApi.ts`)
+// can continue importing `GenerateResponse` from this module without
+// churn.
+export type { GenerateResponse } from '@/types/generateResponse.ts'
 
 export const description =
   'Web worker proof of concept - test generator execution in isolated worker'
@@ -100,7 +100,12 @@ export const generateWithWorker = ({
         case 'RESULT': {
           // Cleanup
           worker.terminate()
-          resolve(e.data)
+          // The wire payload is `{ type, artifacts, manifest, parseIssues }`.
+          // Default `parseIssues` to an empty array so older worker
+          // bundles (built before issue tracking landed) don't blow up
+          // the host-side type contract.
+          const { artifacts, manifest, parseIssues = [] } = e.data
+          resolve({ artifacts, manifest, parseIssues })
           break
         }
 

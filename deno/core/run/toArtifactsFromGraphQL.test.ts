@@ -115,3 +115,42 @@ Deno.test('toArtifactsFromGraphQL - http-protocol generators are skipped on GQL'
 
   assertEquals(httpRan, false)
 })
+
+Deno.test('toArtifactsFromGraphQL - parseIssues array is empty for clean schemas', () => {
+  const result = toArtifactsFromGraphQL(mkArgs())
+  assertEquals(result.parseIssues, [])
+})
+
+Deno.test('toArtifactsFromGraphQL - parseIssues surfaces lossy and skipped findings', () => {
+  const lossySdl = /* GraphQL */ `
+    directive @cost(value: Int!) on FIELD_DEFINITION
+    type Post {
+      id: ID!
+    }
+    type User {
+      id: ID!
+      grid: [[Int]]
+      posts(limit: Int): [Post!]!
+    }
+    type Query {
+      me: User
+    }
+  `
+  const result = toArtifactsFromGraphQL(mkArgs({ source: lossySdl }))
+  const types = result.parseIssues.map(i => i.type).sort()
+  // Expect: 1 nested-list, 1 skipped-args, 1 dropped-directive
+  assertEquals(types, ['DROPPED_DIRECTIVE', 'NESTED_LIST_LOSSY', 'SKIPPED_FIELD_ARGUMENTS'])
+})
+
+Deno.test('toArtifactsFromGraphQL - pre-built GqlDocument source means parseIssues is empty', () => {
+  // When the caller provides a parsed GqlDocument, parsing already
+  // happened elsewhere; we don't re-run it, so no issues surface here.
+  // Callers wanting issues should construct GqlParseContext themselves.
+  const lossySdl = /* GraphQL */ `
+    type Matrix { cells: [[Int]] }
+    type Query { _: Boolean }
+  `
+  const gqlDocument = toGqlDocument(lossySdl)
+  const result = toArtifactsFromGraphQL(mkArgs({ source: gqlDocument }))
+  assertEquals(result.parseIssues, [])
+})
