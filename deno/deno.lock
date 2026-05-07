@@ -1378,7 +1378,7 @@
         "dependencies": [
           "jsr:@cliffy/command@1.0.0-rc.8",
           "jsr:@skmtc/convert@0.1",
-          "jsr:@skmtc/core@0.1",
+          "jsr:@skmtc/core@0.2",
           "jsr:@skmtc/worker@0.1",
           "npm:@inkjs/ui@2",
           "npm:@supabase/supabase-js@^2.57.4",
@@ -1414,7 +1414,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@^0.0.405",
+          "jsr:@skmtc/cli@0.1",
           "jsr:@std/log@~0.224.6",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
           "npm:zod@^3.25.76"
@@ -1422,14 +1422,14 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/convert@^0.0.59",
-          "jsr:@skmtc/core@0.1",
+          "jsr:@skmtc/convert@0.1",
+          "jsr:@skmtc/core@0.2",
           "npm:hono@4.7.2"
         ]
       },
       "worker": {
         "dependencies": [
-          "jsr:@skmtc/core@0.1",
+          "jsr:@skmtc/core@0.2",
           "npm:openapi-types@^12.1.3"
         ]
       }

@@ -68,24 +68,43 @@ import * as v from 'valibot'
  */
 export const formFieldItem: v.GenericSchema<FormFieldItem> = v.object({
   id: v.string(),
-  accessorPath: v.array(v.string()),
-  input: moduleExport,
-  label: v.string(),
-  placeholder: v.optional(v.string())
+  accessorPath: v.optional(v.array(v.string())),
+  input: v.optional(moduleExport),
+  label: v.optional(v.string()),
+  placeholder: v.optional(v.string()),
+  // GraphQL Query / OAS operation reference backing this field. When set
+  // and a producer generator (e.g. gen-reapit-searchable-dropdown) claims
+  // the operation, the form generator dispatches the producer's component
+  // via `context.insertOperation`. See the operation-reference protocol
+  // in the SKMTC generator authoring guide.
+  references: v.optional(v.string()),
+  // Discriminator picking which producer generator handles a referenced
+  // field. Form generators use this to dispatch to the right Insertable
+  // class — e.g. `'searchable'` → `gen-reapit-searchable-dropdown`,
+  // `'multiselect'` → `gen-reapit-multi-select`. Free-form string so
+  // ecosystems can add new variants without core changes; conventional
+  // values: `'searchable' | 'multiselect'`. Default behaviour when unset
+  // is generator-specific.
+  referenceKind: v.optional(v.string())
 })
 
 /**
  * Configuration for a single form field.
- * 
- * Defines how a form field should be rendered, including its input component,
- * label text, data binding path, and optional placeholder text.
+ *
+ * Per-field override carried by the canonical `form.fields[]` enrichment.
+ * `id` is required (it identifies which form argument/property the
+ * override applies to); every other field is optional so callers only
+ * carry the data they want to set. `references` opts the field into the
+ * operation-reference dispatch protocol.
  */
 export type FormFieldItem = {
   id: string
-  accessorPath: string[]
-  input: ModuleExport
-  label: string
+  accessorPath?: string[]
+  input?: ModuleExport
+  label?: string
   placeholder?: string
+  references?: string
+  referenceKind?: string
 }
 
 /**

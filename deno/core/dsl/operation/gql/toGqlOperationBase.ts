@@ -25,6 +25,13 @@ export type BaseGqlOperationConfig<EnrichmentType = undefined> = {
   toExportPath: (operation: GqlOperation) => string
   /** Optional function to provide enrichment validation schema */
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
+  /**
+   * Family-level applicability predicate. Becomes a static `isSupported`
+   * on the returned base class (and thus on every subclass) so other
+   * generators can probe it via the operation-reference protocol. When
+   * omitted, the base class advertises support for every operation.
+   */
+  isSupported?: (args: { operation: GqlOperation; context: GenerateContextType }) => boolean
 }
 
 type ToEnrichmentsArgs = {
@@ -54,6 +61,8 @@ export const toGqlOperationBase = <EnrichmentType = undefined>(
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
+
+    static isSupported = config.isSupported ?? (() => true)
 
     static toEnrichments = ({ operation, context }: ToEnrichmentsArgs): EnrichmentType => {
       const operationEnrichments = get(
