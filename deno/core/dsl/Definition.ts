@@ -1,6 +1,6 @@
 import type { GenerateContextType } from '../context/generateTypes.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import { ContentBase } from '@/dsl/ContentBase.ts'
+import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import { withDescription } from '@/typescript/withDescription.ts'
 import type { GeneratedValue } from './GeneratedValue.ts'
 
@@ -120,9 +120,9 @@ type ConstructorArgs<V extends GeneratedValue> = {
  *
  * @example Using in generator classes
  * ```typescript
- * import { ModelBase, Definition, Identifier } from '@skmtc/core';
+ * import { ModelProjectionBase, Definition, Identifier } from '@skmtc/core';
  *
- * class TypeScriptInterface extends ModelBase {
+ * class TypeScriptInterface extends ModelProjectionBase {
  *   toDefinition(): Definition {
  *     const schema = this.context.getSchema(this.refName);
  *
@@ -139,7 +139,7 @@ type ConstructorArgs<V extends GeneratedValue> = {
  * }
  * ```
  */
-export class Definition<V extends GeneratedValue = GeneratedValue> extends ContentBase {
+export class Definition<V extends GeneratedValue = GeneratedValue> extends SnippetBase {
   /** The identifier for this definition */
   identifier: Identifier
 

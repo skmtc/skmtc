@@ -8,11 +8,13 @@ import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
 
 /**
- * Constructor arguments for model insertable instances.
+ * External constructor signature for a model projection class.
  *
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * The pipeline calls `new SomeProjection(args)` with this shape; the
+ * runtime base class ({@link ModelProjectionBase}) injects `generatorKey`
+ * before calling `super()`.
  */
-export type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
+export type ModelProjectionConstructorArgs<EnrichmentType = undefined> = {
   context: GenerateContextType
   refName: RefName
   settings: ContentSettings<EnrichmentType>
@@ -20,74 +22,47 @@ export type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
   rootRef?: RefName
 }
 
-/**
- * Interface for objects that provide model transformation capabilities.
- *
- * Used by generator configurations to transform model definitions
- * during the code generation process.
- */
 export type WithTransformModel = {
   transformModel: (refName: RefName) => void
 }
 
-/**
- * Arguments for generating enrichment data for models.
- */
 export type ToModelEnrichmentsArgs = {
   refName: RefName
   context: GenerateContextType
 }
 
-/**
- * Arguments passed to model transformation functions.
- *
- * @template Acc - Accumulator type for collecting transformation results
- */
 export type TransformModelArgs<Acc> = {
   context: GenerateContextType
   refName: RefName
   acc: Acc | undefined
 }
 
-/**
- * Arguments for generating model preview modules.
- *
- * Preview modules provide quick insights into generated models
- * without full code generation.
- */
 export type ToModelPreviewModuleArgs = {
   context: GenerateContextType
   refName: RefName
 }
 
-/**
- * Arguments for generating model mapping information.
- *
- * Mappings track relationships between OAS schemas and generated models,
- * enabling cross-references and dependency analysis.
- */
 export type ToModelMappingArgs = {
   context: GenerateContextType
   refName: RefName
 }
 
 /**
- * Configuration object for insertable model generators.
+ * Static structural type of a model projection class.
  *
- * Defines the contract for model generator classes that can be inserted
- * into the generation context to produce type-safe model definitions.
- *
- * @template V - Generated value type produced by the model generator
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * Captures both the instance side (`new(...) => V`) and the static side
+ * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`,
+ * `schemaToValueFn`, `createIdentifier`). Passed as a type parameter to
+ * `context.insertModel(...)`.
  */
-export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
+export type ModelProjection<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({
     context,
     refName,
     settings,
     destinationPath,
     rootRef
-  }: ModelInsertableConstructorArgs<EnrichmentType>): V
+  }: ModelProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
   toIdentifier: (refName: RefName) => Identifier
@@ -99,12 +74,9 @@ export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & 
 } & Function
 
 /**
- * Configuration object for model generators.
- *
- * Defines the behavior and capabilities of model generators including
- * transformation logic, preview generation, and enrichment handling.
- *
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * Pipeline-side configuration for a model projection (built by
+ * `toModelEntry`). Carries the iteration callback (`transform`) and
+ * optional preview/mapping/enrichment hooks.
  */
 export type ModelConfig<EnrichmentType = undefined> = {
   id: string

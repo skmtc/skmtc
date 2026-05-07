@@ -123,7 +123,7 @@ export type VoidFields = {
  * 
  * @example In code generation
  * ```typescript
- * class TypeScriptGenerator extends ModelBase {
+ * class TypeScriptGenerator extends ModelProjectionBase {
  *   generateType(schema: OasSchema): string {
  *     if (schema.type === 'void') {
  *       return 'void'; // TypeScript void type

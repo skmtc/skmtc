@@ -1,4 +1,4 @@
-import { ModelBase } from './ModelBase.ts'
+import { ModelProjectionBase } from './ModelProjectionBase.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertSpyCalls, spy } from '@std/testing/mock'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -7,8 +7,8 @@ import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 
-Deno.test('ModelBase - constructor stores refName correctly', () => {
-  const model = new ModelBase({
+Deno.test('ModelProjectionBase - constructor stores refName correctly', () => {
+  const model = new ModelProjectionBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('User'),
@@ -21,13 +21,13 @@ Deno.test('ModelBase - constructor stores refName correctly', () => {
   assertEquals(model.refName, 'User')
 })
 
-Deno.test('ModelBase - constructor stores settings correctly', () => {
+Deno.test('ModelProjectionBase - constructor stores settings correctly', () => {
   const settings = ContentSettings.empty({
     identifier: Identifier.createType('Product'),
     exportPath: './models/product.ts'
   })
 
-  const model = new ModelBase({
+  const model = new ModelProjectionBase({
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'test-generator|Product' as GeneratorKey,
@@ -37,8 +37,8 @@ Deno.test('ModelBase - constructor stores settings correctly', () => {
   assertEquals(model.settings, settings)
 })
 
-Deno.test('ModelBase - constructor stores generatorKey correctly', () => {
-  const model = new ModelBase({
+Deno.test('ModelProjectionBase - constructor stores generatorKey correctly', () => {
+  const model = new ModelProjectionBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Order'),
@@ -51,10 +51,10 @@ Deno.test('ModelBase - constructor stores generatorKey correctly', () => {
   assertEquals(model.generatorKey, 'typescript-models|Order')
 })
 
-Deno.test('ModelBase - has context property from ContentBase', () => {
+Deno.test('ModelProjectionBase - has context property from SnippetBase', () => {
   const mockContext = { name: 'test-context' } as unknown as GenerateContextType
 
-  const model = new ModelBase({
+  const model = new ModelProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('User'),
@@ -67,8 +67,8 @@ Deno.test('ModelBase - has context property from ContentBase', () => {
   assertEquals(model.context, mockContext)
 })
 
-Deno.test('ModelBase - settings.exportPath is accessible', () => {
-  const model = new ModelBase({
+Deno.test('ModelProjectionBase - settings.exportPath is accessible', () => {
+  const model = new ModelProjectionBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Type'),
@@ -81,7 +81,7 @@ Deno.test('ModelBase - settings.exportPath is accessible', () => {
   assertEquals(model.settings.exportPath, './generated/types.ts')
 })
 
-Deno.test('ModelBase - settings.enrichments is accessible when provided', () => {
+Deno.test('ModelProjectionBase - settings.enrichments is accessible when provided', () => {
   const enrichments = { strict: true, nullable: false }
   const settings = new ContentSettings({
     identifier: Identifier.createType('Validated'),
@@ -89,7 +89,7 @@ Deno.test('ModelBase - settings.enrichments is accessible when provided', () => 
     enrichments
   })
 
-  const model = new ModelBase({
+  const model = new ModelProjectionBase({
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'validation-models|Validated' as GeneratorKey,
@@ -99,7 +99,7 @@ Deno.test('ModelBase - settings.enrichments is accessible when provided', () => 
   assertEquals(model.settings.enrichments, enrichments)
 })
 
-Deno.test('ModelBase - stores all constructor properties correctly', () => {
+Deno.test('ModelProjectionBase - stores all constructor properties correctly', () => {
   const mockContext = { id: 'context-1' } as unknown as GenerateContextType
   const settings = ContentSettings.empty({
     identifier: Identifier.createType('TestModel'),
@@ -108,7 +108,7 @@ Deno.test('ModelBase - stores all constructor properties correctly', () => {
   const generatorKey = 'test-gen|TestModel' as GeneratorKey
   const refName = 'TestModel' as RefName
 
-  const model = new ModelBase({
+  const model = new ModelProjectionBase({
     context: mockContext,
     settings,
     generatorKey,
@@ -121,8 +121,8 @@ Deno.test('ModelBase - stores all constructor properties correctly', () => {
   assertEquals(model.refName, refName)
 })
 
-Deno.test('ModelBase - works with different refNames', () => {
-  const createModel = (refName: RefName) => new ModelBase({
+Deno.test('ModelProjectionBase - works with different refNames', () => {
+  const createModel = (refName: RefName) => new ModelProjectionBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType(refName),
@@ -142,8 +142,8 @@ Deno.test('ModelBase - works with different refNames', () => {
   assertEquals(orderModel.refName, 'Order')
 })
 
-Deno.test('ModelBase - works with different generatorKeys', () => {
-  const createModel = (key: GeneratorKey) => new ModelBase({
+Deno.test('ModelProjectionBase - works with different generatorKeys', () => {
+  const createModel = (key: GeneratorKey) => new ModelProjectionBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Test'),
@@ -160,7 +160,7 @@ Deno.test('ModelBase - works with different generatorKeys', () => {
   assertEquals(zodModel.generatorKey, 'zod|Test')
 })
 
-Deno.test('ModelBase - insertModel calls context.insertModel with correct params', () => {
+Deno.test('ModelProjectionBase - insertModel calls context.insertModel with correct params', () => {
   const exportPath = './models/user.ts'
 
   const mockContext = {
@@ -169,7 +169,7 @@ Deno.test('ModelBase - insertModel calls context.insertModel with correct params
 
   const insertModelSpy = spy(mockContext, 'insertModel')
 
-  const model = new ModelBase({
+  const model = new ModelProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('User'),
@@ -179,13 +179,13 @@ Deno.test('ModelBase - insertModel calls context.insertModel with correct params
     refName: 'User' as RefName
   })
 
-  const mockInsertable = { toDefinition: () => ({}) }
+  const mockProjection = { toDefinition: () => ({}) }
   const refName = 'Address' as RefName
 
-  model.insertModel(mockInsertable as any, refName, { noExport: false })
+  model.insertModel(mockProjection as any, refName, { noExport: false })
 
   assertSpyCalls(insertModelSpy, 1)
-  assertEquals(insertModelSpy.calls[0].args[0] as any, mockInsertable)
+  assertEquals(insertModelSpy.calls[0].args[0] as any, mockProjection)
   assertEquals(insertModelSpy.calls[0].args[1] as any, refName)
   assertEquals(insertModelSpy.calls[0].args[2] as any, {
     destinationPath: exportPath,
@@ -195,7 +195,7 @@ Deno.test('ModelBase - insertModel calls context.insertModel with correct params
   insertModelSpy.restore()
 })
 
-Deno.test('ModelBase - insertModel without noExport option', () => {
+Deno.test('ModelProjectionBase - insertModel without noExport option', () => {
   const exportPath = './generated/models.ts'
 
   const mockContext = {
@@ -204,7 +204,7 @@ Deno.test('ModelBase - insertModel without noExport option', () => {
 
   const insertModelSpy = spy(mockContext, 'insertModel')
 
-  const model = new ModelBase({
+  const model = new ModelProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Product'),
@@ -214,10 +214,10 @@ Deno.test('ModelBase - insertModel without noExport option', () => {
     refName: 'Product' as RefName
   })
 
-  const mockInsertable = { toDefinition: () => ({}) }
+  const mockProjection = { toDefinition: () => ({}) }
   const refName = 'Category' as RefName
 
-  model.insertModel(mockInsertable as any, refName)
+  model.insertModel(mockProjection as any, refName)
 
   assertSpyCalls(insertModelSpy, 1)
   assertEquals(insertModelSpy.calls[0].args[2] as any, {
@@ -228,7 +228,7 @@ Deno.test('ModelBase - insertModel without noExport option', () => {
   insertModelSpy.restore()
 })
 
-Deno.test('ModelBase - insertNormalizedModel calls context.insertNormalisedModel with correct params', () => {
+Deno.test('ModelProjectionBase - insertNormalizedModel calls context.insertNormalisedModel with correct params', () => {
   const exportPath = './schemas/types.ts'
 
   const mockContext = {
@@ -237,7 +237,7 @@ Deno.test('ModelBase - insertNormalizedModel calls context.insertNormalisedModel
 
   const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
 
-  const model = new ModelBase({
+  const model = new ModelProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Order'),
@@ -247,18 +247,18 @@ Deno.test('ModelBase - insertNormalizedModel calls context.insertNormalisedModel
     refName: 'Order' as RefName
   })
 
-  const mockInsertable = { toDefinition: () => ({}) }
+  const mockProjection = { toDefinition: () => ({}) }
   const mockSchema = { type: 'object', properties: {} }
   const fallbackName = 'OrderItem'
 
   model.insertNormalizedModel(
-    mockInsertable as any,
+    mockProjection as any,
     { schema: mockSchema as any, fallbackName },
     { noExport: true }
   )
 
   assertSpyCalls(insertNormalisedModelSpy, 1)
-  assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockInsertable)
+  assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockProjection)
   assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
     schema: mockSchema,
     fallbackName,
@@ -269,7 +269,7 @@ Deno.test('ModelBase - insertNormalizedModel calls context.insertNormalisedModel
   insertNormalisedModelSpy.restore()
 })
 
-Deno.test('ModelBase - register calls context.register with correct params', () => {
+Deno.test('ModelProjectionBase - register calls context.register with correct params', () => {
   const exportPath = './types/models.ts'
 
   const mockContext = {
@@ -278,7 +278,7 @@ Deno.test('ModelBase - register calls context.register with correct params', () 
 
   const registerSpy = spy(mockContext, 'register')
 
-  const model = new ModelBase({
+  const model = new ModelProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Base'),

@@ -41,7 +41,7 @@ type ConstructorArgs<V extends GeneratedValue, EnrichmentType> = {
  * ```typescript
  * import { Inserted } from '@skmtc/core';
  *
- * class MyGenerator extends ModelBase {
+ * class MyGenerator extends ModelProjectionBase {
  *   generate(): Definition {
  *     // Insert a related model with forced generation
  *     const userModel = this.insertModel(

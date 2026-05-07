@@ -4,50 +4,50 @@ export { JsonFile } from './JsonFile.ts'
 export type { Stringable } from './Stringable.ts'
 export { Identifier } from './Identifier.ts'
 export { Definition } from './Definition.ts'
-export { ContentBase } from './ContentBase.ts'
+export { SnippetBase } from './SnippetBase.ts'
 export * from './GeneratedValue.ts'
 export * from './GeneratorKeys.ts'
 export { ContentSettings } from './ContentSettings.ts'
-export { ModelBase } from './model/ModelBase.ts'
-export { toModelBase } from './model/toModelBase.ts'
+export { ModelProjectionBase } from './model/ModelProjectionBase.ts'
+export { toModelProjectionBase } from './model/toModelProjectionBase.ts'
 export { toModelEntry } from './model/toModelEntry.ts'
 export { ModelDriver } from './model/ModelDriver.ts'
 export type {
-  ModelInsertableConstructorArgs,
+  ModelProjectionConstructorArgs,
   WithTransformModel,
   ToModelEnrichmentsArgs,
   TransformModelArgs,
   ToModelPreviewModuleArgs,
   ToModelMappingArgs,
-  ModelInsertable,
+  ModelProjection,
   ModelConfig
 } from './model/types.ts'
-export { OasOperationBase } from './operation/oas/OasOperationBase.ts'
+export { OasOperationProjectionBase } from './operation/oas/OasOperationProjectionBase.ts'
 export { OasOperationDriver } from './operation/oas/OasOperationDriver.ts'
-export { toOasOperationBase } from './operation/oas/toOasOperationBase.ts'
+export { toOasOperationProjectionBase } from './operation/oas/toOasOperationProjectionBase.ts'
 export { toOasOperationEntry } from './operation/oas/toOasOperationEntry.ts'
 export type {
-  OasOperationInsertableArgs,
+  OasOperationProjectionConstructorArgs,
   IsSupportedOasOperationConfigArgs,
   TransformOasOperationArgs,
   ToOasOperationPreviewModuleArgs,
   ToOasOperationMappingArgs,
   OasOperationConfig,
-  OasOperationInsertable,
+  OasOperationProjection,
   IsSupportedOasOperationArgs
 } from './operation/oas/types.ts'
-export { GqlOperationBase } from './operation/gql/GqlOperationBase.ts'
+export { GqlOperationProjectionBase } from './operation/gql/GqlOperationProjectionBase.ts'
 export { GqlOperationDriver } from './operation/gql/GqlOperationDriver.ts'
-export { toGqlOperationBase } from './operation/gql/toGqlOperationBase.ts'
+export { toGqlOperationProjectionBase } from './operation/gql/toGqlOperationProjectionBase.ts'
 export { toGqlOperationEntry } from './operation/gql/toGqlOperationEntry.ts'
 export type {
-  GqlOperationInsertableArgs,
+  GqlOperationProjectionConstructorArgs,
   IsSupportedGqlOperationConfigArgs,
   TransformGqlOperationArgs,
   ToGqlOperationPreviewModuleArgs,
   ToGqlOperationMappingArgs,
   GqlOperationConfig,
-  GqlOperationInsertable
+  GqlOperationProjection
 } from './operation/gql/types.ts'
 export { File } from './File.ts'
 export { EntityType } from './EntityType.ts'

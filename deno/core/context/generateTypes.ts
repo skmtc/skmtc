@@ -6,12 +6,12 @@ import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Definition } from '@/dsl/Definition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
-import type { OasOperationInsertable } from '@/dsl/operation/oas/types.ts'
+import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
-import type { ModelInsertable } from '@/dsl/model/types.ts'
+import type { ModelProjection } from '@/dsl/model/types.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { ImportNameArg } from '@/dsl/Import.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -20,7 +20,7 @@ import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { File } from '@/dsl/File.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
-import type { GqlOperationInsertable } from '@/dsl/operation/gql/types.ts'
+import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 
 /**
@@ -45,8 +45,8 @@ export type InsertOperationOptions = {
  * @template EnrichmentType - Optional enrichment data type
  */
 export type InsertOasOperationArgs<V, EnrichmentType = undefined> = {
-  /** The operation generator to insert */
-  insertable: OasOperationInsertable<V, EnrichmentType>
+  /** The operation projection to insert */
+  projection: OasOperationProjection<V, EnrichmentType>
   /** The OpenAPI operation to process */
   operation: OasOperation
   /** Custom destination path for the operation */
@@ -62,8 +62,8 @@ export type InsertOasOperationArgs<V, EnrichmentType = undefined> = {
  * @template EnrichmentType - Optional enrichment data type
  */
 export type InsertGqlOperationArgs<V, EnrichmentType = undefined> = {
-  /** The operation generator to insert */
-  insertable: GqlOperationInsertable<V, EnrichmentType>
+  /** The operation projection to insert */
+  projection: GqlOperationProjection<V, EnrichmentType>
   /** The GraphQL operation to process */
   operation: GqlOperation
   /** Custom destination path for the operation */
@@ -272,7 +272,7 @@ export type PickArgs = {
  */
 export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
   refName: RefName
-  insertable: ModelInsertable<V, EnrichmentType>
+  projection: ModelProjection<V, EnrichmentType>
 }
 
 /**
@@ -283,7 +283,7 @@ export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
  */
 export type ToOasOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: OasOperation
-  insertable: OasOperationInsertable<V, EnrichmentType>
+  projection: OasOperationProjection<V, EnrichmentType>
 }
 
 /**
@@ -294,7 +294,7 @@ export type ToOasOperationSettingsArgs<V, EnrichmentType = undefined> = {
  */
 export type ToGqlOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: GqlOperation
-  insertable: GqlOperationInsertable<V, EnrichmentType>
+  projection: GqlOperationProjection<V, EnrichmentType>
 }
 
 /**
@@ -347,22 +347,22 @@ export type GenerateContextType = {
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
     EnrichmentType
   >(
-    insertable: ModelInsertable<V, EnrichmentType>,
+    projection: ModelProjection<V, EnrichmentType>,
     { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
     options?: InsertNormalisedModelOptions
   ) => InsertNormalisedModelReturn<V, Schema>
   insertModel: <V extends GeneratedValue, EnrichmentType>(
-    insertable: ModelInsertable<V, EnrichmentType>,
+    projection: ModelProjection<V, EnrichmentType>,
     refName: RefName,
     options?: InsertModelOptions
   ) => Inserted<V, EnrichmentType>
   toOperationContentSettings: <V, EnrichmentType>({
     operation,
-    insertable
+    projection
   }: ToOperationSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   toModelContentSettings: <V, EnrichmentType>({
     refName,
-    insertable
+    projection
   }: BuildModelSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
   findDefinition: ({ name, exportPath }: PickArgs) => Definition | undefined

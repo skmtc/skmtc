@@ -55,7 +55,7 @@ The system follows a three-phase pipeline orchestrated by `CoreContext`:
 ### Key Architectural Components
 
 - **Context System**: Three context classes manage the pipeline phases with logging, tracing, and error handling
-- **DSL Layer**: Domain-specific language for code generation with base classes (`ContentBase`, `Definition`) and type-safe builders
+- **DSL Layer**: Domain-specific language for code generation. The abstract root `SnippetBase` has two specializations: **Projections** (`ModelProjectionBase`, `OasOperationProjectionBase`, `GqlOperationProjectionBase`) — named, exportable artifacts wrapped in a `Definition` — and **Snippets** — anonymous, embedded values whose `toString()` is spliced into a Projection's body.
 - **OAS Processing**: Comprehensive OpenAPI v3 schema handling with advanced features like `allOf` merging and schema validation
 - **Generator System**: Pluggable architecture for different output targets (models, operations, etc.)
 - **Type System**: Strong TypeScript typing throughout with branded types and validation using Valibot

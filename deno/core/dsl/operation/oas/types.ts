@@ -5,98 +5,68 @@ import type { Identifier } from '@/dsl/Identifier.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+
 /**
- * Arguments passed to operation insertable constructors.
+ * External constructor signature for an OAS operation projection class.
  *
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * The pipeline calls `new SomeProjection(args)` with this shape; the
+ * runtime base class injects `generatorKey` before calling `super()`.
  */
-export type OasOperationInsertableArgs<EnrichmentType = undefined> = {
+export type OasOperationProjectionConstructorArgs<EnrichmentType = undefined> = {
   context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
 }
 
-/**
- * Arguments passed to operation transformation functions.
- *
- * @template Acc - Accumulator type for collecting transformation results
- */
 export type TransformOasOperationArgs<Acc> = {
   context: GenerateContextType
   operation: OasOperation
   acc: Acc | undefined
 }
 
-/**
- * Interface for objects that provide operation transformation capabilities.
- *
- * Used by generator configurations to transform operation definitions
- * during the code generation process.
- */
 export type WithTransformOasOperation = {
   transformOperation: (operation: OasOperation) => void
 }
 
-/**
- * Arguments for checking if an operation is supported with enrichment configuration.
- *
- * @template EnrichmentType - Optional enrichment data type for additional metadata
- */
 export type IsSupportedOasOperationConfigArgs<EnrichmentType = undefined> = {
   context: GenerateContextType
   operation: OasOperation
   enrichments: EnrichmentType
 }
 
-/**
- * Arguments for checking if an operation is supported for code generation.
- */
 export type IsSupportedOasOperationArgs = {
   context: GenerateContextType
   operation: OasOperation
 }
 
-/**
- * Arguments for generating enrichment data for operations.
- */
 export type ToOasOperationEnrichmentsArgs = {
   operation: OasOperation
   context: GenerateContextType
 }
 
-/**
- * Arguments for generating operation preview modules.
- *
- * Preview modules provide quick insights into generated operations
- * without full code generation.
- */
 export type ToOasOperationPreviewModuleArgs = {
   context: GenerateContextType
   operation: OasOperation
 }
 
-/**
- * Arguments for generating operation mapping information.
- *
- * Mappings track relationships between OAS operations and generated code,
- * enabling cross-references and dependency analysis.
- */
 export type ToOasOperationMappingArgs = {
   context: GenerateContextType
   operation: OasOperation
 }
 
 /**
- * Configuration object for insertable operation generators.
+ * Static structural type of an OAS operation projection class.
  *
- * Defines the contract for operation generator classes that can be inserted
- * into the generation context to produce type-safe operation definitions.
- *
- * @template V - Generated value type produced by the operation generator
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * Captures both the instance side (`new(...) => V`) and the static side
+ * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`). Passed as a
+ * type parameter to `context.insertOperation(...)`.
  */
-export type OasOperationInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
-  new ({ context, settings, operation }: OasOperationInsertableArgs<EnrichmentType>): V
+export type OasOperationProjection<V, EnrichmentType = undefined> = { prototype: V } & {
+  new ({
+    context,
+    settings,
+    operation
+  }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'oasOperation'
   toIdentifier: (operation: OasOperation) => Identifier
@@ -106,12 +76,8 @@ export type OasOperationInsertable<V, EnrichmentType = undefined> = { prototype:
 } & Function
 
 /**
- * Configuration object for operation generators.
- *
- * Defines the behavior and capabilities of operation generators including
- * support detection, transformation logic, and enrichment handling.
- *
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * Pipeline-side configuration for an OAS operation projection (built by
+ * `toOasOperationEntry`).
  */
 export type OasOperationConfig<EnrichmentType = undefined> = {
   id: string

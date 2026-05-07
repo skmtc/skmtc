@@ -36,8 +36,10 @@
  *
  * - {@link CoreContext} - Main orchestration class for the pipeline
  * - {@link toArtifacts} - Primary transformation function
- * - {@link ContentBase} - Base class for creating generators
- * - {@link ModelBase}, {@link OasOperationBase}, and {@link GqlOperationBase} - DSL building blocks
+ * - {@link SnippetBase} - Abstract root for both Projections (named, exported
+ *   artifacts) and Snippets (anonymous, embedded values)
+ * - {@link ModelProjectionBase}, {@link OasOperationProjectionBase}, and
+ *   {@link GqlOperationProjectionBase} - extended by user-authored projections
  * - {@link List} - Powerful string manipulation and code generation utility
  *
  * ## Type System
@@ -72,7 +74,7 @@ export * from './context/ParseContext.ts'
 export * from './context/RenderContext.ts'
 export * from './context/generateTypes.ts'
 export * from './dsl/constants.ts'
-export * from './dsl/ContentBase.ts'
+export * from './dsl/SnippetBase.ts'
 export * from './dsl/ContentSettings.ts'
 export * from './dsl/Definition.ts'
 export * from './dsl/EntityType.ts'
@@ -82,19 +84,19 @@ export * from './dsl/GeneratedValueList.ts'
 export * from './dsl/Identifier.ts'
 export * from './dsl/Import.ts'
 export * from './dsl/Inserted.ts'
-export * from './dsl/model/ModelBase.ts'
+export * from './dsl/model/ModelProjectionBase.ts'
 export * from './dsl/model/ModelDriver.ts'
-export * from './dsl/model/toModelBase.ts'
+export * from './dsl/model/toModelProjectionBase.ts'
 export * from './dsl/model/toModelEntry.ts'
 export * from './dsl/model/types.ts'
-export * from './dsl/operation/oas/OasOperationBase.ts'
+export * from './dsl/operation/oas/OasOperationProjectionBase.ts'
 export * from './dsl/operation/oas/OasOperationDriver.ts'
-export * from './dsl/operation/oas/toOasOperationBase.ts'
+export * from './dsl/operation/oas/toOasOperationProjectionBase.ts'
 export * from './dsl/operation/oas/toOasOperationEntry.ts'
 export * from './dsl/operation/oas/types.ts'
-export * from './dsl/operation/gql/GqlOperationBase.ts'
+export * from './dsl/operation/gql/GqlOperationProjectionBase.ts'
 export * from './dsl/operation/gql/GqlOperationDriver.ts'
-export * from './dsl/operation/gql/toGqlOperationBase.ts'
+export * from './dsl/operation/gql/toGqlOperationProjectionBase.ts'
 export * from './dsl/operation/gql/toGqlOperationEntry.ts'
 export * from './dsl/operation/gql/types.ts'
 export * from './dsl/Stringable.ts'

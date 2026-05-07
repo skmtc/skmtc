@@ -99,7 +99,7 @@ import type { Brand } from './Brand.ts'
  *
  * @example In generator contexts
  * ```typescript
- * class ModelGenerator extends ModelBase {
+ * class ModelGenerator extends ModelProjectionBase {
  *   constructor(args: { refName: RefName; ... }) {
  *     super(args);
  *     // this.refName is guaranteed to be a valid schema reference

@@ -32,8 +32,8 @@ type CreateArgs<EnrichmentType = undefined> = {
  * identify the content, and any custom enrichment data for extending
  * the generation process.
  *
- * This class is used by {@link ModelBase}, {@link OasOperationBase}, and
- * {@link GqlOperationBase} to configure their generation behavior,
+ * This class is used by {@link ModelProjectionBase}, {@link OasOperationProjectionBase}, and
+ * {@link GqlOperationProjectionBase} to configure their generation behavior,
  * providing a consistent interface for generator settings across the system.
  *
  * ## Key Features
@@ -82,9 +82,9 @@ type CreateArgs<EnrichmentType = undefined> = {
  * }
  * ```
  *
- * @example Using with ModelBase
+ * @example Using with ModelProjectionBase
  * ```typescript
- * class ValidatedModelGenerator extends ModelBase<ValidationEnrichment> {
+ * class ValidatedModelGenerator extends ModelProjectionBase<ValidationEnrichment> {
  *   constructor(args) {
  *     super({
  *       ...args,
@@ -175,7 +175,7 @@ export class ContentSettings<EnrichmentType = undefined> {
    * console.log(basicSettings.enrichments); // undefined
    *
    * // Use in generator
-   * class SimpleGenerator extends ModelBase {
+   * class SimpleGenerator extends ModelProjectionBase {
    *   constructor(args) {
    *     super({
    *       ...args,

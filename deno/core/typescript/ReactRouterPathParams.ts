@@ -1,4 +1,4 @@
-import { ContentBase } from '../dsl/ContentBase.ts'
+import { SnippetBase } from '../dsl/SnippetBase.ts'
 import type { GenerateContext } from '../context/GenerateContext.ts'
 import type { OasOperation } from '../oas/operation/Operation.ts'
 import type { GeneratorKey } from '../dsl/GeneratorKeys.ts'
@@ -168,7 +168,7 @@ type CreateArgs = {
  * }
  * ```
  */
-export class ReactRouterPathParams extends ContentBase {
+export class ReactRouterPathParams extends SnippetBase {
   /** Generated code for extracting parameters from useParams() */
   getParams: string = ''
 

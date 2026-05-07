@@ -2,7 +2,7 @@ import { assertEquals, assertExists, assert, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { GqlOperationDriver } from './GqlOperationDriver.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { GqlOperationInsertable } from './types.ts'
+import type { GqlOperationProjection } from './types.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
@@ -10,7 +10,7 @@ import { Definition } from '@/dsl/Definition.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { GqlOperation, type GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import { OasString } from '@/oas/string/String.ts'
-import { GqlOperationBase } from './GqlOperationBase.ts'
+import { GqlOperationProjectionBase } from './GqlOperationProjectionBase.ts'
 
 // ============================================================================
 // Test Helpers
@@ -25,9 +25,9 @@ const createMockContext = (options?: {
 }) => {
   const toOperationContentSettingsSpy = spy((args: any) => {
     return new ContentSettings({
-      identifier: args.insertable.toIdentifier(args.operation),
-      exportPath: args.insertable.toExportPath(args.operation),
-      enrichments: args.insertable.toEnrichments({
+      identifier: args.projection.toIdentifier(args.operation),
+      exportPath: args.projection.toExportPath(args.operation),
+      enrichments: args.projection.toEnrichments({
         operation: args.operation,
         context: mockContext
       })
@@ -63,13 +63,13 @@ const createMockOperation = (options?: {
   })
 }
 
-const createMockInsertable = (options?: {
+const createMockProjection = (options?: {
   id?: string
   exportPath?: string
   enrichments?: any
-}): GqlOperationInsertable<any, undefined> => {
-  class MockInsertable extends GqlOperationBase<undefined> {
-    static id = options?.id ?? 'MockInsertable'
+}): GqlOperationProjection<any, undefined> => {
+  class MockProjection extends GqlOperationProjectionBase<undefined> {
+    static id = options?.id ?? 'MockProjection'
     static type = 'gqlOperation' as const
 
     static toIdentifier(operation: GqlOperation): Identifier {
@@ -93,7 +93,7 @@ const createMockInsertable = (options?: {
       settings: ContentSettings<undefined>
       operation: GqlOperation
     }) {
-      const generatorKey = toKey(MockInsertable.id, args.operation)
+      const generatorKey = toKey(MockProjection.id, args.operation)
 
       super({
         context: args.context,
@@ -108,7 +108,7 @@ const createMockInsertable = (options?: {
     }
   }
 
-  return MockInsertable as any
+  return MockProjection as any
 }
 
 // ============================================================================
@@ -119,17 +119,17 @@ Deno.test('GqlOperationDriver', async t => {
   await t.step('Constructor and Property Initialization', async t => {
     await t.step('should initialize all required properties correctly', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
       assertEquals(driver.context, context)
-      assertEquals(driver.insertable, insertable)
+      assertEquals(driver.projection, projection)
       assertEquals(driver.operation, operation)
       assertExists(driver.settings)
       assertExists(driver.definition)
@@ -137,12 +137,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should initialize with all optional parameters', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './custom/path.ts',
         noExport: true
@@ -154,12 +154,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should call context.toOperationContentSettings during construction', () => {
       const { context, toOperationContentSettingsSpy } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -168,7 +168,7 @@ Deno.test('GqlOperationDriver', async t => {
         args: [
           {
             operation,
-            insertable
+            projection
           }
         ]
       })
@@ -176,12 +176,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should set settings from toOperationContentSettings result', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation({ fieldName: 'testOp' })
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -191,12 +191,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should call apply and set definition during construction', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -209,12 +209,12 @@ Deno.test('GqlOperationDriver', async t => {
 
       rootKinds.forEach(rootKind => {
         const { context } = createMockContext()
-        const insertable = createMockInsertable()
+        const projection = createMockProjection()
         const operation = createMockOperation({ rootKind })
 
         const driver = new GqlOperationDriver({
           context,
-          insertable,
+          projection,
           operation
         })
 
@@ -228,12 +228,12 @@ Deno.test('GqlOperationDriver', async t => {
 
       fieldNames.forEach(fieldName => {
         const { context } = createMockContext()
-        const insertable = createMockInsertable()
+        const projection = createMockProjection()
         const operation = createMockOperation({ fieldName })
 
         const driver = new GqlOperationDriver({
           context,
-          insertable,
+          projection,
           operation
         })
 
@@ -245,12 +245,12 @@ Deno.test('GqlOperationDriver', async t => {
     await t.step('should preserve enrichment type information', () => {
       const { context } = createMockContext()
       const enrichments = { customData: 'test' }
-      const insertable = createMockInsertable({ enrichments })
+      const projection = createMockProjection({ enrichments })
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -261,12 +261,12 @@ Deno.test('GqlOperationDriver', async t => {
   await t.step('Import Registration Logic', async t => {
     await t.step('should register import when destinationPath differs from exportPath', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
+      const projection = createMockProjection({ exportPath: './operations/getUsers.ts' })
       const operation = createMockOperation({ fieldName: 'getUsers' })
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './api/users.ts'
       })
@@ -282,12 +282,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should not register import when paths match', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
+      const projection = createMockProjection({ exportPath: './operations/getUsers.ts' })
       const operation = createMockOperation({ fieldName: 'getUsers' })
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './operations/getUsers.ts'
       })
@@ -298,12 +298,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should not register import when destinationPath is undefined', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
+      const projection = createMockProjection({ exportPath: './operations/getUsers.ts' })
       const operation = createMockOperation()
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -313,12 +313,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should normalize paths before comparison', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './operations//getUsers.ts' })
+      const projection = createMockProjection({ exportPath: './operations//getUsers.ts' })
       const operation = createMockOperation()
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './operations/getUsers.ts'
       })
@@ -329,12 +329,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should handle relative vs absolute paths', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: '/absolute/path/operation.ts' })
+      const projection = createMockProjection({ exportPath: '/absolute/path/operation.ts' })
       const operation = createMockOperation({ fieldName: 'testOp' })
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './relative/path/file.ts'
       })
@@ -346,12 +346,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should register imports with correct structure', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './ops/create.ts' })
+      const projection = createMockProjection({ exportPath: './ops/create.ts' })
       const operation = createMockOperation({ rootKind: 'mutation', fieldName: 'createUser' })
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './api/handlers.ts'
       })
@@ -369,12 +369,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should normalize paths with redundant separators', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
+      const projection = createMockProjection({ exportPath: './operations/getUsers.ts' })
       const operation = createMockOperation()
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './operations//getUsers.ts'
       })
@@ -385,21 +385,21 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should register multiple imports correctly', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable1 = createMockInsertable({ exportPath: './ops/op1.ts' })
-      const insertable2 = createMockInsertable({ exportPath: './ops/op2.ts' })
+      const projection1 = createMockProjection({ exportPath: './ops/op1.ts' })
+      const projection2 = createMockProjection({ exportPath: './ops/op2.ts' })
       const operation1 = createMockOperation({ fieldName: 'op1' })
       const operation2 = createMockOperation({ fieldName: 'op2' })
 
       new GqlOperationDriver({
         context,
-        insertable: insertable1,
+        projection: projection1,
         operation: operation1,
         destinationPath: './api/index.ts'
       })
 
       new GqlOperationDriver({
         context,
-        insertable: insertable2,
+        projection: projection2,
         operation: operation2,
         destinationPath: './api/index.ts'
       })
@@ -411,12 +411,12 @@ Deno.test('GqlOperationDriver', async t => {
   await t.step('Definition Caching', async t => {
     await t.step('should call context.findDefinition with correct arguments', () => {
       const { context, findDefinitionSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './ops/test.ts' })
+      const projection = createMockProjection({ exportPath: './ops/test.ts' })
       const operation = createMockOperation({ fieldName: 'testOp' })
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -435,12 +435,12 @@ Deno.test('GqlOperationDriver', async t => {
       const { context, findDefinitionSpy } = createMockContext({
         findDefinition: undefined
       })
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -449,12 +449,12 @@ Deno.test('GqlOperationDriver', async t => {
       assert(driver.definition instanceof Definition)
     })
 
-    await t.step('should instantiate insertable with correct parameters', () => {
+    await t.step('should instantiate projection with correct parameters', () => {
       const { context } = createMockContext()
       let capturedArgs: any = null
 
-      class SpyInsertable extends GqlOperationBase<undefined> {
-        static id = 'SpyInsertable'
+      class SpyProjection extends GqlOperationProjectionBase<undefined> {
+        static id = 'SpyProjection'
         static type = 'gqlOperation' as const
         static toIdentifier = (op: GqlOperation) => Identifier.createVariable(op.fieldName)
         static toExportPath = () => './test.ts'
@@ -466,7 +466,7 @@ Deno.test('GqlOperationDriver', async t => {
           settings: ContentSettings<undefined>
           operation: GqlOperation
         }) {
-          const generatorKey = toKey('SpyInsertable', args.operation)
+          const generatorKey = toKey('SpyProjection', args.operation)
           super({
             context: args.context,
             settings: args.settings,
@@ -485,7 +485,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       new GqlOperationDriver({
         context,
-        insertable: SpyInsertable as any,
+        projection: SpyProjection as any,
         operation
       })
 
@@ -495,14 +495,14 @@ Deno.test('GqlOperationDriver', async t => {
       assertExists(capturedArgs.settings)
     })
 
-    await t.step('should wrap insertable result in Definition', () => {
+    await t.step('should wrap projection result in Definition', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -512,12 +512,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should register definition with context', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -528,12 +528,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should pass noExport flag to Definition', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         noExport: true
       })
@@ -543,12 +543,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should return created definition', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -557,7 +557,7 @@ Deno.test('GqlOperationDriver', async t => {
     })
 
     await t.step('should use cached definition when available', () => {
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const mockContext = {} as any
@@ -567,7 +567,7 @@ Deno.test('GqlOperationDriver', async t => {
         enrichments: undefined
       })
 
-      const cachedValue = new insertable({
+      const cachedValue = new projection({
         context: mockContext,
         settings: mockSettings,
         operation
@@ -585,7 +585,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -595,8 +595,8 @@ Deno.test('GqlOperationDriver', async t => {
     await t.step('should skip instantiation when definition cached', () => {
       let instantiated = false
 
-      class TrackingInsertable extends GqlOperationBase<undefined> {
-        static id = 'TrackingInsertable'
+      class TrackingProjection extends GqlOperationProjectionBase<undefined> {
+        static id = 'TrackingProjection'
         static type = 'gqlOperation' as const
         static toIdentifier = (op: GqlOperation) => Identifier.createVariable(op.fieldName)
         static toExportPath = () => './test.ts'
@@ -608,7 +608,7 @@ Deno.test('GqlOperationDriver', async t => {
           settings: ContentSettings<undefined>
           operation: GqlOperation
         }) {
-          const generatorKey = toKey('TrackingInsertable', args.operation)
+          const generatorKey = toKey('TrackingProjection', args.operation)
           super({
             context: args.context,
             settings: args.settings,
@@ -625,7 +625,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       const operation = createMockOperation()
 
-      const tempValue = new TrackingInsertable({
+      const tempValue = new TrackingProjection({
         context: {} as any,
         settings: new ContentSettings({
           identifier: Identifier.createVariable('cached'),
@@ -649,7 +649,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       new GqlOperationDriver({
         context,
-        insertable: TrackingInsertable as any,
+        projection: TrackingProjection as any,
         operation
       })
 
@@ -662,7 +662,7 @@ Deno.test('GqlOperationDriver', async t => {
         context: {} as any,
         identifier: Identifier.createVariable('cached'),
         value: {
-          generatorKey: toKey('MockInsertable', operation),
+          generatorKey: toKey('MockProjection', operation),
           toString: () => 'cached'
         } as any
       })
@@ -670,11 +670,11 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext({
         findDefinition: cachedDef
       })
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -688,12 +688,12 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext({
         findDefinition: undefined
       })
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -703,9 +703,9 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should return true for valid cached definition', () => {
       const operation = createMockOperation()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
 
-      const cachedValue = new insertable({
+      const cachedValue = new projection({
         context: {} as any,
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
@@ -727,7 +727,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -736,11 +736,11 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should throw error on generator key mismatch', () => {
       const operation = createMockOperation()
-      const insertable = createMockInsertable({ id: 'MockInsertable' })
+      const projection = createMockProjection({ id: 'MockProjection' })
 
-      const differentInsertable = createMockInsertable({ id: 'DifferentGenerator' })
+      const differentProjection = createMockProjection({ id: 'DifferentGenerator' })
 
-      const cachedValue = new differentInsertable({
+      const cachedValue = new differentProjection({
         context: {} as any,
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
@@ -764,7 +764,7 @@ Deno.test('GqlOperationDriver', async t => {
         () => {
           new GqlOperationDriver({
             context,
-            insertable,
+            projection,
             operation
           })
         },
@@ -787,8 +787,8 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext({
         findDefinition: cachedDef
       })
-      const insertable = createMockInsertable({
-        id: 'MockInsertable',
+      const projection = createMockProjection({
+        id: 'MockProjection',
         exportPath: './ops/test.ts'
       })
 
@@ -796,7 +796,7 @@ Deno.test('GqlOperationDriver', async t => {
         () => {
           new GqlOperationDriver({
             context,
-            insertable,
+            projection,
             operation
           })
         },
@@ -820,13 +820,13 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext({
         findDefinition: cachedDef
       })
-      const insertable = createMockInsertable({ id: 'NewGenerator' })
+      const projection = createMockProjection({ id: 'NewGenerator' })
 
       let errorMessage = ''
       try {
         new GqlOperationDriver({
           context,
-          insertable,
+          projection,
           operation
         })
       } catch (error) {
@@ -839,13 +839,13 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should validate generator key format', () => {
       const operation = createMockOperation({ rootKind: 'query', fieldName: 'test' })
-      const insertable = createMockInsertable({ id: 'TestGen' })
+      const projection = createMockProjection({ id: 'TestGen' })
 
       const { context } = createMockContext()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -870,12 +870,12 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext({
         findDefinition: wrongDef
       })
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
 
       assertThrows(() => {
         new GqlOperationDriver({
           context,
-          insertable,
+          projection,
           operation
         })
       })
@@ -885,7 +885,7 @@ Deno.test('GqlOperationDriver', async t => {
   await t.step('Generator Key Management', async t => {
     await t.step('should create correct operation generator key format', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable({ id: 'TestGenerator' })
+      const projection = createMockProjection({ id: 'TestGenerator' })
       const operation = createMockOperation({
         rootKind: 'mutation',
         fieldName: 'updateUser'
@@ -893,7 +893,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -907,9 +907,9 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should use generator key for cache validation', () => {
       const operation = createMockOperation()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
 
-      const cachedValue = new insertable({
+      const cachedValue = new projection({
         context: {} as any,
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
@@ -931,7 +931,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -953,12 +953,12 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext({
         findDefinition: cachedDef
       })
-      const insertable = createMockInsertable({ id: 'MockInsertable' })
+      const projection = createMockProjection({ id: 'MockProjection' })
 
       assertThrows(() => {
         new GqlOperationDriver({
           context,
-          insertable,
+          projection,
           operation
         })
       })
@@ -966,7 +966,7 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should include generatorId, rootKind, and fieldName in key', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable({ id: 'CustomGen' })
+      const projection = createMockProjection({ id: 'CustomGen' })
       const operation = createMockOperation({
         rootKind: 'subscription',
         fieldName: 'onResourceChange'
@@ -974,7 +974,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -991,12 +991,12 @@ Deno.test('GqlOperationDriver', async t => {
     await t.step('should complete full construction to definition flow', () => {
       const { context, toOperationContentSettingsSpy, findDefinitionSpy, registerSpy } =
         createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -1009,9 +1009,9 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should handle multiple drivers with same operation (caching)', () => {
       const operation = createMockOperation()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
 
-      const cachedValue = new insertable({
+      const cachedValue = new projection({
         context: {} as any,
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
@@ -1031,8 +1031,8 @@ Deno.test('GqlOperationDriver', async t => {
         findDefinition: cachedDef
       })
 
-      const driver1 = new GqlOperationDriver({ context, insertable, operation })
-      const driver2 = new GqlOperationDriver({ context, insertable, operation })
+      const driver1 = new GqlOperationDriver({ context, projection, operation })
+      const driver2 = new GqlOperationDriver({ context, projection, operation })
 
       assertEquals(driver1.definition, cachedDef)
       assertEquals(driver2.definition, cachedDef)
@@ -1040,18 +1040,18 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should create separate definitions for different operations', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation1 = createMockOperation({ fieldName: 'op1', rootKind: 'query' })
       const operation2 = createMockOperation({ fieldName: 'op2', rootKind: 'mutation' })
 
       const driver1 = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation: operation1
       })
       const driver2 = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation: operation2
       })
 
@@ -1061,12 +1061,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should register cross-file imports correctly', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './operations/getUsers.ts' })
+      const projection = createMockProjection({ exportPath: './operations/getUsers.ts' })
       const operation = createMockOperation({ fieldName: 'getUsers' })
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './api/index.ts'
       })
@@ -1079,12 +1079,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should not register imports for same-file definitions', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable({ exportPath: './operations/users.ts' })
+      const projection = createMockProjection({ exportPath: './operations/users.ts' })
       const operation = createMockOperation()
 
       new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './operations/users.ts'
       })
@@ -1095,12 +1095,12 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should handle noExport flag throughout lifecycle', () => {
       const { context, registerSpy } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         noExport: true
       })
@@ -1116,14 +1116,14 @@ Deno.test('GqlOperationDriver', async t => {
       }
 
       const { context } = createMockContext()
-      const insertable = createMockInsertable({
+      const projection = createMockProjection({
         enrichments: { metadata: 'test' } as CustomEnrichment
       })
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver<GeneratedValue, CustomEnrichment>({
         context,
-        insertable: insertable as any,
+        projection: projection as any,
         operation
       })
 
@@ -1135,14 +1135,14 @@ Deno.test('GqlOperationDriver', async t => {
   await t.step('Edge Cases and Error Handling', async t => {
     await t.step('should handle field names with special characters', () => {
       const { context } = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const operation = createMockOperation({
         fieldName: 'get_users_by_id_v2'
       })
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation
       })
 
@@ -1154,12 +1154,12 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext()
       const longPath =
         './very/long/path/to/operations/in/deeply/nested/directory/structure/operation.ts'
-      const insertable = createMockInsertable({ exportPath: longPath })
+      const projection = createMockProjection({ exportPath: longPath })
       const operation = createMockOperation()
 
       const driver = new GqlOperationDriver({
         context,
-        insertable,
+        projection,
         operation,
         destinationPath: './index.ts'
       })
@@ -1182,14 +1182,14 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext({
         findDefinition: cachedDef
       })
-      const insertable = createMockInsertable({ id: 'CorrectGenerator' })
+      const projection = createMockProjection({ id: 'CorrectGenerator' })
 
       let errorThrown = false
       let errorMessage = ''
       try {
         new GqlOperationDriver({
           context,
-          insertable,
+          projection,
           operation
         })
       } catch (error) {

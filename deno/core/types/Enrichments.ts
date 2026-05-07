@@ -79,7 +79,7 @@ export const formFieldItem: v.GenericSchema<FormFieldItem> = v.object({
   // in the SKMTC generator authoring guide.
   references: v.optional(v.string()),
   // Discriminator picking which producer generator handles a referenced
-  // field. Form generators use this to dispatch to the right Insertable
+  // field. Form generators use this to dispatch to the right Projection
   // class — e.g. `'searchable'` → `gen-reapit-searchable-dropdown`,
   // `'multiselect'` → `gen-reapit-multi-select`. Free-form string so
   // ecosystems can add new variants without core changes; conventional

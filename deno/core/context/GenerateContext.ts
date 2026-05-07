@@ -17,7 +17,6 @@ import type {
   InsertNormalisedModelArgs,
   InsertNormalisedModelOptions,
   InsertNormalisedModelReturn,
-  InsertOasOperationArgs,
   InsertOperationArgs,
   PickArgs,
   RegisterArgs,
@@ -27,10 +26,10 @@ import type {
 } from './generateTypes.ts'
 import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '@/types/Settings.ts'
 import type { Method } from '@/types/Method.ts'
-import type { OasOperationConfig, OasOperationInsertable } from '@/dsl/operation/oas/types.ts'
+import type { OasOperationConfig } from '@/dsl/operation/oas/types.ts'
 import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
-import type { ModelConfig, ModelInsertable } from '@/dsl/model/types.ts'
+import type { ModelConfig, ModelProjection } from '@/dsl/model/types.ts'
 import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
 import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
@@ -189,9 +188,9 @@ export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V,
  *
  * @example Basic usage in a model generator
  * ```typescript
- * import { ModelBase } from '@skmtc/core';
+ * import { ModelProjectionBase } from '@skmtc/core';
  *
- * class TypeScriptInterface extends ModelBase {
+ * class TypeScriptInterface extends ModelProjectionBase {
  *   generate(): Definition {
  *     const schema = this.context.getSchema(this.refName);
  *
@@ -211,8 +210,7 @@ export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V,
 
 const isGqlInsertOperationArgs = <V extends GeneratedValue, EnrichmentType>(
   args: InsertOperationArgs<V, EnrichmentType>
-): args is InsertGqlOperationArgs<V, EnrichmentType> =>
-  args.operation.oasType === 'gqlOperation'
+): args is InsertGqlOperationArgs<V, EnrichmentType> => args.operation.oasType === 'gqlOperation'
 
 const isGqlToOperationSettingsArgs = <V, EnrichmentType>(
   args: ToOperationSettingsArgs<V, EnrichmentType>
@@ -679,14 +677,12 @@ export class GenerateContext implements GenerateContextType {
    * Insert operation into the output file with path `destinationPath`.
    *
    * Insert will perform the following steps:
-   * 1. Generate content settings for the supplied operation
-   * 2. Look up definition in file with path `destinationPath`
-   * 3. If definition is not found, it will create a new one and register it
-   * 4. If the definition is defined at a location that is different from
-   *    the current file, it will add an import to the current file from
-   *    that location
-   * 5. Use the content settings to generate the operation using the
-   *    insertable's driver
+   * Insert an operation definition into `destinationPath`.
+   *
+   * Resolves identifier and export path from the projection, registers the
+   * definition (or reuses a cached one), and stitches an import into
+   * `destinationPath` if it differs from the projection's `exportPath`.
+   *
    * @mutates this.files
    */
   insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
@@ -695,7 +691,7 @@ export class GenerateContext implements GenerateContextType {
     if (isGqlInsertOperationArgs(args)) {
       const { settings, definition } = new GqlOperationDriver({
         context: this,
-        insertable: args.insertable,
+        projection: args.projection,
         operation: args.operation,
         destinationPath: args.destinationPath,
         noExport: args.noExport ?? false
@@ -706,7 +702,7 @@ export class GenerateContext implements GenerateContextType {
 
     const { settings, definition } = new OasOperationDriver({
       context: this,
-      insertable: args.insertable,
+      projection: args.projection,
       operation: args.operation,
       destinationPath: args.destinationPath,
       noExport: args.noExport ?? false
@@ -716,24 +712,20 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
-   * Inserts a normalized model definition into the generation context.
-   *
-   * @param insertable - Model insertable configuration with prototype and transform functions
-   * @param schema - OAS schema, reference, or void type to generate model from
-   * @param options - Insertion options including generation type and destination
-   * @returns Inserted model instance with settings and definition
+   * Insert a normalized model: dispatch to {@link insertModel} when the schema
+   * is a `$ref`, otherwise produce a one-off definition under `fallbackName`.
    */
   insertNormalisedModel<
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
     EnrichmentType
   >(
-    insertable: ModelInsertable<V, EnrichmentType>,
+    projection: ModelProjection<V, EnrichmentType>,
     { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
     { noExport = false }: InsertNormalisedModelOptions = {}
   ): InsertNormalisedModelReturn<V, Schema> {
     if (schema.isRef()) {
-      const { definition } = this.insertModel(insertable, schema.toRefName(), {
+      const { definition } = this.insertModel(projection, schema.toRefName(), {
         destinationPath,
         noExport
       })
@@ -753,7 +745,7 @@ export class GenerateContext implements GenerateContextType {
       return cachedDefinition as InsertNormalisedModelReturn<V, Schema>
     }
 
-    const value = insertable.schemaToValueFn({
+    const value = projection.schemaToValueFn({
       context: this,
       schema,
       destinationPath,
@@ -761,7 +753,7 @@ export class GenerateContext implements GenerateContextType {
     })
 
     const definition = this.#defineAndRegister({
-      identifier: insertable.createIdentifier(fallbackName),
+      identifier: projection.createIdentifier(fallbackName),
       value,
       destinationPath,
       noExport
@@ -772,28 +764,22 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
-   * Insert model into the output file with path `destinationPath`.
+   * Insert a model definition into `destinationPath`.
    *
-   * Insert will perform the following steps:
-   * 1. Generate content settings for the supplied model
-   * 2. Look up definition in file with path `destinationPath`
-   * 3. If definition is not found, it will create a new one and register it
-   * 4. If the definition is defined at a location that is different from
-   *    the current file, it will add an import to the current file from
-   *    that location
-   * 5. Use the content settings to generate the model using the
-   *    insertable's driver
+   * Resolves identifier and export path from the projection, registers the
+   * definition (or reuses a cached one), and stitches an import into
+   * `destinationPath` if it differs from the projection's `exportPath`.
+   *
    * @mutates this.files
    */
-
   insertModel<V extends GeneratedValue, EnrichmentType>(
-    insertable: ModelInsertable<V, EnrichmentType>,
+    projection: ModelProjection<V, EnrichmentType>,
     refName: RefName,
     { destinationPath, noExport = false }: InsertModelOptions = {}
   ): Inserted<V, EnrichmentType> {
     const { settings, definition } = new ModelDriver({
       context: this,
-      insertable,
+      projection,
       refName,
       destinationPath,
       rootRef: refName,
@@ -804,50 +790,41 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
-   * Generate and return content settings for operation insertable and
-   * operation.
-   *
-   * Content settings are produced by passing base settings and operation
-   * through toIdentifier and toExportPath static methods on the
-   * insertable.
-   * @param { operation, insertable }
-   * @returns
+   * Build content settings for an operation projection by calling its
+   * static `toIdentifier`, `toExportPath`, and `toEnrichments` against the
+   * given operation.
    */
   toOperationContentSettings<V, EnrichmentType>(
     args: ToOperationSettingsArgs<V, EnrichmentType>
   ): ContentSettings<EnrichmentType> {
     if (isGqlToOperationSettingsArgs(args)) {
       return new ContentSettings<EnrichmentType>({
-        identifier: args.insertable.toIdentifier(args.operation),
-        exportPath: args.insertable.toExportPath(args.operation),
-        enrichments: args.insertable.toEnrichments({ operation: args.operation, context: this })
+        identifier: args.projection.toIdentifier(args.operation),
+        exportPath: args.projection.toExportPath(args.operation),
+        enrichments: args.projection.toEnrichments({ operation: args.operation, context: this })
       })
     }
 
     return new ContentSettings<EnrichmentType>({
-      identifier: args.insertable.toIdentifier(args.operation),
-      exportPath: args.insertable.toExportPath(args.operation),
-      enrichments: args.insertable.toEnrichments({ operation: args.operation, context: this })
+      identifier: args.projection.toIdentifier(args.operation),
+      exportPath: args.projection.toExportPath(args.operation),
+      enrichments: args.projection.toEnrichments({ operation: args.operation, context: this })
     })
   }
 
   /**
-   * Generate and return content settings for model insertable and refName.
-   *
-   * Content settings are produced by passing base settings and refName
-   * through toIdentifier and toExportPath static methods on the
-   * insertable.
-   * @param { refName, insertable }
-   * @returns Content settings for model
+   * Build content settings for a model projection by calling its static
+   * `toIdentifier`, `toExportPath`, and `toEnrichments` against the given
+   * `refName`.
    */
   toModelContentSettings<V, EnrichmentType>({
     refName,
-    insertable
+    projection
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
     return new ContentSettings<EnrichmentType>({
-      identifier: insertable.toIdentifier(refName),
-      exportPath: insertable.toExportPath(refName),
-      enrichments: insertable.toEnrichments({ refName, context: this })
+      identifier: projection.toIdentifier(refName),
+      exportPath: projection.toExportPath(refName),
+      enrichments: projection.toEnrichments({ refName, context: this })
     })
   }
 

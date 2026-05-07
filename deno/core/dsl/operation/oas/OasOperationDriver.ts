@@ -1,4 +1,4 @@
-import type { OasOperationInsertable } from './types.ts'
+import type { OasOperationProjection } from './types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
@@ -11,7 +11,7 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 
 type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
-  insertable: OasOperationInsertable<V, EnrichmentType>
+  projection: OasOperationProjection<V, EnrichmentType>
   operation: OasOperation
   destinationPath?: string
   noExport?: boolean
@@ -27,94 +27,43 @@ type GetDefinitionArgs = {
 }
 
 /**
- * Driver class for generating operation-based artifacts from OpenAPI operations.
+ * Driver for the OAS operation insertion lifecycle.
  *
- * The `OasOperationDriver` manages the transformation of OpenAPI operation objects
- * into code artifacts, handling path generation, identifier resolution, and
- * definition management. It serves as the core orchestrator for operation-based
- * code generation in the SKMTC pipeline.
- *
- * @template V - Type of generated values produced by this driver
- * @template T - Type of generation strategy (e.g., 'function', 'class', 'hook')
- * @template EnrichmentType - Type of enrichments that can be applied
- *
- * @example Basic usage in an operation generator
- * ```typescript
- * class APIClientGenerator extends OasOperationBase {
- *   generate() {
- *     const driver = new OasOperationDriver({
- *       context: this.context,
- *       insertable: this,
- *       operation: this.operation,
- *       generation: 'function'
- *     });
- *
- *     const functionCode = driver.definition.toValueString();
- *     const file = this.createFile(functionCode);
- *     this.register({ file });
- *   }
- * }
- * ```
+ * Resolves the projection's identifier and export path, looks up an
+ * existing `Definition` in the target file, instantiates the projection
+ * (constructing its value) when no cache hit exists, registers the new
+ * definition, and stitches an import into `destinationPath` if it differs
+ * from the projection's `exportPath`.
  */
 export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undefined> {
-  /** The generation context providing access to OAS objects and utilities */
   context: GenerateContextType
-  /** The insertable object that provides generation configuration */
-  insertable: OasOperationInsertable<V, EnrichmentType>
-  /** The OpenAPI operation object being processed */
+  projection: OasOperationProjection<V, EnrichmentType>
   operation: OasOperation
-  /** Content settings for customizing generation behavior */
   settings: ContentSettings<EnrichmentType>
-  /** Optional custom destination path for generated files */
   destinationPath?: string
-  /** The generated definition containing the transformed operation */
   definition: GeneratedDefinition<V>
-  /** Whether to exclude this operation from exports */
   noExport?: boolean
 
-  /**
-   * Creates a new OasOperationDriver instance.
-   *
-   * @param args - Configuration for the operation driver
-   * @param args.context - Generation context
-   * @param args.insertable - Insertable providing generation configuration
-   * @param args.operation - OpenAPI operation to process
-   * @param args.destinationPath - Optional custom destination path
-   * @param args.noExport - Whether to exclude from exports
-   */
   constructor({
     context,
-    insertable,
+    projection,
     operation,
     destinationPath,
     noExport
   }: CreateOperationArgs<V, EnrichmentType>) {
     this.context = context
-    this.insertable = insertable
+    this.projection = projection
     this.operation = operation
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.settings = this.context.toOperationContentSettings({
       operation,
-      insertable
+      projection
     })
 
     this.definition = this.apply({ destinationPath })
   }
 
-  /**
-   * Applies generation configuration to create the operation definition.
-   *
-   * This method handles the core generation logic for operations, including
-   * identifier resolution, export path management, and import registration
-   * for cross-file dependencies.
-   *
-   * @template T - The generation type
-   * @param args - Apply configuration arguments
-   * @param args.generation - Optional generation type (unused currently)
-   * @param args.destinationPath - Optional destination path for imports
-   * @returns Generated definition for the operation
-   */
   private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {
     const { identifier, exportPath } = this.settings
 
@@ -130,18 +79,6 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     return definition
   }
 
-  /**
-   * Retrieves or creates a definition for the operation.
-   *
-   * This method first checks for cached definitions to avoid duplicate generation,
-   * then creates a new definition if none exists. It handles the complete operation
-   * transformation process including schema resolution and value generation.
-   *
-   * @param args - Definition retrieval arguments
-   * @param args.identifier - The identifier for the definition
-   * @param args.exportPath - The export path for the definition
-   * @returns Operation definition instance
-   */
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): Definition<V> {
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
@@ -152,7 +89,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       return cachedDefinition
     }
 
-    const value = new this.insertable({
+    const value = new this.projection({
       context: this.context,
       operation: this.operation,
       settings: this.settings
@@ -173,17 +110,6 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     return definition
   }
 
-  /**
-   * Type guard to verify a definition matches the expected generated value type.
-   *
-   * This method performs type narrowing to ensure a cached definition is compatible
-   * with the current generation requirements, including export path validation.
-   *
-   * @template V - The expected generated value type
-   * @param definition - The definition to verify (may be undefined)
-   * @param exportPath - Expected export path for validation
-   * @returns True if definition matches expected type and constraints
-   */
   private affirmDefinition<V extends GeneratedValue>(
     definition: Definition | undefined,
     exportPath: string
@@ -193,7 +119,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     }
 
     const currentKey = toOasOperationGeneratorKey({
-      generatorId: this.insertable.id,
+      generatorId: this.projection.id,
       operation: this.operation
     })
 
@@ -203,6 +129,6 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       )
     }
 
-    return definition.value instanceof this.insertable
+    return definition.value instanceof this.projection
   }
 }

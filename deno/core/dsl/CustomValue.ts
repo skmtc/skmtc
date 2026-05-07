@@ -1,5 +1,5 @@
 import type { GenerateContextType } from '../context/generateTypes.ts'
-import { ContentBase } from './ContentBase.ts'
+import { SnippetBase } from './SnippetBase.ts'
 import type { Stringable } from './Stringable.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
 import type { OasRef } from '../oas/ref/Ref.ts'
@@ -28,7 +28,7 @@ type CreateArgs = {
  * console.log(customValue.toString()); // "const customCode = "generated";"
  * ```
  */
-export class CustomValue extends ContentBase {
+export class CustomValue extends SnippetBase {
   /** Type identifier for this custom value */
   type = 'custom' as const
   /** The underlying value content that can be converted to string */

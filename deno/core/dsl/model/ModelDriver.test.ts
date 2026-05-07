@@ -1,7 +1,7 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { spy, stub, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { ModelDriver } from './ModelDriver.ts'
-import type { ModelInsertable } from './types.ts'
+import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Definition } from '@/dsl/Definition.ts'
@@ -17,8 +17,8 @@ class MockGeneratedValue implements GeneratedValue {
   generatorKey?: GeneratorKey
 }
 
-class MockInsertable extends MockGeneratedValue {
-  static id = 'MockInsertable'
+class MockProjection extends MockGeneratedValue {
+  static id = 'MockProjection'
   refName: RefName
   context: GenerateContextType
   settings: ContentSettings<any>
@@ -38,7 +38,7 @@ class MockInsertable extends MockGeneratedValue {
     this.settings = args.settings
     this.destinationPath = args.destinationPath
     this.rootRef = args.rootRef
-    this.generatorKey = toModelGeneratorKey({ generatorId: MockInsertable.id, refName: args.refName })
+    this.generatorKey = toModelGeneratorKey({ generatorId: MockProjection.id, refName: args.refName })
   }
 }
 
@@ -58,25 +58,25 @@ const createMockContext = (): GenerateContextType => {
   return mockContext
 }
 
-const createMockInsertable = (): ModelInsertable<MockGeneratedValue, any> => {
-  return MockInsertable as unknown as ModelInsertable<MockGeneratedValue, any>
+const createMockProjection = (): ModelProjection<MockGeneratedValue, any> => {
+  return MockProjection as unknown as ModelProjection<MockGeneratedValue, any>
 }
 
 Deno.test('ModelDriver', async (t) => {
   await t.step('constructor and property initialization', async (t) => {
     await t.step('should initialize all required properties', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
       assertEquals(driver.context, context)
-      assertEquals(driver.insertable, insertable)
+      assertEquals(driver.projection, projection)
       assertEquals(driver.refName, refName)
       assertEquals(driver.destinationPath, undefined)
       assertEquals(driver.rootRef, undefined)
@@ -85,14 +85,14 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should initialize with all optional parameters', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'Product' as RefName
       const destinationPath = '/path/to/destination.ts'
       const rootRef = 'Root' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         destinationPath,
         rootRef,
@@ -106,13 +106,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should initialize modelDepth to 0', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
-      const key = `${insertable.id}:${refName}`
+      const key = `${projection.id}:${refName}`
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -121,29 +121,29 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should call toModelContentSettings on context', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
       assertSpyCalls(context.toModelContentSettings as any, 1)
       assertSpyCall(context.toModelContentSettings as any, 0, {
-        args: [{ refName, insertable }]
+        args: [{ refName, projection }]
       })
     })
 
     await t.step('should set settings from toModelContentSettings result', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -153,12 +153,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should call apply and set definition', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -168,13 +168,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should reset modelDepth to 0 after construction', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
-      const key = `${insertable.id}:${refName}`
+      const key = `${projection.id}:${refName}`
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -183,13 +183,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should work with different refName values', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refNames = ['User', 'Product', 'Order', 'Customer'] as RefName[]
 
       refNames.forEach(refName => {
         const driver = new ModelDriver({
           context,
-          insertable,
+          projection,
           refName
         })
 
@@ -201,12 +201,12 @@ Deno.test('ModelDriver', async (t) => {
   await t.step('apply method (via constructor)', async (t) => {
     await t.step('should extract identifier and exportPath from settings', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -215,12 +215,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should call getDefinition during apply', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -229,13 +229,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should register import when destinationPath differs from exportPath', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const destinationPath = '/different/path.ts'
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         destinationPath
       })
@@ -250,13 +250,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should not register import when destinationPath matches exportPath', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const destinationPath = '/path/to/export.ts'
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         destinationPath
       })
@@ -269,13 +269,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should normalize paths before comparison', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const destinationPath = '/path/to/export.ts'
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         destinationPath
       })
@@ -288,12 +288,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should not register import when destinationPath is undefined', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -305,12 +305,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should return definition from apply', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -322,12 +322,12 @@ Deno.test('ModelDriver', async (t) => {
   await t.step('getDefinition method (via constructor)', async (t) => {
     await t.step('should call findDefinition on context', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -342,27 +342,27 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should create new definition when not cached', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
       assertEquals(driver.definition instanceof Definition, true)
     })
 
-    await t.step('should create insertable instance with correct parameters', () => {
+    await t.step('should create projection instance with correct parameters', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const rootRef = 'Root' as RefName
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         rootRef
       })
@@ -370,29 +370,29 @@ Deno.test('ModelDriver', async (t) => {
       assertEquals(context !== undefined, true)
     })
 
-    await t.step('should wrap insertable in Definition', () => {
+    await t.step('should wrap projection in Definition', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
       assertEquals(driver.definition instanceof Definition, true)
-      assertEquals(driver.definition.value instanceof MockInsertable, true)
+      assertEquals(driver.definition.value instanceof MockProjection, true)
     })
 
     await t.step('should register definition with context', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -406,12 +406,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should pass noExport to Definition', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         noExport: true
       })
@@ -421,13 +421,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should handle rootRef parameter', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const rootRef = 'Root' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         rootRef
       })
@@ -437,12 +437,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should return created definition', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -452,12 +452,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should use cached definition when available', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -465,13 +465,13 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: insertable.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -480,12 +480,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should validate cached definition with affirmDefinition', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -493,13 +493,13 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: insertable.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -511,14 +511,14 @@ Deno.test('ModelDriver', async (t) => {
   await t.step('affirmDefinition validation (tested indirectly)', async (t) => {
     await t.step('should return false for undefined definition', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       context.findDefinition = (() => undefined) as any
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -527,12 +527,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should return true for valid cached definition', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -540,13 +540,13 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: insertable.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -555,12 +555,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should throw error for key mismatch', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -576,7 +576,7 @@ Deno.test('ModelDriver', async (t) => {
         () => {
           new ModelDriver({
             context,
-            insertable,
+            projection,
             refName
           })
         },
@@ -587,12 +587,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should include refName in error message', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -608,7 +608,7 @@ Deno.test('ModelDriver', async (t) => {
         () => {
           new ModelDriver({
             context,
-            insertable,
+            projection,
             refName
           })
         },
@@ -619,12 +619,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should include export path in error message', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -640,7 +640,7 @@ Deno.test('ModelDriver', async (t) => {
         () => {
           new ModelDriver({
             context,
-            insertable,
+            projection,
             refName
           })
         },
@@ -649,14 +649,14 @@ Deno.test('ModelDriver', async (t) => {
       )
     })
 
-    await t.step('should validate instanceof insertable', () => {
+    await t.step('should validate instanceof projection', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -664,27 +664,27 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: insertable.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
-      assertEquals(driver.definition.value instanceof MockInsertable, true)
+      assertEquals(driver.definition.value instanceof MockProjection, true)
     })
 
     await t.step('should create correct generator key', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -692,29 +692,29 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: insertable.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
-      assertEquals(driver.definition.generatorKey, `${insertable.id}|${refName}`)
+      assertEquals(driver.definition.generatorKey, `${projection.id}|${refName}`)
     })
   })
 
   await t.step('integration and lifecycle tests', async (t) => {
     await t.step('should complete full construction to definition flow', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -722,17 +722,17 @@ Deno.test('ModelDriver', async (t) => {
       assertEquals(driver.refName, refName)
       assertEquals(driver.settings !== undefined, true)
       assertEquals(driver.definition instanceof Definition, true)
-      assertEquals(context.modelDepth[`${insertable.id}:${refName}`], 0)
+      assertEquals(context.modelDepth[`${projection.id}:${refName}`], 0)
     })
 
     await t.step('should handle multiple drivers with same refName using cache', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver1 = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -741,7 +741,7 @@ Deno.test('ModelDriver', async (t) => {
 
       const driver2 = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -750,17 +750,17 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should create separate definitions for different refNames', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
 
       const driver1 = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName: 'User' as RefName
       })
 
       const driver2 = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName: 'Product' as RefName
       })
 
@@ -770,13 +770,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should register cross-file imports correctly', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const destinationPath = '/different/destination.ts'
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         destinationPath
       })
@@ -790,13 +790,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should not register imports for same-file definitions', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const destinationPath = '/path/to/export.ts'
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         destinationPath
       })
@@ -809,15 +809,15 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should maintain modelDepth throughout lifecycle', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
-      const key = `${insertable.id}:${refName}`
+      const key = `${projection.id}:${refName}`
 
       assertEquals(context.modelDepth[key], undefined)
 
       new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -826,12 +826,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should handle noExport flag throughout lifecycle', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         noExport: true
       })
@@ -841,13 +841,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should handle rootRef throughout lifecycle', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const rootRef = 'Root' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         rootRef
       })
@@ -859,12 +859,12 @@ Deno.test('ModelDriver', async (t) => {
   await t.step('edge cases and error handling', async (t) => {
     await t.step('should handle refName with special characters', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User_Model_V2' as RefName
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName
       })
 
@@ -874,13 +874,13 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should handle very long export paths', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const longPath = '/very/long/path/to/some/deeply/nested/directory/structure/file.ts'
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         destinationPath: longPath
       })
@@ -890,12 +890,12 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should throw descriptive error on key mismatch', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const mockDefinition = new Definition({
         context,
-        value: new MockInsertable({
+        value: new MockProjection({
           refName,
           context,
           settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
@@ -911,7 +911,7 @@ Deno.test('ModelDriver', async (t) => {
       try {
         new ModelDriver({
           context,
-          insertable,
+          projection,
           refName
         })
       } catch (error) {
@@ -921,18 +921,18 @@ Deno.test('ModelDriver', async (t) => {
       assertEquals(errorMessage.includes('Registered definition mismatch'), true)
       assertEquals(errorMessage.includes(refName), true)
       assertEquals(errorMessage.includes('WrongGenerator:WrongRef'), true)
-      assertEquals(errorMessage.includes(`${insertable.id}|${refName}`), true)
+      assertEquals(errorMessage.includes(`${projection.id}|${refName}`), true)
     })
 
     await t.step('should handle paths with different separators', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
       const destinationPath = '/path/to/export.ts'
 
       const driver = new ModelDriver({
         context,
-        insertable,
+        projection,
         refName,
         destinationPath
       })
@@ -942,16 +942,16 @@ Deno.test('ModelDriver', async (t) => {
 
     await t.step('should preserve type information through generics', () => {
       const context = createMockContext()
-      const insertable = createMockInsertable()
+      const projection = createMockProjection()
       const refName = 'User' as RefName
 
       const driver = new ModelDriver<MockGeneratedValue, any>({
         context,
-        insertable,
+        projection,
         refName
       })
 
-      assertEquals(driver.definition.value instanceof MockInsertable, true)
+      assertEquals(driver.definition.value instanceof MockProjection, true)
     })
   })
 })

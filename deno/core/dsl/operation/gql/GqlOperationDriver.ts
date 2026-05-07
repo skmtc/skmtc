@@ -1,4 +1,4 @@
-import type { GqlOperationInsertable } from './types.ts'
+import type { GqlOperationProjection } from './types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
@@ -11,7 +11,7 @@ import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 
 type CreateGqlOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
-  insertable: GqlOperationInsertable<V, EnrichmentType>
+  projection: GqlOperationProjection<V, EnrichmentType>
   operation: GqlOperation
   destinationPath?: string
   noExport?: boolean
@@ -27,62 +27,43 @@ type GetDefinitionArgs = {
 }
 
 /**
- * Driver class for generating operation-based artifacts from GraphQL operations.
+ * Driver for the GraphQL operation insertion lifecycle.
  *
- * The `GqlOperationDriver` manages the transformation of `GqlOperation` objects
- * into code artifacts, handling export-path resolution, identifier generation,
- * and definition caching. It serves as the GraphQL counterpart to the OAS
- * `OperationDriver` in the SKMTC pipeline.
- *
- * @template V - Type of generated values produced by this driver
- * @template EnrichmentType - Type of enrichments that can be applied
+ * GraphQL counterpart to {@link OasOperationDriver}: resolves the
+ * projection's identifier and export path, looks up an existing
+ * `Definition` in the target file, instantiates the projection when no
+ * cache hit exists, registers the new definition, and stitches an import
+ * into `destinationPath` if it differs from the projection's `exportPath`.
  */
 export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undefined> {
-  /** The generation context providing access to GraphQL objects and utilities */
   context: GenerateContextType
-  /** The insertable object that provides generation configuration */
-  insertable: GqlOperationInsertable<V, EnrichmentType>
-  /** The GraphQL operation object being processed */
+  projection: GqlOperationProjection<V, EnrichmentType>
   operation: GqlOperation
-  /** Content settings for customizing generation behavior */
   settings: ContentSettings<EnrichmentType>
-  /** Optional custom destination path for generated files */
   destinationPath?: string
-  /** The generated definition containing the transformed operation */
   definition: GeneratedDefinition<V>
-  /** Whether to exclude this operation from exports */
   noExport?: boolean
 
-  /**
-   * Creates a new GqlOperationDriver instance.
-   */
   constructor({
     context,
-    insertable,
+    projection,
     operation,
     destinationPath,
     noExport
   }: CreateGqlOperationArgs<V, EnrichmentType>) {
     this.context = context
-    this.insertable = insertable
+    this.projection = projection
     this.operation = operation
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.settings = this.context.toOperationContentSettings({
       operation,
-      insertable
+      projection
     })
 
     this.definition = this.apply({ destinationPath })
   }
 
-  /**
-   * Applies generation configuration to create the operation definition.
-   *
-   * Handles the core generation logic for operations, including identifier
-   * resolution, export-path management, and import registration for cross-file
-   * dependencies.
-   */
   private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {
     const { identifier, exportPath } = this.settings
 
@@ -98,12 +79,6 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     return definition
   }
 
-  /**
-   * Retrieves or creates a definition for the operation.
-   *
-   * Checks the definition cache first to avoid duplicate generation, then
-   * creates a new definition if none exists.
-   */
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): Definition<V> {
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
@@ -114,7 +89,7 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       return cachedDefinition
     }
 
-    const value = new this.insertable({
+    const value = new this.projection({
       context: this.context,
       operation: this.operation,
       settings: this.settings
@@ -135,9 +110,6 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     return definition
   }
 
-  /**
-   * Type guard to verify a definition matches the expected generated value type.
-   */
   private affirmDefinition<V extends GeneratedValue>(
     definition: Definition | undefined,
     exportPath: string
@@ -147,7 +119,7 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     }
 
     const currentKey = toGqlOperationGeneratorKey({
-      generatorId: this.insertable.id,
+      generatorId: this.projection.id,
       operation: this.operation
     })
 
@@ -157,6 +129,6 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       )
     }
 
-    return definition.value instanceof this.insertable
+    return definition.value instanceof this.projection
   }
 }

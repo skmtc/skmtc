@@ -1,126 +1,114 @@
-import { OasOperationBase } from './OasOperationBase.ts'
+import { GqlOperationProjectionBase } from '@/dsl/operation/gql/GqlOperationProjectionBase.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertSpyCalls, spy } from '@std/testing/mock'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { OasOperation } from '@/oas/operation/Operation.ts'
+import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
+import { OasString } from '@/oas/string/String.ts'
 
-Deno.test('OasOperationBase - constructor stores operation correctly', () => {
-  const mockOperation = new OasOperation({
-    path: '/users',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'getUsers',
-    responses: {}
+const createMockGqlOperation = (
+  overrides?: Partial<{
+    rootKind: 'query' | 'mutation' | 'subscription'
+    fieldName: string
+  }>
+) => {
+  return new GqlOperation({
+    rootKind: overrides?.rootKind ?? 'query',
+    fieldName: overrides?.fieldName ?? 'getUsers',
+    arguments: [],
+    returnType: new OasString({})
   })
+}
 
-  const operation = new OasOperationBase({
+Deno.test('GqlOperationProjectionBase - constructor stores operation correctly', () => {
+  const mockOperation = createMockGqlOperation()
+
+  const operation = new GqlOperationProjectionBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getUsers'),
       exportPath: './operations/users.ts'
     }),
-    generatorKey: 'test-generator|get|/users' as GeneratorKey,
+    generatorKey: 'test-generator|query|getUsers' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
   assertEquals(operation.operation, mockOperation)
 })
 
-Deno.test('OasOperationBase - constructor stores settings correctly', () => {
+Deno.test('GqlOperationProjectionBase - constructor stores settings correctly', () => {
   const settings = ContentSettings.empty({
     identifier: Identifier.createVariable('createProduct'),
     exportPath: './operations/products.ts'
   })
 
-  const mockOperation = new OasOperation({
-    path: '/products',
-    method: 'post',
-    pathItem: undefined,
-    operationId: 'createProduct',
-    responses: {}
+  const mockOperation = createMockGqlOperation({
+    rootKind: 'mutation',
+    fieldName: 'createProduct'
   })
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: {} as GenerateContextType,
     settings,
-    generatorKey: 'test-generator|post|/products' as GeneratorKey,
+    generatorKey: 'test-generator|mutation|createProduct' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
   assertEquals(operation.settings, settings)
 })
 
-Deno.test('OasOperationBase - constructor stores generatorKey correctly', () => {
-  const mockOperation = new OasOperation({
-    path: '/orders',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'getOrders',
-    responses: {}
-  })
+Deno.test('GqlOperationProjectionBase - constructor stores generatorKey correctly', () => {
+  const mockOperation = createMockGqlOperation({ fieldName: 'getOrders' })
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getOrders'),
       exportPath: './operations/orders.ts'
     }),
-    generatorKey: 'typescript-operations|get|/orders' as GeneratorKey,
+    generatorKey: 'typescript-operations|query|getOrders' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
-  assertEquals(operation.generatorKey, 'typescript-operations|get|/orders')
+  assertEquals(operation.generatorKey, 'typescript-operations|query|getOrders')
 })
 
-Deno.test('OasOperationBase - has context property from ContentBase', () => {
+Deno.test('GqlOperationProjectionBase - has context property from SnippetBase', () => {
   const mockContext = { name: 'test-context' } as unknown as GenerateContextType
-  const mockOperation = new OasOperation({
-    path: '/users',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'getUsers',
-    responses: {}
-  })
+  const mockOperation = createMockGqlOperation()
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getUsers'),
       exportPath: './operations/users.ts'
     }),
-    generatorKey: 'test-generator|get|/users' as GeneratorKey,
+    generatorKey: 'test-generator|query|getUsers' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
   assertEquals(operation.context, mockContext)
 })
 
-Deno.test('OasOperationBase - settings.exportPath is accessible', () => {
-  const mockOperation = new OasOperation({
-    path: '/types',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'getTypes',
-    responses: {}
-  })
+Deno.test('GqlOperationProjectionBase - settings.exportPath is accessible', () => {
+  const mockOperation = createMockGqlOperation({ fieldName: 'getTypes' })
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getTypes'),
       exportPath: './generated/types.ts'
     }),
-    generatorKey: 'test-generator|get|/types' as GeneratorKey,
+    generatorKey: 'test-generator|query|getTypes' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
   assertEquals(operation.settings.exportPath, './generated/types.ts')
 })
 
-Deno.test('OasOperationBase - settings.enrichments is accessible when provided', () => {
+Deno.test('GqlOperationProjectionBase - settings.enrichments is accessible when provided', () => {
   const enrichments = { strict: true, nullable: false }
   const settings = new ContentSettings({
     identifier: Identifier.createVariable('validateOperation'),
@@ -128,40 +116,31 @@ Deno.test('OasOperationBase - settings.enrichments is accessible when provided',
     enrichments
   })
 
-  const mockOperation = new OasOperation({
-    path: '/validate',
-    method: 'post',
-    pathItem: undefined,
-    operationId: 'validateOperation',
-    responses: {}
+  const mockOperation = createMockGqlOperation({
+    rootKind: 'mutation',
+    fieldName: 'validateOperation'
   })
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: {} as GenerateContextType,
     settings,
-    generatorKey: 'validation-operations|post|/validate' as GeneratorKey,
+    generatorKey: 'validation-operations|mutation|validateOperation' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
   assertEquals(operation.settings.enrichments, enrichments)
 })
 
-Deno.test('OasOperationBase - stores all constructor properties correctly', () => {
+Deno.test('GqlOperationProjectionBase - stores all constructor properties correctly', () => {
   const mockContext = { id: 'context-1' } as unknown as GenerateContextType
   const settings = ContentSettings.empty({
     identifier: Identifier.createVariable('testOperation'),
     exportPath: './operations/test.ts'
   })
-  const generatorKey = 'test-gen|get|/test' as GeneratorKey
-  const mockOperation = new OasOperation({
-    path: '/test',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'testOperation',
-    responses: {}
-  })
+  const generatorKey = 'test-gen|query|testOperation' as unknown as GeneratorKey
+  const mockOperation = createMockGqlOperation({ fieldName: 'testOperation' })
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: mockContext,
     settings,
     generatorKey,
@@ -174,42 +153,33 @@ Deno.test('OasOperationBase - stores all constructor properties correctly', () =
   assertEquals(operation.operation, mockOperation)
 })
 
-Deno.test('OasOperationBase - works with different HTTP methods', () => {
-  const createOperation = (method: 'get' | 'post' | 'put' | 'delete', operationId: string) => {
-    const mockOperation = new OasOperation({
-      path: `/${operationId}`,
-      method,
-      pathItem: undefined,
-      operationId,
-      responses: {}
-    })
+Deno.test('GqlOperationProjectionBase - works with different root kinds', () => {
+  const create = (rootKind: 'query' | 'mutation' | 'subscription', fieldName: string) => {
+    const mockOperation = createMockGqlOperation({ rootKind, fieldName })
 
-    return new OasOperationBase({
+    return new GqlOperationProjectionBase({
       context: {} as GenerateContextType,
       settings: ContentSettings.empty({
-        identifier: Identifier.createVariable(operationId),
-        exportPath: `./operations/${operationId.toLowerCase()}.ts`
+        identifier: Identifier.createVariable(fieldName),
+        exportPath: `./operations/${fieldName.toLowerCase()}.ts`
       }),
-      generatorKey: `test-gen|${method}|/${operationId}` as GeneratorKey,
+      generatorKey: `test-gen|${rootKind}|${fieldName}` as unknown as GeneratorKey,
       operation: mockOperation
     })
   }
 
-  const getOperation = createOperation('get', 'getUsers')
-  assertEquals(getOperation.operation.method, 'get')
+  const queryOp = create('query', 'getUsers')
+  assertEquals(queryOp.operation.rootKind, 'query')
 
-  const postOperation = createOperation('post', 'createUser')
-  assertEquals(postOperation.operation.method, 'post')
+  const mutationOp = create('mutation', 'createUser')
+  assertEquals(mutationOp.operation.rootKind, 'mutation')
 
-  const putOperation = createOperation('put', 'updateUser')
-  assertEquals(putOperation.operation.method, 'put')
-
-  const deleteOperation = createOperation('delete', 'deleteUser')
-  assertEquals(deleteOperation.operation.method, 'delete')
+  const subscriptionOp = create('subscription', 'onUserChange')
+  assertEquals(subscriptionOp.operation.rootKind, 'subscription')
 })
 
 Deno.test(
-  'OasOperationBase - insertOperation calls context.insertOperation with correct params',
+  'GqlOperationProjectionBase - insertOperation calls context.insertOperation with correct params',
   () => {
     const exportPath = './operations/users.ts'
 
@@ -219,40 +189,31 @@ Deno.test(
 
     const insertOperationSpy = spy(mockContext, 'insertOperation')
 
-    const mockOperation = new OasOperation({
-      path: '/users',
-      method: 'get',
-      pathItem: undefined,
-      operationId: 'getUsers',
-      responses: {}
-    })
+    const mockOperation = createMockGqlOperation()
 
-    const operation = new OasOperationBase({
+    const operation = new GqlOperationProjectionBase({
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('getUsers'),
         exportPath
       }),
-      generatorKey: 'test-gen|get|/users' as GeneratorKey,
+      generatorKey: 'test-gen|query|getUsers' as unknown as GeneratorKey,
       operation: mockOperation
     })
 
-    const mockInsertable = { toDefinition: () => ({}) }
-    const mockRelatedOperation = new OasOperation({
-      path: '/related',
-      method: 'post',
-      pathItem: undefined,
-      operationId: 'relatedOp',
-      responses: {}
+    const mockProjection = { toDefinition: () => ({}) }
+    const mockRelatedOperation = createMockGqlOperation({
+      rootKind: 'mutation',
+      fieldName: 'relatedOp'
     })
 
-    operation.insertOperation(mockInsertable as any, mockRelatedOperation, {
+    operation.insertOperation(mockProjection as any, mockRelatedOperation, {
       noExport: true
     })
 
     assertSpyCalls(insertOperationSpy, 1)
     assertEquals(insertOperationSpy.calls[0].args[0] as any, {
-      insertable: mockInsertable,
+      projection: mockProjection,
       operation: mockRelatedOperation,
       destinationPath: exportPath,
       noExport: true
@@ -262,7 +223,7 @@ Deno.test(
   }
 )
 
-Deno.test('OasOperationBase - insertOperation without noExport option', () => {
+Deno.test('GqlOperationProjectionBase - insertOperation without noExport option', () => {
   const exportPath = './api/endpoints.ts'
 
   const mockContext = {
@@ -271,38 +232,26 @@ Deno.test('OasOperationBase - insertOperation without noExport option', () => {
 
   const insertOperationSpy = spy(mockContext, 'insertOperation')
 
-  const mockOperation = new OasOperation({
-    path: '/test',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'testOp',
-    responses: {}
-  })
+  const mockOperation = createMockGqlOperation({ fieldName: 'testOp' })
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('testOp'),
       exportPath
     }),
-    generatorKey: 'test-gen|get|/test' as GeneratorKey,
+    generatorKey: 'test-gen|query|testOp' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
-  const mockInsertable = { toDefinition: () => ({}) }
-  const mockRelatedOp = new OasOperation({
-    path: '/related',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'related',
-    responses: {}
-  })
+  const mockProjection = { toDefinition: () => ({}) }
+  const mockRelatedOp = createMockGqlOperation({ fieldName: 'related' })
 
-  operation.insertOperation(mockInsertable as any, mockRelatedOp)
+  operation.insertOperation(mockProjection as any, mockRelatedOp)
 
   assertSpyCalls(insertOperationSpy, 1)
   assertEquals(insertOperationSpy.calls[0].args[0] as any, {
-    insertable: mockInsertable,
+    projection: mockProjection,
     operation: mockRelatedOp,
     destinationPath: exportPath,
     noExport: undefined
@@ -311,7 +260,7 @@ Deno.test('OasOperationBase - insertOperation without noExport option', () => {
   insertOperationSpy.restore()
 })
 
-Deno.test('OasOperationBase - insertModel calls context.insertModel with correct params', () => {
+Deno.test('GqlOperationProjectionBase - insertModel calls context.insertModel with correct params', () => {
   const exportPath = './models/types.ts'
 
   const mockContext = {
@@ -320,33 +269,30 @@ Deno.test('OasOperationBase - insertModel calls context.insertModel with correct
 
   const insertModelSpy = spy(mockContext, 'insertModel')
 
-  const mockOperation = new OasOperation({
-    path: '/users',
-    method: 'post',
-    pathItem: undefined,
-    operationId: 'createUser',
-    responses: {}
+  const mockOperation = createMockGqlOperation({
+    rootKind: 'mutation',
+    fieldName: 'createUser'
   })
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('createUser'),
       exportPath
     }),
-    generatorKey: 'test-gen|post|/users' as GeneratorKey,
+    generatorKey: 'test-gen|mutation|createUser' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
-  const mockInsertable = { toDefinition: () => ({}) }
+  const mockProjection = { toDefinition: () => ({}) }
   const refName = 'User'
 
-  operation.insertModel(mockInsertable as any, refName as any, {
+  operation.insertModel(mockProjection as any, refName as any, {
     noExport: false
   })
 
   assertSpyCalls(insertModelSpy, 1)
-  assertEquals(insertModelSpy.calls[0].args[0] as any, mockInsertable)
+  assertEquals(insertModelSpy.calls[0].args[0] as any, mockProjection)
   assertEquals(insertModelSpy.calls[0].args[1] as any, refName)
   assertEquals(insertModelSpy.calls[0].args[2] as any, {
     destinationPath: exportPath,
@@ -357,7 +303,7 @@ Deno.test('OasOperationBase - insertModel calls context.insertModel with correct
 })
 
 Deno.test(
-  'OasOperationBase - insertNormalizedModel calls context.insertNormalisedModel with correct params',
+  'GqlOperationProjectionBase - insertNormalizedModel calls context.insertNormalisedModel with correct params',
   () => {
     const exportPath = './schemas/generated.ts'
 
@@ -367,36 +313,30 @@ Deno.test(
 
     const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
 
-    const mockOperation = new OasOperation({
-      path: '/data',
-      method: 'get',
-      pathItem: undefined,
-      operationId: 'getData',
-      responses: {}
-    })
+    const mockOperation = createMockGqlOperation({ fieldName: 'getData' })
 
-    const operation = new OasOperationBase({
+    const operation = new GqlOperationProjectionBase({
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('getData'),
         exportPath
       }),
-      generatorKey: 'test-gen|get|/data' as GeneratorKey,
+      generatorKey: 'test-gen|query|getData' as unknown as GeneratorKey,
       operation: mockOperation
     })
 
-    const mockInsertable = { toDefinition: () => ({}) }
+    const mockProjection = { toDefinition: () => ({}) }
     const mockSchema = { type: 'object', properties: {} }
     const fallbackName = 'GetDataResponse'
 
     operation.insertNormalizedModel(
-      mockInsertable as any,
+      mockProjection as any,
       { schema: mockSchema as any, fallbackName },
       { noExport: true }
     )
 
     assertSpyCalls(insertNormalisedModelSpy, 1)
-    assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockInsertable)
+    assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockProjection)
     assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
       schema: mockSchema,
       fallbackName,
@@ -409,7 +349,7 @@ Deno.test(
 )
 
 Deno.test(
-  'OasOperationBase - defineAndRegister calls context.defineAndRegister with correct params',
+  'GqlOperationProjectionBase - defineAndRegister calls context.defineAndRegister with correct params',
   () => {
     const exportPath = './helpers/utils.ts'
 
@@ -419,21 +359,18 @@ Deno.test(
 
     const defineAndRegisterSpy = spy(mockContext, 'defineAndRegister')
 
-    const mockOperation = new OasOperation({
-      path: '/validate',
-      method: 'post',
-      pathItem: undefined,
-      operationId: 'validate',
-      responses: {}
+    const mockOperation = createMockGqlOperation({
+      rootKind: 'mutation',
+      fieldName: 'validate'
     })
 
-    const operation = new OasOperationBase({
+    const operation = new GqlOperationProjectionBase({
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('validate'),
         exportPath
       }),
-      generatorKey: 'test-gen|post|/validate' as GeneratorKey,
+      generatorKey: 'test-gen|mutation|validate' as unknown as GeneratorKey,
       operation: mockOperation
     })
 
@@ -458,7 +395,7 @@ Deno.test(
   }
 )
 
-Deno.test('OasOperationBase - register calls context.register with correct params', () => {
+Deno.test('GqlOperationProjectionBase - register calls context.register with correct params', () => {
   const exportPath = './imports/dependencies.ts'
 
   const mockContext = {
@@ -467,21 +404,15 @@ Deno.test('OasOperationBase - register calls context.register with correct param
 
   const registerSpy = spy(mockContext, 'register')
 
-  const mockOperation = new OasOperation({
-    path: '/api',
-    method: 'get',
-    pathItem: undefined,
-    operationId: 'apiCall',
-    responses: {}
-  })
+  const mockOperation = createMockGqlOperation({ fieldName: 'apiCall' })
 
-  const operation = new OasOperationBase({
+  const operation = new GqlOperationProjectionBase({
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('apiCall'),
       exportPath
     }),
-    generatorKey: 'test-gen|get|/api' as GeneratorKey,
+    generatorKey: 'test-gen|query|apiCall' as unknown as GeneratorKey,
     operation: mockOperation
   })
 
