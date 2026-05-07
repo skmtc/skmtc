@@ -70,7 +70,7 @@ type ConstructorArgs = {
   settings: ClientSettings | undefined
   logger: log.Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
-  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: () => GeneratorsMapContainer
 }
 
 /**
@@ -234,7 +234,7 @@ export class GenerateContext implements GenerateContextType {
   /** Function to capture processing results at current stack position */
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   /** Function that returns the generator configuration map */
-  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: () => GeneratorsMapContainer
 
   /** Tracking model nesting depth to prevent infinite recursion */
   modelDepth: Record<string, number>

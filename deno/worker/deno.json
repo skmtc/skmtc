@@ -6,8 +6,8 @@
     "./types": "./types.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.2.0",
-    "@skmtc/core/parsers/graphql": "jsr:@skmtc/core@^0.2.0/parsers/graphql",
+    "@skmtc/core": "jsr:@skmtc/core@^0.3.0",
+    "@skmtc/core/parsers/graphql": "jsr:@skmtc/core@^0.3.0/parsers/graphql",
     "openapi-types": "npm:openapi-types@^12.1.3"
   },
   "compilerOptions": {

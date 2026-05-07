@@ -1,7 +1,7 @@
 import { assertEquals } from '@std/assert/equals'
 import { assertRejects } from '@std/assert/rejects'
 import { generateSandboxApi, type GenerateSandboxApiArgs } from '@/services/generateSandboxApi.ts'
-import type { ClientSettings } from '@/types/clientSettings.generated.ts'
+import type { ClientSettings } from '@skmtc/core/Settings'
 
 // Store originals to restore after tests
 const originalFetch = globalThis.fetch
@@ -17,6 +17,7 @@ const createTestArgs = (includeToken = true): GenerateSandboxApiArgs => ({
     info: { title: 'Test API', version: '1.0.0' },
     paths: {}
   }),
+  protocol: 'oas',
   clientSettings: {
     basePath: '/api',
     auth: { type: 'bearer' }

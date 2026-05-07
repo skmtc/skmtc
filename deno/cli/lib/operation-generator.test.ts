@@ -23,11 +23,11 @@ Deno.test('OperationGenerator - toOperationMod generates correct mod.ts content'
   assertStringIncludes(result, 'return true')
   assertStringIncludes(
     result,
-    'context.insertOperation({ insertable: UserOperations, operation })'
+    'context.insertOperation({ projection: UserOperations, operation })'
   )
 })
 
-Deno.test('OperationGenerator - toOasOperationBase generates correct base.ts content', () => {
+Deno.test('OperationGenerator - toOasOperationProjectionBase generates correct base.ts content', () => {
   const generator = Generator.create({
     projectName: 'test-project',
     scopeName: '@skmtc',
@@ -36,13 +36,13 @@ Deno.test('OperationGenerator - toOasOperationBase generates correct base.ts con
   })
 
   const operationGenerator = new OperationGenerator(generator)
-  const result = operationGenerator.toOasOperationBase('ProductOps')
+  const result = operationGenerator.toOasOperationProjectionBase('ProductOps')
 
-  assertStringIncludes(result, 'export const ProductOpsBase = toOasOperationBase({')
+  assertStringIncludes(result, 'export const ProductOpsBase = toOasOperationProjectionBase({')
   assertStringIncludes(result, "id: '@skmtc/product-ops'")
   assertStringIncludes(result, 'toIdentifier(operation): Identifier')
   assertStringIncludes(result, 'toExportPath(operation): string')
-  assertStringIncludes(result, "import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationBase } from '@skmtc/core'")
+  assertStringIncludes(result, "import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationProjectionBase } from '@skmtc/core'")
   assertStringIncludes(result, "import { join } from '@std/path/join'")
 })
 
@@ -57,10 +57,10 @@ Deno.test('OperationGenerator - toOperationMainModule generates correct main mod
   const operationGenerator = new OperationGenerator(generator)
   const result = operationGenerator.toOperationMainModule('OrderOps')
 
-  assertStringIncludes(result, "import type { OasOperationInsertableArgs } from '@skmtc/core'")
+  assertStringIncludes(result, "import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'")
   assertStringIncludes(result, "import { OrderOpsBase } from './base.ts'")
   assertStringIncludes(result, 'export class OrderOps extends OrderOpsBase')
-  assertStringIncludes(result, 'constructor({ context, operation, settings }: OasOperationInsertableArgs)')
+  assertStringIncludes(result, 'constructor({ context, operation, settings }: OasOperationProjectionConstructorArgs)')
   assertStringIncludes(result, 'super({ context, operation, settings })')
   assertStringIncludes(result, 'override toString()')
 })
@@ -110,7 +110,7 @@ Deno.test('OperationGenerator - handles different package names correctly', () =
 
   const operationGenerator = new OperationGenerator(generator)
   const modContent = operationGenerator.toOperationMod('MyCustomOperations')
-  const baseContent = operationGenerator.toOasOperationBase('MyCustomOperations')
+  const baseContent = operationGenerator.toOasOperationProjectionBase('MyCustomOperations')
   const mainContent = operationGenerator.toOperationMainModule('MyCustomOperations')
 
   // Verify module name is used correctly
@@ -172,7 +172,7 @@ Deno.test('OperationGenerator - toOperationMod includes isSupported predicate', 
   assertStringIncludes(result, 'return true')
 })
 
-Deno.test('OperationGenerator - toOasOperationBase includes identifier generation logic', () => {
+Deno.test('OperationGenerator - toOasOperationProjectionBase includes identifier generation logic', () => {
   const generator = Generator.create({
     projectName: 'test',
     scopeName: '@test',
@@ -181,7 +181,7 @@ Deno.test('OperationGenerator - toOasOperationBase includes identifier generatio
   })
 
   const operationGenerator = new OperationGenerator(generator)
-  const result = operationGenerator.toOasOperationBase('RestApi')
+  const result = operationGenerator.toOasOperationProjectionBase('RestApi')
 
   // Verify identifier generation uses verb and camelCase
   assertStringIncludes(result, 'const verb = capitalize(toMethodVerb(operation.method))')

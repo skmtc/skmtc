@@ -54,68 +54,18 @@ export type GeneratorConfig<EnrichmentType = undefined> =
   | ModelConfig<EnrichmentType>
 
 /**
- * Type-safe mapping of generator configurations.
+ * A name → generator-config map. Keys are arbitrary generator
+ * identifiers (the same string a caller might pass to `--skip` etc.);
+ * each value is a `GeneratorConfig` variant.
  *
- * This type preserves the structure and types of generator configurations
- * within a map, ensuring that each generator maintains its specific
- * configuration type and enrichment data.
- *
- * @template G - The generator configuration type
- * @template EnrichmentType - The enrichment type for the generators
- *
- * @example
- * ```typescript
- * type MyGenerators = {
- *   'api-client': OasOperationConfig<ApiEnrichment>;
- *   'typescript-models': ModelConfig<ModelEnrichment>;
- *   'validation': ModelConfig<ValidationEnrichment>;
- * };
- *
- * type MyGeneratorsMap = GeneratorsMap<MyGenerators, undefined>;
- * // Preserves the exact structure and types of MyGenerators
- * ```
+ * The runtime treats this as a plain `Record<string, GeneratorConfig>`
+ * — it iterates with `Object.values` and `Object.keys` — so the type
+ * mirrors that shape. There is no per-key type narrowing: callers who
+ * want type-level distinctions between specific entries can keep the
+ * literal map well-typed at its definition site and only widen here at
+ * the boundary.
  */
-export type GeneratorsMap<G extends GeneratorConfig<EnrichmentType>, EnrichmentType> = {
-  [K in keyof G]: G[K]
-}
-
-/**
- * Container type for a complete generators map with optional enrichment.
- *
- * This type represents a complete mapping of generators that can process
- * an OpenAPI document. It's used as the main configuration structure
- * passed to the SKMTC processing pipeline.
- *
- * @template EnrichmentType - Optional type for custom enrichment data across all generators
- *
- * @example Basic generators map
- * ```typescript
- * import { toArtifacts, toOasOperationEntry, toModelEntry, StackTrail } from '@skmtc/core';
- *
- * const generators = {
- *   'api-client': toOasOperationEntry({
- *     id: 'api-client',
- *     transform: ({ context, operation, acc }) => acc
- *   }),
- *   'typescript-models': toModelEntry({
- *     id: 'typescript-models',
- *     transform: ({ context, refName, acc }) => acc
- *   })
- * };
- *
- * const result = toArtifacts({
- *   documentObject: openApiDoc,
- *   settings: clientSettings,
- *   toGeneratorConfigMap: () => generators,
- *   traceId: 'generation',
- *   spanId: 'main',
- *   startAt: Date.now(),
- *   silent: false,
- *   stackTrail: new StackTrail(['gen'])
- * });
- * ```
- */
-export type GeneratorsMapContainer<EnrichmentType = undefined> = GeneratorsMap<
-  GeneratorConfig<EnrichmentType>,
-  EnrichmentType
+export type GeneratorsMapContainer<EnrichmentType = undefined> = Record<
+  string,
+  GeneratorConfig<EnrichmentType>
 >

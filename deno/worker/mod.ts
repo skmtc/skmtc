@@ -30,7 +30,7 @@ type SharedRunArgs = {
   spanId: string
   startAt: number
   stackTrail: StackTrail
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: () => GeneratorsMapContainer
 }
 
 /**
@@ -110,7 +110,7 @@ const runArtifacts = (args: RunArgs): GenerateResult => {
  * cleanly; the parsed object would not.
  */
 const toWorker = (
-  toGeneratorConfigMap: <EnrichmentType>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: () => GeneratorsMapContainer
 ) => {
   self.onmessage = (e: MessageEvent) => {
     const { type, payload } = e.data as {

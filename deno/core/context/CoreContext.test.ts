@@ -39,11 +39,7 @@ const createDocumentWithComponents = (): OpenAPIV3.Document => ({
 })
 
 // Helper function to create empty generator map
-// Using type assertion to work around complex generic type
-const createEmptyGeneratorMap = <EnrichmentType = undefined>() =>
-  ({
-    toGenerator: undefined
-  }) as unknown as GeneratorsMapContainer<EnrichmentType>
+const createEmptyGeneratorMap = <EnrichmentType = undefined>(): GeneratorsMapContainer<EnrichmentType> => ({})
 
 // Helper function to create test CoreContext
 const createTestContext = (options?: { spanId?: string; logsPath?: string; silent?: boolean }) => {

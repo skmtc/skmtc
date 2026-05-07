@@ -19,31 +19,31 @@ export class ModelGenerator {
     const modContent = this.toModelMod(mainModule)
     await Deno.writeTextFile(join(srcPath, 'mod.ts'), modContent)
 
-    const baseContent = this.toModelBase(mainModule)
+    const baseContent = this.toModelProjectionBase(mainModule)
     await Deno.writeTextFile(join(srcPath, 'base.ts'), baseContent)
 
-    const insertableContent = this.toModelInsertable(mainModule)
-    await Deno.writeTextFile(join(srcPath, `${mainModule}Insertable.ts`), insertableContent)
+    const projectionContent = this.toModelProjection(mainModule)
+    await Deno.writeTextFile(join(srcPath, `${mainModule}Projection.ts`), projectionContent)
   }
 
   toModelMod(mainModule: string) {
     return `import { toModelEntry } from '@skmtc/core'
-import { ${mainModule}Insertable } from './${mainModule}Insertable.ts'
+import { ${mainModule}Projection } from './${mainModule}Projection.ts'
 
 export const ${this.generator.packageName}Entry = toModelEntry({
   id: '${this.generator.toModuleName()}',
 
   transform({ context, refName }) {
-    context.insertModel(${mainModule}Insertable, refName)
+    context.insertModel(${mainModule}Projection, refName)
   }
 })`
   }
 
-  toModelBase(mainModule: string) {
-    return `import { decapitalize, Identifier, toModelBase, type RefName, camelCase } from '@skmtc/core'
+  toModelProjectionBase(mainModule: string) {
+    return `import { decapitalize, Identifier, toModelProjectionBase, type RefName, camelCase } from '@skmtc/core'
 import { join } from '@std/path/join'
 
-export const ${mainModule}Base = toModelBase({
+export const ${mainModule}Base = toModelProjectionBase({
   id: '${this.generator.toModuleName()}',
 
   toIdentifier(refName: RefName): Identifier {
@@ -61,7 +61,7 @@ export const ${mainModule}Base = toModelBase({
 `
   }
 
-  toModelInsertable(mainModule: string) {
+  toModelProjection(mainModule: string) {
     return `import type { TypeSystemValue, GenerateContext, RefName, ContentSettings } from '@skmtc/core'
 import { to${mainModule}Value } from './${mainModule}.ts'
 import { ${mainModule}Base } from './base.ts'
@@ -74,7 +74,7 @@ type ConstructorArgs = {
   rootRef?: RefName
 }
 
-export class ${mainModule}Insertable extends ${mainModule}Base {
+export class ${mainModule}Projection extends ${mainModule}Base {
   value: TypeSystemValue
   constructor({ context, refName, settings, destinationPath, rootRef }: ConstructorArgs) {
     super({ context, refName, settings })

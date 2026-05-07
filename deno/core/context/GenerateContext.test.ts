@@ -44,7 +44,6 @@ const createTestContext = (options?: {
     settings: options?.settings,
     logger: options?.logger ?? mockLogger,
     captureCurrentResult,
-    // @ts-expect-error - mock implementation
     toGeneratorConfigMap: () => ({})
   })
 
@@ -67,7 +66,6 @@ Deno.test('GenerateContext - Constructor', async (t) => {
       settings,
       logger: mockLogger,
       captureCurrentResult,
-      // @ts-expect-error - mock implementation
       toGeneratorConfigMap
     })
 
@@ -290,11 +288,11 @@ Deno.test('GenerateContext - Artifact Generation', async (t) => {
     })
 
     // Override toGeneratorConfigMap to return a test generator
-    // @ts-expect-error - minimal mock for testing
     context.toGeneratorConfigMap = () => ({
       generator1: {
         id: 'generator1',
         type: 'model',
+        // @ts-expect-error - minimal mock; real transform is generic over Acc
         transform: () => {}
       }
     })
@@ -484,7 +482,6 @@ const createGqlContext = (operations: GqlOperation[] = []) => {
     settings: undefined,
     logger: mockLogger,
     captureCurrentResult,
-    // @ts-expect-error - mock implementation
     toGeneratorConfigMap: () => ({})
   })
 
@@ -527,11 +524,11 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     const { context } = createTestContext()
     const transform = spy(() => undefined)
 
-    // @ts-expect-error - minimal mock
     context.toGeneratorConfigMap = () => ({
       'http-gen': {
         id: 'http-gen',
         type: 'oasOperation',
+        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform,
         isSupported: () => true
       }
@@ -554,11 +551,11 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     const { context } = createGqlContext([op])
     const transform = spy(() => undefined)
 
-    // @ts-expect-error - minimal mock
     context.toGeneratorConfigMap = () => ({
       'gql-gen': {
         id: 'gql-gen',
         type: 'gqlOperation',
+        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform,
         isSupported: () => true
       }
@@ -578,11 +575,11 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     const { context } = createGqlContext([op])
     const transform = spy(() => undefined)
 
-    // @ts-expect-error - minimal mock
     context.toGeneratorConfigMap = () => ({
       'http-gen': {
         id: 'http-gen',
         type: 'oasOperation',
+        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform,
         isSupported: () => true
       }
@@ -596,11 +593,11 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
     const { context } = createTestContext()
     const transform = spy(() => undefined)
 
-    // @ts-expect-error - minimal mock
     context.toGeneratorConfigMap = () => ({
       'gql-gen': {
         id: 'gql-gen',
         type: 'gqlOperation',
+        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform,
         isSupported: () => true
       }
@@ -631,17 +628,16 @@ Deno.test('GenerateContext - model dispatch is protocol-neutral', async (t) => {
       settings: undefined,
       logger: mockLogger,
       captureCurrentResult,
-      // @ts-expect-error - mock
       toGeneratorConfigMap: () => ({})
     })
 
     const transform = spy(() => undefined)
 
-    // @ts-expect-error - minimal mock
     context.toGeneratorConfigMap = () => ({
       'model-gen': {
         id: 'model-gen',
         type: 'model',
+        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform
       }
     })

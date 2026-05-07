@@ -1,4 +1,5 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert@^1.0.10'
+import type { ModelConfig, TransformModelArgs } from '@skmtc/core'
 import { createServer } from './createServer.ts'
 
 /**
@@ -88,11 +89,15 @@ Deno.test('POST /artifacts - rejects body with invalid protocol', async () => {
 })
 
 Deno.test('GET /generators - lists configured generator IDs', async () => {
+  const modelGen: ModelConfig = {
+    id: 'modelGen',
+    type: 'model',
+    transform<Acc = void>({ acc }: TransformModelArgs<Acc>): Acc {
+      return acc as Acc
+    }
+  }
   const app = createServer({
-    toGeneratorConfigMap: () => ({
-      // @ts-expect-error - minimal mock; we only check the keys are listed
-      modelGen: { id: 'modelGen', type: 'model', transform: () => undefined }
-    })
+    toGeneratorConfigMap: () => ({ modelGen })
   })
 
   const res = await app.request('/generators')

@@ -142,7 +142,6 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     settings: undefined,
     logger: mockLogger,
     captureCurrentResult,
-    // @ts-expect-error - mock
     toGeneratorConfigMap: () => ({
       modelGen: modelGenerator,
       operationGen: operationGenerator
@@ -210,7 +209,6 @@ Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL d
     settings: undefined,
     logger: mockLogger,
     captureCurrentResult,
-    // @ts-expect-error - mock
     toGeneratorConfigMap: () => ({ http: httpGenerator })
   })
 

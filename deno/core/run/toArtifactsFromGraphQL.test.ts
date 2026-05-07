@@ -24,8 +24,7 @@ const mkArgs = (overrides: Record<string, unknown> = {}): TransformGraphQLArgs =
   spanId: 'main',
   source: sdl,
   settings: undefined,
-  toGeneratorConfigMap: <EnrichmentType = undefined>(): GeneratorsMapContainer<EnrichmentType> =>
-    ({}) as unknown as GeneratorsMapContainer<EnrichmentType>,
+  toGeneratorConfigMap: (): GeneratorsMapContainer => ({}),
   startAt: Date.now(),
   silent: true,
   stackTrail: new StackTrail(['gql-test']),

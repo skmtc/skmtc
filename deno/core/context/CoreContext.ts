@@ -70,7 +70,7 @@ export type ExecutionPhase = ParsePhase | GeneratePhase | RenderPhase
 type GenerateArgs = {
   document: SkmtcDocument
   settings: ClientSettings | undefined
-  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: () => GeneratorsMapContainer
 }
 
 type CoreContextArgs = {
@@ -113,7 +113,7 @@ export type ToArtifactsArgs = {
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Function that returns the generator configuration map */
-  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: () => GeneratorsMapContainer
   /** Prettier configuration for code formatting (optional) */
   prettier?: PrettierConfigType
   /** Whether to suppress console output */

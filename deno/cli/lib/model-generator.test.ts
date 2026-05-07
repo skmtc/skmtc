@@ -16,13 +16,13 @@ Deno.test('ModelGenerator - toModelMod generates correct mod.ts content', () => 
   const result = modelGenerator.toModelMod('UserModel')
 
   assertStringIncludes(result, "import { toModelEntry } from '@skmtc/core'")
-  assertStringIncludes(result, "import { UserModelInsertable } from './UserModelInsertable.ts'")
+  assertStringIncludes(result, "import { UserModelProjection } from './UserModelProjection.ts'")
   assertStringIncludes(result, 'export const user-modelEntry = toModelEntry({')
   assertStringIncludes(result, "id: '@test/user-model'")
-  assertStringIncludes(result, 'context.insertModel(UserModelInsertable, refName)')
+  assertStringIncludes(result, 'context.insertModel(UserModelProjection, refName)')
 })
 
-Deno.test('ModelGenerator - toModelBase generates correct base.ts content', () => {
+Deno.test('ModelGenerator - toModelProjectionBase generates correct base.ts content', () => {
   const generator = Generator.create({
     projectName: 'test-project',
     scopeName: '@skmtc',
@@ -31,16 +31,16 @@ Deno.test('ModelGenerator - toModelBase generates correct base.ts content', () =
   })
 
   const modelGenerator = new ModelGenerator(generator)
-  const result = modelGenerator.toModelBase('ProductModel')
+  const result = modelGenerator.toModelProjectionBase('ProductModel')
 
-  assertStringIncludes(result, 'export const ProductModelBase = toModelBase({')
+  assertStringIncludes(result, 'export const ProductModelBase = toModelProjectionBase({')
   assertStringIncludes(result, "id: '@skmtc/product-model'")
   assertStringIncludes(result, 'toIdentifier(refName: RefName): Identifier')
   assertStringIncludes(result, 'toExportPath(refName: RefName): string')
-  assertStringIncludes(result, "import { decapitalize, Identifier, toModelBase, type RefName, camelCase } from '@skmtc/core'")
+  assertStringIncludes(result, "import { decapitalize, Identifier, toModelProjectionBase, type RefName, camelCase } from '@skmtc/core'")
 })
 
-Deno.test('ModelGenerator - toModelInsertable generates correct insertable content', () => {
+Deno.test('ModelGenerator - toModelProjection generates correct projection content', () => {
   const generator = Generator.create({
     projectName: 'test-project',
     scopeName: '@company',
@@ -49,12 +49,12 @@ Deno.test('ModelGenerator - toModelInsertable generates correct insertable conte
   })
 
   const modelGenerator = new ModelGenerator(generator)
-  const result = modelGenerator.toModelInsertable('OrderModel')
+  const result = modelGenerator.toModelProjection('OrderModel')
 
   assertStringIncludes(result, "import type { TypeSystemValue, GenerateContext, RefName, ContentSettings } from '@skmtc/core'")
   assertStringIncludes(result, "import { toOrderModelValue } from './OrderModel.ts'")
   assertStringIncludes(result, "import { OrderModelBase } from './base.ts'")
-  assertStringIncludes(result, 'export class OrderModelInsertable extends OrderModelBase')
+  assertStringIncludes(result, 'export class OrderModelProjection extends OrderModelBase')
   assertStringIncludes(result, 'value: TypeSystemValue')
   assertStringIncludes(result, 'override toString()')
 })
@@ -79,15 +79,15 @@ Deno.test('ModelGenerator - createModelFiles creates correct file structure', as
     const srcPath = join(generatorPath, 'src')
     const modExists = await Deno.stat(join(srcPath, 'mod.ts')).then(() => true).catch(() => false)
     const baseExists = await Deno.stat(join(srcPath, 'base.ts')).then(() => true).catch(() => false)
-    const insertableExists = await Deno.stat(join(srcPath, 'TestModelInsertable.ts')).then(() => true).catch(() => false)
+    const projectionExists = await Deno.stat(join(srcPath, 'TestModelProjection.ts')).then(() => true).catch(() => false)
 
     assertEquals(modExists, true)
     assertEquals(baseExists, true)
-    assertEquals(insertableExists, true)
+    assertEquals(projectionExists, true)
 
     // Verify content
     const modContent = await Deno.readTextFile(join(srcPath, 'mod.ts'))
-    assertStringIncludes(modContent, 'TestModelInsertable')
+    assertStringIncludes(modContent, 'TestModelProjection')
     assertStringIncludes(modContent, '@test/test-model')
   } finally {
     await Deno.remove(tempDir, { recursive: true })
@@ -104,14 +104,14 @@ Deno.test('ModelGenerator - handles different package names correctly', () => {
 
   const modelGenerator = new ModelGenerator(generator)
   const modContent = modelGenerator.toModelMod('MyCustomModel')
-  const baseContent = modelGenerator.toModelBase('MyCustomModel')
-  const insertableContent = modelGenerator.toModelInsertable('MyCustomModel')
+  const baseContent = modelGenerator.toModelProjectionBase('MyCustomModel')
+  const projectionContent = modelGenerator.toModelProjection('MyCustomModel')
 
   // Verify module name is used correctly
   assertStringIncludes(modContent, 'my-custom-model')
   assertStringIncludes(modContent, '@org/my-custom-model')
   assertStringIncludes(baseContent, '@org/my-custom-model')
-  assertStringIncludes(insertableContent, 'MyCustomModel')
+  assertStringIncludes(projectionContent, 'MyCustomModel')
 })
 
 Deno.test('ModelGenerator - generates files with proper TypeScript syntax', async () => {
@@ -133,17 +133,17 @@ Deno.test('ModelGenerator - generates files with proper TypeScript syntax', asyn
     const srcPath = join(generatorPath, 'src')
     const modContent = await Deno.readTextFile(join(srcPath, 'mod.ts'))
     const baseContent = await Deno.readTextFile(join(srcPath, 'base.ts'))
-    const insertableContent = await Deno.readTextFile(join(srcPath, 'SyntaxModelInsertable.ts'))
+    const projectionContent = await Deno.readTextFile(join(srcPath, 'SyntaxModelProjection.ts'))
 
     // Verify proper imports
     assertStringIncludes(modContent, 'import {')
     assertStringIncludes(baseContent, 'import {')
-    assertStringIncludes(insertableContent, 'import type {')
+    assertStringIncludes(projectionContent, 'import type {')
 
     // Verify exports
     assertStringIncludes(modContent, 'export const')
     assertStringIncludes(baseContent, 'export const')
-    assertStringIncludes(insertableContent, 'export class')
+    assertStringIncludes(projectionContent, 'export class')
   } finally {
     await Deno.remove(tempDir, { recursive: true })
   }

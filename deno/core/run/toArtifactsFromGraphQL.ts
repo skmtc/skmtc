@@ -38,7 +38,7 @@ export type TransformGraphQLArgs = {
   /** Stack trail for distributed tracing */
   stackTrail: StackTrail
   /** Function that returns the generator configuration map */
-  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  toGeneratorConfigMap: () => GeneratorsMapContainer
   /** Timestamp when transformation started */
   startAt: number
   /** Whether to suppress console output during generation */

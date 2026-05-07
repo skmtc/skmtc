@@ -34,9 +34,9 @@ npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.co
 ### Example generator code
 
 ```typescript
-import { ZodInsertable } from '@skmtc/gen-zod'
+import { ZodProjection } from '@skmtc/gen-zod'
 
-class ZodFetch extends BaseTransformer {
+class ZodFetch extends OasOperationProjectionBase {
   zodName: string;
 
   constructor({context, operation, settings}){
@@ -44,7 +44,10 @@ class ZodFetch extends BaseTransformer {
 
     // Generate Zod schema for API response and insert it into current file
     const response = operation.toSuccessResponse()?.resolve().toSchema()
-    const zodResponse = this.insert(ZodInsertable, response)
+    const zodResponse = this.insertNormalizedModel(ZodProjection, {
+      schema: response,
+      fallbackName: `${operation.operationId}Response`
+    })
 
     // Grab Zod schema name to use in output code
     this.zodName = zodResponse.identifier.name

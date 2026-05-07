@@ -1,5 +1,5 @@
 import { toArtifacts, StackTrail } from '@skmtc/core'
-import skmtcGenZod from '../../../../.skmtc/skmtc-zod/gen-zod/mod.ts'
+import skmtcGenZod from '../../../../skmtc-generators/gen-zod/mod.ts'
 
 Deno.bench('gen', async () => {
   const schemaPath = new URL('./openapi.json', import.meta.url)
@@ -13,6 +13,7 @@ Deno.bench('gen', async () => {
     documentObject: JSON.parse(schema),
     prettier: undefined,
     settings: undefined,
+    // @ts-ignore - enrichment types do not work at this level
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),
     logsPath: undefined,
     silent: true,

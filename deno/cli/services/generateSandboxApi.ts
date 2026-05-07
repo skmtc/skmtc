@@ -1,5 +1,5 @@
 import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
-import type { ClientSettings } from '@/types/clientSettings.generated.ts'
+import type { ClientSettings } from '@skmtc/core/Settings'
 import type { GenerateResponse } from '@/lib/generate-worker.ts'
 import type { Protocol } from '@/lib/types.ts'
 

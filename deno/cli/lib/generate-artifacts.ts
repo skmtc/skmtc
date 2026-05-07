@@ -1,4 +1,4 @@
-import type { ClientSettings } from '@/types/clientSettings.generated.ts'
+import type { ClientSettings } from '@skmtc/core/Settings'
 import { generateSandboxApi } from '@/services/generateSandboxApi.ts'
 import { generateWithWorker } from './generate-worker.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'

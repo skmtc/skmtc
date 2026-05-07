@@ -19,7 +19,7 @@ export class OperationGenerator {
     const modContent = this.toOperationMod(mainModule)
     await Deno.writeTextFile(join(srcPath, 'mod.ts'), modContent)
 
-    const baseContent = this.toOasOperationBase(mainModule)
+    const baseContent = this.toOasOperationProjectionBase(mainModule)
     await Deno.writeTextFile(join(srcPath, 'base.ts'), baseContent)
 
     const mainModuleContent = this.toOperationMainModule(mainModule)
@@ -37,16 +37,16 @@ export const ${mainModule}Entry = toOasOperationEntry({
   },
 
   transform({ context, operation }) {
-    context.insertOperation({ insertable: ${mainModule}, operation })
+    context.insertOperation({ projection: ${mainModule}, operation })
   }
 })`
   }
 
-  toOasOperationBase(mainModule: string) {
-    return `import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationBase } from '@skmtc/core'
+  toOasOperationProjectionBase(mainModule: string) {
+    return `import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationProjectionBase } from '@skmtc/core'
 import { join } from '@std/path/join'
 
-export const ${mainModule}Base = toOasOperationBase({
+export const ${mainModule}Base = toOasOperationProjectionBase({
   id: '${this.generator.toModuleName()}',
 
   toIdentifier(operation): Identifier {
@@ -65,11 +65,11 @@ export const ${mainModule}Base = toOasOperationBase({
   }
 
   toOperationMainModule(mainModule: string) {
-    return `import type { OasOperationInsertableArgs } from '@skmtc/core'
+    return `import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'
 import { ${mainModule}Base } from './base.ts'
 
 export class ${mainModule} extends ${mainModule}Base {
-  constructor({ context, operation, settings }: OasOperationInsertableArgs) {
+  constructor({ context, operation, settings }: OasOperationProjectionConstructorArgs) {
     super({ context, operation, settings })
   }
 
