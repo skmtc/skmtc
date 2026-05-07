@@ -38,7 +38,7 @@ export type TransformGraphQLArgs = {
   /** Stack trail for distributed tracing */
   stackTrail: StackTrail
   /** Function that returns the generator configuration map */
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   /** Timestamp when transformation started */
   startAt: number
   /** Whether to suppress console output during generation */
@@ -48,9 +48,7 @@ export type TransformGraphQLArgs = {
 /**
  * Type guard distinguishing a pre-built `GqlDocument` from raw inputs.
  */
-const isGqlDocument = (
-  source: string | GraphQLSchema | GqlDocument
-): source is GqlDocument => {
+const isGqlDocument = (source: string | GraphQLSchema | GqlDocument): source is GqlDocument => {
   return (
     typeof source === 'object' &&
     source !== null &&

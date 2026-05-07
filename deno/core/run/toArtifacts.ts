@@ -41,7 +41,7 @@ type TransformArgs = {
   /** Stack trail for distributed tracing */
   stackTrail: StackTrail
   /** Function that returns the generator configuration map */
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   /** Timestamp when transformation started */
   startAt: number
   /** Whether to suppress console output during generation */

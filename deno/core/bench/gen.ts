@@ -1,5 +1,5 @@
 import { toArtifacts } from '@skmtc/core'
-import skmtcGenZod from '../../../../.skmtc/skmtc-zod/gen-zod/mod.ts'
+import skmtcGenZod from '../../../../skmtc-generators/gen-zod/mod.ts'
 import { StackTrail } from '../context/StackTrail.ts'
 
 export const gen = async () => {
@@ -17,6 +17,7 @@ export const gen = async () => {
     documentObject: JSON.parse(schema),
     prettier: undefined,
     settings: undefined,
+    // @ts-ignore - enrichment types do not work at this level
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),
     stackTrail: new StackTrail([traceId, spanId]),
     logsPath: './logs',

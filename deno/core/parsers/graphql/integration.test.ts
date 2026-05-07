@@ -17,6 +17,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasObject } from '@/oas/object/Object.ts'
 import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { GeneratorConfig } from '@/types/GeneratorType.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -143,7 +144,9 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     logger: mockLogger,
     captureCurrentResult,
     toGeneratorConfigMap: () => ({
+      // @ts-expect-error - known issue
       modelGen: modelGenerator,
+      // @ts-expect-error - known issue
       operationGen: operationGenerator
     })
   })
@@ -209,6 +212,7 @@ Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL d
     settings: undefined,
     logger: mockLogger,
     captureCurrentResult,
+    // @ts-expect-error - known issue
     toGeneratorConfigMap: () => ({ http: httpGenerator })
   })
 

@@ -22,6 +22,7 @@ import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
+import type { SkmtcDocument } from '@/types/SkmtcDocument.ts'
 
 /**
  * Options for inserting an operation into the generation context.
@@ -108,9 +109,9 @@ export type RenderResult = {
   /** Map of file paths to metadata */
   files: Record<string, ManifestEntry>
   /** Preview data for generated content */
-  previews: Record<string, Record<string, Preview>>
+  previews: Record<string, Preview>
   /** Mapping data for file relationships */
-  mappings: Record<string, Record<string, Mapping>>
+  mappings: Record<string, Mapping>
   /** Hierarchical results tracking */
   results: ResultsItem
 }
@@ -159,8 +160,8 @@ export type IssueType =
 
 export type GenerateResult = {
   files: Map<string, File | JsonFile>
-  previews: Record<string, Record<string, Preview>>
-  mappings: Record<string, Record<string, Mapping>>
+  previews: Record<string, Preview>
+  mappings: Record<string, Mapping>
 }
 
 /**
@@ -330,6 +331,7 @@ export type InsertNormalisedModelReturn<
 export type GenerateContextType = {
   settings: ClientSettings | undefined
   modelDepth: Record<string, number>
+  document: SkmtcDocument
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
   defineAndRegister: <V extends GeneratedValue>({
     identifier,

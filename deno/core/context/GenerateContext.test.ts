@@ -22,7 +22,7 @@ const mockLogger: log.Logger = {
   info: () => {},
   warn: () => {},
   error: () => {},
-  critical: () => {},
+  critical: () => {}
 } as unknown as log.Logger
 
 // Helper to create a GenerateContext for testing
@@ -33,11 +33,13 @@ const createTestContext = (options?: {
 }) => {
   const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
 
-  const oasDocument = options?.oasDocument ?? new OasDocument({
-    openapi: '3.0.0',
-    info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-    operations: []
-  })
+  const oasDocument =
+    options?.oasDocument ??
+    new OasDocument({
+      openapi: '3.0.0',
+      info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
+      operations: []
+    })
 
   const context = new GenerateContext({
     document: { type: 'oas', value: oasDocument },
@@ -50,7 +52,7 @@ const createTestContext = (options?: {
   return { context, captureCurrentResult }
 }
 
-Deno.test('GenerateContext - Constructor', async (t) => {
+Deno.test('GenerateContext - Constructor', async t => {
   await t.step('should initialize with all required parameters', () => {
     const oasDocument = new OasDocument({
       openapi: '3.0.0',
@@ -102,7 +104,7 @@ Deno.test('GenerateContext - Constructor', async (t) => {
   })
 })
 
-Deno.test('GenerateContext - File Management', async (t) => {
+Deno.test('GenerateContext - File Management', async t => {
   await t.step('registerJson should create a JSON file', () => {
     const { context } = createTestContext()
 
@@ -192,7 +194,7 @@ Deno.test('GenerateContext - File Management', async (t) => {
   })
 })
 
-Deno.test('GenerateContext - Definition Lookup', async (t) => {
+Deno.test('GenerateContext - Definition Lookup', async t => {
   await t.step('findDefinition should return undefined for non-existent definition', () => {
     const { context } = createTestContext()
 
@@ -267,7 +269,7 @@ Deno.test('GenerateContext - Definition Lookup', async (t) => {
   })
 })
 
-Deno.test('GenerateContext - Artifact Generation', async (t) => {
+Deno.test('GenerateContext - Artifact Generation', async t => {
   await t.step('toArtifacts should return empty results with no generators', () => {
     const { context } = createTestContext()
     const stackTrail = new StackTrail(['test'])
@@ -317,7 +319,7 @@ Deno.test('GenerateContext - Artifact Generation', async (t) => {
   })
 })
 
-Deno.test('GenerateContext - Integration', async (t) => {
+Deno.test('GenerateContext - Integration', async t => {
   await t.step('should handle complete registration and lookup workflow', () => {
     const { context } = createTestContext()
 
@@ -488,7 +490,7 @@ const createGqlContext = (operations: GqlOperation[] = []) => {
   return { context, captureCurrentResult, gqlDocument }
 }
 
-Deno.test('GenerateContext - SkmtcDocument discrimination', async (t) => {
+Deno.test('GenerateContext - SkmtcDocument discrimination', async t => {
   await t.step('oasDocument getter returns OAS doc for OAS context', () => {
     const { context } = createTestContext()
     assertEquals(context.document.type, 'oas')
@@ -497,11 +499,7 @@ Deno.test('GenerateContext - SkmtcDocument discrimination', async (t) => {
 
   await t.step('oasDocument getter throws on GQL context', () => {
     const { context } = createGqlContext()
-    assertThrows(
-      () => context.oasDocument,
-      Error,
-      "Expected an OAS document but got 'gql'"
-    )
+    assertThrows(() => context.oasDocument, Error, "Expected an OAS document but got 'gql'")
   })
 
   await t.step('gqlDocument getter returns GQL doc for GQL context', () => {
@@ -511,15 +509,11 @@ Deno.test('GenerateContext - SkmtcDocument discrimination', async (t) => {
 
   await t.step('gqlDocument getter throws on OAS context', () => {
     const { context } = createTestContext()
-    assertThrows(
-      () => context.gqlDocument,
-      Error,
-      "Expected a GQL document but got 'oas'"
-    )
+    assertThrows(() => context.gqlDocument, Error, "Expected a GQL document but got 'oas'")
   })
 })
 
-Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
+Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
   await t.step('oas operation generator runs for OAS document', () => {
     const { context } = createTestContext()
     const transform = spy(() => undefined)
@@ -608,7 +602,7 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async (t) => {
   })
 })
 
-Deno.test('GenerateContext - model dispatch is protocol-neutral', async (t) => {
+Deno.test('GenerateContext - model dispatch is protocol-neutral', async t => {
   await t.step('model generator runs on GQL document via registry', () => {
     const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
 

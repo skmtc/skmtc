@@ -24,7 +24,9 @@ const mkArgs = (overrides: Record<string, unknown> = {}): TransformGraphQLArgs =
   spanId: 'main',
   source: sdl,
   settings: undefined,
-  toGeneratorConfigMap: (): GeneratorsMapContainer => ({}),
+  toGeneratorConfigMap: <
+    EnrichmentType = undefined
+  >(): GeneratorsMapContainer<EnrichmentType> => ({}),
   startAt: Date.now(),
   silent: true,
   stackTrail: new StackTrail(['gql-test']),
@@ -141,15 +143,22 @@ Deno.test('toArtifactsFromGraphQL - parseIssues surfaces lossy and skipped findi
   assertEquals(types, ['DROPPED_DIRECTIVE', 'NESTED_LIST_LOSSY', 'SKIPPED_FIELD_ARGUMENTS'])
 })
 
-Deno.test('toArtifactsFromGraphQL - pre-built GqlDocument source means parseIssues is empty', () => {
-  // When the caller provides a parsed GqlDocument, parsing already
-  // happened elsewhere; we don't re-run it, so no issues surface here.
-  // Callers wanting issues should construct GqlParseContext themselves.
-  const lossySdl = /* GraphQL */ `
-    type Matrix { cells: [[Int]] }
-    type Query { _: Boolean }
-  `
-  const gqlDocument = toGqlDocument(lossySdl)
-  const result = toArtifactsFromGraphQL(mkArgs({ source: gqlDocument }))
-  assertEquals(result.parseIssues, [])
-})
+Deno.test(
+  'toArtifactsFromGraphQL - pre-built GqlDocument source means parseIssues is empty',
+  () => {
+    // When the caller provides a parsed GqlDocument, parsing already
+    // happened elsewhere; we don't re-run it, so no issues surface here.
+    // Callers wanting issues should construct GqlParseContext themselves.
+    const lossySdl = /* GraphQL */ `
+      type Matrix {
+        cells: [[Int]]
+      }
+      type Query {
+        _: Boolean
+      }
+    `
+    const gqlDocument = toGqlDocument(lossySdl)
+    const result = toArtifactsFromGraphQL(mkArgs({ source: gqlDocument }))
+    assertEquals(result.parseIssues, [])
+  }
+)

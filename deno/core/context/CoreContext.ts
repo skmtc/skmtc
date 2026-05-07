@@ -70,7 +70,7 @@ export type ExecutionPhase = ParsePhase | GeneratePhase | RenderPhase
 type GenerateArgs = {
   document: SkmtcDocument
   settings: ClientSettings | undefined
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
 
 type CoreContextArgs = {
@@ -81,8 +81,8 @@ type CoreContextArgs = {
 
 type RenderArgs = {
   files: Map<string, File | JsonFile>
-  previews: Record<string, Record<string, Preview>>
-  mappings: Record<string, Record<string, Mapping>>
+  previews: Record<string, Preview>
+  mappings: Record<string, Mapping>
   prettier?: PrettierConfigType
   basePath: string | undefined
 }
@@ -113,7 +113,7 @@ export type ToArtifactsArgs = {
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Function that returns the generator configuration map */
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   /** Prettier configuration for code formatting (optional) */
   prettier?: PrettierConfigType
   /** Whether to suppress console output */
@@ -443,11 +443,7 @@ export class CoreContext {
     return { type: 'parse', context: parseContext }
   }
 
-  #setupGeneratePhase({
-    document,
-    settings,
-    toGeneratorConfigMap
-  }: GenerateArgs): GeneratePhase {
+  #setupGeneratePhase({ document, settings, toGeneratorConfigMap }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
       document,
       settings,

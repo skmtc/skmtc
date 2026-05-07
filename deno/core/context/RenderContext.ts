@@ -20,9 +20,9 @@ type ConstructorArgs = {
   /** Map of generated files to render */
   files: Map<string, File | JsonFile>
   /** Preview data for generated content */
-  previews: Record<string, Record<string, Preview>>
+  previews: Record<string, Preview>
   /** Mapping data for file relationships */
-  mappings: Record<string, Record<string, Mapping>>
+  mappings: Record<string, Mapping>
   /** Optional formatter configuration (using Prettier format for compatibility) */
   prettierConfig?: PrettierConfigType
   /** Base path for resolving file paths */
@@ -73,9 +73,9 @@ export class RenderContext {
   /** Map of generated files to render */
   files: Map<string, File | JsonFile>
   /** Preview data for generated content */
-  previews: Record<string, Record<string, Preview>>
+  previews: Record<string, Preview>
   /** Mapping data for file relationships */
-  mappings: Record<string, Record<string, Mapping>>
+  mappings: Record<string, Mapping>
   /** Optional formatter configuration (using Prettier format for compatibility) */
   #prettierConfig?: PrettierConfigType
   /** Base path for resolving file paths */

@@ -70,7 +70,7 @@ type ConstructorArgs = {
   settings: ClientSettings | undefined
   logger: log.Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
 
 /**
@@ -219,8 +219,8 @@ const isGqlToOperationSettingsArgs = <V, EnrichmentType>(
 
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, File | JsonFile>
-  #previews: Record<string, Record<string, Preview>>
-  #mappings: Record<string, Record<string, Mapping>>
+  #previews: Record<string, Preview>
+  #mappings: Record<string, Mapping>
   /**
    * Parsed source document, wrapped in the {@link SkmtcDocument}
    * discriminated union. Canonical representation; both protocol-neutral
@@ -234,7 +234,7 @@ export class GenerateContext implements GenerateContextType {
   /** Function to capture processing results at current stack position */
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   /** Function that returns the generator configuration map */
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 
   /** Tracking model nesting depth to prevent infinite recursion */
   modelDepth: Record<string, number>
@@ -483,15 +483,11 @@ export class GenerateContext implements GenerateContextType {
       return
     }
 
-    if (!this.#previews[module.group]) {
-      this.#previews[module.group] = {}
+    if (this.#previews[module.name]) {
+      throw new Error(`Cannot override preview module "${module.name}"`)
     }
 
-    if (this.#previews[module.group][module.name]) {
-      throw new Error(`Cannot override preview module "${module.name}" in group "${module.group}"`)
-    }
-
-    this.#previews[module.group][module.name] = {
+    this.#previews[module.name] = {
       module,
       source
     }
@@ -505,15 +501,11 @@ export class GenerateContext implements GenerateContextType {
       return
     }
 
-    if (!this.#mappings[module.group]) {
-      this.#mappings[module.group] = {}
+    if (this.#mappings[module.name]) {
+      throw new Error(`Cannot override mapping module "${module.name}"`)
     }
 
-    if (this.#mappings[module.group][module.name]) {
-      throw new Error(`Cannot override mapping module "${module.name}" in group "${module.group}"`)
-    }
-
-    this.#mappings[module.group][module.name] = {
+    this.#mappings[module.name] = {
       module,
       source
     }

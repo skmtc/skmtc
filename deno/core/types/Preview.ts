@@ -90,19 +90,14 @@ export type ModelSource = {
   refName: string
 }
 
-export type PreviewGroup = 'forms' | 'tables' | 'inputs'
-
 export type PreviewModule = {
   name: string
   exportPath: string
-  group: PreviewGroup
 }
 
 export type MappingModule = {
   name: string
   exportPath: string
-  group: PreviewGroup
-  itemType: 'input' | 'formatter'
   schema: string
 }
 
@@ -191,21 +186,13 @@ export const modelSource: v.ObjectSchema<
 })
 
 /**
- * Valibot schema for validating preview group values.
- * 
- * Validates preview group categories for UI organization.
- */
-export const previewGroup: v.GenericSchema<PreviewGroup> = v.picklist(['forms', 'tables', 'inputs'])
-
-/**
  * Valibot schema for validating preview module objects.
  *
  * Validates preview module structures: name, export path, and group.
  */
 export const previewModule: v.GenericSchema<PreviewModule> = v.object({
   name: v.string(),
-  exportPath: v.string(),
-  group: previewGroup
+  exportPath: v.string()
 })
 
 /**
@@ -217,8 +204,6 @@ export const previewModule: v.GenericSchema<PreviewModule> = v.object({
 export const mappingModule: v.GenericSchema<MappingModule> = v.object({
   name: v.string(),
   exportPath: v.string(),
-  group: previewGroup,
-  itemType: v.picklist(['input', 'formatter']),
   schema: v.string()
 })
 
@@ -230,7 +215,7 @@ const source: v.VariantSchema<
 
 /**
  * Valibot schema for validating preview objects.
- * 
+ *
  * Validates complete preview structures including module and source information.
  */
 export const preview: v.GenericSchema<Preview> = v.object({
@@ -240,7 +225,7 @@ export const preview: v.GenericSchema<Preview> = v.object({
 
 /**
  * Valibot schema for validating mapping objects.
- * 
+ *
  * Validates complete mapping structures including module and source information.
  */
 export const mapping: v.GenericSchema<Mapping> = v.object({
