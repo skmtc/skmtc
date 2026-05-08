@@ -2,10 +2,10 @@ import { join } from '@std/path/join'
 import { parse } from '@std/path/parse'
 import { ensureDirSync } from '@std/fs/ensure-dir'
 import { ensureFileSync } from '@std/fs/ensure-file'
-import * as v from 'valibot'
 import { existsSync } from '@std/fs/exists'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import { toRootPath } from '@/lib/to-root-path.ts'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 
 type DeletePreviousArtifactsArgs = {
@@ -25,7 +25,11 @@ export const deletePreviousArtifacts = ({
 
   const manifest = Deno.readTextFileSync(manifestPath)
 
-  const manifestFile = v.parse(manifestContent, JSON.parse(manifest))
+  const manifestFile = parseOrExplain(
+    manifestContent,
+    JSON.parse(manifest),
+    `manifest at ${manifestPath}`
+  )
 
   if (!manifest) {
     return

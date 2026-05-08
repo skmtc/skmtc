@@ -1,5 +1,6 @@
 import { join } from '@std/path/join'
 import { readTextFile } from '@/lib/file.ts'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import * as v from 'valibot'
 
 export const toPackageJson = async () => {
@@ -13,7 +14,7 @@ export const toPackageJson = async () => {
 
   const parsed = JSON.parse(packageJson)
 
-  return v.parse(packageJsonSchema, parsed)
+  return parseOrExplain(packageJsonSchema, parsed, `package.json at ${packageJsonPath}`)
 }
 
 export const packageJsonSchema = v.object({

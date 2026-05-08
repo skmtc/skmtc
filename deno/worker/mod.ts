@@ -30,7 +30,7 @@ type SharedRunArgs = {
   spanId: string
   startAt: number
   stackTrail: StackTrail
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
 
 /**
@@ -88,7 +88,6 @@ const runArtifacts = (args: RunArgs): GenerateResult => {
   }
 }
 
-
 /**
  * Worker entry that runs the SKMTC code-generation pipeline in a
  * background thread.
@@ -110,7 +109,7 @@ const runArtifacts = (args: RunArgs): GenerateResult => {
  * cleanly; the parsed object would not.
  */
 const toWorker = (
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 ) => {
   self.onmessage = (e: MessageEvent) => {
     const { type, payload } = e.data as {

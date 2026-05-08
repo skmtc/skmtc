@@ -1,7 +1,7 @@
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { writeFileSafeDir } from '@/lib/file.ts'
-import * as v from 'valibot'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { prettierConfigType, type PrettierConfigType } from '@skmtc/core/PrettierConfig'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 
@@ -38,7 +38,11 @@ export class PrettierJson {
 
     const prettierJson = await Deno.readTextFile(path)
 
-    const contents = v.parse(prettierConfigType, JSON.parse(prettierJson))
+    const contents = parseOrExplain(
+      prettierConfigType,
+      JSON.parse(prettierJson),
+      `.prettierrc.json at ${path}`
+    )
 
     return new PrettierJson({ path, contents })
   }
@@ -56,7 +60,11 @@ export class PrettierJson {
 
     const contents = await Deno.readTextFile(this.path)
 
-    const parsed = v.parse(prettierConfigType, JSON.parse(contents))
+    const parsed = parseOrExplain(
+      prettierConfigType,
+      JSON.parse(contents),
+      `.prettierrc.json at ${this.path}`
+    )
 
     this.contents = parsed
   }

@@ -76,6 +76,15 @@ const run = async () => {
       await renderBundle({ projectName })
     })
 
+  const devCommand = new Command()
+    .description('Watch project files, rebundle and regenerate on change')
+    .arguments('<project:string> [schema:string]')
+    .action(async (_options, projectName, schemaSourceString) => {
+      const { dev } = await import('@/commands/dev.ts')
+
+      await dev({ projectName, schemaSourceString })
+    })
+
   await new Command()
     .description('Generate code from an OpenAPI or GraphQL schema')
     .action(async _flags => {
@@ -90,6 +99,7 @@ const run = async () => {
     .command('remove', removeCommand)
     .command('generate', generateCommand)
     .command('bundle', bundleCommand)
+    .command('dev', devCommand)
     .parse(Deno.args)
 }
 

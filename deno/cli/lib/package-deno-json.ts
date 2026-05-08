@@ -1,6 +1,6 @@
 import { exists } from '@std/fs/exists'
 import { writeFileSafeDir } from '@/lib/file.ts'
-import * as v from 'valibot'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { packageDenoJson, type PackageDenoJson as PackageDenoJsonType } from '@skmtc/core/DenoJson'
 import type { Manager } from '@/lib/manager.ts'
 
@@ -36,7 +36,11 @@ export class PackageDenoJson {
 
     const contents = await Deno.readTextFile(path)
 
-    const parsed = v.parse(packageDenoJson, JSON.parse(contents))
+    const parsed = parseOrExplain(
+      packageDenoJson,
+      JSON.parse(contents),
+      `deno.json at ${path}`
+    )
     const denoJson = new PackageDenoJson({ path, contents: parsed })
 
     manager.cleanupActions.push(async () => await denoJson.write())

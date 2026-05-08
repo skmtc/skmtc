@@ -3,7 +3,7 @@ import { join } from '@std/path/join'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import { toManifestErrors } from '@/lib/generationStats.ts'
-import * as v from 'valibot'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { writeFileSafeDir } from '@/lib/file.ts'
 
 type ConstructorArgs = {
@@ -36,8 +36,13 @@ export class Manifest {
     const hasManifest = await Manifest.exists(this.projectName)
 
     if (hasManifest) {
-      const contents = await Deno.readTextFile(Manifest.toPath(this.projectName))
-      const parsed = v.parse(manifestContent, JSON.parse(contents))
+      const path = Manifest.toPath(this.projectName)
+      const contents = await Deno.readTextFile(path)
+      const parsed = parseOrExplain(
+        manifestContent,
+        JSON.parse(contents),
+        `manifest at ${path}`
+      )
 
       this.contents = parsed
     }
@@ -51,9 +56,14 @@ export class Manifest {
     const hasManifest = await Manifest.exists(projectName)
 
     if (hasManifest) {
-      const contents = await Deno.readTextFile(Manifest.toPath(projectName))
+      const path = Manifest.toPath(projectName)
+      const contents = await Deno.readTextFile(path)
 
-      const parsed = v.parse(manifestContent, JSON.parse(contents))
+      const parsed = parseOrExplain(
+        manifestContent,
+        JSON.parse(contents),
+        `manifest at ${path}`
+      )
 
       return new Manifest({ projectName, contents: parsed })
     } else {

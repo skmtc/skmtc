@@ -1,8 +1,8 @@
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { type SkmtcClientConfig, skmtcClientConfig } from '@skmtc/core/Settings'
-import * as v from 'valibot'
 import type { Manager } from '@/lib/manager.ts'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { writeFileSafeDir } from '@/lib/file.ts'
 import type { ProjectKey } from '@/lib/project.ts'
 
@@ -42,7 +42,11 @@ export class ClientJson {
     try {
       const contents = await Deno.readTextFile(this.path)
 
-      const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
+      const parsed = parseOrExplain(
+        skmtcClientConfig,
+        JSON.parse(contents),
+        `client.json at ${this.path}`
+      )
 
       this.contents = parsed
     } catch (_error) {
@@ -63,7 +67,11 @@ export class ClientJson {
 
     const contents = await Deno.readTextFile(path)
 
-    const parsed = v.parse(skmtcClientConfig, JSON.parse(contents))
+    const parsed = parseOrExplain(
+      skmtcClientConfig,
+      JSON.parse(contents),
+      `client.json at ${path}`
+    )
 
     const clientJson = new ClientJson({ path, contents: parsed })
 

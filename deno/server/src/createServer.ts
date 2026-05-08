@@ -49,7 +49,7 @@ type GenerateResult = {
 
 type DispatchArgs = {
   body: ArtifactsBody
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   logsPath: string | undefined
 }
 
@@ -108,7 +108,7 @@ const dispatchArtifacts = async ({
 }
 
 type CreateServerArgs = {
-  toGeneratorConfigMap: () => GeneratorsMapContainer
+  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   logsPath?: string
 }
 

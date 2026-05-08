@@ -1,7 +1,7 @@
 import { existsSync } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { writeFileSafeDir } from '@/lib/file.ts'
-import * as v from 'valibot'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { rootDenoJson, type RootDenoJson as RootDenoJsonType } from '@skmtc/core/DenoJson'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
 import type { Generator } from '@/lib/generator.ts'
@@ -56,7 +56,11 @@ export class RootDenoJson {
 
     const contents = await Deno.readTextFile(path)
 
-    const parsed = v.parse(rootDenoJson, JSON.parse(contents))
+    const parsed = parseOrExplain(
+      rootDenoJson,
+      JSON.parse(contents),
+      `deno.json at ${path}`
+    )
     const denoJson = new RootDenoJson({ projectName, contents: parsed })
 
     manager.cleanupActions.push(async () => await denoJson.write())

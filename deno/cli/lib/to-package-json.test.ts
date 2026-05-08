@@ -1,5 +1,6 @@
 import { assertEquals } from '@std/assert/equals'
 import { toPackageJson, packageJsonSchema } from '@/lib/to-package-json.ts'
+import { ConfigValidationError } from '@/lib/parse-or-explain.ts'
 import { join } from '@std/path/join'
 import * as v from 'valibot'
 
@@ -62,7 +63,7 @@ Deno.test('toPackageJson - throws validation error for invalid package.json', as
       error = e as Error
     }
 
-    assertEquals(error instanceof v.ValiError, true)
+    assertEquals(error instanceof ConfigValidationError, true)
   } finally {
     Deno.chdir(originalCwd)
     await Deno.remove(tempDir, { recursive: true })

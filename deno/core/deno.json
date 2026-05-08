@@ -22,6 +22,7 @@
     "./Manifest": "./types/Manifest.ts",
     "./Method": "./types/Method.ts",
     "./Modifiers": "./types/Modifiers.ts",
+    "./ModuleExport": "./types/ModuleExport.ts",
     "./Preview": "./types/Preview.ts",
     "./RefName": "./types/RefName.ts",
     "./Results": "./types/Results.ts",
