@@ -1,7 +1,7 @@
-import { z } from 'zod'
-import { manifestContent } from '@/types/manifestContent.generated.ts'
+import * as v from 'valibot'
+import { manifestContent } from '@skmtc/core/Manifest'
 
-const gqlIssueType = z.enum([
+const gqlIssueType = v.picklist([
   'NESTED_LIST_LOSSY',
   'UNKNOWN_TYPE_KIND',
   'DROPPED_DIRECTIVE',
@@ -9,27 +9,27 @@ const gqlIssueType = z.enum([
   'SKIPPED_FEATURE',
 ])
 
-const gqlParseError = z.object({
-  level: z.literal('error'),
-  message: z.string(),
-  location: z.string(),
+const gqlParseError = v.object({
+  level: v.literal('error'),
+  message: v.string(),
+  location: v.string(),
   type: gqlIssueType,
 })
 
-const gqlParseWarning = z.object({
-  level: z.literal('warning'),
-  message: z.string(),
-  location: z.string(),
+const gqlParseWarning = v.object({
+  level: v.literal('warning'),
+  message: v.string(),
+  location: v.string(),
   type: gqlIssueType,
 })
 
-const gqlParseIssue = z.union([gqlParseError, gqlParseWarning])
+const gqlParseIssue = v.union([gqlParseError, gqlParseWarning])
 
-export const createArtifactsResponse = z.object({
-  artifacts: z.record(z.string(), z.string()),
+export const createArtifactsResponse = v.object({
+  artifacts: v.record(v.string(), v.string()),
   manifest: manifestContent,
   // Parse issues are GraphQL-only today and the sandbox server hasn't
   // shipped them yet; default to `[]` so older server responses still
   // parse cleanly.
-  parseIssues: z.array(gqlParseIssue).default([])
+  parseIssues: v.optional(v.array(gqlParseIssue), []),
 })

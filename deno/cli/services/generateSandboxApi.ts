@@ -1,3 +1,4 @@
+import * as v from 'valibot'
 import { createArtifactsResponse } from '@/types/createArtifactsResponse.generated.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { GenerateResponse } from '@/lib/generate-worker.ts'
@@ -48,5 +49,5 @@ export const generateSandboxApi = async ({
 
   const data = await res.json()
 
-  return createArtifactsResponse.parse(data)
+  return v.parse(createArtifactsResponse, data)
 }

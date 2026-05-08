@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert@^1.0.10'
-import type { ModelConfig, TransformModelArgs } from '@skmtc/core'
+import type { GeneratorsMapContainer, ModelConfig, TransformModelArgs } from '@skmtc/core'
 import { createServer } from './createServer.ts'
 
 /**
@@ -97,7 +97,9 @@ Deno.test('GET /generators - lists configured generator IDs', async () => {
     }
   }
   const app = createServer({
-    toGeneratorConfigMap: () => ({ modelGen })
+    toGeneratorConfigMap: (() => ({ modelGen })) as <
+      EnrichmentType = undefined,
+    >() => GeneratorsMapContainer<EnrichmentType>,
   })
 
   const res = await app.request('/generators')

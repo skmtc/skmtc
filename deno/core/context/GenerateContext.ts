@@ -63,8 +63,8 @@ type ConstructorArgs = {
   /**
    * Source document for generation, wrapped in the {@link SkmtcDocument}
    * discriminated union. Generators that target a specific protocol
-   * narrow on `document.type` (or use the `oasDocument` / `gqlDocument`
-   * convenience accessors which throw on a protocol mismatch).
+   * narrow on `document.type` to access the underlying `OasDocument` or
+   * `GqlDocument` via `document.value`.
    */
   document: SkmtcDocument
   settings: ClientSettings | undefined
@@ -259,45 +259,6 @@ export class GenerateContext implements GenerateContextType {
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
     this.modelDepth = {}
-  }
-
-  /**
-   * Convenience accessor returning the underlying `OasDocument`.
-   *
-   * Throws if the current document's protocol is not `'oas'`. The
-   * dispatcher guarantees HTTP-protocol operation generators are only
-   * invoked when this is safe; this getter exists so existing generator
-   * code that reads `context.oasDocument` keeps working without each
-   * generator having to narrow the discriminated union itself.
-   *
-   * Generators that intentionally span both protocols should read
-   * `context.document` and switch on `document.type` instead.
-   */
-  get oasDocument(): OasDocument {
-    if (this.document.type !== 'oas') {
-      throw new Error(
-        `Expected an OAS document but got '${this.document.type}'. ` +
-          `Use context.document and switch on document.type for protocol-aware generators.`
-      )
-    }
-    return this.document.value
-  }
-
-  /**
-   * Convenience accessor returning the underlying `GqlDocument`.
-   *
-   * Throws if the current document's protocol is not `'gql'`. See
-   * {@link GenerateContext.oasDocument} for the rationale; the same
-   * dispatcher guarantee applies for GraphQL operation generators.
-   */
-  get gqlDocument(): GqlDocument {
-    if (this.document.type !== 'gql') {
-      throw new Error(
-        `Expected a GQL document but got '${this.document.type}'. ` +
-          `Use context.document and switch on document.type for protocol-aware generators.`
-      )
-    }
-    return this.document.value
   }
 
   /**

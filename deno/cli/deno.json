@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",

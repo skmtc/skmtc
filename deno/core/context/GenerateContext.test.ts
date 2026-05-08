@@ -71,8 +71,8 @@ Deno.test('GenerateContext - Constructor', async t => {
       toGeneratorConfigMap
     })
 
-    assertEquals(context.oasDocument, oasDocument)
     assertEquals(context.document.type, 'oas')
+    assertEquals(context.document.value, oasDocument)
     assertEquals(context.settings, settings)
     assertEquals(context.logger, mockLogger)
     assertEquals(context.captureCurrentResult, captureCurrentResult)
@@ -491,25 +491,16 @@ const createGqlContext = (operations: GqlOperation[] = []) => {
 }
 
 Deno.test('GenerateContext - SkmtcDocument discrimination', async t => {
-  await t.step('oasDocument getter returns OAS doc for OAS context', () => {
+  await t.step('document.type is "oas" for OAS context with matching value', () => {
     const { context } = createTestContext()
     assertEquals(context.document.type, 'oas')
-    assertExists(context.oasDocument)
+    assertExists(context.document.value)
   })
 
-  await t.step('oasDocument getter throws on GQL context', () => {
-    const { context } = createGqlContext()
-    assertThrows(() => context.oasDocument, Error, "Expected an OAS document but got 'gql'")
-  })
-
-  await t.step('gqlDocument getter returns GQL doc for GQL context', () => {
+  await t.step('document.type is "gql" for GQL context with matching value', () => {
     const { context, gqlDocument } = createGqlContext()
-    assertEquals(context.gqlDocument, gqlDocument)
-  })
-
-  await t.step('gqlDocument getter throws on OAS context', () => {
-    const { context } = createTestContext()
-    assertThrows(() => context.gqlDocument, Error, "Expected a GQL document but got 'oas'")
+    assertEquals(context.document.type, 'gql')
+    assertEquals(context.document.value, gqlDocument)
   })
 })
 
