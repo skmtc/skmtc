@@ -751,17 +751,25 @@ export class GenerateContext implements GenerateContextType {
     args: ToOperationSettingsArgs<V, EnrichmentType>
   ): ContentSettings<EnrichmentType> {
     if (isGqlToOperationSettingsArgs(args)) {
+      const enrichments = args.projection.toEnrichments({
+        operation: args.operation,
+        context: this
+      })
       return new ContentSettings<EnrichmentType>({
-        identifier: args.projection.toIdentifier(args.operation),
-        exportPath: args.projection.toExportPath(args.operation),
-        enrichments: args.projection.toEnrichments({ operation: args.operation, context: this })
+        identifier: args.projection.toIdentifier({ operation: args.operation, enrichments }),
+        exportPath: args.projection.toExportPath({ operation: args.operation, enrichments }),
+        enrichments
       })
     }
 
+    const enrichments = args.projection.toEnrichments({
+      operation: args.operation,
+      context: this
+    })
     return new ContentSettings<EnrichmentType>({
-      identifier: args.projection.toIdentifier(args.operation),
-      exportPath: args.projection.toExportPath(args.operation),
-      enrichments: args.projection.toEnrichments({ operation: args.operation, context: this })
+      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments }),
+      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments }),
+      enrichments
     })
   }
 
@@ -774,10 +782,11 @@ export class GenerateContext implements GenerateContextType {
     refName,
     projection
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
+    const enrichments = projection.toEnrichments({ refName, context: this })
     return new ContentSettings<EnrichmentType>({
-      identifier: projection.toIdentifier(refName),
-      exportPath: projection.toExportPath(refName),
-      enrichments: projection.toEnrichments({ refName, context: this })
+      identifier: projection.toIdentifier({ refName, enrichments }),
+      exportPath: projection.toExportPath({ refName, enrichments }),
+      enrichments
     })
   }
 

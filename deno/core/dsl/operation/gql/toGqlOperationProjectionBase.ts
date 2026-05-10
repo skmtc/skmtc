@@ -2,7 +2,11 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { GqlOperationProjectionBase } from './GqlOperationProjectionBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { GqlOperationProjectionConstructorArgs } from './types.ts'
+import type {
+  GqlOperationProjectionConstructorArgs,
+  ToGqlOperationIdentifierArgs,
+  ToGqlOperationExportPathArgs
+} from './types.ts'
 import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
@@ -13,8 +17,8 @@ import get from 'lodash-es/get'
  */
 export type GqlOperationProjectionBaseConfig<EnrichmentType = undefined> = {
   id: string
-  toIdentifier: (operation: GqlOperation) => Identifier
-  toExportPath: (operation: GqlOperation) => string
+  toIdentifier: (args: ToGqlOperationIdentifierArgs<EnrichmentType>) => Identifier
+  toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
   /**
    * Family-level applicability predicate. Becomes a static `isSupported`

@@ -2,7 +2,11 @@ import { assertEquals, assertExists, assert, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { OasOperationDriver } from './OasOperationDriver.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
+import type {
+  OasOperationProjection,
+  ToOasOperationIdentifierArgs,
+  ToOasOperationExportPathArgs
+} from '@/dsl/operation/oas/types.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
@@ -22,13 +26,14 @@ const createMockContext = (options?: {
   existingImports?: Record<string, string[]>
 }) => {
   const toOperationContentSettingsSpy = spy((args: any) => {
+    const enrichments = args.projection.toEnrichments({
+      operation: args.operation,
+      context: mockContext
+    })
     return new ContentSettings({
-      identifier: args.projection.toIdentifier(args.operation),
-      exportPath: args.projection.toExportPath(args.operation),
-      enrichments: args.projection.toEnrichments({
-        operation: args.operation,
-        context: mockContext
-      })
+      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments }),
+      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments }),
+      enrichments
     })
   })
 
@@ -74,11 +79,11 @@ const createMockProjection = (options?: {
     static id = options?.id ?? 'MockProjection'
     static type = 'oasOperation' as const
 
-    static toIdentifier(operation: OasOperation): Identifier {
+    static toIdentifier({ operation }: ToOasOperationIdentifierArgs): Identifier {
       return Identifier.createVariable(operation.operationId ?? 'operation')
     }
 
-    static toExportPath(operation: OasOperation): string {
+    static toExportPath({ operation }: ToOasOperationExportPathArgs): string {
       return options?.exportPath ?? `./operations/${operation.operationId}.ts`
     }
 
@@ -473,9 +478,9 @@ Deno.test('OasOperationDriver', async t => {
       class SpyProjection extends OasOperationProjectionBase<undefined> {
         static id = 'SpyProjection'
         static type = 'oasOperation' as const
-        static toIdentifier = (op: OasOperation) =>
-          Identifier.createVariable(op.operationId ?? 'op')
-        static toExportPath = () => './test.ts'
+        static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
+          Identifier.createVariable(operation.operationId ?? 'op')
+        static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => Identifier.createVariable(name)
 
@@ -623,9 +628,9 @@ Deno.test('OasOperationDriver', async t => {
       class TrackingProjection extends OasOperationProjectionBase<undefined> {
         static id = 'TrackingProjection'
         static type = 'oasOperation' as const
-        static toIdentifier = (op: OasOperation) =>
-          Identifier.createVariable(op.operationId ?? 'op')
-        static toExportPath = () => './test.ts'
+        static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
+          Identifier.createVariable(operation.operationId ?? 'op')
+        static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => Identifier.createVariable(name)
 

@@ -40,8 +40,8 @@ Deno.test('OperationGenerator - toOasOperationProjectionBase generates correct b
 
   assertStringIncludes(result, 'export const ProductOpsBase = toOasOperationProjectionBase({')
   assertStringIncludes(result, "id: '@skmtc/product-ops'")
-  assertStringIncludes(result, 'toIdentifier(operation): Identifier')
-  assertStringIncludes(result, 'toExportPath(operation): string')
+  assertStringIncludes(result, 'toIdentifier({ operation }): Identifier')
+  assertStringIncludes(result, 'toExportPath({ operation, enrichments }): string')
   assertStringIncludes(result, "import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationProjectionBase } from '@skmtc/core'")
   assertStringIncludes(result, "import { join } from '@std/path/join'")
 })

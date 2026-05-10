@@ -5,6 +5,10 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { GqlOperationProjectionBase } from './GqlOperationProjectionBase.ts'
 import { OasString } from '@/oas/string/String.ts'
+import type {
+  ToGqlOperationIdentifierArgs,
+  ToGqlOperationExportPathArgs
+} from './types.ts'
 import * as v from 'valibot'
 
 const createMockGqlOperation = (
@@ -24,8 +28,8 @@ const createMockGqlOperation = (
 Deno.test('toGqlOperationProjectionBase - returns a class constructor', () => {
   const OperationClass = toGqlOperationProjectionBase({
     id: 'test-operation',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
   })
 
   assertEquals(typeof OperationClass, 'function')
@@ -35,8 +39,8 @@ Deno.test('toGqlOperationProjectionBase - returns a class constructor', () => {
 Deno.test('toGqlOperationProjectionBase - sets static id from config', () => {
   const OperationClass = toGqlOperationProjectionBase({
     id: 'graphql-operations',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
   })
 
   assertEquals(OperationClass.id, 'graphql-operations')
@@ -45,35 +49,37 @@ Deno.test('toGqlOperationProjectionBase - sets static id from config', () => {
 Deno.test('toGqlOperationProjectionBase - sets static type to operation', () => {
   const OperationClass = toGqlOperationProjectionBase({
     id: 'test-operation',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
   })
 
   assertEquals(OperationClass.type, 'gqlOperation')
 })
 
 Deno.test('toGqlOperationProjectionBase - sets static toIdentifier from config', () => {
-  const identifierFn = (operation: GqlOperation) => Identifier.createVariable(operation.fieldName)
+  const identifierFn = ({ operation }: ToGqlOperationIdentifierArgs) =>
+    Identifier.createVariable(operation.fieldName)
 
   const OperationClass = toGqlOperationProjectionBase({
     id: 'test-operation',
     toIdentifier: identifierFn,
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
   })
 
   const mockOperation = createMockGqlOperation()
 
-  const identifier = OperationClass.toIdentifier(mockOperation)
+  const identifier = OperationClass.toIdentifier({ operation: mockOperation, enrichments: undefined })
   assertEquals(identifier.name, 'getUsers')
   assertEquals(typeof identifier.toString, 'function')
 })
 
 Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config', () => {
-  const exportPathFn = (operation: GqlOperation) => `./generated/${operation.fieldName}.ts`
+  const exportPathFn = ({ operation }: ToGqlOperationExportPathArgs) =>
+    `./generated/${operation.fieldName}.ts`
 
   const OperationClass = toGqlOperationProjectionBase({
     id: 'test-operation',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: exportPathFn
   })
 
@@ -82,7 +88,7 @@ Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config',
     fieldName: 'createUser'
   })
 
-  const exportPath = OperationClass.toExportPath(mockOperation)
+  const exportPath = OperationClass.toExportPath({ operation: mockOperation, enrichments: undefined })
   assertEquals(exportPath, './generated/createUser.ts')
 })
 
@@ -91,8 +97,8 @@ Deno.test(
   () => {
     const OperationClass = toGqlOperationProjectionBase({
       id: 'test-operation',
-      toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-      toExportPath: operation => `./operations/${operation.fieldName}.ts`
+      toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+      toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
     })
 
     const mockOperation = createMockGqlOperation()
@@ -111,8 +117,8 @@ Deno.test(
   () => {
     const OperationClass = toGqlOperationProjectionBase({
       id: 'test-operation',
-      toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-      toExportPath: operation => `./operations/${operation.fieldName}.ts`
+      toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+      toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
     })
 
     const mockOperation = createMockGqlOperation()
@@ -129,45 +135,45 @@ Deno.test(
 Deno.test('toGqlOperationProjectionBase - toIdentifier works with different operations', () => {
   const OperationClass = toGqlOperationProjectionBase({
     id: 'test-operation',
-    toIdentifier: operation =>
+    toIdentifier: ({ operation }) =>
       Identifier.createVariable(`${operation.rootKind}${operation.fieldName}`),
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
   })
 
   const queryOperation = createMockGqlOperation({ rootKind: 'query', fieldName: 'Users' })
-  const queryIdentifier = OperationClass.toIdentifier(queryOperation)
+  const queryIdentifier = OperationClass.toIdentifier({ operation: queryOperation, enrichments: undefined })
   assertEquals(queryIdentifier.name, 'queryUsers')
 
   const mutationOperation = createMockGqlOperation({
     rootKind: 'mutation',
     fieldName: 'Product'
   })
-  const mutationIdentifier = OperationClass.toIdentifier(mutationOperation)
+  const mutationIdentifier = OperationClass.toIdentifier({ operation: mutationOperation, enrichments: undefined })
   assertEquals(mutationIdentifier.name, 'mutationProduct')
 })
 
 Deno.test('toGqlOperationProjectionBase - toExportPath works with different operations', () => {
   const OperationClass = toGqlOperationProjectionBase({
     id: 'test-operation',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-    toExportPath: operation => `./types/${operation.rootKind}-${operation.fieldName}.d.ts`
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+    toExportPath: ({ operation }) => `./types/${operation.rootKind}-${operation.fieldName}.d.ts`
   })
 
   const queryOperation = createMockGqlOperation({ rootKind: 'query', fieldName: 'users' })
-  assertEquals(OperationClass.toExportPath(queryOperation), './types/query-users.d.ts')
+  assertEquals(OperationClass.toExportPath({ operation: queryOperation, enrichments: undefined }), './types/query-users.d.ts')
 
   const mutationOperation = createMockGqlOperation({
     rootKind: 'mutation',
     fieldName: 'product'
   })
-  assertEquals(OperationClass.toExportPath(mutationOperation), './types/mutation-product.d.ts')
+  assertEquals(OperationClass.toExportPath({ operation: mutationOperation, enrichments: undefined }), './types/mutation-product.d.ts')
 })
 
 Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorKey', () => {
   const OperationClass = toGqlOperationProjectionBase({
     id: 'graphql-client',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
   })
 
   const mockOperation = createMockGqlOperation()
@@ -191,8 +197,8 @@ Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorK
 Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase', () => {
   const OperationClass = toGqlOperationProjectionBase({
     id: 'test-operation',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
   })
 
   const mockOperation = createMockGqlOperation({
@@ -219,8 +225,8 @@ Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase
 Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', () => {
   const OperationClass = toGqlOperationProjectionBase<{ enabled: boolean; timeout?: number }>({
     id: 'graphql-client',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`,
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`,
     toEnrichmentSchema: () =>
       v.object({
         enabled: v.boolean(),
@@ -259,8 +265,8 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', 
 Deno.test('toGqlOperationProjectionBase - toEnrichments retrieves from correct nested path', () => {
   const OperationClass = toGqlOperationProjectionBase({
     id: 'graphql-api',
-    toIdentifier: operation => Identifier.createVariable(operation.fieldName),
-    toExportPath: operation => `./operations/${operation.fieldName}.ts`
+    toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
   })
 
   const mockOperation = createMockGqlOperation({

@@ -2,7 +2,11 @@ import { assertEquals, assertExists, assert, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { GqlOperationDriver } from './GqlOperationDriver.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { GqlOperationProjection } from './types.ts'
+import type {
+  GqlOperationProjection,
+  ToGqlOperationIdentifierArgs,
+  ToGqlOperationExportPathArgs
+} from './types.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
@@ -24,13 +28,14 @@ const createMockContext = (options?: {
   existingImports?: Record<string, string[]>
 }) => {
   const toOperationContentSettingsSpy = spy((args: any) => {
+    const enrichments = args.projection.toEnrichments({
+      operation: args.operation,
+      context: mockContext
+    })
     return new ContentSettings({
-      identifier: args.projection.toIdentifier(args.operation),
-      exportPath: args.projection.toExportPath(args.operation),
-      enrichments: args.projection.toEnrichments({
-        operation: args.operation,
-        context: mockContext
-      })
+      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments }),
+      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments }),
+      enrichments
     })
   })
 
@@ -72,11 +77,11 @@ const createMockProjection = (options?: {
     static id = options?.id ?? 'MockProjection'
     static type = 'gqlOperation' as const
 
-    static toIdentifier(operation: GqlOperation): Identifier {
+    static toIdentifier({ operation }: ToGqlOperationIdentifierArgs): Identifier {
       return Identifier.createVariable(operation.fieldName)
     }
 
-    static toExportPath(operation: GqlOperation): string {
+    static toExportPath({ operation }: ToGqlOperationExportPathArgs): string {
       return options?.exportPath ?? `./operations/${operation.fieldName}.ts`
     }
 
@@ -456,8 +461,9 @@ Deno.test('GqlOperationDriver', async t => {
       class SpyProjection extends GqlOperationProjectionBase<undefined> {
         static id = 'SpyProjection'
         static type = 'gqlOperation' as const
-        static toIdentifier = (op: GqlOperation) => Identifier.createVariable(op.fieldName)
-        static toExportPath = () => './test.ts'
+        static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
+          Identifier.createVariable(operation.fieldName)
+        static toExportPath = (_args: ToGqlOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => Identifier.createVariable(name)
 
@@ -598,8 +604,9 @@ Deno.test('GqlOperationDriver', async t => {
       class TrackingProjection extends GqlOperationProjectionBase<undefined> {
         static id = 'TrackingProjection'
         static type = 'gqlOperation' as const
-        static toIdentifier = (op: GqlOperation) => Identifier.createVariable(op.fieldName)
-        static toExportPath = () => './test.ts'
+        static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
+          Identifier.createVariable(operation.fieldName)
+        static toExportPath = (_args: ToGqlOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => Identifier.createVariable(name)
 

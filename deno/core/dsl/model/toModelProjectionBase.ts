@@ -4,6 +4,10 @@ import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { ModelProjectionBase } from '@/dsl/model/ModelProjectionBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
+import type {
+  ToModelIdentifierArgs,
+  ToModelExportPathArgs
+} from '@/dsl/model/types.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
@@ -31,8 +35,8 @@ type ToEnrichmentsArgs = {
  */
 export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
   id: string
-  toIdentifier: (refName: RefName) => Identifier
-  toExportPath: (refName: RefName) => string
+  toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
+  toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
 }
 

@@ -61,6 +61,16 @@ export type ToGqlOperationMappingArgs = {
  * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`). Passed as a
  * type parameter to `context.insertOperation(...)`.
  */
+export type ToGqlOperationIdentifierArgs<EnrichmentType = undefined> = {
+  operation: GqlOperation
+  enrichments: EnrichmentType
+}
+
+export type ToGqlOperationExportPathArgs<EnrichmentType = undefined> = {
+  operation: GqlOperation
+  enrichments: EnrichmentType
+}
+
 export type GqlOperationProjection<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({
     context,
@@ -69,8 +79,8 @@ export type GqlOperationProjection<V, EnrichmentType = undefined> = { prototype:
   }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'gqlOperation'
-  toIdentifier: (operation: GqlOperation) => Identifier
-  toExportPath: (operation: GqlOperation) => string
+  toIdentifier: (args: ToGqlOperationIdentifierArgs<EnrichmentType>) => Identifier
+  toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToGqlOperationEnrichmentsArgs) => EnrichmentType
   // deno-lint-ignore ban-types
 } & Function

@@ -61,6 +61,16 @@ export type ToOasOperationMappingArgs = {
  * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`). Passed as a
  * type parameter to `context.insertOperation(...)`.
  */
+export type ToOasOperationIdentifierArgs<EnrichmentType = undefined> = {
+  operation: OasOperation
+  enrichments: EnrichmentType
+}
+
+export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
+  operation: OasOperation
+  enrichments: EnrichmentType
+}
+
 export type OasOperationProjection<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({
     context,
@@ -69,8 +79,8 @@ export type OasOperationProjection<V, EnrichmentType = undefined> = { prototype:
   }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'oasOperation'
-  toIdentifier: (operation: OasOperation) => Identifier
-  toExportPath: (operation: OasOperation) => string
+  toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
+  toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
   // deno-lint-ignore ban-types
 } & Function

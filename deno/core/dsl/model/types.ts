@@ -55,6 +55,16 @@ export type ToModelMappingArgs = {
  * `schemaToValueFn`, `createIdentifier`). Passed as a type parameter to
  * `context.insertModel(...)`.
  */
+export type ToModelIdentifierArgs<EnrichmentType = undefined> = {
+  refName: RefName
+  enrichments: EnrichmentType
+}
+
+export type ToModelExportPathArgs<EnrichmentType = undefined> = {
+  refName: RefName
+  enrichments: EnrichmentType
+}
+
 export type ModelProjection<V, EnrichmentType = undefined> = { prototype: V } & {
   new ({
     context,
@@ -65,8 +75,8 @@ export type ModelProjection<V, EnrichmentType = undefined> = { prototype: V } & 
   }: ModelProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
-  toIdentifier: (refName: RefName) => Identifier
-  toExportPath: (refName: RefName) => string
+  toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
+  toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ refName, context }: ToModelEnrichmentsArgs) => EnrichmentType
   schemaToValueFn: SchemaToValueFn
   createIdentifier: (name: string) => Identifier

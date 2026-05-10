@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/mcp",
-  "version": "0.0.277",
+  "version": "0.0.278",
   "exports": {
     ".": "./mod.ts"
   },

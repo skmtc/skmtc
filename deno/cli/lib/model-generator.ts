@@ -40,20 +40,20 @@ export const ${this.generator.packageName}Entry = toModelEntry({
   }
 
   toModelProjectionBase(mainModule: string) {
-    return `import { decapitalize, Identifier, toModelProjectionBase, type RefName, camelCase } from '@skmtc/core'
+    return `import { decapitalize, Identifier, toModelProjectionBase, camelCase } from '@skmtc/core'
 import { join } from '@std/path/join'
 
 export const ${mainModule}Base = toModelProjectionBase({
   id: '${this.generator.toModuleName()}',
 
-  toIdentifier(refName: RefName): Identifier {
+  toIdentifier({ refName }): Identifier {
     const name = decapitalize(camelCase(refName))
 
     return Identifier.createVariable(name)
   },
 
-  toExportPath(refName: RefName): string {
-    const { name } = this.toIdentifier(refName)
+  toExportPath({ refName, enrichments }): string {
+    const { name } = this.toIdentifier({ refName, enrichments })
 
     return join('@', 'types', \`\${decapitalize(name)}.generated.tsx\`)
   }

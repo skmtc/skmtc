@@ -3,7 +3,11 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import { OasOperationProjectionBase } from '@/dsl/operation/oas/OasOperationProjectionBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { OasOperationProjectionConstructorArgs } from '@/dsl/operation/oas/types.ts'
+import type {
+  OasOperationProjectionConstructorArgs,
+  ToOasOperationIdentifierArgs,
+  ToOasOperationExportPathArgs
+} from '@/dsl/operation/oas/types.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
@@ -13,8 +17,8 @@ import get from 'lodash-es/get'
  */
 export type OasOperationProjectionBaseConfig<EnrichmentType = undefined> = {
   id: string
-  toIdentifier: (operation: OasOperation) => Identifier
-  toExportPath: (operation: OasOperation) => string
+  toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
+  toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
   /**
    * Family-level applicability predicate. Becomes a static `isSupported`
