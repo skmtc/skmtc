@@ -5,6 +5,7 @@ import type { Manager } from '@/lib/manager.ts'
 import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { writeFileSafeDir } from '@/lib/file.ts'
 import type { ProjectKey } from '@/lib/project.ts'
+import { validateBasePath } from '@/lib/validate-base-path.ts'
 
 type CreateArgs = {
   path: string
@@ -89,7 +90,7 @@ export class ClientJson {
   static create({ path, basePath }: CreateArgs) {
     return new ClientJson({
       path,
-      contents: { settings: { basePath } }
+      contents: { settings: { basePath: validateBasePath(basePath) } }
     })
   }
 }

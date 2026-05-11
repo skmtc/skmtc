@@ -53,8 +53,12 @@
  * @module toV3Document
  */
 
-import type { OpenAPIV2, OpenAPIV3 } from 'openapi-types'
+import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import { parse as parseYaml } from '@std/yaml/parse'
+import {
+  Converter as ThreeOneToThreeZeroConverter,
+  type ConverterOptions
+} from '@apiture/openapi-down-convert'
 // @deno-types="npm:@types/swagger2openapi@7.0.4"
 import converter from 'swagger2openapi'
 import type { AnyOasDocument } from './types.ts'
@@ -152,34 +156,38 @@ export const stringToSchema = (schema: string): AnyOasDocument => {
  * @throws {Error} If the document version is not recognized or supported
  */
 export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Document> => {
-  // Check for OpenAPI 3.0.x
   if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.0')) {
     return schema as OpenAPIV3.Document
   }
 
-  // Check for OpenAPI 3.1.x (currently commented out)
-  // if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.1')) {
-  //   const options: ConverterOptions = {
-  //     verbose: false,
-  //     deleteExampleWithId: false,
-  //     allOfTransform: true
-  //   }
-  //
-  //   const converter = new ThreeOneToThreeZeroConverter(schema, options)
-  //
-  //   return converter.convert() as OpenAPIV3.Document
-  // }
+  if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.1')) {
+    const options: ConverterOptions = {
+      verbose: false,
+      deleteExampleWithId: false,
+      allOfTransform: true
+    }
 
-  // Check for Swagger 2.0
+    const downConverter = new ThreeOneToThreeZeroConverter(
+      schema as OpenAPIV3_1.Document,
+      options
+    )
+
+    return downConverter.convert() as OpenAPIV3.Document
+  }
+
   if ('swagger' in schema && typeof schema.swagger === 'string' && schema.swagger.startsWith('2.0')) {
     const parsed = await converter.convertObj(schema as OpenAPIV2.Document, {})
     return parsed.openapi
   }
 
-  // Unrecognized version
-  console.log(
-    'Unrecognized OpenAPI version',
-    JSON.stringify(schema, null, 2).substring(0, 1000)
+  const versionField =
+    'openapi' in schema
+      ? `openapi=${(schema as { openapi?: unknown }).openapi}`
+      : 'swagger' in schema
+        ? `swagger=${(schema as { swagger?: unknown }).swagger}`
+        : 'no version field found'
+
+  throw new Error(
+    `Unrecognized OpenAPI version (${versionField}). Supported: OpenAPI 3.0.x, 3.1.x, and Swagger 2.0.`
   )
-  throw new Error('Unrecognized OpenAPI version')
 }

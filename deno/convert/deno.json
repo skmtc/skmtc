@@ -2,6 +2,7 @@
   "name": "@skmtc/convert",
   "version": "0.1.4",
   "imports": {
+    "@apiture/openapi-down-convert": "npm:@apiture/openapi-down-convert@^0.14.1",
     "@std/yaml": "jsr:@std/yaml@^1.0.5",
     "openapi-types": "npm:openapi-types@^12.1.3",
     "swagger2openapi": "npm:swagger2openapi@^7.0.8"

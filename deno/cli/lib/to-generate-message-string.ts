@@ -8,6 +8,18 @@ const formatNumber = (value: number, locales: Intl.LocalesArgument = 'en-US'): s
   })
 }
 
+type ToGenerateMessageStringArgs = {
+  stats: GenerationStats
+  parseIssues?: GqlParseIssue[]
+  /**
+   * Resolved basePath from client.json — used to tell the caller where
+   * the generated files actually landed. Friction-#14: agents and humans
+   * both spent time hunting for misplaced output when the message
+   * stopped at "Generated N files".
+   */
+  basePath?: string
+}
+
 /**
  * Renders the post-generation summary line, plus a per-issue breakdown
  * when GraphQL parsing recorded any lossy / skipped mappings.
@@ -16,14 +28,17 @@ const formatNumber = (value: number, locales: Intl.LocalesArgument = 'en-US'): s
  * no change. Each issue is shown on its own line so the user can see
  * exactly which schema feature was dropped or unmodellable.
  */
-export const toGenerateMessageString = (
-  stats: GenerationStats,
-  parseIssues: GqlParseIssue[] = []
-): string => {
+export const toGenerateMessageString = ({
+  stats,
+  parseIssues = [],
+  basePath
+}: ToGenerateMessageStringArgs): string => {
   const { files, tokens, totalTime, errors } = stats
 
+  const destination = basePath ? ` under ${basePath}` : ''
+
   const lines: string[] = [
-    `Generated ${formatNumber(tokens)} tokens, ${formatNumber(files)} files in ${formatNumber(totalTime)}ms.`
+    `Generated ${formatNumber(tokens)} tokens, ${formatNumber(files)} files${destination} in ${formatNumber(totalTime)}ms.`
   ]
 
   if (errors.length) {

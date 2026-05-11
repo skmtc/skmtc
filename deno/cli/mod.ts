@@ -1,10 +1,34 @@
 import { Command, EnumType } from '@cliffy/command'
+import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
 
 // Sentry.init({
 //   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
 // })
 
+// Commands that never touch JSR can be allow-listed here so they keep
+// working offline. Adding new commands defaults to "requires registry"
+// — make it an explicit decision when something can skip the check.
+const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>(['generate', 'dev'])
+
+const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
+  const firstArg = args.find(arg => !arg.startsWith('-'))
+  if (!firstArg) return false
+  return COMMANDS_THAT_SKIP_REGISTRY_CHECK.has(firstArg)
+}
+
 const run = async () => {
+  if (!shouldSkipRegistryCheck(Deno.args)) {
+    try {
+      await assertJsrReachable()
+    } catch (error) {
+      if (error instanceof JsrRegistryUnreachableError) {
+        console.error(error.message)
+        Deno.exit(1)
+      }
+      throw error
+    }
+  }
+
   const generatorType = new EnumType(['operation', 'model'])
   // Dynamic command wrappers - commands are loaded only when executed
 

@@ -2,6 +2,7 @@ import type { Generator } from '@/lib/generator.ts'
 import { maxSatisfying } from '@std/semver/max-satisfying'
 import { parse } from '@std/semver/parse'
 import { parseRange } from '@std/semver/parse-range'
+import { toJsrUrl } from '@/lib/jsr-registry.ts'
 
 export type Pkg = {
   name: string
@@ -52,7 +53,7 @@ export class Jsr {
     scopeName,
     packageName
   }: GetLatestMetaArgs): Promise<JsrPkgMetaVersions> {
-    const url = `https://jsr.io/${scopeName}/${packageName}/meta.json`
+    const url = toJsrUrl(`${scopeName}/${packageName}/meta.json`)
 
     const res = await fetch(url)
 
@@ -102,7 +103,7 @@ export class Jsr {
       semver: generator.version
     })
 
-    const versionMetaUrl = `https://jsr.io/${scopeName}/${packageName}/${version}_meta.json`
+    const versionMetaUrl = toJsrUrl(`${scopeName}/${packageName}/${version}_meta.json`)
 
     const versionMetaRes = await fetch(versionMetaUrl)
 
@@ -115,7 +116,7 @@ export class Jsr {
     const versionMeta: JsrPkgVersionInfo = await versionMetaRes.json()
 
     const files = Object.keys(versionMeta.manifest ?? {}).map(async key => {
-      const fileRes = await fetch(`https://jsr.io/${scopeName}/${packageName}/${version}/${key}`)
+      const fileRes = await fetch(toJsrUrl(`${scopeName}/${packageName}/${version}/${key}`))
 
       if (!fileRes.ok) {
         throw new Error(`Failed to get file for jsr:${scopeName}/${packageName}`)

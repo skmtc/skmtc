@@ -61,7 +61,7 @@ Deno.test('Jsr.getLatestMeta - fetches and parses metadata successfully', async 
 
   // Mock fetch to return successful response
   globalThis.fetch = async (url: string | URL | Request) => {
-    assertEquals(url, 'https://jsr.io/@skmtc/gen-typescript/meta.json')
+    assertEquals(url, 'https://jsr.skmtc.dev/@skmtc/gen-typescript/meta.json')
 
     return new Response(JSON.stringify(mockMeta), {
       status: 200,

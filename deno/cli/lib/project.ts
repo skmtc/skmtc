@@ -222,6 +222,8 @@ export class Project {
 
       generator.install({ denoJson: this.rootDenoJson })
 
+      await this.rootDenoJson.write()
+
       return generator
     } catch (error) {
       console.error(error)
@@ -229,6 +231,8 @@ export class Project {
       // Sentry.captureException(error)
 
       // await Sentry.flush()
+
+      throw error
     } finally {
       await this.manager.cleanup()
     }

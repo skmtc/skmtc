@@ -8,4 +8,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #18751 | 11:07 AM | ✅ | Configured all monorepo packages to publish to local JSR instance | ~480 |
+
+### May 11, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20191 | 8:58 AM | 🟣 | Added test coverage for OpenAPI 3.1 to 3.0 conversion | ~314 |
 </claude-mem-context>
