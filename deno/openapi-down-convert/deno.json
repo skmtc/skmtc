@@ -1,0 +1,28 @@
+{
+  "name": "@skmtc/openapi-down-convert",
+  "version": "0.14.2",
+  "exports": "./src/index.ts",
+  "imports": {
+    "fs": "node:fs",
+    "path": "node:path",
+    "v8": "node:v8",
+    "js-yaml": "npm:js-yaml@^4.1.0"
+  },
+  "publish": {
+    "exclude": [
+      "cli.ts",
+      "src/cli.ts",
+      "test/",
+      "jest.config.js",
+      "prettier.config.js",
+      "package-lock.json",
+      "tsconfig.json",
+      "node_modules/",
+      ".git/"
+    ]
+  },
+  "tasks": {
+    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:dry": "JSR_URL=https://jsr.skmtc.dev/ deno publish --dry-run --allow-slow-types --allow-dirty"
+  }
+}

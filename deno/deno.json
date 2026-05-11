@@ -27,6 +27,7 @@
     "./convert",
     "./core",
     "./mcp",
+    "./openapi-down-convert",
     "./server",
     "./worker"
   ],
