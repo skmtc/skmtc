@@ -146,11 +146,13 @@ export type SkipPaths = Record<string, Method[]>
  *
  * Maps generator keys to arrays of model names that should be excluded.
  *
+ * Model names are matched exactly against the schema's refName.
+ *
  * @example
  * ```typescript
  * const skipModels: SkipModels = {
  *   'typescript-models': ['InternalModel', 'DebugInfo'],
- *   'validation': ['TempModel*']  // Supports glob patterns
+ *   'validation': ['TempModel']
  * };
  * ```
  */

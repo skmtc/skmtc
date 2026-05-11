@@ -13,6 +13,11 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20403 | 6:31 PM | 🔵 | Documentation coverage analysis reveals enrichment-driven opt-in pattern is undocumented | ~646 |
+| #20402 | 6:30 PM | 🔵 | Worker.ts regeneration only occurs in bundle and dev paths, not in clone or install | ~636 |
+| #20401 | " | 🔵 | Generator.clone() import extraction without version reconciliation | ~642 |
+| #20400 | 6:29 PM | 🔵 | Existing diagnostic infrastructure and version reconciliation gaps | ~569 |
+| #20399 | " | 🔵 | Worker.ts generation mechanism in SKMTC CLI clone workflow | ~561 |
 | #20195 | 8:59 AM | ✅ | Added test coverage for generation message basePath output | ~275 |
 | #20186 | 8:58 AM | 🟣 | Added output path logging to generation summary message | ~337 |
 | #20176 | 8:56 AM | 🟣 | Added headless install path for non-TTY environments | ~317 |
