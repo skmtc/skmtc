@@ -4,6 +4,15 @@ import { OasInteger } from '@/oas/integer/Integer.ts'
 import { OasNumber } from '@/oas/number/Number.ts'
 import { OasBoolean } from '@/oas/boolean/Boolean.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
+
+export type ToScalarTypeArgs = {
+  scalar: GraphQLScalarType
+  nullable: boolean
+  context: ParseContextType
+  stackTrail: StackTrail
+}
 
 /**
  * Maps a GraphQL scalar to an `OasSchema` primitive.
@@ -20,11 +29,18 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
  * `format: '<scalarName>'`. Downstream generators (`gen-typescript`,
  * `gen-zod`, etc.) consult their own `scalars` config map keyed on the
  * format string to decide the actual emitted type.
+ *
+ * `context` and `stackTrail` are accepted (and currently unused) so the
+ * signature matches the OAS parser family; future error reporting on
+ * unknown scalars or constraint conflicts can flow through `context`
+ * without an API change.
  */
-export const toScalarType = (
-  scalar: GraphQLScalarType,
-  nullable: boolean
-): OasSchema => {
+export const toScalarType = ({
+  scalar,
+  nullable,
+  context: _context,
+  stackTrail: _stackTrail
+}: ToScalarTypeArgs): OasSchema => {
   switch (scalar.name) {
     case 'Int':
       return new OasInteger({ format: 'int32', nullable })

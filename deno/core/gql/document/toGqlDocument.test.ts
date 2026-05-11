@@ -5,7 +5,7 @@ import { OasUnion } from '@/oas/union/Union.ts'
 import { OasString } from '@/oas/string/String.ts'
 import { OasInteger } from '@/oas/integer/Integer.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
-import { toGqlDocument } from './toGqlDocument.ts'
+import { toGqlDocument } from '@/gql/document/toGqlDocument.ts'
 import type { RefName } from '@/types/RefName.ts'
 
 const refName = (s: string) => s as unknown as RefName

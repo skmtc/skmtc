@@ -3,13 +3,15 @@ import { isNonNullType } from 'graphql'
 import { OasObject } from '@/oas/object/Object.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
-import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
-import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
-import type { ParseContext } from '@/context/ParseContext.ts'
+import { toFieldSchema } from '@/gql/field/toFieldSchema.ts'
+import { recordAppliedDirectives } from '@/gql/_helpers/recordAppliedDirectives.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 export type ToInputTypeArgs = {
   inputType: GraphQLInputObjectType
-  context: ParseContext
+  context: ParseContextType
+  stackTrail: StackTrail
 }
 
 /**
@@ -29,25 +31,30 @@ export type ToInputTypeArgs = {
  * the field as well, which is preserved on the inner schema's
  * `default` slot when present.
  */
-export const toInputType = ({ inputType, context }: ToInputTypeArgs): OasObject => {
-  recordAppliedDirectives(inputType.astNode, inputType.name, context)
+export const toInputType = ({
+  inputType,
+  context,
+  stackTrail
+}: ToInputTypeArgs): OasObject => {
+  recordAppliedDirectives({ astNode: inputType.astNode, stackTrail, context })
 
   const fields = inputType.getFields()
   const properties: Record<string, OasSchema | OasRef<'schema'>> = {}
   const required: string[] = []
 
   for (const [fieldName, field] of Object.entries(fields)) {
-    const fieldLocation = `${inputType.name}.${fieldName}`
-    recordAppliedDirectives(field.astNode, fieldLocation, context)
+    stackTrail.trace(fieldName, fieldStack => {
+      recordAppliedDirectives({ astNode: field.astNode, stackTrail: fieldStack, context })
 
-    properties[fieldName] = toFieldSchema({
-      type: field.type,
-      context,
-      location: fieldLocation
+      properties[fieldName] = toFieldSchema({
+        type: field.type,
+        context,
+        stackTrail: fieldStack
+      })
+      if (isNonNullType(field.type)) {
+        required.push(fieldName)
+      }
     })
-    if (isNonNullType(field.type)) {
-      required.push(fieldName)
-    }
   }
 
   return new OasObject({

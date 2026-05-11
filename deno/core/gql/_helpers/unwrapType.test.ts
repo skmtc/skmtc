@@ -5,7 +5,7 @@ import {
   GraphQLList,
   type GraphQLType
 } from 'graphql'
-import { unwrapType } from './unwrapType.ts'
+import { unwrapType } from '@/gql/_helpers/unwrapType.ts'
 
 Deno.test('unwrapType - bare nullable scalar', () => {
   const t: GraphQLType = GraphQLString

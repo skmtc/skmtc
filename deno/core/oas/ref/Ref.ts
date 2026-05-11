@@ -7,6 +7,8 @@ import type { OasExample } from '../example/Example.ts'
 import type { OasRequestBody } from '../requestBody/RequestBody.ts'
 import type { OasHeader } from '../header/Header.ts'
 import type { OasDocument } from '../document/Document.ts'
+import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
+import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
@@ -141,22 +143,25 @@ export class OasRef<T extends OasRefData['refType']> {
   /** Type identifier */
   type: 'ref' = 'ref'
   #fields: RefFields<T>
-  #oasDocument: OasDocument
+  #document: SkmtcParsedDocument
 
   /**
    * Creates a new OAS reference instance.
-   * 
+   *
    * @param fields - Reference field data including refType and $ref
-   * @param oasDocument - Document containing the referenced component
+   * @param document - Discriminated document containing the referenced
+   *   component. For OAS, refs resolve through the document's components;
+   *   for GQL, through the document's registry (GQL only ever creates
+   *   schema refs).
    */
-  constructor(fields: RefFields<T>, oasDocument: OasDocument) {
+  constructor(fields: RefFields<T>, document: SkmtcParsedDocument) {
     this.#fields = fields
-    this.#oasDocument = oasDocument
+    this.#document = document
   }
 
   /**
    * Type guard to check if this instance is a reference.
-   * 
+   *
    * @returns Always true for OasRef instances
    */
   isRef(): this is OasRef<T> {
@@ -165,10 +170,10 @@ export class OasRef<T extends OasRefData['refType']> {
 
   /**
    * Recursively resolves this reference to its final target component.
-   * 
+   *
    * Follows reference chains until reaching a non-reference component,
    * with protection against infinite loops.
-   * 
+   *
    * @param lookupsPerformed - Internal counter to prevent infinite recursion
    * @returns The resolved component
    * @throws Error if maximum lookup depth is exceeded
@@ -184,45 +189,19 @@ export class OasRef<T extends OasRefData['refType']> {
   }
 
   /**
-   * Resolves this reference one level, potentially returning another reference.
-   * 
+   * Resolves this reference one level. Dispatches on the document's
+   * protocol — OAS reads from `document.components.<bucket>`; GQL
+   * reads from `document.registry.schemas`.
+   *
    * @returns Either the resolved component or another reference in the chain
    */
   resolveOnce(): OasRef<T> | ResolvedRef<T> {
-    const c = this.oasDocument.components
-
     const refName = toRefName(this.$ref)
 
-    const refType: OasRefData['refType'] = this.refType
-
-    let resolved: ResolvedRef<T> | OasRef<T> | undefined;
-    switch (refType) {
-      case 'schema':
-        resolved = c?.schemas?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
-        break;
-      case 'requestBody':
-        resolved = c?.requestBodies?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
-        break;
-      case 'parameter':
-        resolved = c?.parameters?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
-        break;
-      case 'response':
-        resolved = c?.responses?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
-        break;
-      case 'example':
-        resolved = c?.examples?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
-        break;
-      case 'header':
-        resolved = c?.headers?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
-        break;
-      case 'securityScheme':
-        resolved = c?.securitySchemes?.[refName] as ResolvedRef<T> | OasRef<T> | undefined;
-        break;
-      default: {
-        const _exhaustive: never = refType;
-        throw new Error(`Unhandled ref type: ${_exhaustive}`);
-      }
-    }
+    const resolved =
+      this.#document.type === 'oas'
+        ? this.#resolveOasOnce(this.#document.value, refName)
+        : this.#resolveGqlOnce(this.#document.value, refName)
 
     if (!resolved) {
       throw new Error(`Ref "${this.#fields.$ref}" not found`)
@@ -245,6 +224,50 @@ export class OasRef<T extends OasRefData['refType']> {
     return resolved as OasRef<T> | ResolvedRef<T>
   }
 
+  #resolveOasOnce(
+    document: OasDocument,
+    refName: RefName
+  ): ResolvedRef<T> | OasRef<T> | undefined {
+    const c = document.components
+    const refType: OasRefData['refType'] = this.refType
+    switch (refType) {
+      case 'schema':
+        return c?.schemas?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
+      case 'requestBody':
+        return c?.requestBodies?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
+      case 'parameter':
+        return c?.parameters?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
+      case 'response':
+        return c?.responses?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
+      case 'example':
+        return c?.examples?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
+      case 'header':
+        return c?.headers?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
+      case 'securityScheme':
+        return c?.securitySchemes?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
+      default: {
+        const _exhaustive: never = refType
+        throw new Error(`Unhandled ref type: ${_exhaustive}`)
+      }
+    }
+  }
+
+  #resolveGqlOnce(
+    document: GqlDocument,
+    refName: RefName
+  ): ResolvedRef<T> | OasRef<T> | undefined {
+    // GraphQL only ever creates schema refs — there's no GQL concept
+    // of a response/parameter/header/etc. ref. The refType field is
+    // still typed by `T` for the OAS variants; on the GQL branch we
+    // always do a schema lookup and let the post-lookup refType-vs-
+    // oasType check catch any caller that constructed a non-schema
+    // ref pointing at a GQL document.
+    return document.registry.schemas[refName] as
+      | ResolvedRef<T>
+      | OasRef<T>
+      | undefined
+  }
+
   toRefName(): RefName {
     return toRefName(this.#fields.$ref)
   }
@@ -257,8 +280,14 @@ export class OasRef<T extends OasRefData['refType']> {
     return this.#fields.refType
   }
 
-  get oasDocument(): OasDocument {
-    return this.#oasDocument
+  /**
+   * Returns the discriminated parsed document this ref resolves
+   * through. OAS variant carries the parent `OasDocument`; GQL variant
+   * carries the parent `GqlDocument` (whose registry holds the
+   * schemas).
+   */
+  get document(): SkmtcParsedDocument {
+    return this.#document
   }
 
   toJsonSchema({

@@ -11,29 +11,29 @@ import { OasArray } from '@/oas/array/Array.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { RefName } from '@/types/RefName.ts'
-import { unwrapType } from '@/parsers/graphql/unwrapType.ts'
-import { toScalarType } from '@/parsers/graphql/toScalarType.ts'
-import { toEnumType } from '@/parsers/graphql/toEnumType.ts'
+import { unwrapType } from '@/gql/_helpers/unwrapType.ts'
+import { toScalarType } from '@/gql/scalar/toScalarType.ts'
+import { toEnumType } from '@/gql/enum/toEnumType.ts'
 import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { OasUnion } from '@/oas/union/Union.ts'
-import type { ParseContext } from '@/context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 /**
  * Args for {@link toFieldSchema}.
  *
- * `context` carries both the GraphQL schema and the in-progress
- * registry — helpers no longer thread these as separate arguments
- * (mirrors OAS's `(context, stackTrail)` shape).
+ * Mirrors the OAS parser convention `{ value, context, stackTrail }` —
+ * the stack trail represents the field's schema-level address (e.g.
+ * `User.posts`, `Query.getUser.return`). Issues recorded inside use
+ * `stackTrail.toString()` for the location string; ref consumers
+ * register via `context.registerRef(stackTrail, typeName)` so the
+ * cross-type invalidation pipeline can prune fields whose target type
+ * fails to parse.
  */
 export type ToFieldSchemaArgs = {
   type: GraphQLType
-  context: ParseContext
-  /**
-   * Schema-level address of this field (e.g. `User.posts`,
-   * `Query.getUser.return`). Threaded into any issue this call
-   * records. Falls back to `'<unknown>'` when omitted.
-   */
-  location?: string
+  context: ParseContextType
+  stackTrail: StackTrail
 }
 
 /**
@@ -54,7 +54,7 @@ export type ToFieldSchemaArgs = {
 export const toFieldSchema = ({
   type,
   context,
-  location = '<unknown>'
+  stackTrail
 }: ToFieldSchemaArgs): OasSchema | OasRef<'schema'> => {
   const { named, isList, outerNullable, itemNullable, nestedList } = unwrapType(type)
 
@@ -64,7 +64,7 @@ export const toFieldSchema = ({
     // Generators that care can later be extended; this is a v1 limitation.
     context.log({
       level: 'warning',
-      location,
+      location: stackTrail.toString(),
       message: `Nested list type collapsed to 'unknown' — v1 limitation`,
       type: 'NESTED_LIST_LOSSY'
     })
@@ -76,10 +76,10 @@ export const toFieldSchema = ({
     const innerNullable = isList ? itemNullable : outerNullable
 
     if (isScalarType(named)) {
-      return toScalarType(named, innerNullable)
+      return toScalarType({ scalar: named, nullable: innerNullable, context, stackTrail })
     }
     if (isEnumType(named)) {
-      return toEnumType(named, innerNullable)
+      return toEnumType({ enumType: named, nullable: innerNullable, context, stackTrail })
     }
     if (
       isObjectType(named) ||
@@ -88,9 +88,16 @@ export const toFieldSchema = ({
       isUnionType(named)
     ) {
       // Composite types live in the registry; the field gets a ref.
+      // Register the consumer location so `removeErroredItems` can
+      // prune this field if `named.name`'s type fails to parse.
+      context.registerRef(stackTrail.clone(), named.name)
+
       // OasRef has no nullable flag, so when the field is nullable we wrap
       // the ref in a single-member OasUnion that carries the flag instead.
-      const ref = context.registry.createRef(named.name as RefName)
+      const ref = context.registry.createRef(
+        named.name as RefName,
+        context.parsedDocument
+      )
       return innerNullable
         ? new OasUnion({ members: [ref], nullable: true })
         : ref
@@ -102,7 +109,7 @@ export const toFieldSchema = ({
     const unrecognised = named as { name?: string }
     context.log({
       level: 'error',
-      location,
+      location: stackTrail.toString(),
       message: `Unknown GraphQL type kind for '${unrecognised.name ?? '<anon>'}' — fell back to 'unknown'`,
       type: 'UNKNOWN_TYPE_KIND'
     })

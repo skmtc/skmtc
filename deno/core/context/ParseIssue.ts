@@ -34,6 +34,15 @@ import type { OasIssueType } from '@/context/generateTypes.ts'
  * - `SKIPPED_FEATURE` — catch-all for other GraphQL features that
  *   don't translate (schema-level directive definitions, type
  *   extensions, etc.).
+ * - `INVALID_TYPE_DEFINITION` — a top-level named type (object,
+ *   input, interface, union, scalar, enum) threw during parse. The
+ *   type is dropped from the registry and the wrapped error rides
+ *   along as `cause`. Mirrors the role of OAS's `INVALID_SCHEMA` at
+ *   the component layer.
+ * - `INVALID_DEPENDENCY_REF` — a field, union member, or interface
+ *   implementer references a type that failed to parse, and the
+ *   consumer was pruned by `removeErroredItems`. Mirrors OAS's
+ *   identically-named issue.
  */
 export type GqlIssueType =
   | 'NESTED_LIST_LOSSY'
@@ -41,6 +50,8 @@ export type GqlIssueType =
   | 'DROPPED_DIRECTIVE'
   | 'SKIPPED_FIELD_ARGUMENTS'
   | 'SKIPPED_FEATURE'
+  | 'INVALID_TYPE_DEFINITION'
+  | 'INVALID_DEPENDENCY_REF'
 
 /**
  * Valibot schema for {@link GqlIssueType}. Annotation deliberately
@@ -53,7 +64,9 @@ export const gqlIssueType = v.union([
   v.literal('UNKNOWN_TYPE_KIND'),
   v.literal('DROPPED_DIRECTIVE'),
   v.literal('SKIPPED_FIELD_ARGUMENTS'),
-  v.literal('SKIPPED_FEATURE')
+  v.literal('SKIPPED_FEATURE'),
+  v.literal('INVALID_TYPE_DEFINITION'),
+  v.literal('INVALID_DEPENDENCY_REF')
 ])
 
 const _gqlIssueTypeDriftCheck: v.GenericSchema<GqlIssueType> = gqlIssueType

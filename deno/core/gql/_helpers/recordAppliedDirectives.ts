@@ -1,5 +1,6 @@
 import type { ASTNode, DirectiveNode } from 'graphql'
-import type { ParseContext } from '@/context/ParseContext.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 /**
  * Names of directives we don't bother reporting as dropped, either
@@ -8,6 +9,12 @@ import type { ParseContext } from '@/context/ParseContext.ts'
  * lifts onto the entity's `deprecationReason` field).
  */
 const SUPPRESSED_DIRECTIVES = new Set(['skip', 'include', 'deprecated', 'specifiedBy', 'oneOf'])
+
+export type RecordAppliedDirectivesArgs = {
+  astNode: { directives?: ReadonlyArray<DirectiveNode> } | ASTNode | undefined | null
+  stackTrail: StackTrail
+  context: ParseContextType
+}
 
 /**
  * Reads the `directives` array off any `astNode` and records each
@@ -22,14 +29,15 @@ const SUPPRESSED_DIRECTIVES = new Set(['skip', 'include', 'deprecated', 'specifi
  * `buildSchema` always have ASTs, but the type allows `undefined` for
  * pure-runtime constructions, so we guard.
  */
-export const recordAppliedDirectives = (
-  astNode: { directives?: ReadonlyArray<DirectiveNode> } | ASTNode | undefined | null,
-  location: string,
-  context: ParseContext
-): void => {
+export const recordAppliedDirectives = ({
+  astNode,
+  stackTrail,
+  context
+}: RecordAppliedDirectivesArgs): void => {
   const directives = astNode && 'directives' in astNode ? astNode.directives : undefined
   if (!directives || directives.length === 0) return
 
+  const location = stackTrail.toString()
   for (const directive of directives) {
     const name = directive.name.value
     if (SUPPRESSED_DIRECTIVES.has(name)) continue

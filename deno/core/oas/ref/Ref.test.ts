@@ -29,11 +29,11 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(ref.refType, 'schema')
       assertEquals(ref.$ref, '#/components/schemas/User')
-      assertEquals(ref.oasDocument, document)
+      assertEquals(ref.document.value, document)
       assertEquals(ref.oasType, 'ref')
       assertEquals(ref.type, 'ref')
     })
@@ -48,7 +48,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'response',
         $ref: '#/components/responses/ErrorResponse'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(ref.refType, 'response')
       assertEquals(ref.$ref, '#/components/responses/ErrorResponse')
@@ -64,7 +64,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'parameter',
         $ref: '#/components/parameters/PageSize'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(ref.refType, 'parameter')
       assertEquals(ref.$ref, '#/components/parameters/PageSize')
@@ -83,7 +83,7 @@ Deno.test('OasRef', async (t) => {
         const ref = new OasRef({
           refType,
           $ref: `#/components/${refType}s/TestRef`
-        }, document)
+        }, { type: 'oas', value: document })
 
         assertEquals(ref.refType, refType)
         assertEquals(ref.oasType, 'ref')
@@ -101,11 +101,11 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: refPath
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(ref.$ref, refPath)
       assertEquals(ref.refType, 'schema')
-      assertStrictEquals(ref.oasDocument, document)
+      assertStrictEquals(ref.document.value, document)
     })
   })
 
@@ -120,7 +120,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(ref.isRef(), true)
     })
@@ -135,7 +135,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       if (ref.isRef()) {
         // TypeScript should know this is OasRef
@@ -155,7 +155,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(ref.toRefName(), 'User')
     })
@@ -174,7 +174,7 @@ Deno.test('OasRef', async (t) => {
       ]
 
       refs.forEach(({ refType, $ref, expected }) => {
-        const ref = new OasRef({ refType, $ref }, document)
+        const ref = new OasRef({ refType, $ref }, { type: 'oas', value: document })
         assertEquals(ref.toRefName(), expected)
       })
     })
@@ -189,7 +189,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/ComplexName_v2.1-FINAL'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(ref.toRefName(), 'ComplexName_v2.1-FINAL')
     })
@@ -218,7 +218,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, userSchema)
@@ -244,7 +244,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'response',
         $ref: '#/components/responses/ErrorResponse'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, errorResponse)
@@ -270,7 +270,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'parameter',
         $ref: '#/components/parameters/PageParam'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, pageParam)
@@ -300,7 +300,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'requestBody',
         $ref: '#/components/requestBodies/CreateUser'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, createUserBody)
@@ -325,7 +325,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'example',
         $ref: '#/components/examples/UserExample'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, userExample)
@@ -350,7 +350,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'header',
         $ref: '#/components/headers/ApiKeyHeader'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, apiKeyHeader)
@@ -366,7 +366,7 @@ Deno.test('OasRef', async (t) => {
       const targetRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/FinalSchema'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const components = new OasComponents({
         schemas: {
@@ -383,7 +383,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/AliasSchema'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved.isRef(), true)
@@ -407,7 +407,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/NonExistent'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertThrows(
         () => ref.resolveOnce(),
@@ -426,7 +426,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertThrows(
         () => ref.resolveOnce(),
@@ -445,7 +445,7 @@ Deno.test('OasRef', async (t) => {
       const wrongTypeRef = new OasRef({
         refType: 'response',
         $ref: '#/components/responses/Something'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const components = new OasComponents({
         schemas: {
@@ -461,7 +461,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/WrongType'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertThrows(
         () => ref.resolveOnce(),
@@ -491,7 +491,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/WrongType'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertThrows(
         () => ref.resolveOnce(),
@@ -516,7 +516,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertThrows(
         () => ref.resolveOnce(),
@@ -544,7 +544,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolve()
       assertEquals(resolved, userSchema)
@@ -563,7 +563,7 @@ Deno.test('OasRef', async (t) => {
       const secondRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/Final'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const components = new OasComponents({
         schemas: {
@@ -580,7 +580,7 @@ Deno.test('OasRef', async (t) => {
       const firstRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/First'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = firstRef.resolve()
       assertEquals(resolved, finalSchema)
@@ -599,12 +599,12 @@ Deno.test('OasRef', async (t) => {
       const thirdRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/Final'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const secondRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/Third'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const components = new OasComponents({
         schemas: {
@@ -622,7 +622,7 @@ Deno.test('OasRef', async (t) => {
       const firstRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/First'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = firstRef.resolve()
       assertEquals(resolved, finalSchema)
@@ -647,7 +647,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'response',
         $ref: '#/components/responses/Success'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolve()
       assertEquals(resolved, response)
@@ -665,12 +665,12 @@ Deno.test('OasRef', async (t) => {
       const refA = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/B'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const refB = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/A'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const components = new OasComponents({
         schemas: {
@@ -701,17 +701,17 @@ Deno.test('OasRef', async (t) => {
       const refA = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/B'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const refB = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/C'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const refC = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/A'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const components = new OasComponents({
         schemas: {
@@ -747,7 +747,7 @@ Deno.test('OasRef', async (t) => {
         schemas[`Schema${i}`] = new OasRef({
           refType: 'schema',
           $ref: `#/components/schemas/Schema${i + 1}`
-        }, document)
+        }, { type: 'oas', value: document })
       }
 
       schemas['Schema11'] = new OasString()
@@ -784,7 +784,7 @@ Deno.test('OasRef', async (t) => {
         schemas[`Schema${i}`] = new OasRef({
           refType: 'schema',
           $ref: `#/components/schemas/Schema${i + 1}`
-        }, document)
+        }, { type: 'oas', value: document })
       }
 
       const finalSchema = new OasString()
@@ -817,7 +817,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const result = ref.toJsonSchema({ resolve: false })
 
@@ -847,7 +847,7 @@ Deno.test('OasRef', async (t) => {
         const ref = new OasRef({
           refType,
           $ref: `#/components/${expected}/TestName`
-        }, document)
+        }, { type: 'oas', value: document })
 
         const result = ref.toJsonSchema({ resolve: false })
         assertEquals((result as any).$ref, `#/components/${expected}/TestName`)
@@ -876,7 +876,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const result = ref.toJsonSchema({ resolve: true })
       const expected = userSchema.toJsonSchema({ resolve: true })
@@ -896,7 +896,7 @@ Deno.test('OasRef', async (t) => {
       const secondRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/Final'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const components = new OasComponents({
         schemas: {
@@ -913,7 +913,7 @@ Deno.test('OasRef', async (t) => {
       const firstRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/First'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const result = firstRef.toJsonSchema({ resolve: true })
       const expected = finalSchema.toJsonSchema({ resolve: true })
@@ -933,7 +933,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const result = ref.toJSON()
 
@@ -952,12 +952,12 @@ Deno.test('OasRef', async (t) => {
       const responseRef = new OasRef({
         refType: 'response',
         $ref: '#/components/responses/NotFound'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const paramRef = new OasRef({
         refType: 'parameter',
         $ref: '#/components/parameters/PageSize'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(responseRef.toJSON(), {
         $ref: '#/components/responses/NotFound'
@@ -978,7 +978,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const result = ref.toJSON()
 
@@ -1025,21 +1025,21 @@ Deno.test('OasRef', async (t) => {
       const schemaRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/User'
-      }, document)
+      }, { type: 'oas', value: document })
       assertEquals(schemaRef.resolve(), userSchema)
 
       // Test response reference
       const responseRef = new OasRef({
         refType: 'response',
         $ref: '#/components/responses/Error'
-      }, document)
+      }, { type: 'oas', value: document })
       assertEquals(responseRef.resolve(), errorResponse)
 
       // Test parameter reference
       const paramRef = new OasRef({
         refType: 'parameter',
         $ref: '#/components/parameters/Page'
-      }, document)
+      }, { type: 'oas', value: document })
       assertEquals(paramRef.resolve(), pageParam)
     })
 
@@ -1060,12 +1060,12 @@ Deno.test('OasRef', async (t) => {
       const ref1 = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/Shared'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const ref2 = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/Shared'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved1 = ref1.resolve()
       const resolved2 = ref2.resolve()
@@ -1094,7 +1094,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/Schema.With-Special_Chars'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(ref.toRefName(), 'Schema.With-Special_Chars')
       assertEquals(ref.resolve(), schema)
@@ -1138,7 +1138,7 @@ Deno.test('OasRef', async (t) => {
       const addressRef = new OasRef({
         refType: 'schema',
         $ref: '#/components/schemas/Address'
-      }, document)
+      }, { type: 'oas', value: document })
 
       assertEquals(addressRef.resolve(), addressSchema)
     })
@@ -1165,7 +1165,7 @@ Deno.test('OasRef', async (t) => {
       const ref = new OasRef({
         refType: 'securityScheme',
         $ref: '#/components/securitySchemes/ApiKey'
-      }, document)
+      }, { type: 'oas', value: document })
 
       const resolved = ref.resolve()
       assertEquals(resolved, apiKeyScheme)

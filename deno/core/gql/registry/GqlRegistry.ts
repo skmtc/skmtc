@@ -1,9 +1,7 @@
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
 import type { RefName } from '@/types/RefName.ts'
-import { OasDocument } from '@/oas/document/Document.ts'
-import { OasComponents } from '@/oas/components/Components.ts'
-import { OasInfo } from '@/oas/info/Info.ts'
+import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 
 /**
  * Fields used to construct a {@link GqlRegistry}.
@@ -25,32 +23,19 @@ export type GqlRegistryFields = {
  * generators read from it via the discriminated dispatch in
  * `GenerateContext`.
  *
- * Internally the registry owns an `OasDocument` mirror that exists solely
- * to back `OasRef` resolution. Cross-type references in a parsed GraphQL
- * schema are constructed via {@link GqlRegistry.createRef} and resolve
- * through the internal mirror; consumers never see the mirror, they just
- * see `registry.schemas`. This keeps the public registry surface narrow
- * while reusing OAS's well-tested ref machinery untouched.
+ * Refs resolve through the parent {@link GqlDocument} via
+ * {@link SkmtcParsedDocument}'s GQL variant — no fake `OasDocument`
+ * mirror needed. `createRef` takes the document at call time so the
+ * resulting `OasRef` points at the same instance that will eventually
+ * carry the populated registry. See the forward-declared-refs notes on
+ * `OasDocument` / `GqlDocument` for why the document must exist (empty)
+ * before any ref is constructed.
  */
 export class GqlRegistry {
   readonly schemas: Record<RefName, OasSchema | OasRef<'schema'>>
 
-  /**
-   * Internal `OasDocument` whose `components.schemas` is the same record
-   * as {@link GqlRegistry.schemas}. Used by {@link GqlRegistry.createRef}
-   * to construct refs that resolve through this registry.
-   */
-  readonly #refDocument: OasDocument
-
   constructor(fields: GqlRegistryFields = {}) {
     this.schemas = fields.schemas ?? {}
-
-    this.#refDocument = new OasDocument({
-      openapi: '3.0.0',
-      info: new OasInfo({ title: '__gql_registry__', version: '0.0.0' }),
-      operations: [],
-      components: new OasComponents({ schemas: this.schemas })
-    })
   }
 
   /**
@@ -84,13 +69,19 @@ export class GqlRegistry {
   /**
    * Constructs an `OasRef<'schema'>` that resolves to the entry registered
    * under `refName`. Use this to build cross-type references during
-   * GraphQL parsing instead of constructing `OasRef` directly — the
-   * registry's internal `OasDocument` mirror is wired in for you.
+   * GraphQL parsing instead of constructing `OasRef` directly.
+   *
+   * The `document` parameter is the parent `GqlDocument` (wrapped as
+   * `SkmtcParsedDocument`) that this ref will resolve through —
+   * typically `{ type: 'gql', value: gqlDocument }` from the
+   * `ParseContext`. The document can be empty-at-construction; the ref
+   * resolves correctly once the document's fields are populated at the
+   * end of parsing.
    */
-  createRef(refName: RefName): OasRef<'schema'> {
+  createRef(refName: RefName, document: SkmtcParsedDocument): OasRef<'schema'> {
     return new OasRef<'schema'>(
       { refType: 'schema', $ref: `#/components/schemas/${refName}` },
-      this.#refDocument
+      document
     )
   }
 

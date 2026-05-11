@@ -108,7 +108,7 @@ export const toOperationsV3 = ({
   context
 }: ToOperationsV3Args): OasOperation[] => {
   return Object.entries(paths).flatMap(([path, pathItem]) => {
-    return stackTrail.trace(path, st => {
+    return stackTrail.trace(path, pathStack => {
       if (!pathItem) {
         return []
       }
@@ -138,12 +138,17 @@ export const toOperationsV3 = ({
       )
 
       const pathItemObject = !isEmpty(cleaned.rest)
-        ? toPathItemV3({ pathItem: cleaned.rest, stackTrail: st, context })
+        ? toPathItemV3({ pathItem: cleaned.rest, stackTrail: pathStack, context })
         : undefined
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {
-          return stackTrail.trace(method, st => {
+          // Use `pathStack` (the trail with `path` already pushed),
+          // not the outer `stackTrail` — otherwise downstream traces
+          // record paths:<method>:... and lose the actual path
+          // segment, which breaks `OasDocument.removeItem` and the
+          // dependency-ref invalidation it backs.
+          return pathStack.trace(method, st => {
             if (!operation) {
               return
             }

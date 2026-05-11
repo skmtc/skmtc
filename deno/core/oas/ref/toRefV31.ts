@@ -30,6 +30,6 @@ export const toRefV31 = <T extends OasRefData['refType']>({
       refType,
       $ref
     },
-    context.oasDocument
+    context.parsedDocument
   )
 }

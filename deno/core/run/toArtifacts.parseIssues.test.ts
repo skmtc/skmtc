@@ -67,7 +67,13 @@ Deno.test('toArtifacts (gql) - runs through the same entry as oas and surfaces p
   assertEquals(lossy.length, 1)
   assertEquals(lossy[0].protocol, 'gql')
   assertEquals(lossy[0].level, 'warning')
-  assertEquals(lossy[0].location, 'Matrix.cells')
+  // Location is the protocol-neutral `:`-joined stack trail. The
+  // outer trace context ('test', 'parse') is contributed by
+  // CoreContext.toArtifacts wrapping parseGqlDocument in
+  // `stackTrail.trace('parse', ...)`. Real-world locations carry that
+  // outer context too — agents reading the manifest will see the full
+  // path.
+  assertEquals(lossy[0].location.endsWith('Matrix:cells'), true)
 })
 
 Deno.test('manifestContent schema - round-trips a manifest carrying mixed parseIssues', () => {

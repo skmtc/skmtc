@@ -3,7 +3,7 @@ import { OasObject } from '@/oas/object/Object.ts'
 import { OasArray } from '@/oas/array/Array.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
 import { OasUnion } from '@/oas/union/Union.ts'
-import { toGqlDocument } from './toGqlDocument.ts'
+import { toGqlDocument } from '@/gql/document/toGqlDocument.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 

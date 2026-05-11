@@ -33,7 +33,7 @@ Deno.test('ParseContext (gql) - records nested-list fallback as a NESTED_LIST_LO
   const lossyIssues = ctx.issues.filter(i => i.type === 'NESTED_LIST_LOSSY')
   assertEquals(lossyIssues.length, 1)
   assertEquals(lossyIssues[0].level, 'warning')
-  assertEquals(lossyIssues[0].location, 'Matrix.cells')
+  assertEquals(lossyIssues[0].location, 'Matrix:cells')
   // Unified union: every gql issue carries protocol: 'gql'.
   assertEquals(lossyIssues[0].protocol, 'gql')
 })
@@ -58,7 +58,7 @@ Deno.test('ParseContext (gql) - records skipped non-root field arguments', () =>
   assertEquals(skipped.length, 2)
   for (const issue of skipped) {
     assertEquals(issue.level, 'warning')
-    assertEquals(issue.location, 'User.posts')
+    assertEquals(issue.location, 'User:posts')
   }
   const messages = skipped.map(i => i.message).sort()
   assertEquals(messages.some(m => m.includes("'limit'")), true)
@@ -146,10 +146,10 @@ Deno.test('ParseContext (gql) - field-level applied directives are recorded with
   // 2 directive *definitions* + 2 *applications* = 4
   assertEquals(dropped.length, 4)
 
-  const fieldLevel = dropped.filter(i => i.location.startsWith('User.'))
+  const fieldLevel = dropped.filter(i => i.location.startsWith('User:'))
   assertEquals(fieldLevel.length, 2)
   const fieldLocations = fieldLevel.map(i => i.location).sort()
-  assertEquals(fieldLocations, ['User.expensive', 'User.secret'])
+  assertEquals(fieldLocations, ['User:expensive', 'User:secret'])
 })
 
 Deno.test('ParseContext (gql) - type-level applied directives are recorded with type location', () => {
@@ -182,7 +182,7 @@ Deno.test('ParseContext (gql) - root-field applied directives are recorded with 
   runParse(ctx)
 
   const opLevel = ctx.issues.filter(
-    i => i.type === 'DROPPED_DIRECTIVE' && i.location === 'Query.me'
+    i => i.type === 'DROPPED_DIRECTIVE' && i.location === 'Query:me'
   )
   assertEquals(opLevel.length, 1)
 })

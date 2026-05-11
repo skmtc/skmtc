@@ -25,7 +25,8 @@ import { buildSchema, type GraphQLSchema } from 'graphql'
 import { toDocumentFieldsV3 } from '@/oas/document/toDocumentFieldsV3.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
-import { parseGqlDocument } from '@/gql/parse/parseGqlDocument.ts'
+import { GqlDocument } from '@/gql/document/GqlDocument.ts'
+import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
 import type { Logger } from '@/types/Logger.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import type {
@@ -74,6 +75,14 @@ type GqlProtocolState = {
   type: 'gql'
   schema: GraphQLSchema
   registry: GqlRegistry
+  /**
+   * Empty-at-construction `GqlDocument` that refs resolve through.
+   * Populated by `parse()` at the end of the walk via
+   * `gqlDocument.fields = { registry, operations, rootTypes }`. See the
+   * forward-declared-refs section on `OasDocument` for why this is the
+   * shape.
+   */
+  gqlDocument: GqlDocument
   options: GqlParseOptions
 }
 
@@ -123,6 +132,11 @@ export class ParseContext {
           type: 'gql',
           schema,
           registry: new GqlRegistry({ schemas: {} }),
+          // Empty `GqlDocument` issued up front so any `OasRef`
+          // constructed during the walk has a stable resolution target.
+          // `parse()` populates `gqlDocument.fields` once the walk
+          // produces operations / rootTypes.
+          gqlDocument: new GqlDocument(),
           options: options?.gql ?? {}
         }
         break
@@ -171,6 +185,38 @@ export class ParseContext {
   }
 
   /**
+   * GQL-only accessor returning the in-flight `GqlDocument` (empty
+   * during parse, populated at the end). Parsers use this when
+   * constructing `OasRef`s via `registry.createRef(refName, document)`
+   * so the resulting refs point at the right document instance.
+   */
+  get gqlDocument(): GqlDocument {
+    if (this.protocol.type !== 'gql') {
+      throw new Error('gqlDocument accessed on non-GQL ParseContext')
+    }
+    return this.protocol.gqlDocument
+  }
+
+  /**
+   * Convenience: returns the discriminated `SkmtcParsedDocument` for
+   * the active protocol. Useful for parser code that needs to hand a
+   * document to `OasRef` (or `registry.createRef`) without manually
+   * constructing the wrapper.
+   */
+  get parsedDocument(): SkmtcParsedDocument {
+    switch (this.protocol.type) {
+      case 'oas':
+        return { type: 'oas', value: this.protocol.oasDocument }
+      case 'gql':
+        return { type: 'gql', value: this.protocol.gqlDocument }
+      default: {
+        const _exhaustive: never = this.protocol
+        throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
+      }
+    }
+  }
+
+  /**
    * Runs the protocol-appropriate parse step and returns the result
    * wrapped in {@link SkmtcParsedDocument}. `stackTrail` is required
    * for OAS (used by `toDocumentFieldsV3` for issue location tracking)
@@ -189,12 +235,18 @@ export class ParseContext {
         return { type: 'oas', value: oasState.oasDocument }
       }
       case 'gql': {
-        const gqlDoc = parseGqlDocument({
-          options: this.protocol.options,
-          context: this
+        const gqlState = this.protocol
+        const { fields } = parseGqlDocument({
+          options: gqlState.options,
+          context: this,
+          stackTrail
         })
+        // Populate the empty `GqlDocument` issued at construction time.
+        // Refs constructed during the walk hold a reference to this same
+        // instance and now resolve through its filled registry.
+        gqlState.gqlDocument.fields = fields
         this.removeErroredItems()
-        return { type: 'gql', value: gqlDoc }
+        return { type: 'gql', value: gqlState.gqlDocument }
       }
       default: {
         const _exhaustive: never = this.protocol
@@ -205,9 +257,9 @@ export class ParseContext {
 
   /**
    * Walks any registered ref errors and prunes their consumers from
-   * the parsed document. OAS implements the prune; GQL is a stub —
-   * the infrastructure is in place for GQL parsers to populate refs
-   * later without an architecture change.
+   * the parsed document. Symmetric across protocols: OAS prunes via
+   * `OasDocument.removeItem`, GQL via `GqlDocument.removeItem`. Each
+   * pruned consumer yields an `INVALID_DEPENDENCY_REF` issue.
    */
   removeErroredItems(): void {
     switch (this.protocol.type) {
@@ -234,10 +286,25 @@ export class ParseContext {
         break
       }
       case 'gql': {
-        // GQL ref-tracking not yet implemented. graphql-js validates
-        // type references structurally and rejects dangling refs at
-        // build time, so the failure mode this guards against is rare
-        // in practice. Stub for future symmetric implementation.
+        const gqlState = this.protocol
+        for (const [refKey, errors] of this.#refErrors) {
+          for (const error of errors) {
+            const consumers = this.#refConsumers.get(refKey) ?? []
+            for (const stackTrail of consumers) {
+              const removed = gqlState.gqlDocument.removeItem(stackTrail)
+              if (removed) {
+                this.issues.push({
+                  protocol: 'gql',
+                  level: 'error',
+                  type: 'INVALID_DEPENDENCY_REF',
+                  location: stackTrail.toString(),
+                  message: error instanceof Error ? error.message : String(error),
+                  cause: error
+                })
+              }
+            }
+          }
+        }
         break
       }
       default: {

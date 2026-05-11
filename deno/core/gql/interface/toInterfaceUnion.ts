@@ -3,12 +3,14 @@ import { OasUnion } from '@/oas/union/Union.ts'
 import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { RefName } from '@/types/RefName.ts'
-import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
-import type { ParseContext } from '@/context/ParseContext.ts'
+import { recordAppliedDirectives } from '@/gql/_helpers/recordAppliedDirectives.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 
 export type ToInterfaceUnionArgs = {
   interfaceType: GraphQLInterfaceType
-  context: ParseContext
+  context: ParseContextType
+  stackTrail: StackTrail
 }
 
 /**
@@ -21,16 +23,29 @@ export type ToInterfaceUnionArgs = {
  * representation closer to what a typed client cares about at a usage
  * site.
  *
+ * Each implementer ref records its consumer location via `registerRef`
+ * so if an implementer type fails to parse the union's reference to it
+ * can be pruned at the end of parsing.
+ *
  * Per the v1 design decision, the parser emits both forms by default;
  * generators select whichever they prefer.
  */
-export const toInterfaceUnion = ({ interfaceType, context }: ToInterfaceUnionArgs): OasUnion => {
-  recordAppliedDirectives(interfaceType.astNode, interfaceType.name, context)
+export const toInterfaceUnion = ({
+  interfaceType,
+  context,
+  stackTrail
+}: ToInterfaceUnionArgs): OasUnion => {
+  recordAppliedDirectives({ astNode: interfaceType.astNode, stackTrail, context })
 
   const implementers = context.schema.getImplementations(interfaceType).objects
 
-  const members: OasRef<'schema'>[] = implementers.map(impl =>
-    context.registry.createRef(impl.name as RefName)
+  const members: OasRef<'schema'>[] = stackTrail.trace('members', membersStack =>
+    implementers.map((impl, index) =>
+      membersStack.trace(String(index), memberStack => {
+        context.registerRef(memberStack.clone(), impl.name)
+        return context.registry.createRef(impl.name as RefName, context.parsedDocument)
+      })
+    )
   )
 
   return new OasUnion({
