@@ -1,6 +1,4 @@
-import * as v8 from 'v8';
-import * as yaml from 'js-yaml';
-import * as fs from 'fs';
+import { parse as parseYaml } from '@std/yaml/parse';
 
 /** OpenAPI Down Converted - convert an OAS document from OAS 3.1 to OAS 3.0 */
 
@@ -113,7 +111,13 @@ export class Converter {
    * @throws Error if the file cannot be read or parsed as YAML/JSON
    */
   private loadScopeDescriptions(scopeDescriptionFile?: string) {
-    this.scopeDescriptions = yaml.load(fs.readFileSync(scopeDescriptionFile, 'utf8'));
+    // Deno-native fs + YAML parsing — replaces Node's `fs` + `js-yaml`.
+    // `@std/yaml/parse` returns `unknown`; the caller treats it as a
+    // `{ [scope: string]: string }` map (see line ~512). The
+    // never-set-in-SKMTC case keeps this code path unreached in
+    // practice.
+    const contents = Deno.readTextFileSync(scopeDescriptionFile);
+    this.scopeDescriptions = parseYaml(contents);
   }
 
   /**
@@ -612,6 +616,10 @@ to get the correct \`authorizationUrl\` and \`tokenUrl\`.`;
   }
 
   public static deepClone(obj: object): object {
-    return v8.deserialize(v8.serialize(obj)); // kinda simple way to clone, but it works...
+    // structuredClone is a native Web API available in both Deno and
+    // modern Node — replaces the previous `v8.deserialize(v8.serialize)`
+    // hack. Same semantics (a true structured clone, not JSON
+    // round-trip), shorter, no platform import needed.
+    return structuredClone(obj);
   }
 }
