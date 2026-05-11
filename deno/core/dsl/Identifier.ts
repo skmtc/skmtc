@@ -243,8 +243,22 @@ export class Identifier {
    * ```
    */
   toImport({ alias }: { alias?: string } = {}): ImportNameArg {
-    return alias
-      ? { name: this.name, alias, type: this.entityType.type }
-      : { name: this.name, type: this.entityType.type }
+    const isType = this.entityType.type === 'type'
+    if (isType) {
+      // Type-only imports always emit the explicit object form so the
+      // renderer can prefix with `type ` (or pick the statement-level
+      // `import type { … }` form).
+      return alias
+        ? { name: this.name, alias, type: 'type' }
+        : { name: this.name, type: 'type' }
+    }
+    // Variable imports match the canonical wire shape used by
+    // `Import#toRecord`: bare string for plain value imports,
+    // single-entry alias-record for aliased value imports.
+    // Returning a bare string here means `register({ imports: [...]
+    // })` consumers see the same shape as a hand-written
+    // `imports: { 'x': ['Foo'] }` — preserving prior conventions and
+    // keeping snapshot/equality-based tests stable.
+    return alias ? { [this.name]: alias } : this.name
   }
 }

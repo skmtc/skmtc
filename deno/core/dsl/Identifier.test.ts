@@ -37,17 +37,33 @@ Deno.test('Identifier - toString returns identifier name', () => {
   assertEquals(type.toString(), 'Status')
 })
 
-Deno.test('Identifier.toImport - variable identifier emits value import shape', () => {
+Deno.test('Identifier.toImport - variable identifier emits a bare string', () => {
+  // Variable identifiers serialise as bare strings — the canonical
+  // wire shape for plain value imports. This matches `Import#toRecord`
+  // output and keeps consumers (including Driver-internal register
+  // calls) compatible with hand-written `imports: { 'x': ['Foo'] }`.
   const id = Identifier.createVariable('useCustomer')
-  assertEquals(id.toImport(), { name: 'useCustomer', type: 'variable' })
+  assertEquals(id.toImport(), 'useCustomer')
 
-  // Round-trip through ImportName: the `'variable'` discriminator
-  // renders as a plain value import (no `type` prefix).
   const importName = new ImportName(id.toImport())
   assertEquals(importName.toString(), 'useCustomer')
 })
 
-Deno.test('Identifier.toImport - type identifier emits type import shape', () => {
+Deno.test(
+  'Identifier.toImport - variable identifier with alias emits an alias-record',
+  () => {
+    const id = Identifier.createVariable('useCustomer')
+    assertEquals(
+      id.toImport({ alias: 'useCust' }),
+      { useCustomer: 'useCust' }
+    )
+
+    const importName = new ImportName(id.toImport({ alias: 'useCust' }))
+    assertEquals(importName.toString(), 'useCustomer as useCust')
+  }
+)
+
+Deno.test('Identifier.toImport - type identifier emits the explicit type-import object', () => {
   const id = Identifier.createType('UserDto')
   assertEquals(id.toImport(), { name: 'UserDto', type: 'type' })
 
@@ -55,7 +71,7 @@ Deno.test('Identifier.toImport - type identifier emits type import shape', () =>
   assertEquals(importName.toString(), 'type UserDto')
 })
 
-Deno.test('Identifier.toImport - applies an alias when provided', () => {
+Deno.test('Identifier.toImport - type identifier with alias keeps the explicit object', () => {
   const id = Identifier.createType('User')
   assertEquals(
     id.toImport({ alias: 'IUser' }),

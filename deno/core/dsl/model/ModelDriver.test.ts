@@ -244,7 +244,14 @@ Deno.test('ModelDriver', async (t) => {
       const importCall = registerCalls.find((call: any) => call.args[0].imports)
 
       assertEquals(importCall !== undefined, true)
-      assertEquals(importCall.args[0].imports['/path/to/export.ts'], [refName])
+      // The mock projection's `toModelContentSettings` returns a
+      // `createType` identifier (see `createMockContext`), so the
+      // import must carry the type-only marker — consumers compiling
+      // with `verbatimModuleSyntax: true` would hit TS1484 otherwise.
+      assertEquals(
+        importCall.args[0].imports['/path/to/export.ts'],
+        [{ name: refName, type: 'type' }]
+      )
       assertEquals(importCall.args[0].destinationPath, destinationPath)
     })
 
