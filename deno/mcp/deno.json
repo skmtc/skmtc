@@ -7,7 +7,7 @@
   "imports": {
     "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.17.3",
     "zod": "npm:zod@^3.25.76",
-    "@skmtc/cli": "jsr:@skmtc/cli@^0.1.0",
+    "@skmtc/cli": "jsr:@skmtc/cli@0.1.7",
     "@std/log": "jsr:@std/log@^0.224.6"
   },
   "tasks": {
