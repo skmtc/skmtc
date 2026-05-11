@@ -169,6 +169,7 @@ export class Converter {
     this.convertJsonSchemaContentMediaType();
     this.convertConstToEnum();
     this.convertNullableTypeArray();
+    this.convertExclusiveMinMax();
     this.removeWebhooksObject();
     this.removeUnsupportedSchemaKeywords();
     if (this.convertSchemaComments) {
@@ -256,6 +257,84 @@ export class Converter {
       return this.walkNestedSchemaObjects(schema, schemaVisitor);
     };
     visitSchemaObjects(this.openapi30, schemaVisitor);
+  }
+
+  /**
+   * Convert OpenAPI 3.1 / JSON Schema 2020-12 numeric `exclusiveMinimum`
+   * and `exclusiveMaximum` (which inherit JSON Schema's number-valued
+   * form) to OpenAPI 3.0's boolean-modifier form: `{minimum: N, exclusiveMinimum: true}`.
+   *
+   * Rules per side (min shown; max is mirrored):
+   *
+   * - If `exclusiveMinimum` is already a boolean (3.0 shape) →
+   *   leave as-is. No conversion needed.
+   * - If only `exclusiveMinimum: <number>` → rewrite to
+   *   `{minimum: <number>, exclusiveMinimum: true}`.
+   * - If both `minimum` and `exclusiveMinimum: <number>` are set,
+   *   merge to the stricter bound:
+   *   - `exclusiveMinimum.value >= minimum`: the exclusive constraint
+   *     dominates → use the exclusive form rooted at exclusiveMinimum's value.
+   *   - `exclusiveMinimum.value < minimum`: the inclusive constraint
+   *     dominates → keep `minimum`, drop exclusiveMinimum.
+   *
+   * Bool-valued exclusiveMinimum with no companion `minimum` is left
+   * untouched — that's an under-specified 3.0 schema but not our
+   * mess to fix here.
+   */
+  convertExclusiveMinMax() {
+    const schemaVisitor: SchemaVisitor = (schema: SchemaObject): SchemaObject => {
+      this.normaliseExclusiveBound(schema, 'minimum', 'exclusiveMinimum', /* exclusiveWinsOnEqual */ true);
+      this.normaliseExclusiveBound(schema, 'maximum', 'exclusiveMaximum', /* exclusiveWinsOnEqual */ true);
+      return this.walkNestedSchemaObjects(schema, schemaVisitor);
+    };
+    visitSchemaObjects(this.openapi30, schemaVisitor);
+  }
+
+  private normaliseExclusiveBound(
+    schema: SchemaObject,
+    inclusiveKey: 'minimum' | 'maximum',
+    exclusiveKey: 'exclusiveMinimum' | 'exclusiveMaximum',
+    exclusiveWinsOnEqual: boolean
+  ) {
+    const exclusiveRaw = schema[exclusiveKey];
+    // Already in 3.0 boolean-modifier form, or absent — nothing to do.
+    if (typeof exclusiveRaw !== 'number') {
+      return;
+    }
+
+    const inclusiveRaw = schema[inclusiveKey];
+    const haveInclusive = typeof inclusiveRaw === 'number';
+
+    if (!haveInclusive) {
+      // 3.1 form `exclusiveMinimum: N` with no `minimum` →
+      // 3.0 form `{minimum: N, exclusiveMinimum: true}`.
+      schema[inclusiveKey] = exclusiveRaw;
+      schema[exclusiveKey] = true;
+      this.log(`Converted numeric ${exclusiveKey}: ${exclusiveRaw} to 3.0 ${inclusiveKey} + boolean ${exclusiveKey}`);
+      return;
+    }
+
+    // Both present — pick the stricter bound. For minimum: stricter is
+    // the LARGER value (excluding more from below); for maximum:
+    // stricter is the SMALLER value. The parameter
+    // `exclusiveWinsOnEqual` controls the tiebreak when the values are
+    // numerically equal (both for min and max, the exclusive form is
+    // strictly stricter when the values match).
+    const inclusive = inclusiveRaw as number;
+    const exclusive = exclusiveRaw;
+    const exclusiveStricter =
+      inclusiveKey === 'minimum'
+        ? exclusive > inclusive || (exclusiveWinsOnEqual && exclusive === inclusive)
+        : exclusive < inclusive || (exclusiveWinsOnEqual && exclusive === inclusive);
+
+    if (exclusiveStricter) {
+      schema[inclusiveKey] = exclusive;
+      schema[exclusiveKey] = true;
+      this.log(`Merged ${exclusiveKey}:${exclusive} + ${inclusiveKey}:${inclusive} → exclusive form at ${exclusive}`);
+    } else {
+      delete schema[exclusiveKey];
+      this.log(`Merged ${exclusiveKey}:${exclusive} + ${inclusiveKey}:${inclusive} → kept inclusive ${inclusiveKey}:${inclusive}`);
+    }
   }
 
   /**
