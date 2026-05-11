@@ -75,8 +75,14 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     const definition = this.getDefinition({ identifier, exportPath })
 
     if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
+      // Propagate the identifier's entity type into the import so type-only
+      // identifiers (gen-typescript / gen-graphql-typed-document-node / etc.)
+      // emit `import { type Foo }` under `verbatimModuleSyntax: true`.
+      const importName = identifier.entityType.type === 'type'
+        ? { name: identifier.name, isType: true }
+        : identifier.name
       this.context.register({
-        imports: { [exportPath]: [identifier.name] },
+        imports: { [exportPath]: [importName] },
         destinationPath
       })
     }

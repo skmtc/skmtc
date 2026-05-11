@@ -70,8 +70,11 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     const definition = this.getDefinition({ identifier, exportPath })
 
     if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
+      const importName = identifier.entityType.type === 'type'
+        ? { name: identifier.name, isType: true }
+        : identifier.name
       this.context.register({
-        imports: { [exportPath]: [identifier.name] },
+        imports: { [exportPath]: [importName] },
         destinationPath
       })
     }
