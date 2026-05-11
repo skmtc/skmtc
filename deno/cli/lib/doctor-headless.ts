@@ -1,0 +1,487 @@
+/**
+ * Headless `doctor` — active diagnostics for the most common
+ * agent-affecting failure modes. Walks a fixed checklist and reports
+ * each check as `ok | warning | error | skipped` with a hint.
+ *
+ * Designed so an agent can run `skmtc doctor --json` as the first
+ * step when something's off; the structured output points at the
+ * specific friction to address (peer-dep skew, missing bundle,
+ * malformed manifest, etc.) without having to read stack traces.
+ */
+
+import { join } from '@std/path/join'
+import { isAbsolute } from '@std/path/is-absolute'
+import { existsSync } from '@std/fs/exists'
+import * as v from 'valibot'
+import { manifestContent } from '@skmtc/core/Manifest'
+import { toRootPath } from '@/lib/to-root-path.ts'
+import { toProjectPath } from '@/lib/to-project-path.ts'
+import { toBundlePath } from '@/lib/to-bundle-path.ts'
+import { Manifest } from '@/lib/manifest.ts'
+import { parseModuleName } from '@skmtc/core/parseModuleName'
+import { homedir } from 'node:os'
+import cliDenoJson from '../deno.json' with { type: 'json' }
+
+export type CheckStatus = 'ok' | 'warning' | 'error' | 'skipped'
+
+export type Check = {
+  id: string
+  status: CheckStatus
+  message: string
+  hint?: string
+  /**
+   * Optional structured data for agents that want to act on the
+   * check programmatically (e.g. open the file at this path, run
+   * this remediation command). Shape varies per check id; agents
+   * should branch on `id` before reading.
+   */
+  data?: Record<string, unknown>
+}
+
+export type DoctorResult = {
+  skmtcRootPath: string
+  globalStateDir: string
+  cliVersion: string
+  projects: string[]
+  checks: Check[]
+  /**
+   * Aggregate of `checks.status` — `ok` only when every check is
+   * `ok` or `skipped`. Agents can branch on this without re-walking
+   * the array.
+   */
+  summary: CheckStatus
+}
+
+type RunDoctorArgs = {
+  /**
+   * The CLI's own version string — caller passes it in (read from
+   * `cli/deno.json`) so this lib has no path coupling to the
+   * package manifest.
+   */
+  cliVersion: string
+}
+
+export const runDoctor = async ({ cliVersion }: RunDoctorArgs): Promise<DoctorResult> => {
+  const skmtcRootPath = toRootPath()
+  const globalStateDir = join(homedir(), '.skmtc')
+  const projects = listProjects(skmtcRootPath)
+  const checks: Check[] = []
+
+  checks.push(checkShimLockfile())
+
+  const cliCorePin = readCliCorePin()
+  const projectCtx: CheckProjectContext = { cliCorePin }
+  for (const project of projects) {
+    checks.push(...checkProject(project, projectCtx))
+  }
+
+  return {
+    skmtcRootPath,
+    globalStateDir,
+    cliVersion,
+    projects,
+    checks,
+    summary: aggregate(checks)
+  }
+}
+
+const listProjects = (skmtcRootPath: string): string[] => {
+  if (!existsSync(skmtcRootPath)) return []
+  try {
+    return Array.from(Deno.readDirSync(skmtcRootPath))
+      .filter(entry => entry.isDirectory)
+      .map(entry => entry.name)
+      .sort()
+  } catch {
+    return []
+  }
+}
+
+const aggregate = (checks: Check[]): CheckStatus => {
+  if (checks.some(c => c.status === 'error')) return 'error'
+  if (checks.some(c => c.status === 'warning')) return 'warning'
+  return 'ok'
+}
+
+/**
+ * Friction #16: the shim's lockfile at `~/.deno/bin/.skmtc/deno.lock`
+ * silently pins an old CLI/core version even when `deno install -f`
+ * is rerun. We can't fix Deno's behaviour from here, but we can
+ * detect the situation and tell the operator how to clear it.
+ */
+const checkShimLockfile = (): Check => {
+  const lockPath = join(homedir(), '.deno', 'bin', '.skmtc', 'deno.lock')
+  if (!existsSync(lockPath)) {
+    return {
+      id: 'shim-lockfile',
+      status: 'skipped',
+      message: `No shim lockfile at ${lockPath} — not a deno-install setup.`
+    }
+  }
+
+  try {
+    const content = Deno.readTextFileSync(lockPath)
+    const coreVersion = extractPin(content, /jsr:@skmtc\/core@([\d.^~<>=*]+)/)
+    const cliVersion = extractPin(content, /jsr:@skmtc\/cli@([\d.^~<>=*]+)/)
+
+    return {
+      id: 'shim-lockfile',
+      status: 'ok',
+      message: `Shim lockfile present. Pinned: @skmtc/cli=${cliVersion ?? 'unknown'}, @skmtc/core=${coreVersion ?? 'unknown'}.`,
+      hint:
+        `If enrichment leaves arrive as \`{}\` inside generators, your shim might be ` +
+        `pinned to an old @skmtc/core. Remediation: ` +
+        `\`rm -f ${lockPath} && deno install -gAf --unstable-worker-options --name skmtc jsr:@skmtc/cli\`. ` +
+        `See friction #16 in skmtc-cli skill §7.`,
+      data: { lockPath, cliVersion, coreVersion }
+    }
+  } catch (error) {
+    return {
+      id: 'shim-lockfile',
+      status: 'warning',
+      message: `Couldn't read shim lockfile at ${lockPath}: ${error instanceof Error ? error.message : String(error)}`
+    }
+  }
+}
+
+const extractPin = (content: string, pattern: RegExp): string | null => {
+  const match = content.match(pattern)
+  return match?.[1] ?? null
+}
+
+type CheckProjectContext = {
+  /**
+   * `@skmtc/core` semver constraint declared by the CLI itself (from
+   * `cli/deno.json#imports['@skmtc/core']`). Used to flag projects
+   * pinning an incompatible core version — friction #7. Passed in
+   * from `runDoctor` rather than re-read per check.
+   */
+  cliCorePin: string | null
+}
+
+const checkProject = (
+  projectName: string,
+  ctx: CheckProjectContext
+): Check[] => {
+  const projectPath = toProjectPath(projectName)
+  const denoJsonPath = join(projectPath, 'deno.json')
+  const clientJsonPath = join(projectPath, '.settings', 'client.json')
+  const bundlePath = toBundlePath(projectPath)
+
+  const checks: Check[] = []
+  checks.push(checkProjectDenoJson(projectName, denoJsonPath))
+  checks.push(checkProjectBasePath(projectName, clientJsonPath))
+  checks.push(checkProjectCorePin(projectName, denoJsonPath, ctx.cliCorePin))
+  checks.push(checkProjectBundle(projectName, denoJsonPath, bundlePath))
+  checks.push(checkProjectManifest(projectName))
+  return checks
+}
+
+/**
+ * Reads the CLI's own `@skmtc/core` semver pin from
+ * `cli/deno.json#imports`. Used to flag projects whose pin doesn't
+ * satisfy the CLI's requirement.
+ *
+ * Returns `null` if the import map is unreadable or missing — that's
+ * a separate failure that should surface elsewhere; from doctor's
+ * perspective, a null pin means "skip the comparison".
+ *
+ * Imported via JSON module syntax so it's resolved at build time. We
+ * don't go through `Deno.readTextFileSync(...)` because the path of
+ * `cli/deno.json` depends on the install shape (compiled binary vs
+ * deno run vs deno install shim) — JSON imports work uniformly.
+ */
+const readCliCorePin = (): string | null => {
+  // The JSON import lives at the module top to avoid taking a hard
+  // dependency on `cli/deno.json`'s shape inside the function body;
+  // we only read the field we care about.
+  const value = cliDenoJson?.imports?.['@skmtc/core']
+  if (typeof value !== 'string') return null
+  // Strip the `jsr:` prefix and the `@skmtc/core@` segment so we keep
+  // just the version constraint (e.g. `^0.3.0`).
+  const match = value.match(/^jsr:@skmtc\/core@(.+)$/)
+  return match ? match[1] : null
+}
+
+/**
+ * Compares a project's `@skmtc/core` pin to the CLI's own. Friction
+ * #7: stale per-project `deno.json` templates pin old core versions
+ * that mismatch the bundle's expectations, producing cryptic
+ * `No matching export … "SnippetBase"` errors at bundle time.
+ *
+ * Comparison is intentionally coarse — we surface a warning when the
+ * declared major.minor differ, treating patch-level differences as
+ * acceptable. Anything more elaborate would require a full semver
+ * resolver, which is overkill for a diagnostic check.
+ */
+const checkProjectCorePin = (
+  projectName: string,
+  denoJsonPath: string,
+  cliCorePin: string | null
+): Check => {
+  if (cliCorePin === null) {
+    return {
+      id: `project-core-pin/${projectName}`,
+      status: 'skipped',
+      message: `Could not read the CLI's own @skmtc/core pin; comparison skipped.`
+    }
+  }
+  if (!existsSync(denoJsonPath)) {
+    return {
+      id: `project-core-pin/${projectName}`,
+      status: 'skipped',
+      message: `Project "${projectName}" has no deno.json; core-pin check skipped.`
+    }
+  }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(Deno.readTextFileSync(denoJsonPath))
+  } catch {
+    return {
+      id: `project-core-pin/${projectName}`,
+      status: 'skipped',
+      message: `Project "${projectName}" deno.json unparseable; core-pin check skipped.`
+    }
+  }
+  const projectCoreValueRaw =
+    parsed && typeof parsed === 'object' && 'imports' in parsed
+      ? (parsed as { imports?: Record<string, unknown> }).imports?.['@skmtc/core']
+      : undefined
+  if (typeof projectCoreValueRaw !== 'string') {
+    return {
+      id: `project-core-pin/${projectName}`,
+      status: 'warning',
+      message: `Project "${projectName}" doesn't pin @skmtc/core in its deno.json.`,
+      hint:
+        `Add "@skmtc/core": "jsr:@skmtc/core@${cliCorePin}" under "imports". ` +
+        `Without a pin, \`deno bundle\` resolves arbitrarily and you may hit ` +
+        `peer-version skew (cryptic "No matching export" errors).`
+    }
+  }
+  const projectMatch = projectCoreValueRaw.match(/^jsr:@skmtc\/core@(.+)$/)
+  if (!projectMatch) {
+    return {
+      id: `project-core-pin/${projectName}`,
+      status: 'warning',
+      message: `Project "${projectName}" pins @skmtc/core via a non-JSR specifier: ${projectCoreValueRaw}.`,
+      hint:
+        `Doctor's heuristic only understands jsr: specifiers. If you intend ` +
+        `a local override, that's fine — doctor just can't compare it.`
+    }
+  }
+  const projectPin = projectMatch[1]
+  const cliMajorMinor = toMajorMinor(cliCorePin)
+  const projectMajorMinor = toMajorMinor(projectPin)
+  if (cliMajorMinor === null || projectMajorMinor === null) {
+    return {
+      id: `project-core-pin/${projectName}`,
+      status: 'warning',
+      message: `Couldn't parse one or both @skmtc/core pins (cli: ${cliCorePin}, project: ${projectPin}); manual review required.`
+    }
+  }
+  if (cliMajorMinor !== projectMajorMinor) {
+    return {
+      id: `project-core-pin/${projectName}`,
+      status: 'warning',
+      message: `Project "${projectName}" pins @skmtc/core ${projectPin}; the CLI uses ${cliCorePin}. Major.minor mismatch.`,
+      hint:
+        `Update the project's "@skmtc/core" pin to "jsr:@skmtc/core@${cliCorePin}" to match. ` +
+        `Stale pins are the root cause of "No matching export … SnippetBase" errors at bundle time ` +
+        `(friction #7 in skmtc-cli skill §6).`,
+      data: { projectPin, cliCorePin }
+    }
+  }
+  return {
+    id: `project-core-pin/${projectName}`,
+    status: 'ok',
+    message: `Project "${projectName}" pins @skmtc/core ${projectPin}; CLI uses ${cliCorePin} (compatible).`
+  }
+}
+
+/**
+ * Extracts `major.minor` from a semver constraint like `^0.3.0` or
+ * `~1.2.3` or `0.3`. Returns `null` for `*`, `latest`, anything we
+ * can't parse — doctor degrades to "manual review" rather than
+ * guessing.
+ */
+const toMajorMinor = (constraint: string): string | null => {
+  const match = constraint.match(/(\d+)\.(\d+)/)
+  if (!match) return null
+  return `${match[1]}.${match[2]}`
+}
+
+const checkProjectDenoJson = (projectName: string, denoJsonPath: string): Check => {
+  if (!existsSync(denoJsonPath)) {
+    return {
+      id: `project-deno-json/${projectName}`,
+      status: 'error',
+      message: `Project "${projectName}" is missing ${denoJsonPath}.`,
+      hint: 'Run `skmtc init` to scaffold the project state, or delete the directory if it was abandoned.'
+    }
+  }
+  try {
+    JSON.parse(Deno.readTextFileSync(denoJsonPath))
+    return {
+      id: `project-deno-json/${projectName}`,
+      status: 'ok',
+      message: `Project "${projectName}" has a parseable deno.json.`
+    }
+  } catch (error) {
+    return {
+      id: `project-deno-json/${projectName}`,
+      status: 'error',
+      message: `Project "${projectName}" deno.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}.`,
+      hint: `Open ${denoJsonPath} and fix the syntax error, then re-run.`
+    }
+  }
+}
+
+const checkProjectBasePath = (projectName: string, clientJsonPath: string): Check => {
+  if (!existsSync(clientJsonPath)) {
+    return {
+      id: `project-base-path/${projectName}`,
+      status: 'warning',
+      message: `Project "${projectName}" has no client.json — generate runs will need an explicit [schema] arg.`,
+      hint: `Run \`skmtc init ${projectName} <basePath>\` to scaffold it.`
+    }
+  }
+  try {
+    const parsed = JSON.parse(Deno.readTextFileSync(clientJsonPath))
+    const basePath: unknown = parsed?.settings?.basePath
+    if (typeof basePath !== 'string') {
+      return {
+        id: `project-base-path/${projectName}`,
+        status: 'warning',
+        message: `Project "${projectName}" has client.json but no settings.basePath.`,
+        hint: 'Set `settings.basePath` so generated files land in a known location. See the cli skill §1 mental-model table for the convention.'
+      }
+    }
+    if (isAbsolute(basePath)) {
+      // Friction #13 — absolute paths get concatenated onto the
+      // SKMTC root. We can't auto-fix at runtime but we can flag it.
+      return {
+        id: `project-base-path/${projectName}`,
+        status: 'error',
+        message: `Project "${projectName}" has an absolute basePath: ${basePath}.`,
+        hint: 'basePath must be relative to the SKMTC root. Edit client.json or re-run `skmtc init` with a relative path.'
+      }
+    }
+    return {
+      id: `project-base-path/${projectName}`,
+      status: 'ok',
+      message: `Project "${projectName}" basePath is "${basePath}".`,
+      data: { basePath }
+    }
+  } catch (error) {
+    return {
+      id: `project-base-path/${projectName}`,
+      status: 'error',
+      message: `Project "${projectName}" client.json is unreadable: ${error instanceof Error ? error.message : String(error)}.`
+    }
+  }
+}
+
+const checkProjectBundle = (
+  projectName: string,
+  denoJsonPath: string,
+  /**
+   * `bundlePath` arrives as a `file://` URL because `toBundlePath`
+   * produces what `import()` consumes. For doctor's reporting we
+   * strip the prefix to show a plain filesystem path — the URL form
+   * leaks the import-time detail into operator-facing text.
+   */
+  bundlePath: string
+): Check => {
+  const displayPath = bundlePath.startsWith('file://')
+    ? bundlePath.slice('file://'.length)
+    : bundlePath
+  if (!existsSync(denoJsonPath)) {
+    return {
+      id: `project-bundle/${projectName}`,
+      status: 'skipped',
+      message: `Project "${projectName}" has no deno.json — bundle check skipped.`
+    }
+  }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(Deno.readTextFileSync(denoJsonPath))
+  } catch {
+    return {
+      id: `project-bundle/${projectName}`,
+      status: 'skipped',
+      message: `Project "${projectName}" deno.json is unparseable — bundle check skipped.`
+    }
+  }
+  const imports = (parsed as { imports?: Record<string, unknown> })?.imports ?? {}
+  const hasLocalGenerator = Object.entries(imports).some(([id, value]) => {
+    const isGenerator = parseModuleName(id).packageName.startsWith('gen-')
+    if (!isGenerator) return false
+    return typeof value === 'string' && !value.startsWith('jsr:')
+  })
+
+  if (!hasLocalGenerator) {
+    return {
+      id: `project-bundle/${projectName}`,
+      status: 'ok',
+      message: `Project "${projectName}" is remote-only; bundle.js is not needed (published JSR bundles are used at generate time).`,
+      data: { hasLocalGenerator: false }
+    }
+  }
+  if (!existsSync(bundlePath)) {
+    return {
+      id: `project-bundle/${projectName}`,
+      status: 'warning',
+      message: `Project "${projectName}" has local generators but no bundle.js at ${displayPath}.`,
+      hint: `Run \`skmtc bundle ${projectName}\` to build it.`,
+      data: { hasLocalGenerator: true, bundlePath: displayPath }
+    }
+  }
+  return {
+    id: `project-bundle/${projectName}`,
+    status: 'ok',
+    message: `Project "${projectName}" has a local bundle.js.`,
+    data: { hasLocalGenerator: true, bundlePath: displayPath }
+  }
+}
+
+const checkProjectManifest = (projectName: string): Check => {
+  const manifestPath = Manifest.toPath(projectName)
+  if (!existsSync(manifestPath)) {
+    return {
+      id: `project-manifest/${projectName}`,
+      status: 'skipped',
+      message: `Project "${projectName}" has no manifest yet — run \`skmtc generate ${projectName}\` to produce one.`
+    }
+  }
+  let parsedJson: unknown
+  try {
+    parsedJson = JSON.parse(Deno.readTextFileSync(manifestPath))
+  } catch (error) {
+    return {
+      id: `project-manifest/${projectName}`,
+      status: 'warning',
+      message: `Project "${projectName}" manifest.json is not valid JSON (${error instanceof Error ? error.message : String(error)}).`,
+      hint:
+        'Re-run `skmtc generate` to rewrite it. Stale/malformed manifests are tolerated at runtime ' +
+        'but cleanup of previous artifacts will be skipped on this run.'
+    }
+  }
+  const validated = v.safeParse(manifestContent, parsedJson)
+  if (!validated.success) {
+    // Friction #26: stale-schema manifest. At runtime the tolerant
+    // reader degrades to null + warning, which is non-fatal — so
+    // this is a `warning` not an `error` from doctor's perspective.
+    const summary = validated.issues[0]?.message ?? 'schema mismatch'
+    return {
+      id: `project-manifest/${projectName}`,
+      status: 'warning',
+      message: `Project "${projectName}" manifest.json doesn't match the current @skmtc/core schema (${summary}).`,
+      hint: 'Re-run `skmtc generate` to rewrite the manifest in the current shape.'
+    }
+  }
+  return {
+    id: `project-manifest/${projectName}`,
+    status: 'ok',
+    message: `Project "${projectName}" manifest.json is current.`
+  }
+}

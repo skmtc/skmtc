@@ -26,6 +26,13 @@ export type GenerateLocalResult = {
    * summary doesn't have to re-dig into the manifest.
    */
   parseIssues: ParseIssue[]
+  /**
+   * Paths of every file the run wrote, relative to the SKMTC root.
+   * Surfaced so `--json` consumers (and agents) can see exactly where
+   * the output landed without re-parsing the manifest — closes
+   * friction #14 in structured form.
+   */
+  filePaths: string[]
 }
 
 export const generateLocal = async ({
@@ -51,7 +58,11 @@ export const generateLocal = async ({
 
     const stats = toGenerationStats({ manifest, artifacts })
 
-    return { stats, parseIssues: manifest.parseIssues }
+    return {
+      stats,
+      parseIssues: manifest.parseIssues,
+      filePaths: Object.keys(artifacts)
+    }
   } catch (error) {
     console.error(error instanceof Error ? error : 'Failed to generate artifacts')
 

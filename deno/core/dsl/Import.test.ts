@@ -140,3 +140,108 @@ Deno.test('Import - generates import all with other named imports', () => {
     "import * as React, {useState, useEffect} from 'react'"
   )
 })
+
+Deno.test('ImportName - explicit form with isType', () => {
+  const importName = new ImportName({ name: 'UseMutationOptions', isType: true })
+  assertEquals(importName.name, 'UseMutationOptions')
+  assertEquals(importName.alias, undefined)
+  assertEquals(importName.isType, true)
+  assertEquals(importName.toString(), 'type UseMutationOptions')
+})
+
+Deno.test('ImportName - explicit form with isType + alias', () => {
+  const importName = new ImportName({ name: 'User', alias: 'IUser', isType: true })
+  assertEquals(importName.name, 'User')
+  assertEquals(importName.alias, 'IUser')
+  assertEquals(importName.isType, true)
+  assertEquals(importName.toString(), 'type User as IUser')
+})
+
+Deno.test('ImportName - explicit form without isType defaults to value', () => {
+  const importName = new ImportName({ name: 'User', alias: 'IUser' })
+  assertEquals(importName.isType, false)
+  assertEquals(importName.toString(), 'User as IUser')
+})
+
+Deno.test('Import - emits statement-level "import type" when every name is a type', () => {
+  // The all-type case prefers the statement-level form for readability.
+  // Per-name `type` prefixes are valid TS but read noisier than
+  // `import type { … }`.
+  const importStatement = new Import({
+    module: '@tanstack/react-query',
+    importNames: [
+      { name: 'UseMutationOptions', isType: true },
+      { name: 'UseQueryOptions', isType: true }
+    ]
+  })
+
+  assertEquals(
+    importStatement.toString(),
+    "import type {UseMutationOptions, UseQueryOptions} from '@tanstack/react-query'"
+  )
+})
+
+Deno.test('Import - mixed value + type names uses per-name "type" prefix', () => {
+  // When some names are values, the statement-level form is invalid; TS
+  // requires the per-name `type` prefix instead.
+  const importStatement = new Import({
+    module: '@tanstack/react-query',
+    importNames: [
+      'useMutation',
+      'useQueryClient',
+      { name: 'UseMutationOptions', isType: true }
+    ]
+  })
+
+  assertEquals(
+    importStatement.toString(),
+    "import {useMutation, useQueryClient, type UseMutationOptions} from '@tanstack/react-query'"
+  )
+})
+
+Deno.test('Import - type imports render correctly after a Set<string> round-trip', () => {
+  // This is the scenario `File.imports` exercises: register an import,
+  // it gets stringified into a Set, then a new Import is rebuilt from
+  // those strings before render. The `isType` flag itself does NOT
+  // survive — the round-tripped name is the literal string
+  // `'type UseMutationOptions'`. That still emits valid TS because
+  // `import { type Foo }` is the per-name form. The visible output is
+  // therefore byte-equivalent to the original, just via a different
+  // code path (per-name `type` keyword instead of statement-level
+  // `import type { … }`).
+  const original = new Import({
+    module: '@tanstack/react-query',
+    importNames: [
+      'useMutation',
+      { name: 'UseMutationOptions', isType: true }
+    ]
+  })
+
+  const stringified = original.importNames.map(n => n.toString())
+  const rebuilt = new Import({ module: '@tanstack/react-query', importNames: stringified })
+
+  assertEquals(
+    rebuilt.toString(),
+    "import {useMutation, type UseMutationOptions} from '@tanstack/react-query'"
+  )
+  assertEquals(rebuilt.toString(), original.toString())
+})
+
+Deno.test('Import - toRecord emits the explicit form for type imports', () => {
+  const importStatement = new Import({
+    module: '@tanstack/react-query',
+    importNames: [
+      'useMutation',
+      { name: 'UseMutationOptions', isType: true },
+      { name: 'User', alias: 'IUser', isType: true }
+    ]
+  })
+
+  assertEquals(importStatement.toRecord(), {
+    '@tanstack/react-query': [
+      'useMutation',
+      { name: 'UseMutationOptions', isType: true },
+      { name: 'User', alias: 'IUser', isType: true }
+    ]
+  })
+})

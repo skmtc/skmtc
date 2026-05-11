@@ -1,5 +1,6 @@
 import { Command, EnumType } from '@cliffy/command'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
+import { getCommandDescriptor } from '@/lib/cli-schema.ts'
 
 // Sentry.init({
 //   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
@@ -8,13 +9,24 @@ import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-regis
 // Commands that never touch JSR can be allow-listed here so they keep
 // working offline. Adding new commands defaults to "requires registry"
 // — make it an explicit decision when something can skip the check.
-const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>(['generate', 'dev'])
+const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
+  'generate',
+  'dev',
+  'doctor',
+  'agent-context'
+])
 
 const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
   const firstArg = args.find(arg => !arg.startsWith('-'))
   if (!firstArg) return false
   return COMMANDS_THAT_SKIP_REGISTRY_CHECK.has(firstArg)
 }
+
+// Strings reused on every agent-mode command. The descriptions are
+// also exported via {@link AGENT_MODE_FLAGS} in `cli-schema.ts` so
+// `agent-context` reports the same text — keep these in sync.
+const NO_INPUT_DESC = 'Disable interactive prompts; fail on missing args.'
+const JSON_DESC = 'Emit structured JSON output (implies --no-input).'
 
 const run = async () => {
   if (!shouldSkipRegistryCheck(Deno.args)) {
@@ -30,18 +42,33 @@ const run = async () => {
   }
 
   const generatorType = new EnumType(['operation', 'model'])
-  // Dynamic command wrappers - commands are loaded only when executed
+
+  // The descriptors in `lib/cli-schema.ts` are the source of truth for
+  // each command's `description` and the human-readable args pattern
+  // (which `agent-context` also reads). The `.arguments(...)` strings
+  // below carry Cliffy's type annotations (`:string`, `:string[]`,
+  // …) which don't belong in the descriptor — those stay inline.
+  // The `--json` / `--no-input` option pair is repeated on every
+  // `full`-agent-mode command because Cliffy's chain types don't
+  // round-trip through a generic helper without losing precision.
 
   const initCommand = new Command()
-    .description('Initialize a new project in current directory')
+    .description(getCommandDescriptor('init').description)
     .arguments('[projectName:string] [basePath:string]')
-    .action(async (_options, projectName, basePath) => {
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .action(async ({ json, input }, projectName, basePath) => {
       const { renderInit } = await import('@/commands/init.tsx')
-      await renderInit({ projectName, basePath })
+      await renderInit({
+        projectName,
+        basePath,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
     })
 
   const createCommand = new Command()
-    .description('Create new generator')
+    .description(getCommandDescriptor('create').description)
     .type('generatorType', generatorType)
     .arguments('<project:string> <generator:string> <type:generatorType>')
     .action(async (_options, projectName, generator, type) => {
@@ -50,63 +77,120 @@ const run = async () => {
     })
 
   const cloneCommand = new Command()
-    .description('Clone generator')
-    .arguments('<project:string>')
-    .action(async (_options, projectName) => {
+    .description(getCommandDescriptor('clone').description)
+    .arguments('[project:string]')
+    .option(
+      '-g, --generator <id:string>',
+      'Generator id (JSR specifier) to clone. Repeat for multiple.',
+      { collect: true }
+    )
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .action(async ({ json, input, generator }, projectName) => {
       const { renderClone } = await import('@/commands/clone.tsx')
-      await renderClone({ projectName })
+      await renderClone({
+        projectName,
+        generators: generator,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
     })
 
   const installCommand = new Command()
-    .description('Install generator')
+    .description(getCommandDescriptor('install').description)
     .arguments('[generators:string[]] [project:string]')
-    .action(async (_options, generators, projectName) => {
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .action(async ({ json, input }, generators, projectName) => {
       const { renderInstall } = await import('@/commands/install.tsx')
-      await renderInstall({ generators, projectName })
+      await renderInstall({
+        generators,
+        projectName,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
     })
 
   const listCommand = new Command()
-    .description('List generators')
-    .arguments('<project:string>')
-    .action(async (_options, projectName) => {
+    .description(getCommandDescriptor('list').description)
+    .arguments('[project:string]')
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .action(async ({ json, input }, projectName) => {
+      // Cliffy negates `--no-input` to `input: boolean`. `input === false`
+      // means the user passed `--no-input`; default is `true`.
       const { renderList } = await import('@/commands/list.tsx')
-      await renderList({ projectName })
+      await renderList({ projectName, jsonFlag: json, noInputFlag: input === false })
     })
 
   const removeCommand = new Command()
-    .description('Remove generator')
-    .arguments('<project:string> <generator:string>')
-    .action(async (_options, projectName, generator) => {
+    .description(getCommandDescriptor('remove').description)
+    .arguments('[project:string] [generator:string]')
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .action(async ({ json, input }, projectName, generator) => {
       const { renderRemove } = await import('@/commands/remove.tsx')
-      await renderRemove({ projectName, generator })
+      await renderRemove({
+        projectName,
+        generator,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
     })
 
   const generateCommand = new Command()
-    .description('Generate artifacts')
+    .description(getCommandDescriptor('generate').description)
     .arguments('<project:string> [schema:string]')
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
-    .action(async ({ watch }, projectName, schemaSourceString) => {
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC + ' Incompatible with --watch.')
+    .action(async ({ watch, json, input }, projectName, schemaSourceString) => {
       const { generateSwitch } = await import('@/commands/generate-switch.ts')
-
-      await generateSwitch({ projectName, schemaSourceString, watch })
+      await generateSwitch({
+        projectName,
+        schemaSourceString,
+        watch,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
     })
 
   const bundleCommand = new Command()
-    .description('Create bundle from project')
-    .arguments('<project:string>')
-    .action(async (_options, projectName) => {
+    .description(getCommandDescriptor('bundle').description)
+    .arguments('[project:string]')
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .action(async ({ json, input }, projectName) => {
       const { renderBundle } = await import('@/commands/bundle.tsx')
-
-      await renderBundle({ projectName })
+      await renderBundle({
+        projectName,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
     })
 
   const devCommand = new Command()
-    .description('Watch project files, rebundle and regenerate on change')
+    .description(getCommandDescriptor('dev').description)
     .arguments('<project:string> [schema:string]')
     .action(async (_options, projectName, schemaSourceString) => {
       const { dev } = await import('@/commands/dev.ts')
-
       await dev({ projectName, schemaSourceString })
+    })
+
+  const doctorCommand = new Command()
+    .description(getCommandDescriptor('doctor').description)
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }) => {
+      const { renderDoctor } = await import('@/commands/doctor.ts')
+      await renderDoctor({ jsonFlag: json })
+    })
+
+  const agentContextCommand = new Command()
+    .description(getCommandDescriptor('agent-context').description)
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }) => {
+      const { renderAgentContext } = await import('@/commands/agent-context.ts')
+      renderAgentContext({ jsonFlag: json })
     })
 
   await new Command()
@@ -124,6 +208,8 @@ const run = async () => {
     .command('generate', generateCommand)
     .command('bundle', bundleCommand)
     .command('dev', devCommand)
+    .command('doctor', doctorCommand)
+    .command('agent-context', agentContextCommand)
     .parse(Deno.args)
 }
 

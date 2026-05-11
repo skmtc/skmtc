@@ -309,6 +309,55 @@ Deno.test('CoreContext - toArtifacts() includes results tree', () => {
   assertEquals(typeof result.results, 'object')
 })
 
+Deno.test(
+  'CoreContext - toArtifacts() synthesises an error parseIssue when parsing throws',
+  () => {
+    // The CLI's `generate --json` previously reported `kind:
+    // "generated"` with 0 files when the worker's `toArtifacts`
+    // caught a top-level failure — there was no signal in the
+    // returned shape that anything had gone wrong. The catch now
+    // adds an `INVALID_SCHEMA` parseIssue so consumers can detect
+    // crashed runs.
+    //
+    // We trigger the catch by passing an OAS document whose
+    // `openapi` field is undefined — `toDocumentFieldsV3` does
+    // `const { openapi, ... } = documentObject` which throws on a
+    // null/undefined input.
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+
+    // deno-lint-ignore no-explicit-any
+    const malformedDocument: any = null
+
+    const result = context.toArtifacts({
+      document: {
+        type: 'oas',
+        value: malformedDocument
+      },
+      settings: undefined,
+      toGeneratorConfigMap: createEmptyGeneratorMap,
+      stackTrail,
+      silent: true
+    })
+
+    // Empty outputs are expected — the run failed.
+    assertEquals(Object.keys(result.artifacts).length, 0)
+    assertEquals(Object.keys(result.files).length, 0)
+
+    // The synthesised issue is what makes the failure detectable.
+    assert(result.parseIssues.length > 0)
+    const errorIssue = result.parseIssues.find(i => i.level === 'error')
+    assertExists(errorIssue)
+    if (errorIssue?.level === 'error') {
+      assertEquals(errorIssue.type, 'INVALID_SCHEMA')
+      assertEquals(errorIssue.location, 'toArtifacts')
+      // `cause` carries the original error so downstream consumers
+      // can rehydrate a stack trace if they need to.
+      assert(errorIssue.cause !== undefined)
+    }
+  }
+)
+
 Deno.test('CoreContext - toArtifacts() with empty document', () => {
   const context = createTestContext()
   const doc = createMinimalDocument()

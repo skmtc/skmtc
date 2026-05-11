@@ -425,13 +425,39 @@ export class CoreContext {
 
       this.logger.error(error)
 
+      // Surface the fatal error as a synthesised parse-issue so
+      // downstream consumers (CLI `generate`, the manifest writer)
+      // can tell a successful 0-file run apart from a crashed run.
+      // Before this, the catch returned `parseIssues: []` and an
+      // empty `artifacts`, which read on the CLI side as "everything
+      // generated, just nothing emitted" — silent failure.
+      //
+      // We pull whatever parse-phase issues were already recorded
+      // before the throw, so any incremental diagnostics aren't lost,
+      // and append the top-level failure on the end. Protocol is
+      // hardcoded to 'oas' because the synthesised issue is
+      // post-protocol-dispatch and we don't have a discriminator at
+      // this catch site; OAS is the more common case and the
+      // location format ('toArtifacts') is unambiguous regardless.
+      const priorIssues =
+        this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      const message = error instanceof Error ? error.message : String(error)
+      const fatalIssue = {
+        protocol: 'oas' as const,
+        level: 'error' as const,
+        type: 'INVALID_SCHEMA' as const,
+        location: 'toArtifacts',
+        message: `Top-level toArtifacts failure: ${message}`,
+        cause: error
+      }
+
       return {
         artifacts: {},
         files: {},
         previews: {},
         mappings: {},
         results: this.#results.toTree(),
-        parseIssues: []
+        parseIssues: [...priorIssues, fatalIssue]
       }
     } finally {
       this.logger.handlers.forEach(handler => {

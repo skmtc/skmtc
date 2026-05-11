@@ -4,12 +4,23 @@ import { Manager } from '@/lib/manager.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
-import { resolveInputMode, failWithRecipe } from '@/lib/strict-mode.ts'
+import {
+  failWithRecipe,
+  resolveInputMode,
+  resolveOutputFormat
+} from '@/lib/strict-mode.ts'
+import {
+  initHeadless,
+  InvalidBasePathError,
+  type InitHeadlessResult
+} from '@/lib/init-headless.ts'
 
 type RenderInitArgs = {
   skmtcRoot?: SkmtcRoot
   projectName: string | undefined
   basePath: string | undefined
+  jsonFlag?: boolean
+  noInputFlag?: boolean
   // Optional dependencies for testing
   renderFn?: typeof render
   AppComponent?: typeof App
@@ -19,14 +30,16 @@ export const renderInit = async ({
   skmtcRoot: providedSkmtcRoot,
   projectName,
   basePath,
+  jsonFlag,
+  noInputFlag,
   renderFn = render,
   AppComponent = App
 }: RenderInitArgs) => {
-  const mode = resolveInputMode()
+  const mode = resolveInputMode({ noInputFlag, jsonFlag })
 
   if (mode === 'strict') {
-    if (!projectName) {
-      failWithRecipe({
+    if (projectName === undefined) {
+      return failWithRecipe({
         command: 'init',
         arg: '<projectName>',
         usage: 'skmtc init <projectName> <basePath>',
@@ -34,34 +47,36 @@ export const renderInit = async ({
       })
     }
 
-    if (!basePath) {
-      failWithRecipe({
+    if (basePath === undefined) {
+      return failWithRecipe({
         command: 'init',
         arg: '<basePath>',
         usage: 'skmtc init <projectName> <basePath>',
         example: 'skmtc init my-api ./web/app/src',
-        discover: 'basePath is the consuming app source root relative to the SKMTC root (the directory containing .skmtc/). Absolute paths are not allowed.'
+        discover:
+          'basePath is relative to the SKMTC root (the directory containing .skmtc/). It must also equal what the `@` alias resolves to in your consumer app\'s bundler, since generators emit `@/<subdir>/...` paths.'
       })
     }
 
     const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-    const existing = skmtcRoot.projects.find(p => p.name === projectName)
-    if (existing) {
-      console.log(`Project "${projectName!}" already exists at .skmtc/${projectName!}/ — nothing to do.`)
-      Deno.exit(0)
+    let result: InitHeadlessResult
+    try {
+      result = await initHeadless({ skmtcRoot, projectName, basePath })
+    } catch (error) {
+      if (error instanceof InvalidBasePathError) {
+        return failWithRecipe({
+          command: 'init',
+          arg: '<basePath>',
+          usage: 'skmtc init <projectName> <basePath>',
+          example: 'skmtc init my-api ./web/app/src',
+          discover: error.message
+        })
+      }
+      throw error
     }
 
-    await skmtcRoot.createProject({
-      name: projectName!,
-      basePath: basePath!,
-      generators: [],
-      availableGenerators: []
-    })
-
-    console.log(`Initialized project "${projectName!}" at .skmtc/${projectName!}/`)
-    console.log(`  basePath: ${basePath!}`)
-    console.log(`\nNext: skmtc install <generators...> ${projectName!}`)
+    printInitResult(result, { format: resolveOutputFormat({ jsonFlag }) })
     Deno.exit(0)
   }
 
@@ -81,4 +96,53 @@ export const renderInit = async ({
   }
 
   renderFn(<AppComponent initialState={initialState} />)
+}
+
+type PrintInitResultOptions = {
+  format: 'text' | 'json'
+}
+
+export const printInitResult = (
+  result: InitHeadlessResult,
+  { format }: PrintInitResultOptions
+): void => {
+  switch (format) {
+    case 'json': {
+      // Augment the result with a `nextStep` so an agent always knows
+      // what to do next — same pattern as install's `verifyWith`.
+      const payload = {
+        ...result,
+        nextStep:
+          result.kind === 'created'
+            ? `skmtc install <generators...> ${result.projectName}`
+            : null
+      }
+      console.log(JSON.stringify(payload, null, 2))
+      return
+    }
+    case 'text': {
+      switch (result.kind) {
+        case 'created': {
+          console.log(`Initialized project "${result.projectName}" at .skmtc/${result.projectName}/`)
+          console.log(`  basePath: ${result.basePath}`)
+          console.log(`\nNext: skmtc install <generators...> ${result.projectName}`)
+          return
+        }
+        case 'existed': {
+          console.log(
+            `Project "${result.projectName}" already exists at .skmtc/${result.projectName}/ — nothing to do.`
+          )
+          return
+        }
+        default: {
+          const _exhaustive: never = result
+          throw new Error(`Unhandled init result: ${JSON.stringify(_exhaustive)}`)
+        }
+      }
+    }
+    default: {
+      const _exhaustive: never = format
+      throw new Error(`Unhandled output format: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
 }

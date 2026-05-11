@@ -18,12 +18,29 @@
 
 export type InputMode = 'interactive' | 'strict'
 
+/**
+ * Output format for strict-mode commands.
+ *
+ * - `text` — human-readable plain text on stdout.
+ * - `json` — a single JSON object on stdout, suitable for piping into
+ *   `jq` or for agent consumption. Always implies strict mode (you
+ *   can't render a JSON object and an Ink picker at the same time).
+ */
+export type OutputFormat = 'text' | 'json'
+
 type ResolveInputModeArgs = {
   noInputFlag?: boolean
+  jsonFlag?: boolean
 }
 
-export const resolveInputMode = ({ noInputFlag }: ResolveInputModeArgs = {}): InputMode => {
-  if (noInputFlag) return 'strict'
+export const resolveInputMode = ({
+  noInputFlag,
+  jsonFlag
+}: ResolveInputModeArgs = {}): InputMode => {
+  // `--json` implies non-interactive. Documented in the cli skill;
+  // the rationale is that a structured output stream and an Ink TUI
+  // are mutually exclusive presentations of the same command.
+  if (noInputFlag || jsonFlag) return 'strict'
 
   try {
     if (!Deno.stdin.isTerminal() || !Deno.stdout.isTerminal()) {
@@ -37,6 +54,20 @@ export const resolveInputMode = ({ noInputFlag }: ResolveInputModeArgs = {}): In
 
   return 'interactive'
 }
+
+type ResolveOutputFormatArgs = {
+  jsonFlag?: boolean
+}
+
+/**
+ * Pick the output format for a strict-mode command. Today the choice
+ * is binary: `--json` → JSON, otherwise plain text. Extracted into a
+ * helper so every command's strict branch reads the flag through the
+ * same path.
+ */
+export const resolveOutputFormat = ({
+  jsonFlag
+}: ResolveOutputFormatArgs = {}): OutputFormat => (jsonFlag ? 'json' : 'text')
 
 type MissingArgArgs = {
   command: string
