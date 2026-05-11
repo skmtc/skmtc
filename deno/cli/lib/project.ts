@@ -28,7 +28,15 @@ type AddGeneratorArgs = {
 type CloneGeneratorArgs = {
   projectName: string
   moduleName: string
-  generatorsDenoJson: Record<string, unknown>
+  /** Bypass the pre-flight @skmtc/core peer-pin check. See `Generator.clone`. */
+  force?: boolean
+}
+
+export type CloneGeneratorResult = {
+  /** Module name with scope, e.g. `@skmtc/gen-shadcn-form`. */
+  moduleName: string
+  /** Concrete JSR version that was downloaded, e.g. `0.0.55`. */
+  version: string
 }
 
 type ConstructorArgs = {
@@ -140,7 +148,11 @@ export class Project {
   }
 
   //Rename import
-  async cloneGenerator({ projectName, moduleName, generatorsDenoJson }: CloneGeneratorArgs) {
+  async cloneGenerator({
+    projectName,
+    moduleName,
+    force
+  }: CloneGeneratorArgs): Promise<CloneGeneratorResult> {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
 
@@ -153,26 +165,15 @@ export class Project {
         version: version ?? (await Jsr.getLatestMeta({ scopeName, packageName })).latest
       })
 
-      const generatorIds = this.toGeneratorIds()
-
-      const filteredImportEntries = Object.entries(this.rootDenoJson.contents.imports ?? {}).filter(
-        ([generatorId]) => generatorIds.includes(generatorId)
-      )
-
-      await generator.clone({
+      const result = await generator.clone({
         denoJson: this.rootDenoJson,
-        generatorsDenoJson,
         manager: this.manager,
-        localGenerators: Object.fromEntries(filteredImportEntries)
+        force
       })
 
       this.rootDenoJson.write()
-    } catch (error) {
-      console.error(error)
 
-      // Sentry.captureException(error)
-
-      // await Sentry.flush()
+      return { moduleName: generator.toModuleName(), version: result.version }
     } finally {
       await this.manager.cleanup()
     }

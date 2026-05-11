@@ -7,7 +7,6 @@ import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { Generator } from '@/lib/generator.ts'
 
 // Helper to create a fresh mock project for each test
 const createMockProject = (generators: string[] = []): Project => {
@@ -25,7 +24,8 @@ const createMockProject = (generators: string[] = []): Project => {
         )
       }
     },
-    cloneGenerator: () => Promise.resolve()
+    cloneGenerator: ({ moduleName }: { moduleName: string; projectName: string }) =>
+      Promise.resolve({ moduleName, version: '0.0.55' })
   })
   return mockProject
 }
@@ -148,56 +148,48 @@ Deno.test(
     const cloneCalls: unknown[] = []
 
     const mockProject = createMockProject(['@skmtc/gen-typescript', '@skmtc/gen-zod'])
-    mockProject.cloneGenerator = (args: unknown) => {
+    mockProject.cloneGenerator = (args: { moduleName: string; projectName: string }) => {
       cloneCalls.push(args)
-      return Promise.resolve()
+      return Promise.resolve({ moduleName: args.moduleName, version: '0.0.55' })
     }
-
-    // Save original and mock the static method
-    const originalGetGenerators = Generator.getGeneratorsRootDenoJson
-    Generator.getGeneratorsRootDenoJson = () => Promise.resolve({ imports: {} })
 
     const initialState = createInitialState(mockProject)
 
-    try {
-      const { lastFrame, unmount, stdin } = renderCloneGeneratorView({
-        initialState,
-        project: mockProject
-      })
+    const { lastFrame, unmount, stdin } = renderCloneGeneratorView({
+      initialState,
+      project: mockProject
+    })
 
-      await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100))
 
-      // Select first generator with spacebar
-      stdin.write(' ')
+    // Select first generator with spacebar
+    stdin.write(' ')
 
-      await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-      const selectedFrame = lastFrame()
+    const selectedFrame = lastFrame()
 
-      assertEquals(
-        selectedFrame,
-        `Select generators to clone:
+    assertEquals(
+      selectedFrame,
+      `Select generators to clone:
 ❯ @skmtc/gen-typescript ✔
   @skmtc/gen-zod`
-      )
+    )
 
-      // Submit with Enter
-      stdin.write('\r')
+    // Submit with Enter
+    stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-      // Verify cloneGenerator was called
-      assertEquals(cloneCalls.length, 1)
-      assertEquals(cloneCalls[0], {
-        moduleName: '@skmtc/gen-typescript',
-        projectName: 'test-project',
-        generatorsDenoJson: { imports: {} }
-      })
+    // Verify cloneGenerator was called with the JSR-only arg shape
+    // (no `generatorsDenoJson` — that GitHub workspace lookup is gone)
+    assertEquals(cloneCalls.length, 1)
+    assertEquals(cloneCalls[0], {
+      moduleName: '@skmtc/gen-typescript',
+      projectName: 'test-project'
+    })
 
-      unmount()
-    } finally {
-      Generator.getGeneratorsRootDenoJson = originalGetGenerators
-    }
+    unmount()
   }
 )
 
@@ -207,41 +199,38 @@ Deno.test(
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
     const mockProject = createMockProject(['@skmtc/gen-typescript'])
-    mockProject.cloneGenerator = () => Promise.resolve()
-
-    // Save original and mock the static method
-    const originalGetGenerators = Generator.getGeneratorsRootDenoJson
-    Generator.getGeneratorsRootDenoJson = () => Promise.resolve({ imports: {} })
+    mockProject.cloneGenerator = ({
+      moduleName
+    }: {
+      moduleName: string
+      projectName: string
+    }) => Promise.resolve({ moduleName, version: '0.0.55' })
 
     const initialState = createInitialState(mockProject)
 
-    try {
-      const { lastFrame, unmount, stdin } = renderCloneGeneratorView({
-        initialState,
-        project: mockProject
-      })
+    const { lastFrame, unmount, stdin } = renderCloneGeneratorView({
+      initialState,
+      project: mockProject
+    })
 
-      await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100))
 
-      // Submit without selecting anything
-      stdin.write('\r')
+    // Submit without selecting anything
+    stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-      // Component should still be showing the list (no navigation away)
-      const frame = lastFrame()
-      const stillShowingList = frame && frame.includes('Select generators to clone:')
+    // Component should still be showing the list (no navigation away)
+    const frame = lastFrame()
+    const stillShowingList = frame && frame.includes('Select generators to clone:')
 
-      assertEquals(
-        stillShowingList,
-        true,
-        `Expected to stay on selection screen, got:\n${frame || 'undefined'}`
-      )
+    assertEquals(
+      stillShowingList,
+      true,
+      `Expected to stay on selection screen, got:\n${frame || 'undefined'}`
+    )
 
-      unmount()
-    } finally {
-      Generator.getGeneratorsRootDenoJson = originalGetGenerators
-    }
+    unmount()
   }
 )
 
@@ -253,42 +242,34 @@ Deno.test(
     const cloneCalls: unknown[] = []
 
     const mockProject = createMockProject(['@skmtc/gen-typescript'])
-    mockProject.cloneGenerator = (args: unknown) => {
+    mockProject.cloneGenerator = (args: { moduleName: string; projectName: string }) => {
       cloneCalls.push(args)
       return Promise.reject(new Error('Clone failed'))
     }
 
-    // Save original and mock the static method
-    const originalGetGenerators = Generator.getGeneratorsRootDenoJson
-    Generator.getGeneratorsRootDenoJson = () => Promise.resolve({ imports: {} })
-
     const initialState = createInitialState(mockProject)
 
-    try {
-      const { lastFrame, unmount, stdin } = renderCloneGeneratorView({
-        initialState,
-        project: mockProject
-      })
+    const { lastFrame, unmount, stdin } = renderCloneGeneratorView({
+      initialState,
+      project: mockProject
+    })
 
-      await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100))
 
-      // Select first generator
-      stdin.write(' ')
+    // Select first generator
+    stdin.write(' ')
 
-      await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-      // Submit
-      stdin.write('\r')
+    // Submit
+    stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 150))
+    await new Promise(resolve => setTimeout(resolve, 150))
 
-      // Verify cloneGenerator was called
-      assertEquals(cloneCalls.length, 1)
+    // Verify cloneGenerator was called
+    assertEquals(cloneCalls.length, 1)
 
-      unmount()
-    } finally {
-      Generator.getGeneratorsRootDenoJson = originalGetGenerators
-    }
+    unmount()
   }
 )
 
@@ -342,7 +323,8 @@ Deno.test(
           }
         }
       },
-      cloneGenerator: () => Promise.resolve()
+      cloneGenerator: ({ moduleName }: { moduleName: string }) =>
+        Promise.resolve({ moduleName, version: '0.0.55' })
     })
 
     const initialState = createInitialState(mockProject)
@@ -380,18 +362,14 @@ Deno.test(
       '@skmtc/gen-zod',
       '@skmtc/gen-tanstack-query'
     ])
-    mockProject.cloneGenerator = (args: unknown) => {
+    mockProject.cloneGenerator = (args: { moduleName: string; projectName: string }) => {
       cloneCalls.push(args)
-      return Promise.resolve()
+      return Promise.resolve({ moduleName: args.moduleName, version: '0.0.55' })
     }
-
-    // Save original and mock the static method
-    const originalGetGenerators = Generator.getGeneratorsRootDenoJson
-    Generator.getGeneratorsRootDenoJson = () => Promise.resolve({ imports: {} })
 
     const initialState = createInitialState(mockProject)
 
-    try {
+    {
       const { lastFrame, unmount, stdin } = renderCloneGeneratorView({
         initialState,
         project: mockProject
@@ -430,24 +408,20 @@ Deno.test(
 
       await new Promise(resolve => setTimeout(resolve, 150))
 
-      // Verify both generators were cloned
+      // Verify both generators were cloned with the JSR-only arg shape
       assertEquals(cloneCalls.length, 2)
 
       assertEquals(cloneCalls[0], {
         moduleName: '@skmtc/gen-typescript',
-        projectName: 'test-project',
-        generatorsDenoJson: { imports: {} }
+        projectName: 'test-project'
       })
 
       assertEquals(cloneCalls[1], {
         moduleName: '@skmtc/gen-zod',
-        projectName: 'test-project',
-        generatorsDenoJson: { imports: {} }
+        projectName: 'test-project'
       })
 
       unmount()
-    } finally {
-      Generator.getGeneratorsRootDenoJson = originalGetGenerators
     }
   }
 )

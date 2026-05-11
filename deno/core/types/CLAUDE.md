@@ -13,5 +13,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20525 | 8:00 PM | 🟣 | Added include configuration types for allow-list filtering of generators and operations | ~654 |
 | #20249 | 10:43 AM | 🔄 | Strengthened ParseIssue runtime validation with typed schemas | ~110 |
 </claude-mem-context>

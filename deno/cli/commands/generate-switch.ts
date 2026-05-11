@@ -7,6 +7,9 @@ import {
 } from '@/lib/strict-mode.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
+import { checkBundleFreshness } from '@/lib/bundle-freshness.ts'
+import { runTypecheck } from '@/lib/typecheck.ts'
+import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
   projectName: string
@@ -14,6 +17,16 @@ type GenerateSwitchArgs = {
   watch: boolean | undefined
   jsonFlag?: boolean
   noInputFlag?: boolean
+  /**
+   * When `true`, run `tsc --noEmit` against the consumer's
+   * tsconfig after generating and surface diagnostics scoped to
+   * the files this run wrote. Closes friction #10.
+   */
+  typecheck?: boolean
+  /** Optional override for the tsconfig.json path used by `--typecheck`. */
+  tsconfig?: string
+  /** Optional override for the `tsc` command (default: `npx tsc`). */
+  tscCmd?: string
 }
 
 export const generateSwitch = async ({
@@ -21,7 +34,10 @@ export const generateSwitch = async ({
   schemaSourceString,
   watch,
   jsonFlag,
-  noInputFlag
+  noInputFlag,
+  typecheck,
+  tsconfig,
+  tscCmd
 }: GenerateSwitchArgs) => {
   // --json + --watch is incompatible: --json emits a single object
   // and exits, --watch is a stream. Fail loudly so the caller learns
@@ -59,8 +75,43 @@ export const generateSwitch = async ({
   }
 
   if (generateLocalArgs) {
+    // Bundle freshness: if `deno.json#imports` and the on-disk
+    // `worker.ts` disagree on which generators are present (e.g.
+    // someone hand-edited `deno.json` outside the CLI), refuse with
+    // a recipe error pointing at `bundle`. Without this, `generate`
+    // silently runs against a stale bundle and skips the changed
+    // generators — friction #4's defensive net.
+    //
+    // Only gates strict mode (agents). Interactive users see realtime
+    // output and can recover; agents need the upfront refusal.
+    if (mode === 'strict') {
+      const freshness = checkBundleFreshness({ projectName })
+      if (freshness.kind === 'stale' || freshness.kind === 'missing-worker') {
+        console.error(`Error: ${freshness.message}\n`)
+        if (freshness.kind === 'stale') {
+          console.error(`${freshness.hint}\n`)
+        }
+        Deno.exit(2)
+      }
+    }
+
     const { generateLocal } = await import('@/lib/generate-local.ts')
     const result = await generateLocal(generateLocalArgs)
+
+    // Optional post-generate type-check pass. Runs the consumer's
+    // tsc against the freshly-emitted files; diagnostics are scoped
+    // to this run so unrelated pre-existing errors elsewhere in the
+    // consumer app don't pollute the result. Friction #10.
+    const typecheckResult = typecheck
+      ? await runTypecheck({
+          filePaths: result.filePaths,
+          basePathAbs: generateLocalArgs.clientSettings?.basePath
+            ? resolve(generateLocalArgs.clientSettings.basePath)
+            : undefined,
+          tsconfigOverride: tsconfig,
+          tscCmd
+        })
+      : undefined
 
     // Both `--json` and a non-TTY shell route to the structured path;
     // the Ink-free generate flow already wrote plain text, so for
@@ -73,6 +124,7 @@ export const generateSwitch = async ({
       projectName,
       basePath: generateLocalArgs.clientSettings?.basePath,
       manifestPath: toManifestPath(toProjectPath(projectName)),
+      typecheck: typecheckResult,
       format
     })
 
@@ -92,7 +144,12 @@ export const generateSwitch = async ({
     const fatalParseIssue = (result.parseIssues ?? []).some(
       issue => issue.level === 'error'
     )
-    Deno.exit(fatalParseIssue ? 1 : 0)
+    // A failed typecheck is non-fatal-but-noticeable: signal exit 1
+    // (the convention `parseIssues` already uses for "ran but found
+    // problems"). The generated files stay on disk so the operator
+    // can fix the generator and rerun.
+    const typecheckFailed = typecheckResult?.kind === 'failed'
+    Deno.exit(fatalParseIssue || typecheckFailed ? 1 : 0)
   }
 
   // Interactive mode + no resolvable args → mount Ink for the user

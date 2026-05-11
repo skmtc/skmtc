@@ -42,25 +42,41 @@
  * console.log(typeId.entityType.toString()); // 'type'
  * ```
  */
+/**
+ * The discriminator string an entity-type carries.
+ *
+ * Shared between {@link EntityType} (the class that wraps it and adds
+ * the `'const' | 'type'` keyword mapping) and the import-registration
+ * API ({@link ImportNameArg}'s `type` field), so an {@link Identifier}
+ * can hand its `entityType.type` directly to `register({ imports })`
+ * without instantiating a new EntityType.
+ *
+ * - `'variable'` — value imports (`import { Foo }`) and `const`
+ *   declarations.
+ * - `'type'` — type-only imports (`import { type Foo }` /
+ *   `import type { Foo }`) and `type` / `interface` declarations.
+ */
+export type EntityTypeValue = 'variable' | 'type'
+
 export class EntityType {
   /** The entity type discriminator */
-  type: 'variable' | 'type'
-  
+  type: EntityTypeValue
+
   /**
    * Creates a new EntityType instance.
-   * 
+   *
    * @param type - The type of entity ('variable' for const declarations, 'type' for type declarations)
-   * 
+   *
    * @example
    * ```typescript
    * // For generating const declarations
    * const constEntity = new EntityType('variable');
-   * 
+   *
    * // For generating type declarations
    * const typeEntity = new EntityType('type');
    * ```
    */
-  constructor(type: 'variable' | 'type') {
+  constructor(type: EntityTypeValue) {
     this.type = type
   }
 

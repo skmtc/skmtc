@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20531 | 8:04 PM | 🟣 | Include settings test suite created for allow-list generator filtering | ~531 |
 | #20245 | 10:40 AM | 🔄 | Made GqlParseContext.log() exhaustively checked via switch | ~294 |
 | #20240 | 10:38 AM | 🔄 | Unified parse issue storage across OAS and GraphQL contexts | ~303 |
 </claude-mem-context>

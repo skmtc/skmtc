@@ -70,11 +70,11 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     const definition = this.getDefinition({ identifier, exportPath })
 
     if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
-      const importName = identifier.entityType.type === 'type'
-        ? { name: identifier.name, isType: true }
-        : identifier.name
+      // `Identifier.toImport()` carries the identifier's entity type so
+      // type-only identifiers render as `import { type Foo }` under
+      // `verbatimModuleSyntax: true`.
       this.context.register({
-        imports: { [exportPath]: [importName] },
+        imports: { [exportPath]: [identifier.toImport()] },
         destinationPath
       })
     }

@@ -13,12 +13,19 @@
 
 import type { GenerateLocalResult } from '@/lib/generate-local.ts'
 import { toGenerateMessageString } from '@/lib/to-generate-message-string.ts'
+import type { TypecheckResult } from '@/lib/typecheck.ts'
 
 type PrintGenerateResultArgs = {
   result: GenerateLocalResult
   projectName: string
   basePath: string | undefined
   manifestPath: string
+  /**
+   * Optional post-generate type-check result. Surfaced inline in the
+   * generate result (both formats) so the operator gets one
+   * structured output covering both phases.
+   */
+  typecheck?: TypecheckResult
   format: 'text' | 'json'
 }
 
@@ -27,6 +34,7 @@ export const printGenerateResult = ({
   projectName,
   basePath,
   manifestPath,
+  typecheck,
   format
 }: PrintGenerateResultArgs): void => {
   switch (format) {
@@ -46,7 +54,8 @@ export const printGenerateResult = ({
         errors: result.stats.errors,
         // Pass through ParseIssue verbatim — the shape is stable and
         // documented in `@skmtc/core` as part of the manifest schema.
-        parseIssues: result.parseIssues
+        parseIssues: result.parseIssues,
+        ...(typecheck ? { typecheck } : {})
       }
       console.log(JSON.stringify(payload, null, 2))
       return
@@ -59,11 +68,47 @@ export const printGenerateResult = ({
           basePath
         })
       )
+      if (typecheck) {
+        printTypecheckText(typecheck)
+      }
       return
     }
     default: {
       const _exhaustive: never = format
       throw new Error(`Unhandled output format: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
+}
+
+const printTypecheckText = (typecheck: TypecheckResult): void => {
+  switch (typecheck.kind) {
+    case 'skipped':
+      // Skipped is verbose-only — keep the default output quiet.
+      return
+    case 'no-tsconfig':
+      console.log(`\nTypecheck skipped: ${typecheck.message}`)
+      console.log(typecheck.hint)
+      return
+    case 'tsc-error':
+      console.log(`\nTypecheck failed to run: ${typecheck.message}`)
+      console.log(typecheck.hint)
+      return
+    case 'passed':
+      console.log(
+        `\nTypecheck passed (${typecheck.filesChecked} file(s) checked against ${typecheck.tsconfig}).`
+      )
+      return
+    case 'failed':
+      console.log(
+        `\nTypecheck failed: ${typecheck.diagnostics.length} diagnostic(s) in ${typecheck.filesChecked} file(s).`
+      )
+      for (const d of typecheck.diagnostics) {
+        console.log(`  ${d.file}(${d.line},${d.column}): ${d.category} TS${d.code}: ${d.message}`)
+      }
+      return
+    default: {
+      const _exhaustive: never = typecheck
+      throw new Error(`Unhandled typecheck kind: ${JSON.stringify(_exhaustive)}`)
     }
   }
 }

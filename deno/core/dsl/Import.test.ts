@@ -141,26 +141,35 @@ Deno.test('Import - generates import all with other named imports', () => {
   )
 })
 
-Deno.test('ImportName - explicit form with isType', () => {
-  const importName = new ImportName({ name: 'UseMutationOptions', isType: true })
+Deno.test('ImportName - explicit form with type discriminator', () => {
+  const importName = new ImportName({ name: 'UseMutationOptions', type: 'type' })
   assertEquals(importName.name, 'UseMutationOptions')
   assertEquals(importName.alias, undefined)
-  assertEquals(importName.isType, true)
+  assertEquals(importName.type, 'type')
   assertEquals(importName.toString(), 'type UseMutationOptions')
 })
 
-Deno.test('ImportName - explicit form with isType + alias', () => {
-  const importName = new ImportName({ name: 'User', alias: 'IUser', isType: true })
+Deno.test('ImportName - explicit form with type discriminator + alias', () => {
+  const importName = new ImportName({ name: 'User', alias: 'IUser', type: 'type' })
   assertEquals(importName.name, 'User')
   assertEquals(importName.alias, 'IUser')
-  assertEquals(importName.isType, true)
+  assertEquals(importName.type, 'type')
   assertEquals(importName.toString(), 'type User as IUser')
 })
 
-Deno.test('ImportName - explicit form without isType defaults to value', () => {
+Deno.test('ImportName - explicit form without type defaults to value', () => {
   const importName = new ImportName({ name: 'User', alias: 'IUser' })
-  assertEquals(importName.isType, false)
+  assertEquals(importName.type, undefined)
   assertEquals(importName.toString(), 'User as IUser')
+})
+
+Deno.test("ImportName - explicit 'variable' discriminator emits no type prefix", () => {
+  // Passing `type: 'variable'` explicitly is equivalent in output to
+  // omitting `type` entirely — both render a plain value import. This
+  // form is useful when threading Identifier.entityType.type through
+  // without branching on its value.
+  const importName = new ImportName({ name: 'useCustomer', type: 'variable' })
+  assertEquals(importName.toString(), 'useCustomer')
 })
 
 Deno.test('Import - emits statement-level "import type" when every name is a type', () => {
@@ -170,8 +179,8 @@ Deno.test('Import - emits statement-level "import type" when every name is a typ
   const importStatement = new Import({
     module: '@tanstack/react-query',
     importNames: [
-      { name: 'UseMutationOptions', isType: true },
-      { name: 'UseQueryOptions', isType: true }
+      { name: 'UseMutationOptions', type: 'type' },
+      { name: 'UseQueryOptions', type: 'type' }
     ]
   })
 
@@ -189,7 +198,7 @@ Deno.test('Import - mixed value + type names uses per-name "type" prefix', () =>
     importNames: [
       'useMutation',
       'useQueryClient',
-      { name: 'UseMutationOptions', isType: true }
+      { name: 'UseMutationOptions', type: 'type' }
     ]
   })
 
@@ -202,8 +211,8 @@ Deno.test('Import - mixed value + type names uses per-name "type" prefix', () =>
 Deno.test('Import - type imports render correctly after a Set<string> round-trip', () => {
   // This is the scenario `File.imports` exercises: register an import,
   // it gets stringified into a Set, then a new Import is rebuilt from
-  // those strings before render. The `isType` flag itself does NOT
-  // survive — the round-tripped name is the literal string
+  // those strings before render. The `type` EntityType marker itself
+  // does NOT survive — the round-tripped name is the literal string
   // `'type UseMutationOptions'`. That still emits valid TS because
   // `import { type Foo }` is the per-name form. The visible output is
   // therefore byte-equivalent to the original, just via a different
@@ -213,7 +222,7 @@ Deno.test('Import - type imports render correctly after a Set<string> round-trip
     module: '@tanstack/react-query',
     importNames: [
       'useMutation',
-      { name: 'UseMutationOptions', isType: true }
+      { name: 'UseMutationOptions', type: 'type' }
     ]
   })
 
@@ -232,16 +241,16 @@ Deno.test('Import - toRecord emits the explicit form for type imports', () => {
     module: '@tanstack/react-query',
     importNames: [
       'useMutation',
-      { name: 'UseMutationOptions', isType: true },
-      { name: 'User', alias: 'IUser', isType: true }
+      { name: 'UseMutationOptions', type: 'type' },
+      { name: 'User', alias: 'IUser', type: 'type' }
     ]
   })
 
   assertEquals(importStatement.toRecord(), {
     '@tanstack/react-query': [
       'useMutation',
-      { name: 'UseMutationOptions', isType: true },
-      { name: 'User', alias: 'IUser', isType: true }
+      { name: 'UseMutationOptions', type: 'type' },
+      { name: 'User', alias: 'IUser', type: 'type' }
     ]
   })
 })

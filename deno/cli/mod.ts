@@ -144,16 +144,40 @@ const run = async () => {
     .option('-w, --watch', 'Watch for changes to schema and generate artifacts')
     .option('--no-input', NO_INPUT_DESC)
     .option('--json', JSON_DESC + ' Incompatible with --watch.')
-    .action(async ({ watch, json, input }, projectName, schemaSourceString) => {
-      const { generateSwitch } = await import('@/commands/generate-switch.ts')
-      await generateSwitch({
+    .option(
+      '--typecheck',
+      'After generating, run `tsc --noEmit` against the consumer tsconfig and surface ' +
+        'diagnostics scoped to this run\'s files. Exit 1 on any type error.'
+    )
+    .option(
+      '--tsconfig <path:string>',
+      'Override the tsconfig used by --typecheck. Defaults to the nearest tsconfig.json ' +
+        'walking up from basePath.'
+    )
+    .option(
+      '--tsc-cmd <cmd:string>',
+      'Override the tsc command used by --typecheck. Defaults to `npx tsc`; useful for ' +
+        'pnpm/bun setups (e.g. `--tsc-cmd "pnpm exec tsc"`).'
+    )
+    .action(
+      async (
+        { watch, json, input, typecheck, tsconfig, tscCmd },
         projectName,
-        schemaSourceString,
-        watch,
-        jsonFlag: json,
-        noInputFlag: input === false
-      })
-    })
+        schemaSourceString
+      ) => {
+        const { generateSwitch } = await import('@/commands/generate-switch.ts')
+        await generateSwitch({
+          projectName,
+          schemaSourceString,
+          watch,
+          jsonFlag: json,
+          noInputFlag: input === false,
+          typecheck,
+          tsconfig,
+          tscCmd
+        })
+      }
+    )
 
   const bundleCommand = new Command()
     .description(getCommandDescriptor('bundle').description)

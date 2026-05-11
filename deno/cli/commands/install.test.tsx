@@ -68,7 +68,17 @@ Deno.test('printInstallResult - text format reports installed ids + verify hint'
     printInstallResult(
       {
         projectName: 'my-api',
-        installed: ['@skmtc/gen-zod', '@skmtc/gen-tanstack-query']
+        installed: ['@skmtc/gen-zod', '@skmtc/gen-tanstack-query'],
+        // Remote-only project: no local generators, JSR-published
+        // bundle.js is reused, so the post-install bundle is a noop.
+        bundle: {
+          kind: 'noop',
+          projectName: 'my-api',
+          reason: 'remote-only',
+          detail:
+            'Project has only remote (installed) generators; the published JSR ' +
+            '`bundle.js` will be used by `skmtc generate`. No local bundle.js to build.'
+        }
       },
       { format: 'text' }
     )
@@ -79,7 +89,38 @@ Deno.test('printInstallResult - text format reports installed ids + verify hint'
     'Installed 2 generator(s) in "my-api":',
     '  - @skmtc/gen-zod',
     '  - @skmtc/gen-tanstack-query',
-    '\nVerify with: cat .skmtc/my-api/deno.json'
+    '\nBundle: Project has only remote (installed) generators; the published JSR `bundle.js` will be used by `skmtc generate`. No local bundle.js to build.',
+    'Verify with: cat .skmtc/my-api/deno.json'
+  ])
+})
+
+Deno.test('printInstallResult - text format reports rebundle when project has a local generator', () => {
+  const logs: string[] = []
+  const original = console.log
+  console.log = (msg: string) => logs.push(msg)
+  try {
+    printInstallResult(
+      {
+        projectName: 'my-api',
+        installed: ['@skmtc/gen-zod'],
+        // Hybrid project (had a clone, now adding a remote): the post-
+        // install rebundle picks up the new cross-generator import.
+        bundle: {
+          kind: 'bundled',
+          projectName: 'my-api',
+          bundlePath: '.skmtc/my-api/bundle.js'
+        }
+      },
+      { format: 'text' }
+    )
+  } finally {
+    console.log = original
+  }
+  assertEquals(logs, [
+    'Installed 1 generator(s) in "my-api":',
+    '  - @skmtc/gen-zod',
+    '\nRebundled: .skmtc/my-api/bundle.js',
+    'Verify with: cat .skmtc/my-api/deno.json'
   ])
 })
 
@@ -91,7 +132,13 @@ Deno.test('printInstallResult - json format emits a parseable object with verify
     printInstallResult(
       {
         projectName: 'my-api',
-        installed: ['@skmtc/gen-zod']
+        installed: ['@skmtc/gen-zod'],
+        bundle: {
+          kind: 'noop',
+          projectName: 'my-api',
+          reason: 'remote-only',
+          detail: 'detail string'
+        }
       },
       { format: 'json' }
     )
@@ -102,6 +149,7 @@ Deno.test('printInstallResult - json format emits a parseable object with verify
   const parsed: InstallHeadlessResult & { verifyWith: string } = JSON.parse(logs[0])
   assertEquals(parsed.projectName, 'my-api')
   assertEquals(parsed.installed, ['@skmtc/gen-zod'])
+  assertEquals(parsed.bundle.kind, 'noop')
   assertEquals(parsed.verifyWith, 'cat .skmtc/my-api/deno.json')
 })
 

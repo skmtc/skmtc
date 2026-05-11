@@ -5239,7 +5239,7 @@
       },
       "mcp": {
         "dependencies": [
-          "jsr:@skmtc/cli@0.1",
+          "jsr:@skmtc/cli@0.1.7",
           "jsr:@std/log@~0.224.6",
           "npm:@modelcontextprotocol/sdk@^1.17.3",
           "npm:zod@^3.25.76"

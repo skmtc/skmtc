@@ -8,4 +8,14 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #19586 | 5:11 PM | 🔵 | GqlOperationProjectionBase provides insertOperation and insertModel methods | ~366 |
+
+### May 11, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20458 | 7:04 PM | 🔄 | GqlOperationDriver migrated to use identifier.toImport() method | ~590 |
+| #20457 | " | 🔄 | Completed task 3 updating driver implementations | ~373 |
+| #20454 | 7:03 PM | 🔵 | GqlOperationDriver contains same manual entityType check pattern for import construction | ~413 |
+| #20419 | 6:59 PM | 🔵 | isType flag implementation across core DSL import system | ~592 |
+| #20418 | " | 🔵 | Current isType boolean implementation in Import DSL | ~522 |
 </claude-mem-context>

@@ -58,7 +58,7 @@ Deno.test(
   }
 )
 
-Deno.test('printCloneResult - text format reports cloned ids + verify hint', () => {
+Deno.test('printCloneResult - text format reports cloned ids@version + verify hint', () => {
   const logs: string[] = []
   const original = console.log
   console.log = (msg: string) => logs.push(msg)
@@ -66,18 +66,32 @@ Deno.test('printCloneResult - text format reports cloned ids + verify hint', () 
     printCloneResult(
       {
         projectName: 'my-api',
-        cloned: ['@skmtc/gen-typescript', '@skmtc/gen-zod']
+        cloned: [
+          { moduleName: '@skmtc/gen-typescript', version: '0.0.55' },
+          { moduleName: '@skmtc/gen-zod', version: '0.0.55' }
+        ],
+        bundle: {
+          kind: 'bundled',
+          projectName: 'my-api',
+          bundlePath: '.skmtc/my-api/bundle.js'
+        }
       },
       { format: 'text' }
     )
   } finally {
     console.log = original
   }
+  // Text output surfaces the resolved JSR version per cloned module so
+  // the agent can confirm exactly what landed on disk without re-reading
+  // the manifest or the project deno.json. The post-clone bundle line
+  // tells the operator the next `skmtc generate` will see the cloned
+  // generator (friction #4).
   assertEquals(logs, [
     'Cloned 2 generator(s) into "my-api":',
-    '  - @skmtc/gen-typescript',
-    '  - @skmtc/gen-zod',
-    '\nVerify with: ls .skmtc/my-api/'
+    '  - @skmtc/gen-typescript@0.0.55',
+    '  - @skmtc/gen-zod@0.0.55',
+    '\nRebundled: .skmtc/my-api/bundle.js',
+    'Verify with: ls .skmtc/my-api/'
   ])
 })
 
@@ -87,7 +101,15 @@ Deno.test('printCloneResult - json format emits a parseable object with verifyWi
   console.log = (msg: string) => logs.push(msg)
   try {
     printCloneResult(
-      { projectName: 'my-api', cloned: ['@skmtc/gen-typescript'] },
+      {
+        projectName: 'my-api',
+        cloned: [{ moduleName: '@skmtc/gen-typescript', version: '0.0.55' }],
+        bundle: {
+          kind: 'bundled',
+          projectName: 'my-api',
+          bundlePath: '.skmtc/my-api/bundle.js'
+        }
+      },
       { format: 'json' }
     )
   } finally {
@@ -96,7 +118,16 @@ Deno.test('printCloneResult - json format emits a parseable object with verifyWi
   assertEquals(logs.length, 1)
   const parsed: CloneHeadlessResult & { verifyWith: string } = JSON.parse(logs[0])
   assertEquals(parsed.projectName, 'my-api')
-  assertEquals(parsed.cloned, ['@skmtc/gen-typescript'])
+  assertEquals(parsed.cloned, [
+    { moduleName: '@skmtc/gen-typescript', version: '0.0.55' }
+  ])
+  // The bundle field is part of the contract — agents read it to
+  // confirm the post-clone rebundle landed.
+  assertEquals(parsed.bundle, {
+    kind: 'bundled',
+    projectName: 'my-api',
+    bundlePath: '.skmtc/my-api/bundle.js'
+  })
   assertEquals(parsed.verifyWith, 'ls .skmtc/my-api/')
 })
 

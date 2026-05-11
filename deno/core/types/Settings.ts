@@ -112,16 +112,50 @@ export const skipModels: v.GenericSchema<SkipModels> = v.record(v.string(), v.ar
 const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.string()])
 
 /**
+ * Valibot schema for {@link IncludePaths}. Structurally identical to
+ * {@link skipPaths} — both map a path to an array of methods — but
+ * kept distinct so docstrings can convey the opposite semantics
+ * (allow vs deny) and so the two shapes can diverge in the future
+ * without breaking the other.
+ */
+export const includePaths: v.GenericSchema<IncludePaths> = v.record(v.string(), v.array(method))
+
+/**
+ * Valibot schema for {@link IncludeOperations}. Maps generator id to
+ * {@link IncludePaths}.
+ */
+export const includeOperations: v.GenericSchema<IncludeOperations> = v.record(
+  v.string(),
+  includePaths
+)
+
+/**
+ * Valibot schema for {@link IncludeModels}. Maps generator id to the
+ * array of refNames to include.
+ */
+export const includeModels: v.GenericSchema<IncludeModels> = v.record(
+  v.string(),
+  v.array(v.string())
+)
+
+const include: v.GenericSchema<Include> = v.union([
+  includeOperations,
+  includeModels,
+  v.string()
+])
+
+/**
  * Valibot schema for validating client settings configuration.
  *
  * Validates the complete client settings structure including base paths,
- * packages, skip configurations, and enrichments.
+ * packages, include/skip filters, and enrichments.
  */
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(v.string()),
   schemaSource: v.optional(v.string()),
   packages: v.optional(v.array(modulePackage)),
   enrichments: v.optional(generatorEnrichments),
+  include: v.optional(v.array(include)),
   skip: v.optional(v.array(skip))
 })
 
@@ -183,6 +217,76 @@ export type SkipOperations = Record<string, SkipPaths>
  * or a simple string pattern for broad exclusions.
  */
 export type Skip = SkipOperations | SkipModels | string
+
+/**
+ * Allow-list counterpart to {@link SkipPaths}. Maps a path string to
+ * the array of HTTP methods that should be included for an operation
+ * generator. Matching is exact on path string AND exact on method
+ * (parity with {@link SkipPaths}). No wildcards or globs.
+ *
+ * @example
+ * ```typescript
+ * const includePaths: IncludePaths = {
+ *   '/customers': ['post'],
+ *   '/locations': ['post', 'put']
+ * };
+ * ```
+ */
+export type IncludePaths = Record<string, Method[]>
+
+/**
+ * Allow-list counterpart to {@link SkipModels}. Maps generator id to
+ * the array of model refNames to include.
+ *
+ * @example
+ * ```typescript
+ * const includeModels: IncludeModels = {
+ *   '@skmtc/gen-typescript': ['Customer', 'Order']
+ * };
+ * ```
+ */
+export type IncludeModels = Record<string, string[]>
+
+/**
+ * Allow-list counterpart to {@link SkipOperations}. Maps generator id
+ * to {@link IncludePaths}.
+ *
+ * @example
+ * ```typescript
+ * const includeOperations: IncludeOperations = {
+ *   '@skmtc/gen-shadcn-form': {
+ *     '/customers': ['post'],
+ *     '/locations': ['post']
+ *   }
+ * };
+ * ```
+ */
+export type IncludeOperations = Record<string, IncludePaths>
+
+/**
+ * Union type representing allow-list filter entries. Mirrors the
+ * {@link Skip} shape so the two can be combined consistently in
+ * {@link ClientSettings}:
+ *
+ * - A string entry like `'@skmtc/gen-form'` includes the whole generator
+ *   (every operation/model it would otherwise emit).
+ * - An {@link IncludeOperations} entry includes specific (path, method)
+ *   pairs for one operation generator.
+ * - An {@link IncludeModels} entry includes specific refNames for one
+ *   model generator.
+ *
+ * **Presence is the gate.** When `include` is `undefined` or `[]`, no
+ * filter is active (everything emits as if no include were set).
+ * When `include` is set and non-empty, only generators / operations /
+ * models matching at least one entry will emit; everything else is
+ * silently filtered out.
+ *
+ * **Precedence vs `skip`:** `include` builds the candidate set, `skip`
+ * removes from it. An operation that's in both an `include` allow-list
+ * entry AND a `skip` deny-list entry is skipped. This mirrors
+ * `tsconfig.json`'s `include` + `exclude` pair.
+ */
+export type Include = IncludeOperations | IncludeModels | string
 
 /**
  * Main configuration object for SKMTC client settings.
@@ -255,7 +359,14 @@ export type ClientSettings = {
   packages?: ModulePackage[]
   /** Custom enrichments for extending generation */
   enrichments?: GeneratorEnrichments
-  /** Array of skip configurations to exclude content */
+  /**
+   * Allow-list filter applied before {@link skip}. When set and
+   * non-empty, only generators / operations / models matching an
+   * entry are emitted; everything else is silently filtered out.
+   * See {@link Include} for the per-entry shape and precedence rules.
+   */
+  include?: Include[]
+  /** Array of skip (deny-list) configurations to exclude content */
   skip?: Skip[]
 }
 

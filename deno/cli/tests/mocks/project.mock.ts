@@ -71,7 +71,10 @@ export function createMockProject(manager: Manager, options: MockProjectOptions 
     installGenerator: async () =>
       await Promise.resolve({ name: 'test-gen', version: '0.0.1', exports: {} }),
     removeGenerator: async () => {},
-    cloneGenerator: async () => {},
+    cloneGenerator: async ({ moduleName }: { moduleName: string }) => ({
+      moduleName,
+      version: '0.0.0'
+    }),
     deploy: async () => {},
     createServer: async () => await Promise.resolve(`/mock/projects/${name}/server.ts`),
     createWorker: async () => await Promise.resolve(`/mock/projects/${name}/worker.ts`),

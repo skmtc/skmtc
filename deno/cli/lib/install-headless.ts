@@ -6,6 +6,7 @@
  */
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { bundleHeadless, type BundleHeadlessResult } from '@/lib/bundle-headless.ts'
 
 type InstallHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -16,6 +17,21 @@ type InstallHeadlessArgs = {
 export type InstallHeadlessResult = {
   projectName: string
   installed: string[]
+  /**
+   * Result of the post-install rebundle. Will be `kind: 'noop'`
+   * (reason `remote-only`) when the project still has no local
+   * generators after the install — installed JSR generators run
+   * their published `bundle.js` so no local bundle is needed.
+   * `kind: 'bundled'` only when the project already has a cloned
+   * or hand-authored generator that needed picking up the new
+   * cross-generator import.
+   *
+   * Surfacing the bundle here is the install-side counterpart to
+   * the same fix in `cloneHeadless`: post-mutation state is now
+   * confirmed in the same command rather than left for the user
+   * to discover via a separate `bundle` invocation.
+   */
+  bundle: BundleHeadlessResult
 }
 
 export const installHeadless = async ({
@@ -30,8 +46,11 @@ export const installHeadless = async ({
     await project.installGenerator({ moduleName })
   }
 
+  const bundle = await bundleHeadless({ skmtcRoot, projectName })
+
   return {
     projectName,
-    installed: generators
+    installed: generators,
+    bundle
   }
 }

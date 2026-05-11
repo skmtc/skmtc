@@ -11,6 +11,7 @@ import {
   resolveOutputFormat
 } from '@/lib/strict-mode.ts'
 import { cloneHeadless, type CloneHeadlessResult } from '@/lib/clone-headless.ts'
+import { CorePinMismatchError } from '@/lib/generator.ts'
 
 export const description = 'Clone generator'
 
@@ -20,6 +21,13 @@ type RenderCloneArgs = {
   generators?: string[]
   jsonFlag?: boolean
   noInputFlag?: boolean
+  /**
+   * Bypass the pre-flight `@skmtc/core` peer-pin check. Without this
+   * flag, clone refuses if the project's core pin doesn't share a
+   * major.minor with the CLI's — cloning over a mismatch produces a
+   * generator that won't bundle.
+   */
+  force?: boolean
   // Optional dependencies for testing
   renderFn?: InkRenderFn
   AppComponent?: typeof App
@@ -31,6 +39,7 @@ export const renderClone = async ({
   generators,
   jsonFlag,
   noInputFlag,
+  force,
   renderFn = render,
   AppComponent = App
 }: RenderCloneArgs) => {
@@ -63,9 +72,25 @@ export const renderClone = async ({
     }
 
     const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
-    const result = await cloneHeadless({ skmtcRoot, projectName, generators })
-    printCloneResult(result, { format: resolveOutputFormat({ jsonFlag }) })
-    Deno.exit(0)
+    try {
+      const result = await cloneHeadless({ skmtcRoot, projectName, generators, force })
+      printCloneResult(result, { format: resolveOutputFormat({ jsonFlag }) })
+      Deno.exit(0)
+    } catch (error) {
+      if (error instanceof CorePinMismatchError) {
+        // Peer-pin mismatch is a recipe-shaped failure: there's a
+        // specific remediation the operator can execute, so route
+        // through the same error path as missing args.
+        console.error(
+          `Error: @skmtc/core peer-pin mismatch\n\n` +
+            `Project pins:  ${error.projectPin}\n` +
+            `CLI requires:  ${error.cliCorePin}\n\n` +
+            `${error.hint}\n`
+        )
+        Deno.exit(2)
+      }
+      throw error
+    }
   }
 
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
@@ -104,6 +129,7 @@ export const printCloneResult = (
       const payload = {
         projectName: result.projectName,
         cloned: result.cloned,
+        bundle: result.bundle,
         verifyWith: `ls .skmtc/${result.projectName}/`
       }
       console.log(JSON.stringify(payload, null, 2))
@@ -113,10 +139,22 @@ export const printCloneResult = (
       console.log(
         `Cloned ${result.cloned.length} generator(s) into "${result.projectName}":`
       )
-      for (const id of result.cloned) {
-        console.log(`  - ${id}`)
+      for (const { moduleName, version } of result.cloned) {
+        console.log(`  - ${moduleName}@${version}`)
       }
-      console.log(`\nVerify with: ls .skmtc/${result.projectName}/`)
+      // Surface the post-clone bundle so the operator knows the next
+      // `skmtc generate` will pick up the new generator. Without this,
+      // friction #4 reappears as "I cloned it but generate produces
+      // nothing for it."
+      switch (result.bundle.kind) {
+        case 'bundled':
+          console.log(`\nRebundled: ${result.bundle.bundlePath}`)
+          break
+        case 'noop':
+          console.log(`\nBundle: ${result.bundle.detail}`)
+          break
+      }
+      console.log(`Verify with: ls .skmtc/${result.projectName}/`)
       return
     }
     default: {

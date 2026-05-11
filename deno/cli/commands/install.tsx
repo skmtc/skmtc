@@ -105,6 +105,7 @@ export const printInstallResult = (
       const payload = {
         projectName: result.projectName,
         installed: result.installed,
+        bundle: result.bundle,
         verifyWith: `cat .skmtc/${result.projectName}/deno.json`
       }
       console.log(JSON.stringify(payload, null, 2))
@@ -117,7 +118,18 @@ export const printInstallResult = (
       for (const id of result.installed) {
         console.log(`  - ${id}`)
       }
-      console.log(`\nVerify with: cat .skmtc/${result.projectName}/deno.json`)
+      // For remote-only installs the bundle is a noop (the JSR
+      // bundle.js is reused); for hybrid projects the post-install
+      // rebundle picks up the new cross-generator import.
+      switch (result.bundle.kind) {
+        case 'bundled':
+          console.log(`\nRebundled: ${result.bundle.bundlePath}`)
+          break
+        case 'noop':
+          console.log(`\nBundle: ${result.bundle.detail}`)
+          break
+      }
+      console.log(`Verify with: cat .skmtc/${result.projectName}/deno.json`)
       return
     }
     default: {

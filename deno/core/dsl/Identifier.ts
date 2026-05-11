@@ -1,4 +1,5 @@
 import { EntityType } from '@/dsl/EntityType.ts'
+import type { ImportNameArg } from '@/dsl/Import.ts'
 
 /**
  * Constructor arguments for {@link Identifier}.
@@ -201,5 +202,49 @@ export class Identifier {
    */
   toString(): string {
     return this.name
+  }
+
+  /**
+   * Builds an {@link ImportNameArg} that imports this identifier from
+   * another module, threading the identifier's entity-type discriminator
+   * through so the renderer can emit `import { type Foo }` for type-only
+   * identifiers (avoiding TS1484 under `verbatimModuleSyntax: true`)
+   * and a plain `import { Foo }` for variable identifiers.
+   *
+   * This is the canonical way for a Driver or Snippet to register an
+   * import of a symbol it received as an `Identifier` — it eliminates
+   * the hand-rolled `{ name, type: 'type' }` branch on
+   * `identifier.entityType.type`.
+   *
+   * @param args.alias - Optional local alias. Renders as `Foo as Bar`
+   *                     (or `type Foo as Bar` for type identifiers).
+   *
+   * @example Variable identifier
+   * ```typescript
+   * const id = Identifier.createVariable('useCustomer');
+   * register({ imports: { './hooks': [id.toImport()] }, destinationPath });
+   * // → import { useCustomer } from './hooks'
+   * ```
+   *
+   * @example Type identifier
+   * ```typescript
+   * const id = Identifier.createType('UserDto');
+   * register({ imports: { './types': [id.toImport()] }, destinationPath });
+   * // → import { type UserDto } from './types'
+   * //   (or `import type { UserDto } from './types'` when every name
+   * //   in the statement is a type — the renderer picks the cleaner form)
+   * ```
+   *
+   * @example With an alias
+   * ```typescript
+   * const id = Identifier.createType('User');
+   * register({ imports: { './types': [id.toImport({ alias: 'IUser' })] }, destinationPath });
+   * // → import { type User as IUser } from './types'
+   * ```
+   */
+  toImport({ alias }: { alias?: string } = {}): ImportNameArg {
+    return alias
+      ? { name: this.name, alias, type: this.entityType.type }
+      : { name: this.name, type: this.entityType.type }
   }
 }

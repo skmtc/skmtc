@@ -190,8 +190,12 @@ const checkProject = (
  * don't go through `Deno.readTextFileSync(...)` because the path of
  * `cli/deno.json` depends on the install shape (compiled binary vs
  * deno run vs deno install shim) — JSON imports work uniformly.
+ *
+ * Exported so the pre-flight clone check can reuse it without
+ * dragging in the full doctor scaffolding (friction #3 in the
+ * follow-up: surface a peer-pin mismatch BEFORE downloading).
  */
-const readCliCorePin = (): string | null => {
+export const readCliCorePin = (): string | null => {
   // The JSON import lives at the module top to avoid taking a hard
   // dependency on `cli/deno.json`'s shape inside the function body;
   // we only read the field we care about.
@@ -303,8 +307,12 @@ const checkProjectCorePin = (
  * `~1.2.3` or `0.3`. Returns `null` for `*`, `latest`, anything we
  * can't parse — doctor degrades to "manual review" rather than
  * guessing.
+ *
+ * Exported alongside {@link readCliCorePin} so the pre-flight clone
+ * check can use the same major.minor comparison heuristic doctor
+ * uses (don't reinvent semver matching for two call sites).
  */
-const toMajorMinor = (constraint: string): string | null => {
+export const toMajorMinor = (constraint: string): string | null => {
   const match = constraint.match(/(\d+)\.(\d+)/)
   if (!match) return null
   return `${match[1]}.${match[2]}`

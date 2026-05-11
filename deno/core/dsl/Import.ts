@@ -1,4 +1,5 @@
 import { List } from '@skmtc/core'
+import type { EntityTypeValue } from '@/dsl/EntityType.ts'
 
 /**
  * Constructor arguments for {@link Import}.
@@ -135,11 +136,13 @@ export class Import {
    */
   toRecord(): Record<string, ImportNameArg[]> {
     return {
-      [this.module]: this.importNames.map(({ name, alias, isType }) => {
-        if (isType) {
-          // Aliased-record form can't carry the `isType` flag, so type
-          // imports always emit the explicit shape.
-          return alias ? { name, alias, isType: true } : { name, isType: true }
+      [this.module]: this.importNames.map(({ name, alias, type }) => {
+        if (type === 'type') {
+          // Aliased-record form can't carry the `type` discriminator, so
+          // type imports always emit the explicit shape.
+          return alias
+            ? { name, alias, type: 'type' as const }
+            : { name, type: 'type' as const }
         }
         return alias ? { [name]: alias } : name
       })
@@ -191,7 +194,11 @@ export class Import {
     // so the only reason to prefer this is readability of the
     // generated output. Mixed lists fall back to per-name `type`
     // prefixes (handled by `ImportName.toString()`).
-    if (importNames.length > 0 && !importAllAs && importNames.every(n => n.isType)) {
+    if (
+      importNames.length > 0 &&
+      !importAllAs &&
+      importNames.every(n => n.type === 'type')
+    ) {
       const namesWithoutTypePrefix = importNames.map(n =>
         n.alias ? `${n.name} as ${n.alias}` : n.name
       )
@@ -217,33 +224,50 @@ export class Import {
  *   1. Bare string — `'User'` → `User`
  *   2. Single-entry record — `{ 'User': 'IUser' }` → `User as IUser`,
  *      or `{ '*': 'React' }` → `* as React` (namespace import).
- *   3. Explicit object — `{ name, alias?, isType? }`. Required when
+ *   3. Explicit object — `{ name, alias?, type? }`. Required when
  *      flagging a name as a type-only import, e.g.
- *      `{ name: 'UseMutationOptions', isType: true }` →
+ *      `{ name: 'UseMutationOptions', type: 'type' }` →
  *      `type UseMutationOptions`. Detected by the presence of the
- *      `isType` key, so legacy aliased-record callers are unaffected.
+ *      `type` (or `alias`) key, so legacy aliased-record callers are
+ *      unaffected.
+ *
+ * The `type` field uses the same `'variable' | 'type'` discriminator
+ * that {@link EntityType} carries, so an {@link Identifier} can hand
+ * its `entityType.type` directly to `register({ imports })` via
+ * {@link Identifier.toImport}. Omitting `type` (or passing
+ * `'variable'`) emits a plain value import.
  *
  * The string form additionally re-parses a `'type '` prefix so that
  * import sets stored as `Set<string>` (the File-level dedup shape)
  * round-trip type-only flags without losing them. `'type Foo'` and
- * `'type Foo as Bar'` reconstruct an `ImportName` with `isType: true`.
+ * `'type Foo as Bar'` reconstruct an `ImportName` with the type
+ * marker set.
  *
  * @example Type-only import
  * ```typescript
- * const typeImport: ImportNameArg = { name: 'UseMutationOptions', isType: true };
+ * import type { ImportNameArg } from '@skmtc/core'
+ *
+ * const typeImport: ImportNameArg = {
+ *   name: 'UseMutationOptions',
+ *   type: 'type'
+ * };
  * // → `type UseMutationOptions`
  * ```
  *
  * @example Type-only alias
  * ```typescript
- * const typeAlias: ImportNameArg = { name: 'User', alias: 'IUser', isType: true };
+ * const typeAlias: ImportNameArg = {
+ *   name: 'User',
+ *   alias: 'IUser',
+ *   type: 'type'
+ * };
  * // → `type User as IUser`
  * ```
  */
 export type ImportNameArg =
   | string
   | { [name: string]: string }
-  | { name: string; alias?: string; isType?: boolean }
+  | { name: string; alias?: string; type?: EntityTypeValue }
 
 /**
  * Maps an {@link ImportNameArg} to a discriminated kind so the
@@ -254,20 +278,23 @@ export type ImportNameArg =
  * Field extraction happens here so the tagged variants carry concrete
  * parsed values rather than the original union. That side-steps the
  * structural overlap between `{ [name: string]: string }` and
- * `{ name: string; alias?: string; isType?: boolean }` (which TS can't
- * narrow cleanly) without resorting to `as` casts.
+ * `{ name: string; alias?: string; type?: EntityType }` (which TS
+ * can't narrow cleanly) without resorting to `as` casts.
  *
  * The legacy single-entry alias-record form like `{ 'User': 'IUser' }`
  * could in principle collide with the explicit form if a caller writes
  * `{ name: 'X' }` as a record — that'd be treated as alias-record
  * `name → 'X'`. The explicit form is selected only when at least one
- * of `alias` (string) or `isType` (boolean) is also present, which is
- * the case that actually motivates the explicit form.
+ * of `alias` (string) or `type` (EntityTypeValue) is also present,
+ * which is the case that actually motivates the explicit form.
  */
 type TaggedImportNameArg =
   | { kind: 'string'; value: string }
-  | { kind: 'explicit'; name: string; alias: string | undefined; isType: boolean }
+  | { kind: 'explicit'; name: string; alias: string | undefined; type: EntityTypeValue | undefined }
   | { kind: 'aliasRecord'; name: string; alias: string }
+
+const isEntityTypeValue = (v: unknown): v is EntityTypeValue =>
+  v === 'variable' || v === 'type'
 
 const tagImportNameArg = (arg: ImportNameArg): TaggedImportNameArg => {
   if (typeof arg === 'string') {
@@ -275,20 +302,19 @@ const tagImportNameArg = (arg: ImportNameArg): TaggedImportNameArg => {
   }
   // The remaining ImportNameArg branches share an object shape with
   // structural overlap. Detection works by reading individual fields
-  // and narrowing each value with `typeof` rather than trying to
-  // narrow the whole arg.
+  // and narrowing each value with a runtime guard rather than trying
+  // to narrow the whole arg.
   const nameField = 'name' in arg ? arg.name : undefined
   const aliasField = 'alias' in arg ? arg.alias : undefined
-  const isTypeField = 'isType' in arg ? arg.isType : undefined
+  const typeField = 'type' in arg ? arg.type : undefined
   const alias = typeof aliasField === 'string' ? aliasField : undefined
-  const isType = typeof isTypeField === 'boolean' ? isTypeField : false
-  if (typeof nameField === 'string' && (alias !== undefined || isType)) {
-    return { kind: 'explicit', name: nameField, alias, isType }
+  const type = isEntityTypeValue(typeField) ? typeField : undefined
+  if (typeof nameField === 'string' && (alias !== undefined || type !== undefined)) {
+    return { kind: 'explicit', name: nameField, alias, type }
   }
   // Alias-record fallback: `{ [name]: alias }` is documented as a
   // single-entry record; read the first entry. The value type
-  // includes `boolean` because TS unions value types across the
-  // ImportNameArg branches — narrow with a runtime check.
+  // unions across ImportNameArg branches — narrow with a runtime check.
   const entry = Object.entries(arg)[0]
   if (entry === undefined || typeof entry[1] !== 'string') {
     throw new Error(`Invalid ImportNameArg: ${JSON.stringify(arg)}`)
@@ -323,12 +349,19 @@ export class ImportName {
   alias?: string
 
   /**
-   * Whether this is a type-only import. Renders with a `type ` prefix
-   * (`type Foo`, `type Foo as Bar`) — valid TS in any named-import list
-   * regardless of whether sibling names are values. This avoids
-   * TS1484 under `verbatimModuleSyntax: true`.
+   * The entity type of the imported symbol, if known. When the discriminator
+   * is `'type'` the rendered import gets a `type ` prefix (`type Foo`,
+   * `type Foo as Bar`) — valid TS in any named-import list regardless of
+   * whether sibling names are values. This avoids TS1484 under
+   * `verbatimModuleSyntax: true`.
+   *
+   * `undefined` (the default for bare-string and alias-record forms)
+   * means "no entity-type signal" — rendered as a plain value import.
+   * `'variable'` and `undefined` produce identical output; the former
+   * is useful when threading {@link Identifier.entityType.type} through
+   * without branching at the call site.
    */
-  isType: boolean
+  type?: EntityTypeValue
 
   /**
    * Creates a new ImportName instance.
@@ -343,30 +376,30 @@ export class ImportName {
     switch (tagged.kind) {
       case 'string': {
         // Bare string is stored verbatim. A round-tripped value like
-        // `'type Foo'` (produced by `toString()` when `isType: true`)
+        // `'type Foo'` (produced by `toString()` when type is 'type')
         // is stored as a single-name literal — it still renders as
         // `import { type Foo }` because that's valid TS syntax. The
-        // `isType` flag is therefore only meaningful on the
+        // `type` discriminator is therefore only meaningful on the
         // in-memory ImportName produced by the explicit form; after a
         // `Set<string>` round-trip the cosmetic statement-level
         // `import type { … }` form degrades to per-name `type` keywords.
         this.name = tagged.value
-        this.isType = false
+        this.type = undefined
         break
       }
       case 'explicit': {
-        // Explicit form. The presence of `isType` (or `alias`) is the
+        // Explicit form. The presence of `type` (or `alias`) is the
         // discriminator from the legacy alias-record form. Callers
         // wanting type-only imports must pass this shape.
         this.name = tagged.name
         this.alias = tagged.alias
-        this.isType = tagged.isType
+        this.type = tagged.type
         break
       }
       case 'aliasRecord': {
         this.name = tagged.name
         this.alias = tagged.alias
-        this.isType = false
+        this.type = undefined
         break
       }
       default: {
@@ -399,6 +432,6 @@ export class ImportName {
    */
   toString(): string {
     const base = this.alias ? `${this.name} as ${this.alias}` : this.name
-    return this.isType ? `type ${base}` : base
+    return this.type === 'type' ? `type ${base}` : base
   }
 }

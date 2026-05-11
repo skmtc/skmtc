@@ -9,40 +9,8 @@ import type { Manager } from '@/lib/manager.ts'
 import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { extractImportPaths } from '@/lib/extract-import-paths.ts'
-import * as v from 'valibot'
-import { githubContentsResponse, type GitHubContentItem } from '@/lib/github-api-types.ts'
-
-/**
- * Fetches repository contents from GitHub API.
- *
- * @param path - Path to file or directory in the repository
- * @returns Array of content items (normalized from single or array response)
- */
-async function fetchGitHubContents(path: string): Promise<GitHubContentItem[]> {
-  const token = Deno.env.get('GITHUB_READ_ONLY_TOKEN')
-
-  const url = `https://api.github.com/repos/skmtc/skmtc-generators/contents/${path}`
-
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
-  }
-
-  const data = await response.json()
-
-  // Validate response with valibot
-  const validated = v.parse(githubContentsResponse, data)
-
-  // Normalize to array
-  return Array.isArray(validated) ? validated : [validated]
-}
+import { Jsr } from '@/lib/jsr.ts'
+import { readCliCorePin, toMajorMinor } from '@/lib/doctor-headless.ts'
 
 type GeneratorArgs = {
   projectName: string
@@ -60,9 +28,39 @@ type CreateArgs = {
 
 type CloneArgs = {
   denoJson: RootDenoJson
-  localGenerators: Record<string, string>
-  generatorsDenoJson: Record<string, unknown>
   manager: Manager
+  /**
+   * When `true`, bypass the pre-flight `@skmtc/core` peer-pin check
+   * that normally refuses to clone if the project's pin doesn't match
+   * the CLI's. Use this only when the operator has explicitly
+   * acknowledged the skew (e.g. a `--force` flag at the CLI level).
+   */
+  force?: boolean
+}
+
+type CloneResult = {
+  /** The concrete JSR version that was downloaded. */
+  version: string
+}
+
+/**
+ * Thrown by `Generator.clone` when the project's `@skmtc/core` pin
+ * doesn't share a major.minor with the CLI's. Carries both pins and
+ * a remediation hint so callers can emit a recipe-style error.
+ */
+export class CorePinMismatchError extends Error {
+  readonly projectPin: string
+  readonly cliCorePin: string
+  readonly hint: string
+  constructor(args: { projectPin: string; cliCorePin: string; hint: string }) {
+    super(
+      `Project @skmtc/core pin "${args.projectPin}" doesn't match the CLI's "${args.cliCorePin}". ${args.hint}`
+    )
+    this.name = 'CorePinMismatchError'
+    this.projectPin = args.projectPin
+    this.cliCorePin = args.cliCorePin
+    this.hint = args.hint
+  }
 }
 
 type InstallArgs = {
@@ -140,11 +138,71 @@ export class Generator {
     await packageDenoJson.write()
   }
 
-  async clone({ denoJson, manager, localGenerators, generatorsDenoJson }: CloneArgs) {
-    const files = await getGeneratorFiles(this.packageName)
+  /**
+   * Clones a published JSR package into the project as an editable
+   * local generator. Source of truth is JSR (the same registry
+   * `install` uses) — the package's full file tree is downloaded at
+   * the version resolved from `this.version`'s semver constraint, then
+   * written under `<project>/<packageName>/`.
+   *
+   * After files are on disk, the package's own `deno.json#imports`
+   * acts as the lookup table for cross-generator specifiers
+   * (`@skmtc/gen-typescript`, etc.) that the cloned source references.
+   * Peer deps the package doesn't pin itself (`@skmtc/core`,
+   * `@std/path`, `valibot`, `tiny-invariant`, …) are expected to
+   * already be in the project's root `deno.json` from earlier
+   * `init`/`install` activity; we don't overwrite them.
+   *
+   * Returns the concrete resolved version so callers can surface it
+   * to the user (e.g. `skmtc clone … → @scope/pkg@0.0.55`).
+   */
+  async clone({ denoJson, manager, force }: CloneArgs): Promise<CloneResult> {
+    // Pre-flight: refuse to clone into a project whose @skmtc/core
+    // pin doesn't match the CLI's major.minor. Catches friction #3
+    // before it surfaces as a cryptic "No matching export" error
+    // during the next `bundle`. Same comparison heuristic doctor
+    // uses (`project-core-pin/<project>` check); we just run it
+    // earlier and refuse rather than warn.
+    if (!force) {
+      const cliCorePin = readCliCorePin()
+      const projectCoreValue = denoJson.contents.imports?.['@skmtc/core']
+      // Skip the check when either side is unreadable — the existing
+      // doctor check covers the same cases as warnings; refusing to
+      // clone on an unparseable pin would be more obstruction than
+      // help.
+      if (cliCorePin && typeof projectCoreValue === 'string') {
+        const match = projectCoreValue.match(/^jsr:@skmtc\/core@(.+)$/)
+        if (match) {
+          const projectPin = match[1]
+          const cliMajorMinor = toMajorMinor(cliCorePin)
+          const projectMajorMinor = toMajorMinor(projectPin)
+          if (
+            cliMajorMinor !== null &&
+            projectMajorMinor !== null &&
+            cliMajorMinor !== projectMajorMinor
+          ) {
+            throw new CorePinMismatchError({
+              projectPin,
+              cliCorePin,
+              hint:
+                `Update the project's "@skmtc/core" pin to "jsr:@skmtc/core@${cliCorePin}" ` +
+                `before cloning, or re-run with --force to skip this check. ` +
+                `Cloning over a mismatched pin produces a generator that won't bundle ` +
+                `against the project's core version.`
+            })
+          }
+        }
+      }
+    }
+
+    const { files, version } = await Jsr.download(this)
+
+    // Pin the local generator to the actual version we just pulled, so
+    // subsequent `skmtc list` / `doctor` calls can report it accurately.
+    this.version = version
 
     const downloads = Object.entries(files).map(async ([path, content]) => {
-      const joinedPath = join(toProjectPath(this.projectName), path)
+      const joinedPath = join(toProjectPath(this.projectName), this.packageName, path)
 
       await ensureFile(joinedPath)
 
@@ -153,41 +211,39 @@ export class Generator {
 
     await Promise.all(downloads)
 
+    // The package's own deno.json is the lookup table for any
+    // cross-generator imports the cloned source references — it's the
+    // record of what *this* package was published against on JSR. Peer
+    // deps not declared here are intentionally left to the project's
+    // root deno.json, which `init`/`install` is expected to have
+    // populated.
     const packageDenoJsonPath = join(this.toPath({ relative: false }), 'deno.json')
-
     const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, manager)
+    const packageImports = packageDenoJson.contents.imports ?? {}
 
-    // Extract imports from all files and add them to denoJson
-    const generatorImports = generatorsDenoJson.imports as Record<string, string> | undefined
-    if (generatorImports) {
-      const importsToAdd = new Set<string>()
-
-      // Process each file to extract imports
-      for (const [filePath, content] of Object.entries(files)) {
-        // Only process TypeScript files
-        if (filePath.endsWith('.ts')) {
-          const importPaths = extractImportPaths(content)
-          importPaths.forEach(path => importsToAdd.add(path))
-        }
+    const importsToAdd = new Set<string>()
+    for (const [filePath, content] of Object.entries(files)) {
+      if (filePath.endsWith('.ts')) {
+        const importPaths = extractImportPaths(content)
+        importPaths.forEach(path => importsToAdd.add(path))
       }
+    }
 
-      // Add each import to denoJson if it exists in generatorsDenoJson.imports
-      for (const importModule of importsToAdd) {
-        let source: string | undefined = generatorImports[importModule]
-
-        // If using relative import, use the local import
-        if (source?.startsWith('./')) {
-          source = packageDenoJson.contents.imports?.[importModule]
-        }
-
-        if (source) {
-          denoJson.addImport(importModule, source)
-        }
+    for (const importModule of importsToAdd) {
+      const source = packageImports[importModule]
+      // Only add specifiers the package itself pinned. Skip anything
+      // unknown — the project's existing deno.json already pins peer
+      // deps (or doesn't, in which case `bundle` will surface a clear
+      // missing-export error).
+      if (source) {
+        denoJson.addImport(importModule, source)
       }
     }
 
     denoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
     denoJson.addWorkspace(this.toPath({ relative: true }))
+
+    return { version }
   }
 
   static fromName({ projectName, scopeName, packageName, version }: FromNameArgs): Generator {
@@ -223,28 +279,6 @@ export class Generator {
   toModPath({ relative }: PathOptions) {
     return `${this.toPath({ relative })}/mod.ts`
   }
-
-  static async getGeneratorsRootDenoJson() {
-    const items = await fetchGitHubContents('deno.json')
-
-    const promises = items.map(async item => {
-      if (item.type === 'file' && item.path === 'deno.json' && item.download_url) {
-        const content = await fetch(item.download_url)
-
-        return await content.text()
-      }
-
-      return null
-    })
-
-    const results = await Promise.all(promises)
-
-    const result = results.find(result => result !== null)
-
-    invariant(result, 'Generators root deno json not found')
-
-    return JSON.parse(result)
-  }
 }
 
 type FromNameArgs = {
@@ -252,24 +286,4 @@ type FromNameArgs = {
   scopeName: string
   packageName: string
   version: string
-}
-
-const getGeneratorFiles = async (path: string, files: Record<string, string> = {}) => {
-  const items = await fetchGitHubContents(path)
-
-  const promises = items.map(async item => {
-    if (item.type === 'dir') {
-      await getGeneratorFiles(item.path, files)
-    } else if (item.download_url) {
-      const content = await fetch(item.download_url)
-
-      files[item.path] = await content.text()
-    }
-
-    return
-  })
-
-  await Promise.all(promises)
-
-  return files
 }

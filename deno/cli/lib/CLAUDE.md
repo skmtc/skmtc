@@ -13,6 +13,17 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20518 | 7:44 PM | 🔴 | Fixed canRunTsc probe to check tsc availability instead of Node | ~342 |
+| #20516 | 7:37 PM | 🟣 | Bundle freshness detection tests created | ~418 |
+| #20514 | 7:35 PM | 🟣 | Created bundle freshness checker to detect deno.json and bundle.js drift | ~531 |
+| #20512 | 7:32 PM | 🟣 | Clone command supports --force flag to bypass peer dependency checks | ~248 |
+| #20511 | " | 🟣 | Clone command adds peer dependency version validation | ~349 |
+| #20506 | 7:28 PM | 🟣 | Install command now auto-bundles after adding generators | ~376 |
+| #20498 | 7:11 PM | 🔄 | Generator.ts refactored to use JSR instead of GitHub API for cloning | ~615 |
+| #20497 | 7:10 PM | 🔵 | Current generator.ts clone implementation uses GitHub API for fetching generator source files | ~568 |
+| #20424 | 6:59 PM | 🔵 | SKMTC generators workspace structure with 19 official generators | ~574 |
+| #20422 | " | 🔵 | JSR download infrastructure already exists in CLI with version resolution and manifest-based file fetching | ~632 |
+| #20420 | " | 🔵 | Jsr class provides getLatestMeta for fetching package version metadata | ~453 |
 | #20403 | 6:31 PM | 🔵 | Documentation coverage analysis reveals enrichment-driven opt-in pattern is undocumented | ~646 |
 | #20402 | 6:30 PM | 🔵 | Worker.ts regeneration only occurs in bundle and dev paths, not in clone or install | ~636 |
 | #20401 | " | 🔵 | Generator.clone() import extraction without version reconciliation | ~642 |

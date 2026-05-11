@@ -24,7 +24,15 @@ import type {
   ToGqlOperationSettingsArgs,
   ToOperationSettingsArgs
 } from './generateTypes.ts'
-import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '@/types/Settings.ts'
+import type {
+  ClientSettings,
+  IncludeModels,
+  IncludeOperations,
+  IncludePaths,
+  SkipModels,
+  SkipOperations,
+  SkipPaths
+} from '@/types/Settings.ts'
 import type { Method } from '@/types/Method.ts'
 import type { OasOperationConfig } from '@/dsl/operation/oas/types.ts'
 import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
@@ -269,8 +277,30 @@ export class GenerateContext implements GenerateContextType {
 
     generators.forEach(generatorConfig => {
       stackTrail.trace(generatorConfig.id, st => {
+        // Whole-generator skip (string entry in `skip`). Silent no-op:
+        // no per-operation `skipped` results emitted.
         if (this.settings?.skip?.includes(generatorConfig.id)) {
           return
+        }
+
+        // Whole-generator include gate (allow-list). When `include` is
+        // set and the generator isn't mentioned by id — neither as a
+        // string entry nor as a key in any object entry — the whole
+        // generator is silently excluded. Parity with whole-generator
+        // skip: no per-operation `skipped` entries flood the manifest
+        // for a generator the user explicitly opted out of via omission.
+        //
+        // An empty `include` array (`[]`) is treated as "no filter
+        // active" — the forgiving default — so old/blank configs
+        // continue to behave unchanged.
+        if (this.settings?.include !== undefined && this.settings.include.length > 0) {
+          const isMentioned = this.settings.include.some(entry => {
+            if (typeof entry === 'string') return entry === generatorConfig.id
+            return typeof entry === 'object' && entry[generatorConfig.id] !== undefined
+          })
+          if (!isMentioned) {
+            return
+          }
         }
 
         const skip: SkipOperations | SkipModels | undefined = this.settings?.skip?.find(
@@ -278,6 +308,19 @@ export class GenerateContext implements GenerateContextType {
             return typeof skip === 'object' && Boolean(skip[generatorConfig.id])
           }
         )
+
+        // Extract the per-generator include slice (if any). Same
+        // dispatch shape as skip: object entries get matched by key,
+        // string entries don't produce a per-op filter (they mean
+        // "everything from this generator is included", which is
+        // semantically equivalent to "no per-op filter" once the
+        // whole-generator gate above has admitted us).
+        const include: IncludeOperations | IncludeModels | undefined =
+          this.settings?.include?.find(
+            (entry): entry is IncludeOperations | IncludeModels => {
+              return typeof entry === 'object' && Boolean(entry[generatorConfig.id])
+            }
+          )
 
         switch (generatorConfig.type) {
           case 'oasOperation':
@@ -288,6 +331,7 @@ export class GenerateContext implements GenerateContextType {
             this.#runOasOperationGenerator(
               this.document.value,
               generatorConfig,
+              toIncludePaths(include, generatorConfig.id),
               toSkipPaths(skip, generatorConfig.id),
               st
             )
@@ -297,12 +341,20 @@ export class GenerateContext implements GenerateContextType {
               // Generator targets GraphQL; current document is OAS — skip silently.
               return
             }
+            // GraphQL operations don't yet have skip/include support
+            // at the per-operation level. The whole-generator gate
+            // above does apply (so `include: ['my-gql-gen']` works as
+            // expected), but per-(rootKind, fieldName) filtering is a
+            // follow-up that needs the same dispatch shape added for
+            // GqlOperation. Tracked alongside the existing GQL-skip
+            // gap.
             this.#runGqlOperationGenerator(this.document.value, generatorConfig, st)
             break
           case 'model':
             this.#runModelGenerator(
               this.document,
               generatorConfig,
+              toIncludeModels(include, generatorConfig.id),
               toSkipModels(skip, generatorConfig.id),
               st
             )
@@ -324,6 +376,7 @@ export class GenerateContext implements GenerateContextType {
   #runOasOperationGenerator(
     oasDocument: OasDocument,
     generatorConfig: OasOperationConfig,
+    include: IncludePaths | undefined,
     skip: SkipPaths | undefined,
     stackTrail: StackTrail
   ) {
@@ -335,6 +388,24 @@ export class GenerateContext implements GenerateContextType {
             !generatorConfig.isSupported({ operation, context: this })
           ) {
             this.captureCurrentResult('notSupported', st)
+            return acc
+          }
+
+          // Order: isSupported (capability) → include (allow) → skip
+          // (deny). `include === undefined` means no per-op filter is
+          // active for this generator — could be because no `include`
+          // is set at all, OR because the generator was included via
+          // the string form (`include: ['gen-X']` ⇒ "everything").
+          // Either way, no per-op restriction.
+          //
+          // When `include` IS defined (i.e. the user gave an
+          // operation-shaped entry like
+          // `{ 'gen-X': { '/foo': ['get'] } }`), only operations
+          // whose `(path, method)` matches are admitted. Empty
+          // `IncludePaths` (`{}`) matches nothing — that's a valid
+          // "exclude all from this generator" config.
+          if (include !== undefined && !include[operation.path]?.includes(operation.method)) {
+            this.captureCurrentResult('skipped', st)
             return acc
           }
 
@@ -401,6 +472,7 @@ export class GenerateContext implements GenerateContextType {
   #runModelGenerator(
     document: SkmtcParsedDocument,
     generatorConfig: ModelConfig,
+    include: string[] | undefined,
     skip: string[] | undefined,
     stackTrail: StackTrail
   ) {
@@ -412,6 +484,15 @@ export class GenerateContext implements GenerateContextType {
     return refNames.reduce((acc, refName) => {
       return stackTrail.trace(refName, st => {
         try {
+          // Same precedence as the OAS-operation arm: include (allow)
+          // before skip (deny). `include === undefined` means no
+          // per-model filter is active; an explicit empty list `[]`
+          // means "include nothing" and everything emits `skipped`.
+          if (include !== undefined && !include.includes(refName)) {
+            this.captureCurrentResult('skipped', st)
+            return acc
+          }
+
           if (skip?.includes(refName)) {
             this.captureCurrentResult('skipped', st)
             return acc
@@ -940,6 +1021,44 @@ const toSkipModels = (
 
   if (Array.isArray(generatorSkip)) {
     return generatorSkip
+  }
+
+  return undefined
+}
+
+/**
+ * Extracts the per-operation include slice for a generator, mirroring
+ * {@link toSkipPaths}. Returns `undefined` when the include entry
+ * isn't operation-shaped for this generator (e.g. the user passed a
+ * model-shaped array or no entry at all) — the caller then treats
+ * "no per-op filter active" as the semantics.
+ */
+const toIncludePaths = (
+  include: IncludeOperations | IncludeModels | undefined,
+  generatorId: string
+): IncludePaths | undefined => {
+  const generatorInclude = include?.[generatorId]
+
+  if (typeof generatorInclude === 'object' && !Array.isArray(generatorInclude)) {
+    return generatorInclude
+  }
+
+  return undefined
+}
+
+/**
+ * Extracts the per-model include slice for a generator, mirroring
+ * {@link toSkipModels}. Returns `undefined` when the include entry
+ * isn't model-shaped for this generator.
+ */
+const toIncludeModels = (
+  include: IncludeOperations | IncludeModels | undefined,
+  generatorId: string
+): string[] | undefined => {
+  const generatorInclude = include?.[generatorId]
+
+  if (Array.isArray(generatorInclude)) {
+    return generatorInclude
   }
 
   return undefined
