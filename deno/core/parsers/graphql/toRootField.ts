@@ -4,7 +4,7 @@ import { GqlOperation, type GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import { GqlArgument } from '@/gql/argument/GqlArgument.ts'
 import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
 import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
-import type { GqlParseContext } from '@/context/GqlParseContext.ts'
+import type { ParseContext } from '@/context/ParseContext.ts'
 
 export type ToRootFieldArgs = {
   rootKind: GqlRootKind
@@ -15,7 +15,7 @@ export type ToRootFieldArgs = {
    * schema renamed them to). Used for issue location attribution.
    */
   rootTypeName: string
-  context: GqlParseContext
+  context: ParseContext
 }
 
 /**

@@ -1,6 +1,7 @@
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { RenderContext } from '@/context/RenderContext.ts'
 import { ParseContext } from '@/context/ParseContext.ts'
+import type { ParseIssue } from '@/context/ParseIssue.ts'
 import type { PrettierConfigType } from '@/types/PrettierConfig.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
@@ -16,9 +17,9 @@ import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { Mapping, Preview } from '@/types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
-import type { RenderResult } from './generateTypes.ts'
+import type { ToArtifactsResult } from './generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
-import type { SkmtcDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
+import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -29,7 +30,8 @@ import type { SkmtcDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts
 export type ParsePhase = {
   /** Identifies this as the parse phase */
   type: 'parse'
-  /** The parse context containing parsed document and utilities */
+  /** The unified parse context — handles both OAS and GQL via its
+   * internal protocol-discriminated state. */
   context: ParseContext
 }
 
@@ -68,7 +70,7 @@ export type RenderPhase = {
 export type ExecutionPhase = ParsePhase | GeneratePhase | RenderPhase
 
 type GenerateArgs = {
-  document: SkmtcDocument
+  document: SkmtcParsedDocument
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 }
@@ -291,12 +293,16 @@ export class CoreContext {
    * ```
    */
   parse(documentObject: OpenAPIV3.Document, stackTrail: StackTrail): { oasDocument: OasDocument } {
-    this.#phase = this.#setupParsePhase(documentObject)
+    this.#phase = this.#setupParsePhase({ type: 'oas', value: documentObject })
 
-    const oasDocument = this.#phase.context.parse(stackTrail)
+    const parsed = this.#phase.context.parse(stackTrail)
+    if (parsed.type !== 'oas') {
+      // Unreachable: input was tagged 'oas' so the parsed branch must match.
+      throw new Error('CoreContext.parse: expected OAS parsed document')
+    }
 
     return {
-      oasDocument
+      oasDocument: parsed.value
     }
   }
 
@@ -376,15 +382,16 @@ export class CoreContext {
     toGeneratorConfigMap,
     stackTrail,
     prettier
-  }: ToArtifactsArgs): RenderResult {
+  }: ToArtifactsArgs): ToArtifactsResult {
     try {
-      const parsedDocument: SkmtcDocument =
-        document.type === 'oas'
-          ? {
-              type: 'oas',
-              value: stackTrail.trace('parse', st => this.parse(document.value, st).oasDocument)
-            }
-          : { type: 'gql', value: document.value }
+      // Parse phase: one unified ParseContext handles both protocols
+      // via its internal protocol-discriminated state. `parse()` returns
+      // a SkmtcParsedDocument; we collect issues from `context.issues`.
+      const phase = this.#setupParsePhase(document)
+      this.#phase = phase
+      const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
+        phase.context.parse(st)
+      )
 
       const { files, previews, mappings } = stackTrail.trace('generate', st => {
         this.#phase = this.#setupGeneratePhase({
@@ -410,7 +417,8 @@ export class CoreContext {
 
       return {
         ...renderOutput,
-        results: this.#results.toTree()
+        results: this.#results.toTree(),
+        parseIssues: phase.context.issues
       }
     } catch (error) {
       console.error(error)
@@ -422,7 +430,8 @@ export class CoreContext {
         files: {},
         previews: {},
         mappings: {},
-        results: this.#results.toTree()
+        results: this.#results.toTree(),
+        parseIssues: []
       }
     } finally {
       this.logger.handlers.forEach(handler => {
@@ -433,9 +442,9 @@ export class CoreContext {
     }
   }
 
-  #setupParsePhase(documentObject: OpenAPIV3.Document): ParsePhase {
+  #setupParsePhase(input: SkmtcDocumentInput): ParsePhase {
     const parseContext = new ParseContext({
-      documentObject,
+      input,
       logger: this.logger,
       silent: this.silent
     })

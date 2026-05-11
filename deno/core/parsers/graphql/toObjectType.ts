@@ -5,11 +5,11 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toFieldSchema } from '@/parsers/graphql/toFieldSchema.ts'
 import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
-import type { GqlParseContext } from '@/context/GqlParseContext.ts'
+import type { ParseContext } from '@/context/ParseContext.ts'
 
 export type ToObjectTypeArgs = {
   objectType: GraphQLObjectType | GraphQLInterfaceType
-  context: GqlParseContext
+  context: ParseContext
 }
 
 /**

@@ -1,5 +1,6 @@
 import { toV3Document, stringToSchema } from '@skmtc/convert'
 import type { ClientSettings } from '@skmtc/core/Settings'
+import type { SkmtcDocumentInput } from '@skmtc/core'
 import { fileTypeToProtocol, type FileType } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 
@@ -23,6 +24,41 @@ type GenerateWithWorkerArgs = {
   bundlePath: string
 }
 
+/**
+ * Build the host-side `SkmtcDocumentInput` for a generate run.
+ *
+ * - For OAS (JSON / YAML) sources we run the host-side
+ *   `@skmtc/convert` to normalise Swagger 2 / OAS 3.1 → 3.0. The
+ *   resulting `OpenAPIV3.Document` is JSON-clone-safe so it crosses the
+ *   worker boundary without surprises.
+ * - For GraphQL we post the raw SDL string. A pre-parsed `GqlDocument`
+ *   would carry class instances and `OasRef` back-refs that don't
+ *   survive structured clone, so SDL parsing happens inside the worker
+ *   via `toArtifacts` (now protocol-agnostic).
+ *
+ * Switch is exhaustive over `Protocol`; adding a new protocol forces a
+ * compile error here.
+ */
+const toDocumentInput = async (
+  schemaContents: string,
+  fileType: FileType
+): Promise<SkmtcDocumentInput> => {
+  const protocol = fileTypeToProtocol(fileType)
+  switch (protocol) {
+    case 'gql': {
+      return { type: 'gql', value: schemaContents }
+    }
+    case 'oas': {
+      const documentObject = await toV3Document(stringToSchema(schemaContents))
+      return { type: 'oas', value: documentObject }
+    }
+    default: {
+      const _exhaustive: never = protocol
+      throw new Error(`Unhandled protocol: ${_exhaustive}`)
+    }
+  }
+}
+
 export const generateWithWorker = ({
   schemaContents,
   fileType,
@@ -44,68 +80,27 @@ export const generateWithWorker = ({
     }
   })
 
-  const protocol = fileTypeToProtocol(fileType)
-
   return new Promise((resolve, reject) => {
-    // Set up message handler
     worker.onmessage = async (e: MessageEvent) => {
       const { type } = e.data
 
       switch (type) {
         case 'READY': {
-          // Build the appropriate worker payload by discriminating on
-          // the source kind:
-          //   - 'oas': convert to OpenAPI v3 document object here on
-          //     the host so the worker receives a JSON-serialisable
-          //     structure (the conversion involves Swagger 2 / OAS 3.1
-          //     → 3.0 normalisation that's fine to do on the host).
-          //   - 'gql': post the raw SDL string. `GqlDocument` instances
-          //     hold class instances and OasRef back-refs that don't
-          //     survive structured clone, so parsing must happen inside
-          //     the worker via `toArtifactsFromGraphQL`.
-          // Switch is exhaustive over `Protocol`; adding a new
-          // protocol forces a compile error here.
-          switch (protocol) {
-            case 'gql': {
-              worker.postMessage({
-                type: 'GENERATE',
-                payload: {
-                  protocol: 'gql',
-                  gqlSource: schemaContents,
-                  clientSettings
-                }
-              })
-              break
+          const document = await toDocumentInput(schemaContents, fileType)
+          worker.postMessage({
+            type: 'GENERATE',
+            payload: {
+              document,
+              clientSettings
             }
-            case 'oas': {
-              const documentObject = await toV3Document(stringToSchema(schemaContents))
-              worker.postMessage({
-                type: 'GENERATE',
-                payload: {
-                  protocol: 'oas',
-                  documentObject,
-                  clientSettings
-                }
-              })
-              break
-            }
-            default: {
-              const _exhaustive: never = protocol
-              throw new Error(`Unhandled protocol: ${_exhaustive}`)
-            }
-          }
+          })
           break
         }
 
         case 'RESULT': {
-          // Cleanup
           worker.terminate()
-          // The wire payload is `{ type, artifacts, manifest, parseIssues }`.
-          // Default `parseIssues` to an empty array so older worker
-          // bundles (built before issue tracking landed) don't blow up
-          // the host-side type contract.
-          const { artifacts, manifest, parseIssues = [] } = e.data
-          resolve({ artifacts, manifest, parseIssues })
+          const { artifacts, manifest } = e.data
+          resolve({ artifacts, manifest })
           break
         }
 

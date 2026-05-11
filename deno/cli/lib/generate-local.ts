@@ -3,7 +3,7 @@ import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { toGenerationStats, type GenerationStats } from '@/lib/generationStats.ts'
 import type { FileType } from '@/lib/types.ts'
-import type { GqlParseIssue } from '@skmtc/core'
+import type { ParseIssue } from '@skmtc/core'
 
 type GenerateLocalArgs = {
   bundlePath: string
@@ -19,7 +19,13 @@ type GenerateLocalArgs = {
 
 export type GenerateLocalResult = {
   stats: GenerationStats
-  parseIssues: GqlParseIssue[]
+  /**
+   * Parse-time issues for this run. Sourced from `manifest.parseIssues`
+   * (the manifest is now the persistent record of every run-level
+   * diagnostic); surfaced separately here for convenience so the CLI
+   * summary doesn't have to re-dig into the manifest.
+   */
+  parseIssues: ParseIssue[]
 }
 
 export const generateLocal = async ({
@@ -30,7 +36,7 @@ export const generateLocal = async ({
   manifestPath
 }: GenerateLocalArgs): Promise<GenerateLocalResult> => {
   try {
-    const { artifacts, manifest, parseIssues } = await GenerateArtifacts.generateWithWorker({
+    const { artifacts, manifest } = await GenerateArtifacts.generateWithWorker({
       bundlePath,
       schemaContents,
       fileType,
@@ -45,7 +51,7 @@ export const generateLocal = async ({
 
     const stats = toGenerationStats({ manifest, artifacts })
 
-    return { stats, parseIssues }
+    return { stats, parseIssues: manifest.parseIssues }
   } catch (error) {
     console.error(error instanceof Error ? error : 'Failed to generate artifacts')
 

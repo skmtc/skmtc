@@ -53,10 +53,10 @@ const mockGenerateResponse = {
     previews: {},
     mappings: {},
     results: {},
+    parseIssues: [],
     startAt: Date.now() - 1000,
     endAt: Date.now()
-  },
-  parseIssues: []
+  }
 }
 
 // Helper to create a mock project without schema for interactive testing

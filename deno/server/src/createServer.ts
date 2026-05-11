@@ -1,8 +1,7 @@
 import { cors } from 'hono/cors'
 import { Hono } from 'hono'
 import { clientSettings as settingsSchema, toArtifacts } from '@skmtc/core'
-import { toArtifactsFromGraphQL } from '@skmtc/core/parsers/graphql'
-import type { GeneratorsMapContainer } from '@skmtc/core'
+import type { GeneratorsMapContainer, SkmtcDocumentInput } from '@skmtc/core'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import { stringToSchema, toV3Document } from '@skmtc/convert'
 import * as v from 'valibot'
@@ -71,40 +70,40 @@ const dispatchArtifacts = async ({
   const spanId = `span-${startAt}`
   const stackTrail = new StackTrail([traceId, spanId])
 
+  // Build the unified SkmtcDocumentInput from the protocol-specific
+  // body shape, then route through the single `toArtifacts` entry. The
+  // host-side OAS normalisation (Swagger 2 / 3.1 → 3.0 via
+  // `@skmtc/convert`) still runs here; GQL passes its SDL through
+  // unchanged.
+  let document: SkmtcDocumentInput
   switch (body.protocol) {
     case 'oas': {
       const documentObject = await toV3Document(stringToSchema(body.schema))
-      return toArtifacts({
-        traceId,
-        spanId,
-        startAt,
-        documentObject,
-        prettier: body.prettier,
-        settings: body.clientSettings,
-        toGeneratorConfigMap,
-        stackTrail,
-        logsPath,
-        silent: true
-      })
+      document = { type: 'oas', value: documentObject }
+      break
     }
-    case 'gql':
-      return toArtifactsFromGraphQL({
-        traceId,
-        spanId,
-        startAt,
-        source: body.schema,
-        prettier: body.prettier,
-        settings: body.clientSettings,
-        toGeneratorConfigMap,
-        stackTrail,
-        logsPath,
-        silent: true
-      })
+    case 'gql': {
+      document = { type: 'gql', value: body.schema }
+      break
+    }
     default: {
       const _exhaustive: never = body
       throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`)
     }
   }
+
+  return toArtifacts({
+    traceId,
+    spanId,
+    startAt,
+    document,
+    prettier: body.prettier,
+    settings: body.clientSettings,
+    toGeneratorConfigMap,
+    stackTrail,
+    logsPath,
+    silent: true
+  })
 }
 
 type CreateServerArgs = {

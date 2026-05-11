@@ -16,7 +16,7 @@ import { toScalarType } from '@/parsers/graphql/toScalarType.ts'
 import { toEnumType } from '@/parsers/graphql/toEnumType.ts'
 import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { OasUnion } from '@/oas/union/Union.ts'
-import type { GqlParseContext } from '@/context/GqlParseContext.ts'
+import type { ParseContext } from '@/context/ParseContext.ts'
 
 /**
  * Args for {@link toFieldSchema}.
@@ -27,7 +27,7 @@ import type { GqlParseContext } from '@/context/GqlParseContext.ts'
  */
 export type ToFieldSchemaArgs = {
   type: GraphQLType
-  context: GqlParseContext
+  context: ParseContext
   /**
    * Schema-level address of this field (e.g. `User.posts`,
    * `Query.getUser.return`). Threaded into any issue this call

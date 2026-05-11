@@ -73,7 +73,54 @@
 
 import { resultsItem, type ResultsItem } from './Results.ts'
 import { preview, type Preview, type Mapping, mapping } from './Preview.ts'
+import type { ParseIssue } from '@/context/ParseIssue.ts'
+import { oasIssueType } from '@/context/generateTypes.ts'
+import { gqlIssueType } from '@/context/ParseIssue.ts'
 import * as v from 'valibot'
+
+/**
+ * Valibot schema for the unified {@link ParseIssue} discriminated union.
+ *
+ * The TS type and this schema stay in sync via the
+ * `v.GenericSchema<ParseIssue>` annotation — adding a variant on one
+ * side without the other fails to type-check.
+ */
+const parseIssue: v.GenericSchema<ParseIssue> = v.variant('protocol', [
+  v.variant('level', [
+    v.object({
+      protocol: v.literal('oas'),
+      level: v.literal('error'),
+      type: oasIssueType,
+      location: v.string(),
+      message: v.string(),
+      cause: v.optional(v.unknown())
+    }),
+    v.object({
+      protocol: v.literal('oas'),
+      level: v.literal('warning'),
+      type: oasIssueType,
+      location: v.string(),
+      message: v.string()
+    })
+  ]),
+  v.variant('level', [
+    v.object({
+      protocol: v.literal('gql'),
+      level: v.literal('error'),
+      type: gqlIssueType,
+      location: v.string(),
+      message: v.string(),
+      cause: v.optional(v.unknown())
+    }),
+    v.object({
+      protocol: v.literal('gql'),
+      level: v.literal('warning'),
+      type: gqlIssueType,
+      location: v.string(),
+      message: v.string()
+    })
+  ])
+])
 
 export type ManifestEntry = {
   lines: number
@@ -106,6 +153,13 @@ export type ManifestContent = {
   previews: Record<string, Preview>
   mappings?: Record<string, Mapping>
   results: ResultsItem
+  /**
+   * Issues recorded during the parse phase — both protocol-agnostic
+   * (OAS and GQL share the same union). Defaults to `[]` for clean
+   * parses. Lives in the manifest so post-run diagnostics can re-read
+   * it from `.settings/manifest.json` without re-running.
+   */
+  parseIssues: ParseIssue[]
   startAt: number
   endAt: number
 }
@@ -119,6 +173,7 @@ export const manifestContent: v.GenericSchema<ManifestContent> = v.object({
   previews: v.record(v.string(), preview),
   mappings: v.optional(v.record(v.string(), mapping)),
   results: resultsItem,
+  parseIssues: v.array(parseIssue),
   startAt: v.number(),
   endAt: v.number()
 })

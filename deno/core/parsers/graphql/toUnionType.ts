@@ -4,11 +4,11 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { recordAppliedDirectives } from '@/parsers/graphql/recordAppliedDirectives.ts'
-import type { GqlParseContext } from '@/context/GqlParseContext.ts'
+import type { ParseContext } from '@/context/ParseContext.ts'
 
 export type ToUnionTypeArgs = {
   unionType: GraphQLUnionType
-  context: GqlParseContext
+  context: ParseContext
 }
 
 /**

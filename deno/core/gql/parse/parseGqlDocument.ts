@@ -17,7 +17,7 @@ import { toInterfaceUnion } from '@/parsers/graphql/toInterfaceUnion.ts'
 import { toScalarType } from '@/parsers/graphql/toScalarType.ts'
 import { toRootField } from '@/parsers/graphql/toRootField.ts'
 import type { RefName } from '@/types/RefName.ts'
-import type { GqlParseContext, GqlParseOptions } from '@/context/GqlParseContext.ts'
+import type { ParseContext, GqlParseOptions } from '@/context/ParseContext.ts'
 
 /**
  * Built-in GraphQL directives that are part of every schema and not
@@ -28,7 +28,7 @@ const BUILTIN_DIRECTIVES = new Set(['skip', 'include', 'deprecated', 'specifiedB
 
 export type ParseGqlDocumentArgs = {
   options: GqlParseOptions
-  context: GqlParseContext
+  context: ParseContext
 }
 
 /**

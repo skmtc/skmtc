@@ -1,5 +1,5 @@
 import type { GenerationStats } from '@/lib/generationStats.ts'
-import type { GqlParseIssue } from '@skmtc/core'
+import type { ParseIssue } from '@skmtc/core'
 
 const formatNumber = (value: number, locales: Intl.LocalesArgument = 'en-US'): string => {
   return value.toLocaleString(locales, {
@@ -10,7 +10,7 @@ const formatNumber = (value: number, locales: Intl.LocalesArgument = 'en-US'): s
 
 type ToGenerateMessageStringArgs = {
   stats: GenerationStats
-  parseIssues?: GqlParseIssue[]
+  parseIssues?: ParseIssue[]
   /**
    * Resolved basePath from client.json — used to tell the caller where
    * the generated files actually landed. Friction-#14: agents and humans
@@ -50,7 +50,9 @@ export const toGenerateMessageString = ({
   if (parseIssues.length) {
     lines.push(`\nParse issues (${parseIssues.length}):`)
     for (const issue of parseIssues) {
-      lines.push(` - [${issue.level}] ${issue.location}: ${issue.message} (${issue.type})`)
+      lines.push(
+        ` - [${issue.protocol}/${issue.level}] ${issue.location}: ${issue.message} (${issue.type})`
+      )
     }
   }
 

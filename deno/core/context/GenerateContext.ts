@@ -5,7 +5,7 @@ import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
-import type { SkmtcDocument } from '@/types/SkmtcDocument.ts'
+import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type {
   BuildModelSettingsArgs,
   DefineAndRegisterArgs,
@@ -61,12 +61,12 @@ import type { OasVoid } from '@/oas/void/Void.ts'
 
 type ConstructorArgs = {
   /**
-   * Source document for generation, wrapped in the {@link SkmtcDocument}
+   * Source document for generation, wrapped in the {@link SkmtcParsedDocument}
    * discriminated union. Generators that target a specific protocol
    * narrow on `document.type` to access the underlying `OasDocument` or
    * `GqlDocument` via `document.value`.
    */
-  document: SkmtcDocument
+  document: SkmtcParsedDocument
   settings: ClientSettings | undefined
   logger: log.Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
@@ -222,11 +222,11 @@ export class GenerateContext implements GenerateContextType {
   #previews: Record<string, Preview>
   #mappings: Record<string, Mapping>
   /**
-   * Parsed source document, wrapped in the {@link SkmtcDocument}
+   * Parsed source document, wrapped in the {@link SkmtcParsedDocument}
    * discriminated union. Canonical representation; both protocol-neutral
    * (model) and protocol-specific (operation) dispatch reads through this.
    */
-  document: SkmtcDocument
+  document: SkmtcParsedDocument
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Logger instance for tracking generation progress */
@@ -399,7 +399,7 @@ export class GenerateContext implements GenerateContextType {
   }
 
   #runModelGenerator(
-    document: SkmtcDocument,
+    document: SkmtcParsedDocument,
     generatorConfig: ModelConfig,
     skip: string[] | undefined,
     stackTrail: StackTrail

@@ -1,5 +1,4 @@
-import type { ParseContextType } from '../context/parseTypes.ts'
-import type { LogSkippedValuesArgs } from '../context/parseTypes.ts'
+import type { ParseContextType, LogSkippedValuesArgs } from '../context/parseTypes.ts'
 /**
  * Mock implementation of ParseContext for testing purposes.
  *

@@ -1,5 +1,5 @@
 import type { ASTNode, DirectiveNode } from 'graphql'
-import type { GqlParseContext } from '@/context/GqlParseContext.ts'
+import type { ParseContext } from '@/context/ParseContext.ts'
 
 /**
  * Names of directives we don't bother reporting as dropped, either
@@ -25,7 +25,7 @@ const SUPPRESSED_DIRECTIVES = new Set(['skip', 'include', 'deprecated', 'specifi
 export const recordAppliedDirectives = (
   astNode: { directives?: ReadonlyArray<DirectiveNode> } | ASTNode | undefined | null,
   location: string,
-  context: GqlParseContext
+  context: ParseContext
 ): void => {
   const directives = astNode && 'directives' in astNode ? astNode.directives : undefined
   if (!directives || directives.length === 0) return

@@ -55,10 +55,6 @@ const FIXTURE_DENO_JSON = JSON.stringify(
         'skmtc-generators/gen-graphql-operation/mod.ts'
       ),
       '@skmtc/core': join(REPO_ROOT, 'skmtc/deno/core/mod.ts'),
-      '@skmtc/core/parsers/graphql': join(
-        REPO_ROOT,
-        'skmtc/deno/core/parsers/graphql/mod.ts'
-      ),
       '@skmtc/worker': join(REPO_ROOT, 'skmtc/deno/worker/mod.ts'),
       '@/': join(REPO_ROOT, 'skmtc/deno/core/'),
       '@std/path': 'jsr:@std/path@^1.1.2',

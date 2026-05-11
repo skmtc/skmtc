@@ -1,35 +1,12 @@
 import * as v from 'valibot'
 import { manifestContent } from '@skmtc/core/Manifest'
 
-const gqlIssueType = v.picklist([
-  'NESTED_LIST_LOSSY',
-  'UNKNOWN_TYPE_KIND',
-  'DROPPED_DIRECTIVE',
-  'SKIPPED_FIELD_ARGUMENTS',
-  'SKIPPED_FEATURE',
-])
-
-const gqlParseError = v.object({
-  level: v.literal('error'),
-  message: v.string(),
-  location: v.string(),
-  type: gqlIssueType,
-})
-
-const gqlParseWarning = v.object({
-  level: v.literal('warning'),
-  message: v.string(),
-  location: v.string(),
-  type: gqlIssueType,
-})
-
-const gqlParseIssue = v.union([gqlParseError, gqlParseWarning])
-
+// NOTE: `.generated.ts` files are normally regenerated from server
+// schemas. This file was last regenerated while parseIssues lived as a
+// sibling field; since they now nest inside the manifest, the response
+// shape is simpler. When the sandbox server starts emitting `parseIssues`
+// inside its manifest payload, this file can be regenerated cleanly.
 export const createArtifactsResponse = v.object({
   artifacts: v.record(v.string(), v.string()),
-  manifest: manifestContent,
-  // Parse issues are GraphQL-only today and the sandbox server hasn't
-  // shipped them yet; default to `[]` so older server responses still
-  // parse cleanly.
-  parseIssues: v.optional(v.array(gqlParseIssue), []),
+  manifest: manifestContent
 })

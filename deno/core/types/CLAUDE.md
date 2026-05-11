@@ -8,4 +8,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #19954 | 9:44 AM | 🔵 | SKMTC manifest system structure examined for artifact tracking | ~523 |
+
+### May 11, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20249 | 10:43 AM | 🔄 | Strengthened ParseIssue runtime validation with typed schemas | ~110 |
 </claude-mem-context>

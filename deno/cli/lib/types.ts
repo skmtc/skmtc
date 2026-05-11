@@ -7,8 +7,8 @@ import type { SkmtcProtocol } from '@skmtc/core'
  * file (`.graphql`, `.gql`, or `.graphqls`). The CLI uses the file type
  * to route the parse step: OpenAPI inputs go through `@skmtc/convert`
  * to produce an `OpenAPIV3.Document`; GraphQL inputs are sent as raw
- * SDL to the worker, which parses them via
- * `@skmtc/core/parsers/graphql`.
+ * SDL to the worker, which parses them via the unified
+ * `ParseContext` exported from `@skmtc/core`.
  */
 export type FileType = 'json' | 'yaml' | 'graphql'
 

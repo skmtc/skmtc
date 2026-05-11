@@ -192,12 +192,12 @@ export * from './gql/operation/GqlOperation.ts'
 export * from './gql/operation/synthesizeArgsObject.ts'
 export * from './gql/argument/GqlArgument.ts'
 export * from './gql/rootType/GqlRootTypes.ts'
-export * from './context/GqlParseContext.ts'
-// Note: GraphQL parser exports live in `./parsers/graphql/mod.ts` and the
-// `./parsers/graphql` sub-export. They are intentionally excluded from
-// the main `mod.ts` so consumers who only need the GraphQL data model
-// (e.g. operation generators) don't pull the `graphql` npm package into
-// their type-check graph.
+export * from './context/ParseIssue.ts'
+// GraphQL parser entry points are imported directly from their specific
+// files (e.g. `parsers/graphql/toGqlDocument.ts`) rather than through a
+// barrel — the unified `ParseContext` is the primary surface for GQL
+// parsing and lives in `context/ParseContext.ts`, already exported
+// above.
 export * from './typescript/FunctionParameter.ts'
 export * from './typescript/identifiers.ts'
 export * from './typescript/keyValues.ts'

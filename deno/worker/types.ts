@@ -1,5 +1,5 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
-import type { OpenAPIV3 } from 'openapi-types'
+import type { SkmtcDocumentInput } from '@skmtc/core'
 
 /**
  * Wire-protocol types for `@skmtc/worker`.
@@ -12,22 +12,27 @@ import type { OpenAPIV3 } from 'openapi-types'
  * have configured.
  */
 
-/** Fields the host may include on either protocol's payload. */
-export type GeneratePayloadShared = {
-  clientSettings?: ClientSettings
-  silent?: boolean
-}
-
 /**
  * Wire shape of the `GENERATE` message payload posted by the host.
  *
- * Discriminated union keyed on `protocol`. Switch-narrowing on
- * `payload.protocol` automatically narrows the rest of the shape, so
- * the worker doesn't need any defensive runtime checks.
+ * The `document` field is a {@link SkmtcDocumentInput} discriminated
+ * union — `{ type: 'oas', value }` carries the OpenAPI v3 document
+ * (already converted to 3.0 host-side via `@skmtc/convert`),
+ * `{ type: 'gql', value }` carries the SDL string. The worker hands the
+ * union straight to `toArtifacts`, which runs the protocol-specific
+ * parser inside the pipeline.
+ *
+ * GraphQL `SkmtcDocumentInput.gql.value` is the raw SDL string — not a
+ * pre-parsed `GqlDocument` — because `GqlDocument` carries class
+ * instances and `OasRef` back-refs that don't survive structured clone
+ * across the worker boundary. SDL serialises cleanly; the parsed
+ * document would not.
  */
-export type GeneratePayload =
-  | (GeneratePayloadShared & { protocol: 'oas'; documentObject: OpenAPIV3.Document })
-  | (GeneratePayloadShared & { protocol: 'gql'; gqlSource: string })
+export type GeneratePayload = {
+  clientSettings?: ClientSettings
+  silent?: boolean
+  document: SkmtcDocumentInput
+}
 
 /**
  * Top-level message shape posted to the worker. Currently only one

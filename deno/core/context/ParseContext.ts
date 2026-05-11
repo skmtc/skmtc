@@ -1,251 +1,404 @@
+/**
+ * Unified parse context for both OAS and GraphQL inputs.
+ *
+ * One class, two protocol-specific states behind a discriminated union.
+ * Universal capabilities (issue collection, logger mirroring,
+ * dependency-ref tracking) live at the top of the class and apply to
+ * both protocols. Protocol-specific state (`oasDocument` vs
+ * `schema`/`registry`) sits on `this.protocol`, narrowed by
+ * `this.protocol.type`. The OAS-flavoured logging surface
+ * (`logIssue`/`logIssueNoKey`/`logSkippedFields`) accepts a
+ * {@link StackTrail} for location; the GQL-flavoured surface (`log`,
+ * `logSkippedFields` with a pre-computed `location` string) accepts a
+ * raw string. Both funnel into the shared {@link ParseContext.logIssueAt}.
+ *
+ * `removeErroredItems` is universal but its body dispatches on
+ * `protocol.type` — the cleanup step is document-shaped. The GQL branch
+ * is a no-op stub today; the infrastructure (the `#refConsumers` /
+ * `#refErrors` maps, `registerRef` / `registerRefError`) is in place
+ * for GQL parsers to populate when type-reference invalidation is
+ * needed.
+ */
+
 import type { OpenAPIV3 } from 'openapi-types'
+import { buildSchema, type GraphQLSchema } from 'graphql'
 import { toDocumentFieldsV3 } from '@/oas/document/toDocumentFieldsV3.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
+import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
+import { parseGqlDocument } from '@/gql/parse/parseGqlDocument.ts'
 import type { Logger } from '@/types/Logger.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-import type { IssueType } from './generateTypes.ts'
-import type * as v from 'valibot'
 import type {
+  SkmtcDocumentInput,
+  SkmtcParsedDocument
+} from '@/types/SkmtcDocument.ts'
+import type {
+  GqlParseIssueInput,
+  GqlParseOptions,
   LogIssueArgs,
+  LogIssueAtArgs,
   LogIssueNoKeyArgs,
+  LogSkippedFieldsAtArgs,
+  LogSkippedValuesArgs
+} from '@/context/parseTypes.ts'
+import type { ParseIssue } from '@/context/ParseIssue.ts'
+
+// Re-exports kept here for backwards-compat with the previous flat
+// surface. New parser helpers should `import type` from
+// `./parseTypes.ts` (input/arg shapes) or `./ParseIssue.ts`
+// (issue / protocol enums); the class itself stays here.
+export type { ParseIssue, GqlIssueType } from '@/context/ParseIssue.ts'
+export type {
+  GqlParseError,
+  GqlParseIssueInput,
+  GqlParseOptions,
+  GqlParseWarning,
+  LogIssueArgs,
+  LogIssueAtArgs,
+  LogIssueNoKeyArgs,
+  LogSkippedFieldsAtArgs,
   LogSkippedValuesArgs,
-  ParseContextType
-} from './parseTypes.ts'
+  ParseContextType,
+  ParseErrorInput,
+  ParseIssueInput,
+  ParseWarningInput
+} from '@/context/parseTypes.ts'
 
-/**
- * Constructor arguments for {@link ParseContext}.
- */
+type OasProtocolState = {
+  type: 'oas'
+  documentObject: OpenAPIV3.Document
+  oasDocument: OasDocument
+}
+
+type GqlProtocolState = {
+  type: 'gql'
+  schema: GraphQLSchema
+  registry: GqlRegistry
+  options: GqlParseOptions
+}
+
+type ProtocolState = OasProtocolState | GqlProtocolState
+
 type ConstructorArgs = {
-  /** The OpenAPI v3 document to parse */
-  documentObject: OpenAPIV3.Document
-  /** Logger instance for debug information */
+  input: SkmtcDocumentInput
   logger: Logger
-  /** Whether to suppress console output */
-  silent: boolean
-}
-
-/**
- * Return type for the parse operation.
- */
-export type ParseReturn = {
-  /** The parsed OAS document */
-  oasDocument: OasDocument
-  /** Array of parsing issues encountered */
-  issues: ParseIssue[]
-}
-
-/**
- * Arguments for provisional parsing with validation.
- */
-export type ProvisionalParseArgs<T> = {
-  /** The key being parsed */
-  key: string
-  /** The value to validate */
-  value: unknown
-  /** The parent object context */
-  parent: unknown
-  /** Valibot schema for validation */
-  schema: v.GenericSchema<T>
-  /** Function to generate error messages */
-  toMessage: (value: unknown) => string
-  /** The type of issue for categorization */
-  type: IssueType
-}
-
-/**
- * Represents a parsing error with location context.
- */
-export type ParseError = {
-  /** Error severity level */
-  level: 'error'
-  /** The error that occurred */
-  error: Error
-  /** Location string where the error occurred */
-  location: string
-  /** The parent object context */
-  parent: unknown
-  /** The type of issue for categorization */
-  type: IssueType
-}
-
-/**
- * Represents a parsing warning with location context.
- */
-export type ParseWarning = {
-  /** Warning severity level */
-  level: 'warning'
-  /** Warning message */
-  message: string
-  /** Location string where the warning occurred */
-  location: string
-  /** The parent object context */
-  parent: unknown
-  /** The type of issue for categorization */
-  type: IssueType
-}
-
-/**
- * Union type for all parsing issues.
- */
-export type ParseIssue = ParseError | ParseWarning
-
-export class ParseContext implements ParseContextType {
-  /** The original OpenAPI v3 document being parsed */
-  documentObject: OpenAPIV3.Document
-  /** Logger instance for tracking parse progress and issues */
-  logger: Logger
-  /** The parsed OAS document result */
-  oasDocument: OasDocument
-
-  /** Collection of parsing issues encountered during processing */
-  issues: ParseIssue[]
-  /** Whether to suppress console output during parsing */
-  silent: boolean
-  #refStackTrails: Record<string, StackTrail[]>
-  #refErrors: Record<string, Error[]>
+  silent?: boolean
   /**
-   * Creates a new ParseContext instance for the parsing phase.
-   *
-   * @param args - Constructor arguments including document object, logger, and options
+   * Protocol-specific parse options. Only the matching protocol's
+   * entry is consulted; the rest are ignored. Today only GQL uses
+   * this; adding more is additive.
    */
-  constructor({ documentObject, logger, silent = true }: ConstructorArgs) {
-    this.documentObject = documentObject
+  options?: { gql?: GqlParseOptions }
+}
+
+export class ParseContext {
+  issues: ParseIssue[] = []
+  logger: Logger
+  silent: boolean
+  protocol: ProtocolState
+
+  // Universal dependency-ref tracking. Populated by parsers as they
+  // encounter references. OAS uses `$ref` strings as keys; GQL would
+  // use type names. The maps don't care about the encoding.
+  #refConsumers: Map<string, StackTrail[]> = new Map()
+  #refErrors: Map<string, unknown[]> = new Map()
+
+  constructor({ input, logger, silent = true, options }: ConstructorArgs) {
     this.logger = logger
-    this.oasDocument = new OasDocument()
     this.silent = silent
-    this.issues = []
-    this.#refStackTrails = {}
-    this.#refErrors = {}
+
+    switch (input.type) {
+      case 'oas': {
+        this.protocol = {
+          type: 'oas',
+          documentObject: input.value,
+          oasDocument: new OasDocument()
+        }
+        break
+      }
+      case 'gql': {
+        const schema =
+          typeof input.value === 'string' ? buildSchema(input.value) : input.value
+        this.protocol = {
+          type: 'gql',
+          schema,
+          registry: new GqlRegistry({ schemas: {} }),
+          options: options?.gql ?? {}
+        }
+        break
+      }
+      default: {
+        const _exhaustive: never = input
+        throw new Error(`Unhandled document input type: ${JSON.stringify(_exhaustive)}`)
+      }
+    }
   }
 
   /**
-   * Parses the OpenAPI v3 document and returns the internal OAS document representation.
-   *
-   * @returns Parsed OAS document with all components and operations
+   * OAS-only accessor. Throws when called on a GQL-protocol context —
+   * deliberate, because OAS parser code uses this and a misroute is a
+   * real bug, not a recoverable situation.
    */
-  parse(stackTrail: StackTrail): OasDocument {
-    this.oasDocument.fields = toDocumentFieldsV3({
-      documentObject: this.documentObject,
-      stackTrail: stackTrail,
-      context: this
-    })
+  get oasDocument(): OasDocument {
+    if (this.protocol.type !== 'oas') {
+      throw new Error('oasDocument accessed on non-OAS ParseContext')
+    }
+    return this.protocol.oasDocument
+  }
 
-    this.removeErroredItems()
+  /** OAS-only accessor; symmetric reason to {@link oasDocument}. */
+  get documentObject(): OpenAPIV3.Document {
+    if (this.protocol.type !== 'oas') {
+      throw new Error('documentObject accessed on non-OAS ParseContext')
+    }
+    return this.protocol.documentObject
+  }
 
-    return this.oasDocument
+  /** GQL-only accessor; throws if called on an OAS context. */
+  get schema(): GraphQLSchema {
+    if (this.protocol.type !== 'gql') {
+      throw new Error('schema accessed on non-GQL ParseContext')
+    }
+    return this.protocol.schema
+  }
+
+  /** GQL-only accessor; throws if called on an OAS context. */
+  get registry(): GqlRegistry {
+    if (this.protocol.type !== 'gql') {
+      throw new Error('registry accessed on non-GQL ParseContext')
+    }
+    return this.protocol.registry
   }
 
   /**
-   * Removes items from the parsed document that encountered errors during parsing.
+   * Runs the protocol-appropriate parse step and returns the result
+   * wrapped in {@link SkmtcParsedDocument}. `stackTrail` is required
+   * for OAS (used by `toDocumentFieldsV3` for issue location tracking)
+   * and ignored by GQL (which uses pre-computed schema addresses).
    */
-  removeErroredItems() {
-    Object.entries(this.#refErrors).forEach(([$ref, errors]) => {
-      errors.forEach(error => {
-        this.#refStackTrails[$ref]?.forEach(stackTrail => {
-          const removed = this.oasDocument.removeItem(stackTrail)
-
-          if (removed) {
-            this.issues.push({
-              level: 'error',
-              error,
-              location: stackTrail.toString(),
-              parent: removed,
-              type: 'INVALID_DEPENDENCY_REF'
-            })
-          }
+  parse(stackTrail: StackTrail): SkmtcParsedDocument {
+    switch (this.protocol.type) {
+      case 'oas': {
+        const oasState = this.protocol
+        oasState.oasDocument.fields = toDocumentFieldsV3({
+          documentObject: oasState.documentObject,
+          stackTrail,
+          context: this
         })
-      })
-    })
-  }
-
-  /**
-   * Registers a reference ($ref) with its associated stack trail for error tracking.
-   *
-   * @param stackTrail - Current processing context stack trail
-   * @param $ref - OpenAPI reference string to register
-   */
-  registerRef(stackTrail: StackTrail, $ref: string) {
-    const refStackTrails = this.#refStackTrails[$ref]
-
-    refStackTrails ? refStackTrails.push(stackTrail) : (this.#refStackTrails[$ref] = [stackTrail])
-  }
-
-  /**
-   * Registers an error that occurred while processing a reference.
-   *
-   * @param error - Error that occurred during reference processing
-   * @param $ref - Reference string that caused the error (if available)
-   */
-  registerRefError(error: Error, $ref: string | undefined) {
-    if ($ref) {
-      const refErrors = this.#refErrors[$ref]
-
-      refErrors ? refErrors.push(error) : (this.#refErrors[$ref] = [error])
+        this.removeErroredItems()
+        return { type: 'oas', value: oasState.oasDocument }
+      }
+      case 'gql': {
+        const gqlDoc = parseGqlDocument({
+          options: this.protocol.options,
+          context: this
+        })
+        this.removeErroredItems()
+        return { type: 'gql', value: gqlDoc }
+      }
+      default: {
+        const _exhaustive: never = this.protocol
+        throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
+      }
     }
   }
 
   /**
-   * Logs warnings for fields that were skipped during parsing.
-   *
-   * @param args - Arguments containing skipped fields and parent context
+   * Walks any registered ref errors and prunes their consumers from
+   * the parsed document. OAS implements the prune; GQL is a stub —
+   * the infrastructure is in place for GQL parsers to populate refs
+   * later without an architecture change.
    */
-  logSkippedFields({ skipped, stackTrail, parent, parentType }: LogSkippedValuesArgs) {
-    Object.keys(skipped).forEach(key => {
-      this.logIssue({
-        key,
-        stackTrail,
-        parent,
-        level: 'warning',
-        message: `Unexpected property '${key}' in '${parentType}'`,
-        type: 'UNEXPECTED_PROPERTY'
-      })
-    })
-  }
-
-  // /**
-  //  * Executes a function within a traced context for debugging and monitoring.
-  //  *
-  //  * @param token - Trace identifier or path segments
-  //  * @param fn - Function to execute within the trace context
-  //  * @returns The result of the traced function execution
-  //  */
-  // trace<T>(token: string, fn: () => T): T {
-  //   return tracer(this.stackTrail, token, fn, this.logger)
-  // }
-
-  /**
-   * Logs a parsing issue with associated key context.
-   *
-   * @param args - Issue arguments including key, parent object, and issue details
-   */
-  logIssue({ key, parent, type, stackTrail, ...issue }: LogIssueArgs) {
-    stackTrail.trace(key, st => this.logIssueNoKey({ parent, type, stackTrail: st, ...issue }))
-  }
-
-  /**
-   * Logs a parsing issue without specific key context.
-   *
-   * @param args - Issue arguments including parent object and issue details
-   */
-  logIssueNoKey({ parent, type, stackTrail, ...issue }: LogIssueNoKeyArgs) {
-    if (issue.level === 'error') {
-      this.registerRefError(issue.error, stackTrail.toStackRef())
+  removeErroredItems(): void {
+    switch (this.protocol.type) {
+      case 'oas': {
+        const oasState = this.protocol
+        for (const [refKey, errors] of this.#refErrors) {
+          for (const error of errors) {
+            const consumers = this.#refConsumers.get(refKey) ?? []
+            for (const stackTrail of consumers) {
+              const removed = oasState.oasDocument.removeItem(stackTrail)
+              if (removed) {
+                this.issues.push({
+                  protocol: 'oas',
+                  level: 'error',
+                  type: 'INVALID_DEPENDENCY_REF',
+                  location: stackTrail.toString(),
+                  message: error instanceof Error ? error.message : String(error),
+                  cause: error
+                })
+              }
+            }
+          }
+        }
+        break
+      }
+      case 'gql': {
+        // GQL ref-tracking not yet implemented. graphql-js validates
+        // type references structurally and rejects dangling refs at
+        // build time, so the failure mode this guards against is rare
+        // in practice. Stub for future symmetric implementation.
+        break
+      }
+      default: {
+        const _exhaustive: never = this.protocol
+        throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
+      }
     }
+  }
 
-    this.issues.push({
-      ...issue,
-      location: stackTrail.toString(),
-      parent,
-      type
-    })
+  /**
+   * Register a `$ref`-style consumer site. The key encoding is up to
+   * the caller — OAS uses `#/components/schemas/User` strings, GQL
+   * would use type names or qualified field paths.
+   */
+  registerRef(consumer: StackTrail, refKey: string): void {
+    const existing = this.#refConsumers.get(refKey)
+    if (existing) {
+      existing.push(consumer)
+    } else {
+      this.#refConsumers.set(refKey, [consumer])
+    }
+  }
+
+  /**
+   * Register an error against a ref key — typically called when the
+   * target of a `$ref` (or type reference) fails to parse. `undefined`
+   * `refKey` is a deliberate no-op: callers may pass the result of
+   * `StackTrail.toStackRef()` directly, which is `undefined` for
+   * non-component stack trails.
+   */
+  registerRefError(error: unknown, refKey: string | undefined): void {
+    if (!refKey) return
+    const existing = this.#refErrors.get(refKey)
+    if (existing) {
+      existing.push(error)
+    } else {
+      this.#refErrors.set(refKey, [error])
+    }
+  }
+
+  /**
+   * Universal issue recorder. Pushes to `issues` and (when not silent)
+   * mirrors to the logger. Both protocols' surface methods funnel
+   * here.
+   */
+  logIssueAt(issue: LogIssueAtArgs): void {
+    this.issues.push(issue)
 
     if (!this.silent) {
       this.logger.warn({
-        ...issue,
-        location: stackTrail.toString(),
-        parent: JSON.stringify(parent),
+        protocol: issue.protocol,
+        level: issue.level,
+        location: issue.location,
+        message: issue.message,
+        type: issue.type
+      })
+    }
+  }
+
+  // -- OAS-flavoured surface (StackTrail-based) ---------------------
+
+  logIssue({ key, parent, type, stackTrail, ...issue }: LogIssueArgs): void {
+    stackTrail.trace(key, st =>
+      this.logIssueNoKey({ parent, type, stackTrail: st, ...issue })
+    )
+  }
+
+  logIssueNoKey({ parent: _parent, type, stackTrail, ...issue }: LogIssueNoKeyArgs): void {
+    const location = stackTrail.toString()
+    switch (issue.level) {
+      case 'error': {
+        this.registerRefError(issue.error, stackTrail.toStackRef())
+        this.logIssueAt({
+          protocol: 'oas',
+          level: 'error',
+          type,
+          location,
+          message: issue.error.message,
+          cause: issue.error
+        })
+        break
+      }
+      case 'warning': {
+        this.logIssueAt({
+          protocol: 'oas',
+          level: 'warning',
+          type,
+          location,
+          message: issue.message
+        })
+        break
+      }
+      default: {
+        const _exhaustive: never = issue
+        throw new Error(`Unhandled parse-issue level: ${JSON.stringify(_exhaustive)}`)
+      }
+    }
+  }
+
+  // -- GQL-flavoured surface (location-string based) ----------------
+
+  /**
+   * GQL-flavoured issue recorder. Same effect as
+   * {@link logIssueAt}, with protocol pre-set and the location passed
+   * through verbatim. Named `log` for backwards-compatibility with
+   * the previous `GqlParseContext.log()` surface that GQL parser code
+   * already calls.
+   */
+  log(issue: GqlParseIssueInput): void {
+    switch (issue.level) {
+      case 'error':
+      case 'warning': {
+        this.logIssueAt({ protocol: 'gql', ...issue })
+        break
+      }
+      default: {
+        const _exhaustive: never = issue
+        throw new Error(`Unhandled gql parse-issue level: ${JSON.stringify(_exhaustive)}`)
+      }
+    }
+  }
+
+  /**
+   * Overloaded skipped-fields recorder.
+   *
+   * - With a `stackTrail` (OAS form): each skipped key becomes an
+   *   `UNEXPECTED_PROPERTY` warning logged via the StackTrail-based
+   *   `logIssue` pathway, preserving the existing OAS behaviour.
+   * - With a `location` (GQL form): each skipped key becomes a
+   *   warning at that location, with the configurable issue type
+   *   (defaults to `SKIPPED_FEATURE`).
+   *
+   * Discriminating on the presence of `stackTrail` lets both surfaces
+   * call the same method name without forcing protocol-specific
+   * renames at parser call sites.
+   */
+  logSkippedFields(args: LogSkippedValuesArgs | LogSkippedFieldsAtArgs): void {
+    if ('stackTrail' in args) {
+      const { skipped, stackTrail, parent, parentType } = args
+      Object.keys(skipped).forEach(key => {
+        this.logIssue({
+          key,
+          stackTrail,
+          parent,
+          level: 'warning',
+          message: `Unexpected property '${key}' in '${parentType}'`,
+          type: 'UNEXPECTED_PROPERTY'
+        })
+      })
+      return
+    }
+
+    const { skipped, location, parentType, type = 'SKIPPED_FEATURE' } = args
+    for (const key of Object.keys(skipped)) {
+      this.log({
+        level: 'warning',
+        location,
+        message: `Unhandled '${key}' on '${parentType}' — value not represented in generated output`,
         type
       })
     }
   }
 }
+

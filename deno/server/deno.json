@@ -7,7 +7,6 @@
   "imports": {
     "hono": "npm:hono@4.7.2",
     "@skmtc/core": "jsr:@skmtc/core@^0.3.0",
-    "@skmtc/core/parsers/graphql": "jsr:@skmtc/core@^0.3.0/parsers/graphql",
     "@skmtc/convert": "jsr:@skmtc/convert@^0.1.0"
   },
   "tasks": {

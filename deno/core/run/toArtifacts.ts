@@ -3,8 +3,8 @@ import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import { CoreContext } from '../context/CoreContext.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
-import type { OpenAPIV3 } from 'openapi-types'
 import type { StackTrail } from '../context/StackTrail.ts'
+import type { SkmtcDocumentInput } from '../types/SkmtcDocument.ts'
 
 /**
  * Arguments for the {@link toArtifacts} transformation function.
@@ -30,8 +30,13 @@ type TransformArgs = {
   traceId: string
   /** Unique identifier for this transformation span */
   spanId: string
-  /** The OpenAPI v3 document to process */
-  documentObject: OpenAPIV3.Document
+  /**
+   * Source document. Discriminated union: an OpenAPI v3 document
+   * (`{ type: 'oas', value }`) or a GraphQL SDL string / `GraphQLSchema`
+   * (`{ type: 'gql', value }`). Protocol-specific parsing runs inside
+   * the pipeline.
+   */
+  document: SkmtcDocumentInput
   /** Client settings for customizing generation behavior */
   settings: ClientSettings | undefined
   /** Optional Prettier configuration for code formatting */
@@ -137,7 +142,7 @@ type TransformArgs = {
 export const toArtifacts = ({
   traceId,
   spanId,
-  documentObject,
+  document,
   settings,
   prettier,
   toGeneratorConfigMap,
@@ -148,11 +153,11 @@ export const toArtifacts = ({
 }: TransformArgs): { artifacts: Record<string, string>; manifest: ManifestContent } => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  const { artifacts, files, previews, results, mappings } = context.toArtifacts({
+  const { artifacts, files, previews, results, mappings, parseIssues } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     prettier,
-    document: { type: 'oas', value: documentObject },
+    document,
     stackTrail,
     silent
   })
@@ -164,6 +169,7 @@ export const toArtifacts = ({
     traceId,
     spanId,
     results,
+    parseIssues,
     deploymentId: Deno.env.get('DENO_DEPLOYMENT_ID') ?? Date.now().toString(),
     region: Deno.env.get('DENO_REGION'),
     startAt,

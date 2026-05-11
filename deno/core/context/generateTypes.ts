@@ -1,4 +1,6 @@
+import * as v from 'valibot'
 import type { ManifestEntry } from '@/types/Manifest.ts'
+import type { ParseIssue } from '@/context/ParseIssue.ts'
 import type { Mapping, Preview } from '@/types/Preview.ts'
 import type { ResultsItem } from '@/types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
@@ -22,7 +24,7 @@ import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
-import type { SkmtcDocument } from '@/types/SkmtcDocument.ts'
+import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 
 /**
  * Options for inserting an operation into the generation context.
@@ -117,6 +119,17 @@ export type RenderResult = {
 }
 
 /**
+ * Return shape of `CoreContext.toArtifacts` — the {@link RenderResult}
+ * plus the parse-time {@link ParseIssue} list collected from whichever
+ * protocol-specific parse context ran. Lives here rather than on
+ * `RenderResult` because the render phase itself doesn't produce
+ * parse issues; they're collected one phase earlier.
+ */
+export type ToArtifactsResult = RenderResult & {
+  parseIssues: ParseIssue[]
+}
+
+/**
  * Base arguments for registering generated content in the generation context.
  *
  * Provides the fundamental configuration options for registering imports,
@@ -138,8 +151,12 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
 
 /**
  * Types of issues that can be encountered during OpenAPI schema parsing.
+ *
+ * The TS type and the valibot schema below stay in sync via the
+ * `v.GenericSchema<OasIssueType>` annotation — adding a variant in one
+ * place without the other fails to type-check.
  */
-export type IssueType =
+export type OasIssueType =
   | 'UNEXPECTED_PROPERTY'
   | 'MISSING_OBJECT_TYPE'
   | 'MISSING_STRING_TYPE'
@@ -157,6 +174,39 @@ export type IssueType =
   | 'INVALID_PARAMETER'
   | 'INVALID_DEPENDENCY_REF'
   | 'EXAMPLE_AND_EXAMPLES_DEFINED'
+
+/**
+ * Valibot schema for {@link OasIssueType}. Annotation deliberately omitted
+ * so the precise literal-union output type flows through to consumers
+ * (e.g. the `parseIssue` schema in `types/Manifest.ts`). Drift between
+ * this list and {@link OasIssueType} is caught by `assertSchemaMatchesType`
+ * below.
+ */
+export const oasIssueType = v.union([
+  v.literal('UNEXPECTED_PROPERTY'),
+  v.literal('MISSING_OBJECT_TYPE'),
+  v.literal('MISSING_STRING_TYPE'),
+  v.literal('MISSING_ARRAY_TYPE'),
+  v.literal('MISSING_BOOLEAN_TYPE'),
+  v.literal('INVALID_EXAMPLE'),
+  v.literal('INVALID_ENUM'),
+  v.literal('INVALID_DEFAULT'),
+  v.literal('INVALID_NULLABLE'),
+  v.literal('UNEXPECTED_FORMAT'),
+  v.literal('INVALID_RESPONSE'),
+  v.literal('INVALID_FORMAT'),
+  v.literal('INVALID_OPERATION'),
+  v.literal('INVALID_SCHEMA'),
+  v.literal('INVALID_PARAMETER'),
+  v.literal('INVALID_DEPENDENCY_REF'),
+  v.literal('EXAMPLE_AND_EXAMPLES_DEFINED')
+])
+
+// Compile-time drift detector: this binding fails to type-check if
+// `OasIssueType` and the literal list above disagree in either
+// direction (added/removed/typoed variant).
+const _oasIssueTypeDriftCheck: v.GenericSchema<OasIssueType> = oasIssueType
+void _oasIssueTypeDriftCheck
 
 export type GenerateResult = {
   files: Map<string, File | JsonFile>
@@ -331,7 +381,7 @@ export type InsertNormalisedModelReturn<
 export type GenerateContextType = {
   settings: ClientSettings | undefined
   modelDepth: Record<string, number>
-  document: SkmtcDocument
+  document: SkmtcParsedDocument
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
   defineAndRegister: <V extends GeneratedValue>({
     identifier,

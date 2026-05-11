@@ -28,7 +28,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace-id',
         spanId: 'test-span-id',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt,
@@ -46,7 +46,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -62,7 +62,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -88,7 +88,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -109,7 +109,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -126,7 +126,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: {
           basePath: './generated',
         },
@@ -145,7 +145,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         prettier: {
           semi: true,
@@ -168,7 +168,7 @@ Deno.test('toArtifacts', async (t) => {
       const silentResult = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -182,7 +182,7 @@ Deno.test('toArtifacts', async (t) => {
       const verboseResult = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -205,7 +205,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId,
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -223,7 +223,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId,
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -241,7 +241,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt,
@@ -259,7 +259,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt,
@@ -279,7 +279,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -297,7 +297,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -426,7 +426,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -444,7 +444,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: minimalOpenApiDoc,
+        document: { type: 'oas', value: minimalOpenApiDoc },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
