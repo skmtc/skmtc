@@ -1,12 +1,12 @@
 {
   "name": "@skmtc/worker",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "exports": {
     ".": "./mod.ts",
     "./types": "./types.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.3.0",
+    "@skmtc/core": "jsr:@skmtc/core@0.3.7",
     "openapi-types": "npm:openapi-types@^12.1.3"
   },
   "compilerOptions": {

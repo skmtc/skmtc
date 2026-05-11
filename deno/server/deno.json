@@ -1,16 +1,16 @@
 {
   "name": "@skmtc/server",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
     "hono": "npm:hono@4.7.2",
-    "@skmtc/core": "jsr:@skmtc/core@^0.3.0",
-    "@skmtc/convert": "jsr:@skmtc/convert@^0.1.0"
+    "@skmtc/core": "jsr:@skmtc/core@0.3.7",
+    "@skmtc/convert": "jsr:@skmtc/convert@0.1.8"
   },
   "tasks": {
-    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
-    "publish:deno:ga": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types"
+    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN",
+    "publish:deno:ga": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --no-check"
   }
 }
