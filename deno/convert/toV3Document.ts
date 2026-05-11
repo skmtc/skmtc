@@ -58,7 +58,7 @@ import { parse as parseYaml } from '@std/yaml/parse'
 import {
   Converter as ThreeOneToThreeZeroConverter,
   type ConverterOptions
-} from '@apiture/openapi-down-convert'
+} from '@skmtc/openapi-down-convert'
 // @deno-types="npm:@types/swagger2openapi@7.0.4"
 import converter from 'swagger2openapi'
 import type { AnyOasDocument } from './types.ts'
