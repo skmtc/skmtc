@@ -58,8 +58,12 @@ Deno.test('ParseContext (gql) - records skipped non-root field arguments', () =>
   assertEquals(skipped.length, 2)
   for (const issue of skipped) {
     assertEquals(issue.level, 'warning')
-    assertEquals(issue.location, 'User:posts')
+    // Unified logSkippedFields now traces each key as a child of the
+    // parent's stack trail — each arg gets its own location.
+    assertEquals(issue.location.startsWith('User:posts:'), true)
   }
+  const locations = skipped.map(i => i.location).sort()
+  assertEquals(locations, ['User:posts:limit', 'User:posts:offset'])
   const messages = skipped.map(i => i.message).sort()
   assertEquals(messages.some(m => m.includes("'limit'")), true)
   assertEquals(messages.some(m => m.includes("'offset'")), true)

@@ -7,7 +7,7 @@ import type { ExampleFields } from './Example.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToExampleSimpleV3Args = {
+export type ToExampleSimpleV3Args = {
   example: OpenAPIV3.ExampleObject
   /** The stack trail for tracing */
   stackTrail: StackTrail
@@ -110,7 +110,7 @@ export const toExamplesV3 = ({
   return undefined
 }
 
-type ToExampleV3Args = {
+export type ToExampleV3Args = {
   example: OpenAPIV3.ExampleObject | OpenAPIV3.ReferenceObject
   stackTrail: StackTrail
   context: ParseContextType

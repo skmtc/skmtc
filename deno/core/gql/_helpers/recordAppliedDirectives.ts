@@ -37,13 +37,13 @@ export const recordAppliedDirectives = ({
   const directives = astNode && 'directives' in astNode ? astNode.directives : undefined
   if (!directives || directives.length === 0) return
 
-  const location = stackTrail.toString()
   for (const directive of directives) {
     const name = directive.name.value
     if (SUPPRESSED_DIRECTIVES.has(name)) continue
-    context.log({
+    context.logIssueNoKey({
       level: 'warning',
-      location,
+      stackTrail,
+      parent: astNode,
       message: `Applied directive '@${name}' is not represented in generated output`,
       type: 'DROPPED_DIRECTIVE'
     })

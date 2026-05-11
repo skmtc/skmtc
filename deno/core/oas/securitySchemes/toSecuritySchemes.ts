@@ -20,7 +20,7 @@ import type { OasRef } from '../ref/Ref.ts'
 import { isRef } from '@/helpers/refFns.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToSecuritySchemesArgs = {
+export type ToSecuritySchemesArgs = {
   securitySchemes:
     | Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject>
     | undefined
@@ -50,7 +50,7 @@ Record<string, OasSecurityScheme> | undefined => {
   ) as Record<string, OasSecurityScheme>
 }
 
-type ToSecuritySchemeV3Args = {
+export type ToSecuritySchemeV3Args = {
   securityScheme: OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject
   stackTrail: StackTrail
   context: ParseContextType

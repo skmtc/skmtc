@@ -2,7 +2,7 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToSpecificationExtensionsV3Args = {
+export type ToSpecificationExtensionsV3Args = {
   skipped: Record<string, unknown>
   parent: unknown
   parentType: string

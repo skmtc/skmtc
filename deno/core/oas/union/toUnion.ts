@@ -7,7 +7,7 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToUnionArgs = {
+export type ToUnionArgs = {
   value: OpenAPIV3.SchemaObject
   members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
   parentType: 'anyOf' | 'oneOf'

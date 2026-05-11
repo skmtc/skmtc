@@ -28,18 +28,17 @@ import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
 import type { Logger } from '@/types/Logger.ts'
-import type { StackTrail } from '@/context/StackTrail.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
 import type {
   SkmtcDocumentInput,
   SkmtcParsedDocument
 } from '@/types/SkmtcDocument.ts'
 import type {
-  GqlParseIssueInput,
   GqlParseOptions,
+  LogAtArgs,
   LogIssueArgs,
   LogIssueAtArgs,
   LogIssueNoKeyArgs,
-  LogSkippedFieldsAtArgs,
   LogSkippedValuesArgs
 } from '@/context/parseTypes.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
@@ -50,14 +49,11 @@ import type { ParseIssue } from '@/context/ParseIssue.ts'
 // (issue / protocol enums); the class itself stays here.
 export type { ParseIssue, GqlIssueType } from '@/context/ParseIssue.ts'
 export type {
-  GqlParseError,
-  GqlParseIssueInput,
   GqlParseOptions,
-  GqlParseWarning,
+  LogAtArgs,
   LogIssueArgs,
   LogIssueAtArgs,
   LogIssueNoKeyArgs,
-  LogSkippedFieldsAtArgs,
   LogSkippedValuesArgs,
   ParseContextType,
   ParseErrorInput,
@@ -349,8 +345,16 @@ export class ParseContext {
    * Universal issue recorder. Pushes to `issues` and (when not silent)
    * mirrors to the logger. Both protocols' surface methods funnel
    * here.
+   *
+   * `parent` is an optional log-time-only field — surface methods
+   * forward the surrounding object so log readers see its shape, not
+   * just the leaf address. Stringified here so the logger payload
+   * stays JSON-clonable. It is intentionally **not** stored on the
+   * persisted `ParseIssue` (which would require clone-safe
+   * serialisation across the worker boundary and would bloat the
+   * manifest).
    */
-  logIssueAt(issue: LogIssueAtArgs): void {
+  logIssueAt(issue: LogIssueAtArgs, parent?: unknown): void {
     this.issues.push(issue)
 
     if (!this.silent) {
@@ -359,7 +363,8 @@ export class ParseContext {
         level: issue.level,
         location: issue.location,
         message: issue.message,
-        type: issue.type
+        type: issue.type,
+        ...(parent === undefined ? {} : { parent: JSON.stringify(parent) })
       })
     }
   }
@@ -372,29 +377,50 @@ export class ParseContext {
     )
   }
 
-  logIssueNoKey({ parent: _parent, type, stackTrail, ...issue }: LogIssueNoKeyArgs): void {
+  logIssueNoKey({ parent, type, stackTrail, ...issue }: LogIssueNoKeyArgs): void {
     const location = stackTrail.toString()
+    // Protocol is set from the active context; callers don't have to
+    // pass it. `LogIssueAtArgs` discriminates `type` by protocol, so
+    // the type-system narrowing happens at the LogIssueAtArgs boundary —
+    // we widen here because LogIssueNoKey accepts either protocol's
+    // type enum.
+    const protocol = this.protocol.type
+    // The casts below bridge LogIssueNoKeyArgs (widened type field,
+    // covers both protocols) to LogIssueAtArgs (narrowed per
+    // protocol). Callers are responsible for passing a `type` from
+    // the matching protocol's enum; the stored ParseIssue then
+    // carries the correct combination.
     switch (issue.level) {
       case 'error': {
-        this.registerRefError(issue.error, stackTrail.toStackRef())
-        this.logIssueAt({
-          protocol: 'oas',
-          level: 'error',
-          type,
-          location,
-          message: issue.error.message,
-          cause: issue.error
-        })
+        // Auto-register against the component-shaped ref the trail
+        // points at. No-op for non-component trails (and for GQL
+        // trails) because `toStackRef` returns `undefined` and
+        // `registerRefError` ignores undefined refs.
+        this.registerRefError(issue.cause ?? issue.message, stackTrail.toStackRef())
+        this.logIssueAt(
+          {
+            protocol,
+            level: 'error',
+            type,
+            location,
+            message: issue.message,
+            cause: issue.cause
+          } as unknown as LogIssueAtArgs,
+          parent
+        )
         break
       }
       case 'warning': {
-        this.logIssueAt({
-          protocol: 'oas',
-          level: 'warning',
-          type,
-          location,
-          message: issue.message
-        })
+        this.logIssueAt(
+          {
+            protocol,
+            level: 'warning',
+            type,
+            location,
+            message: issue.message
+          } as unknown as LogIssueAtArgs,
+          parent
+        )
         break
       }
       default: {
@@ -404,68 +430,56 @@ export class ParseContext {
     }
   }
 
-  // -- GQL-flavoured surface (location-string based) ----------------
-
   /**
-   * GQL-flavoured issue recorder. Same effect as
-   * {@link logIssueAt}, with protocol pre-set and the location passed
-   * through verbatim. Named `log` for backwards-compatibility with
-   * the previous `GqlParseContext.log()` surface that GQL parser code
-   * already calls.
+   * Thin convenience for recording an issue at a pre-computed string
+   * `location` rather than threading a {@link StackTrail}. Use this
+   * for issues whose natural address isn't a tree position:
+   *
+   *   - Schema-level directive definitions (`@auth`) — flat namespace,
+   *     no parent type.
+   *   - Catch-all error paths where the parsed entity doesn't exist
+   *     yet (the parse threw before producing one).
+   *
+   * For tree-position issues, prefer {@link logIssueNoKey} so the
+   * stack trail composes with the surrounding traces.
+   *
+   * Internally constructs a `StackTrail` from `location.split(':')`
+   * and delegates to {@link logIssueNoKey} — the underlying issue
+   * recording logic (protocol tagging, optional ref-error
+   * auto-registration, logger mirror with parent context) is shared.
    */
-  log(issue: GqlParseIssueInput): void {
-    switch (issue.level) {
-      case 'error':
-      case 'warning': {
-        this.logIssueAt({ protocol: 'gql', ...issue })
-        break
-      }
-      default: {
-        const _exhaustive: never = issue
-        throw new Error(`Unhandled gql parse-issue level: ${JSON.stringify(_exhaustive)}`)
-      }
-    }
+  log({ location, parent, type, ...issue }: LogAtArgs): void {
+    const stackTrail = new StackTrail(location.split(':'))
+    this.logIssueNoKey({ stackTrail, parent, type, ...issue })
   }
 
   /**
-   * Overloaded skipped-fields recorder.
+   * Records one warning per unrecognised key under `parent`.
    *
-   * - With a `stackTrail` (OAS form): each skipped key becomes an
-   *   `UNEXPECTED_PROPERTY` warning logged via the StackTrail-based
-   *   `logIssue` pathway, preserving the existing OAS behaviour.
-   * - With a `location` (GQL form): each skipped key becomes a
-   *   warning at that location, with the configurable issue type
-   *   (defaults to `SKIPPED_FEATURE`).
-   *
-   * Discriminating on the presence of `stackTrail` lets both surfaces
-   * call the same method name without forcing protocol-specific
-   * renames at parser call sites.
+   * Each skipped key is traced as a child of `stackTrail` so the
+   * resulting issue locations point at the offending property, not
+   * the parent. `parentType` is used in the message text
+   * (`Unexpected property 'foo' in 'SchemaObject'`); `type` defaults
+   * to `UNEXPECTED_PROPERTY` (the OAS convention) but GQL callers can
+   * pass a more specific category like `SKIPPED_FIELD_ARGUMENTS`.
    */
-  logSkippedFields(args: LogSkippedValuesArgs | LogSkippedFieldsAtArgs): void {
-    if ('stackTrail' in args) {
-      const { skipped, stackTrail, parent, parentType } = args
-      Object.keys(skipped).forEach(key => {
-        this.logIssue({
-          key,
-          stackTrail,
-          parent,
-          level: 'warning',
-          message: `Unexpected property '${key}' in '${parentType}'`,
-          type: 'UNEXPECTED_PROPERTY'
-        })
-      })
-      return
-    }
-
-    const { skipped, location, parentType, type = 'SKIPPED_FEATURE' } = args
-    for (const key of Object.keys(skipped)) {
-      this.log({
+  logSkippedFields({
+    skipped,
+    stackTrail,
+    parent,
+    parentType,
+    type = 'UNEXPECTED_PROPERTY'
+  }: LogSkippedValuesArgs): void {
+    Object.keys(skipped).forEach(key => {
+      this.logIssue({
+        key,
+        stackTrail,
+        parent,
         level: 'warning',
-        location,
-        message: `Unhandled '${key}' on '${parentType}' — value not represented in generated output`,
+        message: `Unexpected property '${key}' in '${parentType}'`,
         type
       })
-    }
+    })
   }
 }
 

@@ -8,7 +8,7 @@ import type { RequestBodyFields } from './RequestBody.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToRequestBodyV3Args = {
+export type ToRequestBodyV3Args = {
   requestBody: OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject | undefined
   forceRef?: boolean
   stackTrail: StackTrail
@@ -50,7 +50,7 @@ export const toRequestBodyV3 = ({
   return new OasRequestBody(fields)
 }
 
-type ToRequestBodiesV3Args = {
+export type ToRequestBodiesV3Args = {
   requestBodies: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject> | undefined
   stackTrail: StackTrail
   context: ParseContextType

@@ -1,4 +1,5 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 import { isRef } from '../../helpers/refFns.ts'
 import {
   oasParameterLocation,
@@ -16,9 +17,8 @@ import type { ParameterFields } from './Parameter.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
-import invariant from 'tiny-invariant'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToParameterListV3Args = {
+export type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
   stackTrail: StackTrail
   context: ParseContextType
@@ -38,7 +38,7 @@ export const toParameterListV3 = ({
   })
 }
 
-type ToParametersV3Args = {
+export type ToParametersV3Args = {
   parameters: Record<string, OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject>
   stackTrail: StackTrail
   context: ParseContextType
@@ -52,27 +52,22 @@ export const toParametersV3 = ({
   const output: Record<string, OasParameter | OasRef<'parameter'>> = {}
   const entries = Object.entries(parameters)
   for (const [key, parameter] of entries) {
-    try {
-      output[key] = stackTrail.trace(key, st =>
-        toParameterV3({ parameter, stackTrail: st, context })
-      )
-    } catch (error) {
-      invariant(error instanceof Error, 'Invalid error')
-
-      context.logIssue({
-        key,
-        level: 'error',
-        error,
-        parent: parameter,
-        stackTrail,
-        type: 'INVALID_PARAMETER'
-      })
+    const parsed = tryParseAt({
+      stackTrail,
+      key,
+      context,
+      type: 'INVALID_PARAMETER',
+      parent: parameter,
+      fn: st => toParameterV3({ parameter, stackTrail: st, context })
+    })
+    if (parsed !== undefined) {
+      output[key] = parsed
     }
   }
   return output
 }
 
-type ToOptionalParametersV3Args = {
+export type ToOptionalParametersV3Args = {
   parameters: Record<string, OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject> | undefined
   stackTrail: StackTrail
   context: ParseContextType
@@ -90,7 +85,7 @@ export const toOptionalParametersV3 = ({
   return toParametersV3({ parameters, stackTrail, context })
 }
 
-type ToParameterV3Args = {
+export type ToParameterV3Args = {
   parameter: OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject
   stackTrail: StackTrail
   context: ParseContextType
@@ -173,7 +168,7 @@ const toParameterV3 = ({
   return new OasParameter(fields)
 }
 
-type ToStyleArgs = {
+export type ToStyleArgs = {
   style: string | undefined
   location: OasParameterLocation
   stackTrail: StackTrail
@@ -199,7 +194,7 @@ const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyl
   }
 }
 
-type ToExplodeArgs = {
+export type ToExplodeArgs = {
   explode: boolean | undefined
   style: string | undefined
   stackTrail: StackTrail

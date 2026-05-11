@@ -9,7 +9,7 @@ import { parseEnum } from '../_helpers/parseEnum.ts'
 
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToObjectArgs = {
+export type ToObjectArgs = {
   value: OpenAPIV3.SchemaObject
   context: ParseContextType
   stackTrail: StackTrail

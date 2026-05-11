@@ -66,7 +66,8 @@ export const toObjectType = ({
         }
         context.logSkippedFields({
           skipped,
-          location: fieldStack.toString(),
+          stackTrail: fieldStack,
+          parent: field,
           parentType: 'objectField',
           type: 'SKIPPED_FIELD_ARGUMENTS'
         })

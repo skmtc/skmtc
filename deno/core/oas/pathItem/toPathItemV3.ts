@@ -4,7 +4,7 @@ import { toParameterListV3 } from '../parameter/toParameterV3.ts'
 import { OasPathItem } from './PathItem.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToPathItemV3Args = {
+export type ToPathItemV3Args = {
   pathItem: OpenAPIV3.PathItemObject
   stackTrail: StackTrail
   context: ParseContextType

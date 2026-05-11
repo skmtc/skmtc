@@ -11,7 +11,7 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 /**
  * Arguments for transforming an OpenAPI string schema into OAS representation.
  */
-type ToStringArgs = {
+export type ToStringArgs = {
   /** The OpenAPI v3 schema object to transform (must be type 'string') */
   value: OpenAPIV3.SchemaObject
   /** The stack trail for tracing */

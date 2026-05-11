@@ -29,15 +29,23 @@ import type { GqlIssueType } from '@/context/ParseIssue.ts'
 export type ParseContextType = ParseContext
 
 /**
- * OAS-flavoured input variant for `logIssue` / `logIssueNoKey` — error
- * branch carries the thrown `Error`, warning carries a synthesised
- * `message`. The OAS parser layer constructs these and the unified
- * context translates them into the stored {@link ParseIssue} shape
- * (errors get `cause = error`, both get `protocol: 'oas'`).
+ * Unified input variants for `logIssue` / `logIssueNoKey`. Both
+ * variants carry a synthesised `message: string`; the error variant
+ * additionally carries an optional `cause: unknown` for the underlying
+ * thrown value (preserves stack traces without forcing renderers to
+ * know about Error objects). The unified context translates these into
+ * the stored {@link ParseIssue} shape, setting `protocol` to whichever
+ * protocol the current context is parsing.
+ *
+ * Replaces an earlier asymmetric design where the error variant
+ * carried a raw `Error` instance; that shape didn't survive the worker
+ * boundary cleanly (structured clone strips Error prototypes) and
+ * forced GQL parsers to use a separate input shape.
  */
 export type ParseErrorInput = {
   level: 'error'
-  error: Error
+  message: string
+  cause?: unknown
 }
 
 export type ParseWarningInput = {
@@ -48,14 +56,25 @@ export type ParseWarningInput = {
 export type ParseIssueInput = ParseErrorInput | ParseWarningInput
 
 /**
- * Arguments accepted by `ParseContext.logIssue` (OAS-flavoured —
- * StackTrail-based location, computed via `stackTrail.trace(key, ...)`).
+ * Arguments accepted by `ParseContext.logIssue` (StackTrail-based
+ * location, computed via `stackTrail.trace(key, ...)`).
+ *
+ * `type` accepts either an `OasIssueType` or a `GqlIssueType` — the
+ * `protocol` tag on the stored {@link ParseIssue} is set from
+ * `ParseContext.protocol.type` at log time, so callers don't have to
+ * pass it. Callers are expected to pass a type from the matching
+ * protocol's enum.
+ *
+ * `parent` is the surrounding object (e.g. the whole schema /
+ * AST node) that contains the field at `key`. It is **not** stored on
+ * the persisted `ParseIssue` — it's logged through the standard logger
+ * so log readers see the broader context, not just the leaf address.
  */
 export type LogIssueArgs = ParseIssueInput & {
   key: string
   stackTrail: StackTrail
   parent: unknown
-  type: OasIssueType
+  type: OasIssueType | GqlIssueType
 }
 
 /**
@@ -65,51 +84,62 @@ export type LogIssueArgs = ParseIssueInput & {
 export type LogIssueNoKeyArgs = ParseIssueInput & {
   stackTrail: StackTrail
   parent: unknown
-  type: OasIssueType
+  type: OasIssueType | GqlIssueType
 }
 
 /**
- * Arguments accepted by `ParseContext.logSkippedFields` in its
- * OAS-flavoured form (StackTrail-based location).
+ * Arguments accepted by `ParseContext.logSkippedFields`. The same
+ * shape works for both protocols — callers thread a `stackTrail`
+ * representing the parent (e.g. `[components, schemas, User]` for OAS
+ * or `[User]` for GQL); each skipped key is traced as a child.
+ *
+ * `parent` follows the same role as on {@link LogIssueArgs}: passed
+ * through to the logger so log readers see the surrounding object that
+ * carried the unrecognised fields.
  */
 export type LogSkippedValuesArgs = {
   stackTrail: StackTrail
   skipped: Record<string, unknown>
   parent: unknown
   parentType: string
+  /**
+   * Issue type to record. Defaults to `UNEXPECTED_PROPERTY` (OAS) at
+   * the call site convention, but GQL callers can pass a more
+   * specific category (e.g. `SKIPPED_FIELD_ARGUMENTS`).
+   */
+  type?: OasIssueType | GqlIssueType
 }
 
 /**
- * Arguments accepted by `ParseContext.logSkippedFields` in its
- * GQL-flavoured form (pre-computed schema-address `location`).
+ * Arguments accepted by `ParseContext.log` — the thin convenience for
+ * recording an issue at a pre-computed `location` string rather than
+ * threading a {@link StackTrail}.
+ *
+ * Use this for issues whose natural address isn't a tree position:
+ *
+ *   - Schema-level directive definitions (`@auth`, `@cost`) — flat
+ *     namespace, no parent type.
+ *   - Catch-all error paths where the parsed entity doesn't exist
+ *     yet (the parse threw before producing one).
+ *
+ * For tree-position issues (a field of a type, a parameter of an
+ * operation), prefer `logIssueNoKey` so the stack trail composes
+ * naturally with the surrounding traces.
+ *
+ * `location` is split on `:` to reconstruct a `StackTrail` for the
+ * underlying call, matching the protocol-neutral separator used
+ * elsewhere.
  */
-export type LogSkippedFieldsAtArgs = {
-  skipped: Record<string, unknown>
+export type LogAtArgs = ParseIssueInput & {
   location: string
-  parentType: string
-  type?: GqlIssueType
+  /**
+   * Surrounding object for log context (optional — synthetic-location
+   * issues often have none). Forwarded to the logger; not stored on
+   * the persisted issue.
+   */
+  parent?: unknown
+  type: OasIssueType | GqlIssueType
 }
-
-/**
- * GQL-flavoured input variants for `ParseContext.log` — both error
- * and warning carry a synthesised `message` and a pre-computed
- * `location` string.
- */
-export type GqlParseError = {
-  level: 'error'
-  message: string
-  location: string
-  type: GqlIssueType
-}
-
-export type GqlParseWarning = {
-  level: 'warning'
-  message: string
-  location: string
-  type: GqlIssueType
-}
-
-export type GqlParseIssueInput = GqlParseError | GqlParseWarning
 
 /**
  * Internal "post-protocol" issue input — what `ParseContext.logIssueAt`

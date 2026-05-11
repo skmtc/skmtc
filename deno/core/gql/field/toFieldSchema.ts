@@ -62,9 +62,10 @@ export const toFieldSchema = ({
     // Nested lists (`[[T]]`) aren't representable as a single OasArray of
     // items; fall back to OasUnknown to avoid producing a wrong type.
     // Generators that care can later be extended; this is a v1 limitation.
-    context.log({
+    context.logIssueNoKey({
       level: 'warning',
-      location: stackTrail.toString(),
+      stackTrail,
+      parent: type,
       message: `Nested list type collapsed to 'unknown' — v1 limitation`,
       type: 'NESTED_LIST_LOSSY'
     })
@@ -107,9 +108,10 @@ export const toFieldSchema = ({
     // `named` is `never` here per exhaustiveness so we coerce to read
     // `.name` for the diagnostic without leaking the cast elsewhere.
     const unrecognised = named as { name?: string }
-    context.log({
+    context.logIssueNoKey({
       level: 'error',
-      location: stackTrail.toString(),
+      stackTrail,
+      parent: type,
       message: `Unknown GraphQL type kind for '${unrecognised.name ?? '<anon>'}' — fell back to 'unknown'`,
       type: 'UNKNOWN_TYPE_KIND'
     })

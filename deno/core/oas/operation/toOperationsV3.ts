@@ -10,7 +10,6 @@ import type { OasPathItem } from '../pathItem/PathItem.ts'
 import { methodValues } from '../../types/Method.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
-import invariant from 'tiny-invariant'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import { toOptionalServersV3 } from '../server/toServerV3.ts'
@@ -22,7 +21,7 @@ type OperationInfo = {
   pathItem: OasPathItem | undefined
 }
 
-type ToOperationV3Args = {
+export type ToOperationV3Args = {
   operation: OpenAPIV3.OperationObject
   operationInfo: OperationInfo
   stackTrail: StackTrail
@@ -96,7 +95,7 @@ export const toOperationV3 = ({
   })
 }
 
-type ToOperationsV3Args = {
+export type ToOperationsV3Args = {
   paths: OpenAPIV3.PathsObject
   stackTrail: StackTrail
   context: ParseContextType
@@ -165,13 +164,13 @@ export const toOperationsV3 = ({
                 context
               })
             } catch (error) {
-              invariant(error instanceof Error, 'Invalid error')
-
+              const normalised = error instanceof Error ? error : new Error(String(error))
               context.logIssue({
                 key: method,
                 parent: operation,
                 level: 'error',
-                error,
+                message: normalised.message,
+                cause: normalised,
                 stackTrail: st,
                 type: 'INVALID_OPERATION'
               })

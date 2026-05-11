@@ -4,7 +4,7 @@ import { OasDiscriminator } from './Discriminator.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToDiscriminatorV3Args = {
+export type ToDiscriminatorV3Args = {
   discriminator: OpenAPIV3.DiscriminatorObject | undefined
   stackTrail: StackTrail
   context: ParseContextType

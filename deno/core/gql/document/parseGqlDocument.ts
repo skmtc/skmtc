@@ -23,6 +23,7 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { ParseContext, GqlParseOptions } from '@/context/ParseContext.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 
 /**
  * Built-in GraphQL directives that are part of every schema and not
@@ -41,40 +42,6 @@ export type ParseGqlDocumentArgs = {
    * the addresses `removeErroredItems` uses to prune.
    */
   stackTrail: StackTrail
-}
-
-/**
- * Wraps a per-type parse in try/catch so a single bad type doesn't
- * abort the whole parse run. On catch:
- *  - registers the error against the type's name so
- *    `removeErroredItems` can prune dependents at the end
- *  - logs an `INVALID_TYPE_DEFINITION` issue at the type's location
- *
- * Mirrors the OAS pattern where a failing component's error is
- * captured at its `components.<kind>.<name>` location and dependents
- * are kicked out later.
- */
-const tryParseType = <T>(
-  typeName: string,
-  typeStack: StackTrail,
-  context: ParseContext,
-  fn: () => T
-): T | undefined => {
-  try {
-    return fn()
-  } catch (error) {
-    context.registerRefError(error, typeName)
-    context.log({
-      level: 'error',
-      type: 'INVALID_TYPE_DEFINITION',
-      location: typeStack.toString(),
-      message:
-        error instanceof Error
-          ? `Type '${typeName}' failed to parse: ${error.message}`
-          : `Type '${typeName}' failed to parse: ${String(error)}`
-    })
-    return undefined
-  }
 }
 
 /**
@@ -102,12 +69,16 @@ export const parseGqlDocument = ({
 
   // Schema-level: warn about user-defined directive *definitions*.
   // Applied directives on individual nodes are recorded by the
-  // per-type/per-field walks via `recordAppliedDirectives`.
+  // per-type/per-field walks via `recordAppliedDirectives`. Schema-level
+  // directive definitions sit in a flat namespace with no tree
+  // position, so `log` (pre-computed location) is the clean shape
+  // here rather than threading a synthetic stack trail.
   for (const directive of schema.getDirectives()) {
     if (BUILTIN_DIRECTIVES.has(directive.name)) continue
     context.log({
       level: 'warning',
       location: `@${directive.name}`,
+      parent: directive,
       message: `Custom directive '@${directive.name}' is not represented in generated output`,
       type: 'DROPPED_DIRECTIVE'
     })
@@ -129,15 +100,13 @@ export const parseGqlDocument = ({
       continue
     }
 
-    stackTrail.trace(name, typeStack => {
-      addNamedType({
-        name,
-        type,
-        typeStack,
-        context,
-        emitInterfaceUnions,
-        interfaceUnionSuffix
-      })
+    addNamedType({
+      name,
+      type,
+      stackTrail,
+      context,
+      emitInterfaceUnions,
+      interfaceUnionSuffix
     })
   }
 
@@ -157,36 +126,29 @@ export const parseGqlDocument = ({
         (rootType as unknown as { getFields: () => Record<string, unknown> }).getFields()
       )) {
         const typedField = field as { name: string }
-        rootStack.trace(typedField.name, fieldStack => {
-          try {
-            operations.push(
-              toRootField({
-                rootKind,
-                // deno-lint-ignore no-explicit-any
-                field: typedField as any,
-                context,
-                stackTrail: fieldStack
-              })
-            )
-          } catch (error) {
-            // A root field's parse threw — record under the
-            // qualified name (`Query.getUser`) so any cross-references
-            // to it (rare, but possible) can be pruned by
-            // `removeErroredItems`. Issue location uses the field's
-            // stack trail.
-            const operationName = `${rootType.name}.${typedField.name}`
-            context.registerRefError(error, operationName)
-            context.log({
-              level: 'error',
-              type: 'INVALID_TYPE_DEFINITION',
-              location: fieldStack.toString(),
-              message:
-                error instanceof Error
-                  ? `Root field '${operationName}' failed to parse: ${error.message}`
-                  : `Root field '${operationName}' failed to parse: ${String(error)}`
+        // Qualified name (`Query.getUser`) so any cross-references to
+        // this operation can be pruned by `removeErroredItems` if its
+        // parse throws.
+        const operationName = `${rootType.name}.${typedField.name}`
+        const operation = tryParseAt({
+          stackTrail: rootStack,
+          key: typedField.name,
+          context,
+          type: 'INVALID_TYPE_DEFINITION',
+          parent: typedField,
+          refKey: operationName,
+          fn: fieldStack =>
+            toRootField({
+              rootKind,
+              // deno-lint-ignore no-explicit-any
+              field: typedField as any,
+              context,
+              stackTrail: fieldStack
             })
-          }
         })
+        if (operation !== undefined) {
+          operations.push(operation)
+        }
       }
     })
   }
@@ -213,7 +175,8 @@ export const parseGqlDocument = ({
 type AddNamedTypeArgs = {
   name: string
   type: GraphQLNamedType
-  typeStack: StackTrail
+  /** Parent stack trail — `tryParseAt` pushes `name` as the child segment. */
+  stackTrail: StackTrail
   context: ParseContext
   emitInterfaceUnions: boolean
   interfaceUnionSuffix: string
@@ -221,13 +184,15 @@ type AddNamedTypeArgs = {
 
 /**
  * Dispatch each named type to its protocol-specific parser, wrapping
- * the call in `tryParseType` so a single bad type doesn't abort the
- * whole run.
+ * the call in `tryParseAt` so a single bad type doesn't abort the
+ * whole run. The helper handles the `stackTrail.trace(name, ...)`
+ * descent, the try/catch, and the error-issue logging in one shot —
+ * shared with the OAS-side `to<Kind>sV3` callers.
  */
 const addNamedType = ({
   name,
   type,
-  typeStack,
+  stackTrail,
   context,
   emitInterfaceUnions,
   interfaceUnionSuffix
@@ -236,39 +201,50 @@ const addNamedType = ({
 
   const tryAdd = (
     refName: RefName,
-    builder: () => OasSchema | OasRef<'schema'>
+    builder: (typeStack: StackTrail) => OasSchema | OasRef<'schema'>
   ): void => {
-    const value = tryParseType(name, typeStack, context, builder)
+    // `refKey: name` (the type's own name, not `refName`) preserves the
+    // prior behaviour where an interface-union failure marks the base
+    // type as errored so dependents of either form get pruned together.
+    const value = tryParseAt({
+      stackTrail,
+      key: name,
+      context,
+      type: 'INVALID_TYPE_DEFINITION',
+      parent: type,
+      refKey: name,
+      fn: typeStack => builder(typeStack)
+    })
     if (value !== undefined) {
       registry.add(refName, value)
     }
   }
 
   if (isObjectType(type)) {
-    tryAdd(name as RefName, () =>
+    tryAdd(name as RefName, typeStack =>
       toObjectType({ objectType: type, context, stackTrail: typeStack })
     )
   } else if (isInputObjectType(type)) {
-    tryAdd(name as RefName, () =>
+    tryAdd(name as RefName, typeStack =>
       toInputType({ inputType: type, context, stackTrail: typeStack })
     )
   } else if (isInterfaceType(type)) {
     // Base interface as an object (so generators can emit a TS interface).
-    tryAdd(name as RefName, () =>
+    tryAdd(name as RefName, typeStack =>
       toObjectType({ objectType: type, context, stackTrail: typeStack })
     )
     if (emitInterfaceUnions) {
       const unionName = `${name}${interfaceUnionSuffix}` as RefName
-      tryAdd(unionName, () =>
+      tryAdd(unionName, typeStack =>
         toInterfaceUnion({ interfaceType: type, context, stackTrail: typeStack })
       )
     }
   } else if (isUnionType(type)) {
-    tryAdd(name as RefName, () =>
+    tryAdd(name as RefName, typeStack =>
       toUnionType({ unionType: type, context, stackTrail: typeStack })
     )
   } else if (isEnumType(type)) {
-    tryAdd(name as RefName, () =>
+    tryAdd(name as RefName, typeStack =>
       toEnumType({ enumType: type, context, stackTrail: typeStack })
     )
   } else if (isScalarType(type)) {
@@ -282,7 +258,7 @@ const addNamedType = ({
       type.name === 'Boolean' ||
       type.name === 'ID'
     if (!isBuiltin) {
-      tryAdd(name as RefName, () =>
+      tryAdd(name as RefName, typeStack =>
         toScalarType({ scalar: type, nullable: false, context, stackTrail: typeStack })
       )
     }

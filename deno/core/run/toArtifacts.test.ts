@@ -337,7 +337,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: docWithPaths,
+        document: { type: 'oas', value: docWithPaths },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -374,7 +374,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: docWithComponents,
+        document: { type: 'oas', value: docWithComponents },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
@@ -406,7 +406,7 @@ Deno.test('toArtifacts', async (t) => {
       const result = toArtifacts({
         traceId: 'test-trace',
         spanId: 'test-span',
-        documentObject: docWithServers,
+        document: { type: 'oas', value: docWithServers },
         settings: undefined,
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),

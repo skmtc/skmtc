@@ -4,7 +4,7 @@ import { OasUnknown } from './Unknown.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToUnknownArgs = {
+export type ToUnknownArgs = {
   value: OpenAPIV3.SchemaObject
   stackTrail: StackTrail
   context: ParseContextType

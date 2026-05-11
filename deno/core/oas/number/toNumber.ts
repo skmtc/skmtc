@@ -7,7 +7,7 @@ import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToNumberArgs = {
+export type ToNumberArgs = {
   value: OpenAPIV3.SchemaObject
   stackTrail: StackTrail
   context: ParseContextType

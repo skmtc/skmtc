@@ -3,14 +3,14 @@ import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 
-Deno.test('toOperationEntry - returns object with id and type operation', () => {
+Deno.test('toOperationEntry - returns object with id and type oasOperation', () => {
   const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: ({ acc }) => acc
   })
 
   assertEquals(entry.id, 'test-operation')
-  assertEquals(entry.type, 'operation')
+  assertEquals(entry.type, 'oasOperation')
 })
 
 Deno.test('toOperationEntry - includes provided transform function', () => {
@@ -160,7 +160,7 @@ Deno.test('toOperationEntry - includes all optional functions when provided', ()
   })
 
   assertEquals(entry.id, 'test-operation')
-  assertEquals(entry.type, 'operation')
+  assertEquals(entry.type, 'oasOperation')
   assertEquals(entry.transform, transformFn)
   assertEquals(entry.toPreviewModule, previewFn)
   assertEquals(entry.toMappingModule, mappingFn)

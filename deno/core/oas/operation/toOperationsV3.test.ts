@@ -16,6 +16,18 @@ import { OasInfo } from '../info/Info.ts'
 import { OasRef } from '../ref/Ref.ts'
 import { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { toOasParsedDocument } from '@/types/SkmtcDocument.ts'
+
+// `OasRef` now takes the SkmtcParsedDocument wrapper, but
+// `OasSecurityRequirement` still takes a raw `OasDocument` — so this
+// test needs both shapes. Same underlying instance, just wrapped or
+// not depending on the consumer.
+const fakeOasDoc = new OasDocument({
+  openapi: '3.0.0',
+  info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
+  operations: []
+})
+const fakeParsedDoc = toOasParsedDocument(fakeOasDoc)
 Deno.test({
   name: 'Parse operations',
   ignore: true,
@@ -63,11 +75,7 @@ Deno.test({
                     api_key: []
                   }
                 },
-                new OasDocument({
-                  openapi: '3.0.0',
-                  info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-                  operations: []
-                })
+                fakeOasDoc
               )
             ]
           }),
@@ -86,11 +94,7 @@ Deno.test({
                       refType: 'schema',
                       $ref: '#/components/schemas/Order'
                     },
-                    new OasDocument({
-                      openapi: '3.0.0',
-                      info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-                      operations: []
-                    })
+                    fakeParsedDoc
                   )
                 }),
                 'application/xml': new OasMediaType({
@@ -100,11 +104,7 @@ Deno.test({
                       refType: 'schema',
                       $ref: '#/components/schemas/Order'
                     },
-                    new OasDocument({
-                      openapi: '3.0.0',
-                      info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-                      operations: []
-                    })
+                    fakeParsedDoc
                   )
                 }),
                 'application/x-www-form-urlencoded': new OasMediaType({
@@ -114,11 +114,7 @@ Deno.test({
                       refType: 'schema',
                       $ref: '#/components/schemas/Order'
                     },
-                    new OasDocument({
-                      openapi: '3.0.0',
-                      info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-                      operations: []
-                    })
+                    fakeParsedDoc
                   )
                 })
               }
@@ -134,11 +130,7 @@ Deno.test({
                         refType: 'schema',
                         $ref: '#/components/schemas/Order'
                       },
-                      new OasDocument({
-                        openapi: '3.0.0',
-                        info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-                        operations: []
-                      })
+                      fakeParsedDoc
                     )
                   })
                 }
@@ -181,11 +173,7 @@ Deno.test({
                         refType: 'schema',
                         $ref: '#/components/schemas/Order'
                       },
-                      new OasDocument({
-                        openapi: '3.0.0',
-                        info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-                        operations: []
-                      })
+                      fakeParsedDoc
                     )
                   }),
                   'application/json': new OasMediaType({
@@ -195,11 +183,7 @@ Deno.test({
                         refType: 'schema',
                         $ref: '#/components/schemas/Order'
                       },
-                      new OasDocument({
-                        openapi: '3.0.0',
-                        info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-                        operations: []
-                      })
+                      fakeParsedDoc
                     )
                   })
                 },

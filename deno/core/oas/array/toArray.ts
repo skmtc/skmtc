@@ -10,7 +10,7 @@ import { oasArrayDataWithoutItems } from './array-types.ts'
 import { tracer } from '../../helpers/tracer.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToArrayArgs = {
+export type ToArrayArgs = {
   value: OpenAPIV3.ArraySchemaObject
   stackTrail: StackTrail
   context: ParseContextType

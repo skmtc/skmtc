@@ -56,7 +56,8 @@ Deno.test('ParseContext - logIssueNoKey records errors with cause and oas protoc
 
   parseContext.logIssueNoKey({
     level: 'error',
-    error,
+    message: error.message,
+    cause: error,
     stackTrail,
     parent: { test: 'data' },
     type: 'INVALID_SCHEMA'

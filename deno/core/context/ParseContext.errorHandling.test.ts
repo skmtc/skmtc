@@ -106,9 +106,11 @@ Deno.test('ParseContext (oas) - logIssueNoKey at a components location auto-regi
   // After parse, the consumer (paths./users.get.responses.200…) has
   // been registered via toRefV31. Now simulate the schema failing
   // *after* the fact by manually logging an error at its location.
+  const userErr = new Error('User schema malformed')
   ctx.logIssueNoKey({
     level: 'error',
-    error: new Error('User schema malformed'),
+    message: userErr.message,
+    cause: userErr,
     stackTrail: new StackTrail(['components', 'schemas', 'User']),
     parent: {},
     type: 'INVALID_SCHEMA'
