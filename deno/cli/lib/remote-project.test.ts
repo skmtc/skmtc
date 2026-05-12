@@ -26,7 +26,6 @@ Deno.test('RemoteProject - fromKey parses project key correctly', async () => {
     assertEquals(project.accountName, 'testuser')
     assertEquals(project.name, 'my-project')
     assertExists(project.schemaFile)
-    assertEquals(project.prettierJson, null)
 
     Deno.chdir(originalCwd)
   } finally {

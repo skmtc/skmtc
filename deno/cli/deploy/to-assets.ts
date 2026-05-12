@@ -44,7 +44,6 @@ const skipFile = ({ path, projectRoot }: SkipFileArgs) => {
 
   return (
     relativePath.includes('.DS_Store') ||
-    relativePath.includes('.prettierrc.json') ||
     relativePath.startsWith('.logs/') ||
     relativePath.startsWith('openapi.json') ||
     relativePath.startsWith('openapi.yaml') ||

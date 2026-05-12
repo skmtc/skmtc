@@ -1,5 +1,4 @@
 import type { ClientSettings } from '../types/Settings.ts'
-import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import { CoreContext } from '../context/CoreContext.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
@@ -39,8 +38,6 @@ type TransformArgs = {
   document: SkmtcDocumentInput
   /** Client settings for customizing generation behavior */
   settings: ClientSettings | undefined
-  /** Optional Prettier configuration for code formatting */
-  prettier?: PrettierConfigType
   /** Optional path for writing log files */
   logsPath?: string
   /** Stack trail for distributed tracing */
@@ -104,24 +101,6 @@ type TransformArgs = {
  * console.log(`Generation took ${result.manifest.endAt - result.manifest.startAt}ms`);
  * ```
  *
- * @example With Prettier formatting
- * ```typescript
- * const result = await toArtifacts({
- *   traceId: 'formatted-generation',
- *   spanId: 'api-client',
- *   documentObject: openApiDoc,
- *   settings: clientSettings,
- *   prettier: {
- *     semi: true,
- *     singleQuote: true,
- *     trailingComma: 'es5'
- *   },
- *   toGeneratorConfigMap: () => generatorMap,
- *   startAt: Date.now(),
- *   silent: true
- * });
- * ```
- *
  * @example Error handling
  * ```typescript
  * try {
@@ -144,7 +123,6 @@ export const toArtifacts = ({
   spanId,
   document,
   settings,
-  prettier,
   toGeneratorConfigMap,
   logsPath,
   startAt,
@@ -156,7 +134,6 @@ export const toArtifacts = ({
   const { artifacts, files, previews, results, mappings, parseIssues } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
-    prettier,
     document,
     stackTrail,
     silent

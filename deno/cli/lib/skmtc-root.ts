@@ -22,7 +22,6 @@ type CreateProjectArgs = {
 type ToProjectArgs = {
   projectName: string
   schemaPath: string | undefined
-  prettierPath?: string
 }
 
 export class SkmtcRoot {
@@ -78,7 +77,7 @@ export class SkmtcRoot {
     await this.manager.auth.logout({ silent })
   }
 
-  async toProject({ projectName, schemaPath, prettierPath }: ToProjectArgs) {
+  async toProject({ projectName, schemaPath }: ToProjectArgs) {
     if (isProjectKey(projectName)) {
       const schemaFile = schemaPath
         ? await SchemaFile.openFromSource(schemaPath)
@@ -87,7 +86,6 @@ export class SkmtcRoot {
       return await RemoteProject.fromKey({
         projectKey: projectName,
         schemaFile,
-        prettierPath,
         manager: this.manager
       })
     }

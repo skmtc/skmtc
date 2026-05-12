@@ -1,0 +1,325 @@
+---
+name: skmtc-retro
+version: 0.1.0
+description: |
+  Run a self-retrospective on a SKMTC-related session — generator
+  authoring, CLI configuration, debugging, or any sustained interaction
+  involving `@skmtc/core`, `@skmtc/cli`, or `@skmtc/gen-*` packages.
+  Identifies friction (mistakes, surprises, overridden defaults,
+  multi-cycle struggles) and wins (patterns worth preserving), formats
+  observations against the project's friction-log conventions, and
+  writes them to a per-session dated file under
+  `<skmtc-root>/skmtc/deno/docs/friction-log/`.
+
+  Use this skill when the user asks to "retro", "skmtc retro", "log
+  friction", "reflect on this session", "what did we learn", "run a
+  retrospective", or after substantive SKMTC work (generator authoring,
+  multi-step debugging, non-trivial CLI configuration) where capturing
+  observations would help improve skills, docs, or SKMTC itself.
+
+  Distinct from the `skmtc-cli` and `skmtc-generator` skills — those
+  guide *doing* the work; this skill captures observations *about* the
+  work. Do not invoke this skill during ordinary work; it is end-of-
+  session (or mid-session-checkpoint) only.
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+---
+
+# SKMTC retro
+
+Capture observations only the LLM can see — guesses, default overrides,
+surprises, idiomatic gaps, and patterns worth preserving — and write
+them to a per-session file in the project's friction log so they can
+be reviewed and acted on later.
+
+## 1. When to invoke
+
+**Run a retro after substantive SKMTC work:**
+
+- Authoring a new generator (scaffold → working output)
+- Cloning a stock generator and editing it
+- Multi-step debugging of a failing generation
+- Non-trivial CLI configuration (multi-generator setup, complex enrichments)
+- Any session that involved 3+ generate-test cycles
+
+**Skip retros for:**
+
+- Quick lookups or single-command tasks
+- Sessions that ended in immediate success with no friction
+- Re-runs of work already covered by an earlier retro file
+
+**Always retro when:**
+
+- The user explicitly invokes this skill (any session length)
+- The user asks "what did we learn?", "retro this", or similar
+
+## 2. Locate the friction-log directory and pick a filename
+
+The canonical location:
+
+```
+<skmtc-root>/skmtc/deno/docs/friction-log/
+```
+
+`<skmtc-root>` is the directory containing `skmtc/` and `skmtc-generators/`.
+To resolve:
+
+1. Walk up from the current working directory looking for a
+   `skmtc/deno/docs/friction-log/` directory.
+2. If `<skmtc-root>` cannot be located, ask the user where the
+   friction log lives or whether to create one. Do not silently
+   default to a fallback path.
+
+### Filename convention
+
+Each retro produces **one file per session**, named:
+
+```
+<YYYY-MM-DD>-<short-summary>.md
+```
+
+- `<YYYY-MM-DD>` — ISO date (today's date in the session's local time).
+- `<short-summary>` — 3-4 word kebab-case description of the session's
+  primary topic. Lowercase, hyphen-separated, no trailing date or
+  numbers unless needed for disambiguation.
+
+Examples:
+
+- `2026-05-12-create-retro-skill.md`
+- `2026-05-13-shadcn-form-clone.md`
+- `2026-05-14-enrichment-design-spike.md`
+- `2026-05-15-debug-empty-output.md`
+
+The summary should capture **what makes this session distinct** from
+others on the same date. Pick the dominant topic if a session covered
+multiple areas; entries inside the file can still span several
+concerns.
+
+### Same-date collisions
+
+If a file with the proposed name already exists (same date, same
+topic), **append entries to that file** rather than creating a
+duplicate. If a session on the same date has a genuinely different
+topic, use a different summary so the filenames differ naturally
+(e.g., `2026-05-12-create-retro-skill.md` and
+`2026-05-12-shadcn-form-spike.md` coexist).
+
+### Reading existing files
+
+Before writing, **read any existing file you'll be appending to** to
+match its numbering and avoid duplicate observations. You do **not**
+need to read every file in the directory — each file is self-contained
+and entries don't cross-reference unless explicitly stated.
+
+## 3. The reflection prompts
+
+The most valuable observations are ones a human reviewer of the final
+code cannot reconstruct. Before drafting entries, work through these
+questions explicitly. They are the leverage of this skill.
+
+### For friction
+
+- What **surprised** you? (API shapes, method-vs-property, error
+  messages, behaviour that didn't match expectation)
+- Where did you **override a default suggestion** from training data?
+  (E.g., you almost wrote a config flag, but cloned instead.)
+- What did you have to **guess** about? (Naming conventions, file
+  layout, where a helper lives, which method to call.)
+- Where did you **spend multiple cycles** fighting the same thing?
+- What did you write that **felt non-idiomatic** — a sense that SKMTC
+  has a better way that you couldn't find?
+- Where was an **error message unhelpful** for diagnosing the cause?
+- What **invariant** did you almost violate and have to back out from?
+
+### For wins
+
+- What worked **naturally** — felt obvious in hindsight, no
+  backtracking?
+- What pattern would you **codify** if it isn't already in a skill?
+- Where did the architecture **save you work** (e.g., Driver dedup,
+  auto-import stitching, memoisation)?
+- Where was a stock generator a **good starting point** with minimal
+  edits?
+- Where did the type system or runtime check **catch a mistake early**
+  that would otherwise have been a debugging session?
+
+## 4. File format
+
+The session file structure:
+
+```markdown
+# <YYYY-MM-DD> — <Session topic>
+
+<1-2 sentences describing what work was happening in this session.>
+
+---
+
+### 1. <Entry heading> [severity]
+...
+
+### 2. <Entry heading> [severity]
+...
+```
+
+### Entry format
+
+```markdown
+### N. <Descriptive heading> [severity]
+
+<Concise context — what part of the work this was observed in.>
+
+**What happened:** <concrete description, with code/commands where
+relevant>
+
+**What was expected:** <the assumption that turned out wrong; omit if
+not applicable, e.g., for wins>
+
+**Why it matters:** <the underlying principle the friction violates,
+or the pattern the win exemplifies. This is the highest-value field —
+spend the most effort here.>
+
+**Possible fixes:** <open-ended; 1–3 suggestions if obvious, or
+"unresolved — needs reflection" if not. **Do NOT pre-commit to a
+category of fix** (skill change vs doc change vs code change). Leaving
+this open encourages contemplation during periodic review rather than
+locking in the first idea.>
+
+**Version anchor:** `@skmtc/core@<version>`, `@skmtc/gen-<name>@<version>`
+(record whatever generators and core version the observation was made
+against)
+
+**Status:** open
+```
+
+### Severity tags
+
+- `[blocker]` — no workaround found; session got stuck
+- `[friction]` — workaround exists; cost real time/cycles
+- `[polish]` — annoying but not blocking
+- `[win]` — something that worked particularly well
+
+Mix `[win]` entries freely with friction. They're equally valuable
+signal — wins identify patterns to preserve and codify.
+
+### Numbering
+
+Entries within a single file are numbered sequentially starting at 1.
+Numbers are stable **within the file** — once assigned, they don't
+change. Cross-file references use `<filename>#<N>` format, e.g.,
+"see `2026-05-12-create-retro-skill.md` #2".
+
+There is no global numbering across files. Each session file is
+self-contained.
+
+## 5. What NOT to log
+
+- Operational principles already documented in `llms.md` or the
+  `skmtc-cli` / `skmtc-generator` skills — those are already captured;
+  logging them is noise.
+- Trivial typos or one-line corrections that aren't part of a pattern.
+- Domain-specific decisions from the consumer project (e.g., the
+  naming of a field in someone's app) — only observations about SKMTC
+  itself.
+- Things the user already explicitly flagged during the session.
+- "I made a mistake" without a SKMTC-level lesson — a tutorial gap, a
+  skill gap, an API surprise, or a generalisable pattern is what makes
+  an observation worth logging.
+
+If a session genuinely produced no new observations beyond what's
+already in the log or the skills, **say so explicitly** rather than
+inventing entries to fill the retro. False signal is worse than no
+signal.
+
+## 6. Entry length
+
+Trivial observations: 1 paragraph. Subtle patterns: 2–3 paragraphs,
+sometimes with a code example or comparison table. The log's value
+comes from specificity, not brevity. Length should match what's
+needed to make the entry reproducible by someone reading it months
+later.
+
+## 7. Composing the retro
+
+The full flow:
+
+1. **Generate the filename** for this session: `<YYYY-MM-DD>-<short-summary>.md`
+   using today's date and a 3-4 word kebab-case description of the
+   session's primary topic.
+2. **Check** if the file already exists (same-date, same-topic
+   continuation):
+   - If yes: read the existing file, note the highest entry number,
+     prepare to append.
+   - If no: prepare to create a new file with the session header (§4
+     "File format").
+3. **Reflect** — mentally walk through the session, applying the
+   reflection prompts from §3. Distinguish genuinely new observations
+   from things already captured.
+4. **Draft** entries — both friction and wins — using the format from
+   §4. Number sequentially from the current high-water mark (1 if
+   creating a new file).
+5. **Write** the file (create or append). Do not modify earlier
+   entries.
+6. **Summarise to the user** in one short message:
+   `Logged N entries (X friction, Y wins) to <filename>. Headings: ...`
+
+## 8. Examples
+
+### High-value entry (LLM-unique observation)
+
+> ### 6. `ImportNameArg` shape is overloaded with no warning [friction]
+>
+> Working on a cloned `gen-shadcn-form`, registering imports for field
+> components.
+>
+> **What happened:** The `register({ imports })` API accepts either a
+> plain string or an object `{ name, alias?, isType? }` per import. I
+> assumed the object shape was a richer-spec-string — passed
+> `{ name: 'TextField', isType: false }` to mark a plain non-type
+> export. The output became `import {name as TextField} from '...'`
+> instead of `import {TextField}`.
+>
+> **What was expected:** that `{ name: 'TextField', isType: false }`
+> would be equivalent to the bare string `'TextField'`.
+>
+> **Why it matters:** the object shape is a footgun for the most
+> common case (plain non-type import). The semantic difference between
+> string and object is invisible from the type signature.
+>
+> **Possible fixes:** unresolved — the engine could normalise
+> `{ name: 'X', isType: false }` to `'X'`, or the skill could warn
+> against this shape, or the type could be tightened so only `isType:
+> true` is acceptable in object form.
+>
+> **Version anchor:** `@skmtc/core@^0.3.7`, `@skmtc/gen-shadcn-form@0.0.55`
+>
+> **Status:** open
+
+### Low-value entry (already documented; don't log)
+
+> ### 7. `as` casts not allowed in production code [friction]
+>
+> Tried to use `as Schema` to satisfy types. The user pointed out the
+> codebase prefers type guards.
+
+This is already in the `skmtc-generator` skill's operational
+principles table. Logging it adds noise without signal.
+
+## 9. After the retro
+
+Retro files are append-only. The user reviews them daily and decides
+whether each entry becomes a skill update, a doc update, a SKMTC code
+change, or a deferred reflection point. Do not pre-commit to those
+resolutions in the entry — leave the "Possible fixes" section
+open-ended. When an entry is resolved, the user updates its `Status:`
+field in place with the resolution date and a link to the relevant
+commit or PR.
+
+If you notice during the retro that **the skill itself** has a gap (a
+missing reflection prompt, an unclear instruction, a case the format
+doesn't handle well), log that as a retro entry too — the recursive
+case is high-leverage. The skill should improve from its own output.

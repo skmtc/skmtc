@@ -7,7 +7,6 @@ import { Deployment } from '@/lib/deployment.ts'
 import { ClientJson } from '@/lib/client-json.ts'
 import { toAssets } from '@/deploy/to-assets.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
-import { PrettierJson } from '@/lib/prettier-json.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import { formatNumber } from '@skmtc/core/formatNumber'
@@ -43,7 +42,6 @@ type ConstructorArgs = {
   name: string
   rootDenoJson: RootDenoJson
   clientJson: ClientJson
-  prettierJson: PrettierJson | null
   manifest: Manifest
   manager: Manager
   schemaFile: SchemaFile
@@ -75,7 +73,6 @@ export class Project {
   name: string
   rootDenoJson: RootDenoJson
   clientJson: ClientJson
-  prettierJson: PrettierJson | null
   manifest: Manifest
   manager: Manager
   schemaFile: SchemaFile
@@ -84,7 +81,6 @@ export class Project {
     name,
     rootDenoJson,
     clientJson,
-    prettierJson,
     manifest,
     manager,
     schemaFile
@@ -93,7 +89,6 @@ export class Project {
     this.rootDenoJson = rootDenoJson
     this.clientJson = clientJson
     this.manifest = manifest
-    this.prettierJson = prettierJson
     this.manager = manager
     this.schemaFile = schemaFile
   }
@@ -120,7 +115,6 @@ export class Project {
         path: ClientJson.toPath({ projectPath: toProjectPath(name) }),
         basePath
       }),
-      prettierJson: PrettierJson.create({ path: PrettierJson.toPath(name), contents: {} }),
       manifest: await Manifest.open(name),
       manager: skmtcRoot.manager,
       schemaFile: SchemaFile.create()
@@ -135,8 +129,6 @@ export class Project {
     for (const generatorId of generatorIdSet) {
       await project.installGenerator({ moduleName: `jsr:${generatorId}` })
     }
-
-    await project.prettierJson?.write()
 
     await project.clientJson.write()
 
@@ -387,8 +379,6 @@ export class Project {
       manager
     })
 
-    const prettierJson = await PrettierJson.openFromPath(PrettierJson.toPath(name))
-
     const manifest = await Manifest.open(name)
 
     const schemaFile = await SchemaFile.openFromProject(name, clientJson.contents?.source)
@@ -397,7 +387,6 @@ export class Project {
       name,
       rootDenoJson,
       clientJson,
-      prettierJson,
       manifest,
       manager,
       schemaFile

@@ -79,7 +79,6 @@ const createMockProject = () => ({
   toPath: () => '/path/to/test-project',
   rootDenoJson: {},
   clientJson: {},
-  prettierJson: null,
   manifest: {},
   manager: {},
   schemaFile: {}

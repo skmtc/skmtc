@@ -13,22 +13,20 @@ import { StackTrail } from '@skmtc/core'
  * needs — there are no optional / "maybe present" fields whose
  * presence depends on another field's value.
  *
- * The shared half (`schema`, `clientSettings`, `prettier`) is spread
- * into each variant rather than extracted into a base, because the
- * branching shape is the more important property to make obvious.
+ * The shared half (`schema`, `clientSettings`) is spread into each
+ * variant rather than extracted into a base, because the branching
+ * shape is the more important property to make obvious.
  */
 const oasArtifactsBody = v.object({
   protocol: v.literal('oas'),
   schema: v.string(),
-  clientSettings: v.optional(settingsSchema),
-  prettier: v.optional(v.record(v.string(), v.unknown()))
+  clientSettings: v.optional(settingsSchema)
 })
 
 const gqlArtifactsBody = v.object({
   protocol: v.literal('gql'),
   schema: v.string(),
-  clientSettings: v.optional(settingsSchema),
-  prettier: v.optional(v.record(v.string(), v.unknown()))
+  clientSettings: v.optional(settingsSchema)
 })
 
 /**
@@ -97,7 +95,6 @@ const dispatchArtifacts = async ({
     spanId,
     startAt,
     document,
-    prettier: body.prettier,
     settings: body.clientSettings,
     toGeneratorConfigMap,
     stackTrail,

@@ -1,47 +1,304 @@
 # skmtc generate
 
-> Run the generation pipeline against a schema.
+> Run the SKMTC generation pipeline against a schema.
+
+The most-used CLI command. Loads the project's bundle, parses the
+schema, runs every installed generator, writes output files, writes
+the manifest.
 
 ## Synopsis
+
+```
+skmtc generate <project> [schema] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--json] [--no-input]
+```
 
 ## Arguments
 
 ### `<project>`
 
+The SKMTC project name — the subdirectory name under
+`<root>/.skmtc/`. Required in strict mode.
+
 ### `[schema]`
+
+Optional. Path or URL to the schema source. If omitted, resolved
+from `.settings/client.json#source`.
+
+If neither is set:
+
+- Interactive mode → prompts for the source via Ink UI
+- Strict mode → exits with code 2 and a recipe error
 
 ## Options
 
 ### `-w, --watch`
 
+Poll the schema source for changes and regenerate. Long-running.
+**Mutually exclusive with `--json`** — passing both exits with code
+2 and a recipe error.
+
+For watching *generator source code* changes (the case during local
+generator development), use [`skmtc dev`](dev.md) instead — it
+watches the project tree, not just the schema.
+
 ### `--typecheck`
+
+Run `tsc --noEmit` against the consumer's tsconfig after generation,
+scoped to the files this run wrote. Adds a `typecheck` field to the
+JSON output.
+
+A `failed` typecheck causes exit code 1, even when the run otherwise
+succeeded. Generated files stay on disk; the operator can fix the
+generator and re-run.
 
 ### `--tsconfig <path>`
 
+Override the tsconfig used by `--typecheck`. Default: walk up from
+`basePath` looking for the nearest `tsconfig.json`.
+
 ### `--tsc-cmd <cmd>`
 
-### `--no-input`
+Override the typecheck command. Default: `npx tsc`. Useful for
+projects using pnpm/bun:
+
+```bash
+skmtc generate my-api --typecheck --tsc-cmd "pnpm exec tsc"
+skmtc generate my-api --typecheck --tsc-cmd "bunx tsc"
+```
 
 ### `--json`
 
+Emit a single structured JSON object on stdout. Implies `--no-input`.
+Mutually exclusive with `--watch`.
+
+### `--no-input`
+
+Disable interactive prompts. Required arguments must be provided up
+front. Failures produce recipe errors on stderr.
+
+Automatically inferred when stdin/stdout is non-TTY (CI, pipes,
+agent contexts).
+
 ## Behavior
 
-### Schema source resolution (CLI arg → settings.source)
+### Schema source resolution
 
-### Bundle freshness check
+Resolution order:
 
-### Worker spawn and message protocol
+1. Explicit `[schema]` argument on the command line
+2. `client.json#settings.source` field
+3. Interactive prompt (TTY only — strict mode fails with recipe)
+
+The first non-undefined value wins.
+
+### Routing
+
+- Explicit `[schema]` OR `client.json#source` set → runs
+  `generateLocal` directly (no Ink UI).
+- Neither set in interactive mode → mounts the Ink prompt.
+- Neither set in strict mode → exits 2 with a recipe error.
+
+### Bundle freshness gate (strict mode)
+
+Before generation, the CLI verifies that `bundle.js` matches the
+current `deno.json#imports`. If they've drifted (e.g., from
+hand-editing `deno.json` outside the CLI), strict-mode `generate`
+refuses with exit 2:
+
+```
+Error: bundle.js is out of sync with deno.json — add: @skmtc/gen-X
+```
+
+Remediation: `skmtc bundle <project>` then re-run.
+
+Interactive mode skips the gate; bundling issues surface at runtime
+instead.
+
+### Worker spawn and protocol
+
+The CLI spawns a Deno Worker from the project's `bundle.js` (or the
+JSR-published bundle for remote-only projects). Worker permissions:
+`read`, `write`, `env=true`; `net=false`, `run=false`.
+
+Three-message protocol: `READY` (worker boot) → `GENERATE` (host →
+worker with `{ document, clientSettings }`) → `RESULT` (worker → host
+with `{ artifacts, manifest }`). On unrecoverable worker error,
+`ERROR` is posted instead.
+
+See [the-worker-runtime concept](../../concepts/the-worker-runtime.md).
 
 ### Manifest emission
 
+After the worker returns, the CLI writes:
+
+- Every artifact to its resolved destination path under `basePath`
+- `.skmtc/<project>/.settings/manifest.json` — the canonical record
+
+The manifest is overwritten on every run. See
+[manifest-format](../manifest-format.md).
+
+## JSON output
+
+```jsonc
+{
+  "kind": "generated",
+  "projectName": "my-api",
+  "basePath": "mobile-app/src",            // or null if not configured
+  "manifestPath": ".skmtc/my-api/.settings/manifest.json",
+  "stats": {
+    "tokens": 201029,
+    "lines": 1234,
+    "files": 753,
+    "totalTimeMs": 180
+  },
+  "files": [
+    "mobile-app/src/types/User.generated.ts",
+    "mobile-app/src/services/useCustomer.generated.ts",
+    "..."
+  ],
+  "errors": [["models.ts", "Product"]],    // [destinationPath, identifier] pairs
+  "parseIssues": [
+    {
+      "protocol": "oas",
+      "level": "warning",
+      "type": "MISSING_OBJECT_TYPE",
+      "location": "components:schemas:User",
+      "message": "..."
+    }
+  ],
+  "typecheck": {                           // only present with --typecheck
+    "kind": "passed",
+    "tsconfig": ".../tsconfig.json",
+    "filesChecked": 42
+  }
+}
+```
+
+### Field reference
+
+- **`kind`**: always `"generated"` on success.
+- **`projectName`**: echoed from the argument.
+- **`basePath`**: the resolved `basePath` from `client.json` (string)
+  or `null` if not configured.
+- **`manifestPath`**: where the manifest was written.
+- **`stats`**: aggregate counts. `tokens` counts via `gpt-tokenizer`
+  on the artifact contents.
+- **`files`**: every destination path written by this run.
+  Resolved paths (after `basePath` application).
+- **`errors`**: `[destinationPath, identifier]` pairs for items
+  whose `results` entry came back `'error'`.
+- **`parseIssues`**: forwarded verbatim from
+  `manifest.parseIssues`. Each issue has `protocol`, `level`,
+  `type`, `location`, `message`, optional `cause`.
+- **`typecheck`**: present only with `--typecheck`. See subsection.
+
+### `--typecheck` output shape
+
+Discriminated on `kind`:
+
+```jsonc
+// All good
+{
+  "kind": "passed",
+  "tsconfig": ".../tsconfig.json",
+  "filesChecked": 42
+}
+
+// Errors in this run's files
+{
+  "kind": "failed",
+  "tsconfig": "...",
+  "filesChecked": 42,
+  "diagnostics": [
+    {
+      "file": "mobile-app/src/forms/Customer.generated.tsx",
+      "line": 23,
+      "column": 7,
+      "code": 2322,
+      "category": "error",
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    }
+  ]
+}
+
+// Couldn't find a tsconfig walking up from basePath
+{ "kind": "no-tsconfig", "message": "...", "hint": "..." }
+
+// tsc command itself failed (no npx, no tsc installed, etc.)
+{ "kind": "tsc-error", "message": "...", "hint": "..." }
+
+// Nothing to check (no files emitted)
+{ "kind": "skipped", "reason": "no-files", "message": "..." }
+```
+
+Only `kind: "failed"` causes exit 1. The other outcomes are
+informational.
+
 ## Examples
+
+### Basic generation
+
+```bash
+skmtc generate my-api ./schema.json
+```
+
+### Agent / CI invocation
+
+```bash
+skmtc generate my-api --json --no-input
+```
+
+### With typecheck
+
+```bash
+skmtc generate my-api --json --typecheck --tsc-cmd "pnpm exec tsc"
+```
+
+### Watch mode (interactive)
+
+```bash
+skmtc generate my-api --watch
+```
+
+Long-running. Polls the schema URL/path for changes; regenerates on
+modification.
+
+### Source pinned in client.json
+
+After setting `"source": "./schema.json"` in client.json:
+
+```bash
+skmtc generate my-api
+```
+
+No schema argument needed.
 
 ## Exit codes
 
-### Exit 0
+| Code | Meaning |
+|---|---|
+| `0` | Success — no fatal parse issues, typecheck (if requested) passed |
+| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `kind: "failed"`, OR worker error |
+| `2` | Required argument missing (recipe error on stderr), OR `--json` and `--watch` both passed, OR bundle freshness gate triggered |
 
-### Exit 1 (fatal parseIssue or typecheck failure)
+## Worker-side failures
 
-### Exit 2 (recipe failure under strict mode)
+When the worker encounters an unrecoverable error
+(`toArtifacts` throws), it synthesizes an `INVALID_SCHEMA` issue
+at `location: "toArtifacts"` with `level: "error"` and posts it via
+the manifest. The CLI sees the issue, writes the manifest as
+normal, and exits 1.
+
+This means: **fatal failures still produce a manifest with
+diagnostic information**. Even when the CLI exits 1, the manifest
+exists and the operator can inspect `parseIssues` for the cause.
 
 ## See also
+
+- [`skmtc bundle`](bundle.md) — required if you've hand-edited `deno.json`
+- [`skmtc dev`](dev.md) — watch-mode for generator source changes
+- [`skmtc doctor`](doctor.md) — diagnose setup before generating
+- [manifest format](../manifest-format.md) — what the run produced
+- [error codes](../error-codes.md) — interpret `parseIssues`
+- [`skmtc-cli` skill](../../skills/skmtc-cli/SKILL.md) — operational guidance
+- [`skmtc-debug` skill](../../skills/skmtc-debug/SKILL.md) — when generation fails

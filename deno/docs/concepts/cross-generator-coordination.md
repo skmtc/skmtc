@@ -1,29 +1,348 @@
 # Cross-generator coordination
 
-> Why generators can run in any order and still produce consistent output.
+> Why generators can run in any order and still produce consistent
+> output: memoization keyed by deterministic identifiers, with cache
+> hits guaranteed to produce the same Definition that a fresh
+> construction would.
+
+Cross-generator coordination in SKMTC is **memoization keyed by
+`(identifier.name, exportPath)`**, where both halves of the key are
+pure functions of the input. Same inputs → same key → same cached
+value. Generator execution order does not affect output.
 
 ## The one-line definition
 
+When a generator needs output from a peer generator (e.g., a form
+generator needs the Zod validator for its request body), it calls
+`insertOperation(PeerProjection, op)` or
+`insertNormalizedModel(PeerProjection, args)`. The Driver computes
+the peer's identifier and exportPath, looks up the cache. Cache hit:
+returns the existing Definition. Cache miss: constructs the peer
+Projection, registers it, returns it. Either way, the consumer gets
+the peer's name back via `.toName()` and uses it in its own template.
+
 ## The problem coordination solves
 
-## The mechanism: memoization by (name, exportPath)
+A multi-generator pipeline has dependencies. A form generator needs
+the Zod schema for validation. A query hook generator needs the
+TypeScript type for arguments. A table generator needs the query
+hook to fetch data.
 
-### Pure identifier and exportPath functions
+The naive answer is "run the dependency generator first." But that
+requires:
 
-### The findDefinition cache
+- Knowing which generator goes first (a topological sort)
+- Maintaining dependency declarations as generators evolve
+- Handling conditional dependencies
+- Resolving ambiguity when two generators could "be first"
+- Coupling generators tightly — generator A has to know it depends
+  on generator B
 
-### `affirmDefinition` integrity check
+SKMTC's answer: **make order irrelevant**. Coordination happens
+through a Map cache. Whoever needs a definition asks for it; if it's
+already in the cache, return the cached value; if not, construct it.
+Order of asking doesn't matter — same inputs produce the same
+outputs.
+
+## The mechanism: memoization by `(name, exportPath)`
+
+The cache lives in `GenerateContext.#files`. Each `File` has a
+`definitions: Map<string, Definition>`. The cache key is
+`(identifier.name, exportPath)` — name is the key within the file's
+map, exportPath identifies which file's map.
+
+Both halves of the key are computed by **static methods on the
+Projection class**:
+
+- `toIdentifier({ operation, enrichments })` → `Identifier` with a `name`
+- `toExportPath({ operation, enrichments })` → string path
+
+These methods are required to be **pure functions** of their inputs.
+No `this`-side state. No environmental reads. No async.
+
+The purity invariant is what makes the memoization work. Two callers
+asking for the same projection on the same operation compute the
+same key. The first call creates the entry; subsequent calls hit
+the cache.
+
+## Identifier and exportPath are pure functions
+
+From `gen-shadcn-form/src/base.ts`:
+
+```ts
+export const ShadcnFormBase = toOasOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+
+  toIdentifier({ operation }): Identifier {
+    const verb = capitalize(toMethodVerb(operation.method))
+    const name = `${verb}${camelCase(operation.path, { upperFirst: true })}Form`
+    return Identifier.createVariable(name)
+  },
+
+  toExportPath({ operation, enrichments }): string {
+    const { name } = this.toIdentifier({ operation, enrichments })
+    return join('@', 'forms', `${name}.generated.tsx`)
+  }
+})
+```
+
+Notice the constraints:
+
+- Functions of `(operation, enrichments)` only
+- No `this`-side state read (this.someField doesn't influence outcome)
+- No async (no Promise, no `await`)
+- No environmental reads (no Date, no Math.random, no `process.env`)
+
+If you violated any of these, two callers with the same
+`(operation, enrichments)` could compute different keys. The cache
+would split into two entries, generators would emit duplicates with
+subtle differences, and the order-independence guarantee would
+break.
+
+The purity invariant is convention-enforced, not type-enforced. The
+verification checklist in the `skmtc-generator` skill explicitly
+calls out the purity requirement.
+
+## The Driver flow
+
+When code calls `context.insertOperation(MyProjection, op)` (or the
+projection-base wrapper that auto-fills `destinationPath`):
+
+1. **Compute settings.** Driver calls `MyProjection.toIdentifier(...)`
+   and `MyProjection.toExportPath(...)` to produce the cache key.
+
+2. **Look up cache.** Driver calls
+   `context.findDefinition({ name, exportPath })`.
+
+3. **Cache hit?** Driver runs `affirmDefinition` integrity check:
+   does the cached Definition's `generatorKey` match this Projection's
+   `generatorKey`? Does its value implement `MyProjection`? If yes →
+   return cached. If `generatorKey` mismatch → throw
+   `"Registered definition mismatch"`.
+
+4. **Cache miss?** Driver instantiates `new MyProjection({...})`. The
+   constructor runs — it may register imports, call `insertOperation`
+   / `insertNormalizedModel` for *its* dependencies recursively. The
+   result is wrapped in `Definition`.
+
+5. **Register the new Definition** in the target file via
+   `context.register({ definitions, destinationPath: exportPath })`.
+
+6. **Stitch the import.** If the calling file is different from the
+   Projection's `exportPath`, register an import in the calling file
+   pointing at the new Definition.
+
+The recursion is depth-first. A form generator that calls
+`insertOperation(TanstackQuery, op)` will trigger TanstackQuery's
+full construction (with its own `insertNormalizedModel` calls for
+the Zod schema and TS type) before returning. By the time
+`insertOperation` returns, the dependency chain is fully populated.
 
 ## Why order doesn't matter
 
+The structural argument:
+
+- Two generators A and B exist. A depends on B's output.
+
+- **Scenario 1**: A's `transform` runs first. A's constructor calls
+  `insertOperation(B, op)` → B's Projection is constructed and
+  cached. Then B's own outer-loop `transform` runs → calls
+  `insertOperation(B, op)` → cache hit, no work.
+
+- **Scenario 2**: B's `transform` runs first. B's Projection is
+  constructed and cached. Then A's `transform` runs → calls
+  `insertOperation(B, op)` → cache hit. A's Projection is
+  constructed with B's name in scope.
+
+In both scenarios, the final `#files` map is identical. The only
+difference is *which* `transform` triggered B's construction. The
+output bytes are the same.
+
+This is a **structural** property, not a heuristic. The system
+*can't* produce order-dependent output because:
+
+1. Cache lookup is the first step in the Driver flow
+2. Keys are pure functions of input
+3. Constructor side effects (`register`) are idempotent (Set/Map semantics)
+
+Idempotency by construction is the
+[design philosophy](../explanation/design-philosophy.md) principle
+this property realizes.
+
 ## Cache integrity asymmetries
 
-### Driver path (strict)
+The integrity-check rigor differs by code path:
 
-### insertNormalisedModel fallback-name path (loose)
+| Path | Check | Same-name collision from different generator |
+|---|---|---|
+| `insertOperation` / `insertModel` via Driver | `affirmDefinition`: `generatorKey` match + `instanceof` check | **Throws loudly** |
+| `insertNormalisedModel` ref branch (delegates to insertModel) | Same as Driver | Throws loudly |
+| `insertNormalisedModel` fallback-name branch (for inline schemas) | Name-only check | **Silent merge** |
+| Direct `register({ definitions })` | Name-only check in `File.definitions.has(name)` | First-write-wins silently |
 
-### Direct register path
+The asymmetry is documented as `#SKM-47` — the fallback-name path
+lacks the strict integrity check that the Driver path has. In
+practice this only matters when two generators happen to produce the
+same `fallbackName` for *different* inline schemas in the same file
+— which is rare but possible. The pragmatic mitigation is to use
+ref-based schemas where possible, since they route through the
+strict Driver path.
+
+## Coordination is by name, not by content
+
+A key consequence of the memoization model: **generators never read
+each other's `toString()` output**. They reference peer outputs by
+identifier name.
+
+```ts
+// In ShadcnForm's constructor
+this.clientName = this.insertOperation(TanstackQuery, operation).toName()
+// → e.g., "useCreateUsers"
+
+// In ShadcnForm's toString
+return `
+  const mutator = ${this.clientName}()
+  // ...
+`
+```
+
+`insertOperation` returns an `Inserted<V, EnrichmentType>` wrapper
+with a `.toName()` method that surfaces the peer's identifier name.
+The form embeds the name in its template. It never reads what
+TanstackQuery's `toString()` actually produces.
+
+This is the right architecture. Reading another generator's source
+text would couple the consumer to formatting choices and force
+re-parsing. Coordination by name keeps the interfaces clean and the
+peer free to change its template internally.
+
+## Common patterns
+
+### Pattern: inserting a sibling Projection
+
+```ts
+class MyProjection extends OasOperationProjectionBase<EnrichmentSchema> {
+  peerName: string
+
+  constructor(args) {
+    super(args)
+    this.peerName = this.insertOperation(PeerProjection, args.operation).toName()
+  }
+
+  override toString() {
+    return `... ${this.peerName} ...`
+  }
+}
+```
+
+`insertOperation` is the right call when you need a sibling operation
+Projection (e.g., a form generator needs its mutation hook).
+
+### Pattern: inserting a normalized model
+
+```ts
+const bodyType = this.insertNormalizedModel(TsProjection, {
+  schema: operation.toRequestBody(({ schema }) => schema),
+  fallbackName: `${this.settings.identifier.name}Body`
+})
+this.bodyTypeName = bodyType.identifier.name
+```
+
+`insertNormalizedModel` handles both `$ref` schemas (which route
+through the model cache, with strict integrity check) and inline
+schemas (which use the fallback name, looser check). The Driver
+picks the right path automatically based on whether the schema is a
+ref.
+
+### Pattern: composing in a Snippet
+
+A Snippet inside a Projection can also reach for peer Projections,
+using `this.context.insertOperation(...)` directly (Snippets don't
+have the projection-base wrapper that auto-fills `destinationPath`).
+
+```ts
+class FieldDispatch extends SnippetBase {
+  refTargetName?: string
+
+  constructor({ context, schema, destinationPath }) {
+    super({ context })
+
+    if (schema.isRef()) {
+      const inserted = context.insertNormalizedModel(SomePeerProjection, {
+        schema,
+        fallbackName: 'unused-when-it-is-a-ref',
+        destinationPath
+      })
+      this.refTargetName = inserted.identifier.name
+    }
+  }
+
+  override toString() {
+    return this.refTargetName ?? '/* inline */'
+  }
+}
+```
 
 ## Common questions
 
+### Can two different generators produce the same identifier at the same path on purpose?
+
+No — the Driver path will throw `"Registered definition mismatch"`.
+The cache is a uniqueness invariant. If two generators legitimately
+need the same name in the same place, one of them needs to
+disambiguate (e.g., by adding a prefix in its `toIdentifier`).
+
+### What if my Projection has a non-pure `toIdentifier`?
+
+The system will still run, but you lose the order-independence
+guarantee. Cache lookups can be inconsistent, you may see duplicate
+definitions appear or "Registered definition mismatch" errors that
+are hard to debug. The purity invariant is enforced by convention,
+not by the type system.
+
+### Is `transform` itself memoized?
+
+No. The outer loop iterates `(generator, operation)` pairs and calls
+each generator's `transform`. The memoization is at the *Projection*
+level, not the generator level. A generator's `transform` runs once
+per operation; the Projection's *constructor* may be skipped if the
+cache is hit.
+
+### Why is the fallback-name path looser than the Driver path?
+
+Historical: the fallback-name path was added to support inline
+schemas without requiring `$ref` everywhere. The integrity check was
+deferred (`#SKM-47`). The pragmatic answer is to use ref-based
+schemas where possible — they route through the strict Driver path.
+
+### Can I read peer generators' source text in an emergency?
+
+You shouldn't. The interface between generators is the *name*.
+Reading source text couples you to formatting and breaks if the peer
+generator changes its template literal. If you need more from a peer
+than its name, the right answer is to add an enrichment to its
+schema or contribute a public API to the peer.
+
+### What's the cost of a cache miss vs hit?
+
+A cache miss runs the full Projection constructor — which can
+recursively trigger more constructions if the Projection has its own
+`insertOperation` calls. A cache hit is a Map lookup plus the
+integrity check, basically free. In practice, the first generator
+that asks for a given Projection pays the construction cost; all
+later askers get hits.
+
+### What happens if I `insertOperation` on a generator that isn't installed?
+
+You get a TypeScript error at the import level (the Projection class
+isn't importable). Cross-generator coordination requires the peer
+generator to be in `deno.json#imports` (either as a JSR install or a
+local clone) so its source can be bundled into `worker.ts`.
+
 ## Further reading
+
+- [The three phases](the-three-phases.md) — the broader pipeline context
+- [Projections and Snippets](projections-and-snippets.md) — the DSL layer
+- [How idempotency works](../explanation/how-idempotency-works.md) — the design rationale
+- [API reference: generate-context](../reference/api/generate-context.md)
+- [`skmtc-generator` skill §3](../skills/skmtc-generator/SKILL.md) — operational guidance

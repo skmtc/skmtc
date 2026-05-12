@@ -1,4 +1,3 @@
-import type { PrettierConfigType } from '@/types/PrettierConfig.ts'
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { FilesRenderResult, RenderResult } from './generateTypes.ts'
 import { normalize } from '@std/path/normalize'
@@ -23,8 +22,6 @@ type ConstructorArgs = {
   previews: Record<string, Preview>
   /** Mapping data for file relationships */
   mappings: Record<string, Mapping>
-  /** Optional formatter configuration (using Prettier format for compatibility) */
-  prettierConfig?: PrettierConfigType
   /** Base path for resolving file paths */
   basePath: string | undefined
   /** Logger instance for debug information */
@@ -76,8 +73,6 @@ export class RenderContext {
   previews: Record<string, Preview>
   /** Mapping data for file relationships */
   mappings: Record<string, Mapping>
-  /** Optional formatter configuration (using Prettier format for compatibility) */
-  #prettierConfig?: PrettierConfigType
   /** Base path for resolving file paths */
   basePath: string | undefined
   /** Logger instance for debug information */
@@ -97,7 +92,6 @@ export class RenderContext {
     files,
     previews,
     mappings,
-    prettierConfig,
     basePath,
     logger,
     captureCurrentResult
@@ -105,18 +99,16 @@ export class RenderContext {
     this.files = files
     this.previews = previews
     this.mappings = mappings
-    this.#prettierConfig = prettierConfig
     this.basePath = basePath
     this.logger = logger
     this.captureCurrentResult = captureCurrentResult
   }
 
   /**
-   * Renders all files in the context to their final formatted form.
+   * Renders all files in the context to their final form.
    *
-   * This is the main rendering method that orchestrates the collation and
-   * formatting of all generated files. It processes files through Biome
-   * formatting (if configured), resolves paths, and produces the final
+   * This is the main rendering method that orchestrates the collation of
+   * all generated files. It resolves paths and produces the final
    * artifacts ready for writing to the filesystem.
    *
    * @returns Promise resolving to render result containing artifacts, file metadata, previews, and mappings
@@ -127,7 +119,6 @@ export class RenderContext {
    *   files: generatedFiles,
    *   previews: previewData,
    *   mappings: mappingData,
-   *   prettierConfig: { semi: false, singleQuote: true },
    *   basePath: './src/generated',
    *   stackTrail: traceStack,
    *   logger: logger,
@@ -159,11 +150,11 @@ export class RenderContext {
    * Collates all files in the context into a unified render result.
    *
    * This method processes each file in the context through the rendering pipeline,
-   * applying Biome formatting and path resolution. It coordinates the parallel
-   * processing of all files and aggregates the results into a single output structure.
+   * applying path resolution. It coordinates the parallel processing of all files
+   * and aggregates the results into a single output structure.
    *
    * The collation process includes:
-   * - File content rendering with optional Biome formatting
+   * - File content rendering
    * - Path resolution using base path configuration
    * - Metadata calculation (line count, character count)
    * - Result aggregation into artifacts and file metadata maps
@@ -191,8 +182,7 @@ export class RenderContext {
           const renderedFile: FileObject = renderFile({
             content: file.toString(),
             destinationPath,
-            basePath: this.basePath,
-            prettierConfig: this.#prettierConfig
+            basePath: this.basePath
           })
 
           this.captureCurrentResult('success', st)
@@ -300,34 +290,30 @@ type RenderFileArgs = {
   destinationPath: string
   /** Optional base path for path resolution */
   basePath?: string
-  /** Optional formatter configuration (using Prettier format for compatibility) */
-  prettierConfig?: PrettierConfigType
 }
 
 /**
- * Renders a single file with formatting and metadata calculation.
+ * Renders a single file with metadata calculation.
  *
  * This function processes a single file through the rendering pipeline,
- * applying Biome formatting if configured and calculating file metadata
- * such as line count and character count. It resolves the final path using
- * the base path configuration.
+ * calculating file metadata such as line count and character count. It
+ * resolves the final path using the base path configuration.
  *
  * @param args - File rendering arguments
- * @returns Promise resolving to a FileObject with content and metadata
+ * @returns A FileObject with content and metadata
  *
  * @example
  * ```typescript
- * const fileObject = await renderFile({
+ * const fileObject = renderFile({
  *   content: 'const x = 1;',
  *   destinationPath: 'utils.ts',
- *   basePath: './src',
- *   prettierConfig: { semi: false }
+ *   basePath: './src'
  * });
  *
  * console.log(fileObject.path); // './src/utils.ts'
- * console.log(fileObject.content); // 'const x = 1' (formatted)
+ * console.log(fileObject.content); // 'const x = 1;'
  * console.log(fileObject.lines); // 1
- * console.log(fileObject.characters); // 11
+ * console.log(fileObject.characters); // 12
  * ```
  */
 const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {

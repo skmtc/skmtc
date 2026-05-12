@@ -11,7 +11,6 @@ Deno.bench('gen', async () => {
     spanId: 'BBB',
     startAt: Date.now(),
     documentObject: JSON.parse(schema),
-    prettier: undefined,
     settings: undefined,
     // @ts-ignore - enrichment types do not work at this level
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),

@@ -40,7 +40,6 @@ const toWorker = (
             spanId,
             startAt,
             document: payload.document,
-            prettier: undefined,
             settings: payload.clientSettings,
             stackTrail,
             toGeneratorConfigMap,

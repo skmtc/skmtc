@@ -2,7 +2,6 @@ import { GenerateContext } from '@/context/GenerateContext.ts'
 import { RenderContext } from '@/context/RenderContext.ts'
 import { ParseContext } from '@/context/ParseContext.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
-import type { PrettierConfigType } from '@/types/PrettierConfig.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ResultType } from '@/types/Results.ts'
@@ -85,7 +84,6 @@ type RenderArgs = {
   files: Map<string, File | JsonFile>
   previews: Record<string, Preview>
   mappings: Record<string, Mapping>
-  prettier?: PrettierConfigType
   basePath: string | undefined
 }
 
@@ -116,8 +114,6 @@ export type ToArtifactsArgs = {
   settings: ClientSettings | undefined
   /** Function that returns the generator configuration map */
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-  /** Prettier configuration for code formatting (optional) */
-  prettier?: PrettierConfigType
   /** Whether to suppress console output */
   silent: boolean
 }
@@ -154,7 +150,6 @@ type SetupLoggerArgs = {
  *   document: { type: 'oas', value: openApiDoc },
  *   settings: clientSettings,
  *   toGeneratorConfigMap: () => generators,
- *   prettier: prettierConfig,
  *   silent: false,
  *   stackTrail: new StackTrail(['gen'])
  * });
@@ -323,7 +318,6 @@ export class CoreContext {
    *   `{ type: 'gql', value: GqlDocument }`)
    * @param args.settings - Client settings for customization
    * @param args.toGeneratorConfigMap - Function returning generator configuration
-   * @param args.prettier - Optional Prettier configuration for code formatting
    * @param args.silent - Whether to suppress console output during generation
    * @param args.stackTrail - Stack trail for distributed tracing
    * @returns Promise resolving to rendered artifacts and metadata
@@ -352,11 +346,6 @@ export class CoreContext {
    *       transform: ({ context, operation, acc }) => acc
    *     })
    *   }),
-   *   prettier: {
-   *     semi: false,
-   *     singleQuote: true,
-   *     trailingComma: 'all'
-   *   },
    *   silent: false,
    *   stackTrail: new StackTrail(['gen'])
    * });
@@ -380,8 +369,7 @@ export class CoreContext {
     document,
     settings,
     toGeneratorConfigMap,
-    stackTrail,
-    prettier
+    stackTrail
   }: ToArtifactsArgs): ToArtifactsResult {
     try {
       // Parse phase: one unified ParseContext handles both protocols
@@ -408,7 +396,6 @@ export class CoreContext {
           files,
           previews,
           mappings,
-          prettier,
           basePath: settings?.basePath
         })
 
@@ -522,12 +509,11 @@ export class CoreContext {
     this.#results.capture(stackTrail.toString(), result)
   }
 
-  #setupRenderPhase({ files, previews, mappings, prettier, basePath }: RenderArgs): RenderPhase {
+  #setupRenderPhase({ files, previews, mappings, basePath }: RenderArgs): RenderPhase {
     const renderContext = new RenderContext({
       files,
       previews,
       mappings,
-      prettierConfig: prettier,
       basePath,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this)

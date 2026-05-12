@@ -46,7 +46,6 @@ export function createMockRemoteProject(
     name,
     schemaFile,
     clientJson,
-    prettierJson: null,
     manager,
     toProjectKey: () => projectKey as any,
     toManifestPath: () => `/mock/remote-projects/${accountName}/${name}/.settings/manifest.json`

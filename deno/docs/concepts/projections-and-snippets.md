@@ -1,31 +1,284 @@
 # Projections and Snippets
 
-> The DSL's two-level model: named exportable artifacts vs anonymous embedded values.
+> The DSL's two-level model: named exportable artifacts (Projections)
+> and anonymous embedded fragments (Snippets). Both descend from
+> `SnippetBase`. The distinguishing question is whether the unit of
+> output needs a name at file scope.
+
+A Projection produces an `export const X = …` declaration. A Snippet
+produces a fragment that gets spliced into a Projection's body via
+template-literal interpolation. The split makes file-scope identity a
+deliberate choice, not a default.
 
 ## The one-line distinction
 
-## Why both?
+A Projection has a name and a file. A Snippet has neither.
+
+Projections produce `export const NAME = VALUE;` (or
+`export type NAME = …;`) declarations. They're addressable, importable,
+and participate in cross-generator coordination through the
+`(name, exportPath)` cache. Snippets produce JSX elements, function
+bodies, type fragments, or any other stringifiable value that gets
+*embedded into* a Projection.
+
+## Why two levels?
+
+The split maps onto JSX components vs JSX expressions. Top-level
+React components have names, get imported by other modules, and exist
+in their own files. JSX expressions (`<Button onClick={...} />`) are
+anonymous and embedded in their parent's rendering. SKMTC's DSL makes
+the same cut.
+
+The alternative — a single "unit" abstraction — would force every
+snippet to have a name and a path, even ones that exist only as an
+inline `<StringField />` JSX element. That's overhead with no benefit
+to the cross-generator coordination story (which only needs file-scope
+items in its cache). The two-level split keeps the cache small and the
+authoring ergonomics natural.
 
 ## Projections
 
-### What makes a Projection
+The full-citizen class for unit-of-output:
+
+- Subclasses one of three projection bases:
+  `ModelProjectionBase`, `OasOperationProjectionBase`, or
+  `GqlOperationProjectionBase`
+- Has a class-level `id` (the generator package name)
+- Has static methods on the class: `toIdentifier`, `toExportPath`,
+  `toEnrichments`, `toEnrichmentSchema`
+- Has instance properties: `settings: ContentSettings` (=
+  identifier + exportPath + enrichments), plus `context` and
+  `generatorKey`
+- Has instance methods inherited from the base: `insertOperation`,
+  `insertModel`, `insertNormalizedModel` (these auto-fill
+  `destinationPath` from `this.settings.exportPath`)
+
+Drivers wrap a Projection's output value in a `Definition`, which
+produces the `export const NAME = VALUE;` statement. The Projection's
+`toString()` produces just the VALUE; the wrapping is automatic.
+
+### Examples in stock generators
+
+- `ZodProjection` (`gen-zod`) — produces `export const userBody = z.object({...})`
+- `TsProjection` (`gen-typescript`) — produces `export type UserBody = { ... }`
+- `ShadcnForm` (`gen-shadcn-form`) — produces `export const CreateUserForm = (props) => ...`
+- `TanstackQuery` (`gen-tanstack-query-fetch-zod`) — produces `export const useCreateUser = (args) => ...`
+
+Each is a class that extends an operation or model projection base.
+Each has the static `toIdentifier` / `toExportPath` pair that makes
+it addressable in the cache.
 
 ### The three projection bases
 
-### Identifier, exportPath, and enrichments
+| Base | Source unit | When |
+|---|---|---|
+| `ModelProjectionBase` | An OAS schema component (a `refName`) | Generators that emit one file per type/schema |
+| `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that emit one file per endpoint |
+| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (`gen-graphql-operation`, etc.) |
 
-### When to write one
+Each base provides the `insertOperation` / `insertModel` /
+`insertNormalizedModel` methods with `destinationPath` auto-filled
+from `this.settings.exportPath` — a convenience over calling the
+underlying methods on `context` directly.
 
 ## Snippets
 
-### What makes a Snippet
+The anonymous fragment class:
 
-### Composition via toString()
+- Extends `SnippetBase` directly (or a subclass that doesn't introduce
+  projection mechanics)
+- No required static methods
+- No `settings` property
+- Receives constructor arguments like `destinationPath` from the
+  parent that will embed it
+- Embedded into a parent via `${this.snippet}` template-literal
+  interpolation
+- The parent calls `toString()` on the snippet implicitly via the
+  template literal
 
-### When to write one
+### Examples in stock generators
+
+- `FormFields` (`gen-shadcn-form`) — a list of field renderings inside a form
+- `StringInput`, `SelectInput`, `CheckboxInput`, etc. — individual JSX field elements
+- `CustomValue` — escape hatch wrapping arbitrary TS fragments that
+  don't fit the OAS-derived schema model
+- `Identifier` — a name with entity-type tracking (technically a
+  Snippet, though rarely thought of that way)
+- `Definition` — yes, even Definition is technically a Snippet (see
+  below)
 
 ## How Definition bridges them
 
+`Definition` extends `SnippetBase` but plays a special bridging role:
+it's the wrapper that makes a Projection's value exportable.
+
+```
+Projection.toString()
+       ↓ produces VALUE (e.g., "z.object({...})")
+Definition.toString()
+       ↓ produces "export const NAME = VALUE;\n"
+File.toString()
+       ↓ produces the complete file with imports + definitions
+```
+
+So `Definition` is the bridge between "unit of output" (Projection)
+and "rendered TypeScript declaration." It's a Snippet in the sense
+that it extends `SnippetBase`, but its role is specifically
+projection-wrapping. You rarely construct one directly — Drivers do.
+
+## The composition model
+
+JavaScript template literals call `String()` on interpolated values,
+which falls back to `.toString()`. Every `SnippetBase` descendant
+implements `toString()`, so they compose naturally:
+
+```ts
+class CreateUserForm extends ShadcnFormBase {
+  fields: FormFields              // ← a Snippet
+  clientName: string
+
+  constructor(args) {
+    super(args)
+    this.fields = new FormFields(args)
+    this.clientName = this.insertOperation(TanstackQuery, args.operation).toName()
+  }
+
+  override toString() {
+    return `(props: CreateUserFormProps) => {
+      const form = useForm({...})
+      const mutator = ${this.clientName}()
+      return (
+        <Form {...form}>
+          <form onSubmit={...}>
+            ${this.fields}        // ← Snippet's toString() embedded here
+            <Button>Submit</Button>
+          </form>
+        </Form>
+      )
+    }`
+  }
+}
+```
+
+The interpolation pattern is the entire composition mechanism. No
+registry, no slot system, no callback API. Anything that has a
+`toString()` (which is everything that extends `SnippetBase`) can be
+embedded.
+
+## When to use which
+
+- **Other generators might reference it by name** → Projection
+- **It needs a file-scope export (`export const X = ...`)** → Projection
+- **It's a fragment inside another generator's output** → Snippet
+- **Unsure** → Probably Snippet. Promote to Projection only when
+  cross-file identity is needed.
+
+The cost asymmetry: turning a Snippet into a Projection later is
+simple (subclass a base, add static methods). Turning a Projection
+into a Snippet is also simple but removes it from the cross-generator
+coordination cache. Default to Snippet unless you have a reason.
+
+## Snippets need destinationPath passed in
+
+Because Snippets don't have their own `exportPath`, they can't
+register imports against their own file — they need to know where
+their parent is going to land. The convention: the parent passes
+`destinationPath` as a constructor argument.
+
+```ts
+class StringInput extends SnippetBase {
+  constructor({ context, name, destinationPath }) {
+    super({ context })
+    this.name = name
+
+    // Register against the parent's destination file
+    this.register({
+      imports: { '@/components/fields/string-field': ['StringField'] },
+      destinationPath
+    })
+  }
+
+  override toString() {
+    return `<StringField name="${this.name}" />`
+  }
+}
+```
+
+The parent Projection has its own `exportPath` from
+`this.settings.exportPath`, so it doesn't need this dance. Snippets
+nested inside a Projection (or another Snippet) follow the chain —
+each parent passes `destinationPath` down to its children.
+
+This is the "side-effect on context with explicit destination"
+pattern: Snippets register their imports immediately during
+construction, before the parent's `toString()` even runs. By the time
+`File.toString()` assembles the final output, all imports across all
+nested Snippets have already accumulated in the file's import map.
+
 ## Common questions
 
+### Can a Snippet reach other generators?
+
+Indirectly. A Snippet inside a Projection can call
+`this.context.insertOperation(...)` or
+`this.context.insertNormalizedModel(...)` directly (Snippets don't
+have the projection-base wrappers, so they use the methods on
+`context`). The returned `Inserted<V, E>` gives access to the peer's
+identifier name just like in a Projection.
+
+That said: most cross-generator coordination *happens* in Projection
+constructors, where the projection-base wrappers auto-fill
+`destinationPath`. Snippets that compose generators are unusual but
+not forbidden.
+
+### Why isn't `register` on Projections only?
+
+`register` is defined on `SnippetBase` because both layers need it.
+Snippets register imports for themselves (against the parent's
+file). Projections register imports and definitions for their target
+file. The same primitive serves both — only `destinationPath` differs.
+
+### Is `Definition` really a Snippet?
+
+By inheritance, yes. By role, no — it's a bridging wrapper that
+Drivers create automatically. The fact that `Definition extends
+SnippetBase` is more of a technical detail than a conceptual claim.
+In practice, you compose Projections (which become Definitions via
+Drivers) with anonymous Snippets, and you never touch `Definition`
+directly.
+
+### Can I have multiple Projections in one file?
+
+Yes. Each Projection has its own `Definition`; the `File` holds a
+`Map<name, Definition>`. Multiple Projections targeting the same
+`exportPath` simply add their entries to the same File's
+`definitions` map. The file's `toString()` joins them with blank
+lines.
+
+### What if I want a named export but not a full Projection?
+
+Use `register({ definitions: [new Definition({...})] })` directly.
+This is the escape hatch — you produce a Definition without going
+through a Projection base. The trade-off: no cross-generator
+coordination (no cache, no integrity check) for that definition.
+
+Useful when emitting boilerplate that doesn't need to be addressable
+from other generators (e.g., a constants table, a default-values
+object).
+
+### Can a Snippet contain another Snippet?
+
+Yes — composition is unlimited depth. A `FormFields` snippet contains
+multiple `StringInput` / `SelectInput` snippets. Each child Snippet
+embeds itself via `${this.fields}` in the parent's `toString()`.
+Imports propagate up via shared `destinationPath`; the file's import
+map accumulates contributions from every nested snippet.
+
 ## Further reading
+
+- [Cross-generator coordination](cross-generator-coordination.md) — how Projections find each other
+- [The three phases](the-three-phases.md) — where Projections and Snippets fit in Parse / Generate / Render
+- [API reference: projection-bases](../reference/api/projection-bases.md)
+- [API reference: dsl-snippet-base](../reference/api/dsl-snippet-base.md)
+- [API reference: dsl-definition](../reference/api/dsl-definition.md)
+- [`skmtc-generator` skill](../skills/skmtc-generator/SKILL.md) — operational guidance for authoring

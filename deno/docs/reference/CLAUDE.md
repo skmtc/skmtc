@@ -7,6 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20729 | 10:03 AM | ✅ | Created error codes reference skeleton | ~546 |
-| #20728 | " | ✅ | Reference skeleton for manifest.json format | ~409 |
+| #20770 | 11:44 AM | ✅ | Standardized codebase spelling from mixed UK/US English to consistent US English | ~605 |
 </claude-mem-context>

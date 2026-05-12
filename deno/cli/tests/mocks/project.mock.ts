@@ -62,7 +62,6 @@ export function createMockProject(manager: Manager, options: MockProjectOptions 
     name,
     rootDenoJson,
     clientJson,
-    prettierJson: null,
     manifest,
     manager,
     schemaFile,

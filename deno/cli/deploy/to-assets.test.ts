@@ -72,21 +72,6 @@ Deno.test('toAssets - skips .DS_Store files', async () => {
   }
 })
 
-Deno.test('toAssets - skips .prettierrc.json files', async () => {
-  const tempDir = await Deno.makeTempDir()
-
-  try {
-    await Deno.writeTextFile(join(tempDir, '.prettierrc.json'), '{}')
-    await Deno.writeTextFile(join(tempDir, 'main.ts'), 'export {}')
-
-    const result = await toAssets({ projectRoot: tempDir })
-
-    assertEquals(Object.keys(result), ['main.ts'])
-  } finally {
-    await Deno.remove(tempDir, { recursive: true })
-  }
-})
-
 Deno.test('toAssets - skips .logs directory files', async () => {
   const tempDir = await Deno.makeTempDir()
 

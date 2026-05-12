@@ -9,7 +9,6 @@ import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
-import { PrettierJson } from '@/lib/prettier-json.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { existsSync } from '@std/fs/exists'
 import invariant from 'tiny-invariant'
@@ -34,7 +33,6 @@ export const toProject = async ({
       schemaFile: schemaSourceString
         ? await SchemaFile.openFromSource(schemaSourceString)
         : SchemaFile.create(),
-      prettierPath: PrettierJson.toPath(projectName),
       manager: skmtcRoot.manager
     })
   }

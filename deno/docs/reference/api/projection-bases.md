@@ -1,51 +1,407 @@
 # Projection bases
 
-> ModelProjectionBase, OasOperationProjectionBase, GqlOperationProjectionBase.
+> The three base classes for file-level Projections:
+> `ModelProjectionBase`, `OasOperationProjectionBase`,
+> `GqlOperationProjectionBase`. Constructed via factory functions
+> that bind the generator's required static methods.
+
+A "Projection" is a named, file-level generated artifact. The three
+projection bases differ in what input they're parameterized over —
+schema components (`ModelProjectionBase`), OAS operations
+(`OasOperationProjectionBase`), or GraphQL operations
+(`GqlOperationProjectionBase`) — but share the same instance API.
+
+## Source
+
+- `skmtc/deno/core/dsl/model/ModelProjectionBase.ts`
+- `skmtc/deno/core/dsl/operation/oas/OasOperationProjectionBase.ts`
+- `skmtc/deno/core/dsl/operation/gql/GqlOperationProjectionBase.ts`
+
+Plus factory functions:
+
+- `toOasOperationProjectionBase`
+- `toGqlOperationProjectionBase`
+- `toModelProjectionBase`
+
+## The three bases
+
+| Base | Source unit | Use for |
+|---|---|---|
+| `ModelProjectionBase` | A schema component (`refName`) | Generators that emit one file per type / schema (gen-typescript, gen-zod) |
+| `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that emit one file per endpoint (gen-shadcn-form, gen-tanstack-query) |
+| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (gen-graphql-operation) |
+
+All three extend `SnippetBase`, so Projections are technically
+Snippets — but with substantial additional structure (static
+methods, settings, projection-base convenience methods).
 
 ## Common shape
 
-### Required static methods
+Each projection base, when constructed via its factory, provides:
 
-#### `id`
+### Required static methods on the class
 
-#### `toIdentifier`
+Set by the factory's configuration object:
 
-#### `toExportPath`
+```ts
+{
+  id: string                              // generator package name
+  toIdentifier(args): Identifier          // pure function: name from input
+  toExportPath(args): string              // pure function: file path from input
+  toEnrichments?(args): EnrichmentSchema  // extract enrichments from settings
+  toEnrichmentSchema(): ValibotSchema     // declare accepted enrichment shape
+}
+```
 
-#### `toEnrichments`
-
-#### `toEnrichmentSchema`
+- **`toIdentifier`** and **`toExportPath`** are *load-bearing pure
+  functions*. They produce the cache key for cross-generator
+  coordination. Same inputs → same key.
+- **`toEnrichments`** extracts the per-item enrichment payload from
+  the project's settings. Default behavior is provided by the factory;
+  override only for custom routing.
+- **`toEnrichmentSchema`** returns the Valibot schema declaring
+  what enrichment fields this generator accepts.
 
 ### Instance properties
 
-#### `settings: ContentSettings`
-
-#### `context`
-
-#### `generatorKey`
+- `context: GenerateContextType` — inherited from SnippetBase
+- `settings: ContentSettings<EnrichmentType>` — computed by the
+  Driver. Has `identifier`, `exportPath`, `enrichments`.
+- `operation: OasOperation | GqlOperation` (operation bases only) —
+  the source operation.
+- `refName: RefName` (model base only) — the source schema's refName.
+- `generatorKey: GeneratorKey` — composite of generator id and
+  operation/refName. Used by `affirmDefinition` for cache integrity.
 
 ### Instance methods
 
-#### `insertOperation`
+The projection-base convenience layer that auto-fills
+`destinationPath` from `this.settings.exportPath`:
 
-#### `insertModel`
+```ts
+insertOperation<V, E>(
+  projection: OperationProjection<V, E>,
+  operation: OasOperation | GqlOperation,
+  options?: { noExport?: boolean }
+): Inserted<V, E>
 
-#### `insertNormalizedModel`
+insertModel<V, E>(
+  projection: ModelProjection<V, E>,
+  refName: RefName,
+  options?: { noExport?: boolean }
+): Inserted<V, E>
 
-#### `defineAndRegister`
+insertNormalizedModel<V, S, E>(
+  projection: ModelProjection<V, E>,
+  args: { schema: S, fallbackName: string },  // ← no destinationPath needed
+  options?: { noExport?: boolean }
+): InsertNormalisedModelReturn<V, S>
 
-## ModelProjectionBase
+defineAndRegister<V>(
+  args: { identifier: Identifier, value: V, noExport?: boolean }  // ← no destinationPath
+): Definition<V>
+```
 
-## OasOperationProjectionBase
+These delegate to the corresponding methods on `GenerateContext`,
+filling in `destinationPath: this.settings.exportPath`. Generator
+code typically uses these wrappers rather than the underlying
+context methods directly.
 
-## GqlOperationProjectionBase
+### `register` is inherited from SnippetBase
 
-## Factory helpers
+The same `register(args: RegisterArgs)` method is available. For
+Projections, `destinationPath` should typically be
+`this.settings.exportPath` — the projection's own file.
 
-### `toOasOperationProjectionBase`
+## Factory functions
 
-### `toGqlOperationProjectionBase`
+The factories take a configuration object and return a class
+constructor. Generator authors call the factory to produce a base
+class, then extend it.
 
-### `toModelProjectionBase`
+### `toOasOperationProjectionBase<E>(config): typeof OasOperationProjectionBase<E>`
+
+```ts
+export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,                                       // generator package name
+  toEnrichmentSchema,                                       // import from enrichments.ts
+
+  toIdentifier({ operation }): Identifier {
+    // Pure function of the operation
+    return Identifier.createVariable(deriveName(operation))
+  },
+
+  toExportPath({ operation, enrichments }): string {
+    // Pure function of (operation, enrichments)
+    const { name } = this.toIdentifier({ operation, enrichments })
+    return join('@', 'my-gen', `${name}.generated.ts`)
+  }
+})
+```
+
+The returned `MyGenBase` is then extended by the actual Projection
+class:
+
+```ts
+class MyProjection extends MyGenBase {
+  constructor(args: OasOperationProjectionConstructorArgs<EnrichmentSchema>) {
+    super(args)
+    // ...
+  }
+
+  override toString(): string {
+    return `...`
+  }
+}
+```
+
+### `toGqlOperationProjectionBase<E>(config)`
+
+Same shape as OAS but for GraphQL operations. The `operation`
+parameter has the GQL operation shape (root kind, field name).
+
+### `toModelProjectionBase<E>(config)`
+
+Same shape but the parameter is `{ refName, enrichments }` instead
+of `{ operation, enrichments }`. Used for generators that emit one
+file per schema component.
+
+```ts
+export const ZodBase = toModelProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+
+  toIdentifier({ refName }): Identifier {
+    return Identifier.createVariable(decapitalize(refName))
+  },
+
+  toExportPath({ refName }): string {
+    return join('@', 'zod', `${refName}.generated.ts`)
+  }
+})
+```
+
+## Pure function requirement
+
+`toIdentifier` and `toExportPath` **must be pure functions** of
+their inputs:
+
+- No `this`-side state. (Hence why they're static — `this` isn't an
+  instance.)
+- No async. Synchronous return.
+- No environmental reads (no `Date`, `Math.random`, `process.env`,
+  etc.).
+
+The reason: their outputs become the cache key for cross-generator
+coordination. If `toIdentifier(op)` returned different names on
+successive calls, the cache would lose its uniqueness invariant and
+the order-independence guarantee would break.
+
+The purity invariant is **convention-enforced, not type-enforced**.
+The TypeScript type signature doesn't prevent impurity; relying on
+convention is the cost of the design choice.
+
+See [cross-generator-coordination concept](../../concepts/cross-generator-coordination.md#identifier-and-exportpath-are-pure-functions).
+
+## Instance construction
+
+The Projection's constructor signature varies by base:
+
+```ts
+// Operation projection
+type OasOperationProjectionConstructorArgs<E> = {
+  context: GenerateContextType
+  operation: OasOperation
+  settings: ContentSettings<E>
+}
+
+// Model projection
+type ModelProjectionConstructorArgs<E> = {
+  context: GenerateContextType
+  refName: RefName
+  settings: ContentSettings<E>
+  destinationPath: string
+  rootRef?: RefName
+}
+```
+
+The Driver constructs the Projection with these args; generators
+write the constructor body that:
+
+1. Calls `super(args)`
+2. Composes with peer generators via `insertOperation` /
+   `insertNormalizedModel`
+3. Registers imports via `this.register({ imports, destinationPath: this.settings.exportPath })`
+
+## Examples
+
+### Complete operation projection
+
+```ts
+// gen-x/src/base.ts
+export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+
+  toIdentifier({ operation }) {
+    const verb = capitalize(toMethodVerb(operation.method))
+    const name = `${verb}${camelCase(operation.path, { upperFirst: true })}`
+    return Identifier.createVariable(name)
+  },
+
+  toExportPath({ operation, enrichments }) {
+    const { name } = this.toIdentifier({ operation, enrichments })
+    return join('@', 'my-gen', `${name}.generated.ts`)
+  }
+})
+
+// gen-x/src/MyProjection.ts
+export class MyProjection extends MyGenBase {
+  bodyTypeName: string
+
+  constructor(args: OasOperationProjectionConstructorArgs<EnrichmentSchema>) {
+    super(args)
+
+    // Compose with peer generator
+    const bodyType = this.insertNormalizedModel(TsProjection, {
+      schema: args.operation.toRequestBody(({ schema }) => schema),
+      fallbackName: `${args.settings.identifier.name}Body`
+    })
+    this.bodyTypeName = bodyType.identifier.name
+
+    // Register runtime imports
+    this.register({
+      imports: { 'my-runtime-lib': ['someHelper'] },
+      destinationPath: this.settings.exportPath
+    })
+  }
+
+  override toString(): string {
+    return `(args: ${this.bodyTypeName}) => someHelper(args)`
+  }
+}
+```
+
+### Complete model projection
+
+```ts
+// gen-zod/src/base.ts
+export const ZodBase = toModelProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+
+  toIdentifier({ refName }) {
+    return Identifier.createVariable(decapitalize(refName))
+  },
+
+  toExportPath({ refName }) {
+    return join('@', 'zod', `${refName}.generated.ts`)
+  }
+})
+
+// gen-zod/src/ZodProjection.ts
+export class ZodProjection extends ZodBase {
+  // ...
+}
+```
+
+## Common questions
+
+### Why static methods instead of methods on the instance?
+
+`toIdentifier` and `toExportPath` are called by the Driver *before*
+the Projection instance exists — the Driver needs them to compute
+the cache key, which determines whether to construct the instance
+at all. Static-on-class is the right shape for "available without
+an instance."
+
+### Can I override `toIdentifier` per instance?
+
+No. The static methods are bound to the class via the factory.
+Per-instance variation would defeat the cache-key purity invariant
+(different instances would compute different names for the same
+input, breaking memoization).
+
+If you need per-operation variation in identifier shape, encode it
+in `toIdentifier({ operation, enrichments })` — make the function
+branch on properties of the operation or enrichment payload.
+
+### What if I want to extend an existing projection base?
+
+You can extend the class produced by the factory, but the static
+methods are bound at factory time — overriding them in a subclass
+is brittle (the cached factory-produced methods take precedence in
+most paths).
+
+The cleanest pattern is to use the factory directly with your own
+configuration. If you're extending a stock generator, clone-then-
+edit `src/base.ts` rather than subclassing.
+
+### What's the relationship between the projection base's `insertOperation` and `GenerateContext.insertOperation`?
+
+The projection-base method wraps the context method, auto-filling
+`destinationPath` from `this.settings.exportPath`. So:
+
+```ts
+this.insertOperation(Peer, op)
+// ≡
+this.context.insertOperation({
+  projection: Peer,
+  operation: op,
+  destinationPath: this.settings.exportPath
+})
+```
+
+Generators almost always use the projection-base form because it
+reads cleaner and gets the destination right by default.
+
+### Why is `defineAndRegister` available on projection bases?
+
+For the rare case of emitting a Definition directly without going
+through a peer Projection. Useful for small inline values (a
+constants table, a default-values object) that need to be emitted
+as `export const X = ...` but don't justify a full Projection of
+their own.
+
+Direct `defineAndRegister` bypasses cross-generator coordination
+(the resulting Definition isn't discoverable via
+`insertOperation` from other generators). Use only for definitions
+that don't need cross-generator discoverability.
+
+## Related types
+
+```ts
+// Constructor argument shapes
+type OasOperationProjectionConstructorArgs<E = undefined> = {
+  context: GenerateContextType
+  operation: OasOperation
+  settings: ContentSettings<E>
+}
+
+type GqlOperationProjectionConstructorArgs<E = undefined> = {
+  context: GenerateContextType
+  operation: GqlOperation
+  settings: ContentSettings<E>
+}
+
+type ModelProjectionConstructorArgs<E = undefined> = {
+  context: GenerateContextType
+  refName: RefName
+  settings: ContentSettings<E>
+  destinationPath: string
+  rootRef?: RefName
+}
+
+// Factory result
+type OasOperationProjection<V, E> = new (args: OasOperationProjectionConstructorArgs<E>) => V & GeneratedValue
+```
 
 ## See also
+
+- [API: SnippetBase](dsl-snippet-base.md) — what projection bases extend
+- [API: GenerateContext](generate-context.md) — what the projection-base methods delegate to
+- [API: Identifier](dsl-identifier.md) — what `toIdentifier` returns
+- [API: ContentSettings](content-settings.md) — what `settings` carries
+- [Projections and Snippets concept](../../concepts/projections-and-snippets.md) — the two-level model
+- [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md) — pure functions and the cache
+- [`skmtc-generator` skill scaffolds](../../skills/skmtc-generator/SKILL.md) — concrete templates A, B, C, D

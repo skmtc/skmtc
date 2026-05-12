@@ -140,27 +140,6 @@ Deno.test('toArtifacts', async (t) => {
       assertExists(result.manifest)
     })
 
-    await t.step('should handle prettier configuration', () => {
-      const stackTrail = new StackTrail(['TEST'])
-      const result = toArtifacts({
-        traceId: 'test-trace',
-        spanId: 'test-span',
-        document: { type: 'oas', value: minimalOpenApiDoc },
-        settings: undefined,
-        prettier: {
-          semi: true,
-          singleQuote: true,
-        },
-        toGeneratorConfigMap: createEmptyGeneratorMap,
-        startAt: Date.now(),
-        silent: true,
-        stackTrail,
-      })
-
-      assertExists(result.artifacts)
-      assertExists(result.manifest)
-    })
-
     await t.step('should handle silent mode', () => {
       const stackTrail = new StackTrail(['TEST'])
 

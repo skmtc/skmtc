@@ -61,7 +61,6 @@
  *   documentObject: myOpenApiDoc,
  *   settings: mySettings,
  *   toGeneratorConfigMap: () => myGenerators,
- *   prettier: prettierConfig,
  *   silent: false
  * });
  * ```
@@ -179,7 +178,6 @@ export * from './types/Manifest.ts'
 export * from './types/Method.ts'
 export * from './types/Modifiers.ts'
 export * from './types/ModuleExport.ts'
-export * from './types/PrettierConfig.ts'
 export * from './types/Preview.ts'
 export * from './types/RefName.ts'
 export * from './types/Results.ts'

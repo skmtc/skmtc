@@ -127,7 +127,7 @@ The CLI uses Cliffy framework with these patterns:
 - Always run a type check using `deno check ./**/*.ts ./**/*.tsx` at the end of session to verify results
 - Use absolute import paths prefixed with `@/`, not of relative path imports
 
-Use US English spelling in prose and documentation
+Use US English spelling in code, prose and documentation
 
 <claude-mem-context>
 # Recent Activity

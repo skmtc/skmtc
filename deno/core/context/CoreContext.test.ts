@@ -421,30 +421,6 @@ Deno.test('CoreContext - toArtifacts() with settings provided', () => {
   assertEquals(typeof result.artifacts, 'object')
 })
 
-Deno.test('CoreContext - toArtifacts() with prettier config', () => {
-  const context = createTestContext()
-  const doc = createMinimalDocument()
-  const stackTrail = new StackTrail(['TEST'])
-
-  const result = context.toArtifacts({
-    document: {
-      type: 'oas',
-      value: doc
-    },
-    settings: undefined,
-    toGeneratorConfigMap: createEmptyGeneratorMap,
-    stackTrail,
-    silent: true,
-    prettier: {
-      semi: false,
-      singleQuote: true
-    }
-  })
-
-  assertExists(result)
-  assertEquals(typeof result.artifacts, 'object')
-})
-
 Deno.test('CoreContext - toArtifacts() silent mode', () => {
   const context = createTestContext({ silent: true })
   const doc = createMinimalDocument()
