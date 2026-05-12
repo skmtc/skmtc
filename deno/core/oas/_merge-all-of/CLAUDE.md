@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+| #20657 | 8:54 AM | 🔵 | allOf decomposition strategy - three-phase split for iterative merging | ~547 |
 </claude-mem-context>

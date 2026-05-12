@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+| #20719 | 10:02 AM | ✅ | Stock generators reference catalogue structure | ~620 |
 </claude-mem-context>

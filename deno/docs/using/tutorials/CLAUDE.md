@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+| #20675 | 10:00 AM | ✅ | Tutorial skeleton created for multiple generators workflow | ~432 |
+| #20673 | " | ✅ | Tutorial documentation structure created - first generation walkthrough | ~434 |
 </claude-mem-context>

@@ -33,4 +33,12 @@
 | #20186 | 8:58 AM | 🟣 | Added output path logging to generation summary message | ~337 |
 | #20176 | 8:56 AM | 🟣 | Added headless install path for non-TTY environments | ~317 |
 | #20173 | " | 🔴 | Fixed installGenerator silent failure - now persists deno.json | ~365 |
+
+### May 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20661 | 9:00 AM | 🔵 | SKMTC bundle freshness detection for local generator synchronization | ~631 |
+| #20660 | " | 🔵 | SKMTC Worker isolation model for generator execution | ~712 |
+| #20653 | 8:45 AM | 🔵 | CLI generation orchestration - worker-based artifact generation and filesystem writing | ~771 |
 </claude-mem-context>

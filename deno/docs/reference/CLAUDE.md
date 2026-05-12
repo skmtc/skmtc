@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+| #20729 | 10:03 AM | ✅ | Created error codes reference skeleton | ~546 |
+| #20728 | " | ✅ | Reference skeleton for manifest.json format | ~409 |
 </claude-mem-context>

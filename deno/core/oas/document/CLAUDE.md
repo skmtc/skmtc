@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+| #20656 | 8:54 AM | 🔵 | SKMTC OpenAPI v3 document parsing with distributed tracing | ~632 |
 </claude-mem-context>

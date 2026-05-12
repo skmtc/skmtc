@@ -10,4 +10,13 @@
 | #20531 | 8:04 PM | 🟣 | Include settings test suite created for allow-list generator filtering | ~531 |
 | #20245 | 10:40 AM | 🔄 | Made GqlParseContext.log() exhaustively checked via switch | ~294 |
 | #20240 | 10:38 AM | 🔄 | Unified parse issue storage across OAS and GraphQL contexts | ~303 |
+
+### May 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20658 | 8:54 AM | 🔵 | SKMTC error isolation pattern - tryParseAt for partial parse failures | ~788 |
+| #20651 | 8:45 AM | 🔵 | RenderContext implementation - final phase of SKMTC pipeline | ~790 |
+| #20650 | " | 🔵 | SKMTC GenerateContext orchestration and skip/include filtering | ~785 |
+| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
 </claude-mem-context>

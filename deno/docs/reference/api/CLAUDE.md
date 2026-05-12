@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+| #20713 | 10:02 AM | ✅ | Definition DSL API reference skeleton created | ~323 |
+| #20712 | " | ✅ | Created RenderContext API reference skeleton | ~548 |
 </claude-mem-context>

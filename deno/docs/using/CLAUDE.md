@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+| #20671 | 10:00 AM | ✅ | SKMTC documentation structure - "using" audience framework | ~638 |
 </claude-mem-context>

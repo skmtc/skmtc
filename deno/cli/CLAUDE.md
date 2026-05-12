@@ -152,4 +152,10 @@ deno compile --no-check --allow-all \
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #19895 | 9:22 AM | 🔵 | SKMTC CLI architecture and command structure reviewed | ~461 |
+
+### May 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
 </claude-mem-context>

@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+| #20666 | 9:46 AM | ✅ | Comprehensive SKMTC README documentation created | ~1100 |
+| #20665 | 9:44 AM | ✅ | Created comprehensive LLM documentation for SKMTC architecture | ~1185 |
 </claude-mem-context>
