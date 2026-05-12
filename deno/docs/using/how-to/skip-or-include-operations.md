@@ -96,15 +96,26 @@ So an operation present in both `include` and `skip` is **skipped**.
 
 ## Verification
 
-After regenerating, check the manifest:
+After regenerating, check the on-disk manifest's `results` tree
+(the `--json` stdout doesn't carry per-item results — those live
+only in `.skmtc/<project>/.settings/manifest.json`):
 
 ```bash
-skmtc generate <project> --json | jq '.manifest.files[] |
-  select(.result == "skipped") | .destinationPath'
+jq '.results[][].generate
+    | to_entries[]
+    | { gen: .key, skipped: (.value | to_entries
+        | map(select(.value == "skipped"))
+        | map(.key)) }' \
+  .skmtc/<project>/.settings/manifest.json
 ```
 
-Skipped items appear with `result: "skipped"`. Items not handled
-by any generator don't appear at all.
+Each leaf in `results` is one of `success`, `warning`, `error`,
+`skipped`, or `notSupported`. `skipped` means an item matched a
+generator but was excluded by `client.json` filters;
+`notSupported` means the generator's `isSupported` predicate
+returned false. See
+[manifest format → results](../../reference/manifest-format.md#results)
+for the full shape.
 
 ## Troubleshooting
 

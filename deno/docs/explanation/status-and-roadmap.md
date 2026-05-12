@@ -197,8 +197,12 @@ reference. For projects with many generators (especially GraphQL
 + heavy validation), the bundle can grow into multiple megabytes,
 slowing Worker spawn.
 
-**Mitigation:** measure with `skmtc bundle --json | jq .bundleSize`.
-If the bundle is unreasonably large, remove unused generators.
+**Mitigation:** measure the bundle on disk —
+`wc -c "$(skmtc bundle <project> --json | jq -r .bundlePath)"`.
+`bundle --json` itself returns only `{ kind, projectName, bundlePath }`
+(or `{ kind: 'noop', ... }` for remote-only projects); the size has
+to come from `stat`/`wc -c` against the path. If the bundle is
+unreasonably large, remove unused generators.
 
 ### Stale-bundle warnings
 

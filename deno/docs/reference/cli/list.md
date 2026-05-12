@@ -1,13 +1,18 @@
 # skmtc list
 
-> Show installed generators in a project, with their sources (JSR,
-> clone, or local create).
+> Show installed generators in a project — the import keys from
+> `<project>/deno.json#imports`, nothing more.
 
 `list` is the inspection counterpart to `install`/`clone`/`create`/
-`remove`. It reads the project's `deno.json#imports` and reports
-each generator with its source classification. Use it to verify that
-an install or clone landed, or to inventory a project before
-`remove`-ing entries.
+`remove`. It reads the project's `deno.json#imports` and reports the
+import keys. Use it to verify that an install or clone landed, or to
+inventory a project before `remove`-ing entries.
+
+`list` does **not** classify generators by source (JSR vs clone vs
+local). That information has to be derived from the import specifier
+in `deno.json#imports` if you need it. For a structured view that
+*does* split sources, see [`agent-context`](agent-context.md) —
+specifically `.projects[].generators.{remote,local}`.
 
 ## Synopsis
 
@@ -33,104 +38,59 @@ Disable interactive prompts.
 
 ### `--json`
 
-Emit JSON output. Implies `--no-input`.
+Print JSON output. Implies `--no-input`.
 
 ## Behavior
 
-The CLI reads `<project>/deno.json#imports`, classifies each entry
-by source, and reports the result. No filesystem mutation happens —
-`list` is read-only.
-
-### Output format
-
-Each generator is reported with three fields:
-
-- **`name`** — the import key (e.g., `@skmtc/gen-zod`,
-  `@local/my-emit`)
-- **`source`** — one of `'jsr'`, `'clone'`, or `'local'`
-- **`version`** — the resolved version (for JSR) or the file path
-  (for clones/local)
-
-### Sources listed (JSR vs local)
-
-The CLI distinguishes three source kinds based on the import
-specifier shape:
-
-| `deno.json#imports` value | Classified as | Meaning |
-|---|---|---|
-| `jsr:@skmtc/gen-zod@^0.0.55` | `jsr` | JSR-published, unmodified |
-| `./gen-zod/mod.ts` (under `.skmtc/<project>/`) | `clone` or `local` | Local source |
-| `npm:...` (rare) | `jsr` (treated similarly) | NPM-published |
-
-Clones and local-creates both have local paths; the CLI doesn't
-visibly distinguish them in `list` output. They differ in
-provenance:
-
-- **Clone** — source originally copied from a JSR package via
-  `skmtc clone`. May still resemble its upstream.
-- **Local** — source scaffolded from scratch via `skmtc create`. No
-  upstream relationship.
-
-For practical purposes (rebundle, remove), they behave identically.
+The CLI reads `<project>/deno.json#imports` and prints the import
+keys as a flat list. No filesystem mutation happens — `list` is
+read-only.
 
 ## JSON output
 
 ```jsonc
 {
-  "command": "list",
   "projectName": "my-api",
   "generators": [
-    {
-      "name": "@skmtc/gen-zod",
-      "source": "jsr",
-      "version": "^0.0.55"
-    },
-    {
-      "name": "@skmtc/gen-typescript",
-      "source": "jsr",
-      "version": "^0.0.42"
-    },
-    {
-      "name": "@local/my-form",
-      "source": "local",
-      "path": "./my-form/mod.ts"
-    }
-  ],
-  "counts": {
-    "jsr": 2,
-    "clone": 0,
-    "local": 1,
-    "total": 3
-  }
+    "@skmtc/gen-zod",
+    "@skmtc/gen-typescript",
+    "@dgrabov/my-form"
+  ]
 }
 ```
 
 ### Field reference
 
-- **`generators[].name`** — the import key as it appears in
-  `deno.json#imports`.
-- **`generators[].source`** — `'jsr'`, `'clone'`, or `'local'`.
-- **`generators[].version`** — for JSR sources, the resolved version
-  range (echoed from the import specifier). For local sources,
-  omitted; see `path`.
-- **`generators[].path`** — for local sources only, the relative
-  path under the project root.
-- **`counts`** — convenience summary by source.
+- **`projectName`** — echoed from the argument.
+- **`generators`** — a flat string array of import keys (every key
+  under `deno.json#imports`). The shape matches `ListHeadlessResult`
+  in `cli/lib/list-headless.ts:20-23`:
+
+  ```ts
+  export type ListHeadlessResult = {
+    projectName: string
+    generators: string[]
+  }
+  ```
+
+No envelope (no `command` field). No per-entry object (entries are
+strings, not records). No `version`, `source`, `path`, or `counts`
+fields — `list` does not compute them. If you need any of those,
+read `<project>/deno.json#imports` directly and parse the import
+specifier yourself.
 
 ## Human-readable output
 
-Without `--json`, the CLI emits a table:
+Without `--json`, the CLI prints a labelled bulleted list:
 
 ```
-Project: my-api
-
-Name                           Source   Version
-@skmtc/gen-zod                 jsr      ^0.0.55
-@skmtc/gen-typescript          jsr      ^0.0.42
-@local/my-form                 local    ./my-form/mod.ts
-
-Total: 3 generators (2 jsr, 0 clones, 1 local)
+Generators in my-api:
+  - @skmtc/gen-zod
+  - @skmtc/gen-typescript
+  - @dgrabov/my-form
 ```
+
+An empty project prints `  (none)` under the heading.
 
 ## Examples
 
@@ -143,10 +103,22 @@ skmtc list my-api
 ### Programmatic consumption
 
 ```bash
-skmtc list my-api --json | jq '.generators[] | select(.source == "clone") | .name'
+skmtc list my-api --json | jq -r '.generators[]'
 ```
 
-Lists only cloned generators by name.
+Streams the import keys one per line — pipe into any consumer.
+
+To filter by source, read `deno.json` directly:
+
+```bash
+jq -r '.imports | to_entries[]
+       | select(.value | startswith("jsr:"))
+       | .key' \
+  .skmtc/my-api/deno.json
+```
+
+(The `jsr:` prefix marks JSR-published packages; everything else is
+a relative path — either a clone or a local-create.)
 
 ### Verify after install
 
@@ -161,7 +133,7 @@ The post-install `list` is the canonical "did it work" check.
 
 | Code | Meaning |
 |------|---------|
-| `0` | Success — list emitted (may be empty) |
+| `0` | Success — list printed (may be empty) |
 | `1` | Project's `deno.json` unreadable or malformed |
 | `2` | Required argument missing in strict mode |
 
@@ -206,5 +178,7 @@ SKMTC workspace at all. Check the current directory and the workspace
 - [`skmtc remove`](remove.md) — removes a generator
 - [`skmtc doctor`](doctor.md) — runs deeper validation on the
   generator set
+- [`skmtc agent-context`](agent-context.md) — for structured
+  source-classified output (`.projects[].generators.{remote,local}`)
 - [skmtc-cli skill](../../skills/skmtc-cli/SKILL.md) — workflow
   context

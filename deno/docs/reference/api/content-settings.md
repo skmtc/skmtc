@@ -63,7 +63,8 @@ The Projection's name and entity-type marker. Used in two ways:
    one entry.
 
 See [API: Identifier](dsl-identifier.md) for the entity-type semantics
-(`'const'` vs `'type'`) and factory methods.
+(`'variable'` vs `'type'` — the discriminator values; the rendered
+declaration keyword for `'variable'` is `const`) and factory methods.
 
 ### `exportPath`
 

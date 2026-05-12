@@ -1064,6 +1064,60 @@ My docs use `.toName()` exclusively. `toExportPath()` (useful for cross-referenc
 
 Documentation-completeness gap, not a fabrication.
 
+### BULK-020 — "Emit" used across docs and source where SKMTC has more precise vocabulary [friction]
+
+**Surface area:** 84 docs, ~257 occurrences of the verb (current count, `grep -rcE "\\bemit(s|ted|ting|ter)?\\b" docs --include="*.md"`). Plus source-level identifiers: `emitOperation` (in `gen-graphql-operation/src/mod.ts` and `gen-graphql-typed-document-node/src/mod.ts`), `emitResult` (in `gen-graphql-operation/src/mod.ts`), and `emitInterfaceUnions` (config option in `core/context/parseTypes.ts` and `core/gql/document/parseGqlDocument.ts`).
+
+**What happened:** Docs, skills, and a few source identifiers use "emit" as a verb to describe what a generator does (e.g. "the generator emits TypeScript code", "Generators emit syntactically valid TypeScript", "files-to-emit map"). "Emit" is borrowed from general code-generation jargon (and reinforced by the private `emitOperation` helper in two stock generators) but it is **not** part of the SKMTC API. Critically, "register" is **not** a blanket replacement either — `register` is a specific method on `GenerateContext` (`context.register({ imports, definitions, destinationPath })`) and overloading it as a generic verb conflates the API call with general English.
+
+**Correct vocabulary per context:**
+
+| Context | Right verb |
+|---|---|
+| Literally calling `context.register({...})` | `register` |
+| Literally calling `context.insertModel` / `insertOperation` / `insertNormalisedModel` | `insert` |
+| General prose: "generator produces output" / "files this generator creates" | `produce` / `create` |
+| Worker posting a message back to host | `post` / `send` / `return` |
+| CLI writing to stdout/stderr | `print` / `write` |
+| Codegen phase name | `generate` (the phase itself) |
+| In-memory file map | "files map" — no verb needed |
+
+The mapping is context-sensitive; a single mechanical substitution (e.g. `sed s/emit/register/g`) produces nonsense like "Print → Register JSON output" (a CLI option description that has nothing to do with the SKMTC `register()` API).
+
+**What was expected:** Prose, section headings, code comments, and identifier names in SKMTC use the per-context verb above. The one acceptable existing use of "emit" is when the source code literally has an `emit*` identifier still in place; renaming those identifiers is part of this cluster's fix scope.
+
+**Why it matters:**
+1. **Onboarding confusion.** A reader learning SKMTC looks for an `emit()` method, finds nothing — there is no such method. They have to mentally translate "emit" → "register or insert or produce?" on every read.
+2. **LLM-assisted authoring.** Skills (loaded into every agent session) use "emit" alongside the actual API verbs. An agent picking up "emit" as a general-purpose verb is likely to hallucinate `context.emit(...)` or describe generators as "emitting" when the precise term would have prompted them to look up the right API.
+3. **Vocabulary drift.** Each new doc that uses "emit" as a verb makes the next author more likely to do the same. The drift compounds until the docs and the API speak different languages.
+
+**Possible fixes:**
+- **Per-context sweep across docs.** Replace "emit" with the right verb per the table above. Cannot be done with a global regex — each occurrence needs context inspection. The CLI-output cases (e.g. `--json` flag descriptions) take "print"; the generator-action cases take "produce" or "create" or the specific API verb if it really is a `register`/`insert` call.
+- **Source-level renames.**
+  - `emitOperation(context, operation)` in `gen-graphql-operation/src/mod.ts` and `gen-graphql-typed-document-node/src/mod.ts` → pick a non-emit name (e.g. `processOperation` or inline into `transform`).
+  - `emitResult` in `gen-graphql-operation/src/mod.ts` → likewise.
+  - `emitInterfaceUnions` config option in `core/context/parseTypes.ts` and `core/gql/document/parseGqlDocument.ts` (plus the test file) → `includeInterfaceUnions` reads more naturally as a feature flag.
+- **Style guide.** Add a one-line vocabulary note (in `docs/CLAUDE.md` or `docs/README.md`) so future doc-authors and agents know the convention and don't blanket-swap to `register`.
+- **Audit cadence.** After the sweep, periodically run `grep -rcE "\\bemit(s|ted|ting|ter)?\\b" docs --include="*.md"` and inspect new hits before they accumulate.
+
+Highest-yield doc files by current count:
+
+```
+reference/api/dsl-identifier.md          14
+skills/skmtc-cli/SKILL.md                10
+explanation/comparison-to-other-tools.md  9
+reference/cli/create.md                   8
+llms.md                                   8
+reference/settings/client-json-schema.md  7
+reference/api/dsl-import.md               7
+```
+
+**Version anchor:** `@skmtc/core@0.4.2`, `@skmtc/gen-graphql-operation@0.0.57`, `@skmtc/gen-graphql-typed-document-node@0.0.57`, all current docs (2026-05-12)
+
+**Status:** open — user-raised on 2026-05-12 during the round-5 review of `handle-graphql-instead-of-oas.md`. An initial attempt to do this as a single `emit → register` mechanical sweep was reverted because it conflated the SKMTC API verb with a generic verb. The proper sweep is context-sensitive and needs to address the source-level renames too; round-5 doc rewrites since the flag use the correct vocabulary, but the pre-existing occurrences await a careful per-context pass.
+
+---
+
 ### BULK-019 — Manifest `results` tree key conventions are unverified
 
 `core/context/RenderContext.ts:30`, `GenerateContext.ts:80`, etc. — `captureCurrentResult(result, stackTrail)`. Results are emitted with a StackTrail; the nested-tree structure depends on how the StackTrail's segments split into nested object keys.
@@ -1101,5 +1155,6 @@ Key conventions (`trace-<ms>` prefix, constant `"generate"` subkey, `<protocol>_
 | BULK-017 OasOperation.responses optional | 1 | open |
 | BULK-018 Inserted methods missing | 3 (gap) | open |
 | BULK-019 manifest results tree | 1 (unverified) | open |
+| BULK-020 "emit" vocabulary | 84 docs / ~257 + 3 source identifiers | open — context-sensitive sweep required; cannot be done as a global `emit → register` substitution |
 
-**~161 sites + 3 doc-completeness gaps + 1 unverified shape across ~26 docs.**
+**~161 sites + 3 doc-completeness gaps + 1 unverified shape across ~26 docs**, plus the BULK-020 vocabulary cluster spanning 84 docs and 3 source identifiers.

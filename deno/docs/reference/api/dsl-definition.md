@@ -65,12 +65,19 @@ code.
 
 ### `identifier: Identifier`
 
-The name and entity-type marker. Determines the declaration shape:
+The name and entity-type marker. The `identifier.entityType` is
+an `EntityType` instance; read `.type` for the discriminator
+value. The declaration shape:
 
-- `entityType === 'const'` → `export const <name> = <value>;`
-- `entityType === 'type'` → `export type <Name> = <value>;`
+- `entityType.type === 'variable'` → `export const <name> = <value>;`
+- `entityType.type === 'type'`     → `export type <Name> = <value>;`
 
-Plus optional `typeName` annotation for `const` (e.g.,
+(`EntityType.toString()` maps the discriminator to the rendered
+TS keyword — `'variable'` becomes `const`, `'type'` stays `type` —
+which is what `Definition.toString()` interpolates into the
+declaration.)
+
+Plus optional `typeName` annotation for variables (e.g.,
 `export const useUser: UseQueryResult<...> = ...`).
 
 ### `description: string | undefined`

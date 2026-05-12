@@ -42,22 +42,42 @@ allow order to matter.
 ### Identifier and exportPath are pure functions
 
 The cache key is `(identifier.name, exportPath)`. Both come from
-the Projection's static methods:
+config fields supplied to the projection-base factory. From the
+stock `gen-zod/src/base.ts`:
 
 ```ts
-class ZodProjection extends ModelProjectionBase {
-  static toIdentifier({ schema, refName }): Identifier {
-    return Identifier.createVariable(decapitalize(refName))
-  }
+import {
+  camelCase,
+  decapitalize,
+  Identifier,
+  toModelProjectionBase,
+} from '@skmtc/core'
+import { join } from '@std/path'
+import denoJson from '../deno.json' with { type: 'json' }
 
-  static toExportPath({ schema, refName }): string {
-    return `/models/${refName}.generated.ts`
-  }
-}
+export const ZodBase = toModelProjectionBase({
+  id: denoJson.name,
+
+  toIdentifier({ refName }): Identifier {
+    const name = decapitalize(camelCase(refName))
+    return Identifier.createVariable(name)
+  },
+
+  toExportPath({ refName, enrichments }): string {
+    const { name } = this.toIdentifier({ refName, enrichments })
+    return join('@', 'types', `${decapitalize(name)}.generated.ts`)
+  },
+})
 ```
 
-`toIdentifier` and `toExportPath` are **pure functions** of their
-inputs. Given the same `refName`, they return identical
+`ZodProjection` (in a separate file) extends `ZodBase` — the
+factory result — and provides the per-instance `toString()`. The
+factory wires `toIdentifier` and `toExportPath` onto the class
+as statics so the cache key can be computed without
+instantiating.
+
+`toIdentifier` and `toExportPath` are **pure functions** of
+their inputs. Given the same `refName`, they return identical
 identifier names and paths. No mutation, no random suffixes, no
 timestamps.
 

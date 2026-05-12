@@ -111,18 +111,35 @@ enrichments.
 ### `deno.json` imports updated
 
 The project's `.skmtc/<project>/deno.json#imports` gets a new entry
-pointing at the local source:
+pointing at the local source. The import-key **scope** is derived
+from the CLI's auth state, not hard-coded:
 
-```json
+```jsonc
+// Example: run by an authenticated user `dgrabov`
 {
   "imports": {
-    "@local/my-zod-schema": "./my-zod-schema/mod.ts"
+    "@dgrabov/my-zod-schema": "./my-zod-schema/mod.ts"
   }
 }
 ```
 
-The `@local/` prefix is conventional but not required — the CLI uses
-whatever import alias the user supplies (or defaults to `@local/`).
+The scope falls back through `Project.addGenerator` in
+`cli/lib/project.ts:340–349`:
+
+1. **Explicit scope from the input.** If you ran
+   `skmtc create my-api @myorg/my-zod-schema model`, the scope is
+   `@myorg` (parsed by `parseModuleName`).
+2. **Authed username.** If no explicit scope and the user is
+   logged in (Supabase auth), the scope is `@<username>`.
+3. **`jsr-user` fallback.** No explicit scope, not authed → the
+   literal `jsr-user/<name>` (no `@` prefix).
+
+`@local/` is never used by the implementation. Don't pin shared
+scripts or CI build steps to a fixed scope — the resulting import
+key depends on who ran `create`, which makes the produced scope
+non-portable across team members or unauthenticated CI. If you
+need a stable scope across environments, pass it explicitly when
+running `create`.
 
 ### Post-create rebundle
 

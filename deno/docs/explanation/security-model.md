@@ -195,15 +195,20 @@ plugin API can ship a binary plugin you can't read. SKMTC's
 ### Manifest as forensic record
 
 Every `generate` run produces a `manifest.json` listing every
-emitted artifact. After a generate, comparing the manifest's
+artifact written. After a generate, comparing the manifest's
 paths against `git status` surfaces unexpected writes:
 
 ```bash
 skmtc generate my-api --json > generate-output.json
-jq '.manifest.files | keys' generate-output.json > expected-paths.txt
-git status --porcelain | awk '{print $2}' > actual-changes.txt
+jq -r '.files[]' generate-output.json | sort > expected-paths.txt
+git status --porcelain | awk '{print $2}' | sort > actual-changes.txt
 diff expected-paths.txt actual-changes.txt
 ```
+
+(`skmtc generate --json` stdout has `files` as a flat top-level
+array of paths — no `manifest` wrapper. The on-disk
+`manifest.json` uses a different shape; see
+[manifest format](../reference/manifest-format.md).)
 
 Discrepancies flag both undesired writes and undesired skips.
 

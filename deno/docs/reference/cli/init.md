@@ -60,20 +60,24 @@ Emit JSON output. Implies `--no-input`.
 
 The created files:
 
-**`deno.json`** — minimal manifest with the core peer-dep pin:
+**`deno.json`** — empty manifest:
 
 ```json
-{
-  "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^<current>",
-    "@skmtc/worker": "jsr:@skmtc/worker@^<current>"
-  }
-}
+{}
 ```
 
-The pinned versions match the CLI's own versions, so subsequent
-`install` and `clone` operations have compatible peers from the
-start.
+`init` writes `{}` verbatim — `RootDenoJson.create(projectName)` in
+`cli/lib/root-deno-json.ts` constructs the file with `contents: {}`.
+Peer dependencies (`@skmtc/core`, `@skmtc/worker`, individual
+`@skmtc/gen-*` packages) accrete lazily as subsequent `install` and
+`clone` operations discover what they need. The first `install` or
+`clone` adds the appropriate `imports` entries and Deno pins them
+in the lockfile.
+
+A consequence worth knowing: running `skmtc doctor` immediately
+after `init` will report `project-core-pin/<project>` as missing
+(there's nothing to compare yet). Run `install` or `clone` once and
+the pin appears.
 
 **`.settings/client.json`** — minimal config with the basePath:
 

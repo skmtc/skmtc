@@ -50,7 +50,7 @@ The system follows a three-phase pipeline orchestrated by `CoreContext`:
 
 1. **Parse Phase** (`ParseContext`): Converts OpenAPI v3 JSON documents into internal OAS (OpenAPI Schema) objects
 2. **Generate Phase** (`GenerateContext`): Transforms OAS objects into generator-specific artifacts using pluggable generators
-3. **Render Phase** (`RenderContext`): Renders artifacts to files with formatting (Prettier) and file system operations
+3. **Render Phase** (`RenderContext`): Serializes the in-memory file map into `{ path: content }` artifacts. **No formatter runs** in the pipeline (no Prettier, no Biome, no `deno fmt`) — consumers format their own output. Filesystem writes happen in the host process post-worker, not inside `RenderContext`.
 
 ### Key Architectural Components
 

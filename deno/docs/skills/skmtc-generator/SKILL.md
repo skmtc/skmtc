@@ -292,7 +292,13 @@ export class MyGen extends MyGenBase {
 
   override toString(): string {
     // ⬇ Pure function of `this`. No mutation. Compose via ${...}.
-    return `export const ${this.settings.identifier.name} = someHelper<${this.tsRequestBodyName}>(...)`
+    // ⬇ Return ONLY the value. Do NOT prefix with `export const ...`.
+    //   The Driver wraps your value as
+    //   `export const ${identifier.name} = ${this.toString()};`
+    //   during File serialisation. Writing `export const` yourself
+    //   produces `export const Foo = export const Foo = ...` — a
+    //   TypeScript syntax error.
+    return `someHelper<${this.tsRequestBodyName}>(...)`
   }
 }
 ```

@@ -51,17 +51,22 @@ literal string into the import statement.
 
 The named imports for this statement. Each entry is either:
 
-- A **string** — a plain runtime-value import (`X` → `import { X }`)
-- An **object** `{ name, alias?, isType? }` — a flagged import with
-  optional alias and/or type-only marking
+- A **string** — a plain runtime-value import (`'X'` → `import { X }`)
+- A **name→alias record** `{ origName: 'aliasName' }` — a compact
+  form for one-off rename imports without entity-type info
+- An **object** `{ name, alias?, type? }` — the full form with
+  optional alias and explicit entity-type discriminator
 
 ```ts
-type ImportNameArg = string | {
-  name: string
-  alias?: string
-  isType?: boolean
-}
+// Verified against core/dsl/Import.ts:267-270
+type ImportNameArg =
+  | string
+  | { [name: string]: string }
+  | { name: string; alias?: string; type?: EntityTypeValue }
 ```
+
+`EntityTypeValue` is `'variable' | 'type'`. Omitting `type`
+defaults to a value import.
 
 ## Methods
 
@@ -121,7 +126,7 @@ this.register({
     'zod': ['z'],
     '@tanstack/react-query': [
       'useMutation',
-      { name: 'UseMutationResult', isType: true }
+      { name: 'UseMutationResult', type: 'type' }
     ]
   },
   destinationPath: this.settings.exportPath
@@ -168,14 +173,15 @@ key encodes:
 - Whether it's a type-only import
 - Whether it has an alias (and what the alias is)
 
-Two calls registering the same name + same isType + same alias collapse
-into one entry. Two calls registering the same name with *different*
-isType land as separate entries — meaning a name registered both as
-value and as type would appear twice in the import statement (one
-with `type`, one without). In practice, the same name is rarely
-imported both ways from the same module.
+Two calls registering the same name + same `type` discriminator +
+same alias collapse into one entry. Two calls registering the same
+name with *different* `type` values land as separate entries —
+meaning a name registered both as a value and as a type would appear
+twice in the import statement (one with `type`, one without). In
+practice, the same name is rarely imported both ways from the same
+module.
 
-If the first registration is `{ name: 'X', isType: true }` and a
+If the first registration is `{ name: 'X', type: 'type' }` and a
 subsequent call registers plain `'X'`, both keys land in the Set:
 
 - `'type:X'`
@@ -187,9 +193,10 @@ engine emits faithfully.
 
 ## Type-only import emission
 
-The `EntityTypeValue` distinction (`'const'` vs `'type'`) drives the
-`isType` flag on `ImportNameArg`. See [API: Identifier](dsl-identifier.md)
-for how identifiers carry this distinction.
+The `EntityTypeValue` distinction (`'variable'` vs `'type'`) drives
+the `type` field on `ImportNameArg`. See
+[API: Identifier](dsl-identifier.md) for how identifiers carry
+this distinction.
 
 `Identifier.toImport()` produces the correct `ImportNameArg`:
 
@@ -198,7 +205,7 @@ Identifier.createVariable('useUser').toImport()
 // → 'useUser'    (plain string, runtime value)
 
 Identifier.createType('UserBody').toImport()
-// → { name: 'UserBody', isType: true }
+// → { name: 'UserBody', type: 'type' }
 ```
 
 When a generator passes the result of `toImport()` to `register`, the
@@ -229,7 +236,7 @@ new Import({
   module: '@tanstack/react-query',
   importNames: [
     'useMutation',
-    { name: 'UseMutationResult', isType: true }
+    { name: 'UseMutationResult', type: 'type' }
   ]
 }).toString()
 // → "import { useMutation, type UseMutationResult } from '@tanstack/react-query'"
@@ -253,7 +260,7 @@ this.register({
     'zod': ['z'],
     '@/generated/User': [
       this.userBody.identifier.toImport(),   // 'userBody' (value)
-      this.UserBody.identifier.toImport()    // { name: 'UserBody', isType: true }
+      this.UserBody.identifier.toImport()    // { name: 'UserBody', type: 'type' }
     ]
   },
   destinationPath: this.settings.exportPath
@@ -273,9 +280,9 @@ Three reasons:
 1. **Deduplication**: a class instance carries the parsed structure,
    so the File can deduplicate by content rather than by literal
    string.
-2. **Type vs value flag**: the `isType` flag is a per-name property,
-   not a per-module property. Mixed imports require structural
-   representation.
+2. **Type vs value discriminator**: the `type` field on
+   `ImportNameArg` is a per-name property, not a per-module
+   property. Mixed imports require structural representation.
 3. **Future flexibility**: tracking imports as structured data lets
    the engine adjust the output format (e.g., sort, group, switch
    between `import { type X }` and `import type { X }`) without
@@ -323,15 +330,26 @@ separately.
 ## Related types
 
 ```ts
-type ImportNameArg = string | {
-  name: string
-  alias?: string
-  isType?: boolean
-}
+// Verified against core/dsl/Import.ts:267-270
+type ImportNameArg =
+  | string
+  | { [name: string]: string }
+  | { name: string; alias?: string; type?: EntityTypeValue }
+
+type EntityTypeValue = 'variable' | 'type'
 
 // Used by register on GenerateContext / SnippetBase
 type RegisterArgsImports = Record<string /* module */, ImportNameArg[]>
 ```
+
+Three variants:
+- **`string`** — `'X'` is an unaliased value import.
+- **`{ [name: string]: string }`** — compact rename form, e.g.
+  `{ merge: 'lodashMerge' }`. No entity-type info; treated as a
+  value import.
+- **`{ name, alias?, type? }`** — full form. Set `type: 'type'`
+  for a type-only import. Omit `type` (or set `'variable'`) for
+  a value import.
 
 ## See also
 

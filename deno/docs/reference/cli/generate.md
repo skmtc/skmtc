@@ -139,6 +139,16 @@ The manifest is overwritten on every run. See
 
 ## JSON output
 
+> **Two JSON shapes — read carefully.** The `--json` stdout shape
+> documented here is **different** from the on-disk
+> `manifest.json` shape (described in
+> [`reference/manifest-format.md`](../manifest-format.md)). Stdout
+> flattens `files` to a top-level string array of paths and **does
+> not** include the per-item `results` tree. Recipes assuming the
+> manifest shape against stdout will silently produce `null`. When
+> writing a `jq` recipe, decide first *which JSON* you are
+> querying.
+
 ```jsonc
 {
   "kind": "generated",
@@ -156,7 +166,12 @@ The manifest is overwritten on every run. See
     "mobile-app/src/services/useCustomer.generated.ts",
     "..."
   ],
-  "errors": [["models.ts", "Product"]],    // [destinationPath, identifier] pairs
+  "errors": [
+    ["trace-1778185255674", "span-1778185255674", "generate",
+     "@skmtc/gen-zod", "BrokenModel"]
+  ],
+  // Each entry is a path through manifest.results ending at an 'error'
+  // leaf. Shape: [traceId, spanId, "generate", generatorId, identifier].
   "parseIssues": [
     {
       "protocol": "oas",
@@ -185,8 +200,14 @@ The manifest is overwritten on every run. See
   on the artifact contents.
 - **`files`**: every destination path written by this run.
   Resolved paths (after `basePath` application).
-- **`errors`**: `[destinationPath, identifier]` pairs for items
-  whose `results` entry came back `'error'`.
+- **`errors`**: An array of *paths* through `manifest.results`. Each
+  path terminates at a leaf whose result value is `'error'`. The
+  canonical shape is `[traceId, spanId, "generate", generatorId,
+  identifier]` (deeper for nested aggregator results). The generator
+  whose item failed is the second-to-last element; the failing
+  identifier is the last. `errors[i][0]` is **not** a file path — to
+  find the file an error corresponds to, look up the identifier
+  via the generator's `toExportPath`.
 - **`parseIssues`**: forwarded verbatim from
   `manifest.parseIssues`. Each issue has `protocol`, `level`,
   `type`, `location`, `message`, optional `cause`.

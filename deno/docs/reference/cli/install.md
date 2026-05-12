@@ -57,12 +57,17 @@ For each generator argument, the CLI:
    ```
 3. Updates the Deno lockfile to pin the exact resolved version
 
-### Default settings written
+### `client.json` is not modified
 
-The CLI also writes default per-generator settings into
-`client.json` if the generator declares any (via its enrichment
-schema). For most generators, no per-install settings are needed —
-enrichments are added on-demand by the user later.
+Install does **not** modify `client.json`. The generator's
+`install({ denoJson })` method
+(`cli/lib/generator.ts:96–98`) is a single call —
+`denoJson.addImport(moduleName, fullName)` — and touches the
+project's `deno.json` only. Enrichments are user-added on demand:
+read the generator's `src/enrichments.ts` Valibot schema to learn
+the shape, then type the keys into
+`client.json#settings.enrichments` yourself. See
+[How to configure enrichments](../../using/how-to/configure-enrichments.md).
 
 ### Post-install rebundle
 

@@ -34,7 +34,7 @@ do one-off generates against a different spec (staging URL, fixture
 file, branch-specific schema) without mutating the project's
 `client.json`.
 
-### 2. `settings.source` in client.json
+### 2. Top-level `source` in client.json
 
 ```jsonc
 {
@@ -43,10 +43,20 @@ file, branch-specific schema) without mutating the project's
 }
 ```
 
-The project's pinned source — read from `.skmtc/<project>/.settings/client.json`.
+The project's pinned source — read from
+`.skmtc/<project>/.settings/client.json`. The `source` field lives
+at the **top level** of `client.json`, **not** inside `settings`.
+The CLI reads it as `parsed.source` (see
+`cli/lib/agent-context-headless.ts:157–158`).
+
 This is the typical configured state. See the [`source` field
 reference in client-json-schema.md](client-json-schema.md#source-top-level-optional)
 for the shape.
+
+> A `settings.schemaSource` field appears in the `ClientSettings`
+> Valibot schema (`core/types/Settings.ts`) but is not currently
+> read by any consumer — treat it as a dead field. Pin the schema
+> via the top-level `source` field, not `settings.schemaSource`.
 
 ### 3. Interactive prompt (TTY only)
 

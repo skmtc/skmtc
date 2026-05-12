@@ -39,28 +39,54 @@ methods, settings, projection-base convenience methods).
 
 Each projection base, when constructed via its factory, provides:
 
-### Required static methods on the class
+### Factory config object
 
-Set by the factory's configuration object:
+You hand this object to the factory (e.g.
+`toOasOperationProjectionBase(config)`). Required vs optional
+matches the source type (`toOasOperationProjectionBase.ts:18–30`):
 
 ```ts
 {
-  id: string                              // generator package name
-  toIdentifier(args): Identifier          // pure function: name from input
-  toExportPath(args): string              // pure function: file path from input
-  toEnrichments?(args): EnrichmentSchema  // extract enrichments from settings
-  toEnrichmentSchema(): ValibotSchema     // declare accepted enrichment shape
+  id: string                              // required — generator package name
+  toIdentifier: (args) => Identifier      // required — pure function: name from input
+  toExportPath: (args) => string          // required — pure function: file path from input
+  toEnrichmentSchema?: () => ValibotSchema  // optional — declare accepted enrichment shape
+  isSupported?: (args) => boolean         // optional — defaults to `() => true`
 }
 ```
 
 - **`toIdentifier`** and **`toExportPath`** are *load-bearing pure
   functions*. They produce the cache key for cross-generator
   coordination. Same inputs → same key.
-- **`toEnrichments`** extracts the per-item enrichment payload from
-  the project's settings. Default behavior is provided by the factory;
-  override only for custom routing.
 - **`toEnrichmentSchema`** returns the Valibot schema declaring
-  what enrichment fields this generator accepts.
+  what enrichment fields this generator accepts. Omit for
+  generators with no enrichments — the factory defaults to
+  `v.optional(v.unknown())` and the parse succeeds on any payload.
+- **`isSupported`** is the family-level applicability predicate.
+  Omit to advertise support for every item.
+
+Note: **`toEnrichments` is not a config field.** The factory
+builds it from `toEnrichmentSchema` and the project's
+`enrichments` settings and exposes it as a class static (see below).
+
+### Class statics produced by the factory
+
+The factory returns a class with the following statics
+(`toOasOperationProjectionBase.ts:48–66`):
+
+| Static | Source |
+|---|---|
+| `id` | `config.id` |
+| `type` | factory-hardcoded discriminator (`'oasOperation'`, `'gqlOperation'`, or `'model'`) |
+| `toIdentifier` | `config.toIdentifier` |
+| `toExportPath` | `config.toExportPath` |
+| `isSupported` | `config.isSupported ?? (() => true)` |
+| `toEnrichments` | factory-built; reads from `context.settings.enrichments.<id>.…` (path depends on `type`) and parses against `config.toEnrichmentSchema?.()` |
+
+The `type` static is the discriminator the engine's dispatcher
+reads to route entries against the right protocol — operation
+generators built via the OAS factory only fire on OAS documents,
+GraphQL ones only on GraphQL documents.
 
 ### Instance properties
 

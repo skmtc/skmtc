@@ -307,7 +307,12 @@ refuses with exit 2 before any state mutation. `--force` overrides
   "manifestPath": ".skmtc/my-api/.settings/manifest.json",
   "stats": { "tokens": 201029, "lines": 1234, "files": 753, "totalTimeMs": 180 },
   "files": ["mobile-app/src/types/User.generated.ts", "..."],
-  "errors": [["models.ts", "Product"]],
+  // errors: array of paths through manifest.results ending at 'error' leaves.
+  // Shape: [traceId, spanId, "generate", generatorId, identifier]
+  "errors": [
+    ["trace-1778185255674", "span-1778185255674", "generate",
+     "@skmtc/gen-zod", "BrokenModel"]
+  ],
   "parseIssues": [
     { "protocol": "oas", "level": "warning", "type": "MISSING_OBJECT_TYPE",
       "location": "components:schemas:User", "message": "..." }

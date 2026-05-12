@@ -36,14 +36,15 @@ remediation.
 Each check has an ID, a target (workspace or project), and a
 pass/fail result. Failures include a remediation hint.
 
+There are exactly **six** check IDs (the full surface is enumerated
+in `cli/lib/doctor-headless.ts` — every `id:` literal). One
+workspace-scoped check and five per-project checks:
+
 #### Workspace-level checks
 
 | Check ID | What it verifies |
 |---|---|
-| `workspace-deno-json` | Workspace root has a valid `deno.json` |
-| `workspace-client-json` | Workspace `client.json` (if present) is valid against the schema |
-| `cli-core-pin` | CLI's pinned `@skmtc/core` version is current (advisory) |
-| `node-runtime` | Deno version meets the CLI's minimum (advisory) |
+| `shim-lockfile` | The CLI shim's `deno.lock` (under `~/.deno/bin/.skmtc/`) exists and pins `@skmtc/cli` and `@skmtc/core` to compatible versions |
 
 #### Per-project checks
 
@@ -51,14 +52,11 @@ For each project under `.skmtc/<project>/`:
 
 | Check ID | What it verifies |
 |---|---|
-| `project-deno-json/<project>` | `<project>/deno.json` exists and is valid |
-| `project-client-json/<project>` | `<project>/client.json` (if present) is valid against the schema |
+| `project-deno-json/<project>` | `<project>/deno.json` exists and parses as JSON |
+| `project-base-path/<project>` | `<project>/client.json#settings.basePath` is set and **relative** (absolute paths fail) |
 | `project-core-pin/<project>` | The project's `@skmtc/core` import pin matches the CLI's |
-| `project-schema-fetch/<project>` | The spec URL in `client.json#schema.url` (or `path`) is reachable |
-| `project-bundle/<project>` | `bundle.js` is present (only when project has clones/local generators) |
-| `project-bundle-fresh/<project>` | `bundle.js` is newer than the source it depends on (advisory) |
-| `project-installs/<project>` | Every `deno.json#imports` entry resolves (no missing JSR versions, no broken local paths) |
-| `project-generators-loadable/<project>` | Each generator's Entry can be loaded without throwing |
+| `project-bundle/<project>` | If the project has at least one *local* generator import, `bundle.js` exists. Pure JSR projects return `ok` with `hasLocalGenerator: false` (no bundle needed). |
+| `project-manifest/<project>` | `manifest.json` (if present) parses and matches the schema the current `@skmtc/core` expects |
 
 The exact set of checks evolves over time. Run `skmtc doctor` itself
 to see the current battery.
@@ -70,24 +68,20 @@ to see the current battery.
 ```
 Workspace: /path/to/workspace
 
-✓ workspace-deno-json          OK
-✓ workspace-client-json        OK
-✓ cli-core-pin                 OK (@skmtc/core 0.0.150)
+✓ shim-lockfile                OK (cli=0.0.150, core=0.0.150)
 
 Project: my-api
 
 ✓ project-deno-json/my-api          OK
-✓ project-client-json/my-api        OK
+✓ project-base-path/my-api          OK (basePath="mobile-app/src")
 ✗ project-core-pin/my-api           FAIL
     Project pins @skmtc/core@^0.0.148, CLI uses @^0.0.150
     Remediation: update .skmtc/my-api/deno.json#imports
-✓ project-schema-fetch/my-api       OK
-✓ project-bundle/my-api             OK
-○ project-bundle-fresh/my-api       WARN
-    bundle.js older than src/; run `skmtc bundle my-api`
-✓ project-installs/my-api           OK
+○ project-bundle/my-api             WARN
+    bundle.js missing; run `skmtc bundle my-api`
+✓ project-manifest/my-api           OK
 
-Summary: 9 OK, 1 WARN, 1 FAIL
+Summary: 4 OK, 1 WARN, 1 FAIL
 ```
 
 Exit code = `1` when any check fires at `error` severity. Warnings
@@ -117,8 +111,14 @@ do not change the exit code.
     {
       "id": "project-bundle/my-api",
       "status": "warning",
-      "message": "bundle.js older than src/",
-      "hint": "Run `skmtc bundle my-api`"
+      "message": "Project \"my-api\" has local generators but no bundle.js at .skmtc/my-api/bundle.js.",
+      "hint": "Run `skmtc bundle my-api` to build it.",
+      "data": { "hasLocalGenerator": true, "bundlePath": ".skmtc/my-api/bundle.js" }
+    },
+    {
+      "id": "project-manifest/my-api",
+      "status": "ok",
+      "message": "Project \"my-api\" manifest matches the current @skmtc/core schema."
     }
   ],
   "summary": "error"
@@ -207,16 +207,17 @@ input recipe errors emitted by other commands.
 
 ## Common failure modes
 
-### Workspace not initialized
+### Shim lockfile missing
 
 ```
-✗ workspace-deno-json    FAIL
-    No deno.json found in workspace root
-    Remediation: run `skmtc init <project>` to bootstrap the workspace
+✗ shim-lockfile    FAIL
+    CLI shim's deno.lock not found
 ```
 
-You're not in a SKMTC workspace. `cd` to the workspace root or run
-`init` to create one.
+The CLI was installed in a way that didn't produce a shim lockfile
+(or it has been deleted). Reinstall via the documented
+`deno compile` path (see the CLI installation notes) so the shim
+lockfile is regenerated.
 
 ### Core pin mismatch
 
@@ -230,34 +231,49 @@ Mostly cosmetic — minor-version drift usually still works — but
 major-version drift can break generation. Update the project's
 `deno.json` to align.
 
-### Schema unreachable
+### basePath missing or absolute
 
 ```
-✗ project-schema-fetch/my-api    FAIL
-    GET https://api.example.com/openapi.json returned 404
+✗ project-base-path/my-api    FAIL
+    Project "my-api" has an absolute basePath: /Users/x/app/src
 ```
 
-The OAS spec URL in `client.json#schema.url` isn't reachable. Check
-the URL, your network, or whether the spec endpoint requires auth.
+`client.json#settings.basePath` is either unset or absolute.
+`basePath` must be relative to the SKMTC root. Edit `client.json`
+or re-run `skmtc init` with a relative path.
 
-### Stale bundle
+### Bundle missing
 
 ```
-○ project-bundle-fresh/my-api    WARN
-    bundle.js older than src/
+○ project-bundle/my-api    WARN
+    bundle.js missing
 ```
 
-A clone or local generator's source has changed since the last
-bundle. Run `skmtc bundle <project>` to refresh. The next `generate`
-will use the stale bundle — you'll miss your latest changes.
+The project has at least one local generator (a clone, or any
+import that isn't `jsr:...`) but no `bundle.js` is present.
+Run `skmtc bundle <project>` to build it. Remote-only projects
+report `ok` here — no bundle needed when every generator is on
+JSR.
+
+### Stale manifest
+
+```
+○ project-manifest/my-api    WARN
+    manifest.json is not valid JSON
+```
+
+The on-disk `manifest.json` is malformed or has drifted from the
+schema the current `@skmtc/core` expects. The runtime tolerates a
+stale manifest but cleanup of previous artifacts will be skipped
+on the next run. Run `skmtc generate <project>` to rewrite it.
 
 ## See also
 
 - [`skmtc agent-context`](agent-context.md) — broader project state
   dump for agents
 - [`skmtc list`](list.md) — focused inventory of installed generators
-- [`skmtc bundle`](bundle.md) — fix `project-bundle-fresh` warnings
+- [`skmtc bundle`](bundle.md) — rebuild `bundle.js` when `project-bundle/<project>` warns
 - [Reference: client.json schema](../settings/client-json-schema.md) —
-  what `project-client-json` validates against
+  the schema `project-base-path` reads `settings.basePath` from
 - [skmtc-debug skill](../../skills/skmtc-debug/SKILL.md) — broader
   debugging workflow for engine failures

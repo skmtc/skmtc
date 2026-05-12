@@ -1,8 +1,8 @@
 # Identifier
 
-> A name with an entity-type marker (`'const'` vs `'type'`). Created
+> A name with an entity-type marker (`'variable'` vs `'type'`). Created
 > via factory methods, used as the key in cross-generator
-> coordination, and emitted into imports with the correct
+> coordination, and propagated into imports with the correct
 > `import { X }` vs `import { type X }` syntax.
 
 `Identifier` carries the entity-type tracking that makes correct
@@ -22,17 +22,17 @@ time when `verbatimModuleSyntax` is enabled.
 class Identifier {
   name: string
   typeName?: string
-  entityType: EntityTypeValue           // 'const' | 'type'
+  entityType: EntityType                // class wrapping the EntityTypeValue literal
 
   // Factory methods (preferred construction path)
   static createVariable(name: string, typeName?: string): Identifier
   static createType(name: string): Identifier
 
-  // Direct constructor (rare)
-  constructor(args: {
+  // Direct constructor (private — use the factory methods)
+  private constructor(args: {
     name: string
     typeName?: string
-    entityType: EntityTypeValue
+    entityType: EntityType
   })
 
   // Methods
@@ -47,16 +47,32 @@ The discriminator that distinguishes runtime values from types.
 
 ```ts
 // core/dsl/EntityType.ts
-type EntityTypeValue = 'const' | 'type'
+export type EntityTypeValue = 'variable' | 'type'
+
+export class EntityType {
+  type: EntityTypeValue   // the literal discriminator
+  constructor(type: EntityTypeValue) { this.type = type }
+}
+```
+
+`Identifier.entityType` is an `EntityType` *instance*, not the
+literal. To check which kind it is, read the wrapped value:
+
+```ts
+identifier.entityType.type === 'variable'   // ✓ correct
+identifier.entityType.type === 'type'       // ✓ correct
+identifier.entityType === 'variable'        // ✗ compares object to string (always false)
 ```
 
 Two values:
 
-- **`'const'`** — a runtime value. Emits as `import { X } from '...'`.
+- **`'variable'`** — a runtime value. Renders as `import { X } from '...'`.
   Example: a Zod schema (`export const userBody = z.object({...})`),
-  a hook (`export const useCreateUser = ...`).
+  a hook (`export const useCreateUser = ...`). Note the
+  discriminator value is `'variable'`; the *rendered* declaration
+  keyword is `const`.
 
-- **`'type'`** — a TypeScript type. Emits as
+- **`'type'`** — a TypeScript type. Renders as
   `import { type X } from '...'` under `verbatimModuleSyntax`.
   Example: a TypeScript type alias
   (`export type UserBody = { ... }`).
@@ -87,10 +103,11 @@ Creates a runtime-value identifier. Emits as
 
 ```ts
 const userBody = Identifier.createVariable('userBody')
-// → entityType: 'const'
+// → entityType.type === 'variable'
 
 const useCreateUser = Identifier.createVariable('useCreateUser', 'UseMutationResult<...>')
-// → entityType: 'const', typeName: 'UseMutationResult<...>'
+// → entityType.type === 'variable', typeName: 'UseMutationResult<...>'
+//   (renders `export const useCreateUser: UseMutationResult<...> = ...`)
 ```
 
 The optional `typeName` is appended in the declaration:
@@ -112,7 +129,7 @@ Creates a TypeScript-type identifier. Emits as
 
 ```ts
 const UserBody = Identifier.createType('UserBody')
-// → entityType: 'type'
+// → entityType.type === 'type'
 ```
 
 The declaration uses `export type`:
@@ -121,18 +138,24 @@ The declaration uses `export type`:
 export type UserBody = { name: string; email: string }
 ```
 
-### Direct constructor (rare)
+### Direct construction (not exposed)
+
+`Identifier`'s constructor is private; the factory methods
+(`createVariable`, `createType`) are the only public construction
+path. They internally construct the `EntityType` instance and
+pass it to the constructor:
 
 ```ts
-new Identifier({
-  name: 'X',
-  typeName: 'SomeType',
-  entityType: 'const'
+// Inside Identifier.createVariable, simplified:
+return new Identifier({
+  name,
+  typeName,
+  entityType: new EntityType('variable')
 })
 ```
 
-Useful when entity-type is conditional or computed. In practice,
-the factory methods cover almost all cases.
+If you need a conditional discriminator, branch on the factory
+method instead of constructing directly.
 
 ## Properties
 
@@ -158,14 +181,15 @@ const ident = Identifier.createVariable('x')
 export const x = 42
 ```
 
-`typeName` is meaningful only for `entityType === 'const'`. For
-`'type'` identifiers, the type itself is the value, so there's no
-separate type annotation.
+`typeName` is meaningful only when `entityType.type === 'variable'`.
+For `'type'` identifiers, the type itself is the value, so there's
+no separate type annotation.
 
-### `entityType: EntityTypeValue`
+### `entityType: EntityType`
 
-`'const'` or `'type'`. Set by the factory methods; checked at
-import emission to decide between `import { X }` and
+An `EntityType` instance wrapping a `'variable' | 'type'` literal.
+Set by the factory methods; checked at import time (via
+`entityType.type`) to decide between `import { X }` and
 `import { type X }`.
 
 ## Methods
@@ -179,7 +203,7 @@ import is emitted with the right shape:
 ```ts
 const ident = Identifier.createType('UserBody')
 const importArg = ident.toImport()
-// → { name: 'UserBody', isType: true }
+// → { name: 'UserBody', type: 'type' }
 
 this.register({
   imports: {
@@ -187,11 +211,13 @@ this.register({
   },
   destinationPath
 })
-// Emits: import { type UserBody } from '@/types/User.generated'
+// Renders as: import { type UserBody } from '@/types/User.generated'
 ```
 
-For `'const'` identifiers, returns just the name as a plain string
-(equivalent to `{ name, isType: false }`).
+For `'variable'` identifiers, `toImport()` returns the **name as a
+plain string** (not an object). The object form is only produced
+for `'type'` identifiers, or when an `alias` is supplied — see
+`core/dsl/Identifier.ts` `toImport()` for the branching.
 
 ### `toString(): string`
 
@@ -239,7 +265,8 @@ import { type UserBody, userBody } from '@/generated/User'
 This is the load-bearing reason for the recent refactor from a
 boolean `isType` flag to the `EntityTypeValue` literal. The literal
 participates in TypeScript's discriminated-union narrowing; the
-boolean did not.
+boolean did not. All current API surface uses
+`type: 'variable' | 'type'` — `isType` is gone.
 
 ## Examples
 
@@ -284,8 +311,8 @@ const ts = this.insertNormalizedModel(TsProjection, {...})
 this.register({
   imports: {
     '@/generated/User': [
-      zod.identifier.toImport(),    // { name: 'userBody', isType: false }
-      ts.identifier.toImport()      // { name: 'UserBody', isType: true }
+      zod.identifier.toImport(),    // bare string: 'userBody'
+      ts.identifier.toImport()      // { name: 'UserBody', type: 'type' }
     ]
   },
   destinationPath
@@ -371,19 +398,22 @@ distinction through the system.
 
 ```ts
 // The entity-type literal (canonical discriminator)
-type EntityTypeValue = 'const' | 'type'
+type EntityTypeValue = 'variable' | 'type'
 
 // What register({ imports }) accepts
 type ImportNameArg = string | {
   name: string
   alias?: string
-  isType?: boolean
+  type: EntityTypeValue                 // 'variable' | 'type'
 }
 ```
 
-A bare string `'X'` is equivalent to `{ name: 'X', isType: false }`.
-The `isType` field is set by `Identifier.toImport()` based on the
-identifier's `entityType`.
+A bare string `'X'` is shorthand for an unaliased
+`'variable'` import. The object form is required when the
+import is type-only (`type: 'type'`) or when an `alias` is
+supplied. `Identifier.toImport()` returns whichever shape is
+appropriate based on the identifier's `entityType` and any
+provided `alias`.
 
 ## See also
 

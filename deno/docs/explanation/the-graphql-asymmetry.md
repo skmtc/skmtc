@@ -255,8 +255,9 @@ engine staying readable and maintainable.
 - [Source resolution reference](../reference/settings/source-resolution.md) —
   where the OAS pre-parse and GraphQL string-passthrough are
   documented at the API level
-- [API: toArtifacts](../reference/api/to-artifacts.md) — the
-  function that accepts both `{ type: 'oas', document }` and
-  `{ type: 'gql', sdl }`
+- [API: toArtifacts](../reference/api/to-artifacts.md) — accepts
+  a `SkmtcDocumentInput` union: `{ type: 'oas', value: ... }` or
+  `{ type: 'gql', value: ... }`. Same field name (`value`) on both
+  variants; discrimination is on `type`.
 - [Design philosophy](design-philosophy.md) — "build on the
   substrate, don't rebuild it" as a principle

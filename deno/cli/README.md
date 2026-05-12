@@ -15,66 +15,96 @@
 
 ## 🚀 Quick Start
 
-```bash
-# Run directly with npx
-npx skmtc
+Skmtc is a Deno CLI. Install it from JSR:
 
+```bash
+deno install -g -A --unstable-worker-options jsr:@skmtc/cli -n skmtc -f
 ```
 
 ### Running code generators
 
 ```bash
-npx skmtc generate @skmtc/supabase-backend https://petstore3.swagger.io/api/v3/openapi.json
-# Generated 9 files (507 lines, 3,383 tokens) in 9ms
+# Scaffold a project (project name + basePath under the consuming app)
+skmtc init petstore src/generated
 
-npx skmtc generate @skmtc/supabase-react-client https://raw.githubusercontent.com/cloudflare/api-schemas/refs/heads/main/openapi.json
-# Generated 6,797 files (104,752 lines, 1,635,227 tokens) in 2,969ms
+# Add a generator from JSR
+skmtc install @skmtc/gen-zod petstore
+
+# Run the pipeline against a schema URL or local path
+skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
 ### Example generator code
 
 ```typescript
+import {
+  toOasOperationEntry,
+  toOasOperationProjectionBase,
+  Identifier
+} from '@skmtc/core'
 import { ZodProjection } from '@skmtc/gen-zod'
+import denoJson from '../deno.json' with { type: 'json' }
 
-class ZodFetch extends OasOperationProjectionBase {
-  zodName: string;
+// Build a per-generator projection base via the factory.
+const ZodFetchBase = toOasOperationProjectionBase({
+  id: denoJson.name,
+  toIdentifier: ({ operation }) =>
+    Identifier.createVariable(`fetch${operation.operationId}`),
+  toExportPath: ({ operation }) =>
+    `@/services/${operation.operationId}.generated.ts`
+})
 
-  constructor({context, operation, settings}){
-    super({context, operation, settings})
+class ZodFetch extends ZodFetchBase {
+  zodName: string
 
-    // Generate Zod schema for API response and insert it into current file
-    const response = operation.toSuccessResponse()?.resolve().toSchema()
+  constructor(args: ConstructorParameters<typeof ZodFetchBase>[0]) {
+    super(args)
+
+    // Insert a Zod schema for the success response into the same file.
+    const response = this.operation.toSuccessResponse()?.resolve().toSchema()
     const zodResponse = this.insertNormalizedModel(ZodProjection, {
       schema: response,
-      fallbackName: `${operation.operationId}Response`
+      fallbackName: `${this.operation.operationId}Response`
     })
 
-    // Grab Zod schema name to use in output code
+    // Grab the Zod identifier so toString() can reference it.
     this.zodName = zodResponse.identifier.name
   }
 
-  // Define code output
-  toString(){
-    return `() => {
+  override toString(): string {
+    return `async () => {
       const res = await fetch('${this.operation.path}')
       const data = await res.json()
-
-      return ${zodName}.parse(data)
+      return ${this.zodName}.parse(data)
     }`
   }
 }
+
+// Wire it up so the engine dispatches against OAS operations.
+export const zodFetchEntry = toOasOperationEntry({
+  id: denoJson.name,
+  isSupported: () => true,
+  transform: ({ context, operation }) => {
+    context.insertOperation(ZodFetch, operation)
+  }
+})
 ```
 
 ## 📦 Available Generators
 
-Choose from our growing collection of generators, combone them or create your own:
+Stock generators on JSR (under `@skmtc/`):
 
-- **Tanstack Query** - React Query hooks with Zod validation
-- **MSW** - Mock Service Worker handlers from OpenAPI examples
-- **Zod Schemas** - Runtime validation schemas
-- **TypeScript Types** - Pure type definitions
-- **Supabase/Hono Functions** - Edge function handlers
-- See full list at https://github.com/skmtc/skmtc-generators
+- **Model generators** — `gen-typescript`, `gen-zod`, `gen-valibot`, `gen-arktype`
+- **HTTP client generators** — `gen-tanstack-query-fetch-zod`, `gen-tanstack-query-supabase-zod`
+- **Form generators** — `gen-shadcn-form`, `gen-daisyui-form`
+- **UI generators** — `gen-shadcn-select`, `gen-shadcn-table`
+- **Mocks** — `gen-msw`
+- **Backend** — `gen-supabase-hono`, `gen-express`
+- **GraphQL** — `gen-graphql-operation`, `gen-graphql-typed-document-node`
+- **Reapit-flavoured variants** — `gen-reapit-form`, `gen-reapit-graphql-client`, `gen-reapit-multi-select`, `gen-reapit-searchable-dropdown`
+
+The full set lives at https://github.com/skmtc/skmtc-generators
+and on JSR at https://jsr.io/@skmtc.
 
 ## ❓ FAQ
 

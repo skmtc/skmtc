@@ -162,7 +162,7 @@ Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 |---|---|---|---|---|
 | **Parse** | `ParseContext.parse` (`core/context/ParseContext.ts:221`) | `SkmtcDocumentInput` | `SkmtcParsedDocument` + `ParseIssue[]` | Recursive descent; per-item isolation via `tryParseAt`; cascade pruning via `removeErroredItems` |
 | **Generate** | `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts:275`) | parsed doc + settings + generators | `Map<path, File>` | Two nested loops; Driver-based memoization; recursive constructor calls |
-| **Render** | `RenderContext.collate` (`core/context/RenderContext.ts:185`) | `Map<path, File>` | `{ artifacts, files, manifest }` | Pure serialization; `file.toString()` joins reExports + imports + definitions |
+| **Render** | `RenderContext.collate` (`core/context/RenderContext.ts:176`) | `Map<path, File>` | `{ artifacts, files, manifest }` | Pure serialization; `file.toString()` joins reExports + imports + definitions |
 
 ### Orchestration phases (CLI)
 
@@ -191,7 +191,7 @@ Both descend from `SnippetBase` (`core/dsl/SnippetBase.ts`). The differentiator:
 | | Projection | Snippet |
 |---|---|---|
 | Base class | `ModelProjectionBase`, `OasOperationProjectionBase`, `GqlOperationProjectionBase` | `SnippetBase` (directly) |
-| Static methods required | `id`, `toIdentifier`, `toExportPath`, `toEnrichments`, `toEnrichmentSchema` | None |
+| Static methods required | `id`, `type`, `toIdentifier`, `toExportPath`, `isSupported`, `toEnrichments` | None |
 | Instance has | `settings: ContentSettings` | Just `context`, `register()` |
 | Wrapped in `Definition` | Yes (by Driver) | No |
 | Cached by | `(identifier.name, exportPath)` | Not cached |

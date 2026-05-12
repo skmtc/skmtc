@@ -9,6 +9,18 @@ The manifest is overwritten on every `skmtc generate` (and every
 previews. Treat it as the **source of truth** for what happened in
 the last run.
 
+> **Two JSON shapes — read carefully.** SKMTC produces two
+> structurally different JSON outputs. This document describes the
+> **on-disk manifest** at
+> `.skmtc/<project>/.settings/manifest.json`. The **`skmtc generate
+> --json` stdout output** is a *different* shape (documented in
+> [`reference/cli/generate.md`](cli/generate.md#json-output)). They
+> overlap but are not identical: stdout flattens `files` to a top-level
+> string array and does not include the per-item `results` tree.
+> Recipes assuming this manifest shape against stdout JSON will
+> silently produce `null`. When writing a `jq` recipe, decide first
+> *which JSON* you are querying.
+
 ## Location
 
 ```

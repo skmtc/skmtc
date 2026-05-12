@@ -110,7 +110,8 @@ use `[generatorId][operation.path][operation.method]`, models use
 ### EntityType
 
 A property of `Identifier` that distinguishes types (`'type'`) from
-values (`'const'`). Affects whether imports emit as
+values (`'variable'` — the discriminator value; the rendered TS
+declaration keyword is `const`). Affects whether imports render as
 `import { X }` or `import { type X }` under `verbatimModuleSyntax`.
 
 ### `exportPath`
@@ -376,8 +377,8 @@ Snippets extend it (directly or via the projection bases).
 
 The location-tracking accumulator threaded through parse and
 generate. Stringifies as a colon-separated path
-(`paths./users.post.requestBody.content...`). Used for issue
-locations.
+(`paths:/users:post:requestBody:content...`). Embedded colons in a
+segment are URL-encoded as `%3A`. Used for issue locations.
 
 ### Stringable
 

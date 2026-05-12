@@ -19,17 +19,50 @@ differ.
 
 ### Use `toGqlOperationEntry` (not `toOasOperationEntry`)
 
-The factory is the GraphQL counterpart:
+The factory is the GraphQL counterpart. Both stock GraphQL
+generators (`gen-graphql-operation` and
+`gen-graphql-typed-document-node`) follow a **functional** pattern:
+the `transform` callback inserts a model for the operation's
+return type and registers any per-operation definitions directly
+on the context.
 
 ```ts
-import { toGqlOperationEntry } from '@skmtc/core'
-import { MyGqlGenerator } from './MyGqlGenerator.ts'
+import { toGqlOperationEntry, Definition, toGeneratorOnlyKey } from '@skmtc/core'
+import { TsProjection } from '@skmtc/gen-typescript'
+import denoJson from '../deno.json' with { type: 'json' }
+
+const id = denoJson.name
 
 export const myGqlEntry = toGqlOperationEntry({
-  id: denoJson.name,
+  id,
   isSupported: () => true,
-  transform: ({ context, operation }) => {
-    context.insertOperation({ projection: MyGqlGenerator, operation })
+  transform: ({ context, operation, acc }) => {
+    const exportPath = toExportPath(operation)
+    const generatorKey = toGeneratorOnlyKey({ generatorId: id })
+
+    // Insert a normalised TypeScript model for the operation's
+    // return type. gen-typescript handles the schema → TS mapping.
+    context.insertNormalisedModel(TsProjection, {
+      schema: operation.returnType,
+      fallbackName: `${operation.fieldName}Result`,
+      destinationPath: exportPath
+    })
+
+    // Or register a definition directly when you need to write
+    // your own typed value into the file.
+    context.register({
+      destinationPath: exportPath,
+      imports: { '@graphql-typed-document-node/core': ['TypedDocumentNode'] },
+      definitions: [
+        new Definition({
+          context,
+          identifier: someIdentifier,
+          value: { generatorKey, toString: () => '/* value body */' }
+        })
+      ]
+    })
+
+    return acc
   }
 })
 ```
@@ -39,55 +72,77 @@ documents. Mixing both an OAS entry and a GQL entry in one
 generator package is uncommon but supported (each runs only
 against its matching document type).
 
-### Extend `GqlOperationProjectionBase`
+Stock generators extract the body of `transform` into a local
+helper function for readability — see
+`gen-graphql-operation/src/mod.ts` for a concrete example.
 
-Your Projection class extends the GraphQL projection base:
+### Insert models and register definitions through the context
 
-```ts
-import { GqlOperationProjectionBase } from '@skmtc/core'
+There is no Projection class in either stock GraphQL generator.
+Instead, the `transform` callback uses `GenerateContext` methods
+directly:
 
-export class MyGqlGenerator extends GqlOperationProjectionBase {
-  override toString(): string {
-    // ...
-  }
-}
-```
+- `context.insertNormalisedModel(TsProjection, { schema, fallbackName, destinationPath })`
+  delegates emission of a TypeScript type for an inline schema.
+  The TS file is added (or reused if already present) and you
+  get back a stable identifier.
+- `context.insertModel(TsProjection, refName)` is the named
+  counterpart — use it when you have a `RefName` (e.g. from
+  `returnType.toRefName()` after `returnType.isRef()`).
+- `context.register({ destinationPath, imports, definitions })`
+  writes to a specific file. Use it when you need to add your
+  own typed definitions (not just delegate to another generator).
 
-This base's constructor accepts `{ context, operation, settings }`
-where `operation: GqlOperation` (not `OasOperation`).
+If you genuinely want a class-based Projection for a GraphQL
+generator (most authors do not), the correct pattern is the
+factory-extends shape that OAS generators use — see
+[Projection bases reference](../../reference/api/projection-bases.md)
+and the `toGqlOperationProjectionBase` entry.
 
 ### Read the GraphQL operation model
 
-The `GqlOperation` shape differs from `OasOperation`:
+The full `GqlOperation` shape (from
+`core/gql/operation/GqlOperation.ts`):
 
 ```ts
 class GqlOperation {
-  rootKind: 'query' | 'mutation' | 'subscription'
-  fieldName: string                       // e.g., 'getUser'
-  arguments: GqlArgument[]                // typed argument list
-  returnType: OasSchema | OasRef<'schema'>  // converted to OAS-style schema
+  readonly oasType: 'gqlOperation'
+  readonly rootKind: 'query' | 'mutation' | 'subscription'
+  readonly fieldName: string                          // e.g., 'getUser'
+  readonly arguments: GqlArgument[]                   // typed argument list
+  readonly returnType: OasSchema | OasRef<'schema'>   // OAS-shaped return type
+  readonly returnTypeString: string                   // human-readable original
+  readonly description: string | undefined
+  readonly deprecated: boolean
+  readonly deprecationReason: string | undefined
+
+  // Computed: `<rootKind>_<fieldName>` e.g. `query_getUser`
+  get identifier(): string
 }
 ```
 
-GraphQL types are normalized to the same `OasSchema` family used
-for OAS schemas — that's how the same TS-emission code works for
-both ecosystems. See [gen-graphql-operation](../../reference/stock-generators/gen-graphql-operation.md)
+GraphQL types are normalised to the same `OasSchema` family used
+for OAS schemas — that's how the same TypeScript-producing code
+works for both ecosystems. See
+[gen-graphql-operation](../../reference/stock-generators/gen-graphql-operation.md)
 for a real example.
 
 ### Compose with peer GraphQL generators
 
 Two stock generators pair up:
 
-- **`@skmtc/gen-graphql-operation`** — emits `<Op>Args` and
+- **`@skmtc/gen-graphql-operation`** — produces `<Op>Args` and
   `<Op>Result` TypeScript types
-- **`@skmtc/gen-graphql-typed-document-node`** — emits
+- **`@skmtc/gen-graphql-typed-document-node`** — produces
   `<Op>Document: TypedDocumentNode<Result, Args>`
 
-If your generator needs the types, compose with
-`gen-graphql-operation` similarly to how OAS hook generators
-compose with `gen-typescript`. Same `insertModel`/`insertNormalizedModel`
-mechanism — the parsed types are interoperable across OAS and
-GraphQL because of the shared `OasSchema` representation.
+`gen-graphql-typed-document-node` writes into the same file as
+`gen-graphql-operation` (it reuses `toExportPath` from the peer
+package). Pair them so the document's `<Base>Args` and
+`<Base>Result` references resolve locally. Same
+`insertModel` / `insertNormalisedModel` mechanism — the parsed
+types are interoperable across OAS and GraphQL because of the
+shared `OasSchema` representation.
 
 ## Verification
 
@@ -115,7 +170,7 @@ result type as expected.
   than `OasRef`s, depending on whether the type is reusable
   across operations. Handle both cases via the standard
   schema-variant dispatch.
-- **Schemas referenced but not emitted** — Composing with a
+- **Schemas referenced but not produced** — Composing with a
   peer GraphQL generator that's not installed. Run `skmtc list`.
 
 ## Related

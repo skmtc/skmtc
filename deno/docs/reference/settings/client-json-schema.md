@@ -73,14 +73,30 @@ Supported file types:
 The file type is inferred from the URL extension first, then the
 `Content-Type` response header for URLs, then content sniffing.
 
-### `settings.basePath` (required)
+### `settings.basePath` (required at init; optional in runtime parse)
 
 The on-disk root for generated output AND the `@` alias root in the
 consuming app's bundler.
 
+Required vs optional has two layers:
+
+- **At `init` time**, `basePath` is a required positional argument
+  — `skmtc init <project> <basePath>` exits with a recipe error if
+  the argument is missing.
+- **In the runtime `client.json` parse**, the field is `v.optional`
+  (`core/types/Settings.ts`'s `clientSettings` schema). Removing it
+  from an existing `client.json` won't fail validation. `doctor` will
+  flag the missing field via `project-base-path/<project>`, but the
+  parser tolerates it.
+
+In practice every project that has actually run `init` will have
+the field set. Treat it as required for normal workflows; don't
+rely on the runtime parse tolerance.
+
 **Constraints:**
 
-- Must be relative (absolute paths rejected at `init` time)
+- Must be relative (absolute paths rejected at `init` time, and
+  flagged by the `project-base-path` doctor check otherwise)
 - Should match the consuming app's bundler `@` alias config
 
 **Example values:**
@@ -314,10 +330,16 @@ validated by the engine before generation.
 Validation errors at parse time:
 
 - Invalid JSON syntax → CLI exits with a parse error
-- Missing required fields (`settings.basePath`) → recipe error
-- Absolute `basePath` → recipe error at `init` time
+- Absolute `basePath` → recipe error at `init` time (also flagged
+  later by the `project-base-path/<project>` doctor check)
 - Unknown fields under `settings.enrichments[gen]` → silently
   stripped (Valibot's default)
+
+Missing `settings.basePath` is tolerated by the runtime parser
+itself, but `doctor` flags it (`project-base-path/<project>`
+returns `warning` when unset, `error` when absolute). `init`'s
+own argument parser rejects a missing positional `basePath`
+upfront with a recipe error.
 
 ## Editing workflows
 
@@ -328,8 +350,10 @@ hand-editing is the recommended approach.
 Some workflows that touch `client.json`:
 
 - **`skmtc init`** writes the initial minimal version
-- **`skmtc install`** may add per-generator default settings (rare)
-- Everything else is manual: enrichments, include/skip, source pinning
+- Everything else is manual: enrichments, include/skip, source
+  pinning. `install`, `clone`, `create`, and `remove` do **not**
+  modify `client.json` — they only mutate `deno.json#imports` (and
+  delete local source dirs in the case of `remove`).
 
 After editing, the next `skmtc generate` picks up the new config.
 No rebundle needed — `client.json` is runtime config, not bundle
