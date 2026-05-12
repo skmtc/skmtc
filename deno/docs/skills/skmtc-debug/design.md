@@ -133,10 +133,9 @@ This sets the epistemic stance for everything below.
 Same five as in the other skills (duplicated from `llms.md`), with
 one extra debug-relevant fact called out:
 
-> **Drift between docstrings and code is real.** Specifically:
-> `RenderContext`'s docstrings mention Prettier/Biome formatting; the
-> implementation does not run either. When a docstring and the code
-> disagree, the code is canonical.
+> **Drift between docstrings and code is real.** Docstrings and
+> type comments can lag behind code changes. When a docstring and
+> the code disagree, the code is canonical.
 
 ### 3. Diagnostic paths by symptom
 

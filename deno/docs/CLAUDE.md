@@ -7,5 +7,9 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20770 | 11:44 AM | ✅ | Standardized codebase spelling from mixed UK/US English to consistent US English | ~605 |
+| #20890 | 1:28 PM | ✅ | Documentation citation cleanup - RenderContext reference precision | ~347 |
+| #20888 | 1:27 PM | ✅ | Updated llms.md verification protocol for Prettier claim | ~371 |
+| #20887 | " | ✅ | LLM guidance documentation - operational principles table addressing training-data bias | ~893 |
+| #20732 | 10:19 AM | ✅ | LLM-specific documentation enhanced with operational principles table | ~688 |
+| #20731 | 10:08 AM | ✅ | Documentation structure and dual licensing clarification | ~674 |
 </claude-mem-context>

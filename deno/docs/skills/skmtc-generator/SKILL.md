@@ -48,10 +48,9 @@ important for authoring:
    `(identifier.name, exportPath)`. Generator order does not affect
    output.
 
-2. **Render does not run Prettier or Biome.** `RenderContext` accepts
-   a `prettierConfig` parameter; the implementation in
-   `core/context/RenderContext.ts:333` ignores it. Generated output
-   is unformatted by design.
+2. **Render does not run Prettier or Biome.** No formatter runs
+   inside `@skmtc/core`. Generated output is unformatted by design;
+   consumers format separately.
 
 3. **Generator source code is the customization surface.** Stock
    generators have *deliberately* hardcoded export paths and peer

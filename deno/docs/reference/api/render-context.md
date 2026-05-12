@@ -19,13 +19,10 @@ class RenderContext {
   logger: Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
 
-  #prettierConfig?: PrettierConfigType         // accepted but unused (see note)
-
   constructor(args: {
     files: Map<string, File | JsonFile>
     previews: Record<string, Preview>
     mappings: Record<string, Mapping>
-    prettierConfig?: PrettierConfigType
     basePath: string | undefined
     logger: Logger
     captureCurrentResult: ...
@@ -38,18 +35,17 @@ class RenderContext {
 }
 ```
 
-## Important note: prettierConfig is unused
+## Output is unformatted by design
 
-The constructor accepts a `prettierConfig` parameter, but it's
-**not applied**. Inspect `renderFile` at
-`core/context/RenderContext.ts:333`:
+Render does not invoke any formatter. The `renderFile` helper takes
+the `content` produced by `file.toString()`, resolves the artifact
+path, and returns the metadata-wrapped result without modification:
 
 ```ts
 const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {
-  // Note: `prettierConfig` is in RenderFileArgs but not destructured here
   const path = toResolvedArtifactPath({ basePath, destinationPath })
   return {
-    content: content,                  // ← unmodified, no formatter applied
+    content,                            // ← unmodified
     path,
     destinationPath,
     lines: content.split('\n').length,
@@ -59,13 +55,8 @@ const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): Fil
 ```
 
 Generated output is **unformatted** by design. Consumers run their
-own formatter (Prettier, Biome) as a separate step — typically in a
-pre-commit hook or build script.
-
-The `prettierConfig` parameter exists because earlier docstrings
-described formatting as a phase concern. The implementation deferred
-the actual formatting step indefinitely. Treat the parameter as a
-historical artifact; passing it in does nothing.
+own formatter (Prettier, Biome, `deno fmt`) as a separate step —
+typically in a pre-commit hook or build script.
 
 ## Constructor
 
@@ -100,10 +91,6 @@ Structured logger.
 Records per-file render outcomes into the manifest. Render-phase
 results are typically all `'success'` because the heavy lifting
 happened in Generate.
-
-### `#prettierConfig` (private, unused)
-
-See the [important note above](#important-note-prettierconfig-is-unused).
 
 ## Methods
 
@@ -211,9 +198,7 @@ Two reasons:
    Biome, dprint, custom). Picking one in SKMTC would force every
    consumer to either accept SKMTC's choice or post-process anyway.
 
-The pragmatic stance is "emit valid, let the consumer format." The
-unused `prettierConfig` parameter is a vestige of an early design
-that didn't ship.
+The pragmatic stance is "emit valid, let the consumer format."
 
 ### Can I add formatting back into the pipeline?
 
@@ -258,7 +243,6 @@ type RenderFileArgs = {
   content: string
   destinationPath: string
   basePath?: string
-  prettierConfig?: PrettierConfigType   // ← accepted but unused
 }
 
 type FileObject = {

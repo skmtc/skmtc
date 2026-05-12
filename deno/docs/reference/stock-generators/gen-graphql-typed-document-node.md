@@ -1,19 +1,88 @@
 # @skmtc/gen-graphql-typed-document-node
 
-> typed-document-node integration for GraphQL operations.
+> Emit `TypedDocumentNode` constants for GraphQL operations, with
+> SDL stubs containing TODO placeholders. Pairs with
+> `@skmtc/gen-graphql-operation`.
+
+A GraphQL operation generator. The "document" half of the GraphQL
+contract pair. Running it standalone produces files that reference
+undefined types — always pair with `gen-graphql-operation`.
+
+## Source
+
+`skmtc-generators/gen-graphql-typed-document-node/src/`
 
 ## What it generates
 
-## Supported operations
+Per GraphQL operation, a `TypedDocumentNode` constant with an SDL
+stub:
 
-## Output shape
+```ts
+import { gql } from 'graphql-tag'
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
-## Identifier and path conventions
+export const GetUserDocument: TypedDocumentNode<GetUserResult, GetUserArgs> = gql`
+query GetUser($id: ID!) {
+  getUser(id: $id) {
+    # TODO: select fields
+  }
+}
+`
+```
 
-## Enrichments
+The `# TODO: select fields` placeholder is intentional — the
+generator can't know which fields you want; the developer fills it
+in.
 
-## Peer dependencies
+## Key decisions
 
-## Clone seams
+- **Hardcoded module paths as customization seams.**
+  ```ts
+  const GQL_TAG_PATH = 'graphql-tag'
+  const TYPED_DOC_PATH = '@graphql-typed-document-node/core'
+  ```
+  Top-of-file constants in `mod.ts`. Clone the generator and edit
+  these if your project uses different packages (e.g.,
+  `@apollo/client` re-exports `gql`).
+- **SDL stub with `# TODO` placeholders.** For composite return
+  types (objects, unions, arrays of objects), the generator emits
+  a selection-set placeholder. The developer edits the generated
+  file to specify fields. For leaf return types (scalar, enum),
+  no selection set is emitted.
+- **Hardcoded pairing with `gen-graphql-operation`.** The emitted
+  `TypedDocumentNode<GetUserResult, GetUserArgs>` references types
+  that *only* `gen-graphql-operation` emits. The two are designed
+  to write into the same file (via shared `toExportPath` from
+  `@skmtc/gen-graphql-operation`).
 
-## Source
+## What to learn from it
+
+- **Paired generators as a deliberate design.** Some generators
+  produce useful output only when run alongside another. Document
+  this clearly (the source has a comment explicitly stating this).
+- **Stub-and-edit output style.** When a generator can't know
+  enough to produce final output (selection sets here, handler
+  bodies in `gen-express`), `// TODO` placeholders are an
+  honest way to ship a useful scaffold.
+- **Hardcoded module paths as constants at the top of the file.**
+  When a generator depends on specific peer packages, declare
+  those paths as top-level constants. Cloners see them
+  immediately and know exactly what to swap.
+
+## Common customizations when cloned
+
+- Swap `graphql-tag` for `@apollo/client`'s `gql` re-export.
+- Remove the `# TODO` placeholder and emit a default selection
+  (e.g., all scalar fields one level deep).
+- Add subscription-specific handling (the stock treats query,
+  mutation, subscription the same; some clients want them in
+  separate files).
+- Customize the document-name suffix (`GetUserDocument` vs
+  `GetUserQuery` vs `GET_USER`).
+
+## See also
+
+- [gen-graphql-operation](gen-graphql-operation.md) — the required
+  companion; reads sibling
+- [API: toArtifacts](../api/to-artifacts.md) — GraphQL ingest
+- [Generators as packages concept](../../concepts/generators-as-packages.md)

@@ -335,9 +335,8 @@ Prettier or any other formatter.
 
 ### `RenderContext`
 
-The Render-phase context class. Largely a thin wrapper around
-file iteration and `file.toString()`. Holds `prettierConfig` but
-does not use it.
+The Render-phase context class. A thin wrapper around file
+iteration and `file.toString()`. Does not format output.
 
 ### `ResultType`
 

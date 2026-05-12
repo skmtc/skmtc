@@ -63,7 +63,7 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 1. **No plugin registry, no dependency graph, no topological sort.** Cross-generator coordination is a `Map<(name, exportPath), Definition>` cache. Generator order does not affect output.
 
-2. **Render does not run Prettier or Biome.** `RenderContext` types accept a `prettierConfig` parameter; the implementation in `core/context/RenderContext.ts:333` ignores it. Output is whatever generators emitted. Consumers format their own output.
+2. **Render does not run Prettier or Biome.** No formatter runs inside `@skmtc/core`. Output is whatever generators emitted. Consumers format their own output as a post-generation step.
 
 3. **Generator source code is the customization surface.** Stock generators have hardcoded export paths and peer imports (`gen-shadcn-form/src/ShadcnForm.ts:1` hardcodes `import { TanstackQuery } from '@skmtc/gen-tanstack-query-supabase-zod'`). To customize beyond enrichments: `skmtc clone` and edit.
 
@@ -124,7 +124,7 @@ Before stating any architectural claim from this document, verify against the ci
 
 | Trap | Reality | Verify against |
 |---|---|---|
-| "Render runs Prettier" | It doesn't | `RenderContext.ts:333` (`renderFile` body) |
+| "Render runs Prettier" | It doesn't — no formatter in the pipeline | `grep -r prettier core/` returns zero hits |
 | "OasSchema has a base class" | It's a union type | `core/oas/schema/Schema.ts` |
 | "insertNormalizedModel always integrity-checks" | Fallback-name path doesn't (`#SKM-47`) | `GenerateContext.ts:752-798` |
 | "anyOf/oneOf preserve sibling properties when length 1" | They don't — siblings discarded | `toSchemasV3.ts:113` |
@@ -412,7 +412,7 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 | 2 | Generate side effects are idempotent | `register({ imports })` uses `Set.add`; `register({ definitions })` first-write-wins | `GenerateContext.ts:659-708` |
 | 3 | Parse never throws to caller | `tryParseAt` wraps every per-item parser | `tryParseAt.ts:72-100` |
 | 4 | `OasRef.resolve()` returns a typed-correct target | `resolveOnce` checks `oasType` matches expected | `Ref.ts:198-225` |
-| 5 | Render does not modify file content | `renderFile` simply assembles `{ content: file.toString(), ... }` | `RenderContext.ts:333` |
+| 5 | Render does not modify file content | `renderFile` simply assembles `{ content: file.toString(), ... }` | `core/context/RenderContext.ts` (`renderFile` body) |
 | 6 | Cross-generator coordination is order-independent | Cache by `(name, exportPath)`; deterministic identifiers | `OasOperationDriver.ts:85-114` |
 | 7 | Worker is sandboxed | Deno permissions: `net: false`, `run: false` | `generate-worker.ts:70-81` |
 | 8 | One worker per generate run | `worker.terminate()` after RESULT or ERROR | `generate-worker.ts:101` |

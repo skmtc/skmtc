@@ -62,12 +62,11 @@ Same five as in the other skills. One debug-relevant note added:
 5. **Two intentional spellings** — `insertNormalisedModel` and
    `insertNormalizedModel` are different methods.
 
-**Drift between docstrings and code is real.** Specifically:
-`RenderContext`'s docstrings mention Prettier/Biome formatting; the
-implementation in `core/context/RenderContext.ts:333` runs neither.
-When a docstring and the code disagree, the code is canonical. Watch
-for this pattern more broadly — any claim sourced from docstring
-prose should be verified against the function body.
+**Drift between docstrings and code is real.** Docstrings and
+type comments can lag behind code reorganizations or removals.
+When a docstring or comment disagrees with what the function body
+actually does, the code is canonical. Any claim sourced from
+docstring prose should be verified against the function body.
 
 ## 3. Diagnostic paths by symptom
 
@@ -360,9 +359,9 @@ attempt costs a generate cycle.
 
 ### Don't trust docstrings as authoritative
 
-The `RenderContext` docstrings mention Prettier/Biome formatting; the
-implementation runs neither. Drift between docs and code is real.
-**Verify against the function body, not the comments.**
+Docstrings and comments can lag behind code changes. Drift
+between docs and code is real. **Verify against the function
+body, not the comments.**
 
 ### Don't extrapolate behavior from training data
 

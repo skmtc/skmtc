@@ -31,7 +31,6 @@ export type TransformArgs<E> = {
   spanId: string
   document: SkmtcDocumentInput
   settings: ClientSettings | undefined
-  prettier?: PrettierConfigType
   logsPath?: string
   stackTrail: StackTrail
   toGeneratorConfigMap: () => GeneratorsMapContainer<E>
@@ -115,21 +114,7 @@ for error messages and diagnostics. See [API: StackTrail](stack-trail.md).
 The CLI creates an empty `StackTrail` at the top of `toArtifacts`
 and passes it down.
 
-### `silent`, `prettier`, `logsPath`
-
-#### `prettier`
-
-A Prettier config object. **Currently accepted but not applied** —
-`renderFile` in `RenderContext.ts:333` does not call Prettier. The
-parameter exists for API stability; future versions may invoke
-Prettier (or its replacement) on emitted artifacts.
-
-This is a known divergence between docstrings and code behavior.
-Don't rely on Prettier being applied — run a post-generation
-formatter (`deno fmt`, `prettier --write`) as a separate step.
-
-See [the operational principles in `llms.md`](../../llms.md) for the
-load-bearing version of this fact.
+### `silent`, `logsPath`
 
 #### `logsPath`
 
@@ -366,7 +351,7 @@ type ManifestContent = {
 - [The worker runtime concept](../../concepts/the-worker-runtime.md) — how toArtifacts is invoked
 - [API: ParseContext](parse-context.md) — phase 1
 - [API: GenerateContext](generate-context.md) — phase 2
-- [API: RenderContext](render-context.md) — phase 3 (incl. the prettierConfig note)
+- [API: RenderContext](render-context.md) — phase 3
 - [API: StackTrail](stack-trail.md) — tracing parameter
 - [Reference: client.json schema](../settings/client-json-schema.md) — what `settings` carries
 - [Glossary: toArtifacts, Manifest, Artifact](../glossary.md)

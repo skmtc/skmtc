@@ -230,8 +230,7 @@ const fileObjects: FileObject[] = fileEntries.map(([destinationPath, file]) => {
     return renderFile({
       content: file.toString(),
       destinationPath,
-      basePath: this.basePath,
-      prettierConfig: this.#prettierConfig
+      basePath: this.basePath
     })
   })
 })
@@ -250,7 +249,7 @@ That's the entire transformation. Imports get assembled from the `Map<module, Se
 
 ### What Render does *not* do
 
-Despite the `prettierConfig` parameter being threaded through `RenderContext` and into `renderFile`, **`renderFile` does not actually use it**. The function body destructures only `content`, `destinationPath`, and `basePath`:
+Render does not format. `renderFile` takes the `content` produced by `file.toString()` and returns it unmodified:
 
 ```ts
 const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {
@@ -265,7 +264,7 @@ const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): Fil
 }
 ```
 
-A `grep` for `prettier.format` across `@skmtc/core` returns zero hits. The docstrings mention "Biome formatting (if configured)" but no Biome integration exists in code either. **Generated output is unformatted.** Consumers run their own formatter as a separate step (typically a pre-commit hook or build script).
+A `grep` for `prettier.format` across `@skmtc/core` returns zero hits. No formatter — Prettier, Biome, `deno fmt`, or otherwise — runs inside the pipeline. **Generated output is unformatted.** Consumers run their own formatter as a separate step (typically a pre-commit hook or build script).
 
 This is a deliberate architectural choice, not an omission: formatting is the consumer's concern. Generators emit syntactically valid TypeScript and trust the consumer's toolchain to handle aesthetics.
 

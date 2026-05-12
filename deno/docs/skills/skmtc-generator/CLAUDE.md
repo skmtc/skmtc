@@ -8,5 +8,4 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #20775 | 11:48 AM | ✅ | Comprehensive SKMTC generator authoring skill created | ~1295 |
-| #20766 | 11:41 AM | 🔄 | Skills directory reorganized into modular subdirectories with design documents | ~481 |
 </claude-mem-context>

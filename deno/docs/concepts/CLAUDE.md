@@ -7,6 +7,18 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20880 | 1:26 PM | ✅ | Three-phases doc cleanup - removed prettierConfig references, simplified no-formatting explanation | ~650 |
+| #20877 | " | ✅ | Documentation correction in three-phases concept - removed unused prettierConfig parameter | ~418 |
+| #20842 | 1:04 PM | ✅ | Documentation structure scaffolded for SKMTC | ~775 |
+| #20811 | 12:34 PM | ✅ | Comprehensive ParseContext API reference documentation created | ~808 |
+| #20789 | 12:04 PM | ✅ | SKMTC generators-as-packages concept documentation - comprehensive package structure guide | ~1088 |
+| #20788 | " | ✅ | SKMTC projects and workspaces concept documentation - complete directory layout and file role guide | ~475 |
+| #20787 | 12:03 PM | ✅ | Enrichments concept documentation - comprehensive guide to per-operation configuration | ~1096 |
+| #20786 | 12:02 PM | ✅ | OasRef architecture documentation - lazy resolution and cascade pruning | ~798 |
+| #20785 | 12:00 PM | ✅ | Worker runtime comprehensive documentation - execution model and sandboxing | ~849 |
+| #20784 | 11:59 AM | ✅ | Comprehensive clone-vs-install concept documentation | ~849 |
+| #20783 | 11:58 AM | ✅ | Cross-generator coordination concept doc completed with comprehensive technical explanation | ~1109 |
+| #20782 | 11:57 AM | ✅ | Projections and Snippets concept doc - complete DSL two-level model explanation | ~544 |
 | #20694 | 10:01 AM | ✅ | Documentation skeleton for SKMTC projects and workspaces | ~474 |
 | #20693 | " | ✅ | Concept guide skeleton for generator package structure | ~366 |
 | #20692 | " | ✅ | Concepts documentation skeleton created for enrichments system | ~507 |
