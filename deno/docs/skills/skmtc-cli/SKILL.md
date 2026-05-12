@@ -194,16 +194,15 @@ Known check ids:
     // assuming this aligns with the bundler's alias config.
     "basePath": "mobile-app/src",
 
-    // Per-generator and per-operation user overrides. Scoped:
-    // enrichments[generatorId][projectionKind][operationOrRefId][projectionKey]
+    // Per-generator and per-operation user overrides. Routing
+    // keys depend on factory: [path][method] for OAS ops,
+    // [refName] for models, [rootKind][fieldName] for GraphQL ops.
     "enrichments": {
       "@skmtc/gen-shadcn-form": {
-        "mutation": {
-          "CreateContact": {
-            "form": {
-              "title": "Create Contact",
-              "submitLabel": "Save"
-            }
+        "/contacts": {
+          "post": {
+            "title": "Create Contact",
+            "submitLabel": "Save"
           }
         }
       }
@@ -385,7 +384,10 @@ also ready; the rebundle ran automatically.
 1. Read the target generator's `gen-x/src/enrichments.ts` (in
    `skmtc-generators/` or via `deno info`) to learn the accepted shape.
 2. Edit `.skmtc/<project>/.settings/client.json` →
-   `settings.enrichments[generatorId][projectionKind][operationId]`.
+   `settings.enrichments[generatorId][...routingKeys]`. Routing
+   keys depend on the generator's factory: `[path][method]` for
+   OAS ops, `[refName]` for models, `[rootKind][fieldName]` for
+   GraphQL ops.
 3. `skmtc generate <project>` — no rebundle needed; enrichments are
    runtime config.
 

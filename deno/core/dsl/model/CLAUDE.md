@@ -11,4 +11,10 @@
 | #20421 | 6:59 PM | 🔵 | EntityType already exists on Identifier and drives isType boolean conversion | ~569 |
 | #20419 | " | 🔵 | isType flag implementation across core DSL import system | ~592 |
 | #20418 | " | 🔵 | Current isType boolean implementation in Import DSL | ~522 |
+
+### May 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20928 | 2:20 PM | 🔵 | Critical enrichment routing path discrepancy discovered in documentation | ~940 |
 </claude-mem-context>

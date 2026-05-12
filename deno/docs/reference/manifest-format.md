@@ -53,8 +53,8 @@ type Manifest = {
   /** Per-(generator × item) outcome — see "results" below */
   results: ResultsItem
 
-  /** Parse-time issues (populated by @skmtc/core ≥ 0.3.x) */
-  parseIssues?: ParseIssue[]
+  /** Parse-time diagnostics. Always present; empty array means no parse issues. */
+  parseIssues: ParseIssue[]
 }
 ```
 
@@ -152,23 +152,30 @@ The identifier format depends on the generator type:
 
 ### `parseIssues`
 
-Array of parse-time diagnostics, populated by `@skmtc/core ≥ 0.3.x`.
-Each issue:
+Array of parse-time diagnostics. **Always present** in the
+manifest — an empty array means no parse issues, not "old core
+version".
+
+`ParseIssue` is a discriminated union of four shapes, keyed by
+`(protocol, level)`:
 
 ```ts
-type ParseIssue = {
-  protocol: 'oas' | 'gql'
-  level: 'error' | 'warning'
-  type: string           // see reference/error-codes.md for the full list
-  location: string       // stack-trail path, e.g., "paths./users.post.requestBody"
-  message: string
-  cause?: unknown        // present for `level: 'error'`; the underlying throw
-}
+type ParseIssue =
+  | { protocol: 'oas'; level: 'error';   type: OasIssueType; location: string; message: string; cause: unknown }
+  | { protocol: 'oas'; level: 'warning'; type: OasIssueType; location: string; message: string }
+  | { protocol: 'gql'; level: 'error';   type: GqlIssueType; location: string; message: string; cause: unknown }
+  | { protocol: 'gql'; level: 'warning'; type: GqlIssueType; location: string; message: string }
 ```
 
-Older `@skmtc/core` versions don't populate this field; the CLI
-treats undefined as "no error issues" and exits cleanly when only
-warnings are present (or when the field is missing entirely).
+Note that `cause` is present **only** on `level: 'error'`
+shapes — it's truly absent on warnings, not just optional. The
+`type` field is constrained to the protocol's `OasIssueType` or
+`GqlIssueType` literal union — see
+[reference/error-codes.md](error-codes.md) for the full lists.
+
+The CLI exits with code `1` when any `parseIssues[].level ===
+'error'` is present; an array containing only warnings (or an
+empty array) exits cleanly.
 
 ## Diagnostic workflow against the manifest
 

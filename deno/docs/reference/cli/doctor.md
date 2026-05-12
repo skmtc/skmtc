@@ -90,52 +90,60 @@ Project: my-api
 Summary: 9 OK, 1 WARN, 1 FAIL
 ```
 
-Exit code = `3` when any check fails (regardless of warnings).
+Exit code = `1` when any check fires at `error` severity. Warnings
+do not change the exit code.
 
 #### JSON
 
 ```jsonc
 {
-  "command": "doctor",
-  "workspaceRoot": "/path/to/workspace",
+  "skmtcRootPath": "/path/to/workspace/.skmtc",
+  "globalStateDir": "/home/user/.skmtc",
+  "cliVersion": "0.0.150",
+  "projects": ["my-api"],
   "checks": [
     {
-      "id": "workspace-deno-json",
-      "level": "workspace",
-      "status": "ok"
+      "id": "shim-lockfile",
+      "status": "ok",
+      "message": "Shim lockfile present. Pinned: @skmtc/cli=0.0.150, @skmtc/core=0.0.150.",
+      "data": { "lockPath": "/home/user/.deno/bin/.skmtc/deno.lock", "cliVersion": "0.0.150", "coreVersion": "0.0.150" }
     },
     {
       "id": "project-core-pin/my-api",
-      "level": "project",
-      "project": "my-api",
-      "status": "fail",
+      "status": "error",
       "message": "Project pins @skmtc/core@^0.0.148, CLI uses @^0.0.150",
-      "remediation": "Update .skmtc/my-api/deno.json#imports to align with the CLI's pin"
+      "hint": "Update .skmtc/my-api/deno.json#imports to align with the CLI's pin"
     },
     {
-      "id": "project-bundle-fresh/my-api",
-      "level": "project",
-      "project": "my-api",
-      "status": "warn",
+      "id": "project-bundle/my-api",
+      "status": "warning",
       "message": "bundle.js older than src/",
-      "remediation": "Run `skmtc bundle my-api`"
+      "hint": "Run `skmtc bundle my-api`"
     }
   ],
-  "summary": {
-    "ok": 9,
-    "warn": 1,
-    "fail": 1
-  }
+  "summary": "error"
 }
 ```
+
+Each `Check` has the shape `{ id, status, message, hint?, data? }`.
+There is no separate `level` or `remediation` field — remediation
+text lives in `hint`, and the check's scope (workspace vs project)
+is encoded in the `id` (project-scoped check IDs end with
+`/<projectName>`). The top-level `summary` is itself a
+`CheckStatus` (`ok` / `warning` / `error` / `skipped`) — the
+aggregate is `error` if any check is `error`, otherwise `warning`
+if any is `warning`, otherwise `ok`.
 
 ### Status values
 
 - **`ok`** — check passed
-- **`warn`** — advisory; the system can still operate (e.g., stale
-  bundle.js — `generate` may produce older output)
-- **`fail`** — blocking issue; `generate` is likely to misbehave or
-  refuse to run
+- **`warning`** — advisory; the system can still operate (e.g.,
+  stale `bundle.js` — `generate` may produce older output)
+- **`error`** — blocking issue; `generate` is likely to misbehave
+  or refuse to run
+- **`skipped`** — the check did not run (e.g., a per-project check
+  on a non-existent project, or a freshness check on a project
+  with no clones)
 
 ### Remediation hints
 
@@ -170,28 +178,32 @@ Pulls just the failing checks for remediation.
 #!/bin/bash
 set -e
 skmtc doctor --json > doctor-report.json
-fails=$(jq '.summary.fail' doctor-report.json)
-if [ "$fails" -gt 0 ]; then
-  echo "doctor reported $fails failures"
+summary=$(jq -r '.summary' doctor-report.json)
+if [ "$summary" = "error" ]; then
+  echo "doctor reported error-severity checks; see doctor-report.json"
   exit 1
 fi
 ```
 
-`doctor` exits with code `3` when there are failures, which `set -e`
-will catch — the explicit `jq` check is for projects that want to
-allow warnings in CI but block on failures.
+`doctor` exits with code `1` when there's an error-level check
+fire, which `set -e` will catch — the explicit `jq` check above
+is redundant for that case but useful when you want a more
+informative message before failing.
 
 ## Exit codes
 
 | Code | Meaning |
 |------|---------|
-| `0` | All checks passed (warnings allowed) |
-| `1` | Internal error running checks (rare) |
-| `3` | One or more checks failed |
+| `0` | Doctor ran; no `error`-severity checks fired (warnings allowed) |
+| `1` | At least one `error`-severity check fired |
 
-`doctor` is the one CLI command that uses exit code `3` — chosen to
-distinguish "checks ran but found issues" from "the CLI itself
-broke" (code `1`).
+`doctor` collapses both "internal failure to run a check" and
+"a check ran and reported error severity" onto exit `1`. Use the
+JSON output to distinguish: a real check failure carries
+`status: "error"` in `.checks[]`; an internal failure typically
+manifests as a stderr message with no JSON envelope. `doctor`
+never returns exit code `2` — that code is reserved for missing-
+input recipe errors emitted by other commands.
 
 ## Common failure modes
 

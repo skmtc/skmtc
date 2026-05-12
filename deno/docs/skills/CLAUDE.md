@@ -8,8 +8,4 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #20772 | 11:44 AM | 🔄 | Reorganized skills directory structure and location | ~649 |
-| #20761 | 11:35 AM | ⚖️ | Proposed skmtc-debug skill with verification-first epistemic stance | ~802 |
-| #20759 | 11:33 AM | ⚖️ | SKMTC generator authoring skill design - operational principles and LLM training-data override strategy | ~1157 |
-| #20758 | 11:32 AM | ✅ | Claude Code skill architecture plan - skmtc-cli skill outline | ~975 |
-| #20757 | " | ⚖️ | Skill ecosystem architecture for AI assistant documentation | ~1305 |
 </claude-mem-context>

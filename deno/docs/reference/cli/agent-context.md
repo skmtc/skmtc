@@ -25,12 +25,12 @@ the current workspace.
 
 ### `--json`
 
-Emit structured JSON output (default when `--no-input` is set, and
-strongly recommended for agent use).
+Emit structured JSON output. Strongly recommended for agent use.
 
-Without `--json`, the CLI emits a human-readable summary table. The
-JSON form is the canonical interface; the human form is for spot-
-checking.
+`agent-context` only defines `--json`; it has no `--no-input` flag
+(the command is non-interactive by nature). Without `--json`, the
+CLI emits a human-readable summary table; the JSON form is the
+canonical interface, the human form is for spot-checking.
 
 ## Behavior
 

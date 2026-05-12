@@ -27,6 +27,8 @@ const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
 // `agent-context` reports the same text — keep these in sync.
 const NO_INPUT_DESC = 'Disable interactive prompts; fail on missing args.'
 const JSON_DESC = 'Emit structured JSON output (implies --no-input).'
+const FORCE_DESC =
+  'Bypass the pre-flight @skmtc/core peer-pin check. Cloning over a mismatched pin produces a generator that won\'t bundle — only use this when you know the skew is safe.'
 
 const run = async () => {
   if (!shouldSkipRegistryCheck(Deno.args)) {
@@ -84,13 +86,15 @@ const run = async () => {
       'Generator id (JSR specifier) to clone. Repeat for multiple.',
       { collect: true }
     )
+    .option('--force', FORCE_DESC)
     .option('--no-input', NO_INPUT_DESC)
     .option('--json', JSON_DESC)
-    .action(async ({ json, input, generator }, projectName) => {
+    .action(async ({ json, input, generator, force }, projectName) => {
       const { renderClone } = await import('@/commands/clone.tsx')
       await renderClone({
         projectName,
         generators: generator,
+        force,
         jsonFlag: json,
         noInputFlag: input === false
       })

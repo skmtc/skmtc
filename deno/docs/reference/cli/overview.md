@@ -103,7 +103,10 @@ The CLI uses a consistent exit-code convention across commands:
 | `0` | Success |
 | `1` | Operational failure (network, filesystem, validation) |
 | `2` | Invalid invocation (missing args, unknown flags) |
-| `3` | Diagnostics-specific failure code (used by `doctor`) |
+
+`doctor` collapses "internal failure" and "a check ran at error
+severity" onto exit `1` — it does not use a distinct exit code
+for diagnostics failures.
 
 Per-command pages document which codes apply.
 
@@ -112,11 +115,12 @@ Per-command pages document which codes apply.
 ```
 workspace-root/
 ├── deno.json                          # workspace deno.json
-├── client.json                        # per-workspace generation settings
 ├── .skmtc/
 │   └── <project>/
 │       ├── deno.json                  # per-project generator imports
-│       ├── client.json                # per-project settings overrides
+│       ├── .settings/
+│       │   ├── client.json            # per-project settings (source, basePath, enrichments)
+│       │   └── manifest.json          # last-run manifest (written by generate)
 │       ├── bundle.js                  # generated worker payload
 │       └── <generator>/               # cloned or created generator source
 │           ├── deno.json
@@ -137,9 +141,9 @@ The CLI reads (and sometimes writes) these files:
 | File | Purpose |
 |------|---------|
 | `deno.json` (workspace root) | Workspace-level configuration |
-| `client.json` (workspace root) | Default generation settings |
 | `.skmtc/<project>/deno.json` | Per-project generator imports |
-| `.skmtc/<project>/client.json` | Per-project settings overrides |
+| `.skmtc/<project>/.settings/client.json` | Per-project generation settings (source, basePath, enrichments) |
+| `.skmtc/<project>/.settings/manifest.json` | Last-run manifest |
 | `<generator>/deno.json` | Per-generator package metadata |
 
 See [reference/settings/client-json-schema.md](../settings/client-json-schema.md)

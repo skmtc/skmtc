@@ -109,7 +109,7 @@ Generators are TypeScript classes you `install` from JSR or `clone` into your pr
 
 | | **Install** | **Clone** |
 |---|---|---|
-| Command | `skmtc install @skmtc/gen-zod` | `skmtc clone @skmtc/gen-zod` |
+| Command | `skmtc install @skmtc/gen-zod` | `skmtc clone <project> -g @skmtc/gen-zod` |
 | Source | JSR (remote) | local to your project |
 | Customization | Enrichments only | Edit any code |
 | When | Stock defaults are fine | You need different paths, naming, or peer deps |

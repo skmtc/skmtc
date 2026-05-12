@@ -15,6 +15,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20971 | 2:58 PM | 🔵 | StackTrail location format discrepancy and cumulative fix status update | ~746 |
+| #20928 | 2:20 PM | 🔵 | Critical enrichment routing path discrepancy discovered in documentation | ~940 |
 | #20658 | 8:54 AM | 🔵 | SKMTC error isolation pattern - tryParseAt for partial parse failures | ~788 |
 | #20651 | 8:45 AM | 🔵 | RenderContext implementation - final phase of SKMTC pipeline | ~790 |
 | #20650 | " | 🔵 | SKMTC GenerateContext orchestration and skip/include filtering | ~785 |

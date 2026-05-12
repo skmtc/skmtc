@@ -232,7 +232,7 @@ what changed.
 
 ## Local cloning
 
-`skmtc clone @skmtc/gen-x <project>`:
+`skmtc clone <project> -g @skmtc/gen-x`:
 
 1. Fetches the generator's source from JSR (the same content
    `install` would resolve)

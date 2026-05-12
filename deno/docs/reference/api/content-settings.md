@@ -87,12 +87,11 @@ The Driver also uses `exportPath` to route the Projection's
 ### `enrichments`
 
 The validated enrichment payload for this specific Projection
-instance. The Driver routes it via the
-[four-level enrichments key path](../settings/enrichments-shape.md):
-
-```
-client.json → settings.enrichments[generatorId][kind][operationId][projectionKey]
-```
+instance. The projection-base factory routes via a key path that
+depends on the factory kind (OAS operation, model, or GraphQL
+operation) — see
+[enrichments-shape reference](../settings/enrichments-shape.md)
+for the three routing structures.
 
 The result is type-narrowed to `E`, the schema declared by the
 generator's `toEnrichmentSchema` factory. May be `undefined` when:
@@ -156,7 +155,7 @@ Inside the Projection, the settings are available as `this.settings`:
 ```ts
 class ShadcnForm extends OasOperationProjectionBase {
   override toString(): string {
-    const { title, submitLabel } = this.settings.enrichments?.form ?? {}
+    const { title, submitLabel } = this.settings.enrichments ?? {}
 
     return `
       <Form>
@@ -234,21 +233,19 @@ class UserBody extends ModelProjectionBase {
 
 ```ts
 type EnrichmentSchema = {
-  form?: {
-    title?: string
-    submitLabel?: string
-  }
+  title?: string
+  submitLabel?: string
 }
 
 const settings = new ContentSettings<EnrichmentSchema>({
   identifier: Identifier.createVariable('createUserForm'),
   exportPath: '/forms/CreateUser.generated.tsx',
-  enrichments: { form: { title: 'Create User', submitLabel: 'Create' } }
+  enrichments: { title: 'Create User', submitLabel: 'Create' }
 })
 
 class ShadcnForm extends OasOperationProjectionBase<EnrichmentSchema> {
   override toString(): string {
-    const { title, submitLabel } = this.settings.enrichments?.form ?? {}
+    const { title, submitLabel } = this.settings.enrichments ?? {}
     return `<Form><h2>${title}</h2>...<Button>${submitLabel}</Button></Form>`
   }
 }

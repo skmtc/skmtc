@@ -7,5 +7,9 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20770 | 11:44 AM | ✅ | Standardized codebase spelling from mixed UK/US English to consistent US English | ~605 |
+| #20854 | 1:10 PM | ✅ | Stock generator documentation - gen-supabase-hono reference complete | ~796 |
+| #20851 | " | ✅ | Stock generator reference - gen-shadcn-table documentation | ~880 |
+| #20848 | 1:09 PM | ✅ | Stock generator documentation completed for gen-msw with shared-aggregate pattern explanation | ~883 |
+| #20843 | 1:05 PM | ✅ | Comprehensive stock generators overview documentation | ~810 |
+| #20719 | 10:02 AM | ✅ | Stock generators reference catalogue structure | ~620 |
 </claude-mem-context>

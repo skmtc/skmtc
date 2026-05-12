@@ -241,7 +241,7 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 
 ### Clone path (local source)
 
-- `skmtc clone @skmtc/gen-x <project>` copies source into `.skmtc/<project>/gen-x/`.
+- `skmtc clone <project> -g @skmtc/gen-x` copies source into `.skmtc/<project>/gen-x/`. The `-g` flag is repeatable to clone multiple generators in one invocation.
 - `deno.json#imports` entry becomes a local path.
 - Next `skmtc bundle` regenerates `worker.ts` and runs `deno bundle worker.ts -o bundle.js`.
 - The generator is now editable TypeScript.
@@ -318,9 +318,13 @@ TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 
 ### Enrichment routing
 
-Scoped: `enrichments[generatorId][projectionKind][operationOrRefId][projectionKey]`.
+Routing keys are hardcoded per projection-base factory:
 
-The acceptable shape is declared per-generator via Valibot in `gen-x/src/enrichments.ts`. **To know what keys a generator accepts, read its `enrichments.ts`.**
+- OAS operation generators: `enrichments[generatorId][operation.path][operation.method]`
+- Model generators: `enrichments[generatorId][refName]`
+- GraphQL operation generators: `enrichments[generatorId][rootKind][fieldName]`
+
+The payload shape beneath the routing keys is declared per-generator via Valibot in `gen-x/src/enrichments.ts`. **To know what keys a generator accepts, read its `enrichments.ts`.**
 
 ### Skip and include filters
 
@@ -478,7 +482,7 @@ Self-contained playbooks. Read only the one you need.
 
 1. Read the target generator's `gen-x/src/enrichments.ts` to know the accepted shape.
 2. Open `.skmtc/<project>/.settings/client.json`.
-3. Add under `settings.enrichments[generatorId][projectionKind][operationId]`.
+3. Add under `settings.enrichments[generatorId][...routingKeys]` — keys depend on factory: `[path][method]` for OAS ops, `[refName]` for models, `[rootKind][fieldName]` for GraphQL ops.
 4. `skmtc generate <project>` (no rebundle needed).
 
 #### Pinning a schema source
@@ -520,7 +524,7 @@ Self-contained playbooks. Read only the one you need.
 
 #### Adding a new field type to gen-shadcn-form
 
-**Prerequisite:** `skmtc clone @skmtc/gen-shadcn-form <project>`.
+**Prerequisite:** `skmtc clone <project> -g @skmtc/gen-shadcn-form`.
 
 1. Create `.skmtc/<project>/gen-shadcn-form/src/fields/MyInput.ts` mirroring `StringInput.ts`.
 2. Edit `src/schemaToField.ts`. Add a branch dispatching to `MyInput`.

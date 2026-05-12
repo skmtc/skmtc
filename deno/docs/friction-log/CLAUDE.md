@@ -7,5 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20773 | 11:44 AM | 🔄 | Skill references reorganized to docs/skills directory | ~419 |
 | #20747 | 11:11 AM | ✅ | Created friction log template for tracking SKMTC user experience issues | ~749 |
+| #20746 | " | ✅ | Friction log process documentation created | ~831 |
 </claude-mem-context>

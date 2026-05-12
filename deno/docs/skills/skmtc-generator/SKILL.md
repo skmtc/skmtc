@@ -361,7 +361,9 @@ export const toEnrichmentSchema = () => myGenEnrichmentSchema
 
 To know what enrichment shape a *consumer* would pass: this file is
 canonical. Users place values under
-`client.json#settings.enrichments[generatorId][projectionKind][operationId]`.
+`client.json#settings.enrichments[generatorId][...routingKeys]`,
+where the routing keys depend on the generator's projection-base
+factory (see [enrichments-shape](../../reference/settings/enrichments-shape.md)).
 
 ### E. Anonymous Snippet — anonymous embedded fragment
 

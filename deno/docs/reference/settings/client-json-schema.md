@@ -37,7 +37,8 @@ individual fields.
     "skip": [],
 
     // Optional. Per-generator, per-operation user overrides.
-    // Scoped by generatorId → projectionKind → operationOrRefId → projectionKey.
+    // Routing keys depend on each generator's projection-base kind;
+    // see settings.enrichments below.
     "enrichments": {},
 
     // Optional. Advanced — for multi-package outputs.
@@ -157,28 +158,33 @@ etc.) without changing the generator code.
 
 ### `settings.enrichments` (optional)
 
-Per-generator, per-operation user overrides. Routed by a four-level
-key:
+Per-generator, per-operation user overrides. The routing keys
+under each generator depend on the generator's projection-base
+kind:
 
-```
-enrichments[generatorId][projectionKind][operationOrRefId][projectionKey]
-```
+| Factory | Key path |
+|---|---|
+| `toOasOperationProjectionBase` | `enrichments[generatorId][operation.path][operation.method]` |
+| `toModelProjectionBase` | `enrichments[generatorId][refName]` |
+| `toGqlOperationProjectionBase` | `enrichments[generatorId][rootKind][fieldName]` |
 
-Example:
+The value beneath these routing keys is the leaf payload — its
+shape is declared by the generator's Valibot schema in
+`gen-x/src/enrichments.ts`.
+
+Example for an OAS operation generator:
 
 ```jsonc
 {
   "enrichments": {
     "@skmtc/gen-shadcn-form": {
-      "mutation": {
-        "CreateContact": {
-          "form": {
-            "title": "Create Contact",
-            "submitLabel": "Save",
-            "fields": [
-              { "id": "officeIds", "references": "GetOffices", "label": "Offices" }
-            ]
-          }
+      "/contacts": {
+        "post": {
+          "title": "Create Contact",
+          "submitLabel": "Save",
+          "fields": [
+            { "id": "officeIds", "references": "GetOffices", "label": "Offices" }
+          ]
         }
       }
     }
@@ -186,9 +192,8 @@ Example:
 }
 ```
 
-Each generator declares the accepted shape via Valibot in
-`gen-x/src/enrichments.ts`. Unknown fields are stripped silently;
-type mismatches surface as parse errors.
+Unknown fields are stripped silently; type mismatches surface as
+parse errors.
 
 See [enrichments-shape reference](enrichments-shape.md) and
 [enrichments concept](../../concepts/enrichments.md).
@@ -227,19 +232,9 @@ added).
     "basePath": "src/generated",
     "enrichments": {
       "@skmtc/gen-shadcn-form": {
-        "mutation": {
-          "CreateContact": {
-            "form": {
-              "title": "Create Contact",
-              "submitLabel": "Create"
-            }
-          },
-          "UpdateContact": {
-            "form": {
-              "title": "Edit Contact",
-              "submitLabel": "Save"
-            }
-          }
+        "/contacts": {
+          "post": { "title": "Create Contact", "submitLabel": "Create" },
+          "put":  { "title": "Edit Contact",   "submitLabel": "Save" }
         }
       }
     }
@@ -300,10 +295,8 @@ Per-operation form titles and submit labels for the contact CRUD.
     "skip": [],
     "enrichments": {
       "@skmtc/gen-shadcn-form": {
-        "mutation": {
-          "CreateCustomer": {
-            "form": { "title": "Create Customer", "submitLabel": "Create" }
-          }
+        "/customers": {
+          "post": { "title": "Create Customer", "submitLabel": "Create" }
         }
       }
     },

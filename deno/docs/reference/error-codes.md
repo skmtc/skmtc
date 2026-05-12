@@ -99,6 +99,73 @@ the property) or accept that the property is being ignored. Common
 sources are vendor extensions written without the conventional
 `x-` prefix.
 
+### `INVALID_OPERATION` — error
+
+**When:** A path operation (`tryParseAt`-wrapped per-method parser)
+threw. The single `(path, method)` pair is dropped; the rest of the
+document continues to parse.
+
+**Remediation:** Read the operation at the indicated location.
+Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
+parameters, etc.).
+
+### `INVALID_PARAMETER` — error
+
+**When:** A reusable parameter under `components.parameters` failed
+to parse via `tryParseAt`. The parameter is dropped; any operation
+that `$ref`s it surfaces a cascading `INVALID_DEPENDENCY_REF` /
+generate-time `Ref ... not found`.
+
+### `INVALID_RESPONSE` — error
+
+**When:** A response entry (under an operation's `responses` map)
+failed to parse via `tryParseAt`. The single `(status, response)`
+pair is dropped.
+
+### `INVALID_EXAMPLE` — warning
+
+**When:** An `example` value doesn't conform to its declared schema
+(e.g., a number-typed `example` on a `type: array` schema). The
+example is dropped; the schema is otherwise unchanged.
+
+### `INVALID_DEFAULT` — warning
+
+**When:** A schema's `default` value doesn't conform to its
+declared type (e.g., a string default on an enum that has no
+matching member, or a non-array default on an array schema). The
+default is dropped; the schema is otherwise unchanged.
+
+### `INVALID_FORMAT` — warning
+
+**When:** A numeric or integer schema's `format` isn't a recognized
+OAS numeric format. The format is dropped; the type proceeds
+without it.
+
+### `UNEXPECTED_FORMAT` — warning
+
+**When:** A string schema's `format` isn't a recognized OAS string
+format (`date`, `date-time`, `byte`, `binary`, `password`, `email`,
+`uri`, `uuid`, etc.). The format is preserved but flagged; user
+code may need to handle the custom format.
+
+### `INVALID_NULLABLE` — warning
+
+**When:** A schema's `nullable` field conflicts with its other
+type constraints (e.g., `nullable: true` on a schema that has no
+type). SKMTC degrades gracefully and emits a warning.
+
+### `EXAMPLE_AND_EXAMPLES_DEFINED` — warning
+
+**When:** A schema defines both `example` (singular, OAS 3.0) and
+`examples` (plural, OAS 3.1) at the same node. SKMTC picks one
+deterministically (singular wins) and warns.
+
+### `INVALID_ENUM` — reserved
+
+Declared in the `OasIssueType` union but not currently emitted from
+any parser. Reserved for future use; if you encounter this in a
+manifest, it's from a build of `@skmtc/core` newer than this doc.
+
 ## GraphQL parse-issue types
 
 ### `INVALID_TYPE_DEFINITION` — error
@@ -106,11 +173,52 @@ sources are vendor extensions written without the conventional
 **When:** A GraphQL type definition failed to parse. The type is
 dropped from the registry; downstream consumers are pruned.
 
+### `INVALID_DEPENDENCY_REF` — error
+
+The GraphQL flavor of the shared `INVALID_DEPENDENCY_REF` code (the
+same identifier appears in both `OasIssueType` and `GqlIssueType`).
+Cascade-prunes consumers when a referenced GraphQL type fails to
+parse.
+
+**Discriminator:** `protocol: 'gql'` on the `ParseIssue` —
+generators that read by code alone should also check `protocol`.
+
 ### `SKIPPED_FIELD_ARGUMENTS` — warning
 
 **When:** A GraphQL field has arguments the engine doesn't yet
 support (e.g., complex input types in certain positions). The field
 is included but its arguments are dropped.
+
+### `NESTED_LIST_LOSSY` — warning
+
+**When:** A GraphQL field has a nested-list type (`[[T]]` and
+deeper). SKMTC can't represent nested lists as a single `OasArray`
+in v1, so it collapses to `OasUnknown`. The field is preserved but
+loses its inner-list shape.
+
+### `DROPPED_DIRECTIVE` — warning
+
+**When:** A field or type carries a directive SKMTC doesn't model.
+The directive is silently dropped; the field/type is preserved
+without the directive.
+
+**Remediation:** None needed if you don't care about the directive.
+If you want it preserved, expose it via `extensionFields` (planned
+for v2).
+
+### `UNKNOWN_TYPE_KIND` — error
+
+**When:** A GraphQL type's kind didn't match any known
+`isScalarType` / `isObjectType` / `isInputObjectType` /
+`isInterfaceType` / `isUnionType` / `isEnumType` check. Defensive
+fallback — shouldn't fire under `graphql-js`'s type system. The
+field falls back to `OasUnknown`.
+
+### `SKIPPED_FEATURE` — reserved
+
+Declared in the `GqlIssueType` union but not currently emitted from
+any parser. Reserved for future use; treat similarly to
+`INVALID_ENUM` above.
 
 ## Generate-time errors
 
@@ -251,16 +359,12 @@ the current trail is stringified.
 ### How do I get every error-level issue from the last run?
 
 ```bash
-jq '.parseIssues // [] | map(select(.level == "error"))' \
+jq '.parseIssues | map(select(.level == "error"))' \
   .skmtc/<project>/.settings/manifest.json
 ```
 
-### Why does my old project's manifest not have `parseIssues`?
-
-Older versions of `@skmtc/core` didn't emit the field. The CLI
-treats a missing/undefined `parseIssues` as "no error issues" so
-the exit code remains correct. To get `parseIssues` populated,
-upgrade `@skmtc/core` in the project's `deno.json`.
+`parseIssues` is **always present** in the manifest — an empty
+array means no parse issues fired, not "old core version".
 
 ### Can I configure which issue types are warnings vs errors?
 

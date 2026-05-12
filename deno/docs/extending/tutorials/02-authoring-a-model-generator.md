@@ -1,21 +1,209 @@
 # Authoring a model generator
 
-> Build a new generator that emits one file per schema component.
+> Build a new generator from scratch that emits one file per
+> schema component. By the end you'll have the model-generator
+> pattern in your fingers and can apply it to any output target.
 
 ## What you'll build
 
+A small generator (`schema-meta`) that emits per-schema metadata:
+
+```ts
+// src/generated/Pet.meta.ts
+export const PetMeta = {
+  name: 'Pet',
+  properties: ['id', 'name', 'category', 'photoUrls', 'status']
+} as const
+```
+
+Useful for runtime introspection or test fixtures. The output is
+deliberately simple so you can focus on the **authoring flow**,
+not the output's complexity.
+
 ## Prerequisites
+
+- A SKMTC project initialized.
+- Familiarity with [the projections-and-snippets concept](../../concepts/projections-and-snippets.md).
+- Light TypeScript fluency.
 
 ## Step 1: Scaffold with `skmtc create`
 
-## Step 2: Implement `toIdentifier` and `toExportPath` in base.ts
+```bash
+skmtc create my-project schema-meta model
+```
+
+This scaffolds a model generator at
+`.skmtc/my-project/schema-meta/`. The `model` argument tells the
+CLI which factory to wire up (`toModelEntry`, not
+`toOasOperationEntry`). See [`skmtc create` reference](../../reference/cli/create.md).
+
+Open the scaffolded files. The skeleton is intentionally minimal:
+
+```
+.skmtc/my-project/schema-meta/
+├── deno.json
+├── mod.ts
+└── src/
+    ├── mod.ts                     # the Entry (toModelEntry)
+    ├── base.ts                    # toModelProjectionBase({...}) — the base factory call
+    └── SchemaMetaProjection.ts    # the Projection class extending the base
+```
+
+The class file is `<MainModule>Projection.ts` where
+`MainModule = camelCase(packageName, { upperFirst: true })` — so
+`schema-meta` → `SchemaMeta` → file `SchemaMetaProjection.ts`.
+
+Note the scaffold does **not** create `enrichments.ts`. Add it
+manually if your generator needs enrichments — see
+[how to add enrichment options](../how-to/add-enrichment-options.md).
+
+## Step 2: Implement `toIdentifier` and `toExportPath` in `base.ts`
+
+`base.ts` calls `toModelProjectionBase({...})` and exports the
+resulting class. The pure `toIdentifier` / `toExportPath`
+functions are *config fields* on that call — not free-standing
+exports:
+
+```ts
+// src/base.ts
+import { Identifier, toModelProjectionBase, camelCase, decapitalize } from '@skmtc/core'
+import { join } from '@std/path/join'
+
+export const SchemaMetaBase = toModelProjectionBase({
+  id: '@local/schema-meta',
+
+  toIdentifier({ refName }): Identifier {
+    const name = decapitalize(camelCase(refName))
+    return Identifier.createVariable(`${name}Meta`)
+  },
+
+  toExportPath({ refName }): string {
+    return join('@', 'meta', `${refName}.meta.ts`)
+  }
+})
+```
+
+`Identifier.createVariable` marks this as a runtime value (not a
+type). Under `verbatimModuleSyntax: true`, this distinction is
+load-bearing — see [the Identifier reference](../../reference/api/dsl-identifier.md).
+
+**Both functions must be pure** — same input → same output, no
+side effects. This is the load-bearing property that makes
+[cross-generator coordination](../../concepts/cross-generator-coordination.md)
+work.
 
 ## Step 3: Implement the Projection class
 
+Open `src/SchemaMetaProjection.ts`. The class extends the base
+returned by `toModelProjectionBase` (not the abstract
+`ModelProjectionBase` directly):
+
+```ts
+import type { GenerateContext, RefName, ContentSettings } from '@skmtc/core'
+import { SchemaMetaBase } from './base.ts'
+
+type ConstructorArgs = {
+  context: GenerateContext
+  refName: RefName
+  settings: ContentSettings
+  destinationPath: string
+  rootRef?: RefName
+}
+
+export class SchemaMetaProjection extends SchemaMetaBase {
+  propNames: string[]
+
+  constructor({ context, refName, settings }: ConstructorArgs) {
+    super({ context, refName, settings })
+
+    // The schema is resolved here, from refName.
+    const schema = context.resolveSchemaRefOnce(refName, SchemaMetaBase.id)
+
+    if (schema.isRef() || schema.type !== 'object') {
+      this.propNames = []
+    } else {
+      this.propNames = Object.keys(schema.properties ?? {})
+    }
+  }
+
+  override toString(): string {
+    return `{
+  name: '${this.settings.identifier.name.replace('Meta', '')}',
+  properties: [${this.propNames.map(n => `'${n}'`).join(', ')}]
+} as const`
+  }
+}
+```
+
+Two things to note:
+
+- The constructor receives `refName`, not a schema. The schema is
+  resolved inside via `context.resolveSchemaRefOnce(refName, baseId)`.
+- `super(args)` only passes the three canonical fields
+  (`context`, `refName`, `settings`). `destinationPath` and
+  `rootRef` are scaffold-added fields available on the args but
+  not passed up.
+
+The `toString()` returns the **value side** of the
+`export const X = ...` statement. The wrapping happens in the
+`Definition` class automatically.
+
 ## Step 4: Compose with peer Projections
+
+For this generator, you don't need to. If you wanted to reference
+another generator's emitted name (e.g., the TypeScript type from
+`gen-typescript`), you'd call `insertModel` from the constructor:
+
+```ts
+constructor(args: ConstructorArgs) {
+  super({ context: args.context, refName: args.refName, settings: args.settings })
+  const ts = args.context.insertModel(TsProjection, args.refName)
+  this.tsName = ts.toName()
+}
+```
+
+See [how to compose with another generator](../how-to/compose-with-another-generator.md).
 
 ## Step 5: Iterate with `skmtc dev`
 
+```bash
+skmtc dev my-project
+```
+
+Watch mode. Re-runs generation on each source change. Faster
+than `skmtc bundle && skmtc generate` for iteration.
+
+Make a change to `SchemaMeta.toString()`, save, and watch the
+output update. Verify via:
+
+```bash
+cat src/generated/Pet.meta.ts
+```
+
 ## What just happened
 
+You created a model generator from scratch. The structure:
+
+- **`src/mod.ts`** exports the `Entry` — `toModelEntry({ id,
+  transform({ context, refName }) { context.insertModel(SchemaMetaProjection, refName) } })`
+- **`src/base.ts`** holds the `toModelProjectionBase({...})`
+  factory call. The pure `toIdentifier` / `toExportPath` are
+  config fields on that call.
+- **`src/SchemaMetaProjection.ts`** holds the Projection class
+  that extends the base returned by the factory, resolves its
+  schema inside the constructor, and renders via `toString()`.
+
+This pattern is shared across **every** model generator —
+`gen-typescript`, `gen-zod`, `gen-valibot`, `gen-arktype`. Look
+at any of their sources to confirm.
+
 ## Next steps
+
+- [Tutorial 03: Authoring an operation generator](03-authoring-an-operation-generator.md) —
+  operations differ in a few important ways
+- [How to add enrichment options](../how-to/add-enrichment-options.md) —
+  expose user-configurable behavior
+- [How to compose with another generator](../how-to/compose-with-another-generator.md) —
+  reference other generators' output by name
+- [Projections and Snippets concept](../../concepts/projections-and-snippets.md)
+- [API: Projection bases](../../reference/api/projection-bases.md)

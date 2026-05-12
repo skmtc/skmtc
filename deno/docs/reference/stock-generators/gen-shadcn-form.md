@@ -53,10 +53,11 @@ export const CreateUserForm = () => {
   React component (`StringField`, `BooleanField`,
   `OperationReferenceField`, etc.). New input types are added by
   extending the dispatch.
-- **Rich enrichments.** Per-operation `form.title`,
-  `form.submitLabel`, per-field `form.fields[].label`,
-  `.placeholder`, `.input` (custom renderer), `.references`
-  (operation-reference dispatch for searchable dropdowns).
+- **Rich enrichments.** Per-operation `title`, `submitLabel`,
+  per-field `fields[].label`, `.placeholder`, `.input` (custom
+  renderer), `.references` (operation-reference dispatch for
+  searchable dropdowns). Routed by
+  `enrichments[generatorId][operation.path][operation.method]`.
 
 ## What to learn from it
 

@@ -101,8 +101,11 @@ imports. See [cross-generator-coordination](../concepts/cross-generator-coordina
 
 User-supplied per-operation or per-model configuration declared in
 `client.json` and validated against a generator's Valibot schema.
-Routed by `enrichments[generatorId][projectionKind][operationOrRefId][projectionKey]`.
-See [enrichments](../concepts/enrichments.md).
+Routing keys depend on the projection-base factory: OAS operations
+use `[generatorId][operation.path][operation.method]`, models use
+`[generatorId][refName]`, GraphQL operations use
+`[generatorId][rootKind][fieldName]`. See
+[enrichments](../concepts/enrichments.md).
 
 ### EntityType
 
@@ -279,19 +282,6 @@ Cached by `(identifier.name, exportPath)` in the cross-generator
 coordination layer. Three projection bases: `ModelProjectionBase`,
 `OasOperationProjectionBase`, `GqlOperationProjectionBase`. See
 [projections-and-snippets](../concepts/projections-and-snippets.md).
-
-### Projection key
-
-The innermost level of the enrichment routing structure —
-`enrichments[gen][kind][operationId][projectionKey]`. Discriminates
-multiple Projection outputs from the same `(generator, operation)`
-combination.
-
-### Projection kind
-
-The second level of the enrichment routing structure. Typically
-`"mutation"`, `"query"`, or `"model"` — matches the OAS verb
-category or refKind.
 
 ## R
 

@@ -7,6 +7,10 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20842 | 1:04 PM | ✅ | Documentation structure scaffolded for SKMTC | ~775 |
+| #20840 | 1:00 PM | ✅ | Comprehensive source resolution reference documentation | ~997 |
+| #20801 | 12:16 PM | ✅ | Enrichments shape reference documentation completed with four-level routing and validation details | ~1136 |
+| #20800 | " | ✅ | Complete client.json schema reference documentation | ~893 |
 | #20709 | 10:02 AM | ✅ | Reference documentation skeleton for enrichments routing structure | ~497 |
 | #20708 | " | ✅ | Reference documentation created - client.json configuration schema | ~170 |
 </claude-mem-context>

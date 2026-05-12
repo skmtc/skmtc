@@ -15,8 +15,12 @@ commands) to make it available to the engine.
 ## Synopsis
 
 ```
-skmtc create <project> <generator> <type> [--json] [--no-input]
+skmtc create <project> <generator> <type>
 ```
+
+All three arguments are required positionals. The command takes
+no flags — it always runs interactively in the sense that there's
+nothing to prompt for once the positionals are supplied.
 
 ## Arguments
 
@@ -53,20 +57,16 @@ scaffold:
 | `<type>` | Factory used | Constructor args |
 |---|---|---|
 | `operation` | `toOasOperationProjectionBase` | `{ context, operation, settings }` |
-| `model` | `toModelProjectionBase` | `{ context, schema, settings }` |
+| `model` | `toModelProjectionBase` | `{ context, refName, settings }` |
+
+For models the constructor receives `refName`, not a schema —
+the schema is resolved internally inside the Projection
+constructor via `context.resolveSchemaRefOnce(refName, BaseId)`.
+(The scaffold itself wraps these canonical args with optional
+`destinationPath` and `rootRef?` fields exposed to user code.)
 
 The `type` choice is permanent — you'd manually rewrite the scaffold
 to change it. Pick based on what your generator emits per input.
-
-## Options
-
-### `--no-input`
-
-Disable interactive prompts. Strict mode for scripts and agents.
-
-### `--json`
-
-Emit JSON output. Implies `--no-input`.
 
 ## Behavior
 
@@ -74,19 +74,39 @@ Emit JSON output. Implies `--no-input`.
 
 The CLI writes a minimal generator package:
 
+For `<type> = model` (example: generator name `my-zod-schema` →
+`MainModule = MyZodSchema`):
+
 ```
 .skmtc/<project>/<generator>/
-├── deno.json                 # generator's package metadata
-├── mod.ts                    # exports the Entry function
+├── deno.json                       # generator's package metadata
+├── mod.ts                          # top-level entry stub
 └── src/
-    ├── base.ts               # the projection base (extends factory)
-    ├── <Generator>.ts        # the Projection class (with toString)
-    └── enrichments.ts        # the Valibot enrichment schema (often empty)
+    ├── mod.ts                      # the Entry function (toModelEntry)
+    ├── base.ts                     # toModelProjectionBase({...}) — the Projection base
+    └── <MainModule>Projection.ts   # the Projection class extending the base
+```
+
+For `<type> = operation` (example: `internal-fetch` →
+`MainModule = InternalFetch`):
+
+```
+.skmtc/<project>/<generator>/
+├── deno.json
+├── mod.ts
+└── src/
+    ├── mod.ts                      # the Entry function (toOasOperationEntry)
+    ├── base.ts                     # toOasOperationProjectionBase({...})
+    └── <MainModule>.ts             # the Projection class
 ```
 
 The exact filenames and class names are derived from the generator
-name (PascalCased). The skeleton is intentionally minimal — enough
-to compile and run, with `// TODO` markers at each authoring point.
+name PascalCased (`my-zod-schema` → `MyZodSchema`). **Note the
+asymmetry**: model scaffolds write `<MainModule>Projection.ts`
+(with a `Projection` suffix); operation scaffolds write
+`<MainModule>.ts` (no suffix). Neither scaffold creates
+`enrichments.ts` — add it manually if your generator needs
+enrichments.
 
 ### `deno.json` imports updated
 
@@ -111,30 +131,6 @@ new generator is reachable by the next `generate` invocation. The
 generator's scaffold emits a valid (but mostly-empty) Projection
 from the start, so the bundle compiles cleanly.
 
-## JSON output
-
-```jsonc
-{
-  "command": "create",
-  "projectName": "my-api",
-  "generator": "my-zod-schema",
-  "type": "model",
-  "path": ".skmtc/my-api/my-zod-schema",
-  "filesCreated": [
-    ".skmtc/my-api/my-zod-schema/deno.json",
-    ".skmtc/my-api/my-zod-schema/mod.ts",
-    ".skmtc/my-api/my-zod-schema/src/base.ts",
-    ".skmtc/my-api/my-zod-schema/src/MyZodSchema.ts",
-    ".skmtc/my-api/my-zod-schema/src/enrichments.ts"
-  ],
-  "bundle": {
-    "kind": "bundled",
-    "bundlePath": ".skmtc/my-api/bundle.js"
-  },
-  "verifyWith": "skmtc list my-api --json"
-}
-```
-
 ## Examples
 
 ### Create a model generator
@@ -146,13 +142,14 @@ skmtc create my-api my-zod-schema model
 Produces `.skmtc/my-api/my-zod-schema/` with a model-projection
 scaffold.
 
-### Create an operation generator (scripted)
+### Create an operation generator
 
 ```bash
-skmtc create my-api internal-fetch operation --json --no-input
+skmtc create my-api internal-fetch operation
 ```
 
-Strict mode, JSON output. Suitable for CI or agent workflows.
+Produces an operation-projection scaffold under
+`.skmtc/my-api/internal-fetch/`.
 
 ### Create then immediately edit
 
@@ -189,7 +186,6 @@ for the full mental model.
 |------|---------|
 | `0` | Success — generator scaffolded and project rebundled |
 | `1` | Operational failure (filesystem, name collision) |
-| `2` | Required argument missing in strict mode |
 
 ## Common failure modes
 

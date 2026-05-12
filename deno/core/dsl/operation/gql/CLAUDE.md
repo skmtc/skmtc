@@ -18,4 +18,10 @@
 | #20454 | 7:03 PM | 🔵 | GqlOperationDriver contains same manual entityType check pattern for import construction | ~413 |
 | #20419 | 6:59 PM | 🔵 | isType flag implementation across core DSL import system | ~592 |
 | #20418 | " | 🔵 | Current isType boolean implementation in Import DSL | ~522 |
+
+### May 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20928 | 2:20 PM | 🔵 | Critical enrichment routing path discrepancy discovered in documentation | ~940 |
 </claude-mem-context>

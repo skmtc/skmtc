@@ -7,8 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20730 | 10:03 AM | ✅ | SKMTC documentation structure scaffolded with Diátaxis framework | ~696 |
 | #20678 | 10:00 AM | ✅ | Created CI/CD integration guide skeleton | ~430 |
-| #20677 | " | ✅ | How-to guide skeleton for operation filtering | ~308 |
-| #20676 | " | ✅ | Documentation skeleton for enrichment configuration | ~402 |
 </claude-mem-context>

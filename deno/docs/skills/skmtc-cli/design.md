@@ -89,7 +89,7 @@ Should NOT auto-load on:
 - Command surface — one-line summary per command, with pointers to
   full reference
 - The `client.json` shape with annotated example
-- Enrichment routing structure (`enrichments[generatorId][projectionKind][operationId][projectionKey]`)
+- Enrichment routing structure (three per-factory shapes: `[path][method]` for OAS ops, `[refName]` for models, `[rootKind][fieldName]` for GraphQL ops)
 - Skip/include filter shapes (whole-generator vs per-item)
 - The top user-facing operational principles (no Prettier in pipeline,
   customization-via-cloning, no config flags for stock generators)

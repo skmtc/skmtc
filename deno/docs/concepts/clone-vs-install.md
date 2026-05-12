@@ -75,7 +75,7 @@ build locally, so why pay the bundling time?
 The mechanism:
 
 ```bash
-skmtc clone @skmtc/gen-zod my-project
+skmtc clone my-project -g @skmtc/gen-zod
 ```
 
 This:

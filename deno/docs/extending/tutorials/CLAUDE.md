@@ -7,6 +7,9 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20905 | 1:37 PM | ✅ | Tutorial documentation - operation generator authoring with curl command example | ~994 |
+| #20904 | 1:36 PM | ✅ | Generator authoring tutorial - building model generator from scratch | ~872 |
+| #20903 | " | ✅ | Generator cloning tutorial - complete walkthrough for extending generators | ~884 |
 | #20731 | 10:08 AM | ✅ | Documentation structure and dual licensing clarification | ~674 |
 | #20683 | 10:00 AM | ✅ | Tutorial skeleton for operation generator authoring | ~465 |
 | #20682 | " | ✅ | Tutorial scaffold for generator cloning workflow | ~576 |

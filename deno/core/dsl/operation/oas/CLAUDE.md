@@ -7,11 +7,22 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #18929 | 3:31 PM | 🔄 | Renamed ToOperationConfigArgs to ToOasOperationConfigArgs | ~397 |
+| #19181 | 9:27 PM | 🔵 | Generator registration architecture separates artifact definitions from import statements | ~461 |
 
-### May 7, 2026
+### May 11, 2026
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #19375 | 3:15 PM | 🔵 | Insertable Naming Surface Area in Skmtc Type Definitions | ~403 |
+| #20459 | 7:04 PM | 🔄 | OasOperationDriver simplified using Identifier.toImport pattern | ~540 |
+| #20457 | " | 🔄 | Completed task 3 updating driver implementations | ~373 |
+| #20430 | 7:01 PM | ⚖️ | Add toImport method to Identifier class for consistent ImportNameArg construction | ~494 |
+| #20428 | 7:00 PM | 🔵 | OasOperationDriver automatically registers imports with isType flag based on identifier entity type | ~537 |
+| #20419 | 6:59 PM | 🔵 | isType flag implementation across core DSL import system | ~592 |
+
+### May 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20928 | 2:20 PM | 🔵 | Critical enrichment routing path discrepancy discovered in documentation | ~940 |
+| #20654 | 8:47 AM | 🔵 | SKMTC driver pattern for projection lifecycle and definition caching | ~680 |
 </claude-mem-context>

@@ -58,16 +58,22 @@ a GraphQL schema string:
 
 ```ts
 type SkmtcDocumentInput =
-  | { type: 'oas'; document: OpenAPIV3.Document }
-  | { type: 'gql'; sdl: string }
+  | { type: 'oas'; value: OpenAPIV3.Document<Record<string, never>> }
+  | { type: 'gql'; value: string | GraphQLSchema }
 ```
 
-**Why the format split?** OAS is parsed host-side and arrives at
-`toArtifacts` as a normalized `OpenAPIV3.Document` object. GraphQL is
-deferred: the SDL string is passed through unchanged, and the engine
-parses it inside the worker. The two paths diverge because of
-`structuredClone` semantics — see the
-[the-worker-runtime concept](../../concepts/the-worker-runtime.md).
+Both variants carry the source as `value` — the field name is
+uniform across protocols. For OAS, `value` is a normalized
+`OpenAPIV3.Document` (Swagger 2 / OAS 3.1 inputs are
+auto-converted to 3.0 by `@skmtc/convert` before reaching this
+boundary). For GraphQL, `value` is either an SDL string (parsed
+via `buildSchema` inside the pipeline) or a pre-built
+`GraphQLSchema` instance (used as-is).
+
+The post-parse internal shape is the parallel
+[`SkmtcParsedDocument`](../../concepts/three-phases.md) union,
+which also keys the protocol payload on `value` (`OasDocument` or
+`GqlDocument`).
 
 ### `settings`
 
@@ -213,7 +219,7 @@ const startAt = performance.now()
 const result = await toArtifacts({
   traceId: 'bench-001',
   spanId: 'bench-001',
-  document: { type: 'oas', document: openApiSpec },
+  document: { type: 'oas', value: openApiSpec },
   settings: clientSettings,
   stackTrail: new StackTrail(),
   toGeneratorConfigMap,
@@ -253,7 +259,7 @@ test('zod generator emits userBody for User schema', async () => {
   const result = await toArtifacts({
     traceId: 't',
     spanId: 't',
-    document: { type: 'oas', document: minimalSpec },
+    document: { type: 'oas', value: minimalSpec },
     settings: undefined,
     stackTrail: new StackTrail(),
     toGeneratorConfigMap: () => ({ generators: { zod: ZodEntry } }),
@@ -331,8 +337,8 @@ sequentially.
 
 ```ts
 type SkmtcDocumentInput =
-  | { type: 'oas'; document: OpenAPIV3.Document }
-  | { type: 'gql'; sdl: string }
+  | { type: 'oas'; value: OpenAPIV3.Document<Record<string, never>> }
+  | { type: 'gql'; value: string | GraphQLSchema }
 
 type GeneratorsMapContainer<E> = {
   generators: Record<string, GeneratorConfigInput<E>>

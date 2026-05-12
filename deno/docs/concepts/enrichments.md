@@ -4,15 +4,15 @@
 > generator via a Valibot schema and supplied by users in
 > `client.json`. Enrichments are the *configurability* lever of the
 > customization gradient — the narrow tweaks that don't require
-> cloning. They're routed by a four-level key structure
-> (`generatorId → projectionKind → operationOrRefId → projectionKey`)
-> and validated against the generator's declared schema.
+> cloning. Each projection-base factory routes enrichments from its
+> own hardcoded key path; there is no single uniform shape.
 
 Enrichments are how stock generators expose user-facing options
 without compromising the clone-to-customize philosophy. A generator
-declares what it accepts (in its Valibot schema). A user supplies
-values (in `client.json`). The engine routes them to the generator
-constructor that consumes them.
+declares what payload it accepts (in its Valibot schema). A user
+supplies values at a routing key derived from the operation or
+model (in `client.json`). The factory does the lookup and delivers
+the validated value to the Projection constructor.
 
 ## What enrichments are (and aren't)
 
@@ -38,7 +38,11 @@ hardcoded as the clone seam.
 
 ## Where enrichments live
 
-User-supplied enrichments go in `client.json`:
+User-supplied enrichments go in `client.json`. The routing keys
+under each generator depend on the generator's projection-base
+kind; the payload shape *under* those routing keys is defined by
+the generator's Valibot schema (see
+[routing structure](#the-routing-structure) below):
 
 ```json
 {
@@ -47,20 +51,18 @@ User-supplied enrichments go in `client.json`:
     "basePath": "src/generated",
     "enrichments": {
       "@skmtc/gen-shadcn-form": {
-        "mutation": {
-          "CreateContact": {
-            "form": {
-              "title": "Create Contact",
-              "submitLabel": "Save",
-              "fields": [
-                {
-                  "id": "officeIds",
-                  "references": "GetOffices",
-                  "referenceKind": "searchable",
-                  "label": "Offices"
-                }
-              ]
-            }
+        "/contacts": {
+          "post": {
+            "title": "Create Contact",
+            "submitLabel": "Save",
+            "fields": [
+              {
+                "id": "officeIds",
+                "references": "GetOffices",
+                "referenceKind": "searchable",
+                "label": "Offices"
+              }
+            ]
           }
         }
       }
@@ -69,46 +71,48 @@ User-supplied enrichments go in `client.json`:
 }
 ```
 
+Here `/contacts` and `post` are the **routing** keys (the engine
+navigates these); everything beneath is the **payload** shape
+declared by the generator's Valibot schema.
+
 ## The routing structure
 
-The enrichment key is four levels deep:
+Each projection-base factory hardcodes its own `get(context.settings, ...)`
+lookup. There are three shapes:
 
-```
-enrichments
-  └── [generatorId]              e.g., "@skmtc/gen-shadcn-form"
-       └── [projectionKind]      e.g., "mutation" / "query" / "model"
-            └── [operationOrRefId]  e.g., "CreateContact" / "UserModel"
-                 └── [projectionKey] e.g., "form"
-                      └── { ...enrichment payload }
-```
+| Factory | Path read |
+|---|---|
+| `toOasOperationProjectionBase` | `enrichments.${generatorId}.${operation.path}.${operation.method}` |
+| `toModelProjectionBase` | `enrichments.${generatorId}.${refName}` |
+| `toGqlOperationProjectionBase` | `enrichments.${generatorId}.${operation.rootKind}.${operation.fieldName}` |
 
-Each level discriminates one dimension of "which Projection on which
-operation":
+Specifically:
 
-- **`generatorId`**: which generator package is being configured
-  (`@skmtc/gen-shadcn-form`, `@skmtc/gen-zod`, etc.)
-- **`projectionKind`**: a generator may emit multiple kinds of
-  Projection — e.g., a form generator might emit `"mutation"` forms
-  for POST/PUT and `"query"` filters for GET. The kind discriminates.
-- **`operationOrRefId`**: the specific operation (by `operationId`
-  in OAS) or model (by refName) being configured
-- **`projectionKey`**: a final discriminator for the specific
-  Projection within the operation/kind combination (e.g., `"form"`
-  for the form output, distinct from any sibling Projection from
-  the same generator-and-operation)
+- **OAS operation generators** route by `(operation.path, operation.method)`
+  — the literal OpenAPI path and lowercase HTTP verb.
+- **Model generators** route by `refName` — the component name as
+  it appears under `components.schemas`.
+- **GraphQL operation generators** route by `(rootKind, fieldName)`
+  — `"Query" | "Mutation" | "Subscription"` and the operation field.
 
-The deeply nested key lets one generator's enrichments cleanly
-separate per-kind, per-operation, per-projection options without
-collisions.
+There is no `operationId`-based routing for OAS, and no separate
+"projection kind" or "projection key" routing level. Beneath the
+engine-routed keys, the leaf value's shape is whatever the
+generator's Valibot schema declares — see
+[enrichments-shape reference](../reference/settings/enrichments-shape.md)
+for the actual routing details and complete examples.
 
 ## How enrichments are declared
 
-Each generator declares its accepted enrichment shape via a Valibot
-schema in `gen-x/src/enrichments.ts`:
+Each generator declares its accepted enrichment payload via a
+Valibot schema in `gen-x/src/enrichments.ts`. The schema describes
+what arrives at the lookup target — it does **not** describe the
+routing keys above it:
 
 ```ts
 // gen-shadcn-form/src/enrichments.ts
 import * as v from 'valibot'
+import { moduleExport } from '@skmtc/core'
 
 export const formFieldItem = v.object({
   id: v.string(),
@@ -119,18 +123,12 @@ export const formFieldItem = v.object({
   references: v.optional(v.string())
 })
 
-export const formPropertiesSchema = v.optional(
+export const formSchema = v.optional(
   v.object({
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     submitLabel: v.optional(v.string()),
     fields: v.optional(v.array(formFieldItem))
-  })
-)
-
-export const formSchema = v.optional(
-  v.object({
-    form: formPropertiesSchema
   })
 )
 
@@ -144,14 +142,14 @@ The schema is registered with the generator's entry function:
 // gen-shadcn-form/src/mod.ts
 export const ShadcnFormEntry = toOasOperationEntry<EnrichmentSchema>({
   id: denoJson.name,
-  toEnrichmentSchema,  // ← the schema is exposed here
+  toEnrichmentSchema,
   // ...
 })
 ```
 
 This declaration is the canonical source of truth for what
-enrichment keys the generator accepts. **To know what enrichments a
-generator supports, read its `enrichments.ts`.**
+enrichment fields the generator accepts. **To know what payload a
+generator's enrichments take, read its `enrichments.ts`.**
 
 ## How enrichments are consumed
 
@@ -161,47 +159,38 @@ available as `this.settings.enrichments`:
 ```ts
 // gen-shadcn-form/src/ShadcnForm.ts
 override toString(): string {
-  const { title, description, submitLabel } = this.settings.enrichments?.form ?? {}
+  const { title, description, submitLabel } = this.settings.enrichments ?? {}
 
   return `(${this.parameter}) => {
-    // ...
     return (
       <Form>
-        <form>
-          ${title ? `<h2>${title}</h2>` : ''}
-          ${description ? `<p>${description}</p>` : ''}
-          ${this.fields}
-          <Button>${submitLabel || 'Submit'}</Button>
-        </form>
+        ${title ? `<h2>${title}</h2>` : ''}
+        ${description ? `<p>${description}</p>` : ''}
+        ${this.fields}
+        <Button>${submitLabel || 'Submit'}</Button>
       </Form>
     )
   }`
 }
 ```
 
-The enrichments are pre-validated by the engine using the generator's
-declared Valibot schema, so the Projection can assume the shape is
-correct. Unknown keys are stripped silently; missing optional keys
-arrive as `undefined`.
+The enrichments are pre-validated by the engine using the
+generator's declared Valibot schema, so the Projection can assume
+the shape is correct. Unknown keys are stripped silently; missing
+optional keys arrive as `undefined`.
 
-## How routing works at parse time
+## How routing works at generate time
 
-When the engine reads `client.json`:
+For each Projection the engine builds:
 
-1. The CLI loads `client.json` and finds `settings.enrichments`
-2. For each generator in `deno.json#imports`, the engine looks up
-   `enrichments[<generatorId>]`
-3. If present, the value is validated against the generator's
-   declared Valibot schema (via `toEnrichmentSchema()`)
-4. The validated value is routed into `ContentSettings.enrichments`
-   for each `(projectionKind, operationOrRefId, projectionKey)` the
-   generator processes
-
-The Projection's `static toEnrichments({ operation, context })`
-method (provided by the projection-base factory) does the
-`projectionKind → operationOrRefId → projectionKey` lookup — it
-slices the per-generator enrichment value down to just the per-item
-slice this Projection needs.
+1. The factory's static `toEnrichments({ operation | refName, context })`
+   runs.
+2. It calls `get(context.settings, ...)` at the path shown in the
+   table above for that projection-base kind.
+3. The looked-up value is parsed via `v.parse(schema, value)`
+   using the generator's declared Valibot schema.
+4. The parsed value is delivered as `settings.enrichments` to the
+   Projection constructor.
 
 For most generators, `toEnrichments` is generated by the factory; you
 don't write it manually unless you have unusual routing needs.
@@ -224,9 +213,9 @@ tweak what the generator's author chose to expose.
 If the generator doesn't expose what you need:
 
 - **Stop and consider**: maybe the answer is to clone (level 3) and
-  add the enrichment field yourself
+  add the enrichment field yourself.
 - **Or**: clone and just hardcode the desired behavior — no
-  enrichment needed if it's project-specific anyway
+  enrichment needed if it's project-specific anyway.
 
 Adding enrichments to a stock generator (to expose what users have
 been hardcoding) is a reasonable upstream contribution. Adding
@@ -237,17 +226,19 @@ local needs.
 
 ### Per-operation titles and labels
 
-The most common enrichment pattern. The form generator's `form.title`
-and `form.submitLabel` enable per-form text without cloning:
+The most common enrichment pattern. The form generator's `title`
+and `submitLabel` enable per-form text without cloning:
 
 ```json
 {
   "enrichments": {
     "@skmtc/gen-shadcn-form": {
-      "mutation": {
-        "CreateUser":  { "form": { "title": "Create User",  "submitLabel": "Create" } },
-        "UpdateUser":  { "form": { "title": "Edit User",    "submitLabel": "Save"   } },
-        "DeleteUser":  { "form": { "title": "Delete User",  "submitLabel": "Delete" } }
+      "/users": {
+        "post": { "title": "Create User", "submitLabel": "Create" }
+      },
+      "/users/{id}": {
+        "put":    { "title": "Edit User",   "submitLabel": "Save" },
+        "delete": { "title": "Delete User", "submitLabel": "Delete" }
       }
     }
   }
@@ -263,13 +254,11 @@ default dispatch doesn't cover:
 {
   "enrichments": {
     "@skmtc/gen-shadcn-form": {
-      "mutation": {
-        "CreateContact": {
-          "form": {
-            "fields": [
-              { "id": "officeIds", "references": "GetOffices", "referenceKind": "searchable" }
-            ]
-          }
+      "/contacts": {
+        "post": {
+          "fields": [
+            { "id": "officeIds", "references": "GetOffices", "referenceKind": "searchable" }
+          ]
         }
       }
     }
@@ -278,7 +267,7 @@ default dispatch doesn't cover:
 ```
 
 This tells the form generator: when emitting the `officeIds` field
-in `CreateContact`, route it to the `GetOffices` operation
+of `POST /contacts`, route it to the `GetOffices` operation
 (searchable dropdown), not the default string-array renderer.
 
 ### Operation-reference patterns
@@ -305,28 +294,6 @@ fields are stripped silently; missing optional fields are
 No. The enrichment schema is part of the generator's source. To add
 new keys, you clone the generator and edit `enrichments.ts`.
 
-### What if I have a deeply nested enrichment but only need to set one leaf?
-
-Specify the full path — there's no shortcut syntax. The four-level
-key structure is required:
-
-```json
-{
-  "enrichments": {
-    "@skmtc/gen-shadcn-form": {
-      "mutation": {
-        "CreateUser": {
-          "form": { "submitLabel": "Create" }
-        }
-      }
-    }
-  }
-}
-```
-
-If you need to set the same value for many operations, repeat the
-entry for each operationId. There's no wildcard.
-
 ### Are enrichments hot-reloadable?
 
 Yes — they're runtime config, not bundle code. Edit `client.json`,
@@ -336,40 +303,36 @@ per-operation tweaks.
 
 ### What about per-model enrichments (vs per-operation)?
 
-Model generators (like `gen-zod` or `gen-typescript`) accept
-enrichments keyed by refName instead of operationId. The shape is
-parallel:
+Model generators (like `gen-zod` or `gen-typescript`) route by
+`refName`:
 
 ```json
 {
   "enrichments": {
     "@skmtc/gen-zod": {
-      "model": {
-        "UserModel": { /* per-model enrichment payload */ }
-      }
+      "UserModel":  { "description": "A user account" }
     }
   }
 }
 ```
 
-The `projectionKind` for model generators is typically `"model"`.
+There is no second routing level — the value directly beneath the
+refName **is** the validated payload.
 
 ### Can I share enrichment values across generators?
 
 Not via the schema — each generator declares its own shape
-independently. If you want shared values, define them at the
-`client.json` JSON level (e.g., using `&anchor` / `*alias` if your
-config is YAML) and replicate the relevant portion to each
-generator's section. The engine doesn't share enrichments across
-generators automatically.
+independently. If you want shared values, replicate the relevant
+portion to each generator's section. The engine doesn't share
+enrichments across generators automatically.
 
 ### Do enrichments survive when I clone the generator?
 
-Yes. Enrichments are user data in `client.json`; cloning the
-generator doesn't touch user data. After cloning, your enriched
-operations still emit with the configured titles/labels/etc. If you
-*extend* the enrichment schema in the clone, you can add new keys
-that the user supplies in the same client.json.
+User data in `client.json` is unaffected by cloning. But if the
+clone keeps the same routing shape (same projection-base factory)
+**and** the same generator `id`, the existing enrichments still
+land. If you change the `id` (which you typically do when you
+republish), update the `client.json` keys to match the new id.
 
 ## Further reading
 

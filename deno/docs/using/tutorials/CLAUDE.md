@@ -7,6 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20675 | 10:00 AM | ✅ | Tutorial skeleton created for multiple generators workflow | ~432 |
-| #20673 | " | ✅ | Tutorial documentation structure created - first generation walkthrough | ~434 |
+| #20891 | 1:32 PM | ✅ | Your first generation tutorial completed | ~748 |
 </claude-mem-context>

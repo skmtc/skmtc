@@ -7,6 +7,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20932 | 2:35 PM | 🔵 | Claude Code Skills Directory Structure Mapped | ~290 |
+| #20908 | 1:40 PM | ✅ | SKMTC documentation improvements - error handling philosophy and project layout corrections | ~900 |
 | #20890 | 1:28 PM | ✅ | Documentation citation cleanup - RenderContext reference precision | ~347 |
 | #20888 | 1:27 PM | ✅ | Updated llms.md verification protocol for Prettier claim | ~371 |
 | #20887 | " | ✅ | LLM guidance documentation - operational principles table addressing training-data bias | ~893 |
