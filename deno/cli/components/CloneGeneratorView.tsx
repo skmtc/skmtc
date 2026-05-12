@@ -42,7 +42,7 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
     key: 'space',
     name: 'toggle',
     action: (input, key) => {
-      // behaviour handled in MultiSelect component
+      // behavior handled in MultiSelect component
     }
   })
 
@@ -50,7 +50,7 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
     key: 'enter',
     name: 'submit',
     action: (input, key) => {
-      // behaviour handled in MultiSelect component
+      // behavior handled in MultiSelect component
     }
   })
 

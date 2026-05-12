@@ -34,7 +34,7 @@ export type GqlOperationProjectionBaseArgs<EnrichmentType = undefined> = {
 /**
  * Runtime base class for GraphQL operation projections.
  *
- * GraphQL analogue of {@link OasOperationProjectionBase}: a *projection*
+ * GraphQL analog of {@link OasOperationProjectionBase}: a *projection*
  * whose source is a `GqlOperation` (a root-field) rather than an
  * `OasOperation`. Subclasses produce the body of a `Definition` and may
  * compose other projections via {@link insertModel},

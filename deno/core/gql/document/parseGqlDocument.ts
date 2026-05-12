@@ -204,7 +204,7 @@ const addNamedType = ({
     builder: (typeStack: StackTrail) => OasSchema | OasRef<'schema'>
   ): void => {
     // `refKey: name` (the type's own name, not `refName`) preserves the
-    // prior behaviour where an interface-union failure marks the base
+    // prior behavior where an interface-union failure marks the base
     // type as errored so dependents of either form get pruned together.
     const value = tryParseAt({
       stackTrail,

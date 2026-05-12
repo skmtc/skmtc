@@ -81,7 +81,7 @@ export const tryParseAt = <T>({
   try {
     return stackTrail.trace(key, childStack => fn(childStack))
   } catch (error) {
-    const normalised = error instanceof Error ? error : new Error(String(error))
+    const normalized = error instanceof Error ? error : new Error(String(error))
     if (refKey !== undefined) {
       context.registerRefError(error, refKey)
     }
@@ -90,8 +90,8 @@ export const tryParseAt = <T>({
         level: 'error',
         stackTrail: childStack,
         parent,
-        message: normalised.message,
-        cause: normalised,
+        message: normalized.message,
+        cause: normalized,
         type
       })
     })

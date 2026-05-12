@@ -158,7 +158,7 @@ const makeModelGen = (id: string, transformSpy?: Spy) => ({
 
 // ─── Case 1: include undefined → everything emits ─────────────────
 
-Deno.test('include - undefined leaves existing behaviour unchanged', () => {
+Deno.test('include - undefined leaves existing behavior unchanged', () => {
   const transform = spy(() => undefined)
   const { context, captures } = buildContext({
     document: makeOasDoc(operations),
@@ -221,7 +221,7 @@ Deno.test('include - string entry includes whole generator; other generators sil
   assertEquals(resultsA.length, 4)
 
   // gen-B: should NOT produce ANY per-op captures — whole-generator
-  // silent exclusion is the documented behaviour (parity with skip).
+  // silent exclusion is the documented behavior (parity with skip).
   const resultsB = toOpResults(captures, 'gen-B')
   assertEquals(
     resultsB.length,
@@ -384,7 +384,7 @@ Deno.test(
     // undefined (not an array), so no per-model filter is applied —
     // the generator is admitted by the whole-generator gate and emits
     // for every refName. Forgiving interpretation matches existing
-    // skip behaviour.
+    // skip behavior.
     const doc = makeOasDoc([], ['User', 'Order'])
     const { context, captures } = buildContext({
       document: doc,
@@ -437,7 +437,7 @@ Deno.test('include - GQL generator can be included via string form (whole-genera
   // should admit gql-gen and exclude others. Tests the unified gate
   // in toArtifacts works regardless of generator type.
   // We use an OAS doc here for simplicity — the GQL generator just
-  // won't be dispatched for it (correct behaviour). The point: this
+  // won't be dispatched for it (correct behavior). The point: this
   // doesn't crash.
   const { context } = buildContext({
     document: makeOasDoc([]),

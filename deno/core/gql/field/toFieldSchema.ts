@@ -107,12 +107,12 @@ export const toFieldSchema = ({
     // graphql-js's type system, but if it does we want a loud signal.
     // `named` is `never` here per exhaustiveness so we coerce to read
     // `.name` for the diagnostic without leaking the cast elsewhere.
-    const unrecognised = named as { name?: string }
+    const unrecognized = named as { name?: string }
     context.logIssueNoKey({
       level: 'error',
       stackTrail,
       parent: type,
-      message: `Unknown GraphQL type kind for '${unrecognised.name ?? '<anon>'}' — fell back to 'unknown'`,
+      message: `Unknown GraphQL type kind for '${unrecognized.name ?? '<anon>'}' — fell back to 'unknown'`,
       type: 'UNKNOWN_TYPE_KIND'
     })
     return new OasUnknown({ nullable: innerNullable })

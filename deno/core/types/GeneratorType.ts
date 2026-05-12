@@ -4,8 +4,8 @@ import type { ModelConfig } from '@/dsl/model/types.ts'
 
 /**
  * Discriminated union of every generator configuration the dispatcher
- * recognises. The `type` field discriminates the variant — `'oasOperation'`
- * for HTTP-flavoured operation generators, `'gqlOperation'` for GraphQL
+ * recognizes. The `type` field discriminates the variant — `'oasOperation'`
+ * for HTTP-flavored operation generators, `'gqlOperation'` for GraphQL
  * operation generators, `'model'` for protocol-neutral model generators.
  *
  * Operation variants are routed only to the matching document protocol; a

@@ -42,7 +42,7 @@ and so work unchanged for GraphQL.
 `GqlDocument`, `GqlRegistry`, `GqlOperation`, `GqlArgument`, and
 `GqlRootTypes` are the GraphQL-side container shapes. They mirror the
 roles of `OasDocument` / `OasComponents` / `OasOperation` / etc., but
-without the HTTP-flavoured fields (path, method, status codes, media
+without the HTTP-flavored fields (path, method, status codes, media
 types, request body, etc.).
 
 ### Ref resolution mechanism
@@ -259,7 +259,7 @@ A runnable end-to-end demo lives at
 `skmtc-generators/gen-graphql-operation/demo/run.ts` — produces TS
 output from `demo/blog.graphql` using `gen-typescript` +
 `gen-graphql-operation`. Useful for inspecting actual generator output
-when changing parser or generator behaviour.
+when changing parser or generator behavior.
 
 ## Known limitations (v1)
 

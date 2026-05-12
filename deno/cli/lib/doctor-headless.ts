@@ -106,7 +106,7 @@ const aggregate = (checks: Check[]): CheckStatus => {
 /**
  * Friction #16: the shim's lockfile at `~/.deno/bin/.skmtc/deno.lock`
  * silently pins an old CLI/core version even when `deno install -f`
- * is rerun. We can't fix Deno's behaviour from here, but we can
+ * is rerun. We can't fix Deno's behavior from here, but we can
  * detect the situation and tell the operator how to clear it.
  */
 const checkShimLockfile = (): Check => {

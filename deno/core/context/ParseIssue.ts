@@ -4,7 +4,7 @@
  * so TypeScript narrows cleanly on `protocol` and `level`.
  *
  * `cause?: unknown` is only present on the error variants. Warnings are
- * synthesised by the parser with all the information needed for the
+ * synthesized by the parser with all the information needed for the
  * `message`; errors usually wrap a thrown `Error`, which we keep in
  * `cause` for debugging without forcing renderers to know about it.
  *
@@ -24,7 +24,7 @@ import type { OasIssueType } from '@/context/generateTypes.ts'
  * code path is added — open-ended categories rot fast.
  *
  * - `NESTED_LIST_LOSSY` — `[[T]]` collapsed to `OasUnknown`.
- * - `UNKNOWN_TYPE_KIND` — defensive fallback for an unrecognised
+ * - `UNKNOWN_TYPE_KIND` — defensive fallback for an unrecognized
  *   GraphQL type kind. Should never fire in practice.
  * - `DROPPED_DIRECTIVE` — applied directive ignored during mapping
  *   (other than `@deprecated`, whose `reason` we capture).

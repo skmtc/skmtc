@@ -310,7 +310,7 @@ Deno.test('CoreContext - toArtifacts() includes results tree', () => {
 })
 
 Deno.test(
-  'CoreContext - toArtifacts() synthesises an error parseIssue when parsing throws',
+  'CoreContext - toArtifacts() synthesizes an error parseIssue when parsing throws',
   () => {
     // The CLI's `generate --json` previously reported `kind:
     // "generated"` with 0 files when the worker's `toArtifacts`
@@ -344,7 +344,7 @@ Deno.test(
     assertEquals(Object.keys(result.artifacts).length, 0)
     assertEquals(Object.keys(result.files).length, 0)
 
-    // The synthesised issue is what makes the failure detectable.
+    // The synthesized issue is what makes the failure detectable.
     assert(result.parseIssues.length > 0)
     const errorIssue = result.parseIssues.find(i => i.level === 'error')
     assertExists(errorIssue)

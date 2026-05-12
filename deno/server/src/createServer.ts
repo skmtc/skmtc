@@ -8,7 +8,7 @@ import * as v from 'valibot'
 import { StackTrail } from '@skmtc/core'
 
 /**
- * Body schemas for `POST /artifacts`, modelled as a discriminated
+ * Body schemas for `POST /artifacts`, modeled as a discriminated
  * union over `protocol`. Each variant declares the field it actually
  * needs — there are no optional / "maybe present" fields whose
  * presence depends on another field's value.
@@ -72,7 +72,7 @@ const dispatchArtifacts = async ({
 
   // Build the unified SkmtcDocumentInput from the protocol-specific
   // body shape, then route through the single `toArtifacts` entry. The
-  // host-side OAS normalisation (Swagger 2 / 3.1 → 3.0 via
+  // host-side OAS normalization (Swagger 2 / 3.1 → 3.0 via
   // `@skmtc/convert`) still runs here; GQL passes its SDL through
   // unchanged.
   let document: SkmtcDocumentInput

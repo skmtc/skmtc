@@ -25,7 +25,7 @@ import type { SkmtcDocumentInput } from '@skmtc/core'
  * GraphQL `SkmtcDocumentInput.gql.value` is the raw SDL string — not a
  * pre-parsed `GqlDocument` — because `GqlDocument` carries class
  * instances and `OasRef` back-refs that don't survive structured clone
- * across the worker boundary. SDL serialises cleanly; the parsed
+ * across the worker boundary. SDL serializes cleanly; the parsed
  * document would not.
  */
 export type GeneratePayload = {

@@ -114,7 +114,7 @@ export class GqlDocument {
    *   registered object/input/interface → the named field is deleted
    *   from the parent's properties (and from its `required` list if
    *   present). The deeper segments of the stack trail are ignored,
-   *   matching `OasDocument.removeItem`'s coarse-grained behaviour.
+   *   matching `OasDocument.removeItem`'s coarse-grained behavior.
    * - `[<UnionType>, members, <index>]` where `<UnionType>` is a
    *   registered union or interface union → the indexed member is
    *   removed.
@@ -127,7 +127,7 @@ export class GqlDocument {
    */
   removeItem(stackTrail: StackTrail): unknown {
     if (!this.#fields) {
-      // Mirrors OasDocument's behaviour: prune calls before fields are
+      // Mirrors OasDocument's behavior: prune calls before fields are
       // set are a no-op, matching the "empty-at-construction" contract.
       return undefined
     }

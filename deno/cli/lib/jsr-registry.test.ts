@@ -32,13 +32,13 @@ Deno.test('getJsrBaseUrl - defaults to local skmtc mirror', async () => {
   })
 })
 
-Deno.test('getJsrBaseUrl - honours JSR_URL env override', async () => {
+Deno.test('getJsrBaseUrl - honors JSR_URL env override', async () => {
   await withJsrUrl('https://example.test/registry/', () => {
     assertEquals(getJsrBaseUrl(), 'https://example.test/registry')
   })
 })
 
-Deno.test('toJsrUrl - composes path against the resolved base, normalising slashes', async () => {
+Deno.test('toJsrUrl - composes path against the resolved base, normalizing slashes', async () => {
   await withJsrUrl(undefined, () => {
     assertEquals(
       toJsrUrl('@skmtc/gen-zod/meta.json'),

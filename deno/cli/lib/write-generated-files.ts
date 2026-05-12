@@ -53,7 +53,7 @@ export const deletePreviousArtifacts = ({
 
 /**
  * Parses a manifest payload, returning `null` for any failure that
- * would otherwise abort cleanup. Mirrors the tolerant behaviour of
+ * would otherwise abort cleanup. Mirrors the tolerant behavior of
  * `Manifest.open` — see {@link lib/manifest.ts}.
  */
 const readManifestForCleanup = (

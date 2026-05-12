@@ -121,14 +121,14 @@ const toFileType = (path: string): FileType => {
     return 'graphql'
   } else {
     throw new Error(
-      `Schema file extension not recognised (expected .json, .yaml, .yml, .graphql, .gql, or .graphqls): ${path}`
+      `Schema file extension not recognized (expected .json, .yaml, .yml, .graphql, .gql, or .graphqls): ${path}`
     )
   }
 }
 
 /**
  * Like {@link toFileType} but consults `Content-Type` as a fallback when
- * the URL pathname doesn't end in a recognised extension. Used only for
+ * the URL pathname doesn't end in a recognized extension. Used only for
  * remote sources, where servers can hint the format directly.
  *
  * Mappings:
@@ -138,7 +138,7 @@ const toFileType = (path: string): FileType => {
  *     `application/x-yaml` / `text/x-yaml` → `yaml`
  *
  * The header may include a `; charset=...` suffix; we strip it before
- * matching. If neither path nor content-type yields a recognised type,
+ * matching. If neither path nor content-type yields a recognized type,
  * we re-throw `toFileType`'s descriptive error so the user sees the
  * full list of supported formats.
  */
@@ -160,7 +160,7 @@ const toFileTypeFromPathOrContentType = (path: string, contentType: string): Fil
         return 'yaml'
       default:
         throw new Error(
-          `Could not determine schema format for remote source: URL pathname '${path}' has no recognised extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
+          `Could not determine schema format for remote source: URL pathname '${path}' has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
             `For live GraphQL HTTP endpoints, run an introspection query yourself and save the SDL to a local file.`
         )
     }

@@ -67,7 +67,7 @@ export const toGqlParsedDocument = (value: GqlDocument): SkmtcParsedDocument => 
  * post-parse {@link SkmtcParsedDocument} to the generate phase.
  *
  * - `oas.value` is an `OpenAPIV3.Document`. Schema versions other than
- *   3.0 (Swagger 2, OpenAPI 3.1) are normalised to 3.0 by
+ *   3.0 (Swagger 2, OpenAPI 3.1) are normalized to 3.0 by
  *   `@skmtc/convert` before reaching `toArtifacts`.
  * - `gql.value` is either a raw SDL string or a pre-built
  *   `GraphQLSchema`. Strings are run through `buildSchema` inside the

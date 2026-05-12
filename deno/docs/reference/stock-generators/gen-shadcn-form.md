@@ -28,8 +28,8 @@
 
 ### Add a new field type
 
-### Customise the export path
+### Customize the export path
 
-### Customise field components
+### Customize field components
 
 ## Source

@@ -1,10 +1,10 @@
 # Stock generators overview
 
-> Catalogue of stock generators.
+> Catalog of stock generators.
 
 ## What stock generators are
 
-## Catalogue
+## Catalog
 
 ### Schemas and types
 

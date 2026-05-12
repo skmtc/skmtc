@@ -6,9 +6,9 @@
  * dependency-ref tracking) live at the top of the class and apply to
  * both protocols. Protocol-specific state (`oasDocument` vs
  * `schema`/`registry`) sits on `this.protocol`, narrowed by
- * `this.protocol.type`. The OAS-flavoured logging surface
+ * `this.protocol.type`. The OAS-flavored logging surface
  * (`logIssue`/`logIssueNoKey`/`logSkippedFields`) accepts a
- * {@link StackTrail} for location; the GQL-flavoured surface (`log`,
+ * {@link StackTrail} for location; the GQL-flavored surface (`log`,
  * `logSkippedFields` with a pre-computed `location` string) accepts a
  * raw string. Both funnel into the shared {@link ParseContext.logIssueAt}.
  *
@@ -351,7 +351,7 @@ export class ParseContext {
    * just the leaf address. Stringified here so the logger payload
    * stays JSON-clonable. It is intentionally **not** stored on the
    * persisted `ParseIssue` (which would require clone-safe
-   * serialisation across the worker boundary and would bloat the
+   * serialization across the worker boundary and would bloat the
    * manifest).
    */
   logIssueAt(issue: LogIssueAtArgs, parent?: unknown): void {
@@ -369,7 +369,7 @@ export class ParseContext {
     }
   }
 
-  // -- OAS-flavoured surface (StackTrail-based) ---------------------
+  // -- OAS-flavored surface (StackTrail-based) ---------------------
 
   logIssue({ key, parent, type, stackTrail, ...issue }: LogIssueArgs): void {
     stackTrail.trace(key, st =>
@@ -454,7 +454,7 @@ export class ParseContext {
   }
 
   /**
-   * Records one warning per unrecognised key under `parent`.
+   * Records one warning per unrecognized key under `parent`.
    *
    * Each skipped key is traced as a child of `stackTrail` so the
    * resulting issue locations point at the offending property, not

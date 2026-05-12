@@ -425,7 +425,7 @@ export class CoreContext {
 
       this.logger.error(error)
 
-      // Surface the fatal error as a synthesised parse-issue so
+      // Surface the fatal error as a synthesized parse-issue so
       // downstream consumers (CLI `generate`, the manifest writer)
       // can tell a successful 0-file run apart from a crashed run.
       // Before this, the catch returned `parseIssues: []` and an
@@ -435,7 +435,7 @@ export class CoreContext {
       // We pull whatever parse-phase issues were already recorded
       // before the throw, so any incremental diagnostics aren't lost,
       // and append the top-level failure on the end. Protocol is
-      // hardcoded to 'oas' because the synthesised issue is
+      // hardcoded to 'oas' because the synthesized issue is
       // post-protocol-dispatch and we don't have a discriminator at
       // this catch site; OAS is the more common case and the
       // location format ('toArtifacts') is unambiguous regardless.

@@ -6,7 +6,7 @@ import { readCliCorePin } from '@/lib/doctor-headless.ts'
 /**
  * Lightweight fake for {@link RootDenoJson}'s shape used by
  * `Generator.clone`'s pre-flight check. The real class has
- * persistence + workspace-list behaviour we don't exercise here;
+ * persistence + workspace-list behavior we don't exercise here;
  * we only need `contents.imports['@skmtc/core']` to be readable.
  */
 const toFakeRootDenoJson = (corePin: string): RootDenoJson =>
@@ -269,7 +269,7 @@ Deno.test(
     // With force, the pin mismatch should NOT throw a CorePinMismatchError.
     // The clone will still fail downstream (Jsr.download against an
     // invalid manager), but the failure shape must not be the
-    // pre-flight check — confirms the gate honours the flag.
+    // pre-flight check — confirms the gate honors the flag.
     const cliPin = readCliCorePin()
     if (cliPin === null) return
 

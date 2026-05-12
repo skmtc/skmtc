@@ -5,7 +5,7 @@
  * default) so generator installs and downloads resolve against a known
  * registry rather than upstream `jsr.io`. The `JSR_URL` environment
  * variable overrides the default for local development against a
- * different mirror. The Deno runtime honours the same variable for
+ * different mirror. The Deno runtime honors the same variable for
  * `jsr:` import resolution, so setting it once keeps both paths in
  * agreement.
  *

@@ -113,7 +113,7 @@ Deno.test(
       )
 
       // File that pre-existed and has its own error — should NOT
-      // appear in our scoped diagnostics. This is the key behaviour:
+      // appear in our scoped diagnostics. This is the key behavior:
       // unrelated consumer-app errors don't pollute the result.
       Deno.writeTextFileSync(
         join(tempRoot, 'src', 'theirs.ts'),

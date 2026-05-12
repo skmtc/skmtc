@@ -32,7 +32,7 @@
 
 ### Stringable
 
-### clone-to-customise
+### clone-to-customize
 
 ### Insertable
 

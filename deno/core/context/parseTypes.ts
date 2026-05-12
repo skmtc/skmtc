@@ -30,7 +30,7 @@ export type ParseContextType = ParseContext
 
 /**
  * Unified input variants for `logIssue` / `logIssueNoKey`. Both
- * variants carry a synthesised `message: string`; the error variant
+ * variants carry a synthesized `message: string`; the error variant
  * additionally carries an optional `cause: unknown` for the underlying
  * thrown value (preserves stack traces without forcing renderers to
  * know about Error objects). The unified context translates these into
@@ -95,7 +95,7 @@ export type LogIssueNoKeyArgs = ParseIssueInput & {
  *
  * `parent` follows the same role as on {@link LogIssueArgs}: passed
  * through to the logger so log readers see the surrounding object that
- * carried the unrecognised fields.
+ * carried the unrecognized fields.
  */
 export type LogSkippedValuesArgs = {
   stackTrail: StackTrail

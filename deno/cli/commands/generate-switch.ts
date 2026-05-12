@@ -130,7 +130,7 @@ export const generateSwitch = async ({
 
     // If any parseIssue came back at `error` level, the run isn't a
     // success even when the JSON payload has `kind: "generated"`.
-    // Core's CoreContext catches top-level failures and synthesises
+    // Core's CoreContext catches top-level failures and synthesizes
     // an INVALID_SCHEMA error so this branch can detect them — see
     // `core/context/CoreContext.ts` around the toArtifacts catch.
     //
@@ -138,7 +138,7 @@ export const generateSwitch = async ({
     // an older `@skmtc/core` that didn't yet emit `parseIssues` —
     // the field is then `undefined`, and `.some()` on undefined
     // would throw. Treating "no parseIssues field" as "no error
-    // issues" matches the original silent-success behaviour for old
+    // issues" matches the original silent-success behavior for old
     // bundles; new bundles populate the field and get the proper
     // exit-1 signal.
     const fatalParseIssue = (result.parseIssues ?? []).some(

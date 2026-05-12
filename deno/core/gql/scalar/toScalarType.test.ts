@@ -12,7 +12,7 @@ const builtin = (name: string) => new GraphQLScalarType({ name, serialize: x => 
 
 // `toScalarType` accepts `context` and `stackTrail` for parser-shape
 // symmetry; today the function is pure so a minimal stub satisfies
-// the type check without affecting behaviour.
+// the type check without affecting behavior.
 const context = {} as unknown as ParseContextType
 const stackTrail = new StackTrail([])
 

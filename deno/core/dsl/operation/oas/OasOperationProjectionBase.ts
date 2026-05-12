@@ -34,7 +34,7 @@ export type OasOperationProjectionBaseArgs<EnrichmentType = undefined> = {
 /**
  * Runtime base class for OAS operation projections.
  *
- * The OAS analogue of {@link ModelProjectionBase}: a *projection* whose
+ * The OAS analog of {@link ModelProjectionBase}: a *projection* whose
  * source is an `OasOperation` rather than a `RefName`. Subclasses produce
  * the body of a `Definition` and may compose other projections via
  * {@link insertModel}, {@link insertOperation}, and

@@ -164,13 +164,13 @@ export const toOperationsV3 = ({
                 context
               })
             } catch (error) {
-              const normalised = error instanceof Error ? error : new Error(String(error))
+              const normalized = error instanceof Error ? error : new Error(String(error))
               context.logIssue({
                 key: method,
                 parent: operation,
                 level: 'error',
-                message: normalised.message,
-                cause: normalised,
+                message: normalized.message,
+                cause: normalized,
                 stackTrail: st,
                 type: 'INVALID_OPERATION'
               })

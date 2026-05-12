@@ -252,7 +252,7 @@ Deno.test(
   async () => {
     // Same tolerance contract as `Manifest.open` — a stale manifest
     // shouldn't abort the generate run. Here we verify the
-    // sync-codepath version of that behaviour: the function logs a
+    // sync-codepath version of that behavior: the function logs a
     // warning on stderr and returns without throwing or deleting
     // any user files.
     const tempDir = await Deno.makeTempDir()

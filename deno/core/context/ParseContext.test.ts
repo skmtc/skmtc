@@ -14,7 +14,7 @@ const oasInput = (
   }
 ) => ({ type: 'oas', value: documentObject }) as const
 
-Deno.test('ParseContext - constructor (oas) initialises shared and protocol state', () => {
+Deno.test('ParseContext - constructor (oas) initializes shared and protocol state', () => {
   const documentObject: OpenAPIV3.Document = {
     openapi: '3.0.3',
     info: { title: 'Test API', version: '1.0.0' },

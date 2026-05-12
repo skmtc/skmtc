@@ -38,7 +38,7 @@ Deno.test('Identifier - toString returns identifier name', () => {
 })
 
 Deno.test('Identifier.toImport - variable identifier emits a bare string', () => {
-  // Variable identifiers serialise as bare strings — the canonical
+  // Variable identifiers serialize as bare strings — the canonical
   // wire shape for plain value imports. This matches `Import#toRecord`
   // output and keeps consumers (including Driver-internal register
   // calls) compatible with hand-written `imports: { 'x': ['Foo'] }`.

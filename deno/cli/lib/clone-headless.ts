@@ -24,7 +24,7 @@ type CloneHeadlessArgs = {
   generators: string[]
   /**
    * Bypass the pre-flight `@skmtc/core` peer-pin check. Default
-   * behaviour refuses to clone into a project whose pin doesn't
+   * behavior refuses to clone into a project whose pin doesn't
    * share a major.minor with the CLI's — cloning over a mismatch
    * produces a generator that won't bundle. `--force` is the escape
    * hatch when the operator has already accepted the risk (e.g.

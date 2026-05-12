@@ -168,7 +168,7 @@ export const runTypecheck = async ({
 
   const tsconfigDir = dirname(tsconfig)
   // Shell out. Use `sh -c` so a multi-word `tscCmd` like `npx tsc`
-  // tokenises correctly without us reimplementing shell quoting.
+  // tokenizes correctly without us reimplementing shell quoting.
   const cmd = new Deno.Command('sh', {
     args: ['-c', `${tscCmd} --noEmit --pretty false --project ${tsconfig}`],
     cwd: tsconfigDir,

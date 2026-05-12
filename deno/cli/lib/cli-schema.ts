@@ -42,7 +42,7 @@ export type CommandDescriptor = {
   args: string[]
   flags: FlagDescriptor[]
   /**
-   * Whether the command honours agent-mode (TTY-detect + `--json` +
+   * Whether the command honors agent-mode (TTY-detect + `--json` +
    * `--no-input` + recipe errors):
    *   - `full`      : every facet supported
    *   - `json-only` : structured output without an Ink variant

@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #20732 | 10:19 AM | ✅ | LLM-specific documentation enhanced with operational principles table | ~688 |
 | #20707 | 10:02 AM | ✅ | CLI reference documentation skeleton created for agent-context command | ~454 |
 | #20706 | " | ✅ | CLI reference documentation template for skmtc bundle command | ~550 |
 | #20705 | " | ✅ | SKMTC CLI reference documentation - doctor command outline | ~429 |
