@@ -125,7 +125,7 @@ explicit: "no enrichments here, just the identifier and path."
 ```ts
 const settings = ContentSettings.empty({
   identifier: Identifier.createVariable('userBody'),
-  exportPath: '/models/User.generated.ts'
+  exportPath: '@/types/userBody.generated.ts'
 })
 // → ContentSettings<undefined>
 ```
@@ -154,7 +154,9 @@ const instance = new projection({
 Inside the Projection, the settings are available as `this.settings`:
 
 ```ts
-class ShadcnForm extends OasOperationProjectionBase {
+// ShadcnFormBase = toOasOperationProjectionBase({...}) in base.ts
+
+class ShadcnForm extends ShadcnFormBase {
   override toString(): string {
     const { title, submitLabel } = this.settings.enrichments ?? {}
 
@@ -218,11 +220,13 @@ of comparing object references.
 ```ts
 const settings = ContentSettings.empty({
   identifier: Identifier.createVariable('userBody'),
-  exportPath: '/zod/User.generated.ts'
+  exportPath: '@/types/userBody.generated.ts'
 })
 
 // In the Projection
-class UserBody extends ModelProjectionBase {
+// UserBodyBase = toModelProjectionBase({...}) in base.ts
+
+class UserBody extends UserBodyBase {
   override toString(): string {
     // No enrichments available; type is undefined
     return `z.object({ name: z.string() })`
@@ -244,7 +248,9 @@ const settings = new ContentSettings<EnrichmentSchema>({
   enrichments: { title: 'Create User', submitLabel: 'Create' }
 })
 
-class ShadcnForm extends OasOperationProjectionBase<EnrichmentSchema> {
+// ShadcnFormBase = toOasOperationProjectionBase<EnrichmentSchema>({...}) in base.ts
+
+class ShadcnForm extends ShadcnFormBase {
   override toString(): string {
     const { title, submitLabel } = this.settings.enrichments ?? {}
     return `<Form><h2>${title}</h2>...<Button>${submitLabel}</Button></Form>`
@@ -295,7 +301,9 @@ the existing object.
 Pass it via the Projection's constructor `args` object:
 
 ```ts
-class MyProjection extends OasOperationProjectionBase {
+// MyBase = toOasOperationProjectionBase({...}) in base.ts
+
+class MyProjection extends MyBase {
   constructor(args: {
     context, operation, settings,
     customData: { ... }       // ← additional field

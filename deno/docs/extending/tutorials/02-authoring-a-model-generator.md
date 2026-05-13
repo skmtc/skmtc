@@ -148,7 +148,64 @@ The `toString()` returns the **value side** of the
 `export const X = ...` statement. The wrapping happens in the
 `Definition` class automatically.
 
-## Step 4: Compose with peer Projections
+## Step 4: Wire up `src/mod.ts`
+
+`src/mod.ts` is the **Entry**: a `toModelEntry({...})` call whose
+result becomes the package's default export. The pipeline iterates
+over every refName in the document and invokes the Entry's
+`transform` callback for each one.
+
+The scaffold writes a minimal Entry — opening the file should show
+something close to:
+
+```ts
+// src/mod.ts
+import { toModelEntry } from '@skmtc/core'
+import { SchemaMetaProjection } from './SchemaMetaProjection.ts'
+import denoJson from '../deno.json' with { type: 'json' }
+
+const schemaMetaEntry = toModelEntry({
+  id: denoJson.name,
+  transform({ context, refName }) {
+    context.insertModel(SchemaMetaProjection, refName)
+  }
+})
+
+export default schemaMetaEntry
+```
+
+Two things to internalize:
+
+1. **`transform` is fire-and-forget.** Its return value is folded
+   into `acc` but never persisted as output. The way artifacts get
+   produced is the side-effect `context.insertModel(...)` call —
+   that's what triggers the Driver to construct your Projection (if
+   not already cached), wrap the result in a `Definition`, and
+   register it in the file map.
+2. **Model entries have no `isSupported`** — every refName in the
+   document is dispatched. If you want to skip particular schemas
+   (e.g., non-object types for this generator), filter *inside*
+   `transform`:
+
+```ts
+transform({ context, refName }) {
+  const schema = context.resolveSchemaRefOnce(refName, SchemaMetaBase.id)
+  if (schema.isRef() || schema.type !== 'object') return
+  context.insertModel(SchemaMetaProjection, refName)
+}
+```
+
+That's the model contrast with operation entries (tutorial 03's
+Step 2 implements `isSupported` on the Entry config; here, the
+filter lives in `transform`).
+
+If you later need user-facing options, add `toEnrichmentSchema` to
+the Entry config and pass the typed enrichment through. The full
+config surface — including `toPreviewModule`, `toMappingModule`,
+and the rarely-used `toEnrichmentRequest` — is documented in the
+[entry-factories reference](../../reference/api/entry-factories.md).
+
+## Step 5: Compose with peer Projections
 
 For this generator, you don't need to. If you wanted to reference
 another generator's registered name (e.g., the TypeScript type from
@@ -164,7 +221,7 @@ constructor(args: ConstructorArgs) {
 
 See [how to compose with another generator](../how-to/compose-with-another-generator.md).
 
-## Step 5: Iterate with `skmtc dev`
+## Step 6: Iterate with `skmtc dev`
 
 ```bash
 skmtc dev my-project

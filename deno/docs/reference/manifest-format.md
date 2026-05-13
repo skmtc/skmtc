@@ -121,29 +121,38 @@ can be ignored.
 ### `results`
 
 The most-consulted field for debugging. A deeply nested record
-keyed by trace → span → `"generate"` → generator package ID →
-identifier:
+keyed by trace → span → phase → generator package ID → item
+identifier (verified against real manifests, not extrapolated):
 
 ```jsonc
 {
-  "trace-1778185255674": {
-    "span-1778185255674": {
+  "trace-1763060002688": {
+    "span-1763060002688": {
       "generate": {
-        "@skmtc/gen-shadcn-form": {
-          "mutation_CreateApplicant": "success",
-          "query_GetApplicants": "notSupported"
+        "@skmtc/gen-express": {
+          "/accounts%3Aget": "success",
+          "/accounts%3Apost": "success",
+          "/deployments/{deploymentId}%3Aget": "success"
         },
-        "@skmtc/gen-zod": {
+        "@skmtc/gen-valibot": {
           "ApplicantModel": "success",
           "BrokenModel": "error"
         }
+      },
+      "render": {
+        "@/accounts/routes.generated.ts": "success",
+        "@/deployments/routes.generated.ts": "success"
       }
     }
   }
 }
 ```
 
-Each leaf is a `ResultType`:
+Two **phase keys** sit under `span-…`:
+- **`generate`** — per-(generator × item) outcome from the Generate phase
+- **`render`** — per-output-file outcome from the Render phase, keyed by `exportPath`
+
+Each leaf is a `ResultType` string:
 
 | Value | Meaning |
 |---|---|
@@ -153,14 +162,34 @@ Each leaf is a `ResultType`:
 | `skipped` | Item matched but deliberately skipped (via `client.json` filters) |
 | `notSupported` | Generator's `isSupported` returned false — *expected* for items outside the generator's scope |
 
-The identifier format depends on the generator type:
+Item-identifier formats under `generate`:
 
-- **Operation generators**: `<protocol>_<operationId>` — e.g.,
-  `query_GetApplicants`, `mutation_CreateApplicant`, `post_users`,
-  `get_users_userId`. The protocol prefix maps to the HTTP method
-  category for OAS or to the GraphQL operation type for GQL.
+- **OAS operation generators**: `<path>%3A<method>` — URL-encoded colon
+  separates the OpenAPI path from the lowercase HTTP method (matches
+  the `StackTrail.toString()` format used throughout the engine).
+  Examples: `/accounts%3Aget`, `/deployments/{deploymentId}%3Aput`,
+  `/users/{userId}/avatar%3Apost`.
+- **GraphQL operation generators**: `<rootKind>%3A<fieldName>` — e.g.,
+  `query%3AgetApplicants`, `mutation%3AcreateApplicant`.
 - **Model generators**: the refName directly — e.g., `UserModel`,
   `ApplicantModel`.
+
+#### Edge case: no matches at all
+
+When nothing the engine generated produced a result (no generators
+matched any item), the tree collapses to a flat `SKIPPED` marker
+instead of the nested trace/span shape:
+
+```jsonc
+{
+  "results": {
+    "SKIPPED": "error"
+  }
+}
+```
+
+Recipes that walk the tree should handle both forms — for example,
+checking `.results.SKIPPED` first before descending into trace keys.
 
 ### `parseIssues`
 

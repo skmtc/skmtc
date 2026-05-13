@@ -41,6 +41,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #21203 | 11:05 AM | ✅ | Expanded generators-as-packages.md to document all three entry factory variants side-by-side | ~525 |
+| #21201 | 11:04 AM | ✅ | Created comprehensive API reference documentation for entry factory functions | ~544 |
 | #21168 | 8:14 AM | ✅ | Added "Authoring asymmetries vs OAS" section to GraphQL pipeline concepts doc | ~305 |
 | #21166 | " | ✅ | Added operation-reference protocol pattern to cross-generator coordination concept doc | ~986 |
 | #21165 | " | ✅ | Documentation added warning against using enrichments as isSupported filter | ~707 |

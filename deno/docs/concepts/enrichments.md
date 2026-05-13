@@ -60,8 +60,8 @@ isSupported({ operation }) {
 Two reasons to avoid the wrong form:
 
 1. **`isSupported` declares capability, not user intent.** A
-   generator that *could* emit for `POST` with a JSON body should say
-   so. Whether the user *wants* it to is a configuration concern.
+   generator that *could* produce output for `POST` with a JSON body
+   should say so. Whether the user *wants* it to is a configuration concern.
 2. **Enrichment is for customizing shape, not selecting set.** Once
    enrichment doubles as the switch, you can't have an enrichment
    with all-default values — you have to invent a sentinel. Code smell.

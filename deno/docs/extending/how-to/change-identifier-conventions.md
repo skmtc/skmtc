@@ -53,14 +53,17 @@ for the entity-type semantics.
 
 ### Preserve uniqueness across operations
 
-The `(identifier.name, exportPath)` pair is the cache key. Two
-operations producing the same name in the same file collide
-silently — first writer wins.
+The `(identifier.name, exportPath)` pair is the cache key. If
+two operations within your generator produce the same name in
+the same file, the Driver's `affirmDefinition` detects the
+mismatch (different `generatorKey` per operation) and throws
+`Registered definition mismatch`. Re-inserting the same operation
+is idempotent (same key → cache hit).
 
 Make sure your naming function produces unique names per
-operation/refName. Helpers like `toEndpointName(operation)`
-handle the OAS-spec quirks (missing `operationId`, identical
-paths with different methods).
+operation/refName so the throw never fires. Helpers like
+`toEndpointName(operation)` handle the OAS-spec quirks (missing
+`operationId`, identical paths with different methods).
 
 ### Rebundle and regenerate
 

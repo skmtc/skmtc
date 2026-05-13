@@ -597,7 +597,7 @@ Use this as the first read when an agent enters a SKMTC project cold.
 - **Snippet** — an anonymous, embeddable generated fragment. Extends `SnippetBase`. Embedded via `${...}`.
 - **Definition** — the `export const X = VALUE` wrapper around a Projection's value. Created by Drivers.
 - **Driver** — the orchestrator for inserting a Projection: settings → cache check → instantiate → register.
-- **Identifier** — a name + entity-type marker (`'const'` vs `'type'`). Created via `Identifier.createVariable` / `createType`.
+- **Identifier** — a name + entity-type marker (`'variable'` vs `'type'`; `'variable'` renders as the TS keyword `const`). Created via `Identifier.createVariable` / `createType`.
 - **ContentSettings** — `{ identifier, exportPath, enrichments }`. Computed by Drivers from the Projection's static methods.
 - **Enrichment** — user-supplied config attached to a generator, declared per-generator via Valibot in `enrichments.ts`.
 - **Generator** — a JSR package (or local TypeScript file) exporting an entry function.

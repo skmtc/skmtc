@@ -55,7 +55,7 @@ right TS class.
   way to write a schema renderer.
 - **Factory-function config as an alternative to enrichments.** When
   the config is global (scalar map) rather than per-operation, a
-  factory function is cleaner than the four-level enrichments path.
+  factory function is cleaner than the per-operation enrichments path.
 
 ## Common customizations when cloned
 

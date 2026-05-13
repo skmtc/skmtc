@@ -80,7 +80,17 @@ re-export shape is so that consumers can `import gen from
 
 ### `src/mod.ts` (entry)
 
-The function the engine calls to register the generator:
+The function the engine calls to register the generator. Pick the
+factory matching what the generator operates on:
+
+- `toOasOperationEntry` — one file per OAS operation
+- `toGqlOperationEntry` — one file per GraphQL operation
+- `toModelEntry` — one file per schema component (refName)
+
+The three share a config skeleton; differences are documented in
+[entry-factories reference](../reference/api/entry-factories.md).
+
+**OAS operation entry:**
 
 ```ts
 // gen-x/src/mod.ts
@@ -105,10 +115,52 @@ const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
 export default MyGenEntry
 ```
 
-The entry function selects which `toOasOperationEntry` /
-`toGqlOperationEntry` / `toModelEntry` factory based on what the
-generator operates on. `isSupported` is the capability gate;
-`transform` is the per-item hook.
+`isSupported` is the capability gate; `transform` is the per-item
+hook. Output happens through side effects on `context` —
+`register`, `insertOperation`, `insertModel`,
+`insertNormalizedModel`. The return value is folded into `acc` but
+never persisted as artifacts. See
+[how-generators-produce-output](how-generators-produce-output.md).
+
+**Model entry** — same skeleton with two differences (no
+`isSupported`, takes `refName` instead of `operation`):
+
+```ts
+const ZodEntry = toModelEntry<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+  transform({ context, refName }) {
+    context.insertModel(ZodProjection, refName)
+  }
+})
+```
+
+Model entries dispatch over every refName in the document — there's
+no capability gate at the Entry level. Filter inside `transform` if
+needed.
+
+**GraphQL operation entry** — same skeleton with one critical
+difference (`transform` must return `acc` to keep the accumulator
+threaded):
+
+```ts
+const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+  isSupported({ operation }) {
+    return operation.rootKind === 'mutation'
+  },
+  transform({ context, operation, acc }) {
+    if (operation.rootKind !== 'mutation') return acc
+    context.insertOperation({ projection: MyGen, operation })
+    return acc  // ← required for GQL
+  }
+})
+```
+
+A side-by-side comparison of the three factories — config fields,
+acc semantics, enrichment routing paths — is in the
+[entry-factories reference](../reference/api/entry-factories.md#the-three-factories-at-a-glance).
 
 ### `src/base.ts` (projection base)
 

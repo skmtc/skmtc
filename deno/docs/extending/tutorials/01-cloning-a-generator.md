@@ -71,15 +71,16 @@ Open `src/base.ts`. Find `toExportPath` — it'll look something
 like:
 
 ```ts
-toExportPath({ schema, refName }): string {
-  return `/models/${refName}.generated.ts`
+toExportPath({ refName, enrichments }): string {
+  const { name } = this.toIdentifier({ refName, enrichments })
+  return join('@', 'types', `${decapitalize(name)}.generated.ts`)
 }
 ```
 
 Change the path:
 
 ```ts
-toExportPath({ schema, refName }): string {
+toExportPath({ refName }): string {
   return `/schemas/${refName}.ts`
 }
 ```

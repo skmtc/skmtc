@@ -90,15 +90,26 @@ Two common causes:
    didn't `skmtc bundle`, the old bundle is used. `skmtc doctor`
    flags this.
 
-#### Same-name collision (silent)
+#### Same-name collision (Driver throws; bare register silent)
 
 Two generators produce a definition with the same `(identifier.name,
-exportPath)`. First writer wins; second is silently discarded.
-No warning logged in the current engine.
+exportPath)`. Behavior depends on the insertion path:
 
-Symptom: a file is missing content you expected. Confirm by
-checking each generator's output independently (uninstall the
-others temporarily).
+- **Driver path** (`insertModel` / `insertOperation` /
+  `insertNormalisedModel`): the second writer throws
+  `Registered definition mismatch: '<name>' in file '<exportPath>'.
+  Cached key '<key>' does not match new key '<key>'`. Loud failure
+  via `affirmDefinition`.
+- **Bare `register({ definitions })`**: first writer wins; second
+  is silently discarded. No warning logged.
+
+Symptoms:
+- *Driver path:* generation aborts with the mismatch error — look
+  at the file and key in the message to identify the colliding
+  generators.
+- *Bare register:* a file is missing content you expected. Confirm
+  by checking each generator's output independently (uninstall the
+  others temporarily).
 
 ## Verification
 

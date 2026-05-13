@@ -229,7 +229,11 @@ peer free to change its template internally.
 ### Pattern: inserting a sibling Projection
 
 ```ts
-class MyProjection extends OasOperationProjectionBase<EnrichmentSchema> {
+// In base.ts
+const MyBase = toOasOperationProjectionBase<EnrichmentSchema>({ id, toIdentifier, toExportPath })
+
+// In MyProjection.ts
+class MyProjection extends MyBase {
   peerName: string
 
   constructor(args) {
@@ -321,7 +325,7 @@ const operation = context.document.value.operations.find(op =>
 
 if (operation) {
   // 3. Dispatch — same insertOperation as the static-peer pattern.
-  //    The Driver dedupes emission across calls and registers the
+  //    The Driver dedupes insertion across calls and registers the
   //    import on the calling file.
   const def = context.insertOperation({
     projection: ShadcnSelectInput,
@@ -329,7 +333,7 @@ if (operation) {
     destinationPath: settings.exportPath
   })
 
-  // 4. Reference by name in the emitted markup.
+  // 4. Reference by name in the rendered markup.
   return `<${def.identifier.name} lens={lens.focus('${path}').defined()} />`
 }
 // fall back to a plain field if no reference is set

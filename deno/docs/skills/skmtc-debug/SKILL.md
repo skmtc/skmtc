@@ -118,7 +118,7 @@ the next `generate`/`dev` cycle overwrites it.
   previews: Record<…, Preview> // UI-facing preview entries per Projection
   mappings?: Record<…, Mapping>
   results: ResultsItem         // per-(generator × item) outcome
-  parseIssues?: ParseIssue[]   // present in newer @skmtc/core
+  parseIssues: ParseIssue[]    // always present; empty array = no issues
 }
 ```
 

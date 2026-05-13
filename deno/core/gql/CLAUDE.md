@@ -79,10 +79,12 @@ const gqlDocument = toGqlDocument(sdl)
 instance, or a pre-built `GqlDocument`.
 
 Options:
-- `interfaceUnionSuffix` (default `'Union'`) — name of the union form
-  emitted alongside an interface's base object
-- `emitInterfaceUnions` (default `true`) — whether to emit the union
-  of implementers in addition to the base interface object
+- `interfaceUnionSuffix` (default `'Union'`) — name of the synthesized
+  union form registered alongside an interface's base object
+- `synthesizeInterfaceUnions` (default `true`) — whether to register a
+  synthetic union of an interface's implementers (under
+  `<interfaceName><interfaceUnionSuffix>`) in addition to the base
+  interface object
 
 ### Running the full pipeline
 

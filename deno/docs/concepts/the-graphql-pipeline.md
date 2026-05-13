@@ -119,13 +119,13 @@ Two parse options control this:
 
 ```ts
 type GqlParseOptions = {
-  interfaceUnionSuffix?: string   // default: 'Union'
-  emitInterfaceUnions?: boolean   // default: true
+  interfaceUnionSuffix?: string         // default: 'Union'
+  synthesizeInterfaceUnions?: boolean   // default: true
 }
 ```
 
 `interfaceUnionSuffix` changes the suffix (e.g., to `'Variant'`
-or `'Impl'`); `emitInterfaceUnions: false` suppresses the union
+or `'Impl'`); `synthesizeInterfaceUnions: false` suppresses the union
 entirely, leaving only the base object. The latter is useful if
 your downstream stack doesn't need the polymorphic representation
 (e.g., you generate only TypeScript types and the `Node`

@@ -64,7 +64,7 @@ export const parseGqlDocument = ({
   context,
   stackTrail
 }: ParseGqlDocumentArgs): { fields: GqlDocumentFields } => {
-  const { interfaceUnionSuffix = 'Union', emitInterfaceUnions = true } = options
+  const { interfaceUnionSuffix = 'Union', synthesizeInterfaceUnions = true } = options
   const { schema, registry } = context
 
   // Schema-level: warn about user-defined directive *definitions*.
@@ -105,7 +105,7 @@ export const parseGqlDocument = ({
       type,
       stackTrail,
       context,
-      emitInterfaceUnions,
+      synthesizeInterfaceUnions,
       interfaceUnionSuffix
     })
   }
@@ -178,7 +178,7 @@ type AddNamedTypeArgs = {
   /** Parent stack trail — `tryParseAt` pushes `name` as the child segment. */
   stackTrail: StackTrail
   context: ParseContext
-  emitInterfaceUnions: boolean
+  synthesizeInterfaceUnions: boolean
   interfaceUnionSuffix: string
 }
 
@@ -194,7 +194,7 @@ const addNamedType = ({
   type,
   stackTrail,
   context,
-  emitInterfaceUnions,
+  synthesizeInterfaceUnions,
   interfaceUnionSuffix
 }: AddNamedTypeArgs): void => {
   const { registry } = context
@@ -233,7 +233,7 @@ const addNamedType = ({
     tryAdd(name as RefName, typeStack =>
       toObjectType({ objectType: type, context, stackTrail: typeStack })
     )
-    if (emitInterfaceUnions) {
+    if (synthesizeInterfaceUnions) {
       const unionName = `${name}${interfaceUnionSuffix}` as RefName
       tryAdd(unionName, typeStack =>
         toInterfaceUnion({ interfaceType: type, context, stackTrail: typeStack })

@@ -273,7 +273,9 @@ schemas usually use `OasRef.resolve()` instead.
 ### Inside a Projection constructor
 
 ```ts
-class MyProjection extends OasOperationProjectionBase<E> {
+// MyBase = toOasOperationProjectionBase<E>({ id, toIdentifier, toExportPath }) in base.ts
+
+class MyProjection extends MyBase {
   bodyTypeName: string
   hookName: string
 

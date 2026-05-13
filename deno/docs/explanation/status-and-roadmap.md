@@ -168,15 +168,24 @@ likely remain "consumer's concern."
 ### Same-name collisions in inline schemas
 
 If two generators independently produce a definition with the
-same `(name, exportPath)` key, **first writer wins**. The second
-is silently discarded. No diagnostic is logged.
+same `(name, exportPath)` key, behavior depends on the insertion path:
 
-In practice this rarely surfaces (the per-generator identifier
-naming usually differs by entity type — value vs type). But the
-sharp edge exists.
+- **Driver path** (the usual flow via `insertModel`, `insertOperation`,
+  or `insertNormalisedModel`): the second writer throws
+  `Registered definition mismatch: '<name>' in file '<exportPath>'.
+  Cached key '<key>' does not match new key '<key>'`. The collision
+  is loud, not silent — see `affirmDefinition` in the three Drivers.
+- **Bare `register({ definitions })` path** (less common — direct
+  use of the low-level API): silent **first-write-wins** via
+  `Map.has`. The second is dropped with no diagnostic.
 
-**Mitigation:** during development, watch for missing artifacts
-that "should be there." The cause is often this collision.
+In practice the Driver path catches most collisions. The bare-register
+sharp edge is what to watch for if you call `context.register` directly.
+
+**Mitigation:** prefer the Driver methods so collisions throw.
+During development, watch for the "Registered definition mismatch"
+error (Driver path) or missing artifacts "that should be there"
+(bare-register path).
 
 ### No incremental builds
 

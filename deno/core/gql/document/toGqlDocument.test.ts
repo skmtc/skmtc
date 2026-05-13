@@ -154,7 +154,7 @@ Deno.test('toGqlDocument - interface emits both base object and union of impleme
   assertEquals(nodeUnion.members.length, 2)
 })
 
-Deno.test('toGqlDocument - emitInterfaceUnions=false suppresses the union form', () => {
+Deno.test('toGqlDocument - synthesizeInterfaceUnions=false suppresses the union form', () => {
   const sdl = /* GraphQL */ `
     interface Node {
       id: ID!
@@ -164,7 +164,7 @@ Deno.test('toGqlDocument - emitInterfaceUnions=false suppresses the union form',
     }
     type Query { _: Boolean }
   `
-  const doc = toGqlDocument(sdl, { emitInterfaceUnions: false })
+  const doc = toGqlDocument(sdl, { synthesizeInterfaceUnions: false })
   assertExists(doc.registry.schemas[refName('Node')])
   assertEquals(doc.registry.has(refName('NodeUnion')), false)
 })

@@ -50,9 +50,9 @@ const FIXTURE_DENO_JSON = JSON.stringify(
   {
     imports: {
       '@skmtc/gen-typescript': join(REPO_ROOT, 'skmtc-generators/gen-typescript/mod.ts'),
-      '@skmtc/gen-graphql-operation': join(
+      '@skmtc/gen-reapit-graphql-client': join(
         REPO_ROOT,
-        'skmtc-generators/gen-graphql-operation/mod.ts'
+        'skmtc-generators/gen-reapit-graphql-client/mod.ts'
       ),
       '@skmtc/core': join(REPO_ROOT, 'skmtc/deno/core/mod.ts'),
       '@skmtc/worker': join(REPO_ROOT, 'skmtc/deno/worker/mod.ts'),
@@ -78,11 +78,11 @@ const FIXTURE_DENO_JSON = JSON.stringify(
 const FIXTURE_WORKER = `
 import toWorker from '@skmtc/worker'
 import skmtcGenTypescript from '@skmtc/gen-typescript'
-import skmtcGenGraphqlOperation from '@skmtc/gen-graphql-operation'
+import skmtcGenReapitGraphqlClient from '@skmtc/gen-reapit-graphql-client'
 
 export default toWorker(() =>
   Object.fromEntries(
-    [skmtcGenTypescript, skmtcGenGraphqlOperation].map(g => [g.id, g])
+    [skmtcGenTypescript, skmtcGenReapitGraphqlClient].map(g => [g.id, g])
   )
 )
 `

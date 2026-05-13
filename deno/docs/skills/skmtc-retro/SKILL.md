@@ -157,6 +157,13 @@ The session file structure:
 
 <1-2 sentences describing what work was happening in this session.>
 
+## Index
+
+| # | Entry | Severity | Status |
+|---|-------|----------|--------|
+| 1 | <Entry heading> | friction | open |
+| 2 | <Entry heading> | win | open |
+
 ---
 
 ### 1. <Entry heading> [severity]
@@ -165,6 +172,50 @@ The session file structure:
 ### 2. <Entry heading> [severity]
 ...
 ```
+
+### The Index
+
+The `## Index` block sits between the session description and the
+first `---` divider. Its purpose is to let a reader (agent or human)
+scan the file's contents and the status of every entry in seconds,
+without paging through the body.
+
+Index rules:
+
+- **One row per entry**, in the same order as the entries themselves.
+- **`#` column** matches the entry's stable number from §"Numbering".
+- **`Entry` column** is the entry's heading text **without** the
+  trailing `[severity]` tag (severity gets its own column). Truncate
+  with `…` if the heading exceeds ~80 characters; the body is the
+  authoritative version.
+- **`Severity` column** is the bare tag (`blocker`, `friction`,
+  `polish`, `win`) — no brackets.
+- **`Status` column** mirrors the entry's `**Status:**` field
+  verbatim, but condensed. Typical values:
+  - `open` — unresolved
+  - `resolved <YYYY-MM-DD>` — resolved on that date (optionally with
+    a commit/PR ref, e.g., `resolved 2026-05-15 (PR #142)`)
+  - `superseded by <filename>#<N>` — observation rolled into a later
+    entry
+  - `wontfix` — explicitly closed without action
+
+The index is **derived data**: every value must match what's in the
+body. When the two disagree, the body is the source of truth and the
+index is wrong — fix the index.
+
+### Maintaining the index
+
+The index must be updated **every time the body changes**:
+
+- **Adding an entry:** append a new row with the next sequential `#`,
+  matching heading, severity, and `Status: open`.
+- **Resolving an entry:** update the body's `**Status:**` line first,
+  then mirror the change to the matching index row.
+- **Editing an entry's heading or severity:** update both places in
+  the same edit. The body and index must never drift.
+
+If you only have time to update one of the two, update the body. A
+correct body with a stale index is recoverable; a stale body is not.
 
 ### Entry format
 
@@ -252,10 +303,10 @@ The full flow:
    session's primary topic.
 2. **Check** if the file already exists (same-date, same-topic
    continuation):
-   - If yes: read the existing file, note the highest entry number,
-     prepare to append.
-   - If no: prepare to create a new file with the session header (§4
-     "File format").
+   - If yes: read the existing file, note the highest entry number
+     and the current state of the `## Index` block, prepare to append.
+   - If no: prepare to create a new file with the session header and
+     an empty `## Index` table (§4 "File format").
 3. **Reflect** — mentally walk through the session, applying the
    reflection prompts from §3. Distinguish genuinely new observations
    from things already captured.
@@ -263,7 +314,11 @@ The full flow:
    §4. Number sequentially from the current high-water mark (1 if
    creating a new file).
 5. **Write** the file (create or append). Do not modify earlier
-   entries.
+   entries. **Update the `## Index` block in the same write** to
+   include a row for every new entry. If you're appending to an
+   existing file whose index is missing or out of date, rebuild it
+   from the body in the same pass — the index must always match the
+   body when you finish.
 6. **Summarise to the user** in one short message:
    `Logged N entries (X friction, Y wins) to <filename>. Headings: ...`
 
@@ -311,13 +366,20 @@ principles table. Logging it adds noise without signal.
 
 ## 9. After the retro
 
-Retro files are append-only. The user reviews them daily and decides
-whether each entry becomes a skill update, a doc update, a SKMTC code
-change, or a deferred reflection point. Do not pre-commit to those
-resolutions in the entry — leave the "Possible fixes" section
-open-ended. When an entry is resolved, the user updates its `Status:`
-field in place with the resolution date and a link to the relevant
-commit or PR.
+Retro files are append-only for **entry bodies**. The user reviews
+them daily and decides whether each entry becomes a skill update, a
+doc update, a SKMTC code change, or a deferred reflection point. Do
+not pre-commit to those resolutions in the entry — leave the
+"Possible fixes" section open-ended. When an entry is resolved, the
+user (or the skill, on its next pass through the file) updates **two
+places** with the resolution date and a link to the relevant commit
+or PR:
+
+1. The entry's `**Status:**` line in the body.
+2. The matching row in the `## Index` table.
+
+The index and body must remain in lockstep — see §4 "Maintaining the
+index".
 
 If you notice during the retro that **the skill itself** has a gap (a
 missing reflection prompt, an unclear instruction, a case the format

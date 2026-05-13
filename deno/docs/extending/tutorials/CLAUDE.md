@@ -13,4 +13,10 @@
 | #20731 | 10:08 AM | ✅ | Documentation structure and dual licensing clarification | ~674 |
 | #20683 | 10:00 AM | ✅ | Tutorial skeleton for operation generator authoring | ~465 |
 | #20682 | " | ✅ | Tutorial scaffold for generator cloning workflow | ~576 |
+
+### May 13, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #21204 | 11:05 AM | ✅ | Added Step 4 to model generator tutorial documenting src/mod.ts Entry wiring | ~491 |
 </claude-mem-context>

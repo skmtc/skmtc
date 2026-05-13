@@ -312,7 +312,7 @@ decision.
   previews: Record<…, Preview>
   mappings?: Record<…, Mapping>
   results: ResultsItem         // per-(generator × item) outcome
-  parseIssues?: ParseIssue[]   // populated by newer @skmtc/core
+  parseIssues: ParseIssue[]    // always present; empty array = no issues
 }
 ```
 

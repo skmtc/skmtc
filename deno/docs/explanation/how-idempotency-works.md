@@ -147,21 +147,21 @@ Inside its `toString()`, it calls
 2. `gen-zod`'s `transform({ refName: 'User' })` calls
    `context.insertModel(ZodProjection, 'User')`.
 3. Driver calls `findDefinition({ name: 'user', exportPath:
-   '/models/User.generated.ts' })`. Not found.
+   '@/types/user.generated.ts' })`. Not found.
 4. Driver creates a `ZodProjection` instance, wraps it in a
    `Definition`, and registers it. File map now contains
-   `User.generated.ts → { user: Definition }`.
+   `user.generated.ts → { user: Definition }`.
 5. `gen-shadcn-form` runs. Its `transform` calls `insertOperation`,
    which constructs the form Projection.
 6. Form Projection's `toString()` calls
    `insertNormalizedModel(ZodProjection, { schema: userBodySchema,
    fallbackName: 'createUserBody' })`.
 7. The schema *is* a ref to the `User` component. Driver derives
-   key `('user', '/models/User.generated.ts')`.
+   key `('user', '@/types/user.generated.ts')`.
 8. `findDefinition` returns the existing entry from step 4. No
    new Projection is constructed.
 9. Form Projection records the import (`import { user } from
-   '/models/User.generated.ts'`) and references `user` in its
+   '@/types/user.generated.ts'`) and references `user` in its
    output.
 
 Final state: one `userBody` definition, imported by the form.
@@ -173,14 +173,14 @@ Final state: one `userBody` definition, imported by the form.
 3. Form Projection's `toString()` calls
    `insertNormalizedModel(ZodProjection, { schema: userBodySchema })`.
 4. `findDefinition({ name: 'user', exportPath:
-   '/models/User.generated.ts' })`. Not found.
+   '@/types/user.generated.ts' })`. Not found.
 5. Driver creates a `ZodProjection` instance, wraps it in a
    `Definition`, registers it. File map now contains
-   `User.generated.ts → { user: Definition }`.
+   `user.generated.ts → { user: Definition }`.
 6. Form Projection records the import.
 7. `gen-zod` runs. Its `transform({ refName: 'User' })` calls
    `context.insertModel(ZodProjection, 'User')`.
-8. Driver derives key `('user', '/models/User.generated.ts')`.
+8. Driver derives key `('user', '@/types/user.generated.ts')`.
 9. `findDefinition` returns the existing entry from step 5. No
    new Projection is constructed.
 
@@ -201,8 +201,16 @@ written and tested in isolation.
 ### Same-name collisions across generators
 
 What if two unrelated generators independently produce a `Foo`
-definition in the same file? First-writer-wins. The second is
-silently discarded.
+definition in the same file? It depends on the insertion path:
+
+- **Driver path** (`insertModel`, `insertOperation`,
+  `insertNormalisedModel`): the second writer throws
+  `Registered definition mismatch` via `affirmDefinition`
+  (`core/dsl/operation/oas/OasOperationDriver.ts:129`,
+  `GqlOperationDriver.ts:129`, `model/ModelDriver.ts:137`).
+  The collision is loud.
+- **Bare `register({ definitions })` path**: silent
+  first-write-wins via `Map.has`. The second is dropped.
 
 This is a known sharp edge. Two scenarios where it happens:
 

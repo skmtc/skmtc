@@ -155,9 +155,11 @@ a `$ref`, delegates to `insertModel`; otherwise registers a one-off
 ## Projections are pull-based
 
 The Projection class **does nothing on its own**. Defining
-`export class MyProjection extends OasOperationProjectionBase ...`
-in `mod.ts` makes the class available; it does not register the
-class with the engine or arrange for it to be called.
+`export class MyProjection extends MyBase ...` in `mod.ts`
+(where `MyBase = toOasOperationProjectionBase({...})` is the
+factory-built base from `base.ts`) makes the class available; it
+does not register the class with the engine or arrange for it to
+be called.
 
 The only thing the engine calls is `transform`. If `transform`
 doesn't ask for the Projection, the constructor never runs:

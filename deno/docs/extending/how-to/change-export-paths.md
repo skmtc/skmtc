@@ -29,8 +29,11 @@ Return whatever path you want. The path is relative to the
 project's configured `basePath`.
 
 ```ts
-// Default
-toExportPath: ({ refName }) => `/models/${refName}.generated.ts`
+// Stock gen-zod / gen-typescript default (decapitalized name under @/types)
+toExportPath: ({ refName }) => {
+  const name = decapitalize(camelCase(refName))
+  return join('@', 'types', `${decapitalize(name)}.generated.ts`)
+}
 
 // Per-tag subdirectory
 toExportPath: ({ operation }) => {
@@ -96,8 +99,10 @@ schema) follow automatically — they discover the path via
   reading from a stale bundle. Run `skmtc bundle my-project`
   again. `skmtc doctor` flags stale bundles.
 - **Same path produced for multiple schemas.** Your
-  `toExportPath` lost uniqueness. Path collisions cause
-  first-writer-wins discards. Re-check that the path is unique
+  `toExportPath` lost uniqueness. Driver-path inserts (the usual
+  case via `insertModel` / `insertOperation`) detect the mismatch
+  and throw `Registered definition mismatch`; bare `register()`
+  collisions discard silently. Re-check that the path is unique
   per input.
 - **TypeScript errors about missing imports.** A consumer file
   imports from the old location. The consumer-side code needs

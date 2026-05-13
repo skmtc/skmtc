@@ -167,7 +167,7 @@ skmtc doctor
 ### Agent consumption
 
 ```bash
-skmtc doctor --json | jq '.checks[] | select(.status == "fail")'
+skmtc doctor --json | jq '.checks[] | select(.status == "error")'
 ```
 
 Pulls just the failing checks for remediation.

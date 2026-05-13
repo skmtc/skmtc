@@ -184,5 +184,5 @@ export type LogIssueAtArgs =
  */
 export type GqlParseOptions = {
   interfaceUnionSuffix?: string
-  emitInterfaceUnions?: boolean
+  synthesizeInterfaceUnions?: boolean
 }

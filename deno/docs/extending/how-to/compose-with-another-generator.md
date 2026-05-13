@@ -41,7 +41,9 @@ import { ZodProjection } from '@local/gen-zod/src/ZodProjection.ts'
 In your Projection's constructor, declare what you need:
 
 ```ts
-class TanstackQuery extends OasOperationProjectionBase {
+// TanstackQueryBase = toOasOperationProjectionBase({...}) in your base.ts
+
+class TanstackQuery extends TanstackQueryBase {
   constructor(args) {
     super(args)
 

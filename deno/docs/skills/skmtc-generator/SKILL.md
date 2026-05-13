@@ -516,6 +516,64 @@ Three GQL-specific things to remember (the others apply equally):
 
 Background: [`concepts/the-graphql-pipeline.md`](../../concepts/the-graphql-pipeline.md).
 
+### Scaffold C variant: Model entry (`toModelEntry`)
+
+```ts
+import { toModelEntry } from '@skmtc/core'
+
+export const MyModelEntry = toModelEntry<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+
+  // ⬇ NO `isSupported` for model entries — every refName is
+  //   dispatched. Filter inside `transform` if needed.
+  transform({ context, refName }) {
+    const schema = context.resolveSchemaRefOnce(refName, MyGen.id)
+    if (schema.isRef() || schema.type !== 'object') return
+
+    context.insertModel(MyGen, refName)
+  },
+
+  toPreviewModule: ({ refName, enrichments }) => ({
+    name: MyGen.toIdentifier({ refName, enrichments }).name,
+    exportPath: MyGen.toExportPath({ refName, enrichments }),
+    group: 'models'
+  })
+})
+
+export default MyModelEntry
+```
+
+Three model-specific things to remember:
+
+1. **No `isSupported` field.** The dispatcher visits every refName
+   in the document and calls `transform`. Filter unwanted schemas
+   inside the callback (`if (schema.type !== 'object') return`),
+   not by gating the Entry.
+2. **`transform` receives `refName`, not a schema.** Resolve via
+   `context.resolveSchemaRefOnce(refName, baseId)` when you need the
+   schema. The Driver also passes the schema down to your
+   Projection's constructor via `schemaToValueFn`.
+3. **Composition uses `context.insertModel`, not `insertOperation`.**
+   The two `insert*` methods are protocol-specific. `insertModel`
+   takes a refName; `insertOperation` takes an OAS or GQL operation.
+
+### Entry-factory routing cheat sheet
+
+The three factories share a config skeleton but differ in three
+operational details — committing this table to memory saves time:
+
+| | `toOasOperationEntry` | `toGqlOperationEntry` | `toModelEntry` |
+|---|---|---|---|
+| `transform` arg | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
+| `acc` semantics | omit `return acc` freely | **must** `return acc` | omit `return acc` freely |
+| `isSupported` field | optional, default `() => true` | optional, default `() => true` | **absent** — filter in `transform` |
+| Enrichment routing | `enrichments.<id>.<path>.<method>` | `enrichments.<id>.<rootKind>.<fieldName>` | `enrichments.<id>.<refName>` |
+| Compose with | `context.insertOperation(P, op)` | `context.insertOperation(P, op)` | `context.insertModel(P, refName)` |
+| Companion base factory | `toOasOperationProjectionBase` | `toGqlOperationProjectionBase` | `toModelProjectionBase` |
+
+Full reference: [`reference/api/entry-factories.md`](../../reference/api/entry-factories.md).
+
 ### D. `enrichments.ts` — Valibot schema for user overrides
 
 ```ts
