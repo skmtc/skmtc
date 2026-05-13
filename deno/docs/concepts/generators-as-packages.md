@@ -135,9 +135,9 @@ const ZodEntry = toModelEntry<EnrichmentSchema>({
 })
 ```
 
-Model entries dispatch over every refName in the document — there's
-no capability gate at the Entry level. Filter inside `transform` if
-needed.
+Model entries are called once for every refName in the document —
+there's no capability gate at the Entry level. Filter inside
+`transform` if needed.
 
 **GraphQL operation entry** — same skeleton with one critical
 difference (`transform` must return `acc` to keep the accumulator

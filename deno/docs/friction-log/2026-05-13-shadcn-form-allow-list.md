@@ -64,7 +64,7 @@ authoritative bundle log.
 **Version anchor:** `@skmtc/cli@0.2.3`, `@skmtc/core@0.4.4` (local
 workspace), `@skmtc/worker@0.2.0`
 
-**Status:** open
+**Status:** open — CLI bug not yet fixed in `cli/lib/bundle-headless.ts` (post-write check race). Docs-cure for cure-layer (don't treat this line as fatal) not yet added to `using/how-to/debug-failing-generation.md` either — only the workspace-fallback diagnostic landed there (covers entry #2 of this log). Pending: either fix the bundle-headless check, or add a note in the debug doc that this message can be spurious.
 
 ---
 
@@ -131,7 +131,7 @@ that starts at `error-logs.txt` workspace warnings.
 **Version anchor:** `@skmtc/core@0.4.4` (local), `@skmtc/core@0.4.0`
 (JSR fallback used by worker), `@skmtc/worker@0.2.0`
 
-**Status:** open
+**Status:** partially addressed 2026-05-13 — docs cure landed in `using/how-to/debug-failing-generation.md` § `TypeError: this.context.X is not a function` (workspace fallback to JSR) with the exact diagnostic flow: check `.settings/error-logs.txt` for `Workspace member 'X' was not used because it did not match 'Y'`. The cure tells the next investigator where to look — saves the 30-minute hunt the original session paid. **SDK prevention not landed** (blocker): worker should pin core with `^0.4`-style range and/or `doctor` should surface workspace-fallback warnings as errors. Still requires upstream change to `@skmtc/worker` and/or `cli/lib/doctor-headless.ts`.
 
 ---
 
@@ -183,7 +183,7 @@ older shims; a one-line note in the skmtc-cli skill ("if you see
 
 **Version anchor:** `@skmtc/cli@0.2.3`, Deno 2.7.14
 
-**Status:** open
+**Status:** verified-fixed 2026-05-13 — `--unstable-worker-options` added to every user-facing install command in docs: `docs/README.md` (lines 6, 80), `using/tutorials/01-your-first-generation.md` (Step 1, with mechanical explanation: `@skmtc/worker` uses `Worker.deno.permissions`, the shim bakes flags at install time, reinstall with `-f` if missing), `using/how-to/use-in-ci-cd.md` (CI install step), `using/how-to/install-a-generator.md` (prerequisites), `docs/llms.md` (two install instances), and `skmtc-cli` SKILL § Card: Using SKMTC in CI. Verified against `cli/README.md:21,132` (canonical install command does include the flag) and `cli/lib/doctor-headless.ts:134` (doctor's remediation hint mentions it). Note: doctor's hint is conditioned on the *enrichment-empty-`{}`* symptom, not on the actual `Unstable API 'Worker.deno.permissions'` runtime error — a separate `doctor` improvement could surface it more directly, but the docs cure prevents the install-time omission going forward.
 
 ---
 
@@ -228,7 +228,7 @@ its `Card: Common workflow` section.
 
 **Version anchor:** `@skmtc/cli@0.2.3`, `@skmtc/core@0.4.4` (local)
 
-**Status:** open
+**Status:** open — blocker not yet fixed. SDK prevention candidates (atomic-rename `.tmp` → final, or in-memory staging until all generators succeed) are designed but not landed. Docs cure (a "commit before generate" hint) is also not in `skmtc-cli` skill yet. Requires upstream change to the CLI's file-writing path.
 
 ---
 
@@ -271,7 +271,7 @@ as the authoritative diagnostic log would help in the interim.
 
 **Version anchor:** `@skmtc/cli@0.2.3`
 
-**Status:** open
+**Status:** partially addressed 2026-05-13 — docs cure landed in `reference/manifest-format.md` § `error` leaves do not carry the exception text. Verified against `core/types/Results.ts:107` (`ResultType` is a literal union of `'success' | 'warning' | 'error' | 'skipped' | 'notSupported'` — no companion data field) and `core/context/GenerateContext.ts:431,465,514` (`captureCurrentResult('error', st)` takes only `ResultType` + `StackTrail`). Doc now distinguishes: bundle-time errors persist to `.settings/error-logs.txt`; generate-time errors live only in live stderr (verified via `cli/tasks/GenerateBundleTask.tsx:67-92` writing only the bundle subprocess stderr; no equivalent write path in `workspaces/generate.tsx`). Operational consequence — capture stderr separately on `--json` runs — is on the doc. **SDK prevention not landed**: adding `details: { message, stack }` to errored manifest items would let `--json` be self-sufficient. Requires upstream change to `core/types/Results.ts`, `ResultsHandler.ts`, and `Manifest.ts`.
 
 ---
 
@@ -336,7 +336,7 @@ that pre-filters `CustomValue`.
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-shadcn-form@0.0.1`
 
-**Status:** open
+**Status:** open — friction verified at source: `core/oas/object/Object.ts:17,172-174` confirms `OasObject.properties` is `Record<string, OasSchema | OasRef<'schema'> | CustomValue> | undefined`, and the SDK's own `toJsonSchema` method at `Object.ts:451-457` uses the same `as` cast workaround the friction log calls out. That promotes the SDK fix from "would benefit generator authors" to "would benefit the SDK itself." **Proposed fix**: export a `filterPropertySchemas(properties)` helper (or `OasObject.entries({ excludeCustom: true })` method) from `@skmtc/core`, then update the internal call site. Not yet landed.
 
 ---
 
@@ -385,7 +385,7 @@ free via `insertOperation` + same destinationPath.
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-shadcn-form@0.0.1`
 
-**Status:** open
+**Status:** open — pattern observation from one generator (N=1 by friction-log methodology, which intentionally doesn't re-report). Not codified in `concepts/projections-and-snippets.md` or elsewhere; deferred because the observation is real but generalizing it to a doc-level rule from one generator's design is speculative. Consider as candidate content for `extending/recipes/` if another generator exhibits the same split (next observation will confirm).
 
 ---
 
@@ -432,4 +432,4 @@ use the validated view.
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-shadcn-form@0.0.1`
 
-**Status:** open
+**Status:** open — same as #7: single-generator observation, deferred until a second instance confirms the pattern generalizes. Candidate content for `extending/recipes/` if `gen-shadcn-form`'s pattern recurs elsewhere.

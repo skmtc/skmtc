@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { parse } from 'jsr:@std/path'
-import { ensureDir } from 'jsr:@std/fs'
+import { parse } from '@std/path'
+import { ensureDir } from '@std/fs'
 
 const server = new McpServer({
   name: 'Skmtc MCP Server',

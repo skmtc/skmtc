@@ -170,6 +170,66 @@ that catches the omission.
   `someTypeSchema` (Valibot) / `_someTypeDriftCheck` (unread
   binding) trios. The trio is the unit.
 
+### 8. Primitives bundle their side effects, on purpose
+
+> Every cross-Projection primitive — `insertOperation`, `insertModel`,
+> `insertNormalizedModel` — bundles four things into one call: name
+> retrieval, producer construction on cache miss, Definition
+> registration at the producer's `exportPath`, and cross-File import
+> registration on the consumer's File. The bundling is the design;
+> separating the steps is what produces silent drift.
+
+#### What it means in practice
+
+A consumer that needs a peer's identifier name doesn't compute it from
+scratch — it calls `insertOperation(Producer, op)`. That single call
+constructs the producer on cache miss, registers its `Definition`
+into the producer's target `File`, registers the cross-File import on
+the consumer's `File`, and returns the producer's name via `.toName()`.
+All four happen synchronously inside the Driver before the call
+returns.
+
+The contrast is the "pure" name lookup, `Producer.toIdentifier(op).name`.
+It exists and returns the same string. SKMTC ships it because some
+callers — for example, static methods on a *consumer's* own Projection
+class, where `this` doesn't exist — have no constructor to
+side-effect through. But the pure call does *only* the name
+computation. Substituting it for `insertOperation` produces emitted
+code that references a name no `File` exports (no Definition
+registered), or a name with no matching import line (no import
+registered), or a name that hasn't been initialized at module-load
+time (`Cannot access 'X' before initialization`, from arbitrary
+serialization order within a single File).
+
+Mechanical details of each failure mode: see
+[cross-generator-coordination § Why call `insertOperation` instead of `Producer.toIdentifier(op).name`?](../concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifieropname).
+
+#### Consequences
+
+- API surface biases toward bundled-side-effect calls. Pure name
+  lookups exist but aren't the default; the verification checklist in
+  the `skmtc-generator` skill calls out `insertOperation` as the
+  default for cross-Projection composition.
+- `OasOperationDriver`, `ModelDriver`, and `GqlOperationDriver` own
+  the bundling. The same Driver computes the cache key, runs the
+  Projection constructor on miss, registers the Definition, and
+  registers the import.
+- Skipping the bundled call has no compile-time signal — the types
+  permit `Producer.toIdentifier(op).name` everywhere it's syntactically
+  valid. Discipline has to be taught. The failure mode surfaces only
+  at consumer-app build time, or — for the order-of-initialization
+  case — at consumer-app runtime.
+
+#### Deeper discussion
+
+The trade-off is discoverability against purity. A purely functional
+surface — `getName(op)`, `getExportPath(op)`, `getImports(op)`,
+`registerDefinition(...)` — would give the same power but require the
+author to remember every step. SKMTC bundles the steps because the
+commonly-needed combination is "name plus the side effects that make
+the name resolve at render time," and a single call eliminates a
+class of bugs where one of the four steps is forgotten.
+
 ## Tradeoffs accepted
 
 Each principle has a cost. These are the costs SKMTC accepts to get the properties above. Naming them explicitly so contributors and AI assistants can recognize when a principle is being tested.

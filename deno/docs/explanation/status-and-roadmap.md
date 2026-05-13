@@ -101,14 +101,18 @@ specific projects but expect more frequent shape changes.
   evolving.
 - **`@skmtc/gen-supabase-hono`** — Hono routes for Supabase Edge.
   Similar to gen-express in maturity.
-- **`@skmtc/gen-graphql-operation`** — GraphQL args/result type
-  contracts.
-- **`@skmtc/gen-graphql-typed-document-node`** — TypedDocumentNode
-  constants. Pairs with gen-graphql-operation.
+- **`@skmtc/gen-reapit-graphql-client`** — GraphQL query/mutation
+  hooks with complete selection-set generation. The only stock
+  GraphQL generator after the 2026-05-13 cleanup that removed
+  `@skmtc/gen-graphql-operation` and `@skmtc/gen-graphql-typed-document-node`
+  (both deleted as thin wrappers around `TsProjection` with zero
+  real consumers).
 
-The GraphQL generators are the newest. The core GraphQL parse
-path works, but corner cases (interface types, union resolution,
-deeply nested fragments) may surface issues.
+The GraphQL surface is narrower than the OAS surface. The core
+GraphQL parse path works, but corner cases (interface types, union
+resolution, deeply nested fragments) may surface issues. Any
+GraphQL generator beyond the reapit-specific one is currently a
+custom build per project.
 
 ## Known limitations
 

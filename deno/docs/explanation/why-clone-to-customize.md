@@ -151,6 +151,59 @@ choices reduce the friction:
   via `skmtc install` to read the source. Clone via
   `skmtc clone` when you decide to customize.
 
+## The mechanical reason stock generators stay small
+
+The pros/cons above describe the philosophy. The mechanical reason
+SKMTC actively *resists* adding configuration flags to stock generators
+is concrete: every config flag is a runtime branch every consumer
+bundles.
+
+A `toMyGenEntry({ emitDocument?: boolean })` flag on a stock generator
+expands into something like:
+
+```ts
+if (config.emitDocument) {
+  context.insertOperation({ projection: DocumentProjection, operation })
+}
+context.insertOperation({ projection: ResultProjection, operation })
+```
+
+Whichever value any one consumer passes, the bundled generator code
+keeps both branches. Every consumer's `bundle.js` carries the runtime
+check and the dead-code-eliminated other path. The flag is shared
+infrastructure for a binary decision that — once the consumer has
+made it — they will never change.
+
+Cloning resolves the branch at source-edit time. The clone keeps the
+branch it wants; the other branch is deleted. The cloned generator's
+runtime is smaller, the unwanted Definition never registers, and the
+customization is greppable in one file.
+
+### The diagnostic question for a config flag
+
+When a stock-generator author considers adding a flag, the test is:
+*would two consumers of this package legitimately set this flag to
+different values?*
+
+- **If yes**, the configuration is **parametric** — the values vary
+  per consumer's input, the shape of the configuration is the same
+  across consumers, and only the values differ. Example:
+  `toTypescriptEntry({ scalars: {...} })`. Each consumer's API has
+  different scalar names; the names cannot be hardcoded. This is the
+  legitimate role of generator-level config: parameters that no
+  reasonable consumer could share.
+
+- **If no**, the flag is a **binary feature toggle** — the author is
+  trying to ship two slightly different generators in one package.
+  Clone-to-customize handles this naturally. The first consumer
+  clones and keeps the feature; the second consumer clones and
+  removes it. Neither pays the cost of the other's branch.
+
+Per-operation enrichments occupy a separate axis — they're per-instance
+content (label, description, submit text), not per-consumer behavior.
+Enrichments don't trigger this test; they're how SKMTC handles content
+variation without requiring a clone.
+
 ## When this is the wrong choice
 
 The cloning model assumes a certain kind of team and a certain

@@ -444,8 +444,9 @@ isn't a use case the design optimizes for.
 ## Further reading
 
 - [How generators produce output](how-generators-produce-output.md)
-  — the dispatcher and `register` / `insertOperation` /
-  `insertModel` call sites that mutate the maps documented here
+  — `GenerateContext.toArtifacts` and the `register` /
+  `insertOperation` / `insertModel` call sites that mutate the maps
+  documented here
 - [Cross-generator coordination](cross-generator-coordination.md)
   — the cache-key story (the *coordination* layer; this page is
   the *integrity* layer)

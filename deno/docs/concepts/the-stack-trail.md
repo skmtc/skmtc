@@ -403,7 +403,7 @@ from their caller and pass children of it via `trace`.
 
 A frame could be `{ kind: 'pathItem', key: '/users' }` instead of
 `'/users'`. The richer shape would let `toStackRef` and
-`removeItem` dispatch on `kind` instead of position-based pattern
+`removeItem` switch on `kind` instead of position-based pattern
 matching.
 
 The current design chose simplicity: a frame is a string, and the

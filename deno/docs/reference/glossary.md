@@ -3,6 +3,48 @@
 > Alphabetized terminology with concise definitions and links to fuller
 > treatment.
 
+## SKMTC vocabulary — load-bearing terms
+
+Every term in this list maps to a specific construct in `@skmtc/core`'s
+exported surface. When writing about SKMTC, prefer these terms. Terms
+that don't appear here (and aren't in the alphabetized entries below)
+likely don't have a referent in the code.
+
+| Category | Terms |
+|---|---|
+| **Pipeline phases** | Parse, Generate, Render — the three phases `CoreContext` runs in order |
+| **Primitive methods on `GenerateContext`** | `register`, `insertOperation`, `insertModel`, `insertNormalizedModel`, `defineAndRegister`, `findDefinition` |
+| **DSL nouns** | `File`, `Definition`, `Identifier`, `Snippet`, `Projection`, `Inserted`, `ContentSettings`, `Stringable` |
+| **Static-method contracts on projection classes** | `toIdentifier`, `toExportPath`, `toEnrichmentSchema`, `toEnrichments`, `isSupported` |
+| **Driver orchestration classes** | `OasOperationDriver`, `GqlOperationDriver`, `ModelDriver` |
+
+### Avoid: words that map to no SKMTC surface
+
+These are generic-codegen verbs picked up from training data. Each
+sounds like it might be a SKMTC primitive but is not — `grep
+@skmtc/core` for them and you'll get no method, no class, no exported
+function. Using them in docs or skill text fabricates a mental model
+that doesn't connect to the code.
+
+| Don't write | Write instead (context-dependent) |
+|---|---|
+| **emit** / **emission** / **emitted** | `register` / Definition registration / `insert`-family call / rendered output |
+| **dispatch** (as a SKMTC verb) | `insertOperation` / `insertModel` / `insertNormalizedModel` — name the method |
+| **dispatcher** (referring to the engine loop) | `GenerateContext`'s iteration over `(generator × item)` pairs — name the actual class and what it iterates |
+| **dispatch on `.type`** (TypeScript discriminator usage) | switch on `.type` / narrow on `.type` |
+| **field-type dispatch** (referring to `schemaToField`-style code) | field-type routing |
+| **stitch** / **stitched** / **stitching** (referring to import wiring) | `register({ imports, destinationPath })` — name the actual call |
+| **weave** / **graft** / **thread** (any cross-File composition) | `insertOperation` / `insertModel` — name the call and what it side-effects |
+
+The mechanical reason for this discipline: when a reader sees "the
+dispatcher emits a Definition," they cannot map any clause of that
+sentence to an entry point in the code. When they see "`GenerateContext`
+iterates and a generator's `transform` calls `context.insertOperation`,
+which constructs an `OasOperationDriver` that registers a `Definition`,"
+every noun and verb is greppable.
+
+---
+
 ## A
 
 ### `affirmDefinition`
@@ -135,7 +177,7 @@ performs the cache lookup keyed on
 `(identifier.name, exportPath)`, instantiates the Projection on
 miss (or runs [`affirmDefinition`](#affirmdefinition) on hit),
 wraps the value in a `Definition`, calls `context.register`, and
-stitches an import if `destinationPath` differs from `exportPath`.
+registers an import if `destinationPath` differs from `exportPath`.
 See [files-and-dedup §What Drivers do](../concepts/files-and-dedup.md#what-drivers-do--in-one-sentence-each)
 and [cross-generator-coordination](../concepts/cross-generator-coordination.md).
 
@@ -635,7 +677,7 @@ front. Failures produce recipe errors on stderr.
 ### `transform`
 
 The per-item hook in a generator's `mod.ts` entry. Called once per
-matched operation/model by the dispatcher. The return value is
+matched operation/model by `GenerateContext`'s iteration. The return value is
 folded into the `acc` accumulator threaded between iterations and
 discarded after the final iteration. **Output must be produced via
 side effects** — `context.register`, `context.insertOperation`,

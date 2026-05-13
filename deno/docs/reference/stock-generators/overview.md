@@ -72,16 +72,6 @@ app/router Projection.
 | `@skmtc/gen-express` | Express route registration | [gen-express](gen-express.md) |
 | `@skmtc/gen-supabase-hono` | Hono routes for Supabase Edge Functions | [gen-supabase-hono](gen-supabase-hono.md) |
 
-### GraphQL
-
-Run per GraphQL operation. Designed to be **paired** — running
-either alone produces an incomplete file.
-
-| Generator | Output | Reference |
-|-----------|--------|-----------|
-| `@skmtc/gen-graphql-operation` | `<Op>Args` and `<Op>Result` TS types | [gen-graphql-operation](gen-graphql-operation.md) |
-| `@skmtc/gen-graphql-typed-document-node` | `<Op>Document: TypedDocumentNode` constants | [gen-graphql-typed-document-node](gen-graphql-typed-document-node.md) |
-
 ### GraphQL (Reapit set)
 
 A coordinated four-package set that produces a complete GraphQL
@@ -140,18 +130,6 @@ Add the UI generators when you start prototyping screens.
 The UI select/table generators import `isListResponse` directly
 from `@skmtc/gen-tanstack-query-supabase-zod` — they're designed to
 go together.
-
-### GraphQL contracts + TypedDocumentNode
-
-```
-@skmtc/gen-graphql-operation                ← <Op>Args, <Op>Result
-@skmtc/gen-graphql-typed-document-node      ← <Op>Document
-```
-
-Run them together. The `<Op>Document`'s type parameters reference
-the `<Op>Result` and `<Op>Args` types from
-`gen-graphql-operation` — running the document generator alone
-produces references to types that don't exist.
 
 ## How to use these docs
 

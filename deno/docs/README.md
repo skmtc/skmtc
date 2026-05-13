@@ -3,7 +3,7 @@
 Generate idiomatic TypeScript source code from an OpenAPI v3 or GraphQL schema. Types, validators, query hooks, mocks, forms, and server routes — all from one schema, in one run, all consistent with each other.
 
 ```bash
-deno install -A -g -n skmtc jsr:@skmtc/cli
+deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli
 skmtc init my-api ./
 skmtc install @skmtc/gen-typescript @skmtc/gen-zod @skmtc/gen-tanstack-query-fetch-zod my-api
 skmtc generate my-api ./openapi.json
@@ -77,7 +77,7 @@ See [`explanation/comparison-to-other-tools.md`](explanation/comparison-to-other
 
 ## Quick start
 
-1. Install the CLI: `deno install -A -g -n skmtc jsr:@skmtc/cli`
+1. Install the CLI: `deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli`
 2. Create a project: `skmtc init my-api ./`
 3. Install generators: `skmtc install @skmtc/gen-typescript @skmtc/gen-zod my-api`
 4. Configure a schema source in `.skmtc/my-api/.settings/client.json`
@@ -154,8 +154,7 @@ Pick the tree that matches your role; the shared layers work for both.
 | `@skmtc/gen-daisyui-form` | React forms (DaisyUI) | gen-zod |
 | `@skmtc/gen-express` | Express route handlers | gen-typescript, gen-zod |
 | `@skmtc/gen-supabase-hono` | Hono routes for Supabase | gen-typescript, gen-zod |
-| `@skmtc/gen-graphql-operation` | GraphQL operation strings | (GraphQL projects) |
-| `@skmtc/gen-graphql-typed-document-node` | typed-document-node | gen-graphql-operation |
+| `@skmtc/gen-reapit-graphql-client` | GraphQL query/mutation hooks | (GraphQL projects) |
 
 Per-generator reference: [`reference/stock-generators/`](reference/stock-generators/).
 

@@ -11,6 +11,14 @@ instead.
 
 ## Prerequisites
 
+- The `skmtc` CLI installed with `--unstable-worker-options`:
+  ```bash
+  deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli
+  ```
+  The flag is required so the per-project Worker can use Deno's
+  `Worker.deno.permissions` API. Without it, `skmtc generate` fails at
+  runtime with `Unstable API 'Worker.deno.permissions'`. If you
+  already installed without the flag, rerun the install with `-f`.
 - A SKMTC project (run `skmtc init <project>` first if needed).
 - The generator's package name (e.g., `@skmtc/gen-zod`). See the
   [stock generators catalog](../../reference/stock-generators/overview.md).

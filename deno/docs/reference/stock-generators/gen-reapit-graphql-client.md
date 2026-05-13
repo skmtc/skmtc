@@ -96,11 +96,6 @@ constant, hook. Consumers tree-shake what they don't use.
 
 - [gen-reapit-form](gen-reapit-form.md) — calls the mutation hooks
   this generator produces
-- [gen-graphql-operation](gen-graphql-operation.md) — types-only
-  alternative; the canonical "GraphQL types" generator
-- [gen-graphql-typed-document-node](gen-graphql-typed-document-node.md) —
-  separate document-constant generator (an alternative when you
-  want types + document but provide your own hook layer)
 - [gen-tanstack-query-fetch-zod](gen-tanstack-query-fetch-zod.md) —
   the OAS analog (REST + TanStack Query)
 - [The GraphQL pipeline concept](../../concepts/the-graphql-pipeline.md)

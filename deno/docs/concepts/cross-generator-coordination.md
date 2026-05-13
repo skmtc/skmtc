@@ -224,6 +224,70 @@ text would couple the consumer to formatting choices and force
 re-parsing. Coordination by name keeps the interfaces clean and the
 peer free to change its template internally.
 
+## Why call `insertOperation` instead of `Producer.toIdentifier(op).name`?
+
+Static `Producer.toIdentifier(op).name` returns the same string as
+`insertOperation(Producer, op).toName()`. It's tempting to prefer the
+static call — it looks lighter, doesn't allocate, and the name is what
+the consumer's `toString()` actually needs. Don't. The static call
+computes the name; `insertOperation` *also* runs the four side effects
+the framework needs to make that name resolve at render time.
+
+| What `insertOperation(Producer, op)` does | What static `Producer.toIdentifier(op).name` skips |
+|---|---|
+| **Registers the producer's `Definition`** at `Producer.toExportPath(op)`. On a cache miss, the Driver instantiates `new Producer(...)`, wraps the value, and writes it into the target `File`'s `definitions` map. | If no Driver path ever runs the producer for `op`, the producer's value is never wrapped in a `Definition` and never lands in any `File`. The consumer's rendered code references an identifier no `File` exports. |
+| **Registers the cross-File import.** When `consumer.settings.exportPath !== Producer.toExportPath(op)`, the Driver calls `register({ imports, destinationPath })` so the consumer's File has an `import { ProducerName } from 'producer/path'` entry. | The consumer's File contains the name string but no import line for it. The consumer app fails to resolve the symbol at TypeScript-compile time as `Cannot find name 'ProducerName'`. |
+| **Establishes Definition registration order within a File.** The Driver writes the producer's Definition into `File.definitions` before returning control to the consumer's constructor — so when the File is later serialized, the producer's `export const` appears before the consumer's. | When the consumer's `toString()` produces an eager top-level expression that reads the producer's value at module load — e.g., `export const X = { ...PRODUCER_CONST }` — the producer can land *after* the consumer in the same File's serialization order. Result: `Cannot access 'PRODUCER_CONST' before initialization` (TDZ) at consumer-app runtime. The error is silent at TypeScript-compile time; it surfaces only when the generated code executes. |
+| **Re-resolves the producer on every cache miss.** The Driver re-evaluates `Producer.toIdentifier`, `Producer.toExportPath`, and (on miss) runs the constructor — including any nested `insertOperation` / `insertModel` calls. Refactors to the producer (rename, move, new transitive imports, new variant) follow through every consumer automatically. | The static call returns whatever the producer's `toIdentifier` currently produces, but contributes nothing to import wiring, dependency Definition registration, or transitive composition. If the producer's `exportPath` moves, every static call site keeps returning the right name string while *no* call site updates the consumer File's import to point at the new location. |
+
+Default: call `insertOperation(Producer, op)` and use `.toName()`. The
+static form is justified only inside a static method on the
+*consumer's* own Projection class, where `this` doesn't exist and the
+call site has no constructor through which to side-effect anything.
+Even there, a separate `insertOperation` call must run elsewhere in
+the dispatch chain so the producer's Definition and import are wired.
+
+## Type-level coupling between generators
+
+The cache-based coordination above wires *names*, *Definitions*, and
+*imports* at SKMTC's generate time. There's a separate axis where one
+generator's emitted output references the *TypeScript type* of another
+generator's emitted value at the consumer app's compile time.
+
+Two ways to write that type into the emitted output:
+
+**By identifier** — emit a type expression that names the producer's
+emitted type directly:
+
+```ts
+// Emitted in the consumer's output:
+type Dto = CustomerCustomerDto
+```
+
+Use when the producer emits a named type and the consumer's emitted
+code needs exactly that name in scope. The producer's identifier must
+be importable into the consumer's File — same import-registration
+requirement as any cross-File reference.
+
+**By TypeScript inference** — emit a type expression derived from the
+producer's emitted *value* using TS type operators:
+
+```ts
+// Emitted in the consumer's output:
+type Dto = NonNullable<ReturnType<typeof useCustomer>['data']>
+```
+
+Use when the producer emits a value (hook, function, const) and the
+consumer wants whatever type the value happens to expose. The consumer
+doesn't need to know — or hardcode — the producer's identifier for the
+type alias; whatever shape the producer's value has is what flows.
+
+These solve different problems. The choice between them is about
+*what's emitted in the consumer's output*, not about how the framework
+wires things. Both still require the producer's value to be reachable
+at the consumer app's compile time, which is what
+`insertOperation(Producer, op)` in the consumer's constructor wires.
+
 ## Common patterns
 
 ### Pattern: inserting a sibling Projection
@@ -295,7 +359,7 @@ class FieldDispatch extends SnippetBase {
 }
 ```
 
-### Pattern: operation-reference (dynamic dispatch by name)
+### Pattern: operation-reference (consumer-chosen peer)
 
 The three patterns above cover *statically-known* peers — your
 generator imports the peer's Projection class and hands it a specific
@@ -324,9 +388,9 @@ const operation = context.document.value.operations.find(op =>
 )
 
 if (operation) {
-  // 3. Dispatch — same insertOperation as the static-peer pattern.
-  //    The Driver dedupes insertion across calls and registers the
-  //    import on the calling file.
+  // 3. Insert — same insertOperation as the static-peer pattern.
+  //    The Driver dedupes Definition registration across calls and
+  //    registers the import on the calling file.
   const def = context.insertOperation({
     projection: ShadcnSelectInput,
     operation,
@@ -346,7 +410,7 @@ The four meeting points between consumer and producer:
 | The reference string (tag / fieldName / path) | Consumer's enrichment payload, declared in the consumer's `enrichments.ts` |
 | `isSupported(op)` predicate | Producer's `mod.ts` |
 | `toIdentifier(op)` / `toExportPath(op)` | Producer's `base.ts` (the content-addressed identity) |
-| `insertOperation` dispatch | Consumer's Projection / Snippet constructor |
+| `insertOperation` call | Consumer's Projection / Snippet constructor |
 
 The consumer imports the producer's Projection as a *type-level
 package dependency* — exactly like `gen-shadcn-form` imports
@@ -419,7 +483,7 @@ local clone) so its source can be bundled into `worker.ts`.
 
 ## Further reading
 
-- [How generators produce output](how-generators-produce-output.md) — the dispatcher loop, `transform` as a side-effect hook, the pull-based Projection model that this page's cache key sits inside
+- [How generators produce output](how-generators-produce-output.md) — `GenerateContext`'s iteration over `(generator × item)` pairs, `transform` as a side-effect hook, the pull-based Projection model that this page's cache key sits inside
 - [Files, deduplication, and integrity](files-and-dedup.md) — the integrity-key (`generatorKey`) layer on top of the cache key documented here, plus the dedup rules for the file maps Drivers write into
 - [Composing output with Stringable](stringable-composition.md) — how `Inserted.toName()` plugs into a consuming generator's template
 - [The three phases](the-three-phases.md) — the broader pipeline context

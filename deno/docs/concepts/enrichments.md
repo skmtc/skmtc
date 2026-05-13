@@ -126,7 +126,7 @@ const label = resolved.properties?.['firstName']?.extensionFields?.['x-label']
 ```
 
 Cross-generator wiring (the operation-reference protocol — see
-[cross-generator coordination](cross-generator-coordination.md#pattern-operation-reference-dynamic-dispatch-by-name))
+[cross-generator coordination](cross-generator-coordination.md#pattern-operation-reference-consumer-chosen-peer))
 is always volatile by nature, so it always lives in the consumer's
 enrichment.
 
@@ -155,9 +155,9 @@ the leaf as `v.unknown()`. **There is no canonical enrichment leaf
 shape in core.**
 
 The leaf shape lives entirely in the generator's
-`toEnrichmentSchema()`. The dispatcher hands a generator the
-unparsed leaf at its routing key; the generator's own Valibot
-schema decides what shape is acceptable.
+`toEnrichmentSchema()`. The engine hands a generator the unparsed
+leaf at its routing key; the generator's own Valibot schema decides
+what shape is acceptable.
 
 Two consequences worth knowing:
 
@@ -438,7 +438,7 @@ and `submitLabel` enable per-form text without cloning:
 ### Field-level overrides
 
 When a schema field needs special handling that the generator's
-default dispatch doesn't cover:
+default routing doesn't cover:
 
 ```json
 {

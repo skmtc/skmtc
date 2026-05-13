@@ -440,7 +440,7 @@ Hand off to `skmtc-generator` for the editing work.
 
 ```bash
 # Setup (once per CI run):
-deno install -A -g -n skmtc jsr:@skmtc/cli@<version>
+deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>
 # If the project has any cloned generators:
 skmtc bundle <project>
 
@@ -451,6 +451,18 @@ skmtc generate <project> --json --no-input --typecheck
 # Archive for forensics:
 cp <basePath>/../.skmtc/<project>/.settings/manifest.json ci-artifacts/
 ```
+
+`--unstable-worker-options` is required: `@skmtc/worker` constructs
+each per-project Worker with `new Worker(..., { deno: { permissions:
+{...} } })`. That uses Deno's `Worker.deno.permissions` API, which is
+gated behind this flag on current Deno releases. Without it the
+first `skmtc generate` exits at runtime with `Unstable API
+'Worker.deno.permissions'. The --unstable-worker-options flag must
+be provided.` The flag has to be passed at install time — `deno
+install` bakes the runtime flags into the shim at `~/.deno/bin/skmtc`.
+If a previously-installed shim is missing the flag, reinstall with
+`-f` to overwrite it; adding the flag to invocations of the existing
+shim does not work.
 
 ### Card: When to hand off to other skills
 

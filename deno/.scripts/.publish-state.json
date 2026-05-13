@@ -1,0 +1,32 @@
+{
+  "packages": {
+    "@skmtc/cli": {
+      "version": "0.2.4",
+      "hash": "17c742374d4ba94a13acd6f592493d34979c5b0d7bbcbefe99a95367ad36ff37"
+    },
+    "@skmtc/convert": {
+      "version": "0.1.9",
+      "hash": "3a0012b033bf111bfe0b4b5385bbbcff1c67e894ade9367dcb25f257bd15170b"
+    },
+    "@skmtc/core": {
+      "version": "0.4.5",
+      "hash": "5c77091e7e63481799402ca1350634118f5d9156dbefe2dac07a6a51cd3ad957"
+    },
+    "@skmtc/mcp": {
+      "version": "0.0.279",
+      "hash": "e4d0675382468ff3f549ca16c38e99c24145e94f7cdbe5d8260cc5468b2e24ac"
+    },
+    "@skmtc/openapi-down-convert": {
+      "version": "0.14.5",
+      "hash": "ca26ad727aa6a3b6d0da519dd54f0f95e33624aad8ef1f14b7cf5906805b6c11"
+    },
+    "@skmtc/server": {
+      "version": "0.2.4",
+      "hash": "94e611674021c9d40b354882862735563b710c7dad4b744adbcd98bca8907c76"
+    },
+    "@skmtc/worker": {
+      "version": "0.2.4",
+      "hash": "979060f8fe0656ef0f4da133ff7c77d440142f4f61940f5300533dae943eab9c"
+    }
+  }
+}

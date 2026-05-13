@@ -124,7 +124,7 @@ flags — they're the places you edit when you clone.
 | Consumer-side component path | `gen-x/src/fields/<X>.ts` `register` call | What the generated output imports against |
 | Capability gate | `gen-x/src/mod.ts` → `isSupported` | Which operations this generator handles |
 | Enrichment shape | `gen-x/src/enrichments.ts` | What user options the generator accepts |
-| Field-type dispatch (form generators) | `gen-x/src/schemaToField.ts` | What schema shapes route to which field renderers |
+| Field-type routing (form generators) | `gen-x/src/schemaToField.ts` | What schema shapes route to which field renderers |
 
 The clone-to-customize philosophy bets that source editing is
 preferable to configuration:
@@ -148,7 +148,7 @@ preferable to configuration:
 ### Clone when:
 
 - You need different output paths, identifier names, or peer deps
-- You want to add a field type, change a dispatch pattern, or swap
+- You want to add a field type, change a routing pattern, or swap
   an architectural choice
 - You're willing to merge upstream changes manually
 - You want your codebase to fully own the generator's behavior

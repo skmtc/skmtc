@@ -321,7 +321,7 @@ Yes — this is the common case. The form generator and the Tanstack Query gener
 
 ## Further reading
 
-- [How generators produce output](how-generators-produce-output.md) — the dispatcher loop and the pull-based Projection model.
+- [How generators produce output](how-generators-produce-output.md) — `GenerateContext.toArtifacts`'s iteration loop and the pull-based Projection model.
 - [Files, deduplication, and integrity](files-and-dedup.md) — what Drivers register into, and the `generatorKey` integrity check on top.
 - [The Worker runtime](the-worker-runtime.md) — what happens at the worker boundary.
 - [Cross-generator coordination](cross-generator-coordination.md) — the cache mechanism in depth.

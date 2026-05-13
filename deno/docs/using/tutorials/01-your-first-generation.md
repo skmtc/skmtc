@@ -19,10 +19,21 @@ If you don't have one handy, use the canonical Petstore spec:
 ## Step 1: Install the CLI
 
 ```bash
-deno install -A -g -n skmtc jsr:@skmtc/cli/mod.ts
+deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli/mod.ts
 ```
 
 Verify: `skmtc --version`.
+
+The `--unstable-worker-options` flag is required because `@skmtc/worker`
+constructs each per-project Worker with `new Worker(..., { deno: {
+permissions: {...} } })` — the Deno-specific `Worker.deno.permissions`
+API. As of Deno 2.7, that API sits behind this flag. Without it, the
+first `skmtc generate` exits at runtime with `Unstable API
+'Worker.deno.permissions'. The --unstable-worker-options flag must be
+provided.` The flag has to be passed at install time — `deno install`
+bakes the flags into the generated shim at `~/.deno/bin/skmtc`. If you
+already installed without it, reinstall with `-f` to overwrite the
+shim.
 
 ## Step 2: Create a project
 

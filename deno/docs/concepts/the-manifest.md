@@ -26,9 +26,10 @@ the wire-level Valibot schema, see
 A `ManifestContent` is a discriminated record of `{ files, results,
 previews, mappings, parseIssues, deploymentId, traceId, spanId,
 startAt, endAt }`. Each section is populated by a different point
-in the pipeline: parsers contribute to `parseIssues`, the
-dispatcher contributes to `results`, generators contribute to
-`previews` and `mappings`, the host contributes to `files`. The
+in the pipeline: parsers contribute to `parseIssues`,
+`GenerateContext.toArtifacts` contributes to `results`, generators
+contribute to `previews` and `mappings`, the host contributes to
+`files`. The
 manifest is what lands at
 `.skmtc/<project>/.settings/manifest.json` after every
 `skmtc generate`, replacing the previous run's manifest.
@@ -77,7 +78,7 @@ worker doesn't fully control.
 
 A consumer asking "did SKMTC generate the User type?" reads
 `files['./types/User.ts']`. A missing entry means no file was
-written, regardless of what the dispatcher's `results` say.
+written, regardless of what `toArtifacts`'s `results` say.
 
 ## `results` — what happened per `(generator, item)` pair
 
@@ -118,8 +119,8 @@ Each leaf is one of five `ResultType` values:
 
 ### How results get into the tree
 
-The dispatcher calls `captureCurrentResult(result, stackTrail)`
-at four points in each per-item iteration (see
+`GenerateContext.toArtifacts` calls `captureCurrentResult(result,
+stackTrail)` at four points in each per-item iteration (see
 `GenerateContext.ts:390-431`):
 
 - On `isSupported` returning false → `'notSupported'`
@@ -132,8 +133,8 @@ Additionally, the `ResultsHandler` (a Deno log handler attached to
 the pipeline's logger) converts any `logger.warn` call to a
 `'warning'` result and any `logger.error` call to an `'error'`
 result. So a generator that logs a warning mid-execution
-contributes a `'warning'` leaf alongside whatever final state the
-dispatcher captures.
+contributes a `'warning'` leaf alongside whatever final state
+`toArtifacts` captures.
 
 Two mental models worth keeping clear:
 
@@ -163,8 +164,8 @@ type Source =
   | { type: 'model'; generatorId: string; refName: string }
 ```
 
-Both maps are populated by the dispatcher after each per-item
-`transform` call. The dispatcher invokes the generator's optional
+Both maps are populated by `toArtifacts` after each per-item
+`transform` call. `toArtifacts` invokes the generator's optional
 `toPreviewModule({ context, operation })` and
 `toMappingModule({ context, operation })` (or the model/gql
 variants) and pairs the returned module with a source descriptor
@@ -217,7 +218,7 @@ is achieved by logging an error-level parse issue.
                                             allocated
 2. Parse phase runs                      → context.issues fills with
                                             ParseIssue entries
-3. Generate phase runs                   → dispatcher captures results
+3. Generate phase runs                   → toArtifacts captures results
                                             and previews/mappings
 4. Worker returns                        → host receives files +
                                             manifest scaffolding
@@ -281,13 +282,13 @@ Three lookups answer most diagnosis questions without re-running.
 
 `parseIssues` is a flat array; `results` is a nested tree. The
 difference matches their producers: parsers log a stream of
-diagnostics (an array is the natural shape), while the dispatcher
+diagnostics (an array is the natural shape), while `toArtifacts`
 captures per-`(generator, item)` outcomes (a tree keyed by
 `(stackTrail-position)` is natural).
 
 ### Can a single item appear multiple times in `results`?
 
-Yes. The dispatcher captures a final outcome at the end of each
+Yes. `toArtifacts` captures a final outcome at the end of each
 iteration. But `ResultsHandler` may capture intermediate
 `warning` / `error` results if the generator logged via the
 logger during its run. The two land at different positions in the
@@ -347,7 +348,7 @@ If you need end-to-end CLI wall-time, measure it externally.
   parsers contribute to `parseIssues`; the philosophy that drives
   "parse fails open, manifest is canonical"
 - [How generators produce output](how-generators-produce-output.md)
-  — the dispatcher contributes to `results`
+  — `GenerateContext.toArtifacts` contributes to `results`
 - [The StackTrail](the-stack-trail.md) — how `results` keys and
   `parseIssue.location` strings are produced
 - [Files, deduplication, and integrity](files-and-dedup.md) — how

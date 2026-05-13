@@ -21,7 +21,7 @@ This page explains how that composition works, what the
 participating primitives are, and the patterns that fall out of
 the design.
 
-For *who runs and when* (the dispatcher + Projection
+For *who runs and when* (`GenerateContext.toArtifacts` + Projection
 instantiation), see
 [how-generators-produce-output.md](how-generators-produce-output.md).
 This page covers *how the output gets built once a generator is
@@ -533,8 +533,9 @@ participate without ceremony.
 ## Further reading
 
 - [How generators produce output](how-generators-produce-output.md)
-  — the dispatcher, `register`, `insertOperation`, `insertModel`;
-  *who runs and when* (this page covers *how output composes*)
+  — `GenerateContext.toArtifacts`, `register`, `insertOperation`,
+  `insertModel`; *who runs and when* (this page covers *how output
+  composes*)
 - [Files, deduplication, and integrity](files-and-dedup.md) —
   what `register({ imports })` and `register({ definitions })`
   actually mutate, and the dedup rules that govern repeated

@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "imports": {
     "@/": "./",
     "@std/assert": "jsr:@std/assert@^1.0.10",
@@ -44,7 +44,6 @@
   "tasks": {
     "publish": "deno task publish:deno",
     "publish:deno": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
-    "publish:deno:ga": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types",
     "docs": "deno doc --html --name=\"My library\" ./mod.ts",
     "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > ../docs/src/docs.json",
     "test": "deno test --allow-all",

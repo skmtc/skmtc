@@ -4,8 +4,8 @@
 > `OasSchema` into target-language output. Each variant of
 > `OasSchema` is mapped to a structurally matching `TypeSystemValue`
 > by the generator's own `schemaToValueFn` — a complete, exhaustive
-> dispatch every model generator implements itself. There is no
-> default visitor.
+> switch on `OasSchema`'s discriminator every model generator writes
+> itself. There is no default visitor.
 
 If you have worked with code generators that ship a base schema
 visitor with overridable per-type hooks (openapi-generator's
@@ -13,13 +13,14 @@ visitor with overridable per-type hooks (openapi-generator's
 `BaseVisitor`/`BaseTypesVisitor`, etc.), the default expectation is:
 "I extend the base, override `visitStringSchema`, get TypeScript
 output for free." SKMTC does not work this way. Every model
-generator implements the whole dispatch — string, integer, number,
-boolean, object, array, union, unknown, void, ref, custom — itself.
+generator implements the whole `schemaToValueFn` — string, integer,
+number, boolean, object, array, union, unknown, void, ref, custom —
+itself.
 
-This page covers what the type system is, how the dispatch works,
-how a generator's variant classes wear two hats (a structurally-
-typed `TypeSystemValue` and a `Stringable` Snippet), and where the
-hook is called from the engine.
+This page covers what the type system is, how `schemaToValueFn`
+works, how a generator's variant classes wear two hats (a
+structurally-typed `TypeSystemValue` and a `Stringable` Snippet),
+and where the engine calls `schemaToValueFn` from.
 
 For *who runs and when*, see
 [how-generators-produce-output.md](how-generators-produce-output.md).
@@ -48,7 +49,7 @@ The pipeline-level view:
 OasSchema (Parse output)
        │
        ▼
-schemaToValueFn(schema)           ← the model generator's dispatch
+schemaToValueFn(schema)           ← the model generator's switch on schema.type
        │
        ▼
 TypeSystemValue                   ← the IR, structurally matches the union
@@ -63,10 +64,10 @@ File body                         ← serialized by File.toString() at Render
 ```
 
 The type system is the *generator-side* representation. Each model
-generator owns its own dispatch and decides how each OasSchema
-variant becomes target-language code. The dispatch is structural:
-the return type is `TypeSystemOutput<Schema['type']>`, a mapped-type
-lookup keyed by the discriminator.
+generator owns its own `schemaToValueFn` and decides how each
+OasSchema variant becomes target-language code. The return type is
+structural: `TypeSystemOutput<Schema['type']>`, a mapped-type lookup
+keyed by the discriminator.
 
 ## The structural shapes
 
@@ -100,7 +101,7 @@ type-narrowing; there is no `BaseTypeSystemValue`. See the
 [OAS schema variants reference](../reference/api/oas-schema-variants.md)
 for the parallel design on the parsed-schema side.
 
-## The dispatch contract: `SchemaToValueFn`
+## The `SchemaToValueFn` contract
 
 Every model generator must expose a static `schemaToValueFn` on
 its Projection class. The signature
@@ -126,7 +127,7 @@ export type SchemaType =
   | CustomValue           // generator-injected fragment
 ```
 
-The function's job: receive a schema-plus-context, dispatch on
+The function's job: receive a schema-plus-context, switch on
 `schema.type`, return the matching variant. The return type is
 constrained by the input — `Schema['type'] === 'array'` mandates a
 `TypeSystemArray` return.
@@ -136,7 +137,7 @@ through `ts-pattern`'s `.exhaustive()`, so that adding a new
 schema variant to `OasSchema` produces a compile error in every
 generator that doesn't handle it.
 
-## A complete dispatch example
+## A complete `schemaToValueFn` example
 
 `gen-typescript`'s implementation
 (`skmtc-generators/gen-typescript/src/Ts.ts:16-82`):
@@ -177,10 +178,10 @@ static schemaToValueFn = (...args: Parameters<typeof toTsValue>) => {
 ```
 
 Every other model generator (`gen-zod`, `gen-valibot`,
-`gen-arktype`) has the same shape: a `toXxxValue` dispatch
-function that matches the union exhaustively and returns a
-generator-specific Snippet per branch. They share the *protocol*
-(`SchemaToValueFn`) but agree on no implementation.
+`gen-arktype`) has the same shape: a `toXxxValue` function that
+matches `schema.type` exhaustively and returns a generator-specific
+Snippet per branch. They share the *protocol* (`SchemaToValueFn`)
+but agree on no implementation.
 
 ## The two roles a variant class plays
 
@@ -213,9 +214,9 @@ export class TsString extends SnippetBase {
 }
 ```
 
-One instance, two roles. This is what lets the dispatch return
-values that are simultaneously typed IR and composable Snippets.
-A generator that wanted plain object literals (without a
+One instance, two roles. This is what lets `schemaToValueFn`
+return values that are simultaneously typed IR and composable
+Snippets. A generator that wanted plain object literals (without a
 `toString` method) could return them — but it would then need a
 separate rendering step. The stock generators chose unified
 classes for the same reason the rest of the DSL does:
@@ -267,8 +268,8 @@ Two call sites:
 ### 1. The generator's own Projection constructor (top-level)
 
 When a model generator's Projection is constructed (via cache miss
-in `ModelDriver`), the constructor calls its own dispatch on the
-schema being rendered:
+in `ModelDriver`), the constructor calls its own `schemaToValueFn`
+on the schema being rendered:
 
 ```ts
 // skmtc-generators/gen-typescript/src/TsProjection.ts
@@ -320,7 +321,7 @@ See [how-generators-produce-output.md](how-generators-produce-output.md#contexti
 Most codegen frameworks ship a base class implementing a default
 visitor with sensible language defaults; you override only what
 differs. SKMTC requires each model generator to implement the full
-dispatch. The design choice is deliberate:
+`schemaToValueFn` itself. The design choice is deliberate:
 
 1. **Target-language opinions don't generalize.** `TsString.toString()`
    returns `string` (or a format-specific scalar like `Date`);
@@ -330,7 +331,7 @@ dispatch. The design choice is deliberate:
    could share — the rendered fragment is entirely
    target-specific. A base visitor would just be eleven hooks
    waiting for full overrides.
-2. **The dispatch is the customization seam.** Cloning
+2. **`schemaToValueFn` is the customization seam.** Cloning
    `gen-typescript` to swap a format mapping means editing
    `toTsValue`'s `with({ type: 'string' }, ...)` branch directly.
    A base class would force the customizer to either subclass
@@ -341,18 +342,19 @@ dispatch. The design choice is deliberate:
    `.exhaustive()` call on the union forces every generator to
    handle every schema variant. Adding a new variant to
    `OasSchema` produces a compile error in every generator that
-   doesn't update its dispatch — the right place for the change
-   to surface.
+   doesn't update its `schemaToValueFn` — the right place for the
+   change to surface.
 
 The cost is duplication: eleven match arms in every model
-generator. The benefit is independence — each generator's dispatch
-fits the target language without negotiation with a shared base.
+generator. The benefit is independence — each generator's
+`schemaToValueFn` fits the target language without negotiation
+with a shared base.
 
 ## `CustomValue` — the escape hatch in the union
 
 `SchemaType` includes `CustomValue` alongside the OAS-derived
 variants. `CustomValue` is a DSL primitive that wraps an arbitrary
-`Stringable` (`core/dsl/CustomValue.ts`). When the dispatch
+`Stringable` (`core/dsl/CustomValue.ts`). When `schemaToValueFn`
 encounters `{ type: 'custom' }`, the conventional behavior is to
 return it unchanged:
 
@@ -360,17 +362,17 @@ return it unchanged:
 .with({ type: 'custom' }, custom => custom)
 ```
 
-This makes the dispatch a no-op for custom values — they pass
+This makes `schemaToValueFn` a no-op for custom values — they pass
 through with whatever rendering they already had. The use case is
 generator-injected fragments that don't correspond to any OAS
 schema: a typed scalar mapping that needs `Date`, a `Required<T>`
 utility wrapper, etc. The injecting code wraps the fragment in
-`CustomValue` and feeds it into the dispatch like any other
+`CustomValue` and feeds it into `schemaToValueFn` like any other
 schema-shaped input.
 
-## Refs in the dispatch
+## Refs in `schemaToValueFn`
 
-`SchemaType` also includes `OasRef<'schema'>`. Most dispatches
+`SchemaType` also includes `OasRef<'schema'>`. Most generators
 handle it as a separate branch that produces a `TypeSystemRef`
 (or a generator-specific `TsRef`, `ZodRef`, etc.) carrying the
 referenced name. The Ref's `toString()` typically renders just the
@@ -378,7 +380,7 @@ identifier name, while its constructor registers an import from
 the ref's destination file:
 
 ```ts
-// gen-typescript dispatch
+// gen-typescript schemaToValueFn
 .with({ type: 'ref' }, ref => new TsRef({
   context, destinationPath,
   refName: toRefName(ref.$ref),
@@ -393,8 +395,8 @@ includes `address: Address`, and the file's `imports` map gains
 
 ## Handling recursive types — the `modelDepth` counter
 
-A naive dispatch would infinitely recurse on self-referential
-schemas:
+A naive `schemaToValueFn` would infinitely recurse on
+self-referential schemas:
 
 ```yaml
 User:
@@ -560,30 +562,30 @@ only fans out within the model graph.
 
 ### Why is `required: boolean | undefined` and not just `boolean`?
 
-`undefined` is the "not yet specified" case — when the dispatch
-is called from a context that hasn't decided requirement-ness
-(e.g., a top-level schema where the property-vs-not distinction
-doesn't apply). Branches typically treat `undefined` like
-`false` (optional). The explicit `undefined` lets the dispatch
-preserve "unknown requirement" through nested calls instead of
-coercing it.
+`undefined` is the "not yet specified" case — when
+`schemaToValueFn` is called from a context that hasn't decided
+requirement-ness (e.g., a top-level schema where the
+property-vs-not distinction doesn't apply). Branches typically
+treat `undefined` like `false` (optional). The explicit `undefined`
+lets `schemaToValueFn` preserve "unknown requirement" through
+nested calls instead of coercing it.
 
 ### What's `rootRef` for?
 
 `rootRef` is the top-level `RefName` that started the current
 render — used to detect recursive type references. A nested
-schema whose dispatch encounters a `$ref` back to `rootRef` can
-render a self-reference rather than recursing into infinite
-expansion. Most generator branches just thread it through to
-child constructors and inspect it only inside the `ref` branch.
+schema whose `schemaToValueFn` call encounters a `$ref` back to
+`rootRef` can render a self-reference rather than recursing into
+infinite expansion. Most generator branches just thread it through
+to child constructors and inspect it only inside the `ref` branch.
 
-### Why does the dispatch take `destinationPath`?
+### Why does `schemaToValueFn` take `destinationPath`?
 
 So that each branch can register imports against the file where
 the rendered output will land. A `TsRef` whose target lives at
 a different file path needs to register the cross-file import on
-`destinationPath`. The dispatch threads the path down so every
-constructor has it without re-deriving from the projection's
+`destinationPath`. `schemaToValueFn` threads the path down so
+every constructor has it without re-deriving from the projection's
 settings.
 
 ### Can I add a new schema variant?
@@ -593,8 +595,8 @@ Adding a variant to `OasSchema` means:
 1. Extending the `OasSchema` union with the new variant class.
 2. Extending `TypeSystemValue`, `SchemaToTypeSystemMap`, and
    `TypeSystemOutput` with the matching variant shape.
-3. Every existing model generator's dispatch fails to compile
-   until its match arm covers the new variant (the
+3. Every existing model generator's `schemaToValueFn` fails to
+   compile until its match arm covers the new variant (the
    `.exhaustive()` call enforces this).
 
 The compile-error cascade is intentional. New variants don't
@@ -618,8 +620,8 @@ behalf.
 `OasVoid` is the explicit "no value" — typically the response
 body type for endpoints that return nothing. It can appear in
 positions where a schema would normally go (a response body, a
-request body), so the dispatch must handle it. But it isn't a
-schema variant in the OAS sense (no JSON Schema construct
+request body), so `schemaToValueFn` must handle it. But it isn't
+a schema variant in the OAS sense (no JSON Schema construct
 produces it), so it lives outside `OasSchema` and gets included in
 `SchemaType` as a separate union arm.
 
@@ -632,7 +634,7 @@ JSON-Schema variant. The trade is that consumers can't introspect
 it — the value is opaque past its `toString()`. Save it for the
 escape-hatch cases; reach for a structured schema first.
 
-### Should each dispatch arm return a class instance or a plain object?
+### Should each `schemaToValueFn` branch return a class instance or a plain object?
 
 Convention in stock generators is class instances (Snippet
 subclasses). Two reasons: (a) the class doubles as a Stringable
@@ -641,29 +643,29 @@ class's constructor is where side effects like
 `register({ imports })` happen, which is the right place for
 "this fragment depends on importing X."
 
-A dispatch could return plain object literals if rendering happens
-elsewhere — but you'd need to either re-traverse the value to
-register imports or accept that imports go through some other
-channel. The class-as-Snippet convention keeps the side effects
-co-located with the rendering.
+A `schemaToValueFn` implementation could return plain object
+literals if rendering happens elsewhere — but you'd need to either
+re-traverse the value to register imports or accept that imports
+go through some other channel. The class-as-Snippet convention
+keeps the side effects co-located with the rendering.
 
 ## Further reading
 
 - [How generators produce output](how-generators-produce-output.md)
-  — the dispatcher and `insertNormalizedModel` call site that
-  invokes `schemaToValueFn` for inline schemas
+  — `GenerateContext.toArtifacts` and `insertNormalizedModel`, the
+  call sites that invoke `schemaToValueFn` for inline schemas
 - [Composing output with Stringable](stringable-composition.md) —
   how a returned `TsString` / `ZodString` / etc. composes into a
   parent template
 - [Projections and Snippets](projections-and-snippets.md) — the
   DSL classification that variant classes live under
-- [Refs and resolution](refs-and-resolution.md) — `OasRef` in the
-  dispatch and the lazy resolution it enables
+- [Refs and resolution](refs-and-resolution.md) — `OasRef` in
+  `schemaToValueFn` and the lazy resolution it enables
 - [The GraphQL pipeline](the-graphql-pipeline.md) — how GraphQL
   types are mapped onto this same `OasSchema` vocabulary; custom
   scalar configuration via the `format` field
 - [Reference: OAS schema variants](../reference/api/oas-schema-variants.md)
-  — the parsed-schema union the dispatch reads from
+  — the parsed-schema union `schemaToValueFn` reads from
 - [Reference: projection-bases](../reference/api/projection-bases.md)
   — the `ModelProjection` factory the static `schemaToValueFn`
   hangs off

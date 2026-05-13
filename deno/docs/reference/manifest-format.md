@@ -162,6 +162,30 @@ Each leaf is a `ResultType` string:
 | `skipped` | Item matched but deliberately skipped (via `client.json` filters) |
 | `notSupported` | Generator's `isSupported` returned false — *expected* for items outside the generator's scope |
 
+#### `error` leaves do not carry the exception text
+
+`ResultType` is a literal string union in `@skmtc/core` — `'success' |
+'warning' | 'error' | 'skipped' | 'notSupported'`. There is no
+companion `message`, `stack`, or `cause` field on an errored leaf.
+When you see `"identifier": "error"` in the tree, the manifest is
+telling you *that* the item failed, not *why*.
+
+Where the exception text lives, by failure phase:
+
+| Phase that failed | Where the message and stack appear |
+|---|---|
+| **Bundle** (`skmtc bundle`, or the implicit rebundle inside `clone` / `install` / `dev`) | `.skmtc/<project>/.settings/error-logs.txt`. The CLI's `GenerateBundleTask` writes the `deno bundle` subprocess stderr there on every bundle run |
+| **Generate** (`skmtc generate` / `skmtc dev` re-run) | Live stderr of the invocation only. The host does not persist generate-time worker errors to disk |
+| **Hosted Sandbox API run** | `skmtc workspaces runtime-logs <project>` fetches them from the service using `manifest.spanId` |
+
+Operational consequence for agentic `--json` workflows: `--json`
+sends the structured result to stdout but stderr still carries the
+human-readable message for any item that errored. Capture both:
+`skmtc generate <project> --json 2>generate.stderr.log`. Parsing the
+JSON tells you *which* identifiers errored; the stderr file tells
+you *what each exception said*. The manifest's `results` tree is not
+self-sufficient for this.
+
 Item-identifier formats under `generate`:
 
 - **OAS operation generators**: `<path>%3A<method>` — URL-encoded colon

@@ -15,14 +15,31 @@ unexpected contents, or the CLI exited non-zero.
 
 ## Steps
 
-### Re-run with `--json`
+### Re-run with `--json`, capture stderr separately
 
 ```bash
-skmtc generate <project> --json > generate-output.json
+skmtc generate <project> --json >generate-output.json 2>generate-stderr.log
 ```
 
 The JSON form has the same data as the human output but
 machine-parseable. Pipe into `jq` for targeted inspection.
+
+**Capture stderr too.** The manifest's `results` tree stores only
+status per item (`success` / `warning` / `error` / `skipped` /
+`notSupported`) — it does *not* carry the exception message or
+stack for errored items. The human-readable error text appears on
+the generate command's stderr stream only. Without redirecting
+stderr, you see "this operation errored" without seeing why. Two
+related logs to know about:
+
+- `.skmtc/<project>/.settings/error-logs.txt` — written by the
+  `bundle` step (including the implicit rebundles inside `clone`,
+  `install`, and `dev`). Contains the `deno bundle` subprocess
+  stderr. **Generate-time worker errors do not land here**; only
+  bundle-time errors do.
+- Stderr from `skmtc generate` — the live stream is where
+  generate-time exceptions are reported. Persist it via shell
+  redirection if you want it later.
 
 ### Inspect parseIssues
 
@@ -89,6 +106,58 @@ Two common causes:
 2. **Stale bundle.** If you cloned a generator and edited it, but
    didn't `skmtc bundle`, the old bundle is used. `skmtc doctor`
    flags this.
+
+#### `TypeError: this.context.X is not a function` (workspace fallback to JSR)
+
+You see a runtime exception of the form `TypeError:
+this.context.insertNormalizedModel is not a function` (or any other
+context method) during `skmtc generate`, and `bundle.js` visibly
+contains a similar-but-spelled-differently method (e.g.,
+`insertNormalisedModel` vs `insertNormalizedModel`, or `toRefName`
+vs `getRefName`). The bundle ran something, but the runtime says
+the method doesn't exist.
+
+This is almost always **two `@skmtc/core` versions in the same
+bundle** — the result of a workspace member silently falling back to
+the JSR-published version. Mechanics:
+
+1. `@skmtc/worker` pins `@skmtc/core` with an *exact* version, e.g.,
+   `"@skmtc/core@0.4.0"`.
+2. Your local workspace member declares a different version, e.g.,
+   `@skmtc/core@0.4.4`.
+3. Deno's workspace resolution checks `0.4.4` against the exact-pin
+   `0.4.0`, doesn't match, and **silently fetches `@skmtc/core@0.4.0`
+   from JSR for the worker's transitive use**. The bundle ends up
+   containing one `GenerateContext` from the worker (JSR-pinned core)
+   and another from the generators (compiled against the local
+   workspace core). When the generator calls
+   `this.context.someMethod`, `this.context` is the worker's
+   GenerateContext at runtime — the wrong one.
+
+Diagnose:
+
+```bash
+cat .skmtc/<project>/.settings/error-logs.txt | grep -i "Workspace member"
+```
+
+The fallback emits a line like:
+
+```
+Warning: Workspace member '@skmtc/core@0.4.4' was not used because
+it did not match '@skmtc/core@0.4.0'
+    at https://jsr.skmtc.dev/@skmtc/worker/0.2.0/mod.ts:1:58
+```
+
+The warning surfaces only in `error-logs.txt` — the `bundle` command
+doesn't print it on stdout, the generate run doesn't mention it, and
+`doctor` doesn't currently surface it as an error. The log file is
+the authoritative diagnostic.
+
+Fix: bring the worker's expected `@skmtc/core` version in line with
+the workspace, either by upgrading the worker to a version with a
+ranged pin (`^0.4`) or by pinning the workspace member to the
+worker's exact-pinned version. The bundle then includes only one
+copy of `GenerateContext` and the method exists at runtime.
 
 #### Same-name collision (Driver throws; bare register silent)
 

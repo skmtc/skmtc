@@ -438,7 +438,7 @@ Three options:
 - `toModelProjectionBase` — one artifact per schema. Used by
   `gen-typescript`, `gen-zod`, etc.
 - `toGqlOperationProjectionBase` — one artifact per root field.
-  Used by `gen-graphql-operation`, etc.
+  Used by `gen-reapit-graphql-client`.
 
 Your `base.ts` declares `id`, `toIdentifier`, `toExportPath`,
 `toEnrichmentSchema` and exports the resulting base class.
@@ -505,10 +505,10 @@ they produced output — verify the `files` map).
   base types). The Driver flow is identical — the cache key
   shapes are model-shaped on both sides.
 - **GraphQL stack.** Replace `toOasOperationEntry` with
-  `toGqlOperationEntry`, replace HTTP-flavored peers with
-  GraphQL-flavored ones (`gen-graphql-typed-document-node`
-  instead of `gen-tanstack-query-*`). The coordination pattern
-  is identical.
+  `toGqlOperationEntry`, replace HTTP-flavored peers with the
+  GraphQL counterpart (`gen-reapit-graphql-client` is the
+  surviving stock example). The coordination pattern is
+  identical.
 
 ## Common questions
 

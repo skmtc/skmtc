@@ -43,7 +43,7 @@ wrapped in `gql\`...\`` and assigned to `<Base>Document: TypedDocumentNode<Resul
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-graphql-operation@0.0.59` through `0.0.63` (all deleted)
 
-**Status:** open
+**Status:** open — the immediate package was deleted (resolves the specific instance), but the general principle "`.generated.*` files should not contain placeholder content that requires consumer hand-editing" is not yet codified. Candidate locations: `concepts/how-generators-produce-output.md` § What `GenerateContext.toArtifacts` actually does (note on regenerable artifacts), or as an anti-pattern row in the `skmtc-generator` SKILL. Bundle-time lint to flag `TODO` / `FIXME` / placeholder strings in `.generated.*` output remains a defensible CLI feature, not yet built.
 
 ---
 
@@ -75,7 +75,7 @@ On the OAS side, there's no `gen-oas-operation` providing "shared request/respon
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-graphql-operation@0.0.1` through `0.0.63` (deleted)
 
-**Status:** open
+**Status:** partially addressed 2026-05-13 — historical mention added to `concepts/the-graphql-pipeline.md` § Operation generator patterns (documents the deletion and why the functional pattern is no longer the recommended shape) and `extending/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern, not a functional `transform`?. The pattern test ("`transform` dominated by `context.insertNormalizedModel(TsProjection, …)` delegation, no `<40` lines of routing, no `.ts` consumers") is in the latter doc as future-detection guidance. **Periodic audit procedure** (the zero-consumer + thin-wrapper trace) not yet codified as a recipe in `extending/recipes/` — defer until a second deletion uses the same playbook (see entry #5).
 
 ---
 
@@ -106,7 +106,7 @@ Two related concerns:
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-typescript@0.0.57`, observed during publish of `@skmtc/gen-graphql-operation@0.0.59-0.0.63`
 
-**Status:** open
+**Status:** open — verified against source: `core/dsl/GeneratorKeys.ts` confirms the four branded variants (`OasOperationGeneratorKey`, `GqlOperationGeneratorKey`, `ModelGeneratorKey`, `GeneratorOnlyKey`). The exact incompatibility (TsProjection's `generatorKey` typed as `OasOperationGeneratorKey`, but `ModelProjection`'s signature expects `GeneratorOnlyKey`) requires reading `core/dsl/model/types.ts` to confirm fix shape — not done yet. **Short-term docs cure not landed** in `skmtc-generator` skill. **Medium-term SDK fix** (widen `ModelProjection` signature or rework `GeneratorKey` variants so all compose) not landed. Every generator publish still requires `--no-check`. High-leverage SDK fix — affects every generator package.
 
 ---
 
@@ -131,7 +131,7 @@ This is GraphQL-flavoured friction but applies anywhere. Any time a new stock ge
 
 **Version anchor:** `@skmtc/gen-graphql-operation@0.0.60` (intermediate state, since removed)
 
-**Status:** open
+**Status:** verified-fixed 2026-05-13 — binary-feature-toggle test codified mechanically in `explanation/why-clone-to-customize.md` § The mechanical reason stock generators stay small: every config flag adds a runtime branch every consumer bundles in `bundle.js`; cloning resolves the branch at source-edit time. The diagnostic question ("would two consumers set this flag to different values?") is preserved with the mechanical reasoning underneath, and the parametric-vs-feature-toggle distinction is explicit. Mirrored as an operational-principle row in `llms.md` (the table already had "Add a config flag to make X customizable" → "skmtc clone the generator and edit"; the new content sharpens it).
 
 ---
 
@@ -166,7 +166,7 @@ Combined with [[feedback_skmtc_generator_location_independence]], this gives a c
 
 **Version anchor:** procedure used against `@skmtc/gen-graphql-typed-document-node@0.0.60` and `@skmtc/gen-graphql-operation@0.0.63`
 
-**Status:** open — worth codifying in the `skmtc-generator` or `skmtc-cli` skill as the canonical "should we delete this generator?" playbook
+**Status:** open — procedure used twice in one session against related packages (N=1 by session, N=2 by deletion), but not yet codified as a recipe in `extending/recipes/`. Defer until a third use confirms the procedure generalizes beyond the graphql-cleanup context, then add `extending/recipes/auditing-a-generator-for-deletion.md` with the three bash commands (ts-import grep, user-project deno.json scan, generator-pin grep) and the three-outcome decision tree. Brief reference to the deletion already exists in `concepts/the-graphql-pipeline.md` § Operation generator patterns and `extending/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern.
 
 ---
 
@@ -206,7 +206,7 @@ Possibly worth a side-by-side example in the `skmtc-generator` skill or the `com
 
 **Version anchor:** observed during refactor of `@skmtc/gen-graphql-operation@0.0.58` (pre-refactor `emit*` shape) → `@skmtc/gen-graphql-operation@0.0.62` (Driver-mediated shape, since deleted)
 
-**Status:** open — pattern worth codifying
+**Status:** verified-fixed 2026-05-13 — the underlying principle "framework primitives bundle their side effects, on purpose" is now codified as design philosophy principle #8 in `explanation/design-philosophy.md` (full four-mechanical-guarantees rationale). The operational consequence ("if you find yourself calling `context.register({ definitions: [new Definition(...)] })` directly, that's a strong signal there's an `insertX` method that does the same thing better") is on `concepts/cross-generator-coordination.md` § Why call `insertOperation` instead of `Producer.toIdentifier(op).name`. Side-by-side line-count example deferred — the mechanical content carries the lesson, the line-count comparison is decorative.
 
 ---
 
@@ -229,7 +229,7 @@ Neither check takes more than a couple of minutes. Both should be earlier moves 
 
 **Version anchor:** observed across `@skmtc/gen-graphql-operation@0.0.59` through `0.0.63`
 
-**Status:** open
+**Status:** open — the broader procedural lesson ("audit existence before refactoring structure") and the two diagnostics (zero-consumer audit + delegation trace) are not yet a checkpoint in the `skmtc-generator` skill or in the proposed `extending/recipes/auditing-a-generator-for-deletion.md`. Defer with entry #5 — same deferral reason: codify after a second instance of the procedure being used.
 
 ---
 
@@ -259,4 +259,4 @@ Generalisable rule: **a deprecation shim with zero real consumers is not a kindn
 
 **Version anchor:** `@skmtc/gen-graphql-typed-document-node@0.0.60` (the shim version, since deleted)
 
-**Status:** open
+**Status:** open — the broader rule (deprecation shim with zero real consumers is debt, skip it and delete directly) deferred for codification alongside the zero-consumer-audit recipe (entries #5 and #7). Brief historical reference exists in `concepts/the-graphql-pipeline.md` § Operation generator patterns ("packages that used it ... were deleted on 2026-05-13") and `extending/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern (which mentions the cross-package coupling that delegated to a peer). The "skip the shim if zero consumers" checkbox is not yet a recipe item.

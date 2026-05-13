@@ -268,42 +268,48 @@ before hand-rolling an args-to-schema translator.
 
 ## Operation generator patterns
 
-The two stock GraphQL generators
-(`@skmtc/gen-graphql-operation`,
-`@skmtc/gen-graphql-typed-document-node`) follow a **functional**
-pattern rather than the class-based pattern that OAS operation
-generators commonly use:
+The remaining stock GraphQL generator
+(`@skmtc/gen-reapit-graphql-client`) uses the **class-based** pattern
+— a `GqlOperationProjectionBase` subclass with `toIdentifier` /
+`toExportPath` static methods, exactly like the OAS-side
+`OasOperationProjectionBase` users.
 
 ```ts
-// gen-graphql-operation/src/mod.ts
-const emitOperation = (context: GenerateContextType, operation: GqlOperation): void => {
-  const exportPath = toExportPath(operation)
-  const base = toBaseIdentifier(operation)
-  // ... inserts result and args types via context.insertModel / insertNormalizedModel
-  // ... registers definitions directly via context.register
-}
-
-export const graphqlOperationEntry = toGqlOperationEntry({
-  id,
-  isSupported: () => true,
-  transform: ({ context, operation, acc }) => {
-    emitOperation(context, operation)
-    return acc
+// gen-reapit-graphql-client/src/base.ts
+export const ReapitGraphqlClientBase = toGqlOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+  toIdentifier({ operation }) {
+    const verb = operation.rootKind === 'query' ? 'use' : 'use'
+    return Identifier.createVariable(`${verb}${capitalize(operation.fieldName)}`)
+  },
+  toExportPath({ operation, enrichments }) {
+    const { name } = this.toIdentifier({ operation, enrichments })
+    return join('@', 'graphql', `${name}.generated.ts`)
   }
+})
+
+// gen-reapit-graphql-client/src/mod.ts
+export const reapitGraphqlClientEntry = toGqlOperationEntry({
+  id: denoJson.name,
+  isSupported: ({ operation }) => synthesizeArgsObject(operation) !== undefined,
+  transform: ({ context, operation, acc }) => {
+    context.insertOperation({ projection: ReapitGraphqlClient, operation })
+    return acc
+  },
+  toEnrichmentSchema
 })
 ```
 
-The `transform` callback delegates to a free helper that does
-the registration work directly. No `class extends
-GqlOperationProjectionBase`; no Projection wrapper.
-
-This works because the stock GraphQL generators don't expose a
-cache-coordinated artifact for *other* generators to reference.
-The artifacts they produce (`<Op>Args`, `<Op>Result`,
-`<Op>Document`) are consumed by the application, not by peer
-generators. Without cross-generator coordination needs, the
-Projection layer's value (cache, integrity check, file stitching)
-doesn't apply, and a functional `transform` body is simpler.
+The functional pattern (a free `emitOperation` helper called from
+`transform`) is no longer represented in stock: the two earlier
+packages that used it — `@skmtc/gen-graphql-operation` and
+`@skmtc/gen-graphql-typed-document-node` — were deleted on
+2026-05-13 after a zero-consumer audit confirmed neither had real
+`.ts` consumers anywhere in the workspace. Both were thin wrappers
+that delegated to `TsProjection` for the bulk of their work. New
+GraphQL operation generators should follow the class-based pattern
+used by `gen-reapit-graphql-client`.
 
 ### When to use the class-based pattern instead
 
@@ -356,12 +362,12 @@ into a GraphQL generator:
 | | OAS (`toOasOperationEntry`) | GraphQL (`toGqlOperationEntry`) |
 |---|---|---|
 | `transform` signature | `({ context, operation }) => void` — return value discarded | `({ context, operation, acc }) => acc` — **must return `acc`** |
-| Enrichment delivery | Dispatcher pre-resolves enrichment via `lodash.get` on `[path][method]` and hands it to `transform` / Projection constructor | Hands you the raw operation; you walk `context.settings.enrichments[id][operation.identifier]` yourself (`operation.identifier` is `<rootKind>_<fieldName>`) |
+| Enrichment delivery | `toArtifacts` pre-resolves enrichment via `lodash.get` on `[path][method]` and hands it to `transform` / Projection constructor | Hands you the raw operation; you walk `context.settings.enrichments[id][operation.identifier]` yourself (`operation.identifier` is `<rootKind>_<fieldName>`) |
 | Body for mutations | `operation.toRequestBody(({ schema }) => schema)` | `synthesizeArgsObject(operation)` — turns the field's arguments into an object schema you can feed to `insertNormalizedModel` |
 
 The first asymmetry is a footgun: dropping `acc` from a GQL
 `transform` doesn't break that operation, but it breaks every
-operation that follows in the dispatcher's iteration, because the
+operation that follows in `toArtifacts`'s iteration, because the
 accumulator is reset. The class-based pattern hides this — the
 Projection's constructor is the side-effect surface and the
 top-level `transform` is just a one-liner that returns `acc`:
@@ -375,7 +381,7 @@ transform({ context, operation, acc }) {
 ```
 
 The second asymmetry is why the same operation-reference protocol
-(see [cross-generator-coordination](cross-generator-coordination.md#pattern-operation-reference-dynamic-dispatch-by-name))
+(see [cross-generator-coordination](cross-generator-coordination.md#pattern-operation-reference-consumer-chosen-peer))
 reads slightly differently in GraphQL — you index by `rootKind` +
 `fieldName`, not by `path` + `method`.
 
@@ -420,8 +426,8 @@ Because the schema vocabulary is shared. A model generator
 discriminator values apply whether the schema came from OAS or
 GraphQL. The downstream code path doesn't know the difference.
 
-The only protocol-aware piece is the *container layer*. The
-dispatcher reads `document.type` to pick `OasComponents` vs
+The only protocol-aware piece is the *container layer*.
+`toArtifacts` reads `document.type` to pick `OasComponents` vs
 `GqlRegistry` for the refName iteration. Beyond that branch, the
 generator's transform receives `refName: RefName` and walks the
 schema via the protocol-neutral classes.
@@ -496,7 +502,7 @@ trail shapes:
 - `[<ParentType>, <fieldName>, …]` → deletes the field from
   `OasObject.properties` on a registered type.
 
-Parallel to `OasDocument.removeItem`'s three-segment dispatch.
+Parallel to `OasDocument.removeItem`'s three-segment routing.
 See [error-handling-philosophy.md](error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems)
 for the cascade-pruning algorithm.
 
@@ -524,7 +530,7 @@ A few:
 - [Refs and resolution](refs-and-resolution.md) — the ref
   machinery GraphQL types use via `registry.createRef`
 - [How generators produce output](how-generators-produce-output.md) —
-  the dispatcher (which routes GraphQL operation entries only
+  `GenerateContext`'s iteration over GraphQL operations (routed only
   against GraphQL documents)
 - [Cross-generator coordination](cross-generator-coordination.md) —
   works the same for both protocols
@@ -532,8 +538,6 @@ A few:
   the operational guide for authoring a GraphQL generator
 - [API: GraphQL document model](../reference/api/gql-document.md) —
   full class reference
-- [Reference: gen-graphql-operation](../reference/stock-generators/gen-graphql-operation.md) —
-  the types-only stock generator
-- [Reference: gen-graphql-typed-document-node](../reference/stock-generators/gen-graphql-typed-document-node.md) —
-  the document-constant stock generator (pairs with the above)
+- [Reference: gen-reapit-graphql-client](../reference/stock-generators/gen-reapit-graphql-client.md) —
+  the surviving stock GraphQL generator after the 2026-05-13 cleanup
 - [Reference: error codes](../reference/error-codes.md) — `GqlIssueType` enum

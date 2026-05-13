@@ -30,12 +30,18 @@ deterministic. For GitHub Actions:
 ### Install the CLI in CI
 
 ```bash
-deno install -A -g -n skmtc jsr:@skmtc/cli@<version>/mod.ts
+deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>/mod.ts
 ```
 
 Pin to a specific CLI version. The CLI itself doesn't appear in
 your project's `deno.json` (it's a global install) — pin via the
 JSR specifier.
+
+`--unstable-worker-options` is required: the worker uses Deno's
+`Worker.deno.permissions` API, which is gated behind this flag on
+current Deno releases. Omitting it produces a runtime error on the
+first `skmtc generate` — discovered in CI long after install
+"succeeded." The flag must be baked into the shim at install time.
 
 ### Bundle (if any generators are cloned)
 

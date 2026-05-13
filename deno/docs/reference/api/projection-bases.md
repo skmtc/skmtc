@@ -29,7 +29,7 @@ Plus factory functions:
 |---|---|---|
 | `ModelProjectionBase` | A schema component (`refName`) | Generators that produce one file per type / schema (gen-typescript, gen-zod) |
 | `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that produce one file per endpoint (gen-shadcn-form, gen-tanstack-query) |
-| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (gen-graphql-operation) |
+| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (`gen-reapit-graphql-client`) |
 
 All three extend `SnippetBase`, so Projections are technically
 Snippets — but with substantial additional structure (static
@@ -133,11 +133,76 @@ filling in `destinationPath: this.settings.exportPath`. Generator
 code typically uses these wrappers rather than the underlying
 context methods directly.
 
-### `register` is inherited from SnippetBase
+### `register` is overridden on Projection bases — the signature is different from SnippetBase
 
-The same `register(args: RegisterArgs)` method is available. For
-Projections, `destinationPath` should typically be
-`this.settings.exportPath` — the projection's own file.
+Each projection base overrides `register` with a narrower signature
+than the one on `SnippetBase`. The two signatures are not
+interchangeable, and the difference is enforced at typecheck time.
+
+```ts
+// SnippetBase.register — takes RegisterArgs (caller passes destinationPath)
+class SnippetBase {
+  register(args: RegisterArgs): void {
+    this.context.register(args)
+  }
+}
+
+// OasOperationProjectionBase.register — takes BaseRegisterArgs (no destinationPath)
+class OasOperationProjectionBase extends SnippetBase {
+  override register(args: BaseRegisterArgs): void {
+    this.context.register({
+      ...args,
+      destinationPath: this.settings.exportPath
+    })
+  }
+}
+```
+
+`BaseRegisterArgs` (`core/context/generateTypes.ts:138`) has
+`imports?`, `reExports?`, `definitions?` — and *no* `destinationPath`.
+`RegisterArgs` (`core/context/generateTypes.ts:255`) extends
+`BaseRegisterArgs` with `destinationPath: string`.
+
+Mechanical consequence on a Projection:
+
+```ts
+class MyProjection extends MyGenBase {
+  constructor(args) {
+    super(args)
+
+    // ✅ Correct: no destinationPath. The wrapper fills it.
+    this.register({
+      imports: { 'my-runtime-lib': ['someHelper'] }
+    })
+
+    // ❌ Fails typecheck: TS2353 — Object literal may only specify
+    //   known properties, and 'destinationPath' does not exist in
+    //   type 'BaseRegisterArgs'.
+    this.register({
+      imports: { 'my-runtime-lib': ['someHelper'] },
+      destinationPath: this.settings.exportPath
+    })
+  }
+}
+```
+
+The Projection override removes the caller's ability to choose
+`destinationPath` because a Projection has a single legitimate target
+file — its own `settings.exportPath`. Letting the caller pass a
+different path would let a Projection register against a File it
+doesn't own, breaking the Projection-owns-its-File invariant.
+
+`ModelProjectionBase` and `GqlOperationProjectionBase` apply the same
+override. Snippets keep the full `RegisterArgs` signature because they
+have no `settings.exportPath`; the parent that embeds the Snippet
+must supply `destinationPath` explicitly.
+
+#### Refactor signal at the API boundary
+
+Promoting a Snippet to a Projection means removing every
+`destinationPath:` field from the class's `register({ ... })` calls.
+TypeScript surfaces this as TS2353 at each call site, exactly where
+the edit is needed.
 
 ## Factory functions
 
@@ -257,7 +322,7 @@ write the constructor body that:
 1. Calls `super(args)`
 2. Composes with peer generators via `insertOperation` /
    `insertNormalizedModel`
-3. Registers imports via `this.register({ imports, destinationPath: this.settings.exportPath })`
+3. Registers imports via `this.register({ imports })` (the wrapper fills `destinationPath` from `this.settings.exportPath` — passing it explicitly is TS2353)
 
 ## Examples
 
@@ -295,10 +360,11 @@ export class MyProjection extends MyGenBase {
     })
     this.bodyTypeName = bodyType.identifier.name
 
-    // Register runtime imports
+    // Register runtime imports. The Projection wrapper fills
+    // destinationPath from this.settings.exportPath; passing it here
+    // is a typecheck error (TS2353).
     this.register({
-      imports: { 'my-runtime-lib': ['someHelper'] },
-      destinationPath: this.settings.exportPath
+      imports: { 'my-runtime-lib': ['someHelper'] }
     })
   }
 

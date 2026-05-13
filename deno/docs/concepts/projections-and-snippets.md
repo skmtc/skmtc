@@ -74,7 +74,7 @@ it addressable in the cache.
 |---|---|---|
 | `ModelProjectionBase` | An OAS schema component (a `refName`) | Generators that produce one file per type/schema |
 | `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that produce one file per endpoint |
-| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (`gen-graphql-operation`, etc.) |
+| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (`gen-reapit-graphql-client`) |
 
 Each base provides the `insertOperation` / `insertModel` /
 `insertNormalizedModel` methods with `destinationPath` auto-filled
@@ -177,6 +177,115 @@ The cost asymmetry: turning a Snippet into a Projection later is
 simple (subclass a base, add static methods). Turning a Projection
 into a Snippet is also simple but removes it from the cross-generator
 coordination cache. Default to Snippet unless you have a reason.
+
+## Choosing the right primitive — mechanical traps to avoid
+
+Three shapes that look reasonable but break the framework's invariants
+in specific ways. Each has the same root: reaching for an ad-hoc
+construction when a Projection or `SnippetBase` descendant fits.
+
+### File-scope export via a Snippet + `defineAndRegister`
+
+```ts
+// ❌ A supplemental file-scope type, registered as a sibling Definition
+// in the parent's exportPath, wrapping a Snippet instead of a Projection
+class FormValuesSnippet extends SnippetBase {
+  override toString() { return `{ firstName: string; email: string }` }
+}
+
+context.defineAndRegister({
+  identifier: Identifier.createType(`${name}Values`),
+  value: new FormValuesSnippet({ context }),
+  destinationPath: settings.exportPath
+})
+```
+
+This *does* land an `export type CreateCustomerFormValues = {...}` line
+in the File. It also fails on three framework guarantees:
+
+| Guarantee | Why it fails |
+|---|---|
+| **Cache-key identity is `(Producer.toIdentifier(op), Producer.toExportPath(op))`** | A Snippet has no static `toIdentifier` / `toExportPath`. The Definition is keyed by whatever name string the caller built. `context.findDefinition({ name, exportPath })` works only for callers who know the exact name string — there's no Producer class to drive the lookup. |
+| **`insertOperation(Producer, op)` requires a Projection class as the first arg** | There is no class to pass. The Definition is unreachable through the operation-reference protocol; future generators that want this same type must re-derive the name string at their own call site. |
+| **Rename safety** | The identifier name lives at the caller (`${name}Values`). Renaming the convention means editing every caller plus every consumer reading by that name. A Projection's `toIdentifier` is one site. |
+
+Fix: extend the appropriate projection base. `class FormValuesType
+extends MyFormBase { static override toIdentifier(...) {...} override
+toString() {...} }`, then `insertOperation(FormValuesType, op)`. The
+mechanics now match the rest of cross-generator composition.
+
+### Ad-hoc `{ toString: () => '…' }` returned from a helper function
+
+```ts
+// ❌ A helper that returns a duck-typed Stringable
+const renderRow = (cols: number, inner: string) => ({
+  toString: () =>
+    `<div className="grid gap-4 sm:grid-cols-${cols}">${inner}</div>`
+})
+```
+
+This satisfies `Stringable` structurally and renders correctly when
+interpolated. It also lacks every framework affordance a real Snippet
+provides:
+
+| Affordance | Why it fails |
+|---|---|
+| **`context` access (and therefore `register({ imports, destinationPath })`)** | The object has no `context`. If the markup ever needs to import a peer component (a UI library `<Row>`, a hand-written helper), the import has to bubble up to whichever caller has `context` — coupling the caller to the helper's internals. |
+| **`generatorKey`** | The integrity machinery (`affirmDefinition`, `findDefinition`'s mismatch detection) operates on values carrying a `generatorKey`. The duck-typed object has none, so it's invisible to the integrity layer if it ever ends up wrapped in a Definition. |
+| **`instanceof SnippetBase`** | Generic code that operates on "SnippetBase or its descendants" can't treat the duck-typed object as a member of the family. |
+
+Fix: a real `SnippetBase` descendant with its `register` calls in the
+constructor.
+
+```ts
+class FormRow extends SnippetBase {
+  constructor({ context, cols, inner, destinationPath }) {
+    super({ context })
+    this.cols = cols
+    this.inner = inner
+    // any imports the markup needs go here
+  }
+  override toString() {
+    return `<div className="grid gap-4 sm:grid-cols-${this.cols}">${this.inner}</div>`
+  }
+}
+```
+
+Same line count once the class is written; every framework guarantee
+restored.
+
+### Snippet over-parameterized with sole-caller hardcoded values
+
+This one is *not* about the Projection-vs-Snippet choice — the Snippet
+is the right primitive, but its constructor signature is wider than
+necessary:
+
+```ts
+// ❌ Five constructor args; four are hardcoded by the sole caller
+class FormFooter extends SnippetBase {
+  constructor({
+    context, destinationPath,
+    formIdVar,        // always 'formId'
+    isSavingVar,      // always 'isSaving'
+    cancelHandlerExpr,// always 'props.onCancel'
+    submitLabelExpr   // genuinely varies
+  }) { ... }
+}
+```
+
+Mechanically: every parameter that all callers pass identically still
+gets typed in the signature, passed at every call site, closed over by
+the constructor, and read by `toString()`. The cost is in the type
+surface and the call-site verbosity — not in framework invariants.
+
+Diagnostic question per parameter: *would a hypothetical second caller
+pass a different value here?* If no → inline the value in the Snippet,
+remove the parameter.
+
+This is adjacent to the two anti-patterns above (each is about
+reaching for the wrong shape) but the failure mode is API-design
+debt, not framework breakage. Listed here because the same triage
+question — "is this the right shape?" — catches all three.
 
 ## Snippets need destinationPath passed in
 

@@ -104,6 +104,11 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Suggest "make generation order deterministic" | It already is; coordinate via `insertOperation` | Order is structurally irrelevant; deterministic by construction |
 | Add `@override` decorators or runtime type checks | Use TypeScript's structural typing + discriminated unions | Runtime overhead unnecessary; types catch this at compile time |
 | Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` on `OasRef`-typed values; check `.isRef()` | The common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy |
+| Look up a peer's emitted name with `Producer.toIdentifier(op).name` | Call `insertOperation(Producer, op).toName()` instead | Static lookup returns the name but skips four framework side effects: Definition registration, cross-File import registration, insertion order, and refactor re-resolution. The static call's emitted reference can fail to resolve at consumer compile time, fail to import at consumer compile time, hit TDZ at consumer runtime, or stop following a producer rename — none of those failures appear at the generator's typecheck. See [cross-generator-coordination § Why call `insertOperation`](concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifieropname) |
+| Emit a file-scope export by calling `defineAndRegister` with a Snippet value | Make it a Projection, dispatch via `insertOperation` | A `defineAndRegister`'d Snippet is keyed by the caller-chosen name string, not by `(Producer.toIdentifier(op), Producer.toExportPath(op))`. Other generators cannot reach it via `insertOperation` (no class to pass); the identifier name lives at the caller, so a rename changes two sites instead of one |
+| Return a duck-typed `{ toString: () => '...' }` from a helper function in a render path | Make it a `SnippetBase` descendant class | The duck-typed object has no `context` (so `register({ imports, destinationPath })` is unavailable), no `generatorKey` (invisible to `affirmDefinition`), and isn't `instanceof SnippetBase` (rejected by generic code over the family) |
+| Expose a sole-caller-hardcoded value as a Snippet constructor parameter | Inline it in the Snippet's `toString()` template | Each parameter that all callers pass identically still adds call-site verbosity, typing surface, and an invitation for a mismatched-value bug — for zero gain |
+| Use casual codegen verbs like *emit*, *dispatch*, *dispatcher*, *stitch* | Name the SKMTC primitive: `register`, `insertOperation`, `insertModel`, `insertNormalizedModel`, `defineAndRegister`, `findDefinition` | These words map to no exported surface in `@skmtc/core`. Using them in code or prose fabricates a mental model that doesn't connect to the API. See [glossary § SKMTC vocabulary](reference/glossary.md#skmtc-vocabulary--load-bearing-terms) |
 
 Full discussion: [`explanation/design-philosophy.md`](explanation/design-philosophy.md). Code-level failure modes for these violations: see **Anti-patterns** below.
 
@@ -356,7 +361,7 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 | Parse issue types | `context/ParseIssue.ts` |
 | Settings types | `types/Settings.ts` |
 | Manifest types | `types/Manifest.ts` |
-| OAS schema dispatch | `oas/schema/toSchemasV3.ts` |
+| OAS schema routing | `oas/schema/toSchemasV3.ts` |
 | OAS schema variants | `oas/{object,array,union,string,integer,number,boolean,unknown}/<Name>.ts` |
 | OAS ref class | `oas/ref/Ref.ts` |
 | OAS document model | `oas/document/Document.ts` |
@@ -389,7 +394,7 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 |---|---|
 | Entry point | `mod.ts` |
 | Per-command implementations | `commands/<name>.tsx` |
-| Generate dispatch | `commands/generate-switch.ts` |
+| Generate command routing | `commands/generate-switch.ts` |
 | Local generate | `lib/generate-local.ts` |
 | Worker spawn + protocol | `lib/generate-worker.ts` |
 | Worker package | `../worker/mod.ts` |
@@ -463,7 +468,7 @@ Self-contained playbooks. Read only the one you need.
 
 #### Setting up SKMTC in a project
 
-1. `deno install -A -g -n skmtc jsr:@skmtc/cli` (requires Deno).
+1. `deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli` (requires Deno). The `--unstable-worker-options` flag must be passed at install time — `@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind this flag. Without it the first `skmtc generate` exits at runtime with `Unstable API 'Worker.deno.permissions'`.
 2. `skmtc init <project-name> ./` creates `.skmtc/<project>/`.
 3. `skmtc install @skmtc/gen-typescript @skmtc/gen-zod <project>` to add generators.
 4. Edit `.skmtc/<project>/.settings/client.json` to set `source` and `settings.basePath`.
@@ -512,7 +517,7 @@ Self-contained playbooks. Read only the one you need.
 #### Using SKMTC in CI
 
 1. Pin Deno version.
-2. Install CLI in CI: `deno install -A -g -n skmtc jsr:@skmtc/cli`.
+2. Install CLI in CI: `deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli`. The flag is required (see "Setting up SKMTC in a project" above).
 3. `skmtc bundle <project>` once at CI setup (only if generators are cloned).
 4. `skmtc generate <project> --no-input --json --typecheck`.
 5. Archive `manifest.json` as a CI artifact.
@@ -524,7 +529,7 @@ Self-contained playbooks. Read only the one you need.
 **Prerequisite:** `skmtc clone <project> -g @skmtc/gen-shadcn-form`.
 
 1. Create `.skmtc/<project>/gen-shadcn-form/src/fields/MyInput.ts` mirroring `StringInput.ts`.
-2. Edit `src/schemaToField.ts`. Add a branch dispatching to `MyInput`.
+2. Edit `src/schemaToField.ts`. Add a branch returning `MyInput`.
 3. Implement consumer-side `MyField` component.
 4. `skmtc dev <project>` for live rebundle + regenerate.
 

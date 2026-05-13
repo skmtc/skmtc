@@ -17,21 +17,21 @@ no-output bugs no error message will ever explain.
 
 ## The one-line definition
 
-The dispatcher iterates `(generator × item)` pairs and calls
-`generatorConfig.transform({ context, operation | refName, acc })`
-on each. **The return value is folded into `acc` for the next
-iteration; nothing else is done with it.** All artifact production
-happens through side effects on `context` — `register`,
+`GenerateContext.toArtifacts` iterates `(generator × item)` pairs
+and calls `generatorConfig.transform({ context, operation | refName,
+acc })` on each. **The return value is folded into `acc` for the
+next iteration; nothing else is done with it.** All artifact
+production happens through side effects on `context` — `register`,
 `insertOperation`, `insertModel`, `insertNormalizedModel`. A
 Projection class is instantiated only when one of the `insert*`
 calls reaches its Driver; a Projection that nobody asks for is
 never constructed.
 
-## What the dispatcher actually does
+## What `GenerateContext.toArtifacts` actually does
 
 `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts:275`)
 iterates the configured generators in order. For each one, it
-dispatches by `type` to one of three per-generator loops:
+routes by `type` to one of three per-generator loops:
 
 - `#runOasOperationGenerator` (line 376) — over `oasDocument.operations`
 - `#runGqlOperationGenerator` (line 437) — over `gqlDocument.operations`
@@ -66,9 +66,9 @@ oasDocument.operations.reduce((acc, operation) => {
 
 Notice what is **not** here:
 
-- The dispatcher never constructs a Projection. There is no
+- The iteration never constructs a Projection. There is no
   `new SomeProjection(...)` anywhere in this loop.
-- The dispatcher does not look at what `transform` returned, except
+- The iteration does not look at what `transform` returned, except
   to fold it into the next iteration's `acc`.
 - The terminal `acc` (what `reduce` returns) is discarded — the
   outer function returns `void`.
@@ -291,7 +291,7 @@ not entity-type-aware.
 
 ### `transform` runs once per item; the Projection constructor runs once per cache key
 
-The dispatcher's loop is per-item. The Projection's constructor
+The `toArtifacts` loop is per-item. The Projection's constructor
 is per-cache-key. If two iterations of `transform` ask for the
 same `(identifier.name, exportPath)` Projection, the constructor
 runs once. If three peer generators all ask for the same
@@ -304,9 +304,9 @@ happen is mediated by the cache.
 ### How does the engine know which generators to run?
 
 The `toGeneratorConfigMap` argument to `toArtifacts` returns a
-`Record<generatorId, GeneratorConfig>`. The dispatcher iterates
+`Record<generatorId, GeneratorConfig>`. `toArtifacts` iterates
 `Object.values(map)`. Each config carries a `type` field
-(`'oasOperation' | 'gqlOperation' | 'model'`) and the dispatcher
+(`'oasOperation' | 'gqlOperation' | 'model'`) and `toArtifacts`
 routes by that.
 
 A generator's `mod.ts` exports a config produced by
@@ -325,7 +325,7 @@ Projections give you (a) cross-generator coordination via the
 
 ### What if I throw from `transform`?
 
-The dispatcher catches it (`GenerateContext.ts:428-432`), logs to
+`toArtifacts` catches it (`GenerateContext.ts:428-432`), logs to
 `logger.error`, and marks the item `'error'` in the manifest
 results. Siblings continue. The throw does not propagate out of
 the generator's pass.
@@ -334,9 +334,9 @@ the generator's pass.
 
 The throw propagates out of the `new MyProjection(...)` call
 inside the Driver, up through `insertOperation` / `insertModel`,
-into whatever `transform` called it — and is caught by the
-dispatcher's outer try/catch. Same outcome: item marked `'error'`,
-siblings continue.
+into whatever `transform` called it — and is caught by
+`toArtifacts`'s outer try/catch. Same outcome: item marked
+`'error'`, siblings continue.
 
 ### What's the order of operations within one `transform` call?
 
@@ -363,13 +363,13 @@ registers its own dependencies (peer Projections, peer imports).
 
 ### Does `transform` need to be synchronous?
 
-Yes. The dispatcher's `reduce` is synchronous. Generators that
+Yes. `toArtifacts`'s `reduce` is synchronous. Generators that
 need async work (e.g., HTTP enrichment fetches) must complete
 before the Generate phase — typically by pre-computing enrichments
 at config time. The Worker boundary is also synchronous-message;
 no top-level await of network calls from `transform`.
 
-### Why is the dispatcher push-and-discard rather than push-and-collect?
+### Why is `toArtifacts` push-and-discard rather than push-and-collect?
 
 Side effects on `context` accumulate into a single file map. A
 collect-and-merge approach would require `transform` to return
@@ -400,9 +400,9 @@ wants.
   phase sits in the pipeline
 - [Error handling philosophy](error-handling-philosophy.md) — how
   per-item throws become manifest entries, not crashes
-- [The manifest](the-manifest.md) — where the dispatcher's
-  per-item `results` and the generators' `previews` / `mappings`
-  land for tooling
+- [The manifest](the-manifest.md) — where `toArtifacts`'s per-item
+  `results` and the generators' `previews` / `mappings` land for
+  tooling
 - [Recipe: composing multi-generator stacks](../extending/recipes/composing-multi-generator-stacks.md)
   — the pattern walked end-to-end via `gen-shadcn-form` and
   `gen-shadcn-table`
