@@ -171,7 +171,7 @@ If two generators independently produce a definition with the
 same `(name, exportPath)` key, behavior depends on the insertion path:
 
 - **Driver path** (the usual flow via `insertModel`, `insertOperation`,
-  or `insertNormalisedModel`): the second writer throws
+  or `insertNormalizedModel`): the second writer throws
   `Registered definition mismatch: '<name>' in file '<exportPath>'.
   Cached key '<key>' does not match new key '<key>'`. The collision
   is loud, not silent — see `affirmDefinition` in the three Drivers.

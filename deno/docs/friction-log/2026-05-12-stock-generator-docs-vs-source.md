@@ -11,6 +11,73 @@ checked.
 
 Version anchors are `@skmtc/core@0.4.2`, `@skmtc/gen-*@0.0.57`.
 
+## Index
+
+| # | Entry | Severity | Status |
+|---|-------|----------|--------|
+| 1 | `gen-shadcn-select` doc claims Combobox-based output; stock emits plain `<Selec… | friction | resolved 2026-05-12 |
+| 2 | `gen-shadcn-table` doc shows hand-rolled `<Table>` markup; stock emits `<DataTa… | friction | resolved 2026-05-12 |
+| 3 | `gen-express` doc claims `import express from 'express'; app = express()`; stoc… | friction | resolved 2026-05-12 |
+| 4 | `gen-msw` doc says `toRoutesList` is a "factory accepts dependencies"; stock em… | friction | resolved 2026-05-12 |
+| 5 | `gen-supabase-hono` doc omits Sentry / CORS / onError middleware baked into the… | friction | resolved 2026-05-12 |
+| 6 | `gen-daisyui-form` enrichment schema differs from `gen-shadcn-form`'s; doc clai… | friction | resolved 2026-05-12 |
+| 7 | `stock-generators/overview.md` catalog is missing four `gen-reapit-*` generators | friction | resolved 2026-05-12 |
+| 8 | `insertNormalizedModel` (US) vs `insertNormalisedModel` (British) — two real me… | friction | resolved 2026-05-12 |
+| 9 | `gen-tanstack-query-*` doc claims GET → useQuery; stock also emits paginated va… | polish | resolved 2026-05-12 |
+| 10 | Pattern across stock-generator docs: fictional example outputs | friction | open |
+| 11 | Tutorial 01 + 02: emitted Zod file is `pet.generated.ts` (lowercase), docs clai… | friction | resolved 2026-05-12 |
+| 12 | Tutorial 01 `skmtc init petstore` is missing the required `<basePath>` arg in s… | friction | resolved 2026-05-12 |
+| 13 | Tutorial 02 claims tanstack-query output at `pet/useGetPetById.generated.ts`; a… | friction | resolved 2026-05-12 |
+| 14 | Tutorial 03 claims `pet/addPet.generated.tsx` for shadcn-form; actual is `forms… | friction | resolved 2026-05-12 |
+| 15 | `concepts/the-three-phases.md` has stale line-number citations | polish | resolved 2026-05-12 |
+| 16 | `core/CLAUDE.md` (project-meta doc Claude reads) still claims Render uses Prett… | friction | resolved 2026-05-12 |
+| 17 | `concepts/projections-and-snippets.md` misclassifies `toEnrichmentSchema` as a … | polish | resolved 2026-05-12 |
+| 18 | `clone-vs-install.md` claims "local bundling adds ~300ms per `bundle`" — no ben… | polish | resolved 2026-05-12 |
+| 19 | `skmtc/deno/CLAUDE.md` line 115 lists `prettier` as a "Key Dependency" — stale,… | friction | resolved 2026-05-12 |
+| 20 | `skmtc/deno/CLAUDE.md` "Code Organization" section lists CLI subdirs that don't… | friction | resolved 2026-05-12 |
+| 21 | `skmtc/deno/CLAUDE.md` line 76: "Render Phase: Artifacts → formatted files" — t… | friction | resolved 2026-05-12 |
+| 22 | `using/how-to/install-a-generator.md` Verification section generalizes about ou… | friction | resolved 2026-05-12 |
+| 23 | `change-identifier-conventions.md` example for "gen-zod default" omits `camelCa… | friction | resolved 2026-05-12 |
+| 24 | `compose-with-another-generator.md` invents a `@local/` namespace for cloned pe… | friction | resolved 2026-05-12 |
+| 25 | `debug-failing-generation.md` jq recipes use wrong manifest paths (`manifest.di… | blocker | resolved 2026-05-12 |
+| 26 | `update-a-schema.md` claims `skmtc generate --json` has `.artifacts` field; act… | blocker | resolved 2026-05-12 |
+| 27 | `pin-schema-source.md` + `update-a-schema.md` jq recipes against `agent-context… | friction | resolved 2026-05-12 |
+| 28 | `recipes/full-stack-typescript-app.md` is fictional from line 93 onwards — wron… | blocker | resolved 2026-05-12 |
+| 29 | `recipes/api-mocks-for-frontend.md` builds its "stateful mocks" variation on th… | blocker | resolved 2026-05-12 |
+| 30 | `recipes/multi-project-monorepo.md` "Shared cloned generators" variation glosse… | polish | resolved 2026-05-12 |
+| 31 | `recipes/custom-form-field-renderer.md` references files in `gen-shadcn-form/sr… | friction | resolved 2026-05-12 |
+| 32 | `recipes/design-system-across-many-apis.md` example code uses free-standing exp… | blocker | resolved 2026-05-12 |
+| 33 | `add-a-field-type.md` example dispatch uses `switch (true) { case ... }` + fict… | friction | resolved 2026-05-12 |
+| 34 | `add-enrichment-options.md` "Stock gen-zod (minimal)" example doesn't match act… | polish | open |
+| 35 | `handle-graphql-instead-of-oas.md` recommends a class-extending-`GqlOperationPr… | friction | resolved 2026-05-12 |
+| 36 | `explanation/the-graphql-asymmetry.md` See-also bullet describes `toArtifacts` … | polish | resolved 2026-05-12 |
+| 37 | `explanation/security-model.md` "manifest as forensic record" jq recipe uses `.… | polish | resolved 2026-05-12 |
+| 38 | `explanation/how-idempotency-works.md` `ZodProjection` example has three concur… | friction | resolved 2026-05-12 |
+| 39 | `skills/skmtc-generator/SKILL.md` Projection scaffold's `toString()` emits `exp… | blocker | resolved 2026-05-12 |
+| 40 | `reference/manifest-format.md` is correct in isolation, but missing the "two JS… | polish | resolved 2026-05-12 |
+| 41 | `reference/cli/generate.md` `errors` field semantics wrong — claims `[destinati… | friction | resolved 2026-05-12 |
+| 42 | `llms.md` inherits two already-cataloged fabrications (stale RenderContext.coll… | polish | resolved 2026-05-12 |
+| 43 | `reference/cli/install.md` claims install writes default per-generator settings… | friction | resolved 2026-05-12 |
+| 44 | `reference/cli/doctor.md` lists 12 check IDs; only 6 exist in source. Half the … | blocker | resolved 2026-05-12 |
+| 45 | `reference/cli/init.md` claims `init` writes a `deno.json` with pre-pinned `@sk… | friction | resolved 2026-05-12 |
+| 46 | `reference/cli/create.md` shows `@local/<name>` as the deno.json import key; ac… | friction | resolved 2026-05-12 |
+| 47 | `reference/cli/list.md` JSON output is fictional — actual is a flat `{ projectN… | blocker | resolved 2026-05-12 |
+| 48 | `reference/cli/remove.md` JSON output entirely fictional — actual is `{ project… | blocker | resolved 2026-05-12 |
+| 49 | `reference/api/projection-bases.md` conflates "factory config" with "class stat… | friction | resolved 2026-05-12 |
+| 50 | `reference/api/dsl-identifier.md` is internally inconsistent — mixes pre-refact… | friction | resolved 2026-05-12 |
+| 51 | `reference/api/dsl-import.md` — `ImportNameArg` type definition is wrong; uses … | blocker | resolved 2026-05-12 |
+| 52 | EntityType class-vs-literal confusion: docs claim `Identifier.entityType: Entit… | friction | resolved 2026-05-12 |
+| 53 | **META: Behavioral aspirations cluster — cases where multiple independent docs … | meta | open |
+| 54 | `reference/settings/client-json-schema.md` — two propagated fabrications: `base… | friction | resolved 2026-05-12 |
+| 55 | `source-resolution.md` describes the schema-source field as `settings.source` (… | friction | resolved 2026-05-12 |
+| 56 | `explanation/status-and-roadmap.md` recommends `skmtc bundle --json \| jq .bundl… | polish | resolved 2026-05-12 |
+| 57 | `reference/glossary.md` two propagated fabrications: `EntityType` discriminator… | polish | resolved 2026-05-12 |
+| 58 | `skmtc-generators/gen-zod/README.md` and `gen-valibot/README.md` — all schema e… | blocker | resolved 2026-05-12 |
+| 59 | `skmtc-generators/gen-typescript/CLAUDE.md` — claims `TsString, TsArray, TsObje… | friction | resolved 2026-05-12 |
+| 60 | `skmtc-generators/CLAUDE.md` (workspace-level) — fictional `TsInsertable` / `Zo… | friction | resolved 2026-05-12 |
+| 61 | Top-level JSR-published READMEs (`core/README.md`, `cli/README.md`) tell users … | blocker | resolved 2026-05-12 |
+| 62 | `skmtc/README.md` + `skmtc-generators/README.md` — generator status table mis-m… | friction | resolved 2026-05-12 |
+
 ---
 
 ### 1. `gen-shadcn-select` doc claims Combobox-based output; stock emits plain `<Select>` [friction]
@@ -678,12 +745,7 @@ run.
 
 ---
 
-## Summary
-
-10 entries:
-- 8 friction (#1–#6, #8, #10)
-- 1 polish (#9)
-- 1 meta (#10)
+## Interim notes after entry 10
 
 Pattern: stock-generator docs were written without running the
 generators. Fictional example outputs and aspirational behaviour claims
@@ -709,13 +771,6 @@ Suggested triage order (by user-facing impact):
 10. #10 (meta) — fixes process, not docs
 
 ---
-
-## Round 2: tutorials, concept doc line numbers, and stale CLAUDE.md
-
-Continued probing into tutorials and concept docs. The pattern from
-round 1 ("docs written without running the code") replicates strongly in
-tutorials — output paths and filenames diverge from the actual
-generators' `toExportPath` and `toIdentifier`.
 
 ### 11. Tutorial 01 + 02: emitted Zod file is `pet.generated.ts` (lowercase), docs claim `Pet.generated.ts` [friction]
 
@@ -1179,13 +1234,7 @@ sounding statement that turns out to be invented.
 
 ---
 
-## Round 2 summary
-
-8 additional entries:
-- 5 friction (#11–#14, #16)
-- 3 polish (#15, #17, #18)
-
-**Total session entries: 18** (rounds 1 and 2 combined).
+## Interim notes after entry 18
 
 The tutorial findings (#11–#14) are the most user-visible — a brand-new
 SKMTC user runs Tutorial 01 step 6 (`cat src/generated/Pet.generated.ts`)
@@ -1217,12 +1266,6 @@ Updated triage order:
 8. **#15, #17, #18** — polish
 
 ---
-
-## Round 3: CLAUDE.md audit (follow-up to #16)
-
-Continuing one-at-a-time. #16 flagged `core/CLAUDE.md`'s Prettier
-claim as stale. Auditing the other `CLAUDE.md` files for the same
-pattern.
 
 ### 19. `skmtc/deno/CLAUDE.md` line 115 lists `prettier` as a "Key Dependency" — stale, no longer used [friction]
 
@@ -1419,8 +1462,6 @@ it, may add prettier-related code or comments when they shouldn't.
 **Status:** verified-fixed 2026-05-12 — Same edit that addressed #20 (the line-76 "Artifacts → formatted files" claim was inside the three-phase-pipeline block of the same `skmtc/deno/CLAUDE.md` file): rewrote to "Artifacts → `{ path: content }` map (no formatter runs in-pipeline; host writes to disk after worker returns)". All three stale Prettier-era CLAUDE.md sites (#16, #19, #21) now corrected.
 
 ---
-
-## Round 4: how-to docs
 
 ### 22. `using/how-to/install-a-generator.md` Verification section generalizes about output paths in a way that doesn't match any stock generator [friction]
 

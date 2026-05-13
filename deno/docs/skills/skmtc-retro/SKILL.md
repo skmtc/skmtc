@@ -109,6 +109,33 @@ topic, use a different summary so the filenames differ naturally
 (e.g., `2026-05-12-create-retro-skill.md` and
 `2026-05-12-shadcn-form-spike.md` coexist).
 
+### One session = one file. No batches inside a file.
+
+Entries are added **continuously** as observations occur, not
+batched into rounds. Do **not** introduce `## Round N: <topic>` or
+`## Pass N: <topic>` sections inside an entry file — they impose a
+chronological-batch structure on top of the already-stable
+per-entry numbering and make the file harder to skim.
+
+When work genuinely splits into distinct phases — different scope,
+different day's focus, different audit pass — that's a signal you
+have **separate sessions**, and each warrants its own file with a
+distinct `<short-summary>` slug. Examples for the same date:
+
+- `2026-05-12-tutorial-docs-audit.md`
+- `2026-05-12-claude-md-audit.md`
+- `2026-05-12-how-to-docs-audit.md`
+
+This is preferable to one `2026-05-12-docs-audit.md` carved into
+`## Round 1`, `## Round 2`, `## Round 3`. Each file remains
+self-contained, its index reflects only its own entries, and
+cross-file references (`<filename>#<N>`) handle any genuine
+linkage between sessions.
+
+The rule is forward-looking — existing legacy files that use
+round-N sections do not need to be retroactively split unless their
+content is being substantially edited.
+
 ### Reading existing files
 
 Before writing, **read any existing file you'll be appending to** to

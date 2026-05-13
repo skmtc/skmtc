@@ -4,6 +4,32 @@
 **Session:** verification of just-written `using/` and `extending/` task docs against `skmtc-generators/` and `cli/lib/` source code.
 **Triggering question:** "Could you please verify docs against contents of Skmtc-generators? I am curious if you think that following docs would likely produce same results."
 
+## Index
+
+This file predates the canonical numbered-entry format described in
+`docs/skills/skmtc-retro/SKILL.md` §4. Its findings are organized by
+verification round; severity is encoded into individual `### ` subsection
+headings (`Critical:` / `High:` / `Medium:` / `Low:` / `CRITICAL:`).
+
+| Section | Status |
+|---|---|
+| [Summary](#summary) | — |
+| [Discrepancies](#discrepancies) (round 1, 13 subsections + "Other items") | open — see subsections for severity |
+| [What's RIGHT](#whats-right) | — |
+| [Recommended remediation order](#recommended-remediation-order) | open |
+| [Spot-check round 2 (11 high-risk claims)](#spot-check-round-2-11-high-risk-claims-performed-after-the-first-pass) | partially resolved — 5 verified-correct, new discrepancies logged |
+| [Spot-check round 3: CLI flags + concept-doc citations + OAS 3.1 mappings](#spot-check-round-3-cli-flags--concept-doc-citations--oas-31-mappings) | open — new CRITICAL `skmtc clone` syntax error |
+| [Round 4.1: manifest-format.md and error-codes.md](#round-41-manifest-formatmd-and-error-codesmd) | open — `parseIssues` typing + OAS issue-type coverage gaps |
+| [Round 4.2: remaining CLI flag sets](#round-42-remaining-cli-flag-sets-bundle-list-remove-agent-context) | open — `agent-context` surrounding claim wrong |
+| [Round 4.3: API reference signatures](#round-43-api-reference-signatures-parsecontext-file-snippetbase-pick-findreexport) | mostly verified ✓ |
+| [Round 4.4: concept-doc narrative claims](#round-44-concept-doc-narrative-claims) | open — enrichment-routing key path wrong across all docs |
+| [Meta-observation](#meta-observation) | — |
+| [Round 4.5: glossary spot-check](#round-45-glossary-spot-check) | open — enrichment-routing entries propagate the round-4.4 issue |
+| [Final tally across all five rounds](#final-tally-across-all-five-rounds) | — |
+| [Verification meta-summary](#verification-meta-summary) | — |
+| [Note on percentages above](#note-on-percentages-above) | — |
+| [Catalog created (2026-05-12 PM)](#catalog-created-2026-05-12-pm) | superseded — findings rolled into `discrepancy-catalog.md` |
+
 ## Summary
 
 **Following the docs as written would NOT produce the same results.** The conceptual shape (clone, edit, rebundle, regenerate) is right, but the specific code patterns shown in the tutorials are not what `skmtc create` actually scaffolds, and several default values cited from stock generators are wrong.

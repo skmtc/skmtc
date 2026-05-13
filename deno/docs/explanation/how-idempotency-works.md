@@ -204,7 +204,7 @@ What if two unrelated generators independently produce a `Foo`
 definition in the same file? It depends on the insertion path:
 
 - **Driver path** (`insertModel`, `insertOperation`,
-  `insertNormalisedModel`): the second writer throws
+  `insertNormalizedModel`): the second writer throws
   `Registered definition mismatch` via `affirmDefinition`
   (`core/dsl/operation/oas/OasOperationDriver.ts:129`,
   `GqlOperationDriver.ts:129`, `model/ModelDriver.ts:137`).
