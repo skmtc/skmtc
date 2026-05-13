@@ -8,7 +8,7 @@ The stock generators demonstrate the major SKMTC patterns at
 production-realistic complexity. Most users will pick one or two as
 templates, clone them via `skmtc clone`, and edit the source to fit
 their own conventions (output paths, naming, peer libraries,
-emitted style).
+rendered style).
 
 ## What stock generators are
 
@@ -82,6 +82,21 @@ either alone produces an incomplete file.
 | `@skmtc/gen-graphql-operation` | `<Op>Args` and `<Op>Result` TS types | [gen-graphql-operation](gen-graphql-operation.md) |
 | `@skmtc/gen-graphql-typed-document-node` | `<Op>Document: TypedDocumentNode` constants | [gen-graphql-typed-document-node](gen-graphql-typed-document-node.md) |
 
+### GraphQL (Reapit set)
+
+A coordinated four-package set that produces a complete GraphQL
+form + data-fetch stack against Reapit's API conventions. The form
+generator dispatches the select / multi-select / dropdown
+generators via the operation-reference protocol (`references` +
+`referenceKind` enrichments).
+
+| Generator | Output | Reference |
+|-----------|--------|-----------|
+| `@skmtc/gen-reapit-form` | React form per GraphQL Mutation (`@reapit/elements` + `react-hook-form` + `@hookform/lenses`) | [gen-reapit-form](gen-reapit-form.md) |
+| `@skmtc/gen-reapit-graphql-client` | React Query hook per Query/Mutation via `graphql-request` | [gen-reapit-graphql-client](gen-reapit-graphql-client.md) |
+| `@skmtc/gen-reapit-multi-select` | `<XMultiSelectField>` for paged-result Queries (small option sets) | [gen-reapit-multi-select](gen-reapit-multi-select.md) |
+| `@skmtc/gen-reapit-searchable-dropdown` | Search-driven dropdown for paged-result Queries with `name:` filter | [gen-reapit-searchable-dropdown](gen-reapit-searchable-dropdown.md) |
+
 ## Typical combinations
 
 ### Full-stack TypeScript app (REST)
@@ -95,8 +110,8 @@ either alone produces an incomplete file.
 
 The three downstream generators (`tanstack-query-*`, `shadcn-form`)
 compose with `gen-zod` via `insertNormalizedModel` — the engine
-emits a single `userBody` Zod schema even when multiple generators
-need it.
+produces a single `userBody` Zod schema even when multiple
+generators need it.
 
 ### MSW-driven dev workflow
 
@@ -136,7 +151,7 @@ go together.
 Run them together. The `<Op>Document`'s type parameters reference
 the `<Op>Result` and `<Op>Args` types from
 `gen-graphql-operation` — running the document generator alone
-emits references to types that don't exist.
+produces references to types that don't exist.
 
 ## How to use these docs
 

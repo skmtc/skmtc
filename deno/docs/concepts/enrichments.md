@@ -36,6 +36,46 @@ The mental model: enrichments are the inputs the *author* of a
 generator decided to make user-configurable. Everything else stays
 hardcoded as the clone seam.
 
+## Core owns the hierarchy; the generator owns the leaf
+
+The design fact that explains everything else on this page: core's
+type for enrichments
+(`core/types/Enrichments.ts:121-124`) is
+
+```ts
+type GeneratorEnrichments = Record<
+  string,
+  ModelEnrichments | OasPathEnrichments | GqlRootKindEnrichments
+>
+```
+
+Where each of the three "shape" types is a routing-key hierarchy
+ending in `EnrichmentLeaf = unknown`. Core's Valibot schema types
+the leaf as `v.unknown()`. **There is no canonical enrichment leaf
+shape in core.**
+
+The leaf shape lives entirely in the generator's
+`toEnrichmentSchema()`. The dispatcher hands a generator the
+unparsed leaf at its routing key; the generator's own Valibot
+schema decides what shape is acceptable.
+
+Two consequences worth knowing:
+
+- **Different generators at the same routing key never collide.**
+  `enrichments['@skmtc/gen-shadcn-form']['/users']['post']` and
+  `enrichments['@skmtc/gen-msw']['/users']['post']` can have
+  completely different shapes. Each generator reads only its own
+  slice and parses only against its own schema.
+- **Adding a new enrichment field is a purely local change.**
+  Generators can extend their own schemas independently — no
+  coordinated core update, no canonical schema to maintain. This
+  is what makes the clone-and-add-an-enrichment path viable for
+  forks.
+
+The split is also what lets enrichments stay an *opaque* lever for
+core while being a *fully-typed* one for the generator's own
+constructor.
+
 ## Where enrichments live
 
 User-supplied enrichments go in `client.json`. The routing keys
@@ -222,6 +262,56 @@ been hardcoding) is a reasonable upstream contribution. Adding
 enrichments to a clone-then-published fork is fine for project-
 local needs.
 
+## AI-driven enrichments — `EnrichmentRequest`
+
+A second enrichment path exists for cases where the *generator*
+wants to *request* an enrichment value rather than wait for the
+user to author one. The shape (`core/types/EnrichmentRequest.ts`):
+
+```ts
+type EnrichmentRequest<EnrichmentType> = {
+  prompt: string
+  enrichmentSchema: v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
+  content: string
+}
+```
+
+A generator can implement `toEnrichmentRequest(refName)` on its
+entry config. The function returns either a request descriptor
+(prompt + schema + content to feed an LLM) or `undefined` to skip.
+Tooling that integrates with an LLM fulfils the request, validates
+the response against the schema, and persists the result into
+`client.json` as if the user had authored it.
+
+The flow:
+
+```
+generator.toEnrichmentRequest(refName)         → { prompt, schema, content }
+                ↓
+host AI tooling calls LLM with prompt + content
+                ↓
+LLM response parsed against schema
+                ↓
+result written into client.json#enrichments[generatorId][refName]
+                ↓
+next run consumes the result like a user-authored enrichment
+```
+
+Two ways this fits with the wider model:
+
+- The leaf shape is still owned by the generator (same Valibot
+  schema). The AI path doesn't bypass validation — it just defers
+  the *author* of the leaf from "the user" to "an LLM
+  constrained by the schema."
+- The wire format is the same `client.json` slice. Tooling that
+  doesn't fulfil requests simply ignores them; the project still
+  works with whatever user-authored enrichments are present.
+
+This is a deferred-fill pattern. It suits enrichments where the
+value is *derivable* from the schema (a sensible default label,
+a sample value, a description) but you'd rather not hand-author
+hundreds of them across a large API.
+
 ## Common patterns
 
 ### Per-operation titles and labels
@@ -266,7 +356,7 @@ default dispatch doesn't cover:
 }
 ```
 
-This tells the form generator: when emitting the `officeIds` field
+This tells the form generator: when rendering the `officeIds` field
 of `POST /contacts`, route it to the `GetOffices` operation
 (searchable dropdown), not the default string-array renderer.
 

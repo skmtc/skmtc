@@ -1,12 +1,12 @@
 # Authoring an operation generator
 
-> Build a generator that emits one file per OpenAPI operation. We'll
+> Build a generator that produces one file per OpenAPI operation. We'll
 > make a curl-command generator — concrete, useful, and exercises
 > the patterns operation generators typically need.
 
 ## What you'll build
 
-A generator (`curl-cmd`) that emits a `curl` shell command per
+A generator (`curl-cmd`) that produces a `curl` shell command per
 operation:
 
 ```ts
@@ -159,7 +159,7 @@ export class CurlCmd extends CurlCmdBase {
 The full implementation is more delicate than the snippet above —
 real generators handle headers, request body, encoding edge
 cases. The point is the shape: read from `this.operation`,
-emit a string.
+produce a string.
 
 ## Step 5: Decompose into Snippets
 

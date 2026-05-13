@@ -80,7 +80,7 @@ outside it. The trade-off: convenience over precision.
 
 The Worker can write to any path the host could write. Needed for:
 
-- Emitting artifacts to the project's `src/generated/` (or
+- Writing artifacts to the project's `src/generated/` (or
   wherever `basePath` points)
 - Writing the manifest
 

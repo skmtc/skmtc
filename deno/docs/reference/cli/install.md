@@ -41,7 +41,7 @@ Disable interactive prompts.
 
 ### `--json`
 
-Emit JSON output. Implies `--no-input`.
+Write JSON output to stdout. Implies `--no-input`.
 
 ## Behavior
 
@@ -124,7 +124,7 @@ error.
 - **`projectName`**: echoed from the argument.
 - **`installed`**: array of generator IDs added in this invocation.
 - **`bundle.kind`**: `"noop"` (remote-only) or `"bundled"` (rebuild ran).
-  The CLI emits an explicit no-op rather than silently doing nothing
+  The CLI writes an explicit no-op rather than silently doing nothing
   — eliminates the "did it work?" ambiguity.
 - **`verifyWith`**: a follow-up command the agent can run to confirm
   the install landed.

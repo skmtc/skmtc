@@ -4,7 +4,7 @@
 > per-generator transforms, mediates cross-generator coordination
 > through Drivers, and provides the `register` / `insertOperation` /
 > `insertModel` / `insertNormalisedModel` surface that generators use
-> to emit output.
+> to register output.
 
 ## Source
 
@@ -80,7 +80,7 @@ CLI before passing through).
 
 The structured logger. Generators rarely log directly — output goes
 through the manifest. The logger is used by the engine for trace
-events and is occasionally useful for diagnostic emissions.
+events and is occasionally useful for diagnostic logging.
 
 ### `captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void`
 

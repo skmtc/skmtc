@@ -48,7 +48,7 @@ skmtc generate my-frontend
 
 ### Generate MSW handlers
 
-The `gen-msw` generator emits one `http.get` / `http.post` /
+The `gen-msw` generator produces one `http.get` / `http.post` /
 etc. handler per operation, plus a shared `toRoutesList(deps)`
 factory that returns the array MSW's `setupWorker` expects.
 
@@ -110,7 +110,7 @@ ready, swap MSW out by gating the import on
 
 - **Realistic data via Faker.** The stock generator uses spec
   examples; for richer mock data, clone `gen-msw` and have it
-  emit `@faker-js/faker` calls based on schema shapes (string
+  produce `@faker-js/faker` calls based on schema shapes (string
   format `email` → `faker.internet.email()`, etc.).
 - **Stateful mocks.** The stock `toRoutesList(deps)` factory
   accepts a `deps` object — pass an in-memory data store with

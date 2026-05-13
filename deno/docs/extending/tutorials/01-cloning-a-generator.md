@@ -125,7 +125,7 @@ or manually merge.
 
 The `(identifier.name, exportPath)` cache key for definitions
 incorporates `exportPath` directly, so changing `toExportPath`
-moves every emitted definition to the new location. Other
+moves every registered definition to the new location. Other
 generators referencing the same schemas pick up the new path
 automatically via cross-generator coordination.
 

@@ -152,7 +152,7 @@ The Valibot schema for user-supplied options. See
 
 ### `src/<MainProjection>.ts`
 
-The Projection class — the actual code that emits output. Extends
+The Projection class — the actual code that renders output. Extends
 the base from `src/base.ts`. See
 [projections and snippets](projections-and-snippets.md).
 

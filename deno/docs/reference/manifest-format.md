@@ -27,7 +27,7 @@ the last run.
 <root>/.skmtc/<project>/.settings/manifest.json
 ```
 
-Written by the CLI host after the Worker emits its `RESULT` message.
+Written by the CLI host after the Worker posts its `RESULT` message.
 The host writes the manifest to disk alongside the generated
 artifacts.
 
@@ -274,7 +274,7 @@ writes the manifest — the diagnostic record survives.
 
 No. The Worker computes the full result in memory and posts it back
 to the host as a single message. The host then writes the manifest
-and the files. There's no incremental emission.
+and the files. There's no incremental streaming.
 
 For watch-mode-style behavior, use `skmtc dev`, which auto-reruns
 the whole pipeline on file changes. Each rerun overwrites the

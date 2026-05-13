@@ -1,10 +1,10 @@
 # @skmtc/gen-shadcn-form
 
-> Emit React form components using shadcn/ui form primitives,
+> Produce React form components using shadcn/ui form primitives,
 > backed by Zod validation and a Tanstack Query mutation hook.
 
 The most architecturally interesting stock generator. Demonstrates
-**cross-generator composition** at scale: the emitted form
+**cross-generator composition** at scale: the generated form
 references Zod schemas (from `gen-zod`), a mutation hook (from
 `gen-tanstack-query-*-zod`), and select/table sub-components.
 
@@ -62,7 +62,7 @@ export const CreateUserForm = () => {
 ## What to learn from it
 
 - **Cross-generator composition.** The form references three
-  emitted artifacts the form generator itself doesn't emit: the
+  registered artifacts the form generator itself doesn't produce: the
   Zod schema (from `gen-zod`), the TS type (from
   `gen-typescript`), and the mutation hook (from one of the
   `tanstack-query-*-zod` generators). All three converge in the

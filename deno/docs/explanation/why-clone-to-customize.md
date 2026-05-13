@@ -100,13 +100,13 @@ source into the consumer's repo. The maintainer publishes
 - **No upgrade-surface lock-in.** The engine API stays small and
   stable (Apache 2.0 with patent grant); cloned generators don't
   depend on the maintainer adding flags they need.
-- **Discoverable by reading.** Want to know how a generator emits
+- **Discoverable by reading.** Want to know how a generator renders
   forms? Read its `src/`. The source is short — most stock
   generators are 200-500 lines. Documentation isn't the entry
   point; code is.
 - **Forks become first-class.** A team forks `gen-shadcn-form` to
-  emit `gen-acme-form`. Six months later they don't merge changes
-  back — they don't have to. The fork is *their generator*.
+  produce `gen-acme-form`. Six months later they don't merge
+  changes back — they don't have to. The fork is *their generator*.
 
 ### Cons of cloning
 
@@ -164,7 +164,7 @@ kind of project. It's wrong when:
   TS literacy. Mixed-skill teams may benefit from a more
   config-driven tool.
 - **You need cross-team consistency more than per-team
-  flexibility.** If "every team must emit hooks the same way" is a
+  flexibility.** If "every team must produce hooks the same way" is a
   hard requirement, a configurable tool with no escape hatches is
   safer than a cloneable tool with infinite escape hatches.
 - **Your generator changes weekly.** Frequent updates favor auto-

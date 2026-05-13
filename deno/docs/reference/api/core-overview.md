@@ -61,13 +61,13 @@ heavily.
 
 ## DSL classes
 
-The building blocks generators use to emit code.
+The building blocks generators use to produce code.
 
 | Class | Role | Reference |
 |-------|------|-----------|
 | `SnippetBase` | Root class for Snippets (anonymous helpers) and Projections | [SnippetBase](dsl-snippet-base.md) |
 | `Definition` | Wraps a Projection's value into `export const NAME =` | [Definition](dsl-definition.md) |
-| `Identifier` | Name + entity-type marker (`'const'` vs `'type'`) | [Identifier](dsl-identifier.md) |
+| `Identifier` | Name + entity-type marker (`'variable'` vs `'type'`); the discriminator maps to `const` vs `type` declaration keywords | [Identifier](dsl-identifier.md) |
 | `Import` | Rendered `import { X } from '...'` statement | [Import](dsl-import.md) |
 | `ContentSettings` | Per-Projection bundle (identifier, exportPath, enrichments) | [ContentSettings](content-settings.md) |
 | `File` | Output file with imports, definitions, and metadata | [File](dsl-file.md) |
@@ -77,7 +77,7 @@ The building blocks generators use to emit code.
 
 The DSL classes form a small set of well-defined primitives. The
 operational principle: **use them, don't bypass them** — raw strings
-in identifier positions break the import-emission story under
+in identifier positions break the import-rendering story under
 `verbatimModuleSyntax`. See [the skmtc-generator skill](../../skills/skmtc-generator/SKILL.md)
 for the full anti-patterns table.
 
@@ -137,7 +137,7 @@ The TypeScript-level utility types and interfaces.
 
 | Type | Purpose |
 |------|---------|
-| `EntityTypeValue` | `'const' \| 'type'` — Identifier's entity discriminator |
+| `EntityTypeValue` | `'variable' \| 'type'` — Identifier's entity discriminator (maps to `const` / `type` keywords at render time) |
 | `ImportNameArg` | `string \| { name, alias?, isType? }` — input to `register({ imports })` |
 | `GeneratedValue` | Base structural type for what `Definition` wraps |
 | `Method` | HTTP method literal type |

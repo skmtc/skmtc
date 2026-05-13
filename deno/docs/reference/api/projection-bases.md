@@ -27,8 +27,8 @@ Plus factory functions:
 
 | Base | Source unit | Use for |
 |---|---|---|
-| `ModelProjectionBase` | A schema component (`refName`) | Generators that emit one file per type / schema (gen-typescript, gen-zod) |
-| `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that emit one file per endpoint (gen-shadcn-form, gen-tanstack-query) |
+| `ModelProjectionBase` | A schema component (`refName`) | Generators that produce one file per type / schema (gen-typescript, gen-zod) |
+| `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that produce one file per endpoint (gen-shadcn-form, gen-tanstack-query) |
 | `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (gen-graphql-operation) |
 
 All three extend `SnippetBase`, so Projections are technically
@@ -189,7 +189,7 @@ parameter has the GQL operation shape (root kind, field name).
 ### `toModelProjectionBase<E>(config)`
 
 Same shape but the parameter is `{ refName, enrichments }` instead
-of `{ operation, enrichments }`. Used for generators that emit one
+of `{ operation, enrichments }`. Used for generators that produce one
 file per schema component.
 
 ```ts
@@ -383,9 +383,9 @@ reads cleaner and gets the destination right by default.
 
 ### Why is `defineAndRegister` available on projection bases?
 
-For the rare case of emitting a Definition directly without going
+For the rare case of registering a Definition directly without going
 through a peer Projection. Useful for small inline values (a
-constants table, a default-values object) that need to be emitted
+constants table, a default-values object) that need to be rendered
 as `export const X = ...` but don't justify a full Projection of
 their own.
 

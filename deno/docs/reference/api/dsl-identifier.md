@@ -6,7 +6,7 @@
 > `import { X }` vs `import { type X }` syntax.
 
 `Identifier` carries the entity-type tracking that makes correct
-import emission possible under `verbatimModuleSyntax: true`. The
+import rendering possible under `verbatimModuleSyntax: true`. The
 entity-type discriminator distinguishes runtime-value imports from
 type-only imports — a distinction TypeScript enforces at compile
 time when `verbatimModuleSyntax` is enabled.
@@ -98,7 +98,7 @@ The preferred construction paths:
 
 ### `Identifier.createVariable(name, typeName?): Identifier`
 
-Creates a runtime-value identifier. Emits as
+Creates a runtime-value identifier. Renders as
 `import { name } from '...'`.
 
 ```ts
@@ -124,7 +124,7 @@ Most generators omit `typeName` and let TypeScript infer.
 
 ### `Identifier.createType(name): Identifier`
 
-Creates a TypeScript-type identifier. Emits as
+Creates a TypeScript-type identifier. Renders as
 `import { type name } from '...'` under `verbatimModuleSyntax`.
 
 ```ts
@@ -172,12 +172,12 @@ Optional type annotation appended to a `createVariable` identifier:
 ```ts
 // With typeName:
 const ident = Identifier.createVariable('x', 'number')
-// Emitted:
+// Renders as:
 export const x: number = 42
 
 // Without typeName:
 const ident = Identifier.createVariable('x')
-// Emitted (type inferred):
+// Renders as (type inferred):
 export const x = 42
 ```
 
@@ -198,7 +198,7 @@ Set by the factory methods; checked at import time (via
 
 Returns an `ImportNameArg` representation suitable for
 `register({ imports })`. Carries the entity-type information so the
-import is emitted with the right shape:
+import is rendered with the right shape:
 
 ```ts
 const ident = Identifier.createType('UserBody')
@@ -231,7 +231,7 @@ override toString() {
 }
 ```
 
-`typeName` is *not* included in `toString()` — it's only emitted at
+`typeName` is *not* included in `toString()` — it's only rendered at
 declaration time (via `Definition.toString()`).
 
 ## verbatimModuleSyntax — why it matters
@@ -242,9 +242,9 @@ that:
 - Requires type-only imports to be explicitly marked:
   `import { type X }` instead of `import { X }`
 - Forbids imports that exist only for side effects to be removed at
-  emit time
+  render time
 
-Without entity-type tracking, the engine would emit ambiguous
+Without entity-type tracking, the engine would render ambiguous
 imports under verbatim mode:
 
 ```ts
@@ -280,8 +280,8 @@ toIdentifier({ operation }): Identifier {
 }
 ```
 
-The Zod Projection emits a *runtime value* (a Zod schema), so it
-uses `createVariable`. The resulting `Definition` emits as
+The Zod Projection produces a *runtime value* (a Zod schema), so it
+uses `createVariable`. The resulting `Definition` renders as
 `export const <name> = z.object({...})`.
 
 ### TypeScript-type generator's `toIdentifier`
@@ -294,11 +294,11 @@ toIdentifier({ operation }): Identifier {
 }
 ```
 
-The TS-type Projection emits a *type alias*, so it uses
-`createType`. The resulting `Definition` emits as
+The TS-type Projection produces a *type alias*, so it uses
+`createType`. The resulting `Definition` renders as
 `export type <Name> = { ... }`.
 
-### Mixed-import emission
+### Mixed-import rendering
 
 When a form file imports both a Zod schema (value) and a TypeScript
 type from the same module:
@@ -319,7 +319,7 @@ this.register({
 })
 ```
 
-Emits:
+Renders as:
 
 ```ts
 import { userBody, type UserBody } from '@/generated/User'
@@ -333,15 +333,15 @@ the type-only one explicitly marked.
 
 ### Why not just use TypeScript's structural distinction (value vs type)?
 
-The engine emits code; it doesn't have a TypeScript type-checker
+The engine produces code; it doesn't have a TypeScript type-checker
 available. By the time imports are being collected, the engine
 only knows what generators have *told* it. The `EntityTypeValue`
 discriminator is how that information flows from the generator's
-declaration to the import emission.
+declaration to the rendered import.
 
-Without the tracking, the engine would have to either always emit
+Without the tracking, the engine would have to either always render
 type imports (over-marking — fails for value imports) or never
-emit them (under-marking — fails under `verbatimModuleSyntax`).
+render them (under-marking — fails under `verbatimModuleSyntax`).
 
 ### Can I have an identifier that's both a value and a type?
 
@@ -351,7 +351,7 @@ For most generator output, the distinction is clear: a Zod schema
 is a value, a TypeScript alias is a type, a hook is a value, etc.
 
 If you genuinely need both, register the identifier twice (once
-as `createVariable`, once as `createType`) and emit both imports.
+as `createVariable`, once as `createType`) and register both imports.
 This is rare.
 
 ### What's `typeName` for if it's optional?
@@ -385,7 +385,7 @@ explicitly forbids raw strings as identifier names.
 
 The class in `core/dsl/EntityType.ts` is a thin mapper from the
 `EntityTypeValue` literal to the corresponding TypeScript keyword
-(`const` or `type`) used in declaration emission. It's mostly an
+(`const` or `type`) used in declaration rendering. It's mostly an
 implementation detail; generator authors interact with the literal
 values via `Identifier.create*`, not with the class directly.
 
@@ -417,7 +417,7 @@ provided `alias`.
 
 ## See also
 
-- [API: Import](dsl-import.md) — how imports are emitted using identifiers
+- [API: Import](dsl-import.md) — how imports are rendered using identifiers
 - [API: Definition](dsl-definition.md) — uses identifiers for `export const NAME` / `export type NAME`
 - [API: GenerateContext](generate-context.md) — `register({ imports })` accepts `ImportNameArg[]`
 - [Projections and Snippets concept](../../concepts/projections-and-snippets.md) — where identifiers come from

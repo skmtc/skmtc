@@ -1,6 +1,6 @@
 # @skmtc/gen-valibot
 
-> Emit Valibot validation schemas from OpenAPI schemas.
+> Produce Valibot validation schemas from OpenAPI schemas.
 
 A model generator. The Valibot analog of `gen-zod`. Same entry
 shape, different library. Use when your project standardizes on
@@ -57,7 +57,7 @@ classes.
   structure, swapped library calls). This is the cleanest
   illustration of the "Projection holds the variation" pattern.
 - **Library-API impedance.** Zod's method chains vs Valibot's
-  functional pipes require different emission styles. The
+  functional pipes require different rendering styles. The
   Projection class names and dispatch don't change — only what each
   class's `toString()` produces does.
 

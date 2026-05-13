@@ -136,20 +136,20 @@ Three entry shapes:
 
 **Semantics:**
 
-- Empty array or absent → no filter active; everything emits
+- Empty array or absent → no filter active; everything runs
   (backwards-compatible default).
 - Generators *not* mentioned in a non-empty `include` are silently
   excluded.
 - For generators *mentioned* in `include`:
   - String form ("whole generator"): everything from the generator
-    emits.
+    runs.
   - Object form (per-operation or per-model): only matched items
-    emit; unmatched items are skipped with `result: 'skipped'` in
+    run; unmatched items are skipped with `result: 'skipped'` in
     the manifest.
 - Matching is exact — no wildcards.
 
 **Use case**: opt-in generators like form/table/page-shell that
-would otherwise emit dozens of files per endpoint. Configure
+would otherwise produce dozens of files per endpoint. Configure
 `include` to enable only the operations the team actually wants forms
 for.
 
@@ -216,10 +216,10 @@ See [enrichments-shape reference](enrichments-shape.md) and
 
 ### `settings.packages` (optional, advanced)
 
-For projects that emit code into multiple packages (e.g., a
+For projects that write code into multiple packages (e.g., a
 monorepo where types and validators land in different workspace
 packages). Each entry maps a path prefix to a package name; the
-engine uses this when emitting cross-package imports.
+engine uses this when rendering cross-package imports.
 
 Most projects don't need this. Default: `[]`.
 

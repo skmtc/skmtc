@@ -190,7 +190,7 @@ no entries.
 
 Two reasons:
 
-1. **Format is the consumer's concern.** SKMTC emits syntactically
+1. **Format is the consumer's concern.** SKMTC produces syntactically
    valid TypeScript; aesthetic choices (semis, trailing commas,
    quote style) belong to the consumer's existing tooling.
 2. **Coupling to a specific formatter would create friction.**
@@ -198,7 +198,7 @@ Two reasons:
    Biome, dprint, custom). Picking one in SKMTC would force every
    consumer to either accept SKMTC's choice or post-process anyway.
 
-The pragmatic stance is "emit valid, let the consumer format."
+The pragmatic stance is "produce valid, let the consumer format."
 
 ### Can I add formatting back into the pipeline?
 

@@ -5,7 +5,7 @@
 
 ## When to use this
 
-- A generator emits files for operations you don't actually want
+- A generator produces files for operations you don't actually want
   (e.g., deprecated endpoints, internal-only paths).
 - An opt-in generator (form, table) should run only for specific
   operations, not every supported one.
@@ -60,7 +60,7 @@ Filter specific operations within a generator:
 ```
 
 For `gen-shadcn-form`, only the two listed `(path, method)` pairs
-emit. Other supported operations get `result: "skipped"` in the
+run. Other supported operations get `result: "skipped"` in the
 manifest.
 
 ### Per-model filtering
@@ -79,7 +79,7 @@ For model generators, the entry shape uses refNames:
 }
 ```
 
-Only the `User` and `Order` schema components emit Zod schemas.
+Only the `User` and `Order` schema components produce Zod schemas.
 
 ### Order of evaluation (`isSupported` → `include` → `skip`)
 

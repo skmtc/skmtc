@@ -1,6 +1,6 @@
 # @skmtc/gen-msw
 
-> Emit MSW (Mock Service Worker) route handlers for an OpenAPI spec.
+> Produce MSW (Mock Service Worker) route handlers for an OpenAPI spec.
 
 An operation generator that demonstrates the **shared-aggregate
 pattern**: one Projection per operation contributes a route, and
@@ -39,7 +39,7 @@ mock data store) and returns the array MSW expects.
   append the new route to its existing instance. If no, create one
   with `defineAndRegister` and append. This is the canonical
   pattern for "one Projection collects contributions from many."
-- **Factory-of-routes, not a const array.** The aggregator emits a
+- **Factory-of-routes, not a const array.** The aggregator produces a
   function so consumers can inject deps. This sidesteps the
   "module-level array of handlers needs a data store but data
   stores are created later" timing problem.
@@ -56,13 +56,13 @@ mock data store) and returns the array MSW expects.
   up by `(name, exportPath)` lets multiple `transform()` calls
   converge on the same accumulator without races.
 - **Returning a factory.** When generated output needs runtime
-  dependencies, emit a function not a const. The consumer wires
+  dependencies, produce a function not a const. The consumer wires
   the deps at boot time.
 
 ## Common customizations when cloned
 
 - Swap MSW for a different mock library (e.g., Nock, Pollyjs).
-- Change the response-shape generator (the stock emits
+- Change the response-shape generator (the stock produces
   `HttpResponse.json({...})` from an example or a synthesized
   object; you may want to delegate to a fixture system).
 - Customize the path-parameter substitution (`/users/:id`

@@ -1,6 +1,6 @@
 # @skmtc/gen-shadcn-table
 
-> Emit a React data-table component sourced from a GET list-response
+> Produce a React data-table component sourced from a GET list-response
 > operation.
 
 An operation generator. Companion to `gen-shadcn-select` — same
@@ -60,8 +60,8 @@ export const UsersTable = () => {
 
 - **Sibling generators sharing `isSupported` logic.** Two
   generators (select, table) gate on identical operation shapes
-  but emit different outputs. The pattern works because filtering
-  and emission are decoupled — the entry filters, the Projection
+  but produce different outputs. The pattern works because filtering
+  and rendering are decoupled — the entry filters, the Projection
   shapes the output.
 - **Schema-shape to columns.** Iterating an `OasObject`'s
   properties to produce table columns is the table-version of

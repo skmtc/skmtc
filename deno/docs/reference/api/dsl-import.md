@@ -44,7 +44,7 @@ be:
 - An alias-prefixed path: `'@/types/User'`
 
 The engine preserves whatever string is passed in. Path resolution
-(if any) is the consumer's responsibility — the file emits the
+(if any) is the consumer's responsibility — the file renders the
 literal string into the import statement.
 
 ### `importNames`
@@ -99,7 +99,7 @@ The rendering rules:
    (`import type { X, Y } from ...`) — depends on the implementation.
 2. If mixed value + type, each type-import is individually marked
    (`import { X, type Y } from ...`).
-3. Aliases are emitted with the `as` keyword (`{ X as MyX }`).
+3. Aliases are rendered with the `as` keyword (`{ X as MyX }`).
 4. Names are joined with `, ` inside the braces.
 
 ### `toRecord()`
@@ -159,9 +159,9 @@ const importsBlock = imports.map(i => i.toString()).join('\n')
 return `${importsBlock}\n\n${definitions}`
 ```
 
-### Step 5: Each Import.toString() emits a line
+### Step 5: Each Import.toString() renders a line
 
-The final emitted file starts with one `import { ... } from '...';`
+The final file starts with one `import { ... } from '...';`
 line per module the file uses, deduplicated and correctly typed.
 
 ## Dedup via `Set<importName>` in File
@@ -189,9 +189,9 @@ subsequent call registers plain `'X'`, both keys land in the Set:
 
 And the rendered output would be `import { X, type X } from ...` —
 likely a bug in the calling code (it imported X two ways), but the
-engine emits faithfully.
+engine renders faithfully.
 
-## Type-only import emission
+## Type-only import rendering
 
 The `EntityTypeValue` distinction (`'variable'` vs `'type'`) drives
 the `type` field on `ImportNameArg`. See
@@ -266,7 +266,7 @@ this.register({
   destinationPath: this.settings.exportPath
 })
 
-// At render time, file emits:
+// At render time, file produces:
 //   import { z } from 'zod'
 //   import { userBody, type UserBody } from '@/generated/User'
 ```
@@ -315,7 +315,7 @@ name, aliasing is a clean way to disambiguate.
 ### Does Import support default imports?
 
 The standard `register` flow handles named imports. Default imports
-(`import X from '...'`) are emitted via `defaultImports` on
+(`import X from '...'`) are rendered via `defaultImports` on
 `register`, which goes through a separate channel in File. The
 default-import flow is similar to named imports but produces
 `import X from '...'` syntax.

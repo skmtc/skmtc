@@ -173,7 +173,7 @@ than the input.
 
 The cascade-pruning step. Walks `#refErrors` and `#refConsumers`
 together. For each failed ref, prunes every consumer from the
-parsed document and emits an `INVALID_DEPENDENCY_REF` issue at the
+parsed document and logs an `INVALID_DEPENDENCY_REF` issue at the
 consumer's location.
 
 **Cascade depth: one hop.** Transitive consumers (consumers of
@@ -256,7 +256,7 @@ automatically populate `#refErrors`.
 
 ### `log({ location, parent, type, ...issue }): void`
 
-Convenience for emitting an issue at a pre-computed string
+Convenience for logging an issue at a pre-computed string
 location (e.g., a GraphQL `Query.fieldName` address). Constructs a
 `StackTrail` from `location.split(':')` and delegates to
 `logIssueNoKey`.
@@ -411,14 +411,14 @@ order, idempotency). Deferred. Transitive failures surface at
 generate time as `Ref not found` exceptions, which the generator's
 per-item try/catch handles gracefully.
 
-### Can I emit issues from generator code (not parser code)?
+### Can I log issues from generator code (not parser code)?
 
 Generators have `context: GenerateContextType`, not
 `ParseContextType`. The `GenerateContextType` doesn't expose the
 issue-logging surface — parse issues are parse-phase only. If a
 generator detects something wrong, the right move is to throw
 (caught by `#runOasOperationGenerator`, mark the item as
-`'error'`) rather than try to emit a parseIssue.
+`'error'`) rather than try to log a parseIssue.
 
 ### Why is `silent` true by default?
 

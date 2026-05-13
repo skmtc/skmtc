@@ -1,6 +1,6 @@
 # skmtc agent-context
 
-> Emit a structured project state dump designed for consumption by
+> Write a structured project state dump designed for consumption by
 > AI agents. Unlike `doctor` (which classifies checks as pass/fail),
 > `agent-context` provides raw state — installed generators, schema
 > location, recent generation history, etc. — for an agent to reason
@@ -25,11 +25,12 @@ the current workspace.
 
 ### `--json`
 
-Emit structured JSON output. Strongly recommended for agent use.
+Write structured JSON output to stdout. Strongly recommended for
+agent use.
 
 `agent-context` only defines `--json`; it has no `--no-input` flag
 (the command is non-interactive by nature). Without `--json`, the
-CLI emits a human-readable summary table; the JSON form is the
+CLI writes a human-readable summary table; the JSON form is the
 canonical interface, the human form is for spot-checking.
 
 ## Behavior
@@ -212,7 +213,7 @@ everything an agent might *ever* need.
 
 | Code | Meaning |
 |------|---------|
-| `0` | Success — context emitted (may be empty if no projects) |
+| `0` | Success — context written (may be empty if no projects) |
 | `1` | Internal error gathering context |
 
 Unlike `doctor`, `agent-context` doesn't have a "found issues" exit

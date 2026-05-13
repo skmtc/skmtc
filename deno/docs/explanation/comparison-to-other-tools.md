@@ -19,7 +19,7 @@ a few archetypes.
 
 ### Types-only
 
-Tools that emit TypeScript types and nothing else. Smallest scope,
+Tools that produce TypeScript types and nothing else. Smallest scope,
 highest precision.
 
 - **`openapi-typescript`** — by Drew Powers. Generates a single
@@ -28,7 +28,7 @@ highest precision.
 
 ### Types + a client
 
-Tools that emit types plus a fetch wrapper or similar runtime
+Tools that produce types plus a fetch wrapper or similar runtime
 client. Larger scope; more decisions baked into the output.
 
 - **`@hey-api/openapi-ts`** — the modern descendant of
@@ -126,10 +126,10 @@ beyond `toOasOperationEntry` / `toModelEntry`.
 
 ### Idempotency
 
-How the tools handle "two generators want to emit the same thing":
+How the tools handle "two generators want to produce the same thing":
 
 - Most tools don't address this — generators are independent and
-  emit into different files
+  write into different files
 - `kubb` has explicit plugin ordering and composition
 - SKMTC handles it via memoization: same `(identifier.name,
   exportPath)` → same definition. Generator order doesn't matter.
@@ -161,14 +161,14 @@ post-generate format step.
 The unified support is unusual. Most tools live on one side of
 the OAS/GraphQL divide. SKMTC's GraphQL story isn't as deep as
 graphql-codegen's, but the engine is genuinely shared — the
-GraphQL generators reuse the TypeScript schema emitter, for
+GraphQL generators reuse the TypeScript schema renderer, for
 example.
 
 ### Runtime cost
 
 - `openapi-typescript`: zero (types only)
-- SKMTC: zero (emitted source code, no runtime library)
-- `orval`, `hey-api`, `kubb`: small (the emitted client has some
+- SKMTC: zero (generated source code, no runtime library)
+- `orval`, `hey-api`, `kubb`: small (the generated client has some
   runtime helpers)
 - `openapi-generator`: medium-large depending on target
 
@@ -181,7 +181,7 @@ peer-dependency package needed at deploy time.
 ### vs `openapi-typescript`
 
 `openapi-typescript` is the canonical "I just want types" tool.
-SKMTC emits MORE than types (Zod schemas, hooks, forms, MSW
+SKMTC produces MORE than types (Zod schemas, hooks, forms, MSW
 handlers), so the comparison is unfair in one direction.
 
 The other direction: `openapi-typescript`'s type output is more
@@ -190,7 +190,7 @@ sophisticated than SKMTC's `gen-typescript` in some details
 careful handling of `additionalProperties`).
 
 **Pick `openapi-typescript`** when types are all you need and
-you want the most-mature TS-type emitter in the ecosystem.
+you want the most-mature TS-type generator in the ecosystem.
 **Pick SKMTC** when you need types *plus* the rest (validation,
 hooks, UI scaffolds).
 

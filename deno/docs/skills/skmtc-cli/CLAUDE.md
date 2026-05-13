@@ -7,8 +7,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20842 | 1:04 PM | ✅ | Documentation structure scaffolded for SKMTC | ~775 |
-| #20768 | 11:43 AM | ✅ | Documentation distillation strategy from legacy skmtc-cli skill | ~658 |
-| #20767 | 11:42 AM | 🟣 | Comprehensive skmtc-cli skill created for agent-driven CLI usage | ~1070 |
-| #20766 | 11:41 AM | 🔄 | Skills directory reorganized into modular subdirectories with design documents | ~481 |
+| #21124 | 10:52 PM | ✅ | Vocabulary cleanup: "emit" → precise verbs in documentation | ~353 |
+| #21116 | 9:16 PM | ✅ | Emit terminology corrected in skmtc-cli skill documentation | ~262 |
+| #21115 | " | ✅ | Vocabulary fix in CLI skill documentation | ~264 |
+| #21113 | 9:15 PM | ✅ | CLI Skill Documentation Terminology Update | ~202 |
 </claude-mem-context>

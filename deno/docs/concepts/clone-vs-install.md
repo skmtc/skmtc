@@ -95,7 +95,7 @@ This:
 
 After cloning, the generator's source is **your code**. Edit
 `gen-zod/src/base.ts` to change paths and identifiers. Edit the
-output template files to change the emitted code shape. Add new
+output template files to change the rendered code shape. Add new
 field types. Swap peer imports.
 
 ### Customization surface when cloned

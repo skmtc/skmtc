@@ -22,8 +22,8 @@ the current workspace and all its projects.
 
 ### `--json`
 
-Emit structured JSON output. Without it, the CLI produces a
-human-readable check-by-check report.
+Write structured JSON output to stdout. Without it, the CLI produces
+a human-readable check-by-check report.
 
 `doctor` is one of the most common commands consumed via `--json`
 by agents — the structured form is designed for programmatic
@@ -203,7 +203,7 @@ JSON output to distinguish: a real check failure carries
 `status: "error"` in `.checks[]`; an internal failure typically
 manifests as a stderr message with no JSON envelope. `doctor`
 never returns exit code `2` — that code is reserved for missing-
-input recipe errors emitted by other commands.
+input recipe errors written by other commands.
 
 ## Common failure modes
 

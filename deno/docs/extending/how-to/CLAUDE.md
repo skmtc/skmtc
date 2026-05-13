@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #21047 | 7:56 PM | ✅ | Vocabulary cleanup in compose-with-another-generator.md | ~238 |
 | #20914 | 1:43 PM | ✅ | Complete how-to guide written for GraphQL generator authoring | ~668 |
 | #20913 | 1:42 PM | ✅ | How-to guide completed - swapping peer dependencies in cloned generators | ~657 |
 | #20912 | " | ✅ | Cross-generator composition how-to guide created with by-name coordination pattern | ~826 |

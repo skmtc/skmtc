@@ -181,14 +181,14 @@ Per-generator reference: [`reference/stock-generators/`](reference/stock-generat
 
 ## For AI coding assistants
 
-If you are a coding assistant, read [`llms.md`](llms.md) — a primer optimized for your reading patterns. Also: `skmtc agent-context --json` emits a structured project state dump.
+If you are a coding assistant, read [`llms.md`](llms.md) — a primer optimized for your reading patterns. Also: `skmtc agent-context --json` produces a structured project state dump.
 
 ---
 
 ## Project status
 
 - **Stable:** three-phase pipeline, DSL (Projection / Snippet / Definition), CLI command surface, OAS object model.
-- **Active:** import emission under `verbatimModuleSyntax`, enrichment schema improvements.
+- **Active:** import rendering under `verbatimModuleSyntax`, enrichment schema improvements.
 - **Experimental:** GraphQL pipeline, hosted Sandbox API.
 
 See [`explanation/status-and-roadmap.md`](explanation/status-and-roadmap.md).

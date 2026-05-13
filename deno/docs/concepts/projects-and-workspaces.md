@@ -172,7 +172,7 @@ in the consuming app's bundler resolver.
 
 Example: a Vite app with `vite.config.ts` setting `@` → `./src` would
 configure `basePath: "src/generated"` (relative to the SKMTC root).
-Generators emit paths like `@/forms/CreateUserForm.generated.tsx`,
+Generators produce paths like `@/forms/CreateUserForm.generated.tsx`,
 which:
 
 - On disk lands at `<root>/src/generated/forms/CreateUserForm.generated.tsx`

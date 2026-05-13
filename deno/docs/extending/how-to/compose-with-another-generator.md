@@ -6,7 +6,7 @@
 ## When to use this
 
 Your generator's output needs to reference what another generator
-emits. Common cases: a hook generator referencing a Zod schema,
+produces. Common cases: a hook generator referencing a Zod schema,
 a form generator referencing a mutation hook, a TypeScript
 operation generator referencing a model.
 
@@ -26,7 +26,7 @@ import { TsProjection } from '@skmtc/gen-typescript'
 ```
 
 You import the **class** (with its static methods like
-`toIdentifier` and `toExportPath`), not its emitted output. The
+`toIdentifier` and `toExportPath`), not its rendered output. The
 class is what the engine uses as a cache key.
 
 If the peer is a sibling clone in your project, import via the
@@ -99,7 +99,7 @@ override toString(): string {
 ```
 
 The import lands automatically — `insertNormalizedModel` records
-that your file depends on the peer's emitted file.
+that your file depends on the peer's file.
 
 ## Verification
 
@@ -121,7 +121,7 @@ The peer file should also exist with the expected identifier:
 cat src/generated/<peer-export-path>.ts
 ```
 
-Both generators contributed; the engine emitted the peer's
+Both generators contributed; the engine registered the peer's
 definition once even if multiple consumers reference it.
 
 ## Why composition is by-name, not by-source-text
@@ -132,7 +132,7 @@ two ways:
 
 1. **Order-dependent.** If your `toString()` runs before the
    peer's, the peer's output doesn't exist yet.
-2. **Duplicate emission.** Stitching the source means each
+2. **Duplicate registration.** Stitching the source means each
    consumer carries its own copy.
 
 By-name composition sidesteps both. You declare the peer
@@ -174,6 +174,9 @@ note in llms.md](../../llms.md).
 - [API: GenerateContext](../../reference/api/generate-context.md) —
   `insertModel` / `insertNormalisedModel` reference
 - [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md)
+- [Recipe: composing multi-generator stacks](../recipes/composing-multi-generator-stacks.md) —
+  the broader walked example using `gen-shadcn-form` and
+  `gen-shadcn-table`
 - [How to swap a peer dependency](swap-a-peer-dependency.md) —
   the related "I want a different peer" task
 - [How idempotency works](../../explanation/how-idempotency-works.md)

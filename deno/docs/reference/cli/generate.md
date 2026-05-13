@@ -68,7 +68,7 @@ skmtc generate my-api --typecheck --tsc-cmd "bunx tsc"
 
 ### `--json`
 
-Emit a single structured JSON object on stdout. Implies `--no-input`.
+Write a single structured JSON object to stdout. Implies `--no-input`.
 Mutually exclusive with `--watch`.
 
 ### `--no-input`
@@ -127,7 +127,7 @@ with `{ artifacts, manifest }`). On unrecoverable worker error,
 
 See [the-worker-runtime concept](../../concepts/the-worker-runtime.md).
 
-### Manifest emission
+### Persisting the manifest
 
 After the worker returns, the CLI writes:
 
@@ -248,7 +248,7 @@ Discriminated on `kind`:
 // tsc command itself failed (no npx, no tsc installed, etc.)
 { "kind": "tsc-error", "message": "...", "hint": "..." }
 
-// Nothing to check (no files emitted)
+// Nothing to check (no files written)
 { "kind": "skipped", "reason": "no-files", "message": "..." }
 ```
 

@@ -96,7 +96,7 @@ code.
 
 ## Step 4: Verify the customization landed
 
-Look at the emitted form:
+Look at the generated form:
 
 ```bash
 cat src/generated/pet/addPet.generated.tsx

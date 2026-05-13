@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #21123 | 9:22 PM | ✅ | Vocabulary cleanup in stock generators overview | ~276 |
 | #20854 | 1:10 PM | ✅ | Stock generator documentation - gen-supabase-hono reference complete | ~796 |
 | #20851 | " | ✅ | Stock generator reference - gen-shadcn-table documentation | ~880 |
 | #20848 | 1:09 PM | ✅ | Stock generator documentation completed for gen-msw with shared-aggregate pattern explanation | ~883 |

@@ -1,12 +1,12 @@
 # @skmtc/gen-daisyui-form
 
-> Emit React form components using DaisyUI (Tailwind-based)
+> Produce React form components using DaisyUI (Tailwind-based)
 > primitives, backed by Zod validation.
 
 An operation generator. The DaisyUI counterpart to
 `gen-shadcn-form`. The clearest evidence in the stock library that
 swapping a UI framework is a clone-target — entry, filter, and
-overall structure are almost identical; only the emitted JSX shape
+overall structure are almost identical; only the rendered JSX shape
 differs.
 
 ## Source
@@ -50,8 +50,8 @@ export const CreateUserForm = () => {
   `gen-shadcn-form` to see exactly what changes when you fork a
   generator for a different design system: the dispatch logic,
   imports, and per-field renderers — almost nothing else.
-- **CSS-class output vs component-tree output.** DaisyUI emits
-  classnames; shadcn/ui emits component imports. Both are valid
+- **CSS-class output vs component-tree output.** DaisyUI produces
+  classnames; shadcn/ui produces component imports. Both are valid
   generation targets; pick based on your team's UI conventions.
 
 ## Common customizations when cloned

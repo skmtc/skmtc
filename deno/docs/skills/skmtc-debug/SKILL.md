@@ -77,7 +77,7 @@ the listed investigation steps in order.
 |---|---|---|
 | No output for operation X | Check `manifest.results` for X's per-operation status | Check `isSupported` predicate; check `client.json` `skip`/`include` |
 | Wrong output (compiles) | Read the generator's `toString()` template | Compare against the stock generator's pattern; check `insertOperation` returns |
-| Wrong output (doesn't compile) | Run `skmtc generate --typecheck`; read TS errors | Trace TS errors back to the generator source emitting the offending line |
+| Wrong output (doesn't compile) | Run `skmtc generate --typecheck`; read TS errors | Trace TS errors back to the generator source producing the offending line |
 | `parseIssue` at `level: 'error'` | Read the issue's `location` | Walk to that path in the OpenAPI doc; check schema validity |
 | `INVALID_DEPENDENCY_REF` | Find the upstream `INVALID_SCHEMA` | Fix the upstream schema; dependent issues should heal |
 | `Registered definition mismatch: 'X' in 'Y'` | Read the two `generatorKey` values from the error | Clone one generator and disambiguate `toIdentifier` |
@@ -290,12 +290,12 @@ operation produced no files.
 
 1. Run `skmtc generate <project> --typecheck`. The CLI returns
    diagnostics scoped to this run's files.
-2. Map each TS error back to the generator source that emitted the
+2. Map each TS error back to the generator source that produced the
    offending line. Common patterns:
-   - **"Module not found"**: The generator emitted a path the
+   - **"Module not found"**: The generator produced a path the
      consumer hasn't implemented. Check the generator's `register({
      imports: ... })` calls — the consumer must provide the named
-     module at the emitted path, or the generator should be cloned
+     module at the generated path, or the generator should be cloned
      and the import target changed.
    - **Type mismatch between schema and validator**: The schema → DSL
      conversion produced a Zod (or other) schema with different

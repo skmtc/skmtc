@@ -106,6 +106,145 @@ prunes `Post` (one hop). `Comment` would then fail later when it
 tries to resolve a now-missing `Post` — but that failure happens at
 generate time, not in `removeErroredItems`.
 
+## How the mechanism is engineered
+
+The high-level model (parse fails open, refs are cloned, cascade
+prunes consumers one hop) rests on four small implementation
+choices, each easy to overlook on a casual read. None of them are
+load-bearing in isolation; together they are what makes the model
+true rather than aspirational.
+
+### 1. Empty parsed document issued at construction, mutated in place
+
+`ParseContext` constructs an empty `OasDocument` *before* the walk
+starts (`core/context/ParseContext.ts:120`). Every `OasRef`
+constructed during the walk holds a reference to
+`context.parsedDocument`, which wraps that same instance:
+
+```ts
+// core/oas/ref/toRefV31.ts:26-34
+context.registerRef(stackTrail.clone(), $ref)
+return new OasRef({ refType, $ref }, context.parsedDocument)
+```
+
+`OasDocument.#fields` is `undefined` at this point — every getter
+throws (`Document.ts:248`: `Accessing 'openapi' before fields are
+set`). At the end of parse, `parse()` mutates the same instance
+via `oasState.oasDocument.fields = toDocumentFieldsV3(...)`. All
+the refs that captured the empty wrapper now resolve through the
+now-populated fields.
+
+The same pattern is applied to `GqlDocument` (`ParseContext.ts:134-136`).
+Issued empty at construction, populated by `parseGqlDocument` at
+the end of the walk. The symmetry is deliberate.
+
+Without this pattern, lazy ref resolution would require either two
+passes (parse all schemas first, then resolve refs) or strict
+topological ordering of components in the source document. The
+issued-empty-then-mutated trick avoids both.
+
+### 2. The `toStackRef` + `registerRefError` no-op composition
+
+`StackTrail.toStackRef()` returns a `$ref` string *only* when the
+trail points at a recognized component position
+(`['components', <bucket>, <name>]`) — and returns `undefined`
+otherwise (`StackTrail.ts:138-154`).
+
+`ParseContext.registerRefError` is a deliberate no-op on
+`undefined`:
+
+```ts
+// core/context/ParseContext.ts:334-342
+registerRefError(error: unknown, refKey: string | undefined): void {
+  if (!refKey) return
+  // ...
+}
+```
+
+The two compose. Inside `logIssueNoKey`, every error-level issue
+runs:
+
+```ts
+// core/context/ParseContext.ts:399
+this.registerRefError(issue.cause ?? issue.message, stackTrail.toStackRef())
+```
+
+Parser code never has to know whether it's at a component
+position. The trail shape decides; non-component errors fall
+through silently. This is the bridge between two different
+addressing schemes — tree positions (held by trails) and `$ref`
+strings (used by consumers). Every component-position error
+automatically becomes eligible for cascade pruning; every other
+error stays in the issue log but doesn't fan out.
+
+See [the-stack-trail.md](the-stack-trail.md#tostackref-the-address-bridge)
+for the full address-bridge story.
+
+### 3. `removeItem` reads only the first three trail segments
+
+When cascade pruning runs, each stored consumer trail is passed to
+`OasDocument.removeItem`. The trail can be arbitrarily deep —
+wherever the parser was when it hit the `$ref` — but `removeItem`
+only looks at `[first, second, third]`:
+
+```ts
+// core/oas/document/Document.ts:190-219
+case 'paths': {
+  const index = this.#fields!.operations.findIndex(
+    ({ path, method }) => path === second && method === third
+  )
+  // ... splice and return
+}
+case 'components': {
+  return this.#fields!.components!.removeSchema(third as RefName)
+}
+```
+
+So a deeply-nested consumer trail like
+`paths./users.post.requestBody.content.application/json.schema`
+prunes the whole `POST /users` operation. The deeper segments are
+discarded.
+
+The granularity is by design: OAS operations and components are
+atomic at the pruning level. There is no useful "remove the
+request body schema but keep the rest of the operation" — either
+the operation parses or it gets pruned. The same is true for
+components.
+
+### 4. `tryParseAt` re-enters `stackTrail.trace` on the error path
+
+`tryParseAt` runs its callback inside `stackTrail.trace(key, ...)`.
+By the time a thrown error reaches the surrounding `catch`, the
+trace has already popped `key` from the trail (that's `trace`'s
+pop-on-both-paths guarantee). To log the error at the *child*
+position, `tryParseAt` opens a fresh trace:
+
+```ts
+// core/context/tryParseAt.ts:81-99
+try {
+  return stackTrail.trace(key, childStack => fn(childStack))
+} catch (error) {
+  // ...
+  stackTrail.trace(key, childStack => {
+    context.logIssueNoKey({
+      level: 'error',
+      stackTrail: childStack,
+      // ...
+    })
+  })
+  return undefined
+}
+```
+
+Without the re-trace, the error would log at the *parent*
+location, and every per-item failure would point at its container
+instead of the offending item. With the re-trace,
+`INVALID_SCHEMA` issues land at `components:schemas:User` instead
+of `components:schemas`.
+
+This is also why issues stay accurately located even though the
+trail itself is mutable and shared across the walker.
+
 ## Why one-hop cascade pruning?
 
 The honest answer: depth-2+ pruning was deferred. Implementing it
@@ -279,12 +418,12 @@ will convert the throw into a `result: 'error'` for that operation.
 That's the right path for "this operation is malformed and I can't
 produce sensible output."
 
-Whole-run failure (exit 1) is achieved by emitting an `INVALID_SCHEMA`
+Whole-run failure (exit 1) is achieved by logging an `INVALID_SCHEMA`
 issue at parse time (which already happens for top-level parse
 errors). User-level "stop the world" controls aren't first-class —
 the model assumes partial output is always preferable to no output.
 
-### Why are warnings still emitted to stderr instead of just the manifest?
+### Why are warnings still mirrored to stderr instead of just the manifest?
 
 For developer ergonomics. Looking at the manifest after every run is
 overhead; seeing warnings flow past on stderr surfaces issues
@@ -323,7 +462,9 @@ recoverable diagnostic.
 
 - [The three phases](the-three-phases.md) — where Parse-time errors get isolated
 - [Refs and resolution](refs-and-resolution.md) — how the ref-error cascade works
-- [Manifest format reference](../reference/manifest-format.md) — the full schema
+- [The StackTrail](the-stack-trail.md) — the mutable position-stack that addresses, locates, and bridges to `$ref` strings
+- [The manifest](the-manifest.md) — the structured run record `parseIssues` lives in, plus the `results` tree and `previews` / `mappings`
+- [Manifest format reference](../reference/manifest-format.md) — the full Valibot schema
 - [Error codes reference](../reference/error-codes.md) — the full list of issue types
 - [`skmtc-debug` skill](../skills/skmtc-debug/SKILL.md) — operational diagnosis using the manifest
 - [Design philosophy: lenient input, strict diagnostics](../explanation/design-philosophy.md) — the broader rationale

@@ -83,7 +83,7 @@ Instead, the `transform` callback uses `GenerateContext` methods
 directly:
 
 - `context.insertNormalisedModel(TsProjection, { schema, fallbackName, destinationPath })`
-  delegates emission of a TypeScript type for an inline schema.
+  delegates rendering of a TypeScript type for an inline schema.
   The TS file is added (or reused if already present) and you
   get back a stable identifier.
 - `context.insertModel(TsProjection, refName)` is the named
@@ -94,10 +94,47 @@ directly:
   own typed definitions (not just delegate to another generator).
 
 If you genuinely want a class-based Projection for a GraphQL
-generator (most authors do not), the correct pattern is the
-factory-extends shape that OAS generators use — see
-[Projection bases reference](../../reference/api/projection-bases.md)
-and the `toGqlOperationProjectionBase` entry.
+generator (most authors do not), use the
+`toGqlOperationProjectionBase` factory — the GraphQL counterpart
+to `toOasOperationProjectionBase`:
+
+```ts
+import { toGqlOperationProjectionBase, Identifier, capitalize } from '@skmtc/core'
+import { join } from '@std/path'
+import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
+import denoJson from '../deno.json' with { type: 'json' }
+
+export const MyGqlBase = toGqlOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+  toIdentifier: ({ operation }) =>
+    Identifier.createVariable(`${capitalize(operation.fieldName)}Form`),
+  toExportPath: ({ operation }) =>
+    join('@', 'forms', `${operation.fieldName}.generated.tsx`),
+  isSupported: () => true
+})
+
+export class MyGqlForm extends MyGqlBase {
+  constructor({ context, operation, settings }) {
+    super({ context, operation, settings })
+    // ... pull peer artifacts via this.insertOperation / this.insertNormalizedModel
+    // ... register imports
+  }
+  override toString() { /* JSX template */ }
+}
+```
+
+Wire it up via `transform` calling `context.insertOperation({
+projection: MyGqlForm, operation })`. The
+[`GqlOperationDriver`](../../concepts/files-and-dedup.md#what-drivers-do--in-one-sentence-each)
+handles cache, integrity check, and import stitching — same as
+the OAS counterpart. Reach for this pattern when your generator's
+output is referenced by peer generators (cache participation
+matters). The functional pattern shown above is the right
+default when output is application-facing only.
+
+See [the GraphQL pipeline concept](../../concepts/the-graphql-pipeline.md#operation-generator-patterns)
+for when each pattern fits.
 
 ### Read the GraphQL operation model
 
@@ -175,9 +212,14 @@ result type as expected.
 
 ## Related
 
+- [The GraphQL pipeline concept](../../concepts/the-graphql-pipeline.md) —
+  the conceptual model: shared `OasSchema` vocabulary, type-
+  mapping rules, scalar handling, operation generator patterns
 - [The GraphQL asymmetry](../../explanation/the-graphql-asymmetry.md) —
   why GraphQL parses inside the worker
 - [gen-graphql-operation reference](../../reference/stock-generators/gen-graphql-operation.md)
 - [gen-graphql-typed-document-node reference](../../reference/stock-generators/gen-graphql-typed-document-node.md)
 - [API: Projection bases](../../reference/api/projection-bases.md) —
   including `toGqlOperationProjectionBase`
+- [API: GraphQL document model](../../reference/api/gql-document.md) —
+  `GqlDocument`, `GqlRegistry`, `GqlOperation`, `GqlArgument`

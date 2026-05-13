@@ -140,7 +140,7 @@ almost always the correct alternative.
 |---|---|---|
 | Add a config flag to make X customizable | `skmtc clone` the generator and edit | Customization is via source code, not configuration |
 | Add a plugin API for extensibility | Generators coordinate via memoization; there is no plugin registry | Cross-generator coordination is a `Map` cache keyed by `(name, exportPath)` |
-| Run Prettier or Biome in the pipeline | Don't — emit valid TS and stop | Format is the consumer's concern; pipeline emits unformatted output by design |
+| Run Prettier or Biome in the pipeline | Don't — produce valid TS and stop | Format is the consumer's concern; pipeline renders unformatted output by design |
 | Provide a runtime client library | Output is committed source code | Zero SKMTC runtime in consumer bundles; generated files are reviewed via git |
 | Fail closed on bad schema input | Fail open, log `ParseIssue`s, prune dependents via `removeErroredItems` | One bad schema mustn't kill the run; manifest is the canonical record |
 | Templates as `.hbs` / `.mustache` files | Templates as template literals inside TypeScript classes | Type safety on interpolated values; full IDE refactoring |
@@ -153,9 +153,9 @@ almost always the correct alternative.
 | Concatenate strings to build output | Template-literal interpolation with `${...}` | Composes with any `Stringable`; preserves Snippet recursion |
 | Add defensive `if (!already-registered)` around `register` calls | Just call `register` | Already idempotent via Set / Map semantics |
 | Mutate `this` inside `toString()` | Set state in the constructor; `toString()` must be pure | May be called multiple times (previews, integrity checks) |
-| Read another generator's emitted source | Coordinate by *identifier name*, not source text | Use `insertOperation(Other, op).toName()` |
+| Read another generator's rendered source | Coordinate by *identifier name*, not source text | Use `insertOperation(Other, op).toName()` |
 | Return content from `transform({ context, operation })` | Use `register({ definitions, ... })` or `insertOperation` | Return value is folded into `acc` and discarded |
-| Emit `import` statements inside template literals | Register imports via `this.register({ imports, destinationPath })` | Bypasses dedup; emits inside file body not header |
+| Write `import` statements inside template literals | Register imports via `this.register({ imports, destinationPath })` | Bypasses dedup; lands inside file body not header |
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Hardcode generator-internal identifier names | Derive from operation/refName via `toIdentifier` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
@@ -438,7 +438,7 @@ cloning.
 Concrete failure modes. Each is a thing an LLM might write or suggest
 that breaks SKMTC's invariants in a specific way.
 
-### Emitting strings outside `toString()`
+### Writing strings outside `toString()`
 
 ```ts
 // ❌ WRONG

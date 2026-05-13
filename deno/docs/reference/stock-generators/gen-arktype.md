@@ -1,6 +1,6 @@
 # @skmtc/gen-arktype
 
-> Emit ArkType validation schemas from OpenAPI schemas.
+> Produce ArkType validation schemas from OpenAPI schemas.
 
 A model generator. The ArkType analog of `gen-zod` and `gen-valibot`.
 Use when your project prefers ArkType's TypeScript-syntax-mirroring
@@ -39,11 +39,11 @@ export const arktypeEntry = toModelEntry({
 
 - **String DSL for primitives.** ArkType expresses
   `'string'`, `'number'`, `'integer'` as string literals rather
-  than function calls. The Projection emits these literally — a
+  than function calls. The Projection produces these literally — a
   notable departure from Zod/Valibot's function-call style.
 - **Optional marker via key suffix.** `'email?'` (with the literal
   `?` in the key) is how ArkType marks optional fields. The
-  Projection handles this at the object-emission level rather than
+  Projection handles this at the object-rendering level rather than
   via a modifier wrapper.
 - **`as const` not needed** — ArkType infers from the literal types
   directly.
@@ -53,7 +53,7 @@ export const arktypeEntry = toModelEntry({
 - **A different validation library has different idioms.** Where
   Zod uses `.optional()` and Valibot uses `v.optional(...)`,
   ArkType uses a key-name suffix. The OasSchema-variant dispatch
-  structure stays the same; the emission style changes.
+  structure stays the same; the rendering style changes.
 - **Generator-level decisions vs library-level decisions.** The
   decision to mark optional via key suffix vs wrapper isn't the
   Projection's choice — it's ArkType's API. The Projection just

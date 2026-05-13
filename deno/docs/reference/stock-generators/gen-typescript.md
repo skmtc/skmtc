@@ -1,8 +1,8 @@
 # @skmtc/gen-typescript
 
-> Emit TypeScript `type` aliases from OpenAPI schemas and GraphQL types.
+> Produce TypeScript `type` aliases from OpenAPI schemas and GraphQL types.
 
-A model generator (one Projection per schema component). Emits
+A model generator (one Projection per schema component). Produces
 `type` aliases — not interfaces, not classes — so the output
 composes cleanly with structural-typing-heavy codebases.
 
@@ -52,7 +52,7 @@ right TS class.
 - **Per-OasSchema-variant sibling classes** — `TsObject`,
   `TsString`, etc., each handling their own `toString()`. This
   mirrors the `OasSchema` discriminated union and is the canonical
-  way to write a schema-emitter.
+  way to write a schema renderer.
 - **Factory-function config as an alternative to enrichments.** When
   the config is global (scalar map) rather than per-operation, a
   factory function is cleaner than the four-level enrichments path.

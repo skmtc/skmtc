@@ -1,6 +1,6 @@
 # @skmtc/gen-zod
 
-> Emit Zod validation schemas from OpenAPI schemas.
+> Produce Zod validation schemas from OpenAPI schemas.
 
 A model generator. Produces `export const userBody = z.object({...})`
 runtime schemas — the validation counterpart to `gen-typescript`'s
@@ -33,36 +33,36 @@ Per-variant classes (`ZodObject`, `ZodArray`, `ZodString`,
 
 - **Lowercase identifier names.** `export const user` (not `User`)
   to distinguish from the TypeScript-type equivalent `User`. This
-  is the load-bearing decision that makes mixed-import emission
+  is the load-bearing decision that makes mixed-import rendering
   work (`import { user, type User } from ...`).
 - **Modifier composition via helpers.** `withNullable` and
   `withOptional` (in `src/`) wrap a base schema's `toString()` with
   `.nullable()` / `.optional()` chains. The `applyModifiers`
   function applies both based on the OasSchema's flags.
-- **Per-variant constraint emission.** `ZodConstraints.ts`
-  centralizes the per-variant constraint-emission logic
+- **Per-variant constraint rendering.** `ZodConstraints.ts`
+  centralizes the per-variant constraint-rendering logic
   (`.min(...)`, `.max(...)`, `.email()`, `.uuid()`, etc.) so each
   variant class doesn't reimplement it.
 - **`ZodRef` is its own class.** Refs aren't an `OasSchema` variant
-  but they're an emission case — `ZodRef.ts` handles the
-  "reference to a previously-emitted Zod schema" path.
+  but they're a render case — `ZodRef.ts` handles the
+  "reference to a previously-registered Zod schema" path.
 
 ## What to learn from it
 
-- **The canonical schema-emitter shape.** Look at `ZodProjection.ts`
+- **The canonical schema-renderer shape.** Look at `ZodProjection.ts`
   to see the `toZodValue` dispatch and how each variant class is
   invoked. The pattern transfers directly to Valibot, ArkType, or
   any other validation library.
 - **Modifier composition.** The `withNullable`/`withOptional`
   pattern keeps the variant classes focused on their core
   representation; nullability and optionality wrap on top.
-- **Constraint emission separated from type emission.** The split
+- **Constraint rendering separated from type rendering.** The split
   between "this is a string" (`ZodString`) and "this string has
   `.min(8).max(64)`" (`ZodConstraints`) keeps both halves readable.
 
 ## Common customizations when cloned
 
-- Add Zod features the stock doesn't emit (e.g., `.refine(...)`
+- Add Zod features the stock doesn't render (e.g., `.refine(...)`
   predicates for custom validation).
 - Map custom OpenAPI `format` values to Zod's specialized methods
   (e.g., `format: 'uri'` → `z.string().url()`).

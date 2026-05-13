@@ -196,7 +196,7 @@ changes that don't all map cleanly to OAS 3.0:
 | `unevaluatedProperties` | Dropped (not supported in 3.0) |
 
 The conversion is **lossy in places** — specifically when 3.1
-features have no 3.0 equivalent. The CLI emits a warning per
+features have no 3.0 equivalent. The CLI produces a warning per
 dropped feature so users know which parts of their spec aren't
 represented in the generated output.
 
@@ -426,7 +426,7 @@ auth-required refs, circular refs across files).
 
 So a single spec file at the workspace root can be consumed by
 multiple projects. This matches how most teams structure their
-repos: one OpenAPI spec, one or more SKMTC projects emitting
+repos: one OpenAPI spec, one or more SKMTC projects writing
 different generator combinations from it.
 
 For project-private specs, use a path that includes the project

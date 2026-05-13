@@ -14,7 +14,7 @@ spec, producing:
 - Tanstack Query `useQuery`/`useMutation` hooks
 
 The interesting part: the hooks reference the Zod schemas the
-validator generator emits — and the engine emits each schema
+validator generator produces — and the engine produces each schema
 exactly once even though both generators want it.
 
 ## Prerequisites
@@ -73,7 +73,7 @@ export const useGetPetById = (args: { petId: number }) =>
   })
 ```
 
-The `pet` import is the same `pet` that `gen-zod` emitted — not a
+The `pet` import is the same `pet` that `gen-zod` registered — not a
 duplicate. If you run `skmtc generate` again, the output is
 byte-identical: the engine is deterministic.
 
@@ -108,7 +108,7 @@ Each generator's `transform` function ran against the same parsed
   engine returned the existing definitions without creating
   duplicates.
 
-Output is what each generator emitted; nothing was deduplicated
+Output is what each generator registered; nothing was deduplicated
 *after the fact*. The cache key made duplicates structurally
 impossible.
 

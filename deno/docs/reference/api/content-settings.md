@@ -283,7 +283,7 @@ preferable.
 
 Don't. `ContentSettings` is treated as immutable by the engine.
 Mutating `this.settings.identifier.name` after construction would
-desync the cache key from the actual emitted name, leading to
+desync the cache key from the actual rendered name, leading to
 duplicate or missing definitions.
 
 If you need a different identifier for some reason, construct a

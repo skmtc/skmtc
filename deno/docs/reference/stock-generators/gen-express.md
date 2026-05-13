@@ -1,6 +1,6 @@
 # @skmtc/gen-express
 
-> Emit Express route registrations from an OpenAPI spec.
+> Produce Express route registrations from an OpenAPI spec.
 
 An operation generator. Useful when you want to scaffold a typed
 server stub that matches your spec. Demonstrates the
@@ -59,7 +59,7 @@ All routes accumulate on a single `app` instance per output file.
 - **Shared-singleton aggregator pattern.** The accumulator is one
   `ExpressApp` instance (not an array of routes). Every operation's
   `transform` calls `app.append(operation)` to add its route to the
-  shared instance. The Projection's `toString()` then emits all
+  shared instance. The Projection's `toString()` then renders all
   accumulated routes.
 - **`invariant` for type narrowing.** When `findDefinition` returns
   a generic Projection but you need the specific class,
@@ -68,7 +68,7 @@ All routes accumulate on a single `app` instance per output file.
 - **Stub-and-edit output.** Some generators produce
   ready-to-deploy code; others (like this one) produce scaffolds
   the user customizes. Both are valid styles — pick based on what
-  your generator is realistically emitting.
+  your generator is realistically producing.
 
 ## Common customizations when cloned
 

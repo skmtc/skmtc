@@ -97,12 +97,12 @@ of the Supabase client.
 - **Different identifier shape** — If the peer's `toIdentifier`
   produces a different name shape, your output references the
   new name. Consumer code may break. Audit and update.
-- **Both peers emit competing output** — If you have both
+- **Both peers produce competing output** — If you have both
   installed (Supabase variant from before + fetch variant for
-  the swap), both will try to emit hook files. Remove the unused
+  the swap), both will try to produce hook files. Remove the unused
   peer via `skmtc remove`.
 - **`isSupported` differs** — One peer may filter more strictly
-  than the other. If a form is emitted but the corresponding
+  than the other. If a form is rendered but the corresponding
   hook isn't (or vice versa), the peers' `isSupported` checks
   diverge. Audit.
 

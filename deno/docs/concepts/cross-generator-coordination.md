@@ -95,9 +95,9 @@ Notice the constraints:
 
 If you violated any of these, two callers with the same
 `(operation, enrichments)` could compute different keys. The cache
-would split into two entries, generators would emit duplicates with
-subtle differences, and the order-independence guarantee would
-break.
+would split into two entries, generators would produce duplicate
+definitions with subtle differences, and the order-independence
+guarantee would break.
 
 The purity invariant is convention-enforced, not type-enforced. The
 verification checklist in the `skmtc-generator` skill explicitly
@@ -137,6 +137,14 @@ The recursion is depth-first. A form generator that calls
 full construction (with its own `insertNormalizedModel` calls for
 the Zod schema and TS type) before returning. By the time
 `insertOperation` returns, the dependency chain is fully populated.
+
+`ModelDriver` also brackets each invocation with a
+`context.modelDepth[`${generatorId}:${refName}`] = 0` reset
+before and after the Projection's construction. This is the
+*model-recursion* cycle-break — orthogonal to the cache key, and
+used by `Ref` Snippets (`ZodRef`, `TsRef`, etc.) to detect
+self-referential schemas and avoid stack overflow. See
+[the-type-system.md §Handling recursive types](the-type-system.md#handling-recursive-types--the-modeldepth-counter).
 
 ## Why order doesn't matter
 
@@ -341,6 +349,9 @@ local clone) so its source can be bundled into `worker.ts`.
 
 ## Further reading
 
+- [How generators produce output](how-generators-produce-output.md) — the dispatcher loop, `transform` as a side-effect hook, the pull-based Projection model that this page's cache key sits inside
+- [Files, deduplication, and integrity](files-and-dedup.md) — the integrity-key (`generatorKey`) layer on top of the cache key documented here, plus the dedup rules for the file maps Drivers write into
+- [Composing output with Stringable](stringable-composition.md) — how `Inserted.toName()` plugs into a consuming generator's template
 - [The three phases](the-three-phases.md) — the broader pipeline context
 - [Projections and Snippets](projections-and-snippets.md) — the DSL layer
 - [How idempotency works](../explanation/how-idempotency-works.md) — the design rationale

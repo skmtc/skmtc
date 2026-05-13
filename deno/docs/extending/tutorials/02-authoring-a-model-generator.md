@@ -1,12 +1,12 @@
 # Authoring a model generator
 
-> Build a new generator from scratch that emits one file per
+> Build a new generator from scratch that produces one file per
 > schema component. By the end you'll have the model-generator
 > pattern in your fingers and can apply it to any output target.
 
 ## What you'll build
 
-A small generator (`schema-meta`) that emits per-schema metadata:
+A small generator (`schema-meta`) that produces per-schema metadata:
 
 ```ts
 // src/generated/Pet.meta.ts
@@ -151,7 +151,7 @@ The `toString()` returns the **value side** of the
 ## Step 4: Compose with peer Projections
 
 For this generator, you don't need to. If you wanted to reference
-another generator's emitted name (e.g., the TypeScript type from
+another generator's registered name (e.g., the TypeScript type from
 `gen-typescript`), you'd call `insertModel` from the constructor:
 
 ```ts

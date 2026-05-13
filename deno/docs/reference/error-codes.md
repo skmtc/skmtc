@@ -152,7 +152,7 @@ code may need to handle the custom format.
 
 **When:** A schema's `nullable` field conflicts with its other
 type constraints (e.g., `nullable: true` on a schema that has no
-type). SKMTC degrades gracefully and emits a warning.
+type). SKMTC degrades gracefully and produces a warning.
 
 ### `EXAMPLE_AND_EXAMPLES_DEFINED` — warning
 
@@ -162,7 +162,7 @@ deterministically (singular wins) and warns.
 
 ### `INVALID_ENUM` — reserved
 
-Declared in the `OasIssueType` union but not currently emitted from
+Declared in the `OasIssueType` union but not currently logged from
 any parser. Reserved for future use; if you encounter this in a
 manifest, it's from a build of `@skmtc/core` newer than this doc.
 
@@ -216,7 +216,7 @@ field falls back to `OasUnknown`.
 
 ### `SKIPPED_FEATURE` — reserved
 
-Declared in the `GqlIssueType` union but not currently emitted from
+Declared in the `GqlIssueType` union but not currently logged from
 any parser. Reserved for future use; treat similarly to
 `INVALID_ENUM` above.
 
@@ -320,7 +320,7 @@ skmtc doctor --json
 ```
 
 The `project-core-pin/<project>` check identifies the mismatch and
-emits the canonical fix in its `hint` field.
+provides the canonical fix in its `hint` field.
 
 ## CLI exit codes
 
@@ -351,7 +351,7 @@ paths:/users:post:requestBody:content:application/json:schema:properties:email
 ```
 
 Each segment is one level deeper in the OAS document. The
-`StackTrail` accumulates as the parser descends; on issue emission,
+`StackTrail` accumulates as the parser descends; on issue logging,
 the current trail is stringified.
 
 ## Common questions

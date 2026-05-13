@@ -90,7 +90,7 @@ No rebundle needed — `client.json` is runtime config.
 
 ## Verification
 
-Inspect the emitted file for the operation you customized. The
+Inspect the generated file for the operation you customized. The
 new title/label/etc. should appear in the output. If it doesn't,
 either:
 

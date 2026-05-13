@@ -51,9 +51,9 @@ resolved version. Re-running `skmtc generate` will pick it up.
 ## Verification
 
 After install, generate once and inspect a representative output
-file. If the generator emits per-schema files (`gen-zod`,
+file. If the generator produces per-schema files (`gen-zod`,
 `gen-typescript`), look for `src/generated/<Schema>.generated.ts`.
-If it emits per-operation files (`gen-msw`, `gen-tanstack-*`),
+If it produces per-operation files (`gen-msw`, `gen-tanstack-*`),
 look for `src/generated/<Tag>/<operation>.generated.ts`.
 
 ## Troubleshooting

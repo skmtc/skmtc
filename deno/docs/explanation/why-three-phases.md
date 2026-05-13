@@ -62,9 +62,9 @@ for the full mechanism.
 
 Generate's complexity isn't in walking the model — that's
 straightforward iteration. It's in **coordinating multiple
-generators that may both want to emit the same name in the same
+generators that may both want to produce the same name in the same
 file**. The phase has to support this because the form generator
-needs the same Zod schema the validation generator emits, and
+needs the same Zod schema the validation generator produces, and
 both should converge on one definition.
 
 ### Render: serialization
@@ -72,7 +72,7 @@ both should converge on one definition.
 The Render phase walks the file map produced by Generate and
 serializes each `File` to a string. Its invariant: **no
 business logic, just traversal**. Render reads what Generate
-emitted and writes it out; it doesn't make decisions about what
+produced and writes it out; it doesn't make decisions about what
 the output should be.
 
 This separation lets Render be tested in isolation (pure
@@ -81,7 +81,7 @@ input/output), kept simple (no decisions to make), and reused
 target).
 
 The Render phase notably does **not** run Prettier or any other
-formatter. The pipeline emits unformatted (but syntactically
+formatter. The pipeline renders unformatted (but syntactically
 valid) TypeScript; consumers run their own formatter as a
 post-generation step. (See [the operational principles in
 llms.md](../llms.md) for the load-bearing fact.)
@@ -91,9 +91,9 @@ llms.md](../llms.md) for the load-bearing fact.)
 ### Combining Parse + Generate
 
 If Parse and Generate were one phase, parse errors would surface
-*during* emission. Generator code would need to handle "this
+*during* rendering. Generator code would need to handle "this
 operation's schema failed to parse" mid-`toString()` — turning
-every emission point into an error-handling site.
+every render point into an error-handling site.
 
 Worse: the parsed model wouldn't be a stable artifact. Each
 generator would receive a different view depending on what had
@@ -107,14 +107,14 @@ failures.
 
 ### Combining Generate + Render
 
-If Generate and Render were one phase, emission would happen
+If Generate and Render were one phase, rendering would happen
 during transform. The first generator's `toString()` would run
 before the second generator's `transform` had a chance to
 contribute imports or sibling definitions.
 
 This breaks idempotency in a specific way: **the order in which
 `toString()` is called determines what each Projection sees**. If
-Generator A emits before Generator B has added an import,
+Generator A renders before Generator B has added an import,
 Generator A's output is missing that import. The result depends
 on iteration order.
 
@@ -174,7 +174,7 @@ boundaries.
 
 Theoretically: each phase could be replaced independently. A
 different Parse phase could ingest GraphQL the way OAS is ingested
-today. A different Render phase could emit JSON instead of TS.
+today. A different Render phase could render JSON instead of TS.
 The three-way split makes such swaps a single-phase concern, not
 a system-wide rewrite.
 
@@ -193,5 +193,5 @@ matters — it means SKMTC isn't locked to OAS+TS forever.
   how Parse's leniency cascades into Generate
 - [Design philosophy](design-philosophy.md) — the broader
   principles
-- [API: toArtifacts](../api/to-artifacts.md) — the function that
+- [API: toArtifacts](../reference/api/to-artifacts.md) — the function that
   orchestrates all three phases

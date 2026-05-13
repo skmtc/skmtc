@@ -45,7 +45,7 @@ Disable interactive prompts. Required in non-TTY environments.
 
 ### `--json`
 
-Emit JSON output. Implies `--no-input`.
+Write JSON output to stdout. Implies `--no-input`.
 
 ## Behavior
 
@@ -192,7 +192,7 @@ resolve: { alias: { '@': '/mobile-app/src' } }
 ```
 → `basePath: "mobile-app/src"`
 
-Generators emit paths like `@/forms/CreateUserForm.generated.tsx`.
+Generators produce paths like `@/forms/CreateUserForm.generated.tsx`.
 At runtime the bundler resolves `@/...` to the alias root. On disk,
 SKMTC writes to `<basePath>/forms/CreateUserForm.generated.tsx`. For
 these to match, the two paths must point at the same directory.

@@ -32,7 +32,7 @@ The phases share a `StackTrail` (for location tracking in diagnostics) and a `Lo
 
 ## Why three phases?
 
-You could imagine fewer or more. Single-phase ("everything in one pass") is what most simple codegen tools do. Two-phase ("parse and emit") is the next step up. Three-phase is where SKMTC settles, and the reasons are concrete:
+You could imagine fewer or more. Single-phase ("everything in one pass") is what most simple codegen tools do. Two-phase ("parse and render") is the next step up. Three-phase is where SKMTC settles, and the reasons are concrete:
 
 **Parse is separate because** the parse-time error model is fundamentally different from generate-time. Parsing tolerates partial failure (one bad schema doesn't kill the run; it produces a `ParseIssue` and prunes downstream consumers). Generate is permitted to assume everything in `parsedDocument` is valid. Combining the two would force every generator to defensively handle malformed schemas.
 
@@ -146,7 +146,7 @@ The Generate phase can iterate `oasDocument.operations` and trust every operatio
 
 ## Phase 2: Generate
 
-**Purpose:** Walk the parsed document with the configured generators, producing an in-memory map of files-to-emit.
+**Purpose:** Walk the parsed document with the configured generators, producing an in-memory map of files-to-render.
 
 **Input:** `SkmtcParsedDocument`, `ClientSettings`, `toGeneratorConfigMap()` (provides the registered generators).
 
@@ -173,7 +173,7 @@ generators.forEach(generatorConfig => {
 })
 ```
 
-Inside each `#run*Generator`, the per-item loop iterates operations or refNames, applies item-level filters, calls the generator's `isSupported({ operation })` capability gate, then calls `generatorConfig.transform({ context, operation, acc })`. The transform is where the generator emits its output — but not by returning strings (its return value is discarded). Instead, the transform calls `context.insertOperation(MyProjection, op)` or `context.insertNormalisedModel(MyProjection, args)`, which delegate to Drivers.
+Inside each `#run*Generator`, the per-item loop iterates operations or refNames, applies item-level filters, calls the generator's `isSupported({ operation })` capability gate, then calls `generatorConfig.transform({ context, operation, acc })`. The transform is where the generator produces its output — but not by returning strings (its return value is discarded). Instead, the transform calls `context.insertOperation(MyProjection, op)` or `context.insertNormalisedModel(MyProjection, args)`, which delegate to Drivers.
 
 ### The Driver lifecycle
 
@@ -266,7 +266,7 @@ const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): Fil
 
 A `grep` for `prettier.format` across `@skmtc/core` returns zero hits. No formatter — Prettier, Biome, `deno fmt`, or otherwise — runs inside the pipeline. **Generated output is unformatted.** Consumers run their own formatter as a separate step (typically a pre-commit hook or build script).
 
-This is a deliberate architectural choice, not an omission: formatting is the consumer's concern. Generators emit syntactically valid TypeScript and trust the consumer's toolchain to handle aesthetics.
+This is a deliberate architectural choice, not an omission: formatting is the consumer's concern. Generators produce syntactically valid TypeScript and trust the consumer's toolchain to handle aesthetics.
 
 ### Output structure
 
@@ -287,7 +287,7 @@ The three-phase model encodes several invariants that other code relies on:
 
 3. **The Worker boundary aligns with the parse-safety boundary.** OAS gets converted to v3 host-side (so the clone-safe JSON crosses cleanly), then parsed worker-side. GraphQL SDL stays a string until inside the worker. The asymmetry is forced by `structuredClone`'s inability to handle class instances with cyclic back-references.
 
-4. **The Worker boundary is also the security boundary.** Generators run sandboxed (no network, no subprocess). The host handles disk I/O outside the sandbox. The three-phase model maps cleanly onto this: parse and generate (in the worker) trust nothing from the host; persist (on the host) trusts only the artifact paths and contents that the worker emitted.
+4. **The Worker boundary is also the security boundary.** Generators run sandboxed (no network, no subprocess). The host handles disk I/O outside the sandbox. The three-phase model maps cleanly onto this: parse and generate (in the worker) trust nothing from the host; persist (on the host) trusts only the artifact paths and contents that the worker returned.
 
 ## Common questions
 
@@ -321,6 +321,8 @@ Yes — this is the common case. The form generator and the Tanstack Query gener
 
 ## Further reading
 
+- [How generators produce output](how-generators-produce-output.md) — the dispatcher loop and the pull-based Projection model.
+- [Files, deduplication, and integrity](files-and-dedup.md) — what Drivers register into, and the `generatorKey` integrity check on top.
 - [The Worker runtime](the-worker-runtime.md) — what happens at the worker boundary.
 - [Cross-generator coordination](cross-generator-coordination.md) — the cache mechanism in depth.
 - [Error handling philosophy](error-handling-philosophy.md) — the manifest as canonical run record.

@@ -122,9 +122,18 @@ The `OasRef` instance holds a live reference to `parsedDocument`.
 Mutation of the document by later parser code is visible through
 this reference.
 
-This is the same pattern as lazy initialization in many languages
-— the consumer holds a "thunk" that knows how to look up its value
-when needed.
+This is the **empty-instance-issued-up-front** pattern: an empty
+`OasDocument` is constructed at the start of parse, refs capture a
+reference to that wrapper, the document is mutated in place at end
+of parse, and the refs now resolve through the populated fields.
+The pattern is applied symmetrically to `GqlDocument` for GraphQL
+inputs. Together they are what makes lazy resolution work without
+requiring two parse passes or strict topological ordering of
+components.
+
+See [error-handling-philosophy.md](error-handling-philosophy.md#1-empty-parsed-document-issued-at-construction-mutated-in-place)
+for the symmetric `GqlDocument` application and the related
+implementation choices.
 
 ## resolve() vs resolveOnce()
 
@@ -212,14 +221,25 @@ Two maps live on `ParseContext`:
 
 - **`#refConsumers: Map<refKey, StackTrail[]>`** — every `$ref`
   encounter calls `context.registerRef(stackTrail.clone(), $ref)`.
-  This builds the "who pointed at this ref?" inverse index.
+  This builds the "who pointed at this ref?" inverse index. The
+  `.clone()` is essential: trails are mutable, and an
+  un-cloned trail would mutate as the walk returned through parent
+  frames. See
+  [the-stack-trail.md](the-stack-trail.md#the-clone-on-store-rule)
+  for the full clone-on-store discussion.
 
 - **`#refErrors: Map<refKey, unknown[]>`** — when a parse error
   happens at a component position, `logIssueNoKey` auto-registers
   the error against the ref. This builds "what went wrong with this
   ref?"
 
-The two maps together feed cascade pruning.
+The two maps together feed cascade pruning. They share a key
+namespace (the `$ref` string) reached from two directions: ref
+encounters populate `#refConsumers` from the literal `$ref` in the
+document; error registration populates `#refErrors` from the
+*current trail* converted via `StackTrail.toStackRef()`. See
+[the-stack-trail.md](the-stack-trail.md#tostackref-the-address-bridge)
+for that address-bridging step.
 
 ## Cascade pruning
 
@@ -320,6 +340,8 @@ but Render doesn't touch it.
 
 - [The three phases](the-three-phases.md) — where refs are constructed and resolved
 - [Error handling philosophy](error-handling-philosophy.md) — the cascade-pruning model
+- [The StackTrail](the-stack-trail.md) — the position-stack that addresses ref consumers and bridges to `$ref` strings
+- [The type system](the-type-system.md) — how a model generator's `schemaToValueFn` handles `OasRef<'schema'>` alongside the schema variants
 - [API reference: oas-ref](../reference/api/oas-ref.md) — full method signatures
 - [API reference: oas-schema-variants](../reference/api/oas-schema-variants.md) — the schema union
 - [`skmtc-debug` skill](../skills/skmtc-debug/SKILL.md) — operational diagnosis of ref failures

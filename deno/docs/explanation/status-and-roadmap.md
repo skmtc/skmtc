@@ -144,7 +144,7 @@ In practice this means a single bad schema may leave some
 operations in a half-valid state: the schema is pruned, an
 operation referencing it has its parameter pruned, but a second
 operation that referenced the first via some transitive path may
-still try to emit and surface a confusing error.
+still try to render and surface a confusing error.
 
 **Mitigation:** the diagnostic stream surfaces all pruning
 events. Users should treat the *first* failure in a chain as the
@@ -169,7 +169,7 @@ likely remain "consumer's concern."
 
 If two generators independently produce a definition with the
 same `(name, exportPath)` key, **first writer wins**. The second
-is silently discarded. No diagnostic is emitted.
+is silently discarded. No diagnostic is logged.
 
 In practice this rarely surfaces (the per-generator identifier
 naming usually differs by entity type — value vs type). But the
@@ -227,7 +227,7 @@ commitments.
   formatter for users who don't want a separate Prettier step.
 - **Bundle size improvements** — tree-shaking generator code more
   aggressively.
-- **Better diagnostics for same-name collisions** — emit a
+- **Better diagnostics for same-name collisions** — log a
   warning when two generators converge on the same
   `(name, exportPath)` key.
 

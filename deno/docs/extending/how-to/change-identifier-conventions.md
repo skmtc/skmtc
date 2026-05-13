@@ -6,7 +6,7 @@
 
 ## When to use this
 
-You want the emitted identifiers to match your team's naming
+You want the generated identifiers to match your team's naming
 conventions instead of the stock generator's defaults.
 
 ## Prerequisites
@@ -39,7 +39,7 @@ toIdentifier: ({ refName }) => Identifier.createVariable(`${refName}Schema`)
 
 // For a type generator
 toIdentifier: ({ refName }) => Identifier.createType(refName)
-// → emitted as `export type User = ...` and imports as `import { type User }`
+// → rendered as `export type User = ...` and imports as `import { type User }`
 ```
 
 The `createVariable` vs `createType` choice determines:
@@ -71,7 +71,7 @@ skmtc generate my-project
 
 ## Verification
 
-Open an emitted file and check the declarations:
+Open an generated file and check the declarations:
 
 ```bash
 cat src/generated/Pet.generated.ts | head -3
@@ -89,8 +89,8 @@ it via `insertModel(...).toName()`, not by hardcoded reference.
   the recommended path. Direct construction works but is rarer
   (and easier to get wrong).
 - **Imports break under `verbatimModuleSyntax`** — A `type`
-  identifier emitted as `createVariable` (or vice versa) causes
-  TS errors. Audit which generators emit values vs types and
+  identifier registered as `createVariable` (or vice versa) causes
+  TS errors. Audit which generators produce values vs types and
   make sure each is right.
 - **Same identifier name across operations** — naming function
   isn't unique enough. Common bug: derivation from `operation.summary`

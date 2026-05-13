@@ -92,7 +92,7 @@ schema) follow automatically — they discover the path via
 
 ## Troubleshooting
 
-- **Other generators emit imports to the OLD path.** They're
+- **Other generators register imports to the OLD path.** They're
   reading from a stale bundle. Run `skmtc bundle my-project`
   again. `skmtc doctor` flags stale bundles.
 - **Same path produced for multiple schemas.** Your

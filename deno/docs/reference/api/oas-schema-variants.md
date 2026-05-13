@@ -237,7 +237,7 @@ When a generator encounters `OasUnknown`, the practical move is to
 either:
 
 - Skip it (the operation/field has incomplete typing)
-- Emit a generic fallback (e.g., `unknown` in TS, `z.unknown()` in
+- Render a generic fallback (e.g., `unknown` in TS, `z.unknown()` in
   Zod)
 
 ## Discriminator pattern
@@ -358,7 +358,7 @@ unions/unknown. New variants would be rare.
 
 Both map to `OasUnion` with the same shape. The distinction is
 sometimes preserved via metadata on the parent operation/parameter,
-but generators usually treat them the same — emit a TS union type
+but generators usually treat them the same — render a TS union type
 or Zod discriminated union.
 
 The OAS spec's intended semantic distinction (`oneOf` = exactly
@@ -371,7 +371,7 @@ Generators need to know "this schema couldn't be resolved to a
 specific type" vs "this property doesn't have a schema." Conflating
 them via `null` would lose that signal. `OasUnknown` is "we know
 there's a schema, we just don't know its shape" — a meaningful
-condition to handle (emit `unknown`, `any`, or `z.unknown()`).
+condition to handle (render `unknown`, `any`, or `z.unknown()`).
 
 ### Where does `OasRef<'schema'>` fit?
 

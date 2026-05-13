@@ -29,7 +29,7 @@ Disable interactive prompts.
 
 ### `--json`
 
-Emit JSON output. Implies `--no-input`.
+Write JSON output to stdout. Implies `--no-input`.
 
 ## Behavior
 

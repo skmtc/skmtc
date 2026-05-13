@@ -1,6 +1,6 @@
 # Multi-project monorepo
 
-> One repo, multiple SKMTC projects emitting into separate output
+> One repo, multiple SKMTC projects writing into separate output
 > directories — useful when you have several APIs or multiple
 > consumer apps with different generator combinations.
 

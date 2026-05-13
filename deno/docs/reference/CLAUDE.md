@@ -7,10 +7,14 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20878 | 1:26 PM | ✅ | Glossary entry corrected for RenderContext removing prettierConfig confusion | ~426 |
-| #20792 | 12:10 PM | ✅ | Expanded glossary with comprehensive term definitions | ~1092 |
-| #20791 | 12:09 PM | ✅ | Comprehensive error codes reference documentation | ~861 |
-| #20790 | " | ✅ | Complete manifest.json format reference documentation | ~486 |
-| #20729 | 10:03 AM | ✅ | Created error codes reference skeleton | ~546 |
-| #20728 | " | ✅ | Reference skeleton for manifest.json format | ~409 |
+| #21073 | 8:56 PM | ✅ | Glossary expanded with core generation concepts | ~257 |
+| #21063 | 8:36 PM | ✅ | Cleaned up synthesizeArgsObject glossary entry | ~354 |
+| #21062 | " | ✅ | Expanded Snippet glossary entry and added synthesizeArgsObject entry | ~452 |
+| #21052 | 8:10 PM | ✅ | Added modelDepth glossary entry documenting recursive type detection mechanism | ~594 |
+| #21049 | 7:57 PM | ✅ | Glossary expanded with manifest contents and mapping definition | ~350 |
+| #21046 | 7:56 PM | ✅ | Glossary entries enhanced for manifest results system | ~456 |
+| #21045 | " | 🟣 | Added Preview (manifest) glossary entry | ~446 |
+| #21044 | " | ✅ | Glossary Enrichment Documentation Enhanced | ~386 |
+| #21026 | 7:28 PM | ✅ | Comprehensive glossary expansion with 16 new entries and major improvements | ~769 |
+| #20770 | 11:44 AM | ✅ | Standardized codebase spelling from mixed UK/US English to consistent US English | ~605 |
 </claude-mem-context>

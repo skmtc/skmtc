@@ -113,6 +113,63 @@ See [Projections and Snippets](../concepts/projections-and-snippets.md).
 
 See [The worker runtime](../concepts/the-worker-runtime.md) and [The GraphQL asymmetry](the-graphql-asymmetry.md).
 
+### 7. Types and runtime validators stay in lockstep via compile-time drift checks
+
+> Every TS union with a paired Valibot schema gets a compile-time
+> binding that fails if the two diverge. Adding a variant to one
+> without the other is a type error.
+
+SKMTC uses Valibot for runtime validation of the manifest, parse
+issues, settings, and generator configs. Each Valibot schema has
+a TypeScript counterpart (a discriminated union or literal type)
+that consumers narrow against. The two must agree — a runtime
+schema rejecting a value the TS type permits is a silent corruption
+of the manifest contract; the reverse is dead branches in code.
+
+The pattern: an unread binding asserts the schema satisfies the
+type.
+
+```ts
+// core/context/generateTypes.ts:208-209
+const _oasIssueTypeDriftCheck: v.GenericSchema<OasIssueType> = oasIssueType
+void _oasIssueTypeDriftCheck
+```
+
+The `_oasIssueTypeDriftCheck` variable is never read. Its only
+purpose is to fail compile if `OasIssueType` (the TS union) and
+`oasIssueType` (the Valibot schema) drift. Adding a variant to
+one without the other produces a type error at this line.
+
+#### Where it appears
+
+- `OasIssueType` ↔ `oasIssueType` (`generateTypes.ts:208-209`)
+- `GqlIssueType` ↔ `gqlIssueType` (`ParseIssue.ts:72-73`)
+- The Manifest schema and its TS counterparts
+- The Settings schema and its TS counterparts
+- The Preview / Mapping source-descriptor unions
+
+#### What this means for contributors
+
+An "unused" `_driftCheck` binding is not unused. Removing one
+breaks the contract that lets the manifest validate. AI agents in
+particular are prone to "tidying up" unused bindings; the comment
+on each `_driftCheck` calls out the role to discourage that.
+
+When adding a new variant to a Valibot schema *or* to the TS type
+it pairs with, look for the drift-check binding and update both
+sides. The compile error at the drift-check line is the surface
+that catches the omission.
+
+#### Consequences
+
+- Manifest validation cannot silently corrupt — schema and type
+  stay aligned.
+- New issue types, settings fields, or preview kinds need
+  coordinated edits to both sides (small friction, big payoff).
+- Reading SKMTC code, expect to see paired `someType` (TS) /
+  `someTypeSchema` (Valibot) / `_someTypeDriftCheck` (unread
+  binding) trios. The trio is the unit.
+
 ## Tradeoffs accepted
 
 Each principle has a cost. These are the costs SKMTC accepts to get the properties above. Naming them explicitly so contributors and AI assistants can recognize when a principle is being tested.
@@ -135,7 +192,7 @@ Each generate is from cold. Acceptable at typical schema sizes (hundreds of oper
 
 ### Format is the consumer's problem
 
-SKMTC emits valid but unformatted TypeScript. Consumers need a formatter step (pre-commit hook, build script).
+SKMTC produces valid but unformatted TypeScript. Consumers need a formatter step (pre-commit hook, build script).
 
 ### Workers can't reach the network
 

@@ -58,7 +58,7 @@ The Snippet's `toString()` produces just the JSX for one field.
 ### Register the field's import
 
 The Snippet's constructor (or a `register` call from its parent)
-needs to emit the import for the consumer-side component:
+needs to register the import for the consumer-side component:
 
 ```ts
 constructor(...) {
@@ -100,12 +100,12 @@ fallbacks. Order matters — first match wins.
 
 ### Implement the consumer-side field component
 
-The Snippet emits a JSX reference; the actual `<DatePicker />`
+The Snippet produces a JSX reference; the actual `<DatePicker />`
 component needs to exist on the consumer side. Either add it to
 your component library, or import an existing one (e.g.,
 `react-day-picker`).
 
-The generator doesn't emit this component — it's user code.
+The generator doesn't produce this component — it's user code.
 
 ### Rebundle and regenerate
 

@@ -63,7 +63,7 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 1. **No plugin registry, no dependency graph, no topological sort.** Cross-generator coordination is a `Map<(name, exportPath), Definition>` cache. Generator order does not affect output.
 
-2. **Render does not run Prettier or Biome.** No formatter runs inside `@skmtc/core`. Output is whatever generators emitted. Consumers format their own output as a post-generation step.
+2. **Render does not run Prettier or Biome.** No formatter runs inside `@skmtc/core`. Output is whatever generators produced. Consumers format their own output as a post-generation step.
 
 3. **Generator source code is the customization surface.** Stock generators have hardcoded export paths and peer imports (`gen-shadcn-form/src/ShadcnForm.ts:1` hardcodes `import { TanstackQuery } from '@skmtc/gen-tanstack-query-supabase-zod'`). To customize beyond enrichments: `skmtc clone` and edit.
 
@@ -83,7 +83,7 @@ These overrides exist because well-intentioned TS conventions frequently break S
 |---|---|---|
 | Add a config flag to make X customizable | `skmtc clone` the generator and edit | Customization is via source code, not configuration |
 | Add a plugin API for extensibility | Generators coordinate via memoization; there is no plugin registry | Cross-generator coordination is a `Map` cache keyed by `(name, exportPath)` |
-| Run Prettier or Biome in the pipeline | Don't — emit valid TS and stop | Format is the consumer's concern; pipeline emits unformatted output by design |
+| Run Prettier or Biome in the pipeline | Don't — produce valid TS and stop | Format is the consumer's concern; pipeline renders unformatted output by design |
 | Provide a runtime client library | Output is committed source code | Zero SKMTC runtime in consumer bundles; generated files are reviewed via git |
 | Fail closed on bad schema input | Fail open, log `ParseIssue`s, prune dependents via `removeErroredItems` | One bad schema mustn't kill the run; manifest is the canonical record |
 | Templates as `.hbs` / `.mustache` files | Templates as template literals inside TypeScript classes | Type safety on interpolated values; full IDE refactoring |
@@ -96,9 +96,9 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Concatenate strings to build output | Template-literal interpolation with `${...}` | Composes with any `Stringable`; preserves Snippet recursion |
 | Add defensive `if (!already-registered)` around `register` calls | Just call `register` | Already idempotent via Set / Map semantics |
 | Mutate `this` inside `toString()` | Set state in the constructor; `toString()` must be pure | May be called multiple times (previews, integrity checks) |
-| Read another generator's emitted source | Coordinate by *identifier name*, not source text | Use `insertOperation(Other, op).toName()` |
+| Read another generator's rendered source | Coordinate by *identifier name*, not source text | Use `insertOperation(Other, op).toName()` |
 | Return content from `transform({ context, operation })` | Use `register({ definitions, ... })` or `insertOperation` | Return value is folded into `acc` and discarded |
-| Emit `import` statements inside template literals | Register imports via `this.register({ imports, destinationPath })` | Bypasses dedup; emits inside file body not header |
+| Write `import` statements inside template literals | Register imports via `this.register({ imports, destinationPath })` | Bypasses dedup; lands inside file body not header |
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Mock a database in tests | Use real Supabase / real DB | Project convention — mocked tests previously masked production bugs |
@@ -149,7 +149,7 @@ Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 - **Not a templating engine.** Template literals inside TS classes, not Mustache/Handlebars/EJS files.
 - **Not a plugin framework with a registry.** Generators are JSR packages or local TS files listed in `deno.json#imports`.
 - **Not configurable like most codegen tools.** Customization model is *clone the source*, not *pass a flag*.
-- **Not multi-language.** Stock generators emit TS/TSX.
+- **Not multi-language.** Stock generators produce TS/TSX.
 - **Not always local.** `GenerateArtifacts.generateWithSandboxApi` posts to a remote service; default is local Worker.
 
 ---
@@ -395,7 +395,7 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 | Local generate | `lib/generate-local.ts` |
 | Worker spawn + protocol | `lib/generate-worker.ts` |
 | Worker package | `../worker/mod.ts` |
-| Worker.ts template emitter | `lib/to-worker.ts` |
+| Worker.ts template renderer | `lib/to-worker.ts` |
 | Bundle implementation | `tasks/GenerateBundleTask.tsx` |
 | Bundle freshness check | `lib/bundle-freshness.ts` |
 | Agent context dump | `commands/agent-context.ts` |
@@ -431,7 +431,7 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 
 | Anti-pattern | Why it fails |
 |---|---|
-| Emitting strings outside `toString()` | File not in `context.#files`; invisible to coordination and persistence |
+| Writing strings outside `toString()` | File not in `context.#files`; invisible to coordination and persistence |
 | Returning content from `transform()` | Return value is folded into `acc` and discarded |
 | Raw `import` statements in template literals | Import lands in body not header; TS rejects; bypasses dedup |
 | Hardcoded identifier names | Breaks cache-key uniqueness |
@@ -504,7 +504,7 @@ Self-contained playbooks. Read only the one you need.
 3. Per-operation results in manifest: `'success' | 'notSupported' | 'skipped' | 'error'`.
 4. No output for an operation: check `isSupported`, `skip`/`include`, schema shape.
 5. Wrong output: bug is in the generator; clone for inspection.
-6. Module not found: stock generators emit consumer-side import paths; either implement those modules or clone the generator.
+6. Module not found: stock generators render consumer-side import paths; either implement those modules or clone the generator.
 
 #### Updating a schema and regenerating
 
@@ -584,7 +584,7 @@ If you see `Registered definition mismatch: 'X' in file 'Y'`:
 
 #### Inspecting project state for an AI agent
 
-`skmtc agent-context --json` emits a structured dump:
+`skmtc agent-context --json` produces a structured dump:
 - Available commands and their descriptors
 - Installed generators and their versions
 - Settings and source pinning

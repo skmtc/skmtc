@@ -6,8 +6,8 @@
 
 The CLI is the orchestration layer around the [engine](../api/to-artifacts.md).
 It bootstraps projects, manages generator installation, runs the
-worker, and reports diagnostics. Every command emits structured JSON
-output behind `--json` so agents can consume it programmatically.
+worker, and reports diagnostics. Every command writes structured
+JSON output behind `--json` so agents can consume it programmatically.
 
 ## Synopsis
 
@@ -44,7 +44,7 @@ The CLI is installed via Deno's `install` mechanism, then invoked as
 | Command | Purpose | Reference |
 |---------|---------|-----------|
 | `doctor` | Diagnose project setup issues | [doctor](doctor.md) |
-| `agent-context` | Emit a structured project state dump for AI agents | [agent-context](agent-context.md) |
+| `agent-context` | Write a structured project state dump for AI agents | [agent-context](agent-context.md) |
 
 ## Shared flags
 
@@ -59,7 +59,7 @@ isn't possible or desirable.
 
 ### `--json`
 
-Emits structured JSON to stdout instead of human-readable text.
+Writes structured JSON to stdout instead of human-readable text.
 
 **Implies `--no-input`** — JSON output is incompatible with
 interactive prompting (a prompt would corrupt the JSON stream).
@@ -132,7 +132,7 @@ workspace-root/
 The `.skmtc/` directory is the CLI's working area. Each subdirectory
 is a separate "project" — a logical bundle of generators applied to
 one spec. Most workspaces have one project; multi-project workspaces
-exist when one repo emits multiple sets of artifacts.
+exist when one repo produces multiple sets of artifacts.
 
 ## Configuration files
 

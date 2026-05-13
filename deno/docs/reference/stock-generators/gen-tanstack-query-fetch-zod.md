@@ -1,6 +1,6 @@
 # @skmtc/gen-tanstack-query-fetch-zod
 
-> Emit Tanstack Query hooks (`useQuery`, `useMutation`) with `fetch`
+> Produce Tanstack Query hooks (`useQuery`, `useMutation`) with `fetch`
 > as the transport and Zod for runtime validation.
 
 An operation generator. Composes with `@skmtc/gen-zod` for typed
@@ -32,7 +32,7 @@ export const useCreateUser = () =>
 ```
 
 The `user`/`userBody` Zod schemas come from `gen-zod` via
-`insertNormalizedModel` — both generators share a single emitted
+`insertNormalizedModel` — both generators share a single registered
 schema.
 
 ## Key decisions
@@ -58,7 +58,7 @@ schema.
   check (`Boolean(operation.toRequestBody(...))`) shows how to gate
   generation on operation shape, not just method.
 - **Composing with model generators.** The hooks reference Zod
-  schemas the form generator also references — the engine emits
+  schemas the form generator also references — the engine produces
   each schema once, with both generators contributing imports.
   This is the cross-generator coordination story in practice.
 - **Per-method dispatch in the Projection.** GET → query,
@@ -70,7 +70,7 @@ schema.
 - **Swap `fetch` for a custom wrapper.** The most common edit. Your
   team's `apiFetch` likely handles auth, retries, and base URL —
   replace the literal `fetch(...)` calls.
-- **Customize base URL handling.** The stock emits relative paths;
+- **Customize base URL handling.** The stock produces relative paths;
   most teams want a base-URL prefix (env-driven, or threaded
   through deps).
 - **Add error handling.** The stock throws raw fetch errors. Add

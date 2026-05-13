@@ -5391,4 +5391,186 @@ docs/reference/stock-generators/overview.md.
 
 **Version anchor:** stock generators `@skmtc/gen-*@0.0.57`
 
+---
+
+## Session summary
+
+This friction log covers a verification pass across the SKMTC
+documentation surface against the actual source code (engine, CLI,
+stock generators). It was conducted across multiple rounds with a
+parallel fixer agent resolving findings in real time. **62 entries
+logged.**
+
+### By severity
+
+| Severity | Count | What it means |
+|---|---:|---|
+| **blocker** | 14 | First-touch failure or fictional API the user copy-pastes verbatim |
+| **friction** | 33 | Workaround exists; user wastes cycles |
+| **polish** | 14 | Annoying, low-priority |
+| **meta** | 1 | #53 — behavioral aspirations cluster |
+
+Verified-fixed by the parallel fixer agent during the session: #16,
+#27, #34, #48, #62 (plus additional in the discrepancy catalog).
+
+### Highest-impact findings (top 8, in order)
+
+1. **#61 — JSR READMEs broken at every Quick Start step**
+   (`core/README.md` + `cli/README.md`). `npx skmtc` doesn't work
+   (SKMTC is Deno, not npm). Two fictional generator names. Example
+   code with wrong base class and `${undefined}.parse(data)` typo.
+   **The first impression every SKMTC discoverer gets is broken.**
+
+2. **#44 — Doctor reference doc lists 12 check IDs; only 6 exist.**
+   9 of 12 are fabricated. Affects every CI integration and
+   agent-side error-handling pattern.
+
+3. **#39 — `skmtc-generator` SKILL Projection scaffold returns
+   `export const ...` from `toString()`**, producing duplicate
+   `export const` in every generated file. Every AI-assisted
+   generator-authoring session would inherit this bug.
+
+4. **#58 — gen-zod / gen-valibot READMEs show PascalCase identifiers
+   (`export const User`); actual is lowercase**. Plus stale CLI
+   install version `@0.0.405` (actual: `@0.2.2`). JSR-visible, broken
+   on copy-paste.
+
+5. **#47 + #48 — `list` and `remove` JSON output specs are entirely
+   fictional**. Two consecutive CLI reference docs with completely
+   invented output shapes; agents writing tooling against the docs
+   produce always-null queries.
+
+6. **#28 + #29 — `recipes/full-stack-typescript-app.md` and
+   `recipes/api-mocks-for-frontend.md`** — fictional output trees
+   and the `toRoutesList(deps)` API the engine doesn't have. Six
+   distinct fabrications in ~150 lines of recipe.
+
+7. **#1 + #2 — `gen-shadcn-select` and `gen-shadcn-table` reference
+   docs** — show plausible JSX that doesn't match the actual
+   emission (Combobox claim vs Select reality; hand-rolled Table
+   vs DataTable wrapper). Misleads cloners about what they're
+   cloning.
+
+8. **#25 + #26 + #37 — Manifest-shape confusion across three docs**.
+   Every `jq '.manifest.diagnostics' ...` recipe returns null
+   because the stdout JSON has flat structure, not nested under
+   `.manifest`.
+
+### Recurring clusters
+
+Fabrications appearing across many independent docs — usually 3+
+sites each. Where a cluster spans many docs, the parsimonious
+explanation is "code should change to match what the docs
+collectively imagine" — captured in **#53 (meta)**.
+
+| Cluster | Sites | Recommended action |
+|---|---:|---|
+| **Behavioral aspirations** (#53) | various | **Code change** — implement what docs expect |
+| `'const'` vs `'variable'` discriminator (BULK-013) | 5+ docs | Single sweep |
+| `isType: boolean` vs `type: EntityTypeValue` (BULK-020) | 4+ docs | Single sweep |
+| `entityType` is a class, not a literal (#52) | 3+ docs | Single sweep |
+| `extends ModelProjectionBase` directly (BULK-008) | 12+ docs | Sweep |
+| `toEnrichmentSchema` listed as a class static | 4+ docs | Single sweep |
+| Manifest two-JSON-shapes confusion | 5+ docs | Add callout to manifest-format.md |
+| `toRoutesList(deps)` fictional API | 5+ docs | **Code change** |
+| `@local/` namespace fictional | 3+ docs | Walk-back |
+| Agent-context rich shape | 3+ docs | **Code change** |
+| Stale `@skmtc/cli@0.0.405` install version | 4+ READMEs | Single sweep |
+| Doctor check IDs (#44) | doctor.md | 9 of 12 fabricated |
+| Generator status table understates shipping | 3 docs | **Auto-generate from source** |
+| CLAUDE.md drift | 6+ files | Sweep |
+
+### Coverage summary
+
+**Probed:**
+- Reference: CLI per-command (init, create, clone, install, list,
+  remove, generate, bundle, dev, doctor, agent-context)
+- Reference: API (generate-context, projection-bases, dsl-identifier,
+  dsl-import, dsl-definition, oas-schema-variants, oas-document-model,
+  oas-ref, parse-context, render-context, content-settings)
+- Reference: settings (client-json-schema, enrichments-shape,
+  source-resolution)
+- Reference: stock-generators (all 14 individual + overview)
+- Reference: manifest-format, error-codes (partial), glossary
+- Concept docs: all 11
+- Explanation docs: graphql-asymmetry, security-model, comparison,
+  why-three-phases, how-idempotency, design-philosophy,
+  status-and-roadmap, why-clone-to-customize
+- Skills: skmtc-cli, skmtc-generator, skmtc-debug
+- Tutorials: 3 using + 3 extending
+- How-tos: 7 using + 6 extending
+- Recipes: 3 using + 2 extending
+- CLAUDE.md cluster: 6 files
+- llms.md
+- Per-generator: zod, valibot, typescript READMEs
+- Top-level: skmtc, skmtc-generators, JSR-published core + cli
+  READMEs
+
+**Not probed** (low expected yield):
+- `skmtc-retro` SKILL (user excluded)
+- `error-codes.md` full enumeration (partial via DISC-010)
+- Per-generator stub READMEs (6-line content)
+- Most per-generator CLAUDE.md files (10-line claude-mem stubs)
+
+### Structural observations
+
+Beyond per-finding fixes, four patterns warrant engineering-level
+attention:
+
+1. **Auto-generation from source.** Most drift in this log involves
+   surfaces that could be machine-derived: CLI command flags, JSON
+   output shapes, generator catalogs, doctor check IDs, manifest
+   field shapes. Manual doc-writing of these surfaces ensures
+   drift. Candidates:
+   - Doctor's check-ID table → derive from `id:` strings in
+     `doctor-headless.ts`.
+   - Generator catalog → derive from `skmtc-generators/` directory.
+   - CLI flag descriptions → derive from Cliffy command definitions
+     in `cli/mod.ts`.
+   - JSON output schemas → export TypeScript types from headless
+     functions; render docs from those.
+
+2. **The CLAUDE.md channel is an unmanaged second-class doc.** Doc
+   cleanup passes consistently miss `CLAUDE.md` files even though
+   they're the primary agent-context channel. Six entries this
+   session involve `CLAUDE.md` drift. Adopt a lint that flags
+   CLAUDE.md content against the source files it shadows.
+
+3. **Behavioral aspirations should drive a feature backlog (#53).**
+   When the same fabrication appears across 3+ doc writers
+   independently, the parsimonious read is "the engine surface is
+   missing what users naturally expect." Walking docs back loses
+   that design signal. The cluster identifies seven concrete
+   feature requests.
+
+4. **JSR-visible content needs separate review discipline.** The
+   blocker findings #58 and #61 live in READMEs that ship to JSR
+   alongside the package. They have a different deployment lifecycle
+   and have evidently not been touched in coordinated cleanup
+   passes.
+
+### Recommendation for next steps
+
+In order of impact:
+
+1. **Fix #61 first.** Highest blast radius — every JSR discoverer
+   hits it.
+2. **File the behavioral-aspirations items from #53 as feature
+   requests**, prioritized by multiplicity (A: `toRoutesList(deps)`,
+   B: agent-context rich shape, C: list source classification).
+3. **Run a single cleanup pass for the EntityType refactor cluster**
+   (BULK-013 + BULK-020 + #50 + #51 + #52 + #57). All trace to one
+   incomplete refactor.
+4. **Audit-and-fix the manifest-shape cluster** (#25, #26, #37,
+   #40, #56) — primarily by adding the "two JSON shapes" callout
+   to `manifest-format.md`.
+5. **Adopt at least one auto-generation surface** — doctor check
+   IDs from source is the easiest first step.
+
+The friction log itself is the source-of-truth artifact for this
+work — each entry has a verification command so progress can be
+re-checked after fixes land.
+
+— end of session
+
 **Status:** verified-fixed 2026-05-12 — Updated the generator-status tables in both `skmtc/README.md` (lines 41–53) and `skmtc-generators/README.md` (lines 6–18) to reflect actual shipping state. All 9 previously-misclassified generators moved from `🏗️ Soon` / `🧪 Later` to `🚀 Now` (gen-arktype, gen-valibot, gen-msw, gen-supabase-hono, gen-tanstack-query-fetch-zod, gen-tanstack-query-supabase-zod, gen-shadcn-form, gen-shadcn-select, gen-shadcn-table) — each verified via `ls skmtc-generators/` and a `deno.json` version of `0.0.57`. Added the 7 missing generators (gen-express, gen-daisyui-form, gen-graphql-operation, gen-graphql-typed-document-node, gen-reapit-form, gen-reapit-graphql-client, gen-reapit-multi-select, gen-reapit-searchable-dropdown) — that's actually 8 entries since I split the GraphQL pair, bringing the table to 19 rows matching the 19 directories under `skmtc-generators/`. Closes the under-promising completeness gap class (#7 sibling) for the two README tables; `docs/reference/stock-generators/overview.md` was already fixed in an earlier round.

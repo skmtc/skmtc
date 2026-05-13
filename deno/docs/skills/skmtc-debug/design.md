@@ -211,9 +211,9 @@ the typical root cause:
 
 - Run `skmtc generate <project> --typecheck`. TS errors are scoped to
   this run's files.
-- Map each TS error back to the generator source that emitted the
+- Map each TS error back to the generator source that produced the
   offending line. Common patterns:
-  - "Module not found": stock generator emitted a path the consumer
+  - "Module not found": stock generator produced a path the consumer
     hasn't implemented; check `register({ imports: ... })`
   - Type mismatch: schema → DSL conversion produced a Zod schema with
     different shape than the TS type; check `insertNormalizedModel`
@@ -334,7 +334,7 @@ Open question: should the debug skill *itself* prompt for retro
 capture before ending? Could be: "before we close out, is there
 anything worth logging?" This couples debug to retro in a useful way.
 
-### Should debug emit structured output?
+### Should debug produce structured output?
 
 For agents (not humans), structured output may be valuable. The
 manifest is already structured; a debug skill could produce

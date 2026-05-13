@@ -95,7 +95,7 @@ identifies what it is.
 ```
 
 The TypeScript classes (`OasOperation`, `OasParameter`, etc.)
-exist host-side, but the *data* the parser emits is structural —
+exist host-side, but the *data* the parser produces is structural —
 plain objects with discriminators. This data is fully cloneable.
 
 Inside the Worker, the engine rewraps the cloned data into class
@@ -248,6 +248,10 @@ engine staying readable and maintainable.
 
 ## See also
 
+- [The GraphQL pipeline concept](../concepts/the-graphql-pipeline.md) —
+  what happens *after* the parse: type-mapping rules, the
+  shared `OasSchema` vocabulary, scalar handling, operation
+  generator patterns
 - [The worker runtime concept](../concepts/the-worker-runtime.md) —
   the broader Worker boundary discussion
 - [Why three phases](why-three-phases.md) — Parse/Generate/Render

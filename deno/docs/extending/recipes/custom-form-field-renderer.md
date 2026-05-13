@@ -6,7 +6,7 @@
 
 ## What you'll build
 
-A cloned form generator that emits `<DatePicker />` instead of
+A cloned form generator that produces `<DatePicker />` instead of
 `<Input type="date">` whenever a request-body property has
 `format: 'date'` or `format: 'date-time'`. The full flow:
 clone → Snippet → dispatch → consumer component → regenerate.
@@ -81,7 +81,7 @@ export class DatePickerInput extends SnippetBase {
 }
 ```
 
-The Snippet's `register` call emits the `DatePicker` import into
+The Snippet's `register` call adds the `DatePicker` import into
 the form file. The `toString()` produces the JSX inline.
 
 ### Dispatch in `schemaToField`
@@ -118,7 +118,7 @@ above the generic ones.
 
 ### Implement the consumer-side `DatePicker` component
 
-The Snippet emits `<DatePicker />`. That component has to exist
+The Snippet produces `<DatePicker />`. That component has to exist
 in the consumer app:
 
 ```tsx
@@ -143,7 +143,7 @@ export const DatePicker = ({ value, onChange }: Props) => {
 }
 ```
 
-The generator doesn't emit this — it's user code that the
+The generator doesn't produce this — it's user code that the
 generated forms import.
 
 ### Test with a representative schema

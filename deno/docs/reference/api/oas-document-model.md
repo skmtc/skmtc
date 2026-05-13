@@ -61,7 +61,7 @@ folded into a single array. Each entry carries its `path` and
 `method` as properties.
 
 This is the entry point for **operation generators**. They iterate
-`document.operations` and emit one Projection per operation.
+`document.operations` and register one Projection per operation.
 
 ```ts
 for (const operation of document.operations) {
@@ -78,18 +78,18 @@ where `OasRef` lookups land when `resolve()` is called.
 
 This is the entry point for **model generators**. They iterate
 `document.components.schemas` (or another component dictionary) and
-emit one Projection per component.
+register one Projection per component.
 
 ```ts
 for (const [refName, schema] of Object.entries(document.components?.schemas ?? {})) {
-  // emit a model Projection for this schema
+  // register a model Projection for this schema
 }
 ```
 
 #### `info: OasInfo`
 
 The `info` block from the OAS document. Useful metadata: title,
-version, description. Sometimes referenced when emitting a generated
+version, description. Sometimes referenced when rendering a generated
 file header.
 
 ### Methods
@@ -114,7 +114,7 @@ class OasOperation {
   tags: string[] | undefined
   parameters: (OasParameter | OasRef<'parameter'>)[] | undefined
   requestBody: OasRequestBody | OasRef<'requestBody'> | undefined
-  responses: Record<string, OasResponse | OasRef<'response'>> | undefined
+  responses: Record<string, OasResponse | OasRef<'response'>>
   security: OasSecurityRequirement[] | undefined
   deprecated: boolean | undefined
   extensionFields: Record<string, unknown> | undefined
@@ -250,7 +250,7 @@ propagated into the object's `required` array.
 #### `toJsonSchema(options)`
 
 Serializes back to an OpenAPI-spec-shaped operation object. Useful
-for diagnostics and pass-through (e.g., re-emitting the original spec
+for diagnostics and pass-through (e.g., re-rendering the original spec
 into a generated artifact). Not used by stock generators in their
 hot paths.
 
@@ -403,7 +403,7 @@ class OasExample {
 
 Carries inline example values from the OAS spec. Stock generators
 mostly ignore examples; they exist in the model for completeness and
-for generators that emit doc-fixture data.
+for generators that produce doc-fixture data.
 
 ## OasComponents
 

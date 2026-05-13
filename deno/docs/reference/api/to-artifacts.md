@@ -47,7 +47,7 @@ Tracing IDs propagated from the CLI invocation. They thread through
 the `StackTrail` and end up in log lines (when logging is enabled),
 making it possible to correlate engine output with CLI runs.
 
-The CLI generates a fresh `traceId` per invocation and emits a
+The CLI generates a fresh `traceId` per invocation and a fresh
 `spanId` per child operation. Direct callers can pass any
 unique-enough strings (e.g., timestamps + nonces).
 
@@ -71,7 +71,7 @@ via `buildSchema` inside the pipeline) or a pre-built
 `GraphQLSchema` instance (used as-is).
 
 The post-parse internal shape is the parallel
-[`SkmtcParsedDocument`](../../concepts/three-phases.md) union,
+[`SkmtcParsedDocument`](../../concepts/the-three-phases.md) union,
 which also keys the protocol payload on `value` (`OasDocument` or
 `GqlDocument`).
 
@@ -125,7 +125,7 @@ and passes it down.
 #### `logsPath`
 
 When set, structured logs are written to this path during the run.
-When unset, logs are emitted via console only.
+When unset, logs are written via console only.
 
 The CLI sets `logsPath` to a per-invocation directory under the
 project's `.skmtc/logs/`. Direct callers typically omit it.
@@ -202,7 +202,7 @@ The phases are sequential and synchronous within the engine (the
 function is `async` for I/O readiness, not concurrency). Errors from
 Parse cascade to Generate via `removeErroredItems` (one-hop pruning);
 Generate errors don't cascade to Render — the partial output is
-emitted.
+returned.
 
 ## Example
 
@@ -255,7 +255,7 @@ fixture, call `toArtifacts`, and assert on
 `result.artifacts['some/path.ts']`:
 
 ```ts
-test('zod generator emits userBody for User schema', async () => {
+test('zod generator produces userBody for User schema', async () => {
   const result = await toArtifacts({
     traceId: 't',
     spanId: 't',

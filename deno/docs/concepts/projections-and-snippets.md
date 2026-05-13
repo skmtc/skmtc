@@ -72,8 +72,8 @@ it addressable in the cache.
 
 | Base | Source unit | When |
 |---|---|---|
-| `ModelProjectionBase` | An OAS schema component (a `refName`) | Generators that emit one file per type/schema |
-| `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that emit one file per endpoint |
+| `ModelProjectionBase` | An OAS schema component (a `refName`) | Generators that produce one file per type/schema |
+| `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that produce one file per endpoint |
 | `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (`gen-graphql-operation`, etc.) |
 
 Each base provides the `insertOperation` / `insertModel` /
@@ -262,7 +262,7 @@ This is the escape hatch — you produce a Definition without going
 through a Projection base. The trade-off: no cross-generator
 coordination (no cache, no integrity check) for that definition.
 
-Useful when emitting boilerplate that doesn't need to be addressable
+Useful when producing boilerplate that doesn't need to be addressable
 from other generators (e.g., a constants table, a default-values
 object).
 
@@ -276,6 +276,8 @@ map accumulates contributions from every nested snippet.
 
 ## Further reading
 
+- [How generators produce output](how-generators-produce-output.md) — who instantiates Projections and when; the pull-based model
+- [Composing output with Stringable](stringable-composition.md) — how Projection and Snippet `toString()` methods compose into rendered output
 - [Cross-generator coordination](cross-generator-coordination.md) — how Projections find each other
 - [The three phases](the-three-phases.md) — where Projections and Snippets fit in Parse / Generate / Render
 - [API reference: projection-bases](../reference/api/projection-bases.md)

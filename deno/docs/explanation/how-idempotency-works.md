@@ -7,7 +7,7 @@
 
 A code generator pipeline that runs multiple generators against
 the same schema typically has to answer: **what if two generators
-want to emit the same thing?** In SKMTC, two generators producing
+want to produce the same thing?** In SKMTC, two generators producing
 `Foo` schemas in the same file converge on one definition — the
 file ends up with one `export const foo = ...`, not two.
 
@@ -134,10 +134,10 @@ correct value regardless of how many generators contribute it.
 
 Two generators, two orderings, identical output.
 
-The setup: `gen-shadcn-form` emits a form for `CreateUser`.
+The setup: `gen-shadcn-form` produces a form for `CreateUser`.
 Inside its `toString()`, it calls
 `insertNormalizedModel(ZodProjection, { schema: userBodySchema })`.
-`gen-zod` independently iterates all schemas and emits the same
+`gen-zod` independently iterates all schemas and produces the same
 `userBody` Zod schema. We want the file to end up with one
 `userBody` definition either way.
 
@@ -189,7 +189,7 @@ Final state: one `userBody` definition, imported by the form.
 ### Result: identical `#files` map
 
 Both orderings produce the same `#files` map. The Render phase
-walks the map and emits the same strings. The only observable
+walks the map and produces the same strings. The only observable
 difference between the runs is in log line ordering, not output.
 
 The cache makes order irrelevant *by construction*. Generators
@@ -207,7 +207,7 @@ silently discarded.
 This is a known sharp edge. Two scenarios where it happens:
 
 1. **Two generators with overlapping scope** (e.g., two different
-   schema generators emitting the same `User` definition). The
+   schema generators producing the same `User` definition). The
    first to run wins. The user typically doesn't want both
    anyway, so the collision is harmless if benign.
 2. **Two generators using `fallbackName` for unrelated inline
@@ -269,10 +269,10 @@ But the failure mode exists for generator authors who write
   the practical walkthrough
 - [Why three phases](why-three-phases.md) — Generate's invariant
   is one of three
-- [API: GenerateContext](../api/generate-context.md) — the
+- [API: GenerateContext](../reference/api/generate-context.md) — the
   `register`, `findDefinition`, `insertModel`, `insertOperation`
   surface
-- [API: ContentSettings](../api/content-settings.md) — what the
+- [API: ContentSettings](../reference/api/content-settings.md) — what the
   cache key is derived from
 - [Status and roadmap](status-and-roadmap.md) — `#SKM-47` and
   related known limitations

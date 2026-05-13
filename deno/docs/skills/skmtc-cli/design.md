@@ -102,7 +102,7 @@ Should NOT auto-load on:
 
 - Full per-command reference (flags, exit codes, examples) →
   `reference/cli/<command>.md`
-- Per-generator reference (what each stock generator emits, its
+- Per-generator reference (what each stock generator produces, its
   enrichments, its clone seams) → `reference/stock-generators/<gen>.md`
 - Tutorials (the "guided path" content) → `using/tutorials/`
 - Recipes (full worked examples) → `using/recipes/`

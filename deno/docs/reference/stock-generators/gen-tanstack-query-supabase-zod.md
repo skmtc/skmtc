@@ -1,6 +1,6 @@
 # @skmtc/gen-tanstack-query-supabase-zod
 
-> Emit Tanstack Query hooks using Supabase's Postgrest-style client
+> Produce Tanstack Query hooks using Supabase's Postgrest-style client
 > as the transport, with Zod validation.
 
 An operation generator. The Supabase-transport variant of
@@ -29,8 +29,8 @@ export const useGetUsers = () =>
 - **Same entry shape as the fetch variant.** Same `isSupported`
   (GET/DELETE always, POST/PUT/PATCH only with body) and same
   transform. The only difference is which Projection is invoked —
-  this generator's `TanstackQuery` emits Supabase calls, the
-  fetch generator's emits `fetch(...)`.
+  this generator's `TanstackQuery` produces Supabase calls, the
+  fetch generator's produces `fetch(...)`.
 - **Exports utility helpers** (`isListResponse`, etc.) that other
   generators import directly. `gen-shadcn-select` and
   `gen-shadcn-table` both `import { isListResponse } from

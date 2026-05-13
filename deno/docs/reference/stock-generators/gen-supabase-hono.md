@@ -1,6 +1,6 @@
 # @skmtc/gen-supabase-hono
 
-> Emit Hono route registrations targeting Supabase Edge Functions.
+> Produce Hono route registrations targeting Supabase Edge Functions.
 
 An operation generator. The Hono-and-Supabase counterpart to
 `gen-express`. Same shared-singleton pattern, different framework
@@ -37,12 +37,12 @@ app.post('/users', async (c) => {
 - **Identical entry shape to `gen-express`.** Same `findDefinition`
   + `insertOperation`-or-append flow, same `tiny-invariant`
   narrowing of `app?.value instanceof SupabaseHono`. The variation
-  is in `SupabaseHono.append()` — emits Hono-style routes instead
+  is in `SupabaseHono.append()` — produces Hono-style routes instead
   of Express-style.
 - **Hono context, not request/response.** Hono routes receive a
   `Context` object (`c`) with `c.req`, `c.json`, etc. — different
   shape from Express's `(req, res)`. The Projection's `toString()`
-  emits Hono idioms.
+  produces Hono idioms.
 - **Targets the Edge runtime.** Designed for Supabase Edge
   Functions specifically. Most decisions (e.g., `await c.req.json()`,
   ESM-style exports) reflect the Edge runtime's constraints.
@@ -52,7 +52,7 @@ app.post('/users', async (c) => {
 - **A second instance of the shared-singleton pattern.** Comparing
   with `gen-express` shows exactly what changes when you fork a
   shared-singleton generator for a different framework: the
-  Projection class is renamed, the per-operation emission style
+  Projection class is renamed, the per-operation rendering style
   changes, the entry stays the same.
 - **Framework-specific idiom adaptation.** Both Express and Hono
   do "register a route," but the per-route code shape differs.

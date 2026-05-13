@@ -1,6 +1,6 @@
 # @skmtc/gen-shadcn-select
 
-> Emit a React searchable-select component sourced from a GET
+> Produce a React searchable-select component sourced from a GET
 > list-response operation.
 
 An operation generator. Useful when a form field references
@@ -45,7 +45,7 @@ export const OfficeSelect = ({ value, onChange }) => {
   for IDE preview integration, `toMappingModule` for the form
   generator's `references` dispatch to know which select to
   reach for.
-- **Combobox-based.** The stock emits a searchable combobox, not a
+- **Combobox-based.** The stock produces a searchable combobox, not a
   plain `<select>`. The shadcn/ui Combobox component is the target.
 
 ## What to learn from it
@@ -59,7 +59,7 @@ export const OfficeSelect = ({ value, onChange }) => {
   discover "for this operationId, which select component should I
   embed?" The hook makes the lookup deterministic.
 - **GET-list-response as a generator-specific shape.** When your
-  generator emits something meaningful only for a narrow operation
+  generator produces something meaningful only for a narrow operation
   shape, encode that in `isSupported` and let everything else fall
   through.
 

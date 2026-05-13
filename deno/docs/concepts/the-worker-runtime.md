@@ -51,7 +51,7 @@ skmtc generate runs
      ↓
 host: new Worker(bundle.js, { permissions: {...} })
      ↓
-worker: emits 'READY' on boot
+worker: posts 'READY' on boot
      ↓
 host: posts 'GENERATE' { document, clientSettings }
      ↓
@@ -218,9 +218,9 @@ If the Worker throws unrecoverably, it posts `ERROR` with the
 exception details. The host treats this as exit-code-1 territory.
 
 The protocol is intentionally minimal. There's no progress-streaming,
-no incremental artifact emission, no bidirectional question-asking.
+no incremental artifact streaming, no bidirectional question-asking.
 Generation is a request/response, period. If a generator needs to
-emit progress, it does so via `console.log` (which the Worker's
+report progress, it does so via `console.log` (which the Worker's
 stdout pipe routes to the host's stderr); structured progress
 reporting isn't part of the protocol.
 

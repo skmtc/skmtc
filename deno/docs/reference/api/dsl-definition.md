@@ -83,7 +83,7 @@ Plus optional `typeName` annotation for variables (e.g.,
 ### `description: string | undefined`
 
 Optional JSDoc text that prefixes the declaration. When set, the
-emitted output includes:
+rendered output includes:
 
 ```ts
 /**
@@ -92,7 +92,7 @@ emitted output includes:
 export const NAME = VALUE;
 ```
 
-When unset (default), no JSDoc is emitted.
+When unset (default), no JSDoc is rendered.
 
 ### `value: V`
 
@@ -292,7 +292,7 @@ not by mutating the Definition.
 ### What's the relationship between Definition and the `export const NAME` literal?
 
 Definition is the **mechanism** that produces the literal. Without
-Definition, generators would have to emit `export const NAME = ...`
+Definition, generators would have to render `export const NAME = ...`
 strings directly, manage `entityType` themselves, deal with JSDoc
 formatting, etc. Definition consolidates all of that into one
 class.

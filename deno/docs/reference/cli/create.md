@@ -32,8 +32,8 @@ create it). Required in strict mode.
 ### `<generator>`
 
 The new generator's name. Conventionally matches the JSR-package
-naming pattern: kebab-case, descriptive of what it emits. Examples:
-`my-zod-schema`, `internal-fetch-wrapper`, `pdf-form-emit`.
+naming pattern: kebab-case, descriptive of what it produces. Examples:
+`my-zod-schema`, `internal-fetch-wrapper`, `pdf-form-renderer`.
 
 The name becomes the directory name (`.skmtc/<project>/<generator>/`)
 and the import key in `deno.json`. The generator's published
@@ -42,12 +42,12 @@ identity (its JSR scope, if you later publish) is set in its own
 
 ### `<type>` (`operation` | `model`)
 
-The Projection kind the generator emits:
+The Projection kind the generator produces:
 
-- **`operation`** — emits one Projection per OAS operation. Use for
+- **`operation`** — registers one Projection per OAS operation. Use for
   generators that produce per-endpoint code (hooks, fetch wrappers,
   forms, mock handlers).
-- **`model`** — emits one Projection per OAS schema component. Use
+- **`model`** — registers one Projection per OAS schema component. Use
   for generators that produce per-type code (Zod schemas, TypeScript
   type aliases, Valibot schemas).
 
@@ -66,7 +66,7 @@ constructor via `context.resolveSchemaRefOnce(refName, BaseId)`.
 `destinationPath` and `rootRef?` fields exposed to user code.)
 
 The `type` choice is permanent — you'd manually rewrite the scaffold
-to change it. Pick based on what your generator emits per input.
+to change it. Pick based on what your generator produces per input.
 
 ## Behavior
 
@@ -145,7 +145,7 @@ running `create`.
 
 After scaffolding, the CLI rebuilds the project's `bundle.js` so the
 new generator is reachable by the next `generate` invocation. The
-generator's scaffold emits a valid (but mostly-empty) Projection
+generator's scaffold produces a valid (but mostly-empty) Projection
 from the start, so the bundle compiles cleanly.
 
 ## Examples
@@ -171,8 +171,8 @@ Produces an operation-projection scaffold under
 ### Create then immediately edit
 
 ```bash
-skmtc create my-api my-emit operation
-# Edit src/MyEmit.ts to define toString()
+skmtc create my-api my-renderer operation
+# Edit src/MyRenderer.ts to define toString()
 skmtc bundle my-api
 skmtc generate my-api
 ```
