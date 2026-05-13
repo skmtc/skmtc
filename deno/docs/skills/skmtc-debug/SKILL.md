@@ -59,8 +59,10 @@ Same five as in the other skills. One debug-relevant note added:
 2. **Render does not run Prettier or Biome.** Output is unformatted.
 3. **Generator source code is the customization surface.**
 4. **`OasSchema` is a union type, not a class hierarchy.**
-5. **Two intentional spellings** — `insertNormalisedModel` and
-   `insertNormalizedModel` are different methods.
+5. **Same-named wrapper.** `insertNormalizedModel` exists on both
+   `GenerateContext` (takes explicit `destinationPath`) and the
+   projection-base wrappers (fill `destinationPath` from
+   `settings.exportPath`). Same name, different signatures.
 
 **Drift between docstrings and code is real.** Docstrings and
 type comments can lag behind code reorganizations or removals.
@@ -339,7 +341,7 @@ operation produced no files.
      etc.).
 4. The error is raised by `OasOperationDriver.affirmDefinition` —
    the cache key uniqueness invariant is enforced strictly for
-   Driver-path insertions. (The `insertNormalisedModel`
+   Driver-path insertions. (The `insertNormalizedModel`
    fallback-name path does *not* enforce; see `#SKM-47`.)
 
 ## 7. Anti-patterns specific to debugging

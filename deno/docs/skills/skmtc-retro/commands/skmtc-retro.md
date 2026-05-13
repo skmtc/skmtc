@@ -6,7 +6,7 @@ argument-hint: "[topic-summary]"
 Run a SKMTC retrospective on this session.
 
 **If `$ARGUMENTS` is non-empty**, use it as the session-topic hint for
-the filename. Normalise it to lowercase kebab-case (e.g.,
+the filename. Normalize it to lowercase kebab-case (e.g.,
 `"Shadcn form clone"` → `shadcn-form-clone`). Use as the
 `<short-summary>` portion of the filename described in step 2 below.
 

@@ -37,7 +37,7 @@ from training data that conflict with SKMTC's architectural invariants.
 The operational principles in §4 are the load-bearing content. Read
 them before proposing solutions.
 
-## 1. The five facts that override default LLM intuitions
+## 1. The four facts that override default LLM intuitions
 
 These override what training-data priors would suggest about codegen
 tools. They apply across all SKMTC interactions and are especially
@@ -61,11 +61,6 @@ important for authoring:
    implement `.isRef()` returning `false`. `OasRef` is a *sibling*,
    not a parent, with `.isRef()` returning `true`. Do not add a
    `BaseSchema` class.
-
-5. **Two intentional spellings.** `insertNormalisedModel` (British, on
-   `GenerateContext`) and `insertNormalizedModel` (American, on
-   `OasOperationProjectionBase` / `GqlOperationProjectionBase` — the
-   wrapper that auto-fills `destinationPath`). Both correct.
 
 ## 2. The DSL: Projection vs Snippet
 
@@ -95,6 +90,45 @@ automatically.
   body, expression)** → Snippet
 - **Unsure** → Probably Snippet. Promote to Projection only when
   cross-file identity is needed.
+
+### The constructor / `toString()` contract
+
+For both Projections and Snippets:
+
+- **The constructor runs at most once per cache key** — when the
+  Driver gets a cache miss for `(identifier.name, exportPath)`.
+  Subsequent calls hit the cache. Side effects (`this.register(...)`,
+  `this.insertOperation(...)`) belong here.
+- **`toString()` may run multiple times** — at minimum during Render,
+  potentially again during preview generation or integrity checks.
+  It must be a **pure function of `this`**: no mutation, no
+  side effects, deterministic output for the fields set in the
+  constructor.
+
+Two things this implies in practice:
+
+1. Cache anything expensive on `this` from the constructor; don't
+   recompute in `toString()`.
+2. Don't call `register` from `toString()` — by then Render has
+   finalised the file's imports.
+
+### `Stringable` and `ContentSettings` (the type vocabulary)
+
+Two type names from `@skmtc/core` worth recognising when reading or
+typing a generator:
+
+- **`Stringable`** — anything with a `.toString()`. The composition
+  contract: a Projection field or Snippet child typed `Stringable`
+  accepts strings, Snippets, Definitions, `Identifier` instances,
+  and inserted handles interchangeably. Used for `fields:
+  Stringable`, `items: Stringable`, return types from helpers like
+  `schemaToField`.
+- **`ContentSettings<E>`** — the bundle of `(identifier, exportPath,
+  enrichments)` the Driver computes from a Projection's static
+  methods. Available on Projection instances as `this.settings`.
+  Constructor argument types
+  (`OasOperationProjectionConstructorArgs<E>` etc.) carry a
+  `settings: ContentSettings<E>` field.
 
 ## 3. Cross-generator coordination
 
@@ -126,6 +160,87 @@ The flow when `MyProjection.constructor` calls
 referenced by their Projection class — `this.insertOperation(Other,
 op).toName()` returns the identifier name you can use in your
 template. You never read another generator's `toString()`.
+
+### Which helper for which job?
+
+`register` is the underlying primitive; for cross-generator
+composition prefer the high-level helpers. Defaulting to `register`
+directly bypasses dedup and auto-import-registration.
+
+| Situation | Use |
+|---|---|
+| Bring in another generator's output for a named ref in `components.schemas` | `context.insertModel(PeerProjection, ref)` |
+| Bring in another generator's output for a schema that may be inline or a ref | `this.insertNormalizedModel(PeerProjection, { schema, fallbackName })` (auto-fills `destinationPath`) |
+| Trigger another *operation* generator (e.g., a query hook, a select component) | `this.insertOperation(PeerProjection, op)` or `context.insertOperation({ projection, operation, destinationPath })` from a Snippet |
+| Look up a Definition without triggering construction | `context.findDefinition({ name, exportPath })` |
+| Add a sibling Definition in a file you already own (a type alias, a constant) | `context.defineAndRegister({ identifier, value, destinationPath })` |
+| Register a library import (npm package, hand-written helper) | `this.register({ imports: { 'pkg': ['Symbol'] }, destinationPath })` |
+| Register an import for a peer-generator output | **Don't** — `insertOperation`/`insertNormalizedModel` already did this for you |
+
+The helpers wrap **Driver** classes (`ModelDriver`,
+`OasOperationDriver`, `GqlOperationDriver`) that bake in idempotency
+and auto-import-registration. Calling `register` directly for
+peer-generator output skips both — duplicate emission, missing
+import, or a "Registered definition mismatch" if you got the cache
+key wrong.
+
+## 3.5. The operation-reference protocol
+
+The pattern above (`this.insertOperation(KnownPeer, op)`) covers
+*statically-known* peers — your generator imports the peer's
+Projection class and hands it a specific operation. The
+**operation-reference protocol** handles the harder case: your
+generator's output for one operation depends on the existence of
+*some other operation* whose identity the consumer specifies as a
+string in their enrichment.
+
+Canonical case: `gen-shadcn-form` rendering a field whose values come
+from a list endpoint that the consumer names. The form generator
+doesn't know in advance which endpoint backs the field; the consumer
+points at one (by tag, fieldName, or path) in their enrichment.
+
+Shape (OAS, by tag — `gen-shadcn-form/src/schemaToField.ts:164`):
+
+```ts
+const getReferencedOperation = ({ context, references }) => {
+  // 1. Look up the operation by name (here: a tag).
+  const operation = context.document.value.operations.find(op =>
+    op.tags?.includes(references) &&
+    // 2. Verify a producer generator claims it.
+    ShadcnSelectInput.isSupported({ context, operation: op })
+  )
+  invariant(operation, `Operation '${references}' not found`)
+  return operation
+}
+
+// 3. Dispatch — Driver dedupes emission AND registers the import.
+const def = context.insertOperation({
+  projection: ShadcnSelectInput,
+  operation: referencedOp,
+  destinationPath: settings.exportPath
+})
+// 4. Reference by name in the emitted markup.
+return `<${def.identifier.name} lens={lens.focus('${path}').defined()} />`
+```
+
+The four meeting points:
+
+- **Operation reference in the consumer's enrichment** — a string
+  (tag, fieldName, path) identifying an operation. Lives in the
+  *consumer* generator's enrichment schema (§7), not the producer's.
+- **Producer's `isSupported(op)`** — its claim on which operations it
+  can serve. Used to filter.
+- **Producer's static `toIdentifier(op)` / `toExportPath(op)`** —
+  content-addressed identity for the cache key.
+- **`insertOperation`** — synchronous dispatch + auto-import-
+  registration.
+
+The consumer imports the producer's Projection as a *type-level
+package dependency* — exactly like `gen-shadcn-form` imports
+`ShadcnSelectInput` from `gen-shadcn-select`. No runtime config
+sharing, no cross-namespace enrichment peeking.
+
+Detail and a GraphQL example: [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md).
 
 ## 4. Operational principles
 
@@ -161,7 +276,14 @@ almost always the correct alternative.
 | Hardcode generator-internal identifier names | Derive from operation/refName via `toIdentifier` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
 | Add runtime type checks or `@override` decorators | Use TypeScript's structural typing + discriminated unions | Runtime overhead unnecessary; types catch at compile time |
 | Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` on `OasRef`-typed values; check `.isRef()` | Common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy |
-| "Fix" the British/American spelling discrepancy | `insertNormalisedModel` and `insertNormalizedModel` are two methods | Two distinct methods, not a typo |
+| Use `isSupported` to opt the generator in/out per-operation based on whether an enrichment is present | Have `isSupported` declare *capability*; gate at runtime via `client.json#settings.include` / `.skip` | `isSupported` is a capability claim, not a user-intent filter; gating on enrichment forces a sentinel for "default values" |
+| Import a type-only symbol as a bare value: `imports: { 'react': ['UseFormProps'] }` | Tag it: `{ name: 'UseFormProps', type: 'type' }`, or use `identifier.toImport()` | Bare value import of a type breaks consumer compile under `verbatimModuleSyntax: true` (TS1484) |
+| Read `schema.refName` as a property | Narrow with `schema.isRef()` then call `schema.toRefName()` | `toRefName` is a method on `OasRef`; reading `.refName` returns `undefined` and crashes downstream |
+| Forward only `modifiers` (not the schema) into per-type Snippets like `ZodBoolean` | Pass the typed schema in; let the Snippet read constraints it needs (`enums`, `format`, `minimum`) | Dropping the schema at dispatch silently erases constraints — `[true]` becomes `z.boolean()` instead of `z.literal(true)` |
+| Peek at another generator's enrichments via `context.settings.enrichments['@other/gen-x']` | Add an operation-reference enrichment in your *own* schema; dispatch via `insertOperation` (§3.5) | Cross-namespace coupling breaks the dependency-graph model; the leaf shape is owned by the producer |
+| GQL `transform({ context, operation })` with no `acc` | GQL is `transform({ context, operation, acc })` and must **return `acc`** | OAS transform returns void; GQL threads the accumulator — dropping it breaks downstream operations |
+| Treat `allOf` schemas as still unmerged in your generator | Treat received schemas as already-flat objects | `core/oas/_merge-all-of/` runs during Parse; by Generate phase the merge has happened |
+| Switch on `schema.type` without first unwrapping single-member intersections / refs | Unwrap one-member unions and `.isRef()` first, then dispatch on `.type` | OpenAPI refs can't carry extensions, so SKMTC sometimes models `$ref + extension` as a 1-member union; missing the unwrap loses the schema |
 
 Full discussion of each principle: [`../../explanation/design-philosophy.md`](../../explanation/design-philosophy.md).
 Code-level instances and failure modes: §8 (Anti-patterns) below.
@@ -320,15 +442,26 @@ export const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
   id: denoJson.name,
 
   // ⬇ Capability gate: which operations should this generator process?
+  //   Declare capability only — do NOT gate on enrichment presence
+  //   (filter intent via client.json `include`/`skip`).
   isSupported({ operation }: IsSupportedOasOperationConfigArgs<EnrichmentSchema>) {
     return ['post', 'put', 'patch'].includes(operation.method) &&
       operation.requestBody?.resolve()?.toSchema()?.resolve().type === 'object'
   },
 
   // ⬇ The hook the engine calls per matched operation.
+  //   Return value is discarded — emit via insertOperation / register.
   transform({ context, operation }) {
     context.insertOperation({ projection: MyGen, operation })
   },
+
+  // ⬇ Optional: makes the artifact visible in the Editor's preview UI.
+  //   Surface for stable generators; omit while iterating.
+  toPreviewModule: ({ operation, enrichments }) => ({
+    name: MyGen.toIdentifier({ operation, enrichments }).name,
+    exportPath: MyGen.toExportPath({ operation, enrichments }),
+    group: 'forms'
+  }),
 
   toEnrichmentSchema
 })
@@ -336,8 +469,52 @@ export const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
 export default MyGenEntry
 ```
 
-The return value of `transform` is discarded. All output must go
+The return value of OAS `transform` is discarded. All output must go
 through `register` / `insertOperation` / `insertNormalizedModel`.
+
+### Scaffold C variant: GraphQL entry (`toGqlOperationEntry`)
+
+Two shape differences from the OAS version above:
+
+```ts
+import { toGqlOperationEntry, synthesizeArgsObject } from '@skmtc/core'
+
+export const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
+  id: denoJson.name,
+
+  // ⬇ Mutations only, gated on the existence of a synthesizable args object.
+  isSupported({ operation }) {
+    return operation.rootKind === 'mutation' &&
+      synthesizeArgsObject(operation) !== undefined
+  },
+
+  // ⬇ GQL transform takes `acc` and MUST return it.
+  //   Forgetting to return acc breaks downstream operations.
+  transform({ context, operation, acc }) {
+    if (operation.rootKind !== 'mutation') return acc
+    context.insertOperation({ projection: MyGen, operation })
+    return acc
+  },
+
+  toEnrichmentSchema
+})
+```
+
+Three GQL-specific things to remember (the others apply equally):
+
+1. **`transform` is `({ context, operation, acc }) => acc`.** Threads
+   the accumulator through every operation the dispatcher visits.
+   Drop `acc` and downstream calls see stale state.
+2. **Enrichments are *not* pre-resolved for GQL.** OAS pre-resolves
+   by path+method; GQL hands you the raw operation. Walk
+   `context.settings.enrichments[id][operation.identifier]` yourself
+   (`operation.identifier` is `<rootKind>_<fieldName>`).
+3. **Mutation args come via `synthesizeArgsObject(operation)`.** GQL
+   doesn't have a `requestBody` — `synthesizeArgsObject` turns the
+   field's arguments into an object schema you can feed to
+   `insertNormalizedModel`.
+
+Background: [`concepts/the-graphql-pipeline.md`](../../concepts/the-graphql-pipeline.md).
 
 ### D. `enrichments.ts` — Valibot schema for user overrides
 
@@ -419,8 +596,8 @@ points. To change them, clone the generator and edit:
 
 | Seam | Location | Customize by |
 |---|---|---|
-| Export path | `gen-x/src/base.ts` → `toExportPath` | Edit the `join('@', ...)` call |
-| Identifier naming convention | `gen-x/src/base.ts` → `toIdentifier` | Edit the name-building expression |
+| Export path | `gen-x/src/base.ts` → `toExportPath` | Edit the `join('@', ...)` call — keep the `.generated.*` suffix |
+| Identifier naming convention | `gen-x/src/base.ts` → `toIdentifier` | Edit the name-building expression — keep a role suffix (`Form`, `Hook`, `Table`, …) for collision avoidance (see §8 "Bare-noun identifiers") |
 | Peer dependency (e.g., HTTP layer) | `gen-x/src/<Main>.ts` top imports | Swap the import target (e.g., `gen-tanstack-query-supabase-zod` → `gen-tanstack-query-fetch-zod`) |
 | Consumer-side component path | `gen-x/src/fields/<X>.ts` `register` call | Change the import key |
 | Capability gate | `gen-x/src/mod.ts` → `isSupported` | Change the predicate |
@@ -500,6 +677,47 @@ const name = `${capitalize(toEndpointName(operation))}Body`
 
 **Fails because:** hardcoded names break the `(name, exportPath)`
 cache-key uniqueness. Use `Identifier.createVariable(derivedName)`.
+
+### Bare-noun identifiers and missing `.generated` suffixes
+
+```ts
+// ❌ WRONG — bare noun, plausible collision with peer generators
+toIdentifier({ operation }) {
+  return Identifier.createVariable(camelCase(operation.path))
+  // → `customers` — what if gen-table or gen-mock also picks this?
+}
+toExportPath({ operation }) {
+  return join('@', 'forms', `${this.toIdentifier({ operation }).name}.ts`)
+  // → `@/forms/customers.ts` — no marker that this file is generated
+}
+
+// ✅ RIGHT — role-suffix the name; mark the file as generated
+toIdentifier({ operation }) {
+  const verb = capitalize(toMethodVerb(operation.method))  // 'Create'
+  const path = camelCase(operation.path, { upperFirst: true })  // 'Customers'
+  return Identifier.createVariable(`${verb}${path}Form`)
+  // → `CreateCustomersForm`
+}
+toExportPath({ operation, enrichments }) {
+  const { name } = this.toIdentifier({ operation, enrichments })
+  return join('@', 'forms', `${name}.generated.tsx`)
+  // → `@/forms/CreateCustomersForm.generated.tsx`
+}
+```
+
+**Fails because:** the cache key is `(name, exportPath)`. Two
+generators that happen to compute the same `name` for the same
+`exportPath` throw `"Registered definition mismatch"` at generation
+time. Two conventions defuse this:
+
+1. **Role suffix.** `Form`, `Table`, `Hook`, `Mock`, `Validator`,
+   `Handler`, `Query` — whatever names the artifact's role.
+   `CreateCustomersForm` collides with no other artifact in the
+   project.
+2. **`.generated.*` filename suffix.** Marks the file as engine-owned
+   (so humans don't hand-edit it), keeps it greppable, and gives the
+   `(name, exportPath)` pair a second axis of separation when the
+   identifier itself overlaps with consumer-side code.
 
 ### `as` casts in production code
 
@@ -635,6 +853,109 @@ toExportPath({ operation }) {
 edit. Adding flags for every variation balloons the surface area;
 cloning keeps stock simple.
 
+### Gating `isSupported` on enrichment presence
+
+```ts
+// ❌ WRONG — enrichment doubles as on/off switch
+isSupported({ context, operation }) {
+  const enrichment = context.settings?.enrichments[id][operation.path]?.[operation.method]
+  return enrichment !== undefined
+}
+
+// ✅ RIGHT — capability claim; let client.json gate intent
+isSupported({ operation }) {
+  return ['post', 'put', 'patch'].includes(operation.method) &&
+    operation.requestBody?.resolve()?.toSchema()?.resolve().type === 'object'
+}
+```
+
+**Fails because:** `isSupported` declares *capability*, not user
+intent. Once enrichment-presence is the switch, an enrichment with
+all-default values can't exist — you have to invent a sentinel. The
+right opt-in is `client.json#settings.include` (allow-list) or
+`.skip` (deny-list), applied outside the generator.
+
+See [`using/how-to/skip-or-include-operations.md`](../../using/how-to/skip-or-include-operations.md).
+
+### Bare value imports of type-only symbols
+
+```ts
+// ❌ WRONG — TS1484 under verbatimModuleSyntax: true
+this.register({
+  imports: { 'react-hook-form': ['useForm', 'UseFormProps'] }
+})
+
+// ✅ RIGHT — tag the type explicitly
+this.register({
+  imports: {
+    'react-hook-form': [
+      'useForm',
+      { name: 'UseFormProps', type: 'type' }
+    ]
+  }
+})
+
+// ✅ BETTER — when you already hold an Identifier, let it pick the form
+this.register({
+  imports: { './types': [this.userBody.identifier.toImport()] }
+})
+```
+
+**Fails because:** consumers compiling with `verbatimModuleSyntax: true`
+(modern Vite, Next.js strict) reject bare value imports of types with
+TS1484. The `{ name, type: 'type' }` form is structural; `toImport()`
+threads the entity-type discriminator automatically. See
+[`reference/api/dsl-import.md`](../../reference/api/dsl-import.md).
+
+### Reading `schema.refName` as a property
+
+```ts
+// ❌ WRONG — `.refName` doesn't exist as a property on OasRef
+const refName = (schema as OasRef<'schema'>).refName
+// Returns undefined at runtime; `refName.split(...)` crashes.
+
+// ✅ RIGHT — narrow with the predicate, then call the method
+if (schema.isRef()) {
+  const refName = schema.toRefName()    // method, returns RefName
+}
+```
+
+**Fails because:** `toRefName` is a method on `OasRef`, not a
+property — easy to miss because both shapes are syntactically
+plausible. `.isRef()` is the type predicate that narrows the union.
+
+If you find yourself calling `toRefName()` to build an import path
+manually, switch to `insertNormalizedModel` — it handles named refs
+and inline schemas uniformly without coupling to peer path conventions.
+
+### Dropping the schema at the dispatch boundary
+
+```ts
+// ❌ WRONG — modifiers only; Snippet never sees enums/format/min/max
+case 'boolean':
+  return new ZodBoolean({ context, modifiers, destinationPath })
+
+// ✅ RIGHT — forward the typed schema; let the Snippet read what it needs
+case 'boolean':
+  return new ZodBoolean({ context, modifiers, schema, destinationPath })
+
+// Then in ZodBoolean.toString():
+return this.enums?.length === 1
+  ? `z.literal(${this.enums[0]})`
+  : applyModifiers('z.boolean()', this.modifiers)
+```
+
+**Fails because:** when a central dispatcher (`toZodValue`, `toTsValue`)
+forwards only `modifiers` to per-type Snippets, constraints on the
+parsed schema — enum literals, formats, min/max — silently vanish.
+The output compiles but loses precision (`[true]` enum becomes
+`z.boolean()` instead of `z.literal(true)`, breaking discriminated-
+union narrowing in consumer code).
+
+When auditing a new per-type Snippet, ask: *what schema fields beyond
+modifiers does my `toString()` read?* If the answer is any, the
+schema must come through.
+
 ## 9. Verification checklist
 
 After writing or editing a generator, verify:
@@ -642,6 +963,7 @@ After writing or editing a generator, verify:
 - [ ] All imports go through `this.register({ imports, destinationPath })` — no raw `import` statements in template literals
 - [ ] No `as` casts in non-test code — narrowing uses type guards or discriminant checks
 - [ ] Identifier names come from `Identifier.createVariable` / `createType` — no raw strings as identifiers
+- [ ] Identifier names carry a role suffix (`Form`, `Hook`, `Table`, …); export paths use a `.generated.*` filename suffix
 - [ ] No `if`/`else if` chains of length ≥ 3 — `switch` + exhaustive `never` default
 - [ ] `toString()` is pure — no mutation of `this`, no side effects, deterministic in `this.*` fields set during construction
 - [ ] `transform()` returns nothing meaningful — output is produced via `register` / `insertOperation`
@@ -653,6 +975,13 @@ After writing or editing a generator, verify:
 - [ ] `OasSchema | OasRef<'schema'>` parameters are narrowed with `.isRef()` before accessing `.type` or `.properties`
 - [ ] No `BaseSchema` or similar new base classes added to `OasSchema` variants
 - [ ] Enrichment shape declared via Valibot in `enrichments.ts` — not via type-only declaration
+- [ ] `isSupported` is a capability predicate — does *not* gate on enrichment presence (filter via `client.json` `include`/`skip` instead)
+- [ ] Type-only cross-package imports are tagged `{ name, type: 'type' }` or use `identifier.toImport()` — no bare value imports of types
+- [ ] `.toRefName()` is only called inside an `.isRef()` branch — and only if `insertNormalizedModel` won't do the same job
+- [ ] Per-type Snippet dispatchers (`toZodValue` / `toTsValue` / equivalent) forward the typed schema — not just modifiers — so constraints survive
+- [ ] No reads of `context.settings.enrichments['@other/gen-id']` — cross-generator references use the operation-reference protocol (§3.5)
+- [ ] GQL entries: `transform` receives `acc` and returns it; mutation gates use `synthesizeArgsObject(operation)`
+- [ ] Schema `switch (schema.type)` is preceded by single-member-intersection unwrap and an `.isRef()` resolve
 
 If any box is unchecked, refactor before moving on. The skill loaded
 into context cannot enforce these mechanically; the LLM applying them
@@ -746,6 +1075,58 @@ When your generator needs output from a peer generator:
 4. Reference the name in your template literal.
 
 You never read the peer's `toString()`. Coordination is by name only.
+
+### Card: Accumulator-style generator (one shared aggregate, many contributors)
+
+When the generator's output is a *single* aggregate that grows as
+more operations are visited (a routes table, a registry, a barrel
+export), the per-operation Projection isn't the artifact — it
+contributes *into* one. Canonical example: `gen-msw`, which builds
+a single `toRoutesList` map keyed by the routes it sees.
+
+Shape (`gen-msw/src/mod.ts`):
+
+```ts
+transform: ({ context, operation }) => {
+  // 1. Emit the per-operation artifact normally.
+  const insertedRoute = context.insertOperation({
+    projection: MockRoute,
+    operation
+  })
+  const { exportPath } = insertedRoute.settings
+  const route = insertedRoute.toName()
+  if (!route) return
+
+  // 2. Look up the shared aggregate at that exportPath.
+  const existing = context.findDefinition({
+    name: 'toRoutesList',
+    exportPath
+  })
+
+  if (existing?.value instanceof MockRoutesList) {
+    // 3a. Cache hit → mutate the existing value.
+    existing.value.add(route)
+    return
+  }
+
+  // 3b. Cache miss → defineAndRegister a fresh aggregate, then add.
+  const routesList = context.defineAndRegister({
+    identifier: Identifier.createVariable('toRoutesList'),
+    value: new MockRoutesList({ context }),
+    destinationPath: exportPath
+  })
+  routesList.value.add(route)
+}
+```
+
+The aggregate (`MockRoutesList`) is a `SnippetBase` whose
+`toString()` renders the full accumulated value. `findDefinition`
+is the read-without-emit primitive; `defineAndRegister` is the
+write-on-first-call primitive. Together they let many contributors
+land into one Definition without the Driver path's cache-key
+collision rules getting in the way.
+
+Reference: [`reference/stock-generators/gen-msw.md`](../../reference/stock-generators/gen-msw.md).
 
 ### Card: Debugging "my generator produces no output"
 

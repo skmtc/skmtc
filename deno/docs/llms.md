@@ -57,7 +57,7 @@ If unsure which role applies: read **Read this first** + **Verification protocol
 
 ---
 
-## Read this first: five facts that override default LLM intuitions
+## Read this first: four facts that override default LLM intuitions
 
 These assertions are the ones you would most likely get wrong by extrapolating from other codegen tools (orval, openapi-generator, kubb, graphql-codegen).
 
@@ -69,13 +69,11 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
 
-5. **Two intentional spellings.** `insertNormalisedModel` (British, S) on `GenerateContext`. `insertNormalizedModel` (American, Z) on the projection-base wrapper that auto-fills `destinationPath`. Both correct; do different things.
-
 ---
 
 ## Operational principles for proposing changes
 
-The five facts above are the *highest-priority* overrides. The table below is the broader operational principle list — apply these when proposing solutions for SKMTC code. Each row pairs a *default suggestion an LLM would reach for from generic TypeScript / codegen training data* with *what SKMTC actually requires*.
+The four facts above are the *highest-priority* overrides. The table below is the broader operational principle list — apply these when proposing solutions for SKMTC code. Each row pairs a *default suggestion an LLM would reach for from generic TypeScript / codegen training data* with *what SKMTC actually requires*.
 
 These overrides exist because well-intentioned TS conventions frequently break SKMTC's invariants. If your proposed solution matches the left column, the right column is almost always the correct alternative.
 
@@ -128,7 +126,7 @@ Before stating any architectural claim from this document, verify against the ci
 | "OasSchema has a base class" | It's a union type | `core/oas/schema/Schema.ts` |
 | "insertNormalizedModel always integrity-checks" | Fallback-name path doesn't (`#SKM-47`) | `GenerateContext.ts:752-798` |
 | "anyOf/oneOf preserve sibling properties when length 1" | They don't — siblings discarded | `toSchemasV3.ts:113` |
-| "Generators can run in any order safely" | True for Driver paths; not for the `insertNormalisedModel` fallback | Both `insertNormalisedModel` branches |
+| "Generators can run in any order safely" | True for Driver paths; not for the `insertNormalizedModel` fallback | Both `insertNormalizedModel` branches |
 | "The worker is reused across runs" | One-shot per run; `terminate()` after each | `cli/lib/generate-worker.ts:101` |
 | "GraphQL is parsed host-side" | No, worker-side; OAS is host-side | `cli/lib/generate-worker.ts:42-60` |
 | "Workers can make network requests" | `net: false` by default | `cli/lib/generate-worker.ts:75` |
@@ -225,8 +223,8 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 | Path | Integrity check | Same-name from different generator |
 |---|---|---|
 | `insertOperation` / `insertModel` (Driver) | `affirmDefinition` checks `generatorKey` and `instanceof projection` | Throws loudly |
-| `insertNormalisedModel` ref branch (Driver via `insertModel`) | Same as above | Throws loudly |
-| `insertNormalisedModel` fallback-name path | Name-only (`#SKM-47` TODO) | Silent merge |
+| `insertNormalizedModel` ref branch (Driver via `insertModel`) | Same as above | Throws loudly |
+| `insertNormalizedModel` fallback-name path | Name-only (`#SKM-47` TODO) | Silent merge |
 | Direct `register({ definitions })` | None (`File.definitions.has(name)` gate) | First wins silently |
 
 ---
@@ -445,7 +443,6 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 
 | Anti-pattern | Why it fails |
 |---|---|
-| "Fixing" British vs American spelling | `insertNormalisedModel` and `insertNormalizedModel` are two methods |
 | Using `process.env.X` instead of `Deno.env.get('X')` | Deno codebase |
 | Adding a `BaseSchema` class for `OasSchema` | Union is intentional, load-bearing for TS narrowing |
 | Wrapping `register` in `if (!already)` | Already idempotent via Set/Map |

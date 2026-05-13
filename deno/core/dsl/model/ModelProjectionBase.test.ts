@@ -228,14 +228,14 @@ Deno.test('ModelProjectionBase - insertModel without noExport option', () => {
   insertModelSpy.restore()
 })
 
-Deno.test('ModelProjectionBase - insertNormalizedModel calls context.insertNormalisedModel with correct params', () => {
+Deno.test('ModelProjectionBase - insertNormalizedModel calls context.insertNormalizedModel with correct params', () => {
   const exportPath = './schemas/types.ts'
 
   const mockContext = {
-    insertNormalisedModel: () => ({} as any)
+    insertNormalizedModel: () => ({} as any)
   } as unknown as GenerateContextType
 
-  const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
+  const insertNormalizedModelSpy = spy(mockContext, 'insertNormalizedModel')
 
   const model = new ModelProjectionBase({
     context: mockContext,
@@ -257,16 +257,16 @@ Deno.test('ModelProjectionBase - insertNormalizedModel calls context.insertNorma
     { noExport: true }
   )
 
-  assertSpyCalls(insertNormalisedModelSpy, 1)
-  assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockProjection)
-  assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
+  assertSpyCalls(insertNormalizedModelSpy, 1)
+  assertEquals(insertNormalizedModelSpy.calls[0].args[0] as any, mockProjection)
+  assertEquals(insertNormalizedModelSpy.calls[0].args[1] as any, {
     schema: mockSchema,
     fallbackName,
     destinationPath: exportPath
   })
-  assertEquals(insertNormalisedModelSpy.calls[0].args[2] as any, { noExport: true })
+  assertEquals(insertNormalizedModelSpy.calls[0].args[2] as any, { noExport: true })
 
-  insertNormalisedModelSpy.restore()
+  insertNormalizedModelSpy.restore()
 })
 
 Deno.test('ModelProjectionBase - register calls context.register with correct params', () => {

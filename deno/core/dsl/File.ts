@@ -180,7 +180,7 @@ export class File {
    */
   toString(): string {
     const reExports = Array.from(this.reExports.entries()).flatMap(([module, entityTypes]) => {
-      const updatedModuleName = normaliseModuleName({
+      const updatedModuleName = normalizeModuleName({
         destinationPath: this.path,
         exportPath: module,
         packages: this.packages
@@ -195,7 +195,7 @@ export class File {
 
     const imports = Array.from(this.imports.entries()).map(([module, importItems]) => {
       const updatedModuleName = this.packages
-        ? normaliseModuleName({
+        ? normalizeModuleName({
             destinationPath: this.path,
             exportPath: module,
             packages: this.packages
@@ -215,9 +215,9 @@ export class File {
 }
 
 /**
- * Arguments for the {@link normaliseModuleName} function.
+ * Arguments for the {@link normalizeModuleName} function.
  */
-export type NormaliseModuleNameArgs = {
+export type NormalizeModuleNameArgs = {
   /** The path of the file that will contain the import/export */
   destinationPath: string
   /** The original path being imported/exported from */
@@ -245,7 +245,7 @@ export type NormaliseModuleNameArgs = {
  *
  * @example Cross-package import
  * ```typescript
- * const normalized = normaliseModuleName({
+ * const normalized = normalizeModuleName({
  *   destinationPath: './packages/client/src/api.ts',
  *   exportPath: './packages/types/models/User.ts',
  *   packages: [
@@ -258,7 +258,7 @@ export type NormaliseModuleNameArgs = {
  *
  * @example Intra-package import (same package)
  * ```typescript
- * const normalized = normaliseModuleName({
+ * const normalized = normalizeModuleName({
  *   destinationPath: './packages/types/src/index.ts',
  *   exportPath: './packages/types/models/User.ts',
  *   packages: [
@@ -270,7 +270,7 @@ export type NormaliseModuleNameArgs = {
  *
  * @example No package match (returns original path)
  * ```typescript
- * const normalized = normaliseModuleName({
+ * const normalized = normalizeModuleName({
  *   destinationPath: './src/index.ts',
  *   exportPath: './src/utils.ts',
  *   packages: []
@@ -278,11 +278,11 @@ export type NormaliseModuleNameArgs = {
  * console.log(normalized); // './src/utils.ts'
  * ```
  */
-export const normaliseModuleName = ({
+export const normalizeModuleName = ({
   destinationPath,
   exportPath,
   packages = []
-}: NormaliseModuleNameArgs): string => {
+}: NormalizeModuleNameArgs): string => {
   const matchingModule = packages.find(packageModule => {
     return exportPath.startsWith(packageModule.rootPath)
   })

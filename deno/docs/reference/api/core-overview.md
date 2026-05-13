@@ -93,9 +93,10 @@ Generators extend the result.
 | `toGqlOperationProjectionBase` | GraphQL operation generators | [Projection bases](projection-bases.md) |
 
 The base classes provide `insertOperation`, `insertModel`, and
-`insertNormalizedModel` (American spelling on the wrapper — see the
-spelling note in [GenerateContext](generate-context.md)), along with
-the constructor's `args: { context, operation/schema, settings }`
+`insertNormalizedModel` — thin wrappers around the same-named methods
+on [GenerateContext](generate-context.md) that auto-fill
+`destinationPath` from `settings.exportPath`. They also enforce the
+constructor's `args: { context, operation/schema, settings }`
 contract.
 
 ## OAS object model

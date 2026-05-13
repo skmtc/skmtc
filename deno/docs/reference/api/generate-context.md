@@ -3,7 +3,7 @@
 > The Generate-phase context. Owns the file map, orchestrates
 > per-generator transforms, mediates cross-generator coordination
 > through Drivers, and provides the `register` / `insertOperation` /
-> `insertModel` / `insertNormalisedModel` surface that generators use
+> `insertModel` / `insertNormalizedModel` surface that generators use
 > to register output.
 
 ## Source
@@ -38,7 +38,7 @@ class GenerateContext implements GenerateContextType {
   registerJson(args: RegisterJsonArgs): void
   insertOperation<V, E>(args: InsertOperationArgs<V, E>): Inserted<V, E>
   insertModel<V, E>(projection: ModelProjection<V, E>, refName: RefName, options?: InsertModelOptions): Inserted<V, E>
-  insertNormalisedModel<V, S, E>(projection: ModelProjection<V, E>, args: InsertNormalisedModelArgs<S>, options?: InsertNormalisedModelOptions): InsertNormalisedModelReturn<V, S>
+  insertNormalizedModel<V, S, E>(projection: ModelProjection<V, E>, args: InsertNormalizedModelArgs<S>, options?: InsertNormalizedModelOptions): InsertNormalizedModelReturn<V, S>
   defineAndRegister<V>(args: DefineAndRegisterArgs<V>): Definition<V>
   findDefinition(args: PickArgs): Definition | undefined
   toOperationContentSettings<V, E>(args: ToOperationSettingsArgs<V, E>): ContentSettings<E>
@@ -205,17 +205,17 @@ Used by model Projections to reference each other (e.g., a Zod
 Projection referencing a TypeScript-type Projection for the same
 refName).
 
-### `insertNormalisedModel<V, S, E>(projection, args, options?): InsertNormalisedModelReturn<V, S>`
+### `insertNormalizedModel<V, S, E>(projection, args, options?): InsertNormalizedModelReturn<V, S>`
 
 The "either ref or inline schema" entry. Dispatches based on whether
 the schema is a `$ref`:
 
 ```ts
-insertNormalisedModel<V, S extends OasSchema | OasRef<'schema'> | OasVoid, E>(
+insertNormalizedModel<V, S extends OasSchema | OasRef<'schema'> | OasVoid, E>(
   projection: ModelProjection<V, E>,
   args: { schema: S, fallbackName: string, destinationPath: string },
   options?: { noExport?: boolean }
-): InsertNormalisedModelReturn<V, S>
+): InsertNormalizedModelReturn<V, S>
 ```
 
 Branches:
@@ -225,13 +225,6 @@ Branches:
 - **`schema.isRef()` is false** (inline schema): caches by
   `(fallbackName, destinationPath)`. **Name-only check** — does not
   verify generator identity (the `#SKM-47` integrity gap).
-
-### Spelling note
-
-The method on `GenerateContext` is `insertNormalisedModel` (British
-spelling). The projection-base wrapper is `insertNormalizedModel`
-(American). Both intentional; they're two distinct methods. Don't
-"fix" the spelling.
 
 ### `defineAndRegister<V>(args): Definition<V>`
 
@@ -321,7 +314,7 @@ class MyFieldSnippet extends SnippetBase {
     super({ context })
 
     if (schema.isRef()) {
-      const inserted = context.insertNormalisedModel(SomeProjection, {
+      const inserted = context.insertNormalizedModel(SomeProjection, {
         schema,
         fallbackName: 'unused-when-ref',
         destinationPath
@@ -334,16 +327,13 @@ class MyFieldSnippet extends SnippetBase {
 
 ## Common questions
 
-### Why two spellings of `insertNormali[sz]edModel`?
+### What's the difference between `context.insertNormalizedModel` and `this.insertNormalizedModel` on a projection base?
 
-Two distinct methods. `insertNormalisedModel` (British, S) is on
-`GenerateContext` and is what context-level callers use.
-`insertNormalizedModel` (American, Z) is on
-`OasOperationProjectionBase` / `GqlOperationProjectionBase` — a thin
-wrapper that auto-fills `destinationPath` from
-`this.settings.exportPath`.
-
-Don't "fix" this. It's intentional.
+Same name, two methods. The one on `GenerateContext` takes an
+explicit `destinationPath`. The wrapper on
+`OasOperationProjectionBase` / `GqlOperationProjectionBase` /
+`ModelProjectionBase` auto-fills `destinationPath` from
+`this.settings.exportPath` and forwards to the context method.
 
 ### Can I read `#files` directly?
 

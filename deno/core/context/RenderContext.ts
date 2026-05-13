@@ -231,11 +231,11 @@ export class RenderContext {
    * ```
    */
   getFile(filePath: string): File | JsonFile {
-    const normalisedPath = normalize(filePath)
+    const normalizedPath = normalize(filePath)
 
-    const currentFile = this.files.get(normalisedPath)
+    const currentFile = this.files.get(normalizedPath)
 
-    invariant(currentFile, `File not found during render phase: ${normalisedPath}`)
+    invariant(currentFile, `File not found during render phase: ${normalizedPath}`)
 
     return currentFile
   }

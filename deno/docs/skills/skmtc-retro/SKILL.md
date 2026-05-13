@@ -290,7 +290,7 @@ The full flow:
 > common case (plain non-type import). The semantic difference between
 > string and object is invisible from the type signature.
 >
-> **Possible fixes:** unresolved — the engine could normalise
+> **Possible fixes:** unresolved — the engine could normalize
 > `{ name: 'X', isType: false }` to `'X'`, or the skill could warn
 > against this shape, or the type could be tightened so only `isType:
 > true` is acceptable in object form.

@@ -184,8 +184,8 @@ The integrity-check rigor differs by code path:
 | Path | Check | Same-name collision from different generator |
 |---|---|---|
 | `insertOperation` / `insertModel` via Driver | `affirmDefinition`: `generatorKey` match + `instanceof` check | **Throws loudly** |
-| `insertNormalisedModel` ref branch (delegates to insertModel) | Same as Driver | Throws loudly |
-| `insertNormalisedModel` fallback-name branch (for inline schemas) | Name-only check | **Silent merge** |
+| `insertNormalizedModel` ref branch (delegates to insertModel) | Same as Driver | Throws loudly |
+| `insertNormalizedModel` fallback-name branch (for inline schemas) | Name-only check | **Silent merge** |
 | Direct `register({ definitions })` | Name-only check in `File.definitions.has(name)` | First-write-wins silently |
 
 The asymmetry is documented as `#SKM-47` — the fallback-name path
@@ -290,6 +290,72 @@ class FieldDispatch extends SnippetBase {
   }
 }
 ```
+
+### Pattern: operation-reference (dynamic dispatch by name)
+
+The three patterns above cover *statically-known* peers — your
+generator imports the peer's Projection class and hands it a specific
+schema or operation. The **operation-reference protocol** covers the
+harder case: your generator's output for one operation depends on
+some *other* operation, whose identity the consumer specifies as a
+string in their enrichment.
+
+Canonical case (`gen-shadcn-form/src/schemaToField.ts:164`): a form
+renders a field whose values come from a list endpoint that the
+consumer names. The form generator doesn't know in advance which
+endpoint backs the field; the consumer points at one (by tag,
+fieldName, or path) in their enrichment payload.
+
+```ts
+// Inside a Snippet that decides what to render for one field:
+const referencedTag = enrichment?.references  // e.g. 'GetOffices'
+
+// 1. Look up the operation by name (here: a tag). The consumer
+//    has chosen the lookup key — its meaning is part of the
+//    consumer-generator's enrichment schema, not core.
+const operation = context.document.value.operations.find(op =>
+  op.tags?.includes(referencedTag) &&
+  // 2. Verify a producer generator can serve this operation.
+  ShadcnSelectInput.isSupported({ context, operation: op })
+)
+
+if (operation) {
+  // 3. Dispatch — same insertOperation as the static-peer pattern.
+  //    The Driver dedupes emission across calls and registers the
+  //    import on the calling file.
+  const def = context.insertOperation({
+    projection: ShadcnSelectInput,
+    operation,
+    destinationPath: settings.exportPath
+  })
+
+  // 4. Reference by name in the emitted markup.
+  return `<${def.identifier.name} lens={lens.focus('${path}').defined()} />`
+}
+// fall back to a plain field if no reference is set
+```
+
+The four meeting points between consumer and producer:
+
+| Meeting point | Lives in |
+|---|---|
+| The reference string (tag / fieldName / path) | Consumer's enrichment payload, declared in the consumer's `enrichments.ts` |
+| `isSupported(op)` predicate | Producer's `mod.ts` |
+| `toIdentifier(op)` / `toExportPath(op)` | Producer's `base.ts` (the content-addressed identity) |
+| `insertOperation` dispatch | Consumer's Projection / Snippet constructor |
+
+The consumer imports the producer's Projection as a *type-level
+package dependency* — exactly like `gen-shadcn-form` imports
+`ShadcnSelectInput` from `gen-shadcn-select`. No runtime config
+sharing, no cross-namespace enrichment peeking, and the dedup +
+import-registration that the static-peer pattern gets stays intact.
+
+**Anti-pattern**: reading the producer's enrichments directly from
+`context.settings.enrichments['@scope/gen-other']`. That couples the
+consumer to the producer's leaf shape (which is the producer's
+private choice) and breaks the dependency-graph model. If you find
+yourself reaching for it, you want an operation-reference enrichment
+instead.
 
 ## Common questions
 

@@ -44,7 +44,7 @@ export type GetMeResult = User
 - **Composes with `gen-typescript`.** Uses `TsProjection` (imported
   from `@skmtc/gen-typescript`) for the actual TS rendering. The
   result type either references the model's TS alias (via
-  `insertModel`) or inlines via `insertNormalisedModel`.
+  `insertModel`) or inlines via `insertNormalizedModel`.
 - **`synthesizeArgsObject` for args type.** Builds an `OasObject`
   representation of the GraphQL operation's arguments, then routes
   it through `TsProjection` — same registration path as inline OAS

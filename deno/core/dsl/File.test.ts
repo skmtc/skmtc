@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert/equals'
-import { File, normaliseModuleName } from './File.ts'
+import { File, normalizeModuleName } from './File.ts'
 import { Definition } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
@@ -9,8 +9,8 @@ import type { GenerateContextType } from '../context/generateTypes.ts'
 const mockContext = {} as GenerateContextType
 const testGeneratorKey = toGeneratorOnlyKey({ generatorId: 'test' })
 
-Deno.test('normaliseModuleName - uses appRoot for internal imports when provided', () => {
-  const normalisedModuleName = normaliseModuleName({
+Deno.test('normalizeModuleName - uses appRoot for internal imports when provided', () => {
+  const normalizedModuleName = normalizeModuleName({
     destinationPath: '@/apps/dashboard/src/components/component.ts',
     exportPath: '@/apps/dashboard/src/some/item.ts',
     packages: [
@@ -21,24 +21,24 @@ Deno.test('normaliseModuleName - uses appRoot for internal imports when provided
     ]
   })
 
-  assertEquals(normalisedModuleName, '@/some/item.ts')
+  assertEquals(normalizedModuleName, '@/some/item.ts')
 })
 
 Deno.test(
-  'normaliseModuleName - uses full path for internal imports when appRoot is not provided',
+  'normalizeModuleName - uses full path for internal imports when appRoot is not provided',
   () => {
-    const normalisedModuleName = normaliseModuleName({
+    const normalizedModuleName = normalizeModuleName({
       destinationPath: '@/apps/dashboard/src/components/component.ts',
       exportPath: '@/apps/dashboard/src/some/item.ts',
       packages: undefined
     })
 
-    assertEquals(normalisedModuleName, '@/apps/dashboard/src/some/item.ts')
+    assertEquals(normalizedModuleName, '@/apps/dashboard/src/some/item.ts')
   }
 )
 
-Deno.test('normaliseModuleName - uses module name for external imports when provided', () => {
-  const normalisedModuleName = normaliseModuleName({
+Deno.test('normalizeModuleName - uses module name for external imports when provided', () => {
+  const normalizedModuleName = normalizeModuleName({
     destinationPath: '@/apps/dashboard/src/components/component.ts',
     exportPath: '@/packages/some-package/src/some/item.ts',
     packages: [
@@ -49,7 +49,7 @@ Deno.test('normaliseModuleName - uses module name for external imports when prov
     ]
   })
 
-  assertEquals(normalisedModuleName, '@skmtc/some-package')
+  assertEquals(normalizedModuleName, '@skmtc/some-package')
 })
 
 Deno.test('File - creates empty file with path', () => {

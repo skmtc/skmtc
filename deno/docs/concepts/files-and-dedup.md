@@ -342,7 +342,7 @@ file's `toString()` into `{ path: content }` artifacts.
 ## Cross-package path translation
 
 `File.toString()` runs each import/reExport module through
-`normaliseModuleName` (`core/dsl/File.ts:281-306`). The function
+`normalizeModuleName` (`core/dsl/File.ts:281-306`). The function
 consults the project's `packages: ModulePackage[]` config and
 rewrites paths:
 

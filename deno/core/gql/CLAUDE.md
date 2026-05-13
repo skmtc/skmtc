@@ -124,7 +124,7 @@ export const myEntry = toGqlOperationEntry({
   isSupported: () => true,
   transform: ({ context, operation, acc }) => {
     // operation is GqlOperation; access fieldName / arguments / returnType
-    // directly. emit via context.register / context.insertNormalisedModel.
+    // directly. emit via context.register / context.insertNormalizedModel.
     return acc
   }
 })

@@ -24,4 +24,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #20928 | 2:20 PM | 🔵 | Critical enrichment routing path discrepancy discovered in documentation | ~940 |
+
+### May 13, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #21156 | 8:10 AM | 🔵 | toPreviewModule confirmed active in entry factory APIs | ~488 |
 </claude-mem-context>

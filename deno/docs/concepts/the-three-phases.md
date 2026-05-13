@@ -173,7 +173,7 @@ generators.forEach(generatorConfig => {
 })
 ```
 
-Inside each `#run*Generator`, the per-item loop iterates operations or refNames, applies item-level filters, calls the generator's `isSupported({ operation })` capability gate, then calls `generatorConfig.transform({ context, operation, acc })`. The transform is where the generator produces its output — but not by returning strings (its return value is discarded). Instead, the transform calls `context.insertOperation(MyProjection, op)` or `context.insertNormalisedModel(MyProjection, args)`, which delegate to Drivers.
+Inside each `#run*Generator`, the per-item loop iterates operations or refNames, applies item-level filters, calls the generator's `isSupported({ operation })` capability gate, then calls `generatorConfig.transform({ context, operation, acc })`. The transform is where the generator produces its output — but not by returning strings (its return value is discarded). Instead, the transform calls `context.insertOperation(MyProjection, op)` or `context.insertNormalizedModel(MyProjection, args)`, which delegate to Drivers.
 
 ### The Driver lifecycle
 
@@ -184,7 +184,7 @@ When `transform` calls `context.insertOperation(TanstackQuery, operation)`:
 3. Driver looks up `context.findDefinition({ name: settings.identifier.name, exportPath: settings.exportPath })`.
 4. **Cache hit + `affirmDefinition` passes:** Driver returns the cached `Definition`. No work done.
 5. **Cache hit + `generatorKey` mismatch:** Driver throws `Registered definition mismatch`. Loud failure.
-6. **Cache miss:** Driver instantiates `new projection({ context, operation, settings })`. The Projection's *constructor* runs — which may call `register({ imports, ... })`, `insertNormalisedModel(...)`, or even `insertOperation(...)` recursively for further dependencies. After the constructor returns, Driver wraps the value in a `Definition` and registers it via `context.register({ definitions: [definition], destinationPath: settings.exportPath })`.
+6. **Cache miss:** Driver instantiates `new projection({ context, operation, settings })`. The Projection's *constructor* runs — which may call `register({ imports, ... })`, `insertNormalizedModel(...)`, or even `insertOperation(...)` recursively for further dependencies. After the constructor returns, Driver wraps the value in a `Definition` and registers it via `context.register({ definitions: [definition], destinationPath: settings.exportPath })`.
 7. If the calling file differs from `settings.exportPath` (e.g., a form file is asking for a hook in a services file), Driver also registers an import stitch into the calling file via `context.register({ imports, destinationPath })`.
 
 ### Why order doesn't matter

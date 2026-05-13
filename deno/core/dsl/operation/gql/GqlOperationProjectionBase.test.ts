@@ -303,15 +303,15 @@ Deno.test('GqlOperationProjectionBase - insertModel calls context.insertModel wi
 })
 
 Deno.test(
-  'GqlOperationProjectionBase - insertNormalizedModel calls context.insertNormalisedModel with correct params',
+  'GqlOperationProjectionBase - insertNormalizedModel calls context.insertNormalizedModel with correct params',
   () => {
     const exportPath = './schemas/generated.ts'
 
     const mockContext = {
-      insertNormalisedModel: () => ({}) as any
+      insertNormalizedModel: () => ({}) as any
     } as unknown as GenerateContextType
 
-    const insertNormalisedModelSpy = spy(mockContext, 'insertNormalisedModel')
+    const insertNormalizedModelSpy = spy(mockContext, 'insertNormalizedModel')
 
     const mockOperation = createMockGqlOperation({ fieldName: 'getData' })
 
@@ -335,16 +335,16 @@ Deno.test(
       { noExport: true }
     )
 
-    assertSpyCalls(insertNormalisedModelSpy, 1)
-    assertEquals(insertNormalisedModelSpy.calls[0].args[0] as any, mockProjection)
-    assertEquals(insertNormalisedModelSpy.calls[0].args[1] as any, {
+    assertSpyCalls(insertNormalizedModelSpy, 1)
+    assertEquals(insertNormalizedModelSpy.calls[0].args[0] as any, mockProjection)
+    assertEquals(insertNormalizedModelSpy.calls[0].args[1] as any, {
       schema: mockSchema,
       fallbackName,
       destinationPath: exportPath
     })
-    assertEquals(insertNormalisedModelSpy.calls[0].args[2] as any, { noExport: true })
+    assertEquals(insertNormalizedModelSpy.calls[0].args[2] as any, { noExport: true })
 
-    insertNormalisedModelSpy.restore()
+    insertNormalizedModelSpy.restore()
   }
 )
 

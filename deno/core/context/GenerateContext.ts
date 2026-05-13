@@ -14,9 +14,9 @@ import type {
   GetFileOptions,
   InsertGqlOperationArgs,
   InsertModelOptions,
-  InsertNormalisedModelArgs,
-  InsertNormalisedModelOptions,
-  InsertNormalisedModelReturn,
+  InsertNormalizedModelArgs,
+  InsertNormalizedModelOptions,
+  InsertNormalizedModelReturn,
   InsertOperationArgs,
   PickArgs,
   RegisterArgs,
@@ -554,15 +554,15 @@ export class GenerateContext implements GenerateContextType {
   }
 
   #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File | JsonFile {
-    const normalisedPath = normalize(filePath)
+    const normalizedPath = normalize(filePath)
 
-    const currentFile = this.#files.get(normalisedPath)
+    const currentFile = this.#files.get(normalizedPath)
 
     if (!currentFile) {
       if (throwIfNotFound) {
-        throw new Error(`File not found: '${normalisedPath}'`)
+        throw new Error(`File not found: '${normalizedPath}'`)
       } else {
-        return this.#addFile(normalisedPath)
+        return this.#addFile(normalizedPath)
       }
     }
 
@@ -749,15 +749,15 @@ export class GenerateContext implements GenerateContextType {
    * Insert a normalized model: dispatch to {@link insertModel} when the schema
    * is a `$ref`, otherwise produce a one-off definition under `fallbackName`.
    */
-  insertNormalisedModel<
+  insertNormalizedModel<
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
     EnrichmentType
   >(
     projection: ModelProjection<V, EnrichmentType>,
-    { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
-    { noExport = false }: InsertNormalisedModelOptions = {}
-  ): InsertNormalisedModelReturn<V, Schema> {
+    { schema, fallbackName, destinationPath }: InsertNormalizedModelArgs<Schema>,
+    { noExport = false }: InsertNormalizedModelOptions = {}
+  ): InsertNormalizedModelReturn<V, Schema> {
     if (schema.isRef()) {
       const { definition } = this.insertModel(projection, schema.toRefName(), {
         destinationPath,
@@ -765,7 +765,7 @@ export class GenerateContext implements GenerateContextType {
       })
 
       // @TODO Using mapped types would help avoid generics casting
-      return definition as InsertNormalisedModelReturn<V, Schema>
+      return definition as InsertNormalizedModelReturn<V, Schema>
     }
 
     const cachedDefinition = this.findDefinition({
@@ -776,7 +776,7 @@ export class GenerateContext implements GenerateContextType {
     // @TODO add check to make sure retrieved definition
     // used same generator and same schema #SKM-47
     if (cachedDefinition) {
-      return cachedDefinition as InsertNormalisedModelReturn<V, Schema>
+      return cachedDefinition as InsertNormalizedModelReturn<V, Schema>
     }
 
     const value = projection.schemaToValueFn({
@@ -794,7 +794,7 @@ export class GenerateContext implements GenerateContextType {
     })
 
     // @TODO Using mapped types would help avoid generics casting
-    return definition as InsertNormalisedModelReturn<V, Schema>
+    return definition as InsertNormalizedModelReturn<V, Schema>
   }
 
   /**
@@ -871,24 +871,24 @@ export class GenerateContext implements GenerateContextType {
     })
   }
 
-  #addFile(normalisedPath: string): File | JsonFile {
-    if (this.#files.has(normalisedPath)) {
-      throw new Error(`File already exists: ${normalisedPath}`)
+  #addFile(normalizedPath: string): File | JsonFile {
+    if (this.#files.has(normalizedPath)) {
+      throw new Error(`File already exists: ${normalizedPath}`)
     }
 
-    const extension = normalisedPath.split('.').pop()
+    const extension = normalizedPath.split('.').pop()
 
     let newFile: File | JsonFile
     switch (extension) {
       case 'json':
-        newFile = new JsonFile({ path: normalisedPath, content: {} })
+        newFile = new JsonFile({ path: normalizedPath, content: {} })
         break
       default:
-        newFile = new File({ path: normalisedPath, settings: this.settings })
+        newFile = new File({ path: normalizedPath, settings: this.settings })
         break
     }
 
-    this.#files.set(normalisedPath, newFile)
+    this.#files.set(normalizedPath, newFile)
 
     return newFile
   }

@@ -7,5 +7,42 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #21001 | 6:58 PM | 🟣 | New StackTrail concept documentation explains mutable position-tracking mechanics | ~894 |
+| #21053 | 8:33 PM | ✅ | Vocabulary refinement in the-graphql-pipeline.md scalar handling section | ~291 |
+| #21040 | 7:50 PM | ✅ | Documented AI-driven enrichment request system in enrichments concept page | ~528 |
+| #21038 | 7:33 PM | ✅ | Vocabulary cleanup in the-three-phases.md | ~222 |
+| #21037 | " | ✅ | Vocabulary refinement in the-three-phases.md Generate phase description | ~295 |
+| #21033 | 7:32 PM | ✅ | Vocabulary cleanup in projections-and-snippets.md | ~237 |
+| #21032 | " | ✅ | Vocabulary refinement in projections-and-snippets.md | ~318 |
+| #21025 | 7:24 PM | ✅ | Updated the-three-phases.md with cross-references to new concept documents | ~351 |
+| #21012 | 7:08 PM | 🟣 | Created comprehensive how-generators-emit.md concept document | ~598 |
+| #21005 | 6:58 PM | ✅ | Enhanced refs-and-resolution.md with StackTrail mutation semantics | ~378 |
+| #20908 | 1:40 PM | ✅ | SKMTC documentation improvements - error handling philosophy and project layout corrections | ~900 |
+| #20880 | 1:26 PM | ✅ | Three-phases doc cleanup - removed prettierConfig references, simplified no-formatting explanation | ~650 |
+| #20877 | " | ✅ | Documentation correction in three-phases concept - removed unused prettierConfig parameter | ~418 |
+| #20842 | 1:04 PM | ✅ | Documentation structure scaffolded for SKMTC | ~775 |
+| #20811 | 12:34 PM | ✅ | Comprehensive ParseContext API reference documentation created | ~808 |
+| #20789 | 12:04 PM | ✅ | SKMTC generators-as-packages concept documentation - comprehensive package structure guide | ~1088 |
+| #20788 | " | ✅ | SKMTC projects and workspaces concept documentation - complete directory layout and file role guide | ~475 |
+| #20787 | 12:03 PM | ✅ | Enrichments concept documentation - comprehensive guide to per-operation configuration | ~1096 |
+| #20786 | 12:02 PM | ✅ | OasRef architecture documentation - lazy resolution and cascade pruning | ~798 |
+| #20785 | 12:00 PM | ✅ | Worker runtime comprehensive documentation - execution model and sandboxing | ~849 |
+| #20784 | 11:59 AM | ✅ | Comprehensive clone-vs-install concept documentation | ~849 |
+| #20783 | 11:58 AM | ✅ | Cross-generator coordination concept doc completed with comprehensive technical explanation | ~1109 |
+| #20782 | 11:57 AM | ✅ | Projections and Snippets concept doc - complete DSL two-level model explanation | ~544 |
+| #20694 | 10:01 AM | ✅ | Documentation skeleton for SKMTC projects and workspaces | ~474 |
+| #20693 | " | ✅ | Concept guide skeleton for generator package structure | ~366 |
+| #20692 | " | ✅ | Concepts documentation skeleton created for enrichments system | ~507 |
+| #20691 | " | ✅ | Concepts documentation created - clone vs install customization model | ~554 |
+| #20690 | " | ✅ | Concept documentation skeleton created for cross-generator coordination | ~578 |
+| #20689 | " | ✅ | SKMTC concepts documentation - Projections and Snippets outline | ~560 |
+| #20668 | 9:49 AM | ✅ | Comprehensive three-phase architecture documentation added | ~957 |
+
+### May 13, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #21168 | 8:14 AM | ✅ | Added "Authoring asymmetries vs OAS" section to GraphQL pipeline concepts doc | ~305 |
+| #21166 | " | ✅ | Added operation-reference protocol pattern to cross-generator coordination concept doc | ~986 |
+| #21165 | " | ✅ | Documentation added warning against using enrichments as isSupported filter | ~707 |
+| #21158 | 8:11 AM | 🔵 | Spelling inconsistency documentation found claiming intentional difference between methods | ~596 |
 </claude-mem-context>

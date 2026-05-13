@@ -21,4 +21,10 @@
 | #20686 | " | ✅ | Generator authoring how-to guides - identifier conventions skeleton created | ~499 |
 | #20685 | " | ✅ | Documentation scaffolding - enrichment options how-to guide | ~448 |
 | #20684 | " | ✅ | How-to guide skeleton created for changing generator export paths | ~455 |
+
+### May 13, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #21174 | 8:19 AM | ✅ | Removed British/American spelling focus from compose-with-another-generator how-to | ~853 |
 </claude-mem-context>

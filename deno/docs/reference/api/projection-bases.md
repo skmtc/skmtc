@@ -121,7 +121,7 @@ insertNormalizedModel<V, S, E>(
   projection: ModelProjection<V, E>,
   args: { schema: S, fallbackName: string },  // ← no destinationPath needed
   options?: { noExport?: boolean }
-): InsertNormalisedModelReturn<V, S>
+): InsertNormalizedModelReturn<V, S>
 
 defineAndRegister<V>(
   args: { identifier: Identifier, value: V, noExport?: boolean }  // ← no destinationPath

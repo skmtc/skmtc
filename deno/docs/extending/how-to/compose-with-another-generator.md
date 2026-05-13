@@ -155,24 +155,22 @@ See [how idempotency works](../../explanation/how-idempotency-works.md).
   isn't installed in the project. Run `skmtc list <project>` to
   confirm.
 
-## On the British/American spellings
+## Two ways to call it
 
 There are two related methods:
 
-- **`this.insertNormalizedModel`** (American, on projection base
-  — wraps the context method, auto-fills `destinationPath`)
-- **`this.context.insertNormalisedModel`** (British, on
-  `GenerateContext` directly — caller supplies
-  `destinationPath`)
+- **`this.insertNormalizedModel`** (on the projection base — wraps
+  the context method, auto-fills `destinationPath`)
+- **`this.context.insertNormalizedModel`** (on `GenerateContext`
+  directly — caller supplies `destinationPath`)
 
 Both are valid; prefer the projection-base wrapper in generator
-code. This split is intentional and documented in [the spelling
-note in llms.md](../../llms.md).
+code.
 
 ## Related
 
 - [API: GenerateContext](../../reference/api/generate-context.md) —
-  `insertModel` / `insertNormalisedModel` reference
+  `insertModel` / `insertNormalizedModel` reference
 - [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md)
 - [Recipe: composing multi-generator stacks](../recipes/composing-multi-generator-stacks.md) —
   the broader walked example using `gen-shadcn-form` and

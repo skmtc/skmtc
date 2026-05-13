@@ -39,7 +39,7 @@ first registration.
 #### `path: string`
 
 The output path. Same value as the key in `#files`. Passed to
-`normaliseModuleName` when other files import from this one — so
+`normalizeModuleName` when other files import from this one — so
 that monorepo path remapping works (see "Cross-package translation"
 below).
 
@@ -79,7 +79,7 @@ same `(name, exportPath)` cache key.
 #### `packages: ModulePackage[] | undefined`
 
 Inherited from `ClientSettings.packages`. Drives
-`normaliseModuleName` at serialization time.
+`normalizeModuleName` at serialization time.
 
 ### `toString()`
 
@@ -125,16 +125,16 @@ Sibling to `File` for non-code output (`package.json`,
 Populated via `GenerateContext.register({ json, destinationPath })`
 (the `RegisterJsonArgs` path).
 
-## `normaliseModuleName`
+## `normalizeModuleName`
 
 ```ts
-type NormaliseModuleNameArgs = {
+type NormalizeModuleNameArgs = {
   destinationPath: string
   exportPath: string
   packages: ModulePackage[] | undefined
 }
 
-const normaliseModuleName = (args: NormaliseModuleNameArgs): string
+const normalizeModuleName = (args: NormalizeModuleNameArgs): string
 ```
 
 Pure function used by `File.toString()` to translate file-system
@@ -167,9 +167,9 @@ assertEquals([...userFile!.definitions.keys()], ['User'])
 ### Computing path translations outside Render
 
 ```ts
-import { normaliseModuleName } from '@skmtc/core'
+import { normalizeModuleName } from '@skmtc/core'
 
-const moduleSpecifier = normaliseModuleName({
+const moduleSpecifier = normalizeModuleName({
   destinationPath: './packages/client/src/api.ts',
   exportPath: './packages/types/models/User.ts',
   packages: [
@@ -188,7 +188,7 @@ const moduleSpecifier = normaliseModuleName({
 | Registering the same import name twice in one file | `Set.add` collapses; one import line is rendered |
 | Same definition name registered by two *different* generators | Driver's [`affirmDefinition`](../glossary.md#affirmdefinition) throws "Registered definition mismatch" before `register` is reached |
 | Multiple writers to the same `JsonFile.content` key | Last-write-wins; no dedup |
-| Path `./pkg/X.ts` rendering as `@/X.ts` in some files | Same-package translation via `normaliseModuleName` — expected |
+| Path `./pkg/X.ts` rendering as `@/X.ts` in some files | Same-package translation via `normalizeModuleName` — expected |
 
 ## See also
 

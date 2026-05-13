@@ -60,9 +60,10 @@ codegen tools. They apply across all SKMTC interactions:
    classes that each implement `.isRef()` returning `false`; `OasRef`
    is a sibling with `.isRef()` returning `true`.
 
-5. **Two intentional spellings.** `insertNormalisedModel` (British, on
-   `GenerateContext`) and `insertNormalizedModel` (American, on the
-   projection-base wrapper). Both correct.
+5. **Same-named wrapper.** `insertNormalizedModel` exists on both
+   `GenerateContext` and the projection-base wrapper. Same name, two
+   methods — the wrapper auto-fills `destinationPath` from
+   `settings.exportPath` and forwards to the context method.
 
 ## 2. Mental model
 

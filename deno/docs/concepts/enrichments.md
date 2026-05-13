@@ -31,10 +31,110 @@ Enrichments **are not**:
 - A replacement for cloning when you need behavioral changes
 - A way to change identifier naming, export paths, or output template
   structure (those are clone-time changes)
+- A filter for which operations the generator runs against
 
 The mental model: enrichments are the inputs the *author* of a
 generator decided to make user-configurable. Everything else stays
 hardcoded as the clone seam.
+
+### Enrichments aren't a filter — don't gate `isSupported` on them
+
+A common authoring mistake on opt-in generators (forms, tables, page
+shells) is to write `isSupported` so it returns `true` only when the
+operation has the generator's enrichment payload. That makes
+"having an enrichment" the on/off switch.
+
+```ts
+// ❌ Wrong — enrichment doubles as the on/off switch
+isSupported({ context, operation }) {
+  return getEnrichment(context, operation) !== undefined
+}
+
+// ✅ Right — declare capability; let client.json gate intent
+isSupported({ operation }) {
+  return ['post', 'put', 'patch'].includes(operation.method) &&
+    operation.requestBody?.resolve()?.toSchema()?.resolve().type === 'object'
+}
+```
+
+Two reasons to avoid the wrong form:
+
+1. **`isSupported` declares capability, not user intent.** A
+   generator that *could* emit for `POST` with a JSON body should say
+   so. Whether the user *wants* it to is a configuration concern.
+2. **Enrichment is for customizing shape, not selecting set.** Once
+   enrichment doubles as the switch, you can't have an enrichment
+   with all-default values — you have to invent a sentinel. Code smell.
+
+The right control for "only run for these operations" is the
+**`include` allow-list** (or `.skip` deny-list) in
+`client.json#settings`, applied *outside* the generator. See
+[`using/how-to/skip-or-include-operations.md`](../using/how-to/skip-or-include-operations.md).
+
+### Extensions vs enrichments: who owns it, and how often does it change?
+
+Two places per-field metadata can live:
+
+- **OpenAPI `x-*` extensions** — written into the schema document
+  itself, exposed on every `Oas*` variant as
+  `extensionFields?: Record<string, unknown>`. Travel with the
+  schema through Parse untouched.
+- **Enrichments** — declared per-generator in `enrichments.ts`,
+  supplied by the consumer in `.settings/client.json`.
+
+Pick along two axes:
+
+| | Stable data (rarely changes) | Volatile data (changes independently of schema) |
+|---|---|---|
+| **You author the schema** | OpenAPI extension — the data ships with the schema and every consumer gets it for free | Enrichment — keep the volatile bit in `client.json` where it's a local edit, not a schema re-publish |
+| **You only consume the schema** | Enrichment — you can't edit the upstream document anyway | Enrichment |
+
+Why the asymmetry: editing an extension means changing the schema
+document (and, if it's published, re-shipping it). Editing an
+enrichment is a config change in the consumer's `client.json`. So
+extensions earn their keep when the data is *stable enough* that the
+re-publish cadence is fine, and *universal enough* that every
+consumer wants the same value.
+
+```yaml
+# Schema-author + stable: canonical display label
+components:
+  schemas:
+    Customer:
+      type: object
+      properties:
+        firstName:
+          type: string
+          x-label: "Given name"
+```
+
+```ts
+// In a generator: read the extension off the parsed schema
+const label = resolved.properties?.['firstName']?.extensionFields?.['x-label']
+```
+
+```ts
+// Schema-consumer + volatile: which list endpoint backs this field today
+// → consumer's enrichment in client.json, NOT an extension
+{
+  "@scope/gen-shadcn-form": {
+    "/customers": {
+      "post": { "fields": [{ "id": "officeId", "references": "GetOffices" }] }
+    }
+  }
+}
+```
+
+Cross-generator wiring (the operation-reference protocol — see
+[cross-generator coordination](cross-generator-coordination.md#pattern-operation-reference-dynamic-dispatch-by-name))
+is always volatile by nature, so it always lives in the consumer's
+enrichment.
+
+A common smell when you *do* own the schema: declaring an enrichment
+field that just mirrors a stable schema property — display labels,
+canonical descriptions, formats. Move it to an extension and the
+data stays with the schema, surviving any consumer's `client.json`
+edits.
 
 ## Core owns the hierarchy; the generator owns the leaf
 

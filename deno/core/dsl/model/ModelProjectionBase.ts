@@ -1,8 +1,8 @@
 import type { BaseRegisterArgs, GenerateContextType } from '../../context/generateTypes.ts'
 import type {
   InsertModelOptions,
-  InsertNormalisedModelArgs,
-  InsertNormalisedModelReturn
+  InsertNormalizedModelArgs,
+  InsertNormalizedModelReturn
 } from '../../context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
@@ -81,10 +81,10 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
     EnrichmentType = undefined
   >(
     projection: ModelProjection<V, EnrichmentType>,
-    { schema, fallbackName }: Omit<InsertNormalisedModelArgs<Schema>, 'destinationPath'>,
+    { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
     options: Pick<InsertModelOptions, 'noExport'> = {}
-  ): InsertNormalisedModelReturn<V, Schema> {
-    return this.context.insertNormalisedModel(
+  ): InsertNormalizedModelReturn<V, Schema> {
+    return this.context.insertNormalizedModel(
       projection,
       {
         schema,

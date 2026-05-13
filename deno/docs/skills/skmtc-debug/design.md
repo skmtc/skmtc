@@ -244,8 +244,8 @@ The defaults to override when debugging:
 - **Don't read docstrings or comments as authoritative.** Docstrings
   drift; the code is canonical.
 - **Don't extrapolate behavior from training data.** This codebase has
-  specific quirks (no Prettier, `OasSchema` union, two spellings).
-  Verify each claim against the source.
+  specific quirks (no Prettier, `OasSchema` union). Verify each claim
+  against the source.
 - **Don't assume the bug is in the generator.** It may be in
   `client.json`, in the OpenAPI schema, in a stale bundle, or in
   consumer-side code the generator imports against.

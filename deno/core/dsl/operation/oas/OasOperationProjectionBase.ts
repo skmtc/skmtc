@@ -5,8 +5,8 @@ import type {
   DefineAndRegisterArgs,
   InsertOperationOptions,
   InsertModelOptions,
-  InsertNormalisedModelArgs,
-  InsertNormalisedModelReturn,
+  InsertNormalizedModelArgs,
+  InsertNormalizedModelReturn,
   BaseRegisterArgs,
   GenerateContextType
 } from '@/context/generateTypes.ts'
@@ -103,10 +103,10 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
     EnrichmentType = undefined
   >(
     projection: ModelProjection<V, EnrichmentType>,
-    { schema, fallbackName }: Omit<InsertNormalisedModelArgs<Schema>, 'destinationPath'>,
+    { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
     options: Pick<InsertModelOptions, 'noExport'> = {}
-  ): InsertNormalisedModelReturn<V, Schema> {
-    return this.context.insertNormalisedModel(
+  ): InsertNormalizedModelReturn<V, Schema> {
+    return this.context.insertNormalizedModel(
       projection,
       {
         schema,

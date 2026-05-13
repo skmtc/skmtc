@@ -40,9 +40,9 @@ export const myGqlEntry = toGqlOperationEntry({
     const exportPath = toExportPath(operation)
     const generatorKey = toGeneratorOnlyKey({ generatorId: id })
 
-    // Insert a normalised TypeScript model for the operation's
+    // Insert a normalized TypeScript model for the operation's
     // return type. gen-typescript handles the schema → TS mapping.
-    context.insertNormalisedModel(TsProjection, {
+    context.insertNormalizedModel(TsProjection, {
       schema: operation.returnType,
       fallbackName: `${operation.fieldName}Result`,
       destinationPath: exportPath
@@ -82,7 +82,7 @@ There is no Projection class in either stock GraphQL generator.
 Instead, the `transform` callback uses `GenerateContext` methods
 directly:
 
-- `context.insertNormalisedModel(TsProjection, { schema, fallbackName, destinationPath })`
+- `context.insertNormalizedModel(TsProjection, { schema, fallbackName, destinationPath })`
   delegates rendering of a TypeScript type for an inline schema.
   The TS file is added (or reused if already present) and you
   get back a stable identifier.
@@ -158,7 +158,7 @@ class GqlOperation {
 }
 ```
 
-GraphQL types are normalised to the same `OasSchema` family used
+GraphQL types are normalized to the same `OasSchema` family used
 for OAS schemas — that's how the same TypeScript-producing code
 works for both ecosystems. See
 [gen-graphql-operation](../../reference/stock-generators/gen-graphql-operation.md)
@@ -177,7 +177,7 @@ Two stock generators pair up:
 `gen-graphql-operation` (it reuses `toExportPath` from the peer
 package). Pair them so the document's `<Base>Args` and
 `<Base>Result` references resolve locally. Same
-`insertModel` / `insertNormalisedModel` mechanism — the parsed
+`insertModel` / `insertNormalizedModel` mechanism — the parsed
 types are interoperable across OAS and GraphQL because of the
 shared `OasSchema` representation.
 

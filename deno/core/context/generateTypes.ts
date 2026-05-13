@@ -271,7 +271,7 @@ export type RegisterArgs = {
  *
  * @template Schema - The schema type (OasSchema, OasRef, or OasVoid)
  */
-export type InsertNormalisedModelArgs<Schema extends OasSchema | OasRef<'schema'> | OasVoid> = {
+export type InsertNormalizedModelArgs<Schema extends OasSchema | OasRef<'schema'> | OasVoid> = {
   /** Fallback name to use if the schema doesn't have a name */
   fallbackName: string
   /** The OpenAPI schema to normalize and insert */
@@ -297,7 +297,7 @@ export type InsertModelOptions = {
 /**
  * Options for inserting a normalized model.
  */
-export type InsertNormalisedModelOptions = {
+export type InsertNormalizedModelOptions = {
   /** Whether to exclude this model from exports */
   noExport?: boolean
 }
@@ -370,7 +370,7 @@ export type ToOperationSettingsArgs<V, EnrichmentType = undefined> =
  * @template V - The generated value type
  * @template Schema - The schema type being processed
  */
-export type InsertNormalisedModelReturn<
+export type InsertNormalizedModelReturn<
   V extends GeneratedValue,
   Schema extends OasSchema | OasRef<'schema'> | OasVoid
 > =
@@ -394,15 +394,15 @@ export type GenerateContextType = {
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
     args: InsertOperationArgs<V, EnrichmentType>
   ) => Inserted<V, EnrichmentType>
-  insertNormalisedModel: <
+  insertNormalizedModel: <
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
     EnrichmentType
   >(
     projection: ModelProjection<V, EnrichmentType>,
-    { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
-    options?: InsertNormalisedModelOptions
-  ) => InsertNormalisedModelReturn<V, Schema>
+    { schema, fallbackName, destinationPath }: InsertNormalizedModelArgs<Schema>,
+    options?: InsertNormalizedModelOptions
+  ) => InsertNormalizedModelReturn<V, Schema>
   insertModel: <V extends GeneratedValue, EnrichmentType>(
     projection: ModelProjection<V, EnrichmentType>,
     refName: RefName,
