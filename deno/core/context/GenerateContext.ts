@@ -43,6 +43,9 @@ import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
+import get from 'lodash-es/get'
 import type { RefName } from '@/types/RefName.ts'
 import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
@@ -380,56 +383,93 @@ export class GenerateContext implements GenerateContextType {
     skip: SkipPaths | undefined,
     stackTrail: StackTrail
   ) {
-    oasDocument.operations.reduce((acc, operation) => {
-      return stackTrail.trace(`${operation.path}:${operation.method}`, st => {
-        try {
-          if (
-            typeof generatorConfig?.isSupported === 'function' &&
-            !generatorConfig.isSupported({ operation, context: this })
-          ) {
-            this.captureCurrentResult('notSupported', st)
-            return acc
-          }
+    oasDocument.operations.reduce<unknown>((acc, operation) => {
+      return stackTrail.trace(`${operation.path}:${operation.method}`, opTrail => {
+        // Resolve the variant list to fan out over. The consumer's
+        // enrichments are keyed `[generatorId][path][method][variant]`;
+        // the block at `[path][method]` is therefore a record of
+        // variant names. Three cases handled in `toVariantList`:
+        //
+        //   - absent → run a single 'main' pass with no enrichment
+        //   - present, non-object → treat as a single 'main' pass
+        //     (the per-variant Valibot wrap will reject this shape
+        //     at config-load time once it lands)
+        //   - present, object → enumerate keys; 'main' must be among
+        //     them or we throw (loud beats silent zero-output)
+        const opEnrichments: unknown = get(
+          this.settings,
+          `enrichments.${generatorConfig.id}.${operation.path}.${operation.method}`
+        )
 
-          // Order: isSupported (capability) → include (allow) → skip
-          // (deny). `include === undefined` means no per-op filter is
-          // active for this generator — could be because no `include`
-          // is set at all, OR because the generator was included via
-          // the string form (`include: ['gen-X']` ⇒ "everything").
-          // Either way, no per-op restriction.
-          //
-          // When `include` IS defined (i.e. the user gave an
-          // operation-shaped entry like
-          // `{ 'gen-X': { '/foo': ['get'] } }`), only operations
-          // whose `(path, method)` matches are admitted. Empty
-          // `IncludePaths` (`{}`) matches nothing — that's a valid
-          // "exclude all from this generator" config.
-          if (include !== undefined && !include[operation.path]?.includes(operation.method)) {
-            this.captureCurrentResult('skipped', st)
-            return acc
-          }
+        const variants = toVariantList({
+          opEnrichments,
+          generatorId: generatorConfig.id,
+          operationLabel: `${operation.method.toUpperCase()} ${operation.path}`
+        })
 
-          if (skip?.[operation.path]?.includes(operation.method)) {
-            this.captureCurrentResult('skipped', st)
-            return acc
-          }
+        return variants.reduce<unknown>((variantAcc, variant) => {
+          return opTrail.trace(`variant: ${variant}`, st => {
+            try {
+              if (
+                typeof generatorConfig?.isSupported === 'function' &&
+                !generatorConfig.isSupported({ operation, context: this, variant })
+              ) {
+                this.captureCurrentResult('notSupported', st)
+                return variantAcc
+              }
 
-          const result = generatorConfig.transform({ context: this, operation, acc })
+              // Order: isSupported (capability) → include (allow) → skip
+              // (deny). Match is now on `(path, method, variant)`. An
+              // empty variant array on a method means "every variant of
+              // this method"; a populated array names the variants the
+              // entry applies to.
+              if (
+                include !== undefined &&
+                !matchesPathFilter({ paths: include, path: operation.path, method: operation.method, variant })
+              ) {
+                this.captureCurrentResult('skipped', st)
+                return variantAcc
+              }
 
-          const source = toOasOperationSource({ operation, generatorId: generatorConfig.id })
+              if (matchesPathFilter({ paths: skip, path: operation.path, method: operation.method, variant })) {
+                this.captureCurrentResult('skipped', st)
+                return variantAcc
+              }
 
-          this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, operation }))
+              const result = generatorConfig.transform({
+                context: this,
+                operation,
+                acc: variantAcc,
+                variant
+              })
 
-          this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, operation }))
+              const source = toOasOperationSource({
+                operation,
+                generatorId: generatorConfig.id,
+                variant
+              })
 
-          this.captureCurrentResult('success', st)
+              this.#addPreview(
+                source,
+                generatorConfig.toPreviewModule?.({ context: this, operation, variant })
+              )
 
-          return result
-        } catch (error) {
-          this.logger.error(error)
+              this.#addMapping(
+                source,
+                generatorConfig.toMappingModule?.({ context: this, operation, variant })
+              )
 
-          this.captureCurrentResult('error', st)
-        }
+              this.captureCurrentResult('success', st)
+
+              return result
+            } catch (error) {
+              this.logger.error(error)
+
+              this.captureCurrentResult('error', st)
+              return variantAcc
+            }
+          })
+        }, acc)
       })
     }, undefined)
   }
@@ -440,31 +480,63 @@ export class GenerateContext implements GenerateContextType {
     stackTrail: StackTrail
   ) {
     gqlDocument.operations.reduce<unknown>((acc, operation) => {
-      return stackTrail.trace(operation.identifier, st => {
-        try {
-          if (
-            typeof generatorConfig.isSupported === 'function' &&
-            !generatorConfig.isSupported({ operation, context: this })
-          ) {
-            this.captureCurrentResult('notSupported', st)
-            return acc
-          }
+      return stackTrail.trace(operation.identifier, opTrail => {
+        // GraphQL enrichment routing key is
+        // `[generatorId][rootKind][fieldName][variant]`.
+        const opEnrichments: unknown = get(
+          this.settings,
+          `enrichments.${generatorConfig.id}.${operation.rootKind}.${operation.fieldName}`
+        )
 
-          const result = generatorConfig.transform({ context: this, operation, acc })
+        const variants = toVariantList({
+          opEnrichments,
+          generatorId: generatorConfig.id,
+          operationLabel: `${operation.rootKind} ${operation.fieldName}`
+        })
 
-          const source = toGqlOperationSource({ operation, generatorId: generatorConfig.id })
+        return variants.reduce<unknown>((variantAcc, variant) => {
+          return opTrail.trace(`variant: ${variant}`, st => {
+            try {
+              if (
+                typeof generatorConfig.isSupported === 'function' &&
+                !generatorConfig.isSupported({ operation, context: this, variant })
+              ) {
+                this.captureCurrentResult('notSupported', st)
+                return variantAcc
+              }
 
-          this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, operation }))
+              const result = generatorConfig.transform({
+                context: this,
+                operation,
+                acc: variantAcc,
+                variant
+              })
 
-          this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, operation }))
+              const source = toGqlOperationSource({
+                operation,
+                generatorId: generatorConfig.id,
+                variant
+              })
 
-          this.captureCurrentResult('success', st)
-          return result
-        } catch (error) {
-          this.logger.error(error)
-          this.captureCurrentResult('error', st)
-          return acc
-        }
+              this.#addPreview(
+                source,
+                generatorConfig.toPreviewModule?.({ context: this, operation, variant })
+              )
+
+              this.#addMapping(
+                source,
+                generatorConfig.toMappingModule?.({ context: this, operation, variant })
+              )
+
+              this.captureCurrentResult('success', st)
+              return result
+            } catch (error) {
+              this.logger.error(error)
+              this.captureCurrentResult('error', st)
+              return variantAcc
+            }
+          })
+        }, acc)
       })
     }, undefined)
   }
@@ -722,13 +794,19 @@ export class GenerateContext implements GenerateContextType {
   insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
     args: InsertOperationArgs<V, EnrichmentType>
   ): Inserted<V, EnrichmentType> {
+    // Default to the canonical variant. Callers who explicitly thread
+    // a variant (e.g. variants-aware Projections threading
+    // `this.settings.variant`) override this default.
+    const variant = args.variant ?? DEFAULT_VARIANT
+
     if (isGqlInsertOperationArgs(args)) {
       const { settings, definition } = new GqlOperationDriver({
         context: this,
         projection: args.projection,
         operation: args.operation,
         destinationPath: args.destinationPath,
-        noExport: args.noExport ?? false
+        noExport: args.noExport ?? false,
+        variant
       })
 
       return new Inserted({ settings, definition })
@@ -739,7 +817,8 @@ export class GenerateContext implements GenerateContextType {
       projection: args.projection,
       operation: args.operation,
       destinationPath: args.destinationPath,
-      noExport: args.noExport ?? false
+      noExport: args.noExport ?? false,
+      variant
     })
 
     return new Inserted({ settings, definition })
@@ -831,26 +910,48 @@ export class GenerateContext implements GenerateContextType {
   toOperationContentSettings<V, EnrichmentType>(
     args: ToOperationSettingsArgs<V, EnrichmentType>
   ): ContentSettings<EnrichmentType> {
+    const { variant } = args
+
     if (isGqlToOperationSettingsArgs(args)) {
       const enrichments = args.projection.toEnrichments({
         operation: args.operation,
-        context: this
+        context: this,
+        variant
       })
       return new ContentSettings<EnrichmentType>({
-        identifier: args.projection.toIdentifier({ operation: args.operation, enrichments }),
-        exportPath: args.projection.toExportPath({ operation: args.operation, enrichments }),
-        enrichments
+        identifier: args.projection.toIdentifier({
+          operation: args.operation,
+          enrichments,
+          variant
+        }),
+        exportPath: args.projection.toExportPath({
+          operation: args.operation,
+          enrichments,
+          variant
+        }),
+        enrichments,
+        variant
       })
     }
 
     const enrichments = args.projection.toEnrichments({
       operation: args.operation,
-      context: this
+      context: this,
+      variant
     })
     return new ContentSettings<EnrichmentType>({
-      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments }),
-      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments }),
-      enrichments
+      identifier: args.projection.toIdentifier({
+        operation: args.operation,
+        enrichments,
+        variant
+      }),
+      exportPath: args.projection.toExportPath({
+        operation: args.operation,
+        enrichments,
+        variant
+      }),
+      enrichments,
+      variant
     })
   }
 
@@ -863,11 +964,14 @@ export class GenerateContext implements GenerateContextType {
     refName,
     projection
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
+    // Models don't participate in the operation-variant axis — every
+    // model Definition carries the canonical default variant name.
     const enrichments = projection.toEnrichments({ refName, context: this })
     return new ContentSettings<EnrichmentType>({
       identifier: projection.toIdentifier({ refName, enrichments }),
       exportPath: projection.toExportPath({ refName, enrichments }),
-      enrichments
+      enrichments,
+      variant: DEFAULT_VARIANT
     })
   }
 
@@ -935,33 +1039,145 @@ export class GenerateContext implements GenerateContextType {
   }
 }
 
-type ToOasOperationSourceArgs = {
-  operation: OasOperation
-  generatorId: string
+type MatchesPathFilterArgs = {
+  paths: SkipPaths | IncludePaths | undefined
+  path: string
+  method: Method
+  variant: string
 }
 
 /**
- * Creates an OasOperationSource from an operation and generator ID.
+ * Match a `(path, method, variant)` tuple against an operation-shaped
+ * skip or include entry. Shared by both arms because skip and include
+ * have the same matching rules; only the engine's interpretation of
+ * the result differs (skip = deny, include = allow).
+ *
+ * Returns `false` when:
+ * - `paths` is `undefined` (no filter applies)
+ * - the `path` isn't keyed in the entry
+ * - the `method` isn't present in the inner record
+ *
+ * Returns `true` when:
+ * - the method's variant array is empty (matches every variant)
+ * - the method's variant array contains `variant`
+ */
+const matchesPathFilter = ({
+  paths,
+  path,
+  method,
+  variant
+}: MatchesPathFilterArgs): boolean => {
+  if (!paths) {
+    return false
+  }
+
+  const methodMap = paths[path]
+  if (!methodMap) {
+    return false
+  }
+
+  const variants = methodMap[method]
+  if (variants === undefined) {
+    return false
+  }
+
+  if (variants.length === 0) {
+    return true
+  }
+
+  return variants.includes(variant)
+}
+
+type ToVariantListArgs = {
+  /**
+   * The enrichment block at `[generatorId][path][method]` (OAS) or
+   * `[generatorId][rootKind][fieldName]` (GQL). Typed as `unknown`
+   * because `get()` returns `unknown` and the engine doesn't
+   * pre-validate this branch.
+   */
+  opEnrichments: unknown
+  generatorId: string
+  /**
+   * Human-readable identifier for the operation used in the
+   * missing-`main` error message — e.g. `'PATCH /v2/quotes/{id}'` for
+   * OAS or `'mutation createUser'` for GraphQL.
+   */
+  operationLabel: string
+}
+
+/**
+ * Enumerate the operation variants the engine should fan out over.
+ *
+ * - No enrichment block → `['main']` (consumer skipped this generator
+ *   entirely, or wrote no per-operation overrides).
+ * - Non-object enrichment block → `['main']` (defensive — Valibot at
+ *   parse time will catch this once the per-variant wrap lands).
+ * - Object enrichment block → its keys, in JSON-insertion order.
+ *   `'main'` must be among them or we throw — silent zero-output
+ *   downstream is the worse failure mode.
+ */
+const toVariantList = ({
+  opEnrichments,
+  generatorId,
+  operationLabel
+}: ToVariantListArgs): string[] => {
+  if (opEnrichments === null || opEnrichments === undefined) {
+    return [DEFAULT_VARIANT]
+  }
+
+  if (typeof opEnrichments !== 'object' || Array.isArray(opEnrichments)) {
+    return [DEFAULT_VARIANT]
+  }
+
+  const keys = Object.keys(opEnrichments)
+
+  if (keys.length === 0) {
+    return [DEFAULT_VARIANT]
+  }
+
+  if (!keys.includes(DEFAULT_VARIANT)) {
+    throw new Error(
+      `[${generatorId}] Enrichments for '${operationLabel}' must include a ` +
+        `'${DEFAULT_VARIANT}' variant. Found variants: ${keys.join(', ')}.`
+    )
+  }
+
+  return keys
+}
+
+type ToOasOperationSourceArgs = {
+  operation: OasOperation
+  generatorId: string
+  /** Operation variant the artifact was emitted for (see {@link Variant}) */
+  variant: string
+}
+
+/**
+ * Creates an OasOperationSource from an operation, generator ID, and variant.
  *
  * Transforms operation and generator information into a source descriptor
  * that can be used for tracking operation origins in the generation pipeline.
  *
- * @param args - Arguments containing operation and generator ID
+ * @param args - Arguments containing operation, generator ID, and variant
  * @returns OasOperationSource descriptor for the operation
  */
 export const toOasOperationSource = ({
   operation,
-  generatorId
+  generatorId,
+  variant
 }: ToOasOperationSourceArgs): OasOperationSource => ({
   type: 'oasOperation',
   generatorId,
   operationPath: operation.path,
-  operationMethod: operation.method
+  operationMethod: operation.method,
+  variant
 })
 
 type ToGqlOperationSourceArgs = {
   operation: GqlOperation
   generatorId: string
+  /** Operation variant the artifact was emitted for (see {@link Variant}) */
+  variant: string
 }
 
 /**
@@ -972,12 +1188,14 @@ type ToGqlOperationSourceArgs = {
  */
 export const toGqlOperationSource = ({
   operation,
-  generatorId
+  generatorId,
+  variant
 }: ToGqlOperationSourceArgs): GqlOperationSource => ({
   type: 'gqlOperation',
   generatorId,
   rootKind: operation.rootKind,
-  fieldName: operation.fieldName
+  fieldName: operation.fieldName,
+  variant
 })
 
 type ToModelSourceArgs = {

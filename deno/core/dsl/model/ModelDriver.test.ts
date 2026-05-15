@@ -467,7 +467,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)
@@ -495,7 +495,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)
@@ -542,7 +542,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)
@@ -570,7 +570,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)
@@ -602,7 +602,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)
@@ -634,7 +634,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)
@@ -666,7 +666,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)
@@ -694,7 +694,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)
@@ -905,7 +905,7 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined },
+          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
         identifier: Identifier.createType(refName)

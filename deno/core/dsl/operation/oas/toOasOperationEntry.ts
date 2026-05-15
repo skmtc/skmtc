@@ -88,14 +88,17 @@ export const toOasOperationEntry = <EnrichmentType = undefined, Acc = void>({
     type: 'oasOperation',
     transform,
     toEnrichmentSchema,
-    isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => {
+    isSupported: ({ context, operation, variant }: IsSupportedOasOperationArgs) => {
       if (!isSupported) {
         return true
       }
 
+      // Variant-scoped enrichment lookup — mirrors
+      // `OasOperationProjectionBase.toEnrichments` so the shim and the
+      // projection-base resolve to the same inner value.
       const operationEnrichments = get(
         context.settings,
-        `enrichments.${id}.${operation.path}.${operation.method}`
+        `enrichments.${id}.${operation.path}.${operation.method}.${variant}`
       )
 
       const enrichmentSchema = toEnrichmentSchema?.() ?? v.undefined()
@@ -103,7 +106,8 @@ export const toOasOperationEntry = <EnrichmentType = undefined, Acc = void>({
       return isSupported({
         context,
         operation,
-        enrichments: v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType
+        enrichments: v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType,
+        variant
       })
     },
     toPreviewModule,

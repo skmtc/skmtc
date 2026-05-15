@@ -11,6 +11,7 @@ import type {
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
 /**
  * Configuration for {@link toOasOperationProjectionBase}.
@@ -32,6 +33,8 @@ export type OasOperationProjectionBaseConfig<EnrichmentType = undefined> = {
 type ToEnrichmentsArgs = {
   operation: OasOperation
   context: GenerateContextType
+  /** Operation variant whose enrichment should be resolved (see {@link Variant}) */
+  variant: string
 }
 
 /**
@@ -54,10 +57,22 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
 
     static isSupported = config.isSupported ?? (() => true)
 
-    static toEnrichments = ({ operation, context }: ToEnrichmentsArgs): EnrichmentType => {
+    static toEnrichments = ({
+      operation,
+      context,
+      variant
+    }: ToEnrichmentsArgs): EnrichmentType => {
+      // The variant axis is owned by core: consumer enrichments are keyed
+      // `[generatorId][path][method][variant]`, and the generator's own
+      // schema describes the per-variant inner value. The engine has
+      // already enumerated valid variants and asserted `'main'` exists,
+      // so the lookup here either hits a declared variant or — for the
+      // synthetic single-`'main'` pass when no enrichments are
+      // configured — returns `undefined`, which the Valibot schema
+      // accepts via its `v.optional(...)` envelope.
       const operationEnrichments = get(
         context.settings,
-        `enrichments.${config.id}.${operation.path}.${operation.method}`
+        `enrichments.${config.id}.${operation.path}.${operation.method}.${variant}`
       )
 
       const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
@@ -70,7 +85,8 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
         ...args,
         generatorKey: toOasOperationGeneratorKey({
           generatorId: config.id,
-          operation: args.operation
+          operation: args.operation,
+          variant: args.settings.variant ?? DEFAULT_VARIANT
         })
       })
     }

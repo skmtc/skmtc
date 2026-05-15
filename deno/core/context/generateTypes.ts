@@ -56,6 +56,14 @@ export type InsertOasOperationArgs<V, EnrichmentType = undefined> = {
   destinationPath?: string
   /** Whether to exclude this operation from exports */
   noExport?: boolean
+  /**
+   * Target variant of the peer projection. Omit for the canonical
+   * `'main'` variant — the only variant guaranteed to exist on every
+   * peer. Pass explicitly only when threading a caller's variant
+   * deliberately; the Driver throws if the requested variant isn't
+   * declared in the peer's enrichments.
+   */
+  variant?: string
 }
 
 /**
@@ -73,6 +81,14 @@ export type InsertGqlOperationArgs<V, EnrichmentType = undefined> = {
   destinationPath?: string
   /** Whether to exclude this operation from exports */
   noExport?: boolean
+  /**
+   * Target variant of the peer projection. Omit for the canonical
+   * `'main'` variant — the only variant guaranteed to exist on every
+   * peer. Pass explicitly only when threading a caller's variant
+   * deliberately; the Driver throws if the requested variant isn't
+   * declared in the peer's enrichments.
+   */
+  variant?: string
 }
 
 export type InsertOperationArgs<V, EnrichmentType = undefined> =
@@ -335,6 +351,13 @@ export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
 export type ToOasOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: OasOperation
   projection: OasOperationProjection<V, EnrichmentType>
+  /**
+   * Operation variant whose enrichment / identifier / export path
+   * should be resolved (see {@link Variant}). Threaded from the
+   * Driver into the projection's static methods and the
+   * {@link ContentSettings} built for this insertion.
+   */
+  variant: string
 }
 
 /**
@@ -346,6 +369,11 @@ export type ToOasOperationSettingsArgs<V, EnrichmentType = undefined> = {
 export type ToGqlOperationSettingsArgs<V, EnrichmentType = undefined> = {
   operation: GqlOperation
   projection: GqlOperationProjection<V, EnrichmentType>
+  /**
+   * Operation variant whose enrichment / identifier / export path
+   * should be resolved (see {@link Variant}).
+   */
+  variant: string
 }
 
 /**

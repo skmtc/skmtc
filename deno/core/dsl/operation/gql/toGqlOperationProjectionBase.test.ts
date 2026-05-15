@@ -68,7 +68,7 @@ Deno.test('toGqlOperationProjectionBase - sets static toIdentifier from config',
 
   const mockOperation = createMockGqlOperation()
 
-  const identifier = OperationClass.toIdentifier({ operation: mockOperation, enrichments: undefined })
+  const identifier = OperationClass.toIdentifier({ operation: mockOperation, enrichments: undefined, variant: 'main' })
   assertEquals(identifier.name, 'getUsers')
   assertEquals(typeof identifier.toString, 'function')
 })
@@ -88,7 +88,7 @@ Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config',
     fieldName: 'createUser'
   })
 
-  const exportPath = OperationClass.toExportPath({ operation: mockOperation, enrichments: undefined })
+  const exportPath = OperationClass.toExportPath({ operation: mockOperation, enrichments: undefined, variant: 'main' })
   assertEquals(exportPath, './generated/createUser.ts')
 })
 
@@ -105,7 +105,8 @@ Deno.test(
 
     const enrichments = OperationClass.toEnrichments({
       operation: mockOperation,
-      context: { settings: {} } as GenerateContextType
+      context: { settings: {} } as GenerateContextType,
+    variant: 'main'
     })
 
     assertEquals(enrichments, undefined)
@@ -125,7 +126,8 @@ Deno.test(
 
     const enrichments = OperationClass.toEnrichments({
       operation: mockOperation,
-      context: { settings: {} } as GenerateContextType
+      context: { settings: {} } as GenerateContextType,
+    variant: 'main'
     })
 
     assertEquals(enrichments, undefined)
@@ -141,14 +143,14 @@ Deno.test('toGqlOperationProjectionBase - toIdentifier works with different oper
   })
 
   const queryOperation = createMockGqlOperation({ rootKind: 'query', fieldName: 'Users' })
-  const queryIdentifier = OperationClass.toIdentifier({ operation: queryOperation, enrichments: undefined })
+  const queryIdentifier = OperationClass.toIdentifier({ operation: queryOperation, enrichments: undefined, variant: 'main' })
   assertEquals(queryIdentifier.name, 'queryUsers')
 
   const mutationOperation = createMockGqlOperation({
     rootKind: 'mutation',
     fieldName: 'Product'
   })
-  const mutationIdentifier = OperationClass.toIdentifier({ operation: mutationOperation, enrichments: undefined })
+  const mutationIdentifier = OperationClass.toIdentifier({ operation: mutationOperation, enrichments: undefined, variant: 'main' })
   assertEquals(mutationIdentifier.name, 'mutationProduct')
 })
 
@@ -160,13 +162,13 @@ Deno.test('toGqlOperationProjectionBase - toExportPath works with different oper
   })
 
   const queryOperation = createMockGqlOperation({ rootKind: 'query', fieldName: 'users' })
-  assertEquals(OperationClass.toExportPath({ operation: queryOperation, enrichments: undefined }), './types/query-users.d.ts')
+  assertEquals(OperationClass.toExportPath({ operation: queryOperation, enrichments: undefined, variant: 'main' }), './types/query-users.d.ts')
 
   const mutationOperation = createMockGqlOperation({
     rootKind: 'mutation',
     fieldName: 'product'
   })
-  assertEquals(OperationClass.toExportPath({ operation: mutationOperation, enrichments: undefined }), './types/mutation-product.d.ts')
+  assertEquals(OperationClass.toExportPath({ operation: mutationOperation, enrichments: undefined, variant: 'main' }), './types/mutation-product.d.ts')
 })
 
 Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorKey', () => {
@@ -186,12 +188,13 @@ Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorK
     settings: {
       identifier: Identifier.createVariable('getUsers'),
       exportPath: './operations/users.ts',
-      enrichments: undefined
+      enrichments: undefined,
+      variant: 'main'
     } as any
   })
 
-  // Key format: id|rootKind|fieldName
-  assertEquals(instance.generatorKey as unknown as string, 'graphql-client|query|getUsers')
+  // Key format: id|rootKind|fieldName|variant
+  assertEquals(instance.generatorKey as unknown as string, 'graphql-client|query|getUsers|main')
 })
 
 Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase', () => {
@@ -242,8 +245,10 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', 
         'graphql-client': {
           query: {
             getUsers: {
-              enabled: true,
-              timeout: 5000
+              main: {
+                enabled: true,
+                timeout: 5000
+              }
             }
           }
         }
@@ -253,7 +258,8 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', 
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: mockContext
+    context: mockContext,
+    variant: 'main'
   })
 
   assertEquals(enrichments, {
@@ -279,7 +285,7 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments retrieves from correct n
       enrichments: {
         'graphql-api': {
           mutation: {
-            updateProduct: { customValue: 'found-it', flag: true }
+            updateProduct: { main: { customValue: 'found-it', flag: true } }
           }
         }
       }
@@ -288,9 +294,10 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments retrieves from correct n
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: mockContext
+    context: mockContext,
+    variant: 'main'
   })
 
-  // Verify retrieved from path: enrichments.{id}.{rootKind}.{fieldName}
+  // Retrieves from enrichments.{id}.{rootKind}.{fieldName}.{variant}
   assertEquals(enrichments, { customValue: 'found-it', flag: true })
 })

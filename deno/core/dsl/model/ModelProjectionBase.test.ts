@@ -86,7 +86,8 @@ Deno.test('ModelProjectionBase - settings.enrichments is accessible when provide
   const settings = new ContentSettings({
     identifier: Identifier.createType('Validated'),
     exportPath: './models/validated.ts',
-    enrichments
+    enrichments,
+    variant: 'main'
   })
 
   const model = new ModelProjectionBase({

@@ -34,7 +34,8 @@ Deno.test('toGqlOperationEntry - includes provided transform function', () => {
   const result = entry.transform({
     context: {} as GenerateContextType,
     operation: mockOperation,
-    acc: 5
+    acc: 5,
+    variant: 'main'
   })
   assertEquals(result, 6)
 })
@@ -49,7 +50,8 @@ Deno.test('toGqlOperationEntry - isSupported defaults to true when not provided'
 
   const result = entry.isSupported({
     context: { settings: {} } as GenerateContextType,
-    operation: mockOperation
+    operation: mockOperation,
+    variant: 'main'
   })
 
   assertEquals(result, true)

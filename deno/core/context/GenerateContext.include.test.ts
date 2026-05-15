@@ -237,7 +237,7 @@ Deno.test('include - object entry restricts emission to listed (path, method) pa
   const { context, captures } = buildContext({
     document: makeOasDoc(operations),
     settings: {
-      include: [{ 'form-gen': { '/customers': ['post'], '/locations': ['post'] } }]
+      include: [{ 'form-gen': { '/customers': { post: [] }, '/locations': { post: [] } } }]
     },
     generators: { 'form-gen': makeGen('form-gen', transform) }
   })
@@ -269,7 +269,7 @@ Deno.test('include - operations outside the allow-list emit `skipped` (not silen
   // gated out.
   const { context, captures } = buildContext({
     document: makeOasDoc([{ path: '/customers', method: 'post' }]),
-    settings: { include: [{ 'form-gen': { '/locations': ['post'] } }] },
+    settings: { include: [{ 'form-gen': { '/locations': { post: [] } } }] },
     generators: { 'form-gen': makeGen('form-gen') }
   })
   context.toArtifacts(new StackTrail(['test']))
@@ -288,8 +288,8 @@ Deno.test('include + skip - skip runs after include; overlap is skipped', () => 
   const { context, captures } = buildContext({
     document: makeOasDoc([{ path: '/customers', method: 'post' }]),
     settings: {
-      include: [{ 'form-gen': { '/customers': ['post'] } }],
-      skip: [{ 'form-gen': { '/customers': ['post'] } }]
+      include: [{ 'form-gen': { '/customers': { post: [] } } }],
+      skip: [{ 'form-gen': { '/customers': { post: [] } } }]
     },
     generators: { 'form-gen': makeGen('form-gen') }
   })
@@ -308,7 +308,7 @@ Deno.test('include - hybrid entries: string for one gen, object for another', ()
     settings: {
       include: [
         'gen-A', // whole generator
-        { 'gen-B': { '/customers': ['post'] } } // per-op
+        { 'gen-B': { '/customers': { post: [] } } } // per-op
       ]
     },
     generators: {
@@ -388,7 +388,7 @@ Deno.test(
     const doc = makeOasDoc([], ['User', 'Order'])
     const { context, captures } = buildContext({
       document: doc,
-      settings: { include: [{ 'ts-gen': { '/users': ['get'] } }] },
+      settings: { include: [{ 'ts-gen': { '/users': { get: [] } } }] },
       generators: { 'ts-gen': makeModelGen('ts-gen') }
     })
     context.toArtifacts(new StackTrail(['test']))
@@ -411,7 +411,7 @@ Deno.test(
     const transform = spy(() => undefined)
     const { context, captures } = buildContext({
       document: makeOasDoc([{ path: '/customers', method: 'post' }]),
-      settings: { include: [{ 'form-gen': { '/customers': ['post'] } }] },
+      settings: { include: [{ 'form-gen': { '/customers': { post: [] } } }] },
       generators: {
         'form-gen': {
           id: 'form-gen',

@@ -22,6 +22,13 @@ export type TransformOasOperationArgs<Acc> = {
   context: GenerateContextType
   operation: OasOperation
   acc: Acc | undefined
+  /**
+   * The operation variant the engine is dispatching for this call. The
+   * engine fans out one `transform` call per variant declared in the
+   * consumer's `enrichments[id][path][method]` block (or just `'main'`
+   * when no enrichments are configured). See {@link Variant}.
+   */
+  variant: string
 }
 
 export type WithTransformOasOperation = {
@@ -32,26 +39,36 @@ export type IsSupportedOasOperationConfigArgs<EnrichmentType = undefined> = {
   context: GenerateContextType
   operation: OasOperation
   enrichments: EnrichmentType
+  /** Operation variant being probed (see {@link Variant}) */
+  variant: string
 }
 
 export type IsSupportedOasOperationArgs = {
   context: GenerateContextType
   operation: OasOperation
+  /** Operation variant being probed (see {@link Variant}) */
+  variant: string
 }
 
 export type ToOasOperationEnrichmentsArgs = {
   operation: OasOperation
   context: GenerateContextType
+  /** Operation variant whose enrichment should be resolved (see {@link Variant}) */
+  variant: string
 }
 
 export type ToOasOperationPreviewModuleArgs = {
   context: GenerateContextType
   operation: OasOperation
+  /** Operation variant the preview module describes (see {@link Variant}) */
+  variant: string
 }
 
 export type ToOasOperationMappingArgs = {
   context: GenerateContextType
   operation: OasOperation
+  /** Operation variant the mapping module describes (see {@link Variant}) */
+  variant: string
 }
 
 /**
@@ -64,11 +81,15 @@ export type ToOasOperationMappingArgs = {
 export type ToOasOperationIdentifierArgs<EnrichmentType = undefined> = {
   operation: OasOperation
   enrichments: EnrichmentType
+  /** Operation variant the identifier should disambiguate (see {@link Variant}) */
+  variant: string
 }
 
 export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
   operation: OasOperation
   enrichments: EnrichmentType
+  /** Operation variant the export path should disambiguate (see {@link Variant}) */
+  variant: string
 }
 
 export type OasOperationProjection<V, EnrichmentType = undefined> = { prototype: V } & {

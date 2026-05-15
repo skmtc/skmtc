@@ -75,6 +75,12 @@ export type OasOperationSource = {
   generatorId: string
   operationPath: string
   operationMethod: Method
+  /**
+   * Operation variant the artifact was emitted for. `'main'` for
+   * variants-unaware generators and for single-variant projects; one
+   * of the consumer-named variant keys otherwise (see {@link Variant}).
+   */
+  variant: string
 }
 
 export type GqlOperationSource = {
@@ -82,6 +88,10 @@ export type GqlOperationSource = {
   generatorId: string
   rootKind: GqlRootKind
   fieldName: string
+  /**
+   * Operation variant the artifact was emitted for (see {@link Variant}).
+   */
+  variant: string
 }
 
 export type ModelSource = {
@@ -136,13 +146,15 @@ export const oasOperationSource: v.ObjectSchema<
       ],
       undefined
     >
+    readonly variant: v.StringSchema<undefined>
   },
   undefined
 > = v.object({
   type: v.literal('oasOperation'),
   generatorId: v.string(),
   operationPath: v.string(),
-  operationMethod: method
+  operationMethod: method,
+  variant: v.string()
 })
 
 /**
@@ -157,13 +169,15 @@ export const gqlOperationSource: v.ObjectSchema<
     readonly generatorId: v.StringSchema<undefined>
     readonly rootKind: v.PicklistSchema<['query', 'mutation', 'subscription'], undefined>
     readonly fieldName: v.StringSchema<undefined>
+    readonly variant: v.StringSchema<undefined>
   },
   undefined
 > = v.object({
   type: v.literal('gqlOperation'),
   generatorId: v.string(),
   rootKind: v.picklist(['query', 'mutation', 'subscription']),
-  fieldName: v.string()
+  fieldName: v.string(),
+  variant: v.string()
 })
 
 /**

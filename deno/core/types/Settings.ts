@@ -91,9 +91,15 @@ export type ModulePackage = {
 /**
  * Valibot schema for validating skip paths configuration.
  *
- * Validates path-to-methods mappings for skipping specific operations.
+ * Validates `path → method → variant[]` mappings for skipping specific
+ * operations. An empty variant array means "every variant of this
+ * method"; a populated array names the variants to deny. Methods
+ * absent from the inner record are unaffected.
  */
-export const skipPaths: v.GenericSchema<SkipPaths> = v.record(v.string(), v.array(method))
+export const skipPaths: v.GenericSchema<SkipPaths> = v.record(
+  v.string(),
+  v.record(method, v.array(v.string()))
+)
 
 /**
  * Valibot schema for validating skip operations configuration.
@@ -113,12 +119,15 @@ const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.strin
 
 /**
  * Valibot schema for {@link IncludePaths}. Structurally identical to
- * {@link skipPaths} — both map a path to an array of methods — but
- * kept distinct so docstrings can convey the opposite semantics
+ * {@link skipPaths} — both map a path to a `method → variant[]` record
+ * — but kept distinct so docstrings can convey the opposite semantics
  * (allow vs deny) and so the two shapes can diverge in the future
  * without breaking the other.
  */
-export const includePaths: v.GenericSchema<IncludePaths> = v.record(v.string(), v.array(method))
+export const includePaths: v.GenericSchema<IncludePaths> = v.record(
+  v.string(),
+  v.record(method, v.array(v.string()))
+)
 
 /**
  * Valibot schema for {@link IncludeOperations}. Maps generator id to
@@ -160,20 +169,26 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
 })
 
 /**
- * Configuration for skipping specific HTTP methods on API paths.
+ * Configuration for skipping specific HTTP methods + variants on API paths.
  *
- * Maps path patterns to arrays of HTTP methods that should be excluded
- * from generation.
+ * Maps `path → method → variant[]`. The variant array uses these conventions:
+ *
+ * - `[]` (empty) means "every variant of this method" — the equivalent
+ *   of pre-variants `[method]`-only entries.
+ * - `['main', 'customer']` means "only those variants" — paired with
+ *   `include`, a way to opt in a subset; paired with `skip`, a way to
+ *   deny a subset.
+ * - Method key absent means "this method is not affected by the entry".
  *
  * @example
  * ```typescript
  * const skipPaths: SkipPaths = {
- *   '/admin/**': ['get', 'post'],
- *   '/debug': ['*']  // Skip all methods
+ *   '/admin/users': { get: [], post: [] },                // skip all variants of both
+ *   '/quotes/{id}': { patch: ['description', 'validity'] } // skip just two variants
  * };
  * ```
  */
-export type SkipPaths = Record<string, Method[]>
+export type SkipPaths = Record<string, Partial<Record<Method, string[]>>>
 
 /**
  * Configuration for skipping model generation by generator type.
@@ -219,20 +234,21 @@ export type SkipOperations = Record<string, SkipPaths>
 export type Skip = SkipOperations | SkipModels | string
 
 /**
- * Allow-list counterpart to {@link SkipPaths}. Maps a path string to
- * the array of HTTP methods that should be included for an operation
- * generator. Matching is exact on path string AND exact on method
- * (parity with {@link SkipPaths}). No wildcards or globs.
+ * Allow-list counterpart to {@link SkipPaths}. Same `path → method →
+ * variant[]` shape and the same `[]`-means-"all variants" rule, but
+ * with opposite semantics: only matching `(path, method, variant)`
+ * tuples are admitted. Matching is exact on path, method, and variant
+ * name. No wildcards or globs.
  *
  * @example
  * ```typescript
  * const includePaths: IncludePaths = {
- *   '/customers': ['post'],
- *   '/locations': ['post', 'put']
+ *   '/customers': { post: [] },                 // all variants of POST
+ *   '/quotes/{id}': { patch: ['description'] }  // only the 'description' variant
  * };
  * ```
  */
-export type IncludePaths = Record<string, Method[]>
+export type IncludePaths = Record<string, Partial<Record<Method, string[]>>>
 
 /**
  * Allow-list counterpart to {@link SkipModels}. Maps generator id to

@@ -72,14 +72,16 @@ export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
     type: 'gqlOperation',
     transform,
     toEnrichmentSchema,
-    isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => {
+    isSupported: ({ context, operation, variant }: IsSupportedGqlOperationArgs) => {
       if (!isSupported) {
         return true
       }
 
+      // Variant-scoped enrichment lookup — see the OAS-side shim for
+      // the rationale.
       const operationEnrichments = get(
         context.settings,
-        `enrichments.${id}.${operation.rootKind}.${operation.fieldName}`
+        `enrichments.${id}.${operation.rootKind}.${operation.fieldName}.${variant}`
       )
 
       const enrichmentSchema = toEnrichmentSchema?.() ?? v.undefined()
@@ -87,7 +89,8 @@ export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
       return isSupported({
         context,
         operation,
-        enrichments: v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType
+        enrichments: v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType,
+        variant
       })
     },
     toPreviewModule,

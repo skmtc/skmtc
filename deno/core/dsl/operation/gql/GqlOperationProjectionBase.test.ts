@@ -113,7 +113,8 @@ Deno.test('GqlOperationProjectionBase - settings.enrichments is accessible when 
   const settings = new ContentSettings({
     identifier: Identifier.createVariable('validateOperation'),
     exportPath: './operations/validated.ts',
-    enrichments
+    enrichments,
+    variant: 'main'
   })
 
   const mockOperation = createMockGqlOperation({

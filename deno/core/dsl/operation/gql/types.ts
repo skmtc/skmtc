@@ -22,6 +22,13 @@ export type TransformGqlOperationArgs<Acc> = {
   context: GenerateContextType
   operation: GqlOperation
   acc: Acc | undefined
+  /**
+   * The operation variant the engine is dispatching for this call. The
+   * engine fans out one `transform` call per variant declared in the
+   * consumer's `enrichments[id][rootKind][fieldName]` block (or just
+   * `'main'` when no enrichments are configured). See {@link Variant}.
+   */
+  variant: string
 }
 
 export type WithTransformGqlOperation = {
@@ -32,26 +39,36 @@ export type IsSupportedGqlOperationConfigArgs<EnrichmentType = undefined> = {
   context: GenerateContextType
   operation: GqlOperation
   enrichments: EnrichmentType
+  /** Operation variant being probed (see {@link Variant}) */
+  variant: string
 }
 
 export type IsSupportedGqlOperationArgs = {
   context: GenerateContextType
   operation: GqlOperation
+  /** Operation variant being probed (see {@link Variant}) */
+  variant: string
 }
 
 export type ToGqlOperationEnrichmentsArgs = {
   operation: GqlOperation
   context: GenerateContextType
+  /** Operation variant whose enrichment should be resolved (see {@link Variant}) */
+  variant: string
 }
 
 export type ToGqlOperationPreviewModuleArgs = {
   context: GenerateContextType
   operation: GqlOperation
+  /** Operation variant the preview module describes (see {@link Variant}) */
+  variant: string
 }
 
 export type ToGqlOperationMappingArgs = {
   context: GenerateContextType
   operation: GqlOperation
+  /** Operation variant the mapping module describes (see {@link Variant}) */
+  variant: string
 }
 
 /**
@@ -64,11 +81,15 @@ export type ToGqlOperationMappingArgs = {
 export type ToGqlOperationIdentifierArgs<EnrichmentType = undefined> = {
   operation: GqlOperation
   enrichments: EnrichmentType
+  /** Operation variant the identifier should disambiguate (see {@link Variant}) */
+  variant: string
 }
 
 export type ToGqlOperationExportPathArgs<EnrichmentType = undefined> = {
   operation: GqlOperation
   enrichments: EnrichmentType
+  /** Operation variant the export path should disambiguate (see {@link Variant}) */
+  variant: string
 }
 
 export type GqlOperationProjection<V, EnrichmentType = undefined> = { prototype: V } & {

@@ -20,22 +20,29 @@ import { GqlOperationProjectionBase } from './GqlOperationProjectionBase.ts'
 // Test Helpers
 // ============================================================================
 
-const toKey = (generatorId: string, operation: GqlOperation): GeneratorKey =>
-  `${generatorId}|${operation.rootKind}|${operation.fieldName}` as unknown as GeneratorKey
+const toKey = (
+  generatorId: string,
+  operation: GqlOperation,
+  variant: string = 'main'
+): GeneratorKey =>
+  `${generatorId}|${operation.rootKind}|${operation.fieldName}|${variant}` as unknown as GeneratorKey
 
 const createMockContext = (options?: {
   findDefinition?: Definition<any> | undefined
   existingImports?: Record<string, string[]>
 }) => {
   const toOperationContentSettingsSpy = spy((args: any) => {
+    const variant: string = args.variant ?? 'main'
     const enrichments = args.projection.toEnrichments({
       operation: args.operation,
-      context: mockContext
+      context: mockContext,
+      variant
     })
     return new ContentSettings({
-      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments }),
-      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments }),
-      enrichments
+      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments, variant }),
+      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments, variant }),
+      enrichments,
+      variant
     })
   })
 
@@ -130,7 +137,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.context, context)
@@ -150,7 +158,8 @@ Deno.test('GqlOperationDriver', async t => {
         projection,
         operation,
         destinationPath: './custom/path.ts',
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       assertEquals(driver.destinationPath, './custom/path.ts')
@@ -165,7 +174,8 @@ Deno.test('GqlOperationDriver', async t => {
       new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertSpyCalls(toOperationContentSettingsSpy, 1)
@@ -173,7 +183,8 @@ Deno.test('GqlOperationDriver', async t => {
         args: [
           {
             operation,
-            projection
+            projection,
+            variant: 'main'
           }
         ]
       })
@@ -187,7 +198,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.settings.identifier.name, 'testOp')
@@ -202,7 +214,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -220,7 +233,8 @@ Deno.test('GqlOperationDriver', async t => {
         const driver = new GqlOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
 
         assertEquals(driver.operation.rootKind, rootKind)
@@ -239,7 +253,8 @@ Deno.test('GqlOperationDriver', async t => {
         const driver = new GqlOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
 
         assertEquals(driver.operation.fieldName, fieldName)
@@ -256,7 +271,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.settings.enrichments, enrichments)
@@ -273,7 +289,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './api/users.ts'
+        destinationPath: './api/users.ts',
+        variant: 'main'
       })
 
       assertSpyCalls(registerSpy, 2)
@@ -294,7 +311,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './operations/getUsers.ts'
+        destinationPath: './operations/getUsers.ts',
+        variant: 'main'
       })
 
       assertSpyCalls(registerSpy, 1)
@@ -309,7 +327,8 @@ Deno.test('GqlOperationDriver', async t => {
       new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertSpyCalls(registerSpy, 1)
@@ -325,7 +344,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './operations/getUsers.ts'
+        destinationPath: './operations/getUsers.ts',
+        variant: 'main'
       })
 
       assertSpyCalls(registerSpy, 1)
@@ -341,7 +361,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './relative/path/file.ts'
+        destinationPath: './relative/path/file.ts',
+        variant: 'main'
       })
 
       assertSpyCalls(registerSpy, 2)
@@ -358,7 +379,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './api/handlers.ts'
+        destinationPath: './api/handlers.ts',
+        variant: 'main'
       })
 
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
@@ -381,7 +403,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './operations//getUsers.ts'
+        destinationPath: './operations//getUsers.ts',
+        variant: 'main'
       })
 
       assertSpyCalls(registerSpy, 1)
@@ -399,14 +422,16 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection: projection1,
         operation: operation1,
-        destinationPath: './api/index.ts'
+        destinationPath: './api/index.ts',
+        variant: 'main'
       })
 
       new GqlOperationDriver({
         context,
         projection: projection2,
         operation: operation2,
-        destinationPath: './api/index.ts'
+        destinationPath: './api/index.ts',
+        variant: 'main'
       })
 
       assertSpyCalls(registerSpy, 4)
@@ -422,7 +447,8 @@ Deno.test('GqlOperationDriver', async t => {
       new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertSpyCalls(findDefinitionSpy, 1)
@@ -446,7 +472,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertSpyCalls(findDefinitionSpy, 1)
@@ -492,7 +519,8 @@ Deno.test('GqlOperationDriver', async t => {
       new GqlOperationDriver({
         context,
         projection: SpyProjection as any,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(capturedArgs)
@@ -509,7 +537,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assert(driver.definition instanceof Definition)
@@ -524,7 +553,8 @@ Deno.test('GqlOperationDriver', async t => {
       new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assert(registerSpy.calls.length >= 1)
@@ -541,7 +571,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -555,7 +586,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -570,7 +602,8 @@ Deno.test('GqlOperationDriver', async t => {
       const mockSettings = new ContentSettings({
         identifier: Identifier.createVariable('cached'),
         exportPath: './test.ts',
-        enrichments: undefined
+        enrichments: undefined,
+        variant: 'main'
       })
 
       const cachedValue = new projection({
@@ -592,7 +625,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.definition, cachedDef)
@@ -637,7 +671,8 @@ Deno.test('GqlOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('cached'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -657,7 +692,8 @@ Deno.test('GqlOperationDriver', async t => {
       new GqlOperationDriver({
         context,
         projection: TrackingProjection as any,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(instantiated, false)
@@ -682,7 +718,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.settings.identifier.name, 'testOp')
@@ -701,7 +738,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -717,7 +755,8 @@ Deno.test('GqlOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -735,7 +774,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.definition, cachedDef)
@@ -752,7 +792,8 @@ Deno.test('GqlOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -772,7 +813,8 @@ Deno.test('GqlOperationDriver', async t => {
           new GqlOperationDriver({
             context,
             projection,
-            operation
+            operation,
+            variant: 'main'
           })
         },
         Error,
@@ -804,7 +846,8 @@ Deno.test('GqlOperationDriver', async t => {
           new GqlOperationDriver({
             context,
             projection,
-            operation
+            operation,
+            variant: 'main'
           })
         },
         Error,
@@ -834,7 +877,8 @@ Deno.test('GqlOperationDriver', async t => {
         new GqlOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
       } catch (error) {
         errorMessage = (error as Error).message
@@ -853,7 +897,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       const key = driver.definition.generatorKey as unknown as string
@@ -883,7 +928,8 @@ Deno.test('GqlOperationDriver', async t => {
         new GqlOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
       })
     })
@@ -901,7 +947,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       const key = driver.definition.generatorKey as unknown as string
@@ -921,7 +968,8 @@ Deno.test('GqlOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -939,7 +987,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.definition, cachedDef)
@@ -966,7 +1015,8 @@ Deno.test('GqlOperationDriver', async t => {
         new GqlOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
       })
     })
@@ -982,7 +1032,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       const key = driver.definition.generatorKey as unknown as string
@@ -1004,7 +1055,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertSpyCalls(toOperationContentSettingsSpy, 1)
@@ -1023,7 +1075,8 @@ Deno.test('GqlOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -1038,8 +1091,8 @@ Deno.test('GqlOperationDriver', async t => {
         findDefinition: cachedDef
       })
 
-      const driver1 = new GqlOperationDriver({ context, projection, operation })
-      const driver2 = new GqlOperationDriver({ context, projection, operation })
+      const driver1 = new GqlOperationDriver({ context, projection, operation, variant: 'main' })
+      const driver2 = new GqlOperationDriver({ context, projection, operation, variant: 'main' })
 
       assertEquals(driver1.definition, cachedDef)
       assertEquals(driver2.definition, cachedDef)
@@ -1054,12 +1107,14 @@ Deno.test('GqlOperationDriver', async t => {
       const driver1 = new GqlOperationDriver({
         context,
         projection,
-        operation: operation1
+        operation: operation1,
+        variant: 'main'
       })
       const driver2 = new GqlOperationDriver({
         context,
         projection,
-        operation: operation2
+        operation: operation2,
+        variant: 'main'
       })
 
       assert(driver1.definition !== driver2.definition)
@@ -1075,7 +1130,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './api/index.ts'
+        destinationPath: './api/index.ts',
+        variant: 'main'
       })
 
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
@@ -1093,7 +1149,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './operations/users.ts'
+        destinationPath: './operations/users.ts',
+        variant: 'main'
       })
 
       assertSpyCalls(registerSpy, 1)
@@ -1109,7 +1166,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       assertEquals(driver.noExport, true)
@@ -1131,7 +1189,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver<GeneratedValue, CustomEnrichment>({
         context,
         projection: projection as any,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.settings)
@@ -1150,7 +1209,8 @@ Deno.test('GqlOperationDriver', async t => {
       const driver = new GqlOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -1168,7 +1228,8 @@ Deno.test('GqlOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './index.ts'
+        destinationPath: './index.ts',
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -1197,7 +1258,8 @@ Deno.test('GqlOperationDriver', async t => {
         new GqlOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
       } catch (error) {
         errorThrown = true

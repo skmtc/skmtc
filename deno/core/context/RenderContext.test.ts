@@ -117,7 +117,8 @@ Deno.test('RenderContext', async t => {
             type: 'oasOperation',
             generatorId: 'test',
             operationPath: 'test',
-            operationMethod: 'get'
+            operationMethod: 'get',
+            variant: 'main'
           }
         }
       }
@@ -128,7 +129,8 @@ Deno.test('RenderContext', async t => {
             type: 'oasOperation',
             generatorId: 'test',
             operationPath: 'test',
-            operationMethod: 'get'
+            operationMethod: 'get',
+            variant: 'main'
           }
         }
       }

@@ -26,14 +26,17 @@ const createMockContext = (options?: {
   existingImports?: Record<string, string[]>
 }) => {
   const toOperationContentSettingsSpy = spy((args: any) => {
+    const variant: string = args.variant ?? 'main'
     const enrichments = args.projection.toEnrichments({
       operation: args.operation,
-      context: mockContext
+      context: mockContext,
+      variant
     })
     return new ContentSettings({
-      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments }),
-      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments }),
-      enrichments
+      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments, variant }),
+      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments, variant }),
+      enrichments,
+      variant
     })
   })
 
@@ -103,7 +106,8 @@ const createMockProjection = (options?: {
       // Calculate generator key for this instance
       const generatorKey = toOasOperationGeneratorKey({
         generatorId: MockProjection.id,
-        operation: args.operation
+        operation: args.operation,
+      variant: 'main'
       })
 
       // Call parent constructor with all required arguments
@@ -138,7 +142,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.context, context)
@@ -158,7 +163,8 @@ Deno.test('OasOperationDriver', async t => {
         projection,
         operation,
         destinationPath: './custom/path.ts',
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       assertEquals(driver.destinationPath, './custom/path.ts')
@@ -173,7 +179,8 @@ Deno.test('OasOperationDriver', async t => {
       new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertSpyCalls(toOperationContentSettingsSpy, 1)
@@ -181,7 +188,8 @@ Deno.test('OasOperationDriver', async t => {
         args: [
           {
             operation,
-            projection
+            projection,
+            variant: 'main'
           }
         ]
       })
@@ -195,7 +203,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.settings.identifier.name, 'testOp')
@@ -210,7 +219,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -228,7 +238,8 @@ Deno.test('OasOperationDriver', async t => {
         const driver = new OasOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
 
         assertEquals(driver.operation.method, method)
@@ -247,7 +258,8 @@ Deno.test('OasOperationDriver', async t => {
         const driver = new OasOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
 
         assertEquals(driver.operation.path, path)
@@ -264,7 +276,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.settings.enrichments, enrichments)
@@ -281,7 +294,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './api/users.ts'
+        destinationPath: './api/users.ts',
+        variant: 'main'
       })
 
       // registerSpy should be called: once for definition, once for import
@@ -304,7 +318,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './operations/getUsers.ts'
+        destinationPath: './operations/getUsers.ts',
+        variant: 'main'
       })
 
       // Only definition registration, no import
@@ -320,8 +335,9 @@ Deno.test('OasOperationDriver', async t => {
       new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
         // destinationPath not provided
+        variant: 'main'
       })
 
       // Only definition registration
@@ -338,7 +354,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './operations/getUsers.ts'
+        destinationPath: './operations/getUsers.ts',
+        variant: 'main'
       })
 
       // Paths are the same after normalization, so no import
@@ -355,7 +372,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './relative/path/file.ts'
+        destinationPath: './relative/path/file.ts',
+        variant: 'main'
       })
 
       // Different paths should register import
@@ -373,7 +391,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './api/handlers.ts'
+        destinationPath: './api/handlers.ts',
+        variant: 'main'
       })
 
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
@@ -396,7 +415,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './operations//getUsers.ts' // Double slash, should normalize to single
+        destinationPath: './operations//getUsers.ts', // Double slash, should normalize to single
+        variant: 'main'
       })
 
       // After normalization, should be same path (no import registration)
@@ -415,14 +435,16 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection: projection1,
         operation: operation1,
-        destinationPath: './api/index.ts'
+        destinationPath: './api/index.ts',
+        variant: 'main'
       })
 
       new OasOperationDriver({
         context,
         projection: projection2,
         operation: operation2,
-        destinationPath: './api/index.ts'
+        destinationPath: './api/index.ts',
+        variant: 'main'
       })
 
       // Each driver registers: definition + import = 2 calls each = 4 total
@@ -439,7 +461,8 @@ Deno.test('OasOperationDriver', async t => {
       new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertSpyCalls(findDefinitionSpy, 1)
@@ -463,7 +486,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertSpyCalls(findDefinitionSpy, 1)
@@ -491,7 +515,8 @@ Deno.test('OasOperationDriver', async t => {
         }) {
           const generatorKey = toOasOperationGeneratorKey({
             generatorId: 'SpyProjection',
-            operation: args.operation
+            operation: args.operation,
+      variant: 'main'
           })
           super({
             context: args.context,
@@ -512,7 +537,8 @@ Deno.test('OasOperationDriver', async t => {
       new OasOperationDriver({
         context,
         projection: SpyProjection as any,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(capturedArgs)
@@ -529,7 +555,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assert(driver.definition instanceof Definition)
@@ -544,7 +571,8 @@ Deno.test('OasOperationDriver', async t => {
       new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       // At least one call to register the definition
@@ -562,7 +590,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       // The Definition should have noExport set
@@ -578,7 +607,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -594,7 +624,8 @@ Deno.test('OasOperationDriver', async t => {
       const mockSettings = new ContentSettings({
         identifier: Identifier.createVariable('cached'),
         exportPath: './test.ts',
-        enrichments: undefined
+        enrichments: undefined,
+        variant: 'main'
       })
 
       const cachedValue = new projection({
@@ -616,7 +647,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.definition, cachedDef)
@@ -641,7 +673,8 @@ Deno.test('OasOperationDriver', async t => {
         }) {
           const generatorKey = toOasOperationGeneratorKey({
             generatorId: 'TrackingProjection',
-            operation: args.operation
+            operation: args.operation,
+      variant: 'main'
           })
           super({
             context: args.context,
@@ -666,7 +699,8 @@ Deno.test('OasOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('cached'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -687,7 +721,8 @@ Deno.test('OasOperationDriver', async t => {
       new OasOperationDriver({
         context,
         projection: TrackingProjection as any,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(instantiated, false)
@@ -700,7 +735,8 @@ Deno.test('OasOperationDriver', async t => {
         value: {
           generatorKey: toOasOperationGeneratorKey({
             generatorId: 'MockProjection',
-            operation: createMockOperation()
+            operation: createMockOperation(),
+      variant: 'main'
           }),
           toString: () => 'cached'
         } as any
@@ -715,7 +751,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       // Settings should still be created from toOperationContentSettings
@@ -736,7 +773,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -753,7 +791,8 @@ Deno.test('OasOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -771,7 +810,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       // Should use cached definition
@@ -791,7 +831,8 @@ Deno.test('OasOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -811,7 +852,8 @@ Deno.test('OasOperationDriver', async t => {
           new OasOperationDriver({
             context,
             projection,
-            operation
+            operation,
+            variant: 'main'
           })
         },
         Error,
@@ -831,8 +873,9 @@ Deno.test('OasOperationDriver', async t => {
         value: {
           generatorKey: toOasOperationGeneratorKey({
             generatorId: 'DifferentGenerator',
-            operation
-          }),
+            operation,
+            variant: 'main'
+            }),
           toString: () => 'cached'
         } as any
       })
@@ -847,7 +890,8 @@ Deno.test('OasOperationDriver', async t => {
           new OasOperationDriver({
             context,
             projection,
-            operation
+            operation,
+            variant: 'main'
           })
         },
         Error,
@@ -859,8 +903,9 @@ Deno.test('OasOperationDriver', async t => {
       const operation = createMockOperation()
       const cachedKey = toOasOperationGeneratorKey({
         generatorId: 'CachedGenerator',
-        operation
-      })
+        operation,
+        variant: 'main'
+        })
       const cachedDef = new Definition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
@@ -880,7 +925,8 @@ Deno.test('OasOperationDriver', async t => {
         new OasOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
       } catch (error) {
         errorMessage = (error as Error).message
@@ -899,7 +945,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       // Generator key should be in format: generatorId|path|method
@@ -931,7 +978,8 @@ Deno.test('OasOperationDriver', async t => {
         new OasOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
       })
     })
@@ -950,7 +998,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       const key = driver.definition.generatorKey
@@ -972,7 +1021,8 @@ Deno.test('OasOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -991,7 +1041,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertEquals(driver.definition, cachedDef)
@@ -1001,8 +1052,9 @@ Deno.test('OasOperationDriver', async t => {
       const operation = createMockOperation()
       const wrongKey = toOasOperationGeneratorKey({
         generatorId: 'DifferentGenerator',
-        operation
-      })
+        operation,
+        variant: 'main'
+        })
       const cachedDef = new Definition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
@@ -1021,7 +1073,8 @@ Deno.test('OasOperationDriver', async t => {
         new OasOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
       })
     })
@@ -1038,7 +1091,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       const key = driver.definition.generatorKey
@@ -1063,7 +1117,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -1081,7 +1136,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       // Verify complete flow
@@ -1102,7 +1158,8 @@ Deno.test('OasOperationDriver', async t => {
         settings: new ContentSettings({
           identifier: Identifier.createVariable('test'),
           exportPath: './test.ts',
-          enrichments: undefined
+          enrichments: undefined,
+        variant: 'main'
         }),
         operation
       })
@@ -1117,8 +1174,8 @@ Deno.test('OasOperationDriver', async t => {
         findDefinition: cachedDef
       })
 
-      const driver1 = new OasOperationDriver({ context, projection, operation })
-      const driver2 = new OasOperationDriver({ context, projection, operation })
+      const driver1 = new OasOperationDriver({ context, projection, operation, variant: 'main' })
+      const driver2 = new OasOperationDriver({ context, projection, operation, variant: 'main' })
 
       // Both should use same cached definition
       assertEquals(driver1.definition, cachedDef)
@@ -1131,8 +1188,8 @@ Deno.test('OasOperationDriver', async t => {
       const operation1 = createMockOperation({ operationId: 'op1', path: '/path1', method: 'get' })
       const operation2 = createMockOperation({ operationId: 'op2', path: '/path2', method: 'post' })
 
-      const driver1 = new OasOperationDriver({ context, projection, operation: operation1 })
-      const driver2 = new OasOperationDriver({ context, projection, operation: operation2 })
+      const driver1 = new OasOperationDriver({ context, projection, operation: operation1, variant: 'main' })
+      const driver2 = new OasOperationDriver({ context, projection, operation: operation2, variant: 'main' })
 
       // Should have different definitions
       assert(driver1.definition !== driver2.definition)
@@ -1148,7 +1205,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './api/index.ts'
+        destinationPath: './api/index.ts',
+        variant: 'main'
       })
 
       // Should have import registration
@@ -1167,7 +1225,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './operations/users.ts'
+        destinationPath: './operations/users.ts',
+        variant: 'main'
       })
 
       // Should only have definition registration
@@ -1184,7 +1243,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       assertEquals(driver.noExport, true)
@@ -1207,7 +1267,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver<GeneratedValue, CustomEnrichment>({
         context,
         projection: projection as any,
-        operation
+        operation,
+        variant: 'main'
       })
 
       // Should preserve type information
@@ -1228,7 +1289,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -1248,7 +1310,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -1266,7 +1329,8 @@ Deno.test('OasOperationDriver', async t => {
         context,
         projection,
         operation,
-        destinationPath: './index.ts'
+        destinationPath: './index.ts',
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -1283,7 +1347,8 @@ Deno.test('OasOperationDriver', async t => {
       const driver = new OasOperationDriver({
         context,
         projection,
-        operation
+        operation,
+        variant: 'main'
       })
 
       assertExists(driver.definition)
@@ -1299,8 +1364,9 @@ Deno.test('OasOperationDriver', async t => {
       const operation = createMockOperation()
       const wrongKey = toOasOperationGeneratorKey({
         generatorId: 'WrongGenerator',
-        operation
-      })
+        operation,
+        variant: 'main'
+        })
       const cachedDef = new Definition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
@@ -1321,7 +1387,8 @@ Deno.test('OasOperationDriver', async t => {
         new OasOperationDriver({
           context,
           projection,
-          operation
+          operation,
+          variant: 'main'
         })
       } catch (error) {
         errorThrown = true
@@ -1332,5 +1399,166 @@ Deno.test('OasOperationDriver', async t => {
       assert(errorMessage.length > 0)
       assert(errorMessage.includes('generator key') || errorMessage.includes('mismatch'))
     })
+  })
+
+  await t.step('Variant validation', async t => {
+    await t.step(
+      "default 'main' variant succeeds even when the peer has no enrichments configured",
+      () => {
+        // The Driver is constructed without an explicit variant — defaults to
+        // 'main'. The peer has no enrichments at all. This must succeed (it's
+        // the variants-unaware path that every existing call site uses).
+        const { context } = createMockContext()
+        const projection = createMockProjection()
+        const operation = createMockOperation()
+
+        const driver = new OasOperationDriver({
+          context,
+          projection,
+          operation,
+          variant: 'main'
+        })
+
+        assertExists(driver.definition)
+      }
+    )
+
+    await t.step('explicit non-main variant throws when the peer has no enrichments', () => {
+      // The Driver receives `variant: 'description'` but the peer has no
+      // enrichment block — silent reuse of `'main'` would be the wrong thing
+      // to do (caller asked deliberately). Throw at the call site instead.
+      const { context } = createMockContext()
+      const projection = createMockProjection({ id: 'unconfigured-peer' })
+      const operation = createMockOperation()
+
+      assertThrows(
+        () =>
+          new OasOperationDriver({
+            context,
+            projection,
+            operation,
+            variant: 'description'
+          }),
+        Error,
+        "Cannot insert variant 'description'"
+      )
+    })
+
+    await t.step('explicit variant throws when the peer declares a different one', () => {
+      // Peer's enrichment block declares `main` + `customer`. Caller asks
+      // for `description`. Throw with the available variants listed.
+      const projection = createMockProjection({ id: 'peer-gen' })
+      const operation = createMockOperation({ path: '/quotes/{id}', method: 'patch' })
+
+      const { context } = createMockContext()
+      // deno-lint-ignore no-explicit-any — context settings is typed minimally here
+      ;(context as any).settings = {
+        enrichments: {
+          'peer-gen': {
+            '/quotes/{id}': {
+              patch: { main: {}, customer: {} }
+            }
+          }
+        }
+      }
+
+      assertThrows(
+        () =>
+          new OasOperationDriver({
+            context,
+            projection,
+            operation,
+            variant: 'description'
+          }),
+        Error,
+        'Available variants: main, customer'
+      )
+    })
+
+    await t.step('explicit variant succeeds when the peer declares it', () => {
+      const projection = createMockProjection({ id: 'peer-gen' })
+      const operation = createMockOperation({ path: '/quotes/{id}', method: 'patch' })
+
+      const { context } = createMockContext()
+      // deno-lint-ignore no-explicit-any
+      ;(context as any).settings = {
+        enrichments: {
+          'peer-gen': {
+            '/quotes/{id}': {
+              patch: { main: {}, customer: {} }
+            }
+          }
+        }
+      }
+
+      const driver = new OasOperationDriver({
+        context,
+        projection,
+        operation,
+        variant: 'customer'
+      })
+
+      assertEquals(driver.variant, 'customer')
+      assertEquals(driver.settings.variant, 'customer')
+    })
+
+    await t.step(
+      'variants-aware Projection that forgets to vary toIdentifier collides on second variant',
+      () => {
+        // A variants-aware Projection MUST incorporate variant into its
+        // identifier or its (name, exportPath) cache key collides across
+        // variants. The first variant's Definition lands in the file with
+        // generatorKey `…|main`; the second variant builds key `…|customer`.
+        // `findDefinition` hits the cached entry, `affirmDefinition`
+        // compares keys, sees the variant mismatch, and throws.
+        const operation = createMockOperation({ path: '/quotes/{id}', method: 'patch' })
+
+        // Cached definition was registered as the 'main' variant — its
+        // generatorKey reflects that.
+        const mainKey = toOasOperationGeneratorKey({
+          generatorId: 'forgetful-form',
+          operation,
+          variant: 'main'
+        })
+        const cachedDef = new Definition({
+          context: {} as any,
+          identifier: Identifier.createVariable('getQuotesForm'),
+          value: {
+            generatorKey: mainKey,
+            toString: () => 'cached'
+          } as any
+        })
+
+        const { context } = createMockContext({ findDefinition: cachedDef })
+        // deno-lint-ignore no-explicit-any
+        ;(context as any).settings = {
+          enrichments: {
+            'forgetful-form': {
+              '/quotes/{id}': {
+                patch: { main: {}, customer: {} }
+              }
+            }
+          }
+        }
+
+        const projection = createMockProjection({ id: 'forgetful-form' })
+
+        // Now construct the 'customer' variant. The Driver computes
+        // generatorKey `…|customer` for this call, looks up by
+        // (name, exportPath), finds the 'main' Definition, and throws
+        // because keys differ.
+        assertThrows(
+          () =>
+            new OasOperationDriver({
+              context,
+              projection,
+              operation,
+              variant: 'customer'
+            }),
+          Error,
+          'Registered definition mismatch'
+        )
+      }
+    )
   })
 })

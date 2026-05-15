@@ -9,7 +9,8 @@ Deno.test('ContentSettings - creates settings with enrichments', () => {
   const settings = new ContentSettings({
     identifier,
     exportPath: './src/models/User.ts',
-    enrichments
+    enrichments,
+    variant: 'main'
   })
 
   assertEquals(settings.identifier, identifier)
@@ -36,7 +37,8 @@ Deno.test('ContentSettings - stores identifier properties', () => {
   const settings = new ContentSettings({
     identifier,
     exportPath: './src/api.ts',
-    enrichments: { includeAuth: true }
+    enrichments: { includeAuth: true },
+    variant: 'main'
   })
 
   assertEquals(settings.identifier.name, 'apiClient')

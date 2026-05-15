@@ -1,4 +1,5 @@
 import type { Identifier } from '@/dsl/Identifier.ts'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
 /**
  * Arguments for creating empty ContentSettings without enrichments.
@@ -8,6 +9,13 @@ type EmptyArgs = {
   exportPath: string
   /** The identifier for the content being generated */
   identifier: Identifier
+  /**
+   * The operation variant this content belongs to. Optional on
+   * {@link ContentSettings.empty} — defaults to `'main'` since model
+   * Projections (the primary `empty()` callers) don't participate in
+   * the operation-variant axis.
+   */
+  variant?: string
 }
 
 /**
@@ -22,6 +30,13 @@ type CreateArgs<EnrichmentType = undefined> = {
   exportPath: string
   /** Custom enrichment data for extending generation */
   enrichments: EnrichmentType
+  /**
+   * The operation variant this content belongs to. For variants-aware
+   * operation generators this carries the per-call variant name
+   * (`'main'`, `'customer'`, `'line-items'`, …); for variants-unaware
+   * operation generators and for model Projections it is `'main'`.
+   */
+  variant: string
 }
 
 /**
@@ -128,12 +143,21 @@ export class ContentSettings<EnrichmentType = undefined> {
   enrichments: EnrichmentType
 
   /**
+   * Operation variant this content belongs to. Carries the variant name
+   * threaded from the engine's per-operation dispatch through the
+   * Driver into this Projection. `'main'` for variants-unaware
+   * operation generators and for model Projections.
+   */
+  variant: string
+
+  /**
    * Creates a new ContentSettings instance with enrichments.
    *
    * @param args - Settings configuration
    * @param args.identifier - The identifier for the content being generated
    * @param args.exportPath - The path where generated content will be exported
    * @param args.enrichments - Custom enrichment data for extending generation
+   * @param args.variant - Operation variant name (`'main'` for variants-unaware Projections)
    *
    * @example
    * ```typescript
@@ -143,14 +167,16 @@ export class ContentSettings<EnrichmentType = undefined> {
    *   enrichments: {
    *     includeValidation: true,
    *     format: 'detailed'
-   *   }
+   *   },
+   *   variant: 'main'
    * });
    * ```
    */
-  constructor({ identifier, exportPath, enrichments }: CreateArgs<EnrichmentType>) {
+  constructor({ identifier, exportPath, enrichments, variant }: CreateArgs<EnrichmentType>) {
     this.identifier = identifier
     this.exportPath = exportPath
     this.enrichments = enrichments
+    this.variant = variant
   }
 
   /**
@@ -188,11 +214,16 @@ export class ContentSettings<EnrichmentType = undefined> {
    * }
    * ```
    */
-  static empty({ identifier, exportPath }: EmptyArgs): ContentSettings<undefined> {
+  static empty({
+    identifier,
+    exportPath,
+    variant = DEFAULT_VARIANT
+  }: EmptyArgs): ContentSettings<undefined> {
     return new ContentSettings({
       identifier,
       exportPath,
-      enrichments: undefined
+      enrichments: undefined,
+      variant
     })
   }
 }

@@ -14,14 +14,26 @@ import { OasOperation } from '@/oas/operation/Operation.ts'
 
 // Factory Functions Tests
 
-Deno.test('toOasOperationGeneratorKey - creates key with path and method', () => {
+Deno.test('toOasOperationGeneratorKey - creates key with path, method and variant', () => {
   const key = toOasOperationGeneratorKey({
     generatorId: 'api-client',
     path: '/users',
-    method: 'get'
+    method: 'get',
+    variant: 'main'
   })
 
-  assertEquals(key, 'api-client|/users|get')
+  assertEquals(key, 'api-client|/users|get|main')
+})
+
+Deno.test('toOasOperationGeneratorKey - encodes a non-default variant', () => {
+  const key = toOasOperationGeneratorKey({
+    generatorId: 'forms',
+    path: '/quotes/{id}',
+    method: 'patch',
+    variant: 'customer'
+  })
+
+  assertEquals(key, 'forms|/quotes/{id}|patch|customer')
 })
 
 Deno.test('toOasOperationGeneratorKey - creates key from operation object', () => {
@@ -34,10 +46,11 @@ Deno.test('toOasOperationGeneratorKey - creates key from operation object', () =
 
   const key = toOasOperationGeneratorKey({
     generatorId: 'rest-client',
-    operation
+    operation,
+    variant: 'main'
   })
 
-  assertEquals(key, 'rest-client|/products/{id}|post')
+  assertEquals(key, 'rest-client|/products/{id}|post|main')
 })
 
 Deno.test('toModelGeneratorKey - creates key with generator ID and ref name', () => {
@@ -60,19 +73,22 @@ Deno.test('toGeneratorOnlyKey - creates key with just generator ID', () => {
 // Type Guard Tests
 
 Deno.test('isOasOperationGeneratorKey - returns true for valid operation key', () => {
-  const key = 'api-client|/users/{id}|get'
+  const key = 'api-client|/users/{id}|get|main'
   assertEquals(isOasOperationGeneratorKey(key), true)
 })
 
 Deno.test('isOasOperationGeneratorKey - returns false for invalid format', () => {
-  // Missing method
-  assertEquals(isOasOperationGeneratorKey('api-client|/users'), false)
+  // Missing variant (old 3-segment shape)
+  assertEquals(isOasOperationGeneratorKey('api-client|/users|get'), false)
 
   // Too many parts
-  assertEquals(isOasOperationGeneratorKey('api-client|/users|get|extra'), false)
+  assertEquals(isOasOperationGeneratorKey('api-client|/users|get|main|extra'), false)
 
   // Invalid method
-  assertEquals(isOasOperationGeneratorKey('api-client|/users|invalid'), false)
+  assertEquals(isOasOperationGeneratorKey('api-client|/users|invalid|main'), false)
+
+  // Empty variant segment
+  assertEquals(isOasOperationGeneratorKey('api-client|/users|get|'), false)
 
   // Non-string
   assertEquals(isOasOperationGeneratorKey(123), false)
@@ -95,8 +111,8 @@ Deno.test('isModelGeneratorKey - returns false for invalid format', () => {
 })
 
 Deno.test('isGeneratorKey - returns true for all valid key types', () => {
-  // Operation key
-  assertEquals(isGeneratorKey('api-client|/users|get'), true)
+  // Operation key (4 segments including variant)
+  assertEquals(isGeneratorKey('api-client|/users|get|main'), true)
 
   // Model key
   assertEquals(isGeneratorKey('typescript-types|User'), true)
@@ -116,7 +132,8 @@ Deno.test('toGeneratorId - extracts ID from different key types', () => {
   const opKey = toOasOperationGeneratorKey({
     generatorId: 'api-client',
     path: '/users',
-    method: 'get'
+    method: 'get',
+    variant: 'main'
   })
   assertEquals(toGeneratorId(opKey), 'api-client')
 
@@ -138,7 +155,8 @@ Deno.test('fromGeneratorKey - parses operation key into object', () => {
   const key = toOasOperationGeneratorKey({
     generatorId: 'api-client',
     path: '/users/{id}',
-    method: 'get'
+    method: 'get',
+    variant: 'main'
   })
 
   const parsed = fromGeneratorKey(key)
@@ -148,6 +166,7 @@ Deno.test('fromGeneratorKey - parses operation key into object', () => {
     assertEquals(parsed.generatorId, 'api-client')
     assertEquals(parsed.path, '/users/{id}')
     assertEquals(parsed.method, 'get')
+    assertEquals(parsed.variant, 'main')
   }
 })
 

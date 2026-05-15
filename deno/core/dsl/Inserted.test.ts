@@ -105,7 +105,8 @@ Deno.test('Inserted - works with enrichments', () => {
   const settings = new ContentSettings({
     identifier,
     exportPath: './src/validated.ts',
-    enrichments
+    enrichments,
+    variant: 'main'
   })
 
   const definition = new Definition({

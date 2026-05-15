@@ -76,16 +76,26 @@ const isGqlRootKind = (value: string): value is GqlRootKind =>
 
 /**
  * Template literal type for OAS operation generator keys before branding.
- * Format: `generatorId|path|method` (e.g., 'api-client|/users|get')
+ * Format: `generatorId|path|method|variant`
+ * (e.g., 'api-client|/users|get|main', 'forms|/quotes|patch|customer').
+ *
+ * The trailing `variant` segment carries the operation-variant axis
+ * (see {@link Variant}). For variants-unaware generators it is always
+ * `'main'`; for variants-aware generators it carries the per-call
+ * variant name.
  */
-export type NakedOasOperationGeneratorKey = `${string}|${string}|${Method}`
+export type NakedOasOperationGeneratorKey = `${string}|${string}|${Method}|${string}`
 
 /**
  * Template literal type for GraphQL operation generator keys before branding.
- * Format: `generatorId|rootKind|fieldName`
- * (e.g., 'graphql-client|query|getUser', 'graphql-client|mutation|createPost').
+ * Format: `generatorId|rootKind|fieldName|variant`
+ * (e.g., 'graphql-client|query|getUser|main',
+ * 'graphql-client|mutation|createPost|customer').
+ *
+ * The trailing `variant` segment carries the operation-variant axis
+ * (see {@link Variant}).
  */
-export type NakedGqlOperationGeneratorKey = `${string}|${GqlRootKind}|${string}`
+export type NakedGqlOperationGeneratorKey = `${string}|${GqlRootKind}|${string}|${string}`
 
 /**
  * Template literal type for model generator keys before branding.
@@ -177,7 +187,9 @@ export type GeneratorKey =
  * Arguments for {@link toOasOperationGeneratorKey}.
  *
  * Can specify operation details directly or provide an OasOperation
- * object from which the path and method will be extracted.
+ * object from which the path and method will be extracted. The
+ * `variant` segment is always required so the resulting key
+ * disambiguates per-variant Definitions (see {@link Variant}).
  */
 type ToOasOperationGeneratorKeyArgs =
   | {
@@ -187,12 +199,16 @@ type ToOasOperationGeneratorKeyArgs =
       path: string
       /** HTTP method */
       method: Method
+      /** Operation variant name (use `'main'` for variants-unaware generators) */
+      variant: string
     }
   | {
       /** Unique identifier for the generator */
       generatorId: string
       /** OpenAPI operation object containing path and method */
       operation: OasOperation
+      /** Operation variant name (use `'main'` for variants-unaware generators) */
+      variant: string
     }
 
 /**
@@ -232,11 +248,12 @@ type ToOasOperationGeneratorKeyArgs =
  */
 export const toOasOperationGeneratorKey = ({
   generatorId,
+  variant,
   ...rest
 }: ToOasOperationGeneratorKeyArgs): OasOperationGeneratorKey => {
   const { path, method } = 'operation' in rest ? rest.operation : rest
 
-  const nakedKey: NakedOasOperationGeneratorKey = `${generatorId}|${path}|${method}`
+  const nakedKey: NakedOasOperationGeneratorKey = `${generatorId}|${path}|${method}|${variant}`
 
   return nakedKey as OasOperationGeneratorKey
 }
@@ -245,7 +262,8 @@ export const toOasOperationGeneratorKey = ({
  * Arguments for {@link toGqlOperationGeneratorKey}.
  *
  * Can specify operation details directly or provide a {@link GqlOperation}
- * object from which the root kind and field name will be extracted.
+ * object from which the root kind and field name will be extracted. The
+ * `variant` segment is always required (see {@link Variant}).
  */
 type ToGqlOperationGeneratorKeyArgs =
   | {
@@ -255,22 +273,27 @@ type ToGqlOperationGeneratorKeyArgs =
       rootKind: GqlRootKind
       /** Root field name */
       fieldName: string
+      /** Operation variant name (use `'main'` for variants-unaware generators) */
+      variant: string
     }
   | {
       /** Unique identifier for the generator */
       generatorId: string
       /** GraphQL operation object */
       operation: GqlOperation
+      /** Operation variant name (use `'main'` for variants-unaware generators) */
+      variant: string
     }
 
 /**
  * Creates a GraphQL operation generator key.
  *
  * Sibling to {@link toOasOperationGeneratorKey} for the GraphQL protocol. Format:
- * `generatorId|rootKind|fieldName`.
+ * `generatorId|rootKind|fieldName|variant`.
  */
 export const toGqlOperationGeneratorKey = ({
   generatorId,
+  variant,
   ...rest
 }: ToGqlOperationGeneratorKeyArgs): GqlOperationGeneratorKey => {
   const { rootKind, fieldName } =
@@ -278,7 +301,7 @@ export const toGqlOperationGeneratorKey = ({
       ? { rootKind: rest.operation.rootKind, fieldName: rest.operation.fieldName }
       : rest
 
-  const nakedKey: NakedGqlOperationGeneratorKey = `${generatorId}|${rootKind}|${fieldName}`
+  const nakedKey: NakedGqlOperationGeneratorKey = `${generatorId}|${rootKind}|${fieldName}|${variant}`
 
   return nakedKey as GqlOperationGeneratorKey
 }
@@ -423,11 +446,11 @@ export const isOasOperationGeneratorKey = (arg: unknown): arg is OasOperationGen
 
   const keyTokens = arg.split('|')
 
-  if (keyTokens.length !== 3) {
+  if (keyTokens.length !== 4) {
     return false
   }
 
-  const [generatorId, path, method] = keyTokens
+  const [generatorId, path, method, variant] = keyTokens
 
   if (typeof generatorId !== 'string' || !generatorId.length) {
     return false
@@ -438,6 +461,10 @@ export const isOasOperationGeneratorKey = (arg: unknown): arg is OasOperationGen
   }
 
   if (!isMethod(method)) {
+    return false
+  }
+
+  if (typeof variant !== 'string' || !variant.length) {
     return false
   }
 
@@ -458,11 +485,11 @@ export const isGqlOperationGeneratorKey = (arg: unknown): arg is GqlOperationGen
 
   const keyTokens = arg.split('|')
 
-  if (keyTokens.length !== 3) {
+  if (keyTokens.length !== 4) {
     return false
   }
 
-  const [generatorId, rootKind, fieldName] = keyTokens
+  const [generatorId, rootKind, fieldName, variant] = keyTokens
 
   if (typeof generatorId !== 'string' || !generatorId.length) {
     return false
@@ -473,6 +500,10 @@ export const isGqlOperationGeneratorKey = (arg: unknown): arg is GqlOperationGen
   }
 
   if (typeof fieldName !== 'string' || !fieldName.length) {
+    return false
+  }
+
+  if (typeof variant !== 'string' || !variant.length) {
     return false
   }
 
@@ -619,6 +650,8 @@ export type GeneratorKeyObject =
       path: string
       /** HTTP method */
       method: Method
+      /** Operation variant name */
+      variant: string
     }
   | {
       /** Discriminator for GraphQL operation generator keys */
@@ -629,6 +662,8 @@ export type GeneratorKeyObject =
       rootKind: GqlRootKind
       /** Root field name */
       fieldName: string
+      /** Operation variant name */
+      variant: string
     }
   | {
       /** Discriminator for model generator keys */
@@ -690,17 +725,18 @@ export type GeneratorKeyObject =
  */
 export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject => {
   if (isOasOperationGeneratorKey(generatorKey)) {
-    const [generatorId, path, method] = generatorKey.split('|')
-    return { type: 'oasOperation', generatorId, path, method: method as Method }
+    const [generatorId, path, method, variant] = generatorKey.split('|')
+    return { type: 'oasOperation', generatorId, path, method: method as Method, variant }
   }
 
   if (isGqlOperationGeneratorKey(generatorKey)) {
-    const [generatorId, rootKind, fieldName] = generatorKey.split('|')
+    const [generatorId, rootKind, fieldName, variant] = generatorKey.split('|')
     return {
       type: 'gqlOperation',
       generatorId,
       rootKind: rootKind as GqlRootKind,
-      fieldName
+      fieldName,
+      variant
     }
   }
 

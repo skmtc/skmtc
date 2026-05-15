@@ -11,6 +11,7 @@ import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
 /**
  * Configuration for {@link toGqlOperationProjectionBase}.
@@ -32,6 +33,8 @@ export type GqlOperationProjectionBaseConfig<EnrichmentType = undefined> = {
 type ToEnrichmentsArgs = {
   operation: GqlOperation
   context: GenerateContextType
+  /** Operation variant whose enrichment should be resolved (see {@link Variant}) */
+  variant: string
 }
 
 /**
@@ -55,10 +58,17 @@ export const toGqlOperationProjectionBase = <EnrichmentType = undefined>(
 
     static isSupported = config.isSupported ?? (() => true)
 
-    static toEnrichments = ({ operation, context }: ToEnrichmentsArgs): EnrichmentType => {
+    static toEnrichments = ({
+      operation,
+      context,
+      variant
+    }: ToEnrichmentsArgs): EnrichmentType => {
+      // Same shape as the OAS branch — see the comment there for the
+      // full rationale. GraphQL routing key is
+      // `[generatorId][rootKind][fieldName][variant]`.
       const operationEnrichments = get(
         context.settings,
-        `enrichments.${config.id}.${operation.rootKind}.${operation.fieldName}`
+        `enrichments.${config.id}.${operation.rootKind}.${operation.fieldName}.${variant}`
       )
 
       const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
@@ -71,7 +81,8 @@ export const toGqlOperationProjectionBase = <EnrichmentType = undefined>(
         ...args,
         generatorKey: toGqlOperationGeneratorKey({
           generatorId: config.id,
-          operation: args.operation
+          operation: args.operation,
+          variant: args.settings.variant ?? DEFAULT_VARIANT
         })
       })
     }

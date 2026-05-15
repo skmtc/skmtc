@@ -59,7 +59,7 @@ Deno.test('toOasOperationProjectionBase - sets static toIdentifier from config',
     responses: {}
   })
 
-  const identifier = OperationClass.toIdentifier({ operation: mockOperation, enrichments: undefined })
+  const identifier = OperationClass.toIdentifier({ operation: mockOperation, enrichments: undefined, variant: 'main' })
   assertEquals(identifier.name, 'getUsers')
   // Verify identifier has expected properties
   assertEquals(typeof identifier.toString, 'function')
@@ -83,7 +83,7 @@ Deno.test('toOasOperationProjectionBase - sets static toExportPath from config',
     responses: {}
   })
 
-  const exportPath = OperationClass.toExportPath({ operation: mockOperation, enrichments: undefined })
+  const exportPath = OperationClass.toExportPath({ operation: mockOperation, enrichments: undefined, variant: 'main' })
   assertEquals(exportPath, './generated/createUser.ts')
 })
 
@@ -104,7 +104,8 @@ Deno.test('toOasOperationProjectionBase - toEnrichments returns undefined when n
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: { settings: {} } as GenerateContextType
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
   })
 
   assertEquals(enrichments, undefined)
@@ -128,7 +129,8 @@ Deno.test('toOasOperationProjectionBase - toEnrichments returns undefined when n
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: { settings: {} } as GenerateContextType
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
   })
 
   assertEquals(enrichments, undefined)
@@ -149,7 +151,7 @@ Deno.test('toOasOperationProjectionBase - toIdentifier works with different oper
     operationId: 'Users',
     responses: {}
   })
-  const getUsersIdentifier = OperationClass.toIdentifier({ operation: getUsersOperation, enrichments: undefined })
+  const getUsersIdentifier = OperationClass.toIdentifier({ operation: getUsersOperation, enrichments: undefined, variant: 'main' })
   assertEquals(getUsersIdentifier.name, 'getUsers')
 
   const createProductOperation = new OasOperation({
@@ -159,7 +161,7 @@ Deno.test('toOasOperationProjectionBase - toIdentifier works with different oper
     operationId: 'Product',
     responses: {}
   })
-  const createProductIdentifier = OperationClass.toIdentifier({ operation: createProductOperation, enrichments: undefined })
+  const createProductIdentifier = OperationClass.toIdentifier({ operation: createProductOperation, enrichments: undefined, variant: 'main' })
   assertEquals(createProductIdentifier.name, 'postProduct')
 })
 
@@ -177,7 +179,7 @@ Deno.test('toOasOperationProjectionBase - toExportPath works with different oper
     operationId: 'users',
     responses: {}
   })
-  assertEquals(OperationClass.toExportPath({ operation: getUsersOperation, enrichments: undefined }), './types/get-users.d.ts')
+  assertEquals(OperationClass.toExportPath({ operation: getUsersOperation, enrichments: undefined, variant: 'main' }), './types/get-users.d.ts')
 
   const createProductOperation = new OasOperation({
     path: '/products',
@@ -186,7 +188,7 @@ Deno.test('toOasOperationProjectionBase - toExportPath works with different oper
     operationId: 'product',
     responses: {}
   })
-  assertEquals(OperationClass.toExportPath({ operation: createProductOperation, enrichments: undefined }), './types/post-product.d.ts')
+  assertEquals(OperationClass.toExportPath({ operation: createProductOperation, enrichments: undefined, variant: 'main' }), './types/post-product.d.ts')
 })
 
 Deno.test('toOasOperationProjectionBase - constructor creates correct generatorKey', () => {
@@ -212,12 +214,13 @@ Deno.test('toOasOperationProjectionBase - constructor creates correct generatorK
     settings: {
       identifier: Identifier.createVariable('getUsers'),
       exportPath: './operations/users.ts',
-      enrichments: undefined
+      enrichments: undefined,
+      variant: 'main'
     } as any
   })
 
-  // Verify generatorKey has expected format: id|path|method
-  assertEquals(instance.generatorKey, 'api-client|/users|get')
+  // Verify generatorKey has expected format: id|path|method|variant
+  assertEquals(instance.generatorKey, 'api-client|/users|get|main')
 })
 
 Deno.test('toOasOperationProjectionBase - instance is OasOperationProjectionBase', () => {
@@ -277,8 +280,10 @@ Deno.test('toOasOperationProjectionBase - toEnrichments validates with schema', 
         'api-client': {
           '/users': {
             get: {
-              enabled: true,
-              timeout: 5000
+              main: {
+                enabled: true,
+                timeout: 5000
+              }
             }
           }
         }
@@ -288,7 +293,8 @@ Deno.test('toOasOperationProjectionBase - toEnrichments validates with schema', 
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: mockContext
+    context: mockContext,
+    variant: 'main'
   })
 
   assertEquals(enrichments, {
@@ -318,7 +324,7 @@ Deno.test('toOasOperationProjectionBase - toEnrichments retrieves from correct n
       enrichments: {
         'rest-api': {
           '/products/{id}': {
-            put: { customValue: 'found-it', flag: true }
+            put: { main: { customValue: 'found-it', flag: true } }
           }
         }
       }
@@ -327,9 +333,10 @@ Deno.test('toOasOperationProjectionBase - toEnrichments retrieves from correct n
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: mockContext
+    context: mockContext,
+    variant: 'main'
   })
 
-  // Verify it retrieved from the correct path: enrichments.{id}.{path}.{method}
+  // Retrieves from enrichments.{id}.{path}.{method}.{variant}
   assertEquals(enrichments, { customValue: 'found-it', flag: true })
 })
