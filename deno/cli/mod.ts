@@ -221,6 +221,31 @@ const run = async () => {
       renderAgentContext({ jsonFlag: json })
     })
 
+  const migrateVariantsCommand = new Command()
+    .description(
+      "Migrate a project's client.json to the variant-aware shape introduced in @skmtc/core@0.5.0. " +
+      'Idempotent — safe to re-run.'
+    )
+    .arguments('<project:string>')
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }, projectName) => {
+      const { renderMigrateVariants } = await import('@/commands/migrate-variants.ts')
+      await renderMigrateVariants({ projectName, jsonFlag: json })
+    })
+
+  const migrateCommand = new Command()
+    .description(
+      'Apply one-shot migrations to a project. Currently supports `variants` ' +
+      '(wrap operation enrichments + reshape skip/include for the variant axis).'
+    )
+    .action(() => {
+      console.error('Usage: skmtc migrate <subcommand>')
+      console.error('Subcommands:')
+      console.error('  variants <project>   Migrate to the variant-aware shape.')
+      Deno.exit(2)
+    })
+    .command('variants', migrateVariantsCommand)
+
   await new Command()
     .description('Generate code from an OpenAPI or GraphQL schema')
     .action(async _flags => {
@@ -238,6 +263,7 @@ const run = async () => {
     .command('dev', devCommand)
     .command('doctor', doctorCommand)
     .command('agent-context', agentContextCommand)
+    .command('migrate', migrateCommand)
     .parse(Deno.args)
 }
 

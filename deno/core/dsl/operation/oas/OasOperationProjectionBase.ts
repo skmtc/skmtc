@@ -64,17 +64,24 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
   /**
    * Insert a related operation. The inserted operation is exported to this
    * projection's own `exportPath` unless `noExport` is set.
+   *
+   * Pass `{ variant }` to target a specific variant on the peer (e.g.
+   * to thread `this.settings.variant` into a within-package sibling
+   * Projection that's also variants-aware). Omitting it defaults to
+   * the peer's `'main'` variant — the safe choice for variants-unaware
+   * peers and the standard pattern for cross-package composition.
    */
   insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
     projection: OasOperationProjection<V, EnrichmentType>,
     operation: OasOperation,
-    options: Pick<InsertOperationOptions, 'noExport'> = {}
+    options: Pick<InsertOperationOptions, 'noExport' | 'variant'> = {}
   ): Inserted<V, EnrichmentType> {
     return this.context.insertOperation({
       projection,
       operation,
       destinationPath: this.settings.exportPath,
-      noExport: options.noExport
+      noExport: options.noExport,
+      variant: options.variant
     })
   }
 

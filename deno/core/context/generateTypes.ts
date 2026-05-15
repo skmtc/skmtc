@@ -39,6 +39,13 @@ export type InsertOperationOptions = {
   noExport?: boolean
   /** Custom destination path for the operation */
   destinationPath?: string
+  /**
+   * Target variant of the peer projection. Omit for `'main'` (the
+   * universally-safe default that every peer is guaranteed to
+   * honour). Pass explicitly only when the peer declares this
+   * variant — the Driver throws on mismatch.
+   */
+  variant?: string
 }
 
 /**

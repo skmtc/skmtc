@@ -256,7 +256,8 @@ Deno.test(
       projection: mockProjection,
       operation: mockRelatedOperation,
       destinationPath: exportPath,
-      noExport: true
+      noExport: true,
+      variant: undefined
     })
 
     insertOperationSpy.restore()
@@ -306,7 +307,8 @@ Deno.test('OasOperationProjectionBase - insertOperation without noExport option'
     projection: mockProjection,
     operation: mockRelatedOp,
     destinationPath: exportPath,
-    noExport: undefined
+    noExport: undefined,
+    variant: undefined
   })
 
   insertOperationSpy.restore()

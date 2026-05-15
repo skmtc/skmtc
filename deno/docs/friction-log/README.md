@@ -1,16 +1,26 @@
 # Friction log
 
-Append-only log of friction encountered and wins observed during SKMTC
-sessions. Reviewed daily; entries drive updates to skills, docs, and
+Append-only log of friction encountered during SKMTC sessions.
+Per-session retros feed this log; periodic reviews aggregate it into
+action plans that drive updates to skills, docs, tooling, and
 occasionally SKMTC code itself.
 
 ## Directory layout
 
-One file per session, named `<YYYY-MM-DD>-<short-summary>.md`. Each
-file is self-contained — entries inside it are numbered starting at 1,
-and cross-file references use `<filename>#<N>` format.
+```
+friction-log/
+  <YYYY-MM-DD>-<short-summary>.md   ← per-session retro files
+  reviews/
+    <YYYY-MM-DD>-review-<period>.md ← periodic review + action plans
+  README.md
+  discrepancy-catalog.md
+```
 
-Examples of filenames:
+Session files are named `<YYYY-MM-DD>-<short-summary>.md`. Each is
+self-contained — entries inside are numbered starting at 1, and
+cross-file references use `<filename>#<N>` format.
+
+Examples:
 
 - `2026-05-12-create-retro-skill.md`
 - `2026-05-13-shadcn-form-clone.md`
@@ -25,12 +35,12 @@ ISO date prefix means directory listings sort chronologically. The
 - **Friction:** APIs that surprised, defaults that needed overriding,
   patterns that took multiple cycles, error messages that were
   unhelpful, invariants that were almost violated.
-- **Wins:** patterns that felt natural, architecture that saved work,
-  generators that were good starting points, type-system catches that
-  prevented bugs.
-
-Both kinds carry equal weight — wins identify patterns to preserve and
-codify; friction identifies gaps to close.
+- **Knowledge acquired:** facts the agent learned during the session
+  that weren't in training data — the primary signal for doc gaps.
+- **Wins (high bar):** patterns worth codifying that aren't already in
+  a skill. Not "this felt smooth" — only "another agent would likely
+  do this wrong, and the correct approach isn't written down." Sessions
+  with zero wins are normal.
 
 ## What does NOT go here
 
@@ -106,11 +116,20 @@ files; cross-file references use `<filename>#<N>` format.
 
 ## Review cadence
 
-Reviewed daily. Resolved entries are updated in place with their
-`Status:` field set to `verified-fixed <date> — <link>`. Entries are
+**Per-session:** the `skmtc-retro` skill writes a session file after
+substantive work.
+
+**Periodic (monthly / pre-release):** the `skmtc-retro-review` skill
+reads all session files for the period, clusters entries by root cause,
+classifies each cluster by intervention type (tooling > code > skill >
+doc), calculates convergence metrics (Friction Recurrence Rate,
+Blocker%, knowledge backlog), and produces a prioritized action plan in
+`reviews/`. This is where decisions get made.
+
+Resolved entries are updated in place with their `**Status:**` field
+set to `resolved <date>` (optionally with a commit/PR ref). Entries are
 **not deleted** — the log is the project's forensic record of what got
-better and when. Resolved files stay in the directory; archive only if
-the directory becomes unwieldy.
+better and when.
 
 ## On the absence of category tags
 
@@ -123,7 +142,8 @@ idea.
 
 ## Related artefacts
 
-- [Retro skill](../skills/skmtc-retro/SKILL.md) — produces entries
+- [Retro skill](../skills/skmtc-retro/SKILL.md) — captures per-session observations
+- [Retro-review skill](../skills/skmtc-retro-review/SKILL.md) — aggregates observations into action plans
 - [CLI skill](../skills/skmtc-cli/SKILL.md) — guides CLI work
 - [Generator skill](../skills/skmtc-generator/SKILL.md) — guides generator authoring
 - [Debug skill](../skills/skmtc-debug/SKILL.md) — diagnoses failures

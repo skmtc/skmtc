@@ -82,9 +82,12 @@ locking in the first idea.
 
 ### Severity tags
 
-Four tiers (`[blocker]`, `[friction]`, `[polish]`, `[win]`) including
-positive observations. Wins are equally valuable signal — they
-identify patterns to preserve and codify.
+Four tiers (`[blocker]`, `[friction]`, `[polish]`, `[win]`). The
+`[win]` tag has a high bar: not "this felt smooth" but "another agent
+would likely do this wrong, and the correct approach isn't written
+down." Sessions with zero wins are normal and preferable to fabricated
+signal. The review skill handles pattern-level "what to preserve"
+analysis across sessions.
 
 ### Skip-criteria for trivial sessions
 
@@ -124,20 +127,23 @@ overrides the "substantive work" filter.
 
 ### Cross-session pattern surfacing
 
-Multiple session files might contain related observations. A future
-mechanism could surface patterns across files (e.g., "three sessions
-this month logged the same `as`-casts mistake"). Not in scope for
-v0.1.0.
+Addressed by the `skmtc-retro-review` skill: it reads all session
+files for a period, clusters entries by root cause, and reports the
+Friction Recurrence Rate. See
+[`../skmtc-retro-review/design.md`](../skmtc-retro-review/design.md).
 
 ### Wins vs friction balance
 
-If the log skews entirely toward friction over many sessions, the
-team's signal is incomplete. The skill prompts for wins explicitly,
-but enforcement is soft. Worth monitoring.
+The retro skill raises the bar for wins (codification candidates only)
+to reduce noise. Pattern-level "wins" — approaches worth prescribing
+across sessions — are surfaced by the `skmtc-retro-review` skill
+during periodic review, not per-session. The review monitors whether
+wins appear at all; if not, the bar may need recalibrating.
 
 ## Cross-references
 
 - Skill: [`SKILL.md`](SKILL.md)
 - Slash command: [`commands/skmtc-retro.md`](commands/skmtc-retro.md)
+- Review skill (actuator): [`../skmtc-retro-review/SKILL.md`](../skmtc-retro-review/SKILL.md)
 - Friction log conventions: [`../../friction-log/README.md`](../../friction-log/README.md)
 - LLM doc operational reference: [`../../llms.md`](../../llms.md)

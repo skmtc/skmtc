@@ -1,15 +1,17 @@
 ---
 name: skmtc-retro
-version: 0.1.0
+version: 0.2.0
 description: |
   Run a self-retrospective on a SKMTC-related session — generator
   authoring, CLI configuration, debugging, or any sustained interaction
   involving `@skmtc/core`, `@skmtc/cli`, or `@skmtc/gen-*` packages.
-  Identifies friction (mistakes, surprises, overridden defaults,
-  multi-cycle struggles) and wins (patterns worth preserving), formats
-  observations against the project's friction-log conventions, and
-  writes them to a per-session dated file under
-  `<skmtc-root>/skmtc/deno/docs/friction-log/`.
+  Captures three distinct outputs: (1) friction entries (mistakes,
+  surprises, overridden defaults, multi-cycle struggles), (2) a
+  "knowledge acquired" block recording facts the agent learned during
+  the session that weren't in its training — the primary signal for doc
+  gaps — and (3) a closing priority list ranking the top 2-3 findings
+  for docs/skills triage. Wins are logged only when they identify a
+  pattern worth codifying that isn't already in a skill.
 
   Use this skill when the user asks to "retro", "skmtc retro", "log
   friction", "reflect on this session", "what did we learn", "run a
@@ -32,10 +34,12 @@ allowed-tools:
 
 # SKMTC retro
 
-Capture observations only the LLM can see — guesses, default overrides,
-surprises, idiomatic gaps, and patterns worth preserving — and write
-them to a per-session file in the project's friction log so they can
-be reviewed and acted on later.
+Capture the three categories of output only the LLM can produce —
+friction entries, knowledge acquired, and a priority ranking — and
+write them to a per-session file so they can be reviewed and acted on.
+The primary goal is actionable signal: what broke, what was unknown,
+and where to spend effort next. Wins are secondary and only worth
+logging when they identify something uncodified.
 
 ## 1. When to invoke
 
@@ -163,17 +167,43 @@ questions explicitly. They are the leverage of this skill.
 - Where was an **error message unhelpful** for diagnosing the cause?
 - What **invariant** did you almost violate and have to back out from?
 
-### For wins
+### For wins (high bar — codification candidates only)
 
-- What worked **naturally** — felt obvious in hindsight, no
-  backtracking?
-- What pattern would you **codify** if it isn't already in a skill?
-- Where did the architecture **save you work** (e.g., Driver dedup,
-  auto-import stitching, memoisation)?
-- Where was a stock generator a **good starting point** with minimal
-  edits?
-- Where did the type system or runtime check **catch a mistake early**
-  that would otherwise have been a debugging session?
+Win entries are not "this felt smooth." They are "I observed a pattern
+that should be the prescribed approach and isn't written down yet." Log
+a win only when you can answer yes to: *If another agent did this task
+tomorrow without this observation, would they likely do it wrong?*
+
+- What pattern did you use that **isn't yet codified** in a skill or
+  doc, but clearly should be?
+- Where did the architecture or type system **enforce a correct
+  approach** in a way worth teaching explicitly?
+
+If nothing passes this bar, omit the wins section entirely. A session
+with zero wins is normal and preferable to fabricated signal.
+
+### For knowledge acquired
+
+This is the highest-value section for improving docs. Ask: *What do I
+now know about SKMTC that I did not know at the start of this session?*
+These are not friction entries — they are knowledge-gap closures.
+
+- What **API shape, method signature, or runtime behaviour** did you
+  have to discover by trial or reading source, rather than from docs or
+  training data?
+- What **naming convention, file layout, or configuration key** was
+  absent from training data and had to be inferred?
+- Where did you rely on **analogy from another framework** that turned
+  out to be wrong or only partially correct?
+- What **constraint or invariant** did you not know existed until you
+  hit it (e.g., single-base rule, location-independence requirement)?
+- What would you want to **tell the next agent** doing this task that
+  isn't written anywhere?
+
+Capture each item concisely — the table format in §4 is designed for
+this. Include the implication for docs: "this belongs in the generator
+skill," "this needs a how-to doc," "this is a missing API reference
+entry," etc.
 
 ## 4. File format
 
@@ -183,6 +213,19 @@ The session file structure:
 # <YYYY-MM-DD> — <Session topic>
 
 <1-2 sentences describing what work was happening in this session.>
+
+## Knowledge acquired
+
+<1 sentence framing what domain this session operated in.>
+
+| # | What I learned | Doc implication |
+|---|----------------|-----------------|
+| K1 | <concise fact — API shape, constraint, naming rule, invariant> | <skill / how-to doc / API reference / none> |
+| K2 | ... | ... |
+
+*If nothing genuinely new was learned, write: "No new SKMTC knowledge
+acquired this session — all patterns matched prior training or
+existing documentation."*
 
 ## Index
 
@@ -198,6 +241,21 @@ The session file structure:
 
 ### 2. <Entry heading> [severity]
 ...
+
+---
+
+## Priority for docs/skills
+
+Top findings from this session, ranked by leverage for improving docs,
+skills, or SKMTC itself. The user uses this list to decide what to act
+on first — be specific about the action path.
+
+| Rank | Entry | Why it matters | Action path |
+|------|-------|----------------|-------------|
+| 1 | #N — <heading> | <one sentence> | skill update / how-to doc / API reference / SKMTC code |
+| 2 | ... | ... | ... |
+
+Limit to 3 entries. If fewer than 3 stand out, list only those that do.
 ```
 
 ### The Index
@@ -279,10 +337,12 @@ against)
 - `[blocker]` — no workaround found; session got stuck
 - `[friction]` — workaround exists; cost real time/cycles
 - `[polish]` — annoying but not blocking
-- `[win]` — something that worked particularly well
+- `[win]` — a pattern worth codifying that isn't already in a skill
+  or doc. Not "this worked well" — only "another agent would likely
+  do this wrong, and the correct approach isn't written down."
 
-Mix `[win]` entries freely with friction. They're equally valuable
-signal — wins identify patterns to preserve and codify.
+Apply `[win]` sparingly. A session with no wins is normal. If
+everything that worked smoothly is already codified, don't log it.
 
 ### Numbering
 
@@ -298,7 +358,9 @@ self-contained.
 
 - Operational principles already documented in `llms.md` or the
   `skmtc-cli` / `skmtc-generator` skills — those are already captured;
-  logging them is noise.
+  logging them is noise. **Exception:** if the doc exists but you
+  couldn't find it, log that as a discoverability gap in `## Knowledge
+  acquired` — the doc's existence doesn't mean it's working.
 - Trivial typos or one-line corrections that aren't part of a pattern.
 - Domain-specific decisions from the consumer project (e.g., the
   naming of a field in someone's app) — only observations about SKMTC
@@ -337,19 +399,39 @@ The full flow:
 3. **Reflect** — mentally walk through the session, applying the
    reflection prompts from §3. Distinguish genuinely new observations
    from things already captured.
-4. **Draft** entries — both friction and wins — using the format from
-   §4. Number sequentially from the current high-water mark (1 if
-   creating a new file).
-5. **Write** the file (create or append). Do not modify earlier
+4. **Draft the `## Knowledge acquired` table** — what you now know
+   that you didn't know at session start (see §3 "For knowledge
+   acquired"). Be concise per row. Include doc implication. If nothing
+   qualifies, write the explicit "nothing new" note from §4.
+5. **Draft entries** — friction first, then wins (only if they pass
+   the codification bar from §3) — using the format from §4. Number
+   sequentially from the current high-water mark (1 if new file).
+6. **Draft the `## Priority for docs/skills` table** — pick the top
+   2-3 entries (friction or knowledge items) by leverage. One sentence
+   per entry on why it matters. Specify the action path.
+7. **Write** the file (create or append). Do not modify earlier
    entries. **Update the `## Index` block in the same write** to
    include a row for every new entry. If you're appending to an
    existing file whose index is missing or out of date, rebuild it
    from the body in the same pass — the index must always match the
    body when you finish.
-6. **Summarise to the user** in one short message:
-   `Logged N entries (X friction, Y wins) to <filename>. Headings: ...`
+8. **Summarise to the user** in one short message:
+   `Logged N entries (X friction, Y wins) to <filename>. Knowledge acquired: K items. Top priority: <entry heading>.`
 
 ## 8. Examples
+
+### High-value knowledge acquired row
+
+```markdown
+## Knowledge acquired
+
+Working on a cloned `gen-shadcn-form`, registering imports and fields.
+
+| # | What I learned | Doc implication |
+|---|----------------|-----------------|
+| K1 | `register({ imports })` accepts string OR object `{ name, alias?, isType? }` per import. String and object are NOT equivalent — object form always produces `name as alias` output even when alias is omitted. | Missing from generator skill §import-registration; needs a note + example |
+| K2 | The single-base rule (one factory base per package) applies to cloned generators too — cloning doesn't grant an exception. | Already in memory, but not in SKILL.md; add to §generator-constraints |
+```
 
 ### High-value entry (LLM-unique observation)
 
