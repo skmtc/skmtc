@@ -1,5 +1,6 @@
 import {
   toOasOperationGeneratorKey,
+  toGqlOperationGeneratorKey,
   toModelGeneratorKey,
   toGeneratorOnlyKey,
   isOasOperationGeneratorKey,
@@ -195,5 +196,83 @@ Deno.test('fromGeneratorKey - parses generator-only key into object', () => {
   assertEquals(parsed.type, 'generator-only')
   if (parsed.type === 'generator-only') {
     assertEquals(parsed.generatorId, 'utilities')
+  }
+})
+
+// Round-trip tests pin the serialize/parse contract on the variant
+// segment of the GeneratorKey. The 4-segment format
+// `generatorId|path|method|variant` (OAS) and
+// `generatorId|rootKind|fieldName|variant` (GQL) is load-bearing for
+// the Driver's affirmDefinition integrity check: a variants-aware
+// Projection that forgets to vary toIdentifier produces a collision
+// only because the generatorKey threads variant through. If the
+// serialize/parse pair desyncs, that integrity check silently passes
+// and consumers get a corrupt file with two `export const Foo`.
+
+Deno.test('GeneratorKey round-trip - OAS variant survives serialize → parse', () => {
+  const key = toOasOperationGeneratorKey({
+    generatorId: '@skmtc/gen-shadcn-form',
+    path: '/quotes/{id}',
+    method: 'patch',
+    variant: 'customer'
+  })
+
+  const parsed = fromGeneratorKey(key)
+
+  assertEquals(parsed.type, 'oasOperation')
+  if (parsed.type === 'oasOperation') {
+    assertEquals(parsed.generatorId, '@skmtc/gen-shadcn-form')
+    assertEquals(parsed.path, '/quotes/{id}')
+    assertEquals(parsed.method, 'patch')
+    assertEquals(parsed.variant, 'customer')
+  }
+})
+
+Deno.test('GeneratorKey round-trip - OAS main variant is preserved (not stripped)', () => {
+  // Even the canonical 'main' variant survives the round-trip — it is
+  // not implicit, it is in the wire format.
+  const key = toOasOperationGeneratorKey({
+    generatorId: '@skmtc/gen-typescript',
+    path: '/users',
+    method: 'get',
+    variant: 'main'
+  })
+
+  const parsed = fromGeneratorKey(key)
+  if (parsed.type === 'oasOperation') {
+    assertEquals(parsed.variant, 'main')
+  }
+})
+
+Deno.test('GeneratorKey round-trip - OAS kebab-case variant survives serialize → parse', () => {
+  const key = toOasOperationGeneratorKey({
+    generatorId: '@skmtc/gen-shadcn-form',
+    path: '/quotes/{id}',
+    method: 'patch',
+    variant: 'line-items'
+  })
+
+  const parsed = fromGeneratorKey(key)
+  if (parsed.type === 'oasOperation') {
+    assertEquals(parsed.variant, 'line-items')
+  }
+})
+
+Deno.test('GeneratorKey round-trip - GQL variant survives serialize → parse', () => {
+  const key = toGqlOperationGeneratorKey({
+    generatorId: '@skmtc/gen-reapit-form',
+    rootKind: 'mutation',
+    fieldName: 'updateContact',
+    variant: 'description'
+  })
+
+  const parsed = fromGeneratorKey(key)
+
+  assertEquals(parsed.type, 'gqlOperation')
+  if (parsed.type === 'gqlOperation') {
+    assertEquals(parsed.generatorId, '@skmtc/gen-reapit-form')
+    assertEquals(parsed.rootKind, 'mutation')
+    assertEquals(parsed.fieldName, 'updateContact')
+    assertEquals(parsed.variant, 'description')
   }
 })

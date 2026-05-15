@@ -1,3 +1,31 @@
+# core/dsl/operation/gql — directory guide
+
+GraphQL counterpart to `core/dsl/operation/oas/`. Same structure:
+`GqlOperationProjectionBase.ts`, `toGqlOperationProjectionBase.ts`,
+`toGqlOperationEntry.ts`, `GqlOperationDriver.ts`, `types.ts`.
+
+**Differences from OAS:**
+
+- Routing key is `[generatorId][rootKind][fieldName]` (GraphQL has
+  no path/method). Variants live one level deeper:
+  `[…][rootKind][fieldName][variant]`.
+- `transform` threads `acc` and MUST return it (`reduce`
+  accumulator). The variant fan-out preserves `acc` across variants
+  of the same operation in `Object.keys` order — variants share the
+  operation's `acc` slot.
+- `synthesizeArgsObject(operation)` is the mutation-args helper used
+  by `isSupported` predicates.
+
+**Variant axis touchpoints** are otherwise identical to the OAS
+side: `GqlOperationDriver.assertPeerVariantExists`, 4-segment
+`GqlOperationGeneratorKey` ending in `variant`, `ContentSettings`
+carries `variant`, every static method takes `variant`.
+
+Concept doc: `docs/concepts/variants.md`. Skill:
+`docs/skills/skmtc-generator/SKILL.md` (Scaffold C — GraphQL variant).
+
+---
+
 <claude-mem-context>
 # Recent Activity
 

@@ -1,3 +1,48 @@
+# core/dsl — directory guide
+
+The code-generation DSL. The vocabulary:
+
+- **`SnippetBase`** — anonymous, embedded value. `toString()` is
+  interpolated into a Projection's body.
+- **`Projection`** — exportable named artifact. Three flavours:
+  `ModelProjectionBase`, `OasOperationProjectionBase`,
+  `GqlOperationProjectionBase`. Each carries
+  `settings: ContentSettings<E>` (which includes
+  `settings.variant`) and a `generatorKey`.
+- **`Definition`** — the Driver-built wrapper around a Projection's
+  value. Stamped with `generatorKey` for the integrity check.
+- **`ContentSettings`** — the bundle of `(identifier, exportPath,
+  enrichments, variant)` computed by the engine and threaded into
+  every Projection.
+- **`Identifier`** — wraps a string name + entity type
+  (variable / type). Use `Identifier.createVariable(name)` or
+  `Identifier.createType(name)`.
+- **`Import` / `File`** — internal representations of registered
+  imports and the output file's accumulated state.
+- **`GeneratorKey`** — branded pipe-delimited string. 4 segments for
+  operations (`id|path|method|variant` OAS, `id|rootKind|fieldName|variant` GQL),
+  2 for models (`id|refName`), 1 for generator-only.
+  Round-trip: `toOasOperationGeneratorKey` → `fromGeneratorKey`.
+- **`Inserted<V, E>`** — Driver's return type from
+  `context.insertOperation` / `insertModel`. Exposes `.settings`,
+  `.definition`, `.toName()`.
+
+Subdirectories:
+
+- `model/` — `ModelProjectionBase` + factory + Driver. Models have
+  no variant axis (the field exists on `ContentSettings` but is
+  always `'main'`).
+- `operation/oas/` — OAS operation flavour (Projection base,
+  factory, entry, Driver). Variants-aware path.
+- `operation/gql/` — GraphQL operation flavour. Same shape; `acc`
+  threading is the only meaningful difference.
+
+Concept doc: `docs/concepts/projections-and-snippets.md`. Variants
+concept: `docs/concepts/variants.md`. Skill:
+`docs/skills/skmtc-generator/SKILL.md`.
+
+---
+
 <claude-mem-context>
 # Recent Activity
 

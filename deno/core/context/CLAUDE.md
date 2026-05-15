@@ -1,3 +1,46 @@
+# core/context — directory guide
+
+The engine lives here. Three context classes, one per pipeline phase:
+
+- **`ParseContext`** — OpenAPI/GraphQL JSON → OAS / GQL objects.
+- **`GenerateContext`** — OAS / GQL → in-memory `File` map. Owns the
+  per-generator dispatch loop. The variant fan-out happens in
+  `#runOasOperationGenerator` / `#runGqlOperationGenerator`; the
+  helper `toVariantList` (`@/helpers/toVariantList.ts`) enumerates
+  variant keys and enforces the `'main'`-must-be-present rule.
+- **`RenderContext`** — `File` map → `{ path: content }` artifacts.
+  No formatter runs here (skill §1 fact #2).
+
+**Variant axis touchpoints in this directory:**
+
+- `GenerateContext.#runOasOperationGenerator` / `#runGqlOperationGenerator`
+  — the per-(operation, variant) dispatch reducer.
+- `GenerateContext.toOperationContentSettings` — threads `variant`
+  into the Projection's static methods and into `new ContentSettings`.
+- `GenerateContext.insertOperation` — `variant` defaults to `'main'`
+  when callers omit it.
+- `toOasOperationSource` / `toGqlOperationSource` — Source descriptors
+  in the manifest carry the variant.
+
+**Tests pinning variant invariants:**
+
+- `GenerateContext.variants.test.ts` — engine-level fan-out, missing-
+  `main` throw, per-variant skip/include matching, single-`'main'`
+  fallback, StackTrail nesting.
+- `GenerateContext.cross-variant.test.ts` — peer Definition is shared
+  across variants; imports register to each variant's file.
+- `GenerateContext.end-to-end.test.ts` — real Projection → real
+  Driver → `GeneratorKey` carries variant end to end.
+- `GenerateContext.normalized-model-variants.test.ts` — variant-bound
+  `fallbackName` produces distinct model Definitions.
+- `GenerateContext.include.test.ts` — operation-level
+  include/skip behaviour (now with variant arrays in entry shape).
+
+The skill that authors this code: `docs/skills/skmtc-generator/SKILL.md`.
+Concept doc for the variant axis: `docs/concepts/variants.md`.
+
+---
+
 <claude-mem-context>
 # Recent Activity
 

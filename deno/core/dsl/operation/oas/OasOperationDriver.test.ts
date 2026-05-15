@@ -1560,5 +1560,69 @@ Deno.test('OasOperationDriver', async t => {
         )
       }
     )
+
+    await t.step('destinationPath threads through alongside an explicit variant', () => {
+      // `destinationPath` and `variant` are independent axes — passing
+      // both should land the import-registration in the right place
+      // AND build the per-variant Definition. A regression here would
+      // mean variants-aware Projections that peer-compose can't
+      // configure their import target.
+      const projection = createMockProjection({ id: 'peer-gen' })
+      const operation = createMockOperation({ path: '/quotes/{id}', method: 'patch' })
+
+      const { context, registerSpy } = createMockContext()
+      // deno-lint-ignore no-explicit-any
+      ;(context as any).settings = {
+        enrichments: {
+          'peer-gen': {
+            '/quotes/{id}': { patch: { main: {}, customer: {} } }
+          }
+        }
+      }
+
+      const driver = new OasOperationDriver({
+        context,
+        projection,
+        operation,
+        destinationPath: './consumer/file.ts',
+        variant: 'customer'
+      })
+
+      assertEquals(driver.destinationPath, './consumer/file.ts')
+      assertEquals(driver.variant, 'customer')
+
+      // Driver registered an import into destinationPath because the
+      // projection's own exportPath differs.
+      const importRegistration = registerSpy.calls.find(
+        c => c.args[0].destinationPath === './consumer/file.ts'
+      )
+      assertExists(importRegistration)
+    })
+
+    await t.step('noExport flag propagates through with an explicit variant', () => {
+      const projection = createMockProjection({ id: 'peer-gen' })
+      const operation = createMockOperation({ path: '/quotes/{id}', method: 'patch' })
+
+      const { context } = createMockContext()
+      // deno-lint-ignore no-explicit-any
+      ;(context as any).settings = {
+        enrichments: {
+          'peer-gen': {
+            '/quotes/{id}': { patch: { main: {}, customer: {} } }
+          }
+        }
+      }
+
+      const driver = new OasOperationDriver({
+        context,
+        projection,
+        operation,
+        noExport: true,
+        variant: 'customer'
+      })
+
+      assertEquals(driver.noExport, true)
+      assertEquals(driver.variant, 'customer')
+    })
   })
 })

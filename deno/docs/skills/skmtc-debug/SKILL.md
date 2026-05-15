@@ -332,7 +332,11 @@ operation produced no files.
 1. Two generators (or two callers within one generator) are
    producing the same identifier at the same `exportPath`.
 2. Read the two `generatorKey` values from the error. They identify
-   the colliding generators.
+   the colliding generators. The 4-segment OAS format is
+   `generatorId|path|method|variant`; GQL is
+   `generatorId|rootKind|fieldName|variant`. **If the only segment
+   that differs is `variant`**, this is the variants-aware case
+   (Scenario G below); follow that branch instead.
 3. Branches:
    - **Both are stock generators**: Clone one and change its
      `toIdentifier` to disambiguate.
@@ -343,6 +347,60 @@ operation produced no files.
    the cache key uniqueness invariant is enforced strictly for
    Driver-path insertions. (The `insertNormalizedModel`
    fallback-name path does *not* enforce; see `#SKM-47`.)
+
+### Scenario F: Engine throws "must include a 'main' variant"
+
+**Symptom:** `Error: [<generator-id>] Enrichments for '<METHOD> <path>'
+must include a 'main' variant. Found variants: customer, location.`
+
+1. The consumer's `client.json` declares variant keys at
+   `enrichments[<gen-id>][<path>][<method>]` (or
+   `[<rootKind>][<fieldName>]` for GraphQL) without `'main'` among
+   them.
+2. The engine refuses to dispatch because every variants-aware path
+   defaults to `'main'` — silently inventing it would mask the
+   misconfiguration.
+3. Fix: open `client.json` and either:
+   - Add `"main": {}` (or `"main": { ... }`) to the variants record, OR
+   - Remove the non-`'main'` variants and inline their content as
+     the operation-level enrichment, OR
+   - If you want the consumer to opt out of `'main'`, declare it
+     anyway and add `(path, method, "main")` to `skip`.
+4. Where it's thrown: `core/helpers/toVariantList.ts`, invoked from
+   `GenerateContext.#runOasOperationGenerator` and
+   `#runGqlOperationGenerator`. Pinning test:
+   `core/context/GenerateContext.variants.test.ts` → "declared
+   variants without `main` throws at engine dispatch".
+
+### Scenario G: Driver throws "Cannot insert variant 'X'"
+
+**Symptom:** `Error: [<peer-gen-id>] Cannot insert variant '<name>'
+for '<METHOD> <path>' — peer has no enrichments configured. Only
+'main' is permitted.` or `Available variants: main, customer.`
+
+1. A variants-aware generator is calling
+   `context.insertOperation({ projection: Peer, operation, variant:
+   'X' })` where `'X'` isn't declared in the PEER's enrichment
+   block. The Driver's `assertPeerVariantExists` guard fires before
+   the Projection is even constructed.
+2. Almost always the auto-inherit-variant anti-pattern (see
+   `skmtc-generator` skill §8) — the caller's source has
+   `this.insertOperation(Peer, op, { variant: this.settings.variant })`
+   against a variants-unaware peer.
+3. Fix in the caller's source:
+   - If the peer is variants-unaware (most peers are):
+     `this.insertOperation(Peer, op)` — drop the `{ variant }`. The
+     Driver defaults to `'main'`; both variants of the caller share
+     the peer's single Definition.
+   - If the peer is variants-aware AND the caller genuinely wants a
+     per-variant peer Definition: the peer's `client.json`
+     enrichment must declare that variant before the call will
+     succeed. Either add the declaration or remove the threading.
+4. Where it's thrown:
+   `core/dsl/operation/oas/OasOperationDriver.ts` (and the GQL
+   counterpart) → `assertPeerVariantExists`. Pinning tests:
+   `core/dsl/operation/oas/OasOperationDriver.test.ts` →
+   "Variant validation".
 
 ## 7. Anti-patterns specific to debugging
 

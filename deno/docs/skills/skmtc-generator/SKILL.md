@@ -37,7 +37,7 @@ from training data that conflict with SKMTC's architectural invariants.
 The operational principles in §4 are the load-bearing content. Read
 them before proposing solutions.
 
-## 1. The four facts that override default LLM intuitions
+## 1. The five facts that override default LLM intuitions
 
 These override what training-data priors would suggest about codegen
 tools. They apply across all SKMTC interactions and are especially
@@ -61,6 +61,24 @@ important for authoring:
    implement `.isRef()` returning `false`. `OasRef` is a *sibling*,
    not a parent, with `.isRef()` returning `true`. Do not add a
    `BaseSchema` class.
+
+5. **The operation-variant axis fans out at the engine, not the
+   generator.** A single operation can produce N Definitions via
+   named variants under `enrichments[id][path][method]` (OAS) or
+   `[id][rootKind][fieldName]` (GQL). `'main'` is always present —
+   the engine throws at start if a consumer wrote variants without
+   it. Variants flow through `ContentSettings.variant`, the
+   `GeneratorKey`'s 4th segment, and the per-call `variant` arg in
+   every static method (`toIdentifier`, `toExportPath`,
+   `toEnrichments`) and every entry callback (`transform`,
+   `isSupported`, `toPreviewModule`, `toMappingModule`). Cross-gen
+   `insertOperation` defaults to `'main'`; passing a non-`'main'`
+   variant the peer doesn't declare throws at the Driver.
+   <br>See: [`concepts/variants.md`](../../concepts/variants.md).
+   Enforcement tests: `core/context/GenerateContext.variants.test.ts`,
+   `core/context/GenerateContext.end-to-end.test.ts`,
+   `core/context/GenerateContext.cross-variant.test.ts`,
+   `core/helpers/toVariantList.test.ts`.
 
 ## 2. The DSL: Projection vs Snippet
 
@@ -185,6 +203,34 @@ peer-generator output skips both — duplicate Definition registration,
 missing import, or a "Registered definition mismatch" if you got the
 cache key wrong.
 
+### Variant threading on `insertOperation`
+
+`context.insertOperation({ projection, operation, variant? })`
+accepts an optional `variant` arg. Default: `'main'` — the canonical
+variant that every peer is guaranteed to honour. Pass an explicit
+non-`'main'` variant only when:
+
+- The peer is a variants-aware generator that declares that variant
+  in its enrichment shape, AND
+- You deliberately want the peer's per-variant Definition (not the
+  shared `'main'` one).
+
+If the requested variant isn't declared in the peer's enrichment
+block, the Driver throws at the call site with the available
+variants listed (see
+`OasOperationDriver.assertPeerVariantExists`). Loud beats silent
+zero-output.
+
+Two variants of the same Projection both calling
+`this.insertOperation(VariantsUnawarePeer, op)` (no variant arg) hit
+the same `'main'` cache key and share the peer's Definition — the
+peer's import is registered into each variant's file independently.
+This is the standard pattern for variants-aware Projections
+composing with variants-unaware peers like `gen-typescript` /
+`gen-tanstack-query` / `gen-zod`.
+
+See: `core/context/GenerateContext.cross-variant.test.ts`.
+
 ## 3.5. The operation-reference protocol
 
 The pattern above (`this.insertOperation(KnownPeer, op)`) covers
@@ -243,6 +289,14 @@ sharing, no cross-namespace enrichment peeking.
 
 Detail and a GraphQL example: [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md).
 
+> **Variants note.** Operation references identify operations, not
+> variants. A reference like `references: "customerList"` resolves
+> to a peer operation and inserts the peer's `'main'` variant
+> (Driver default). Variant-targeted operation references aren't
+> supported — if you need a variant of a referenced operation,
+> insert it explicitly in the consumer's Projection with
+> `{ variant }`.
+
 ## 4. Operational principles
 
 The canonical operational table for authoring. Each row pairs a
@@ -285,6 +339,8 @@ almost always the correct alternative.
 | GQL `transform({ context, operation })` with no `acc` | GQL is `transform({ context, operation, acc })` and must **return `acc`** | OAS transform returns void; GQL threads the accumulator — dropping it breaks downstream operations |
 | Treat `allOf` schemas as still unmerged in your generator | Treat received schemas as already-flat objects | `core/oas/_merge-all-of/` runs during Parse; by Generate phase the merge has happened |
 | Switch on `schema.type` without first unwrapping single-member intersections / refs | Unwrap one-member unions and `.isRef()` first, then switch on `.type` | OpenAPI refs can't carry extensions, so SKMTC sometimes models `$ref + extension` as a 1-member union; missing the unwrap loses the schema |
+| Auto-inherit `this.settings.variant` when calling `this.insertOperation(Peer, op)` | Default to `'main'`; pass `{ variant: this.settings.variant }` only when you deliberately want the peer to be variant-bound | Peers are variants-unaware by default; auto-inherit forces every peer to honour every caller's variant — the Driver throws on mismatch (`assertPeerVariantExists`). See `core/dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation" |
+| Variants-aware `toIdentifier` ignores `variant` | Fold `variant` into the returned name (typically via `withVariant`) | `(name, exportPath)` is the cache key. Two variants producing the same name hit the cached Definition on variant 2; the Driver's `generatorKey` integrity check fires `"Registered definition mismatch"`. See `core/context/GenerateContext.end-to-end.test.ts` + `OasOperationDriver.test.ts` → "forgets to vary toIdentifier collides on second variant" |
 
 Full discussion of each principle: [`../../explanation/design-philosophy.md`](../../explanation/design-philosophy.md).
 Code-level instances and failure modes: §8 (Anti-patterns) below.
@@ -331,6 +387,9 @@ TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 4. transform returning instead of registering?
                                         → Return value is discarded; must use register
 5. Schema shape wrong for the gate?     → e.g., gen-shadcn-form needs request body type === 'object'
+6. Engine threw "must include a 'main' variant"?
+                                        → Consumer wrote variants without 'main';
+                                          either add `main: {}` or remove variants
 ```
 
 For deeper "why broken" diagnosis, switch to `skmtc-debug`.
@@ -349,7 +408,8 @@ import {
   camelCase,
   Identifier,
   toMethodVerb,
-  toOasOperationProjectionBase
+  toOasOperationProjectionBase,
+  withVariant  // only needed for variants-aware generators
 } from '@skmtc/core'
 import { join } from '@std/path'
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
@@ -360,15 +420,21 @@ export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
   toEnrichmentSchema,
 
   // ⬇ Customize: how is the generated identifier name derived?
-  toIdentifier({ operation }): Identifier {
+  //   `variant` is always present (engine guarantees `'main'` minimum).
+  //   Variants-unaware: destructure but ignore. Variants-aware: wrap
+  //   the base name in `withVariant(base, variant)` so each variant
+  //   produces a distinct (name, exportPath) cache key.
+  toIdentifier({ operation, variant }): Identifier {
     const verb = capitalize(toMethodVerb(operation.method))
-    const name = `${verb}${camelCase(operation.path, { upperFirst: true })}`
-    return Identifier.createVariable(name)
+    const base = `${verb}${camelCase(operation.path, { upperFirst: true })}`
+    // Variants-unaware:    return Identifier.createVariable(base)
+    // Variants-aware:
+    return Identifier.createVariable(withVariant(base, variant))
   },
 
   // ⬇ Customize: where does the generated file land?
-  toExportPath({ operation, enrichments }): string {
-    const { name } = this.toIdentifier({ operation, enrichments })
+  toExportPath({ operation, enrichments, variant }): string {
+    const { name } = this.toIdentifier({ operation, enrichments, variant })
     return join('@', 'my-gen', `${name}.generated.ts`)
   }
 })
@@ -377,6 +443,11 @@ export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
 Both `toIdentifier` and `toExportPath` **must be pure functions** of
 their inputs. No `this`-side state, no async. The cross-generator cache
 depends on this property.
+
+`withVariant(base, 'main')` returns `base` unchanged; for any other
+variant it appends a PascalCased suffix (`withVariant('Form', 'line-items')`
+→ `'FormLineItems'`). Variant names are validated against
+`variantNameRegex` (kebab-strict, `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`).
 
 ### B. `<MainProjection>.ts` — operation Projection class
 
@@ -445,22 +516,36 @@ export const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
   // ⬇ Capability gate: which operations should this generator process?
   //   Declare capability only — do NOT gate on enrichment presence
   //   (filter intent via client.json `include`/`skip`).
-  isSupported({ operation }: IsSupportedOasOperationConfigArgs<EnrichmentSchema>) {
+  //   The engine calls this per variant; `variant` is informational
+  //   here, not a gate (gating on variant is an anti-pattern).
+  isSupported({ operation, variant }: IsSupportedOasOperationConfigArgs<EnrichmentSchema>) {
     return ['post', 'put', 'patch'].includes(operation.method) &&
       operation.requestBody?.resolve()?.toSchema()?.resolve().type === 'object'
   },
 
-  // ⬇ The hook the engine calls per matched operation.
-  //   Return value is discarded — produce output via insertOperation / register.
-  transform({ context, operation }) {
-    context.insertOperation({ projection: MyGen, operation })
+  // ⬇ The hook the engine calls per (operation, variant) pair.
+  //   Thread `variant` into `insertOperation` so the Driver builds
+  //   per-variant ContentSettings. Return value is discarded — produce
+  //   output via insertOperation / register.
+  transform({ context, operation, variant }) {
+    context.insertOperation({ projection: MyGen, operation, variant })
   },
 
   // ⬇ Optional: makes the artifact visible in the Editor's preview UI.
-  //   Surface for stable generators; omit while iterating.
-  toPreviewModule: ({ operation, enrichments }) => ({
-    name: MyGen.toIdentifier({ operation, enrichments }).name,
-    exportPath: MyGen.toExportPath({ operation, enrichments }),
+  //   Thread `variant` into each static-method call so the preview
+  //   metadata reflects the variant (otherwise it stamps everything as
+  //   `'main'`).
+  toPreviewModule: ({ context, operation, variant }) => ({
+    name: MyGen.toIdentifier({
+      operation,
+      enrichments: MyGen.toEnrichments({ operation, context, variant }),
+      variant
+    }).name,
+    exportPath: MyGen.toExportPath({
+      operation,
+      enrichments: MyGen.toEnrichments({ operation, context, variant }),
+      variant
+    }),
     group: 'forms'
   }),
 
@@ -489,11 +574,13 @@ export const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
       synthesizeArgsObject(operation) !== undefined
   },
 
-  // ⬇ GQL transform takes `acc` and MUST return it.
-  //   Forgetting to return acc breaks downstream operations.
-  transform({ context, operation, acc }) {
+  // ⬇ GQL transform takes `acc` AND `variant`. MUST return `acc`.
+  //   Forgetting to return `acc` breaks downstream operations.
+  //   The engine threads `acc` through variants of the same operation
+  //   in `Object.keys` order — variants share the operation's acc slot.
+  transform({ context, operation, acc, variant }) {
     if (operation.rootKind !== 'mutation') return acc
-    context.insertOperation({ projection: MyGen, operation })
+    context.insertOperation({ projection: MyGen, operation, variant })
     return acc
   },
 
@@ -1030,6 +1117,59 @@ When auditing a new per-type Snippet, ask: *what schema fields beyond
 modifiers does my `toString()` read?* If the answer is any, the
 schema must come through.
 
+### Variants-aware `toIdentifier` that ignores `variant`
+
+```ts
+// ❌ WRONG — collision on the second variant
+toIdentifier({ operation, variant }) {
+  return Identifier.createVariable(`${toName(operation)}Form`)
+}
+
+// ✅ RIGHT — disambiguate by variant
+import { withVariant } from '@skmtc/core'
+toIdentifier({ operation, variant }) {
+  return Identifier.createVariable(withVariant(`${toName(operation)}Form`, variant))
+}
+```
+
+**Fails because:** the cache key is `(name, exportPath)`. Two
+variants producing the same `name` hit the cached Definition on the
+second variant; the Driver's `generatorKey` integrity check
+(`OasOperationDriver.affirmDefinition`) fires `"Registered
+definition mismatch"` because the cached entry's generatorKey ends
+in `|main` while the new call's ends in `|customer`. Loud
+consumer-visible failure rather than silent doubled-`export const`.
+
+Enforcement test:
+`core/dsl/operation/oas/OasOperationDriver.test.ts` →
+"forgets to vary toIdentifier collides on second variant".
+
+### Auto-inheriting `this.settings.variant` to a peer
+
+```ts
+// ❌ WRONG — forces the peer to honour every variant the caller has
+this.insertOperation(VariantsUnawarePeer, op, {
+  variant: this.settings.variant  // throws when peer doesn't declare it
+})
+
+// ✅ RIGHT — let the peer's `'main'` default apply
+this.insertOperation(VariantsUnawarePeer, op)
+```
+
+**Fails because:** the Driver throws when an explicit non-`'main'`
+variant isn't declared in the peer's enrichment block. Two variants
+of the form pointing at the same variants-unaware peer should share
+that peer's `'main'` Definition (cache hit on the second call); the
+auto-inherit pattern instead forces the peer to fan out per variant,
+which it isn't built to do.
+
+Thread variant explicitly only when the peer is known to be
+variants-aware AND you want a per-variant peer Definition.
+
+Enforcement tests:
+`core/context/GenerateContext.cross-variant.test.ts`,
+`core/dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation".
+
 ## 9. Verification checklist
 
 After writing or editing a generator, verify:
@@ -1056,10 +1196,16 @@ After writing or editing a generator, verify:
 - [ ] No reads of `context.settings.enrichments['@other/gen-id']` — cross-generator references use the operation-reference protocol (§3.5)
 - [ ] GQL entries: `transform` receives `acc` and returns it; mutation gates use `synthesizeArgsObject(operation)`
 - [ ] Schema `switch (schema.type)` is preceded by single-member-intersection unwrap and an `.isRef()` resolve
+- [ ] Every static method (`toIdentifier`, `toExportPath`, `toEnrichments`) destructures `variant` from its args; entry callbacks (`transform`, `isSupported`, `toPreviewModule`, `toMappingModule`) too
+- [ ] If this generator is **variants-aware**, `toIdentifier` incorporates `variant` (typically via `withVariant`); `toExportPath` produces distinct paths per variant (variant suffix in the filename)
+- [ ] Cross-gen `insertOperation` calls do NOT auto-inherit `this.settings.variant` — they default to `'main'`; pass `{ variant: this.settings.variant }` only when the peer is known to support that variant
+- [ ] `transform` threads `variant` into `context.insertOperation({…, variant})`; `toPreviewModule` / `toMappingModule` thread it into the static-method calls they make
 
 If any box is unchecked, refactor before moving on. The skill loaded
 into context cannot enforce these mechanically; the LLM applying them
-is the only enforcement.
+is the only enforcement. Where an enforcement test exists for an
+invariant, the relevant principle or anti-pattern above lists it
+— check the test passes before declaring the work done.
 
 ## 10. Task cards
 
@@ -1150,6 +1296,63 @@ When your generator needs output from a peer generator:
 
 You never read the peer's `toString()`. Coordination is by name only.
 
+### Card: Authoring a variants-aware generator
+
+A generator becomes *variants-aware* when its output naturally splits
+into N artifacts per operation — section-edit forms for a broad PATCH
+endpoint, wizard steps for a multi-step POST flow, mock-scenario
+flavours (success/error/slow) for a single route. The variant axis
+exists for this; do not invent your own.
+
+When NOT to use it: cross-cutting per-operation overrides like a
+global label or theme. Those are enrichment fields, not variants.
+Variants partition output; enrichments parameterise it.
+
+Steps to make a generator variants-aware:
+
+1. **`src/base.ts`** — `toIdentifier` reads `variant` and folds it
+   into the name via `withVariant(base, variant)`. `toExportPath`
+   threads `variant` into the recursive `this.toIdentifier({…,
+   variant})` call so each variant lands in its own file.
+
+2. **`src/mod.ts`** — `transform({ context, operation, variant })`
+   threads `variant` into `context.insertOperation({ projection,
+   operation, variant })`. `toPreviewModule` /
+   `toMappingModule` thread `variant` into every static-method call
+   they make (`toEnrichments`, `toIdentifier`, `toExportPath`).
+
+3. **`src/enrichments.ts` — no change.** The variant axis is
+   core-owned. The generator's enrichment Valibot schema continues
+   to describe the *per-variant inner* shape (title, fields, etc.).
+   Consumers wrap it themselves in the variant record: `{ main: {…},
+   customer: {…} }` at `[id][path][method]` in `client.json`.
+
+4. **Internal sibling Projections / Snippets** — if the generator
+   constructs sibling Definitions (a Body type, a Hook, a Props
+   type), derive their `fallbackName` from
+   `settings.identifier.name`. Because that name is variant-bound
+   via `withVariant`, the siblings automatically pick up the variant
+   suffix. See `gen-shadcn-form/src/ShadcnForm.ts` for the canonical
+   pattern.
+
+5. **Cross-package peers** (`TanstackQuery`, `TsProjection`,
+   `ZodProjection`) — call `this.insertOperation(Peer, op)` (no
+   variant arg). The Driver defaults to `'main'`; both your
+   variants share the peer's Definition. Do NOT thread
+   `this.settings.variant` to a variants-unaware peer — see the
+   anti-pattern in §8 "Auto-inheriting `this.settings.variant`".
+
+6. **Consumer `client.json` migration** — for an existing project,
+   wrap the operation-level enrichment in `{ main: {…} }`. If
+   variants are declared without `'main'`, the engine throws at
+   start with the missing-`main` message.
+
+Worked example: `gen-shadcn-form` (post-0.5.0). Tests pinning the
+invariants: `core/context/GenerateContext.variants.test.ts`,
+`core/context/GenerateContext.cross-variant.test.ts`,
+`core/context/GenerateContext.normalized-model-variants.test.ts`,
+`core/dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation".
+
 ### Card: Accumulator-style generator (one shared aggregate, many contributors)
 
 When the generator's output is a *single* aggregate that grows as
@@ -1233,7 +1436,7 @@ something is broken*, hand off to `skmtc-debug`.
 
 ## 12. Cross-references
 
-- Concept docs: [`concepts/projections-and-snippets.md`](../../concepts/projections-and-snippets.md), [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md), [`concepts/the-three-phases.md`](../../concepts/the-three-phases.md)
+- Concept docs: [`concepts/projections-and-snippets.md`](../../concepts/projections-and-snippets.md), [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md), [`concepts/the-three-phases.md`](../../concepts/the-three-phases.md), [`concepts/variants.md`](../../concepts/variants.md)
 - API reference: [`reference/api/`](../../reference/api/) — full DSL surface
 - Per-generator clone seams: [`reference/stock-generators/`](../../reference/stock-generators/)
 - Tutorials: [`extending/tutorials/`](../../extending/tutorials/)
@@ -1241,3 +1444,27 @@ something is broken*, hand off to `skmtc-debug`.
 - Recipes: [`extending/recipes/`](../../extending/recipes/)
 - Design philosophy: [`explanation/design-philosophy.md`](../../explanation/design-philosophy.md), [`explanation/why-clone-to-customize.md`](../../explanation/why-clone-to-customize.md)
 - Consolidated LLM reference: [`llms.md`](../../llms.md) — the operational principles in §4 are mirrored from `llms.md`'s canonical version
+
+### Tests that enforce the invariants
+
+The skill's principles and anti-patterns are prose. The tests below
+are the executable specs — when you doubt a rule still applies,
+read the test or run it.
+
+- Five-facts fact #5 (variant axis):
+  `core/context/GenerateContext.variants.test.ts`,
+  `core/context/GenerateContext.end-to-end.test.ts`,
+  `core/helpers/toVariantList.test.ts`,
+  `core/helpers/withVariant.test.ts`
+- §3 "Variant threading on `insertOperation`":
+  `core/context/GenerateContext.cross-variant.test.ts`
+- §4 tripwire "auto-inherit variant":
+  `core/dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation"
+- §4 tripwire "variants-aware `toIdentifier` ignores `variant`":
+  `core/dsl/operation/oas/OasOperationDriver.test.ts` → "forgets to vary toIdentifier collides on second variant"
+- `GeneratorKey` serialize/parse contract:
+  `core/dsl/GeneratorKeys.test.ts` → round-trip tests
+- Variant-bound `fallbackName` composition (the `ShadcnForm` pattern):
+  `core/context/GenerateContext.normalized-model-variants.test.ts`
+- Bit-identical rendering across variant changes:
+  `core/run/toArtifacts.regression.test.ts`

@@ -196,14 +196,34 @@ Known check ids:
     "basePath": "mobile-app/src",
 
     // Per-generator and per-operation user overrides. Routing
-    // keys depend on factory: [path][method] for OAS ops,
-    // [refName] for models, [rootKind][fieldName] for GraphQL ops.
+    // keys depend on factory:
+    //   - OAS operation:  [path][method][variant]
+    //   - GraphQL op:     [rootKind][fieldName][variant]
+    //   - Model:          [refName]  (no variant axis)
+    //
+    // The trailing `[variant]` level is `'main'` by default. Most
+    // consumers write just one variant; a variants-aware generator
+    // like gen-shadcn-form can produce N artifacts per operation by
+    // declaring additional variant keys. `'main'` MUST be present
+    // whenever any variant is declared — the engine throws at
+    // start otherwise.
     "enrichments": {
       "@skmtc/gen-shadcn-form": {
         "/contacts": {
           "post": {
-            "title": "Create Contact",
-            "submitLabel": "Save"
+            "main": {
+              "title": "Create Contact",
+              "submitLabel": "Save"
+            }
+          }
+        },
+        // Multi-variant example: one PATCH endpoint, several
+        // section-edit forms with different field subsets.
+        "/quotes/{id}": {
+          "patch": {
+            "main":     { "title": "Edit Quote" },
+            "customer": { "title": "Customer details" },
+            "location": { "title": "Location" }
           }
         }
       }
@@ -230,10 +250,15 @@ Both `skip` and `include` accept three entry shapes:
   // 1. Whole generator (string)
   "@skmtc/gen-zod",
 
-  // 2. Per-operation (path → methods)
-  { "@skmtc/gen-shadcn-form": { "/customers": ["post"], "/locations": ["post"] } },
+  // 2. Per-operation (path → method → variant[])
+  //    `[]` means "every variant of this method".
+  //    `["customer", "main"]` means "only those variants".
+  { "@skmtc/gen-shadcn-form": {
+      "/customers": { "post": [] },
+      "/quotes/{id}": { "patch": ["customer", "location"] }
+  } },
 
-  // 3. Per-model (refName array)
+  // 3. Per-model (refName array — no variant axis on models)
   { "@skmtc/gen-zod": ["UserModel", "OrderModel"] }
 ]
 ```
@@ -247,10 +272,15 @@ Order of evaluation in `GenerateContext.toArtifacts`:
   generator
 - Unmentioned generators with `include` set are silently excluded (no
   per-operation `skipped` floods)
-- Matching is exact — no wildcards, both for paths and methods
+- Matching is exact — no wildcards, on path, method, OR variant name
+- The variant array is the third axis: `[]` matches every variant
+  of the named method; a populated array matches only those variant
+  names
 
 Use `include` for opt-in generators (forms, tables, page shells) where
 a blanket run would produce dozens of files the team doesn't want.
+Use a variant array under a method to narrow the allow/deny to
+specific variants of a multi-variant operation.
 
 ## 8. Common JSON output shapes
 
@@ -388,14 +418,38 @@ also ready; the rebundle ran automatically.
 ### Card: Configuring enrichments
 
 1. Read the target generator's `gen-x/src/enrichments.ts` (in
-   `skmtc-generators/` or via `deno info`) to learn the accepted shape.
+   `skmtc-generators/` or via `deno info`) to learn the accepted
+   *per-variant inner* shape. The variant axis is core-owned;
+   generator schemas describe what goes inside a single variant.
 2. Edit `.skmtc/<project>/.settings/client.json` →
-   `settings.enrichments[generatorId][...routingKeys]`. Routing
-   keys depend on the generator's factory: `[path][method]` for
-   OAS ops, `[refName]` for models, `[rootKind][fieldName]` for
-   GraphQL ops.
-3. `skmtc generate <project>` — no rebundle needed; enrichments are
+   `settings.enrichments[generatorId][...routingKeys][variant]`.
+   Routing keys depend on the generator's factory:
+   `[path][method][variant]` for OAS ops, `[refName]` for models
+   (no variant axis), `[rootKind][fieldName][variant]` for GraphQL
+   ops. The variant level defaults to `'main'`; declare extra
+   variants to get N artifacts per operation from a variants-aware
+   generator.
+3. Single-variant case (most common):
+   ```jsonc
+   { "@skmtc/gen-shadcn-form": { "/contacts": { "post":
+     { "main": { "title": "Create Contact" } }
+   } } }
+   ```
+4. Multi-variant case (variants-aware generators only):
+   ```jsonc
+   { "@skmtc/gen-shadcn-form": { "/quotes/{id}": { "patch":
+     {
+       "main":     { "title": "Edit Quote" },
+       "customer": { "title": "Customer section" }
+     }
+   } } }
+   ```
+5. `skmtc generate <project>` — no rebundle needed; enrichments are
    runtime config.
+
+If you see `must include a 'main' variant` at engine start, you wrote
+non-`'main'` variant keys without `'main'`. Add it (often `"main": {}`
+is enough) or remove the other variants.
 
 ### Card: Pinning the schema source
 
@@ -412,18 +466,28 @@ also ready; the rebundle ran automatically.
   "include": [
     {
       "@skmtc/gen-shadcn-form": {
-        "/customers": ["post"],
-        "/locations": ["post"]
+        "/customers": { "post": [] },
+        "/locations": { "post": [] }
       }
     }
   ]
 }
 ```
 
-This produces forms only for the listed (path, method) pairs. Other
-operations route through other generators normally. Other generators
-not mentioned in `include` are unaffected — they continue producing
-their normal output.
+This produces forms only for the listed (path, method) pairs. The
+empty variant array (`[]`) means "every variant of this method" —
+i.e. the standard "all" allow. To narrow to specific variants of a
+multi-variant operation, list them by name:
+
+```jsonc
+"include": [{ "@skmtc/gen-shadcn-form":
+  { "/quotes/{id}": { "patch": ["customer", "location"] } }
+}]
+```
+
+Other operations route through other generators normally. Other
+generators not mentioned in `include` are unaffected — they continue
+producing their normal output.
 
 ### Card: Customizing a published generator
 
@@ -485,6 +549,7 @@ work:
 | Manually edit `bundle.js` or `worker.ts` | They're derived; run `skmtc bundle` to regenerate |
 | Mock the database in tests | Use real Supabase / real DB (project convention) |
 | Use `process.env.X` | Use `Deno.env.get('X')` — Deno codebase |
+| After bumping to `@skmtc/core@0.5.0+`, treat the existing operation-level enrichment as still-valid | Wrap each `[id][path][method]` block in `{ "main": { … } }`. The variant level is now mandatory whenever an operation-level block exists — the engine throws at start with `"must include a 'main' variant"` if it's missing. See `concepts/variants.md`. |
 
 Full list in [`../../llms.md#operational-principles-for-proposing-changes`](../../llms.md#operational-principles-for-proposing-changes).
 

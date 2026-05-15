@@ -1,3 +1,55 @@
+# core/dsl/operation/oas — directory guide
+
+This directory contains the OAS-operation half of the projection
+machinery. Files:
+
+- `OasOperationProjectionBase.ts` — runtime base class. Subclasses
+  extend it. Carries `settings: ContentSettings<E>` (including
+  `settings.variant`) and `generatorKey`.
+- `toOasOperationProjectionBase.ts` — factory. Builds a class with
+  static `toIdentifier` / `toExportPath` / `toEnrichments` /
+  `isSupported` / `id` / `type`. The constructor reads
+  `args.settings.variant` and threads it into the
+  `toOasOperationGeneratorKey` call so the resulting Definition's
+  `generatorKey` carries the variant.
+- `toOasOperationEntry.ts` — pipeline-side factory. Wraps user's
+  `isSupported` / `transform` etc. in a config object. The
+  `isSupported` wrapper does its own enrichment-path walk via
+  `lodash-es/get(..., \`enrichments.${id}.${path}.${method}.${variant}\`)`
+  before calling the user's predicate.
+- `OasOperationDriver.ts` — the insertion lifecycle (compose
+  `ContentSettings`, look up via `findDefinition`, integrity-check
+  via `affirmDefinition`, register the Definition, register the
+  import). Variant-related entry points:
+  - Constructor takes a `variant: string` arg and stores it on the
+    instance.
+  - `assertPeerVariantExists` runs before `toOperationContentSettings`
+    — throws if the caller asked for a non-`'main'` variant the peer
+    doesn't declare.
+  - `affirmDefinition` builds the call's `generatorKey` with variant
+    in the 4th segment; the cache key uniqueness invariant is
+    enforced here.
+- `types.ts` — arg shapes. Every `To*Args` and `Transform*Args`
+  carries `variant: string`.
+
+**Variants-aware vs unaware:**
+
+- *Unaware*: destructure `variant` in `toExportPath` (since the body
+  calls `this.toIdentifier({…, variant})`), ignore it in
+  `toIdentifier`. Engine still dispatches with `variant: 'main'` for
+  every operation.
+- *Aware*: `toIdentifier` folds variant into the name via
+  `withVariant(base, variant)` from `@/helpers/withVariant.ts`.
+  `toExportPath` inherits the suffix through the
+  `this.toIdentifier({…, variant})` call.
+
+Tests pinning variant invariants: `OasOperationDriver.test.ts` →
+"Variant validation"; cross-package tests in `core/context/`.
+
+Concept doc: `docs/concepts/variants.md`. Skill: `docs/skills/skmtc-generator/SKILL.md`.
+
+---
+
 <claude-mem-context>
 # Recent Activity
 
