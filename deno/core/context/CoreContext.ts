@@ -19,6 +19,10 @@ import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { ToArtifactsResult } from './generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
+import type { AttributionState } from '@/types/AttributionState.ts'
+import { postPass as runPostPass } from '@/anchors/postPass.ts'
+import { entriesForSidecar } from '@/anchors/rollup.ts'
+import { File as FileClass } from '@/dsl/File.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -72,6 +76,7 @@ type GenerateArgs = {
   document: SkmtcParsedDocument
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  attribution?: AttributionState
 }
 
 type CoreContextArgs = {
@@ -85,6 +90,38 @@ type RenderArgs = {
   previews: Record<string, Preview>
   mappings: Record<string, Mapping>
   basePath: string | undefined
+}
+
+/**
+ * Run the gen-maps post-pass over the rendered `File` instances when
+ * `attribution.postPass` is configured. Returns the per-file sidecar
+ * map and a flat rollup list; returns `undefined` when attribution
+ * isn't fully configured so the caller can skip the spread.
+ *
+ * Module-level helper rather than a CoreContext method so it stays
+ * pure and testable in isolation.
+ */
+const runPostPassForFiles = (
+  files: Map<string, File | JsonFile>,
+  attribution: AttributionState | undefined
+): { sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar>; rollup: import('@/anchors/rollup.ts').RollupEntry[] } | undefined => {
+  if (!attribution?.enabled || !attribution.postPass) return undefined
+
+  const { parser, schemaSrc, generatorMeta } = attribution.postPass
+  const sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar> = {}
+  const rollup: import('@/anchors/rollup.ts').RollupEntry[] = []
+
+  for (const [path, file] of files) {
+    // JsonFile and other non-source artifacts have no Definitions /
+    // toString-instrumented Snippets — nothing to post-process.
+    if (!(file instanceof FileClass)) continue
+
+    const sidecar = runPostPass({ file, schemaSrc, parser, generatorMeta })
+    sidecars[path] = sidecar
+    rollup.push(...entriesForSidecar(sidecar))
+  }
+
+  return { sidecars, rollup }
 }
 
 /**
@@ -116,6 +153,13 @@ export type ToArtifactsArgs = {
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
   /** Whether to suppress console output */
   silent: boolean
+  /**
+   * Optional attribution (gen-maps) state. When `enabled`, Parse and
+   * Generate phases record provenance; when `postPass` is also set,
+   * the pipeline emits sidecars + a rollup index alongside the
+   * usual artifacts. See {@link AttributionState}.
+   */
+  attribution?: AttributionState
 }
 
 type SetupLoggerArgs = {
@@ -369,13 +413,14 @@ export class CoreContext {
     document,
     settings,
     toGeneratorConfigMap,
-    stackTrail
+    stackTrail,
+    attribution
   }: ToArtifactsArgs): ToArtifactsResult {
     try {
       // Parse phase: one unified ParseContext handles both protocols
       // via its internal protocol-discriminated state. `parse()` returns
       // a SkmtcParsedDocument; we collect issues from `context.issues`.
-      const phase = this.#setupParsePhase(document)
+      const phase = this.#setupParsePhase(document, attribution)
       this.#phase = phase
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
@@ -385,11 +430,22 @@ export class CoreContext {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           document: parsedDocument,
-          settings
+          settings,
+          attribution
         })
 
         return this.#phase.context.toArtifacts(st)
       })
+
+      // Gen-maps post-pass: AST-resolve landmarks + paths for every
+      // span, emit one sidecar per source File, accumulate the
+      // rollup. Runs after generate (when File instances are fully
+      // populated, including instrumented `_children` / `_rendered`)
+      // and before render. Only when both `enabled` and `postPass`
+      // config are present.
+      const postPassOutput = stackTrail.trace('post-pass', () =>
+        runPostPassForFiles(files, attribution)
+      )
 
       const renderOutput = stackTrail.trace('render', st => {
         this.#phase = this.#setupRenderPhase({
@@ -404,6 +460,7 @@ export class CoreContext {
 
       return {
         ...renderOutput,
+        ...(postPassOutput ?? {}),
         results: this.#results.toTree(),
         parseIssues: phase.context.issues
       }
@@ -455,23 +512,33 @@ export class CoreContext {
     }
   }
 
-  #setupParsePhase(input: SkmtcDocumentInput): ParsePhase {
+  #setupParsePhase(
+    input: SkmtcDocumentInput,
+    attribution?: AttributionState
+  ): ParsePhase {
     const parseContext = new ParseContext({
       input,
       logger: this.logger,
-      silent: this.silent
+      silent: this.silent,
+      attribution
     })
 
     return { type: 'parse', context: parseContext }
   }
 
-  #setupGeneratePhase({ document, settings, toGeneratorConfigMap }: GenerateArgs): GeneratePhase {
+  #setupGeneratePhase({
+    document,
+    settings,
+    toGeneratorConfigMap,
+    attribution
+  }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
       document,
       settings,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),
-      toGeneratorConfigMap
+      toGeneratorConfigMap,
+      attribution
     })
 
     return { type: 'generate', context: generateContext }

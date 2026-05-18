@@ -28,6 +28,8 @@ import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
 import type { Logger } from '@/types/Logger.ts'
+import type { AttributionState } from '@/types/AttributionState.ts'
+export type { AttributionState } from '@/types/AttributionState.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type {
   SkmtcDocumentInput,
@@ -84,19 +86,6 @@ type GqlProtocolState = {
 
 type ProtocolState = OasProtocolState | GqlProtocolState
 
-/**
- * Attribution (gen-maps) state on the parse context. When enabled,
- * every parsed OAS / GQL schema gets its `location` field populated
- * with a JSON Pointer to its position in the source document. When
- * disabled (default), schemas have `location: undefined` and the
- * system runs as if gen-maps didn't exist.
- *
- * Phase B reads this flag in the render-time attribution wrapping;
- * Phase A only adds the field plumbing.
- */
-export type AttributionState = {
-  enabled: boolean
-}
 
 type ConstructorArgs = {
   input: SkmtcDocumentInput

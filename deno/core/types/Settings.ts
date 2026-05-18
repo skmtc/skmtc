@@ -159,13 +159,24 @@ const include: v.GenericSchema<Include> = v.union([
  * Validates the complete client settings structure including base paths,
  * packages, include/skip filters, and enrichments.
  */
+/**
+ * Valibot schema for the gen-maps (`anchors`) settings block. Lives
+ * inside {@link clientSettings} as an optional field. See
+ * {@link AnchorsSettings} for the consumer-facing fields.
+ */
+export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
+  enabled: v.boolean(),
+  out: v.optional(v.string())
+})
+
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(v.string()),
   schemaSource: v.optional(v.string()),
   packages: v.optional(v.array(modulePackage)),
   enrichments: v.optional(generatorEnrichments),
   include: v.optional(v.array(include)),
-  skip: v.optional(v.array(skip))
+  skip: v.optional(v.array(skip)),
+  anchors: v.optional(anchorsSettings)
 })
 
 /**
@@ -368,6 +379,30 @@ export type Include = IncludeOperations | IncludeModels | string
  * };
  * ```
  */
+/**
+ * Per-project gen-maps (`anchors`) configuration. Lives at
+ * `client.json#settings.anchors`.
+ *
+ * v1 honours the two fields below. Future fields (parser choice,
+ * gzip compression, rollup toggle) will land additively as the
+ * Phase G adapter swap and Phase D polish work proceeds.
+ */
+export type AnchorsSettings = {
+  /**
+   * Master switch. `true` emits a sidecar per generated source file
+   * and a project-level rollup index. `false` (or omitted) runs
+   * generation as if gen-maps didn't exist — zero overhead.
+   */
+  enabled: boolean
+  /**
+   * Output directory for sidecars + rollup, relative to
+   * `.skmtc/<project>/`. Defaults to `'.maps'` when omitted. The
+   * `skmtc init` template gitignores the `.maps` subtree by default
+   * since sidecars are build output, not source.
+   */
+  out?: string
+}
+
 export type ClientSettings = {
   /** Base output path for generated files */
   basePath?: string
@@ -384,6 +419,13 @@ export type ClientSettings = {
   include?: Include[]
   /** Array of skip (deny-list) configurations to exclude content */
   skip?: Skip[]
+  /**
+   * Gen-maps (`anchors`) configuration. When `enabled: true`, the CLI
+   * emits per-file sidecars and a rollup index alongside the
+   * generated artifacts. Omitted by default; the feature is opt-in
+   * in v1. See {@link AnchorsSettings}.
+   */
+  anchors?: AnchorsSettings
 }
 
 /**

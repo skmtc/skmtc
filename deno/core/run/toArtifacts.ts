@@ -4,6 +4,9 @@ import type { ManifestContent } from '../types/Manifest.ts'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
 import type { StackTrail } from '../context/StackTrail.ts'
 import type { SkmtcDocumentInput } from '../types/SkmtcDocument.ts'
+import type { AttributionState } from '../types/AttributionState.ts'
+import type { Sidecar } from '../anchors/sidecar.ts'
+import type { RollupEntry } from '../anchors/rollup.ts'
 
 /**
  * Arguments for the {@link toArtifacts} transformation function.
@@ -48,6 +51,12 @@ type TransformArgs = {
   startAt: number
   /** Whether to suppress console output during generation */
   silent: boolean
+  /**
+   * Optional attribution (gen-maps) state. When set with a
+   * `postPass` block, the pipeline emits sidecars + a rollup index
+   * alongside the standard artifacts. See {@link AttributionState}.
+   */
+  attribution?: AttributionState
 }
 
 /**
@@ -127,16 +136,32 @@ export const toArtifacts = ({
   logsPath,
   startAt,
   silent,
-  stackTrail
-}: TransformArgs): { artifacts: Record<string, string>; manifest: ManifestContent } => {
+  stackTrail,
+  attribution
+}: TransformArgs): {
+  artifacts: Record<string, string>
+  manifest: ManifestContent
+  sidecars?: Record<string, Sidecar>
+  rollup?: RollupEntry[]
+} => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  const { artifacts, files, previews, results, mappings, parseIssues } = context.toArtifacts({
+  const {
+    artifacts,
+    files,
+    previews,
+    results,
+    mappings,
+    parseIssues,
+    sidecars,
+    rollup
+  } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     document,
     stackTrail,
-    silent
+    silent,
+    attribution
   })
 
   const manifest: ManifestContent = {
@@ -153,5 +178,5 @@ export const toArtifacts = ({
     endAt: Date.now()
   }
 
-  return { artifacts, manifest }
+  return { artifacts, manifest, sidecars, rollup }
 }

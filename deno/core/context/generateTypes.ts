@@ -25,6 +25,9 @@ import type { StackTrail } from './StackTrail.ts'
 import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
+import type { AttributionState } from '@/types/AttributionState.ts'
+import type { Sidecar } from '@/anchors/sidecar.ts'
+import type { RollupEntry } from '@/anchors/rollup.ts'
 
 /**
  * Options for inserting an operation into the generation context.
@@ -150,6 +153,19 @@ export type RenderResult = {
  */
 export type ToArtifactsResult = RenderResult & {
   parseIssues: ParseIssue[]
+  /**
+   * Per-file gen-maps sidecars. Populated only when
+   * `attribution.postPass` was configured on `ToArtifactsArgs`;
+   * otherwise omitted. Keys are the original file paths (the CLI
+   * writes them under `<basePath>/../.skmtc/<project>/.maps/`).
+   */
+  sidecars?: Record<string, Sidecar>
+  /**
+   * Per-Definition rollup entries gathered across every sidecar.
+   * Used for reverse queries ("which files came from refName X?").
+   * Populated only when `attribution.postPass` was configured.
+   */
+  rollup?: RollupEntry[]
 }
 
 /**
@@ -417,6 +433,14 @@ export type GenerateContextType = {
   settings: ClientSettings | undefined
   modelDepth: Record<string, number>
   document: SkmtcParsedDocument
+  /**
+   * Attribution (gen-maps) state. When set, every `SnippetBase`
+   * instance wraps its `toString` to record parent/child edges in a
+   * module-level render stack, so the post-render span resolver can
+   * attribute byte ranges to producers. When omitted, the wrap is
+   * skipped entirely — zero cost.
+   */
+  attribution?: AttributionState
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
   defineAndRegister: <V extends GeneratedValue>({
     identifier,

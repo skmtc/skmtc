@@ -50,6 +50,7 @@ import get from 'lodash-es/get'
 import type { RefName } from '@/types/RefName.ts'
 import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
+import type { AttributionState } from '@/types/AttributionState.ts'
 import type { ResultType } from '@/types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
@@ -83,6 +84,12 @@ type ConstructorArgs = {
   logger: log.Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  /**
+   * Attribution (gen-maps) state. When set, `SnippetBase` instances
+   * constructed against this context wrap their `toString` to record
+   * parent/child edges. Default: omitted (no wrap, zero cost).
+   */
+  attribution?: AttributionState
 }
 
 /**
@@ -251,6 +258,13 @@ export class GenerateContext implements GenerateContextType {
   /** Tracking model nesting depth to prevent infinite recursion */
   modelDepth: Record<string, number>
   /**
+   * Attribution (gen-maps) state. When set, every `SnippetBase`
+   * instance constructed against this context wraps its `toString` to
+   * record parent/child edges in a module-level render stack. When
+   * omitted, the wrap is skipped — zero cost.
+   */
+  attribution: AttributionState | undefined
+  /**
    * Creates a new GenerateContext instance for the generation phase.
    *
    * @param args - Constructor arguments including document, settings, and handlers
@@ -260,7 +274,8 @@ export class GenerateContext implements GenerateContextType {
     settings,
     logger,
     captureCurrentResult,
-    toGeneratorConfigMap
+    toGeneratorConfigMap,
+    attribution
   }: ConstructorArgs) {
     this.logger = logger
     this.#files = new Map()
@@ -271,6 +286,7 @@ export class GenerateContext implements GenerateContextType {
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
     this.modelDepth = {}
+    this.attribution = attribution
   }
 
   /**

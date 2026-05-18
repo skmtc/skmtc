@@ -1,0 +1,76 @@
+/**
+ * @fileoverview Derive an Attribution tuple from a producer.
+ *
+ * `attribute()` is a pure function over a `SnippetBase` — it reads
+ * the producer's `generatorKey`, the producer's own `srcPtr` (if any),
+ * and the producer's `Definition`-shaped identifier (if applicable),
+ * and returns the canonical `{ genId, srcPtr, variant, defName }`
+ * tuple. Used by sidecar emission (Phase C) and the viewer (Phase E).
+ *
+ * `genVersion` is intentionally not populated here. The version → id
+ * map is plumbed through Phase D when the CLI reads each entry's
+ * `denoJson.version`; this layer stays pure.
+ */
+
+import {
+  fromGeneratorKey,
+  toGeneratorId,
+  type GeneratorKeyObject
+} from '@/dsl/GeneratorKeys.ts'
+import { Definition } from '@/dsl/Definition.ts'
+import type { SnippetBase } from '@/dsl/SnippetBase.ts'
+import type { Attribution } from './types.ts'
+
+/**
+ * Derive the attribution tuple for a producer.
+ *
+ * Producers without a `generatorKey` (rare — only test doubles or
+ * runtime-orphaned Snippets) get `genId: '<unknown>'` and inherit
+ * `srcPtr` from caller-supplied fallback.
+ */
+export const attribute = (producer: SnippetBase): Attribution => {
+  const key = producer.generatorKey
+  const parsed = key ? fromGeneratorKey(key) : undefined
+
+  return {
+    genId: key && parsed ? toGeneratorId(key) : '<unknown>',
+    srcPtr: producer.srcPtr ?? srcPtrFromKey(parsed),
+    variant: parsed && 'variant' in parsed ? parsed.variant : 'main',
+    defName: producer instanceof Definition ? producer.identifier.name : undefined
+  }
+}
+
+/**
+ * Compute a fallback `srcPtr` from the parsed generator key when the
+ * producer hasn't set one explicitly.
+ *
+ * - OAS operation → `oas:#/paths/<escaped-path>/<method>`
+ * - GQL operation → `gql:<rootKind>.<fieldName>`
+ * - Model → `oas:#/components/schemas/<refName>`
+ * - Generator-only → `undefined` (no schema location to point at)
+ */
+const srcPtrFromKey = (parsed: GeneratorKeyObject | undefined): string | undefined => {
+  if (!parsed) return undefined
+  switch (parsed.type) {
+    case 'oasOperation':
+      return `oas:#/paths/${escapeJsonPointer(parsed.path)}/${parsed.method}`
+    case 'gqlOperation':
+      return `gql:${parsed.rootKind}.${parsed.fieldName}`
+    case 'model':
+      return `oas:#/components/schemas/${parsed.refName}`
+    case 'generator-only':
+      return undefined
+    default: {
+      const _exhaustive: never = parsed
+      throw new Error(`Unhandled generator key type: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
+}
+
+/**
+ * RFC 6901 JSON Pointer segment escaping. `~` → `~0`, `/` → `~1`.
+ * Order matters: escape `~` first so the `/` replacement doesn't
+ * later mangle the `~1` produced by the `~` step.
+ */
+const escapeJsonPointer = (segment: string): string =>
+  segment.replace(/~/g, '~0').replace(/\//g, '~1')
