@@ -1,7 +1,7 @@
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
 import type { RefName } from '@/types/RefName.ts'
-import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Fields used to construct a {@link GqlRegistry}.
@@ -71,17 +71,15 @@ export class GqlRegistry {
    * under `refName`. Use this to build cross-type references during
    * GraphQL parsing instead of constructing `OasRef` directly.
    *
-   * The `document` parameter is the parent `GqlDocument` (wrapped as
-   * `SkmtcParsedDocument`) that this ref will resolve through —
-   * typically `{ type: 'gql', value: gqlDocument }` from the
-   * `ParseContext`. The document can be empty-at-construction; the ref
-   * resolves correctly once the document's fields are populated at the
-   * end of parsing.
+   * The ref resolves through the context's `parsedDocument` (the parent
+   * `GqlDocument` wrapped as `SkmtcParsedDocument`). The document can be
+   * empty-at-construction; the ref resolves correctly once the document's
+   * fields are populated at the end of parsing.
    */
-  createRef(refName: RefName, document: SkmtcParsedDocument): OasRef<'schema'> {
+  createRef(refName: RefName, context: ParseContextType): OasRef<'schema'> {
     return new OasRef<'schema'>(
       { refType: 'schema', $ref: `#/components/schemas/${refName}` },
-      document
+      context
     )
   }
 

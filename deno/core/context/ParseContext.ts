@@ -84,6 +84,20 @@ type GqlProtocolState = {
 
 type ProtocolState = OasProtocolState | GqlProtocolState
 
+/**
+ * Attribution (gen-maps) state on the parse context. When enabled,
+ * every parsed OAS / GQL schema gets its `location` field populated
+ * with a JSON Pointer to its position in the source document. When
+ * disabled (default), schemas have `location: undefined` and the
+ * system runs as if gen-maps didn't exist.
+ *
+ * Phase B reads this flag in the render-time attribution wrapping;
+ * Phase A only adds the field plumbing.
+ */
+export type AttributionState = {
+  enabled: boolean
+}
+
 type ConstructorArgs = {
   input: SkmtcDocumentInput
   logger: Logger
@@ -94,6 +108,11 @@ type ConstructorArgs = {
    * this; adding more is additive.
    */
   options?: { gql?: GqlParseOptions }
+  /**
+   * Optional attribution (gen-maps) configuration. When omitted,
+   * the parser produces schemas with `location: undefined`.
+   */
+  attribution?: AttributionState
 }
 
 export class ParseContext {
@@ -101,6 +120,19 @@ export class ParseContext {
   logger: Logger
   silent: boolean
   protocol: ProtocolState
+  /**
+   * Attribution state (gen-maps). When set, parsed schemas snapshot
+   * the visitor `StackTrail` into their `Located` base. See
+   * {@link AttributionState}.
+   */
+  attribution: AttributionState | undefined
+  /**
+   * The StackTrail of the currently-traversed position. Set by
+   * factories via {@link ParseContext.withStackTrail} just before
+   * constructing the node so the `Located` base can snapshot it.
+   * `undefined` outside an active `withStackTrail` scope.
+   */
+  currentStackTrail: StackTrail | undefined
 
   // Universal dependency-ref tracking. Populated by parsers as they
   // encounter references. OAS uses `$ref` strings as keys; GQL would
@@ -108,9 +140,10 @@ export class ParseContext {
   #refConsumers: Map<string, StackTrail[]> = new Map()
   #refErrors: Map<string, unknown[]> = new Map()
 
-  constructor({ input, logger, silent = true, options }: ConstructorArgs) {
+  constructor({ input, logger, silent = true, options, attribution }: ConstructorArgs) {
     this.logger = logger
     this.silent = silent
+    this.attribution = attribution
 
     switch (input.type) {
       case 'oas': {
@@ -183,7 +216,7 @@ export class ParseContext {
   /**
    * GQL-only accessor returning the in-flight `GqlDocument` (empty
    * during parse, populated at the end). Parsers use this when
-   * constructing `OasRef`s via `registry.createRef(refName, document)`
+   * constructing `OasRef`s via `registry.createRef(refName, context)`
    * so the resulting refs point at the right document instance.
    */
   get gqlDocument(): GqlDocument {
@@ -307,6 +340,30 @@ export class ParseContext {
         const _exhaustive: never = this.protocol
         throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
       }
+    }
+  }
+
+  /**
+   * Run `fn` with `currentStackTrail` set to the given trail; restore
+   * the previous value afterwards (try/finally semantics). Factories
+   * wrap schema-construction in this so `Located` can snapshot the
+   * trail off the context without each factory threading it
+   * explicitly into the constructor.
+   *
+   * @example
+   * ```ts
+   * return context.withStackTrail(stackTrail, () =>
+   *   new OasBoolean({ title, ... }, context)
+   * )
+   * ```
+   */
+  withStackTrail<T>(stackTrail: StackTrail, fn: () => T): T {
+    const prev = this.currentStackTrail
+    this.currentStackTrail = stackTrail
+    try {
+      return fn()
+    } finally {
+      this.currentStackTrail = prev
     }
   }
 

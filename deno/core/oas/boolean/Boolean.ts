@@ -1,6 +1,8 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasRef } from '../ref/Ref.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+import { Located } from '@/types/Located.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Constructor fields for {@link OasBoolean}.
@@ -29,7 +31,7 @@ export type BooleanFields<Nullable extends boolean | undefined> = {
   /** Whether the boolean is deprecated */
   deprecated?: boolean
 }
-export class OasBoolean<Nullable extends boolean | undefined = boolean | undefined> {
+export class OasBoolean<Nullable extends boolean | undefined = boolean | undefined> extends Located {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -78,8 +80,12 @@ export class OasBoolean<Nullable extends boolean | undefined = boolean | undefin
    * Creates a new OasBoolean instance.
    *
    * @param fields - Boolean configuration fields including validation constraints and metadata
+   * @param context - Optional ParseContext. When passed and attribution is
+   *                  enabled, the current StackTrail is snapshotted onto the
+   *                  instance (via the {@link Located} base).
    */
-  constructor(fields: BooleanFields<Nullable> = {}) {
+  constructor(fields: BooleanFields<Nullable> = {}, context?: ParseContextType) {
+    super(context)
     this.title = fields.title
     this.description = fields.description
     this.nullable = fields.nullable

@@ -1,4 +1,6 @@
 import type { OasRef } from '../ref/Ref.ts'
+import { Located } from '@/types/Located.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Constructor fields for {@link OasVoid}.
@@ -137,7 +139,7 @@ export type VoidFields = {
  * // async function deleteUser(id: string): Promise<void>
  * ```
  */
-export class OasVoid {
+export class OasVoid extends Located {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -156,7 +158,8 @@ export class OasVoid {
    */
   description: string | undefined
 
-  constructor(fields: VoidFields = {}) {
+  constructor(fields: VoidFields = {}, context?: ParseContextType) {
+    super(context)
     this.title = fields.title
     this.description = fields.description
   }

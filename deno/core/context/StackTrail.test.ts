@@ -261,3 +261,31 @@ Deno.test('StackTrail - complex workflow example', () => {
   assertEquals(userTrail.toStackRef(), '#/components/schemas/User')
   assertEquals(productTrail.toStackRef(), '#/components/schemas/Product')
 })
+
+Deno.test('StackTrail - toJsonPointer for components root', () => {
+  const trail = new StackTrail(['components', 'schemas', 'User'])
+  assertEquals(trail.toJsonPointer(), '#/components/schemas/User')
+})
+
+Deno.test('StackTrail - toJsonPointer escapes path segments per RFC 6901', () => {
+  const trail = new StackTrail(['paths', '/users/{id}', 'get'])
+  assertEquals(trail.toJsonPointer(), '#/paths/~1users~1{id}/get')
+})
+
+Deno.test('StackTrail - toJsonPointer for empty stack returns root', () => {
+  const trail = new StackTrail()
+  assertEquals(trail.toJsonPointer(), '#/')
+})
+
+Deno.test('StackTrail - toJsonPointer escapes tildes', () => {
+  const trail = new StackTrail(['components', 'schemas', 'Has~Tilde'])
+  assertEquals(trail.toJsonPointer(), '#/components/schemas/Has~0Tilde')
+})
+
+Deno.test('StackTrail - toJsonPointer covers non-components paths', () => {
+  // toStackRef returns undefined for non-components paths; toJsonPointer
+  // produces a valid pointer for any visitor path.
+  const trail = new StackTrail(['paths', '/users', 'get', 'responses', '200'])
+  assertEquals(trail.toStackRef(), undefined)
+  assertEquals(trail.toJsonPointer(), '#/paths/~1users/get/responses/200')
+})

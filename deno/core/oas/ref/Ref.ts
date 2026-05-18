@@ -12,6 +12,8 @@ import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
+import { Located } from '@/types/Located.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 const MAX_LOOKUPS = 10
 
@@ -137,7 +139,7 @@ export type RefFields<T extends OasRefData['refType']> = {
  * const oneStep = chainedRef.resolveOnce(); // May still be a reference
  * ```
  */
-export class OasRef<T extends OasRefData['refType']> {
+export class OasRef<T extends OasRefData['refType']> extends Located {
   /** OAS type identifier */
   oasType: 'ref' = 'ref'
   /** Type identifier */
@@ -154,9 +156,10 @@ export class OasRef<T extends OasRefData['refType']> {
    *   for GQL, through the document's registry (GQL only ever creates
    *   schema refs).
    */
-  constructor(fields: RefFields<T>, document: SkmtcParsedDocument) {
+  constructor(fields: RefFields<T>, context: ParseContextType) {
+    super(context)
     this.#fields = fields
-    this.#document = document
+    this.#document = context.parsedDocument
   }
 
   /**

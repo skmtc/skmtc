@@ -95,10 +95,7 @@ export const toFieldSchema = ({
 
       // OasRef has no nullable flag, so when the field is nullable we wrap
       // the ref in a single-member OasUnion that carries the flag instead.
-      const ref = context.registry.createRef(
-        named.name as RefName,
-        context.parsedDocument
-      )
+      const ref = context.registry.createRef(named.name as RefName, context)
       return innerNullable
         ? new OasUnion({ members: [ref], nullable: true })
         : ref

@@ -106,24 +106,29 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
     parentType: 'schema:number'
   })
 
-  return new OasNumber<Nullable>({
-    title,
-    description,
-    nullable,
-    default: defaultValue,
-    extensionFields,
-    example,
-    enums,
-    format,
-    multipleOf,
-    maximum,
-    exclusiveMaximum,
-    minimum,
-    readOnly,
-    writeOnly,
-    exclusiveMinimum,
-    deprecated
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasNumber<Nullable>(
+      {
+        title,
+        description,
+        nullable,
+        default: defaultValue,
+        extensionFields,
+        example,
+        enums,
+        format,
+        multipleOf,
+        maximum,
+        exclusiveMaximum,
+        minimum,
+        readOnly,
+        writeOnly,
+        exclusiveMinimum,
+        deprecated
+      },
+      context
+    )
+  )
 }
 
 type ParseNumberFormatArgs = {

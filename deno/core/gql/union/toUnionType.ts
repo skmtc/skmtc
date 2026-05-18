@@ -37,7 +37,7 @@ export const toUnionType = ({
     unionType.getTypes().map((member, index) =>
       membersStack.trace(String(index), memberStack => {
         context.registerRef(memberStack.clone(), member.name)
-        return context.registry.createRef(member.name as RefName, context.parsedDocument)
+        return context.registry.createRef(member.name as RefName, context)
       })
     )
   )

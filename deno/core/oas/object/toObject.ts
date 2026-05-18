@@ -99,31 +99,36 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     parentType: 'schema:object'
   })
 
-  return new OasObject<Nullable>({
-    title,
-    description,
-    nullable,
-    example,
-    enums,
-    properties: stackTrail.trace('properties', st =>
-      toOptionalSchemasV3({
-        schemas: properties,
-        stackTrail: st,
-        context
-      })
-    ),
-    required,
-    maxProperties,
-    minProperties,
-    additionalProperties: stackTrail.trace('additionalProperties', st =>
-      toAdditionalPropertiesV3({ additionalProperties, stackTrail: st, context })
-    ),
-    extensionFields,
-    default: defaultValue,
-    deprecated,
-    readOnly,
-    writeOnly
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasObject<Nullable>(
+      {
+        title,
+        description,
+        nullable,
+        example,
+        enums,
+        properties: stackTrail.trace('properties', st =>
+          toOptionalSchemasV3({
+            schemas: properties,
+            stackTrail: st,
+            context
+          })
+        ),
+        required,
+        maxProperties,
+        minProperties,
+        additionalProperties: stackTrail.trace('additionalProperties', st =>
+          toAdditionalPropertiesV3({ additionalProperties, stackTrail: st, context })
+        ),
+        extensionFields,
+        default: defaultValue,
+        deprecated,
+        readOnly,
+        writeOnly
+      },
+      context
+    )
+  )
 }
 
 type ParseExampleArgs = {

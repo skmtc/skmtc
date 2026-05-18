@@ -160,18 +160,23 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
     parentType: 'schema:boolean'
   })
 
-  return new OasBoolean({
-    nullable,
-    title,
-    description,
-    example,
-    enums: enums,
-    default: defaultValue,
-    extensionFields,
-    readOnly,
-    writeOnly,
-    deprecated
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasBoolean(
+      {
+        nullable,
+        title,
+        description,
+        example,
+        enums: enums,
+        default: defaultValue,
+        extensionFields,
+        readOnly,
+        writeOnly,
+        deprecated
+      },
+      context
+    )
+  )
 }
 
 type ParseExampleArgs = {

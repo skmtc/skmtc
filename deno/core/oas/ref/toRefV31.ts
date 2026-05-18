@@ -25,11 +25,7 @@ export const toRefV31 = <T extends OasRefData['refType']>({
 
   context.registerRef(stackTrail.clone(), $ref)
 
-  return new OasRef(
-    {
-      refType,
-      $ref
-    },
-    context.parsedDocument
+  return context.withStackTrail(stackTrail, () =>
+    new OasRef({ refType, $ref }, context)
   )
 }

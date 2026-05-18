@@ -10,6 +10,7 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import { OasDocument } from '../document/Document.ts'
 import { OasInfo } from '../info/Info.ts'
 import { toOasParsedDocument } from '@/types/SkmtcDocument.ts'
+import { toRefParseContextStub } from '@/test/mockParseContext.ts'
 
 // Helper to create basic ToJsonSchemaOptions
 const createMockOptions = (): ToJsonSchemaOptions => ({
@@ -164,7 +165,7 @@ Deno.test('OasResponse - toSchema()', async (t) => {
     )
     const schemaRef = new OasRef(
       { $ref: '#/components/schemas/User', refType: 'schema' },
-      document
+      toRefParseContextStub(document)
     )
     const response = new OasResponse({
       description: 'Test',
@@ -330,7 +331,7 @@ Deno.test('OasResponse - Integration Tests', async (t) => {
     )
     const headerRef = new OasRef(
       { $ref: '#/components/headers/X-Rate-Limit', refType: 'header' },
-      document
+      toRefParseContextStub(document)
     )
 
     const response = new OasResponse({

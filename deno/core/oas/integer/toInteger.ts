@@ -107,24 +107,29 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     parentType: 'schema:integer'
   })
 
-  return new OasInteger<Nullable>({
-    title,
-    description,
-    nullable,
-    format,
-    enums,
-    example,
-    multipleOf,
-    maximum,
-    exclusiveMaximum,
-    minimum,
-    exclusiveMinimum,
-    default: defaultValue,
-    readOnly,
-    writeOnly,
-    extensionFields,
-    deprecated
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasInteger<Nullable>(
+      {
+        title,
+        description,
+        nullable,
+        format,
+        enums,
+        example,
+        multipleOf,
+        maximum,
+        exclusiveMaximum,
+        minimum,
+        exclusiveMinimum,
+        default: defaultValue,
+        readOnly,
+        writeOnly,
+        extensionFields,
+        deprecated
+      },
+      context
+    )
+  )
 }
 
 type ParseIntegerFormatArgs = {

@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert/equals'
-import { mockParseContext } from '../../test/mockParseContext.ts'
+import { mockParseContext, toRefParseContextStub } from '../../test/mockParseContext.ts'
 import { toOperationsV3 } from './toOperationsV3.ts'
 import { mockPaths } from './mocks.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
@@ -27,7 +27,7 @@ const fakeOasDoc = new OasDocument({
   info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
   operations: []
 })
-const fakeParsedDoc = toOasParsedDocument(fakeOasDoc)
+const fakeParsedDoc = toRefParseContextStub(toOasParsedDocument(fakeOasDoc))
 Deno.test({
   name: 'Parse operations',
   ignore: true,

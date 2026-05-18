@@ -1,6 +1,8 @@
 import type { OasSchema, ToJsonSchemaOptions } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { Located } from '@/types/Located.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Constructor fields for {@link OasArray}.
@@ -38,7 +40,7 @@ export type ArrayFields<Nullable extends boolean | undefined> = {
   deprecated?: boolean
 }
 
-export class OasArray<Nullable extends boolean | undefined = boolean | undefined> {
+export class OasArray<Nullable extends boolean | undefined = boolean | undefined> extends Located {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -112,7 +114,8 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
    * Whether the array is deprecated.
    */
   deprecated: boolean | undefined
-  constructor(fields: ArrayFields<Nullable>) {
+  constructor(fields: ArrayFields<Nullable>, context?: ParseContextType) {
+    super(context)
     this.items = fields.items
     this.title = fields.title
     this.description = fields.description

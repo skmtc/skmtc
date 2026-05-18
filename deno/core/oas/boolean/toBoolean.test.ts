@@ -10,5 +10,6 @@ Deno.test('toBoolean - basic boolean type', () => {
   const schema: OpenAPIV3.SchemaObject = { type: 'boolean' }
   const oasBoolean = toBoolean({ value: schema, stackTrail, context: mockParseContext })
 
+  // Attribution off (default): no location, equals bare instance.
   assertEquals(oasBoolean, new OasBoolean())
 })

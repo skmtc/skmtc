@@ -40,25 +40,34 @@ export const toUnion = ({
     parentType: `schema:${parentType}`
   })
 
-  return new OasUnion({
-    title,
-    description,
-    nullable,
-    default: defaultValue,
-    discriminator: stackTrail.trace('discriminator', st =>
-      toDiscriminatorV3({ discriminator, stackTrail: st, context })
-    ),
-    members: members.reduce<(OasSchema | OasRef<'schema'>)[]>((acc, item, index) => {
-      if (item === undefined || item === null) {
-        return acc
-      }
+  const discriminatorParsed = stackTrail.trace('discriminator', st =>
+    toDiscriminatorV3({ discriminator, stackTrail: st, context })
+  )
 
-      return [
-        ...acc,
-        stackTrail.trace(`${index}`, st => toSchemaV3({ schema: item, stackTrail: st, context }))
-      ]
-    }, []),
-    example,
-    extensionFields
-  })
+  const membersParsed = members.reduce<(OasSchema | OasRef<'schema'>)[]>((acc, item, index) => {
+    if (item === undefined || item === null) {
+      return acc
+    }
+
+    return [
+      ...acc,
+      stackTrail.trace(`${index}`, st => toSchemaV3({ schema: item, stackTrail: st, context }))
+    ]
+  }, [])
+
+  return context.withStackTrail(stackTrail, () =>
+    new OasUnion(
+      {
+        title,
+        description,
+        nullable,
+        default: defaultValue,
+        discriminator: discriminatorParsed,
+        members: membersParsed,
+        example,
+        extensionFields
+      },
+      context
+    )
+  )
 }

@@ -43,7 +43,7 @@ export const toInterfaceUnion = ({
     implementers.map((impl, index) =>
       membersStack.trace(String(index), memberStack => {
         context.registerRef(memberStack.clone(), impl.name)
-        return context.registry.createRef(impl.name as RefName, context.parsedDocument)
+        return context.registry.createRef(impl.name as RefName, context)
       })
     )
   )

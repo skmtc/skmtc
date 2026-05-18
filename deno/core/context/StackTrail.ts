@@ -1,4 +1,5 @@
 import { componentsKeys } from '@/oas/components/Components.ts'
+import { toJsonPointer, type JsonPointer } from '@/types/JsonPointer.ts'
 
 export class StackTrail {
   /** Internal stack of traversal frames */
@@ -135,6 +136,35 @@ export class StackTrail {
    * console.log(ref); // undefined
    * ```
    */
+  /**
+   * Converts the trail to an RFC 6901 JSON Pointer (URI fragment form).
+   *
+   * Unlike {@link toStackRef}, this works for *any* visitor path — not
+   * just components-rooted references. Used by the gen-maps system to
+   * attach a `location` field to every parsed OAS schema, recording
+   * exactly where in the document the schema lives.
+   *
+   * Special characters in stack frames (`/`, `~`) are escaped per
+   * RFC 6901.
+   *
+   * @returns A JSON Pointer string starting with `#/`
+   *
+   * @example Components-rooted
+   * ```typescript
+   * const trail = new StackTrail(['components', 'schemas', 'User'])
+   * trail.toJsonPointer() // '#/components/schemas/User'
+   * ```
+   *
+   * @example Path-rooted (escapes slashes in path segments)
+   * ```typescript
+   * const trail = new StackTrail(['paths', '/users/{id}', 'get'])
+   * trail.toJsonPointer() // '#/paths/~1users~1{id}/get'
+   * ```
+   */
+  toJsonPointer(): JsonPointer {
+    return toJsonPointer(this.#stack)
+  }
+
   toStackRef(): string | undefined {
     const [first, second, third] = this.stackTrail
 

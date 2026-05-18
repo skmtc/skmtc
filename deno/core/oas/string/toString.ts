@@ -81,7 +81,7 @@ export type ToStringArgs = {
  */
 export const toString = ({ context, value, stackTrail }: ToStringArgs): OasString => {
   if (value.type === 'string' && Object.keys(value).length === 1) {
-    return new OasString()
+    return context.withStackTrail(stackTrail, () => new OasString({}, context))
   }
 
   const { nullable, value: valueWithoutNullable } = parseNullable({
@@ -249,22 +249,27 @@ export const toParsedString = <Nullable extends boolean | undefined>({
     })
   }
 
-  return new OasString<Nullable>({
-    title,
-    description,
-    enums,
-    nullable,
-    example,
-    format,
-    maxLength,
-    minLength,
-    pattern,
-    readOnly,
-    writeOnly,
-    default: defaultValue,
-    extensionFields,
-    deprecated
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasString<Nullable>(
+      {
+        title,
+        description,
+        enums,
+        nullable,
+        example,
+        format,
+        maxLength,
+        minLength,
+        pattern,
+        readOnly,
+        writeOnly,
+        default: defaultValue,
+        extensionFields,
+        deprecated
+      },
+      context
+    )
+  )
 }
 
 const isString = (value: unknown): value is string => {
