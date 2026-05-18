@@ -20,9 +20,14 @@ const TEST_DIR = dirname(fromFileUrl(import.meta.url))
 const CLI_DIR = resolve(TEST_DIR, '..')
 const CLI_MOD = join(CLI_DIR, 'mod.ts')
 const CLI_DENO_JSON = join(CLI_DIR, 'deno.json')
-// Repo root contains skmtc/, skmtc-generators/. Used to point the
-// fixture project's imports at the local source tree.
-const REPO_ROOT = resolve(CLI_DIR, '..', '..', '..')
+
+// Fixture projects live inside the workspace (under
+// `cli/tests/.fixtures/`) so `deno bundle` walks up to
+// `skmtc/deno/deno.json` and resolves `@skmtc/core`, `@skmtc/worker`,
+// and their sub-paths via the workspace's member packages. No
+// reaching outside this repo, no file-path entries in the fixture's
+// import map. `.fixtures/` is gitignored — pure throwaway state.
+const FIXTURES_DIR = join(TEST_DIR, '.fixtures')
 
 const PROJECT_NAME = 'gql-smoke'
 
@@ -46,45 +51,46 @@ const FIXTURE_SDL = /* GraphQL */ `
   }
 `
 
-const FIXTURE_DENO_JSON = JSON.stringify(
-  {
-    imports: {
-      '@skmtc/gen-typescript': join(REPO_ROOT, 'skmtc-generators/gen-typescript/mod.ts'),
-      '@skmtc/gen-reapit-graphql-client': join(
-        REPO_ROOT,
-        'skmtc-generators/gen-reapit-graphql-client/mod.ts'
-      ),
-      '@skmtc/core': join(REPO_ROOT, 'skmtc/deno/core/mod.ts'),
-      '@skmtc/worker': join(REPO_ROOT, 'skmtc/deno/worker/mod.ts'),
-      '@/': join(REPO_ROOT, 'skmtc/deno/core/'),
-      '@std/path': 'jsr:@std/path@^1.1.2',
-      '@std/log': 'jsr:@std/log@^0.224.6',
-      '@std/log/base-handler': 'jsr:@std/log@^0.224.6/base-handler',
-      '@std/fmt/colors': 'jsr:@std/fmt@^1.0.0/colors',
-      '@types/lodash-es': 'npm:@types/lodash-es@4.17.12',
-      'lodash-es/get': 'npm:lodash-es@4.17.21/get.js',
-      'lodash-es/set': 'npm:lodash-es@4.17.21/set.js',
-      'openapi-types': 'npm:openapi-types@^12.1.3',
-      valibot: 'npm:valibot@1.1.0',
-      'tiny-invariant': 'npm:tiny-invariant@^1.3.3',
-      'ts-pattern': 'npm:ts-pattern@^5.8.0',
-      graphql: 'npm:graphql@^16.9.0'
-    }
-  },
-  null,
-  2
-)
+// Deliberately no `deno.json` inside the fixture project. Deno
+// rejects sub-directory `deno.json` files that aren't declared
+// workspace members ("Config file must be a member of the
+// workspace"), and the fixture project is ephemeral — adding it to
+// `skmtc/deno/deno.json#workspace` would muddy the production layout.
+//
+// Without a fixture-local config, `deno bundle` walks up from the
+// fixture project's `cwd` and finds `skmtc/deno/deno.json` — the
+// workspace root — which already resolves `@skmtc/core`,
+// `@skmtc/worker`, and their sub-paths via member-package `exports`.
 
+// Minimal inline model generator. Emits one stub TypeScript type per
+// registered schema (so the CLI summary reports "Generated N files
+// in …"). Lives in the fixture so the smoke test has no dependency
+// on the sibling `skmtc-generators` repo.
 const FIXTURE_WORKER = `
 import toWorker from '@skmtc/worker'
-import skmtcGenTypescript from '@skmtc/gen-typescript'
-import skmtcGenReapitGraphqlClient from '@skmtc/gen-reapit-graphql-client'
+import { toModelEntry, toModelProjectionBase, Identifier } from '@skmtc/core'
 
-export default toWorker(() =>
-  Object.fromEntries(
-    [skmtcGenTypescript, skmtcGenReapitGraphqlClient].map(g => [g.id, g])
-  )
-)
+const ModelBase = toModelProjectionBase({
+  id: '@fake/gen-minimal',
+  toIdentifier: ({ refName }) => Identifier.createType(refName),
+  toExportPath: ({ refName }) => '@/types/' + refName + '.generated.ts'
+})
+
+class FakeProjection extends ModelBase {
+  toString() {
+    return '{ stub: true }'
+  }
+}
+
+const fakeGen = toModelEntry({
+  id: '@fake/gen-minimal',
+  transform: ({ context, refName }) => {
+    // deno-lint-ignore no-explicit-any
+    context.insertModel(FakeProjection as any, refName)
+  }
+})
+
+export default toWorker(() => ({ [fakeGen.id]: fakeGen }))
 `
 
 const FIXTURE_CLIENT_JSON = JSON.stringify(
@@ -96,24 +102,35 @@ const FIXTURE_CLIENT_JSON = JSON.stringify(
 )
 
 type SetupResult = {
-  tempDir: string
+  /** Acts as the SKMTC root for the CLI invocation (contains `.skmtc/`). */
+  fixtureRoot: string
   schemaPath: string
 }
 
-const setup = async (): Promise<SetupResult> => {
-  const tempDir = await Deno.makeTempDir({ prefix: 'skmtc-cli-smoke-' })
+/**
+ * Build the fixture project under `cli/tests/.fixtures/<unique>/`.
+ * Inside the workspace so `deno bundle` finds `skmtc/deno/deno.json`
+ * walking up and resolves `@skmtc/*` packages through workspace
+ * membership. The `<unique>` segment lets the two smoke tests run
+ * without colliding on the same directory.
+ */
+const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
+  const fixtureRoot = join(FIXTURES_DIR, `${PROJECT_NAME}-${uniqueSuffix}`)
+  // Wipe any leftover state from a previous interrupted run.
+  await Deno.remove(fixtureRoot, { recursive: true }).catch(() => {})
 
-  const projectPath = join(tempDir, '.skmtc', PROJECT_NAME)
+  const projectPath = join(fixtureRoot, '.skmtc', PROJECT_NAME)
   const settingsPath = join(projectPath, '.settings')
-
   await Deno.mkdir(settingsPath, { recursive: true })
 
-  await Deno.writeTextFile(join(projectPath, 'deno.json'), FIXTURE_DENO_JSON)
+  // No deno.json in the project — workspace root supplies resolution.
   await Deno.writeTextFile(join(projectPath, 'worker.ts'), FIXTURE_WORKER)
   await Deno.writeTextFile(join(settingsPath, 'client.json'), FIXTURE_CLIENT_JSON)
 
-  // Build bundle.js from worker.ts so the host-side worker loader has
-  // something to spawn.
+  // Build bundle.js from worker.ts. The cwd is inside the workspace
+  // so `deno bundle` finds `skmtc/deno/deno.json` walking up and
+  // resolves `@skmtc/*` workspace members via their own `name` +
+  // `exports`. No file-path mappings needed.
   const bundleCmd = new Deno.Command('deno', {
     args: ['bundle', '-o', 'bundle.js', 'worker.ts'],
     cwd: projectPath,
@@ -126,14 +143,14 @@ const setup = async (): Promise<SetupResult> => {
     throw new Error(`bundle build failed: ${err}`)
   }
 
-  const schemaPath = join(tempDir, 'schema.graphql')
+  const schemaPath = join(fixtureRoot, 'schema.graphql')
   await Deno.writeTextFile(schemaPath, FIXTURE_SDL)
 
-  return { tempDir, schemaPath }
+  return { fixtureRoot, schemaPath }
 }
 
-const teardown = async (tempDir: string): Promise<void> => {
-  await Deno.remove(tempDir, { recursive: true })
+const teardown = async (fixtureRoot: string): Promise<void> => {
+  await Deno.remove(fixtureRoot, { recursive: true }).catch(() => {})
 }
 
 Deno.test({
@@ -142,7 +159,7 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
   fn: async () => {
-    const { tempDir, schemaPath } = await setup()
+    const { fixtureRoot, schemaPath } = await setup('issues')
     try {
       const cmd = new Deno.Command(Deno.execPath(), {
         args: [
@@ -155,7 +172,7 @@ Deno.test({
           PROJECT_NAME,
           schemaPath
         ],
-        cwd: tempDir,
+        cwd: fixtureRoot,
         stdout: 'piped',
         stderr: 'piped'
       })
@@ -168,9 +185,11 @@ Deno.test({
         throw new Error(`CLI failed.\nstdout:\n${out}\nstderr:\n${err}`)
       }
 
-      // Top-line generation summary present.
+      // Top-line generation summary present. The CLI emits
+      // "Generated N tokens, M files under <basePath> in <ms>." —
+      // assert on the stable anchors of that sentence.
       assertStringIncludes(out, 'Generated')
-      assertStringIncludes(out, 'files in')
+      assertStringIncludes(out, 'files under')
 
       // The fixture schema has 3 distinct issue categories — one of each
       // exercises a different code path in GqlParseContext.
@@ -180,11 +199,14 @@ Deno.test({
       assertStringIncludes(out, 'SKIPPED_FIELD_ARGUMENTS')
 
       // Specific locations the parser should attribute issues to.
+      // StackTrail locations use `:` as the segment separator on the
+      // wire, so `User:grid` and `User:posts:limit` are the forms
+      // that appear in the CLI's printed parse-issue list.
       assertStringIncludes(out, '@auth')
-      assertStringIncludes(out, 'User.grid')
-      assertStringIncludes(out, 'User.posts')
+      assertStringIncludes(out, 'User:grid')
+      assertStringIncludes(out, 'User:posts:limit')
     } finally {
-      await teardown(tempDir)
+      await teardown(fixtureRoot)
     }
   }
 })
@@ -194,7 +216,7 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
   fn: async () => {
-    const { tempDir, schemaPath } = await setup()
+    const { fixtureRoot, schemaPath } = await setup('clean')
     try {
       // Overwrite with a clean schema (no directives, no nested lists,
       // no non-root field args).
@@ -222,7 +244,7 @@ Deno.test({
           PROJECT_NAME,
           schemaPath
         ],
-        cwd: tempDir,
+        cwd: fixtureRoot,
         stdout: 'piped',
         stderr: 'piped'
       })
@@ -239,7 +261,7 @@ Deno.test({
       // The "Parse issues" section should NOT appear for a clean schema.
       assertEquals(out.includes('Parse issues'), false)
     } finally {
-      await teardown(tempDir)
+      await teardown(fixtureRoot)
     }
   }
 })

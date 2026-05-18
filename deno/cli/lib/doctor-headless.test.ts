@@ -203,6 +203,19 @@ Deno.test(
 Deno.test(
   'runDoctor - accepts a matching @skmtc/core pin without warning',
   async () => {
+    // Read the CLI's own pin so the test fixture stays in sync with
+    // whatever major.minor `@skmtc/core` is currently at. Hardcoding
+    // a version here drifts every time core gets bumped.
+    const { readCliCorePin, toMajorMinor } = await import('@/lib/doctor-headless.ts')
+    const cliPin = readCliCorePin()
+    if (cliPin === null) {
+      throw new Error('Cannot read CLI @skmtc/core pin; fixture cannot be built.')
+    }
+    const cliMajorMinor = toMajorMinor(cliPin)
+    if (cliMajorMinor === null) {
+      throw new Error(`Cannot parse CLI @skmtc/core pin "${cliPin}".`)
+    }
+
     await withTempSkmtcRoot(async tempRoot => {
       const projectPath = join(tempRoot, '.skmtc', 'good-pin')
       await ensureDir(join(projectPath, '.settings'))
@@ -210,7 +223,10 @@ Deno.test(
         join(projectPath, 'deno.json'),
         JSON.stringify({
           imports: {
-            '@skmtc/core': 'jsr:@skmtc/core@^0.3.5'
+            // Caret-range at the same major.minor as the CLI's own
+            // pin — doctor compares major.minor, so this matches
+            // however the CLI's version moves over time.
+            '@skmtc/core': `jsr:@skmtc/core@^${cliMajorMinor}.0`
           }
         })
       )

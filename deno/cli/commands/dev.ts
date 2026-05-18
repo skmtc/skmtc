@@ -69,9 +69,11 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
       const { stats } = await generateLocal({
         bundlePath,
         manifestPath,
+        projectPath,
         schemaContents: schemaContents.contents,
         fileType: schemaContents.fileType,
-        clientSettings: project.clientJson.contents?.settings
+        clientSettings: project.clientJson.contents?.settings,
+        schemaSource
       })
       const generateMs = Math.round(performance.now() - generateStart)
       const errorSuffix = stats.errors.length ? ` · ${stats.errors.length} errors` : ''

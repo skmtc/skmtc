@@ -7,6 +7,15 @@ type FakeProject = {
   name: string
   installs: InstallCall[]
   installGenerator: (args: InstallCall) => Promise<void>
+  /**
+   * Stub for the post-install rebundle path (`bundleHeadless` reads
+   * `project.rootDenoJson.contents.imports` to decide whether to
+   * rebuild). Empty `imports` keeps `hasLocalGenerator` false so the
+   * bundle short-circuits to a remote-only noop, letting the
+   * install-side assertions run without dragging the bundle
+   * machinery into the test.
+   */
+  rootDenoJson: { contents: { imports: Record<string, unknown> } }
 }
 
 const createFakeProject = (name: string): FakeProject => {
@@ -16,7 +25,8 @@ const createFakeProject = (name: string): FakeProject => {
     installs,
     installGenerator: async (args: InstallCall) => {
       installs.push(args)
-    }
+    },
+    rootDenoJson: { contents: { imports: {} } }
   }
 }
 

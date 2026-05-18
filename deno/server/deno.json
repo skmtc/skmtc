@@ -6,7 +6,7 @@
   },
   "imports": {
     "hono": "npm:hono@4.7.2",
-    "@skmtc/core": "jsr:@skmtc/core@0.4.5",
+    "@skmtc/core": "jsr:@skmtc/core@0.5.1",
     "@skmtc/convert": "jsr:@skmtc/convert@0.1.9"
   },
   "tasks": {

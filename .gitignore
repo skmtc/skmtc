@@ -59,4 +59,9 @@ openapi.json
 
 .skmtc
 
+# Test fixture working directories (smoke tests build ephemeral
+# project trees here so they live inside the workspace for proper
+# resolution; everything in here is regenerated per test run).
+deno/cli/tests/.fixtures/
+
 notes/*

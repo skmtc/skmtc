@@ -15,7 +15,7 @@ server.tool(
     url: z.string().describe('The url to an OpenAPI 3.0 schema file'),
     basePath: z.string().optional().describe('prefix path for generated artifacts')
   },
-  async ({ url, basePath }) => {
+  async ({ url, basePath }: { url: string; basePath?: string }) => {
     try {
       const schemaResponse = await fetch(url)
 

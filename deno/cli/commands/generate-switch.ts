@@ -27,6 +27,12 @@ type GenerateSwitchArgs = {
   tsconfig?: string
   /** Optional override for the `tsc` command (default: `npx tsc`). */
   tscCmd?: string
+  /**
+   * Override for `client.json#settings.anchors.enabled`. `true` from
+   * `--anchors`, `false` from `--no-anchors`, `undefined` (default)
+   * to honour the config value.
+   */
+  anchorsFlag?: boolean
 }
 
 export const generateSwitch = async ({
@@ -37,7 +43,8 @@ export const generateSwitch = async ({
   noInputFlag,
   typecheck,
   tsconfig,
-  tscCmd
+  tscCmd,
+  anchorsFlag
 }: GenerateSwitchArgs) => {
   // --json + --watch is incompatible: --json emits a single object
   // and exits, --watch is a stream. Fail loudly so the caller learns
@@ -96,7 +103,7 @@ export const generateSwitch = async ({
     }
 
     const { generateLocal } = await import('@/lib/generate-local.ts')
-    const result = await generateLocal(generateLocalArgs)
+    const result = await generateLocal({ ...generateLocalArgs, anchorsFlag })
 
     // Optional post-generate type-check pass. Runs the consumer's
     // tsc against the freshly-emitted files; diagnostics are scoped

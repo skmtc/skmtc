@@ -163,9 +163,19 @@ const run = async () => {
       'Override the tsc command used by --typecheck. Defaults to `npx tsc`; useful for ' +
         'pnpm/bun setups (e.g. `--tsc-cmd "pnpm exec tsc"`).'
     )
+    .option(
+      '--anchors',
+      'Force gen-maps (attribution) output ON, regardless of ' +
+        '`client.json#settings.anchors.enabled`. Emits sidecars + a ' +
+        'generation map under `.skmtc/<project>/.maps/`.'
+    )
+    .option(
+      '--no-anchors',
+      'Force gen-maps (attribution) output OFF, regardless of config.'
+    )
     .action(
       async (
-        { watch, json, input, typecheck, tsconfig, tscCmd },
+        { watch, json, input, typecheck, tsconfig, tscCmd, anchors },
         projectName,
         schemaSourceString
       ) => {
@@ -178,7 +188,10 @@ const run = async () => {
           noInputFlag: input === false,
           typecheck,
           tsconfig,
-          tscCmd
+          tscCmd,
+          // Cliffy maps `--anchors` / `--no-anchors` to a `boolean |
+          // undefined` field — undefined when neither was passed.
+          anchorsFlag: anchors
         })
       }
     )

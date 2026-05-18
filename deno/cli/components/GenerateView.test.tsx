@@ -218,7 +218,7 @@ Deno.test(
 
       assertEquals(
         schemaPrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │`
       )
 
@@ -231,7 +231,7 @@ Deno.test(
 
       assertEquals(
         schemaPath,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json`
       )
 
@@ -246,7 +246,7 @@ Deno.test(
 
       assertEquals(
         bundlePrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
@@ -264,7 +264,7 @@ Deno.test(
 
       assertEquals(
         watchPrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
@@ -289,7 +289,7 @@ Deno.test(
 
       assertEquals(
         watchingFrame,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
@@ -754,7 +754,7 @@ Deno.test(
 
       assertEquals(
         schemaPrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │`
       )
 
@@ -772,7 +772,7 @@ Deno.test(
 
       assertEquals(
         bundlePrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?
@@ -790,7 +790,7 @@ Deno.test(
 
       assertEquals(
         watchPrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?
@@ -817,7 +817,7 @@ Deno.test(
 
       assertEquals(
         generatingFrame,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?

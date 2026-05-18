@@ -51,6 +51,10 @@ const createMockResponse = () => ({
     previews: {},
     mappings: {},
     results: {},
+    // `parseIssues` moved into the manifest in the v0.5 refactor —
+    // the valibot schema requires it to be present (empty array for
+    // clean parses).
+    parseIssues: [],
     startAt: Date.now() - 1000,
     endAt: Date.now()
   }

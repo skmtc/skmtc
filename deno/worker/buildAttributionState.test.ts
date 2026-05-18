@@ -4,25 +4,27 @@
  * the `postMessage` boundary.
  *
  * The function is the seam where the wire shape and the in-memory
- * shape meet: `parser` becomes `tscAdapter`, and `generatorMeta`
- * becomes a lookup function. Tests pin both behaviours.
+ * shape meet: `parser` becomes `tscAdapter` (loaded via dynamic
+ * import so the heavy `typescript` dep stays out of bundles that
+ * don't use it), and `generatorMeta` becomes a lookup function.
+ * Tests pin both behaviours.
  */
 
 import { assertEquals, assertStrictEquals } from '@std/assert'
 import { tscAdapter } from '@skmtc/core/Anchors'
 import { buildAttributionState } from './mod.ts'
 
-Deno.test('buildAttributionState - undefined payload yields undefined', () => {
-  assertStrictEquals(buildAttributionState(undefined), undefined)
+Deno.test('buildAttributionState - undefined payload yields undefined', async () => {
+  assertStrictEquals(await buildAttributionState(undefined), undefined)
 })
 
-Deno.test('buildAttributionState - enabled without postPass returns instrumentation-only', () => {
-  const result = buildAttributionState({ enabled: true })
+Deno.test('buildAttributionState - enabled without postPass returns instrumentation-only', async () => {
+  const result = await buildAttributionState({ enabled: true })
   assertEquals(result, { enabled: true })
 })
 
-Deno.test('buildAttributionState - postPass reconstitutes parser as tscAdapter', () => {
-  const result = buildAttributionState({
+Deno.test('buildAttributionState - postPass reconstitutes parser as tscAdapter', async () => {
+  const result = await buildAttributionState({
     enabled: true,
     postPass: { schemaSrc: 'openapi.json' }
   })
@@ -30,8 +32,8 @@ Deno.test('buildAttributionState - postPass reconstitutes parser as tscAdapter',
   assertEquals(result?.postPass?.schemaSrc, 'openapi.json')
 })
 
-Deno.test('buildAttributionState - generatorMeta map becomes a lookup function', () => {
-  const result = buildAttributionState({
+Deno.test('buildAttributionState - generatorMeta map becomes a lookup function', async () => {
+  const result = await buildAttributionState({
     enabled: true,
     postPass: {
       schemaSrc: 'openapi.json',
@@ -52,8 +54,8 @@ Deno.test('buildAttributionState - generatorMeta map becomes a lookup function',
   assertEquals(hit?.registry, { host: 'jsr.io', kind: 'jsr' })
 })
 
-Deno.test('buildAttributionState - unknown genId falls back to default registry', () => {
-  const result = buildAttributionState({
+Deno.test('buildAttributionState - unknown genId falls back to default registry', async () => {
+  const result = await buildAttributionState({
     enabled: true,
     postPass: {
       schemaSrc: 'openapi.json',
@@ -72,8 +74,8 @@ Deno.test('buildAttributionState - unknown genId falls back to default registry'
   assertEquals(miss?.registry, { host: 'jsr.io', kind: 'jsr' })
 })
 
-Deno.test('buildAttributionState - omitted generatorMeta leaves lookup undefined', () => {
-  const result = buildAttributionState({
+Deno.test('buildAttributionState - omitted generatorMeta leaves lookup undefined', async () => {
+  const result = await buildAttributionState({
     enabled: true,
     postPass: { schemaSrc: 'openapi.json' }
   })
@@ -81,7 +83,7 @@ Deno.test('buildAttributionState - omitted generatorMeta leaves lookup undefined
   assertStrictEquals(result?.postPass?.generatorMeta, undefined)
 })
 
-Deno.test('buildAttributionState - payload round-trips through structured clone', () => {
+Deno.test('buildAttributionState - payload round-trips through structured clone', async () => {
   // Real worker postMessage uses structured clone. Verify our shape
   // survives — JSON round-trip is a conservative proxy (structured
   // clone supports everything JSON does plus more).
@@ -98,7 +100,7 @@ Deno.test('buildAttributionState - payload round-trips through structured clone'
     }
   }
   const cloned = JSON.parse(JSON.stringify(payload))
-  const result = buildAttributionState(cloned)
+  const result = await buildAttributionState(cloned)
   assertEquals(
     result?.postPass?.generatorMeta?.('@scope/gen-zod')?.version,
     '0.0.55'

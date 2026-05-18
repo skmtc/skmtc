@@ -140,25 +140,39 @@ Deno.test(
 
 /**
  * `tsc` is not part of the test runtime — these integration tests
- * shell out to it via `npx tsc`. If npx can't actually find a tsc to
- * invoke (no global install, no nearby node_modules), `npx tsc` will
- * either prompt or silently no-op, neither of which gives us a real
- * test signal. We probe by running `npx tsc --version` with a 10s
- * cap and check for a parseable version string in stdout.
+ * shell out via `npx tsc`, which is what `runTypecheck` itself uses
+ * in production. The probe has two traps:
+ *
+ *  1. Running from inside the workspace (the test process's cwd) is a
+ *     false positive: `npx tsc` finds the workspace's
+ *     `node_modules/.bin/tsc`, but the test then cd's into a temp dir
+ *     under `homedir()` with no `node_modules` ancestor.
+ *  2. From the temp dir, `npx tsc` falls back to npm's published
+ *     placeholder package (`"This is not the tsc command you are
+ *     looking for"`), which exits non-zero and prints its message to
+ *     stdout — no "Version" line.
+ *
+ * The probe must run from the same kind of bare directory the test
+ * uses. We create a throwaway temp dir under `homedir()` and probe
+ * `npx tsc --version` from there.
  */
 function canRunTsc(): boolean {
   try {
-    const cmd = new Deno.Command('sh', {
-      args: ['-c', 'npx --no-install tsc --version'],
-      stdout: 'piped',
-      stderr: 'piped'
-    })
-    const output = cmd.outputSync()
-    if (output.code !== 0) return false
-    const stdout = new TextDecoder().decode(output.stdout)
-    // tsc --version prints "Version 5.x.x" — just check we got
-    // a "Version" line back.
-    return stdout.includes('Version')
+    const probeDir = Deno.makeTempDirSync({ dir: homedir(), prefix: 'tsc-probe-' })
+    try {
+      const cmd = new Deno.Command('sh', {
+        args: ['-c', 'npx tsc --version'],
+        cwd: probeDir,
+        stdout: 'piped',
+        stderr: 'piped'
+      })
+      const output = cmd.outputSync()
+      if (output.code !== 0) return false
+      const stdout = new TextDecoder().decode(output.stdout)
+      return stdout.includes('Version')
+    } finally {
+      Deno.removeSync(probeDir, { recursive: true })
+    }
   } catch {
     return false
   }

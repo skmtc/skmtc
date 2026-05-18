@@ -55,7 +55,21 @@ export const printGenerateResult = ({
         // Pass through ParseIssue verbatim — the shape is stable and
         // documented in `@skmtc/core` as part of the manifest schema.
         parseIssues: result.parseIssues,
-        ...(typecheck ? { typecheck } : {})
+        ...(typecheck ? { typecheck } : {}),
+        // Gen-maps summary — present only when the post-pass ran
+        // (anchors enabled via config + flag resolution). Omitted
+        // entirely when off so the field's presence is the signal.
+        ...(result.anchors
+          ? {
+              anchors: {
+                enabled: true,
+                outDir: result.anchors.outDir,
+                filesWritten: result.anchors.filesWritten,
+                totalBytes: result.anchors.totalBytes,
+                generationMapEntries: result.anchors.generationMapEntries
+              }
+            }
+          : {})
       }
       console.log(JSON.stringify(payload, null, 2))
       return

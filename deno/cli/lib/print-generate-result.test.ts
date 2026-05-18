@@ -125,3 +125,49 @@ Deno.test('printGenerateResult - json format passes parseIssues through verbatim
   assertEquals(parsed.parseIssues[0].protocol, 'oas')
   assertEquals(parsed.parseIssues[0].type, 'MISSING_OBJECT_TYPE')
 })
+
+Deno.test('printGenerateResult - json omits `anchors` field when post-pass did not run', async () => {
+  // `anchors` should not appear in the payload at all when undefined,
+  // not as `anchors: null` or `anchors: { enabled: false }` — agents
+  // can use the field's presence as the "did the post-pass run" signal.
+  const logs = await captureStdout(async () => {
+    printGenerateResult({
+      result: baseResult,
+      projectName: 'my-api',
+      basePath: './src',
+      manifestPath: '/m.json',
+      format: 'json'
+    })
+  })
+  const parsed = JSON.parse(logs[0])
+  assertEquals('anchors' in parsed, false)
+})
+
+Deno.test('printGenerateResult - json emits `anchors` block when result.anchors is set', async () => {
+  const resultWithAnchors: GenerateLocalResult = {
+    ...baseResult,
+    anchors: {
+      outDir: '/abs/.skmtc/my-api/.maps',
+      filesWritten: 4,
+      totalBytes: 12345,
+      generationMapEntries: 3
+    }
+  }
+  const logs = await captureStdout(async () => {
+    printGenerateResult({
+      result: resultWithAnchors,
+      projectName: 'my-api',
+      basePath: './src',
+      manifestPath: '/m.json',
+      format: 'json'
+    })
+  })
+  const parsed = JSON.parse(logs[0])
+  assertEquals(parsed.anchors, {
+    enabled: true,
+    outDir: '/abs/.skmtc/my-api/.maps',
+    filesWritten: 4,
+    totalBytes: 12345,
+    generationMapEntries: 3
+  })
+})

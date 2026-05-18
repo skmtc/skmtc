@@ -72,6 +72,7 @@ const createMockManifest = (): ManifestContent => {
     files: {},
     previews: {},
     results: {},
+    parseIssues: [],
     startAt: Date.now(),
     endAt: Date.now()
   }
@@ -452,9 +453,12 @@ Deno.test('generateWithWorker - posts GraphQL payload (protocol=gql, gqlSource) 
     })
 
     const payload = capturedPayload as GeneratePayload
-    assertEquals(payload.protocol, 'gql')
-    if (payload.protocol === 'gql') {
-      assertEquals(payload.gqlSource, 'type Query { ping: Boolean }')
+    // The wire shape uses a `document` discriminated union now —
+    // `{ type: 'gql', value: <sdl> }` instead of the old
+    // `protocol: 'gql', gqlSource: <sdl>` flat shape.
+    assertEquals(payload.document.type, 'gql')
+    if (payload.document.type === 'gql') {
+      assertEquals(payload.document.value, 'type Query { ping: Boolean }')
     }
   } finally {
     globalThis.Worker = OriginalWorker
@@ -497,9 +501,10 @@ Deno.test('generateWithWorker - posts OAS payload (protocol=oas, documentObject)
     })
 
     const payload = capturedPayload as GeneratePayload
-    assertEquals(payload.protocol, 'oas')
-    if (payload.protocol === 'oas') {
-      assertEquals(payload.documentObject.openapi, '3.0.0')
+    // OAS now travels as `{ type: 'oas', value: <OpenAPIV3.Document> }`.
+    assertEquals(payload.document.type, 'oas')
+    if (payload.document.type === 'oas') {
+      assertEquals(payload.document.value.openapi, '3.0.0')
     }
   } finally {
     globalThis.Worker = OriginalWorker

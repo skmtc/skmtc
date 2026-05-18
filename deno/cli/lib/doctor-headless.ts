@@ -21,6 +21,11 @@ import { Manifest } from '@/lib/manifest.ts'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { homedir } from 'node:os'
 import cliDenoJson from '../deno.json' with { type: 'json' }
+import {
+  checkAnchorsConfig,
+  checkAnchorsCoverage,
+  checkAnchorsStaleness
+} from '@/lib/doctor-anchors.ts'
 
 export type CheckStatus = 'ok' | 'warning' | 'error' | 'skipped'
 
@@ -174,6 +179,12 @@ const checkProject = (
   checks.push(checkProjectCorePin(projectName, denoJsonPath, ctx.cliCorePin))
   checks.push(checkProjectBundle(projectName, denoJsonPath, bundlePath))
   checks.push(checkProjectManifest(projectName))
+  // Gen-maps (anchors) checks — all three short-circuit to `skipped`
+  // when the project hasn't opted in, so they're free for users not
+  // using the feature.
+  checks.push(checkAnchorsConfig(projectName, projectPath))
+  checks.push(checkAnchorsCoverage(projectName, projectPath))
+  checks.push(checkAnchorsStaleness(projectName, projectPath))
   return checks
 }
 

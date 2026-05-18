@@ -24,9 +24,11 @@ export const toGenerateLocalArgs = async ({
     return {
       bundlePath: toBundlePath(projectPath),
       manifestPath: toManifestPath(projectPath),
+      projectPath,
       schemaContents: schemaContents.contents,
       fileType: schemaContents.fileType,
-      clientSettings: clientJsonContents?.settings
+      clientSettings: clientJsonContents?.settings,
+      schemaSource: schemaSourceString
     }
   }
 
@@ -43,8 +45,10 @@ export const toGenerateLocalArgs = async ({
   return {
     bundlePath: toBundlePath(projectPath),
     manifestPath: toManifestPath(projectPath),
+    projectPath,
     schemaContents: schemaContents.contents,
     fileType: schemaContents.fileType,
-    clientSettings: clientJsonContents.settings
+    clientSettings: clientJsonContents.settings,
+    schemaSource: clientJsonContents.source
   }
 }

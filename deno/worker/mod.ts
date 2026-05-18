@@ -1,6 +1,5 @@
 import { type GeneratorsMapContainer, toArtifacts } from '@skmtc/core'
 import { StackTrail } from '@skmtc/core'
-import { tscAdapter } from '@skmtc/core/Anchors'
 import type { AttributionState } from '@skmtc/core/AttributionState'
 import type { GeneratePayload, SerializableAttribution } from './types.ts'
 
@@ -20,20 +19,25 @@ export type {
  * passes that straight through to `toArtifacts`.
  *
  * The non-serialisable bits get reconstituted here:
- *  - `parser` defaults to `tscAdapter` (v1 only ships tsc).
+ *  - `parser` defaults to `tscAdapter` (v1 only ships tsc). Loaded
+ *    via dynamic `import()` so the npm `typescript` dep — which
+ *    doesn't bundle cleanly under `deno bundle` (uses `__filename`)
+ *    — stays out of the worker bundle unless attribution is
+ *    actually opted in.
  *  - `generatorMeta` becomes a lookup function over the plain
  *    `Record<genId, {version, registry}>` map, with a graceful
  *    fallback for unknown ids.
  */
-const buildAttributionState = (
+const buildAttributionState = async (
   serialised: SerializableAttribution | undefined
-): AttributionState | undefined => {
+): Promise<AttributionState | undefined> => {
   if (!serialised) return undefined
   if (!serialised.postPass) {
     return { enabled: serialised.enabled }
   }
 
   const { schemaSrc, generatorMeta } = serialised.postPass
+  const { tscAdapter } = await import('@skmtc/core/Anchors')
   return {
     enabled: serialised.enabled,
     postPass: {
@@ -70,7 +74,7 @@ const buildAttributionState = (
 const toWorker = (
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 ) => {
-  self.onmessage = (e: MessageEvent) => {
+  self.onmessage = async (e: MessageEvent) => {
     const { type, payload } = e.data as {
       type: string
       payload: GeneratePayload
@@ -84,6 +88,11 @@ const toWorker = (
           const spanId = `span-${startAt}`
           const stackTrail = new StackTrail([traceId, spanId])
 
+          // Resolve the attribution config first — the dynamic
+          // `tscAdapter` import only happens here when the caller
+          // actually opted in to the post-pass.
+          const attribution = await buildAttributionState(payload.attribution)
+
           const { artifacts, manifest, sidecars, generationMap } = toArtifacts({
             traceId,
             spanId,
@@ -94,7 +103,7 @@ const toWorker = (
             toGeneratorConfigMap,
             logsPath: undefined,
             silent: payload.silent ?? false,
-            attribution: buildAttributionState(payload.attribution)
+            attribution
           })
 
           self.postMessage({

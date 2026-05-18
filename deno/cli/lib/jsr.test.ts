@@ -284,10 +284,13 @@ Deno.test('Jsr.download - downloads generator with single file', async () => {
 
   try {
     const generator = createMockGenerator('@skmtc/gen-typescript', '^2.0.0')
-    const files = await Jsr.download(generator)
+    // `Jsr.download` now returns `{ files, version }` — destructure
+    // the files map and assert the resolved version separately.
+    const { files, version } = await Jsr.download(generator)
 
     assertEquals(Object.keys(files).length, 1)
     assertEquals(files['mod.ts'], 'export const hello = "world"')
+    assertEquals(version, '2.1.0')
     assertEquals(fetchCallCount >= 3, true) // meta.json, _meta.json, mod.ts
   } finally {
     globalThis.fetch = originalFetch
@@ -319,7 +322,7 @@ Deno.test('Jsr.download - downloads generator with multiple files', async () => 
 
   try {
     const generator = createMockGenerator('@skmtc/gen-typescript', '^2.0.0')
-    const files = await Jsr.download(generator)
+    const { files } = await Jsr.download(generator)
 
     assertEquals(Object.keys(files).length, 3)
     assertEquals(files['mod.ts'], 'export * from "./lib/helper.ts"')
