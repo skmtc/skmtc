@@ -44,8 +44,20 @@ export type PostPassArgs = {
    * the producer ran against.
    */
   schemaSrc: string
-  /** Parser adapter to resolve landmarks + paths. */
-  parser: ParserAdapter
+  /**
+   * Parser adapter to resolve landmarks + paths. Optional — when
+   * omitted, the sidecar still emits byte ranges + attribution +
+   * generator/schema-pointer/variant pools, but the `L` (landmark)
+   * and `P` (AST path) pools stay empty and every `A` row's
+   * landmark/path indices point at the empty sentinels. The SPA
+   * handles this gracefully (skips re-anchor on formatter drift).
+   *
+   * Worker-side post-pass uses this mode because native parsers
+   * (oxc-parser's napi bindings, tsc's `source-map-support` chain)
+   * don't bundle cleanly into a Web Worker. Host-side post-pass
+   * with a real parser is a future addition.
+   */
+  parser?: ParserAdapter
   /**
    * Per-generator metadata lookup. Defaults to a stub that fills
    * generator entries with empty version + `jsr.io` registry. The
@@ -79,14 +91,30 @@ export const postPass = ({
 }: PostPassArgs): Sidecar => {
   const source = file.toString()
   const spans = resolveSpansForFile(file)
-  const parsedFile = parser.parse(file.path, source)
-  const landmarks = parser.collectLandmarks(parsedFile)
 
+  const parsedFile = parser?.parse(file.path, source)
+  const landmarks = parser && parsedFile ? parser.collectLandmarks(parsedFile) : undefined
+
+  // No-parser fallback: track the most recent Definition we've
+  // crossed in document order. `resolveSpansForFile` emits each
+  // Definition's outer span before its inner Snippets, so this
+  // gives every inner span a stable landmark name even without AST
+  // analysis. Re-anchoring on formatter drift isn't possible
+  // without paths, but the SPA's hover/pin/related-artifact flows
+  // all work fine.
+  let currentDefName = ''
   const anchors: ResolvedAnchor[] = []
   for (const span of spans) {
     const attr: Attribution = attribute(span.producer)
-    const node = parser.smallestEnclosing(parsedFile, span.from, span.to)
-    const { landmark, path } = parser.ascendToLandmark(node, landmarks)
+    if (attr.defName !== undefined) currentDefName = attr.defName
+
+    const { landmark, path } =
+      parser && parsedFile && landmarks
+        ? (() => {
+            const node = parser.smallestEnclosing(parsedFile, span.from, span.to)
+            return parser.ascendToLandmark(node, landmarks)
+          })()
+        : { landmark: currentDefName, path: [] as number[] }
     const meta = generatorMeta(attr.genId)
     anchors.push({
       span,
@@ -98,10 +126,15 @@ export const postPass = ({
     })
   }
 
+  // Wholly-skipped sidecars (no spans) shouldn't claim a parser id.
+  // Otherwise tag with the parser used, or `'none'` when AST step
+  // was skipped — re-anchor consumers warn on mismatch and can
+  // detect "this sidecar has no landmark data" without inspecting
+  // the L/P pools.
   return buildSidecar({
     filePath: file.path,
     schemaSrc,
-    parser: parser.id,
+    parser: parser?.id ?? 'none',
     anchors
   })
 }

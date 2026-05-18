@@ -31,7 +31,14 @@ export {
   parseNdjson
 } from './generationMap.ts'
 export type { ParserAdapter, LandmarkLocation, NodeHandle, ParsedFile } from './ParserAdapter.ts'
-export { tscAdapter } from './tscAdapter.ts'
+// `oxcAdapter` is deliberately NOT re-exported here. It imports
+// `npm:oxc-parser`, whose `bindings.js` references every
+// platform-specific `.node` file in a way that `deno bundle`
+// statically follows — pulling them into the worker bundle breaks
+// it for non-host architectures. Host-side consumers (CLI post-pass)
+// import from `@skmtc/core/Anchors/oxc` directly. The worker doesn't
+// import it at all; `postPass` runs with `parser: undefined` and
+// falls back to Definition-identifier landmarks.
 export {
   postPass,
   type PostPassArgs,

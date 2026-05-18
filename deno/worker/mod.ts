@@ -19,29 +19,31 @@ export type {
  * passes that straight through to `toArtifacts`.
  *
  * The non-serialisable bits get reconstituted here:
- *  - `parser` defaults to `tscAdapter` (v1 only ships tsc). Loaded
- *    via dynamic `import()` so the npm `typescript` dep — which
- *    doesn't bundle cleanly under `deno bundle` (uses `__filename`)
- *    — stays out of the worker bundle unless attribution is
- *    actually opted in.
+ *  - `parser` is intentionally **omitted** worker-side. Both
+ *    candidate parsers (oxc-parser's napi bindings, tsc's
+ *    source-map-support chain) don't bundle cleanly into a Web
+ *    Worker via `deno bundle`. Without a parser the sidecar still
+ *    captures byte ranges, attributions, generators, schema
+ *    pointers, and variants — landmark names come from the
+ *    enclosing Definition's identifier (no AST descent), and
+ *    `path` stays empty. A host-side post-pass that runs oxc on
+ *    the rendered source can fill those in later if needed.
  *  - `generatorMeta` becomes a lookup function over the plain
  *    `Record<genId, {version, registry}>` map, with a graceful
  *    fallback for unknown ids.
  */
-const buildAttributionState = async (
+const buildAttributionState = (
   serialised: SerializableAttribution | undefined
-): Promise<AttributionState | undefined> => {
+): AttributionState | undefined => {
   if (!serialised) return undefined
   if (!serialised.postPass) {
     return { enabled: serialised.enabled }
   }
 
   const { schemaSrc, generatorMeta } = serialised.postPass
-  const { tscAdapter } = await import('@skmtc/core/Anchors')
   return {
     enabled: serialised.enabled,
     postPass: {
-      parser: tscAdapter,
       schemaSrc,
       generatorMeta: generatorMeta
         ? (genId: string) =>
@@ -67,7 +69,7 @@ const buildAttributionState = async (
  * the manifest as-is and no separate field travels on the wire.
  *
  * When `payload.attribution.postPass` is set, the worker also
- * reconstitutes the full `AttributionState` (with `tscAdapter` + a
+ * reconstitutes the full `AttributionState` (with `oxcAdapter` + a
  * lookup fn rebuilt from the plain `generatorMeta` map) and forwards
  * the resulting `sidecars` + `generationMap` in the RESULT message.
  */
@@ -88,10 +90,11 @@ const toWorker = (
           const spanId = `span-${startAt}`
           const stackTrail = new StackTrail([traceId, spanId])
 
-          // Resolve the attribution config first — the dynamic
-          // `tscAdapter` import only happens here when the caller
-          // actually opted in to the post-pass.
-          const attribution = await buildAttributionState(payload.attribution)
+          // Resolve the attribution config. The worker doesn't load
+          // a parser (see `buildAttributionState` doc); landmark
+          // names come from Definition identifiers instead of AST
+          // descent.
+          const attribution = buildAttributionState(payload.attribution)
 
           const { artifacts, manifest, sidecars, generationMap } = toArtifacts({
             traceId,

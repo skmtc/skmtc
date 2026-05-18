@@ -7,7 +7,7 @@ import { toModelGeneratorKey, type GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { postPass } from './postPass.ts'
-import { tscAdapter } from './tscAdapter.ts'
+import { oxcAdapter } from './oxcAdapter.ts'
 
 const ctx = (): GenerateContextType =>
   ({
@@ -46,7 +46,7 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
   const sidecar = postPass({
     file,
     schemaSrc: 'openapi.json',
-    parser: tscAdapter
+    parser: oxcAdapter
   })
 
   // At least one anchor landed inside the User landmark.
@@ -56,7 +56,7 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
   assert(userRows.length >= 1, 'expected anchors under the User landmark')
 
   // Parser id flows through.
-  assert(sidecar.parser.startsWith('tsc@'))
+  assert(sidecar.parser.startsWith('oxc@'))
 })
 
 Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
@@ -78,7 +78,7 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
   const sidecar = postPass({
     file,
     schemaSrc: 'openapi.json',
-    parser: tscAdapter
+    parser: oxcAdapter
   })
 
   assert(sidecar.S.includes('oas:#/components/schemas/Customer'))
@@ -112,7 +112,7 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
   const sidecar = postPass({
     file,
     schemaSrc: 'openapi.json',
-    parser: tscAdapter
+    parser: oxcAdapter
   })
 
   // Both landmarks pooled, and at least one anchor under each.
@@ -141,7 +141,7 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
   const sidecar = postPass({
     file,
     schemaSrc: 'openapi.json',
-    parser: tscAdapter,
+    parser: oxcAdapter,
     generatorMeta: (genId) => ({
       version: genId === '@scope/gen-zod' ? '1.2.3' : '',
       registry: { host: 'jsr.skmtc.dev', kind: 'jsr-private' }
@@ -172,7 +172,7 @@ Deno.test('postPass - anchor bytes survive a slice through file.toString()', () 
   const sidecar = postPass({
     file,
     schemaSrc: 'openapi.json',
-    parser: tscAdapter
+    parser: oxcAdapter
   })
 
   // Every anchor's byte range slices to a non-empty substring of the
@@ -189,7 +189,7 @@ Deno.test('postPass - empty file yields a sidecar with no anchors', () => {
   const sidecar = postPass({
     file,
     schemaSrc: 'openapi.json',
-    parser: tscAdapter
+    parser: oxcAdapter
   })
   assertEquals(sidecar.A, [])
   // Pools also empty — no metadata to record.

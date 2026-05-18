@@ -13,7 +13,7 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
 import { toModelProjectionBase } from '@/dsl/model/toModelProjectionBase.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { tscAdapter } from '@/anchors/tscAdapter.ts'
+import { oxcAdapter } from '@/anchors/oxcAdapter.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
@@ -113,7 +113,7 @@ Deno.test('toArtifacts - attribution + postPass → sidecars emitted per File', 
     attribution: {
       enabled: true,
       postPass: {
-        parser: tscAdapter,
+        parser: oxcAdapter,
         schemaSrc: 'openapi.json'
       }
     }
@@ -130,7 +130,7 @@ Deno.test('toArtifacts - attribution + postPass → sidecars emitted per File', 
   assert(userSidecar !== undefined)
   assertEquals(userSidecar.v, 2)
   assertEquals(userSidecar.src, 'openapi.json')
-  assert(userSidecar.parser.startsWith('tsc@'))
+  assert(userSidecar.parser.startsWith('oxc@'))
 })
 
 Deno.test('toArtifacts - generation map carries one entry per Definition', () => {
@@ -146,7 +146,7 @@ Deno.test('toArtifacts - generation map carries one entry per Definition', () =>
     attribution: {
       enabled: true,
       postPass: {
-        parser: tscAdapter,
+        parser: oxcAdapter,
         schemaSrc: 'openapi.json'
       }
     }
@@ -175,7 +175,7 @@ Deno.test('toArtifacts - generatorMeta lookup flows through to sidecar entries',
     attribution: {
       enabled: true,
       postPass: {
-        parser: tscAdapter,
+        parser: oxcAdapter,
         schemaSrc: 'openapi.json',
         generatorMeta: (genId) => ({
           version: genId === '@test/gen-model' ? '1.2.3' : '',

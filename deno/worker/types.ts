@@ -23,7 +23,7 @@ import type { ManifestContent } from '@skmtc/core/Manifest'
  * function. Neither survives structured clone. The wire shape
  * replaces both with plain data:
  *
- * - `parser` is reconstructed worker-side as the pinned `tscAdapter`
+ * - `parser` is reconstructed worker-side as the pinned `oxcAdapter`
  *   from `@skmtc/core/Anchors`. v1 only supports tsc; when oxc lands
  *   (plan §8) this shape grows a `parser: 'tsc' | 'oxc'` discriminator.
  * - `generatorMeta` is replaced by a flat `Record<genId, {version,

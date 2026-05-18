@@ -27,8 +27,17 @@ import type { ParserAdapter } from '@/anchors/ParserAdapter.ts'
 import type { GeneratorMetaLookup } from '@/anchors/postPass.ts'
 
 export type AttributionPostPassConfig = {
-  /** Parser adapter used to resolve landmarks + AST paths. */
-  parser: ParserAdapter
+  /**
+   * Parser adapter used to resolve landmarks + AST paths. Optional —
+   * when omitted, the post-pass falls back to using the enclosing
+   * Definition's identifier as the landmark and emits an empty AST
+   * path. Sidecars still carry byte ranges, attributions, generators,
+   * schema pointers, and variants. The worker-side pipeline runs
+   * without a parser because native parsers don't bundle cleanly
+   * via `deno bundle`; a host-side post-pass can re-run with a
+   * parser later when full AST data is needed.
+   */
+  parser?: ParserAdapter
   /**
    * Schema source identifier — typically the path or URL the producer
    * ran against (e.g. `'openapi.json'`). Lands on each sidecar's

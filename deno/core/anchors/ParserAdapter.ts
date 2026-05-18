@@ -2,11 +2,14 @@
  * @fileoverview Parser-agnostic interface for AST descend + landmark
  * resolution. Per plan §8.3.
  *
- * One implementation today (`tscAdapter`); `oxc` plugs in later
- * behind the same interface. Consumers (`postPass`, the viewer's
- * re-anchor path, the VSCode extension) import only through this
- * interface so swapping parsers is a one-line change at the wire-up
- * site.
+ * One implementation today (`oxcAdapter`, backed by the Rust
+ * oxc-parser via napi). v1 originally landed `tscAdapter` but tsc's
+ * npm package can't bundle into a Worker (pulls in
+ * `source-map-support`), so we swapped to oxc — Spike 1b had already
+ * validated it works in Deno and is ~3.2× faster on raw parse.
+ * Consumers (`postPass`, the viewer's re-anchor path, the VSCode
+ * extension) import only through this interface so swapping parsers
+ * is a one-line change at the wire-up site.
  *
  * The interface is intentionally narrow — just what the post-pass
  * and re-anchor flows need. Each adapter keeps its own node
