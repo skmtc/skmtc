@@ -21,7 +21,7 @@ import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
 import { postPass as runPostPass } from '@/anchors/postPass.ts'
-import { entriesForSidecar } from '@/anchors/rollup.ts'
+import { entriesForSidecar } from '@/anchors/generationMap.ts'
 import { File as FileClass } from '@/dsl/File.ts'
 
 /**
@@ -95,8 +95,9 @@ type RenderArgs = {
 /**
  * Run the gen-maps post-pass over the rendered `File` instances when
  * `attribution.postPass` is configured. Returns the per-file sidecar
- * map and a flat rollup list; returns `undefined` when attribution
- * isn't fully configured so the caller can skip the spread.
+ * map and a flat generation-map list; returns `undefined` when
+ * attribution isn't fully configured so the caller can skip the
+ * spread.
  *
  * Module-level helper rather than a CoreContext method so it stays
  * pure and testable in isolation.
@@ -104,12 +105,15 @@ type RenderArgs = {
 const runPostPassForFiles = (
   files: Map<string, File | JsonFile>,
   attribution: AttributionState | undefined
-): { sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar>; rollup: import('@/anchors/rollup.ts').RollupEntry[] } | undefined => {
+): {
+  sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar>
+  generationMap: import('@/anchors/generationMap.ts').GenerationMapEntry[]
+} | undefined => {
   if (!attribution?.enabled || !attribution.postPass) return undefined
 
   const { parser, schemaSrc, generatorMeta } = attribution.postPass
   const sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar> = {}
-  const rollup: import('@/anchors/rollup.ts').RollupEntry[] = []
+  const generationMap: import('@/anchors/generationMap.ts').GenerationMapEntry[] = []
 
   for (const [path, file] of files) {
     // JsonFile and other non-source artifacts have no Definitions /
@@ -118,10 +122,10 @@ const runPostPassForFiles = (
 
     const sidecar = runPostPass({ file, schemaSrc, parser, generatorMeta })
     sidecars[path] = sidecar
-    rollup.push(...entriesForSidecar(sidecar))
+    generationMap.push(...entriesForSidecar(sidecar))
   }
 
-  return { sidecars, rollup }
+  return { sidecars, generationMap }
 }
 
 /**
@@ -156,7 +160,7 @@ export type ToArtifactsArgs = {
   /**
    * Optional attribution (gen-maps) state. When `enabled`, Parse and
    * Generate phases record provenance; when `postPass` is also set,
-   * the pipeline emits sidecars + a rollup index alongside the
+   * the pipeline emits sidecars + a generation map alongside the
    * usual artifacts. See {@link AttributionState}.
    */
   attribution?: AttributionState
@@ -439,7 +443,7 @@ export class CoreContext {
 
       // Gen-maps post-pass: AST-resolve landmarks + paths for every
       // span, emit one sidecar per source File, accumulate the
-      // rollup. Runs after generate (when File instances are fully
+      // generation map. Runs after generate (when File instances are fully
       // populated, including instrumented `_children` / `_rendered`)
       // and before render. Only when both `enabled` and `postPass`
       // config are present.

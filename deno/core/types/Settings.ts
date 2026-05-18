@@ -384,18 +384,18 @@ export type Include = IncludeOperations | IncludeModels | string
  * `client.json#settings.anchors`.
  *
  * v1 honours the two fields below. Future fields (parser choice,
- * gzip compression, rollup toggle) will land additively as the
+ * gzip compression, map toggle) will land additively as the
  * Phase G adapter swap and Phase D polish work proceeds.
  */
 export type AnchorsSettings = {
   /**
    * Master switch. `true` emits a sidecar per generated source file
-   * and a project-level rollup index. `false` (or omitted) runs
+   * and a project-level generation map. `false` (or omitted) runs
    * generation as if gen-maps didn't exist — zero overhead.
    */
   enabled: boolean
   /**
-   * Output directory for sidecars + rollup, relative to
+   * Output directory for sidecars + generation map, relative to
    * `.skmtc/<project>/`. Defaults to `'.maps'` when omitted. The
    * `skmtc init` template gitignores the `.maps` subtree by default
    * since sidecars are build output, not source.
@@ -421,7 +421,7 @@ export type ClientSettings = {
   skip?: Skip[]
   /**
    * Gen-maps (`anchors`) configuration. When `enabled: true`, the CLI
-   * emits per-file sidecars and a rollup index alongside the
+   * emits per-file sidecars and a generation map alongside the
    * generated artifacts. Omitted by default; the feature is opt-in
    * in v1. See {@link AnchorsSettings}.
    */

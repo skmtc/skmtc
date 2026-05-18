@@ -1,4 +1,5 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
+import type { SerializableAttribution } from '@skmtc/worker/types'
 import { generateSandboxApi } from '@/services/generateSandboxApi.ts'
 import { generateWithWorker } from './generate-worker.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
@@ -18,6 +19,7 @@ type GenerateWithWorkerArgs = {
   schemaContents: string
   fileType: FileType
   clientSettings: ClientSettings | undefined
+  attribution?: SerializableAttribution
 }
 
 // Class is used as a proxy for easy mocking in tests
@@ -26,13 +28,15 @@ export class GenerateArtifacts {
     bundlePath,
     schemaContents,
     fileType,
-    clientSettings
+    clientSettings,
+    attribution
   }: GenerateWithWorkerArgs): Promise<GenerateResponse> {
     return await generateWithWorker({
       schemaContents,
       fileType,
       clientSettings,
-      bundlePath
+      bundlePath,
+      attribution
     })
   }
 

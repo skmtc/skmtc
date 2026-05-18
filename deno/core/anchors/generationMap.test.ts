@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertThrows } from '@std/assert'
 import type { Sidecar } from './sidecar.ts'
-import { entriesForSidecar, parseNdjson, toNdjson } from './rollup.ts'
+import { entriesForSidecar, parseNdjson, toNdjson } from './generationMap.ts'
 
 const baseSidecar = (overrides: Partial<Sidecar> = {}): Sidecar => ({
   v: 2,
@@ -29,9 +29,9 @@ Deno.test('entriesForSidecar - one entry per landmark from a single-Definition s
   })
 })
 
-Deno.test('entriesForSidecar - inner Snippet anchors do not produce extra rollup rows', () => {
+Deno.test('entriesForSidecar - inner Snippet anchors do not produce extra map rows', () => {
   // Two anchors for the same landmark: an outermost (path '') row and
-  // a nested Snippet anchor (path '0'). The rollup should still emit
+  // a nested Snippet anchor (path '0'). The map should still emit
   // one row.
   const sc = baseSidecar({
     P: ['', '0'],
@@ -140,7 +140,7 @@ Deno.test('entriesForSidecar - variant from V pool flows through', () => {
   assertEquals(entries[0].v, 'customer')
 })
 
-Deno.test('entriesForSidecar - generator pooled by index, reflected in rollup', () => {
+Deno.test('entriesForSidecar - generator pooled by index, reflected in map', () => {
   const sc = baseSidecar({
     G: [
       { name: '@scope/gen-zod', version: '1.0.0', r: 0 },

@@ -1,5 +1,7 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { SkmtcDocumentInput } from '@skmtc/core'
+import type { RegistryEntry, Sidecar, GenerationMapEntry } from '@skmtc/core/Anchors'
+import type { ManifestContent } from '@skmtc/core/Manifest'
 
 /**
  * Wire-protocol types for `@skmtc/worker`.
@@ -11,6 +13,30 @@ import type { SkmtcDocumentInput } from '@skmtc/core'
  * `deno.worker` compilerOptions.lib, which non-worker callers don't
  * have configured.
  */
+
+/**
+ * Serialisable subset of `AttributionState` that can cross the worker
+ * `postMessage` boundary.
+ *
+ * `AttributionState` itself holds a `parser` (`ParserAdapter` —
+ * object with function methods) and a `generatorMeta` lookup
+ * function. Neither survives structured clone. The wire shape
+ * replaces both with plain data:
+ *
+ * - `parser` is reconstructed worker-side as the pinned `tscAdapter`
+ *   from `@skmtc/core/Anchors`. v1 only supports tsc; when oxc lands
+ *   (plan §8) this shape grows a `parser: 'tsc' | 'oxc'` discriminator.
+ * - `generatorMeta` is replaced by a flat `Record<genId, {version,
+ *   registry}>` map. The worker rebuilds it into a lookup fn that
+ *   falls back to the default when an unknown `genId` is queried.
+ */
+export type SerializableAttribution = {
+  enabled: boolean
+  postPass?: {
+    schemaSrc: string
+    generatorMeta?: Record<string, { version: string; registry: RegistryEntry }>
+  }
+}
 
 /**
  * Wire shape of the `GENERATE` message payload posted by the host.
@@ -32,6 +58,12 @@ export type GeneratePayload = {
   clientSettings?: ClientSettings
   silent?: boolean
   document: SkmtcDocumentInput
+  /**
+   * Optional attribution (gen-maps) config. When `enabled: true` with
+   * a `postPass` block, the worker runs the post-pass and includes
+   * `sidecars` + `generationMap` in the RESULT message.
+   */
+  attribution?: SerializableAttribution
 }
 
 /**
@@ -41,4 +73,17 @@ export type GeneratePayload = {
 export type WorkerMessage = {
   type: 'GENERATE'
   payload: GeneratePayload
+}
+
+/**
+ * Wire shape of the worker's RESULT message back to the host. Mirrors
+ * the relevant `ToArtifactsResult` fields. `sidecars` + `generationMap`
+ * are present only when the payload's `attribution.postPass` was set.
+ */
+export type WorkerResult = {
+  type: 'RESULT'
+  artifacts: Record<string, string>
+  manifest: ManifestContent
+  sidecars?: Record<string, Sidecar>
+  generationMap?: GenerationMapEntry[]
 }

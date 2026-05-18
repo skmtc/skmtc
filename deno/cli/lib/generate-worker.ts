@@ -1,6 +1,7 @@
 import { toV3Document, stringToSchema } from '@skmtc/convert'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { SkmtcDocumentInput } from '@skmtc/core'
+import type { SerializableAttribution } from '@skmtc/worker/types'
 import { fileTypeToProtocol, type FileType } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 
@@ -22,6 +23,12 @@ type GenerateWithWorkerArgs = {
   fileType: FileType
   clientSettings: ClientSettings | undefined
   bundlePath: string
+  /**
+   * Optional gen-maps (attribution) config. When `enabled: true` with
+   * a `postPass` block, the worker emits sidecars + a generation map
+   * alongside artifacts. Caller writes them to disk.
+   */
+  attribution?: SerializableAttribution
 }
 
 /**
@@ -63,7 +70,8 @@ export const generateWithWorker = ({
   schemaContents,
   fileType,
   clientSettings,
-  bundlePath
+  bundlePath,
+  attribution
 }: GenerateWithWorkerArgs): Promise<GenerateResponse> => {
   const workerUrl = new URL(bundlePath, import.meta.url)
 
@@ -91,7 +99,8 @@ export const generateWithWorker = ({
             type: 'GENERATE',
             payload: {
               document,
-              clientSettings
+              clientSettings,
+              attribution
             }
           })
           break
@@ -99,8 +108,8 @@ export const generateWithWorker = ({
 
         case 'RESULT': {
           worker.terminate()
-          const { artifacts, manifest } = e.data
-          resolve({ artifacts, manifest })
+          const { artifacts, manifest, sidecars, generationMap } = e.data
+          resolve({ artifacts, manifest, sidecars, generationMap })
           break
         }
 

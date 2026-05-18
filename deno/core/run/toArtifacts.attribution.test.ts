@@ -1,10 +1,10 @@
 /**
- * End-to-end test: pipeline emits sidecars + rollup when attribution
+ * End-to-end test: pipeline emits sidecars + generation map when attribution
  * is enabled with a post-pass config.
  *
  * Wires a minimal model generator against a one-schema OpenAPI doc
  * and asserts the post-pass output (sidecars keyed by file path,
- * rollup populated) lands on the result.
+ * generation map populated) lands on the result.
  */
 
 import { assert, assertEquals } from '@std/assert'
@@ -63,7 +63,7 @@ const buildGenerators = <EnrichmentType = undefined>(): GeneratorsMapContainer<E
   // deno-lint-ignore no-explicit-any
   ({ '@test/gen-model': modelEntry } as any)
 
-Deno.test('toArtifacts - attribution off → no sidecars / rollup in result', () => {
+Deno.test('toArtifacts - attribution off → no sidecars / generation map in result', () => {
   const result = toArtifacts({
     traceId: 't',
     spanId: 's',
@@ -76,7 +76,7 @@ Deno.test('toArtifacts - attribution off → no sidecars / rollup in result', ()
   })
 
   assertEquals(result.sidecars, undefined)
-  assertEquals(result.rollup, undefined)
+  assertEquals(result.generationMap, undefined)
 })
 
 Deno.test('toArtifacts - attribution enabled without postPass → still no sidecars (instrumentation only)', () => {
@@ -93,9 +93,9 @@ Deno.test('toArtifacts - attribution enabled without postPass → still no sidec
   })
 
   // Pipeline ran with instrumentation but no post-pass was configured;
-  // no sidecars / rollup should be present.
+  // no sidecars / generation map should be present.
   assertEquals(result.sidecars, undefined)
-  assertEquals(result.rollup, undefined)
+  assertEquals(result.generationMap, undefined)
   // The standard artifacts are still produced normally.
   assert(Object.keys(result.artifacts).length > 0)
 })
@@ -120,7 +120,7 @@ Deno.test('toArtifacts - attribution + postPass → sidecars emitted per File', 
   })
 
   assert(result.sidecars !== undefined, 'expected sidecars on the result')
-  assert(result.rollup !== undefined, 'expected rollup on the result')
+  assert(result.generationMap !== undefined, 'expected generation map on the result')
 
   // One sidecar per non-Json file. The model generator emits
   // @/types/User.generated.ts.
@@ -133,7 +133,7 @@ Deno.test('toArtifacts - attribution + postPass → sidecars emitted per File', 
   assert(userSidecar.parser.startsWith('tsc@'))
 })
 
-Deno.test('toArtifacts - rollup carries one entry per Definition', () => {
+Deno.test('toArtifacts - generation map carries one entry per Definition', () => {
   const result = toArtifacts({
     traceId: 't',
     spanId: 's',
@@ -152,11 +152,11 @@ Deno.test('toArtifacts - rollup carries one entry per Definition', () => {
     }
   })
 
-  assert(result.rollup !== undefined)
+  assert(result.generationMap !== undefined)
   // Document has one schema (User) → one model Definition → one
-  // rollup entry pointing at the generated User file.
-  const userEntry = result.rollup!.find(e => e.name === 'User')
-  assert(userEntry !== undefined, 'expected a rollup entry for User')
+  // generation-map entry pointing at the generated User file.
+  const userEntry = result.generationMap!.find(e => e.name === 'User')
+  assert(userEntry !== undefined, 'expected a generation-map entry for User')
   assertEquals(userEntry!.g, '@test/gen-model')
   assertEquals(userEntry!.s, 'oas:#/components/schemas/User')
   assertEquals(userEntry!.v, 'main')

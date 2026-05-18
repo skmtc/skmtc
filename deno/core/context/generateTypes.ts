@@ -27,7 +27,7 @@ import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
 import type { Sidecar } from '@/anchors/sidecar.ts'
-import type { RollupEntry } from '@/anchors/rollup.ts'
+import type { GenerationMapEntry } from '@/anchors/generationMap.ts'
 
 /**
  * Options for inserting an operation into the generation context.
@@ -161,11 +161,11 @@ export type ToArtifactsResult = RenderResult & {
    */
   sidecars?: Record<string, Sidecar>
   /**
-   * Per-Definition rollup entries gathered across every sidecar.
-   * Used for reverse queries ("which files came from refName X?").
-   * Populated only when `attribution.postPass` was configured.
+   * Per-Definition generation-map entries gathered across every
+   * sidecar. Used for reverse queries ("which files came from refName
+   * X?"). Populated only when `attribution.postPass` was configured.
    */
-  rollup?: RollupEntry[]
+  generationMap?: GenerationMapEntry[]
 }
 
 /**

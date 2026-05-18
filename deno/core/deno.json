@@ -40,7 +40,9 @@
     "./dsl": "./dsl/mod.ts",
     "./generate": "./context/generateTypes.ts",
     "./parse": "./context/parseTypes.ts",
-    "./oas": "./oas/mod.ts"
+    "./oas": "./oas/mod.ts",
+    "./Anchors": "./anchors/mod.ts",
+    "./AttributionState": "./types/AttributionState.ts"
   },
   "tasks": {
     "publish": "deno task publish:deno",

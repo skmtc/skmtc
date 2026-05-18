@@ -1,21 +1,22 @@
 /**
- * @fileoverview Disk writer for sidecars + rollup. Thin I/O wrapper
- * around `buildSidecar` / `entriesForSidecar` outputs. Pure functions
- * (sidecar shape, rollup entries) live elsewhere; this module only
- * handles `Deno.writeTextFile` and the directory layout convention.
+ * @fileoverview Disk writer for sidecars + generation map. Thin I/O
+ * wrapper around `buildSidecar` / `entriesForSidecar` outputs. Pure
+ * functions (sidecar shape, generation-map entries) live elsewhere;
+ * this module only handles `Deno.writeTextFile` and the directory
+ * layout convention.
  *
  * Path layout (per plan §4.1 + §4.3):
  *
  * ```
  * <outDir>/
- *   <relativeFilePath>.skm.json     ← one sidecar per source file
- *   _rollup.ndjson                  ← project-level reverse-query index
+ *   <relativeFilePath>.skm.json   ← one sidecar per source file
+ *   _map.ndjson                   ← project-level reverse-query index
  * ```
  *
  * `outDir` is wholly rewritten per generation — the entire subtree is
- * removed before the new sidecars land. This matches the "stale
- * rollup misleads the viewer" concern in plan §4.3 and keeps the
- * mtime invariant simple for `doctor`'s staleness check.
+ * removed before the new sidecars land. This matches the "stale index
+ * misleads the viewer" concern in plan §4.3 and keeps the mtime
+ * invariant simple for `doctor`'s staleness check.
  *
  * The `outDir` should be gitignored. The `skmtc init` template
  * appends the `.maps` subtree to the project's `.gitignore` by default
@@ -24,15 +25,15 @@
 
 import { join, dirname } from '@std/path'
 import type { Sidecar } from './sidecar.ts'
-import { toNdjson, type RollupEntry } from './rollup.ts'
+import { toNdjson, type GenerationMapEntry } from './generationMap.ts'
 
 export type WriteSidecarsArgs = {
   /** Per-file sidecars produced by the post-pass. Keys are file paths. */
   sidecars: Record<string, Sidecar>
-  /** Project-level rollup entries (flat list across all sidecars). */
-  rollup: RollupEntry[]
+  /** Project-level generation-map entries (flat list across all sidecars). */
+  generationMap: GenerationMapEntry[]
   /**
-   * Target directory for sidecars + rollup, typically
+   * Target directory for sidecars + generation map, typically
    * `<root>/.skmtc/<project>/.maps`. Will be created if it doesn't
    * exist; its contents are removed before writing.
    */
@@ -42,14 +43,14 @@ export type WriteSidecarsArgs = {
 export type WriteSidecarsResult = {
   /** Paths of every file written, relative to `outDir`. */
   written: string[]
-  /** Total bytes written across all sidecars + the rollup. */
+  /** Total bytes written across all sidecars + the generation map. */
   totalBytes: number
 }
 
 /**
  * Wholly rewrite the sidecar tree at `outDir`. Removes the existing
  * directory (silently — missing is fine) then writes one sidecar per
- * entry plus the rollup NDJSON.
+ * entry plus the generation-map NDJSON.
  *
  * Sidecar JSON is pretty-printed for v1 (2-space indent) so a human
  * peeking at the file with `cat` gets a readable view. If size profiles
@@ -57,7 +58,7 @@ export type WriteSidecarsResult = {
  */
 export const writeSidecars = async ({
   sidecars,
-  rollup,
+  generationMap,
   outDir
 }: WriteSidecarsArgs): Promise<WriteSidecarsResult> => {
   // Wholly rewrite: nuke the existing tree first. `recursive: true`
@@ -87,13 +88,13 @@ export const writeSidecars = async ({
     totalBytes += text.length
   }
 
-  // Rollup is always written, even when empty — consumers that
-  // shell out to `cat .maps/_rollup.ndjson` shouldn't have to
+  // Generation map is always written, even when empty — consumers
+  // that shell out to `cat .maps/_map.ndjson` shouldn't have to
   // distinguish "no anchors yet" from "file doesn't exist".
-  const rollupText = toNdjson(rollup)
-  await Deno.writeTextFile(join(outDir, '_rollup.ndjson'), rollupText)
-  written.push('_rollup.ndjson')
-  totalBytes += rollupText.length
+  const mapText = toNdjson(generationMap)
+  await Deno.writeTextFile(join(outDir, '_map.ndjson'), mapText)
+  written.push('_map.ndjson')
+  totalBytes += mapText.length
 
   return { written, totalBytes }
 }

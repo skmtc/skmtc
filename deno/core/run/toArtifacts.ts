@@ -6,7 +6,7 @@ import type { StackTrail } from '../context/StackTrail.ts'
 import type { SkmtcDocumentInput } from '../types/SkmtcDocument.ts'
 import type { AttributionState } from '../types/AttributionState.ts'
 import type { Sidecar } from '../anchors/sidecar.ts'
-import type { RollupEntry } from '../anchors/rollup.ts'
+import type { GenerationMapEntry } from '../anchors/generationMap.ts'
 
 /**
  * Arguments for the {@link toArtifacts} transformation function.
@@ -53,7 +53,7 @@ type TransformArgs = {
   silent: boolean
   /**
    * Optional attribution (gen-maps) state. When set with a
-   * `postPass` block, the pipeline emits sidecars + a rollup index
+   * `postPass` block, the pipeline emits sidecars + a generation-map index
    * alongside the standard artifacts. See {@link AttributionState}.
    */
   attribution?: AttributionState
@@ -142,7 +142,7 @@ export const toArtifacts = ({
   artifacts: Record<string, string>
   manifest: ManifestContent
   sidecars?: Record<string, Sidecar>
-  rollup?: RollupEntry[]
+  generationMap?: GenerationMapEntry[]
 } => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
@@ -154,7 +154,7 @@ export const toArtifacts = ({
     mappings,
     parseIssues,
     sidecars,
-    rollup
+    generationMap
   } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
@@ -178,5 +178,5 @@ export const toArtifacts = ({
     endAt: Date.now()
   }
 
-  return { artifacts, manifest, sidecars, rollup }
+  return { artifacts, manifest, sidecars, generationMap }
 }

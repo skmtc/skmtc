@@ -1,23 +1,28 @@
 /**
- * @fileoverview Rollup index — per-Definition summary used for reverse
- * queries: "which files came from refName User?", "which files did
- * gen-zod produce?". Per plan §4.3.
+ * @fileoverview Generation map — per-Definition summary used for
+ * reverse queries: "which files came from refName User?", "which
+ * files did gen-zod produce?". Per plan §4.3.
  *
- * Lives at `.skmtc/<project>/.maps/_rollup.ndjson`, **wholly
- * rewritten** per generation (no accumulation across runs; stale
- * entries would mislead the viewer). The CLI handles disk I/O — this
- * module emits the entries + an NDJSON helper.
+ * Lives at `.skmtc/<project>/.maps/_map.ndjson`, **wholly rewritten**
+ * per generation (no accumulation across runs; stale entries would
+ * mislead the viewer). The CLI handles disk I/O — this module emits
+ * the entries + an NDJSON helper.
  *
  * One entry per Definition (landmark), not per anchor. The landmark
- * appears in the rollup; the per-Snippet anchors stay inside the
- * sidecar itself.
+ * appears in the generation map; the per-Snippet anchors stay inside
+ * the sidecar itself.
+ *
+ * "Generation map" by analogy with source maps: each row pairs a
+ * generated artifact with the schema location + generator + variant
+ * it came from. Same pattern as a sourcemap, at Definition rather
+ * than byte granularity.
  */
 
 import * as v from 'valibot'
 import type { Sidecar } from './sidecar.ts'
 
 /**
- * Single row in the rollup. Mirrors the documented shape in
+ * Single row in the generation map. Mirrors the documented shape in
  * `plan.md` §4.3:
  *
  *  - `f` — file path (relative to basePath)
@@ -26,7 +31,7 @@ import type { Sidecar } from './sidecar.ts'
  *  - `s` — schema pointer or empty string
  *  - `v` — variant name (default `'main'`)
  */
-export const rollupEntry = v.object({
+export const generationMapEntry = v.object({
   f: v.string(),
   name: v.string(),
   g: v.string(),
@@ -34,22 +39,22 @@ export const rollupEntry = v.object({
   v: v.string()
 })
 
-export type RollupEntry = v.InferOutput<typeof rollupEntry>
+export type GenerationMapEntry = v.InferOutput<typeof generationMapEntry>
 
 /**
- * Extract one rollup entry per unique landmark in `sidecar`.
+ * Extract one generation-map entry per unique landmark in `sidecar`.
  *
  * For each landmark, picks the **outermost** anchor — the one whose
  * AST path is empty (meaning the span is the landmark node itself).
  * If no path-empty anchor exists for a landmark (rare; happens when
  * the Definition's full text was reshaped between render and
  * post-pass), falls back to the first anchor for that landmark in
- * document order. This keeps the rollup populated rather than
- * silently dropping a Definition that the user can see in the file.
+ * document order. This keeps the map populated rather than silently
+ * dropping a Definition that the user can see in the file.
  */
-export const entriesForSidecar = (sidecar: Sidecar): RollupEntry[] => {
+export const entriesForSidecar = (sidecar: Sidecar): GenerationMapEntry[] => {
   const seen = new Set<number>()
-  const out: RollupEntry[] = []
+  const out: GenerationMapEntry[] = []
 
   for (const row of sidecar.A) {
     const [Li, Pi, gi, si, vi] = row
@@ -82,23 +87,23 @@ export const entriesForSidecar = (sidecar: Sidecar): RollupEntry[] => {
 }
 
 /**
- * Convert rollup entries to NDJSON (newline-delimited JSON). One row
- * per line; trailing newline so concatenation between generations is
- * boundary-safe.
+ * Convert generation-map entries to NDJSON (newline-delimited JSON).
+ * One row per line; trailing newline so concatenation between
+ * generations is boundary-safe.
  *
  * Pure: takes entries, returns a string. No I/O.
  */
-export const toNdjson = (entries: readonly RollupEntry[]): string =>
+export const toNdjson = (entries: readonly GenerationMapEntry[]): string =>
   entries.length === 0 ? '' : entries.map(e => JSON.stringify(e)).join('\n') + '\n'
 
 /**
- * Parse an NDJSON rollup file (typically read off disk by the viewer
- * or by a `doctor` check). Invalid rows fail the valibot parse — the
- * rollup is wholly rewritten per generation so a row being unparseable
- * means the file is corrupt, not just stale.
+ * Parse a generation-map NDJSON file (typically read off disk by the
+ * viewer or by a `doctor` check). Invalid rows fail the valibot parse
+ * — the map is wholly rewritten per generation so a row being
+ * unparseable means the file is corrupt, not just stale.
  */
-export const parseNdjson = (text: string): RollupEntry[] => {
+export const parseNdjson = (text: string): GenerationMapEntry[] => {
   if (text.length === 0) return []
   const lines = text.split('\n').filter(line => line.length > 0)
-  return lines.map(line => v.parse(rollupEntry, JSON.parse(line)))
+  return lines.map(line => v.parse(generationMapEntry, JSON.parse(line)))
 }

@@ -1,9 +1,9 @@
 import { assert, assertEquals } from '@std/assert'
 import { join } from '@std/path'
 import { writeSidecars } from './writeSidecars.ts'
-import { parseNdjson } from './rollup.ts'
+import { parseNdjson } from './generationMap.ts'
 import type { Sidecar } from './sidecar.ts'
-import type { RollupEntry } from './rollup.ts'
+import type { GenerationMapEntry } from './generationMap.ts'
 
 const baseSidecar = (overrides: Partial<Sidecar> = {}): Sidecar => ({
   v: 2,
@@ -37,11 +37,11 @@ Deno.test('writeSidecars - creates outDir + writes one .skm.json per sidecar', a
         'src/types/A.generated.ts': baseSidecar({ f: 'src/types/A.generated.ts', L: ['A'] }),
         'src/types/B.generated.ts': baseSidecar({ f: 'src/types/B.generated.ts', L: ['B'] })
       },
-      rollup: [],
+      generationMap: [],
       outDir
     })
 
-    assertEquals(result.written.length, 3) // 2 sidecars + 1 rollup
+    assertEquals(result.written.length, 3) // 2 sidecars + 1 generationMap
     const aText = await Deno.readTextFile(join(outDir, 'src/types/A.generated.ts.skm.json'))
     const a: Sidecar = JSON.parse(aText)
     assertEquals(a.f, 'src/types/A.generated.ts')
@@ -49,35 +49,35 @@ Deno.test('writeSidecars - creates outDir + writes one .skm.json per sidecar', a
   })
 })
 
-Deno.test('writeSidecars - writes the rollup NDJSON alongside sidecars', async () => {
+Deno.test('writeSidecars - writes the generation map NDJSON alongside sidecars', async () => {
   await withTempDir(async (tmp) => {
     const outDir = join(tmp, '.maps')
-    const rollup: RollupEntry[] = [
+    const generationMap: GenerationMapEntry[] = [
       { f: 'a.ts', name: 'A', g: 'gen-x', s: 'oas:#/components/schemas/A', v: 'main' }
     ]
     await writeSidecars({
       sidecars: { 'a.ts': baseSidecar({ f: 'a.ts' }) },
-      rollup,
+      generationMap,
       outDir
     })
 
-    const rollupText = await Deno.readTextFile(join(outDir, '_rollup.ndjson'))
-    const parsed = parseNdjson(rollupText)
-    assertEquals(parsed, rollup)
+    const mapText = await Deno.readTextFile(join(outDir, '_map.ndjson'))
+    const parsed = parseNdjson(mapText)
+    assertEquals(parsed, generationMap)
   })
 })
 
-Deno.test('writeSidecars - empty rollup still writes the file', async () => {
+Deno.test('writeSidecars - empty generation map still writes the file', async () => {
   await withTempDir(async (tmp) => {
     const outDir = join(tmp, '.maps')
     await writeSidecars({
       sidecars: {},
-      rollup: [],
+      generationMap: [],
       outDir
     })
 
-    const exists = await Deno.lstat(join(outDir, '_rollup.ndjson')).then(() => true).catch(() => false)
-    assert(exists, 'expected _rollup.ndjson to exist even when empty')
+    const exists = await Deno.lstat(join(outDir, '_map.ndjson')).then(() => true).catch(() => false)
+    assert(exists, 'expected _map.ndjson to exist even when empty')
   })
 })
 
@@ -87,7 +87,7 @@ Deno.test('writeSidecars - wholly rewrites the outDir (stale files removed)', as
     // First run: write a stale sidecar.
     await writeSidecars({
       sidecars: { 'stale.ts': baseSidecar({ f: 'stale.ts' }) },
-      rollup: [],
+      generationMap: [],
       outDir
     })
     const staleExisted = await Deno.lstat(join(outDir, 'stale.ts.skm.json'))
@@ -98,7 +98,7 @@ Deno.test('writeSidecars - wholly rewrites the outDir (stale files removed)', as
     // Second run: a different sidecar. The stale one must be gone.
     await writeSidecars({
       sidecars: { 'fresh.ts': baseSidecar({ f: 'fresh.ts' }) },
-      rollup: [],
+      generationMap: [],
       outDir
     })
     const staleStill = await Deno.lstat(join(outDir, 'stale.ts.skm.json'))
@@ -117,7 +117,7 @@ Deno.test('writeSidecars - first run on a non-existent outDir succeeds', async (
     const outDir = join(tmp, 'never-existed', 'deeper', '.maps')
     const result = await writeSidecars({
       sidecars: { 'a.ts': baseSidecar({ f: 'a.ts' }) },
-      rollup: [],
+      generationMap: [],
       outDir
     })
     assertEquals(result.written.length, 2)
@@ -131,7 +131,7 @@ Deno.test('writeSidecars - creates nested directories for deep file paths', asyn
       sidecars: {
         'a/b/c/d.ts': baseSidecar({ f: 'a/b/c/d.ts' })
       },
-      rollup: [],
+      generationMap: [],
       outDir
     })
 
@@ -141,12 +141,12 @@ Deno.test('writeSidecars - creates nested directories for deep file paths', asyn
   })
 })
 
-Deno.test('writeSidecars - returns total bytes including rollup', async () => {
+Deno.test('writeSidecars - returns total bytes including generation map', async () => {
   await withTempDir(async (tmp) => {
     const outDir = join(tmp, '.maps')
     const result = await writeSidecars({
       sidecars: { 'a.ts': baseSidecar({ f: 'a.ts' }) },
-      rollup: [
+      generationMap: [
         { f: 'a.ts', name: 'X', g: 'gen', s: 'oas:#/components/schemas/X', v: 'main' }
       ],
       outDir
@@ -154,7 +154,7 @@ Deno.test('writeSidecars - returns total bytes including rollup', async () => {
 
     // totalBytes is non-zero and matches actual bytes on disk.
     const sidecarBytes = (await Deno.readTextFile(join(outDir, 'a.ts.skm.json'))).length
-    const rollupBytes = (await Deno.readTextFile(join(outDir, '_rollup.ndjson'))).length
-    assertEquals(result.totalBytes, sidecarBytes + rollupBytes)
+    const mapBytes = (await Deno.readTextFile(join(outDir, '_map.ndjson'))).length
+    assertEquals(result.totalBytes, sidecarBytes + mapBytes)
   })
 })

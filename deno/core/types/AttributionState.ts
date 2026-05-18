@@ -15,9 +15,10 @@
  * gate the entire opt-in.
  *
  * The optional `postPass` block configures the post-render attribution
- * pass (sidecar + rollup emission). Setting `enabled: true` alone
- * gives you instrumentation but no on-disk output; adding `postPass`
- * activates the pass and surfaces `sidecars` / `rollup` on the result.
+ * pass (sidecar + generation-map emission). Setting `enabled: true`
+ * alone gives you instrumentation but no on-disk output; adding
+ * `postPass` activates the pass and surfaces `sidecars` /
+ * `generationMap` on the result.
  * ParseContext ignores `postPass` — it's a generate-phase concern,
  * carried here only so all attribution config lives in one place.
  */
