@@ -6,14 +6,14 @@ import { OasNumber } from '@/oas/number/Number.ts'
 import { OasBoolean } from '@/oas/boolean/Boolean.ts'
 import { toScalarType } from '@/gql/scalar/toScalarType.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import type { ParseContextType } from '@/context/parseTypes.ts'
+import { mockParseContext } from '@/test/mockParseContext.ts'
 
 const builtin = (name: string) => new GraphQLScalarType({ name, serialize: x => x })
 
 // `toScalarType` accepts `context` and `stackTrail` for parser-shape
-// symmetry; today the function is pure so a minimal stub satisfies
-// the type check without affecting behavior.
-const context = {} as unknown as ParseContextType
+// symmetry; today the function uses `context.withStackTrail` so the
+// shared `mockParseContext` (which has a passthrough impl) is enough.
+const context = mockParseContext
 const stackTrail = new StackTrail([])
 
 Deno.test('toScalarType - Int → OasInteger int32', () => {

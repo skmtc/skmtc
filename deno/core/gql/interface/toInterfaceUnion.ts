@@ -48,10 +48,15 @@ export const toInterfaceUnion = ({
     )
   )
 
-  return new OasUnion({
-    title: `${interfaceType.name}Union`,
-    description: interfaceType.description ?? undefined,
-    members,
-    discriminator: new OasDiscriminator({ propertyName: '__typename' })
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasUnion(
+      {
+        title: `${interfaceType.name}Union`,
+        description: interfaceType.description ?? undefined,
+        members,
+        discriminator: new OasDiscriminator({ propertyName: '__typename' })
+      },
+      context
+    )
+  )
 }

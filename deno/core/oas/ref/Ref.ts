@@ -12,7 +12,7 @@ import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
-import { Located } from '@/types/Located.ts'
+import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
 const MAX_LOOKUPS = 10
@@ -139,7 +139,7 @@ export type RefFields<T extends OasRefData['refType']> = {
  * const oneStep = chainedRef.resolveOnce(); // May still be a reference
  * ```
  */
-export class OasRef<T extends OasRefData['refType']> extends Located {
+export class OasRef<T extends OasRefData['refType']> extends OasBase {
   /** OAS type identifier */
   oasType: 'ref' = 'ref'
   /** Type identifier */

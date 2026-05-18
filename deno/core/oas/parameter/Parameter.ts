@@ -5,6 +5,8 @@ import type { OasExample } from '../example/Example.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 // @TODO It might be a good idea to set up separate classes for
 // path, query, header, and cookie parameters
@@ -185,7 +187,7 @@ export type ParameterFields = {
  * });
  * ```
  */
-export class OasParameter {
+export class OasParameter extends OasBase {
   /** Type identifier for OAS parameter objects */
   oasType: 'parameter' = 'parameter'
   /** The name of the parameter */
@@ -219,7 +221,8 @@ export class OasParameter {
    *
    * @param fields - Parameter configuration fields including name, location, schema, and serialization options
    */
-  constructor(fields: ParameterFields) {
+  constructor(fields: ParameterFields, context?: ParseContextType) {
+    super(context)
     this.name = fields.name
     this.location = fields.location
     this.style = fields.style

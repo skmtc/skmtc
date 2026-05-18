@@ -3,7 +3,7 @@ import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import { Located } from '@/types/Located.ts'
+import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
@@ -140,7 +140,7 @@ export type UnionFields = {
  * // This represents: User | Admin
  * ```
  */
-export class OasUnion extends Located {
+export class OasUnion extends OasBase {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.

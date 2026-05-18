@@ -3,6 +3,8 @@ import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Constructor fields for {@link OasRequestBody}.
@@ -275,13 +277,14 @@ export type RequestBodyFields = {
  * });
  * ```
  */
-export class OasRequestBody {
+export class OasRequestBody extends OasBase {
   oasType: 'requestBody' = 'requestBody'
   description: string | undefined
   content: Record<string, OasMediaType>
   required: boolean | undefined
   extensionFields: Record<string, unknown> | undefined
-  constructor(fields: RequestBodyFields) {
+  constructor(fields: RequestBodyFields, context?: ParseContextType) {
+    super(context)
     this.description = fields.description
     this.content = fields.content
     this.required = fields.required

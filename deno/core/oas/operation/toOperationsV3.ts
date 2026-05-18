@@ -64,35 +64,47 @@ export const toOperationV3 = ({
     parentType: 'operation'
   })
 
-  return new OasOperation({
-    pathItem,
-    path,
-    method,
-    operationId,
-    summary,
-    tags,
-    description,
-    parameters: stackTrail.trace('parameters', st =>
-      toParameterListV3({ parameters, stackTrail: st, context })
-    ),
-    requestBody: stackTrail.trace('requestBody', st =>
-      toRequestBodyV3({ requestBody, stackTrail: st, context })
-    ),
-    responses: stackTrail.trace('responses', st =>
-      toResponsesV3({ responses, stackTrail: st, context })
-    ),
-    deprecated,
-    security: stackTrail.trace('security', st =>
-      toSecurityRequirementsV3({ security, stackTrail: st, context })
-    ),
-    externalDocs: stackTrail.trace('externalDocs', st =>
-      toExternalDocs({ externalDocs, stackTrail: st, context })
-    ),
-    servers: stackTrail.trace('servers', st =>
-      toOptionalServersV3({ servers, stackTrail: st, context })
-    ),
-    extensionFields
-  })
+  const parsedParameters = stackTrail.trace('parameters', st =>
+    toParameterListV3({ parameters, stackTrail: st, context })
+  )
+  const parsedRequestBody = stackTrail.trace('requestBody', st =>
+    toRequestBodyV3({ requestBody, stackTrail: st, context })
+  )
+  const parsedResponses = stackTrail.trace('responses', st =>
+    toResponsesV3({ responses, stackTrail: st, context })
+  )
+  const parsedSecurity = stackTrail.trace('security', st =>
+    toSecurityRequirementsV3({ security, stackTrail: st, context })
+  )
+  const parsedExternalDocs = stackTrail.trace('externalDocs', st =>
+    toExternalDocs({ externalDocs, stackTrail: st, context })
+  )
+  const parsedServers = stackTrail.trace('servers', st =>
+    toOptionalServersV3({ servers, stackTrail: st, context })
+  )
+
+  return context.withStackTrail(stackTrail, () =>
+    new OasOperation(
+      {
+        pathItem,
+        path,
+        method,
+        operationId,
+        summary,
+        tags,
+        description,
+        parameters: parsedParameters,
+        requestBody: parsedRequestBody,
+        responses: parsedResponses,
+        deprecated,
+        security: parsedSecurity,
+        externalDocs: parsedExternalDocs,
+        servers: parsedServers,
+        extensionFields
+      },
+      context
+    )
+  )
 }
 
 export type ToOperationsV3Args = {

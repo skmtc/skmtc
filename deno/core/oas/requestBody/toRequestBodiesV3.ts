@@ -47,7 +47,7 @@ export const toRequestBodyV3 = ({
     extensionFields
   }
 
-  return new OasRequestBody(fields)
+  return context.withStackTrail(stackTrail, () => new OasRequestBody(fields, context))
 }
 
 export type ToRequestBodiesV3Args = {

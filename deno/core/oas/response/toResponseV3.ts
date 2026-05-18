@@ -83,12 +83,22 @@ export const toResponseV3 = ({
     parentType: 'response'
   })
 
-  return new OasResponse({
-    description,
-    headers: stackTrail.trace('headers', st => toHeadersV3({ headers, stackTrail: st, context })),
-    content: stackTrail.trace('content', st =>
-      toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
-    ),
-    extensionFields
-  })
+  const parsedHeaders = stackTrail.trace('headers', st =>
+    toHeadersV3({ headers, stackTrail: st, context })
+  )
+  const parsedContent = stackTrail.trace('content', st =>
+    toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
+  )
+
+  return context.withStackTrail(stackTrail, () =>
+    new OasResponse(
+      {
+        description,
+        headers: parsedHeaders,
+        content: parsedContent,
+        extensionFields
+      },
+      context
+    )
+  )
 }

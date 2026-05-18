@@ -1,4 +1,5 @@
 import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert'
+import type { OpenAPIV3_1 } from 'openapi-types'
 import { toV3Document } from './toV3Document.ts'
 
 Deno.test('toV3Document - 3.0 input is returned unchanged', async () => {
@@ -16,7 +17,7 @@ Deno.test('toV3Document - 3.0 input is returned unchanged', async () => {
 Deno.test('toV3Document - 3.1 input is down-converted to 3.0', async () => {
   // `type: [..., "null"]` is the canonical 3.1-only nullability form
   // and the down-converter is expected to rewrite it to `nullable: true`.
-  const doc = {
+  const doc: OpenAPIV3_1.Document = {
     openapi: '3.1.0',
     info: { title: 'T', version: '1' },
     paths: {},
@@ -48,7 +49,7 @@ Deno.test(
     // OpenAPI 3.0 needs `{minimum: N, exclusiveMinimum: true}`. Without
     // the rewrite, SKMTC's integer parser sees a non-boolean
     // exclusiveMinimum and throws a ValiError.
-    const doc = {
+    const doc: OpenAPIV3_1.Document = {
       openapi: '3.1.0',
       info: { title: 'T', version: '1' },
       paths: {},
@@ -89,7 +90,7 @@ Deno.test(
     // `{minimum: 10, exclusiveMinimum: 5}`: inclusive 10 is stricter
     // than exclusive 5 (value >= 10 already excludes 5). Drop
     // exclusiveMinimum, keep minimum.
-    const doc = {
+    const doc: OpenAPIV3_1.Document = {
       openapi: '3.1.0',
       info: { title: 'T', version: '1' },
       paths: {},
@@ -114,7 +115,7 @@ Deno.test(
     // `{minimum: 5, exclusiveMinimum: 10}`: exclusive 10 is stricter
     // (value > 10 vs value >= 5). Convert to {minimum: 10,
     // exclusiveMinimum: true}.
-    const doc = {
+    const doc: OpenAPIV3_1.Document = {
       openapi: '3.1.0',
       info: { title: 'T', version: '1' },
       paths: {},
@@ -139,6 +140,10 @@ Deno.test(
     // (rare but possible if the openapi version field is set to 3.1
     // but the schemas are pre-3.0-shaped). The converter shouldn't
     // touch already-boolean exclusiveMinimum.
+    // Deliberately 3.0-shaped (`exclusiveMinimum: true`) under a 3.1
+    // openapi field — exercises the "leave alone" branch in the
+    // converter. Casts to OpenAPIV3_1.Document because the shape is
+    // intentionally malformed for the spec version it claims to be.
     const doc = {
       openapi: '3.1.0',
       info: { title: 'T', version: '1' },
@@ -148,7 +153,7 @@ Deno.test(
           M: { type: 'integer', minimum: 5, exclusiveMinimum: true }
         }
       }
-    }
+    } as unknown as OpenAPIV3_1.Document
     const result = await toV3Document(doc)
     const m = result.components?.schemas?.M
     if (!m || '$ref' in m) throw new Error('Expected inline schema')

@@ -165,7 +165,7 @@ const toParameterV3 = ({
     extensionFields
   }
 
-  return new OasParameter(fields)
+  return context.withStackTrail(stackTrail, () => new OasParameter(fields, context))
 }
 
 export type ToStyleArgs = {

@@ -75,10 +75,15 @@ export const toObjectType = ({
     })
   }
 
-  return new OasObject({
-    title: objectType.name,
-    description: objectType.description ?? undefined,
-    properties,
-    required: required.length > 0 ? required : undefined
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasObject(
+      {
+        title: objectType.name,
+        description: objectType.description ?? undefined,
+        properties,
+        required: required.length > 0 ? required : undefined
+      },
+      context
+    )
+  )
 }

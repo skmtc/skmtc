@@ -38,23 +38,24 @@ export type ToScalarTypeArgs = {
 export const toScalarType = ({
   scalar,
   nullable,
-  context: _context,
-  stackTrail: _stackTrail
-}: ToScalarTypeArgs): OasSchema => {
-  switch (scalar.name) {
-    case 'Int':
-      return new OasInteger({ format: 'int32', nullable })
-    case 'Float':
-      return new OasNumber({ format: 'float', nullable })
-    case 'String':
-      return new OasString({ nullable })
-    case 'Boolean':
-      return new OasBoolean({ nullable })
-    case 'ID':
-      return new OasString({ format: 'id', nullable })
-    default:
-      // Custom scalar — preserve the scalar name as `format` so downstream
-      // generators can map it via their `scalars` config.
-      return new OasString({ format: scalar.name, nullable })
-  }
-}
+  context,
+  stackTrail
+}: ToScalarTypeArgs): OasSchema =>
+  context.withStackTrail(stackTrail, () => {
+    switch (scalar.name) {
+      case 'Int':
+        return new OasInteger({ format: 'int32', nullable }, context)
+      case 'Float':
+        return new OasNumber({ format: 'float', nullable }, context)
+      case 'String':
+        return new OasString({ nullable }, context)
+      case 'Boolean':
+        return new OasBoolean({ nullable }, context)
+      case 'ID':
+        return new OasString({ format: 'id', nullable }, context)
+      default:
+        // Custom scalar — preserve the scalar name as `format` so downstream
+        // generators can map it via their `scalars` config.
+        return new OasString({ format: scalar.name, nullable }, context)
+    }
+  })

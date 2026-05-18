@@ -157,7 +157,7 @@ export const toMediaTypeItemV3 = ({
     extensionFields
   }
 
-  return new OasMediaType(fields)
+  return context.withStackTrail(stackTrail, () => new OasMediaType(fields, context))
 }
 
 /**

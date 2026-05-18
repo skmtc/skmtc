@@ -42,10 +42,15 @@ export const toUnionType = ({
     )
   )
 
-  return new OasUnion({
-    title: unionType.name,
-    description: unionType.description ?? undefined,
-    members,
-    discriminator: new OasDiscriminator({ propertyName: '__typename' })
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasUnion(
+      {
+        title: unionType.name,
+        description: unionType.description ?? undefined,
+        members,
+        discriminator: new OasDiscriminator({ propertyName: '__typename' })
+      },
+      context
+    )
+  )
 }

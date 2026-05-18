@@ -1,5 +1,7 @@
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Fields used to construct a {@link GqlArgument}.
@@ -40,7 +42,7 @@ export type GqlArgumentFields = {
  * but we surface both fields as the schema declared them and let
  * downstream generators decide what to do with the combination.
  */
-export class GqlArgument {
+export class GqlArgument extends OasBase {
   readonly oasType = 'gqlArgument' as const
   readonly name: string
   readonly schema: OasSchema | OasRef<'schema'>
@@ -51,7 +53,8 @@ export class GqlArgument {
   readonly deprecated: boolean
   readonly deprecationReason: string | undefined
 
-  constructor(fields: GqlArgumentFields) {
+  constructor(fields: GqlArgumentFields, context?: ParseContextType) {
+    super(context)
     this.name = fields.name
     this.schema = fields.schema
     this.required = fields.required

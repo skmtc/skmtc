@@ -2,9 +2,9 @@ import { assertEquals } from '@std/assert'
 import { GraphQLEnumType } from 'graphql'
 import { toEnumType } from '@/gql/enum/toEnumType.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import type { ParseContextType } from '@/context/parseTypes.ts'
+import { mockParseContext } from '@/test/mockParseContext.ts'
 
-const context = {} as unknown as ParseContextType
+const context = mockParseContext
 const stackTrail = new StackTrail([])
 
 Deno.test('toEnumType - extracts values into enums array', () => {

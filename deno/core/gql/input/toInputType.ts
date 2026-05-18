@@ -57,10 +57,15 @@ export const toInputType = ({
     })
   }
 
-  return new OasObject({
-    title: inputType.name,
-    description: inputType.description ?? undefined,
-    properties,
-    required: required.length > 0 ? required : undefined
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasObject(
+      {
+        title: inputType.name,
+        description: inputType.description ?? undefined,
+        properties,
+        required: required.length > 0 ? required : undefined
+      },
+      context
+    )
+  )
 }

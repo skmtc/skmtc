@@ -1,6 +1,8 @@
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { GqlArgument } from '@/gql/argument/GqlArgument.ts'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * GraphQL root operation kind. Maps directly onto the schema's root type
@@ -43,7 +45,7 @@ export type GqlOperationFields = {
  * args object can build one at emit time, while generators that just need
  * the per-argument metadata don't pay for the synthesis.
  */
-export class GqlOperation {
+export class GqlOperation extends OasBase {
   readonly oasType = 'gqlOperation' as const
   readonly rootKind: GqlRootKind
   readonly fieldName: string
@@ -54,7 +56,8 @@ export class GqlOperation {
   readonly deprecated: boolean
   readonly deprecationReason: string | undefined
 
-  constructor(fields: GqlOperationFields) {
+  constructor(fields: GqlOperationFields, context?: ParseContextType) {
+    super(context)
     this.rootKind = fields.rootKind
     this.fieldName = fields.fieldName
     this.arguments = fields.arguments

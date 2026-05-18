@@ -1,15 +1,15 @@
 /**
- * @fileoverview `Located` base class for parsed nodes.
+ * @fileoverview `OasBase` base class for parsed nodes.
  *
  * Shared base for OAS and GQL classes that carry a source-document
  * position. Stores the `StackTrail` captured at parse time; converts
- * to a JSON Pointer on demand via {@link Located.toLocation}.
+ * to a JSON Pointer on demand via {@link OasBase.toLocation}.
  *
  * Captured only when attribution (gen-maps) is enabled on the parse
  * context. When disabled, `stackTrail` is `undefined` and
  * `toLocation()` returns `undefined`.
  *
- * @module Located
+ * @module OasBase
  */
 
 import type { ParseContextType } from '@/context/parseTypes.ts'
@@ -21,14 +21,14 @@ import type { JsonPointer } from './JsonPointer.ts'
  *
  * Each schema / operation class extends this so the parse-position
  * field is declared in one place. Subclass constructors call
- * `super(context)`; `Located` reads `context.currentStackTrail` and
+ * `super(context)`; `OasBase` reads `context.currentStackTrail` and
  * snapshots it. Pure parse-time metadata — has no spec semantics.
  *
  * Adds **only** the `stackTrail` slot. Schema classes remain a
  * discriminated union with literal `type` / `oasType` fields
  * preserved on each subclass.
  */
-export class Located {
+export class OasBase {
   /**
    * StackTrail snapshot captured at construction time. Cloned so that
    * subsequent factory traversal doesn't mutate this node's recorded

@@ -122,14 +122,14 @@ export class ParseContext {
   protocol: ProtocolState
   /**
    * Attribution state (gen-maps). When set, parsed schemas snapshot
-   * the visitor `StackTrail` into their `Located` base. See
+   * the visitor `StackTrail` into their `OasBase` base. See
    * {@link AttributionState}.
    */
   attribution: AttributionState | undefined
   /**
    * The StackTrail of the currently-traversed position. Set by
    * factories via {@link ParseContext.withStackTrail} just before
-   * constructing the node so the `Located` base can snapshot it.
+   * constructing the node so the `OasBase` base can snapshot it.
    * `undefined` outside an active `withStackTrail` scope.
    */
   currentStackTrail: StackTrail | undefined
@@ -346,7 +346,7 @@ export class ParseContext {
   /**
    * Run `fn` with `currentStackTrail` set to the given trail; restore
    * the previous value afterwards (try/finally semantics). Factories
-   * wrap schema-construction in this so `Located` can snapshot the
+   * wrap schema-construction in this so `OasBase` can snapshot the
    * trail off the context without each factory threading it
    * explicitly into the constructor.
    *

@@ -1,7 +1,7 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasRef } from '../ref/Ref.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
-import { Located } from '@/types/Located.ts'
+import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
 export type UnknownFields = {
@@ -19,7 +19,7 @@ export type UnknownFields = {
  * Since this is not useful in an API context, we use OasUnknown to
  * represent types that are not specified.
  */
-export class OasUnknown extends Located {
+export class OasUnknown extends OasBase {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.

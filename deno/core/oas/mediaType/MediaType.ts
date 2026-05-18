@@ -3,6 +3,8 @@ import type { OasSchema } from '../schema/Schema.ts'
 import type { OasExample } from '../example/Example.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Constructor fields for {@link OasMediaType}.
@@ -97,7 +99,7 @@ export type MediaTypeFields = {
  * });
  * ```
  */
-export class OasMediaType {
+export class OasMediaType extends OasBase {
   /** Type identifier for this OAS media type */
   oasType: 'mediaType' = 'mediaType'
   /** The media type identifier (e.g., 'application/json', 'text/xml') */
@@ -115,7 +117,8 @@ export class OasMediaType {
    * 
    * @param fields - Media type configuration including content schema, examples, and encoding
    */
-  constructor(fields: MediaTypeFields) {
+  constructor(fields: MediaTypeFields, context?: ParseContextType) {
+    super(context)
     this.mediaType = fields.mediaType
     this.schema = fields.schema
     this.examples = fields.examples
