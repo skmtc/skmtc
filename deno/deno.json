@@ -28,7 +28,7 @@
     "./worker"
   ],
   "tasks": {
-    "release": "deno check ./**/*.ts && deno run --allow-read --allow-write --allow-run --allow-env .scripts/increment-patch.ts",
+    "release": "deno run --allow-read --allow-env --allow-net --allow-run .scripts/release.ts",
     "test:watch": "deno test --allow-all --watch",
     "test:coverage": "deno test --allow-all --coverage=coverage",
     "coverage:report": "deno coverage coverage --lcov > coverage.lcov",
