@@ -1,6 +1,6 @@
 # OpenAPI Down Convert
 
-`openapi-down-convert` is a tool to down-convert an API definition document from
+`@skmtc/openapi-down-convert` down-converts an API definition document from
 OpenAPI 3.1 to OpenAPI 3.0.
 
 * [OpenAPI Specification (OAS) 3.1.0 Release](https://github.com/OAI/OpenAPI-Specification/releases/tag/3.1.0)
@@ -11,94 +11,52 @@ for going in the other direction. This tool helps "undo" some of those transform
 
 **Warning**: This is not a fully robust tool. It does the minimal work necessary
 for OAS 3.1 API documents in order to support tools such as `openapi-generator`
-which do not support OAS 3.1. It only supports the OAS 3.1 features that the
-Apiture APIs use.
+which do not support OAS 3.1.
 
 **Warning**: Down converting yields a loss in fidelity. Some API information
 is lost.
 
-## Installation and Synopsis
+## Installation
 
-The tool is implemented with Node.js.
-
-### &DownArrowBar; NPM Installation
+This is a [Deno](https://deno.com) library published to JSR. Add it to a
+project with:
 
 ```bash
-npm i @skmtc/openapi-down-convert
+deno add jsr:@skmtc/openapi-down-convert
 ```
+
+## Usage
+
+The `Converter` class takes a parsed OpenAPI 3.1 document (a plain object) and
+returns a converted OpenAPI 3.0 document. The input is not modified.
 
 ```typescript
-import { Converter, ConverterOptions } from './converter';
-const options : ConverterOptions = { verbose: false,
-                                     deleteExampleWithId: true,
-                                     allOfTransform: false };
-  const converter = new Converter(oas31Document, options);
-  try {
-    const oas30Document = converter.convert();
-    ...
-    }
-  } catch (ex) {
-    // handle the exception
-  }
+import { Converter, type ConverterOptions } from '@skmtc/openapi-down-convert';
+
+const options: ConverterOptions = {
+  verbose: false,
+  deleteExampleWithId: true,
+  allOfTransform: false,
+};
+
+const converter = new Converter(oas31Document, options);
+
+try {
+  const oas30Document = converter.convert();
+  // ...use oas30Document
+} catch (ex) {
+  // handle the exception
+}
 ```
 
-Since the use case for the converter is in build pipelines and CLI use,
-this operation is synchronous and does not use `async/await/Promises`.
+The conversion is synchronous and does not use `async`/`await`/Promises.
 
-### &DownArrowBar; Command Line
-
-Install:
-
-```bash
-npm i -g @skmtc/openapi-down-convert
-```
-
-then to use:
-
-```bash
-openapi-down-convert --input openapi-3.1.yaml --output openapi-3.0.yaml
-```
-
-Command line options:
-
-```text
-Usage: openapi-down-convert [options]
-
-Options:
-  -i, --input <input-file>               A OpenAPI 3.1 file name. Defaults to "openapi.yaml"
-  -o, --output <output-file>             The output file, defaults to stdout if omitted
-  -a, --allOf                            If set, convert complex $ref in JSON schemas to allOf
-  --authorizationUrl <authorizationUrl>  The authorizationUrl for openIdConnect -> oauth2 transformation
-  --tokenUrl <tokenUrl>                  The tokenUrl for openIdConnect -> oauth2 transformation
-  -d, --delete-examples-with-id          If set, delete any JSON Schema examples that have an `id` property
-  --oidc-to-oath2 <scopes>               Convert openIdConnect security to oath2.
-  --convertJsonComments                  If used, convert `$comment` in JSON schemas
-                                         to `x-comment`. If omitted, delete
-                                         all `$comment` in JSON schemas.
-                                         (Use `--verbose` to log deletion
-                                         to stdout)
-  -s, --scopes <scopes>                  If set, this JSON/YAML file describes the OpenID scopes.
-                                         This is an alias for --oidc-to-oath2
-  -v, --verbose                          Verbose output
-  -V, --version                          output the version number
-  -h, --help                             display help for command
-```
-
-The verbose mode logs all changes to standard error output stream.
-
-The tool returns a 0 status code upon success or a non-zero status code
-if it finds constructs that cannot be down-converted, such as
-using `contentMediaType: application/octet-stream` with a `format`
-other than `binary`, or if a schema has `contentEncoding: base64`
-and has an existing `format` that is not already `base64`.
-
-The tool only supports local file-based documents, not URLs.
-Download such files to convert:
-
-```bash
-openapi-down-convert --input <(curl -s https://my.host/path/openapi-3.1.yaml) \
-                     --output openapi-3.0.yaml
-```
+`convert()` throws an `Error` if it finds constructs that cannot be
+down-converted — for example a schema using
+`contentMediaType: application/octet-stream` with a `format` other than
+`binary`, or a schema with `contentEncoding: base64` and an existing `format`
+that is not `byte`. When `verbose` is enabled, all changes are logged to the
+standard error stream.
 
 ## OpenAPI Specifications Transformations
 
@@ -114,9 +72,9 @@ Replace `openIdConnect` security definition with an `oauth2` security requiremen
 They are close enough, as far as code generation (such as `openapi-generator`)
 is concerned - it just means an `Authorization: header` must have a valid token.
 
-Note: This conversion is only performed if the `--oidc-to-oauth2` option
-(or it's alias, `--scopes`) is supplied.
-Use the other options to specify the `authorizationUrl` and `tokenUrl` for the
+Note: This conversion is only performed when the `convertOpenIdConnectToOAuth2`
+option is `true` or a `scopeDescriptionFile` is supplied.
+Use the `authorizationUrl` and `tokenUrl` options to specify those URLs for the
 `oauth2` security definition.
 
 TODO: Fetch the openIdConnect connection info and extract the authorization and
@@ -196,9 +154,9 @@ which should be
   incompleteAccounts: Array<string> | null;
 ```
 
-To enable, use the `allOfTransform: true` option in the `Converter` constructor
-or the `--allOf` command line argument. When disabled, the `$ref` is instead
-simplified to a [JSON reference](https://datatracker.ietf.org/doc/html/draft-pbryan-zyp-json-ref-03).
+To enable, set the `allOfTransform: true` option in the `Converter`
+constructor. When disabled, the `$ref` is instead simplified to a
+[JSON reference](https://datatracker.ietf.org/doc/html/draft-pbryan-zyp-json-ref-03).
 
 Other (non-JSON Schema) OAS 3.1 `$ref` objects can have `description` and `summary`.
 `$ref` for non-schema objects in OAS 3.0 cannot have `description` and
@@ -222,7 +180,7 @@ OAS 3.0 uses an earlier JSON Schema version
 in schemas to a single `example`.
 
 As a special case, if the resulting `example` includes an `id`, it is
-deleted if the `--delete-examples-with-id` CLI option is set.
+deleted if the `deleteExampleWithId` option is set.
 This addresses [Spectral issue 2081](https://github.com/stoplightio/spectral/issues/2081).
 
 ### &DownArrowBar; Convert `const` to `enum`
@@ -317,6 +275,33 @@ be possible (`properties`, `allOf` etc.)
 
 (Contributions welcome.)
 
+### &DownArrowBar; Convert numeric `exclusiveMinimum` / `exclusiveMaximum`
+
+JSON Schema 2020-12 (used by OAS 3.1) gives `exclusiveMinimum` and
+`exclusiveMaximum` a numeric value. OAS 3.0 uses JSON Schema Draft 4, where
+they are booleans that modify `minimum` / `maximum`. The tool rewrites the
+numeric form to the boolean-modifier form.
+
+For example:
+
+```yaml
+    count:
+      type: integer
+      exclusiveMinimum: 0
+```
+
+becomes
+
+```yaml
+    count:
+      type: integer
+      minimum: 0
+      exclusiveMinimum: true
+```
+
+When both the inclusive bound and the numeric exclusive form are present, the
+stricter of the two is kept.
+
 ### &DownArrowBar; Remove `unevaluatedProperties`
 
 The tool removes the `unevaluatedProperties` value, introduced in later
@@ -354,15 +339,13 @@ JSON Schema introduced `$comment` in schemas in 2020-12.
 Since OAS 3.0 uses JSON Schema Draft 4, and some tools
 will flag `$comment` as invalid, this tool removes these comments.
 
-An earlier version of the tool converted `$comment` to `x-comment`
-However, other tools which do not allow `$comment` may not not support
+An earlier version of the tool converted `$comment` to `x-comment`.
+However, other tools which do not allow `$comment` may not support
 `x-comment` either.
 
-Use the `--convert-schema-comments` CLI option or set
-`convertSchemaComments` to `true`
-in the `Converter` constructor options
-to requst conversion of
-`$comment` to `x-comment` rather than deleting `$comment`.
+Set `convertSchemaComments` to `true` in the `Converter` constructor
+options to request conversion of `$comment` to `x-comment` rather than
+deleting `$comment`.
 
 For example,
 
@@ -408,7 +391,7 @@ This tool converts `type: string` schemas as follows:
 <th>OAS 3.1 schema</th>
 <th>OAS 3.0 schema</th>
 </tr>
-2
+
 <tr>
 <td>
 <pre>
@@ -447,8 +430,6 @@ Currently, the tool does not support the following situations.
 Contributions welcome!
 
 * `openapi-down-convert` does not convert
-  `exclusiveMinimum` and
-  `exclusiveMaximum`,
   `unevaluatedProperties`,
   `patternProperties`,
   `propertyNames`
