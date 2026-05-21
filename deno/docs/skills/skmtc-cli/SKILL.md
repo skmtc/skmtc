@@ -192,9 +192,12 @@ Known check ids:
   "source": "./openapi.json",
 
   "settings": {
-    // The @ alias root in the consumer app's bundler. Required.
-    // Must be relative. Generators produce `@/<subdir>/...` paths
+    // The on-disk anchor for generated output. Required, relative,
+    // no `..` segments. Single-package: the consumer app's bundler
+    // `@` alias root — generators produce `@/<subdir>/...` paths
     // assuming this aligns with the bundler's alias config.
+    // Multi-package (see `packages` below): a common ancestor of
+    // every package — the monorepo root — not a bundler alias.
     "basePath": "mobile-app/src",
 
     // Per-generator and per-operation user overrides. Routing
@@ -239,14 +242,14 @@ Known check ids:
 
     // Optional. Multi-package output — route generated files into
     // separate packages of a monorepo. Each entry is
-    // `{ rootPath, moduleName? }`. A file whose resolved path falls
-    // under a `rootPath` belongs to that package: intra-package
-    // imports render `@/…` (rooted at that package), cross-package
-    // imports render the target package's `moduleName`. Without
-    // `packages`, `@` is a single global alias rooted at `basePath`.
-    // See `concepts/multi-package-output.md`.
+    // `{ rootPath, moduleName? }` with a FORWARD `rootPath` (relative
+    // to basePath, no `..` — rejected at config load otherwise).
+    // When `packages` is set, basePath is the monorepo root and `@`
+    // is per-package: intra-package imports render `@/…` (rooted at
+    // that package), cross-package imports render the target's
+    // `moduleName`. See `concepts/multi-package-output.md`.
     "packages": [
-      { "rootPath": "../../packages/models/src", "moduleName": "@app/models" }
+      { "rootPath": "packages/models/src", "moduleName": "@app/models" }
     ]
   }
 }
@@ -256,9 +259,12 @@ To know what enrichment keys a generator accepts, **read its
 `gen-x/src/enrichments.ts`** — Valibot schema is canonical.
 
 `packages` is optional; omit it for the common single-`basePath`
-project. A generator writes into a non-`basePath` package by returning
-a `../`-relative `toExportPath` — see the multi-package concept doc
-for the `..`-count ↔ `rootPath` lockstep hazard.
+project. With `packages` set, point `basePath` at a common ancestor
+of every package (the monorepo root) so each `rootPath` — and every
+generator's `toExportPath` — is a plain forward path. A `..` segment
+in `basePath` or any `rootPath` is rejected at config load: it means
+`basePath` is too deep, and hand-counting `../` segments is the
+silent-misplacement footgun the forward-path rule removes.
 
 ## 7. Skip and include filters
 

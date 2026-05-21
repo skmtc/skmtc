@@ -794,6 +794,18 @@ cloning.
 > names line up — `rg ':<param>' src/router*` against the OAS
 > path-param name — and rename one side first.
 
+> **Targeting another package (monorepo output).** To make a cloned
+> generator write into a *different* package of a monorepo, edit
+> `toExportPath` to return a **forward path** under that package's
+> `rootPath` — e.g. `join('packages/models/src', \`${name}.generated.ts\`)`
+> — instead of `join('@', …)`. The consumer declares the package in
+> `client.json#settings.packages`; `normalizeModuleName` then renders
+> intra-package imports as `@/…` and cross-package imports as the
+> target's `moduleName`. Never use `../`-relative paths: set
+> `basePath` to a common ancestor so every path is forward (a `..`
+> segment is rejected at config load). See
+> [`concepts/multi-package-output.md`](../../concepts/multi-package-output.md).
+
 ## 8. Anti-patterns
 
 Concrete failure modes. Each is a thing an LLM might write or suggest

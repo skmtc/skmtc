@@ -54,10 +54,31 @@ import * as v from 'valibot'
 import { method, type Method } from './Method.ts'
 
 /**
+ * Whether a relative path contains a `..` parent-reference segment.
+ * `..` is a parent reference only as a whole path segment — a
+ * directory name that merely contains dots is not flagged.
+ */
+const hasParentSegment = (path: string): boolean =>
+  path.split(/[/\\]/).some(segment => segment === '..')
+
+/**
  * Valibot schema for {@link ModulePackage}.
+ *
+ * `rootPath` must be a **forward** path: `client.json` `basePath` is
+ * the common on-disk anchor, so every package sits forward from it.
+ * A `..` segment means `basePath` was placed too deep — a misconfig
+ * that otherwise misplaces every artifact silently.
  */
 export const modulePackage: v.GenericSchema<ModulePackage> = v.object({
-  rootPath: v.string(),
+  rootPath: v.pipe(
+    v.string(),
+    v.check(
+      rootPath => !hasParentSegment(rootPath),
+      'package rootPath must be a forward path with no ".." segments — ' +
+        'set client.json basePath to a common ancestor of every package ' +
+        'so each rootPath is written forward from it'
+    )
+  ),
   moduleName: v.optional(v.string())
 })
 

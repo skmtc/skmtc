@@ -29,5 +29,17 @@ export const validateBasePath = (basePath: string): string => {
     )
   }
 
+  if (basePath.split(/[/\\]/).some(segment => segment === '..')) {
+    throw new Error(
+      [
+        `Invalid basePath: "${basePath}"`,
+        '',
+        'basePath must be a forward path with no ".." segments. It is the',
+        'common on-disk anchor for generated output — set it to a directory',
+        'that contains every output location (the repo root, for a monorepo).'
+      ].join('\n')
+    )
+  }
+
   return basePath
 }
