@@ -13,7 +13,8 @@ friction-log/
   reviews/
     <YYYY-MM-DD>-review-<period>.md ← periodic review + action plans
   README.md
-  discrepancy-catalog.md
+  discrepancy-catalog.md             ← doc-vs-source discrepancy record
+  verify-catalog.ts                  ← re-runs the catalog's checks
 ```
 
 Session files are named `<YYYY-MM-DD>-<short-summary>.md`. Each is
@@ -139,6 +140,21 @@ forecloses contemplation about the *best* fix in favour of the
 *obvious* fix. Leaving "Possible fixes" open-ended encourages
 reflection during periodic review rather than locking in the first
 idea.
+
+## Verifying the discrepancy catalog
+
+`discrepancy-catalog.md` records doc-vs-source discrepancies from the
+2026-05 docs audit, each with a re-runnable verification command.
+`verify-catalog.ts` runs them all against the current source:
+
+```bash
+deno run --allow-read --allow-run deno/docs/friction-log/verify-catalog.ts
+```
+
+A `DECAYED` entry means its verification command no longer resolves —
+the source moved or the grepped pattern is gone — so that catalog
+entry needs re-auditing. The script exits non-zero if any entry
+decayed, so it can run in CI as a doc-drift tripwire.
 
 ## Related artefacts
 
