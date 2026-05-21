@@ -781,6 +781,19 @@ declares in its Valibot schema (typically labels, descriptions, per-
 field overrides). Anything not in the enrichment schema requires
 cloning.
 
+> **Runtime coupling — path-param naming.** Operation/form generators
+> that read URL params (e.g. `gen-shadcn-form` emits
+> `useSafeParams(z.object({ <oasParamName>: z.string() }))`) hard-code
+> the **OpenAPI** path-param name into the *generated component*. This
+> is a runtime coupling, not just a naming convention: if the
+> consumer's router uses a different param name (`{id}` in the OAS vs
+> `:invoiceId` in the route), the generated form throws a `ZodError`
+> at mount. It is **not** a `toIdentifier` / `toExportPath` seam —
+> those control file and symbol names, not the emitted `useSafeParams`
+> schema. Before migrating such a generator's output, confirm the
+> names line up — `rg ':<param>' src/router*` against the OAS
+> path-param name — and rename one side first.
+
 ## 8. Anti-patterns
 
 Concrete failure modes. Each is a thing an LLM might write or suggest
