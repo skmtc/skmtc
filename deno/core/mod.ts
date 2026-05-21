@@ -1,7 +1,7 @@
 /**
  * @module SKMTC Core
  *
- * SKMTC (Schema Kit Mapping & Type Conversion) is a powerful TypeScript/Deno library
+ * SKMTC is a powerful TypeScript/Deno library
  * for processing OpenAPI v3 documents and generating code artifacts. It provides a
  * comprehensive three-phase pipeline for parsing, generating, and rendering OpenAPI
  * schemas into various output formats.

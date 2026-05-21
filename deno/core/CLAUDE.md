@@ -42,7 +42,7 @@ deno lint
 
 ## Architecture Overview
 
-This is the core library for the SKMTC (Schema Kit Mapping & Type Conversion) project, a TypeScript/Deno-based OpenAPI schema processor that generates code artifacts from OpenAPI v3 documents.
+This is the core library for the SKMTC project, a TypeScript/Deno-based OpenAPI schema processor that generates code artifacts from OpenAPI v3 documents.
 
 ### Core Processing Pipeline
 

@@ -19,6 +19,7 @@ superseded.
 
 | Skill | Purpose | Audience | Status |
 |---|---|---|---|
+| [`skmtc-architecture/`](skmtc-architecture/) | System mental model — what SKMTC is, how the engine works, how to build infrastructure around it | Infrastructure builders | **SKILL.md authored** (v0.1.0) |
 | [`skmtc-cli/`](skmtc-cli/) | Guide CLI usage — install, configure, run, integrate | Users (`using/`) | **SKILL.md authored** (v0.2.0); pulled from legacy + new content |
 | [`skmtc-generator/`](skmtc-generator/) | Guide generator authoring and editing | Authors (`extending/`) | Skeletal SKILL.md (v0.1.0-draft); content TBD |
 | [`skmtc-debug/`](skmtc-debug/) | Diagnose failures — no output, wrong output, errors | Anyone debugging | Skeletal SKILL.md (v0.1.0-draft); content TBD |
@@ -102,6 +103,9 @@ becomes a problem.
 Skills overlap in trigger conditions but should have clear primary
 ownership:
 
+- **skmtc-architecture** owns: the system mental model — what SKMTC
+  is, how the engine works, how to build infrastructure around it.
+  The "understand the system" path; precedes the other three.
 - **skmtc-cli** owns: installing, configuring, running, integrating
   with CI. The "normal usage" path.
 - **skmtc-generator** owns: writing, cloning, editing generator code.

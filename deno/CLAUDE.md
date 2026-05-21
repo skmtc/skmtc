@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SKMTC (Schema Kit Mapping & Type Conversion) is a Deno-based monorepo that generates code artifacts from OpenAPI v3 documents. It consists of a core library for schema processing and a CLI tool for interactive code generation.
+SKMTC is a Deno-based monorepo that generates code artifacts from OpenAPI v3 documents. It consists of a core library for schema processing and a CLI tool for interactive code generation.
 
 ## Key Commands
 
