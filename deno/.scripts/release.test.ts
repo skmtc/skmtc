@@ -1,10 +1,22 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import { toReleaseOrder, toWorkspaceDep, type WorkspacePackage } from './release.ts'
+import {
+  incrementPatch,
+  planRelease,
+  toDependencyOrder,
+  toWorkspaceDep,
+  type WorkspacePackage
+} from './release.ts'
+
+Deno.test('incrementPatch - bumps the patch component', () => {
+  assertEquals(incrementPatch('0.6.2'), '0.6.3')
+  assertEquals(incrementPatch('1.0.9'), '1.0.10')
+  assertThrows(() => incrementPatch('0.6'), Error, 'x.y.z')
+})
 
 Deno.test('toWorkspaceDep - extracts a workspace package from a jsr: import', () => {
   const names = new Set(['@skmtc/core', '@skmtc/worker'])
   assertEquals(toWorkspaceDep('jsr:@skmtc/core@0.6.3', names), '@skmtc/core')
-  // The `/types` sub-path entry still resolves to its package.
+  // A `/sub-path` entry still resolves to its package.
   assertEquals(toWorkspaceDep('jsr:@skmtc/worker@0.3.2/types', names), '@skmtc/worker')
 })
 
@@ -15,32 +27,96 @@ Deno.test('toWorkspaceDep - returns null for non-workspace and non-jsr imports',
   assertEquals(toWorkspaceDep('./local/mod.ts', names), null) // relative path
 })
 
-const pkg = (name: string, deps: string[]): WorkspacePackage => ({
+/** Build a WorkspacePackage; deps are derived from its @skmtc/* imports. */
+const wp = (
+  name: string,
+  version: string,
+  imports: Record<string, string> = {}
+): WorkspacePackage => ({
   name,
-  version: '1.0.0',
+  version,
   dir: `/${name}`,
-  deps
+  imports,
+  deps: [
+    ...new Set(
+      Object.values(imports)
+        .map(v => v.match(/^jsr:(@skmtc\/[^@/\s]+)@/)?.[1])
+        .filter((d): d is string => d !== undefined)
+    )
+  ]
 })
 
-Deno.test('toReleaseOrder - publishes a dependency before its dependent', () => {
-  const order = toReleaseOrder([
-    pkg('@skmtc/cli', ['@skmtc/core']),
-    pkg('@skmtc/core', [])
+Deno.test('toDependencyOrder - a dependency always precedes its dependent', () => {
+  const order = toDependencyOrder([
+    wp('@skmtc/cli', '1.0.0', { '@skmtc/core': 'jsr:@skmtc/core@1.0.0' }),
+    wp('@skmtc/core', '1.0.0')
   ]).map(p => p.name)
   assertEquals(order, ['@skmtc/core', '@skmtc/cli'])
 })
 
-Deno.test('toReleaseOrder - a dep outside the publish set does not constrain order', () => {
-  // cli depends on core, but core is already published (absent from
-  // the set) — cli releases on its own.
-  const order = toReleaseOrder([pkg('@skmtc/cli', ['@skmtc/core'])]).map(p => p.name)
-  assertEquals(order, ['@skmtc/cli'])
-})
-
-Deno.test('toReleaseOrder - throws on a dependency cycle', () => {
+Deno.test('toDependencyOrder - throws on a dependency cycle', () => {
   assertThrows(
-    () => toReleaseOrder([pkg('a', ['b']), pkg('b', ['a'])]),
+    () =>
+      toDependencyOrder([
+        { name: 'a', version: '1', dir: '/a', imports: {}, deps: ['b'] },
+        { name: 'b', version: '1', dir: '/b', imports: {}, deps: ['a'] }
+      ]),
     Error,
     'cycle'
   )
+})
+
+Deno.test('planRelease - a direct core bump cascades to every dependent', () => {
+  const packages = [
+    wp('@skmtc/core', '0.6.3'),
+    wp('@skmtc/worker', '0.3.2', { '@skmtc/core': 'jsr:@skmtc/core@0.6.2' }),
+    wp('@skmtc/cli', '0.3.4', {
+      '@skmtc/core': 'jsr:@skmtc/core@0.6.2',
+      '@skmtc/worker': 'jsr:@skmtc/worker@0.3.2',
+      '@skmtc/worker/types': 'jsr:@skmtc/worker@0.3.2/types'
+    })
+  ]
+  // worker@0.3.2 and cli@0.3.4 are published; core@0.6.3 is not — it
+  // was just bumped, the direct trigger for the release.
+  const published = new Set(['@skmtc/worker@0.3.2', '@skmtc/cli@0.3.4'])
+
+  const plan = planRelease(packages, published)
+
+  // core: direct.
+  assertEquals(plan.get('@skmtc/core')?.version, '0.6.3')
+  // worker: cascade — patch-bumped, core pin rewritten.
+  assertEquals(plan.get('@skmtc/worker')?.version, '0.3.3')
+  assertEquals(plan.get('@skmtc/worker')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
+  // cli: cascade — patch-bumped, both core and worker pins rewritten
+  // (worker to its *cascaded* 0.3.3, not its old version).
+  assertEquals(plan.get('@skmtc/cli')?.version, '0.3.5')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/worker'], 'jsr:@skmtc/worker@0.3.3')
+  assertEquals(
+    plan.get('@skmtc/cli')?.imports['@skmtc/worker/types'],
+    'jsr:@skmtc/worker@0.3.3/types'
+  )
+})
+
+Deno.test('planRelease - nothing to do when every version is already published', () => {
+  const packages = [
+    wp('@skmtc/core', '0.6.3'),
+    wp('@skmtc/worker', '0.3.3', { '@skmtc/core': 'jsr:@skmtc/core@0.6.3' })
+  ]
+  const published = new Set(['@skmtc/core@0.6.3', '@skmtc/worker@0.3.3'])
+  assertEquals(planRelease(packages, published).size, 0)
+})
+
+Deno.test('planRelease - a directly-bumped dependent keeps its own version', () => {
+  // core bumped to 0.6.3; cli ALSO directly bumped (to 0.4.0). cli
+  // publishes at the human's 0.4.0 — not a cascade patch of 0.3.4 —
+  // and still gets its core pin rewritten.
+  const packages = [
+    wp('@skmtc/core', '0.6.3'),
+    wp('@skmtc/cli', '0.4.0', { '@skmtc/core': 'jsr:@skmtc/core@0.6.2' })
+  ]
+  const plan = planRelease(packages, new Set())
+
+  assertEquals(plan.get('@skmtc/cli')?.version, '0.4.0')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
 })
