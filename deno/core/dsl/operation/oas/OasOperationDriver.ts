@@ -77,6 +77,8 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       variant
     })
 
+    assertPeerSupported({ context, projection, operation })
+
     this.settings = this.context.toOperationContentSettings({
       operation,
       projection,
@@ -216,6 +218,54 @@ const assertPeerVariantExists = ({
     throw new Error(
       `[${generatorId}] Cannot insert variant '${variant}' for '${operationLabel}'. ` +
         `Available variants: ${available}.`
+    )
+  }
+}
+
+type AssertPeerSupportedArgs = {
+  context: GenerateContextType
+  projection: {
+    id: string
+    isSupported?: (args: { operation: OasOperation; context: GenerateContextType }) => boolean
+  }
+  operation: OasOperation
+}
+
+/**
+ * Guard the peer-capability invariant.
+ *
+ * `insertOperation` materialises a peer's Definition regardless of the
+ * peer's `skip` / `include` configuration — dependency edges are
+ * intentionally filter-blind. Capability is different: a peer's
+ * `isSupported` declares which operations it can serve *at all* (a
+ * table generator cannot render an operation with no list response,
+ * for example). Handing a peer an operation it has declared
+ * unsupported would build a broken Definition or crash inside the
+ * peer's constructor.
+ *
+ * The Driver throws here instead. The throw unwinds into
+ * `GenerateContext`'s per-item `try/catch`, so the *calling*
+ * generator's item is recorded as `error` and the run continues —
+ * loud, isolated failure rather than silent broken output.
+ *
+ * A peer that exposes no static `isSupported` is treated as
+ * supporting every operation: `toOasOperationProjectionBase` defaults
+ * it to `() => true`, and a hand-rolled projection may omit it.
+ */
+const assertPeerSupported = ({
+  context,
+  projection,
+  operation
+}: AssertPeerSupportedArgs): void => {
+  if (typeof projection.isSupported !== 'function') {
+    return
+  }
+
+  if (!projection.isSupported({ operation, context })) {
+    const operationLabel = `${operation.method.toUpperCase()} ${operation.path}`
+    throw new Error(
+      `[${projection.id}] Cannot insert '${operationLabel}' — peer generator ` +
+        `does not support this operation (isSupported returned false).`
     )
   }
 }

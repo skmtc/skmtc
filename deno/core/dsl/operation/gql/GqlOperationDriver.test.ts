@@ -79,10 +79,12 @@ const createMockProjection = (options?: {
   id?: string
   exportPath?: string
   enrichments?: any
+  isSupported?: () => boolean
 }): GqlOperationProjection<any, undefined> => {
   class MockProjection extends GqlOperationProjectionBase<undefined> {
     static id = options?.id ?? 'MockProjection'
     static type = 'gqlOperation' as const
+    static isSupported = options?.isSupported
 
     static toIdentifier({ operation }: ToGqlOperationIdentifierArgs): Identifier {
       return Identifier.createVariable(operation.fieldName)
@@ -1270,5 +1272,49 @@ Deno.test('GqlOperationDriver', async t => {
       assert(errorMessage.length > 0)
       assert(errorMessage.includes('generator key') || errorMessage.includes('mismatch'))
     })
+  })
+
+  await t.step('Peer support validation', async t => {
+    await t.step('insertion succeeds when the peer supports the operation', () => {
+      const { context } = createMockContext()
+      const projection = createMockProjection({ isSupported: () => true })
+      const operation = createMockOperation()
+
+      const driver = new GqlOperationDriver({ context, projection, operation, variant: 'main' })
+
+      assertExists(driver.definition)
+    })
+
+    await t.step('insertion throws when the peer does not support the operation', () => {
+      // GraphQL counterpart to the OAS-side check — see OasOperationDriver
+      // for the full rationale. A peer whose `isSupported` returns false
+      // cannot produce a valid Definition; the Driver throws so the
+      // calling generator is recorded as `error`.
+      const { context } = createMockContext()
+      const projection = createMockProjection({
+        id: 'unsupporting-peer',
+        isSupported: () => false
+      })
+      const operation = createMockOperation({ rootKind: 'mutation', fieldName: 'archiveReport' })
+
+      assertThrows(
+        () => new GqlOperationDriver({ context, projection, operation, variant: 'main' }),
+        Error,
+        'does not support this operation'
+      )
+    })
+
+    await t.step(
+      'a peer with no isSupported static is treated as supporting every operation',
+      () => {
+        const { context } = createMockContext()
+        const projection = createMockProjection()
+        const operation = createMockOperation()
+
+        const driver = new GqlOperationDriver({ context, projection, operation, variant: 'main' })
+
+        assertExists(driver.definition)
+      }
+    )
   })
 })

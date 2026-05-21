@@ -77,6 +77,8 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       variant
     })
 
+    assertPeerSupported({ context, projection, operation })
+
     this.settings = this.context.toOperationContentSettings({
       operation,
       projection,
@@ -209,6 +211,44 @@ const assertPeerVariantExists = ({
     throw new Error(
       `[${generatorId}] Cannot insert variant '${variant}' for '${operationLabel}'. ` +
         `Available variants: ${available}.`
+    )
+  }
+}
+
+type AssertPeerSupportedArgs = {
+  context: GenerateContextType
+  projection: {
+    id: string
+    isSupported?: (args: { operation: GqlOperation; context: GenerateContextType }) => boolean
+  }
+  operation: GqlOperation
+}
+
+/**
+ * GraphQL counterpart to the OAS-side {@link assertPeerSupported}.
+ *
+ * Same invariant: cross-generator `insertOperation` bypasses
+ * `skip` / `include` (dependency edges are filter-blind) but must
+ * still honour `isSupported` — a peer cannot produce a valid
+ * Definition for an operation it has declared unsupported. The Driver
+ * throws so the calling generator's item is recorded as `error` by
+ * `GenerateContext`'s per-item `try/catch`. A peer with no static
+ * `isSupported` is treated as supporting every operation.
+ */
+const assertPeerSupported = ({
+  context,
+  projection,
+  operation
+}: AssertPeerSupportedArgs): void => {
+  if (typeof projection.isSupported !== 'function') {
+    return
+  }
+
+  if (!projection.isSupported({ operation, context })) {
+    const operationLabel = `${operation.rootKind} ${operation.fieldName}`
+    throw new Error(
+      `[${projection.id}] Cannot insert '${operationLabel}' — peer generator ` +
+        `does not support this operation (isSupported returned false).`
     )
   }
 }

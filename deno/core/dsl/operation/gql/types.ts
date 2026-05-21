@@ -103,6 +103,15 @@ export type GqlOperationProjection<V, EnrichmentType = undefined> = { prototype:
   toIdentifier: (args: ToGqlOperationIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToGqlOperationEnrichmentsArgs) => EnrichmentType
+  /**
+   * Family-level capability predicate, surfaced as a static by
+   * `toGqlOperationProjectionBase` (default `() => true`). The Driver
+   * probes it on every `insertOperation` so a peer is never handed an
+   * operation it has declared unsupported. Optional: a hand-rolled
+   * projection may omit it, in which case it is treated as supporting
+   * every operation.
+   */
+  isSupported?: (args: { operation: GqlOperation; context: GenerateContextType }) => boolean
   // deno-lint-ignore ban-types
 } & Function
 

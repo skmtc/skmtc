@@ -231,6 +231,26 @@ composing with variants-unaware peers like `gen-typescript` /
 
 See: `core/context/GenerateContext.cross-variant.test.ts`.
 
+### `insertOperation` enforces the peer's `isSupported`
+
+Cross-generator `insertOperation` deliberately **bypasses the peer's
+`skip` / `include`** config — dependency edges are filter-blind, so a
+peer the consumer skipped at the top level still materialises when
+another generator depends on it. Capability is the exception:
+`insertOperation` **does** enforce the peer's static `isSupported`. If
+the peer has declared the operation unsupported, the Driver throws
+(`OasOperationDriver` / `GqlOperationDriver` → `assertPeerSupported`).
+The throw unwinds into `GenerateContext`'s per-item `try/catch`, so the
+*calling* generator's item is recorded as `error` and the run
+continues — loud, isolated failure beats a silently-broken Definition.
+
+For the check to bite, the peer must expose `isSupported` on its
+**projection base** (`base.ts`, via the `isSupported` config field of
+`toOasOperationProjectionBase`) — that is the static the Driver probes.
+A peer with no static `isSupported` is treated as supporting every
+operation. See `core/dsl/operation/oas/OasOperationDriver.test.ts` →
+"Peer support validation".
+
 ## 3.5. The operation-reference protocol
 
 The pattern above (`this.insertOperation(KnownPeer, op)`) covers
@@ -275,8 +295,9 @@ The four meeting points:
 - **Operation reference in the consumer's enrichment** — a string
   (tag, fieldName, path) identifying an operation. Lives in the
   *consumer* generator's enrichment schema (§7), not the producer's.
-- **Producer's `isSupported(op)`** — its claim on which operations it
-  can serve. Used to filter.
+- **Producer's `isSupported(op)`** — its capability claim. The
+  consumer filters candidate operations with it (the example above);
+  `insertOperation` independently enforces it (see §3).
 - **Producer's static `toIdentifier(op)` / `toExportPath(op)`** —
   content-addressed identity for the cache key.
 - **`insertOperation`** — registers the producer's Definition + auto-

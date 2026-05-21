@@ -77,10 +77,12 @@ const createMockProjection = (options?: {
   id?: string
   exportPath?: string
   enrichments?: any
+  isSupported?: () => boolean
 }): OasOperationProjection<any, undefined> => {
   class MockProjection extends OasOperationProjectionBase<undefined> {
     static id = options?.id ?? 'MockProjection'
     static type = 'oasOperation' as const
+    static isSupported = options?.isSupported
 
     static toIdentifier({ operation }: ToOasOperationIdentifierArgs): Identifier {
       return Identifier.createVariable(operation.operationId ?? 'operation')
@@ -1624,5 +1626,56 @@ Deno.test('OasOperationDriver', async t => {
       assertEquals(driver.noExport, true)
       assertEquals(driver.variant, 'customer')
     })
+  })
+
+  await t.step('Peer support validation', async t => {
+    await t.step('insertion succeeds when the peer supports the operation', () => {
+      const { context } = createMockContext()
+      const projection = createMockProjection({ isSupported: () => true })
+      const operation = createMockOperation()
+
+      const driver = new OasOperationDriver({ context, projection, operation, variant: 'main' })
+
+      assertExists(driver.definition)
+    })
+
+    await t.step('insertion throws when the peer does not support the operation', () => {
+      // `insertOperation` against a peer whose `isSupported` returns
+      // false must throw. Capability is not a filter — unlike skip /
+      // include, which the dependency path intentionally bypasses, a
+      // peer that has declared an operation unsupported cannot produce
+      // a valid Definition for it. The throw unwinds into
+      // GenerateContext's per-item try/catch, so the *calling*
+      // generator is recorded as `error` and the run continues.
+      const { context } = createMockContext()
+      const projection = createMockProjection({
+        id: 'unsupporting-peer',
+        isSupported: () => false
+      })
+      const operation = createMockOperation({ path: '/reports', method: 'get' })
+
+      assertThrows(
+        () => new OasOperationDriver({ context, projection, operation, variant: 'main' }),
+        Error,
+        'does not support this operation'
+      )
+    })
+
+    await t.step(
+      'a peer with no isSupported static is treated as supporting every operation',
+      () => {
+        // A hand-rolled projection may omit the static entirely. Absence
+        // must not false-negative — the Driver treats "no isSupported"
+        // as "supports everything" (the projection-base factory default
+        // is `() => true` anyway).
+        const { context } = createMockContext()
+        const projection = createMockProjection()
+        const operation = createMockOperation()
+
+        const driver = new OasOperationDriver({ context, projection, operation, variant: 'main' })
+
+        assertExists(driver.definition)
+      }
+    )
   })
 })

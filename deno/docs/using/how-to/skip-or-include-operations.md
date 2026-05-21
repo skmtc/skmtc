@@ -17,27 +17,25 @@
 
 ## Steps
 
-### Whole-generator filtering
+### Whole-generator filtering (`skip`)
 
-`include` and `skip` accept generator IDs as strings ("run this
-generator on everything supported" / "skip this generator
-entirely"):
+A bare generator-ID string in `skip` turns that generator off
+entirely:
 
 ```jsonc
 {
   "settings": {
-    "include": [
-      "@skmtc/gen-zod",
-      "@skmtc/gen-typescript"
-    ],
-    "skip": []
+    "skip": ["@skmtc/gen-msw"]
   }
 }
 ```
 
-With this `include` set non-empty, generators **not mentioned**
-are silently excluded. With an empty/absent `include`, all
-installed generators run.
+`include` is **per-generator**, not a global allow-list. A bare
+generator-ID string in `include` is a no-op — the generator runs
+default-on regardless — and a generator absent from `include` is
+**not** excluded. To restrict a generator to specific operations,
+use a per-operation `include` entry (below). To turn a generator
+off, use `skip`.
 
 ### Per-operation filtering
 
@@ -47,11 +45,10 @@ Filter specific operations within a generator:
 {
   "settings": {
     "include": [
-      "@skmtc/gen-zod",
       {
         "@skmtc/gen-shadcn-form": {
-          "/users": ["post"],
-          "/orders": ["post", "put"]
+          "/users": { "post": [] },
+          "/orders": { "post": [], "put": [] }
         }
       }
     ]
@@ -59,9 +56,11 @@ Filter specific operations within a generator:
 }
 ```
 
-For `gen-shadcn-form`, only the two listed `(path, method)` pairs
-run. Other supported operations get `result: "skipped"` in the
-manifest.
+For `gen-shadcn-form`, only the listed `(path, method)` pairs run;
+other supported operations get `result: "skipped"` in the manifest.
+Every other generator is unaffected — `include` only constrains the
+generators it names. (The `[]` after each method is the variant
+list: `[]` means "every variant"; name variants to narrow further.)
 
 ### Per-model filtering
 
@@ -125,10 +124,11 @@ for the full shape.
 - **`skip` ignored** — Confirm `skip` is inside `settings`, not at
   the top level. The `client.json` shape is `{ source, settings:
   { ..., skip } }`.
-- **Generator missing from output entirely** — If `include` is
-  non-empty but the generator isn't mentioned, it's excluded.
-  Either remove `include` (allow all), or add the generator's ID
-  to it.
+- **Generator produced nothing** — `include` does not exclude
+  unmentioned generators (it is per-generator). If a generator
+  emitted nothing, check `skip`, its `isSupported` predicate, or —
+  if it has a per-operation `include` entry — whether that entry
+  matched any operation.
 
 ## Related
 

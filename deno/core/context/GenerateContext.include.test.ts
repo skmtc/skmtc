@@ -4,9 +4,11 @@
  *
  *   1. `include` undefined ⇒ backwards compat (everything emits)
  *   2. `include: []` ⇒ forgiving (treated as undefined)
- *   3. `include: ['gen-X']` ⇒ only gen-X runs (string form)
+ *   3. `include: ['gen-X']` ⇒ string form is a no-op (include is
+ *      per-generator; gen-X runs, others unaffected)
  *   4. `include: [{ 'gen-X': { '/foo': ['get'] } }]` ⇒ per-op filter
- *   5. Generators not mentioned are silently excluded (no `skipped` flood)
+ *   5. Generators not mentioned run normally (include is per-generator,
+ *      not document-global)
  *   6. Per-op miss ⇒ captured as `skipped`
  *   7. `include` + `skip` overlap ⇒ skipped wins (`skip` runs after `include`)
  *   8. Hybrid array (string + object entries)
@@ -198,7 +200,7 @@ Deno.test('include - empty array is treated as no filter active', () => {
 
 // ─── Case 3: include: ['gen-X'] → only gen-X runs ─────────────────
 
-Deno.test('include - string entry includes whole generator; other generators silently excluded', () => {
+Deno.test('include - string entry is a no-op; unmentioned generators still run (per-generator)', () => {
   const txA = spy(() => undefined)
   const txB = spy(() => undefined)
   const { context, captures } = buildContext({
@@ -211,7 +213,8 @@ Deno.test('include - string entry includes whole generator; other generators sil
   })
   context.toArtifacts(new StackTrail(['test']))
 
-  // gen-A: every op should succeed (string include => no per-op filter)
+  // gen-A: every op succeeds. A bare-string include entry carries no
+  // per-op filter, so gen-A runs default-on.
   const resultsA = toOpResults(captures, 'gen-A')
   assertEquals(
     resultsA.every(r => r.result === 'success'),
@@ -220,14 +223,18 @@ Deno.test('include - string entry includes whole generator; other generators sil
   )
   assertEquals(resultsA.length, 4)
 
-  // gen-B: should NOT produce ANY per-op captures — whole-generator
-  // silent exclusion is the documented behavior (parity with skip).
+  // gen-B: also runs every op. `include` is per-generator — a
+  // generator absent from `include` is unaffected and stays
+  // default-on. (The previous global behaviour, where a non-empty
+  // `include` silently excluded every unmentioned generator, was
+  // removed in favour of per-generator semantics.)
   const resultsB = toOpResults(captures, 'gen-B')
   assertEquals(
-    resultsB.length,
-    0,
-    `gen-B should produce zero per-op results when excluded by include: ${JSON.stringify(resultsB)}`
+    resultsB.every(r => r.result === 'success'),
+    true,
+    `gen-B should run default-on when not mentioned in include: ${JSON.stringify(resultsB)}`
   )
+  assertEquals(resultsB.length, 4)
 })
 
 // ─── Case 4: per-op filter via object entry ──────────────────────
@@ -330,9 +337,11 @@ Deno.test('include - hybrid entries: string for one gen, object for another', ()
   assertEquals(b.filter(r => r.result === 'success').length, 1)
   assertEquals(b.filter(r => r.result === 'skipped').length, 3)
 
-  // gen-C: silently excluded (no per-op captures).
+  // gen-C: not mentioned in `include` at all — runs default-on.
+  // `include` is per-generator; omission does not exclude.
   const c = toOpResults(captures, 'gen-C')
-  assertEquals(c.length, 0)
+  assertEquals(c.length, 4)
+  assertEquals(c.every(r => r.result === 'success'), true)
 })
 
 // ─── Case 9: empty per-op dict → everything skipped for that gen ─
@@ -429,16 +438,13 @@ Deno.test(
   }
 )
 
-// ─── Bonus: GQL whole-generator gate via string form works ───────
+// ─── Bonus: include array with a GQL generator does not crash ─────
 
-Deno.test('include - GQL generator can be included via string form (whole-generator gate)', () => {
-  // Even though GQL doesn't yet support per-op include/skip, the
-  // whole-generator gate IS protocol-neutral — `include: ['gql-gen']`
-  // should admit gql-gen and exclude others. Tests the unified gate
-  // in toArtifacts works regardless of generator type.
-  // We use an OAS doc here for simplicity — the GQL generator just
-  // won't be dispatched for it (correct behavior). The point: this
-  // doesn't crash.
+Deno.test('include - an include array containing a GQL generator is handled cleanly', () => {
+  // `include` entries are protocol-neutral. With a GQL generator and
+  // an OAS document the generator simply isn't dispatched (its type
+  // doesn't match the document) — the point of this test is that
+  // `toArtifacts` handles the mixed config without crashing.
   const { context } = buildContext({
     document: makeOasDoc([]),
     settings: { include: ['gql-gen'] },

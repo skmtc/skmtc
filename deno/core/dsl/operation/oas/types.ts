@@ -103,6 +103,15 @@ export type OasOperationProjection<V, EnrichmentType = undefined> = { prototype:
   toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
+  /**
+   * Family-level capability predicate, surfaced as a static by
+   * `toOasOperationProjectionBase` (default `() => true`). The Driver
+   * probes it on every `insertOperation` so a peer is never handed an
+   * operation it has declared unsupported. Optional: a hand-rolled
+   * projection may omit it, in which case it is treated as supporting
+   * every operation.
+   */
+  isSupported?: (args: { operation: OasOperation; context: GenerateContextType }) => boolean
   // deno-lint-ignore ban-types
 } & Function
 

@@ -303,25 +303,14 @@ export class GenerateContext implements GenerateContextType {
           return
         }
 
-        // Whole-generator include gate (allow-list). When `include` is
-        // set and the generator isn't mentioned by id — neither as a
-        // string entry nor as a key in any object entry — the whole
-        // generator is silently excluded. Parity with whole-generator
-        // skip: no per-operation `skipped` entries flood the manifest
-        // for a generator the user explicitly opted out of via omission.
-        //
-        // An empty `include` array (`[]`) is treated as "no filter
-        // active" — the forgiving default — so old/blank configs
-        // continue to behave unchanged.
-        if (this.settings?.include !== undefined && this.settings.include.length > 0) {
-          const isMentioned = this.settings.include.some(entry => {
-            if (typeof entry === 'string') return entry === generatorConfig.id
-            return typeof entry === 'object' && entry[generatorConfig.id] !== undefined
-          })
-          if (!isMentioned) {
-            return
-          }
-        }
+        // `include` is per-generator, not document-global. A generator
+        // with a per-operation include slice runs in allow-list mode
+        // (only the listed operations); a generator absent from
+        // `include` is unaffected and runs default-on. There is
+        // therefore no whole-generator include gate here — the slice
+        // extracted below is applied per-operation in the run* arms.
+        // (Whole-generator opt-out is `skip`. A bare-string `include`
+        // entry carries no per-operation filter and is a no-op.)
 
         const skip: SkipOperations | SkipModels | undefined = this.settings?.skip?.find(
           (skip): skip is SkipOperations | SkipModels => {

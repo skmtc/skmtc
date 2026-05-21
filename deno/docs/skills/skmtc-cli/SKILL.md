@@ -266,16 +266,29 @@ Both `skip` and `include` accept three entry shapes:
 Order of evaluation in `GenerateContext.toArtifacts`:
 **`isSupported` (capability) → `include` (allow) → `skip` (deny).**
 
+- `include` is **per-generator**, not document-global. A generator
+  with a per-operation `include` entry runs in allow-list mode (only
+  the listed items); a generator absent from `include` is unaffected
+  and runs default-on. There is no whole-generator exclusion.
 - `include === []` or undefined → no filter active; everything runs
-  (backwards-compatible default)
-- `include` mentions a generator → only matched items run for that
-  generator
-- Unmentioned generators with `include` set are silently excluded (no
-  per-operation `skipped` floods)
+- A per-operation `include` entry → only matched items run for that
+  generator; non-matching items emit `skipped`
+- A **bare-string** `include` entry (`"@skmtc/gen-zod"`) carries no
+  per-operation filter and is a no-op — the generator runs default-on
+  either way. Whole-generator opt-out is `skip`.
+- `include` + `skip` on the same item → **`skip` wins** (`final =
+  include_set \ skip_set`) — `skip` is the deny-list, always decisive
 - Matching is exact — no wildcards, on path, method, OR variant name
 - The variant array is the third axis: `[]` matches every variant
   of the named method; a populated array matches only those variant
   names
+
+> **Migration note.** Earlier `@skmtc/core` treated a non-empty
+> `include` as document-global: every generator not mentioned was
+> silently excluded. `include` is now per-generator. If a project
+> relied on the global behaviour — listing a few generators in
+> `include` to switch the rest off — turn those off explicitly with
+> whole-generator `skip` entries instead.
 
 Use `include` for opt-in generators (forms, tables, page shells) where
 a blanket run would produce dozens of files the team doesn't want.
