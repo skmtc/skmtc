@@ -171,6 +171,74 @@ Deno.test(
 )
 
 Deno.test(
+  'runDoctor - warns when a project with local generators has no @skmtc/worker pin',
+  async () => {
+    await withTempSkmtcRoot(async tempRoot => {
+      const projectPath = join(tempRoot, '.skmtc', 'no-worker-pin')
+      await ensureDir(join(projectPath, '.settings'))
+      await Deno.writeTextFile(
+        join(projectPath, 'deno.json'),
+        JSON.stringify({
+          imports: {
+            '@scope/gen-x': './gen-x/mod.ts' // local generator, no jsr:
+          }
+        })
+      )
+      await Deno.writeTextFile(
+        join(projectPath, '.settings', 'client.json'),
+        JSON.stringify({ settings: { basePath: './src' } })
+      )
+
+      const result = await runDoctor({ cliVersion: '0.1.5' })
+      const workerCheck = result.checks.find(c => c.id === 'project-worker-pin/no-worker-pin')
+      assertEquals(workerCheck?.status, 'warning')
+      assertStringIncludes(workerCheck?.message ?? '', '@skmtc/worker')
+    })
+  }
+)
+
+Deno.test('runDoctor - reports ok when a project pins @skmtc/worker', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    const projectPath = join(tempRoot, '.skmtc', 'has-worker-pin')
+    await ensureDir(join(projectPath, '.settings'))
+    await Deno.writeTextFile(
+      join(projectPath, 'deno.json'),
+      JSON.stringify({
+        imports: {
+          '@scope/gen-x': './gen-x/mod.ts',
+          '@skmtc/worker': 'jsr:@skmtc/worker@0.3.2'
+        }
+      })
+    )
+    await Deno.writeTextFile(
+      join(projectPath, '.settings', 'client.json'),
+      JSON.stringify({ settings: { basePath: './src' } })
+    )
+
+    const result = await runDoctor({ cliVersion: '0.1.5' })
+    const workerCheck = result.checks.find(c => c.id === 'project-worker-pin/has-worker-pin')
+    assertEquals(workerCheck?.status, 'ok')
+  })
+})
+
+Deno.test('runDoctor - warns when Deno is below the `deno bundle` floor', async () => {
+  await withTempSkmtcRoot(async () => {
+    const result = await runDoctor({ cliVersion: '0.1.5', denoVersion: '2.1.4' })
+    const denoCheck = result.checks.find(c => c.id === 'deno-version')
+    assertEquals(denoCheck?.status, 'warning')
+    assertStringIncludes(denoCheck?.message ?? '', '2.4')
+  })
+})
+
+Deno.test('runDoctor - accepts a Deno version at or above the floor', async () => {
+  await withTempSkmtcRoot(async () => {
+    const result = await runDoctor({ cliVersion: '0.1.5', denoVersion: '2.7.0' })
+    const denoCheck = result.checks.find(c => c.id === 'deno-version')
+    assertEquals(denoCheck?.status, 'ok')
+  })
+})
+
+Deno.test(
   'runDoctor - warns when project pins an incompatible @skmtc/core (friction #7)',
   async () => {
     await withTempSkmtcRoot(async tempRoot => {

@@ -17,6 +17,7 @@ import type { SkmtcDispatch, SkmtcState, SkmtcMessage } from '@/components/Skmtc
 import type { Generator as GeneratorType } from '@/types/generator.generated.ts'
 import { toServer } from './to-server.ts'
 import { toWorker } from './to-worker.ts'
+import { ensureWorkerDeps } from './ensure-worker-deps.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -195,6 +196,15 @@ export class Project {
     await Deno.mkdir(path, { recursive: true })
 
     await Deno.writeTextFile(modPath, mod)
+
+    // worker.ts does `import toWorker from '@skmtc/worker'`, and the
+    // generator source imports `@skmtc/core` — neither is added by the
+    // clone import-collector (worker.ts is CLI-generated, not part of
+    // any cloned package). Ensure both are pinned, then persist so the
+    // `deno bundle` subprocess reads the updated import map.
+    if (ensureWorkerDeps(this.rootDenoJson)) {
+      await this.rootDenoJson.write()
+    }
 
     return modPath
   }

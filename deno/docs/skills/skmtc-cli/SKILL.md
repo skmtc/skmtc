@@ -175,10 +175,12 @@ Known check ids:
 | Check id | What it inspects |
 |---|---|
 | `shim-lockfile` | `~/.deno/bin/.skmtc/deno.lock` — version pin of `@skmtc/cli` and `@skmtc/core` |
+| `deno-version` | Running Deno is ≥ 2.4.0 — the floor for the esbuild-based `deno bundle` |
 | `project-deno-json/<project>` | `deno.json` exists and parses |
 | `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
 | `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
 | `project-bundle/<project>` | If local generators exist, `bundle.js` is built; otherwise ok-noop |
+| `project-worker-pin/<project>` | If local generators exist, `@skmtc/worker` is pinned (the generated `worker.ts` needs it); otherwise ok-noop |
 | `project-manifest/<project>` | `manifest.json` matches the current `@skmtc/core` schema |
 
 ## 6. The client.json shape
@@ -578,11 +580,14 @@ Then, **by hand**, write under `.skmtc/lab/`:
      "workspace": ["./<gen-dir>"]
    }
    ```
-   `init` writes an empty `{}` — it does NOT pin `@skmtc/core` /
-   `@skmtc/worker`. A **local-generator** project must pin them itself
-   (and every bare specifier the source imports), because those
-   resolve through the Deno workspace root import map. Remote-only
-   projects don't need them — the JSR bundle is self-contained.
+   `init` writes an empty `{}`. `skmtc bundle` (and any command that
+   rebundles — `clone`, `dev`) now adds the `@skmtc/core` and
+   `@skmtc/worker` pins automatically, at the CLI's own versions, when
+   it generates `worker.ts` — so you no longer hand-pin those two. You
+   **do** still pin every *other* bare specifier the generator source
+   imports (`@std/path`, `valibot`, `tiny-invariant`, …) — `bundle`
+   only knows about the worker peer deps. Remote-only projects need
+   none of this; the JSR bundle is self-contained.
 
 3. Set the schema in `.skmtc/lab/.settings/client.json#source` (or
    pass it as the `generate` positional). `basePath` is set by `init`.

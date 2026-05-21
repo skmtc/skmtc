@@ -64,15 +64,24 @@ type RunDoctorArgs = {
    * package manifest.
    */
   cliVersion: string
+  /**
+   * The running Deno version. Defaults to `Deno.version.deno`;
+   * injectable so tests can exercise the version-floor check.
+   */
+  denoVersion?: string
 }
 
-export const runDoctor = async ({ cliVersion }: RunDoctorArgs): Promise<DoctorResult> => {
+export const runDoctor = async ({
+  cliVersion,
+  denoVersion = Deno.version.deno
+}: RunDoctorArgs): Promise<DoctorResult> => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
   const projects = listProjects(skmtcRootPath)
   const checks: Check[] = []
 
   checks.push(checkShimLockfile())
+  checks.push(checkDenoVersion(denoVersion))
 
   const cliCorePin = readCliCorePin()
   const projectCtx: CheckProjectContext = { cliCorePin }
@@ -154,6 +163,34 @@ const extractPin = (content: string, pattern: RegExp): string | null => {
   return match?.[1] ?? null
 }
 
+/**
+ * `createBundle` runs `deno bundle -o` — the esbuild-based `deno
+ * bundle` re-introduced in Deno 2.4.0. On older Deno the subcommand
+ * is absent or rejects `-o`, and the failure surfaces as a generic
+ * "Failed to create bundle". Flag a too-old runtime up front.
+ */
+const checkDenoVersion = (denoVersion: string): Check => {
+  const [major = 0, minor = 0] = denoVersion.split('.').map(part => parseInt(part, 10) || 0)
+  const satisfiesFloor = major > 2 || (major === 2 && minor >= 4)
+
+  if (satisfiesFloor) {
+    return {
+      id: 'deno-version',
+      status: 'ok',
+      message: `Deno ${denoVersion} satisfies the >= 2.4.0 floor for \`deno bundle\`.`,
+      data: { denoVersion }
+    }
+  }
+
+  return {
+    id: 'deno-version',
+    status: 'warning',
+    message: `Deno ${denoVersion} is below 2.4.0 — \`skmtc bundle\` needs the esbuild-based \`deno bundle\` re-introduced in 2.4.0.`,
+    hint: `Upgrade Deno with \`deno upgrade\`.`,
+    data: { denoVersion }
+  }
+}
+
 type CheckProjectContext = {
   /**
    * `@skmtc/core` semver constraint declared by the CLI itself (from
@@ -178,6 +215,7 @@ const checkProject = (
   checks.push(checkProjectBasePath(projectName, clientJsonPath))
   checks.push(checkProjectCorePin(projectName, denoJsonPath, ctx.cliCorePin))
   checks.push(checkProjectBundle(projectName, denoJsonPath, bundlePath))
+  checks.push(checkProjectWorkerPin(projectName, denoJsonPath))
   checks.push(checkProjectManifest(projectName))
   // Gen-maps (anchors) checks — all three short-circuit to `skipped`
   // when the project hasn't opted in, so they're free for users not
@@ -215,6 +253,19 @@ export const readCliCorePin = (): string | null => {
   // Strip the `jsr:` prefix and the `@skmtc/core@` segment so we keep
   // just the version constraint (e.g. `^0.3.0`).
   const match = value.match(/^jsr:@skmtc\/core@(.+)$/)
+  return match ? match[1] : null
+}
+
+/**
+ * The CLI's own `@skmtc/worker` pin, read from `cli/deno.json`.
+ * `@skmtc/worker` versions independently of `@skmtc/core`, so it
+ * needs its own reader. Mirrors {@link readCliCorePin}; exported so
+ * `ensureWorkerDeps` can pin a fresh project to the CLI's version.
+ */
+export const readCliWorkerPin = (): string | null => {
+  const value = cliDenoJson?.imports?.['@skmtc/worker']
+  if (typeof value !== 'string') return null
+  const match = value.match(/^jsr:@skmtc\/worker@(.+)$/)
   return match ? match[1] : null
 }
 
@@ -400,6 +451,19 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
   }
 }
 
+/**
+ * A project has a local generator when its deno.json imports a
+ * `gen-*` package via a non-`jsr:` specifier — a relative path to
+ * cloned or hand-authored source. Such projects need a built
+ * `bundle.js` and an `@skmtc/worker` pin; remote-only projects do not.
+ */
+const hasLocalGenerator = (imports: Record<string, unknown>): boolean =>
+  Object.entries(imports).some(([id, value]) => {
+    const isGenerator = parseModuleName(id).packageName.startsWith('gen-')
+    if (!isGenerator) return false
+    return typeof value === 'string' && !value.startsWith('jsr:')
+  })
+
 const checkProjectBundle = (
   projectName: string,
   denoJsonPath: string,
@@ -424,13 +488,8 @@ const checkProjectBundle = (
     }
   }
   const imports = (parsed as { imports?: Record<string, unknown> })?.imports ?? {}
-  const hasLocalGenerator = Object.entries(imports).some(([id, value]) => {
-    const isGenerator = parseModuleName(id).packageName.startsWith('gen-')
-    if (!isGenerator) return false
-    return typeof value === 'string' && !value.startsWith('jsr:')
-  })
 
-  if (!hasLocalGenerator) {
+  if (!hasLocalGenerator(imports)) {
     return {
       id: `project-bundle/${projectName}`,
       status: 'ok',
@@ -452,6 +511,61 @@ const checkProjectBundle = (
     status: 'ok',
     message: `Project "${projectName}" has a local bundle.js.`,
     data: { hasLocalGenerator: true, bundlePath }
+  }
+}
+
+/**
+ * `clone` once produced a project whose deno.json had only the
+ * `@scope/gen-*` local mappings — the CLI-generated `worker.ts` does
+ * `import toWorker from '@skmtc/worker'`, so without that pin
+ * `deno bundle` fails with an unresolved-import error. `bundle` now
+ * writes the pin via `ensureWorkerDeps`; this check surfaces a project
+ * that predates that fix or had the pin removed.
+ */
+const checkProjectWorkerPin = (projectName: string, denoJsonPath: string): Check => {
+  if (!existsSync(denoJsonPath)) {
+    return {
+      id: `project-worker-pin/${projectName}`,
+      status: 'skipped',
+      message: `Project "${projectName}" has no deno.json — worker-pin check skipped.`
+    }
+  }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(Deno.readTextFileSync(denoJsonPath))
+  } catch {
+    return {
+      id: `project-worker-pin/${projectName}`,
+      status: 'skipped',
+      message: `Project "${projectName}" deno.json is unparseable — worker-pin check skipped.`
+    }
+  }
+  const imports = (parsed as { imports?: Record<string, unknown> })?.imports ?? {}
+
+  if (!hasLocalGenerator(imports)) {
+    return {
+      id: `project-worker-pin/${projectName}`,
+      status: 'ok',
+      message: `Project "${projectName}" is remote-only; no worker.ts is generated, so @skmtc/worker is not needed.`,
+      data: { hasLocalGenerator: false }
+    }
+  }
+
+  if (imports['@skmtc/worker'] === undefined) {
+    return {
+      id: `project-worker-pin/${projectName}`,
+      status: 'warning',
+      message: `Project "${projectName}" has local generators but no @skmtc/worker pin — the generated worker.ts will not bundle.`,
+      hint: `Run \`skmtc bundle ${projectName}\` — it writes the pin automatically — or add "@skmtc/worker" to the project's deno.json imports.`,
+      data: { hasLocalGenerator: true }
+    }
+  }
+
+  return {
+    id: `project-worker-pin/${projectName}`,
+    status: 'ok',
+    message: `Project "${projectName}" pins @skmtc/worker.`,
+    data: { hasLocalGenerator: true }
   }
 }
 
