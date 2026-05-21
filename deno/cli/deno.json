@@ -4,7 +4,7 @@
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
+    "@cliffy/command": "jsr:@cliffy/command@1.1.0",
     "@skmtc/core": "jsr:@skmtc/core@0.6.3",
     "@skmtc/convert": "jsr:@skmtc/convert@0.1.9",
     "@skmtc/worker": "jsr:@skmtc/worker@0.3.3",
