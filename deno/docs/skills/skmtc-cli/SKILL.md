@@ -174,7 +174,7 @@ Known check ids:
 
 | Check id | What it inspects |
 |---|---|
-| `shim-lockfile` | `~/.deno/bin/.skmtc/deno.lock` — version pin of `@skmtc/cli` and `@skmtc/core` |
+| `install-lockfile` | `~/.deno/bin/.skmtc/deno.lock` — the installed CLI's version pin of `@skmtc/cli` and `@skmtc/core` |
 | `deno-version` | Running Deno is ≥ 2.4.0 — the floor for the esbuild-based `deno bundle` |
 | `project-deno-json/<project>` | `deno.json` exists and parses |
 | `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
@@ -648,10 +648,10 @@ gated behind this flag on current Deno releases. Without it the
 first `skmtc generate` exits at runtime with `Unstable API
 'Worker.deno.permissions'. The --unstable-worker-options flag must
 be provided.` The flag has to be passed at install time — `deno
-install` bakes the runtime flags into the shim at `~/.deno/bin/skmtc`.
-If a previously-installed shim is missing the flag, reinstall with
-`-f` to overwrite it; adding the flag to invocations of the existing
-shim does not work.
+install` bakes the runtime flags into the installed CLI binary at
+`~/.deno/bin/skmtc`. If a previously-installed binary is missing the
+flag, reinstall with `-f` to overwrite it; adding the flag to
+invocations of the existing binary does not work.
 
 ### Card: When to hand off to other skills
 

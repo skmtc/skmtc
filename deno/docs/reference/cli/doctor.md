@@ -44,7 +44,7 @@ workspace-scoped check and five per-project checks:
 
 | Check ID | What it verifies |
 |---|---|
-| `shim-lockfile` | The CLI shim's `deno.lock` (under `~/.deno/bin/.skmtc/`) exists and pins `@skmtc/cli` and `@skmtc/core` to compatible versions |
+| `install-lockfile` | The installed CLI's `deno.lock` (under `~/.deno/bin/.skmtc/`) exists and pins `@skmtc/cli` and `@skmtc/core` to compatible versions |
 
 #### Per-project checks
 
@@ -68,7 +68,7 @@ to see the current battery.
 ```
 Workspace: /path/to/workspace
 
-✓ shim-lockfile                OK (cli=0.0.150, core=0.0.150)
+✓ install-lockfile             OK (cli=0.0.150, core=0.0.150)
 
 Project: my-api
 
@@ -97,9 +97,9 @@ do not change the exit code.
   "projects": ["my-api"],
   "checks": [
     {
-      "id": "shim-lockfile",
+      "id": "install-lockfile",
       "status": "ok",
-      "message": "Shim lockfile present. Pinned: @skmtc/cli=0.0.150, @skmtc/core=0.0.150.",
+      "message": "Install lockfile present. Pinned: @skmtc/cli=0.0.150, @skmtc/core=0.0.150.",
       "data": { "lockPath": "/home/user/.deno/bin/.skmtc/deno.lock", "cliVersion": "0.0.150", "coreVersion": "0.0.150" }
     },
     {
@@ -207,16 +207,16 @@ input recipe errors written by other commands.
 
 ## Common failure modes
 
-### Shim lockfile missing
+### Install lockfile missing
 
 ```
-✗ shim-lockfile    FAIL
-    CLI shim's deno.lock not found
+✗ install-lockfile    FAIL
+    The installed CLI's deno.lock not found
 ```
 
-The CLI was installed in a way that didn't produce a shim lockfile
-(or it has been deleted). Reinstall via the documented
-`deno compile` path (see the CLI installation notes) so the shim
+The CLI was installed in a way that didn't produce an install
+lockfile (or it has been deleted). Reinstall via the documented
+`deno compile` path (see the CLI installation notes) so the install
 lockfile is regenerated.
 
 ### Core pin mismatch

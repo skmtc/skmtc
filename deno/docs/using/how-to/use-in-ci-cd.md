@@ -41,7 +41,7 @@ JSR specifier.
 `Worker.deno.permissions` API, which is gated behind this flag on
 current Deno releases. Omitting it produces a runtime error on the
 first `skmtc generate` — discovered in CI long after install
-"succeeded." The flag must be baked into the shim at install time.
+"succeeded." The flag must be baked into the installed CLI binary at install time.
 
 ### Bundle (if any generators are cloned)
 

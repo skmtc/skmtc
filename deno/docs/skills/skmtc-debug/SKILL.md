@@ -88,7 +88,7 @@ the listed investigation steps in order.
 | Module not found in generated code | Read the unresolved import path in the generated file | Either implement the consumer-side path, or clone the generator and change the import target |
 | `No matching export … for import "X"` (bundle time) | Peer-dep version skew | Run `skmtc doctor --json`; check `project-core-pin/<project>` |
 | `ConfigValidationError` | Stale manifest schema | Upgrade CLI; the manifest auto-rewrites on next generate |
-| Per-generator enrichments arrive as `{}` in the worker | Shim is pinned to old `@skmtc/cli` / `@skmtc/core` | Delete `~/.deno/bin/.skmtc/deno.lock`; reinstall with `--reload` |
+| Per-generator enrichments arrive as `{}` in the worker | The installed CLI is pinned to old `@skmtc/cli` / `@skmtc/core` | Delete `~/.deno/bin/.skmtc/deno.lock`; reinstall with `--reload` |
 | "Raw mode is not supported on the current process.stdin" | Ink command run in non-TTY | Add `--json` flag; ported commands auto-degrade |
 
 For unrecognized symptoms: read `manifest.json`, then read the

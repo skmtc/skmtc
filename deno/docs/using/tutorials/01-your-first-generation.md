@@ -31,9 +31,9 @@ API. As of Deno 2.7, that API sits behind this flag. Without it, the
 first `skmtc generate` exits at runtime with `Unstable API
 'Worker.deno.permissions'. The --unstable-worker-options flag must be
 provided.` The flag has to be passed at install time — `deno install`
-bakes the flags into the generated shim at `~/.deno/bin/skmtc`. If you
+bakes the flags into the `skmtc` binary at `~/.deno/bin/skmtc`. If you
 already installed without it, reinstall with `-f` to overwrite the
-shim.
+binary.
 
 ## Step 2: Create a project
 

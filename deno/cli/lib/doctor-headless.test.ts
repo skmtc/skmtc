@@ -50,9 +50,9 @@ Deno.test('runDoctor - empty SKMTC root reports zero projects and OK summary', a
     assertEquals(result.projects, [])
     assertEquals(result.skmtcRootPath, join(tempRoot, '.skmtc'))
     assertEquals(result.cliVersion, '0.1.5')
-    // Only the shim-lockfile check ran; that one is `ok` or
-    // `skipped` depending on whether the user has a real shim
-    // installed (the test runs against the real homedir).
+    // Only the global checks (install-lockfile, deno-version) ran —
+    // neither can be `error` here (the test runs against the real
+    // homedir, so install-lockfile is `ok` or `skipped`).
     assertEquals(result.summary === 'error', false)
   })
 })

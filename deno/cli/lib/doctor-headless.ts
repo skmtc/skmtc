@@ -80,7 +80,7 @@ export const runDoctor = async ({
   const projects = listProjects(skmtcRootPath)
   const checks: Check[] = []
 
-  checks.push(checkShimLockfile())
+  checks.push(checkInstallLockfile())
   checks.push(checkDenoVersion(denoVersion))
 
   const cliCorePin = readCliCorePin()
@@ -118,18 +118,19 @@ const aggregate = (checks: Check[]): CheckStatus => {
 }
 
 /**
- * Friction #16: the shim's lockfile at `~/.deno/bin/.skmtc/deno.lock`
- * silently pins an old CLI/core version even when `deno install -f`
- * is rerun. We can't fix Deno's behavior from here, but we can
- * detect the situation and tell the operator how to clear it.
+ * Friction #16: the lockfile of the globally-installed `skmtc` CLI,
+ * at `~/.deno/bin/.skmtc/deno.lock`, silently pins an old CLI/core
+ * version even when `deno install -f` is rerun. We can't fix Deno's
+ * behavior from here, but we can detect the situation and tell the
+ * operator how to clear it.
  */
-const checkShimLockfile = (): Check => {
+const checkInstallLockfile = (): Check => {
   const lockPath = join(homedir(), '.deno', 'bin', '.skmtc', 'deno.lock')
   if (!existsSync(lockPath)) {
     return {
-      id: 'shim-lockfile',
+      id: 'install-lockfile',
       status: 'skipped',
-      message: `No shim lockfile at ${lockPath} — not a deno-install setup.`
+      message: `No install lockfile at ${lockPath} — not a deno-install setup.`
     }
   }
 
@@ -139,21 +140,21 @@ const checkShimLockfile = (): Check => {
     const cliVersion = extractPin(content, /jsr:@skmtc\/cli@([\d.^~<>=*]+)/)
 
     return {
-      id: 'shim-lockfile',
+      id: 'install-lockfile',
       status: 'ok',
-      message: `Shim lockfile present. Pinned: @skmtc/cli=${cliVersion ?? 'unknown'}, @skmtc/core=${coreVersion ?? 'unknown'}.`,
+      message: `Install lockfile present. Pinned: @skmtc/cli=${cliVersion ?? 'unknown'}, @skmtc/core=${coreVersion ?? 'unknown'}.`,
       hint:
-        `If enrichment leaves arrive as \`{}\` inside generators, your shim might be ` +
-        `pinned to an old @skmtc/core. Remediation: ` +
+        `If enrichment leaves arrive as \`{}\` inside generators, your installed ` +
+        `CLI might be pinned to an old @skmtc/core. Remediation: ` +
         `\`rm -f ${lockPath} && deno install -gAf --unstable-worker-options --name skmtc jsr:@skmtc/cli\`. ` +
         `See friction #16 in skmtc-cli skill §7.`,
       data: { lockPath, cliVersion, coreVersion }
     }
   } catch (error) {
     return {
-      id: 'shim-lockfile',
+      id: 'install-lockfile',
       status: 'warning',
-      message: `Couldn't read shim lockfile at ${lockPath}: ${error instanceof Error ? error.message : String(error)}`
+      message: `Couldn't read install lockfile at ${lockPath}: ${error instanceof Error ? error.message : String(error)}`
     }
   }
 }
@@ -238,7 +239,7 @@ const checkProject = (
  * Imported via JSON module syntax so it's resolved at build time. We
  * don't go through `Deno.readTextFileSync(...)` because the path of
  * `cli/deno.json` depends on the install shape (compiled binary vs
- * deno run vs deno install shim) — JSON imports work uniformly.
+ * deno run vs deno-install launcher) — JSON imports work uniformly.
  *
  * Exported so the pre-flight clone check can reuse it without
  * dragging in the full doctor scaffolding (friction #3 in the
