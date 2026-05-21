@@ -5,8 +5,8 @@
     ".": "./mod.ts"
   },
   "imports": {
-    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.17.3",
-    "zod": "npm:zod@^3.25.76",
+    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.29.0",
+    "zod": "npm:zod@^4.0.14",
     "@skmtc/cli": "jsr:@skmtc/cli@0.2.4",
     "@std/fs": "jsr:@std/fs@^1.0.7",
     "@std/log": "jsr:@std/log@^0.224.6",

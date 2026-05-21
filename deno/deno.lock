@@ -6,17 +6,19 @@
     "jsr:@std/fmt@1": "1.0.10",
     "jsr:@std/fmt@^1.0.5": "1.0.10",
     "jsr:@std/fs@^1.0.11": "1.0.23",
+    "jsr:@std/fs@^1.0.7": "1.0.23",
     "jsr:@std/internal@^1.0.12": "1.0.13",
     "jsr:@std/io@~0.225.2": "0.225.3",
     "jsr:@std/log@0.224": "0.224.14",
     "jsr:@std/log@~0.224.6": "0.224.14",
     "jsr:@std/path@^1.0.9": "1.1.4",
+    "jsr:@std/path@^1.1.4": "1.1.4",
     "jsr:@std/testing@^1.0.15": "1.0.18",
     "jsr:@std/yaml@^1.0.5": "1.1.0",
     "npm:@babel/helper-validator-identifier@7.27.1": "7.27.1",
     "npm:@inkjs/ui@2": "2.0.0_ink@6.8.0__react@19.2.6_react@19.2.6",
     "npm:@jest/globals@^29.2.2": "29.7.0",
-    "npm:@modelcontextprotocol/sdk@^1.17.3": "1.29.0_zod@4.4.3",
+    "npm:@modelcontextprotocol/sdk@^1.29.0": "1.29.0_zod@4.4.3",
     "npm:@supabase/supabase-js@^2.57.4": "2.106.0",
     "npm:@types/babel__helper-validator-identifier@7.15.2": "7.15.2",
     "npm:@types/js-yaml@^4.0.9": "4.0.9",
@@ -53,7 +55,6 @@
     "npm:ts-jest@^27.1.3": "27.1.5_jest@27.5.1_typescript@4.9.5",
     "npm:typescript@^4.8.4": "4.9.5",
     "npm:valibot@1.1.0": "1.1.0_typescript@4.9.5",
-    "npm:zod@^3.25.76": "3.25.76",
     "npm:zod@^4.0.14": "4.4.3"
   },
   "jsr": {
@@ -67,7 +68,11 @@
       "integrity": "90dfba288802ac6de82fb31d0917eb9e4450b9925b954d5e51fc29ac07419db5"
     },
     "@std/fs@1.0.23": {
-      "integrity": "3ecbae4ce4fee03b180fa710caff36bb5adb66631c46a6460aaad49515565a37"
+      "integrity": "3ecbae4ce4fee03b180fa710caff36bb5adb66631c46a6460aaad49515565a37",
+      "dependencies": [
+        "jsr:@std/internal",
+        "jsr:@std/path@^1.1.4"
+      ]
     },
     "@std/internal@1.0.13": {
       "integrity": "2f9546691d4ac2d32859c82dff284aaeac980ddeca38430d07941e7e288725c0"
@@ -79,7 +84,7 @@
       "integrity": "257f7adceee3b53bb2bc86c7242e7d1bc59729e57d4981c4a7e5b876c808f05e",
       "dependencies": [
         "jsr:@std/fmt@^1.0.5",
-        "jsr:@std/fs",
+        "jsr:@std/fs@^1.0.11",
         "jsr:@std/io"
       ]
     },
@@ -712,7 +717,7 @@
         "json-schema-typed",
         "pkce-challenge",
         "raw-body",
-        "zod@4.4.3",
+        "zod",
         "zod-to-json-schema"
       ]
     },
@@ -5103,11 +5108,8 @@
     "zod-to-json-schema@3.25.2_zod@4.4.3": {
       "integrity": "sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA==",
       "dependencies": [
-        "zod@4.4.3"
+        "zod"
       ]
-    },
-    "zod@3.25.76": {
-      "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
     },
     "zod@4.4.3": {
       "integrity": "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="
@@ -5179,8 +5181,8 @@
           "jsr:@std/fs@^1.0.7",
           "jsr:@std/log@~0.224.6",
           "jsr:@std/path@^1.0.9",
-          "npm:@modelcontextprotocol/sdk@^1.17.3",
-          "npm:zod@^3.25.76"
+          "npm:@modelcontextprotocol/sdk@^1.29.0",
+          "npm:zod@^4.0.14"
         ]
       },
       "openapi-down-convert": {
