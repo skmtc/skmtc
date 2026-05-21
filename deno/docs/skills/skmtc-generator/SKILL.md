@@ -539,6 +539,10 @@ export const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
   //   (filter intent via client.json `include`/`skip`).
   //   The engine calls this per variant; `variant` is informational
   //   here, not a gate (gating on variant is an anti-pattern).
+  //   The args are `IsSupportedOasOperationConfigArgs<E>` — that type
+  //   ALSO carries `context` and `enrichments`, not only the two
+  //   fields destructured here. Pull them in when the predicate needs
+  //   them; the partial destructure is not the complete arg surface.
   isSupported({ operation, variant }: IsSupportedOasOperationConfigArgs<EnrichmentSchema>) {
     return ['post', 'put', 'patch'].includes(operation.method) &&
       operation.requestBody?.resolve()?.toSchema()?.resolve().type === 'object'
@@ -1059,6 +1063,18 @@ right opt-in is `client.json#settings.include` (allow-list) or
 
 See [`using/how-to/skip-or-include-operations.md`](../../using/how-to/skip-or-include-operations.md).
 
+**Carve-out — non-defaultable generators.** This anti-pattern assumes
+the generator has *defaultable* emission. A generator whose every
+artifact requires a consumer-supplied, non-defaultable pointer — a
+hand-written row component, an action handler — has no
+sentinel-vs-empty case to confuse: there is simply nothing to emit
+without the pointer. For those, keep `isSupported` a pure capability
+claim and **short-circuit in `transform`** instead:
+`if (!enrichments?.rowComponent) return`. `isSupported` stays
+capability; `transform` is where opt-in lives. This is a legitimate
+variant, not a violation — the anti-pattern is specifically *gating
+`isSupported` itself* on enrichment presence.
+
 ### Bare value imports of type-only symbols
 
 ```ts
@@ -1109,6 +1125,26 @@ plausible. `.isRef()` is the type predicate that narrows the union.
 If you find yourself calling `toRefName()` to build an import path
 manually, switch to `insertNormalizedModel` — it handles named refs
 and inline schemas uniformly without coupling to peer path conventions.
+
+### `Inserted` — `.toName()` / `.toIdentifier()`, not `.identifier`
+
+```ts
+// ❌ WRONG — `.identifier` is not a property on Inserted (TS2551)
+const name = this.insertOperation(Peer, op).identifier.name
+
+// ✅ RIGHT — `.toName()` returns the identifier name directly
+const name = this.insertOperation(Peer, op).toName()
+
+// ✅ ALSO RIGHT — `.toIdentifier()` is a method, returns an Identifier
+const id = this.insertOperation(Peer, op).toIdentifier()
+```
+
+**Fails because:** `context.insertOperation` / `insertModel` /
+`insertNormalizedModel` return an `Inserted`, whose surface is
+`.toName()`, `.toIdentifier()` (a *method*), `.settings`, and
+`.definition` — there is no `.identifier` property. Same
+method-vs-property family as `OasRef.toRefName()` above. Prefer
+`.toName()` when you only need the identifier string.
 
 ### Dropping the schema at the routing boundary
 
