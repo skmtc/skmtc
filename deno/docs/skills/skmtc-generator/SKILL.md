@@ -1423,13 +1423,36 @@ invariants: `core/context/GenerateContext.variants.test.ts`,
 `core/context/GenerateContext.normalized-model-variants.test.ts`,
 `core/dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation".
 
+### Card: Emitting a barrel (re-export-only file)
+
+A package entry point that re-exports everything generated is **not**
+an accumulator (next card) — it needs no aggregate class, no
+`defineAndRegister`, no cross-generator `instanceof` coordination. A
+barrel is just a `File` populated with re-exports:
+
+```ts
+context.register({
+  reExports: { [modelExportPath]: [settings.identifier] },
+  destinationPath: barrelPath
+})
+```
+
+`reExports` is `Record<string, Identifier[]>` (module → identifiers);
+each identifier's entity type picks `export { x }` vs
+`export type { x }`. Many generators may `register` re-exports into
+the same `destinationPath` — `File.reExports` merges them. A `File`
+with only `reExports` (no `Definition`s) is a valid emitted artifact:
+there is no shared *value*, just a shared file accumulating entries,
+so the coordination concerns of the accumulator card below do not
+apply. See [`concepts/multi-package-output.md`](../../concepts/multi-package-output.md).
+
 ### Card: Accumulator-style generator (one shared aggregate, many contributors)
 
-When the generator's output is a *single* aggregate that grows as
-more operations are visited (a routes table, a registry, a barrel
-export), the per-operation Projection isn't the artifact — it
-contributes *into* one. Canonical example: `gen-msw`, which builds
-a single `toRoutesList` map keyed by the routes it sees.
+When the generator's output is a *single* aggregate **value** that
+grows as more operations are visited (a routes table, a registry),
+the per-operation Projection isn't the artifact — it contributes
+*into* one. Canonical example: `gen-msw`, which builds a single
+`toRoutesList` map keyed by the routes it sees.
 
 Shape (`gen-msw/src/mod.ts`):
 

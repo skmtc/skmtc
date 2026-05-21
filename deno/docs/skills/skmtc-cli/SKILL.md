@@ -235,13 +235,30 @@ Known check ids:
     "include": [],
 
     // Deny-list. Applied after include. See §7.
-    "skip": []
+    "skip": [],
+
+    // Optional. Multi-package output — route generated files into
+    // separate packages of a monorepo. Each entry is
+    // `{ rootPath, moduleName? }`. A file whose resolved path falls
+    // under a `rootPath` belongs to that package: intra-package
+    // imports render `@/…` (rooted at that package), cross-package
+    // imports render the target package's `moduleName`. Without
+    // `packages`, `@` is a single global alias rooted at `basePath`.
+    // See `concepts/multi-package-output.md`.
+    "packages": [
+      { "rootPath": "../../packages/models/src", "moduleName": "@app/models" }
+    ]
   }
 }
 ```
 
 To know what enrichment keys a generator accepts, **read its
 `gen-x/src/enrichments.ts`** — Valibot schema is canonical.
+
+`packages` is optional; omit it for the common single-`basePath`
+project. A generator writes into a non-`basePath` package by returning
+a `../`-relative `toExportPath` — see the multi-package concept doc
+for the `..`-count ↔ `rootPath` lockstep hazard.
 
 ## 7. Skip and include filters
 
