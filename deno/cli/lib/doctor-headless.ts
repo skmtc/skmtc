@@ -16,7 +16,7 @@ import * as v from 'valibot'
 import { manifestContent } from '@skmtc/core/Manifest'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
+import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
 import { Manifest } from '@/lib/manifest.ts'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { homedir } from 'node:os'
@@ -171,7 +171,7 @@ const checkProject = (
   const projectPath = toProjectPath(projectName)
   const denoJsonPath = join(projectPath, 'deno.json')
   const clientJsonPath = join(projectPath, '.settings', 'client.json')
-  const bundlePath = toBundlePath(projectPath)
+  const bundlePath = toBundleFsPath(projectPath)
 
   const checks: Check[] = []
   checks.push(checkProjectDenoJson(projectName, denoJsonPath))
@@ -403,17 +403,9 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
 const checkProjectBundle = (
   projectName: string,
   denoJsonPath: string,
-  /**
-   * `bundlePath` arrives as a `file://` URL because `toBundlePath`
-   * produces what `import()` consumes. For doctor's reporting we
-   * strip the prefix to show a plain filesystem path — the URL form
-   * leaks the import-time detail into operator-facing text.
-   */
+  /** Filesystem path to the project's bundle.js (see `toBundleFsPath`). */
   bundlePath: string
 ): Check => {
-  const displayPath = bundlePath.startsWith('file://')
-    ? bundlePath.slice('file://'.length)
-    : bundlePath
   if (!existsSync(denoJsonPath)) {
     return {
       id: `project-bundle/${projectName}`,
@@ -450,16 +442,16 @@ const checkProjectBundle = (
     return {
       id: `project-bundle/${projectName}`,
       status: 'warning',
-      message: `Project "${projectName}" has local generators but no bundle.js at ${displayPath}.`,
+      message: `Project "${projectName}" has local generators but no bundle.js at ${bundlePath}.`,
       hint: `Run \`skmtc bundle ${projectName}\` to build it.`,
-      data: { hasLocalGenerator: true, bundlePath: displayPath }
+      data: { hasLocalGenerator: true, bundlePath }
     }
   }
   return {
     id: `project-bundle/${projectName}`,
     status: 'ok',
     message: `Project "${projectName}" has a local bundle.js.`,
-    data: { hasLocalGenerator: true, bundlePath: displayPath }
+    data: { hasLocalGenerator: true, bundlePath }
   }
 }
 

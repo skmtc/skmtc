@@ -1,5 +1,7 @@
 import { assertEquals, assert } from '@std/assert'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
+import { exists } from '@std/fs/exists'
+import { join } from '@std/path/join'
+import { toBundleFsPath, toBundlePath } from '@/lib/to-bundle-path.ts'
 
 Deno.test('toBundlePath', async (t) => {
   await t.step('should create file URL with bundle.js for absolute path', () => {
@@ -98,4 +100,33 @@ Deno.test('toBundlePath', async (t) => {
     assertEquals(result, 'file:///path/to/project.name/bundle.js')
     assert(result.includes('project.name'))
   })
+})
+
+Deno.test('toBundleFsPath', async t => {
+  await t.step('returns the plain filesystem path to bundle.js', () => {
+    assertEquals(toBundleFsPath('/project'), join('/project', 'bundle.js'))
+  })
+
+  await t.step(
+    'resolves to a path @std/fs `exists` can stat — the toBundlePath URL form cannot',
+    async () => {
+      const projectPath = await Deno.makeTempDir()
+      try {
+        await Deno.writeTextFile(join(projectPath, 'bundle.js'), '// bundle')
+
+        // Diagnosis: `toBundlePath` returns a `file://` URL *string*.
+        // `@std/fs` `exists` treats that string as a literal path and
+        // false-negatives even though bundle.js is on disk — the root
+        // cause of the `skmtc bundle` "wasn't written" and doctor
+        // "no bundle.js" false-failures.
+        assertEquals(await exists(toBundlePath(projectPath), { isFile: true }), false)
+
+        // Fix: `toBundleFsPath` returns a plain filesystem path that
+        // `exists` resolves correctly.
+        assertEquals(await exists(toBundleFsPath(projectPath), { isFile: true }), true)
+      } finally {
+        await Deno.remove(projectPath, { recursive: true })
+      }
+    }
+  )
 })

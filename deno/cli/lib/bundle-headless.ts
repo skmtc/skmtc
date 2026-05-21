@@ -15,6 +15,7 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { createBundle } from '@/tasks/GenerateBundleTask.tsx'
 import { exists } from '@std/fs/exists'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
+import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
 
 type BundleHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -66,7 +67,13 @@ export const bundleHeadless = async ({
   // Belt-and-braces: confirm the file actually landed on disk before
   // declaring success. `createBundle` already throws on failure, but
   // a separate readback closes the silent-success class of bug.
-  if (!(await exists(bundlePath, { isFile: true }))) {
+  //
+  // The check must use the filesystem-path form: `createBundle`
+  // returns a `file://` URL string (for dynamic `import()`), and
+  // `@std/fs` `exists` treats a `file://` string as a literal,
+  // non-existent path — passing it here false-negatives on every
+  // successful bundle.
+  if (!(await exists(toBundleFsPath(project.toPath()), { isFile: true }))) {
     throw new Error(
       `bundle.js was expected at ${bundlePath} but wasn't written`
     )

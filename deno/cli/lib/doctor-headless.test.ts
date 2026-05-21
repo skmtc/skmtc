@@ -141,6 +141,36 @@ Deno.test(
 )
 
 Deno.test(
+  'runDoctor - reports ok when a project with local generators has a bundle.js',
+  async () => {
+    await withTempSkmtcRoot(async tempRoot => {
+      const projectPath = join(tempRoot, '.skmtc', 'has-bundle')
+      await ensureDir(join(projectPath, '.settings'))
+      await Deno.writeTextFile(
+        join(projectPath, 'deno.json'),
+        JSON.stringify({
+          imports: {
+            '@scope/gen-x': './gen-x/mod.ts' // local generator, no jsr:
+          }
+        })
+      )
+      await Deno.writeTextFile(
+        join(projectPath, '.settings', 'client.json'),
+        JSON.stringify({ settings: { basePath: './src' } })
+      )
+      // bundle.js IS present — the check must resolve it. Before the
+      // file://-URL-string vs fs-path fix, `existsSync` was handed a
+      // `file://` URL string, false-negatived, and reported `warning`.
+      await Deno.writeTextFile(join(projectPath, 'bundle.js'), '// bundle')
+
+      const result = await runDoctor({ cliVersion: '0.1.5' })
+      const bundleCheck = result.checks.find(c => c.id === 'project-bundle/has-bundle')
+      assertEquals(bundleCheck?.status, 'ok')
+    })
+  }
+)
+
+Deno.test(
   'runDoctor - warns when project pins an incompatible @skmtc/core (friction #7)',
   async () => {
     await withTempSkmtcRoot(async tempRoot => {

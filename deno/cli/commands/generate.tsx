@@ -14,7 +14,7 @@ import { existsSync } from '@std/fs/exists'
 import invariant from 'tiny-invariant'
 import { generate } from '../lib/generate.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
+import { toBundleFsPath, toBundlePath } from '@/lib/to-bundle-path.ts'
 
 type ToProjectArgs = {
   skmtcRoot: SkmtcRoot
@@ -143,7 +143,7 @@ const checkGenerateParams = ({
 
   const basePath = project.clientJson.contents?.settings.basePath
   const schemaSource = schemaSourceString ?? project.clientJson.contents?.source
-  const hasBundle = existsSync(toBundlePath(project.toPath()))
+  const hasBundle = existsSync(toBundleFsPath(project.toPath()))
 
   const hasBasePath = typeof basePath === 'string'
   const hasSchemaSource = typeof schemaSource === 'string'
