@@ -70,8 +70,9 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
 
   let logsFile: Deno.FsFile | undefined
   try {
-    // Read stdout and write to file
-    const logsFile = await Deno.open(logsPath, { create: true, append: true })
+    // Read stdout and write to file. Assign the outer binding (no
+    // `const`) so `finally` actually closes the handle.
+    logsFile = await Deno.open(logsPath, { create: true, append: true })
     await logsFile.write(stdout)
   } catch (error) {
     console.error(error)
@@ -82,7 +83,7 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
 
   let errorLogsFile: Deno.FsFile | undefined
   try {
-    const errorLogsFile = await Deno.open(errorLogsPath, { create: true, append: true })
+    errorLogsFile = await Deno.open(errorLogsPath, { create: true, append: true })
     await errorLogsFile.write(stderr)
   } catch (error) {
     console.error(error)
@@ -92,8 +93,37 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   }
 
   if (!success) {
-    throw new Error('Failed to create bundle')
+    throw new Error(toBundleFailureMessage({ projectPath, errorLogsPath, stderr }))
   }
 
   return bundlePath
+}
+
+type ToBundleFailureMessageArgs = {
+  projectPath: string
+  errorLogsPath: string
+  stderr: Uint8Array
+}
+
+/**
+ * Build the error message for a failed `deno bundle`.
+ *
+ * The captured subprocess stderr is the only diagnosable cause of a
+ * bundle failure — wrong Deno version, missing import-map entry, bad
+ * specifier. Without it every distinct failure collapses to an opaque
+ * "Failed to create bundle" and the real error is reachable only by
+ * knowing to read `.settings/error-logs.txt` out of band.
+ */
+export const toBundleFailureMessage = ({
+  projectPath,
+  errorLogsPath,
+  stderr
+}: ToBundleFailureMessageArgs): string => {
+  const errorOutput = new TextDecoder().decode(stderr).trim()
+
+  return [
+    `Failed to create bundle — \`deno bundle\` failed in ${projectPath}.`,
+    errorOutput || '(no stderr captured)',
+    `Full output: ${errorLogsPath}`
+  ].join('\n\n')
 }
