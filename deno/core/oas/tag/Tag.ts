@@ -1,6 +1,9 @@
+import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
+
 export type TagFields = {
   name: string
   description: string | undefined
+  externalDocs?: OasExternalDocs
   extensionFields?: Record<string, unknown>
 }
 
@@ -18,6 +21,10 @@ export class OasTag {
 
   get description(): string | undefined {
     return this.#fields.description
+  }
+
+  get externalDocs(): OasExternalDocs | undefined {
+    return this.#fields.externalDocs
   }
 
   /** Specification Extension fields */
