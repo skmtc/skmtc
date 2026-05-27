@@ -372,7 +372,7 @@ Deno.test('include - per-model filter restricts emission to listed refNames', ()
   const doc = makeOasDoc([], ['User', 'Order', 'Product'])
   const { context, captures } = buildContext({
     document: doc,
-    settings: { include: [{ 'ts-gen': ['User', 'Product'] }] },
+    settings: { include: [{ 'ts-gen': { 'User': [], 'Product': [] } }] },
     generators: { 'ts-gen': makeModelGen('ts-gen') }
   })
   context.toArtifacts(new StackTrail(['test']))

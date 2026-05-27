@@ -87,15 +87,19 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
 
   /**
    * Insert a related model into this projection's export file.
+   *
+   * Pass `{ variant }` to target a specific variant on the peer model
+   * projection. Omitting it defaults to the peer's `'main'` variant.
    */
   insertModel<V extends GeneratedValue, EnrichmentType = undefined>(
     projection: ModelProjection<V, EnrichmentType>,
     refName: RefName,
-    options: Pick<InsertModelOptions, 'noExport'> = {}
+    options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
   ): Inserted<V, EnrichmentType> {
     return this.context.insertModel(projection, refName, {
       destinationPath: this.settings.exportPath,
-      noExport: options.noExport
+      noExport: options.noExport,
+      variant: options.variant
     })
   }
 
@@ -103,6 +107,9 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
    * Insert a related model with reference normalization. Useful for inline
    * request/response schemas where the schema may be either a `$ref` or a
    * concrete object.
+   *
+   * `{ variant }` flows through the `$ref` branch only; for inline
+   * schemas, bake the variant into `fallbackName`.
    */
   insertNormalizedModel<
     V extends GeneratedValue,
@@ -111,7 +118,7 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
   >(
     projection: ModelProjection<V, EnrichmentType>,
     { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
-    options: Pick<InsertModelOptions, 'noExport'> = {}
+    options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
   ): InsertNormalizedModelReturn<V, Schema> {
     return this.context.insertNormalizedModel(
       projection,
@@ -120,7 +127,10 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
         fallbackName,
         destinationPath: this.settings.exportPath
       },
-      options
+      {
+        noExport: options.noExport,
+        variant: options.variant
+      }
     )
   }
 

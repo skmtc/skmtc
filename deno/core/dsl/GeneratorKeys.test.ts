@@ -54,13 +54,24 @@ Deno.test('toOasOperationGeneratorKey - creates key from operation object', () =
   assertEquals(key, 'rest-client|/products/{id}|post|main')
 })
 
-Deno.test('toModelGeneratorKey - creates key with generator ID and ref name', () => {
+Deno.test('toModelGeneratorKey - creates key with generator ID, ref name, and variant', () => {
   const key = toModelGeneratorKey({
     generatorId: 'typescript-types',
-    refName: 'User' as RefName
+    refName: 'User' as RefName,
+    variant: 'main'
   })
 
-  assertEquals(key, 'typescript-types|User')
+  assertEquals(key, 'typescript-types|User|main')
+})
+
+Deno.test('toModelGeneratorKey - encodes a non-default variant', () => {
+  const key = toModelGeneratorKey({
+    generatorId: 'zod-schemas',
+    refName: 'Customer' as RefName,
+    variant: 'coercive'
+  })
+
+  assertEquals(key, 'zod-schemas|Customer|coercive')
 })
 
 Deno.test('toGeneratorOnlyKey - creates key with just generator ID', () => {
@@ -96,16 +107,22 @@ Deno.test('isOasOperationGeneratorKey - returns false for invalid format', () =>
 })
 
 Deno.test('isModelGeneratorKey - returns true for valid model key', () => {
-  const key = 'zod-schemas|User'
+  const key = 'zod-schemas|User|main'
   assertEquals(isModelGeneratorKey(key), true)
 })
 
 Deno.test('isModelGeneratorKey - returns false for invalid format', () => {
+  // Missing variant (old 2-segment shape)
+  assertEquals(isModelGeneratorKey('zod-schemas|User'), false)
+
   // Too few parts
   assertEquals(isModelGeneratorKey('zod-schemas'), false)
 
   // Too many parts
-  assertEquals(isModelGeneratorKey('zod-schemas|User|extra'), false)
+  assertEquals(isModelGeneratorKey('zod-schemas|User|main|extra'), false)
+
+  // Empty variant segment
+  assertEquals(isModelGeneratorKey('zod-schemas|User|'), false)
 
   // Non-string
   assertEquals(isModelGeneratorKey(null), false)
@@ -115,8 +132,8 @@ Deno.test('isGeneratorKey - returns true for all valid key types', () => {
   // Operation key (4 segments including variant)
   assertEquals(isGeneratorKey('api-client|/users|get|main'), true)
 
-  // Model key
-  assertEquals(isGeneratorKey('typescript-types|User'), true)
+  // Model key (3 segments including variant)
+  assertEquals(isGeneratorKey('typescript-types|User|main'), true)
 
   // Generator-only key
   assertEquals(isGeneratorKey('utilities'), true)
@@ -141,7 +158,8 @@ Deno.test('toGeneratorId - extracts ID from different key types', () => {
   // Model key
   const modelKey = toModelGeneratorKey({
     generatorId: 'typescript-types',
-    refName: 'User' as RefName
+    refName: 'User' as RefName,
+    variant: 'main'
   })
   assertEquals(toGeneratorId(modelKey), 'typescript-types')
 
@@ -174,7 +192,8 @@ Deno.test('fromGeneratorKey - parses operation key into object', () => {
 Deno.test('fromGeneratorKey - parses model key into object', () => {
   const key = toModelGeneratorKey({
     generatorId: 'zod-schemas',
-    refName: 'User' as RefName
+    refName: 'User' as RefName,
+    variant: 'main'
   })
 
   const parsed = fromGeneratorKey(key)
@@ -183,6 +202,24 @@ Deno.test('fromGeneratorKey - parses model key into object', () => {
   if (parsed.type === 'model') {
     assertEquals(parsed.generatorId, 'zod-schemas')
     assertEquals(parsed.refName, 'User')
+    assertEquals(parsed.variant, 'main')
+  }
+})
+
+Deno.test('GeneratorKey round-trip - model variant survives serialize → parse', () => {
+  const key = toModelGeneratorKey({
+    generatorId: '@skmtc/gen-zod-variants',
+    refName: 'Customer' as RefName,
+    variant: 'coercive'
+  })
+
+  const parsed = fromGeneratorKey(key)
+
+  assertEquals(parsed.type, 'model')
+  if (parsed.type === 'model') {
+    assertEquals(parsed.generatorId, '@skmtc/gen-zod-variants')
+    assertEquals(parsed.refName, 'Customer')
+    assertEquals(parsed.variant, 'coercive')
   }
 })
 

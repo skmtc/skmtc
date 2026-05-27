@@ -59,21 +59,32 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
    * Insert a related model and return its `Inserted` reference. The inserted
    * model is exported to this projection's own `exportPath` unless `noExport`
    * is set.
+   *
+   * Pass `{ variant }` to target a specific variant on the peer (e.g.
+   * to thread `this.settings.variant` into a within-package sibling
+   * Projection that's also variants-aware). Omitting it defaults to
+   * the peer's `'main'` variant — the safe choice for variants-unaware
+   * peers and the standard pattern for cross-package composition.
    */
   insertModel<V extends GeneratedValue, EnrichmentType = undefined>(
     projection: ModelProjection<V, EnrichmentType>,
     refName: RefName,
-    options: Pick<InsertModelOptions, 'noExport'> = {}
+    options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
   ): Inserted<V, EnrichmentType> {
     return this.context.insertModel(projection, refName, {
       destinationPath: this.settings.exportPath,
-      noExport: options.noExport
+      noExport: options.noExport,
+      variant: options.variant
     })
   }
 
   /**
    * Insert a related model with reference normalization. If `schema` is a
    * `$ref`, the referenced name is used; otherwise `fallbackName` applies.
+   *
+   * `{ variant }` flows through the `$ref` branch only; for inline
+   * schemas, bake the variant into `fallbackName` if you need
+   * variant-distinct one-off Definitions.
    */
   insertNormalizedModel<
     V extends GeneratedValue,
@@ -82,7 +93,7 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
   >(
     projection: ModelProjection<V, EnrichmentType>,
     { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
-    options: Pick<InsertModelOptions, 'noExport'> = {}
+    options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
   ): InsertNormalizedModelReturn<V, Schema> {
     return this.context.insertNormalizedModel(
       projection,
@@ -91,7 +102,10 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
         fallbackName,
         destinationPath: this.settings.exportPath
       },
-      options
+      {
+        noExport: options.noExport,
+        variant: options.variant
+      }
     )
   }
 

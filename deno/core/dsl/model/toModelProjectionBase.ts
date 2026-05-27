@@ -9,6 +9,7 @@ import type {
   ToModelExportPathArgs
 } from '@/dsl/model/types.ts'
 import * as v from 'valibot'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
 
@@ -28,6 +29,8 @@ export type ModelProjectionArgs<EnrichmentType = undefined> = {
 type ToEnrichmentsArgs = {
   refName: RefName
   context: GenerateContextType
+  /** Model variant whose enrichment should be resolved (see {@link Variant}) */
+  variant: string
 }
 
 /**
@@ -56,10 +59,21 @@ export const toModelProjectionBase = <EnrichmentType = undefined>(
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
-    static toEnrichments = ({ refName, context }: ToEnrichmentsArgs): EnrichmentType => {
-      const modelEnrichments = get(context.settings, `enrichments.${config.id}.${refName}`)
+    static toEnrichments = ({ refName, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
+      // The variant axis is owned by core: consumer enrichments are keyed
+      // `[generatorId][refName][variant]`, and the generator's own schema
+      // describes the per-variant inner value. The engine has already
+      // enumerated valid variants and asserted `'main'` exists, so the
+      // lookup here either hits a declared variant or — for the synthetic
+      // single-`'main'` pass when no enrichments are configured — returns
+      // `undefined`, which the Valibot schema accepts via its
+      // `v.optional(...)` envelope.
+      const modelEnrichments = get(
+        context.settings,
+        `enrichments.${config.id}.${refName}.${variant}`
+      )
 
-      const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.undefined()
+      const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
 
       return v.parse(enrichmentSchema, modelEnrichments) as EnrichmentType
     }
@@ -70,7 +84,8 @@ export const toModelProjectionBase = <EnrichmentType = undefined>(
         ...args,
         generatorKey: toModelGeneratorKey({
           generatorId: config.id,
-          refName: args.refName
+          refName: args.refName,
+          variant: args.settings.variant ?? DEFAULT_VARIANT
         })
       })
     }

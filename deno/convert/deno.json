@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/convert",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "imports": {
     "@skmtc/openapi-down-convert": "jsr:@skmtc/openapi-down-convert@0.14.6",
     "@std/yaml": "jsr:@std/yaml@^1.0.5",

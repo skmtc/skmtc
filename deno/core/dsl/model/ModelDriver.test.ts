@@ -38,17 +38,18 @@ class MockProjection extends MockGeneratedValue {
     this.settings = args.settings
     this.destinationPath = args.destinationPath
     this.rootRef = args.rootRef
-    this.generatorKey = toModelGeneratorKey({ generatorId: MockProjection.id, refName: args.refName })
+    this.generatorKey = toModelGeneratorKey({ generatorId: MockProjection.id, refName: args.refName, variant: 'main' })
   }
 }
 
 const createMockContext = (): GenerateContextType => {
   const mockContext = {
     modelDepth: {} as Record<string, number>,
-    toModelContentSettings: spy(({ refName }: { refName: RefName }) => ({
+    toModelContentSettings: spy(({ refName, variant }: { refName: RefName; variant: string }) => ({
       identifier: Identifier.createType(refName),
       exportPath: '/path/to/export.ts',
-      enrichments: undefined
+      enrichments: undefined,
+      variant
     })),
     findDefinition: spy(() => undefined),
     register: spy(() => {}),
@@ -72,7 +73,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.context, context)
@@ -96,7 +98,8 @@ Deno.test('ModelDriver', async (t) => {
         refName,
         destinationPath,
         rootRef,
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       assertEquals(driver.destinationPath, destinationPath)
@@ -113,7 +116,8 @@ Deno.test('ModelDriver', async (t) => {
       new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(context.modelDepth[key], 0)
@@ -127,12 +131,13 @@ Deno.test('ModelDriver', async (t) => {
       new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertSpyCalls(context.toModelContentSettings as any, 1)
       assertSpyCall(context.toModelContentSettings as any, 0, {
-        args: [{ refName, projection }]
+        args: [{ refName, projection, variant: 'main' }]
       })
     })
 
@@ -144,7 +149,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.settings.identifier.name, refName)
@@ -159,7 +165,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition !== undefined, true)
@@ -175,7 +182,8 @@ Deno.test('ModelDriver', async (t) => {
       new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(context.modelDepth[key], 0)
@@ -190,7 +198,8 @@ Deno.test('ModelDriver', async (t) => {
         const driver = new ModelDriver({
           context,
           projection,
-          refName
+          refName,
+          variant: 'main'
         })
 
         assertEquals(driver.refName, refName)
@@ -207,7 +216,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition.identifier.name, refName)
@@ -221,7 +231,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertSpyCalls(context.findDefinition as any, 1)
@@ -237,7 +248,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        destinationPath
+        destinationPath,
+        variant: 'main'
       })
 
       const registerCalls = (context.register as any).calls
@@ -265,7 +277,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        destinationPath
+        destinationPath,
+        variant: 'main'
       })
 
       const registerCalls = (context.register as any).calls
@@ -284,7 +297,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        destinationPath
+        destinationPath,
+        variant: 'main'
       })
 
       const registerCalls = (context.register as any).calls
@@ -301,7 +315,8 @@ Deno.test('ModelDriver', async (t) => {
       new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       const registerCalls = (context.register as any).calls
@@ -318,7 +333,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition instanceof Definition, true)
@@ -335,7 +351,8 @@ Deno.test('ModelDriver', async (t) => {
       new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertSpyCalls(context.findDefinition as any, 1)
@@ -355,7 +372,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition instanceof Definition, true)
@@ -371,7 +389,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        rootRef
+        rootRef,
+        variant: 'main'
       })
 
       assertEquals(context !== undefined, true)
@@ -385,7 +404,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition instanceof Definition, true)
@@ -400,7 +420,8 @@ Deno.test('ModelDriver', async (t) => {
       new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       const registerCalls = (context.register as any).calls
@@ -420,7 +441,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       assertEquals(driver.definition !== undefined, true)
@@ -436,7 +458,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        rootRef
+        rootRef,
+        variant: 'main'
       })
 
       assertEquals(driver.rootRef, rootRef)
@@ -450,7 +473,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition !== undefined, true)
@@ -472,14 +496,15 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition, mockDefinition)
@@ -500,14 +525,15 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       // Verify the cached definition was used
@@ -526,7 +552,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition !== undefined, true)
@@ -547,14 +574,15 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition, mockDefinition)
@@ -584,7 +612,8 @@ Deno.test('ModelDriver', async (t) => {
           new ModelDriver({
             context,
             projection,
-            refName
+            refName,
+            variant: 'main'
           })
         },
         Error,
@@ -616,7 +645,8 @@ Deno.test('ModelDriver', async (t) => {
           new ModelDriver({
             context,
             projection,
-            refName
+            refName,
+            variant: 'main'
           })
         },
         Error,
@@ -648,7 +678,8 @@ Deno.test('ModelDriver', async (t) => {
           new ModelDriver({
             context,
             projection,
-            refName
+            refName,
+            variant: 'main'
           })
         },
         Error,
@@ -671,14 +702,15 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition.value instanceof MockProjection, true)
@@ -699,17 +731,18 @@ Deno.test('ModelDriver', async (t) => {
         }),
         identifier: Identifier.createType(refName)
       })
-      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName }) as GeneratorKey
+      mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
-      assertEquals(driver.definition.generatorKey, `${projection.id}|${refName}`)
+      assertEquals(driver.definition.generatorKey, `${projection.id}|${refName}|main`)
     })
   })
 
@@ -722,7 +755,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.context, context)
@@ -740,7 +774,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver1 = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       const mockDefinition = driver1.definition
@@ -749,7 +784,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver2 = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver2.definition, mockDefinition)
@@ -762,13 +798,15 @@ Deno.test('ModelDriver', async (t) => {
       const driver1 = new ModelDriver({
         context,
         projection,
-        refName: 'User' as RefName
+        refName: 'User' as RefName,
+        variant: 'main'
       })
 
       const driver2 = new ModelDriver({
         context,
         projection,
-        refName: 'Product' as RefName
+        refName: 'Product' as RefName,
+        variant: 'main'
       })
 
       assertEquals(driver1.refName !== driver2.refName, true)
@@ -785,7 +823,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        destinationPath
+        destinationPath,
+        variant: 'main'
       })
 
       const registerCalls = (context.register as any).calls
@@ -805,7 +844,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        destinationPath
+        destinationPath,
+        variant: 'main'
       })
 
       const registerCalls = (context.register as any).calls
@@ -825,7 +865,8 @@ Deno.test('ModelDriver', async (t) => {
       new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(context.modelDepth[key], 0)
@@ -840,7 +881,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        noExport: true
+        noExport: true,
+        variant: 'main'
       })
 
       assertEquals(driver.noExport, true)
@@ -856,7 +898,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        rootRef
+        rootRef,
+        variant: 'main'
       })
 
       assertEquals(driver.rootRef, rootRef)
@@ -872,7 +915,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.refName, refName)
@@ -889,7 +933,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        destinationPath: longPath
+        destinationPath: longPath,
+        variant: 'main'
       })
 
       assertEquals(driver.destinationPath, longPath)
@@ -919,7 +964,8 @@ Deno.test('ModelDriver', async (t) => {
         new ModelDriver({
           context,
           projection,
-          refName
+          refName,
+          variant: 'main'
         })
       } catch (error) {
         errorMessage = (error as Error).message
@@ -928,7 +974,7 @@ Deno.test('ModelDriver', async (t) => {
       assertEquals(errorMessage.includes('Registered definition mismatch'), true)
       assertEquals(errorMessage.includes(refName), true)
       assertEquals(errorMessage.includes('WrongGenerator:WrongRef'), true)
-      assertEquals(errorMessage.includes(`${projection.id}|${refName}`), true)
+      assertEquals(errorMessage.includes(`${projection.id}|${refName}|main`), true)
     })
 
     await t.step('should handle paths with different separators', () => {
@@ -941,7 +987,8 @@ Deno.test('ModelDriver', async (t) => {
         context,
         projection,
         refName,
-        destinationPath
+        destinationPath,
+        variant: 'main'
       })
 
       assertEquals(driver.destinationPath, destinationPath)
@@ -955,7 +1002,8 @@ Deno.test('ModelDriver', async (t) => {
       const driver = new ModelDriver<MockGeneratedValue, any>({
         context,
         projection,
-        refName
+        refName,
+        variant: 'main'
       })
 
       assertEquals(driver.definition.value instanceof MockProjection, true)

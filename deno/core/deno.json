@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.6.4",
+  "version": "0.6.6",
   "nodeModulesDir": "auto",
   "imports": {
     "@/": "./",
@@ -25,6 +25,8 @@
     "./Method": "./types/Method.ts",
     "./Modifiers": "./types/Modifiers.ts",
     "./ModuleExport": "./types/ModuleExport.ts",
+    "./AccessorPath": "./types/AccessorPath.ts",
+    "./EnrichmentDescriptor": "./enrichments/toEnrichmentDescriptor.ts",
     "./Preview": "./types/Preview.ts",
     "./RefName": "./types/RefName.ts",
     "./Results": "./types/Results.ts",

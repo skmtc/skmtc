@@ -190,7 +190,8 @@ Deno.test('ModelProjectionBase - insertModel calls context.insertModel with corr
   assertEquals(insertModelSpy.calls[0].args[1] as any, refName)
   assertEquals(insertModelSpy.calls[0].args[2] as any, {
     destinationPath: exportPath,
-    noExport: false
+    noExport: false,
+    variant: undefined
   })
 
   insertModelSpy.restore()
@@ -223,7 +224,8 @@ Deno.test('ModelProjectionBase - insertModel without noExport option', () => {
   assertSpyCalls(insertModelSpy, 1)
   assertEquals(insertModelSpy.calls[0].args[2] as any, {
     destinationPath: exportPath,
-    noExport: undefined
+    noExport: undefined,
+    variant: undefined
   })
 
   insertModelSpy.restore()
@@ -265,7 +267,7 @@ Deno.test('ModelProjectionBase - insertNormalizedModel calls context.insertNorma
     fallbackName,
     destinationPath: exportPath
   })
-  assertEquals(insertNormalizedModelSpy.calls[0].args[2] as any, { noExport: true })
+  assertEquals(insertNormalizedModelSpy.calls[0].args[2] as any, { noExport: true, variant: undefined })
 
   insertNormalizedModelSpy.restore()
 })

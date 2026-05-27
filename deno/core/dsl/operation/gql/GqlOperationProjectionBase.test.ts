@@ -299,7 +299,8 @@ Deno.test('GqlOperationProjectionBase - insertModel calls context.insertModel wi
   assertEquals(insertModelSpy.calls[0].args[1] as any, refName)
   assertEquals(insertModelSpy.calls[0].args[2] as any, {
     destinationPath: exportPath,
-    noExport: false
+    noExport: false,
+    variant: undefined
   })
 
   insertModelSpy.restore()
@@ -345,7 +346,7 @@ Deno.test(
       fallbackName,
       destinationPath: exportPath
     })
-    assertEquals(insertNormalizedModelSpy.calls[0].args[2] as any, { noExport: true })
+    assertEquals(insertNormalizedModelSpy.calls[0].args[2] as any, { noExport: true, variant: undefined })
 
     insertNormalizedModelSpy.restore()
   }

@@ -87,6 +87,18 @@ export type ViewStateGenerate = {
 export type ViewStateDeploy = {
   page: 'deploy'
   projectName: string
+  /** Hub stack target — `account/slug`. Resolved from --stack or
+   *  `SKMTC_HUB_STACK` env at command time. */
+  stack?: string
+  /** Semver of the release to publish. From --version. */
+  version?: string
+  /** PAT for the hub. From --token or `SKMTC_HUB_TOKEN`. */
+  token?: string
+  /** Hub base URL override (defaults to https://api.skmtc.dev or
+   *  `SKMTC_HUB_URL`). */
+  hubUrl?: string
+  /** Optional release notes. */
+  notes?: string
 }
 
 export type ViewStateBundle = {

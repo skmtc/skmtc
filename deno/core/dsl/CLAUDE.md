@@ -21,7 +21,7 @@ The code-generation DSL. The vocabulary:
   imports and the output file's accumulated state.
 - **`GeneratorKey`** — branded pipe-delimited string. 4 segments for
   operations (`id|path|method|variant` OAS, `id|rootKind|fieldName|variant` GQL),
-  2 for models (`id|refName`), 1 for generator-only.
+  3 for models (`id|refName|variant`), 1 for generator-only.
   Round-trip: `toOasOperationGeneratorKey` → `fromGeneratorKey`.
 - **`Inserted<V, E>`** — Driver's return type from
   `context.insertOperation` / `insertModel`. Exposes `.settings`,
@@ -29,9 +29,15 @@ The code-generation DSL. The vocabulary:
 
 Subdirectories:
 
-- `model/` — `ModelProjectionBase` + factory + Driver. Models have
-  no variant axis (the field exists on `ContentSettings` but is
-  always `'main'`).
+- `model/` — `ModelProjectionBase` + factory + Driver. Models are
+  variants-aware (symmetric with operations): the variant axis is
+  threaded through `toIdentifier` / `toExportPath` / `toEnrichments`
+  and folded into the 3-segment `ModelGeneratorKey`
+  (`id|refName|variant`). Consumer enrichments key on
+  `[generatorId][refName][variant]`; `'main'` must be present
+  whenever any variant is declared (engine throws via
+  `toVariantList`). Driver enforces the peer-variant guard via
+  `assertPeerVariantExists`.
 - `operation/oas/` — OAS operation flavour (Projection base,
   factory, entry, Driver). Variants-aware path.
 - `operation/gql/` — GraphQL operation flavour. Same shape; `acc`

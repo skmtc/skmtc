@@ -331,6 +331,13 @@ export type InsertModelOptions = {
   noExport?: boolean
   /** Custom destination path for the model */
   destinationPath?: string
+  /**
+   * Target variant of the peer model projection. Omit for `'main'`
+   * (the universally-safe default that every peer is guaranteed to
+   * honour). Pass explicitly only when the peer declares this
+   * variant — the Driver throws on mismatch.
+   */
+  variant?: string
 }
 
 /**
@@ -339,6 +346,13 @@ export type InsertModelOptions = {
 export type InsertNormalizedModelOptions = {
   /** Whether to exclude this model from exports */
   noExport?: boolean
+  /**
+   * Target variant of the peer model projection (`$ref` branch only).
+   * Omit for `'main'`. The inline-schema branch ignores this option
+   * because its Definition is one-off — bake the variant into
+   * `fallbackName` if you need variant-distinct inline schemas.
+   */
+  variant?: string
 }
 
 /**
@@ -363,6 +377,13 @@ export type PickArgs = {
 export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
   refName: RefName
   projection: ModelProjection<V, EnrichmentType>
+  /**
+   * Model variant whose enrichment / identifier / export path
+   * should be resolved (see {@link Variant}). Threaded from the
+   * Driver into the projection's static methods and the
+   * {@link ContentSettings} built for this insertion.
+   */
+  variant: string
 }
 
 /**
@@ -473,7 +494,8 @@ export type GenerateContextType = {
   }: ToOperationSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   toModelContentSettings: <V, EnrichmentType>({
     refName,
-    projection
+    projection,
+    variant
   }: BuildModelSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
   findDefinition: ({ name, exportPath }: PickArgs) => Definition | undefined

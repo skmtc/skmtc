@@ -5,36 +5,49 @@ The engine lives here. Three context classes, one per pipeline phase:
 - **`ParseContext`** — OpenAPI/GraphQL JSON → OAS / GQL objects.
 - **`GenerateContext`** — OAS / GQL → in-memory `File` map. Owns the
   per-generator dispatch loop. The variant fan-out happens in
-  `#runOasOperationGenerator` / `#runGqlOperationGenerator`; the
-  helper `toVariantList` (`@/helpers/toVariantList.ts`) enumerates
-  variant keys and enforces the `'main'`-must-be-present rule.
+  `#runOasOperationGenerator` / `#runGqlOperationGenerator` /
+  `#runModelGenerator`; the helper `toVariantList`
+  (`@/helpers/toVariantList.ts`) enumerates variant keys and
+  enforces the `'main'`-must-be-present rule.
 - **`RenderContext`** — `File` map → `{ path: content }` artifacts.
   No formatter runs here (skill §1 fact #2).
 
 **Variant axis touchpoints in this directory:**
 
 - `GenerateContext.#runOasOperationGenerator` / `#runGqlOperationGenerator`
-  — the per-(operation, variant) dispatch reducer.
-- `GenerateContext.toOperationContentSettings` — threads `variant`
-  into the Projection's static methods and into `new ContentSettings`.
-- `GenerateContext.insertOperation` — `variant` defaults to `'main'`
-  when callers omit it.
-- `toOasOperationSource` / `toGqlOperationSource` — Source descriptors
-  in the manifest carry the variant.
+  / `#runModelGenerator` — per-item dispatch reducers that fan out
+  over variants.
+- `GenerateContext.toOperationContentSettings` /
+  `toModelContentSettings` — thread `variant` into the Projection's
+  static methods and into `new ContentSettings`.
+- `GenerateContext.insertOperation` / `insertModel` — `variant`
+  defaults to `'main'` when callers omit it.
+- `toOasOperationSource` / `toGqlOperationSource` / `toModelSource`
+  — Source descriptors in the manifest carry the variant.
+- `matchesPathFilter` / `matchesRefFilter` — sibling helpers that
+  match operation- and model-shaped skip/include entries against the
+  per-variant tuple.
 
 **Tests pinning variant invariants:**
 
-- `GenerateContext.variants.test.ts` — engine-level fan-out, missing-
-  `main` throw, per-variant skip/include matching, single-`'main'`
-  fallback, StackTrail nesting.
+- `GenerateContext.variants.test.ts` — operation-level engine fan-out,
+  missing-`main` throw, per-variant skip/include matching, single-
+  `'main'` fallback, StackTrail nesting.
+- `GenerateContext.model-variants.test.ts` — sibling coverage for the
+  model arm: refName-level fan-out, missing-`main` throw, per-variant
+  skip/include matching.
 - `GenerateContext.cross-variant.test.ts` — peer Definition is shared
   across variants; imports register to each variant's file.
 - `GenerateContext.end-to-end.test.ts` — real Projection → real
   Driver → `GeneratorKey` carries variant end to end.
 - `GenerateContext.normalized-model-variants.test.ts` — variant-bound
   `fallbackName` produces distinct model Definitions.
-- `GenerateContext.include.test.ts` — operation-level
-  include/skip behaviour (now with variant arrays in entry shape).
+- `GenerateContext.include.test.ts` — operation- and model-level
+  include/skip behaviour (model entries now use the record-of-variant-
+  arrays shape).
+- `dsl/model/ModelDriver.variants.test.ts` — Driver-level peer-variant
+  guard and the `generatorKey` collision check for variants-aware
+  model Projections.
 
 The skill that authors this code: `docs/skills/skmtc-generator/SKILL.md`.
 Concept doc for the variant axis: `docs/concepts/variants.md`.

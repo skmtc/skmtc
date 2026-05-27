@@ -18,6 +18,7 @@ import type { Generator as GeneratorType } from '@/types/generator.generated.ts'
 import { toServer } from './to-server.ts'
 import { toWorker } from './to-worker.ts'
 import { ensureWorkerDeps } from './ensure-worker-deps.ts'
+import { ensureServerDeps } from './ensure-server-deps.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -172,16 +173,30 @@ export class Project {
     }
   }
 
+  /**
+   * Generate the CF-Workers entry `server.ts` that wraps the project's
+   * installed generators in `createServer({ toGeneratorConfigMap })`
+   * from `@skmtc/server`. Paired with `bundleServer` which produces
+   * `server.js` from this file; uploaded to skmtc-hub by
+   * `skmtc deploy`.
+   */
   async createServer() {
     const mod = toServer(this.toGeneratorIds())
 
     const path = this.toPath()
 
-    const modPath = join(path, 'worker.ts')
+    const modPath = join(path, 'server.ts')
 
     await Deno.mkdir(path, { recursive: true })
 
     await Deno.writeTextFile(modPath, mod)
+
+    // Pin `@skmtc/server` and `@skmtc/core` so the `deno bundle`
+    // subprocess can resolve them. Parallels the `ensureWorkerDeps`
+    // step in `createWorker`.
+    if (ensureServerDeps(this.rootDenoJson)) {
+      await this.rootDenoJson.write()
+    }
 
     return modPath
   }

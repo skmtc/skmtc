@@ -271,6 +271,19 @@ export const readCliWorkerPin = (): string | null => {
 }
 
 /**
+ * The CLI's own `@skmtc/server` pin, read from `cli/deno.json`.
+ * `@skmtc/server` is the Hono wrapper bundled into the CF-Workers
+ * `server.js` artifact by `skmtc deploy`. Exported so
+ * `ensureServerDeps` can pin a fresh project to the CLI's version.
+ */
+export const readCliServerPin = (): string | null => {
+  const value = cliDenoJson?.imports?.['@skmtc/server']
+  if (typeof value !== 'string') return null
+  const match = value.match(/^jsr:@skmtc\/server@(.+)$/)
+  return match ? match[1] : null
+}
+
+/**
  * Compares a project's `@skmtc/core` pin to the CLI's own. Friction
  * #7: stale per-project `deno.json` templates pin old core versions
  * that mismatch the bundle's expectations, producing cryptic

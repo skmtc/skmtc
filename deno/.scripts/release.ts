@@ -224,7 +224,142 @@ const isPublished = async (
   return Boolean(meta.versions?.[version])
 }
 
+/**
+ * What to do with the local `~/.deno/bin/skmtc` binary after a CLI
+ * publish. The release loop knows the new version; this controls
+ * whether it bumps the binary too.
+ *
+ *  - `none` — print the install command on stderr and exit. CI-safe.
+ *  - `local-compile` — `deno compile` against the local repo source
+ *    (per `cli/CLAUDE.md`'s install card). Right for in-repo dev where
+ *    a JSR install can't resolve the `@/` alias.
+ *  - `jsr-install` — `deno install -A -g --unstable-worker-options -n
+ *    skmtc -f jsr:@skmtc/cli@<version>`, after polling the registry's
+ *    `meta.json.versions` map for the new version (don't trust
+ *    `meta.json.latest` — local JSR sorts it lexicographically; see
+ *    `[[project_local_jsr_latest_lex_sort]]`).
+ */
+export type ReinstallCliMode = 'none' | 'local-compile' | 'jsr-install'
+
+const parseReinstallMode = (args: readonly string[]): ReinstallCliMode => {
+  for (const arg of args) {
+    if (arg.startsWith('--reinstall-cli=')) {
+      const value = arg.slice('--reinstall-cli='.length)
+      if (value === 'none' || value === 'local-compile' || value === 'jsr-install') {
+        return value
+      }
+      throw new Error(
+        `Unknown --reinstall-cli mode: ${value}. Use none, local-compile, or jsr-install.`
+      )
+    }
+  }
+  return 'none'
+}
+
+/**
+ * Poll the registry until the named version appears in
+ * `meta.json.versions`. Returns when present; throws on timeout.
+ * Local JSR's CDN propagation is the gotcha this guards against —
+ * a fresh publish can return 404 / not-yet-listed for a beat.
+ */
+const waitForJsrPropagation = async (
+  jsrUrl: string,
+  name: string,
+  version: string
+): Promise<void> => {
+  const delays = [0, 1000, 2000, 4000, 6000, 8000, 10000] // ~31s total
+  for (let i = 0; i < delays.length; i++) {
+    if (delays[i] > 0) await new Promise(r => setTimeout(r, delays[i]))
+    const res = await fetch(`${jsrUrl}${name}/meta.json`, {
+      cache: 'no-store',
+      headers: { 'cache-control': 'no-cache' }
+    })
+    if (res.ok) {
+      const meta = (await res.json()) as { versions?: Record<string, unknown> }
+      if (meta.versions?.[version]) return
+    } else {
+      await res.body?.cancel()
+    }
+  }
+  throw new Error(
+    `${name}@${version} did not appear in ${jsrUrl}${name}/meta.json within ~30s. ` +
+      `Skipping CLI reinstall — run the install command manually.`
+  )
+}
+
+const reinstallCliLocalCompile = async (cliDir: string): Promise<void> => {
+  const home = Deno.env.get('HOME') ?? Deno.env.get('USERPROFILE')
+  if (!home) throw new Error('Cannot resolve $HOME for the install target.')
+  const target = join(home, '.deno', 'bin', 'skmtc')
+  console.log(`Compiling local CLI → ${target}...`)
+  const result = await new Deno.Command('deno', {
+    args: [
+      'compile',
+      '--no-check',
+      '--allow-all',
+      '--config',
+      join(cliDir, 'deno.json'),
+      '--include',
+      cliDir,
+      '-o',
+      target,
+      join(cliDir, 'mod.ts')
+    ],
+    stdout: 'inherit',
+    stderr: 'inherit'
+  }).output()
+  if (!result.success) {
+    throw new Error(`deno compile failed (exit ${result.code}).`)
+  }
+}
+
+const reinstallCliFromJsr = async (jsrUrl: string, version: string): Promise<void> => {
+  console.log(`Polling ${jsrUrl}@skmtc/cli for v${version}...`)
+  await waitForJsrPropagation(jsrUrl, '@skmtc/cli', version)
+  console.log(`Installing @skmtc/cli@${version} from JSR...`)
+  const result = await new Deno.Command('deno', {
+    args: [
+      'install',
+      '-A',
+      '-g',
+      '--unstable-worker-options',
+      '-n',
+      'skmtc',
+      '-f',
+      `jsr:@skmtc/cli@${version}`
+    ],
+    env: { ...Deno.env.toObject(), JSR_URL: jsrUrl },
+    stdout: 'inherit',
+    stderr: 'inherit'
+  }).output()
+  if (!result.success) {
+    throw new Error(`deno install failed (exit ${result.code}).`)
+  }
+}
+
+const printReinstallHint = (mode: ReinstallCliMode, cliDir: string, version: string): void => {
+  // The "none" mode lands here always; the other modes land here only on
+  // error paths so the operator can recover manually.
+  console.error('\nTo reinstall the local `skmtc` binary, choose one:')
+  console.error('  # In-repo dev (recommended while iterating locally):')
+  console.error(`  deno compile --no-check --allow-all \\`)
+  console.error(`    --config ${join(cliDir, 'deno.json')} \\`)
+  console.error(`    --include ${cliDir} \\`)
+  console.error(`    -o ~/.deno/bin/skmtc \\`)
+  console.error(`    ${join(cliDir, 'mod.ts')}`)
+  console.error('  # From JSR (downstream consumers):')
+  console.error(
+    `  JSR_URL=${DEFAULT_JSR_URL} deno install -A -g --unstable-worker-options -n skmtc -f jsr:@skmtc/cli@${version}`
+  )
+  if (mode !== 'none') {
+    console.error(
+      `(mode "${mode}" was attempted but failed — defer to the manual commands above.)`
+    )
+  }
+}
+
 export const release = async (): Promise<void> => {
+  const reinstallMode = parseReinstallMode(Deno.args)
   const rootDir = join(dirname(fromFileUrl(import.meta.url)), '..')
   const jsrUrl = (Deno.env.get('JSR_URL') ?? DEFAULT_JSR_URL).replace(/\/*$/, '/')
 
@@ -287,6 +422,33 @@ export const release = async (): Promise<void> => {
   console.log(
     `\nReleased: ${order.map(p => `${p.name}@${(plan.get(p.name) as PlannedRelease).version}`).join(', ')}`
   )
+
+  // If @skmtc/cli was in the release order, the locally-installed
+  // `skmtc` binary is now behind. Offer to bring it up to date.
+  const cliPackage = order.find(p => p.name === '@skmtc/cli')
+  if (!cliPackage) return
+
+  const cliVersion = (plan.get(cliPackage.name) as PlannedRelease).version
+  const cliDir = cliPackage.dir
+
+  if (reinstallMode === 'none') {
+    printReinstallHint('none', cliDir, cliVersion)
+    return
+  }
+
+  try {
+    if (reinstallMode === 'local-compile') {
+      await reinstallCliLocalCompile(cliDir)
+    } else {
+      await reinstallCliFromJsr(jsrUrl, cliVersion)
+    }
+    console.log(`\nLocal \`skmtc\` binary now at ${cliVersion} (${reinstallMode}).`)
+  } catch (err) {
+    console.error(`\nReinstall failed: ${err instanceof Error ? err.message : String(err)}`)
+    printReinstallHint(reinstallMode, cliDir, cliVersion)
+    // Don't exit non-zero — the publish itself succeeded; the reinstall
+    // is a convenience.
+  }
 }
 
 if (import.meta.main) {

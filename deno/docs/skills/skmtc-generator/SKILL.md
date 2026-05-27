@@ -378,6 +378,19 @@ Need to change identifier naming, export paths, peer deps, or output shape?
 
 No config flags exist for paths or output shape. Clone is the answer.
 
+> **Peer generators almost always = install.** If your generator
+> composes with a peer via `insertOperation(PeerProjection, …)` or
+> `insertNormalizedModel(PeerProjection, …)`, you reference the peer
+> by its Projection's name — you do not edit its source. Install it
+> (`skmtc install lab @skmtc/gen-typescript`) so it's a workspace
+> dependency, then `import { TsProjection } from "@skmtc/gen-typescript"`
+> in your generator. Cloning a peer just to "understand" its
+> implementation is wasted work — its public API is `ItsProjection`,
+> documented in its `reference/stock-generators/<pkg>.md` entry. The
+> only generator you should ever clone is the ONE whose customization
+> seams you'll actually edit; everything else you compose with should
+> be installed.
+
 ### Should this be a Projection or a Snippet?
 
 ```

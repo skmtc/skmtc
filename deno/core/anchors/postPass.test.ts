@@ -32,7 +32,8 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'User' as RefName
+    refName: 'User' as RefName,
+    variant: 'main'
   })
   const value = new FakeSnippet(c, () => "z.object({ id: z.string() })", key)
   const def = new Definition({
@@ -64,7 +65,8 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'Customer' as RefName
+    refName: 'Customer' as RefName,
+    variant: 'main'
   })
   const value = new FakeSnippet(c, () => "'inner'", key)
   const def = new Definition({
@@ -89,11 +91,13 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
   const c = ctx()
   const keyA = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'A' as RefName
+    refName: 'A' as RefName,
+    variant: 'main'
   })
   const keyB = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'B' as RefName
+    refName: 'B' as RefName,
+    variant: 'main'
   })
   const defA = new Definition({
     context: c,
@@ -128,7 +132,8 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'User' as RefName
+    refName: 'User' as RefName,
+    variant: 'main'
   })
   const def = new Definition({
     context: c,
@@ -157,7 +162,8 @@ Deno.test('postPass - anchor bytes survive a slice through file.toString()', () 
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'Whole' as RefName
+    refName: 'Whole' as RefName,
+    variant: 'main'
   })
   const value = new FakeSnippet(c, () => '"payload"', key)
   const def = new Definition({

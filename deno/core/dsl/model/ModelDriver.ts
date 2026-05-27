@@ -8,6 +8,9 @@ import type { GeneratedDefinition } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
+import get from 'lodash-es/get'
 
 type CreateModelArgs<V extends GeneratedValue, EnrichmentType> = {
   context: GenerateContextType
@@ -16,6 +19,13 @@ type CreateModelArgs<V extends GeneratedValue, EnrichmentType> = {
   destinationPath?: string
   rootRef?: RefName
   noExport?: boolean
+  /**
+   * Target variant of the projection. The Driver resolves the
+   * peer's enrichment for this variant, asserts the variant exists
+   * (or is the default `'main'` which is always permitted), and
+   * threads it into the projection's `ContentSettings`.
+   */
+  variant: string
 }
 type ApplyArgs = {
   destinationPath?: string
@@ -45,6 +55,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
   definition: GeneratedDefinition<V>
   rootRef?: RefName
   noExport?: boolean
+  variant: string
 
   constructor({
     context,
@@ -52,7 +63,8 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     refName,
     destinationPath,
     rootRef,
-    noExport
+    noExport,
+    variant
   }: CreateModelArgs<V, EnrichmentType>) {
     this.context = context
     this.projection = projection
@@ -60,10 +72,18 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     this.destinationPath = destinationPath
     this.rootRef = rootRef
     this.noExport = noExport
+    this.variant = variant
 
     this.context.modelDepth[`${projection.id}:${refName}`] = 0
 
-    this.settings = this.context.toModelContentSettings({ refName, projection })
+    assertPeerVariantExists({
+      context,
+      generatorId: projection.id,
+      refName,
+      variant
+    })
+
+    this.settings = this.context.toModelContentSettings({ refName, projection, variant })
     this.definition = this.apply({ destinationPath })
 
     this.context.modelDepth[`${projection.id}:${refName}`] = 0
@@ -131,7 +151,8 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
 
     const currentKey = toModelGeneratorKey({
       generatorId: this.projection.id,
-      refName: this.refName
+      refName: this.refName,
+      variant: this.settings.variant
     })
 
     if (currentKey !== definition.generatorKey) {
@@ -141,5 +162,64 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     }
 
     return definition.value instanceof this.projection
+  }
+}
+
+type AssertPeerVariantExistsArgs = {
+  context: GenerateContextType
+  generatorId: string
+  refName: RefName
+  variant: string
+}
+
+/**
+ * Guard the peer-variant-mismatch invariant for model insertions.
+ *
+ * `'main'` is the universally-safe variant — it's guaranteed to be
+ * present on every peer (the engine fills it when no enrichments are
+ * configured, and the missing-`'main'` check throws when other
+ * variants exist without it). So calls with `variant === 'main'`
+ * always succeed regardless of the peer's enrichment shape.
+ *
+ * For any other variant, the peer's enrichment block at
+ * `[generatorId][refName]` must explicitly declare that variant
+ * key. The Driver throws here — loud at the call site — rather than
+ * letting silently-wrong output reach the consumer.
+ */
+const assertPeerVariantExists = ({
+  context,
+  generatorId,
+  refName,
+  variant
+}: AssertPeerVariantExistsArgs): void => {
+  if (variant === DEFAULT_VARIANT) {
+    return
+  }
+
+  const modelEnrichments: unknown = get(
+    context.settings,
+    `enrichments.${generatorId}.${refName}`
+  )
+
+  if (modelEnrichments === null || modelEnrichments === undefined) {
+    throw new Error(
+      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}' — ` +
+        `peer has no enrichments configured. Only '${DEFAULT_VARIANT}' is permitted.`
+    )
+  }
+
+  if (typeof modelEnrichments !== 'object' || Array.isArray(modelEnrichments)) {
+    throw new Error(
+      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}' — ` +
+        `peer enrichment is not a variant record.`
+    )
+  }
+
+  if (!(variant in modelEnrichments)) {
+    const available = Object.keys(modelEnrichments).join(', ')
+    throw new Error(
+      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}'. ` +
+        `Available variants: ${available}.`
+    )
   }
 }

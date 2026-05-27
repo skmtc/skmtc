@@ -46,7 +46,8 @@
  * const source: ModelSource = {
  *   type: 'model',
  *   generatorId: 'typescript-types',
- *   refName: 'User'
+ *   refName: 'User',
+ *   variant: 'main'
  * };
  * ```
  *
@@ -98,6 +99,12 @@ export type ModelSource = {
   type: 'model'
   generatorId: string
   refName: string
+  /**
+   * Model variant the artifact was emitted for. `'main'` for
+   * variants-unaware generators and for single-variant projects; one
+   * of the consumer-named variant keys otherwise (see {@link Variant}).
+   */
+  variant: string
 }
 
 export type PreviewModule = {
@@ -191,12 +198,14 @@ export const modelSource: v.ObjectSchema<
     readonly type: v.LiteralSchema<'model', undefined>
     readonly generatorId: v.StringSchema<undefined>
     readonly refName: v.StringSchema<undefined>
+    readonly variant: v.StringSchema<undefined>
   },
   undefined
 > = v.object({
   type: v.literal('model'),
   generatorId: v.string(),
-  refName: v.string()
+  refName: v.string(),
+  variant: v.string()
 })
 
 /**

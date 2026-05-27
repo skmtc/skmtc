@@ -1,3 +1,66 @@
+# core/dsl/model — directory guide
+
+The model half of the projection machinery, symmetric with
+`core/dsl/operation/oas/`. Files:
+
+- `ModelProjectionBase.ts` — runtime base class. Subclasses extend
+  it. Carries `settings: ContentSettings<E>` (including
+  `settings.variant`) and `generatorKey`. The `insertModel` /
+  `insertNormalizedModel` wrappers accept an optional `variant` arg
+  and forward it through `context`.
+- `toModelProjectionBase.ts` — factory. Builds a class with static
+  `toIdentifier` / `toExportPath` / `toEnrichments` / `isSupported`
+  / `id` / `type`. The constructor reads `args.settings.variant`
+  and threads it into the `toModelGeneratorKey` call so the
+  resulting Definition's `generatorKey` carries the variant.
+  Enrichment lookup walks `enrichments.${id}.${refName}.${variant}`.
+- `toModelEntry.ts` — pipeline-side factory. `transform`,
+  `toPreviewModule`, and `toMappingModule` all receive `variant`.
+  No `isSupported` field; model entries filter inside `transform`.
+- `ModelDriver.ts` — the insertion lifecycle (compose
+  `ContentSettings`, look up via `findDefinition`, integrity-check
+  via `affirmDefinition`, register the Definition, register the
+  import). Variant-related entry points:
+  - Constructor takes a `variant: string` arg and stores it on the
+    instance.
+  - `assertPeerVariantExists` runs before `toModelContentSettings`
+    — throws if the caller asked for a non-`'main'` variant the peer
+    doesn't declare.
+  - `affirmDefinition` builds the call's `generatorKey` with variant
+    in the 3rd segment; the cache-key uniqueness invariant is
+    enforced here.
+- `types.ts` — arg shapes. Every `To*Args` and `Transform*Args`
+  carries `variant: string`.
+
+**Variants-aware vs unaware (mirrors the OAS-operation patterns):**
+
+- *Unaware*: destructure `variant` in `toExportPath` (since the body
+  calls `this.toIdentifier({…, variant})`), ignore it in
+  `toIdentifier`. Engine still dispatches with `variant: 'main'` for
+  every refName.
+- *Aware*: `toIdentifier` folds variant into the name via
+  `withVariant(base, variant)` from `@/helpers/withVariant.ts`.
+  `toExportPath` inherits the suffix through the
+  `this.toIdentifier({…, variant})` call.
+
+**Cross-generator insertion**: callers compose with the peer's
+`'main'` Definition by default — `context.insertModel(Peer, refName)`
+defaults `variant` to `'main'`. Pass `{ variant }` explicitly only
+when the peer is known to be variants-aware AND declares that
+variant in its enrichment block.
+
+Tests pinning model-variant invariants:
+- `core/context/GenerateContext.model-variants.test.ts` — engine
+  fan-out, missing-`main` throw, per-variant skip/include matching.
+- `ModelDriver.variants.test.ts` — Driver-level peer-variant guard
+  and the `generatorKey` collision check for variants-aware model
+  Projections.
+
+Concept doc: `docs/concepts/variants.md`. Skill:
+`docs/skills/skmtc-generator/SKILL.md`.
+
+---
+
 <claude-mem-context>
 # Recent Activity
 

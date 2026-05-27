@@ -5,6 +5,7 @@ import type { RefName } from '@/types/RefName.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { ModelProjectionBase } from '@/dsl/model/ModelProjectionBase.ts'
 import type { ToModelIdentifierArgs, ToModelExportPathArgs } from '@/dsl/model/types.ts'
+import { withVariant } from '@/helpers/withVariant.ts'
 import * as v from 'valibot'
 
 Deno.test('toModelProjectionBase - returns a class constructor', () => {
@@ -47,9 +48,12 @@ Deno.test('toModelProjectionBase - sets static toIdentifier from config', () => 
     toExportPath: ({ refName }) => `./models/${refName}.ts`
   })
 
-  const identifier = ModelClass.toIdentifier({ refName: 'User' as RefName, enrichments: undefined })
+  const identifier = ModelClass.toIdentifier({
+    refName: 'User' as RefName,
+    enrichments: undefined,
+    variant: 'main'
+  })
   assertEquals(identifier.name, 'User')
-  // Verify identifier has expected properties
   assertEquals(typeof identifier.toString, 'function')
 })
 
@@ -62,7 +66,11 @@ Deno.test('toModelProjectionBase - sets static toExportPath from config', () => 
     toExportPath: exportPathFn
   })
 
-  const exportPath = ModelClass.toExportPath({ refName: 'User' as RefName, enrichments: undefined })
+  const exportPath = ModelClass.toExportPath({
+    refName: 'User' as RefName,
+    enrichments: undefined,
+    variant: 'main'
+  })
   assertEquals(exportPath, './generated/User.ts')
 })
 
@@ -75,7 +83,8 @@ Deno.test('toModelProjectionBase - toEnrichments returns undefined when no enric
 
   const enrichments = ModelClass.toEnrichments({
     refName: 'User' as RefName,
-    context: { settings: {} } as GenerateContextType
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
   })
 
   assertEquals(enrichments, undefined)
@@ -91,7 +100,8 @@ Deno.test('toModelProjectionBase - toEnrichments returns undefined when no enric
 
   const enrichments = ModelClass.toEnrichments({
     refName: 'User' as RefName,
-    context: { settings: {} } as GenerateContextType
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
   })
 
   assertEquals(enrichments, undefined)
@@ -114,10 +124,18 @@ Deno.test('toModelProjectionBase - toIdentifier works with different refNames', 
     toExportPath: ({ refName }) => `./models/${refName}.ts`
   })
 
-  const userIdentifier = ModelClass.toIdentifier({ refName: 'User' as RefName, enrichments: undefined })
+  const userIdentifier = ModelClass.toIdentifier({
+    refName: 'User' as RefName,
+    enrichments: undefined,
+    variant: 'main'
+  })
   assertEquals(userIdentifier.name, 'UserModel')
 
-  const productIdentifier = ModelClass.toIdentifier({ refName: 'Product' as RefName, enrichments: undefined })
+  const productIdentifier = ModelClass.toIdentifier({
+    refName: 'Product' as RefName,
+    enrichments: undefined,
+    variant: 'main'
+  })
   assertEquals(productIdentifier.name, 'ProductModel')
 })
 
@@ -128,8 +146,18 @@ Deno.test('toModelProjectionBase - toExportPath works with different refNames', 
     toExportPath: ({ refName }) => `./types/${refName.toLowerCase()}.d.ts`
   })
 
-  assertEquals(ModelClass.toExportPath({ refName: 'User' as RefName, enrichments: undefined }), './types/user.d.ts')
-  assertEquals(ModelClass.toExportPath({ refName: 'Product' as RefName, enrichments: undefined }), './types/product.d.ts')
+  assertEquals(
+    ModelClass.toExportPath({ refName: 'User' as RefName, enrichments: undefined, variant: 'main' }),
+    './types/user.d.ts'
+  )
+  assertEquals(
+    ModelClass.toExportPath({
+      refName: 'Product' as RefName,
+      enrichments: undefined,
+      variant: 'main'
+    }),
+    './types/product.d.ts'
+  )
 })
 
 Deno.test('toModelProjectionBase - constructor creates correct generatorKey', () => {
@@ -147,12 +175,37 @@ Deno.test('toModelProjectionBase - constructor creates correct generatorKey', ()
     settings: {
       identifier: Identifier.createType('User'),
       exportPath: './models/User.ts',
-      enrichments: undefined
+      enrichments: undefined,
+      variant: 'main'
     } as any
   })
 
-  // Verify generatorKey has expected format: id|refName
-  assertEquals(instance.generatorKey, 'typescript-models|User')
+  // Verify generatorKey has expected format: id|refName|variant
+  assertEquals(instance.generatorKey, 'typescript-models|User|main')
+})
+
+Deno.test('toModelProjectionBase - constructor threads non-default variant into generatorKey', () => {
+  const ModelClass = toModelProjectionBase({
+    id: 'zod-schemas',
+    toIdentifier: ({ refName, variant }) =>
+      Identifier.createVariable(withVariant(refName, variant)),
+    toExportPath: ({ refName, variant }) => `./schemas/${withVariant(refName, variant)}.ts`
+  })
+
+  const mockContext = {} as GenerateContextType
+
+  const instance = new ModelClass({
+    context: mockContext,
+    refName: 'Customer' as RefName,
+    settings: {
+      identifier: Identifier.createVariable('CustomerCoercive'),
+      exportPath: './schemas/CustomerCoercive.ts',
+      enrichments: undefined,
+      variant: 'coercive'
+    } as any
+  })
+
+  assertEquals(instance.generatorKey, 'zod-schemas|Customer|coercive')
 })
 
 Deno.test('toModelProjectionBase - instance is ModelProjectionBase', () => {
@@ -170,7 +223,8 @@ Deno.test('toModelProjectionBase - instance is ModelProjectionBase', () => {
     settings: {
       identifier: Identifier.createType('Product'),
       exportPath: './models/Product.ts',
-      enrichments: undefined
+      enrichments: undefined,
+      variant: 'main'
     } as any
   })
 
@@ -195,8 +249,10 @@ Deno.test('toModelProjectionBase - toEnrichments validates with schema', () => {
       enrichments: {
         'typescript-interfaces': {
           User: {
-            readonly: true,
-            nullable: false
+            main: {
+              readonly: true,
+              nullable: false
+            }
           }
         }
       }
@@ -205,7 +261,8 @@ Deno.test('toModelProjectionBase - toEnrichments validates with schema', () => {
 
   const enrichments = ModelClass.toEnrichments({
     refName: 'User' as RefName,
-    context: mockContext
+    context: mockContext,
+    variant: 'main'
   })
 
   assertEquals(enrichments, {
@@ -226,12 +283,14 @@ Deno.test('toModelProjectionBase - toEnrichments retrieves from correct nested p
       })
   })
 
-  // Place enrichments at path: enrichments.{id}.{refName}
+  // Place enrichments at path: enrichments.{id}.{refName}.{variant}
   const mockContext = {
     settings: {
       enrichments: {
         'zod-schemas': {
-          Product: { strictMode: true, customRule: 'validate-stock' }
+          Product: {
+            main: { strictMode: true, customRule: 'validate-stock' }
+          }
         }
       }
     }
@@ -239,9 +298,49 @@ Deno.test('toModelProjectionBase - toEnrichments retrieves from correct nested p
 
   const enrichments = ModelClass.toEnrichments({
     refName: 'Product' as RefName,
-    context: mockContext
+    context: mockContext,
+    variant: 'main'
   })
 
-  // Verify it retrieved from the correct path: enrichments.{id}.{refName}
   assertEquals(enrichments, { strictMode: true, customRule: 'validate-stock' })
+})
+
+Deno.test('toModelProjectionBase - toEnrichments resolves per-variant payloads independently', () => {
+  const ModelClass = toModelProjectionBase<{ coerce: boolean }>({
+    id: '@scope/gen-zod-variants',
+    toIdentifier: ({ refName, variant }) =>
+      Identifier.createVariable(withVariant(refName, variant)),
+    toExportPath: ({ refName, variant }) => `./schemas/${withVariant(refName, variant)}.ts`,
+    toEnrichmentSchema: () =>
+      v.object({
+        coerce: v.boolean()
+      })
+  })
+
+  const mockContext = {
+    settings: {
+      enrichments: {
+        '@scope/gen-zod-variants': {
+          Customer: {
+            main: { coerce: false },
+            coercive: { coerce: true }
+          }
+        }
+      }
+    }
+  } as any
+
+  const main = ModelClass.toEnrichments({
+    refName: 'Customer' as RefName,
+    context: mockContext,
+    variant: 'main'
+  })
+  assertEquals(main, { coerce: false })
+
+  const coercive = ModelClass.toEnrichments({
+    refName: 'Customer' as RefName,
+    context: mockContext,
+    variant: 'coercive'
+  })
+  assertEquals(coercive, { coerce: true })
 })

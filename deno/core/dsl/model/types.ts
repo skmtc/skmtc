@@ -29,22 +29,35 @@ export type WithTransformModel = {
 export type ToModelEnrichmentsArgs = {
   refName: RefName
   context: GenerateContextType
+  /** Model variant whose enrichment should be resolved (see {@link Variant}) */
+  variant: string
 }
 
 export type TransformModelArgs<Acc> = {
   context: GenerateContextType
   refName: RefName
   acc: Acc | undefined
+  /**
+   * The model variant the engine is dispatching for this call. The
+   * engine fans out one `transform` call per variant declared in the
+   * consumer's `enrichments[id][refName]` block (or just `'main'`
+   * when no enrichments are configured). See {@link Variant}.
+   */
+  variant: string
 }
 
 export type ToModelPreviewModuleArgs = {
   context: GenerateContextType
   refName: RefName
+  /** Model variant the preview module describes (see {@link Variant}) */
+  variant: string
 }
 
 export type ToModelMappingArgs = {
   context: GenerateContextType
   refName: RefName
+  /** Model variant the mapping module describes (see {@link Variant}) */
+  variant: string
 }
 
 /**
@@ -58,11 +71,15 @@ export type ToModelMappingArgs = {
 export type ToModelIdentifierArgs<EnrichmentType = undefined> = {
   refName: RefName
   enrichments: EnrichmentType
+  /** Model variant the identifier should disambiguate (see {@link Variant}) */
+  variant: string
 }
 
 export type ToModelExportPathArgs<EnrichmentType = undefined> = {
   refName: RefName
   enrichments: EnrichmentType
+  /** Model variant the export path should disambiguate (see {@link Variant}) */
+  variant: string
 }
 
 export type ModelProjection<V, EnrichmentType = undefined> = { prototype: V } & {
@@ -77,7 +94,7 @@ export type ModelProjection<V, EnrichmentType = undefined> = { prototype: V } & 
   type: 'model'
   toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
-  toEnrichments: ({ refName, context }: ToModelEnrichmentsArgs) => EnrichmentType
+  toEnrichments: ({ refName, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
   schemaToValueFn: SchemaToValueFn
   createIdentifier: (name: string) => Identifier
   // deno-lint-ignore ban-types
@@ -91,9 +108,9 @@ export type ModelProjection<V, EnrichmentType = undefined> = { prototype: V } & 
 export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
-  transform: <Acc = void>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
-  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, refName }: ToModelMappingArgs) => MappingModule
+  transform: <Acc = void>({ context, refName, acc, variant }: TransformModelArgs<Acc>) => Acc
+  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName

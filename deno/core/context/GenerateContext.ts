@@ -26,9 +26,11 @@ import type {
 } from './generateTypes.ts'
 import type {
   ClientSettings,
+  IncludeModelRefs,
   IncludeModels,
   IncludeOperations,
   IncludePaths,
+  SkipModelRefs,
   SkipModels,
   SkipOperations,
   SkipPaths
@@ -550,8 +552,8 @@ export class GenerateContext implements GenerateContextType {
   #runModelGenerator(
     document: SkmtcParsedDocument,
     generatorConfig: ModelConfig,
-    include: string[] | undefined,
-    skip: string[] | undefined,
+    include: IncludeModelRefs | undefined,
+    skip: SkipModelRefs | undefined,
     stackTrail: StackTrail
   ) {
     const refNames =
@@ -559,38 +561,84 @@ export class GenerateContext implements GenerateContextType {
         ? (document.value.components?.toSchemasRefNames() ?? [])
         : document.value.registry.toSchemasRefNames()
 
-    return refNames.reduce((acc, refName) => {
-      return stackTrail.trace(refName, st => {
-        try {
-          // Same precedence as the OAS-operation arm: include (allow)
-          // before skip (deny). `include === undefined` means no
-          // per-model filter is active; an explicit empty list `[]`
-          // means "include nothing" and everything emits `skipped`.
-          if (include !== undefined && !include.includes(refName)) {
-            this.captureCurrentResult('skipped', st)
-            return acc
-          }
+    return refNames.reduce<unknown>((acc, refName) => {
+      return stackTrail.trace(refName, refTrail => {
+        // Resolve the variant list to fan out over. The consumer's
+        // enrichments are keyed `[generatorId][refName][variant]`; the
+        // block at `[refName]` is therefore a record of variant names.
+        // Three cases handled in `toVariantList`:
+        //
+        //   - absent → run a single 'main' pass with no enrichment
+        //   - present, non-object → treat as a single 'main' pass
+        //     (the per-variant Valibot wrap will reject this shape
+        //     at config-load time once it lands)
+        //   - present, object → enumerate keys; 'main' must be among
+        //     them or we throw (loud beats silent zero-output)
+        const modelEnrichments: unknown = get(
+          this.settings,
+          `enrichments.${generatorConfig.id}.${refName}`
+        )
 
-          if (skip?.includes(refName)) {
-            this.captureCurrentResult('skipped', st)
-            return acc
-          }
+        const variants = toVariantList({
+          opEnrichments: modelEnrichments,
+          generatorId: generatorConfig.id,
+          operationLabel: refName
+        })
 
-          const result = generatorConfig.transform({ context: this, refName, acc })
+        return variants.reduce<unknown>((variantAcc, variant) => {
+          return refTrail.trace(`variant: ${variant}`, st => {
+            try {
+              // Order: include (allow) → skip (deny). Match is now on
+              // `(refName, variant)`. An empty variant array on a
+              // refName means "every variant of this refName"; a
+              // populated array names the variants the entry applies
+              // to.
+              if (
+                include !== undefined &&
+                !matchesRefFilter({ refs: include, refName, variant })
+              ) {
+                this.captureCurrentResult('skipped', st)
+                return variantAcc
+              }
 
-          const source = toModelSource({ refName, generatorId: generatorConfig.id })
+              if (matchesRefFilter({ refs: skip, refName, variant })) {
+                this.captureCurrentResult('skipped', st)
+                return variantAcc
+              }
 
-          this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, refName }))
+              const result = generatorConfig.transform({
+                context: this,
+                refName,
+                acc: variantAcc,
+                variant
+              })
 
-          this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, refName }))
+              const source = toModelSource({
+                refName,
+                generatorId: generatorConfig.id,
+                variant
+              })
 
-          this.captureCurrentResult('success', st)
+              this.#addPreview(
+                source,
+                generatorConfig.toPreviewModule?.({ context: this, refName, variant })
+              )
 
-          return result
-        } catch (error) {
-          this.logger.error(error)
-          this.captureCurrentResult('error', st)
-        }
+              this.#addMapping(
+                source,
+                generatorConfig.toMappingModule?.({ context: this, refName, variant })
+              )
+
+              this.captureCurrentResult('success', st)
+
+              return result
+            } catch (error) {
+              this.logger.error(error)
+              this.captureCurrentResult('error', st)
+              return variantAcc
+            }
+          })
+        }, acc)
       })
     }, undefined)
   }
@@ -841,12 +889,13 @@ export class GenerateContext implements GenerateContextType {
   >(
     projection: ModelProjection<V, EnrichmentType>,
     { schema, fallbackName, destinationPath }: InsertNormalizedModelArgs<Schema>,
-    { noExport = false }: InsertNormalizedModelOptions = {}
+    { noExport = false, variant }: InsertNormalizedModelOptions = {}
   ): InsertNormalizedModelReturn<V, Schema> {
     if (schema.isRef()) {
       const { definition } = this.insertModel(projection, schema.toRefName(), {
         destinationPath,
-        noExport
+        noExport,
+        variant
       })
 
       // @TODO Using mapped types would help avoid generics casting
@@ -894,15 +943,21 @@ export class GenerateContext implements GenerateContextType {
   insertModel<V extends GeneratedValue, EnrichmentType>(
     projection: ModelProjection<V, EnrichmentType>,
     refName: RefName,
-    { destinationPath, noExport = false }: InsertModelOptions = {}
+    { destinationPath, noExport = false, variant }: InsertModelOptions = {}
   ): Inserted<V, EnrichmentType> {
+    // Default to the canonical variant. Callers who explicitly thread
+    // a variant (e.g. variants-aware Projections threading
+    // `this.settings.variant`) override this default.
+    const resolvedVariant = variant ?? DEFAULT_VARIANT
+
     const { settings, definition } = new ModelDriver({
       context: this,
       projection,
       refName,
       destinationPath,
       rootRef: refName,
-      noExport
+      noExport,
+      variant: resolvedVariant
     })
 
     return new Inserted({ settings, definition })
@@ -964,20 +1019,19 @@ export class GenerateContext implements GenerateContextType {
   /**
    * Build content settings for a model projection by calling its static
    * `toIdentifier`, `toExportPath`, and `toEnrichments` against the given
-   * `refName`.
+   * `refName` and `variant`.
    */
   toModelContentSettings<V, EnrichmentType>({
     refName,
-    projection
+    projection,
+    variant
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
-    // Models don't participate in the operation-variant axis — every
-    // model Definition carries the canonical default variant name.
-    const enrichments = projection.toEnrichments({ refName, context: this })
+    const enrichments = projection.toEnrichments({ refName, context: this, variant })
     return new ContentSettings<EnrichmentType>({
-      identifier: projection.toIdentifier({ refName, enrichments }),
-      exportPath: projection.toExportPath({ refName, enrichments }),
+      identifier: projection.toIdentifier({ refName, enrichments, variant }),
+      exportPath: projection.toExportPath({ refName, enrichments, variant }),
       enrichments,
-      variant: DEFAULT_VARIANT
+      variant
     })
   }
 
@@ -1094,6 +1148,47 @@ const matchesPathFilter = ({
   return variants.includes(variant)
 }
 
+type MatchesRefFilterArgs = {
+  refs: SkipModelRefs | IncludeModelRefs | undefined
+  refName: string
+  variant: string
+}
+
+/**
+ * Match a `(refName, variant)` tuple against a model-shaped skip or
+ * include entry. Sibling to {@link matchesPathFilter} — both arms
+ * share matching rules; only the engine's interpretation of the
+ * result differs (skip = deny, include = allow).
+ *
+ * Returns `false` when:
+ * - `refs` is `undefined` (no filter applies)
+ * - the `refName` isn't keyed in the entry
+ *
+ * Returns `true` when:
+ * - the refName's variant array is empty (matches every variant)
+ * - the refName's variant array contains `variant`
+ */
+const matchesRefFilter = ({
+  refs,
+  refName,
+  variant
+}: MatchesRefFilterArgs): boolean => {
+  if (!refs) {
+    return false
+  }
+
+  const variants = refs[refName]
+  if (variants === undefined) {
+    return false
+  }
+
+  if (variants.length === 0) {
+    return true
+  }
+
+  return variants.includes(variant)
+}
+
 
 type ToOasOperationSourceArgs = {
   operation: OasOperation
@@ -1151,21 +1246,28 @@ export const toGqlOperationSource = ({
 type ToModelSourceArgs = {
   refName: RefName
   generatorId: string
+  /** Model variant the artifact was emitted for (see {@link Variant}) */
+  variant: string
 }
 
 /**
- * Creates a ModelSource from a reference name and generator ID.
+ * Creates a ModelSource from a reference name, generator ID, and variant.
  *
  * Transforms model reference and generator information into a source descriptor
  * that can be used for tracking model origins in the generation pipeline.
  *
- * @param args - Arguments containing reference name and generator ID
+ * @param args - Arguments containing reference name, generator ID, and variant
  * @returns ModelSource descriptor for the model
  */
-export const toModelSource = ({ refName, generatorId }: ToModelSourceArgs): ModelSource => ({
+export const toModelSource = ({
+  refName,
+  generatorId,
+  variant
+}: ToModelSourceArgs): ModelSource => ({
   type: 'model',
   generatorId,
-  refName
+  refName,
+  variant
 })
 
 const toSkipPaths = (
@@ -1174,8 +1276,24 @@ const toSkipPaths = (
 ): SkipPaths | undefined => {
   const generatorSkip = skip?.[generatorId]
 
-  if (typeof generatorSkip === 'object' && !Array.isArray(generatorSkip)) {
-    return generatorSkip
+  // Operation-shaped entries have records-of-records at the inner
+  // slot (`Record<path, Record<method, variant[]>>`); model-shaped
+  // entries have records-of-arrays (`Record<refName, variant[]>`).
+  // Discriminate by inner value shape. An empty record is ambiguous
+  // and admitted by both helpers — each arm will see its own empty
+  // filter (`{}`), which means "match nothing" in both cases.
+  if (
+    typeof generatorSkip === 'object' &&
+    generatorSkip !== null &&
+    !Array.isArray(generatorSkip)
+  ) {
+    const values = Object.values(generatorSkip)
+    if (
+      values.length === 0 ||
+      values.every(v => typeof v === 'object' && v !== null && !Array.isArray(v))
+    ) {
+      return generatorSkip as SkipPaths
+    }
   }
 
   return undefined
@@ -1184,11 +1302,22 @@ const toSkipPaths = (
 const toSkipModels = (
   skip: SkipOperations | SkipModels | undefined,
   generatorId: string
-): string[] | undefined => {
+): SkipModelRefs | undefined => {
   const generatorSkip = skip?.[generatorId]
 
-  if (Array.isArray(generatorSkip)) {
-    return generatorSkip
+  // SkipModelRefs is `Record<refName, variant[]>`. The operation arm
+  // entries are `Record<path, Record<method, variant[]>>` — discriminate
+  // by inner value shape (arrays vs nested records). An empty record is
+  // ambiguous and admitted by both helpers — see `toSkipPaths`.
+  if (
+    typeof generatorSkip === 'object' &&
+    generatorSkip !== null &&
+    !Array.isArray(generatorSkip)
+  ) {
+    const values = Object.values(generatorSkip)
+    if (values.length === 0 || values.every(v => Array.isArray(v))) {
+      return generatorSkip as SkipModelRefs
+    }
   }
 
   return undefined
@@ -1207,8 +1336,19 @@ const toIncludePaths = (
 ): IncludePaths | undefined => {
   const generatorInclude = include?.[generatorId]
 
-  if (typeof generatorInclude === 'object' && !Array.isArray(generatorInclude)) {
-    return generatorInclude
+  // Same model/operation discrimination as `toSkipPaths`.
+  if (
+    typeof generatorInclude === 'object' &&
+    generatorInclude !== null &&
+    !Array.isArray(generatorInclude)
+  ) {
+    const values = Object.values(generatorInclude)
+    if (
+      values.length === 0 ||
+      values.every(v => typeof v === 'object' && v !== null && !Array.isArray(v))
+    ) {
+      return generatorInclude as IncludePaths
+    }
   }
 
   return undefined
@@ -1222,11 +1362,18 @@ const toIncludePaths = (
 const toIncludeModels = (
   include: IncludeOperations | IncludeModels | undefined,
   generatorId: string
-): string[] | undefined => {
+): IncludeModelRefs | undefined => {
   const generatorInclude = include?.[generatorId]
 
-  if (Array.isArray(generatorInclude)) {
-    return generatorInclude
+  if (
+    typeof generatorInclude === 'object' &&
+    generatorInclude !== null &&
+    !Array.isArray(generatorInclude)
+  ) {
+    const values = Object.values(generatorInclude)
+    if (values.length === 0 || values.every(v => Array.isArray(v))) {
+      return generatorInclude as IncludeModelRefs
+    }
   }
 
   return undefined

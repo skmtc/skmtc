@@ -218,6 +218,30 @@ const run = async () => {
       await dev({ projectName, schemaSourceString })
     })
 
+  const deployCommand = new Command()
+    .description(getCommandDescriptor('deploy').description)
+    .arguments('<project:string>')
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .option('--stack <stack:string>', 'Hub stack target — "account/slug".')
+    .option('--version <version:string>', 'Release semver (e.g. 0.0.1).')
+    .option('--token <token:string>', 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.')
+    .option('--hub-url <url:string>', 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.')
+    .option('--notes <notes:string>', 'Optional release notes.')
+    .action(async ({ json, input, stack, version, token, hubUrl, notes }, projectName) => {
+      const { renderDeploy } = await import('@/commands/deploy.tsx')
+      await renderDeploy({
+        projectName,
+        stack,
+        version,
+        token,
+        hubUrl,
+        notes,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
+    })
+
   const doctorCommand = new Command()
     .description(getCommandDescriptor('doctor').description)
     .option('--json', 'Emit structured JSON output.')
@@ -273,6 +297,7 @@ const run = async () => {
     .command('remove', removeCommand)
     .command('generate', generateCommand)
     .command('bundle', bundleCommand)
+    .command('deploy', deployCommand)
     .command('dev', devCommand)
     .command('doctor', doctorCommand)
     .command('agent-context', agentContextCommand)

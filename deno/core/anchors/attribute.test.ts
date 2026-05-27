@@ -70,14 +70,27 @@ Deno.test('attribute - GQL operation key produces gql:<rootKind>.<fieldName>', (
 Deno.test('attribute - Model key produces oas:#/components/schemas/<refName>', () => {
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'User' as RefName
+    refName: 'User' as RefName,
+    variant: 'main'
   })
   const attr = attribute(new TestProducer(key))
 
   assertEquals(attr.genId, '@scope/gen-zod')
   assertEquals(attr.srcPtr, 'oas:#/components/schemas/User')
-  // Model keys have no variant axis — default to 'main'.
   assertEquals(attr.variant, 'main')
+})
+
+Deno.test('attribute - Model key threads non-default variant', () => {
+  const key = toModelGeneratorKey({
+    generatorId: '@scope/gen-zod-variants',
+    refName: 'Customer' as RefName,
+    variant: 'coercive'
+  })
+  const attr = attribute(new TestProducer(key))
+
+  assertEquals(attr.genId, '@scope/gen-zod-variants')
+  assertEquals(attr.srcPtr, 'oas:#/components/schemas/Customer')
+  assertEquals(attr.variant, 'coercive')
 })
 
 Deno.test('attribute - generator-only key yields undefined srcPtr', () => {
@@ -100,7 +113,8 @@ Deno.test('attribute - producer with no generatorKey returns <unknown>', () => {
 Deno.test('attribute - explicit srcPtr field overrides key-derived pointer', () => {
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'User' as RefName
+    refName: 'User' as RefName,
+    variant: 'main'
   })
   const attr = attribute(new TestProducer(key, 'oas:#/components/schemas/User/properties/email'))
 

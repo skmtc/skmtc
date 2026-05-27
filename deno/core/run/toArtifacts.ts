@@ -172,8 +172,8 @@ export const toArtifacts = ({
     spanId,
     results,
     parseIssues,
-    deploymentId: Deno.env.get('DENO_DEPLOYMENT_ID') ?? Date.now().toString(),
-    region: Deno.env.get('DENO_REGION'),
+    deploymentId: Date.now().toString(),
+    region: undefined,
     startAt,
     endAt: Date.now()
   }

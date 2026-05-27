@@ -25,7 +25,8 @@ Deno.test('toModelEntry - includes provided transform function', () => {
   const result = entry.transform({
     context: {} as GenerateContextType,
     refName: 'Test' as RefName,
-    acc: 5
+    acc: 5,
+    variant: 'main'
   })
   assertEquals(result, 6)
 })

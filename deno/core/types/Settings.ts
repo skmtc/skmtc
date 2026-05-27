@@ -130,11 +130,22 @@ export const skipPaths: v.GenericSchema<SkipPaths> = v.record(
 export const skipOperations: v.GenericSchema<SkipOperations> = v.record(v.string(), skipPaths)
 
 /**
+ * Valibot schema for {@link SkipModelRefs}. Structurally identical to
+ * the operation-arm inner: `refName → variant[]`, with the same
+ * empty-array-means-"all variants" rule.
+ */
+export const skipModelRefs: v.GenericSchema<SkipModelRefs> = v.record(
+  v.string(),
+  v.array(v.string())
+)
+
+/**
  * Valibot schema for validating skip models configuration.
  *
- * Validates generator-to-model-names mappings for skipping specific models.
+ * Validates generator-to-skip-model-refs mappings for skipping specific
+ * models and variants by generator.
  */
-export const skipModels: v.GenericSchema<SkipModels> = v.record(v.string(), v.array(v.string()))
+export const skipModels: v.GenericSchema<SkipModels> = v.record(v.string(), skipModelRefs)
 
 const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.string()])
 
@@ -160,12 +171,22 @@ export const includeOperations: v.GenericSchema<IncludeOperations> = v.record(
 )
 
 /**
- * Valibot schema for {@link IncludeModels}. Maps generator id to the
- * array of refNames to include.
+ * Valibot schema for {@link IncludeModelRefs}. Sibling to
+ * {@link skipModelRefs} — `refName → variant[]`. Same shape, opposite
+ * semantics.
+ */
+export const includeModelRefs: v.GenericSchema<IncludeModelRefs> = v.record(
+  v.string(),
+  v.array(v.string())
+)
+
+/**
+ * Valibot schema for {@link IncludeModels}. Maps generator id to a
+ * `refName → variant[]` record.
  */
 export const includeModels: v.GenericSchema<IncludeModels> = v.record(
   v.string(),
-  v.array(v.string())
+  includeModelRefs
 )
 
 const include: v.GenericSchema<Include> = v.union([
@@ -223,21 +244,46 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
 export type SkipPaths = Record<string, Partial<Record<Method, string[]>>>
 
 /**
+ * Configuration for skipping specific model refNames + variants.
+ *
+ * Maps `refName → variant[]`. The variant array uses the same
+ * conventions as {@link SkipPaths}:
+ *
+ * - `[]` (empty) means "every variant of this refName" — the equivalent
+ *   of pre-variants whole-model entries.
+ * - `['main', 'coercive']` means "only those variants" — paired with
+ *   `include`, a way to opt in a subset; paired with `skip`, a way to
+ *   deny a subset.
+ * - refName key absent means "this refName is not affected by the entry".
+ *
+ * @example
+ * ```typescript
+ * const skipModelRefs: SkipModelRefs = {
+ *   'InternalModel': [],              // skip all variants
+ *   'Customer':      ['coercive']     // skip just one variant
+ * };
+ * ```
+ */
+export type SkipModelRefs = Record<string, string[]>
+
+/**
  * Configuration for skipping model generation by generator type.
  *
- * Maps generator keys to arrays of model names that should be excluded.
+ * Maps generator keys to {@link SkipModelRefs} configurations for
+ * excluding specific models (and their variants) from generation.
  *
- * Model names are matched exactly against the schema's refName.
+ * Model names are matched exactly against the schema's refName; variant
+ * names are matched exactly against the per-model variant key.
  *
  * @example
  * ```typescript
  * const skipModels: SkipModels = {
- *   'typescript-models': ['InternalModel', 'DebugInfo'],
- *   'validation': ['TempModel']
+ *   'typescript-models': { 'InternalModel': [], 'DebugInfo': [] },
+ *   'validation':        { 'TempModel': [] }
  * };
  * ```
  */
-export type SkipModels = Record<string, string[]>
+export type SkipModels = Record<string, SkipModelRefs>
 
 /**
  * Configuration for skipping operation generation by generator type.
@@ -283,17 +329,34 @@ export type Skip = SkipOperations | SkipModels | string
 export type IncludePaths = Record<string, Partial<Record<Method, string[]>>>
 
 /**
+ * Allow-list counterpart to {@link SkipModelRefs}. Same
+ * `refName → variant[]` shape and the same `[]`-means-"all variants"
+ * rule, but with opposite semantics: only matching `(refName, variant)`
+ * tuples are admitted. Matching is exact on refName and variant name.
+ * No wildcards or globs.
+ *
+ * @example
+ * ```typescript
+ * const includeModelRefs: IncludeModelRefs = {
+ *   'Customer': [],            // all variants of Customer
+ *   'Order':    ['coercive']   // only the 'coercive' variant of Order
+ * };
+ * ```
+ */
+export type IncludeModelRefs = Record<string, string[]>
+
+/**
  * Allow-list counterpart to {@link SkipModels}. Maps generator id to
- * the array of model refNames to include.
+ * {@link IncludeModelRefs}.
  *
  * @example
  * ```typescript
  * const includeModels: IncludeModels = {
- *   '@skmtc/gen-typescript': ['Customer', 'Order']
+ *   '@skmtc/gen-zod-variants': { 'Customer': [], 'Order': ['coercive'] }
  * };
  * ```
  */
-export type IncludeModels = Record<string, string[]>
+export type IncludeModels = Record<string, IncludeModelRefs>
 
 /**
  * Allow-list counterpart to {@link SkipOperations}. Maps generator id
