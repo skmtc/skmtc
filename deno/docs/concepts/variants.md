@@ -1,31 +1,38 @@
-# Operation variants
+# Variants
 
-A **variant** is a named axis below `(operation, method)` (OAS) or
-`(rootKind, fieldName)` (GraphQL) along which a single operation can
-produce *N* Definitions instead of one. Variants are how SKMTC handles
-the case where the consumer's UI naturally produces multiple artifacts
-from a single endpoint — most often **section-edit forms** for a
-broad `PATCH` endpoint, but also wizard-step flows for multi-step
-`POST`s and mock-scenario flavours (`success` / `error` / `slow`) for
-a single mocked route.
+A **variant** is a named axis below `(operation, method)` (OAS),
+`(rootKind, fieldName)` (GraphQL), or `refName` (models) along which
+a single source item can produce *N* Definitions instead of one.
+Variants are how SKMTC handles the case where the consumer's UI or
+runtime naturally produces multiple artifacts from a single endpoint
+or schema — most often **section-edit forms** for a broad `PATCH`
+endpoint, **wizard-step flows** for multi-step `POST`s, **mock-
+scenario flavours** (`success` / `error` / `slow`) for a single
+mocked route, or **coercive vs strict** zod schemas for the same
+component model.
 
 ## TL;DR
 
-- Variants live one level deeper than today's enrichment leaf:
-  `enrichments[generatorId][path][method][variantName]`.
+- Variants live one level deeper than the pre-variants enrichment
+  leaf:
+  - OAS:    `enrichments[generatorId][path][method][variantName]`
+  - GQL:    `enrichments[generatorId][rootKind][fieldName][variantName]`
+  - Model:  `enrichments[generatorId][refName][variantName]`
 - `'main'` is always present. If the consumer writes any variants at
   all without `'main'`, the engine throws at start.
 - A generator becomes **variants-aware** when its `toIdentifier`
   reads `variant` and folds it into the returned name (typically via
   `withVariant(base, variant)`). Variants-unaware generators destructure
   the arg and ignore it.
-- Cross-generator `insertOperation` defaults to `'main'`. Pass an
-  explicit non-`'main'` variant only when you know the peer declares
-  it; the Driver throws otherwise.
+- Cross-generator `insertOperation` / `insertModel` defaults to
+  `'main'`. Pass an explicit non-`'main'` variant only when you know
+  the peer declares it; the Driver throws otherwise.
 - Variants are local to the variants-aware generator. The form
   generator can have `customer` / `location` variants without
   `gen-zod`, `gen-typescript`, or `gen-tanstack-query` knowing
-  variants exist.
+  variants exist. The zod-variants generator can have `coercive`
+  variants without operation generators threading them — operation
+  callers stay on `'main'` unless they opt in.
 
 ## What problem the variant axis solves
 
@@ -37,32 +44,43 @@ SKMTC assumed a 1:1 between operation and Definition: one form per
 `(operation, method)`. Producing N forms from one endpoint required
 hand-coding the extras.
 
+The same 1:1 problem exists for models: a `Customer` component schema
+might naturally produce *both* a strict zod schema (for JSON bodies)
+*and* a coercive variant (`z.coerce.*` for query-param parsing). One
+schema, two emitted modules.
+
 The 1:1 leaked across three layers — the enrichment shape, the
 `toIdentifier` / `toExportPath` cache key, and the engine's
-per-operation dispatch — and meant everything past the first form for
-that endpoint stayed hand-coded.
+per-item dispatch — and meant everything past the first artifact
+stayed hand-coded.
 
-The variant axis lifts that 1:1 to 1:N. One operation, N Definitions,
-each labelled by a string variant name. The variant flows through:
+The variant axis lifts that 1:1 to 1:N. One operation (or one
+refName), N Definitions, each labelled by a string variant name.
+The variant flows through:
 
 - **Enrichment routing** — variant names are the keys one level
-  deeper than the pre-variants leaf.
-- **The engine's per-operation dispatch** — the `reduce` over
-  `oasDocument.operations` now contains a nested `reduce` over the
-  variants declared for that operation.
+  deeper than the pre-variants leaf (both operation and model arms).
+- **The engine's per-item dispatch** — `#runOasOperationGenerator`,
+  `#runGqlOperationGenerator`, and `#runModelGenerator` each contain
+  a nested `reduce` over the variants declared for that item.
 - **`ContentSettings.variant`** — every Projection's settings bag
   carries the variant it was constructed for.
 - **`toIdentifier`, `toExportPath`, `toEnrichments`,
   `transform`, `isSupported`, `toPreviewModule`, `toMappingModule`**
-  — every callback that runs per `(operation, variant)` receives the
-  variant string.
-- **`GeneratorKey`** — extended from a 3-segment string
-  (`generatorId|path|method`) to a 4-segment string with `variant`
-  appended.
+  — every callback that runs per `(item, variant)` receives the
+  variant string. Models' `transform`/`toPreviewModule`/
+  `toMappingModule` receive it too.
+- **`GeneratorKey`** — operations went from 3 to 4 segments and
+  models went from 2 to 3 segments, with `variant` appended in both
+  cases (`id|path|method|variant`, `id|rootKind|fieldName|variant`,
+  `id|refName|variant`).
 - **`StackTrail`** — each variant gets its own frame nested inside
-  the operation frame (`<root>:<gen-id>:<path>:<method>:variant: <name>`).
-- **Manifest source** — `OasOperationSource` and `GqlOperationSource`
-  carry the variant; one manifest entry per `(operation, variant)`.
+  the item frame (`<root>:<gen-id>:<path>:<method>:variant: <name>`
+  for operations; `<root>:<gen-id>:<refName>:variant: <name>` for
+  models).
+- **Manifest source** — `OasOperationSource`, `GqlOperationSource`,
+  and `ModelSource` all carry the variant; one manifest entry per
+  `(item, variant)`.
 
 ## The six invariants
 
@@ -95,7 +113,8 @@ into impossible-by-construction properties.
 ### 3. The cache key stays narrow
 
 `(name, exportPath)` remains the `findDefinition` cache key. Variant
-is added to `GeneratorKey` (the 4th segment), not to the cache key.
+is added to `GeneratorKey` (the trailing segment), not to the cache
+key.
 
 This is deliberate. A variants-aware generator that forgets to fold
 `variant` into `toIdentifier` produces TWO Definitions with the same
@@ -105,6 +124,8 @@ hits the cached entry from the first variant, and the Driver's
 trailing `|main` vs. `|customer` mismatch, and throws
 `"Registered definition mismatch"`. Loud, consumer-visible failure
 beats a silently doubled `export const Foo` ending up in one file.
+This applies symmetrically to operation Drivers (4-segment keys) and
+the model Driver (3-segment keys with the variant in slot 3).
 
 ### 4. Variants are local to the variants-aware generator
 
@@ -119,11 +140,11 @@ Definition.
 
 ### 5. Variant mismatches throw
 
-When a caller explicitly passes `variant` to `insertOperation` and
-the peer doesn't have that variant in its enrichments, the Driver
-throws (`assertPeerVariantExists`) with a clear message including
-the available variants. Same for missing-`main` at engine start.
-Loud failures replace silent wrong-output.
+When a caller explicitly passes `variant` to `insertOperation` or
+`insertModel` and the peer doesn't have that variant in its
+enrichments, the Driver throws (`assertPeerVariantExists`) with a
+clear message including the available variants. Same for missing-
+`main` at engine start. Loud failures replace silent wrong-output.
 
 ### 6. Variant names are kebab-case, case-sensitive at runtime
 
@@ -164,6 +185,13 @@ under `gen-shadcn-form`:
 7. **Definition registration** stamps `generatorKey` from
    `toOasOperationGeneratorKey({generatorId, operation, variant})`,
    a 4-segment string with the variant as the trailing segment.
+
+The model arm is structurally identical with two substitutions:
+`#runModelGenerator` reads `enrichments[id][refName]`,
+`context.toModelContentSettings({refName, projection, variant})`
+builds the settings, and the registered `generatorKey` is
+`toModelGeneratorKey({generatorId, refName, variant})` — a 3-segment
+string ending in the variant.
 
 ## When NOT to use variants
 
@@ -251,6 +279,58 @@ Each variant gets its own form file and its own body TS type. The
 TanstackQuery hook is shared — one Definition imported by all three
 form files.
 
+## Worked example — model variants
+
+A `gen-zod-variants` generator emits both a strict and a coercive
+zod schema for the same component model.
+
+**`client.json`:**
+
+```jsonc
+{
+  "settings": {
+    "enrichments": {
+      "@scope/gen-zod-variants": {
+        "Customer": {
+          "main":     { "coerce": false },
+          "coercive": { "coerce": true }
+        },
+        "Order": {
+          "main":     { "coerce": false },
+          "coercive": { "coerce": true }
+        }
+      }
+    }
+  }
+}
+```
+
+**Generator `toIdentifier` / `toExportPath` (variants-aware):**
+
+```ts
+toIdentifier: ({ refName, variant }) =>
+  Identifier.createVariable(withVariant(`${refName}Schema`, variant)),
+toExportPath: ({ refName, variant }) =>
+  join('@', 'schemas', `${withVariant(refName, variant)}.generated.ts`)
+```
+
+**Generated files** (after `skmtc generate`):
+
+```
+@/schemas/Customer.generated.ts            ← 'main' variant (strict)
+@/schemas/CustomerCoercive.generated.ts    ← 'coercive' variant (z.coerce.*)
+@/schemas/Order.generated.ts
+@/schemas/OrderCoercive.generated.ts
+```
+
+Inside the Projection, branch on `this.settings.variant === 'coercive'`
+(or read `this.settings.enrichments.coerce`) to pick `z.coerce.number()`
+vs `z.number()`. An operation generator that needs the coercive flavour
+for query-param parsing calls
+`context.insertModel(ZodVariants, refName, { variant: 'coercive' })`;
+`assertPeerVariantExists` throws loudly if the consumer didn't declare
+that variant for the requested refName.
+
 ## Authoring a variants-aware generator
 
 See the [`skmtc-generator`](../skills/skmtc-generator/SKILL.md) skill,
@@ -273,9 +353,11 @@ Each invariant above maps to one or more executable specs:
 | `GeneratorKey` carries variant end-to-end | `GenerateContext.end-to-end.test.ts`; `dsl/GeneratorKeys.test.ts` round-trip tests |
 | Driver throws on peer-variant mismatch | `dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation" |
 | Variants-aware `toIdentifier` ignoring variant collides | `dsl/operation/oas/OasOperationDriver.test.ts` → "forgets to vary toIdentifier collides on second variant" |
-| Per-variant skip/include filtering | `GenerateContext.variants.test.ts` → "skip with…"/"include with…" |
+| Per-variant skip/include filtering | `GenerateContext.variants.test.ts` → "skip with…"/"include with…"; `GenerateContext.model-variants.test.ts` (model arm) |
 | Per-variant `StackTrail` nesting | `GenerateContext.variants.test.ts` → "nests the variant frame inside the operation frame" |
 | Bit-identical formatted output | `run/toArtifacts.regression.test.ts` |
+| Model arm: engine fan-out + missing-`main` throw | `GenerateContext.model-variants.test.ts` |
+| Model arm: peer-variant guard + collision check | `dsl/model/ModelDriver.variants.test.ts` |
 
 ## Cross-references
 

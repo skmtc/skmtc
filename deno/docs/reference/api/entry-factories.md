@@ -37,7 +37,7 @@ Type files:
 | **`transform` second arg** | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
 | **`acc` semantics** | Threaded but typically ignored; safe to omit `return acc` | Threaded and **must be returned** | Threaded but typically ignored |
 | **`isSupported`** | Optional; default `() => true` | Optional; default `() => true` | **Not supported** |
-| **Enrichment routing path** | `enrichments.<id>.<operation.path>.<operation.method>` | `enrichments.<id>.<operation.rootKind>.<operation.fieldName>` | `enrichments.<id>.<refName>` |
+| **Enrichment routing path** | `enrichments.<id>.<operation.path>.<operation.method>.<variant>` | `enrichments.<id>.<operation.rootKind>.<operation.fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
 | **`isSupported` enrichments pre-resolved** | Yes, via Valibot parse | Yes, via Valibot parse | n/a |
 | **Companion projection-base factory** | `toOasOperationProjectionBase` | `toGqlOperationProjectionBase` | `toModelProjectionBase` |
 

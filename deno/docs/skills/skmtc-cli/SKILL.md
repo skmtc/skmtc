@@ -200,18 +200,18 @@ Known check ids:
     // every package — the monorepo root — not a bundler alias.
     "basePath": "mobile-app/src",
 
-    // Per-generator and per-operation user overrides. Routing
+    // Per-generator and per-item user overrides. Routing
     // keys depend on factory:
     //   - OAS operation:  [path][method][variant]
     //   - GraphQL op:     [rootKind][fieldName][variant]
-    //   - Model:          [refName]  (no variant axis)
+    //   - Model:          [refName][variant]
     //
     // The trailing `[variant]` level is `'main'` by default. Most
     // consumers write just one variant; a variants-aware generator
-    // like gen-shadcn-form can produce N artifacts per operation by
-    // declaring additional variant keys. `'main'` MUST be present
-    // whenever any variant is declared — the engine throws at
-    // start otherwise.
+    // like gen-shadcn-form (operation) or a coercive zod variant
+    // (model) can produce N artifacts per item by declaring extra
+    // variant keys. `'main'` MUST be present whenever any variant
+    // is declared — the engine throws at start otherwise.
     "enrichments": {
       "@skmtc/gen-shadcn-form": {
         "/contacts": {
@@ -222,14 +222,22 @@ Known check ids:
             }
           }
         },
-        // Multi-variant example: one PATCH endpoint, several
-        // section-edit forms with different field subsets.
+        // Multi-variant operation example: one PATCH endpoint,
+        // several section-edit forms with different field subsets.
         "/quotes/{id}": {
           "patch": {
             "main":     { "title": "Edit Quote" },
             "customer": { "title": "Customer details" },
             "location": { "title": "Location" }
           }
+        }
+      },
+      // Multi-variant model example: same component schema produces
+      // a strict and a coercive zod schema in adjacent files.
+      "@scope/gen-zod-variants": {
+        "Customer": {
+          "main":     { "coerce": false },
+          "coercive": { "coerce": true }
         }
       }
     },
@@ -283,8 +291,13 @@ Both `skip` and `include` accept three entry shapes:
       "/quotes/{id}": { "patch": ["customer", "location"] }
   } },
 
-  // 3. Per-model (refName array — no variant axis on models)
-  { "@skmtc/gen-zod": ["UserModel", "OrderModel"] }
+  // 3. Per-model (refName → variant[])
+  //    `[]` means "every variant of this refName".
+  //    `["coercive", "main"]` means "only those variants".
+  { "@scope/gen-zod-variants": {
+      "Customer": [],
+      "Order": ["coercive"]
+  } }
 ]
 ```
 
@@ -462,11 +475,10 @@ also ready; the rebundle ran automatically.
 2. Edit `.skmtc/<project>/.settings/client.json` →
    `settings.enrichments[generatorId][...routingKeys][variant]`.
    Routing keys depend on the generator's factory:
-   `[path][method][variant]` for OAS ops, `[refName]` for models
-   (no variant axis), `[rootKind][fieldName][variant]` for GraphQL
-   ops. The variant level defaults to `'main'`; declare extra
-   variants to get N artifacts per operation from a variants-aware
-   generator.
+   `[path][method][variant]` for OAS ops, `[refName][variant]` for
+   models, `[rootKind][fieldName][variant]` for GraphQL ops. The
+   variant level defaults to `'main'`; declare extra variants to
+   get N artifacts per item from a variants-aware generator.
 3. Single-variant case (most common):
    ```jsonc
    { "@skmtc/gen-shadcn-form": { "/contacts": { "post":

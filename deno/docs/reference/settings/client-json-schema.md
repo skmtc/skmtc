@@ -180,13 +180,15 @@ kind:
 
 | Factory | Key path |
 |---|---|
-| `toOasOperationProjectionBase` | `enrichments[generatorId][operation.path][operation.method]` |
-| `toModelProjectionBase` | `enrichments[generatorId][refName]` |
-| `toGqlOperationProjectionBase` | `enrichments[generatorId][rootKind][fieldName]` |
+| `toOasOperationProjectionBase` | `enrichments[generatorId][operation.path][operation.method][variant]` |
+| `toModelProjectionBase` | `enrichments[generatorId][refName][variant]` |
+| `toGqlOperationProjectionBase` | `enrichments[generatorId][rootKind][fieldName][variant]` |
 
-The value beneath these routing keys is the leaf payload — its
-shape is declared by the generator's Valibot schema in
-`gen-x/src/enrichments.ts`.
+The value beneath the trailing `[variant]` key is the leaf payload
+— its shape is declared by the generator's Valibot schema in
+`gen-x/src/enrichments.ts`. The `variant` level defaults to `'main'`
+when no variants are declared; whenever any variant is declared,
+`'main'` MUST be present. See [`concepts/variants.md`](../../concepts/variants.md).
 
 Example for an OAS operation generator:
 

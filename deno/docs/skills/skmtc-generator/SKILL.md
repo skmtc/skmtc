@@ -62,20 +62,24 @@ important for authoring:
    not a parent, with `.isRef()` returning `true`. Do not add a
    `BaseSchema` class.
 
-5. **The operation-variant axis fans out at the engine, not the
-   generator.** A single operation can produce N Definitions via
-   named variants under `enrichments[id][path][method]` (OAS) or
-   `[id][rootKind][fieldName]` (GQL). `'main'` is always present —
+5. **The variant axis fans out at the engine, not the generator.**
+   A single source item can produce N Definitions via named variants
+   under `enrichments[id][path][method]` (OAS), `[id][rootKind][fieldName]`
+   (GQL), or `[id][refName]` (model). `'main'` is always present —
    the engine throws at start if a consumer wrote variants without
    it. Variants flow through `ContentSettings.variant`, the
-   `GeneratorKey`'s 4th segment, and the per-call `variant` arg in
-   every static method (`toIdentifier`, `toExportPath`,
-   `toEnrichments`) and every entry callback (`transform`,
-   `isSupported`, `toPreviewModule`, `toMappingModule`). Cross-gen
-   `insertOperation` defaults to `'main'`; passing a non-`'main'`
-   variant the peer doesn't declare throws at the Driver.
+   `GeneratorKey`'s trailing segment (4th for operations, 3rd for
+   models), and the per-call `variant` arg in every static method
+   (`toIdentifier`, `toExportPath`, `toEnrichments`) and every entry
+   callback (`transform`, `isSupported`, `toPreviewModule`,
+   `toMappingModule`). Cross-gen `insertOperation` / `insertModel`
+   defaults to `'main'`; passing a non-`'main'` variant the peer
+   doesn't declare throws at the Driver
+   (`assertPeerVariantExists`).
    <br>See: [`concepts/variants.md`](../../concepts/variants.md).
    Enforcement tests: `core/context/GenerateContext.variants.test.ts`,
+   `core/context/GenerateContext.model-variants.test.ts`,
+   `core/dsl/model/ModelDriver.variants.test.ts`,
    `core/context/GenerateContext.end-to-end.test.ts`,
    `core/context/GenerateContext.cross-variant.test.ts`,
    `core/helpers/toVariantList.test.ts`.
@@ -652,17 +656,27 @@ export const MyModelEntry = toModelEntry<EnrichmentSchema>({
   toEnrichmentSchema,
 
   // ⬇ NO `isSupported` for model entries — `transform` runs for every
-  //   refName. Filter inside the callback if needed.
-  transform({ context, refName }) {
+  //   refName per variant. Filter inside the callback if needed.
+  //   Thread `variant` into `insertModel` so the Driver builds
+  //   per-variant ContentSettings.
+  transform({ context, refName, variant }) {
     const schema = context.resolveSchemaRefOnce(refName, MyGen.id)
     if (schema.isRef() || schema.type !== 'object') return
 
-    context.insertModel(MyGen, refName)
+    context.insertModel(MyGen, refName, { variant })
   },
 
-  toPreviewModule: ({ refName, enrichments }) => ({
-    name: MyGen.toIdentifier({ refName, enrichments }).name,
-    exportPath: MyGen.toExportPath({ refName, enrichments }),
+  toPreviewModule: ({ context, refName, variant }) => ({
+    name: MyGen.toIdentifier({
+      refName,
+      enrichments: MyGen.toEnrichments({ refName, context, variant }),
+      variant
+    }).name,
+    exportPath: MyGen.toExportPath({
+      refName,
+      enrichments: MyGen.toEnrichments({ refName, context, variant }),
+      variant
+    }),
     group: 'models'
   })
 })
@@ -673,9 +687,9 @@ export default MyModelEntry
 Three model-specific things to remember:
 
 1. **No `isSupported` field.** The engine visits every refName
-   in the document and calls `transform`. Filter unwanted schemas
-   inside the callback (`if (schema.type !== 'object') return`),
-   not by gating the Entry.
+   in the document and calls `transform` once per declared variant.
+   Filter unwanted schemas inside the callback
+   (`if (schema.type !== 'object') return`), not by gating the Entry.
 2. **`transform` receives `refName`, not a schema.** Resolve via
    `context.resolveSchemaRefOnce(refName, baseId)` when you need the
    schema. The Driver also passes the schema down to your
@@ -683,6 +697,7 @@ Three model-specific things to remember:
 3. **Composition uses `context.insertModel`, not `insertOperation`.**
    The two `insert*` methods are protocol-specific. `insertModel`
    takes a refName; `insertOperation` takes an OAS or GQL operation.
+   Both accept an optional `{ variant }`; both default to `'main'`.
 
 ### Entry-factory routing cheat sheet
 
@@ -694,9 +709,10 @@ operational details — committing this table to memory saves time:
 | `transform` arg | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
 | `acc` semantics | omit `return acc` freely | **must** `return acc` | omit `return acc` freely |
 | `isSupported` field | optional, default `() => true` | optional, default `() => true` | **absent** — filter in `transform` |
-| Enrichment routing | `enrichments.<id>.<path>.<method>` | `enrichments.<id>.<rootKind>.<fieldName>` | `enrichments.<id>.<refName>` |
-| Compose with | `context.insertOperation(P, op)` | `context.insertOperation(P, op)` | `context.insertModel(P, refName)` |
+| Enrichment routing | `enrichments.<id>.<path>.<method>.<variant>` | `enrichments.<id>.<rootKind>.<fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
+| Compose with | `context.insertOperation(P, op, { variant? })` | `context.insertOperation(P, op, { variant? })` | `context.insertModel(P, refName, { variant? })` |
 | Companion base factory | `toOasOperationProjectionBase` | `toGqlOperationProjectionBase` | `toModelProjectionBase` |
+| `GeneratorKey` shape | `id\|path\|method\|variant` | `id\|rootKind\|fieldName\|variant` | `id\|refName\|variant` |
 
 Full reference: [`reference/api/entry-factories.md`](../../reference/api/entry-factories.md).
 

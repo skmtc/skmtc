@@ -42,7 +42,7 @@ SKMTC-native vocabulary, because the analogues miss important details.
 
 | SKMTC term | Familiar analogue | What's different |
 |---|---|---|
-| **`GeneratorKey`** | A composite primary key in a SQL table | Pipe-delimited string: 4 segments for operations (`id\|path\|method\|variant` OAS), 2 for models. Driver compares old vs. new key in `affirmDefinition` to detect collisions. |
+| **`GeneratorKey`** | A composite primary key in a SQL table | Pipe-delimited string: 4 segments for operations (`id\|path\|method\|variant` OAS, `id\|rootKind\|fieldName\|variant` GQL), 3 for models (`id\|refName\|variant`). Driver compares old vs. new key in `affirmDefinition` to detect collisions. |
 | **`findDefinition({name, exportPath})`** | A cache `.get(key)` | Looks up an existing Definition by `(name, exportPath)` in the target file. Returns `undefined` on miss. |
 | **`affirmDefinition`** | A cache integrity check — "does the existing entry match what I'm about to insert?" | Compares cached Definition's `generatorKey` to the call's computed `generatorKey`. Mismatch → `"Registered definition mismatch"` throw. Same key → reuse cached. |
 | **Cache key vs. `GeneratorKey`** | Map key vs. row identity column | The cache key (`name, exportPath`) is intentionally narrower than `GeneratorKey`. A variants-aware Projection that forgets to fold variant into `toIdentifier` produces the same cache key for two variants — the Driver's integrity check fires loudly instead of silently producing duplicate exports. |
@@ -51,7 +51,7 @@ SKMTC-native vocabulary, because the analogues miss important details.
 
 | SKMTC term | Familiar analogue | What's different |
 |---|---|---|
-| **Operation variant** | A discriminated-union case for "one endpoint, several UI artifacts" | Named string axis below `[path][method]`. `'main'` is always present. See [`concepts/variants.md`](./variants.md). |
+| **Variant** | A discriminated-union case for "one source item, several artifacts" | Named string axis below `[path][method]` (OAS ops), `[rootKind][fieldName]` (GQL ops), or `[refName]` (models). `'main'` is always present. See [`concepts/variants.md`](./variants.md). |
 | **Variants-aware generator** | A React component that renders differently based on a prop | Its `toIdentifier` folds `variant` into the returned name (typically via `withVariant`). Distinct `(name, exportPath)` per variant → distinct Definitions. |
 | **Variants-unaware generator** | A React component that ignores the variant prop | Destructures `variant` and discards it. Every variant of every caller resolves to the same `'main'` Definition; that Definition is shared (cache hit). |
 | **`withVariant(base, variant)`** | A string-concatenation helper that's PascalCase-aware | `withVariant('Form', 'main')` → `'Form'`. `withVariant('Form', 'line-items')` → `'FormLineItems'`. The kebab-case→PascalCase transform is invertible because the variant regex bans uppercase. |
@@ -63,9 +63,9 @@ SKMTC-native vocabulary, because the analogues miss important details.
 |---|---|---|
 | **Project** | A workspace folder for one schema-to-code mapping | Lives at `<root>/.skmtc/<project>/`. One project = one schema source + one set of generators + one `client.json`. NOT the consumer app. |
 | **`client.json#settings`** | A `tsconfig.json`-style config: paths, filters, overrides | Carries `basePath`, `source`, `enrichments`, `include`, `skip`. |
-| **`enrichments`** | Per-operation prop overrides | Routed by `[generatorId][path][method][variant]` for OAS (or `[rootKind][fieldName][variant]` for GQL or `[refName]` for models). |
+| **`enrichments`** | Per-item prop overrides | Routed by `[generatorId][path][method][variant]` for OAS, `[rootKind][fieldName][variant]` for GQL, or `[refName][variant]` for models. |
 | **`basePath`** | The `@` alias root in `tsconfig.paths` | Required, relative. Must match the consumer bundler's `@` alias config — generators produce `@/<subdir>/…` paths assuming this alignment. |
-| **`include`** | A `tsconfig.json#include` allow-list | Empty array = no filter. Names a generator (string form) or `(path, method, variant[])` tuples (object form). |
+| **`include`** | A `tsconfig.json#include` allow-list | Empty array = no filter. Names a generator (string form), `(path, method, variant[])` tuples for operations, or `(refName, variant[])` tuples for models (object forms). |
 | **`skip`** | A `tsconfig.json#exclude` deny-list | Same shapes as `include`. `skip` wins over `include`. |
 | **`manifest.json`** | A build-output manifest like Webpack's `stats.json` | Records every (generator × item) outcome plus per-source artifacts. Read it for diagnostics before guessing. |
 

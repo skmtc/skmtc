@@ -265,11 +265,11 @@ Two different keys, two different jobs:
 
 | | Cache key | Integrity key |
 |---|---|---|
-| Composed of | `(identifier.name, exportPath)` | `(generatorId, item)` |
+| Composed of | `(identifier.name, exportPath)` | `(generatorId, item, variant)` |
 | Decides | *whether* to reuse a cached `Definition` | *that* reuse is safe |
 | Lives in | `File.definitions: Map<name, Definition>` (keyed by name; file is the outer map) | `Definition.generatorKey` field |
-| Pure function of | `(operation, enrichments)` via `toIdentifier` / `toExportPath` | `(generatorId, operation/refName)` |
-| Mismatch means | cache miss → construct fresh | name collision between different generators → throw |
+| Pure function of | `(operation/refName, enrichments, variant)` via `toIdentifier` / `toExportPath` | `(generatorId, operation/refName, variant)` |
+| Mismatch means | cache miss → construct fresh | name collision between different generators OR a variants-aware Projection that forgot to fold variant into `toIdentifier` → throw |
 
 The two keys can agree (both "the same generator-and-input pair
 under the same `(name, exportPath)`") — the common case, where

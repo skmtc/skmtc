@@ -64,14 +64,16 @@ list: `[]` means "every variant"; name variants to narrow further.)
 
 ### Per-model filtering
 
-For model generators, the entry shape uses refNames:
+For model generators, the entry shape uses refNames mapped to a
+variant array (mirroring the per-operation `method → variant[]`
+shape):
 
 ```jsonc
 {
   "settings": {
     "include": [
       {
-        "@skmtc/gen-zod": ["User", "Order"]
+        "@skmtc/gen-zod": { "User": [], "Order": [] }
       }
     ]
   }
@@ -79,6 +81,9 @@ For model generators, the entry shape uses refNames:
 ```
 
 Only the `User` and `Order` schema components produce Zod schemas.
+The empty variant array `[]` means "every variant of this refName";
+name variants to narrow further (e.g. `{ "Customer": ["coercive"] }`
+for a variants-aware model generator).
 
 ### Order of evaluation (`isSupported` → `include` → `skip`)
 

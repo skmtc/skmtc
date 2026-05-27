@@ -323,9 +323,14 @@ TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 
 Routing keys are hardcoded per projection-base factory:
 
-- OAS operation generators: `enrichments[generatorId][operation.path][operation.method]`
-- Model generators: `enrichments[generatorId][refName]`
-- GraphQL operation generators: `enrichments[generatorId][rootKind][fieldName]`
+- OAS operation generators: `enrichments[generatorId][operation.path][operation.method][variant]`
+- Model generators: `enrichments[generatorId][refName][variant]`
+- GraphQL operation generators: `enrichments[generatorId][rootKind][fieldName][variant]`
+
+The trailing `[variant]` level defaults to `'main'` when the consumer
+writes no variants. Whenever any variant is declared, `'main'` MUST be
+present (engine throws via `toVariantList` otherwise). See
+[`concepts/variants.md`](./concepts/variants.md).
 
 The payload shape beneath the routing keys is declared per-generator via Valibot in `gen-x/src/enrichments.ts`. **To know what keys a generator accepts, read its `enrichments.ts`.**
 
@@ -484,7 +489,7 @@ Self-contained playbooks. Read only the one you need.
 
 1. Read the target generator's `gen-x/src/enrichments.ts` to know the accepted shape.
 2. Open `.skmtc/<project>/.settings/client.json`.
-3. Add under `settings.enrichments[generatorId][...routingKeys]` — keys depend on factory: `[path][method]` for OAS ops, `[refName]` for models, `[rootKind][fieldName]` for GraphQL ops.
+3. Add under `settings.enrichments[generatorId][...routingKeys][variant]` — routing keys depend on factory: `[path][method]` for OAS ops, `[refName]` for models, `[rootKind][fieldName]` for GraphQL ops. The trailing `variant` level defaults to `'main'`; declare extra variants to get N artifacts per item from a variants-aware generator.
 4. `skmtc generate <project>` (no rebundle needed).
 
 #### Pinning a schema source

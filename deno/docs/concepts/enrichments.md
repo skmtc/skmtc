@@ -222,18 +222,24 @@ lookup. There are three shapes:
 
 | Factory | Path read |
 |---|---|
-| `toOasOperationProjectionBase` | `enrichments.${generatorId}.${operation.path}.${operation.method}` |
-| `toModelProjectionBase` | `enrichments.${generatorId}.${refName}` |
-| `toGqlOperationProjectionBase` | `enrichments.${generatorId}.${operation.rootKind}.${operation.fieldName}` |
+| `toOasOperationProjectionBase` | `enrichments.${generatorId}.${operation.path}.${operation.method}.${variant}` |
+| `toModelProjectionBase` | `enrichments.${generatorId}.${refName}.${variant}` |
+| `toGqlOperationProjectionBase` | `enrichments.${generatorId}.${operation.rootKind}.${operation.fieldName}.${variant}` |
 
 Specifically:
 
-- **OAS operation generators** route by `(operation.path, operation.method)`
-  — the literal OpenAPI path and lowercase HTTP verb.
-- **Model generators** route by `refName` — the component name as
-  it appears under `components.schemas`.
-- **GraphQL operation generators** route by `(rootKind, fieldName)`
-  — `"Query" | "Mutation" | "Subscription"` and the operation field.
+- **OAS operation generators** route by `(operation.path, operation.method, variant)`
+  — the literal OpenAPI path, lowercase HTTP verb, and variant name.
+- **Model generators** route by `(refName, variant)` — the component
+  name as it appears under `components.schemas`, plus variant name.
+- **GraphQL operation generators** route by `(rootKind, fieldName, variant)`
+  — `"Query" | "Mutation" | "Subscription"`, the operation field,
+  and variant name.
+
+The trailing `variant` level defaults to `'main'` when the consumer
+declares no variants. Whenever any variant is declared, `'main'` MUST
+be present (the engine throws via `toVariantList` otherwise). See
+[`variants.md`](./variants.md).
 
 There is no `operationId`-based routing for OAS, and no separate
 "projection kind" or "projection key" routing level. Beneath the

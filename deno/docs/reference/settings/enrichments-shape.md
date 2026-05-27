@@ -62,30 +62,52 @@ is defined by the generator's Valibot schema:
 Source: `core/dsl/model/toModelProjectionBase.ts`:
 
 ```ts
-get(context.settings, `enrichments.${config.id}.${refName}`)
+get(context.settings, `enrichments.${config.id}.${refName}.${variant}`)
 ```
 
-Two levels:
+Three levels:
 
 ```
 enrichments
-  └── [generatorId]   e.g., "@skmtc/gen-zod"
-       └── [refName]  e.g., "UserModel"
-            └── { ...enrichment payload }
+  └── [generatorId]    e.g., "@scope/gen-zod-variants"
+       └── [refName]   e.g., "Customer"
+            └── [variant]  e.g., "main" | "coercive"
+                 └── { ...enrichment payload }
 ```
 
 `refName` is the schema component name as it appears under
-`components.schemas` in the source document.
+`components.schemas` in the source document. `variant` defaults to
+`'main'` when no variants are declared; whenever any variant is
+declared, `'main'` MUST be present (engine throws via
+`toVariantList` otherwise — see
+[`concepts/variants.md`](../../concepts/variants.md)).
 
-Example:
+Example (single-variant — the common case):
 
 ```jsonc
 {
   "settings": {
     "enrichments": {
       "@skmtc/gen-zod": {
-        "UserModel":  { "description": "A user account" },
-        "OrderModel": { "description": "A customer order" }
+        "UserModel":  { "main": { "description": "A user account" } },
+        "OrderModel": { "main": { "description": "A customer order" } }
+      }
+    }
+  }
+}
+```
+
+Example (multi-variant — variants-aware model generator):
+
+```jsonc
+{
+  "settings": {
+    "enrichments": {
+      "@scope/gen-zod-variants": {
+        "Customer": {
+          "main":     { "coerce": false },
+          "coercive": { "coerce": true }
+        }
       }
     }
   }
