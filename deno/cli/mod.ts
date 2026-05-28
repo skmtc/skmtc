@@ -223,14 +223,12 @@ const run = async () => {
     .arguments('<project:string>')
     .option('--no-input', NO_INPUT_DESC)
     .option('--json', JSON_DESC)
-    .option('--stack <stack:string>', 'Hub stack target — "account/slug".')
     .option('--token <token:string>', 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.')
     .option('--hub-url <url:string>', 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.')
-    .action(async ({ json, input, stack, token, hubUrl }, projectName) => {
+    .action(async ({ json, input, token, hubUrl }, projectName) => {
       const { renderDeploy } = await import('@/commands/deploy.tsx')
       await renderDeploy({
         projectName,
-        stack,
         token,
         hubUrl,
         jsonFlag: json,

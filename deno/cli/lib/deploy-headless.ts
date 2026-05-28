@@ -34,8 +34,6 @@ import { collectSourceFiles, uploadSource } from '@/lib/source-upload.ts'
 type DeployHeadlessArgs = {
   skmtcRoot: SkmtcRoot
   projectName: string
-  /** Hub stack target — `account/stack`. */
-  stack: string
   /** Personal access token. */
   token: string
   /** Hub base URL — defaults to https://api.skmtc.dev. */
@@ -66,6 +64,7 @@ export type DeployHeadlessResult =
       projectName: string
       reason: string
       stage:
+        | 'identity'
         | 'bundle'
         | 'runtime-check'
         | 'runtime-upload'
@@ -76,16 +75,41 @@ export type DeployHeadlessResult =
 
 const DEFAULT_HUB_URL = 'https://api.skmtc.dev'
 
-const splitStack = (stack: string): { account: string; slug: string } => {
-  const parts = stack.split('/')
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    throw new Error(`--stack must be of the form "account/slug" (got "${stack}")`)
-  }
-  return { account: parts[0], slug: parts[1] }
-}
-
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
+
+/**
+ * Resolve the authenticated user's handle from the PAT. The hub's
+ * `GET /v1/user` returns `AuthenticatedUser` whose `handle` is the
+ * `account` segment of every stack URL the user can deploy to.
+ *
+ * `deploy` uses this to construct the stack identity from the project
+ * name alone — a stack's identity is `<authenticated handle>/<project>`.
+ * Org-owned stacks aren't reachable from `skmtc deploy` today.
+ */
+const resolveAccountHandle = async ({
+  hubUrl,
+  token
+}: {
+  hubUrl: string
+  token: string
+}): Promise<string> => {
+  const response = await fetch(`${hubUrl}/v1/user`, {
+    method: 'GET',
+    headers: { 'authorization': `Bearer ${token}` }
+  })
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`identity lookup failed (${response.status}): ${text.slice(0, 500)}`)
+  }
+  const payload: unknown = await response.json()
+  if (!isObject(payload)) throw new Error('hub returned non-object identity payload')
+  const handle = payload['handle']
+  if (typeof handle !== 'string' || handle.length === 0) {
+    throw new Error('hub identity payload missing `handle`')
+  }
+  return handle
+}
 
 /**
  * Probe `GET /v1/runtimes/{serverVersion}`. 200 → runtime is
@@ -286,11 +310,24 @@ const uploadBundle = async ({
 export const deployHeadless = async ({
   skmtcRoot,
   projectName,
-  stack,
   token,
   hubUrl = DEFAULT_HUB_URL
 }: DeployHeadlessArgs): Promise<DeployHeadlessResult> => {
-  const { account, slug } = splitStack(stack)
+  // The stack identity is `<authenticated handle>/<project>`. There
+  // is no account/slug choice here: the PAT picks one, the project
+  // name is the slug.
+  let account: string
+  try {
+    account = await resolveAccountHandle({ hubUrl, token })
+  } catch (err) {
+    return {
+      kind: 'failed',
+      projectName,
+      reason: err instanceof Error ? err.message : String(err),
+      stage: 'identity'
+    }
+  }
+  const slug = projectName
   const project = skmtcRoot.findProject(projectName)
 
   let split: BundleSplitResult

@@ -17,7 +17,6 @@ export const description = "Build and upload a deployment of this project to skm
 type RenderDeployArgs = {
   skmtcRoot?: SkmtcRoot
   projectName: string | undefined
-  stack: string | undefined
   token: string | undefined
   hubUrl: string | undefined
   jsonFlag?: boolean
@@ -26,13 +25,12 @@ type RenderDeployArgs = {
   AppComponent?: typeof App
 }
 
-const USAGE = 'skmtc deploy <project> --stack <account/slug> --token <pat>'
-const EXAMPLE = 'skmtc deploy my-api --stack me/petstore --token $SKMTC_HUB_TOKEN'
+const USAGE = 'skmtc deploy <project> --token <pat>'
+const EXAMPLE = 'skmtc deploy my-api --token $SKMTC_HUB_TOKEN'
 
 export const renderDeploy = async ({
   skmtcRoot: providedSkmtcRoot,
   projectName,
-  stack,
   token,
   hubUrl,
   jsonFlag,
@@ -53,19 +51,9 @@ export const renderDeploy = async ({
   }
 
   if (mode === 'strict') {
-    const resolvedStack = stack ?? Deno.env.get('SKMTC_HUB_STACK')
     const resolvedToken = token ?? Deno.env.get('SKMTC_HUB_TOKEN')
     const resolvedHubUrl = hubUrl ?? Deno.env.get('SKMTC_HUB_URL')
 
-    if (!resolvedStack) {
-      return failWithRecipe({
-        command: 'deploy',
-        arg: '--stack',
-        usage: USAGE,
-        example: EXAMPLE,
-        discover: 'Set $SKMTC_HUB_STACK or pass --stack <account/slug>.'
-      })
-    }
     if (!resolvedToken) {
       return failWithRecipe({
         command: 'deploy',
@@ -80,7 +68,6 @@ export const renderDeploy = async ({
     const result = await deployHeadless({
       skmtcRoot,
       projectName,
-      stack: resolvedStack,
       token: resolvedToken,
       hubUrl: resolvedHubUrl
     })
@@ -97,7 +84,6 @@ export const renderDeploy = async ({
     view: {
       page: 'deploy',
       projectName,
-      stack,
       token,
       hubUrl
     },

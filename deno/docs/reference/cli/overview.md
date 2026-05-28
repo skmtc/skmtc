@@ -39,6 +39,12 @@ The CLI is installed via Deno's `install` mechanism, then invoked as
 | `bundle` | Rebuild the project's `bundle.js` (worker payload) | [bundle](bundle.md) |
 | `dev` | Watch mode for iterative generator development | [dev](dev.md) |
 
+### Hub publishing
+
+| Command | Purpose | Reference |
+|---------|---------|-----------|
+| `deploy` | Upload a new immutable deployment to skmtc-hub | [deploy](deploy.md) |
+
 ### Diagnostics
 
 | Command | Purpose | Reference |

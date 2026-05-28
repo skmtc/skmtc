@@ -38,12 +38,10 @@ export const DeployView = ({ project, view }: DeployViewProps) => {
   const [stage, setStage] = useState<Stage>({ kind: 'validating' })
 
   useEffect(() => {
-    const stack = view.stack ?? Deno.env.get('SKMTC_HUB_STACK')
     const token = view.token ?? Deno.env.get('SKMTC_HUB_TOKEN')
     const hubUrl = view.hubUrl ?? Deno.env.get('SKMTC_HUB_URL')
 
     const missing: string[] = []
-    if (!stack) missing.push('--stack <account/slug> (or $SKMTC_HUB_STACK)')
     if (!token) missing.push('--token <pat> (or $SKMTC_HUB_TOKEN)')
 
     if (missing.length > 0) {
@@ -58,7 +56,6 @@ export const DeployView = ({ project, view }: DeployViewProps) => {
       const result = await deployHeadless({
         skmtcRoot: state.skmtcRoot,
         projectName: project.name,
-        stack: stack as string,
         token: token as string,
         hubUrl
       })
@@ -96,14 +93,14 @@ export const DeployView = ({ project, view }: DeployViewProps) => {
             <Text key={m}>  - {m}</Text>
           ))}
           <Text dimColor>
-            Example: skmtc deploy {project.name} --stack me/petstore --token $SKMTC_HUB_TOKEN
+            Example: skmtc deploy {project.name} --token $SKMTC_HUB_TOKEN
           </Text>
         </Box>
       )
     case 'running':
       return (
         <TaskBox active>
-          <Spinner label={`Deploying ${project.name} → ${view.stack}...`} />
+          <Spinner label={`Deploying ${project.name}...`} />
         </TaskBox>
       )
     case 'done': {

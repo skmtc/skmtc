@@ -113,11 +113,10 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   },
   {
     name: 'deploy',
-    description: "Build and upload a deployment of this project to skmtc-hub. Each deploy creates a new immutable deployment.",
+    description: "Build and upload a deployment of this project to skmtc-hub. The deployment lands on the stack <authenticated-user>/<project>; each deploy creates a new immutable deployment.",
     args: ['<project>'],
     flags: [
       ...AGENT_MODE_FLAGS,
-      { flag: '--stack <stack>', description: 'Hub stack target — "account/slug".' },
       { flag: '--token <pat>', description: 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.' },
       { flag: '--hub-url <url>', description: 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.' }
     ],
