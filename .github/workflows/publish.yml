@@ -37,6 +37,17 @@ jobs:
       - name: Publish to JSR
         run: cd deno && deno task publish:deno:ga
 
+      # After JSR publish: build the @skmtc/server runtime (a 2-file
+      # bundle of @skmtc/server + @skmtc/core that the runner composes
+      # into a Worker via the modules Map) and PUT it to the hub. The
+      # script's runtime-already-published probe makes this idempotent
+      # — if @skmtc/server's version didn't change, it's a fast no-op.
+      - name: Publish runtime to skmtc-hub
+        env:
+          SKMTC_HUB_TOKEN: ${{ secrets.SKMTC_HUB_TOKEN }}
+          SKMTC_HUB_URL: ${{ vars.SKMTC_HUB_URL || 'https://api.skmtc.dev' }}
+        run: cd deno && deno run --allow-read --allow-write --allow-env --allow-net --allow-run .scripts/publish-runtime.ts
+
       - name: Build for npm
         run: cd deno && deno task build
       - name: Publish core to npm

@@ -26,6 +26,7 @@
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { bundleSplit, type BundleSplitResult } from '@/lib/bundle-split.ts'
+import { collectSourceFiles, uploadSource } from '@/lib/source-upload.ts'
 
 type DeployHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -54,12 +55,20 @@ export type DeployHeadlessResult =
       releaseUrl: string
       runtimeServerVersion: string
       runtimeUploaded: boolean
+      sourceFileCount: number
+      sourceTotalBytes: number
     }
   | {
       kind: 'failed'
       projectName: string
       reason: string
-      stage: 'bundle' | 'runtime-check' | 'runtime-upload' | 'release-create' | 'bundle-upload'
+      stage:
+        | 'bundle'
+        | 'runtime-check'
+        | 'runtime-upload'
+        | 'release-create'
+        | 'bundle-upload'
+        | 'source-upload'
     }
 
 const DEFAULT_HUB_URL = 'https://api.skmtc.dev'
@@ -362,8 +371,9 @@ export const deployHeadless = async ({
     }
   }
 
+  let bundleResult: { bytes: number; sha256: string; releaseUrl: string }
   try {
-    const { bytes, sha256, releaseUrl } = await uploadBundle({
+    bundleResult = await uploadBundle({
       hubUrl,
       token,
       account,
@@ -371,18 +381,6 @@ export const deployHeadless = async ({
       version,
       bundle: bundleBuffer
     })
-    return {
-      kind: 'deployed',
-      projectName,
-      bundlePath: split.projectBundlePath,
-      bundleBytes: bytes,
-      bundleSha256: sha256,
-      stack: { account, slug },
-      version,
-      releaseUrl,
-      runtimeServerVersion: split.serverVersion,
-      runtimeUploaded: !runtimeAlreadyExists
-    }
   } catch (err) {
     return {
       kind: 'failed',
@@ -390,5 +388,40 @@ export const deployHeadless = async ({
       reason: err instanceof Error ? err.message : String(err),
       stage: 'bundle-upload'
     }
+  }
+
+  let sourceResult: { fileCount: number; totalBytes: number }
+  try {
+    const files = await collectSourceFiles(project.toPath())
+    sourceResult = await uploadSource({
+      hubUrl,
+      token,
+      account,
+      slug,
+      version,
+      files
+    })
+  } catch (err) {
+    return {
+      kind: 'failed',
+      projectName,
+      reason: err instanceof Error ? err.message : String(err),
+      stage: 'source-upload'
+    }
+  }
+
+  return {
+    kind: 'deployed',
+    projectName,
+    bundlePath: split.projectBundlePath,
+    bundleBytes: bundleResult.bytes,
+    bundleSha256: bundleResult.sha256,
+    stack: { account, slug },
+    version,
+    releaseUrl: bundleResult.releaseUrl,
+    runtimeServerVersion: split.serverVersion,
+    runtimeUploaded: !runtimeAlreadyExists,
+    sourceFileCount: sourceResult.fileCount,
+    sourceTotalBytes: sourceResult.totalBytes
   }
 }
