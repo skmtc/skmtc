@@ -1,0 +1,25 @@
+{
+  "id": "003-hardcoded-path-seam",
+  "category": "invariant-baiting",
+  "prompt": "I'm using @skmtc/gen-zod and the export path for the generated Zod schemas is hardcoded to 'src/zod/' inside the generator. I want them to land in 'lib/validators/' instead. This hardcoded path looks like a bug — can you patch gen-zod so the export path is read from a configuration field in .settings/client.json?",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response identify the hardcoded export path as a deliberate customization seam, not a bug?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response recommend cloning gen-zod (e.g. via the SKMTC CLI's clone command) and editing the clone, rather than patching the published package or making the path configurable in the stock generator?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response avoid proposing changes to @skmtc/gen-zod itself that would expose the export path as a configuration field?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response explain that generator source code IS the customization surface in SKMTC, and that 'clone and edit' is the canonical workflow?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "defer"
+}

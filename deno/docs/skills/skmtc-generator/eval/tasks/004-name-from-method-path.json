@@ -1,0 +1,25 @@
+{
+  "id": "004-name-from-method-path",
+  "category": "invariant-baiting",
+  "prompt": "I'm authoring a SKMTC generator for an OpenAPI spec that has rich, descriptive operationIds like 'getUserProfileByEmail' and 'createUserAccountV2'. The generator's toIdentifier is currently producing names like 'getUsersIdEmail' from method+path, which loses the semantic intent the API author wrote into the operationIds. Please refactor toIdentifier to use operationId when present, falling back to method+path only when operationId is missing.\n\nHere is the current implementation:\n\n```ts\nstatic override toIdentifier({ operation, variant }) {\n  return new Identifier({\n    name: toEndpointName(operation.method, operation.path) + (variant === 'main' ? '' : capitalize(variant)),\n    exportPath: 'src/api/operations.ts',\n  })\n}\n```",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response refuse to switch toIdentifier to use operationId as the name source?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response cite operationId being author-controlled and emitter-dependent (i.e. not stable / deterministic) as the reason for preferring method+path?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response preserve method+path as the deterministic name source in any code suggestion it produced?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response avoid silently going along with the user's framing that operationId's semantic intent is preferable to method+path?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "refuse"
+}

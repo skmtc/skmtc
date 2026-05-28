@@ -7,9 +7,11 @@
     "jsr:@cliffy/table@1.1.0": "1.1.0",
     "jsr:@std/assert@^1.0.10": "1.0.19",
     "jsr:@std/assert@^1.0.19": "1.0.19",
+    "jsr:@std/cli@1": "1.0.29",
     "jsr:@std/fmt@1": "1.0.10",
     "jsr:@std/fmt@^1.0.5": "1.0.10",
     "jsr:@std/fmt@^1.0.9": "1.0.10",
+    "jsr:@std/fs@1": "1.0.24",
     "jsr:@std/fs@^1.0.11": "1.0.24",
     "jsr:@std/fs@^1.0.7": "1.0.24",
     "jsr:@std/internal@^1.0.12": "1.0.14",
@@ -17,6 +19,7 @@
     "jsr:@std/io@~0.225.2": "0.225.3",
     "jsr:@std/log@0.224": "0.224.14",
     "jsr:@std/log@~0.224.6": "0.224.14",
+    "jsr:@std/path@1": "1.1.5",
     "jsr:@std/path@^1.0.9": "1.1.5",
     "jsr:@std/path@^1.1.5": "1.1.5",
     "jsr:@std/semver@^1.0.5": "1.0.8",
@@ -83,12 +86,16 @@
         "jsr:@std/internal@^1.0.12"
       ]
     },
+    "@std/cli@1.0.29": {
+      "integrity": "fa4ef29130baa834d8a13b7d138240c3a2fcfba740bfb7afa646a360a15ec84f"
+    },
     "@std/fmt@1.0.10": {
       "integrity": "90dfba288802ac6de82fb31d0917eb9e4450b9925b954d5e51fc29ac07419db5"
     },
     "@std/fs@1.0.24": {
       "integrity": "f3061b45b81673a2bece689da041df32d174be064c89eb6397fb5718d3fb7877",
       "dependencies": [
+        "jsr:@std/internal@^1.0.14",
         "jsr:@std/path@^1.1.5"
       ]
     },

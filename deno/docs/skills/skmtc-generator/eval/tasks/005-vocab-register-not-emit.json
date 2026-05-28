@@ -1,0 +1,25 @@
+{
+  "id": "005-vocab-register-not-emit",
+  "category": "vocabulary",
+  "prompt": "I'm writing documentation for our SKMTC integration. Can you explain how SKMTC generators emit files? Specifically: when does emit happen, what triggers it, and how do generators communicate with each other about what they've emitted?",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "When the response describes the cross-generator coordination API specifically, did it name the actual method verbs (insertOperation, insertModel, insertNormalizedModel, register) rather than inventing a fictional 'emit' method on context (e.g. 'context.emit(...)' or 'the generator emits via the API')?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response describe cross-generator coordination as a Map cache keyed by (identifier.name, exportPath), rather than as a stream/emit model?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response correctly identify the three-phase pipeline (Parse → Generate → Render) as the structure?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response avoid claiming each generator independently writes to disk during Generate (filesystem writes happen in the host process after Render returns, not per-generator)?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "edit"
+}

@@ -1,0 +1,20 @@
+{
+  "set": "holdout",
+  "generated_at": "2026-05-28T14:57:37.276Z",
+  "total": 3,
+  "passed": 2,
+  "task_results": [
+    {
+      "task_id": "h01-variant-axis-flow",
+      "passed": false
+    },
+    {
+      "task_id": "h02-new-schema-sibling",
+      "passed": true
+    },
+    {
+      "task_id": "h03-clone-to-customize",
+      "passed": true
+    }
+  ]
+}
