@@ -176,9 +176,9 @@ export class Project {
   /**
    * Generate the CF-Workers entry `server.ts` that wraps the project's
    * installed generators in `createServer({ toGeneratorConfigMap })`
-   * from `@skmtc/server`. Paired with `bundleServer` which produces
-   * `server.js` from this file; uploaded to skmtc-hub by
-   * `skmtc deploy`.
+   * from `@skmtc/server`. `bundleSplit` (see `lib/bundle-split.ts`)
+   * then compiles this entry into `server.js` alongside the two
+   * runtime halves and uploads them to skmtc-hub via `skmtc deploy`.
    */
   async createServer() {
     const mod = toServer(this.toGeneratorIds())
