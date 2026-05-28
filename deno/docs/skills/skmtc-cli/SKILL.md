@@ -687,6 +687,54 @@ work:
 | Mock the database in tests | Use real Supabase / real DB (project convention) |
 | Use `process.env.X` | Use `Deno.env.get('X')` — Deno codebase |
 | After bumping to `@skmtc/core@0.5.0+`, treat the existing operation-level enrichment as still-valid | Wrap each `[id][path][method]` block in `{ "main": { … } }`. The variant level is now mandatory whenever an operation-level block exists — the engine throws at start with `"must include a 'main' variant"` if it's missing. See `concepts/variants.md`. |
+| Switch a generator between `install` and `clone` by editing only deno.json (or only the on-disk folder) | They're mutually exclusive states. A `jsr:` import in deno.json AND a `gen-X/` folder for the same name in the project root is a silent-failure footgun — deno's workspace resolver picks the local folder over the JSR pin, so the engine runs the vendored source even though the user thinks they're running the pinned version. See the *Imported vs cloned exclusivity* section below. |
+
+### Imported vs cloned: mutually exclusive states
+
+For every `gen-*` generator referenced in a project's `deno.json#imports`,
+**exactly one** of the following must be true:
+
+| State | `deno.json#imports[…]` value | On-disk `gen-X/` folder | Source served by |
+|---|---|---|---|
+| Imported | `"jsr:@scope/gen-X@^1"` | **MUST NOT exist** | JSR (proxied via `/v1/generators/.../source`) |
+| Cloned | `"./gen-X/mod.ts"` | **MUST contain `mod.ts`** | hub R2 (uploaded with the release) |
+
+Mixed states are silently broken:
+
+- **`jsr:` import + folder both present**: deno's workspace resolver
+  picks the local folder. The engine runs the vendored source. The
+  pinned JSR version is ignored. No warning at runtime.
+- **`./path` import + no folder**: deno resolution fails at bundle
+  time with a "module not found" — loud, easy to spot.
+- **Folder present + no import for it**: stale artefact from a
+  previous `clone` that the user has since `install`-replaced
+  without `rm -rf`'ing the directory. Harmless until the next
+  `clone` of the same name re-uses the directory.
+
+**How states get out of sync:**
+
+- `skmtc clone @scope/gen-X` rewrites the import to `./gen-X/mod.ts`
+  AND creates the folder. Then `skmtc install @scope/gen-X` rewrites
+  the import back to `jsr:` — but doesn't remove the folder. The
+  user is now in the silent-shadowing state.
+- Hand-edited `deno.json` divergent from disk reality.
+- Cloning into a previously-vendored directory without first
+  cleaning it.
+
+**Detecting + correcting:**
+
+- `skmtc doctor` (when the consistency check lands) emits an `error`
+  for each mismatch with the fix in the hint.
+- The hub validates at upload (`POST .../source` returns 422 with a
+  precise reason if the uploaded `deno.json` contradicts the
+  uploaded folder tree).
+- Manual remediation: pick the desired state, fix BOTH sides:
+  - To use the pinned JSR version → import is `jsr:`, remove the
+    folder.
+  - To use cloned source → import is `./gen-X/mod.ts`, ensure the
+    folder + `gen-X/mod.ts` exist.
+
+Background: friction log entry `2026-05-28-composition-consistency-and-cloned-prefix.md`.
 
 Full list in [`../../llms.md#operational-principles-for-proposing-changes`](../../llms.md#operational-principles-for-proposing-changes).
 
