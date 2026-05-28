@@ -163,6 +163,8 @@ Treat the SKMTC invariants below as ground truth. A candidate response that viol
 Return ONLY a JSON object on a single line:
 {"pass": true|false, "evidence": "<one short sentence or quoted span from the response>"}
 
+When quoting text inside the evidence string, use single quotes ('like this') — never double quotes. Double quotes inside the JSON string will break parsing.
+
 Do not infer beyond what is visible in the candidate response. Do not explain. Do not add prose. JSON only.
 
 <invariants>
@@ -193,17 +195,50 @@ function parseJudgeVerdict(text: string): { pass: boolean; evidence: string } {
   if (stripped.startsWith("```")) {
     stripped = stripped.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "")
   }
-  const parsed: unknown = JSON.parse(stripped)
-  if (typeof parsed !== "object" || parsed === null) {
-    throw new Error(`Judge returned non-object: ${text}`)
+
+  const tryParse = (raw: string): { pass: boolean; evidence: string } | null => {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      return null
+    }
+    if (typeof parsed !== "object" || parsed === null) return null
+    if (!("pass" in parsed) || typeof parsed.pass !== "boolean") return null
+    const evidence = "evidence" in parsed && typeof parsed.evidence === "string"
+      ? parsed.evidence
+      : ""
+    return { pass: parsed.pass, evidence }
   }
-  if (!("pass" in parsed) || typeof parsed.pass !== "boolean") {
-    throw new Error(`Judge missing 'pass' boolean: ${text}`)
+
+  const direct = tryParse(stripped)
+  if (direct) return direct
+
+  const objectMatch = stripped.match(/\{[\s\S]*\}/)
+  if (objectMatch) {
+    const fromMatch = tryParse(objectMatch[0])
+    if (fromMatch) return fromMatch
   }
-  const evidence = "evidence" in parsed && typeof parsed.evidence === "string"
-    ? parsed.evidence
-    : ""
-  return { pass: parsed.pass, evidence }
+
+  const passMatch = stripped.match(/"pass"\s*:\s*(true|false)/)
+  if (passMatch) {
+    const pass = passMatch[1] === "true"
+    console.error(
+      `[parseJudgeVerdict] Recovered 'pass=${pass}' from malformed JSON (likely unescaped quotes in evidence):\n${text.slice(0, 200).replace(/\s+/g, " ")}`,
+    )
+    return {
+      pass,
+      evidence: `[partial parse — judge JSON broken by inner quotes] ${stripped.slice(0, 200).replace(/\s+/g, " ")}`,
+    }
+  }
+
+  console.error(
+    `[parseJudgeVerdict] Failed to parse judge output; treating as FAIL:\n${text.slice(0, 300)}`,
+  )
+  return {
+    pass: false,
+    evidence: `[unparseable judge output] ${text.slice(0, 200).replace(/\s+/g, " ")}`,
+  }
 }
 
 async function runTask(

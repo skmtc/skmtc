@@ -5,7 +5,7 @@
   "criteria": [
     {
       "id": "C1",
-      "check": "When the response describes the cross-generator coordination API specifically, did it name the actual method verbs (insertOperation, insertModel, insertNormalizedModel, register) rather than inventing a fictional 'emit' method on context (e.g. 'context.emit(...)' or 'the generator emits via the API')?"
+      "check": "When the response describes the cross-generator coordination API, did it name the actual exported primitives (insertOperation, insertModel, insertNormalizedModel, register, defineAndRegister, findDefinition) rather than substituting casual codegen verbs (emit, dispatch, dispatcher, stitch) for them — e.g. describing the API as 'the generator emits to context' or 'the dispatcher routes the call' when the real primitive is named?"
     },
     {
       "id": "C2",

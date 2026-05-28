@@ -47,18 +47,26 @@ Cross-gen `insertOperation` / `insertModel` defaults to `'main'`; passing a non-
 
 SKMTC generators derive names from HTTP method + path (deterministic). Never from `operationId` (author-controlled, emitter-dependent).
 
-## 7. Vocabulary: the real API verbs vs "emit"
+## 7. Use the SKMTC primitives by name; avoid casual codegen verbs
 
-The cross-generator coordination API has these method names — use them when referring to the API:
+When referring to SKMTC operations in code or prose, name the actual exported primitives. These map to real surface on `@skmtc/core`:
 
-- `context.insertOperation(...)` — register an operation Projection
-- `context.insertModel(...)` — register a model Projection by `RefName`
-- `context.insertNormalizedModel(...)` — dispatches to `insertModel` only when the schema is a `$ref`, otherwise inlines
-- `this.register({ definitions, imports })` — the lower-level write directly to the calling Projection's file. Almost always the `insertX` methods are preferable; they auto-register imports.
+- `register({ definitions, imports })` — direct write into the calling Projection's file
+- `insertOperation(Projection, operation)` — cross-gen operation Projection insertion (Driver-mediated; auto-registers imports)
+- `insertModel(Projection, refName)` — cross-gen model Projection insertion (Driver-mediated)
+- `insertNormalizedModel(Projection, { schema, fallbackName })` — dispatches to `insertModel` for `$ref` schemas, inlines otherwise
+- `defineAndRegister` — low-level Definition construction (rare; the `insertX` methods wrap this for you)
+- `findDefinition` — cache lookup by `(name, exportPath)`
 
-Do **not** invent "emit" as a SKMTC API verb. There is no `context.emit(...)`. Mistakes look like: describing cross-gen coordination as "the generator emits …" when the actual call is `insertOperation` / `insertModel` / etc., or proposing a new method called `emit*` on `GenerateContext`.
+Do **not** use casual codegen verbs as substitutes for these:
 
-"emit" as plain English for "produce output" is fine and is used widely in core's own documentation (`types/Settings.ts`, `types/Preview.ts`, `context/CoreContext.ts`). This rule is about API verbs, not about banning a word.
+- ❌ `emit` — no `context.emit()` method exists; say `register` / `insertOperation` / `insertModel`
+- ❌ `dispatch` / `dispatcher` — no dispatcher in the API; say `insertOperation` / `insertNormalizedModel`
+- ❌ `stitch` — no stitching primitive; say `register({ imports })`
+
+These words don't map to anything exported from `@skmtc/core`. Using them in code or prose fabricates a mental model that doesn't connect to the actual API surface. (Source: canonical `docs/llms.md` operational-principles table.)
+
+Drift caveat: some core JSDoc still uses `emit` as plain English for "produce output" (`types/Settings.ts`, `types/Preview.ts`, `context/CoreContext.ts`). This is an incomplete cleanup, not a legitimate exception. The rule above is canonical; legacy uses don't grant license.
 
 ## 8. Generator location-independence + single-base
 

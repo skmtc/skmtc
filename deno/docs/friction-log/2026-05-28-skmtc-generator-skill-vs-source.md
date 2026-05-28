@@ -35,38 +35,42 @@ The same wording also quietly trains LLMs to generalize "no class hierarchy" to 
 
 ---
 
-### 2. `[[feedback_skmtc_vocabulary_emit]]` memory broader than the actual codebase usage [friction]
+### 2. Vocabulary rule: canonical doc bans more than I thought; codebase has drifted, not the rule [friction]
 
-**What happened:** The memory entry I had loaded at session start reads:
+**What happened — initial reading:** The memory entry I had loaded at session start reads "in SKMTC prose, use `register` and `insert` (the actual API verbs); avoid 'emit'." From it I authored task `005-vocab-register-not-emit` with criterion C1 testing whether the response used `emit` anywhere. A grep of `core/` for `emit` returned extensive usage in JSDoc:
 
-> in SKMTC prose, use `register` and `insert` (the actual API verbs); avoid "emit"
-
-From it I authored task `005-vocab-register-not-emit` with criterion C1 testing whether the response used `emit` *anywhere*.
-
-A grep of `core/` for `emit` (excluding tests) returned extensive usage in core's own documentation:
-
-- `types/Settings.ts` — "every operation/model it would otherwise emit" (skip/include filtering docs, ~6 occurrences)
+- `types/Settings.ts` — "every operation/model it would otherwise emit"
 - `types/Preview.ts` — "Operation variant the artifact was emitted for"
-- `context/CoreContext.ts` — "emit one sidecar per source File", "no per-operation `skipped` results emitted"
-- `context/GenerateContext.ts` — "Operation variant the artifact was emitted for" (in JSDoc)
+- `context/CoreContext.ts` — "emit one sidecar per source File"
+- `context/GenerateContext.ts` — "Operation variant the artifact was emitted for"
 
-The actual rule, reading the source, is narrower: don't invent "emit" as a SKMTC API verb (there is no `context.emit(…)`); use the real method names `insertOperation`, `insertModel`, `insertNormalizedModel`, `register` when describing cross-gen coordination. But "emit" as plain English for "produce output" is fine and is used widely in core's own docs.
+I concluded the memory rule was broader than reality and softened invariants.md §7 to "emit as plain English is fine."
 
-In the baseline `/autoresearch` dev-set run, task 005 marked Sonnet down for using "emit" in section headings ("How SKMTC generators emit files", "Emit — writing bytes to disk — happens only in Render") even though Sonnet's usage matched the codebase's own prose.
+**What happened — corrected reading via `llms.md`:** Reading `docs/llms.md` (the canonical operational-principles source per `design.md`) surfaced row 111 explicitly:
 
-**What was expected:** The memory entry's "avoid 'emit'" framing reads as a categorical ban. Nothing in the entry signals that the codebase itself uses the word extensively.
+> | Use casual codegen verbs like *emit*, *dispatch*, *dispatcher*, *stitch* | Name the SKMTC primitive: `register`, `insertOperation`, `insertModel`, `insertNormalizedModel`, `defineAndRegister`, `findDefinition` | These words map to no exported surface in `@skmtc/core`. Using them in code or prose fabricates a mental model that doesn't connect to the API.
 
-**Why it matters:** This is the corpus risk the calibration question surfaced concretely. A loop running task 005 as written would push SKILL.md to forbid "emit" categorically, creating a SKILL.md that contradicts the codebase. After enough iterations, the SKILL.md and core's docs would diverge observably — an LLM following SKILL.md would refuse to use "emit" while reading core docs that use it freely.
+The canonical rule bans **four** verbs (`emit`, `dispatch`, `dispatcher`, `stitch`) **in code or prose**. My softening was wrong. The memory was directionally correct. **The drift is in the codebase, not in the canonical doc** — `core/` JSDoc uses these verbs because cleanup against the rule has been incomplete.
 
-The broader pattern: memory entries that capture feedback from a specific moment can over-generalize. The vocabulary rule was probably written about a specific incident (someone wrote `context.emit(…)` or similar narrow API misuse), but the memory's wording strips that context and reads as a universal rule.
+**What was expected:** When I grepped `core/` for `emit` and saw it in JSDoc, I assumed the codebase reflected the actual rule. The correct expectation is the inverse — when canonical docs and code disagree, the topic determines which is authoritative. For vocabulary policy, the doc is the rule and the code is in violation.
 
-**Possible fixes:** Two surfaces:
-- The memory entry could scope itself: "Use `insertOperation` / `insertModel` / `insertNormalizedModel` / `register` when referring to the cross-gen API; don't invent `emit` as a SKMTC API verb. `emit` as plain English for 'produce output' is fine."
-- SKILL.md could embed the same scoped rule rather than the categorical version, with a worked example showing where `emit` is OK (describing the act of producing output) and where it isn't (naming a SKMTC API).
+**Why it matters:** This entry is the inverse failure mode of entry 1.
 
-**Version anchor:** `@skmtc/core@0.4.x`, memory entry `feedback_skmtc_vocabulary_emit.md` as it currently reads
+- **Entry 1:** the doc was overstrict; reading code surfaced a clarifying nuance (`OasBase` exists).
+- **This entry:** the doc is the rule; reading code surfaced *legitimate violations that the rule still applies against*.
 
-**Status:** open
+Whether code or canonical doc is the source of truth depends on the topic. A corpus author who reads only one of the two — or reads them sequentially and updates conclusions monotonically — will land on whichever side of the drift they read last. The robust move: read both, identify the drift explicitly, then anchor to the canonical doc on policy questions and to code on implementation questions.
+
+The corpus impact was directly mis-tuning: I softened task 005's C1 to test only "API verb invention" and excused `emit` in plain English. The corrected version (now in the corpus) checks against all four banned verbs as substitutes for the named primitives, matching `llms.md`.
+
+**Possible fixes:**
+- (Done this session) Restore the broader vocabulary list in invariants.md §7 and task 005's C1.
+- Codebase cleanup: replace `emit` in `core/` JSDoc with the named primitive verbs or domain-specific language. Mechanical, low-risk, several files.
+- More structurally: every operational-principle row in `llms.md` should have a `verify-catalog.ts`-style grep that flags codebase drift. If "no emit/dispatch/dispatcher/stitch" is the rule, the verify step catches every JSDoc comment that violates it.
+
+**Version anchor:** `docs/llms.md` row 111 (last modified 2026-05-27); codebase violations observed in `types/Settings.ts`, `types/Preview.ts`, `context/CoreContext.ts`, `context/GenerateContext.ts`
+
+**Status:** open — `invariants.md` §7 and task 005 now match `llms.md`. Codebase cleanup and verify-catalog row remain undone.
 
 ---
 
@@ -166,6 +170,17 @@ Two of the three SKILL.md → invariants.md gaps I found this session (the `OasB
 - Add `llms.md` → SKILL.md verification to `verify-catalog.ts` (or a new `verify-skill-sync.ts`). For each canonical row in `llms.md`'s operational-principles table, grep SKILL.md for the matching content; flag any mismatch.
 - Resolve the canonicity question raised in design.md. If one is canonical, the other becomes a derived view; if both are "in their own right," the verification check is what keeps them honest.
 - For LLM corpus authoring: read `llms.md` first, *then* SKILL.md, then compare. Any discrepancy is a pre-existing drift worth surfacing before the corpus solidifies.
+
+**Concrete drift observed this session (added after reading `llms.md`):**
+
+- **`SKILL.md` §1** is titled "The five facts that override default LLM intuitions" and lists five top-priority rules (variants is fact 5).
+- **`llms.md` §"Read this first"** is titled "four facts that override default LLM intuitions" and lists four. Variants live in `concepts/variants.md` and `llms.md`'s broader operational-principles table, not at the top.
+
+Either `SKILL.md` added variants as a fifth fact after `llms.md` was last updated (and `llms.md` is stale at the top), or `llms.md` is intentionally pruned and `SKILL.md` has over-promoted variants. Without resolution, the "Read this first" sections in the two artifacts give an agent different first-impression priorities. The corpus's invariants.md inherited "five facts" framing from SKILL.md — fine for now but worth knowing it traces to SKILL.md's framing, not to `llms.md`.
+
+This is direct evidence that the derivation chain `llms.md` → `SKILL.md` is not currently verified.
+
+Also confirmed concretely from `llms.md` row 111: the vocabulary rule is broader than I had inferred from the codebase (see entry 2's correction). Same pattern — without reading `llms.md`, the corpus had encoded a softer rule than the canonical doc requires.
 
 **Version anchor:** `docs/llms.md` last modified 2026-05-27, 619 lines / 37 KB; `docs/skills/skmtc-generator/SKILL.md` 1604 lines
 

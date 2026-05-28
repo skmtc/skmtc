@@ -1,12 +1,12 @@
 {
   "set": "holdout",
-  "generated_at": "2026-05-28T14:57:37.276Z",
+  "generated_at": "2026-05-28T15:35:40.383Z",
   "total": 3,
-  "passed": 2,
+  "passed": 3,
   "task_results": [
     {
       "task_id": "h01-variant-axis-flow",
-      "passed": false
+      "passed": true
     },
     {
       "task_id": "h02-new-schema-sibling",
