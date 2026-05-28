@@ -424,7 +424,7 @@ async function main(): Promise<void> {
 
   const baselineFrom = args["baseline-from"]
   if (typeof baselineFrom === "string") {
-    const ok = await checkAgainstBaseline(resolve(evalDir, baselineFrom), results)
+    const ok = await checkAgainstBaseline(baselineFrom, results)
     if (!ok) {
       console.error("Guard FAILED — regression detected")
       Deno.exit(1)
