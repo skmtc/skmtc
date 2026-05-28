@@ -147,6 +147,7 @@ export const printDeployResult = (
           console.log(`  bundle: ${result.bundlePath}`)
           console.log(`  bytes: ${result.bundleBytes}`)
           console.log(`  sha256: ${result.bundleSha256}`)
+          console.log(`  runtime: ${result.runtimeServerVersion} (${result.runtimeUploaded ? 'uploaded' : 'reused'})`)
           console.log(`  release: ${result.releaseUrl}`)
           return
         }

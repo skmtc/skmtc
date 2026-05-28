@@ -1,19 +1,31 @@
 /**
- * Headless `deploy` path — generates the CF-Workers `server.js`
- * bundle for a project and uploads it to skmtc-hub as the release's
- * bundle artifact. Strict mode invokes this directly.
+ * Headless `deploy` path. Builds the split bundle (project bundle +
+ * two runtime halves) and uploads everything to skmtc-hub.
  *
- * The flow:
- *   1. `bundleServer(project)` → `<project>/server.js`.
- *   2. `POST /v1/stacks/{account}/{stack}/releases` (if not already
- *      created) — records the release row in `publishing` status.
- *   3. `POST /v1/stacks/{account}/{stack}/releases/{version}/bundle`
- *      with multipart form — stores `server.js` in R2 and flips the
+ * Flow:
+ *   1. `bundleSplit(project)` →
+ *        - `<project>/server.js`         (project bundle; @skmtc/{core,server} externalised)
+ *        - `<project>/runtime/core.js`   (bundled @skmtc/core)
+ *        - `<project>/runtime/server.js` (bundled @skmtc/server; @skmtc/core externalised)
+ *      Reads pinned `@skmtc/server` version from project deno.json.
+ *   2. `GET /v1/runtimes/{serverVersion}` to check if the runtime is
+ *      already materialised on the hub. 404 → PUT both halves; 200 →
+ *      reuse.
+ *   3. `POST /v1/stacks/{account}/{stack}/releases` with
+ *      `runtimeServerVersion` declared in the JSON body. Hub validates
+ *      the runtime exists in R2 before accepting; 409 if release row
+ *      exists already (idempotent re-deploy of same version).
+ *   4. `POST /v1/stacks/{account}/{stack}/releases/{version}/bundle`
+ *      with multipart bundle — stores `server.js` in R2 and flips the
  *      release row to `published`.
+ *
+ * The runtime is hub-platform infrastructure shared across releases.
+ * Subsequent deploys of new versions pinning the same `@skmtc/server`
+ * skip step 2's upload — the GET returns 200 and we proceed to step 3.
  */
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { bundleServer } from '@/lib/bundle-server.ts'
+import { bundleSplit, type BundleSplitResult } from '@/lib/bundle-split.ts'
 
 type DeployHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -40,12 +52,14 @@ export type DeployHeadlessResult =
       stack: { account: string; slug: string }
       version: string
       releaseUrl: string
+      runtimeServerVersion: string
+      runtimeUploaded: boolean
     }
   | {
       kind: 'failed'
       projectName: string
       reason: string
-      stage: 'bundle' | 'release-create' | 'bundle-upload'
+      stage: 'bundle' | 'runtime-check' | 'runtime-upload' | 'release-create' | 'bundle-upload'
     }
 
 const DEFAULT_HUB_URL = 'https://api.skmtc.dev'
@@ -62,8 +76,119 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
 /**
- * POST the release row. Returns `'created'` on 2xx, `'conflict'` if a
- * release with this version already exists, otherwise throws.
+ * Probe `GET /v1/runtimes/{serverVersion}`. 200 → runtime is
+ * materialised on the hub and we skip the upload. 404 → upload both
+ * halves. Anything else → fail loudly so misconfigured hubs don't
+ * silently re-upload 1.2 MB on every deploy.
+ */
+const checkRuntimeExists = async ({
+  hubUrl,
+  token,
+  serverVersion
+}: {
+  hubUrl: string
+  token: string
+  serverVersion: string
+}): Promise<boolean> => {
+  const response = await fetch(`${hubUrl}/v1/runtimes/${serverVersion}`, {
+    method: 'GET',
+    headers: { 'authorization': `Bearer ${token}` }
+  })
+  if (response.ok) {
+    // Drain the body so the connection can be reused.
+    await response.text()
+    return true
+  }
+  if (response.status === 404) {
+    await response.text()
+    return false
+  }
+  const text = await response.text()
+  throw new Error(
+    `runtime check failed (${response.status}): ${text.slice(0, 500)}`
+  )
+}
+
+const putRuntimeHalf = async ({
+  hubUrl,
+  token,
+  serverVersion,
+  half,
+  bytes
+}: {
+  hubUrl: string
+  token: string
+  serverVersion: string
+  half: 'core.js' | 'server.js'
+  bytes: ArrayBuffer
+}): Promise<void> => {
+  const response = await fetch(`${hubUrl}/v1/runtimes/${serverVersion}/${half}`, {
+    method: 'PUT',
+    headers: {
+      'authorization': `Bearer ${token}`,
+      'content-type': 'application/javascript'
+    },
+    body: bytes
+  })
+  if (!response.ok) {
+    const text = await response.text()
+    if (response.status === 409) {
+      throw new Error(
+        `runtime ${serverVersion}/${half} conflicts with already-uploaded bytes ` +
+          `(409): ${text.slice(0, 300)}. ` +
+          `This means a previous deploy uploaded a runtime under the same ` +
+          `@skmtc/server@${serverVersion} version with different bytes. ` +
+          `Either delete the existing runtime on the hub or pin a new ` +
+          `@skmtc/server version in deno.json.`
+      )
+    }
+    throw new Error(
+      `runtime ${half} upload failed (${response.status}): ${text.slice(0, 500)}`
+    )
+  }
+  // Drain the response so the connection can be reused.
+  await response.text()
+}
+
+const uploadRuntime = async ({
+  hubUrl,
+  token,
+  serverVersion,
+  runtimeCorePath,
+  runtimeServerPath
+}: {
+  hubUrl: string
+  token: string
+  serverVersion: string
+  runtimeCorePath: string
+  runtimeServerPath: string
+}): Promise<void> => {
+  const [coreBytes, serverBytes] = await Promise.all([
+    readArrayBuffer(runtimeCorePath),
+    readArrayBuffer(runtimeServerPath)
+  ])
+  await putRuntimeHalf({ hubUrl, token, serverVersion, half: 'core.js', bytes: coreBytes })
+  await putRuntimeHalf({ hubUrl, token, serverVersion, half: 'server.js', bytes: serverBytes })
+}
+
+/**
+ * Read a file into a fresh `ArrayBuffer`. `Deno.readFile` returns
+ * `Uint8Array<ArrayBufferLike>` whose underlying buffer might be a
+ * `SharedArrayBuffer`, which fetch bodies reject. Copy into a
+ * non-shared `ArrayBuffer` to narrow the type and avoid accidentally
+ * shared memory across fetches.
+ */
+const readArrayBuffer = async (path: string): Promise<ArrayBuffer> => {
+  const u8 = await Deno.readFile(path)
+  const buf = new ArrayBuffer(u8.byteLength)
+  new Uint8Array(buf).set(u8)
+  return buf
+}
+
+/**
+ * POST the release row with `runtimeServerVersion`. Returns
+ * `'created'` on 2xx, `'conflict'` if a release with this version
+ * already exists (idempotent re-deploy), otherwise throws.
  */
 const ensureRelease = async ({
   hubUrl,
@@ -71,6 +196,7 @@ const ensureRelease = async ({
   account,
   slug,
   version,
+  runtimeServerVersion,
   notes
 }: {
   hubUrl: string
@@ -78,24 +204,23 @@ const ensureRelease = async ({
   account: string
   slug: string
   version: string
+  runtimeServerVersion: string
   notes: string
 }): Promise<'created' | 'conflict'> => {
-  const response = await fetch(
-    `${hubUrl}/v1/stacks/${account}/${slug}/releases`,
-    {
-      method: 'POST',
-      headers: {
-        'authorization': `Bearer ${token}`,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        version,
-        targets: ['private'],
-        sourceRunId: 'cli-deploy',
-        notes
-      })
-    }
-  )
+  const response = await fetch(`${hubUrl}/v1/stacks/${account}/${slug}/releases`, {
+    method: 'POST',
+    headers: {
+      'authorization': `Bearer ${token}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      version,
+      runtimeServerVersion,
+      targets: ['private'],
+      sourceRunId: 'cli-deploy',
+      notes
+    })
+  })
   if (response.ok) return 'created'
   if (response.status === 409) return 'conflict'
   const text = await response.text()
@@ -118,11 +243,7 @@ const uploadBundle = async ({
   bundle: ArrayBuffer
 }): Promise<{ bytes: number; sha256: string; releaseUrl: string }> => {
   const form = new FormData()
-  form.append(
-    'bundle',
-    new Blob([bundle], { type: 'application/javascript' }),
-    'server.js'
-  )
+  form.append('bundle', new Blob([bundle], { type: 'application/javascript' }), 'server.js')
 
   const response = await fetch(
     `${hubUrl}/v1/stacks/${account}/${slug}/releases/${version}/bundle`,
@@ -163,9 +284,9 @@ export const deployHeadless = async ({
   const { account, slug } = splitStack(stack)
   const project = skmtcRoot.findProject(projectName)
 
-  let bundlePath: string
+  let split: BundleSplitResult
   try {
-    bundlePath = await bundleServer({ project })
+    split = await bundleSplit({ project })
   } catch (err) {
     return {
       kind: 'failed',
@@ -175,8 +296,51 @@ export const deployHeadless = async ({
     }
   }
 
+  let runtimeAlreadyExists: boolean
   try {
-    await ensureRelease({ hubUrl, token, account, slug, version, notes })
+    runtimeAlreadyExists = await checkRuntimeExists({
+      hubUrl,
+      token,
+      serverVersion: split.serverVersion
+    })
+  } catch (err) {
+    return {
+      kind: 'failed',
+      projectName,
+      reason: err instanceof Error ? err.message : String(err),
+      stage: 'runtime-check'
+    }
+  }
+
+  if (!runtimeAlreadyExists) {
+    try {
+      await uploadRuntime({
+        hubUrl,
+        token,
+        serverVersion: split.serverVersion,
+        runtimeCorePath: split.runtimeCorePath,
+        runtimeServerPath: split.runtimeServerPath
+      })
+    } catch (err) {
+      return {
+        kind: 'failed',
+        projectName,
+        reason: err instanceof Error ? err.message : String(err),
+        stage: 'runtime-upload'
+      }
+    }
+  }
+
+  try {
+    await ensureRelease({
+      hubUrl,
+      token,
+      account,
+      slug,
+      version,
+      runtimeServerVersion: split.serverVersion,
+      notes
+    })
   } catch (err) {
     return {
       kind: 'failed',
@@ -186,13 +350,18 @@ export const deployHeadless = async ({
     }
   }
 
-  // Deno.readFile returns `Uint8Array<ArrayBufferLike>` which TS won't
-  // accept as a `Blob` part (because `ArrayBufferLike` might be
-  // `SharedArrayBuffer`). Copy into a fresh `ArrayBuffer` so the type
-  // narrows cleanly and we never accidentally share memory.
-  const bundleU8 = await Deno.readFile(bundlePath)
-  const bundleBuffer = new ArrayBuffer(bundleU8.byteLength)
-  new Uint8Array(bundleBuffer).set(bundleU8)
+  let bundleBuffer: ArrayBuffer
+  try {
+    bundleBuffer = await readArrayBuffer(split.projectBundlePath)
+  } catch (err) {
+    return {
+      kind: 'failed',
+      projectName,
+      reason: err instanceof Error ? err.message : String(err),
+      stage: 'bundle-upload'
+    }
+  }
+
   try {
     const { bytes, sha256, releaseUrl } = await uploadBundle({
       hubUrl,
@@ -205,12 +374,14 @@ export const deployHeadless = async ({
     return {
       kind: 'deployed',
       projectName,
-      bundlePath,
+      bundlePath: split.projectBundlePath,
       bundleBytes: bytes,
       bundleSha256: sha256,
       stack: { account, slug },
       version,
-      releaseUrl
+      releaseUrl,
+      runtimeServerVersion: split.serverVersion,
+      runtimeUploaded: !runtimeAlreadyExists
     }
   } catch (err) {
     return {
