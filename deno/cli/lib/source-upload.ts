@@ -1,18 +1,18 @@
 /**
  * Source upload for `deploy`. Walks the project root, builds a
  * multipart body with one part per file, and POSTs to the hub's
- * `POST /v1/stacks/{account}/{stack}/releases/{version}/source`.
+ * `POST /v1/stacks/{account}/{stack}/deployments/{shortId}/source`.
  *
  * The hub:
- *   - writes every file to R2 at `source/{stackId}/{version}/<path>`
- *   - parses the uploaded `deno.json` and reconciles
+ *   - writes every file to R2 at `source/{deploymentId}/<path>`
+ *   - parses the uploaded `deno.json` and reconciles the stack's
  *     `stack_generator_refs` (gen-*-prefixed local paths → `cloned`,
  *     gen-*-prefixed JSR imports → `imported`)
- *   - populates the release row's source_root_key / source_file_count /
- *     source_total_bytes / source_uploaded_at
+ *   - populates the deployment row's `source_root_key` /
+ *     `source_file_count` / `source_total_bytes` / `source_uploaded_at`.
  *
  * The walker mirrors the conventions in
- * `skmtc-hub/spike/live-test/setup-fixtures.ts#collectClonedFiles`:
+ * `skmtc-hub/spike/live-test/setup-fixtures.ts#collectProjectFiles`:
  *   - skip entries whose name starts with `.`, EXCEPT `.settings`
  *     (that's where client.json lives)
  *   - skip derived files at the project root: the `server.ts` /
@@ -135,14 +135,15 @@ export const uploadSource = async ({
   token,
   account,
   slug,
-  version,
+  shortId,
   files
 }: {
   hubUrl: string
   token: string
   account: string
   slug: string
-  version: string
+  /** 8-char deployment short-id allocated at create time. */
+  shortId: string
   files: SourceFile[]
 }): Promise<{ fileCount: number; totalBytes: number }> => {
   if (files.length === 0) throw new Error('no source files to upload')
@@ -158,7 +159,7 @@ export const uploadSource = async ({
   }
 
   const response = await fetch(
-    `${hubUrl}/v1/stacks/${account}/${slug}/releases/${version}/source`,
+    `${hubUrl}/v1/stacks/${account}/${slug}/deployments/${shortId}/source`,
     {
       method: 'POST',
       headers: { authorization: `Bearer ${token}` },

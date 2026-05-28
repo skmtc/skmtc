@@ -224,19 +224,15 @@ const run = async () => {
     .option('--no-input', NO_INPUT_DESC)
     .option('--json', JSON_DESC)
     .option('--stack <stack:string>', 'Hub stack target — "account/slug".')
-    .option('--version <version:string>', 'Release semver (e.g. 0.0.1).')
     .option('--token <token:string>', 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.')
     .option('--hub-url <url:string>', 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.')
-    .option('--notes <notes:string>', 'Optional release notes.')
-    .action(async ({ json, input, stack, version, token, hubUrl, notes }, projectName) => {
+    .action(async ({ json, input, stack, token, hubUrl }, projectName) => {
       const { renderDeploy } = await import('@/commands/deploy.tsx')
       await renderDeploy({
         projectName,
         stack,
-        version,
         token,
         hubUrl,
-        notes,
         jsonFlag: json,
         noInputFlag: input === false
       })

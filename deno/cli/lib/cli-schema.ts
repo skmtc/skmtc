@@ -113,15 +113,13 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   },
   {
     name: 'deploy',
-    description: "Compile a project's CF-Workers server.js and upload it to skmtc-hub as a release bundle",
+    description: "Build and upload a deployment of this project to skmtc-hub. Each deploy creates a new immutable deployment.",
     args: ['<project>'],
     flags: [
       ...AGENT_MODE_FLAGS,
       { flag: '--stack <stack>', description: 'Hub stack target — "account/slug".' },
-      { flag: '--version <semver>', description: 'Release semver (e.g. 0.0.1).' },
       { flag: '--token <pat>', description: 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.' },
-      { flag: '--hub-url <url>', description: 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.' },
-      { flag: '--notes <text>', description: 'Optional release notes.' }
+      { flag: '--hub-url <url>', description: 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.' }
     ],
     agentMode: 'full'
   },

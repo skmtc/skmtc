@@ -2,7 +2,7 @@
  * Headless `deploy` path. Builds the split bundle (project bundle +
  * two runtime halves) and uploads everything to skmtc-hub.
  *
- * Flow:
+ * Flow (post-2026-05-29 Release → Deployment collapse):
  *   1. `bundleSplit(project)` →
  *        - `<project>/server.js`         (project bundle; @skmtc/{core,server} externalised)
  *        - `<project>/runtime/core.js`   (bundled @skmtc/core)
@@ -11,17 +11,20 @@
  *   2. `GET /v1/runtimes/{serverVersion}` to check if the runtime is
  *      already materialised on the hub. 404 → PUT both halves; 200 →
  *      reuse.
- *   3. `POST /v1/stacks/{account}/{stack}/releases` with
- *      `runtimeServerVersion` declared in the JSON body. Hub validates
- *      the runtime exists in R2 before accepting; 409 if release row
- *      exists already (idempotent re-deploy of same version).
- *   4. `POST /v1/stacks/{account}/{stack}/releases/{version}/bundle`
- *      with multipart bundle — stores `server.js` in R2 and flips the
- *      release row to `published`.
+ *   3. `POST /v1/stacks/{account}/{stack}/deployments` with
+ *      `{ runtimeServerVersion }`. Hub allocates a UUID + an 8-char
+ *      `shortId` and returns the metadata-only Deployment row.
+ *   4. `POST /v1/stacks/{account}/{stack}/deployments/{shortId}/bundle`
+ *      with multipart `bundle` part — persists the bundle to R2 and
+ *      stamps `bundle_*` on the deployment row.
+ *   5. `POST /v1/stacks/{account}/{stack}/deployments/{shortId}/source`
+ *      with multipart `files` parts — writes the source tree to R2,
+ *      reconciles `stack_generator_refs` from the uploaded `deno.json`.
  *
- * The runtime is hub-platform infrastructure shared across releases.
- * Subsequent deploys of new versions pinning the same `@skmtc/server`
- * skip step 2's upload — the GET returns 200 and we proceed to step 3.
+ * Each deploy creates a NEW immutable deployment. The user (or `skmtc
+ * deploy --production`, when added) decides which deployment holds
+ * the `production` alias on its stack — there is no semver, and no
+ * implicit "publish" the deploy command does.
  */
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
@@ -33,14 +36,10 @@ type DeployHeadlessArgs = {
   projectName: string
   /** Hub stack target — `account/stack`. */
   stack: string
-  /** Release semver. */
-  version: string
   /** Personal access token. */
   token: string
   /** Hub base URL — defaults to https://api.skmtc.dev. */
   hubUrl?: string
-  /** Optional notes for the release. */
-  notes?: string
 }
 
 export type DeployHeadlessResult =
@@ -51,8 +50,12 @@ export type DeployHeadlessResult =
       bundleBytes: number
       bundleSha256: string
       stack: { account: string; slug: string }
-      version: string
-      releaseUrl: string
+      /** Canonical deployment id — the UUID the hub allocated. */
+      deploymentId: string
+      /** Short 8-char form derived from the UUID; human-addressable. */
+      shortId: string
+      /** Canonical SPA URL for the deployment. */
+      deploymentUrl: string
       runtimeServerVersion: string
       runtimeUploaded: boolean
       sourceFileCount: number
@@ -66,7 +69,7 @@ export type DeployHeadlessResult =
         | 'bundle'
         | 'runtime-check'
         | 'runtime-upload'
-        | 'release-create'
+        | 'deployment-create'
         | 'bundle-upload'
         | 'source-upload'
     }
@@ -104,7 +107,6 @@ const checkRuntimeExists = async ({
     headers: { 'authorization': `Bearer ${token}` }
   })
   if (response.ok) {
-    // Drain the body so the connection can be reused.
     await response.text()
     return true
   }
@@ -155,7 +157,6 @@ const putRuntimeHalf = async ({
       `runtime ${half} upload failed (${response.status}): ${text.slice(0, 500)}`
     )
   }
-  // Drain the response so the connection can be reused.
   await response.text()
 }
 
@@ -195,45 +196,47 @@ const readArrayBuffer = async (path: string): Promise<ArrayBuffer> => {
 }
 
 /**
- * POST the release row with `runtimeServerVersion`. Returns
- * `'created'` on 2xx, `'conflict'` if a release with this version
- * already exists (idempotent re-deploy), otherwise throws.
+ * POST the deployment metadata row with `runtimeServerVersion`.
+ * Returns the allocated id / shortId / htmlUrl.
  */
-const ensureRelease = async ({
+const createDeployment = async ({
   hubUrl,
   token,
   account,
   slug,
-  version,
-  runtimeServerVersion,
-  notes
+  runtimeServerVersion
 }: {
   hubUrl: string
   token: string
   account: string
   slug: string
-  version: string
   runtimeServerVersion: string
-  notes: string
-}): Promise<'created' | 'conflict'> => {
-  const response = await fetch(`${hubUrl}/v1/stacks/${account}/${slug}/releases`, {
+}): Promise<{ deploymentId: string; shortId: string; deploymentUrl: string }> => {
+  const response = await fetch(`${hubUrl}/v1/stacks/${account}/${slug}/deployments`, {
     method: 'POST',
     headers: {
       'authorization': `Bearer ${token}`,
       'content-type': 'application/json'
     },
-    body: JSON.stringify({
-      version,
-      runtimeServerVersion,
-      targets: ['private'],
-      sourceRunId: 'cli-deploy',
-      notes
-    })
+    body: JSON.stringify({ runtimeServerVersion })
   })
-  if (response.ok) return 'created'
-  if (response.status === 409) return 'conflict'
-  const text = await response.text()
-  throw new Error(`release POST failed (${response.status}): ${text.slice(0, 500)}`)
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`deployment POST failed (${response.status}): ${text.slice(0, 500)}`)
+  }
+  const payload: unknown = await response.json()
+  if (!isObject(payload)) throw new Error('hub returned non-object payload')
+  const deploymentId = payload['id']
+  const shortId = payload['shortId']
+  const deploymentUrl = payload['htmlUrl']
+  if (
+    typeof deploymentId !== 'string' ||
+    typeof shortId !== 'string' ||
+    typeof deploymentUrl !== 'string'
+  ) {
+    throw new Error('hub deployment payload had unexpected shape')
+  }
+  return { deploymentId, shortId, deploymentUrl }
 }
 
 const uploadBundle = async ({
@@ -241,21 +244,21 @@ const uploadBundle = async ({
   token,
   account,
   slug,
-  version,
+  shortId,
   bundle
 }: {
   hubUrl: string
   token: string
   account: string
   slug: string
-  version: string
+  shortId: string
   bundle: ArrayBuffer
-}): Promise<{ bytes: number; sha256: string; releaseUrl: string }> => {
+}): Promise<{ bytes: number; sha256: string }> => {
   const form = new FormData()
   form.append('bundle', new Blob([bundle], { type: 'application/javascript' }), 'server.js')
 
   const response = await fetch(
-    `${hubUrl}/v1/stacks/${account}/${slug}/releases/${version}/bundle`,
+    `${hubUrl}/v1/stacks/${account}/${slug}/deployments/${shortId}/bundle`,
     {
       method: 'POST',
       headers: { 'authorization': `Bearer ${token}` },
@@ -274,21 +277,18 @@ const uploadBundle = async ({
   if (!isObject(bundleField)) throw new Error('hub response missing bundle field')
   const bytes = bundleField['bytes']
   const sha256 = bundleField['sha256']
-  const url = payload['url']
-  if (typeof bytes !== 'number' || typeof sha256 !== 'string' || typeof url !== 'string') {
+  if (typeof bytes !== 'number' || typeof sha256 !== 'string') {
     throw new Error('hub bundle payload had unexpected shape')
   }
-  return { bytes, sha256, releaseUrl: url }
+  return { bytes, sha256 }
 }
 
 export const deployHeadless = async ({
   skmtcRoot,
   projectName,
   stack,
-  version,
   token,
-  hubUrl = DEFAULT_HUB_URL,
-  notes = ''
+  hubUrl = DEFAULT_HUB_URL
 }: DeployHeadlessArgs): Promise<DeployHeadlessResult> => {
   const { account, slug } = splitStack(stack)
   const project = skmtcRoot.findProject(projectName)
@@ -340,22 +340,21 @@ export const deployHeadless = async ({
     }
   }
 
+  let deployment: { deploymentId: string; shortId: string; deploymentUrl: string }
   try {
-    await ensureRelease({
+    deployment = await createDeployment({
       hubUrl,
       token,
       account,
       slug,
-      version,
-      runtimeServerVersion: split.serverVersion,
-      notes
+      runtimeServerVersion: split.serverVersion
     })
   } catch (err) {
     return {
       kind: 'failed',
       projectName,
       reason: err instanceof Error ? err.message : String(err),
-      stage: 'release-create'
+      stage: 'deployment-create'
     }
   }
 
@@ -371,14 +370,14 @@ export const deployHeadless = async ({
     }
   }
 
-  let bundleResult: { bytes: number; sha256: string; releaseUrl: string }
+  let bundleResult: { bytes: number; sha256: string }
   try {
     bundleResult = await uploadBundle({
       hubUrl,
       token,
       account,
       slug,
-      version,
+      shortId: deployment.shortId,
       bundle: bundleBuffer
     })
   } catch (err) {
@@ -398,7 +397,7 @@ export const deployHeadless = async ({
       token,
       account,
       slug,
-      version,
+      shortId: deployment.shortId,
       files
     })
   } catch (err) {
@@ -417,8 +416,9 @@ export const deployHeadless = async ({
     bundleBytes: bundleResult.bytes,
     bundleSha256: bundleResult.sha256,
     stack: { account, slug },
-    version,
-    releaseUrl: bundleResult.releaseUrl,
+    deploymentId: deployment.deploymentId,
+    shortId: deployment.shortId,
+    deploymentUrl: deployment.deploymentUrl,
     runtimeServerVersion: split.serverVersion,
     runtimeUploaded: !runtimeAlreadyExists,
     sourceFileCount: sourceResult.fileCount,

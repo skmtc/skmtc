@@ -12,30 +12,29 @@ import {
 } from '@/lib/strict-mode.ts'
 import { deployHeadless, type DeployHeadlessResult } from '@/lib/deploy-headless.ts'
 
-export const description = 'Build the CF-Workers server.js bundle and upload it to skmtc-hub as a release.'
+export const description = "Build and upload a deployment of this project to skmtc-hub. Each deploy creates a new immutable deployment."
 
 type RenderDeployArgs = {
   skmtcRoot?: SkmtcRoot
   projectName: string | undefined
   stack: string | undefined
-  version: string | undefined
   token: string | undefined
   hubUrl: string | undefined
-  notes: string | undefined
   jsonFlag?: boolean
   noInputFlag?: boolean
   renderFn?: InkRenderFn
   AppComponent?: typeof App
 }
 
+const USAGE = 'skmtc deploy <project> --stack <account/slug> --token <pat>'
+const EXAMPLE = 'skmtc deploy my-api --stack me/petstore --token $SKMTC_HUB_TOKEN'
+
 export const renderDeploy = async ({
   skmtcRoot: providedSkmtcRoot,
   projectName,
   stack,
-  version,
   token,
   hubUrl,
-  notes,
   jsonFlag,
   noInputFlag,
   renderFn = render,
@@ -47,15 +46,14 @@ export const renderDeploy = async ({
     return failWithRecipe({
       command: 'deploy',
       arg: '<project>',
-      usage: 'skmtc deploy <project> --stack <account/slug> --version <semver> --token <pat>',
-      example: 'skmtc deploy my-api --stack me/petstore --version 0.0.1 --token $SKMTC_HUB_TOKEN',
+      usage: USAGE,
+      example: EXAMPLE,
       discover: 'ls .skmtc/  (list existing projects)'
     })
   }
 
   if (mode === 'strict') {
     const resolvedStack = stack ?? Deno.env.get('SKMTC_HUB_STACK')
-    const resolvedVersion = version
     const resolvedToken = token ?? Deno.env.get('SKMTC_HUB_TOKEN')
     const resolvedHubUrl = hubUrl ?? Deno.env.get('SKMTC_HUB_URL')
 
@@ -63,26 +61,17 @@ export const renderDeploy = async ({
       return failWithRecipe({
         command: 'deploy',
         arg: '--stack',
-        usage: 'skmtc deploy <project> --stack <account/slug> --version <semver> --token <pat>',
-        example: 'skmtc deploy my-api --stack me/petstore --version 0.0.1 --token $SKMTC_HUB_TOKEN',
+        usage: USAGE,
+        example: EXAMPLE,
         discover: 'Set $SKMTC_HUB_STACK or pass --stack <account/slug>.'
-      })
-    }
-    if (!resolvedVersion) {
-      return failWithRecipe({
-        command: 'deploy',
-        arg: '--version',
-        usage: 'skmtc deploy <project> --stack <account/slug> --version <semver> --token <pat>',
-        example: 'skmtc deploy my-api --stack me/petstore --version 0.0.1 --token $SKMTC_HUB_TOKEN',
-        discover: 'Pass --version <semver>; releases are immutable per (stack, version).'
       })
     }
     if (!resolvedToken) {
       return failWithRecipe({
         command: 'deploy',
         arg: '--token',
-        usage: 'skmtc deploy <project> --stack <account/slug> --version <semver> --token <pat>',
-        example: 'skmtc deploy my-api --stack me/petstore --version 0.0.1 --token $SKMTC_HUB_TOKEN',
+        usage: USAGE,
+        example: EXAMPLE,
         discover: 'Set $SKMTC_HUB_TOKEN or pass --token. Mint a PAT via POST /v1/user/tokens.'
       })
     }
@@ -92,10 +81,8 @@ export const renderDeploy = async ({
       skmtcRoot,
       projectName,
       stack: resolvedStack,
-      version: resolvedVersion,
       token: resolvedToken,
-      hubUrl: resolvedHubUrl,
-      notes
+      hubUrl: resolvedHubUrl
     })
     printDeployResult(result, { format: resolveOutputFormat({ jsonFlag }) })
     Deno.exit(result.kind === 'deployed' ? 0 : 1)
@@ -111,10 +98,8 @@ export const renderDeploy = async ({
       page: 'deploy',
       projectName,
       stack,
-      version,
       token,
-      hubUrl,
-      notes
+      hubUrl
     },
     skmtcRoot,
     session,
@@ -143,13 +128,13 @@ export const printDeployResult = (
     case 'text': {
       switch (result.kind) {
         case 'deployed': {
-          console.log(`Deployed "${result.projectName}" → ${result.stack.account}/${result.stack.slug}@${result.version}`)
+          console.log(`Deployed "${result.projectName}" → ${result.stack.account}/${result.stack.slug} (${result.shortId})`)
           console.log(`  bundle: ${result.bundlePath}`)
           console.log(`  bytes: ${result.bundleBytes}`)
           console.log(`  sha256: ${result.bundleSha256}`)
           console.log(`  runtime: ${result.runtimeServerVersion} (${result.runtimeUploaded ? 'uploaded' : 'reused'})`)
           console.log(`  source: ${result.sourceFileCount} files, ${result.sourceTotalBytes} bytes`)
-          console.log(`  release: ${result.releaseUrl}`)
+          console.log(`  deployment: ${result.deploymentUrl}`)
           return
         }
         case 'failed': {
