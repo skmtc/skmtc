@@ -2,7 +2,8 @@
 
 > Build and upload an immutable **deployment** of a project to skmtc-hub.
 
-`deploy` is the publish path from a local SKMTC project to the hub.
+`deploy` uploads a local SKMTC project to the hub as a new immutable
+deployment.
 Each invocation creates a new, immutable deployment that the hub
 identifies by a UUID and an 8-character `shortId`.
 

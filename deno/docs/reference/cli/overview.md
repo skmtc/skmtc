@@ -39,7 +39,7 @@ The CLI is installed via Deno's `install` mechanism, then invoked as
 | `bundle` | Rebuild the project's `bundle.js` (worker payload) | [bundle](bundle.md) |
 | `dev` | Watch mode for iterative generator development | [dev](dev.md) |
 
-### Hub publishing
+### Deploy
 
 | Command | Purpose | Reference |
 |---------|---------|-----------|
