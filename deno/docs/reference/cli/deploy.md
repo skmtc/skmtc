@@ -56,30 +56,21 @@ See the [overview](overview.md#shared-flags).
      is the `account` half of the stack identity; the project name is
      the `slug` half.
 
-2. bundleSplit(project)
-     → <project>/server.js          (compiled project bundle)
-     → <project>/runtime/core.js    (@skmtc/core bundled)
-     → <project>/runtime/server.js  (@skmtc/server bundled)
-   Reads the pinned @skmtc/server version from project deno.json.
+2. bundleDeploy(project)
+     → <project>/server.js   (one self-contained bundle: the generator
+        composition + createServer + @skmtc/server + @skmtc/core, all
+        inlined, nothing external)
 
-3. GET /v1/runtimes/{serverVersion}
-     200 → runtime is already on the hub; skip step 4.
-     404 → upload both halves via PUT /v1/runtimes/{X}/{core,server}.js.
-
-4. POST /v1/stacks/{handle}/{project}/deployments
-     Body: { "runtimeServerVersion": "0.2.10" }
-     Response: Deployment row with id (UUID) + shortId + htmlUrl.
-
-5. POST /v1/stacks/{handle}/{project}/deployments/{shortId}/bundle
-     Multipart with a single `bundle` part carrying server.js.
-
-6. POST /v1/stacks/{handle}/{project}/deployments/{shortId}/source
-     Multipart with N `files` parts (one per project source file).
-     Writes source to R2 and reconciles the stack's
-     stack_generator_refs from the uploaded deno.json.
+3. POST /v1/stacks/{handle}/{project}/deployments   (multipart, atomic)
+     One `bundle` part (server.js) + N `files` parts (one per project
+     source file). The hub allocates id (UUID) + shortId, writes the
+     bundle + source to R2, reconciles the stack's stack_generator_refs
+     from the uploaded deno.json, and returns the complete Deployment.
 ```
 
-Each step has its own failure stage in the result envelope (below).
+There is no metadata-only intermediate state — the deploy is atomic
+(create + bundle + source in one request). Each step has its own failure
+stage in the result envelope (below).
 
 ## Strict mode
 
@@ -105,8 +96,6 @@ When `--no-input` or `--json` is set:
   "deploymentId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
   "shortId": "7c9e6679",
   "deploymentUrl": "https://app.skmtc.dev/ada/stacks/my-api/deployments/7c9e6679-7425-40de-944b-e07fc1f90ae7",
-  "runtimeServerVersion": "0.2.10",
-  "runtimeUploaded": false,
   "sourceFileCount": 28,
   "sourceTotalBytes": 96512
 }
@@ -118,8 +107,8 @@ When `--no-input` or `--json` is set:
 {
   "kind": "failed",
   "projectName": "my-api",
-  "reason": "deployment POST failed (404): Stack not found",
-  "stage": "deployment-create"
+  "reason": "deployment create failed (404): Stack not found",
+  "stage": "deploy"
 }
 ```
 
@@ -128,17 +117,13 @@ Possible `stage` values:
 | Stage | Where the failure happened |
 |---|---|
 | `identity` | `GET /v1/user` failed — usually a bad PAT |
-| `bundle` | `bundleSplit` — Deno bundling failed locally |
-| `runtime-check` | `GET /v1/runtimes/{X}` returned non-200/404 |
-| `runtime-upload` | `PUT /v1/runtimes/{X}/{half}` failed |
-| `deployment-create` | `POST /v1/stacks/.../deployments` failed (commonly: stack doesn't exist yet) |
-| `bundle-upload` | reading `server.js` or `POST .../bundle` failed |
-| `source-upload` | walking the tree or `POST .../source` failed |
+| `bundle` | `bundleDeploy` — Deno bundling failed locally, or reading the bundle / walking the source tree failed |
+| `deploy` | `POST /v1/stacks/.../deployments` failed (commonly: stack doesn't exist yet) |
 
-The deployment row exists in D1 after step 4 (status `active`,
-`bundle_key=null`, `source_root_key=null`), gains its bundle after
-step 5, and is "complete" only after step 6. A run dispatched against
-an incomplete deployment 422s.
+The deploy is atomic: the deployment row is created with its bundle +
+source populated in one request, or not at all. There is no
+metadata-only intermediate row, so a dispatchable deployment always has
+a bundle.
 
 ## Text-mode output
 
@@ -149,7 +134,6 @@ Deployed "my-api" → ada/my-api (7c9e6679)
   bundle: .skmtc/my-api/server.js
   bytes: 1228801
   sha256: e3b0c44298fc1c14...
-  runtime: 0.2.10 (reused)
   source: 28 files, 96512 bytes
   deployment: https://app.skmtc.dev/ada/stacks/my-api/deployments/7c9e6679-...
 ```
@@ -157,7 +141,7 @@ Deployed "my-api" → ada/my-api (7c9e6679)
 ### Failure
 
 ```
-Deploy failed for "my-api" at deployment-create:
+Deploy failed for "my-api" at deploy:
   POST /v1/stacks/ada/my-api/deployments returned 404: Stack not found
 ```
 
@@ -166,8 +150,8 @@ Deploy failed for "my-api" at deployment-create:
 ### Bundle (one file)
 
 `<project>/server.js` — the compiled CF-Workers entry point produced
-by `bundleSplit`. `@skmtc/core` and `@skmtc/server` are externalised;
-they ship once per `serverVersion` via the runtime halves.
+by `bundleDeploy`. One self-contained bundle: `@skmtc/core` and
+`@skmtc/server` are inlined, nothing external (~1.2 MB).
 
 ### Source tree (N files)
 
@@ -176,7 +160,7 @@ Walks `<project>/` and uploads every file except:
 - Dotfiles (with the single exception of `.settings/`, which holds
   `client.json`).
 - Root-level derived artefacts: `server.ts`, `server.js`, `bundle.js`,
-  `worker.ts`, and the `runtime/` directory.
+  `worker.ts`.
 - Binary asset extensions: `mp4`, `png`, `jpg`, `pdf`, archives, etc.
 
 The hub treats `deno.json` as the source of truth for the stack's
@@ -185,12 +169,6 @@ imports starting `gen-` that resolve to a `jsr:` specifier become
 `imported`; the same prefix resolving to a local path becomes
 `cloned`. Mixed states for the same generator name are rejected
 (`422 — composition inconsistency`).
-
-### Runtime halves (zero or two files)
-
-`<project>/runtime/{core,server}.js`. Uploaded only when
-`GET /v1/runtimes/{serverVersion}` 404s. Subsequent deploys pinning
-the same `@skmtc/server` version skip this step.
 
 ## Environment variables
 
@@ -204,7 +182,7 @@ CLI flags always win over env vars.
 ## Pre-flight: the stack must already exist
 
 `deploy` does not create stacks. If the destination
-`<handle>/<project>` doesn't exist yet, the deployment-create step
+`<handle>/<project>` doesn't exist yet, the deploy step
 404s. Create the stack first — through the SPA or
 `POST /v1/stacks` — then re-run deploy.
 
@@ -254,5 +232,5 @@ release notes — record context in your VCS commit message instead.
 
 ## See also
 
-- [skmtc bundle](bundle.md) — `bundleSplit` is invoked internally by deploy
+- [skmtc bundle](bundle.md) — `bundleDeploy` is invoked internally by deploy
 - [overview](overview.md) — shared flags and strict-mode semantics

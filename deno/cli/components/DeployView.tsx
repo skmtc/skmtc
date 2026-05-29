@@ -114,7 +114,6 @@ export const DeployView = ({ project, view }: DeployViewProps) => {
             <Text>  bundle:     {result.bundlePath}</Text>
             <Text>  bytes:      {result.bundleBytes.toLocaleString()}</Text>
             <Text>  sha256:     {result.bundleSha256.slice(0, 16)}...</Text>
-            <Text>  runtime:    {result.runtimeServerVersion} ({result.runtimeUploaded ? 'uploaded' : 'reused'})</Text>
             <Text>  source:     {result.sourceFileCount} files, {result.sourceTotalBytes.toLocaleString()} bytes</Text>
             <Text>  deployment: {result.deploymentUrl}</Text>
           </Box>
