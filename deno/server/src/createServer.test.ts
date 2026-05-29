@@ -56,6 +56,10 @@ Deno.test('POST /artifacts - accepts protocol=oas with OpenAPI body', async () =
   const body = await res.json()
   assertExists(body.artifacts)
   assertExists(body.manifest)
+  // Attribution is always enabled with a post-pass, so both fields are
+  // present (empty here — the empty generator map emits no files).
+  assertEquals(Array.isArray(body.generationMap), true)
+  assertExists(body.sidecars)
 })
 
 Deno.test('POST /artifacts - accepts protocol=gql with GraphQL SDL', async () => {
