@@ -2,9 +2,10 @@
  * @fileoverview Derive an Attribution tuple from a producer.
  *
  * `attribute()` is a pure function over a `SnippetBase` — it reads
- * the producer's `generatorKey`, the producer's own `srcPtr` (if any),
- * and the producer's `Definition`-shaped identifier (if applicable),
- * and returns the canonical `{ genId, srcPtr, variant, defName }`
+ * the producer's `generatorKey`, the producer's own `schemaPointer` (if
+ * any), and the producer's `Definition`-shaped identifier (if applicable),
+ * and returns the canonical
+ * `{ generatorId, schemaPointer, variant, definitionName, producerName }`
  * tuple. Used by sidecar emission (Phase C) and the viewer (Phase E).
  *
  * `genVersion` is intentionally not populated here. The version → id
@@ -34,7 +35,7 @@ export const attribute = (producer: SnippetBase): Attribution => {
 
   return {
     generatorId: key && parsed ? toGeneratorId(key) : '<unknown>',
-    schemaPointer: producer.srcPtr ?? schemaPointerFromKey(parsed),
+    schemaPointer: producer.schemaPointer ?? schemaPointerFromKey(parsed),
     variant: parsed && 'variant' in parsed ? parsed.variant : 'main',
     definitionName: producer instanceof Definition ? producer.identifier.name : undefined,
     // The producer's class name — `var X = class extends …` still yields

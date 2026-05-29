@@ -86,14 +86,14 @@ export class SnippetBase {
   _rendered?: string
 
   /**
-   * Optional source-document pointer for fine-grained attribution.
+   * Optional schema-document pointer for fine-grained attribution.
    * Subclasses populate this from the schema fragment they were
    * constructed with (typically via `OasBase.toLocation()`). When
    * absent, the post-render attribution resolver inherits the
-   * nearest ancestor's `srcPtr`.
+   * nearest ancestor's `schemaPointer`.
    * @internal
    */
-  srcPtr?: string
+  schemaPointer?: string
 
   constructor({ context, generatorKey }: SnippetBaseArgs) {
     this.context = context

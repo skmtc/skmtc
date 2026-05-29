@@ -27,7 +27,7 @@ export type Span = {
  *
  * `generatorId` and `schemaPointer` are derivable from the producer's
  * `generatorKey`; `schemaPointer` may be overridden by the producer's
- * own `srcPtr` field for fine-grained schema pointers. `variant`
+ * own `schemaPointer` field for fine-grained schema pointers. `variant`
  * defaults to `'main'`. `definitionName` is populated for Definition
  * producers.
  *
