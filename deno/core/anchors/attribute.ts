@@ -25,31 +25,35 @@ import type { Attribution } from './types.ts'
  * Derive the attribution tuple for a producer.
  *
  * Producers without a `generatorKey` (rare — only test doubles or
- * runtime-orphaned Snippets) get `genId: '<unknown>'` and inherit
- * `srcPtr` from caller-supplied fallback.
+ * runtime-orphaned Snippets) get `generatorId: '<unknown>'` and inherit
+ * `schemaPointer` from caller-supplied fallback.
  */
 export const attribute = (producer: SnippetBase): Attribution => {
   const key = producer.generatorKey
   const parsed = key ? fromGeneratorKey(key) : undefined
 
   return {
-    genId: key && parsed ? toGeneratorId(key) : '<unknown>',
-    srcPtr: producer.srcPtr ?? srcPtrFromKey(parsed),
+    generatorId: key && parsed ? toGeneratorId(key) : '<unknown>',
+    schemaPointer: producer.srcPtr ?? schemaPointerFromKey(parsed),
     variant: parsed && 'variant' in parsed ? parsed.variant : 'main',
-    defName: producer instanceof Definition ? producer.identifier.name : undefined
+    definitionName: producer instanceof Definition ? producer.identifier.name : undefined,
+    // The producer's class name — `var X = class extends …` still yields
+    // `X.name === 'X'` via named evaluation, so this survives `deno bundle`
+    // (as long as the bundle isn't minified / collision-renamed).
+    producerName: producer.constructor.name
   }
 }
 
 /**
- * Compute a fallback `srcPtr` from the parsed generator key when the
- * producer hasn't set one explicitly.
+ * Compute a fallback schema pointer from the parsed generator key when
+ * the producer hasn't set one explicitly.
  *
  * - OAS operation → `oas:#/paths/<escaped-path>/<method>`
  * - GQL operation → `gql:<rootKind>.<fieldName>`
  * - Model → `oas:#/components/schemas/<refName>`
  * - Generator-only → `undefined` (no schema location to point at)
  */
-const srcPtrFromKey = (parsed: GeneratorKeyObject | undefined): string | undefined => {
+const schemaPointerFromKey = (parsed: GeneratorKeyObject | undefined): string | undefined => {
   if (!parsed) return undefined
   switch (parsed.type) {
     case 'oasOperation':

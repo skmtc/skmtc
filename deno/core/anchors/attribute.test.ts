@@ -36,10 +36,10 @@ Deno.test('attribute - OAS operation key produces oas:#/paths/<path>/<method>', 
   })
   const attr = attribute(new TestProducer(key))
 
-  assertEquals(attr.genId, '@scope/gen-ts')
-  assertEquals(attr.srcPtr, 'oas:#/paths/~1users~1{id}/get')
+  assertEquals(attr.generatorId, '@scope/gen-ts')
+  assertEquals(attr.schemaPointer, 'oas:#/paths/~1users~1{id}/get')
   assertEquals(attr.variant, 'main')
-  assertEquals(attr.defName, undefined)
+  assertEquals(attr.definitionName, undefined)
 })
 
 Deno.test('attribute - OAS operation with non-main variant', () => {
@@ -62,8 +62,8 @@ Deno.test('attribute - GQL operation key produces gql:<rootKind>.<fieldName>', (
   })
   const attr = attribute(new TestProducer(key))
 
-  assertEquals(attr.genId, '@scope/gen-gql')
-  assertEquals(attr.srcPtr, 'gql:query.getUser')
+  assertEquals(attr.generatorId, '@scope/gen-gql')
+  assertEquals(attr.schemaPointer, 'gql:query.getUser')
   assertEquals(attr.variant, 'main')
 })
 
@@ -75,8 +75,8 @@ Deno.test('attribute - Model key produces oas:#/components/schemas/<refName>', (
   })
   const attr = attribute(new TestProducer(key))
 
-  assertEquals(attr.genId, '@scope/gen-zod')
-  assertEquals(attr.srcPtr, 'oas:#/components/schemas/User')
+  assertEquals(attr.generatorId, '@scope/gen-zod')
+  assertEquals(attr.schemaPointer, 'oas:#/components/schemas/User')
   assertEquals(attr.variant, 'main')
 })
 
@@ -88,8 +88,8 @@ Deno.test('attribute - Model key threads non-default variant', () => {
   })
   const attr = attribute(new TestProducer(key))
 
-  assertEquals(attr.genId, '@scope/gen-zod-variants')
-  assertEquals(attr.srcPtr, 'oas:#/components/schemas/Customer')
+  assertEquals(attr.generatorId, '@scope/gen-zod-variants')
+  assertEquals(attr.schemaPointer, 'oas:#/components/schemas/Customer')
   assertEquals(attr.variant, 'coercive')
 })
 
@@ -97,16 +97,16 @@ Deno.test('attribute - generator-only key yields undefined srcPtr', () => {
   const key = toGeneratorOnlyKey({ generatorId: '@scope/gen-utils' })
   const attr = attribute(new TestProducer(key))
 
-  assertEquals(attr.genId, '@scope/gen-utils')
-  assertEquals(attr.srcPtr, undefined)
+  assertEquals(attr.generatorId, '@scope/gen-utils')
+  assertEquals(attr.schemaPointer, undefined)
   assertEquals(attr.variant, 'main')
 })
 
 Deno.test('attribute - producer with no generatorKey returns <unknown>', () => {
   const attr = attribute(new TestProducer(undefined))
 
-  assertEquals(attr.genId, '<unknown>')
-  assertEquals(attr.srcPtr, undefined)
+  assertEquals(attr.generatorId, '<unknown>')
+  assertEquals(attr.schemaPointer, undefined)
   assertEquals(attr.variant, 'main')
 })
 
@@ -118,7 +118,7 @@ Deno.test('attribute - explicit srcPtr field overrides key-derived pointer', () 
   })
   const attr = attribute(new TestProducer(key, 'oas:#/components/schemas/User/properties/email'))
 
-  assertEquals(attr.srcPtr, 'oas:#/components/schemas/User/properties/email')
+  assertEquals(attr.schemaPointer, 'oas:#/components/schemas/User/properties/email')
 })
 
 Deno.test('attribute - Definition producer populates defName from identifier', () => {
@@ -131,7 +131,7 @@ Deno.test('attribute - Definition producer populates defName from identifier', (
   })
 
   const attr = attribute(def)
-  assertEquals(attr.defName, 'GREETING')
+  assertEquals(attr.definitionName, 'GREETING')
 })
 
 Deno.test('attribute - RFC 6901 escapes ~ and / in OAS path segments', () => {
@@ -148,5 +148,5 @@ Deno.test('attribute - RFC 6901 escapes ~ and / in OAS path segments', () => {
   // Each `/` becomes `~1`; the literal `~` in `v~1` becomes `~0`,
   // and then the `1` after it stays a literal `1` — overall the
   // sub-segment `v~1` round-trips as `v~01`.
-  assertEquals(attr.srcPtr, 'oas:#/paths/~1api~1v~01~1items~1{id}/get')
+  assertEquals(attr.schemaPointer, 'oas:#/paths/~1api~1v~01~1items~1{id}/get')
 })

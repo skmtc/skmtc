@@ -110,6 +110,12 @@ export const buildSidecar = ({
   const internV = stringPool(sidecar.V)
   const internL = stringPool(sidecar.L)
   const internP = stringPool(sidecar.P)
+  // Producer-name pool (`N`) + a parallel `An` array (one entry per
+  // emitted `A` row). Kept local then assigned, so the additive fields
+  // don't need non-null coercion on the optional sidecar shape.
+  const N: string[] = []
+  const An: number[] = []
+  const internN = stringPool(N)
 
   for (const anchor of anchors) {
     if (anchor.landmark === '') {
@@ -119,7 +125,7 @@ export const buildSidecar = ({
     }
     const ri = internRegistry(anchor.registry)
     const gi = internGenerator({
-      name: anchor.attribution.genId,
+      name: anchor.attribution.generatorId,
       version: anchor.generatorVersion,
       r: ri
     })
@@ -127,12 +133,16 @@ export const buildSidecar = ({
     // we pool an empty string in that case so the A-row's `si`
     // remains a valid pool index. Consumers treat the empty pool
     // entry as "no schema pointer".
-    const si = internS(anchor.attribution.srcPtr ?? '')
+    const si = internS(anchor.attribution.schemaPointer ?? '')
     const vi = internV(anchor.attribution.variant)
     const Li = internL(anchor.landmark)
     const Pi = internP(anchor.path.join('.'))
     sidecar.A.push([Li, Pi, gi, si, vi, anchor.span.from, anchor.span.to])
+    // Parallel to the A row just pushed.
+    An.push(internN(anchor.attribution.producerName))
   }
 
+  sidecar.N = N
+  sidecar.An = An
   return sidecar
 }

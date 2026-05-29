@@ -18,7 +18,7 @@ class TestProducer extends SnippetBase {
 
 const anchor = (overrides: Partial<ResolvedAnchor> = {}): ResolvedAnchor => ({
   span: { from: 0, to: 10, producer: new TestProducer() },
-  attribution: { genId: '@scope/gen-ts', srcPtr: 'oas:#/components/schemas/User', variant: 'main', defName: 'User' },
+  attribution: { generatorId: '@scope/gen-ts', schemaPointer: 'oas:#/components/schemas/User', variant: 'main', definitionName: 'User', producerName: 'TestProducer' },
   landmark: 'User',
   path: [0],
   generatorVersion: '0.0.55',
@@ -48,6 +48,9 @@ Deno.test('buildSidecar - single anchor populates all pools', () => {
   assertEquals(sidecar.L, ['User'])
   assertEquals(sidecar.P, ['0'])
   assertEquals(sidecar.A, [[0, 0, 0, 0, 0, 0, 10]])
+  // Producer-name pool + parallel An index.
+  assertEquals(sidecar.N, ['TestProducer'])
+  assertEquals(sidecar.An, [0])
 })
 
 Deno.test('buildSidecar - repeat string values reuse pool indices', () => {
@@ -81,12 +84,12 @@ Deno.test('buildSidecar - distinct registries pool independently and gi referenc
   const a1 = anchor({
     landmark: 'A',
     registry: { host: 'jsr.io', kind: 'jsr' },
-    attribution: { genId: '@public/gen', srcPtr: 'oas:#/components/schemas/A', variant: 'main', defName: 'A' }
+    attribution: { generatorId: '@public/gen', schemaPointer: 'oas:#/components/schemas/A', variant: 'main', definitionName: 'A', producerName: 'GenA' }
   })
   const a2 = anchor({
     landmark: 'B',
     registry: { host: 'jsr.skmtc.dev', kind: 'jsr-private' },
-    attribution: { genId: '@private/gen', srcPtr: 'oas:#/components/schemas/B', variant: 'main', defName: 'B' }
+    attribution: { generatorId: '@private/gen', schemaPointer: 'oas:#/components/schemas/B', variant: 'main', definitionName: 'B', producerName: 'GenB' }
   })
 
   const sidecar = buildSidecar({
@@ -143,7 +146,7 @@ Deno.test('buildSidecar - undefined srcPtr pools as empty string', () => {
     parser: 'tsc@5.6.3',
     anchors: [
       anchor({
-        attribution: { genId: '@scope/gen-utils', srcPtr: undefined, variant: 'main', defName: undefined }
+        attribution: { generatorId: '@scope/gen-utils', schemaPointer: undefined, variant: 'main', definitionName: undefined, producerName: 'GenUtils' }
       })
     ]
   })

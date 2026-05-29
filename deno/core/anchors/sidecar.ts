@@ -62,6 +62,10 @@ export const anchorRow = v.tuple([
  *   that re-anchor a reformatted file warn on mismatch.
  * - `R`, `G`, `S`, `V`, `L`, `P` are pools. `A` is the anchor table
  *   keyed into them.
+ * - `N` is the producer-name pool (each producer's own class name);
+ *   `An` is parallel to `A` — `An[i]` indexes into `N` for `A[i]`'s
+ *   producer. Both are optional + additive (the `A` tuple stays at 7),
+ *   so v2 consumers that don't know about them are unaffected.
  */
 export const sidecarSchema = v.object({
   v: v.literal(2),
@@ -74,7 +78,9 @@ export const sidecarSchema = v.object({
   V: v.array(v.string()),
   L: v.array(v.string()),
   P: v.array(v.string()),
-  A: v.array(anchorRow)
+  A: v.array(anchorRow),
+  N: v.optional(v.array(v.string())),
+  An: v.optional(v.array(v.number()))
 })
 
 export type Sidecar = v.InferOutput<typeof sidecarSchema>
@@ -98,5 +104,7 @@ export const emptySidecar = (filePath: string, schemaSrc: string, parser: string
   V: [],
   L: [],
   P: [],
-  A: []
+  A: [],
+  N: [],
+  An: []
 })

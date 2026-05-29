@@ -25,7 +25,7 @@ import { buildSidecar, type ResolvedAnchor } from './buildSidecar.ts'
  * + `registry: { host: 'jsr.io', kind: 'jsr' }` — the sidecar still
  * builds, just with degraded provenance.
  */
-export type GeneratorMetaLookup = (genId: string) => {
+export type GeneratorMetaLookup = (generatorId: string) => {
   version: string
   registry: RegistryEntry
 }
@@ -73,7 +73,7 @@ export type PostPassArgs = {
  *  1. `resolveSpansForFile(file)` — Phase B (§3.3): walks the
  *     instrumented producer tree.
  *  2. `attribute(span.producer)` — Phase B (§3.2): derives
- *     `{ genId, srcPtr, variant, defName }` from `generatorKey`.
+ *     `{ generatorId, schemaPointer, variant, definitionName, producerName }`.
  *  3. Parser ascends each span to its enclosing landmark; the
  *     `forEachChild`-indexed path is what makes the sidecar
  *     re-anchorable after a formatter pass.
@@ -102,11 +102,11 @@ export const postPass = ({
   // analysis. Re-anchoring on formatter drift isn't possible
   // without paths, but the SPA's hover/pin/related-artifact flows
   // all work fine.
-  let currentDefName = ''
+  let currentDefinitionName = ''
   const anchors: ResolvedAnchor[] = []
   for (const span of spans) {
     const attr: Attribution = attribute(span.producer)
-    if (attr.defName !== undefined) currentDefName = attr.defName
+    if (attr.definitionName !== undefined) currentDefinitionName = attr.definitionName
 
     const { landmark, path } =
       parser && parsedFile && landmarks
@@ -114,8 +114,8 @@ export const postPass = ({
             const node = parser.smallestEnclosing(parsedFile, span.from, span.to)
             return parser.ascendToLandmark(node, landmarks)
           })()
-        : { landmark: currentDefName, path: [] as number[] }
-    const meta = generatorMeta(attr.genId)
+        : { landmark: currentDefinitionName, path: [] as number[] }
+    const meta = generatorMeta(attr.generatorId)
     anchors.push({
       span,
       attribution: attr,

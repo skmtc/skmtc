@@ -25,17 +25,27 @@ export type Span = {
 /**
  * Attribution tuple derived from a producer.
  *
- * `genId` and `srcPtr` are derivable from the producer's
- * `generatorKey`; `srcPtr` may be overridden by the producer's own
- * `srcPtr` field for fine-grained schema pointers. `variant` defaults
- * to `'main'`. `defName` is populated for Definition producers.
+ * `generatorId` and `schemaPointer` are derivable from the producer's
+ * `generatorKey`; `schemaPointer` may be overridden by the producer's
+ * own `srcPtr` field for fine-grained schema pointers. `variant`
+ * defaults to `'main'`. `definitionName` is populated for Definition
+ * producers.
  *
  * `genVersion` is deferred — wired up in Phase D when the CLI knows
  * each entry's `denoJson.version`.
  */
 export type Attribution = {
-  genId: string
-  srcPtr: string | undefined
+  generatorId: string
+  schemaPointer: string | undefined
   variant: string
-  defName: string | undefined
+  definitionName: string | undefined
+  /**
+   * The producer's own class name (e.g. `ZodObject`, `StringInput`) —
+   * the *exact* Projection or Snippet that emitted the span, distinct
+   * from `definitionName` (the enclosing Definition). Derived from
+   * `producer.constructor.name`, which survives `deno bundle` via JS
+   * named evaluation (`var X = class extends …` → `X.name === 'X'`).
+   * Empty string when unavailable.
+   */
+  producerName: string
 }

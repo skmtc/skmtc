@@ -147,8 +147,8 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
     file,
     schemaSrc: 'openapi.json',
     parser: oxcAdapter,
-    generatorMeta: (genId) => ({
-      version: genId === '@scope/gen-zod' ? '1.2.3' : '',
+    generatorMeta: (generatorId) => ({
+      version: generatorId === '@scope/gen-zod' ? '1.2.3' : '',
       registry: { host: 'jsr.skmtc.dev', kind: 'jsr-private' }
     })
   })
