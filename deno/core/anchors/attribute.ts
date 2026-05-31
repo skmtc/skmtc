@@ -38,9 +38,13 @@ export const attribute = (producer: SnippetBase): Attribution => {
     // The producer's own position wins when it has one; otherwise fall
     // back to the key-derived pointer. The string conversion happens
     // here, once — `StackTrail` is carried everywhere upstream.
+    // `toSchemaPointer()` (not `toJsonPointer()`) strips the run's
+    // operational prefix so the pointer is document-relative and
+    // resolvable against the input schema — matching the key-derived
+    // fallback's form.
     schemaPointer: producer.schemaPointer.isEmpty()
       ? schemaPointerFromKey(parsed)
-      : producer.schemaPointer.toJsonPointer(),
+      : producer.schemaPointer.toSchemaPointer(),
     variant: parsed && 'variant' in parsed ? parsed.variant : 'main',
     definitionName: producer instanceof Definition ? producer.identifier.name : undefined,
     // The producer's class name — `var X = class extends …` still yields

@@ -180,6 +180,49 @@ export class StackTrail {
     return toJsonPointer(this.#stack)
   }
 
+  /**
+   * The **document-relative** JSON Pointer for a parsed node, with the
+   * run's operational prefix stripped — the resolvable form used as a
+   * schema pointer in gen-maps.
+   *
+   * A parsed node's trail is seeded with operational frames before any
+   * document traversal: the worker pushes `[traceId, spanId]` and
+   * `CoreContext.toArtifacts` wraps each phase in `.trace('parse', …)` /
+   * `.trace('generate', …)` etc. The document path
+   * (`components/schemas/Pet/properties/name`) is appended on top. Unlike
+   * {@link toJsonPointer} — which serializes the *whole* trail and so does
+   * NOT resolve against the input document — this drops everything up to
+   * and including the phase frame, leaving only the document-relative path.
+   *
+   * Protocol-agnostic: the remaining frames are the input document's own
+   * keys (`components`, `paths`, … for OAS), never an `oas:`/`gql:` scheme.
+   *
+   * Falls back to the full trail when no phase frame is present (a trail
+   * seeded empty — e.g. in tests — is already document-relative). Returns
+   * `#/` (document root) for the empty trail.
+   *
+   * @example
+   * ```typescript
+   * new StackTrail(['trace-1', 'span-1', 'parse', 'components', 'schemas', 'Pet'])
+   *   .toSchemaPointer() // '#/components/schemas/Pet'
+   *
+   * new StackTrail(['components', 'schemas', 'User']) // already doc-relative
+   *   .toSchemaPointer() // '#/components/schemas/User'
+   * ```
+   */
+  toSchemaPointer(): JsonPointer {
+    // Phase frames seeded by `CoreContext.toArtifacts` (PhaseType plus the
+    // `post-pass` trace). The operational phase always sits before any
+    // document key, so the FIRST match is the boundary — a document key
+    // that happens to share a phase name (e.g. a schema literally named
+    // `parse`) appears later and is unaffected.
+    const phaseFrames = new Set(['parse', 'generate', 'render', 'post-pass'])
+    const phaseIndex = this.#stack.findIndex(frame => phaseFrames.has(frame))
+    const documentFrames = phaseIndex === -1 ? this.#stack : this.#stack.slice(phaseIndex + 1)
+
+    return toJsonPointer(documentFrames)
+  }
+
   toStackRef(): string | undefined {
     const [first, second, third] = this.stackTrail
 

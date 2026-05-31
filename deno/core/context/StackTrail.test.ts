@@ -289,3 +289,64 @@ Deno.test('StackTrail - toJsonPointer covers non-components paths', () => {
   assertEquals(trail.toStackRef(), undefined)
   assertEquals(trail.toJsonPointer(), '#/paths/~1users/get/responses/200')
 })
+
+Deno.test('StackTrail - toSchemaPointer strips the run operational prefix', () => {
+  // Production-shaped trail: worker seeds [traceId, spanId], parse phase
+  // adds 'parse', then the document traversal is appended.
+  const trail = new StackTrail([
+    'trace-1780233682442',
+    'span-1780233682442',
+    'parse',
+    'components',
+    'schemas',
+    'Pet',
+    'properties',
+    'name'
+  ])
+  assertEquals(
+    trail.toSchemaPointer(),
+    '#/components/schemas/Pet/properties/name'
+  )
+  // toJsonPointer keeps the raw (non-resolvable) trail.
+  assertEquals(
+    trail.toJsonPointer(),
+    '#/trace-1780233682442/span-1780233682442/parse/components/schemas/Pet/properties/name'
+  )
+})
+
+Deno.test('StackTrail - toSchemaPointer leaves an already document-relative trail unchanged', () => {
+  // Test/empty-seeded trails have no phase frame and are already
+  // document-relative; toSchemaPointer is then identical to toJsonPointer.
+  const trail = new StackTrail(['components', 'schemas', 'User'])
+  assertEquals(trail.toSchemaPointer(), '#/components/schemas/User')
+})
+
+Deno.test('StackTrail - toSchemaPointer for an operation path strips the prefix', () => {
+  const trail = new StackTrail([
+    'trace-1',
+    'span-1',
+    'parse',
+    'paths',
+    '/users/{id}',
+    'get'
+  ])
+  assertEquals(trail.toSchemaPointer(), '#/paths/~1users~1{id}/get')
+})
+
+Deno.test('StackTrail - toSchemaPointer for empty trail returns document root', () => {
+  assertEquals(new StackTrail().toSchemaPointer(), '#/')
+})
+
+Deno.test('StackTrail - toSchemaPointer matches the first phase frame, not a same-named document key', () => {
+  // A schema literally named 'parse' sits after the operational phase
+  // frame; only the operational one (earliest) is the boundary.
+  const trail = new StackTrail([
+    'trace-1',
+    'span-1',
+    'parse',
+    'components',
+    'schemas',
+    'parse'
+  ])
+  assertEquals(trail.toSchemaPointer(), '#/components/schemas/parse')
+})
