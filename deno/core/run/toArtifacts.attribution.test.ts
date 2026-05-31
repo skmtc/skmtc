@@ -1,6 +1,6 @@
 /**
- * End-to-end test: pipeline emits sidecars + generation map when attribution
- * is enabled with a post-pass config.
+ * End-to-end test: pipeline emits sidecars + generation map when a
+ * post-pass config is supplied (capture itself is always on).
  *
  * Wires a minimal model generator against a one-schema OpenAPI doc
  * and asserts the post-pass output (sidecars keyed by file path,
@@ -63,7 +63,7 @@ const buildGenerators = <EnrichmentType = undefined>(): GeneratorsMapContainer<E
   // deno-lint-ignore no-explicit-any
   ({ '@test/gen-model': modelEntry } as any)
 
-Deno.test('toArtifacts - attribution off → no sidecars / generation map in result', () => {
+Deno.test('toArtifacts - no attribution config → no sidecars / generation map in result', () => {
   const result = toArtifacts({
     traceId: 't',
     spanId: 's',
@@ -79,7 +79,7 @@ Deno.test('toArtifacts - attribution off → no sidecars / generation map in res
   assertEquals(result.generationMap, undefined)
 })
 
-Deno.test('toArtifacts - attribution enabled without postPass → still no sidecars (instrumentation only)', () => {
+Deno.test('toArtifacts - attribution without postPass → still no sidecars (capture only)', () => {
   const result = toArtifacts({
     traceId: 't',
     spanId: 's',
@@ -89,7 +89,7 @@ Deno.test('toArtifacts - attribution enabled without postPass → still no sidec
     startAt: Date.now(),
     silent: true,
     stackTrail: new StackTrail(['test']),
-    attribution: { enabled: true }
+    attribution: {}
   })
 
   // Pipeline ran with instrumentation but no post-pass was configured;
@@ -111,7 +111,6 @@ Deno.test('toArtifacts - attribution + postPass → sidecars emitted per File', 
     silent: true,
     stackTrail: new StackTrail(['test']),
     attribution: {
-      enabled: true,
       postPass: {
         parser: oxcAdapter,
         schemaSrc: 'openapi.json'
@@ -144,7 +143,6 @@ Deno.test('toArtifacts - generation map carries one entry per Definition', () =>
     silent: true,
     stackTrail: new StackTrail(['test']),
     attribution: {
-      enabled: true,
       postPass: {
         parser: oxcAdapter,
         schemaSrc: 'openapi.json'
@@ -173,7 +171,6 @@ Deno.test('toArtifacts - generatorMeta lookup flows through to sidecar entries',
     silent: true,
     stackTrail: new StackTrail(['test']),
     attribution: {
-      enabled: true,
       postPass: {
         parser: oxcAdapter,
         schemaSrc: 'openapi.json',

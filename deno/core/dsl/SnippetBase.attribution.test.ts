@@ -2,10 +2,9 @@ import { assert, assertEquals, assertStrictEquals, assertThrows } from '@std/ass
 import { SnippetBase, __resetRenderStack } from './SnippetBase.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
-const stubContext = (opts: { attribution?: boolean } = {}): GenerateContextType =>
-  ({
-    attribution: opts.attribution ? { enabled: true } : undefined
-  }) as unknown as GenerateContextType
+// Attribution instrumentation is always on; SnippetBase ignores any
+// context flag. A bare stub is enough to exercise the shadow `toString`.
+const stubContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
 class FakeSnippet extends SnippetBase {
   body: () => string
@@ -22,24 +21,9 @@ class FakeSnippet extends SnippetBase {
   }
 }
 
-Deno.test('SnippetBase - attribution off: no instance toString shadow installed', () => {
+Deno.test('SnippetBase - shadow installed, caches output', () => {
   __resetRenderStack()
   const ctx = stubContext()
-  const s = new FakeSnippet(ctx, () => 'hello')
-
-  // No instance-level shadow → instance has no own `toString` property.
-  assertEquals(Object.hasOwn(s, 'toString'), false)
-  // The prototype method runs directly; nothing caches.
-  assertEquals(`${s}`, 'hello')
-  assertEquals(`${s}`, 'hello')
-  assertEquals(s.toStringCalls, 2)
-  assertEquals(s._rendered, undefined)
-  assertEquals(s._children, undefined)
-})
-
-Deno.test('SnippetBase - attribution on: shadow installed, caches output', () => {
-  __resetRenderStack()
-  const ctx = stubContext({ attribution: true })
   const s = new FakeSnippet(ctx, () => 'hello')
 
   assertEquals(Object.hasOwn(s, 'toString'), true)
@@ -52,7 +36,7 @@ Deno.test('SnippetBase - attribution on: shadow installed, caches output', () =>
 
 Deno.test('SnippetBase - parent/child edges captured during composition', () => {
   __resetRenderStack()
-  const ctx = stubContext({ attribution: true })
+  const ctx = stubContext()
   const child = new FakeSnippet(ctx, () => 'child')
   const parent = new FakeSnippet(ctx, () => `<${child}>`)
 
@@ -65,7 +49,7 @@ Deno.test('SnippetBase - parent/child edges captured during composition', () => 
 
 Deno.test('SnippetBase - standalone toString does not register a parent edge', () => {
   __resetRenderStack()
-  const ctx = stubContext({ attribution: true })
+  const ctx = stubContext()
   const s = new FakeSnippet(ctx, () => 'x')
 
   assertEquals(`${s}`, 'x')
@@ -79,7 +63,7 @@ Deno.test('SnippetBase - standalone toString does not register a parent edge', (
 
 Deno.test('SnippetBase - render stack remains balanced when subclass throws', () => {
   __resetRenderStack()
-  const ctx = stubContext({ attribution: true })
+  const ctx = stubContext()
   const boom = new FakeSnippet(ctx, () => {
     throw new Error('subclass failure')
   })
@@ -95,7 +79,7 @@ Deno.test('SnippetBase - render stack remains balanced when subclass throws', ()
 
 Deno.test('SnippetBase - cycle detection throws rather than infinite-recurse', () => {
   __resetRenderStack()
-  const ctx = stubContext({ attribution: true })
+  const ctx = stubContext()
   // Body that re-renders the same instance — composition cycle via
   // an aliased reference.
   let self: FakeSnippet
@@ -107,7 +91,7 @@ Deno.test('SnippetBase - cycle detection throws rather than infinite-recurse', (
 
 Deno.test('SnippetBase - cached output returns identical string on repeat coercion', () => {
   __resetRenderStack()
-  const ctx = stubContext({ attribution: true })
+  const ctx = stubContext()
   // Non-deterministic body — proves the cache is what we read on call 2.
   let n = 0
   const s = new FakeSnippet(ctx, () => `count-${++n}`)

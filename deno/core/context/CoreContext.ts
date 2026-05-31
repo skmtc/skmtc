@@ -1,7 +1,6 @@
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { RenderContext } from '@/context/RenderContext.ts'
 import { ParseContext } from '@/context/ParseContext.ts'
-import type { ParseIssue } from '@/context/ParseIssue.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ResultType } from '@/types/Results.ts'
@@ -76,7 +75,6 @@ type GenerateArgs = {
   document: SkmtcParsedDocument
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-  attribution?: AttributionState
 }
 
 type CoreContextArgs = {
@@ -109,7 +107,8 @@ const runPostPassForFiles = (
   sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar>
   generationMap: import('@/anchors/generationMap.ts').GenerationMapEntry[]
 } | undefined => {
-  if (!attribution?.enabled || !attribution.postPass) return undefined
+  // Attribution capture is always on; `postPass` gates emission only.
+  if (!attribution?.postPass) return undefined
 
   const { parser, schemaSrc, generatorMeta } = attribution.postPass
   const sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar> = {}
@@ -158,10 +157,10 @@ export type ToArtifactsArgs = {
   /** Whether to suppress console output */
   silent: boolean
   /**
-   * Optional attribution (gen-maps) state. When `enabled`, Parse and
-   * Generate phases record provenance; when `postPass` is also set,
-   * the pipeline emits sidecars + a generation map alongside the
-   * usual artifacts. See {@link AttributionState}.
+   * Optional attribution (gen-maps) **emission** config. Capture is
+   * always on; when `postPass` is set, the pipeline emits sidecars + a
+   * generation map alongside the usual artifacts. See
+   * {@link AttributionState}.
    */
   attribution?: AttributionState
 }
@@ -424,7 +423,7 @@ export class CoreContext {
       // Parse phase: one unified ParseContext handles both protocols
       // via its internal protocol-discriminated state. `parse()` returns
       // a SkmtcParsedDocument; we collect issues from `context.issues`.
-      const phase = this.#setupParsePhase(document, attribution)
+      const phase = this.#setupParsePhase(document)
       this.#phase = phase
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
@@ -434,8 +433,7 @@ export class CoreContext {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           document: parsedDocument,
-          settings,
-          attribution
+          settings
         })
 
         return this.#phase.context.toArtifacts(st)
@@ -445,8 +443,7 @@ export class CoreContext {
       // span, emit one sidecar per source File, accumulate the
       // generation map. Runs after generate (when File instances are fully
       // populated, including instrumented `_children` / `_rendered`)
-      // and before render. Only when both `enabled` and `postPass`
-      // config are present.
+      // and before render. Only when `postPass` config is present.
       const postPassOutput = stackTrail.trace('post-pass', () =>
         runPostPassForFiles(files, attribution)
       )
@@ -516,15 +513,11 @@ export class CoreContext {
     }
   }
 
-  #setupParsePhase(
-    input: SkmtcDocumentInput,
-    attribution?: AttributionState
-  ): ParsePhase {
+  #setupParsePhase(input: SkmtcDocumentInput): ParsePhase {
     const parseContext = new ParseContext({
       input,
       logger: this.logger,
-      silent: this.silent,
-      attribution
+      silent: this.silent
     })
 
     return { type: 'parse', context: parseContext }
@@ -533,16 +526,14 @@ export class CoreContext {
   #setupGeneratePhase({
     document,
     settings,
-    toGeneratorConfigMap,
-    attribution
+    toGeneratorConfigMap
   }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
       document,
       settings,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),
-      toGeneratorConfigMap,
-      attribution
+      toGeneratorConfigMap
     })
 
     return { type: 'generate', context: generateContext }

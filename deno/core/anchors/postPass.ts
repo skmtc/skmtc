@@ -4,8 +4,8 @@
  * build the sidecar.
  *
  * Pure function over its inputs — no I/O, no global state, no
- * pipeline hooks. The natural caller is `toArtifacts.ts` running
- * this once per File when `context.attribution?.enabled`. The CLI
+ * pipeline hooks. The natural caller is `toArtifacts.ts` running this
+ * once per File when the run supplies `attribution.postPass`. The CLI
  * (Phase D) handles disk writes via a separate `writeSidecar` wrapper.
  */
 

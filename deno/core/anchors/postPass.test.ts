@@ -9,10 +9,9 @@ import type { RefName } from '@/types/RefName.ts'
 import { postPass } from './postPass.ts'
 import { oxcAdapter } from './oxcAdapter.ts'
 
-const ctx = (): GenerateContextType =>
-  ({
-    attribution: { enabled: true }
-  }) as unknown as GenerateContextType
+// Attribution instrumentation is always on; SnippetBase ignores any
+// context flag, so a bare stub suffices.
+const ctx = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
 class FakeSnippet extends SnippetBase {
   body: () => string

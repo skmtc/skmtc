@@ -46,9 +46,8 @@ export const mockParseContext = {
     clone: () => ({ append: () => {}, remove: () => {}, clone: () => ({}) })
   },
 
-  // gen-maps surface: attribution disabled, no current stackTrail.
+  // gen-maps surface: no current stackTrail, so capture no-ops.
   // withStackTrail is a passthrough so factories don't blow up.
-  attribution: undefined,
   currentStackTrail: undefined,
   withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
     return fn()
@@ -66,6 +65,5 @@ export const toRefParseContextStub = (
 ): ParseContextType =>
   ({
     parsedDocument,
-    attribution: undefined,
     currentStackTrail: undefined
   }) as unknown as ParseContextType

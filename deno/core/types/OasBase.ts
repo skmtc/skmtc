@@ -5,9 +5,10 @@
  * position. Stores the `StackTrail` captured at parse time; converts
  * to a JSON Pointer on demand via {@link OasBase.toLocation}.
  *
- * Captured only when attribution (gen-maps) is enabled on the parse
- * context. When disabled, `stackTrail` is `undefined` and
- * `toLocation()` returns `undefined`.
+ * Captured whenever the node is parsed within an active stack-trail
+ * scope (always, for parsed nodes). `stackTrail` is `undefined` only
+ * for nodes constructed programmatically (no parse context), in which
+ * case `toLocation()` returns `undefined`.
  *
  * @module OasBase
  */
@@ -32,21 +33,23 @@ export class OasBase {
   /**
    * StackTrail snapshot captured at construction time. Cloned so that
    * subsequent factory traversal doesn't mutate this node's recorded
-   * position. `undefined` when attribution is off (no snapshot
-   * taken).
+   * position. `undefined` only when the node was constructed
+   * programmatically (no parse context / no active stack-trail scope).
    */
   stackTrail: StackTrail | undefined
 
   constructor(context?: ParseContextType) {
-    if (context?.attribution?.enabled && context.currentStackTrail) {
+    // Attribution is always on — capture the position snapshot whenever
+    // we're parsing within an active stack-trail scope.
+    if (context?.currentStackTrail) {
       this.stackTrail = context.currentStackTrail.clone()
     }
   }
 
   /**
    * Convert the captured stackTrail to a JSON Pointer. Returns
-   * `undefined` if no stackTrail was captured (attribution was off
-   * or the node was constructed programmatically rather than parsed).
+   * `undefined` only when no stackTrail was captured (the node was
+   * constructed programmatically rather than parsed).
    */
   toLocation(): JsonPointer | undefined {
     return this.stackTrail?.toJsonPointer()

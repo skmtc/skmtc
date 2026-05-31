@@ -45,16 +45,15 @@ const fixture: OpenAPIV3.Document = {
   }
 }
 
-const buildContext = (attribution: boolean): ParseContext =>
+const buildContext = (): ParseContext =>
   new ParseContext({
     input: { type: 'oas', value: fixture },
     logger: new log.Logger('test', 'ERROR'),
-    silent: true,
-    attribution: attribution ? { enabled: true } : undefined
+    silent: true
   })
 
 Deno.test('attribution - parsed schemas carry JSON-Pointer locations', () => {
-  const ctx = buildContext(true)
+  const ctx = buildContext()
   const parsed = ctx.parse(new StackTrail([]))
 
   if (parsed.type !== 'oas') throw new Error('expected OAS parsed document')
@@ -94,21 +93,4 @@ Deno.test('attribution - parsed schemas carry JSON-Pointer locations', () => {
     mediaType.toLocation(),
     '#/paths/~1users~1{id}/get/responses/200/content/application~1json'
   )
-})
-
-Deno.test('attribution - disabled → toLocation() returns undefined', () => {
-  const ctx = buildContext(false)
-  const parsed = ctx.parse(new StackTrail([]))
-
-  if (parsed.type !== 'oas') throw new Error('expected OAS parsed document')
-  const doc = parsed.value
-
-  const user = doc.components?.schemas?.['User' as RefName]
-  if (!user || user.isRef()) throw new Error('expected concrete User schema')
-  if (!(user instanceof OasObject)) throw new Error('expected OasObject')
-  assertEquals(user.toLocation(), undefined)
-  assertEquals(user.stackTrail, undefined)
-
-  const op = doc.operations[0]
-  assertEquals(op?.toLocation(), undefined)
 })

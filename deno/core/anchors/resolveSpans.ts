@@ -13,9 +13,9 @@
  * found (e.g., parent re-formatted it), and filters zero-length
  * spans.
  *
- * Requires the File's Definitions to have been rendered against a
- * GenerateContext with `attribution: { enabled: true }` so each
- * Snippet's `_rendered` cache is populated.
+ * Requires the File's Definitions to have been rendered (which always
+ * populates each Snippet's `_rendered` cache, since attribution
+ * instrumentation is always on).
  */
 
 import type { File } from '@/dsl/File.ts'

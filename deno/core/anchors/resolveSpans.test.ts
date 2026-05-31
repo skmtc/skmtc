@@ -7,10 +7,9 @@ import { resolveSpansForFile } from './resolveSpans.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 
-const stubContext = (): GenerateContextType =>
-  ({
-    attribution: { enabled: true }
-  }) as unknown as GenerateContextType
+// Attribution instrumentation is always on; SnippetBase ignores any
+// context flag, so a bare stub suffices.
+const stubContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
 class FakeSnippet extends SnippetBase {
   body: () => string

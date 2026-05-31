@@ -28,7 +28,6 @@ import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
 import type { Logger } from '@/types/Logger.ts'
-import type { AttributionState } from '@/types/AttributionState.ts'
 export type { AttributionState } from '@/types/AttributionState.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type {
@@ -97,11 +96,6 @@ type ConstructorArgs = {
    * this; adding more is additive.
    */
   options?: { gql?: GqlParseOptions }
-  /**
-   * Optional attribution (gen-maps) configuration. When omitted,
-   * the parser produces schemas with `location: undefined`.
-   */
-  attribution?: AttributionState
 }
 
 export class ParseContext {
@@ -109,12 +103,6 @@ export class ParseContext {
   logger: Logger
   silent: boolean
   protocol: ProtocolState
-  /**
-   * Attribution state (gen-maps). When set, parsed schemas snapshot
-   * the visitor `StackTrail` into their `OasBase` base. See
-   * {@link AttributionState}.
-   */
-  attribution: AttributionState | undefined
   /**
    * The StackTrail of the currently-traversed position. Set by
    * factories via {@link ParseContext.withStackTrail} just before
@@ -129,10 +117,9 @@ export class ParseContext {
   #refConsumers: Map<string, StackTrail[]> = new Map()
   #refErrors: Map<string, unknown[]> = new Map()
 
-  constructor({ input, logger, silent = true, options, attribution }: ConstructorArgs) {
+  constructor({ input, logger, silent = true, options }: ConstructorArgs) {
     this.logger = logger
     this.silent = silent
-    this.attribution = attribution
 
     switch (input.type) {
       case 'oas': {

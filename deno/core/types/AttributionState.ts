@@ -1,26 +1,21 @@
 /**
- * Attribution (gen-maps) state. Carried by both `ParseContext` and
- * `GenerateContext`. When `enabled`, the pipeline records position
- * provenance:
+ * Attribution (gen-maps) **emission** config.
+ *
+ * Attribution *capture* is always on and needs no configuration — it is
+ * intrinsic to the pipeline:
  *
  * - **Parse phase**: every parsed OAS / GQL node snapshots the visitor's
  *   `StackTrail` into its `OasBase` base (`toLocation()` → JSON Pointer).
  * - **Generate phase**: every `SnippetBase` instance wraps its
  *   `toString` to capture parent/child edges via a render stack, so
- *   the post-render span resolver can attribute byte ranges to
- *   producers.
+ *   the post-render span resolver can attribute byte ranges to producers.
  *
- * When `enabled: false` or `attribution` is omitted entirely, neither
- * phase pays any extra cost — the `if (context.attribution)` checks
- * gate the entire opt-in.
- *
- * The optional `postPass` block configures the post-render attribution
- * pass (sidecar + generation-map emission). Setting `enabled: true`
- * alone gives you instrumentation but no on-disk output; adding
- * `postPass` activates the pass and surfaces `sidecars` /
- * `generationMap` on the result.
- * ParseContext ignores `postPass` — it's a generate-phase concern,
- * carried here only so all attribution config lives in one place.
+ * This type configures only **emission**: it is supplied at the run level
+ * (`CoreContext.toArtifacts`) and consumed solely by the post-render
+ * pass. The parse and generate contexts do not carry it, because capture
+ * is unconditional. Without `postPass` you still get capture but no
+ * on-disk output; setting `postPass` activates the pass and surfaces
+ * `sidecars` / `generationMap` on the result.
  */
 
 import type { ParserAdapter } from '@/anchors/ParserAdapter.ts'
@@ -54,6 +49,5 @@ export type AttributionPostPassConfig = {
 }
 
 export type AttributionState = {
-  enabled: boolean
   postPass?: AttributionPostPassConfig
 }
