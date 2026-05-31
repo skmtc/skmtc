@@ -118,7 +118,6 @@ const dispatchArtifacts = async ({
     logsPath,
     silent: true,
     attribution: {
-      enabled: true,
       postPass: { schemaSrc: body.schemaSrc ?? body.protocol }
     }
   })

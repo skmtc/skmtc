@@ -24,9 +24,10 @@ type GenerateWithWorkerArgs = {
   clientSettings: ClientSettings | undefined
   bundlePath: string
   /**
-   * Optional gen-maps (attribution) config. When `enabled: true` with
-   * a `postPass` block, the worker emits sidecars + a generation map
-   * alongside artifacts. Caller writes them to disk.
+   * Optional gen-maps (attribution) emission config. When a `postPass`
+   * block is present, the worker emits sidecars + a generation map
+   * alongside artifacts. Caller writes them to disk. (Capture is always
+   * on in core; this only controls emission.)
    */
   attribution?: SerializableAttribution
 }

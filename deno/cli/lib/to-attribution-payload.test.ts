@@ -21,7 +21,6 @@ Deno.test('toAttributionPayload - anchors enabled → payload with schemaSrc', (
     schemaSource: 'openapi.json'
   })
   assertEquals(payload, {
-    enabled: true,
     postPass: { schemaSrc: 'openapi.json' }
   })
 })
@@ -80,7 +79,8 @@ Deno.test('toAttributionPayload - flag=true with anchors off → payload emitted
     schemaSource: 'openapi.json',
     flagOverride: true
   })
-  assertEquals(payload?.enabled, true)
+  // Payload emitted (postPass present) despite anchors.enabled=false,
+  // because the flag override wins.
   assertEquals(payload?.postPass?.schemaSrc, 'openapi.json')
 })
 

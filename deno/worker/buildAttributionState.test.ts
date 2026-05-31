@@ -17,14 +17,13 @@ Deno.test('buildAttributionState - undefined payload yields undefined', () => {
   assertStrictEquals(buildAttributionState(undefined), undefined)
 })
 
-Deno.test('buildAttributionState - enabled without postPass returns instrumentation-only', () => {
-  const result = buildAttributionState({ enabled: true })
-  assertEquals(result, { enabled: true })
+Deno.test('buildAttributionState - no postPass yields undefined', () => {
+  const result = buildAttributionState({})
+  assertStrictEquals(result, undefined)
 })
 
 Deno.test('buildAttributionState - postPass leaves parser undefined (worker-side fallback)', () => {
   const result = buildAttributionState({
-    enabled: true,
     postPass: { schemaSrc: 'openapi.json' }
   })
   assertStrictEquals(result?.postPass?.parser, undefined)
@@ -33,7 +32,6 @@ Deno.test('buildAttributionState - postPass leaves parser undefined (worker-side
 
 Deno.test('buildAttributionState - generatorMeta map becomes a lookup function', () => {
   const result = buildAttributionState({
-    enabled: true,
     postPass: {
       schemaSrc: 'openapi.json',
       generatorMeta: {
@@ -55,7 +53,6 @@ Deno.test('buildAttributionState - generatorMeta map becomes a lookup function',
 
 Deno.test('buildAttributionState - unknown genId falls back to default registry', () => {
   const result = buildAttributionState({
-    enabled: true,
     postPass: {
       schemaSrc: 'openapi.json',
       generatorMeta: {
@@ -75,7 +72,6 @@ Deno.test('buildAttributionState - unknown genId falls back to default registry'
 
 Deno.test('buildAttributionState - omitted generatorMeta leaves lookup undefined', () => {
   const result = buildAttributionState({
-    enabled: true,
     postPass: { schemaSrc: 'openapi.json' }
   })
 
@@ -87,7 +83,6 @@ Deno.test('buildAttributionState - payload round-trips through structured clone'
   // survives — JSON round-trip is a conservative proxy (structured
   // clone supports everything JSON does plus more).
   const payload = {
-    enabled: true,
     postPass: {
       schemaSrc: 'openapi.json',
       generatorMeta: {

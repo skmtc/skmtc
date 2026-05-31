@@ -48,11 +48,11 @@ export const resolveAnchorsEnabled = (
  * Returns `undefined` when anchors are disabled (or unconfigured) —
  * the worker treats undefined attribution as "run normally".
  *
- * When enabled, builds a fully-populated `SerializableAttribution`
- * with `enabled: true` + a `postPass` block carrying `schemaSrc`
- * (defaulted to `''` when missing). `generatorMeta` is left
- * undefined here; later Phase D work will populate it from the
- * project's `deno.json` + lockfile.
+ * When enabled, builds a `SerializableAttribution` carrying a
+ * `postPass` block with `schemaSrc` (defaulted to `''` when missing) —
+ * `postPass` presence is what requests emission (capture is always on
+ * in core). `generatorMeta` is left undefined here; later Phase D work
+ * will populate it from the project's `deno.json` + lockfile.
  */
 export const toAttributionPayload = ({
   anchors,
@@ -62,7 +62,6 @@ export const toAttributionPayload = ({
   if (!resolveAnchorsEnabled(anchors, flagOverride)) return undefined
 
   return {
-    enabled: true,
     postPass: {
       schemaSrc: schemaSource ?? ''
     }

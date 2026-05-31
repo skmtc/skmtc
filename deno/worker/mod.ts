@@ -35,14 +35,13 @@ export type {
 const buildAttributionState = (
   serialised: SerializableAttribution | undefined
 ): AttributionState | undefined => {
-  if (!serialised) return undefined
-  if (!serialised.postPass) {
-    return { enabled: serialised.enabled }
-  }
+  // Capture is always on in core; `AttributionState` now carries only
+  // emission config. No postPass → nothing to emit → return undefined
+  // (core still captures). With postPass → reconstitute the lookup fn.
+  if (!serialised?.postPass) return undefined
 
   const { schemaSrc, generatorMeta } = serialised.postPass
   return {
-    enabled: serialised.enabled,
     postPass: {
       schemaSrc,
       generatorMeta: generatorMeta

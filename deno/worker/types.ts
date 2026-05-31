@@ -31,7 +31,6 @@ import type { ManifestContent } from '@skmtc/core/Manifest'
  *   falls back to the default when an unknown `genId` is queried.
  */
 export type SerializableAttribution = {
-  enabled: boolean
   postPass?: {
     schemaSrc: string
     generatorMeta?: Record<string, { version: string; registry: RegistryEntry }>
@@ -59,9 +58,10 @@ export type GeneratePayload = {
   silent?: boolean
   document: SkmtcDocumentInput
   /**
-   * Optional attribution (gen-maps) config. When `enabled: true` with
-   * a `postPass` block, the worker runs the post-pass and includes
-   * `sidecars` + `generationMap` in the RESULT message.
+   * Optional attribution (gen-maps) emission config. When a `postPass`
+   * block is present, the worker runs the post-pass and includes
+   * `sidecars` + `generationMap` in the RESULT message. (Capture is
+   * always on in core; this only controls emission.)
    */
   attribution?: SerializableAttribution
 }
