@@ -36,7 +36,8 @@ export type Span = {
  */
 export type Attribution = {
   generatorId: string
-  schemaPointer: string | undefined
+  /** Protocol-agnostic JSON pointer into the input schema, or `''` when the span has no schema location. */
+  schemaPointer: string
   variant: string
   definitionName: string | undefined
   /**

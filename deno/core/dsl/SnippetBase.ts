@@ -1,6 +1,9 @@
 import type { GenerateContextType } from '../context/generateTypes.ts'
 import type { RegisterArgs } from '../context/generateTypes.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
+import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
 
 /**
  * Constructor arguments for {@link SnippetBase}.
@@ -10,6 +13,15 @@ type SnippetBaseArgs = {
   context: GenerateContextType
   /** Optional generator key for tracking and identification */
   generatorKey?: GeneratorKey
+  /**
+   * The schema fragment this snippet was built from, when it has a
+   * single originating node. The constructor records its `stackTrail`
+   * into {@link SnippetBase.schemaPointer} for fine-grained attribution.
+   * Omit for snippets with no single originating node (structural /
+   * boilerplate / accumulators) — they carry the empty trail and the
+   * resolver inherits an ancestor / key-derived pointer.
+   */
+  schema?: OasSchema | OasRef<'schema'>
 }
 
 /**
@@ -86,18 +98,20 @@ export class SnippetBase {
   _rendered?: string
 
   /**
-   * Optional schema-document pointer for fine-grained attribution.
-   * Subclasses populate this from the schema fragment they were
-   * constructed with (typically via `OasBase.toLocation()`). When
-   * absent, the post-render attribution resolver inherits the
-   * nearest ancestor's `schemaPointer`.
+   * Position of the schema fragment this snippet was built from, as a
+   * `StackTrail`. Captured from the `schema` constructor arg; the empty
+   * trail (`StackTrail.empty()`) means "no single originating node", in
+   * which case the post-render resolver inherits the nearest ancestor's
+   * pointer or the generator-key-derived one. Converted to a JSON
+   * Pointer string only at the resolver — never carried as a string here.
    * @internal
    */
-  schemaPointer?: string
+  schemaPointer: StackTrail
 
-  constructor({ context, generatorKey }: SnippetBaseArgs) {
+  constructor({ context, generatorKey, schema }: SnippetBaseArgs) {
     this.context = context
     this.generatorKey = generatorKey
+    this.schemaPointer = schema ? schema.stackTrail : StackTrail.empty()
 
     // Attribution is always on: wrap `toString` to capture parent/child
     // render edges + cache the rendered output for the span resolver.

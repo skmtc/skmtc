@@ -17,17 +17,16 @@ const buildContext = (opts: { stackTrail?: StackTrail } = {}): ParseContext => {
   return ctx
 }
 
-Deno.test('OasBase - no context → no stackTrail captured', () => {
+Deno.test('OasBase - no context → empty (synthetic) trail', () => {
   const node = new OasBase()
-  assertEquals(node.stackTrail, undefined)
-  assertEquals(node.toLocation(), undefined)
+  assertEquals(node.stackTrail.isEmpty(), true)
 })
 
 Deno.test('OasBase - currentStackTrail set → stackTrail snapshot captured', () => {
   const ctx = buildContext({ stackTrail: new StackTrail(['components', 'schemas', 'User']) })
   const node = new OasBase(ctx)
-  assertEquals(node.stackTrail?.stackTrail, ['components', 'schemas', 'User'])
-  assertEquals(node.toLocation(), '#/components/schemas/User')
+  assertEquals(node.stackTrail.stackTrail, ['components', 'schemas', 'User'])
+  assertEquals(node.stackTrail.toJsonPointer(), '#/components/schemas/User')
 })
 
 Deno.test('OasBase - snapshot is cloned (factory mutation after construction does not corrupt)', () => {
@@ -36,12 +35,11 @@ Deno.test('OasBase - snapshot is cloned (factory mutation after construction doe
   const node = new OasBase(ctx)
   // Mutate the original trail; node's snapshot must be independent.
   trail.append('properties').append('email')
-  assertEquals(node.toLocation(), '#/components/schemas/User')
+  assertEquals(node.stackTrail.toJsonPointer(), '#/components/schemas/User')
 })
 
-Deno.test('OasBase - no currentStackTrail → no snapshot', () => {
+Deno.test('OasBase - no currentStackTrail → empty (synthetic) trail', () => {
   const ctx = buildContext()
   const node = new OasBase(ctx)
-  assertEquals(node.stackTrail, undefined)
-  assertEquals(node.toLocation(), undefined)
+  assertEquals(node.stackTrail.isEmpty(), true)
 })

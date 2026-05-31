@@ -129,11 +129,10 @@ export const buildSidecar = ({
       version: anchor.generatorVersion,
       r: ri
     })
-    // Schema pointer may be undefined for generator-only producers;
-    // we pool an empty string in that case so the A-row's `si`
-    // remains a valid pool index. Consumers treat the empty pool
-    // entry as "no schema pointer".
-    const si = internS(anchor.attribution.schemaPointer ?? '')
+    // `schemaPointer` is `''` for spans with no schema location
+    // (generator-only producers); consumers treat the empty pool entry
+    // as "no schema pointer".
+    const si = internS(anchor.attribution.schemaPointer)
     const vi = internV(anchor.attribution.variant)
     const Li = internL(anchor.landmark)
     const Pi = internP(anchor.path.join('.'))

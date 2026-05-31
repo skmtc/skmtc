@@ -82,7 +82,7 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
     parser: oxcAdapter
   })
 
-  assert(sidecar.S.includes('oas:#/components/schemas/Customer'))
+  assert(sidecar.S.includes('#/components/schemas/Customer'))
 })
 
 Deno.test('postPass - multiple Definitions land under their own landmarks', () => {

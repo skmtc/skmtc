@@ -2,20 +2,17 @@
  * @fileoverview `OasBase` base class for parsed nodes.
  *
  * Shared base for OAS and GQL classes that carry a source-document
- * position. Stores the `StackTrail` captured at parse time; converts
- * to a JSON Pointer on demand via {@link OasBase.toLocation}.
- *
- * Captured whenever the node is parsed within an active stack-trail
- * scope (always, for parsed nodes). `stackTrail` is `undefined` only
- * for nodes constructed programmatically (no parse context), in which
- * case `toLocation()` returns `undefined`.
+ * position, stored as a `StackTrail`. The trail is **total**: a parsed
+ * node snapshots the visitor position; a programmatically-constructed
+ * (synthetic) node gets `StackTrail.empty()`. Callers convert to a JSON
+ * Pointer on demand via `stackTrail.toJsonPointer()`, gating on
+ * `stackTrail.isEmpty()` for synthetic nodes — there is no `undefined`.
  *
  * @module OasBase
  */
 
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import type { StackTrail } from '@/context/StackTrail.ts'
-import type { JsonPointer } from './JsonPointer.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
 
 /**
  * Base class for parsed nodes that carry a source-document position.
@@ -23,7 +20,8 @@ import type { JsonPointer } from './JsonPointer.ts'
  * Each schema / operation class extends this so the parse-position
  * field is declared in one place. Subclass constructors call
  * `super(context)`; `OasBase` reads `context.currentStackTrail` and
- * snapshots it. Pure parse-time metadata — has no spec semantics.
+ * snapshots it, or records `StackTrail.empty()` when there is none.
+ * Pure parse-time metadata — has no spec semantics.
  *
  * Adds **only** the `stackTrail` slot. Schema classes remain a
  * discriminated union with literal `type` / `oasType` fields
@@ -33,25 +31,17 @@ export class OasBase {
   /**
    * StackTrail snapshot captured at construction time. Cloned so that
    * subsequent factory traversal doesn't mutate this node's recorded
-   * position. `undefined` only when the node was constructed
-   * programmatically (no parse context / no active stack-trail scope).
+   * position. `StackTrail.empty()` when the node was constructed
+   * programmatically (no parse context / no active stack-trail scope) —
+   * a synthetic node with no source position. No parsed node is ever
+   * at the empty trail, so `isEmpty()` cleanly means "synthetic".
    */
-  stackTrail: StackTrail | undefined
+  stackTrail: StackTrail
 
   constructor(context?: ParseContextType) {
-    // Attribution is always on — capture the position snapshot whenever
-    // we're parsing within an active stack-trail scope.
-    if (context?.currentStackTrail) {
-      this.stackTrail = context.currentStackTrail.clone()
-    }
-  }
-
-  /**
-   * Convert the captured stackTrail to a JSON Pointer. Returns
-   * `undefined` only when no stackTrail was captured (the node was
-   * constructed programmatically rather than parsed).
-   */
-  toLocation(): JsonPointer | undefined {
-    return this.stackTrail?.toJsonPointer()
+    // Attribution is always on — snapshot the position when parsing
+    // within an active stack-trail scope; otherwise the node is
+    // synthetic and carries the empty (positionless) trail.
+    this.stackTrail = context?.currentStackTrail?.clone() ?? StackTrail.empty()
   }
 }

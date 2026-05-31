@@ -10,6 +10,21 @@ export class StackTrail {
   }
 
   /**
+   * The canonical empty trail — used for nodes that were synthesized
+   * programmatically rather than parsed from a source document (they
+   * have no position). Distinct from any parsed position: no parsed
+   * `OasBase` node ever sits at the empty trail.
+   */
+  static empty(): StackTrail {
+    return new StackTrail([])
+  }
+
+  /** True when the trail holds no frames (a synthetic / positionless node). */
+  isEmpty(): boolean {
+    return this.#stack.length === 0
+  }
+
+  /**
    * Creates a shallow copy of the stack trail.
    *
    * @returns A new StackTrail instance with copied frames

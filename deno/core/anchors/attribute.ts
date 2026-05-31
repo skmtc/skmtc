@@ -35,7 +35,12 @@ export const attribute = (producer: SnippetBase): Attribution => {
 
   return {
     generatorId: key && parsed ? toGeneratorId(key) : '<unknown>',
-    schemaPointer: producer.schemaPointer ?? schemaPointerFromKey(parsed),
+    // The producer's own position wins when it has one; otherwise fall
+    // back to the key-derived pointer. The string conversion happens
+    // here, once — `StackTrail` is carried everywhere upstream.
+    schemaPointer: producer.schemaPointer.isEmpty()
+      ? schemaPointerFromKey(parsed)
+      : producer.schemaPointer.toJsonPointer(),
     variant: parsed && 'variant' in parsed ? parsed.variant : 'main',
     definitionName: producer instanceof Definition ? producer.identifier.name : undefined,
     // The producer's class name — `var X = class extends …` still yields
@@ -47,24 +52,27 @@ export const attribute = (producer: SnippetBase): Attribution => {
 
 /**
  * Compute a fallback schema pointer from the parsed generator key when
- * the producer hasn't set one explicitly.
+ * the producer has no position of its own (empty trail).
  *
- * - OAS operation → `oas:#/paths/<escaped-path>/<method>`
- * - GQL operation → `gql:<rootKind>.<fieldName>`
- * - Model → `oas:#/components/schemas/<refName>`
- * - Generator-only → `undefined` (no schema location to point at)
+ * Pointers are **protocol-agnostic** — no `oas:` / `gql:` prefix; the
+ * protocol is a property of the run's input schema, not of each pointer.
+ *
+ * - OAS operation → `#/paths/<escaped-path>/<method>`
+ * - GQL operation → `<rootKind>.<fieldName>`
+ * - Model → `#/components/schemas/<refName>`
+ * - Generator-only / no key → `''` (no schema location to point at)
  */
-const schemaPointerFromKey = (parsed: GeneratorKeyObject | undefined): string | undefined => {
-  if (!parsed) return undefined
+const schemaPointerFromKey = (parsed: GeneratorKeyObject | undefined): string => {
+  if (!parsed) return ''
   switch (parsed.type) {
     case 'oasOperation':
-      return `oas:#/paths/${escapeJsonPointer(parsed.path)}/${parsed.method}`
+      return `#/paths/${escapeJsonPointer(parsed.path)}/${parsed.method}`
     case 'gqlOperation':
-      return `gql:${parsed.rootKind}.${parsed.fieldName}`
+      return `${parsed.rootKind}.${parsed.fieldName}`
     case 'model':
-      return `oas:#/components/schemas/${parsed.refName}`
+      return `#/components/schemas/${parsed.refName}`
     case 'generator-only':
-      return undefined
+      return ''
     default: {
       const _exhaustive: never = parsed
       throw new Error(`Unhandled generator key type: ${JSON.stringify(_exhaustive)}`)

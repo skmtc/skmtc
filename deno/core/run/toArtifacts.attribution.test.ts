@@ -156,7 +156,7 @@ Deno.test('toArtifacts - generation map carries one entry per Definition', () =>
   const userEntry = result.generationMap!.find(e => e.name === 'User')
   assert(userEntry !== undefined, 'expected a generation-map entry for User')
   assertEquals(userEntry!.g, '@test/gen-model')
-  assertEquals(userEntry!.s, 'oas:#/components/schemas/User')
+  assertEquals(userEntry!.s, '#/components/schemas/User')
   assertEquals(userEntry!.v, 'main')
 })
 

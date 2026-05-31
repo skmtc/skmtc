@@ -146,7 +146,7 @@ Deno.test('buildSidecar - undefined srcPtr pools as empty string', () => {
     parser: 'tsc@5.6.3',
     anchors: [
       anchor({
-        attribution: { generatorId: '@scope/gen-utils', schemaPointer: undefined, variant: 'main', definitionName: undefined, producerName: 'GenUtils' }
+        attribution: { generatorId: '@scope/gen-utils', schemaPointer: '', variant: 'main', definitionName: undefined, producerName: 'GenUtils' }
       })
     ]
   })
