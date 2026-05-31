@@ -24,6 +24,8 @@ Several rows below may already be documented there; the doc implication for each
 | K5 | `allOf` merge runs on **raw JSON pre-parse** (`toSchemasV3.ts:84-92`): `mergeIntersection` spreads plain `SchemaObject`s, then the merged blob is parsed at `stackTrail.trace('allOf', …)`. Result: merged fields get field-level stackTrails rooted at a **synthetic** path (`X/allOf/properties/name`) that is **not resolvable** against the source document (under `allOf` is an array). `addProperty`/`synthesizeArgsObject` instead reuse the original instances (locations survive); only their synthetic *container* lacks a location. | Candidate `_merge-all-of` correctness note + the synthesis-vs-merge distinction. |
 | K6 | `schemaPointerFromKey` (`attribute.ts:57-73`) reconstructs `oas:#/paths/<path>/<method>` / `#/components/schemas/<refName>` from the **GeneratorKey alone** — so coarse (operation/model) attribution works even if parse-time attribution was disabled. Only fine-grained pointers require parse-time attribution on. | API reference. |
 | K7 | `producerName` = `producer.constructor.name`, **interned as display data** in `buildSidecar.ts:142` (not used as a lookup key). Fragile under minification (flagged in `attribute.ts:42-44`); since it's display-only, baking it is a label-correctness fix, not graph-correctness. | None (captured here). |
+| K8 | **Live-verified (post-migration, core `0.6.10`):** the own-pointer tier (`attribute.ts:43`, `producer.schemaPointer.toJsonPointer()`) emits the **entire** `StackTrail` — including the run's operational prefix `[traceId, spanId, 'parse']` seeded by the worker + `CoreContext.toArtifacts`. So a live gen-map's granular pointer reads `#/trace-<id>/span-<id>/parse/components/schemas/Pet/properties/name`, **not** the resolvable `#/components/schemas/Pet/properties/name`. Document-position and operational-trace frames are conflated on one trail; only the key-derived fallback (`schemaPointerFromKey`) is document-relative. See entry #4. | API-reference note on `StackTrail.toJsonPointer()` (it is NOT document-relative); core fix in `0.6.11`. |
+| K9 | **Live-verified:** with identical `${key}: ${value}` property rendering, `gen-typescript`'s inner snippets (`TsObject`/`TsString`) appear in the gen-map render tree but `gen-zod`'s (`ZodObject`/`ZodString`) do **not** — gen-zod yields only `Definition` + `ZodProjection` (Definition-level). So render-tree child-capture (`SnippetBase._children`) is sensitive to something beyond "interpolate a Snippet in `toString`"; the two generators differ in a way that silently drops gen-zod's edges. See entry #5. | `skmtc-generator` (what exactly makes a child captured vs dropped) once root-caused. |
 
 ## Index
 
@@ -32,6 +34,8 @@ Several rows below may already be documented there; the doc implication for each
 | 1 | Reasoning from the `schemaPointer` field name alone yields a wrong attribution model | friction | open |
 | 2 | `allOf`-merged nodes get a synthetic, non-resolvable schema pointer | friction | open |
 | 3 | Attribution `anchors/` subsystem not discoverable from the loaded skills | polish | open |
+| 4 | Own-pointer tier emits the operational trace prefix → granular pointers not resolvable | friction | open |
+| 5 | gen-zod inner snippets silently absent from the render tree (gen-typescript's present) | friction | open |
 
 ---
 
@@ -132,12 +136,91 @@ confirming `skmtc-architecture` actually covers the three-tier resolution model 
 
 **Status:** open
 
+### 4. Own-pointer tier emits the operational trace prefix → granular pointers not resolvable [friction]
+
+The live verification of point 2b (post-migration, core `0.6.10`): trigger a real run against
+petstore, fetch `…/runs/1/gen-map`, assert an inner snippet for `Pet.name` resolves to
+`#/components/schemas/Pet/properties/name`.
+
+**What happened:** the granular capture *worked* — `gen-typescript`'s `TsString` snippets for
+`id`/`name`/`tag` each carried a per-property pointer (not the Definition-level one), proving
+the C2 constructor-args mechanism end-to-end. But the pointer string was
+`#/trace-1780233682442/span-1780233682442/parse/components/schemas/Pet/properties/name`, not the
+resolvable `#/components/schemas/Pet/properties/name`. The own-pointer tier
+(`attribute.ts:43`) serializes `producer.schemaPointer.toJsonPointer()` over the *whole*
+`StackTrail`, and that trail is seeded by the worker with `[traceId, spanId]` and extended by
+`CoreContext.toArtifacts` via `.trace('parse', …)` before parse traverses
+`components/schemas/…`. The clean Definition-level pointers in the same gen-map
+(`#/components/schemas/Pet`) come from the key-derived fallback (`schemaPointerFromKey`), which
+never touches the trail — which is why the two tiers disagree.
+
+**What was expected:** that after the migration, the own-pointer (fine-grained) tier would emit
+the same document-relative form as the key-derived (coarse) tier — just deeper. The handoff
+even framed 2b as "free after the bundle collapse." It is not: the collapse fixed the
+*two-core-instance* fragility, but the trail-serialization was a separate latent issue that
+only surfaced once granular pointers actually flowed (nothing exercised the own-pointer tier
+before C2).
+
+**Why it matters:** a granular pointer that doesn't resolve against the source document defeats
+the entire purpose of 2b (jump-to-schema-source in the gen-map viewer). It's the same
+faithfulness failure mode as entry #2 (a precise-looking pointer that points at nothing), but
+on the *common* path, not just `allOf`. The root cause is conceptual: **document position and
+operational trace are conflated on one `StackTrail`.**
+
+**Possible fixes:** three candidates, mutually exclusive, surfaced to the user for decision
+(core `0.6.11`): (A) a `StackTrail.toDocumentPointer()` that strips up to & including the phase
+anchor, called at the resolver — smallest diff, couples StackTrail to phase-frame names; (B)
+parse traverses on a fresh trail so `OasBase` nodes capture document-relative positions, with
+operational trace kept separate — most correct, bigger, touches error-trace reporting; (C)
+rebase in `OasBase` at capture time — same coupling as A, applied earlier. Note the `toStackRef`
+method already assumes `stack[0] === 'components'`, i.e. a document-relative trail — evidence
+the codebase already has two implicit notions of "where the trail starts."
+
+**Version anchor:** `@skmtc/core@0.6.10`
+
+**Status:** open
+
+### 5. gen-zod inner snippets silently absent from the render tree (gen-typescript's present) [friction]
+
+Same live gen-map. Comparing what each model generator contributed.
+
+**What happened:** `gen-typescript` produced `TsProjection`, `TsObject`, `TsObjectProperties`,
+and three `TsString` entries (granular, per-property). `gen-zod` produced only `Definition` +
+`ZodProjection` — both Definition-level (`#/components/schemas/Pet`). No `ZodObject` /
+`ZodString` entries at all, even though the hub's gen-zod clone was converted in the same
+migration to thread `schema` into those snippets. Both generators' property rendering is
+structurally identical: `ZodObject.toString` does `z.object({${…}: ${value}})` and
+`TsObjectProperties.toString` does `{${…}: ${value}}` — both interpolate the child Snippet via
+`${value}`.
+
+**What was expected:** symmetric behaviour — if gen-typescript's children are captured in the
+render tree, gen-zod's should be too, since the composition shape is the same.
+
+**Why it matters:** the render-tree child-capture (`SnippetBase._children`, the instrumented
+`toString`) is supposed to be transparent and author-invisible (K3). That two near-identical
+generators get different capture is a sign the mechanism has a hidden precondition — likely
+*when* `toString` is first invoked relative to the render walk (e.g. a value stringified eagerly
+in a constructor, or cached, escapes instrumentation), or a difference in how each wraps its
+properties sub-snippet. Until root-caused, "thread `schema` into the snippet" is necessary but
+not sufficient for granular attribution — and the gap is silent (no error, just missing
+entries).
+
+**Possible fixes:** unresolved — needs focused debugging of the gen-zod render path vs
+gen-typescript's (where/when each property snippet's `toString` runs, whether `ZodProjection`
+or `ZodObject` eagerly stringifies). Fix likely lands in the generator (canonical
+`skmtc-generators` + hub clone); if the precondition is subtle, K3's "transparent capture"
+claim needs a documented caveat.
+
+**Version anchor:** `@skmtc/core@0.6.10`, gen-zod / gen-typescript hub clones
+
+**Status:** open
+
 ---
 
 ## Priority for docs/skills
 
 | Rank | Entry | Why it matters | Action path |
 |------|-------|----------------|-------------|
-| 1 | #2 — `allOf` synthetic non-resolvable pointer | A precise-looking pointer that doesn't resolve against source is a silent attribution-faithfulness bug; affects any consumer round-tripping pointers | SKMTC code (`_merge-all-of` + `toSchemasV3`), after confirming gen-map UX need |
-| 2 | #1 / K1 — attribution is span-resolution, not a per-snippet scalar | The field name misleads agents into a wrong structural conclusion (cost two correction cycles this session) | `skmtc-architecture` (confirm/add the three-tier model) + doc-comment on `schemaPointer` |
-| 3 | K4 — span localization needs verbatim child text | Couples the no-string-manipulation invariant to attribution correctness, not just style — a stronger reason to enforce it | `skmtc-generator` (tie the rule to span localization) |
+| 1 | #4 — own-pointer tier emits the operational trace prefix | Blocks 2b on the **common** path (every threaded snippet), not just `allOf`: granular pointers don't resolve to source. Root cause (trace/document conflation on one `StackTrail`) is the same class as #2 but far broader | SKMTC core `0.6.11` (decision A/B/C pending user) |
+| 2 | #5 — gen-zod inner snippets absent from render tree | "Thread `schema` into the snippet" is necessary-but-not-sufficient for granular attribution; the gap is silent. Undermines K3's transparent-capture claim | Generator debugging (gen-zod render path) + possible K3 caveat |
+| 3 | #2 — `allOf` synthetic non-resolvable pointer | A precise-looking pointer that doesn't resolve against source is a silent attribution-faithfulness bug; affects any consumer round-tripping pointers | SKMTC code (`_merge-all-of` + `toSchemasV3`), after confirming gen-map UX need |
