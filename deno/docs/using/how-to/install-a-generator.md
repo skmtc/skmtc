@@ -13,7 +13,7 @@ instead.
 
 - The `skmtc` CLI installed with `--unstable-worker-options`:
   ```bash
-  deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli
+  deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli
   ```
   The flag is required so the per-project Worker can use Deno's
   `Worker.deno.permissions` API. Without it, `skmtc generate` fails at

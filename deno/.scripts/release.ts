@@ -25,6 +25,24 @@ import { dirname, fromFileUrl, join } from '@std/path'
 
 const DEFAULT_JSR_URL = 'https://jsr.skmtc.dev/'
 
+/**
+ * Scoped runtime permissions for the installed `skmtc` CLI — replaces a
+ * blanket `-A`/`--allow-all`. skmtc reads/writes project files, fetches
+ * schemas + packages over the network, reads a few env vars, spawns only
+ * `deno` (bundle) and `sh` (typecheck), and needs `homedir` to locate the
+ * workspace root. It uses no FFI and no remote imports. Empirically
+ * validated against doctor / generate / bundle.
+ */
+const SKMTC_PERMS = [
+  '--allow-read',
+  '--allow-write',
+  '--allow-net',
+  '--allow-env',
+  '--allow-run=deno,sh',
+  '--allow-sys=homedir'
+]
+const SKMTC_PERMS_STR = SKMTC_PERMS.join(' ')
+
 export type WorkspacePackage = {
   name: string
   version: string
@@ -233,8 +251,9 @@ const isPublished = async (
  *  - `local-compile` — `deno compile` against the local repo source
  *    (per `cli/CLAUDE.md`'s install card). Right for in-repo dev where
  *    a JSR install can't resolve the `@/` alias.
- *  - `jsr-install` — `deno install -A -g --unstable-worker-options -n
- *    skmtc -f jsr:@skmtc/cli@<version>`, after polling the registry's
+ *  - `jsr-install` — `deno install <scoped-perms> -g
+ *    --unstable-worker-options -n skmtc -f jsr:@skmtc/cli@<version>`
+ *    (see {@link SKMTC_PERMS}), after polling the registry's
  *    `meta.json.versions` map for the new version (don't trust
  *    `meta.json.latest` — local JSR sorts it lexicographically; see
  *    `[[project_local_jsr_latest_lex_sort]]`).
@@ -296,7 +315,8 @@ const reinstallCliLocalCompile = async (cliDir: string): Promise<void> => {
     args: [
       'compile',
       '--no-check',
-      '--allow-all',
+      ...SKMTC_PERMS,
+      '--unstable-worker-options',
       '--config',
       join(cliDir, 'deno.json'),
       '--include',
@@ -320,7 +340,7 @@ const reinstallCliFromJsr = async (jsrUrl: string, version: string): Promise<voi
   const result = await new Deno.Command('deno', {
     args: [
       'install',
-      '-A',
+      ...SKMTC_PERMS,
       '-g',
       '--unstable-worker-options',
       '-n',
@@ -342,14 +362,14 @@ const printReinstallHint = (mode: ReinstallCliMode, cliDir: string, version: str
   // error paths so the operator can recover manually.
   console.error('\nTo reinstall the local `skmtc` binary, choose one:')
   console.error('  # In-repo dev (recommended while iterating locally):')
-  console.error(`  deno compile --no-check --allow-all \\`)
+  console.error(`  deno compile --no-check ${SKMTC_PERMS_STR} --unstable-worker-options \\`)
   console.error(`    --config ${join(cliDir, 'deno.json')} \\`)
   console.error(`    --include ${cliDir} \\`)
   console.error(`    -o ~/.deno/bin/skmtc \\`)
   console.error(`    ${join(cliDir, 'mod.ts')}`)
   console.error('  # From JSR (downstream consumers):')
   console.error(
-    `  JSR_URL=${DEFAULT_JSR_URL} deno install -A -g --unstable-worker-options -n skmtc -f jsr:@skmtc/cli@${version}`
+    `  JSR_URL=${DEFAULT_JSR_URL} deno install ${SKMTC_PERMS_STR} -g --unstable-worker-options -n skmtc -f jsr:@skmtc/cli@${version}`
   )
   if (mode !== 'none') {
     console.error(

@@ -473,7 +473,7 @@ Self-contained playbooks. Read only the one you need.
 
 #### Setting up SKMTC in a project
 
-1. `deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli` (requires Deno). The `--unstable-worker-options` flag must be passed at install time — `@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind this flag. Without it the first `skmtc generate` exits at runtime with `Unstable API 'Worker.deno.permissions'`.
+1. `deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli` (requires Deno). The `--unstable-worker-options` flag must be passed at install time — `@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind this flag. Without it the first `skmtc generate` exits at runtime with `Unstable API 'Worker.deno.permissions'`.
 2. `skmtc init <project-name> ./` creates `.skmtc/<project>/`.
 3. `skmtc install @skmtc/gen-typescript @skmtc/gen-zod <project>` to add generators.
 4. Edit `.skmtc/<project>/.settings/client.json` to set `source` and `settings.basePath`.
@@ -522,7 +522,7 @@ Self-contained playbooks. Read only the one you need.
 #### Using SKMTC in CI
 
 1. Pin Deno version.
-2. Install CLI in CI: `deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli`. The flag is required (see "Setting up SKMTC in a project" above).
+2. Install CLI in CI: `deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli`. The flag is required (see "Setting up SKMTC in a project" above).
 3. `skmtc bundle <project>` once at CI setup (only if generators are cloned).
 4. `skmtc generate <project> --no-input --json --typecheck`.
 5. Archive `manifest.json` as a CI artifact.

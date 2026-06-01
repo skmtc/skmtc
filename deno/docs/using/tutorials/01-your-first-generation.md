@@ -19,7 +19,7 @@ If you don't have one handy, use the canonical Petstore spec:
 ## Step 1: Install the CLI
 
 ```bash
-deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli/mod.ts
+deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli/mod.ts
 ```
 
 Verify: `skmtc --version`.

@@ -120,12 +120,22 @@ Each command follows a consistent pattern:
 Use `deno compile`, **not** `deno install`:
 
 ```bash
-deno compile --no-check --allow-all \
+deno compile --no-check \
+  --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir \
+  --unstable-worker-options \
   --config /path/to/skmtc/deno/cli/deno.json \
   --include /path/to/skmtc/deno/cli \
   -o ~/.deno/bin/skmtc \
   /path/to/skmtc/deno/cli/mod.ts
 ```
+
+The scoped permissions (instead of `-A`) match the published install: skmtc
+needs read/write/net/env, spawns only `deno` + `sh`, and `homedir` to find
+the workspace root — no FFI, no remote imports. `--unstable-worker-options`
+**must** be passed here: `cli/deno.json` carries no `unstable` field, so
+without it the compiled binary fails the first `generate` on
+`Worker.deno.permissions`. (For a throwaway dev run, `deno run --allow-all`
+below is fine — it's ephemeral, not a distributed binary.)
 
 `mod.ts` lazy-loads commands via `await import('@/commands/<name>.tsx')`. The `@/` alias is resolved by `deno publish` at publish time — the JSR-published artifact contains relative paths, which is why `deno install jsr:@skmtc/cli` works. Against local source there is no resolution step, so `deno install` produces a launcher whose runtime cwd cannot resolve `@/` and dynamic imports fail with `Module not found ".../.deno/bin/.skmtc/commands/<name>.tsx"`.
 

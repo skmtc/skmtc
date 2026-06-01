@@ -30,7 +30,7 @@ deterministic. For GitHub Actions:
 ### Install the CLI in CI
 
 ```bash
-deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>/mod.ts
+deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>/mod.ts
 ```
 
 Pin to a specific CLI version. The CLI itself doesn't appear in

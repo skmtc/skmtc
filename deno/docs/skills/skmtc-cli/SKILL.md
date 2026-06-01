@@ -679,7 +679,7 @@ the step-2 wiring didn't take — the import key isn't a non-`jsr:`
 
 ```bash
 # Setup (once per CI run):
-deno install -A -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>
+deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>
 # If the project has any cloned generators:
 skmtc bundle <project>
 
@@ -702,6 +702,16 @@ install` bakes the runtime flags into the installed CLI binary at
 `~/.deno/bin/skmtc`. If a previously-installed binary is missing the
 flag, reinstall with `-f` to overwrite it; adding the flag to
 invocations of the existing binary does not work.
+
+The install uses **scoped permissions, not `-A`**:
+`--allow-read --allow-write --allow-net --allow-env
+--allow-run=deno,sh --allow-sys=homedir`. skmtc reads/writes project
+files, fetches schemas + packages over the network (the schema
+`source` can be any URL, so `--allow-net` stays unscoped), reads a few
+env vars, spawns only `deno` (bundle) and `sh` (typecheck), and needs
+`homedir` to locate the workspace root. It uses no FFI and no remote
+imports, so those grants are dropped. Empirically validated against
+`doctor` / `generate` / `bundle`.
 
 ### Card: When to hand off to other skills
 
