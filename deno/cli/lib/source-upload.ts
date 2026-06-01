@@ -81,7 +81,26 @@ const DEFAULT_IGNORE = [
 ]
 
 /** Project-root ignore file (gitignore syntax), layered over the defaults. */
-const SKMTC_IGNORE_FILE = '.skmtcignore'
+export const SKMTC_IGNORE_FILE = '.skmtcignore'
+
+/**
+ * Seed `.skmtcignore` written into new projects by `init`. The built-in
+ * defaults above already cover derived bundles, deps, secrets and binaries, so
+ * the seed is mostly a documented starting point — plus the deploy/generate
+ * logs, which live under `.settings` (kept for `client.json`) and are pure
+ * noise in an upload.
+ */
+export const SKMTCIGNORE_TEMPLATE = `# .skmtcignore — files to exclude from \`skmtc deploy\` uploads (gitignore syntax).
+#
+# Built-in defaults already skip derived bundles (server.ts/js, bundle.js,
+# worker.ts), node_modules, .git, secrets (.env*), and binary assets.
+# Add project-specific exclusions below; use \`!pattern\` to re-include something
+# a default excludes.
+
+# deploy / generate logs
+.settings/logs.txt
+.settings/error-logs.txt
+`
 
 /**
  * Read a file into a fresh `ArrayBuffer`. `Deno.readFile` returns

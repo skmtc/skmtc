@@ -19,6 +19,7 @@ import { toServer } from './to-server.ts'
 import { toWorker } from './to-worker.ts'
 import { ensureWorkerDeps } from './ensure-worker-deps.ts'
 import { ensureServerDeps } from './ensure-server-deps.ts'
+import { SKMTC_IGNORE_FILE, SKMTCIGNORE_TEMPLATE } from '@/lib/source-upload.ts'
 
 type AddGeneratorArgs = {
   moduleName: string
@@ -135,6 +136,13 @@ export class Project {
     await project.clientJson.write()
 
     await project.rootDenoJson.write()
+
+    // Seed a default `.skmtcignore` so new stacks get the gitignore-style
+    // upload filter (and a documented place to extend it) from day one.
+    await Deno.writeTextFile(
+      join(toProjectPath(name), SKMTC_IGNORE_FILE),
+      SKMTCIGNORE_TEMPLATE
+    )
 
     skmtcRoot.projects.push(project)
 
