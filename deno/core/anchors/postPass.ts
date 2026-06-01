@@ -1,20 +1,19 @@
 /**
- * @fileoverview Tie the Phase B + C pieces together: render a File,
- * walk the producer tree, AST-resolve each span's landmark + path,
- * build the sidecar.
+ * @fileoverview Tie the Phase B + C pieces together: take a rendered
+ * file's text + the spans the render-phase {@link CaptureSink} resolved,
+ * AST-resolve each span's landmark + path, and build the sidecar.
  *
- * Pure function over its inputs — no I/O, no global state, no
- * pipeline hooks. The natural caller is `toArtifacts.ts` running this
- * once per File when the run supplies `attribution.postPass`. The CLI
- * (Phase D) handles disk writes via a separate `writeSidecar` wrapper.
+ * Pure function over its inputs — no I/O, no global state, no `toString`,
+ * no pipeline hooks. The caller is `RenderContext` (folded in after the
+ * single capture render), running this once per File when the run supplies
+ * `attribution.postPass`. The CLI handles disk writes via a separate
+ * `writeSidecar` wrapper.
  */
 
-import type { File } from '@/dsl/File.ts'
 import type { ParserAdapter } from './ParserAdapter.ts'
 import type { RegistryEntry } from './sidecar.ts'
 import type { Sidecar } from './sidecar.ts'
-import type { Attribution } from './types.ts'
-import { resolveSpansForFile } from './resolveSpans.ts'
+import type { Attribution, Span } from './types.ts'
 import { attribute } from './attribute.ts'
 import { buildSidecar, type ResolvedAnchor } from './buildSidecar.ts'
 
@@ -36,8 +35,20 @@ const defaultLookup: GeneratorMetaLookup = () => ({
 })
 
 export type PostPassArgs = {
-  /** The rendered File whose Definitions have been instrumented. */
-  file: File
+  /**
+   * The rendered file's path (the `File`'s own path, not the resolved
+   * artifact path). Used as the parser's source name and stamped on the
+   * sidecar.
+   */
+  filePath: string
+  /** The rendered file text (the single capture render's output). */
+  source: string
+  /**
+   * Byte spans for every contributing Definition / Snippet, resolved by
+   * the render-phase {@link CaptureSink} from the occurrence tree. In
+   * document order (Definitions first, then inner Snippets depth-first).
+   */
+  spans: Span[]
   /**
    * The schema source name (e.g. `'openapi.json'`). Carried on the
    * sidecar's `src` field so re-anchor consumers know which schema
@@ -67,11 +78,11 @@ export type PostPassArgs = {
 }
 
 /**
- * Run the post-render attribution pass on a File and return the
+ * Run the post-render attribution pass for one file and return the
  * Sidecar. Workflow:
  *
- *  1. `resolveSpansForFile(file)` — Phase B (§3.3): walks the
- *     instrumented producer tree.
+ *  1. `spans` arrive pre-resolved from the render-phase `CaptureSink`
+ *     (§3.3): byte ranges for each producer, in document order.
  *  2. `attribute(span.producer)` — Phase B (§3.2): derives
  *     `{ generatorId, schemaPointer, variant, definitionName, producerName }`.
  *  3. Parser ascends each span to its enclosing landmark; the
@@ -84,24 +95,22 @@ export type PostPassArgs = {
  * disk, attach to manifest, send over the wire).
  */
 export const postPass = ({
-  file,
+  filePath,
+  source,
+  spans,
   schemaSrc,
   parser,
   generatorMeta = defaultLookup
 }: PostPassArgs): Sidecar => {
-  const source = file.toString()
-  const spans = resolveSpansForFile(file)
-
-  const parsedFile = parser?.parse(file.path, source)
+  const parsedFile = parser?.parse(filePath, source)
   const landmarks = parser && parsedFile ? parser.collectLandmarks(parsedFile) : undefined
 
   // No-parser fallback: track the most recent Definition we've
-  // crossed in document order. `resolveSpansForFile` emits each
-  // Definition's outer span before its inner Snippets, so this
-  // gives every inner span a stable landmark name even without AST
-  // analysis. Re-anchoring on formatter drift isn't possible
-  // without paths, but the SPA's hover/pin/related-artifact flows
-  // all work fine.
+  // crossed in document order. The spans emit each Definition's outer
+  // span before its inner Snippets, so this gives every inner span a
+  // stable landmark name even without AST analysis. Re-anchoring on
+  // formatter drift isn't possible without paths, but the SPA's
+  // hover/pin/related-artifact flows all work fine.
   let currentDefinitionName = ''
   const anchors: ResolvedAnchor[] = []
   for (const span of spans) {
@@ -132,7 +141,7 @@ export const postPass = ({
   // detect "this sidecar has no landmark data" without inspecting
   // the L/P pools.
   return buildSidecar({
-    filePath: file.path,
+    filePath,
     schemaSrc,
     parser: parser?.id ?? 'none',
     anchors

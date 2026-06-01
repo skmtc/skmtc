@@ -15,37 +15,36 @@ type SnippetBaseArgs = {
   generatorKey?: GeneratorKey
   /**
    * The schema fragment this snippet was built from, when it has a
-   * single originating node. The constructor records its `stackTrail`
-   * into {@link SnippetBase.schemaPointer} for fine-grained attribution.
-   * Omit for snippets with no single originating node (structural /
-   * boilerplate / accumulators) — they carry the empty trail and the
-   * resolver inherits an ancestor / key-derived pointer.
+   * single originating node. The constructor records a **clone** of its
+   * `stackTrail` into {@link SnippetBase.schemaPointer} for fine-grained
+   * attribution. Omit for snippets with no single originating node
+   * (structural / boilerplate / accumulators) — they carry the empty
+   * trail and the resolver falls back to the key-derived pointer.
    */
   schema?: OasSchema | OasRef<'schema'>
 }
 
 /**
- * Module-level stack of currently-rendering Snippets. Pushed in the
- * instrumented `toString` (always installed — attribution is on by
- * default) and popped in `finally` so it stays balanced even when a
- * subclass's `toString` throws.
- *
- * Each worker has its own module instance, so this state never leaks
- * across worker boundaries; rendering is synchronous within a worker.
- *
- * Exported only for the test-only `__resetRenderStack` helper below.
- * @internal
+ * Minimal structural view of a concrete `SnippetBase` subclass — just
+ * the `prototype` the render-phase capture installer needs in order to
+ * wrap the right `toString`. Avoids depending on the full `Function`
+ * type.
  */
-const renderStack: SnippetBase[] = []
+type SnippetConstructor = { prototype: object }
 
 /**
- * Empties the module-level render stack. Test-only escape hatch for
- * isolating attribution tests; production code never calls this.
- * @internal
+ * Concrete `SnippetBase` subclasses instantiated during this worker's
+ * life. Populated by the constructor via `new.target` (one `Set.add`
+ * per construction). The render-phase capture installer
+ * ({@link import('@/anchors/CaptureSink.ts').installCapture}) reads this
+ * to know which prototypes' `toString` to wrap for the single capture
+ * render — and only then. Outside that render the prototypes are
+ * pristine, so a stray `toString()` anywhere else captures nothing.
+ *
+ * Each worker has its own module instance, so this state never leaks
+ * across worker boundaries.
  */
-export const __resetRenderStack = (): void => {
-  renderStack.length = 0
-}
+export const seenSnippetConstructors = new Set<SnippetConstructor>()
 
 /**
  * Abstract root of every stringifiable element in the SKMTC DSL.
@@ -65,12 +64,14 @@ export const __resetRenderStack = (): void => {
  *
  * ## Attribution (gen-maps)
  *
- * The constructor always installs an instance-level shadow `toString`
- * that captures parent/child edges via the module-level render stack
- * and caches the rendered output. Subclass authors write nothing
- * different — the wrap is transparent. Attribution is always on;
- * the run-level `postPass` config controls only whether sidecars are
- * emitted, not whether edges are captured.
+ * `SnippetBase` holds **no** capture state. `toString()` is the subclass's
+ * own pure method and runs verbatim everywhere. Attribution is captured by
+ * a single render pass in {@link import('@/context/RenderContext.ts').RenderContext}:
+ * it installs a thin wrapper around the relevant `toString` prototypes for
+ * the duration of that one render, observes each invocation into a
+ * transient {@link import('@/anchors/CaptureSink.ts').CaptureSink} it owns,
+ * and restores the prototypes afterwards. Subclass authors write nothing
+ * different, and a `toString()` outside that render is a pure pass-through.
  */
 export class SnippetBase {
   /** The generation context providing access to OAS objects and utilities */
@@ -83,70 +84,31 @@ export class SnippetBase {
   generatorKey: GeneratorKey | undefined
 
   /**
-   * Snippets that ran inside this Snippet's `toString` body. Populated
-   * by the attribution wrap when the parent's `toString` invokes a
-   * child's `toString` (typically via template-literal interpolation).
-   * @internal
-   */
-  _children?: SnippetBase[]
-
-  /**
-   * Cached output of `toString`. Set by the attribution wrap on first
-   * invocation; subsequent calls return the cache directly.
-   * @internal
-   */
-  _rendered?: string
-
-  /**
    * Position of the schema fragment this snippet was built from, as a
-   * `StackTrail`. Captured from the `schema` constructor arg; the empty
-   * trail (`StackTrail.empty()`) means "no single originating node", in
-   * which case the post-render resolver inherits the nearest ancestor's
-   * pointer or the generator-key-derived one. Converted to a JSON
-   * Pointer string only at the resolver — never carried as a string here.
-   * @internal
+   * `StackTrail`. A **clone** of the originating schema's trail (taken at
+   * construction so it's a stable snapshot — `StackTrail` is mutable, so
+   * storing the raw reference would let later reuse overwrite the captured
+   * provenance). The empty trail (`StackTrail.empty()`) means "no single
+   * originating node", in which case the resolver uses the
+   * generator-key-derived pointer. Converted to a JSON Pointer string only
+   * at the resolver — never carried as a string here.
    */
   schemaPointer: StackTrail
 
   constructor({ context, generatorKey, schema }: SnippetBaseArgs) {
     this.context = context
     this.generatorKey = generatorKey
-    this.schemaPointer = schema ? schema.stackTrail : StackTrail.empty()
+    // Clone the trail: `StackTrail` is mutable and `schema.stackTrail`
+    // hands out the live instance, so an un-cloned reference would alias a
+    // trail that later append/remove calls could mutate out from under us.
+    // The resolver reads `schemaPointer` post-render, so it must be a stable
+    // snapshot taken now. `StackTrail.empty()` is already a fresh instance.
+    this.schemaPointer = schema ? schema.stackTrail.clone() : StackTrail.empty()
 
-    // Attribution is always on: wrap `toString` to capture parent/child
-    // render edges + cache the rendered output for the span resolver.
-    // `toString` must stay pure — it is invoked through this instrumented
-    // shadow and its result is cached on first call.
-    //
-    // `this.toString` at construction time resolves via prototype to the
-    // subclass's user-defined method. Capture it once so future
-    // invocations of the shadow can call through to the user's code.
-    const subclassToString = this.toString
-    this.toString = function instrumented(this: SnippetBase): string {
-      if (this._rendered !== undefined) return this._rendered
-
-      // Cycle guard: if this instance is already on the render stack, a
-      // subclass `toString` recursed into itself via composition. The
-      // cache wasn't set yet on the outer call, so naive recursion would
-      // never terminate. Loud failure beats stack-overflow.
-      if (renderStack.includes(this)) {
-        throw new Error(
-          'SnippetBase: render cycle detected — a Snippet recursively ' +
-            'includes itself via composition. Break the cycle in your ' +
-            'generator (e.g. cache an Identifier and embed it instead).'
-        )
-      }
-
-      const parent = renderStack[renderStack.length - 1]
-      if (parent) (parent._children ??= []).push(this)
-      renderStack.push(this)
-      try {
-        this._rendered = subclassToString.call(this)
-        return this._rendered
-      } finally {
-        renderStack.pop()
-      }
-    }
+    // Register the concrete subclass so the render-phase capture installer
+    // knows which prototype's `toString` to wrap. `new.target` is the class
+    // that was `new`-ed (the leaf), even through `super()` chains.
+    if (new.target) seenSnippetConstructors.add(new.target)
   }
 
   /**

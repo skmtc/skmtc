@@ -19,9 +19,6 @@ import type { ToArtifactsResult } from './generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
-import { postPass as runPostPass } from '@/anchors/postPass.ts'
-import { entriesForSidecar } from '@/anchors/generationMap.ts'
-import { File as FileClass } from '@/dsl/File.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -88,43 +85,7 @@ type RenderArgs = {
   previews: Record<string, Preview>
   mappings: Record<string, Mapping>
   basePath: string | undefined
-}
-
-/**
- * Run the gen-maps post-pass over the rendered `File` instances when
- * `attribution.postPass` is configured. Returns the per-file sidecar
- * map and a flat generation-map list; returns `undefined` when
- * attribution isn't fully configured so the caller can skip the
- * spread.
- *
- * Module-level helper rather than a CoreContext method so it stays
- * pure and testable in isolation.
- */
-const runPostPassForFiles = (
-  files: Map<string, File | JsonFile>,
   attribution: AttributionState | undefined
-): {
-  sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar>
-  generationMap: import('@/anchors/generationMap.ts').GenerationMapEntry[]
-} | undefined => {
-  // Attribution capture is always on; `postPass` gates emission only.
-  if (!attribution?.postPass) return undefined
-
-  const { parser, schemaSrc, generatorMeta } = attribution.postPass
-  const sidecars: Record<string, import('@/anchors/sidecar.ts').Sidecar> = {}
-  const generationMap: import('@/anchors/generationMap.ts').GenerationMapEntry[] = []
-
-  for (const [path, file] of files) {
-    // JsonFile and other non-source artifacts have no Definitions /
-    // toString-instrumented Snippets — nothing to post-process.
-    if (!(file instanceof FileClass)) continue
-
-    const sidecar = runPostPass({ file, schemaSrc, parser, generatorMeta })
-    sidecars[path] = sidecar
-    generationMap.push(...entriesForSidecar(sidecar))
-  }
-
-  return { sidecars, generationMap }
 }
 
 /**
@@ -439,21 +400,19 @@ export class CoreContext {
         return this.#phase.context.toArtifacts(st)
       })
 
-      // Gen-maps post-pass: AST-resolve landmarks + paths for every
-      // span, emit one sidecar per source File, accumulate the
-      // generation map. Runs after generate (when File instances are fully
-      // populated, including instrumented `_children` / `_rendered`)
-      // and before render. Only when `postPass` config is present.
-      const postPassOutput = stackTrail.trace('post-pass', () =>
-        runPostPassForFiles(files, attribution)
-      )
-
+      // Render is a single capture pass: it renders each File once and,
+      // when `attribution.postPass` is configured, simultaneously captures
+      // the producer occurrence tree and emits sidecars + the generation
+      // map (folded into `RenderContext.render`). No separate pre-render
+      // post-pass, no re-render — the old `_rendered` cache that faked
+      // "render once" across two passes is gone.
       const renderOutput = stackTrail.trace('render', st => {
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
           mappings,
-          basePath: settings?.basePath
+          basePath: settings?.basePath,
+          attribution
         })
 
         return this.#phase.context.render(st)
@@ -461,7 +420,6 @@ export class CoreContext {
 
       return {
         ...renderOutput,
-        ...(postPassOutput ?? {}),
         results: this.#results.toTree(),
         parseIssues: phase.context.issues
       }
@@ -484,8 +442,7 @@ export class CoreContext {
       // post-protocol-dispatch and we don't have a discriminator at
       // this catch site; OAS is the more common case and the
       // location format ('toArtifacts') is unambiguous regardless.
-      const priorIssues =
-        this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
       const message = error instanceof Error ? error.message : String(error)
       const fatalIssue = {
         protocol: 'oas' as const,
@@ -523,11 +480,7 @@ export class CoreContext {
     return { type: 'parse', context: parseContext }
   }
 
-  #setupGeneratePhase({
-    document,
-    settings,
-    toGeneratorConfigMap
-  }: GenerateArgs): GeneratePhase {
+  #setupGeneratePhase({ document, settings, toGeneratorConfigMap }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
       document,
       settings,
@@ -571,14 +524,15 @@ export class CoreContext {
     this.#results.capture(stackTrail.toString(), result)
   }
 
-  #setupRenderPhase({ files, previews, mappings, basePath }: RenderArgs): RenderPhase {
+  #setupRenderPhase({ files, previews, mappings, basePath, attribution }: RenderArgs): RenderPhase {
     const renderContext = new RenderContext({
       files,
       previews,
       mappings,
       basePath,
       logger: this.logger,
-      captureCurrentResult: this.captureCurrentResult.bind(this)
+      captureCurrentResult: this.captureCurrentResult.bind(this),
+      attribution
     })
 
     return { type: 'render', context: renderContext }

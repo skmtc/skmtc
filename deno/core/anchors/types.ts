@@ -1,7 +1,7 @@
 /**
  * @fileoverview Shared types for the post-render attribution layer.
  *
- * Lives separately from `resolveSpans.ts` / `attribute.ts` so consumers
+ * Lives separately from `CaptureSink.ts` / `attribute.ts` so consumers
  * (Phase C sidecar emission, the viewer in Phase E, the VSCode
  * extension in Phase F) can import the types without pulling in any
  * implementation code.
@@ -10,11 +10,12 @@
 import type { SnippetBase } from '@/dsl/SnippetBase.ts'
 
 /**
- * Byte range within a rendered File that a single producer contributed.
+ * Code-unit range within a rendered File that a single producer
+ * contributed.
  *
- * `from` and `to` are inclusive-exclusive offsets into
- * `file.toString()`. `producer` is the Snippet or Definition whose
- * `_rendered` cache matched that substring during walk.
+ * `from` and `to` are inclusive-exclusive UTF-16 code-unit offsets into
+ * the rendered file text. `producer` is the Snippet or Definition whose
+ * captured output matched that substring during the `CaptureSink` walk.
  */
 export type Span = {
   from: number

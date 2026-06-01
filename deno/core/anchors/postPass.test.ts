@@ -1,5 +1,5 @@
 import { assert, assertEquals } from '@std/assert'
-import { SnippetBase, __resetRenderStack } from '@/dsl/SnippetBase.ts'
+import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import { Definition } from '@/dsl/Definition.ts'
 import { File } from '@/dsl/File.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
@@ -7,10 +7,11 @@ import { toModelGeneratorKey, type GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { postPass } from './postPass.ts'
+import { CaptureSink, installCapture } from './CaptureSink.ts'
+import type { Span } from './types.ts'
 import { oxcAdapter } from './oxcAdapter.ts'
 
-// Attribution instrumentation is always on; SnippetBase ignores any
-// context flag, so a bare stub suffices.
+// SnippetBase holds no capture state; a bare context stub suffices.
 const ctx = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
 class FakeSnippet extends SnippetBase {
@@ -26,15 +27,30 @@ class FakeSnippet extends SnippetBase {
   }
 }
 
+/**
+ * Render a File through a sink (prototype wrap installed for the
+ * duration) and return the inputs `postPass` now expects: the file path,
+ * the rendered source, and the resolved spans.
+ */
+const renderFile = (file: File): { filePath: string; source: string; spans: Span[] } => {
+  const sink = new CaptureSink()
+  const restore = installCapture(sink)
+  try {
+    const { text, spans } = sink.captureFile(() => file.toString())
+    return { filePath: file.path, source: text, spans }
+  } finally {
+    restore()
+  }
+}
+
 Deno.test('postPass - single Definition produces one anchor with landmark', () => {
-  __resetRenderStack()
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
     refName: 'User' as RefName,
     variant: 'main'
   })
-  const value = new FakeSnippet(c, () => "z.object({ id: z.string() })", key)
+  const value = new FakeSnippet(c, () => 'z.object({ id: z.string() })', key)
   const def = new Definition({
     context: c,
     identifier: Identifier.createVariable('User'),
@@ -44,7 +60,7 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
   file.definitions.set(def.identifier.name, def)
 
   const sidecar = postPass({
-    file,
+    ...renderFile(file),
     schemaSrc: 'openapi.json',
     parser: oxcAdapter
   })
@@ -60,7 +76,6 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
 })
 
 Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
-  __resetRenderStack()
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
@@ -77,7 +92,7 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
   file.definitions.set(def.identifier.name, def)
 
   const sidecar = postPass({
-    file,
+    ...renderFile(file),
     schemaSrc: 'openapi.json',
     parser: oxcAdapter
   })
@@ -86,7 +101,6 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
 })
 
 Deno.test('postPass - multiple Definitions land under their own landmarks', () => {
-  __resetRenderStack()
   const c = ctx()
   const keyA = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
@@ -113,7 +127,7 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
   file.definitions.set('B', defB)
 
   const sidecar = postPass({
-    file,
+    ...renderFile(file),
     schemaSrc: 'openapi.json',
     parser: oxcAdapter
   })
@@ -127,7 +141,6 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
 })
 
 Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
-  __resetRenderStack()
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
@@ -143,10 +156,10 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
   file.definitions.set('User', def)
 
   const sidecar = postPass({
-    file,
+    ...renderFile(file),
     schemaSrc: 'openapi.json',
     parser: oxcAdapter,
-    generatorMeta: (generatorId) => ({
+    generatorMeta: generatorId => ({
       version: generatorId === '@scope/gen-zod' ? '1.2.3' : '',
       registry: { host: 'jsr.skmtc.dev', kind: 'jsr-private' }
     })
@@ -156,8 +169,7 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
   assert(sidecar.R.some(r => r.host === 'jsr.skmtc.dev' && r.kind === 'jsr-private'))
 })
 
-Deno.test('postPass - anchor bytes survive a slice through file.toString()', () => {
-  __resetRenderStack()
+Deno.test('postPass - anchor bytes survive a slice through the rendered source', () => {
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
@@ -173,9 +185,9 @@ Deno.test('postPass - anchor bytes survive a slice through file.toString()', () 
   const file = new File({ path: 'out.ts', settings: undefined })
   file.definitions.set('Whole', def)
 
-  const text = file.toString()
+  const rendered = renderFile(file)
   const sidecar = postPass({
-    file,
+    ...rendered,
     schemaSrc: 'openapi.json',
     parser: oxcAdapter
   })
@@ -184,7 +196,7 @@ Deno.test('postPass - anchor bytes survive a slice through file.toString()', () 
   // file. Stronger property than just "in bounds".
   for (const [, , , , , from, to] of sidecar.A) {
     assert(from >= 0)
-    assert(to <= text.length)
+    assert(to <= rendered.source.length)
     assert(to > from)
   }
 })
@@ -192,7 +204,7 @@ Deno.test('postPass - anchor bytes survive a slice through file.toString()', () 
 Deno.test('postPass - empty file yields a sidecar with no anchors', () => {
   const file = new File({ path: 'empty.ts', settings: undefined })
   const sidecar = postPass({
-    file,
+    ...renderFile(file),
     schemaSrc: 'openapi.json',
     parser: oxcAdapter
   })

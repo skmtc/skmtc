@@ -1,14 +1,14 @@
-import { assertEquals, assertStrictEquals } from '@std/assert'
-import { SnippetBase, __resetRenderStack } from '@/dsl/SnippetBase.ts'
+import { assertEquals, assertStrictEquals, assertThrows } from '@std/assert'
+import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import { Definition } from '@/dsl/Definition.ts'
 import { File } from '@/dsl/File.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { resolveSpansForFile } from './resolveSpans.ts'
+import { CaptureSink, installCapture } from './CaptureSink.ts'
+import type { Span } from './types.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 
-// Attribution instrumentation is always on; SnippetBase ignores any
-// context flag, so a bare stub suffices.
+// SnippetBase holds no capture state; a bare context stub suffices.
 const stubContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
 class FakeSnippet extends SnippetBase {
@@ -32,8 +32,21 @@ const makeFile = (defs: Definition[]): File => {
   return file
 }
 
-Deno.test('resolveSpans - top-level Definition spans match file slice', () => {
-  __resetRenderStack()
+/**
+ * Render a File through a fresh sink with the prototype wrap installed
+ * for the duration — the production capture path in miniature.
+ */
+const capture = (file: File): { text: string; spans: Span[] } => {
+  const sink = new CaptureSink()
+  const restore = installCapture(sink)
+  try {
+    return sink.captureFile(() => file.toString())
+  } finally {
+    restore()
+  }
+}
+
+Deno.test('CaptureSink - top-level Definition spans match file slice', () => {
   const ctx = stubContext()
   const value = new FakeSnippet(ctx, () => "'hello'")
   const def = new Definition({
@@ -41,14 +54,12 @@ Deno.test('resolveSpans - top-level Definition spans match file slice', () => {
     identifier: Identifier.createVariable('GREETING'),
     value
   })
-  const file = makeFile([def])
-  const text = file.toString()
-  const spans = resolveSpansForFile(file)
+  const { text, spans } = capture(makeFile([def]))
 
   // Definition span = the whole rendered Definition text.
   const defSpan = spans.find(s => s.producer === def)
   assertEquals(defSpan !== undefined, true)
-  assertEquals(text.slice(defSpan!.from, defSpan!.to), def._rendered)
+  assertEquals(text.slice(defSpan!.from, defSpan!.to), def.toString())
 
   // Child (the `value`) span lands strictly inside the Definition.
   const valueSpan = spans.find(s => s.producer === value)
@@ -58,8 +69,7 @@ Deno.test('resolveSpans - top-level Definition spans match file slice', () => {
   assertEquals(valueSpan!.to <= defSpan!.to, true)
 })
 
-Deno.test('resolveSpans - identical sibling text attributed in document order', () => {
-  __resetRenderStack()
+Deno.test('CaptureSink - identical sibling text attributed in document order', () => {
   const ctx = stubContext()
   const a = new FakeSnippet(ctx, () => 'x')
   const b = new FakeSnippet(ctx, () => 'x')
@@ -69,9 +79,7 @@ Deno.test('resolveSpans - identical sibling text attributed in document order', 
     identifier: Identifier.createVariable('PAIR'),
     value
   })
-  const file = makeFile([def])
-  const text = file.toString()
-  const spans = resolveSpansForFile(file)
+  const { text, spans } = capture(makeFile([def]))
 
   const aSpan = spans.find(s => s.producer === a)
   const bSpan = spans.find(s => s.producer === b)
@@ -83,14 +91,13 @@ Deno.test('resolveSpans - identical sibling text attributed in document order', 
   assertEquals(aSpan!.from < bSpan!.from, true)
 })
 
-Deno.test('resolveSpans - child whose text is not in parent is skipped', () => {
-  __resetRenderStack()
+Deno.test('CaptureSink - child whose text is not in parent is skipped', () => {
   const ctx = stubContext()
   // Child renders one thing, but the parent reshapes it so the
   // original text isn't present in the parent's output.
   const child = new FakeSnippet(ctx, () => 'lowercase')
   const value = new FakeSnippet(ctx, () => {
-    // Touch the child to trigger _rendered capture, then emit different text.
+    // Render the child (captured as an occurrence), then emit different text.
     const _ = child.toString()
     return 'UPPERCASE'
   })
@@ -99,16 +106,20 @@ Deno.test('resolveSpans - child whose text is not in parent is skipped', () => {
     identifier: Identifier.createVariable('CASED'),
     value
   })
-  const file = makeFile([def])
-  const spans = resolveSpansForFile(file)
+  const { spans } = capture(makeFile([def]))
 
-  // Parent and child both got registered, but only parent's span survives.
-  assertEquals(spans.some(s => s.producer === value), true)
-  assertEquals(spans.some(s => s.producer === child), false)
+  // Parent and child both rendered, but only the parent's span survives.
+  assertEquals(
+    spans.some(s => s.producer === value),
+    true
+  )
+  assertEquals(
+    spans.some(s => s.producer === child),
+    false
+  )
 })
 
-Deno.test('resolveSpans - zero-length child is filtered out', () => {
-  __resetRenderStack()
+Deno.test('CaptureSink - zero-length child is filtered out', () => {
   const ctx = stubContext()
   const empty = new FakeSnippet(ctx, () => '')
   const value = new FakeSnippet(ctx, () => `before${empty}after`)
@@ -117,14 +128,15 @@ Deno.test('resolveSpans - zero-length child is filtered out', () => {
     identifier: Identifier.createVariable('EMPTY'),
     value
   })
-  const file = makeFile([def])
-  const spans = resolveSpansForFile(file)
+  const { spans } = capture(makeFile([def]))
 
-  assertEquals(spans.some(s => s.producer === empty), false)
+  assertEquals(
+    spans.some(s => s.producer === empty),
+    false
+  )
 })
 
-Deno.test('resolveSpans - multiple Definitions appear in document order', () => {
-  __resetRenderStack()
+Deno.test('CaptureSink - multiple Definitions appear in document order', () => {
   const ctx = stubContext()
   const first = new Definition({
     context: ctx,
@@ -136,8 +148,7 @@ Deno.test('resolveSpans - multiple Definitions appear in document order', () => 
     identifier: Identifier.createVariable('SECOND'),
     value: new FakeSnippet(ctx, () => '2')
   })
-  const file = makeFile([first, second])
-  const spans = resolveSpansForFile(file)
+  const { spans } = capture(makeFile([first, second]))
 
   const firstSpan = spans.find(s => s.producer === first)
   const secondSpan = spans.find(s => s.producer === second)
@@ -146,8 +157,7 @@ Deno.test('resolveSpans - multiple Definitions appear in document order', () => 
   assertEquals(firstSpan!.from < secondSpan!.from, true)
 })
 
-Deno.test('resolveSpans - property: every span.slice equals producer._rendered', () => {
-  __resetRenderStack()
+Deno.test('CaptureSink - property: every span.slice equals producer output', () => {
   const ctx = stubContext()
   const inner = new FakeSnippet(ctx, () => 'inner')
   const middle = new FakeSnippet(ctx, () => `<${inner}/>`)
@@ -157,21 +167,58 @@ Deno.test('resolveSpans - property: every span.slice equals producer._rendered',
     identifier: Identifier.createVariable('NESTED'),
     value: outer
   })
-  const file = makeFile([def])
-  const text = file.toString()
-  const spans = resolveSpansForFile(file)
+  const { text, spans } = capture(makeFile([def]))
 
   for (const span of spans) {
+    // Fixtures are deterministic, so re-rendering the producer yields the
+    // same text the sink captured.
     assertEquals(
       text.slice(span.from, span.to),
-      span.producer._rendered ?? span.producer.toString(),
+      span.producer.toString(),
       `Span for ${span.producer.constructor.name} should match its rendered text`
     )
   }
 })
 
-Deno.test('resolveSpans - returns empty array when File has no Definitions', () => {
+Deno.test('CaptureSink - returns empty spans when File has no Definitions', () => {
   const file = new File({ path: 'empty.ts', settings: undefined })
-  const spans = resolveSpansForFile(file)
+  const { spans } = capture(file)
   assertStrictEquals(spans.length, 0)
+})
+
+Deno.test('CaptureSink - cycle detection throws rather than infinite-recurse', () => {
+  const ctx = stubContext()
+  // A snippet whose body re-renders itself — a composition cycle.
+  let self: FakeSnippet
+  // deno-lint-ignore prefer-const
+  self = new FakeSnippet(ctx, () => `wrap(${self})`)
+  const def = new Definition({
+    context: ctx,
+    identifier: Identifier.createVariable('CYCLE'),
+    value: self
+  })
+
+  assertThrows(() => capture(makeFile([def])), Error, 'render cycle')
+})
+
+Deno.test('CaptureSink - prototypes restored after capture (pure passthrough)', () => {
+  const ctx = stubContext()
+  let calls = 0
+  const s = new FakeSnippet(ctx, () => {
+    calls++
+    return 'v'
+  })
+  const def = new Definition({
+    context: ctx,
+    identifier: Identifier.createVariable('PURE'),
+    value: s
+  })
+  capture(makeFile([def]))
+  const callsAfterCapture = calls
+
+  // After restore, `toString` is the plain subclass method: no wrapper,
+  // no caching, called once per coercion.
+  assertEquals(`${s}`, 'v')
+  assertEquals(`${s}`, 'v')
+  assertEquals(calls, callsAfterCapture + 2)
 })

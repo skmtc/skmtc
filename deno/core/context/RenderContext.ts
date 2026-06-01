@@ -11,6 +11,36 @@ import { File } from '@/dsl/File.ts'
 import type { Preview, Mapping } from '@/types/Preview.ts'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { StackTrail } from './StackTrail.ts'
+import { CaptureSink, installCapture } from '@/anchors/CaptureSink.ts'
+import { postPass } from '@/anchors/postPass.ts'
+import { entriesForSidecar } from '@/anchors/generationMap.ts'
+import type { GenerationMapEntry } from '@/anchors/generationMap.ts'
+import type { AttributionState } from '@/types/AttributionState.ts'
+import type { Sidecar } from '@/anchors/sidecar.ts'
+import type { Span } from '@/anchors/types.ts'
+
+/**
+ * One file's render output retained for the attribution post-pass:
+ * the file's own path, the rendered text, and the byte spans the
+ * `CaptureSink` resolved. Populated by {@link RenderContext.collate}
+ * during the single capture render, consumed by {@link RenderContext.render}.
+ */
+type FileCapture = {
+  destinationPath: string
+  filePath: string
+  source: string
+  spans: Span[]
+}
+
+/**
+ * Result of the render phase: artifacts + file metadata + previews +
+ * mappings, plus the attribution sidecars / generation-map when the run
+ * configured `attribution.postPass`.
+ */
+type RenderPhaseResult = Omit<RenderResult, 'results'> & {
+  sidecars?: Record<string, Sidecar>
+  generationMap?: GenerationMapEntry[]
+}
 
 /**
  * Constructor arguments for {@link RenderContext}.
@@ -28,6 +58,13 @@ type ConstructorArgs = {
   logger: log.Logger
   /** Function to capture result status */
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
+  /**
+   * Attribution (gen-maps) emission config. When `postPass` is set, the
+   * single render pass also captures the producer occurrence tree and
+   * emits sidecars + a generation map. Capture is skipped entirely when
+   * absent — plain render, no prototype wrapping.
+   */
+  attribution?: AttributionState
 }
 
 /**
@@ -79,6 +116,20 @@ export class RenderContext {
   logger: Logger
   /** Function to capture result status */
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
+  /** Attribution (gen-maps) emission config; see {@link ConstructorArgs}. */
+  attribution: AttributionState | undefined
+
+  /**
+   * Active capture sink for the in-progress render pass, or `undefined`
+   * when rendering without attribution. `collate` checks this to decide
+   * whether to capture; set + cleared by `render`.
+   */
+  #sink: CaptureSink | undefined
+  /**
+   * Per-file render output retained during a capturing render, consumed
+   * by `render` to build sidecars. Reset each capturing render.
+   */
+  #captures: FileCapture[] = []
 
   /**
    * Creates a new RenderContext instance with the specified configuration.
@@ -94,7 +145,8 @@ export class RenderContext {
     mappings,
     basePath,
     logger,
-    captureCurrentResult
+    captureCurrentResult,
+    attribution
   }: ConstructorArgs) {
     this.files = files
     this.previews = previews
@@ -102,6 +154,7 @@ export class RenderContext {
     this.basePath = basePath
     this.logger = logger
     this.captureCurrentResult = captureCurrentResult
+    this.attribution = attribution
   }
 
   /**
@@ -133,17 +186,65 @@ export class RenderContext {
    * });
    * ```
    */
-  render(stackTrail: StackTrail): Omit<RenderResult, 'results'> {
-    const result = this.collate(stackTrail)
+  render(stackTrail: StackTrail): RenderPhaseResult {
+    const postPassConfig = this.attribution?.postPass
 
-    const rendered: Omit<RenderResult, 'results'> = {
+    // No emission configured → plain render, no capture, no prototype
+    // wrapping. `toString` runs untouched everywhere.
+    if (!postPassConfig) {
+      const result = this.collate(stackTrail)
+      return {
+        artifacts: result.artifacts,
+        files: result.files,
+        previews: this.previews,
+        mappings: this.mappings
+      }
+    }
+
+    // Capturing render: open a sink, wrap the relevant `toString`
+    // prototypes for the single `collate` walk, and restore them in
+    // `finally`. `collate` routes each File's render through the sink.
+    const sink = new CaptureSink()
+    this.#sink = sink
+    this.#captures = []
+    const restoreToString = installCapture(sink)
+
+    let result: FilesRenderResult
+    try {
+      result = this.collate(stackTrail)
+    } finally {
+      restoreToString()
+      this.#sink = undefined
+    }
+
+    // Build one sidecar per captured File from the spans the sink
+    // resolved (no re-render, no `toString`). Keyed by destination path,
+    // matching the file map. Accumulate the flat generation map.
+    const { parser, schemaSrc, generatorMeta } = postPassConfig
+    const sidecars: Record<string, Sidecar> = {}
+    const generationMap: GenerationMapEntry[] = []
+    for (const capture of this.#captures) {
+      const sidecar = postPass({
+        filePath: capture.filePath,
+        source: capture.source,
+        spans: capture.spans,
+        schemaSrc,
+        parser,
+        generatorMeta
+      })
+      sidecars[capture.destinationPath] = sidecar
+      generationMap.push(...entriesForSidecar(sidecar))
+    }
+    this.#captures = []
+
+    return {
       artifacts: result.artifacts,
       files: result.files,
       previews: this.previews,
-      mappings: this.mappings
+      mappings: this.mappings,
+      sidecars,
+      generationMap
     }
-
-    return rendered
   }
 
   /**
@@ -179,8 +280,27 @@ export class RenderContext {
     const fileObjects: FileObject[] = fileEntries
       .map(([destinationPath, file]) => {
         return stackTrail.trace(destinationPath, st => {
+          // When capturing, route a File's render through the sink so the
+          // occurrence tree + spans are recorded for this one render.
+          // JsonFile (and the non-capturing path) render plainly — the
+          // installed wrapper is inert while the sink is not in a
+          // `captureFile` call.
+          let content: string
+          if (this.#sink && file instanceof File) {
+            const captured = this.#sink.captureFile(() => file.toString())
+            content = captured.text
+            this.#captures.push({
+              destinationPath,
+              filePath: file.path,
+              source: captured.text,
+              spans: captured.spans
+            })
+          } else {
+            content = file.toString()
+          }
+
           const renderedFile: FileObject = renderFile({
-            content: file.toString(),
+            content,
             destinationPath,
             basePath: this.basePath
           })
