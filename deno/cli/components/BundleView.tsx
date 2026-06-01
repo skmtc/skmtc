@@ -4,7 +4,7 @@ import type { Project } from '@/lib/project.ts'
 import type { ViewStateBundle } from '@/components/SkmtcContext.tsx'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { useEffect } from 'react'
-import { createBundle } from '@/tasks/GenerateBundleTask.tsx'
+import { createBundle } from '@/lib/create-bundle.ts'
 
 type BundleViewProps = {
   project: Project

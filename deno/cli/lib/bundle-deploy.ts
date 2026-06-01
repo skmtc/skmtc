@@ -18,7 +18,7 @@
 
 import { join } from '@std/path/join'
 import type { Project } from '@/lib/project.ts'
-import { toBundleFailureMessage } from '@/tasks/GenerateBundleTask.tsx'
+import { toBundleFailureMessage } from '@/lib/create-bundle.ts'
 
 const SERVER_ENTRY = 'server.ts'
 const SERVER_BUNDLE = 'server.js'

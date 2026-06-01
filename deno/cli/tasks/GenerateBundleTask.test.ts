@@ -1,5 +1,5 @@
 import { assertStringIncludes } from '@std/assert'
-import { toBundleFailureMessage } from '@/tasks/GenerateBundleTask.tsx'
+import { toBundleFailureMessage } from '@/lib/create-bundle.ts'
 
 Deno.test('toBundleFailureMessage', async t => {
   await t.step('includes the captured `deno bundle` stderr', () => {

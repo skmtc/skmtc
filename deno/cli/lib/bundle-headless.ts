@@ -12,7 +12,7 @@
  */
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { createBundle } from '@/tasks/GenerateBundleTask.tsx'
+import { createBundle } from '@/lib/create-bundle.ts'
 import { exists } from '@std/fs/exists'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { toBundleFsPath } from '@/lib/to-bundle-path.ts'

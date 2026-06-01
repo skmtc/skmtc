@@ -1,7 +1,7 @@
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { Project } from '@/lib/project.ts'
-import { createBundle } from '@/tasks/GenerateBundleTask.tsx'
+import { createBundle } from '@/lib/create-bundle.ts'
 import { generateLocal } from '@/lib/generate-local.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { toBundlePath } from '@/lib/to-bundle-path.ts'
