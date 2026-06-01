@@ -13,7 +13,8 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'generate',
   'dev',
   'doctor',
-  'agent-context'
+  'agent-context',
+  'clean'
 ])
 
 const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
@@ -210,6 +211,25 @@ const run = async () => {
       })
     })
 
+  const cleanCommand = new Command()
+    .description(getCommandDescriptor('clean').description)
+    // Optional in Cliffy so a missing project routes to the recipe
+    // error (with the `ls .skmtc/` discovery hint) instead of Cliffy's
+    // terse "Missing argument(s)" — matches `remove` / `list`.
+    .arguments('[project:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .option('--dry-run', 'List the files and directories that would be deleted without touching disk.')
+    .option('--verbose', 'List every deleted file and pruned directory in text output.')
+    .action(async ({ json, dryRun, verbose }, projectName) => {
+      const { renderClean } = await import('@/commands/clean.ts')
+      await renderClean({
+        projectName,
+        jsonFlag: json,
+        dryRunFlag: dryRun,
+        verboseFlag: verbose
+      })
+    })
+
   const devCommand = new Command()
     .description(getCommandDescriptor('dev').description)
     .arguments('<project:string> [schema:string]')
@@ -291,6 +311,7 @@ const run = async () => {
     .command('remove', removeCommand)
     .command('generate', generateCommand)
     .command('bundle', bundleCommand)
+    .command('clean', cleanCommand)
     .command('deploy', deployCommand)
     .command('dev', devCommand)
     .command('doctor', doctorCommand)

@@ -86,6 +86,7 @@ the listed investigation steps in order.
 | Bundle freshness warning | Compare `deno.json#imports` to imports in `worker.ts` | Run `skmtc bundle <project>` |
 | `Max lookups reached` | The ref chain exceeds 10 hops | Inspect the schema for circular refs or chains > 10 |
 | Module not found in generated code | Read the unresolved import path in the generated file | Either implement the consumer-side path, or clone the generator and change the import target |
+| Orphaned/stale generated files on disk (output from a since-removed generator, a renamed export) | Compare on-disk tree to `manifest.files`; a normal `generate` only prunes files the *next* run replaces | `skmtc clean <project> --dry-run` to preview, then `skmtc clean <project>` for a full reset, then re-`generate` |
 | `No matching export … for import "X"` (bundle time) | Peer-dep version skew | Run `skmtc doctor --json`; check `project-core-pin/<project>` |
 | `ConfigValidationError` | Stale manifest schema | Upgrade CLI; the manifest auto-rewrites on next generate |
 | Per-generator enrichments arrive as `{}` in the worker | The installed CLI is pinned to old `@skmtc/cli` / `@skmtc/core` | Delete `~/.deno/bin/.skmtc/deno.lock`; reinstall with `--reload` |

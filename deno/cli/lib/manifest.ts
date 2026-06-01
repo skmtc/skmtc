@@ -57,6 +57,24 @@ export class Manifest {
     }
   }
 
+  /**
+   * Open a manifest from an explicit path rather than deriving it from
+   * the workspace root. Lets callers (and tests) point at an arbitrary
+   * `.settings/manifest.json` without depending on `toRootPath()`'s
+   * cwd walk. Tolerant read: a missing/malformed/stale-schema manifest
+   * yields `contents: null`.
+   */
+  static async openFromPath(projectName: string, path: string): Promise<Manifest> {
+    const hasManifest = await exists(path, { isFile: true })
+
+    if (hasManifest) {
+      const contents = await readManifestTolerant(path)
+      return new Manifest({ projectName, contents })
+    } else {
+      return new Manifest({ projectName, contents: null })
+    }
+  }
+
   async write() {
     const path = Manifest.toPath(this.projectName)
     const content = JSON.stringify(this.contents, null, 2)

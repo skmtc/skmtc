@@ -147,6 +147,7 @@ follow-up command the agent can run to fetch the candidate set. No
 | `remove [project] [generator]` | Remove a generator | Both required |
 | `generate <project> [schema]` | Run the pipeline | Project required; schema falls back to `client.json#source` |
 | `bundle [project]` | Compile local generators without generating | Project required |
+| `clean [project]` | Delete a project's generated files + manifest, pruning emptied dirs | Project required; `--dry-run`, `--verbose`; no Ink variant |
 | `dev <project> [schema]` | Watch + rebundle + regenerate on change | Project required; no `--json` (long-running) |
 | `doctor` | Diagnose project setup | No args; always strict |
 | `agent-context` | Write JSON dump of CLI surface + state to stdout | No args; always strict |
@@ -507,6 +508,43 @@ is enough) or remove the other variants.
    the top level.
 2. After this, `skmtc generate <project>` works without the schema
    positional arg.
+
+### Card: Cleaning a project's generated output
+
+Use when stale output has accumulated and you want a guaranteed fresh
+tree, or before deleting a project. `clean` reads the manifest,
+deletes every file it recorded, prunes the directories those
+deletions emptied, and removes the manifest.
+
+```bash
+skmtc clean <project> --dry-run --verbose   # preview: lists files + dirs, touches nothing
+skmtc clean <project> --json                # apply; returns { deleted, removedDirs, manifestRemoved, ... }
+```
+
+Then, for a clean-slate regeneration:
+
+```bash
+skmtc clean <project> --json && skmtc generate <project> --json
+```
+
+Key facts:
+
+- **`clean` is the full delete; `generate`'s internal prune is
+  incremental.** `generate` only deletes the files the *next* run
+  won't rewrite (stale artifacts from a removed generator). `clean`
+  deletes the *entire* manifest-recorded set. Both now also prune the
+  directories they empty.
+- **Directory pruning is self-limiting and anchored.** It removes only
+  dirs it emptied, stops at the first non-empty ancestor, and never
+  removes `basePath` or a `packages[].rootPath`. If `basePath` is
+  unset in `client.json`, dir pruning is skipped entirely.
+- **`clean` touches only generated output.** It never rebundles,
+  contacts JSR, or edits `client.json` / `deno.json`. To uninstall a
+  *generator*, use `remove`, not `clean`.
+- **No confirmation prompt** (no Ink variant). `--dry-run` is the
+  safety valve; deletion is irreversible.
+- A project with no manifest (never generated, or already cleaned) →
+  no-op, exit 0, `noManifest: true`.
 
 ### Card: Filtering operations (opt-in form generator pattern)
 

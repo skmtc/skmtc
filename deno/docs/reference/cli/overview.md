@@ -37,6 +37,7 @@ The CLI is installed via Deno's `install` mechanism, then invoked as
 |---------|---------|-----------|
 | `generate` | Run the engine end-to-end on a project's spec | [generate](generate.md) |
 | `bundle` | Rebuild the project's `bundle.js` (worker payload) | [bundle](bundle.md) |
+| `clean` | Delete a project's generated files + manifest, pruning emptied dirs | [clean](clean.md) |
 | `dev` | Watch mode for iterative generator development | [dev](dev.md) |
 
 ### Deploy

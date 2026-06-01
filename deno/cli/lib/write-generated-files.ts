@@ -1,23 +1,31 @@
 import { join } from '@std/path/join'
 import { parse } from '@std/path/parse'
+import { resolve } from '@std/path/resolve'
 import { ensureDirSync } from '@std/fs/ensure-dir'
 import { ensureFileSync } from '@std/fs/ensure-file'
 import { existsSync } from '@std/fs/exists'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
+import type { ClientSettings } from '@skmtc/core/Settings'
 import * as v from 'valibot'
-import { toRootPath } from '@/lib/to-root-path.ts'
+import { toRootPath, toAbsoluteRootPath } from '@/lib/to-root-path.ts'
+import { pruneEmptyDirs, toAnchorDirs } from '@/lib/prune-empty-dirs.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 
 type DeletePreviousArtifactsArgs = {
   skmtcRootPath: string
   manifestPath: string
   incomingPaths: string[]
+  /** Output anchors from the run's client.json — used to bound the
+   *  empty-dir prune that follows file deletion. When absent (no
+   *  basePath, or called without settings), dirs aren't pruned. */
+  clientSettings?: ClientSettings
 }
 
 export const deletePreviousArtifacts = ({
   skmtcRootPath,
   incomingPaths,
-  manifestPath
+  manifestPath,
+  clientSettings
 }: DeletePreviousArtifactsArgs) => {
   if (!existsSync(manifestPath)) {
     return
@@ -37,18 +45,29 @@ export const deletePreviousArtifacts = ({
 
   const paths = Object.keys(manifestFile.files)
 
+  const deletedAbsPaths: string[] = []
+
   paths.forEach(path => {
     try {
       if (!incomingPaths.includes(path)) {
         const absolutePath = join(skmtcRootPath, '..', path)
 
         Deno.removeSync(absolutePath)
+        deletedAbsPaths.push(absolutePath)
       }
     } catch (_error) {
       // Ignore
       // console.error(`Failed to delete artifact: "${error}"`)
     }
   })
+
+  // Prune any directories the stale-artifact deletion emptied, bounded
+  // by the output anchors so the walk can never remove basePath or a
+  // package root. Same self-limiting prune `clean` uses.
+  const anchors = toAnchorDirs(resolve(toAbsoluteRootPath()), clientSettings)
+  if (anchors && deletedAbsPaths.length > 0) {
+    pruneEmptyDirs({ deletedAbsPaths, anchors, dryRun: false })
+  }
 }
 
 /**
@@ -87,19 +106,24 @@ type WriteGeneratedFilesArgs = {
   manifestPath: string
   artifacts: Record<string, string>
   manifest: ManifestContent
+  /** Output anchors from the run's client.json — forwarded to the
+   *  stale-artifact prune so it can clean up emptied directories. */
+  clientSettings?: ClientSettings
 }
 
 export const writeGeneratedFiles = ({
   manifestPath,
   artifacts,
-  manifest
+  manifest,
+  clientSettings
 }: WriteGeneratedFilesArgs): GenerateResponse => {
   const skmtcRootPath = toRootPath()
 
   deletePreviousArtifacts({
     incomingPaths: Object.keys(artifacts ?? {}),
     manifestPath,
-    skmtcRootPath
+    skmtcRootPath,
+    clientSettings
   })
 
   ensureFileSync(manifestPath)

@@ -112,6 +112,23 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'full'
   },
   {
+    name: 'clean',
+    description: "Delete a project's generated files (and manifest) recorded in the manifest, pruning emptied directories",
+    args: ['<project>'],
+    flags: [
+      { flag: '--json', description: 'Emit structured JSON output.' },
+      {
+        flag: '--dry-run',
+        description: 'List the files and directories that would be deleted without touching disk.'
+      },
+      {
+        flag: '--verbose',
+        description: 'List every deleted file and pruned directory in text output.'
+      }
+    ],
+    agentMode: 'json-only'
+  },
+  {
     name: 'deploy',
     description: "Build and upload a deployment of this project to skmtc-hub. The deployment lands on the stack <authenticated-user>/<project>; each deploy creates a new immutable deployment.",
     args: ['<project>'],

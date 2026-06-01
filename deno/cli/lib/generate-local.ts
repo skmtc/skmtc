@@ -105,7 +105,8 @@ export const generateLocal = async ({
     writeGeneratedFiles({
       manifestPath,
       artifacts,
-      manifest
+      manifest,
+      clientSettings
     })
 
     let anchorsStats: GenerateLocalAnchorsStats | undefined

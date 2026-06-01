@@ -55,7 +55,8 @@ export const generate = async ({
     writeGeneratedFiles({
       manifestPath,
       artifacts,
-      manifest
+      manifest,
+      clientSettings
     })
 
     const stats = toGenerationStats({ manifest, artifacts })
