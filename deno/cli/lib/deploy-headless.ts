@@ -8,7 +8,8 @@
  *   2. `bundleDeploy(project)` → `<project>/server.js` — one self-contained
  *      bundle (generators + `createServer` + `@skmtc/core` + `@skmtc/server`,
  *      nothing external).
- *   3. `collectSourceFiles(project)` — the user-authored source tree.
+ *   3. `collectSourceFiles(project)` — the user-authored source tree, filtered
+ *      by built-in defaults + the project's optional `.skmtcignore`.
  *   4. `POST /v1/stacks/{account}/{stack}/deployments` (multipart) with the
  *      `bundle` part + one `files` part per source file. The hub allocates the
  *      id + shortId, writes bundle + source to R2, reconciles the stack's

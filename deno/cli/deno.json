@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
@@ -18,7 +18,8 @@
     "ink-link": "npm:ink-link@^5.0.0",
     "react": "npm:react@^19.1.1",
     "ink-testing-library": "npm:ink-testing-library@^4.0.0",
-    "gpt-tokenizer": "npm:gpt-tokenizer@^3.2.0"
+    "gpt-tokenizer": "npm:gpt-tokenizer@^3.2.0",
+    "ignore": "npm:ignore@^7.0.5"
   },
   "permissions": {
     "default": {
