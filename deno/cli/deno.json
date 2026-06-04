@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.4.8",
+  "version": "0.4.9",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
@@ -9,7 +9,7 @@
     "@skmtc/convert": "jsr:@skmtc/convert@0.1.12",
     "@skmtc/worker": "jsr:@skmtc/worker@0.3.9",
     "@skmtc/worker/types": "jsr:@skmtc/worker@0.3.9/types",
-    "@skmtc/server": "jsr:@skmtc/server@0.2.14",
+    "@skmtc/server": "jsr:@skmtc/server@0.2.16",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.57.4",
     "chokidar": "npm:chokidar@^4.0.3",
     "ink": "npm:ink@^6.2.3",
