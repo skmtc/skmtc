@@ -10,8 +10,8 @@ SKMTC is a Deno-based monorepo that generates code artifacts from OpenAPI v3 doc
 
 ### Root Workspace
 ```bash
-# Publish all packages
-deno task publish
+# Release: cascade version bumps + publish in dependency order (see "Releasing")
+deno task release
 
 # Run tests across workspace
 deno test
@@ -25,6 +25,39 @@ deno lint
 # Type check
 deno check mod.ts
 ```
+
+## Releasing
+
+**Always release through `deno task release` (the `.scripts/release.ts`
+cascade). Never publish a workspace package by hand with `deno publish` /
+`deno task publish`** — manual publishing skips the cascade and silently
+leaves downstream `@skmtc/*` consumers pinned to the old version.
+
+The canonical flow:
+
+1. Bump the `version` in `deno.json` of **only** the package(s) whose source
+   you directly changed. Leave downstream consumers alone.
+2. From `skmtc/deno/`, run `deno task release`.
+
+The script then, against the JSR registry as the source of truth:
+- treats any package whose `deno.json` version is **not yet published** as a
+  direct release;
+- **cascades** — every workspace package that depends (directly or
+  transitively) on a releasing package gets its `@skmtc/*` import pins
+  rewritten to the new versions and its own patch version bumped;
+- publishes in dependency order so a dependency is live before its dependents
+  resolve against it.
+
+Flags: `--reinstall-cli=none|local-compile|jsr-install` controls whether the
+local `skmtc` binary is rebuilt when `@skmtc/cli` is part of the release
+(default `none`, which just prints the install command).
+
+**Cascade trigger caveat:** the cascade fires only for dependents of packages
+that are *pending* on the registry. If you publish a dependency manually, that
+trigger is spent — re-running `release` will report "nothing to publish" while
+downstream pins stay drifted. To recover, bump the directly-affected
+consumer's `version` by hand and run `release` again; the cascade picks up the
+rest.
 
 ### Core Library (`/core/`)
 ```bash
