@@ -1,6 +1,5 @@
 /** OpenAPI Down Convert — convert an OAS document from OAS 3.1 to OAS 3.0. */
 
-import { parse as parseYaml } from '@std/yaml/parse'
 import {
   isJsonObject,
   visitRefObjects,
@@ -40,10 +39,12 @@ export interface ConverterOptions {
    */
   convertOpenIdConnectToOAuth2?: boolean
   /**
-   * Name of a YAML/JSON file with scope descriptions. This is a simple map in
-   * the format `{ scope1: "description of scope1", ... }`.
+   * Scope descriptions for the `openIdConnect` -> `oauth2` transformation: a
+   * simple map in the format `{ scope1: "description of scope1", ... }`. Passed
+   * as data (not a file path) so the converter stays free of filesystem I/O and
+   * remains bundler/Workers-portable; callers load the file themselves.
    */
-  scopeDescriptionFile?: string
+  scopeDescriptions?: JsonObject
   /**
    * Earlier versions of the tool converted `$comment` to `x-comment` in JSON
    * Schemas. The tool now deletes `$comment` values by default. Use this
@@ -95,10 +96,7 @@ export class Converter {
     return obj
   }
 
-  /**
-   * Construct a new Converter.
-   * @throws Error if the `scopeDescriptionFile` (if specified) cannot be read or parsed as YAML/JSON.
-   */
+  /** Construct a new Converter. */
   constructor(openapiDocument: object, options?: ConverterOptions) {
     this.openapi30 = Converter.deepClone(openapiDocument) as OpenAPI3
     this.verbose = Boolean(options?.verbose)
@@ -107,24 +105,11 @@ export class Converter {
     this.authorizationUrl = options?.authorizationUrl || 'https://www.example.com/oauth2/authorize'
     this.tokenUrl = options?.tokenUrl || 'https://www.example.com/oauth2/token'
     this.convertOpenIdConnectToOAuth2 = options?.convertOpenIdConnectToOAuth2 ||
-      Boolean(options?.scopeDescriptionFile)
-    if (this.convertOpenIdConnectToOAuth2) {
-      this.loadScopeDescriptions(options?.scopeDescriptionFile)
+      Boolean(options?.scopeDescriptions)
+    if (options?.scopeDescriptions) {
+      this.scopeDescriptions = options.scopeDescriptions
     }
     this.convertSchemaComments = Boolean(options?.convertSchemaComments)
-  }
-
-  /**
-   * Load the scopes file and save it in `this.scopeDescriptions`.
-   * @throws Error if the file cannot be read or parsed as YAML/JSON.
-   */
-  private loadScopeDescriptions(scopeDescriptionFile?: string): void {
-    if (!scopeDescriptionFile) {
-      return
-    }
-    const contents = Deno.readTextFileSync(scopeDescriptionFile)
-    const parsed = parseYaml(contents)
-    this.scopeDescriptions = isJsonObject(parsed) ? parsed : {}
   }
 
   /** Log a message to the `console.warn` stream if verbose is true. */

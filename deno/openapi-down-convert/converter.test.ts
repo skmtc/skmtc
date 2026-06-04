@@ -11,7 +11,6 @@ import {
   assertThrows,
 } from '@std/assert'
 import { parse as parseYaml } from '@std/yaml/parse'
-import { fromFileUrl } from '@std/path'
 import { Converter, type ConverterOptions } from './converter.ts'
 
 // The converter narrates transformations to stderr in verbose mode; silence
@@ -19,7 +18,9 @@ import { Converter, type ConverterOptions } from './converter.ts'
 console.warn = () => {}
 console.error = () => {}
 
-const scopesYamlPath = fromFileUrl(new URL('./fixtures/scopes.yaml', import.meta.url))
+const scopeDescriptions = parseYaml(
+  Deno.readTextFileSync(new URL('./fixtures/scopes.yaml', import.meta.url)),
+) as Record<string, string>
 
 Deno.test('Converter - changes openapi 3.1.x to 3.0.x', () => {
   const converted = new Converter({ openapi: '3.1.0' }).convert() as any
@@ -118,7 +119,7 @@ Deno.test('Converter - converts openIdConnect security schemes to oauth2', () =>
   const options: ConverterOptions = {
     authorizationUrl: 'https://www.example.com/test/authorize',
     tokenUrl: 'https://www.example.com/test/token',
-    scopeDescriptionFile: scopesYamlPath,
+    scopeDescriptions,
     convertOpenIdConnectToOAuth2: true,
   }
   const converted = new Converter(input, options).convert() as any
@@ -630,7 +631,7 @@ Deno.test('Converter - converts the larger example document', () => {
   const options: ConverterOptions = {
     verbose: true,
     deleteExampleWithId: true,
-    scopeDescriptionFile: scopesYamlPath,
+    scopeDescriptions,
   }
   const converted = new Converter(input, options).convert() as any
 
