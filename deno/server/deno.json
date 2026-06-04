@@ -7,7 +7,7 @@
   "imports": {
     "hono": "npm:hono@4.7.2",
     "@skmtc/core": "jsr:@skmtc/core@0.6.12",
-    "@skmtc/convert": "jsr:@skmtc/convert@0.1.11"
+    "@skmtc/convert": "jsr:@skmtc/convert@0.1.12"
   },
   "tasks": {
     "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN"
