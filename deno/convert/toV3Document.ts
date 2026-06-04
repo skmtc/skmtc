@@ -53,12 +53,13 @@
  * @module toV3Document
  */
 
-import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
+import type { OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import { parse as parseYaml } from '@std/yaml/parse'
 import {
   Converter as ThreeOneToThreeZeroConverter,
   type ConverterOptions
 } from '@skmtc/openapi-down-convert'
+import type { JsonValue } from '@skmtc/swagger2openapi'
 import type { AnyOasDocument } from './types.ts'
 
 /**
@@ -174,15 +175,14 @@ export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Do
   }
 
   if ('swagger' in schema && typeof schema.swagger === 'string' && schema.swagger.startsWith('2.0')) {
-    // Lazy import: `swagger2openapi` does `require('node:fs|path|url|http')`
-    // at module init, which fails in restricted runtimes (CF Workers' V8
-    // isolate). Deferring the import to this branch means OAS 3.0 / 3.1
-    // inputs never trigger the load — `@skmtc/convert` becomes
-    // Workers-portable for the common case.
-    // @deno-types="npm:@types/swagger2openapi@7.0.4"
-    const converter = (await import('swagger2openapi')).default
-    const parsed = await converter.convertObj(schema as OpenAPIV2.Document, {})
-    return parsed.openapi
+    // Lazy import: pulling in `@skmtc/swagger2openapi` eagerly loads its
+    // validator (ajv) and async I/O wrappers, which aren't needed for the
+    // common OAS 3.0 / 3.1 cases. Deferring the import to this branch keeps
+    // `@skmtc/convert` lean and Workers-portable when the input isn't
+    // Swagger 2.0. `convertObj` is synchronous (pure object manipulation).
+    const { convertObj } = await import('@skmtc/swagger2openapi')
+    const { openapi } = convertObj(schema as unknown as JsonValue, {})
+    return openapi as unknown as OpenAPIV3.Document
   }
 
   const versionField =
