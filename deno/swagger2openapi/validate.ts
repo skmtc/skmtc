@@ -24,12 +24,8 @@ import {
   type JsonObject,
   type JsonValue,
 } from './json.ts'
-import {
-  hasDuplicates,
-  parameterTypeProperties,
-  resolveExternal,
-  resolveInternal,
-} from './common.ts'
+import { hasDuplicates, parameterTypeProperties, resolveInternal } from './common.ts'
+import { resolveExternal } from './io.ts'
 import { jpescape, jptr, recurse, type RecurseState } from './reftools.ts'
 import { getDefaultState, walkSchema, type WalkSchemaState } from './walkSchema.ts'
 import { lint as defaultLinter } from './linter.ts'

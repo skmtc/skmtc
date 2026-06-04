@@ -30,7 +30,6 @@ import {
   hash,
   httpVerbs,
   parameterTypeProperties,
-  resolveExternal,
   resolveInternal,
   sanitise,
   sanitiseAll,
@@ -38,7 +37,7 @@ import {
   uniqueOnly,
   VERSION,
 } from './common.ts'
-import { clone, jpescape, recurse, type RecurseState } from './reftools.ts'
+import { clone, jpescape, recurse } from './reftools.ts'
 import { walkSchema } from './walkSchema.ts'
 import { statusCodes } from './statusCodes.ts'
 import type { ConvertOptions, ConvertResult, External } from './types.ts'
@@ -1004,7 +1003,12 @@ const processXmsExamples = (
 
 // --- main conversion ------------------------------------------------------------
 
-const main = (openapi: JsonObject, options: ConvertOptions): JsonObject => {
+/**
+ * Run the Swagger 2.0 → OpenAPI 3.0 body transform over a prepared document.
+ *
+ * @internal Exported for `./io.ts`; not part of the package's public API.
+ */
+export const main = (openapi: JsonObject, options: ConvertOptions): JsonObject => {
   const requestBodyCache: Record<number, RequestBodyEntry> = {}
   const componentNames: ComponentNames = { schemas: {} }
   const components = ensureObj(openapi, 'components')
@@ -1240,12 +1244,18 @@ const recordOrigin = (openapi: JsonObject, swagger: JsonObject, origin: string):
   })
 }
 
-interface Prepared {
+/** Result of {@link prepare}: the cloned/normalised doc and whether it was Swagger 2.0. @internal */
+export interface Prepared {
   openapi: JsonObject
   isV2: boolean
 }
 
-const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared => {
+/**
+ * Clone and structurally normalise an input document, detecting Swagger 2.0.
+ *
+ * @internal Exported for `./io.ts`; not part of the package's public API.
+ */
+export const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared => {
   if (isString(swagger.openapi) && swagger.openapi.startsWith('3.')) {
     const cloned = clone(swagger)
     const openapi = isJsonObject(cloned) ? cloned : {}
@@ -1354,59 +1364,14 @@ const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared => {
   return { openapi, isV2: true }
 }
 
-// --- external reference resolution ---------------------------------------------
-
-const findExternalRefs = (
-  master: JsonValue,
-  options: ConvertOptions,
-  externals: External[],
-  actions: Promise<JsonValue>[],
-): void => {
-  recurse(master, null, (container, key, state: RecurseState) => {
-    if (!isJsonObject(container)) return
-    if (!isRef(container, key)) return
-    const ref = container[key]
-    if (!isString(ref) || ref.startsWith('#')) return
-    actions.push(
-      resolveExternal(master, ref, options, (data, source) => {
-        externals.push({
-          context: state.path,
-          $ref: ref,
-          original: clone(data),
-          updated: data,
-          source,
-        })
-        const localOptions: ConvertOptions = { ...options, source }
-        findExternalRefs(data, localOptions, externals, actions)
-        if (options.patch && isJsonObject(data) && typeof data.description === 'undefined') {
-          const description = container.description
-          if (typeof description !== 'undefined') data.description = description
-        }
-        if (typeof key !== 'undefined') {
-          const parent = state.parent
-          if (isJsonObject(parent)) parent[state.pkey] = data
-          else if (isJsonArray(parent)) parent[Number(state.pkey)] = data
-        }
-      }),
-    )
-  })
-}
-
-const resolveExternalRefs = async (
-  openapi: JsonObject,
-  options: ConvertOptions,
-  externals: External[],
-): Promise<void> => {
-  const actions: Promise<JsonValue>[] = []
-  findExternalRefs(openapi, options, externals, actions)
-  for (const action of actions) {
-    await action // sequential because the action list mutates while iterating
-  }
-}
-
 // --- public API -----------------------------------------------------------------
 
-const toResult = (
+/**
+ * Assemble a {@link ConvertResult}.
+ *
+ * @internal Exported for `./io.ts`; not part of the package's public API.
+ */
+export const toResult = (
   openapi: JsonObject,
   externals: External[],
   sourceYaml: boolean,
@@ -1419,7 +1384,8 @@ const toResult = (
 /**
  * Converts a Swagger 2.0 (or pass-through OpenAPI 3.x) document object to
  * OpenAPI 3.0. Synchronous: throws if `options.resolve` is set — use
- * {@link convertObjResolve} for external reference resolution.
+ * `convertObjResolve` (from `@skmtc/swagger2openapi`) for external reference
+ * resolution.
  */
 export const convertObj = (swagger: JsonValue, options: ConvertOptions = {}): ConvertResult => {
   if (!isJsonObject(swagger)) throw new ConvertError('Document must be an object')
@@ -1431,25 +1397,18 @@ export const convertObj = (swagger: JsonValue, options: ConvertOptions = {}): Co
   return toResult(openapi, [], false)
 }
 
-/** Like {@link convertObj}, but resolves external `$ref`s first (asynchronous). */
-export const convertObjResolve = async (
-  swagger: JsonValue,
-  options: ConvertOptions = {},
-): Promise<ConvertResult> => {
-  if (!isJsonObject(swagger)) throw new ConvertError('Document must be an object')
-  const externals: External[] = []
-  const { openapi, isV2 } = prepare(swagger, options)
-  if (options.resolve) await resolveExternalRefs(openapi, options, externals)
-  if (isV2) main(openapi, options)
-  return toResult(openapi, externals, false)
-}
-
-interface ParsedInput {
+/** Parsed JSON/YAML input plus whether the source was YAML. @internal */
+export interface ParsedInput {
   value: JsonValue
   yaml: boolean
 }
 
-const parseInput = (str: string): ParsedInput | undefined => {
+/**
+ * Parse a JSON-or-YAML string into a {@link JsonValue}.
+ *
+ * @internal Exported for `./io.ts`; not part of the package's public API.
+ */
+export const parseInput = (str: string): ParsedInput | undefined => {
   try {
     return { value: toJson(JSON.parse(str)), yaml: false }
   } catch {
@@ -1468,43 +1427,4 @@ export const convertStr = (str: string, options: ConvertOptions = {}): ConvertRe
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = convertObj(parsed.value, options)
   return toResult(result.openapi, result.externals, parsed.yaml)
-}
-
-const convertStrResolve = async (str: string, options: ConvertOptions): Promise<ConvertResult> => {
-  const parsed = parseInput(str)
-  if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
-  const result = await convertObjResolve(parsed.value, options)
-  return toResult(result.openapi, result.externals, parsed.yaml)
-}
-
-/** Reads, parses, and converts a local file (resolving external `$ref`s when requested). */
-export const convertFile = async (
-  filename: string,
-  options: ConvertOptions = {},
-): Promise<ConvertResult> => {
-  const text = await Deno.readTextFile(filename)
-  if (!options.source) options.source = filename
-  return await convertStrResolve(text, options)
-}
-
-/** Fetches, parses, and converts a remote document (resolving external `$ref`s when requested). */
-export const convertUrl = async (
-  url: string,
-  options: ConvertOptions = {},
-): Promise<ConvertResult> => {
-  if (!options.origin) options.origin = url
-  if (options.verbose) console.log('GET ' + url)
-  const response = await fetch(url)
-  const text = await response.text()
-  if (!options.source) options.source = url
-  return await convertStrResolve(text, options)
-}
-
-/** Drains a readable stream, then parses and converts its contents. */
-export const convertStream = async (
-  readable: ReadableStream<Uint8Array>,
-  options: ConvertOptions = {},
-): Promise<ConvertResult> => {
-  const text = await new Response(readable).text()
-  return await convertStrResolve(text, options)
 }

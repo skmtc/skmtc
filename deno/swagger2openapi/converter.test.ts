@@ -1,13 +1,7 @@
 import { assertEquals, assertExists, assertStringIncludes, assertThrows } from '@std/assert'
 import { fromFileUrl } from '@std/path'
-import {
-  ConvertError,
-  convertFile,
-  convertObj,
-  convertStr,
-  convertStream,
-  targetVersion,
-} from './converter.ts'
+import { ConvertError, convertObj, convertStr, targetVersion } from './converter.ts'
+import { convertFile, convertStream } from './io.ts'
 import { isJsonObject, type JsonValue, toJson } from './json.ts'
 
 const readFixture = async (name: string): Promise<JsonValue> => {

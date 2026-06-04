@@ -1,16 +1,13 @@
 /**
- * Helpers shared across the converter and validator: name sanitisation, the
- * camelCase transform, a stable string hash, the parameter/array property
- * lists, and external `$ref` resolution.
+ * Pure helpers shared across the converter and validator: name sanitisation,
+ * the camelCase transform, a stable string hash, and the parameter/array
+ * property lists. (External `$ref` resolution lives in `./io.ts` — keep this
+ * module free of `Deno`/`fetch` so the converter graph stays I/O-free.)
  *
  * @module
  */
 
-import { parse as parseYaml } from '@std/yaml'
-import { join as joinPath } from '@std/path'
-import { type JsonValue, toJson } from './json.ts'
 import { jptr } from './reftools.ts'
-import type { ResolveOptions } from './types.ts'
 
 /** Version of this package, recorded in `x-origin` converter provenance entries. */
 export const VERSION = '0.1.0'
@@ -96,90 +93,3 @@ export const sanitiseAll = (s: string): string => sanitise(s.split('/').join('_'
 
 /** Resolves an internal JSON Reference against `root`. */
 export const resolveInternal = jptr
-
-const tryParse = (text: string): JsonValue | undefined => {
-  try {
-    return toJson(parseYaml(text))
-  } catch {
-    return undefined
-  }
-}
-
-/** Callback receiving a resolved external document and its resolved target. */
-export type ResolveCallback = (data: JsonValue, source: string) => void
-
-/**
- * Resolves an external (`$ref`) document — over HTTP or from the local file
- * system — relative to `options.source`, caching the result and invoking
- * `callback` with the resolved data.
- */
-export const resolveExternal = async (
-  _root: JsonValue,
-  pointer: string,
-  options: ResolveOptions,
-  callback: ResolveCallback,
-): Promise<JsonValue> => {
-  const cache = options.cache ?? (options.cache = {})
-  const source = (options.source ?? '').split('\\').join('/')
-  const sourceParts = source.split('/')
-  const filename = sourceParts.pop()
-  if (!filename) sourceParts.pop()
-
-  let fragment = ''
-  let target = pointer
-  const hashParts = pointer.split('#')
-  if (hashParts.length > 1) {
-    fragment = '#' + hashParts[1]
-    target = hashParts[0]
-  }
-  const base = sourceParts.join('/')
-
-  const pointerIsHttp = /^https?:\/\//.test(target)
-  const sourceIsHttp = /^https?:\/\//.test(source)
-  const resolvedTarget = pointerIsHttp
-    ? target
-    : sourceIsHttp
-    ? new URL(target, base + '/').toString()
-    : base
-    ? joinPath(base, target)
-    : target
-
-  const deliver = (data: JsonValue): JsonValue => {
-    const resolved = fragment ? resolveValue(data, fragment) : data
-    callback(resolved, resolvedTarget)
-    return resolved
-  }
-
-  if (Object.prototype.hasOwnProperty.call(cache, resolvedTarget)) {
-    if (options.verbose) console.log('CACHED', resolvedTarget)
-    return deliver(cache[resolvedTarget])
-  }
-
-  if (options.verbose) console.log('GET', resolvedTarget)
-
-  const protocol = pointerIsHttp || sourceIsHttp ? 'http:' : 'file:'
-  const handler = options.handlers?.[protocol]
-  if (handler) {
-    const data = await handler(base, target, fragment, options)
-    callback(data, resolvedTarget)
-    return data
-  }
-
-  const text = pointerIsHttp || sourceIsHttp
-    ? await (await fetch(resolvedTarget)).text()
-    : await Deno.readTextFile(resolvedTarget)
-
-  const parsed = tryParse(text)
-  if (typeof parsed === 'undefined') {
-    // Mirror the original: a non-parseable payload is delivered as-is.
-    callback(text, resolvedTarget)
-    return text
-  }
-  cache[resolvedTarget] = parsed
-  return deliver(parsed)
-}
-
-const resolveValue = (data: JsonValue, fragment: string): JsonValue => {
-  const resolved = jptr(data, fragment)
-  return resolved === false || typeof resolved === 'undefined' ? data : resolved
-}

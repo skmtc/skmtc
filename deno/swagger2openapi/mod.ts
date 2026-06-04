@@ -28,16 +28,9 @@
  * @module
  */
 
-export {
-  ConvertError,
-  convertFile,
-  convertObj,
-  convertObjResolve,
-  convertStr,
-  convertStream,
-  convertUrl,
-  targetVersion,
-} from './converter.ts'
+export { ConvertError, convertObj, convertStr, targetVersion } from './converter.ts'
+
+export { convertFile, convertObjResolve, convertStream, convertUrl } from './io.ts'
 
 export { lint, loadRules } from './linter.ts'
 
