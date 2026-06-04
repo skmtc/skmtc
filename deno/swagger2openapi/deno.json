@@ -1,8 +1,9 @@
 {
   "name": "@skmtc/swagger2openapi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "exports": {
-    ".": "./mod.ts"
+    ".": "./mod.ts",
+    "./converter": "./converter.ts"
   },
   "imports": {
     "@std/path": "jsr:@std/path@^1.0.9",

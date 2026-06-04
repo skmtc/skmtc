@@ -59,7 +59,7 @@ import {
   Converter as ThreeOneToThreeZeroConverter,
   type ConverterOptions
 } from '@skmtc/openapi-down-convert'
-import type { JsonValue } from '@skmtc/swagger2openapi'
+import type { JsonValue } from '@skmtc/swagger2openapi/converter'
 import type { AnyOasDocument } from './types.ts'
 
 /**
@@ -175,12 +175,14 @@ export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Do
   }
 
   if ('swagger' in schema && typeof schema.swagger === 'string' && schema.swagger.startsWith('2.0')) {
-    // Lazy import: pulling in `@skmtc/swagger2openapi` eagerly loads its
-    // validator (ajv) and async I/O wrappers, which aren't needed for the
-    // common OAS 3.0 / 3.1 cases. Deferring the import to this branch keeps
-    // `@skmtc/convert` lean and Workers-portable when the input isn't
-    // Swagger 2.0. `convertObj` is synchronous (pure object manipulation).
-    const { convertObj } = await import('@skmtc/swagger2openapi')
+    // Import the converter-only subpath, NOT the package root: the root
+    // (`mod.ts`) re-exports the ajv-based validator, whose `ajv-draft-04`
+    // CJS deep-requires bloat the bundle and trip stricter bundlers. The
+    // `/converter` subpath has zero ajv and zero `node:` built-ins, so
+    // `@skmtc/convert` stays lean and Workers-portable. Kept lazy so the
+    // common OAS 3.0 / 3.1 cases never load it at all. `convertObj` is
+    // synchronous (pure object manipulation).
+    const { convertObj } = await import('@skmtc/swagger2openapi/converter')
     const { openapi } = convertObj(schema as unknown as JsonValue, {})
     return openapi as unknown as OpenAPIV3.Document
   }

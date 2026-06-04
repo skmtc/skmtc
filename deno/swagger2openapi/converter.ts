@@ -43,6 +43,12 @@ import { walkSchema } from './walkSchema.ts'
 import { statusCodes } from './statusCodes.ts'
 import type { ConvertOptions, ConvertResult, External } from './types.ts'
 
+// Re-exported so consumers that only need the converter (e.g. `@skmtc/convert`)
+// can import value + types from `@skmtc/swagger2openapi/converter` without
+// pulling in the validator's ajv graph via the package root (`mod.ts`).
+export type { ConvertOptions, ConvertResult } from './types.ts'
+export type { JsonObject, JsonValue } from './json.ts'
+
 /** Target OpenAPI version produced by the converter. */
 export const targetVersion = '3.0.0'
 
