@@ -19,6 +19,8 @@ import type { ToArtifactsResult } from './generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
+import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
+import type { ParseIssue } from '@/context/ParseIssue.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -467,6 +469,62 @@ export class CoreContext {
           handler.flush()
         }
       })
+    }
+  }
+
+  /**
+   * Capability-only sibling of {@link toArtifacts}: parse the document, then
+   * evaluate each generator's `isSupported` over its subjects — no transform,
+   * no render. Returns the subjects each generator supports, plus parse issues.
+   */
+  toSupportedSubjects({
+    document,
+    settings,
+    toGeneratorConfigMap,
+    stackTrail
+  }: Pick<
+    ToArtifactsArgs,
+    'document' | 'settings' | 'toGeneratorConfigMap' | 'stackTrail'
+  >): { subjects: SupportedSubjects; parseIssues: ParseIssue[] } {
+    try {
+      const phase = this.#setupParsePhase(document)
+      this.#phase = phase
+      const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
+        phase.context.parse(st)
+      )
+
+      const subjects = stackTrail.trace('generate', () => {
+        const generatePhase = this.#setupGeneratePhase({
+          toGeneratorConfigMap,
+          document: parsedDocument,
+          settings
+        })
+        this.#phase = generatePhase
+
+        return generatePhase.context.toSupportedSubjects()
+      })
+
+      return { subjects, parseIssues: phase.context.issues }
+    } catch (error) {
+      this.logger.error(error)
+
+      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      const message = error instanceof Error ? error.message : String(error)
+
+      return {
+        subjects: {},
+        parseIssues: [
+          ...priorIssues,
+          {
+            protocol: 'oas' as const,
+            level: 'error' as const,
+            type: 'INVALID_SCHEMA' as const,
+            location: 'toSupportedSubjects',
+            message: `Top-level toSupportedSubjects failure: ${message}`,
+            cause: error
+          }
+        ]
+      }
     }
   }
 

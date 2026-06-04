@@ -6,6 +6,7 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
+import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
 import type {
   BuildModelSettingsArgs,
   DefineAndRegisterArgs,
@@ -368,6 +369,76 @@ export class GenerateContext implements GenerateContextType {
       mappings: this.#mappings
     }
   }
+
+  /**
+   * Evaluate each generator's `isSupported` over the parsed document's subjects
+   * and report the subjects each generator supports — capability only, no
+   * transform and no render. Operation generators report the operations their
+   * `isSupported` accepts; model generators report every model (the generate
+   * pipeline applies no model-level `isSupported`). A generator targeting the
+   * other protocol reports nothing.
+   */
+  toSupportedSubjects(): SupportedSubjects {
+    const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
+    const out: SupportedSubjects = {}
+
+    generators.forEach(generatorConfig => {
+      switch (generatorConfig.type) {
+        case 'oasOperation': {
+          const operations =
+            this.document.type === 'oas'
+              ? this.document.value.operations
+                  .filter(operation =>
+                    this.#supports(() => generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT }))
+                  )
+                  .map(operation => ({ path: operation.path, method: operation.method }))
+              : []
+          out[generatorConfig.id] = { type: 'oasOperation', operations }
+          break
+        }
+        case 'gqlOperation': {
+          const operations =
+            this.document.type === 'gql'
+              ? this.document.value.operations
+                  .filter(operation =>
+                    this.#supports(() => generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT }))
+                  )
+                  .map(operation => ({
+                    rootKind: operation.rootKind,
+                    fieldName: operation.fieldName
+                  }))
+              : []
+          out[generatorConfig.id] = { type: 'gqlOperation', operations }
+          break
+        }
+        case 'model': {
+          const refNames =
+            this.document.type === 'oas'
+              ? (this.document.value.components?.toSchemasRefNames() ?? [])
+              : this.document.value.registry.toSchemasRefNames()
+          out[generatorConfig.id] = { type: 'model', models: [...refNames] }
+          break
+        }
+        default: {
+          const _exhaustive: never = generatorConfig
+          throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
+        }
+      }
+    })
+
+    return out
+  }
+
+  /** Run an `isSupported` probe defensively — a throwing predicate excludes the subject. */
+  #supports(probe: () => boolean): boolean {
+    try {
+      return probe()
+    } catch (error) {
+      this.logger.error(error)
+      return false
+    }
+  }
+
   #runOasOperationGenerator(
     oasDocument: OasDocument,
     generatorConfig: OasOperationConfig,

@@ -1,12 +1,12 @@
 {
   "name": "@skmtc/server",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
     "hono": "npm:hono@4.7.2",
-    "@skmtc/core": "jsr:@skmtc/core@0.6.11",
+    "@skmtc/core": "jsr:@skmtc/core@0.6.12",
     "@skmtc/convert": "jsr:@skmtc/convert@0.1.11"
   },
   "tasks": {

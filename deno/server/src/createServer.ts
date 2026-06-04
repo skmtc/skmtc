@@ -1,6 +1,6 @@
 import { cors } from 'hono/cors'
 import { Hono } from 'hono'
-import { clientSettings as settingsSchema, toArtifacts } from '@skmtc/core'
+import { clientSettings as settingsSchema, toArtifacts, toSupportedSubjects } from '@skmtc/core'
 import type { GeneratorsMapContainer, SkmtcDocumentInput } from '@skmtc/core'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { Sidecar, GenerationMapEntry } from '@skmtc/core/Anchors'
@@ -154,6 +154,47 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
     })
 
     return c.json({ artifacts, manifest, sidecars, generationMap }, 200)
+  })
+
+  // Capability introspection: which subjects (operations / models) does each
+  // configured generator support for this schema? Runs Parse + each generator's
+  // `isSupported` only — no transform, no render. Same request body as
+  // `/artifacts` (the OAS branch is normalized v2/3.1 → 3.0 first).
+  app.post('/subjects', async c => {
+    const body = v.parse(postArtifactsBody, await c.req.json())
+
+    const startAt = Date.now()
+    const traceId = `trace-${startAt}`
+    const spanId = `span-${startAt}`
+    const stackTrail = new StackTrail([traceId, spanId])
+
+    let document: SkmtcDocumentInput
+    switch (body.protocol) {
+      case 'oas': {
+        document = { type: 'oas', value: await toV3Document(stringToSchema(body.schema)) }
+        break
+      }
+      case 'gql': {
+        document = { type: 'gql', value: body.schema }
+        break
+      }
+      default: {
+        const _exhaustive: never = body
+        throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`)
+      }
+    }
+
+    const { subjects, parseIssues } = toSupportedSubjects({
+      traceId,
+      spanId,
+      document,
+      settings: body.clientSettings,
+      toGeneratorConfigMap,
+      stackTrail,
+      silent: true
+    })
+
+    return c.json({ subjects, parseIssues }, 200)
   })
 
   app.get('/generators', c => {
