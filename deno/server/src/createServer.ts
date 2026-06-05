@@ -1,6 +1,11 @@
 import { cors } from 'hono/cors'
 import { Hono } from 'hono'
-import { clientSettings as settingsSchema, toArtifacts, toSupportedSubjects } from '@skmtc/core'
+import {
+  clientSettings as settingsSchema,
+  toArtifacts,
+  toEnrichmentDescriptor,
+  toSupportedSubjects
+} from '@skmtc/core'
 import type { GeneratorsMapContainer, SkmtcDocumentInput } from '@skmtc/core'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { Sidecar, GenerationMapEntry } from '@skmtc/core/Anchors'
@@ -199,6 +204,16 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
   app.get('/generators', c => {
     return c.json({ generators: Object.keys(toGeneratorConfigMap()) })
+  })
+
+  // Enrichment-schema introspection: the form-renderable descriptor for each
+  // generator's enrichment schema. A pure function of the bundled generators —
+  // no schema, no parse, no render — so descriptors are stable per bundle and
+  // safe to cache by the host keyed on the (immutable) deployment. POST (no
+  // body) to match the runner's single `postToBundle` helper.
+  app.post('/descriptors', c => {
+    const descriptors = Object.values(toGeneratorConfigMap()).map(toEnrichmentDescriptor)
+    return c.json({ descriptors })
   })
 
   app.post('/to-v3-json', async c => {

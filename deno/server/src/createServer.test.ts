@@ -1,4 +1,5 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert@^1.0.10'
+import * as v from 'valibot'
 import type { GeneratorsMapContainer, ModelConfig, TransformModelArgs } from '@skmtc/core'
 import { createServer } from './createServer.ts'
 
@@ -110,6 +111,33 @@ Deno.test('GET /generators - lists configured generator IDs', async () => {
   assertEquals(res.status, 200)
   const body = await res.json()
   assertEquals(body.generators, ['modelGen'])
+})
+
+Deno.test('POST /descriptors - returns one descriptor per generator', async () => {
+  type Enrichment = { coerce?: boolean }
+  const modelGen: ModelConfig<Enrichment> = {
+    id: 'modelGen',
+    type: 'model',
+    toEnrichmentSchema: () => v.object({ coerce: v.optional(v.boolean()) }),
+    transform<Acc = void>({ acc }: TransformModelArgs<Acc>): Acc {
+      return acc as Acc
+    }
+  }
+  const app = createServer({
+    toGeneratorConfigMap: (() => ({ modelGen })) as <
+      EnrichmentType = undefined,
+    >() => GeneratorsMapContainer<EnrichmentType>,
+  })
+
+  const res = await app.request('/descriptors', { method: 'POST' })
+  assertEquals(res.status, 200)
+  const body = await res.json()
+  assertEquals(body.descriptors.length, 1)
+  assertEquals(body.descriptors[0].generator, 'modelGen')
+  assertEquals(body.descriptors[0].appliesTo, 'model')
+  // The `coerce` boolean maps to a `toggle` field.
+  assertEquals(body.descriptors[0].fields[0].key, 'coerce')
+  assertEquals(body.descriptors[0].fields[0].kind, 'toggle')
 })
 
 Deno.test('POST /to-v3-json - converts OpenAPI source to v3 JSON', async () => {
