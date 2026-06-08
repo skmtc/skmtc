@@ -12,7 +12,7 @@ Deno.test('Identifier.createVariable - creates untyped variable', () => {
 })
 
 Deno.test('Identifier.createVariable - creates typed variable', () => {
-  const identifier = Identifier.createVariable('userId', 'string')
+  const identifier = Identifier.createVariable('userId', { typeName: 'string' })
 
   assertEquals(identifier.name, 'userId')
   assertEquals(identifier.typeName, 'string')
@@ -30,7 +30,7 @@ Deno.test('Identifier.createType - creates type identifier', () => {
 })
 
 Deno.test('Identifier - toString returns identifier name', () => {
-  const variable = Identifier.createVariable('count', 'number')
+  const variable = Identifier.createVariable('count', { typeName: 'number' })
   const type = Identifier.createType('Status')
 
   assertEquals(variable.toString(), 'count')

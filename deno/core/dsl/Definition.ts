@@ -126,7 +126,7 @@ export abstract class DefinitionBase<
  * ```typescript
  * const apiFunction = new Definition({
  *   context: generateContext,
- *   identifier: Identifier.createVariable('fetchUser', 'Promise<User>'),
+ *   identifier: Identifier.createVariable('fetchUser', { typeName: 'Promise<User>' }),
  *   description: 'Fetches a user by ID from the API',
  *   value: {
  *     generatorKey: 'api-client',
@@ -209,7 +209,7 @@ export class Definition<V extends GeneratedValue = GeneratedValue> extends Defin
    * ```typescript
    * const constant = new Definition({
    *   context: generateContext,
-   *   identifier: Identifier.createVariable('API_BASE_URL', 'string'),
+   *   identifier: Identifier.createVariable('API_BASE_URL', { typeName: 'string' }),
    *   description: 'Base URL for all API requests',
    *   value: {
    *     generatorKey: 'constants',
@@ -260,7 +260,7 @@ export class Definition<V extends GeneratedValue = GeneratedValue> extends Defin
    * ```typescript
    * const constDef = new Definition({
    *   context,
-   *   identifier: Identifier.createVariable('DEFAULT_TIMEOUT', 'number'),
+   *   identifier: Identifier.createVariable('DEFAULT_TIMEOUT', { typeName: 'number' }),
    *   value: { generatorKey: 'config', content: '5000' }
    * });
    *

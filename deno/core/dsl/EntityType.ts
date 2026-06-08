@@ -34,7 +34,7 @@
  * import { Identifier, EntityType } from '@skmtc/core';
  * 
  * // Create a variable identifier (uses 'const' keyword)
- * const varId = Identifier.createVariable('API_KEY', 'string');
+ * const varId = Identifier.createVariable('API_KEY', { typeName: 'string' });
  * console.log(varId.entityType.toString()); // 'const'
  * 
  * // Create a type identifier (uses 'type' keyword)

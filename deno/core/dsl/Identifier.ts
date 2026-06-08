@@ -13,6 +13,34 @@ type ConstructorArgs = {
   entityType: EntityType
   /** Whether the identifier is exported. Defaults to `true`. */
   exported?: boolean
+  /**
+   * Opaque per-language declaration kind. Defaults to `entityType.type`.
+   */
+  kind?: string
+}
+
+/**
+ * Options for {@link Identifier.createVariable} — every field optional, so
+ * the common case stays `createVariable(name)`.
+ */
+export type CreateVariableArgs = {
+  /** Optional type name for typed variables. */
+  typeName?: string
+  /** Whether the identifier is exported. Defaults to `true`. */
+  exported?: boolean
+  /** Opaque per-language declaration kind. Defaults to `entityType.type`. */
+  kind?: string
+}
+
+/**
+ * Options for {@link Identifier.createType} — every field optional, so the
+ * common case stays `createType(name)`.
+ */
+export type CreateTypeArgs = {
+  /** Whether the identifier is exported. Defaults to `true`. */
+  exported?: boolean
+  /** Opaque per-language declaration kind. Defaults to `entityType.type`. */
+  kind?: string
 }
 
 /**
@@ -42,7 +70,7 @@ type ConstructorArgs = {
  * console.log(userName.toString()); // 'userName'
  *
  * // Typed variable
- * const userId = Identifier.createVariable('userId', 'string');
+ * const userId = Identifier.createVariable('userId', { typeName: 'string' });
  * console.log(userId.name);     // 'userId'
  * console.log(userId.typeName); // 'string'
  * ```
@@ -95,6 +123,25 @@ export class Identifier {
   exported: boolean
 
   /**
+   * Opaque per-language declaration kind — the discriminant a language's
+   * `Definition` subclass reads to pick its declaration keyword.
+   *
+   * Sibling to {@link exported}: a language-neutral fact the engine never
+   * interprets. It exists because the binary {@link EntityType}
+   * (`variable`/`type`, i.e. TypeScript's `const`/`type`) cannot model
+   * languages whose declaration vocabulary is richer than two. Rust is the
+   * forcing case — `struct`, `enum` (native tagged = `oneOf`), and `type`
+   * alias are all *type* entities under `entityType`, yet render with three
+   * different keywords; only an opaque `kind` distinguishes them.
+   *
+   * Defaults to `entityType.type` so existing identifiers carry a sensible
+   * kind without any call-site change. In the eventual TS migration
+   * `entityType` (TypeScript's own `EntityKind`) moves to
+   * `@skmtc/lang-typescript` and this opaque `kind` is what core retains.
+   */
+  kind: string
+
+  /**
    * Creates a new Identifier instance.
    *
    * This constructor is private to enforce the use of factory methods
@@ -102,11 +149,12 @@ export class Identifier {
    *
    * @param args - Identifier configuration
    */
-  private constructor({ name, typeName, entityType, exported }: ConstructorArgs) {
+  private constructor({ name, typeName, entityType, exported, kind }: ConstructorArgs) {
     this.name = name
     this.typeName = typeName
     this.entityType = entityType
     this.exported = exported ?? true
+    this.kind = kind ?? entityType.type
   }
 
   /**
@@ -117,7 +165,7 @@ export class Identifier {
    * associates type information for typed variables.
    *
    * @param name - The variable name
-   * @param typeName - Optional type name for the variable
+   * @param args - Optional `{ typeName, exported, kind }`
    * @returns A new variable Identifier instance
    *
    * @example Untyped variable
@@ -129,31 +177,26 @@ export class Identifier {
    *
    * @example Typed variable
    * ```typescript
-   * const userId = Identifier.createVariable('userId', 'string');
+   * const userId = Identifier.createVariable('userId', { typeName: 'string' });
    * console.log(userId.name);     // 'userId'
    * console.log(userId.typeName); // 'string'
    * ```
    *
    * @example In function generation
    * ```typescript
-   * const param = Identifier.createVariable('data', 'RequestData');
+   * const param = Identifier.createVariable('data', { typeName: 'RequestData' });
    * const funcDef = `function processRequest(${param.name}: ${param.typeName}) {}`;
    * ```
    */
-  static createVariable(name: string, typeName?: string, exported: boolean = true): Identifier {
-    if (typeName) {
-      return new Identifier({
-        name,
-        typeName,
-        entityType: new EntityType('variable'),
-        exported
-      })
-    }
+  static createVariable(name: string, args: CreateVariableArgs = {}): Identifier {
+    const { typeName, exported, kind } = args
 
     return new Identifier({
       name,
+      typeName,
       entityType: new EntityType('variable'),
-      exported
+      exported,
+      kind
     })
   }
 
@@ -166,6 +209,7 @@ export class Identifier {
    * represent types themselves.
    *
    * @param name - The type name
+   * @param args - Optional `{ exported, kind }`
    * @returns A new type Identifier instance
    *
    * @example Interface type
@@ -187,11 +231,14 @@ export class Identifier {
    * const genericDef = `interface ${responseType}<T> { data: T; success: boolean; }`;
    * ```
    */
-  static createType(name: string, exported: boolean = true): Identifier {
+  static createType(name: string, args: CreateTypeArgs = {}): Identifier {
+    const { exported, kind } = args
+
     return new Identifier({
       name,
       entityType: new EntityType('type'),
-      exported
+      exported,
+      kind
     })
   }
 

@@ -48,7 +48,7 @@ Deno.test('GoDefinition casing follows Identifier.exported, not input name casin
   // Exported intent + lowercase input → Go capitalizes it.
   const exported = new GoDefinition({
     context,
-    identifier: Identifier.createType('user', true),
+    identifier: Identifier.createType('user', { exported: true }),
     value: new GoStruct([{ name: 'id', type: 'string' }])
   })
   assertEquals(exported.toString().startsWith('type User struct {'), true)
@@ -56,7 +56,7 @@ Deno.test('GoDefinition casing follows Identifier.exported, not input name casin
   // Unexported intent + capitalized input → Go lowercases it.
   const unexported = new GoDefinition({
     context,
-    identifier: Identifier.createType('Secret', false),
+    identifier: Identifier.createType('Secret', { exported: false }),
     value: new GoStruct([{ name: 'id', type: 'string' }])
   })
   assertEquals(unexported.toString().startsWith('type secret struct {'), true)

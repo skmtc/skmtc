@@ -32,7 +32,7 @@ Deno.test('ContentSettings.empty - creates settings without enrichments', () => 
 })
 
 Deno.test('ContentSettings - stores identifier properties', () => {
-  const identifier = Identifier.createVariable('apiClient', 'ApiClient')
+  const identifier = Identifier.createVariable('apiClient', { typeName: 'ApiClient' })
 
   const settings = new ContentSettings({
     identifier,

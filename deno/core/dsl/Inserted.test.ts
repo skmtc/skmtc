@@ -32,7 +32,7 @@ Deno.test('Inserted - toName returns identifier name', () => {
 })
 
 Deno.test('Inserted - toIdentifier returns full identifier', () => {
-  const identifier = Identifier.createVariable('apiClient', 'ApiClient')
+  const identifier = Identifier.createVariable('apiClient', { typeName: 'ApiClient' })
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/api.ts'

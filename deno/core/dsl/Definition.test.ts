@@ -24,7 +24,7 @@ Deno.test('Definition - creates type definition with export', () => {
 Deno.test('Definition - creates const definition with type annotation', () => {
   const definition = new Definition({
     context: mockContext,
-    identifier: Identifier.createVariable('API_URL', 'string'),
+    identifier: Identifier.createVariable('API_URL', { typeName: 'string' }),
     value: {
       generatorKey: testGeneratorKey,
       toString: () => '"https://api.example.com"'
@@ -79,7 +79,7 @@ Deno.test('Definition - creates non-exported definition with noExport flag', () 
 })
 
 Deno.test('Definition - preserves identifier properties', () => {
-  const identifier = Identifier.createVariable('userId', 'string')
+  const identifier = Identifier.createVariable('userId', { typeName: 'string' })
   const definition = new Definition({
     context: mockContext,
     identifier,
