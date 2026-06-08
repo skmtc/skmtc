@@ -34,6 +34,7 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
+import { File } from '@/dsl/File.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
 import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
@@ -191,13 +192,13 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
   // Each form-variant file has an import of `usePatchQuote` from the
   // peer file. The Driver auto-registers this import whenever the
   // peer's exportPath differs from the caller's destinationPath.
-  if ('imports' in mainFile) {
+  if (mainFile instanceof File) {
     const mainImport = mainFile.imports.get('@/services/usePatchQuote.ts')
     assertExists(mainImport, 'main-variant file should import from peer file')
     assertEquals(mainImport.has('usePatchQuote'), true)
   }
 
-  if ('imports' in customerFile) {
+  if (customerFile instanceof File) {
     const customerImport = customerFile.imports.get('@/services/usePatchQuote.ts')
     assertExists(customerImport, 'customer-variant file should import from peer file')
     assertEquals(customerImport.has('usePatchQuote'), true)

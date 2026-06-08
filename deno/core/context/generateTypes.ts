@@ -19,7 +19,7 @@ import type { ImportNameArg } from '@/dsl/Import.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
-import type { File } from '@/dsl/File.ts'
+import type { File, FileBase } from '@/dsl/File.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
@@ -248,7 +248,7 @@ const _oasIssueTypeDriftCheck: v.GenericSchema<OasIssueType> = oasIssueType
 void _oasIssueTypeDriftCheck
 
 export type GenerateResult = {
-  files: Map<string, File | JsonFile>
+  files: Map<string, FileBase>
   previews: Record<string, Preview>
   mappings: Record<string, Mapping>
 }
@@ -471,6 +471,10 @@ export type GenerateContextType = {
   }: DefineAndRegisterArgs<V>) => Definition<V>
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   register: ({ imports, definitions, destinationPath, reExports }: RegisterArgs) => void
+  /** Look up an existing file by path (no creation); the neutral read primitive. */
+  getFile: (filePath: string) => FileBase | undefined
+  /** Store a language-constructed file; the neutral write primitive. */
+  addFile: (file: FileBase) => void
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
     args: InsertOperationArgs<V, EnrichmentType>
   ) => Inserted<V, EnrichmentType>

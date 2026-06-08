@@ -1,6 +1,10 @@
 import { Import } from '@/dsl/Import.ts'
-import type { DefinitionBase } from '@/dsl/Definition.ts'
+import { FileBase } from '@/dsl/FileBase.ts'
 import type { ClientSettings, ModulePackage } from '@/types/Settings.ts'
+
+// Re-exported so existing `import { FileBase } from '@/dsl/File.ts'` (and
+// the `@skmtc/core` barrel) keep resolving after the extraction.
+export { FileBase }
 
 /**
  * Constructor arguments for {@link File}.
@@ -10,37 +14,6 @@ type FileArgs = {
   path: string
   /** Client settings containing package configuration */
   settings: ClientSettings | undefined
-}
-
-/**
- * The language-neutral coordination surface shared by the engine and
- * every `@skmtc/lang-*` package's concrete file subclass.
- *
- * The engine (`GenerateContext` and the cross-generator cache) only ever
- * reads this surface — the file's `path` and its `definitions` map. It
- * never reads a file's language-specific output state (imports,
- * re-exports) or its rendered string, which is what keeps the engine
- * language-blind. A language package subclasses `FileBase`, adds its own
- * output state, and implements `toString()` to render itself.
- *
- * {@link File} below is core's transitional TypeScript-rendering
- * subclass. It stays instantiable so the current engine keeps working
- * until the per-language packages take over file construction.
- */
-export abstract class FileBase {
-  /** The file path for this generated file */
-  path: string
-
-  /** Map of definition names to their Definition objects */
-  definitions: Map<string, DefinitionBase>
-
-  constructor({ path }: { path: string }) {
-    this.path = path
-    this.definitions = new Map()
-  }
-
-  /** Renders the file's complete contents. Implemented by the subclass. */
-  abstract toString(): string
 }
 
 /**

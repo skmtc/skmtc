@@ -9,7 +9,7 @@ import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { ResultsLog } from '@/helpers/ResultsLog.ts'
-import type { File } from '@/dsl/File.ts'
+import type { File, FileBase } from '@/dsl/File.ts'
 import { join } from '@std/path/join'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { Mapping, Preview } from '@/types/Preview.ts'
@@ -83,7 +83,7 @@ type CoreContextArgs = {
 }
 
 type RenderArgs = {
-  files: Map<string, File | JsonFile>
+  files: Map<string, FileBase>
   previews: Record<string, Preview>
   mappings: Record<string, Mapping>
   basePath: string | undefined

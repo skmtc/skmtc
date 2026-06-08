@@ -1,3 +1,5 @@
+import { FileBase } from '@/dsl/FileBase.ts'
+
 /**
  * Constructor arguments for {@link JsonFile}.
  */
@@ -40,12 +42,9 @@ type JsonFileArgs = {
  * });
  *
  */
-export class JsonFile {
+export class JsonFile extends FileBase {
   /** The file type, always 'json' for JSON files */
   fileType: 'json' = 'json'
-
-  /** The file path for this generated JSON file */
-  path: string
 
   /** The JSON content to write to the file */
   content: Record<string, unknown>
@@ -70,7 +69,7 @@ export class JsonFile {
    * ```
    */
   constructor({ path, content }: JsonFileArgs) {
-    this.path = path
+    super({ path })
     this.content = content
   }
 
@@ -97,7 +96,7 @@ export class JsonFile {
    * // }
    * ```
    */
-  toString(): string {
+  override toString(): string {
     return JSON.stringify(this.content, null, 2)
   }
 }

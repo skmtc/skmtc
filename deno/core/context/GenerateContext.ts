@@ -58,7 +58,7 @@ import type { StackTrail } from './StackTrail.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
 import { Inserted } from '@/dsl/Inserted.ts'
-import { File } from '@/dsl/File.ts'
+import { File, FileBase } from '@/dsl/File.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
@@ -233,7 +233,7 @@ const isGqlToOperationSettingsArgs = <V extends GeneratedValue, EnrichmentType>(
   args.operation.oasType === 'gqlOperation'
 
 export class GenerateContext implements GenerateContextType {
-  #files: Map<string, File | JsonFile>
+  #files: Map<string, FileBase>
   #previews: Record<string, Preview>
   #mappings: Record<string, Mapping>
   /**
@@ -734,7 +734,35 @@ export class GenerateContext implements GenerateContextType {
     }
   }
 
-  #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File | JsonFile {
+  /**
+   * Look up an already-registered file by path, or `undefined` if none
+   * exists. Neutral primitive: returns the abstract `FileBase` and never
+   * constructs anything, so a (future) language-owned `register` can ask
+   * "does this file exist yet?" without the engine knowing the language.
+   * To create-on-miss, use the internal `#getFile`; to add a
+   * language-constructed file, use {@link addFile}.
+   */
+  getFile(filePath: string): FileBase | undefined {
+    return this.#files.get(normalize(filePath))
+  }
+
+  /**
+   * Store a language-constructed file. The engine never constructs a
+   * concrete (language) `File`; the language's `register` builds its own
+   * `FileBase` subclass and hands it in here. Throws if a file already
+   * exists at the (normalized) path.
+   */
+  addFile(file: FileBase): void {
+    const normalizedPath = normalize(file.path)
+
+    if (this.#files.has(normalizedPath)) {
+      throw new Error(`File already exists: ${normalizedPath}`)
+    }
+
+    this.#files.set(normalizedPath, file)
+  }
+
+  #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): FileBase {
     const normalizedPath = normalize(filePath)
 
     const currentFile = this.#files.get(normalizedPath)

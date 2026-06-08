@@ -28,7 +28,7 @@ import { Identifier } from '@/dsl/Identifier.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
 import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
-import { File } from '@/dsl/File.ts'
+import { FileBase } from '@/dsl/File.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { formatTs } from '@/test/formatTs.ts'
@@ -136,7 +136,7 @@ const runFixture = (variants: Record<string, unknown>) => {
   return context.toArtifacts(new StackTrail(['test']))
 }
 
-const renderFile = (file: File | JsonFile | undefined): string => {
+const renderFile = (file: FileBase | undefined): string => {
   if (!file) return ''
   if (file instanceof JsonFile) return JSON.stringify(file.content)
   return file.toString()

@@ -7,7 +7,7 @@ import type { ResultType } from '@/types/Results.ts'
 import { toResolvedArtifactPath } from '@/helpers/toResolvedArtifactPath.ts'
 import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
-import { File } from '@/dsl/File.ts'
+import { File, type FileBase } from '@/dsl/File.ts'
 import type { Preview, Mapping } from '@/types/Preview.ts'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { StackTrail } from './StackTrail.ts'
@@ -47,7 +47,7 @@ type RenderPhaseResult = Omit<RenderResult, 'results'> & {
  */
 type ConstructorArgs = {
   /** Map of generated files to render */
-  files: Map<string, File | JsonFile>
+  files: Map<string, FileBase>
   /** Preview data for generated content */
   previews: Record<string, Preview>
   /** Mapping data for file relationships */
@@ -105,7 +105,7 @@ type RenderOutput = {
 
 export class RenderContext {
   /** Map of generated files to render */
-  files: Map<string, File | JsonFile>
+  files: Map<string, FileBase>
   /** Preview data for generated content */
   previews: Record<string, Preview>
   /** Mapping data for file relationships */
@@ -350,7 +350,7 @@ export class RenderContext {
    * const alsoSameFile = renderContext.getFile('/absolute/path/src/models/User.ts');
    * ```
    */
-  getFile(filePath: string): File | JsonFile {
+  getFile(filePath: string): FileBase {
     const normalizedPath = normalize(filePath)
 
     const currentFile = this.files.get(normalizedPath)
