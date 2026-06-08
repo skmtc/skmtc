@@ -1,6 +1,7 @@
 {
   "name": "@skmtc/openapi-down-convert",
   "version": "0.14.7",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
   },

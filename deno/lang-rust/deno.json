@@ -1,0 +1,12 @@
+{
+  "name": "@skmtc/lang-rust",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./mod.ts"
+  },
+  "tasks": {
+    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"
+  },
+  "imports": {}
+}

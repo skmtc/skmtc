@@ -1,6 +1,7 @@
 {
   "name": "@skmtc/server",
   "version": "0.2.20",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
   },
