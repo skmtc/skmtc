@@ -23,6 +23,55 @@ type ConstructorArgs<V extends GeneratedValue> = {
 }
 
 /**
+ * Constructor arguments for {@link DefinitionBase}.
+ *
+ * @template V - The type of generated value this definition contains
+ */
+type DefinitionBaseArgs<V extends GeneratedValue> = {
+  /** The generation context providing pipeline access */
+  context: GenerateContextType
+  /** The identifier for this definition */
+  identifier: Identifier
+  /** The generated value content */
+  value: V
+}
+
+/**
+ * The language-neutral coordination surface of a registered, named
+ * definition.
+ *
+ * The cross-generator cache reads only this surface — the definition's
+ * `identifier` (the `(name, exportPath)` cache key), its `value`, and the
+ * `generatorKey` (via {@link SnippetBase}) for the integrity check. How a
+ * definition renders — the `export const X = …` wrapper, JSDoc, the
+ * export/visibility keyword — is the concrete subclass's concern, so
+ * `toString()` is abstract here.
+ *
+ * {@link Definition} below is core's transitional TypeScript-rendering
+ * subclass. It stays instantiable (the Drivers construct it) until the
+ * per-language packages take over definition construction.
+ */
+export abstract class DefinitionBase<
+  V extends GeneratedValue = GeneratedValue
+> extends SnippetBase {
+  /** The identifier for this definition */
+  identifier: Identifier
+
+  /** The generated value content */
+  value: V
+
+  constructor({ context, identifier, value }: DefinitionBaseArgs<V>) {
+    super({ context, generatorKey: value.generatorKey })
+
+    this.value = value
+    this.identifier = identifier
+  }
+
+  /** Renders the definition's code. Implemented by the concrete subclass. */
+  abstract override toString(): string
+}
+
+/**
  * Represents a complete code definition in the SKMTC DSL system.
  *
  * The `Definition` class is the primary output unit of generators, representing
@@ -139,15 +188,9 @@ type ConstructorArgs<V extends GeneratedValue> = {
  * }
  * ```
  */
-export class Definition<V extends GeneratedValue = GeneratedValue> extends SnippetBase {
-  /** The identifier for this definition */
-  identifier: Identifier
-
+export class Definition<V extends GeneratedValue = GeneratedValue> extends DefinitionBase<V> {
   /** Optional description for JSDoc comments */
   description: string | undefined
-
-  /** The generated value content */
-  value: V
 
   /** Whether to skip the export keyword */
   noExport?: boolean
@@ -176,10 +219,8 @@ export class Definition<V extends GeneratedValue = GeneratedValue> extends Snipp
    * ```
    */
   constructor({ context, identifier, value, description, noExport }: ConstructorArgs<V>) {
-    super({ context, generatorKey: value.generatorKey })
+    super({ context, identifier, value })
 
-    this.value = value
-    this.identifier = identifier
     this.description = description
     this.noExport = noExport
   }
