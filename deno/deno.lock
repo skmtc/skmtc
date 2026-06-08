@@ -1262,6 +1262,11 @@
           "npm:valibot@1.1.0"
         ]
       },
+      "lang-go": {
+        "dependencies": [
+          "jsr:@skmtc/core@0.6.12"
+        ]
+      },
       "lang-typescript": {
         "dependencies": [
           "jsr:@skmtc/core@0.6.12"
