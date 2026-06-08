@@ -49,7 +49,7 @@ export type {
   GqlOperationConfig,
   GqlOperationProjection
 } from './operation/gql/types.ts'
-export { File } from './File.ts'
+export { File, FileBase } from './File.ts'
 export { EntityType } from './EntityType.ts'
 export { GeneratedValueList } from './GeneratedValueList.ts'
 export { EMPTY } from './constants.ts'

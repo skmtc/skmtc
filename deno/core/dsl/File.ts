@@ -13,6 +13,37 @@ type FileArgs = {
 }
 
 /**
+ * The language-neutral coordination surface shared by the engine and
+ * every `@skmtc/lang-*` package's concrete file subclass.
+ *
+ * The engine (`GenerateContext` and the cross-generator cache) only ever
+ * reads this surface — the file's `path` and its `definitions` map. It
+ * never reads a file's language-specific output state (imports,
+ * re-exports) or its rendered string, which is what keeps the engine
+ * language-blind. A language package subclasses `FileBase`, adds its own
+ * output state, and implements `toString()` to render itself.
+ *
+ * {@link File} below is core's transitional TypeScript-rendering
+ * subclass. It stays instantiable so the current engine keeps working
+ * until the per-language packages take over file construction.
+ */
+export abstract class FileBase {
+  /** The file path for this generated file */
+  path: string
+
+  /** Map of definition names to their Definition objects */
+  definitions: Map<string, Definition>
+
+  constructor({ path }: { path: string }) {
+    this.path = path
+    this.definitions = new Map()
+  }
+
+  /** Renders the file's complete contents. Implemented by the subclass. */
+  abstract toString(): string
+}
+
+/**
  * Represents a TypeScript file in the SKMTC DSL system.
  *
  * The `File` class is a core component for generating TypeScript files with proper
@@ -91,21 +122,15 @@ type FileArgs = {
  * // export { DEFAULT_CONFIG } from './models'
  * ```
  */
-export class File {
+export class File extends FileBase {
   /** The file type, always 'ts' for TypeScript files */
   fileType: 'ts' = 'ts'
-
-  /** The file path for this generated file */
-  path: string
 
   /** Map of module paths to re-exported symbols organized by export type */
   reExports: Map<string, Record<string, Set<string>>>
 
   /** Map of module paths to imported symbols */
   imports: Map<string, Set<string>>
-
-  /** Map of definition names to their Definition objects */
-  definitions: Map<string, Definition>
 
   /** Package configuration for path resolution */
   packages: ModulePackage[] | undefined
@@ -130,10 +155,9 @@ export class File {
    * ```
    */
   constructor({ path, settings }: FileArgs) {
-    this.path = path
+    super({ path })
     this.reExports = new Map()
     this.imports = new Map()
-    this.definitions = new Map()
     this.packages = settings?.packages
   }
 
@@ -178,7 +202,7 @@ export class File {
    * // export { DEFAULT_CONFIG } from './models'
    * ```
    */
-  toString(): string {
+  override toString(): string {
     const reExports = Array.from(this.reExports.entries()).flatMap(([module, entityTypes]) => {
       const updatedModuleName = normalizeModuleName({
         destinationPath: this.path,
