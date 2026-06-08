@@ -77,3 +77,26 @@ Deno.test('TsFile renders empty when it holds no definitions', () => {
 
   assertEquals(file.toString(), '')
 })
+
+Deno.test('TsFile assembles imports + definitions into a full file', () => {
+  const file = new TsFile({ path: 'models/User.ts' })
+  file.addImport(new TsImport('zod', [{ name: 'z' }]))
+  // Holding a TsDefinition is what the cache-typing change unblocked:
+  // FileBase.definitions is now Map<string, DefinitionBase>.
+  file.definitions.set(
+    'User',
+    new TsDefinition({
+      context,
+      identifier: Identifier.createType('User'),
+      value: new TsObject([
+        { name: 'id', type: 'string' },
+        { name: 'name', type: 'string' }
+      ])
+    })
+  )
+
+  assertEquals(
+    file.toString(),
+    "import { z } from 'zod'\n\nexport type User = {\n  id: string\n  name: string\n}"
+  )
+})
