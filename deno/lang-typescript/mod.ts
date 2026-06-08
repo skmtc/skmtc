@@ -25,3 +25,6 @@ export const langId = 'typescript' as const
 
 /** File extensions this language package renders. */
 export const fileExtensions = ['.ts', '.tsx'] as const
+
+export { TsFile } from './src/TsFile.ts'
+export { TsDefinition } from './src/TsDefinition.ts'
