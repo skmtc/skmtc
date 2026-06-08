@@ -1,6 +1,9 @@
 import { Import } from '@/dsl/Import.ts'
+import type { ImportNameArg } from '@/dsl/Import.ts'
 import { FileBase } from '@/dsl/FileBase.ts'
+import type { Identifier } from '@/dsl/Identifier.ts'
 import type { ClientSettings, ModulePackage } from '@/types/Settings.ts'
+import invariant from 'tiny-invariant'
 
 /**
  * Constructor arguments for {@link File}.
@@ -128,6 +131,58 @@ export class File extends FileBase {
     this.reExports = new Map()
     this.imports = new Map()
     this.packages = settings?.packages
+  }
+
+  /**
+   * Merge re-export entries into this file, grouped by entity type so the
+   * renderer can pick `export type { … }` vs `export { … }`.
+   *
+   * This is the TypeScript-shaped half of the merge that previously lived
+   * inline in `GenerateContext.register`. It now lives on the file (the
+   * file owns its own state and merge semantics); the engine's `register`
+   * calls it. Moves to `lang-typescript`'s `TsFile` in the language split.
+   */
+  addReExports(reExports: Record<string, Identifier[]>): void {
+    Object.entries(reExports).forEach(([importModule, identifiers]) => {
+      if (!this.reExports.get(importModule) && identifiers.length) {
+        this.reExports.set(importModule, {})
+      }
+
+      identifiers.forEach(identifier => {
+        const entityType = identifier.entityType.type
+
+        const module = this.reExports.get(importModule)
+
+        invariant(module, 'Module not found')
+
+        if (!module[entityType]) {
+          module[entityType] = new Set()
+        }
+
+        module[entityType].add(identifier.name)
+      })
+    })
+  }
+
+  /**
+   * Merge import entries into this file, appending names to an existing
+   * per-module import or creating a new one.
+   *
+   * The TypeScript-shaped import half of the former inline
+   * `GenerateContext.register` merge — now owned by the file.
+   */
+  addImports(imports: Record<string, ImportNameArg[]>): void {
+    Object.entries(imports).forEach(([importModule, importNames]) => {
+      const module = this.imports.get(importModule)
+
+      const importItem = new Import({ module: importModule, importNames })
+
+      if (module) {
+        importItem.importNames.forEach(name => module.add(`${name}`))
+      } else {
+        this.imports.set(importModule, new Set(importItem.importNames.map(name => `${name}`)))
+      }
+    })
   }
 
   /**

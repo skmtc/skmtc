@@ -1,5 +1,4 @@
 import { normalize } from '@std/path/normalize'
-import { Import } from '@/dsl/Import.ts'
 import { Definition, type DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
@@ -12,7 +11,6 @@ import type {
   DefineAndRegisterArgs,
   GenerateContextType,
   GenerateResult,
-  GetFileOptions,
   InsertGqlOperationArgs,
   InsertModelOptions,
   InsertNormalizedModelArgs,
@@ -59,7 +57,7 @@ import type { Identifier } from '@/dsl/Identifier.ts'
 import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
 import { Inserted } from '@/dsl/Inserted.ts'
 import { File } from '@/dsl/File.ts'
-import { FileBase } from '@/dsl/FileBase.ts'
+import type { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
@@ -763,22 +761,6 @@ export class GenerateContext implements GenerateContextType {
     this.#files.set(normalizedPath, file)
   }
 
-  #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): FileBase {
-    const normalizedPath = normalize(filePath)
-
-    const currentFile = this.#files.get(normalizedPath)
-
-    if (!currentFile) {
-      if (throwIfNotFound) {
-        throw new Error(`File not found: '${normalizedPath}'`)
-      } else {
-        return this.#addFile(normalizedPath)
-      }
-    }
-
-    return currentFile
-  }
-
   /**
    * Create and register a definition with the given `identifier` at `destinationPath`.
    *
@@ -845,7 +827,14 @@ export class GenerateContext implements GenerateContextType {
    * @param args - Registration arguments with destination path and JSON content
    */
   registerJson({ destinationPath, json }: RegisterJsonArgs) {
-    const currentFile = this.#getFile(destinationPath)
+    const normalizedPath = normalize(destinationPath)
+
+    let currentFile = this.getFile(normalizedPath)
+
+    if (!currentFile) {
+      currentFile = new JsonFile({ path: normalizedPath, content: {} })
+      this.addFile(currentFile)
+    }
 
     invariant(
       currentFile instanceof JsonFile,
@@ -868,53 +857,35 @@ export class GenerateContext implements GenerateContextType {
    */
   register({ imports = {}, definitions, destinationPath, reExports }: RegisterArgs) {
     // TODO deduplicate import names and definition names against each other
-    const currentFile = this.#getFile(destinationPath)
+    const normalizedPath = normalize(destinationPath)
 
-    invariant(currentFile instanceof File, `File at "${destinationPath}" is not a "File" type`)
+    let currentFile = this.getFile(normalizedPath)
 
-    Object.entries(reExports ?? {}).forEach(([importModule, identifiers]) => {
-      if (!currentFile.reExports.get(importModule) && identifiers.length) {
-        currentFile.reExports.set(importModule, {})
-      }
+    if (!currentFile) {
+      // First write to this path creates the file. Core constructs its
+      // transitional `File` (core is the TypeScript-transitional home);
+      // when `register` moves into `lang-typescript` it will construct that
+      // language's File directly. The engine's neutral seam is
+      // `getFile`/`addFile`, not the constructor named here.
+      currentFile = new File({ path: normalizedPath, settings: this.settings })
+      this.addFile(currentFile)
+    }
 
-      identifiers.forEach(identifier => {
-        const entityType = identifier.entityType.type
-
-        const module = currentFile.reExports.get(importModule)
-
-        invariant(module, 'Module not found')
-
-        if (!module[entityType]) {
-          module[entityType] = new Set()
-        }
-
-        module[entityType].add(identifier.name)
-      })
-    })
-
-    Object.entries(imports).forEach(([importModule, importNames]) => {
-      const module = currentFile.imports.get(importModule)
-
-      const importItem = new Import({ module: importModule, importNames })
-
-      if (module) {
-        importItem.importNames.forEach(n => module.add(`${n}`))
-      } else {
-        currentFile.imports.set(importModule, new Set(importItem.importNames.map(n => `${n}`)))
-      }
-    })
-
+    // Definitions merge is language-neutral — `addDefinition` lives on
+    // `FileBase`, so this works for any language's file.
     definitions?.forEach(definition => {
-      if (!definition) {
-        return
-      }
-
-      const { name } = definition.identifier
-
-      if (!currentFile.definitions.has(name)) {
-        currentFile.definitions.set(name, definition)
+      if (definition) {
+        currentFile.addDefinition(definition)
       }
     })
+
+    // Imports / re-exports are TypeScript-shaped; in the transitional
+    // engine every code file is a `File`. This whole branch moves to the
+    // language package's `register` when `lang-typescript` lands.
+    if (currentFile instanceof File) {
+      currentFile.addReExports(reExports ?? {})
+      currentFile.addImports(imports)
+    }
   }
 
   /**
@@ -1119,27 +1090,6 @@ export class GenerateContext implements GenerateContextType {
     })
   }
 
-  #addFile(normalizedPath: string): File | JsonFile {
-    if (this.#files.has(normalizedPath)) {
-      throw new Error(`File already exists: ${normalizedPath}`)
-    }
-
-    const extension = normalizedPath.split('.').pop()
-
-    let newFile: File | JsonFile
-    switch (extension) {
-      case 'json':
-        newFile = new JsonFile({ path: normalizedPath, content: {} })
-        break
-      default:
-        newFile = new File({ path: normalizedPath, settings: this.settings })
-        break
-    }
-
-    this.#files.set(normalizedPath, newFile)
-
-    return newFile
-  }
   /**
    * Perform one lookup of schema by `refName`.
    * @param refName
@@ -1175,11 +1125,9 @@ export class GenerateContext implements GenerateContextType {
    * @returns Matching definition if found or `undefined` otherwise
    */
   findDefinition({ name, exportPath }: PickArgs): DefinitionBase | undefined {
-    const file = this.#getFile(exportPath)
-
-    invariant(file instanceof File, `File at "${exportPath}" is not a "File" type`)
-
-    return file.definitions.get(name)
+    // Pure lookup — no file is created on a miss. `definitions` lives on
+    // `FileBase`, so this reads any language's file without narrowing.
+    return this.getFile(exportPath)?.definitions.get(name)
   }
 }
 

@@ -31,6 +31,19 @@ export abstract class FileBase {
     this.definitions = new Map()
   }
 
+  /**
+   * Add a definition, deduplicating by identifier name (first write wins).
+   *
+   * Neutral: the engine's `register` calls this on the abstract base, so
+   * it works for every language's file. The dedup-by-name rule is the
+   * cross-generator cache's contract, not a language concern.
+   */
+  addDefinition(definition: DefinitionBase): void {
+    if (!this.definitions.has(definition.identifier.name)) {
+      this.definitions.set(definition.identifier.name, definition)
+    }
+  }
+
   /** Renders the file's complete contents. Implemented by the subclass. */
   abstract toString(): string
 }
