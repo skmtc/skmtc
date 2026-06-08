@@ -14,10 +14,9 @@
  *   - `sanitizePropertyName` + identifier/casing/visibility rules
  *   - syntax helpers
  *
- * Status: **scaffold only** — no implementation yet. This package is NOT
- * yet a member of the root `deno.json#workspace` array, so it is held
- * out of the `deno task release` cascade until development begins
- * (Phase A in ../../notes/lang/07-migration-and-open-questions.md).
+ * Status: **early spike.** `GoFile`/`GoDefinition`/`GoStruct` prove the
+ * core `FileBase`/`DefinitionBase` seam generalizes beyond TypeScript and
+ * exercise Go's visibility-via-casing. Not yet wired into the engine.
  */
 
 /** The language id this package targets. */
@@ -25,3 +24,7 @@ export const langId = 'go' as const
 
 /** File extensions this language package renders. */
 export const fileExtensions = ['.go'] as const
+
+export { GoFile, type GoFileArgs } from './src/GoFile.ts'
+export { GoDefinition } from './src/GoDefinition.ts'
+export { GoStruct, type GoFieldArgs } from './src/GoStruct.ts'
