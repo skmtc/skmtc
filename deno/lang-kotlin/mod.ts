@@ -14,10 +14,12 @@
  *   - `sanitizePropertyName` + identifier/casing/visibility rules
  *   - syntax helpers
  *
- * Status: **scaffold only** — no implementation yet. This package is NOT
- * yet a member of the root `deno.json#workspace` array, so it is held
- * out of the `deno task release` cascade until development begins
- * (Phase A in ../../notes/lang/07-migration-and-open-questions.md).
+ * Status: **early spike (roadmap tier).** `KtFile`/`KtDefinition`/
+ * `KtDataClass` render a `data class` DTO and a top-level `val`. One
+ * Definition subclass spans both shells (container vs assignment) via the
+ * opaque `kind`; the top-level `val` is Kotlin's distinctive file-scope
+ * value (illegal in C#/PHP/Java). Sixth `exported` behaviour (public
+ * default, `private` to restrict). Not yet wired into the engine.
  */
 
 /** The language id this package targets. */
@@ -25,3 +27,7 @@ export const langId = 'kotlin' as const
 
 /** File extensions this language package renders. */
 export const fileExtensions = ['.kt'] as const
+
+export { KtFile, type KtFileArgs } from './src/KtFile.ts'
+export { KtDefinition } from './src/KtDefinition.ts'
+export { KtDataClass, type KtParameterArgs } from './src/KtDataClass.ts'

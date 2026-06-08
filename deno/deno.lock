@@ -1262,7 +1262,17 @@
           "npm:valibot@1.1.0"
         ]
       },
+      "lang-csharp": {
+        "dependencies": [
+          "jsr:@skmtc/core@0.6.12"
+        ]
+      },
       "lang-go": {
+        "dependencies": [
+          "jsr:@skmtc/core@0.6.12"
+        ]
+      },
+      "lang-kotlin": {
         "dependencies": [
           "jsr:@skmtc/core@0.6.12"
         ]

@@ -14,10 +14,11 @@
  *   - `sanitizePropertyName` + identifier/casing/visibility rules
  *   - syntax helpers
  *
- * Status: **scaffold only** — no implementation yet. This package is NOT
- * yet a member of the root `deno.json#workspace` array, so it is held
- * out of the `deno task release` cascade until development begins
- * (Phase A in ../../notes/lang/07-migration-and-open-questions.md).
+ * Status: **early spike (roadmap tier).** `CsFile`/`CsDefinition`/
+ * `CsRecord` render a positional `record` DTO, confirming the resolved
+ * Definition-assembly split on a positional shell and adding a fifth
+ * `exported` behaviour (`public`/`internal`). Third consumer of the
+ * opaque `Identifier.kind`. Not yet wired into the engine.
  */
 
 /** The language id this package targets. */
@@ -25,3 +26,7 @@ export const langId = 'csharp' as const
 
 /** File extensions this language package renders. */
 export const fileExtensions = ['.cs'] as const
+
+export { CsFile, type CsFileArgs } from './src/CsFile.ts'
+export { CsDefinition } from './src/CsDefinition.ts'
+export { CsRecord, type CsParameterArgs } from './src/CsRecord.ts'
