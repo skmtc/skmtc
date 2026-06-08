@@ -2,7 +2,7 @@ import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
-import { Definition, type DefinitionBase } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
@@ -126,9 +126,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       rootRef: this.rootRef
     })
 
-    const definition = new Definition({
-      context: this.context,
-      value,
+    const definition = value.toDefinition({
       identifier,
       noExport: this.noExport
     })

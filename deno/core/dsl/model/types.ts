@@ -2,6 +2,8 @@ import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { Definable } from '@/dsl/Definition.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
@@ -82,14 +84,16 @@ export type ToModelExportPathArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
-export type ModelProjection<V, EnrichmentType = undefined> = { prototype: V } & {
+export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
+  prototype: V
+} & {
   new ({
     context,
     refName,
     settings,
     destinationPath,
     rootRef
-  }: ModelProjectionConstructorArgs<EnrichmentType>): V
+  }: ModelProjectionConstructorArgs<EnrichmentType>): V & Definable<V>
   id: string
   type: 'model'
   toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier

@@ -4,7 +4,8 @@ import { ModelDriver } from './ModelDriver.ts'
 import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
+import type { ToDefinitionArgs } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
@@ -39,6 +40,27 @@ class MockProjection extends MockGeneratedValue {
     this.destinationPath = args.destinationPath
     this.rootRef = args.rootRef
     this.generatorKey = toModelGeneratorKey({ generatorId: MockProjection.id, refName: args.refName, variant: 'main' })
+  }
+
+  // Mirrors the projection-base default: the Driver now delegates
+  // Definition construction to the projection via `toDefinition`.
+  toDefinition({ identifier, noExport }: ToDefinitionArgs): DefinitionBase {
+    return new Definition({ context: this.context, value: this, identifier, noExport })
+  }
+}
+
+// A language-style Definition subclass with its own rendering — stands in
+// for a `lang-*` package's `*Definition`. Proves a non-core Definition
+// flows through the Driver path unchanged (architecture Site 1).
+class CustomDefinition extends DefinitionBase {
+  override toString(): string {
+    return `custom ${this.identifier.name} = ${this.value}`
+  }
+}
+
+class MockProjectionWithCustomDef extends MockProjection {
+  override toDefinition({ identifier }: ToDefinitionArgs): DefinitionBase {
+    return new CustomDefinition({ context: this.context, identifier, value: this })
   }
 }
 
@@ -171,6 +193,22 @@ Deno.test('ModelDriver', async (t) => {
 
       assertEquals(driver.definition !== undefined, true)
       assertEquals(driver.definition instanceof Definition, true)
+    })
+
+    await t.step('delegates to the projection toDefinition override (lang Definition flows through)', () => {
+      const context = createMockContext()
+      const projection = MockProjectionWithCustomDef as unknown as ModelProjection<
+        MockGeneratedValue,
+        any
+      >
+      const refName = 'User' as RefName
+
+      const driver = new ModelDriver({ context, projection, refName, variant: 'main' })
+
+      // The Driver used the projection's overridden `toDefinition`, so the
+      // registered definition is the custom subclass, NOT the core Definition.
+      assertEquals(driver.definition instanceof CustomDefinition, true)
+      assertEquals(driver.definition instanceof Definition, false)
     })
 
     await t.step('should reset modelDepth to 0 after construction', () => {

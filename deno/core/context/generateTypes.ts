@@ -57,7 +57,7 @@ export type InsertOperationOptions = {
  * @template V - Generated value type
  * @template EnrichmentType - Optional enrichment data type
  */
-export type InsertOasOperationArgs<V, EnrichmentType = undefined> = {
+export type InsertOasOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   /** The operation projection to insert */
   projection: OasOperationProjection<V, EnrichmentType>
   /** The OpenAPI operation to process */
@@ -82,7 +82,7 @@ export type InsertOasOperationArgs<V, EnrichmentType = undefined> = {
  * @template V - Generated value type
  * @template EnrichmentType - Optional enrichment data type
  */
-export type InsertGqlOperationArgs<V, EnrichmentType = undefined> = {
+export type InsertGqlOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   /** The operation projection to insert */
   projection: GqlOperationProjection<V, EnrichmentType>
   /** The GraphQL operation to process */
@@ -101,7 +101,7 @@ export type InsertGqlOperationArgs<V, EnrichmentType = undefined> = {
   variant?: string
 }
 
-export type InsertOperationArgs<V, EnrichmentType = undefined> =
+export type InsertOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> =
   | InsertOasOperationArgs<V, EnrichmentType>
   | InsertGqlOperationArgs<V, EnrichmentType>
 
@@ -180,7 +180,7 @@ export type BaseRegisterArgs = {
   /** Re-export statements to include, organized by module path */
   reExports?: Record<string, Identifier[]>
   /** Definition objects to include in the generated content */
-  definitions?: (Definition | undefined)[]
+  definitions?: (DefinitionBase | undefined)[]
 }
 
 /**
@@ -297,7 +297,7 @@ export type RegisterArgs = {
   /** Re-export statements to include, organized by module path */
   reExports?: Record<string, Identifier[]>
   /** Definition objects to include in the generated content */
-  definitions?: (Definition | undefined)[]
+  definitions?: (DefinitionBase | undefined)[]
   /** The destination file path where the content should be registered */
   destinationPath: string
 }
@@ -374,7 +374,7 @@ export type PickArgs = {
  * @template V - The value type for the model
  * @template EnrichmentType - Optional enrichment type for the model
  */
-export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
+export type BuildModelSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   refName: RefName
   projection: ModelProjection<V, EnrichmentType>
   /**
@@ -392,7 +392,7 @@ export type BuildModelSettingsArgs<V, EnrichmentType = undefined> = {
  * @template V - The value type for the operation
  * @template EnrichmentType - Optional enrichment type for the operation
  */
-export type ToOasOperationSettingsArgs<V, EnrichmentType = undefined> = {
+export type ToOasOperationSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   operation: OasOperation
   projection: OasOperationProjection<V, EnrichmentType>
   /**
@@ -410,7 +410,7 @@ export type ToOasOperationSettingsArgs<V, EnrichmentType = undefined> = {
  * @template V - The value type for the operation
  * @template EnrichmentType - Optional enrichment type for the operation
  */
-export type ToGqlOperationSettingsArgs<V, EnrichmentType = undefined> = {
+export type ToGqlOperationSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   operation: GqlOperation
   projection: GqlOperationProjection<V, EnrichmentType>
   /**
@@ -428,7 +428,7 @@ export type ToGqlOperationSettingsArgs<V, EnrichmentType = undefined> = {
  * `oasType: 'gqlOperation'`. The dispatcher narrows on this discriminator
  * to look up the right enrichment path and identifier.
  */
-export type ToOperationSettingsArgs<V, EnrichmentType = undefined> =
+export type ToOperationSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> =
   | ToOasOperationSettingsArgs<V, EnrichmentType>
   | ToGqlOperationSettingsArgs<V, EnrichmentType>
 
@@ -488,11 +488,11 @@ export type GenerateContextType = {
     refName: RefName,
     options?: InsertModelOptions
   ) => Inserted<V, EnrichmentType>
-  toOperationContentSettings: <V, EnrichmentType>({
+  toOperationContentSettings: <V extends GeneratedValue, EnrichmentType>({
     operation,
     projection
   }: ToOperationSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
-  toModelContentSettings: <V, EnrichmentType>({
+  toModelContentSettings: <V extends GeneratedValue, EnrichmentType>({
     refName,
     projection,
     variant

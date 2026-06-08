@@ -72,6 +72,33 @@ export abstract class DefinitionBase<
 }
 
 /**
+ * Arguments for {@link Definable.toDefinition}.
+ */
+export type ToDefinitionArgs = {
+  /** The identifier the definition is registered under. */
+  identifier: Identifier
+  /** Whether to omit the export keyword. */
+  noExport?: boolean
+}
+
+/**
+ * The capability a Driver invokes instead of constructing a `Definition`
+ * itself: a projection wraps its own value in the language-appropriate
+ * `Definition` subclass.
+ *
+ * This is the "Site 1" seam (see notes/lang `03-architecture.md`) that
+ * keeps the Driver from naming a concrete `Definition` class — and thus
+ * keeps the engine language-blind. Core's projection bases implement it
+ * returning the transitional core {@link Definition}, byte-identical to
+ * the old `new Definition(...)` call. A language-bound projection base
+ * overrides `toDefinition` to return its own `*Definition`, and the same
+ * Driver path then renders that language's output with no engine change.
+ */
+export type Definable<V extends GeneratedValue = GeneratedValue> = {
+  toDefinition(args: ToDefinitionArgs): DefinitionBase<V>
+}
+
+/**
  * Represents a complete code definition in the SKMTC DSL system.
  *
  * The `Definition` class is the primary output unit of generators, representing

@@ -2,7 +2,7 @@ import type { GqlOperationProjection } from './types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
-import { Definition, type DefinitionBase } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
@@ -122,9 +122,7 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       settings: this.settings
     })
 
-    const definition = new Definition({
-      context: this.context,
-      value,
+    const definition = value.toDefinition({
       identifier,
       noExport: this.noExport
     })

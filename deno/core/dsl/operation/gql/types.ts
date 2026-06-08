@@ -2,6 +2,8 @@ import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { Definable } from '@/dsl/Definition.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
@@ -92,12 +94,14 @@ export type ToGqlOperationExportPathArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
-export type GqlOperationProjection<V, EnrichmentType = undefined> = { prototype: V } & {
+export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
+  prototype: V
+} & {
   new ({
     context,
     settings,
     operation
-  }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V
+  }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V & Definable<V>
   id: string
   type: 'gqlOperation'
   toIdentifier: (args: ToGqlOperationIdentifierArgs<EnrichmentType>) => Identifier

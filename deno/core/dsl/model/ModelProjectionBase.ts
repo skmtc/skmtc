@@ -5,6 +5,8 @@ import type {
   InsertNormalizedModelReturn
 } from '../../context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import { Definition } from '@/dsl/Definition.ts'
+import type { DefinitionBase, ToDefinitionArgs } from '@/dsl/Definition.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -117,5 +119,15 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
       ...args,
       destinationPath: this.settings.exportPath
     })
+  }
+
+  /**
+   * Wrap this projection's value in a `Definition`. The Driver calls this
+   * instead of `new Definition(...)` so a language-bound projection base
+   * can return its own `*Definition` subclass. Default: the core
+   * {@link Definition} (byte-identical to the prior Driver behaviour).
+   */
+  toDefinition({ identifier, noExport }: ToDefinitionArgs): DefinitionBase<this> {
+    return new Definition({ context: this.context, value: this, identifier, noExport })
   }
 }

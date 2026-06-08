@@ -2,6 +2,8 @@ import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { Definable } from '@/dsl/Definition.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
@@ -92,12 +94,14 @@ export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
-export type OasOperationProjection<V, EnrichmentType = undefined> = { prototype: V } & {
+export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
+  prototype: V
+} & {
   new ({
     context,
     settings,
     operation
-  }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
+  }: OasOperationProjectionConstructorArgs<EnrichmentType>): V & Definable<V>
   id: string
   type: 'oasOperation'
   toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier

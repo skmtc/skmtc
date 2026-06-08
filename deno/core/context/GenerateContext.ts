@@ -227,7 +227,7 @@ const isGqlInsertOperationArgs = <V extends GeneratedValue, EnrichmentType>(
   args: InsertOperationArgs<V, EnrichmentType>
 ): args is InsertGqlOperationArgs<V, EnrichmentType> => args.operation.oasType === 'gqlOperation'
 
-const isGqlToOperationSettingsArgs = <V, EnrichmentType>(
+const isGqlToOperationSettingsArgs = <V extends GeneratedValue, EnrichmentType>(
   args: ToOperationSettingsArgs<V, EnrichmentType>
 ): args is ToGqlOperationSettingsArgs<V, EnrichmentType> =>
   args.operation.oasType === 'gqlOperation'
@@ -1023,7 +1023,7 @@ export class GenerateContext implements GenerateContextType {
    * static `toIdentifier`, `toExportPath`, and `toEnrichments` against the
    * given operation.
    */
-  toOperationContentSettings<V, EnrichmentType>(
+  toOperationContentSettings<V extends GeneratedValue, EnrichmentType>(
     args: ToOperationSettingsArgs<V, EnrichmentType>
   ): ContentSettings<EnrichmentType> {
     const { variant } = args
@@ -1076,7 +1076,7 @@ export class GenerateContext implements GenerateContextType {
    * `toIdentifier`, `toExportPath`, and `toEnrichments` against the given
    * `refName` and `variant`.
    */
-  toModelContentSettings<V, EnrichmentType>({
+  toModelContentSettings<V extends GeneratedValue, EnrichmentType>({
     refName,
     projection,
     variant
