@@ -11,6 +11,8 @@ type ConstructorArgs = {
   typeName?: string
   /** The entity type (variable, type, etc.) */
   entityType: EntityType
+  /** Whether the identifier is exported. Defaults to `true`. */
+  exported?: boolean
 }
 
 /**
@@ -83,6 +85,16 @@ export class Identifier {
   typeName?: string
 
   /**
+   * Whether this identifier is exported.
+   *
+   * A language-neutral fact the engine never interprets — each language's
+   * renderer decides what it means syntactically: TypeScript emits/omits
+   * `export`, Go capitalizes the name (visibility via casing), others may
+   * ignore it. Defaults to `true`.
+   */
+  exported: boolean
+
+  /**
    * Creates a new Identifier instance.
    *
    * This constructor is private to enforce the use of factory methods
@@ -90,10 +102,11 @@ export class Identifier {
    *
    * @param args - Identifier configuration
    */
-  private constructor({ name, typeName, entityType }: ConstructorArgs) {
+  private constructor({ name, typeName, entityType, exported }: ConstructorArgs) {
     this.name = name
     this.typeName = typeName
     this.entityType = entityType
+    this.exported = exported ?? true
   }
 
   /**
@@ -127,18 +140,20 @@ export class Identifier {
    * const funcDef = `function processRequest(${param.name}: ${param.typeName}) {}`;
    * ```
    */
-  static createVariable(name: string, typeName?: string): Identifier {
+  static createVariable(name: string, typeName?: string, exported: boolean = true): Identifier {
     if (typeName) {
       return new Identifier({
         name,
         typeName,
-        entityType: new EntityType('variable')
+        entityType: new EntityType('variable'),
+        exported
       })
     }
 
     return new Identifier({
       name,
-      entityType: new EntityType('variable')
+      entityType: new EntityType('variable'),
+      exported
     })
   }
 
@@ -172,10 +187,11 @@ export class Identifier {
    * const genericDef = `interface ${responseType}<T> { data: T; success: boolean; }`;
    * ```
    */
-  static createType(name: string): Identifier {
+  static createType(name: string, exported: boolean = true): Identifier {
     return new Identifier({
       name,
-      entityType: new EntityType('type')
+      entityType: new EntityType('type'),
+      exported
     })
   }
 
