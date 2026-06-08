@@ -44,6 +44,24 @@ Deno.test('GoStruct lowercases unexported fields (visibility via casing)', () =>
   )
 })
 
+Deno.test('GoDefinition casing follows Identifier.exported, not input name casing', () => {
+  // Exported intent + lowercase input → Go capitalizes it.
+  const exported = new GoDefinition({
+    context,
+    identifier: Identifier.createType('user', true),
+    value: new GoStruct([{ name: 'id', type: 'string' }])
+  })
+  assertEquals(exported.toString().startsWith('type User struct {'), true)
+
+  // Unexported intent + capitalized input → Go lowercases it.
+  const unexported = new GoDefinition({
+    context,
+    identifier: Identifier.createType('Secret', false),
+    value: new GoStruct([{ name: 'id', type: 'string' }])
+  })
+  assertEquals(unexported.toString().startsWith('type secret struct {'), true)
+})
+
 Deno.test('GoFile renders the package directive', () => {
   const file = new GoFile({ path: 'models/user.go', packageName: 'models' })
 
