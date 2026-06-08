@@ -1267,6 +1267,11 @@
           "jsr:@skmtc/core@0.6.12"
         ]
       },
+      "lang-php": {
+        "dependencies": [
+          "jsr:@skmtc/core@0.6.12"
+        ]
+      },
       "lang-rust": {
         "dependencies": [
           "jsr:@skmtc/core@0.6.12"
