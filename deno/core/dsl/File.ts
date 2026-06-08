@@ -2,10 +2,6 @@ import { Import } from '@/dsl/Import.ts'
 import { FileBase } from '@/dsl/FileBase.ts'
 import type { ClientSettings, ModulePackage } from '@/types/Settings.ts'
 
-// Re-exported so existing `import { FileBase } from '@/dsl/File.ts'` (and
-// the `@skmtc/core` barrel) keep resolving after the extraction.
-export { FileBase }
-
 /**
  * Constructor arguments for {@link File}.
  */
