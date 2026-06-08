@@ -1,6 +1,6 @@
 import { normalize } from '@std/path/normalize'
 import { Import } from '@/dsl/Import.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { Definition, type DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -1145,7 +1145,7 @@ export class GenerateContext implements GenerateContextType {
    * @param { name, exportPath }
    * @returns Matching definition if found or `undefined` otherwise
    */
-  findDefinition({ name, exportPath }: PickArgs): Definition | undefined {
+  findDefinition({ name, exportPath }: PickArgs): DefinitionBase | undefined {
     const file = this.#getFile(exportPath)
 
     invariant(file instanceof File, `File at "${exportPath}" is not a "File" type`)

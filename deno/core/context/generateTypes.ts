@@ -6,7 +6,7 @@ import type { ResultsItem } from '@/types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { Definition } from '@/dsl/Definition.ts'
+import type { Definition, DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -498,5 +498,5 @@ export type GenerateContextType = {
     variant
   }: BuildModelSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
-  findDefinition: ({ name, exportPath }: PickArgs) => Definition | undefined
+  findDefinition: ({ name, exportPath }: PickArgs) => DefinitionBase | undefined
 }

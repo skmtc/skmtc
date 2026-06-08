@@ -2,7 +2,7 @@ import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
-import { Definition } from '@/dsl/Definition.ts'
+import { Definition, type DefinitionBase } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
@@ -108,7 +108,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     return definition
   }
 
-  private getDefinition({ identifier, exportPath }: GetDefinitionArgs): Definition<V> {
+  private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
       exportPath
@@ -142,9 +142,9 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
   }
 
   private affirmDefinition<V extends GeneratedValue>(
-    definition: Definition | undefined,
+    definition: DefinitionBase | undefined,
     exportPath: string
-  ): definition is Definition<V> {
+  ): definition is DefinitionBase<V> {
     if (!definition) {
       return false
     }

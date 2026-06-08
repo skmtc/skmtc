@@ -1,5 +1,5 @@
 import { Import } from '@/dsl/Import.ts'
-import type { Definition } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { ClientSettings, ModulePackage } from '@/types/Settings.ts'
 
 /**
@@ -32,7 +32,7 @@ export abstract class FileBase {
   path: string
 
   /** Map of definition names to their Definition objects */
-  definitions: Map<string, Definition>
+  definitions: Map<string, DefinitionBase>
 
   constructor({ path }: { path: string }) {
     this.path = path

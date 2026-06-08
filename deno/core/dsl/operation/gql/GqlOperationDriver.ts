@@ -2,7 +2,7 @@ import type { GqlOperationProjection } from './types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
-import { Definition } from '@/dsl/Definition.ts'
+import { Definition, type DefinitionBase } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
@@ -106,7 +106,7 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     return definition
   }
 
-  private getDefinition({ identifier, exportPath }: GetDefinitionArgs): Definition<V> {
+  private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
       exportPath
@@ -138,9 +138,9 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   }
 
   private affirmDefinition<V extends GeneratedValue>(
-    definition: Definition | undefined,
+    definition: DefinitionBase | undefined,
     exportPath: string
-  ): definition is Definition<V> {
+  ): definition is DefinitionBase<V> {
     if (!definition) {
       return false
     }

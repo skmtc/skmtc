@@ -1,7 +1,7 @@
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { FilesRenderResult, RenderResult } from './generateTypes.ts'
 import { normalize } from '@std/path/normalize'
-import type { Definition } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { PickArgs } from './generateTypes.ts'
 import type { ResultType } from '@/types/Results.ts'
 import { toResolvedArtifactPath } from '@/helpers/toResolvedArtifactPath.ts'
@@ -391,7 +391,7 @@ export class RenderContext {
    * });
    * ```
    */
-  pick({ name, exportPath }: PickArgs): Definition | undefined {
+  pick({ name, exportPath }: PickArgs): DefinitionBase | undefined {
     const file = this.getFile(exportPath)
 
     invariant(file instanceof File, `File at "${exportPath}" is not a "File" type`)

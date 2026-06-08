@@ -1,4 +1,4 @@
-import type { Definition } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { Stringable } from '@/dsl/Stringable.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 
@@ -18,4 +18,4 @@ export type GeneratedValue = Stringable & {
  *
  * @template V - The generated value type extending GeneratedValue
  */
-export type GeneratedDefinition<V extends GeneratedValue> = Definition<V>
+export type GeneratedDefinition<V extends GeneratedValue> = DefinitionBase<V>
