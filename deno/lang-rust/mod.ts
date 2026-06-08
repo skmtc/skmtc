@@ -14,10 +14,12 @@
  *   - `sanitizePropertyName` + identifier/casing/visibility rules
  *   - syntax helpers
  *
- * Status: **scaffold only** — no implementation yet. This package is NOT
- * yet a member of the root `deno.json#workspace` array, so it is held
- * out of the `deno task release` cascade until development begins
- * (Phase A in ../../notes/lang/07-migration-and-open-questions.md).
+ * Status: **early spike.** `RsFile`/`RsDefinition`/`RsStruct`/`RsEnum`
+ * prove the core `FileBase`/`DefinitionBase` seam reaches a language whose
+ * declaration vocabulary (`struct`/`enum`/`type`) outgrows the binary
+ * `EntityType` — the forcing case for the opaque `Identifier.kind`. Native
+ * tagged enums exercise the `oneOf` distinctive constraint. Not yet wired
+ * into the engine.
  */
 
 /** The language id this package targets. */
@@ -25,3 +27,8 @@ export const langId = 'rust' as const
 
 /** File extensions this language package renders. */
 export const fileExtensions = ['.rs'] as const
+
+export { RsFile, type RsFileArgs } from './src/RsFile.ts'
+export { RsDefinition } from './src/RsDefinition.ts'
+export { RsStruct, type RsFieldArgs } from './src/RsStruct.ts'
+export { RsEnum, type RsVariantArgs } from './src/RsEnum.ts'
