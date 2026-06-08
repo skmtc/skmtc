@@ -28,3 +28,5 @@ export const fileExtensions = ['.ts', '.tsx'] as const
 
 export { TsFile } from './src/TsFile.ts'
 export { TsDefinition } from './src/TsDefinition.ts'
+export { TsImport, type TsImportSpec } from './src/TsImport.ts'
+export { TsObject, type TsPropertyArgs } from './src/TsObject.ts'
