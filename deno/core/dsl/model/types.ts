@@ -1,9 +1,9 @@
 import type { GenerateContextType } from '../../context/generateTypes.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { Definable } from '@/dsl/Definition.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
@@ -93,7 +93,7 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
     settings,
     destinationPath,
     rootRef
-  }: ModelProjectionConstructorArgs<EnrichmentType>): V & Definable<V>
+  }: ModelProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
   toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
@@ -112,6 +112,8 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
 export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
+  /** The target language. Resolved by the engine via `context.resolveLang(id)`. */
+  lang: Lang
   transform: <Acc = void>({ context, refName, acc, variant }: TransformModelArgs<Acc>) => Acc
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule

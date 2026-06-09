@@ -1,42 +1,107 @@
+import { ImportBase, List } from '@skmtc/core'
+import type { ImportNameArg } from '@skmtc/core'
+
 /**
- * A single imported symbol. `typeOnly` drives TypeScript's per-name
- * `import { type X }` (and, when every spec is type-only, the
- * statement-level `import type { … }`).
+ * A single imported symbol on a {@link TsImport}.
+ *
+ * `typeOnly` drives TypeScript's `verbatimModuleSyntax` handling — a
+ * per-name `type` keyword, or a statement-level `import type { … }` when
+ * every specifier is type-only. `name === '*'` (with an `alias`) is a
+ * namespace import (`import * as X from '…'`).
  */
-export type TsImportSpec = {
+export type TsImportSpecifier = {
   name: string
   alias?: string
-  typeOnly?: boolean
+  typeOnly: boolean
+}
+
+const renderSpecifier = (specifier: TsImportSpecifier): string => {
+  const base = specifier.alias ? `${specifier.name} as ${specifier.alias}` : specifier.name
+  return specifier.typeOnly ? `type ${base}` : base
 }
 
 /**
- * Renders a TypeScript `import` statement.
- *
- * The anchor language's import rendering. `typeOnly` is the TS-specific
- * `verbatimModuleSyntax` concern other languages won't have — it lives
- * here on the TypeScript renderer, not in core.
+ * Convert one concise {@link ImportNameArg} (the ergonomic form a TS
+ * generator passes — `'z'`, `{ User: 'IUser' }`, `{ name, type: 'type' }`)
+ * into a structured {@link TsImportSpecifier}. The concise form lives only
+ * at this conversion boundary; everything downstream is structured.
  */
-export class TsImport {
-  module: string
-  specs: TsImportSpec[]
-
-  constructor(module: string, specs: TsImportSpec[]) {
-    this.module = module
-    this.specs = specs
+const toSpecifier = (argument: ImportNameArg): TsImportSpecifier => {
+  if (typeof argument === 'string') {
+    return { name: argument, typeOnly: false }
   }
 
-  toString(): string {
-    const allTypeOnly = this.specs.length > 0 && this.specs.every(spec => spec.typeOnly)
+  if ('name' in argument && typeof argument.name === 'string') {
+    return { name: argument.name, alias: argument.alias, typeOnly: argument.type === 'type' }
+  }
 
-    const inner = this.specs
-      .map(spec => {
-        const base = spec.alias ? `${spec.name} as ${spec.alias}` : spec.name
-        return !allTypeOnly && spec.typeOnly ? `type ${base}` : base
-      })
-      .join(', ')
+  const entry = Object.entries(argument)[0]
+  if (entry === undefined || typeof entry[1] !== 'string') {
+    throw new Error(`Invalid import specifier: ${JSON.stringify(argument)}`)
+  }
+  return { name: entry[0], alias: entry[1], typeOnly: false }
+}
 
-    const keyword = allTypeOnly ? 'import type' : 'import'
+/**
+ * TypeScript's concrete {@link ImportBase}: one module's worth of imported
+ * symbols. Owns the TS import rendering (per-name `type` tags, the
+ * statement-level `import type { … }` shortcut, aliases, and namespace
+ * imports) via the shared {@link List} helper, so its output is identical
+ * to the engine's legacy `Import`.
+ */
+export class TsImport extends ImportBase {
+  module: string
+  specifiers: TsImportSpecifier[]
 
-    return `${keyword} { ${inner} } from '${this.module}'`
+  constructor(module: string, specifiers: TsImportSpecifier[]) {
+    super()
+    this.module = module
+    this.specifiers = specifiers
+  }
+
+  /** Build from the concise `{ module: ImportNameArg[] }` form a generator passes. */
+  static fromConcise(module: string, names: ImportNameArg[]): TsImport {
+    return new TsImport(module, names.map(toSpecifier))
+  }
+
+  override mergeKey(): string {
+    return this.module
+  }
+
+  override merge(other: ImportBase): ImportBase {
+    if (!(other instanceof TsImport)) {
+      throw new Error(`Cannot merge a TsImport with a ${other.constructor.name}`)
+    }
+
+    // Dedup on the rendered specifier (the encoded form) — matching the
+    // engine's legacy `Set<string>` dedup, where `type Foo` and `Foo` are
+    // distinct entries.
+    const byRendered = new Map<string, TsImportSpecifier>()
+    for (const specifier of [...this.specifiers, ...other.specifiers]) {
+      byRendered.set(renderSpecifier(specifier), specifier)
+    }
+    return new TsImport(this.module, [...byRendered.values()])
+  }
+
+  override toString(): string {
+    const namespace = this.specifiers.find(specifier => specifier.name === '*')
+    const named = this.specifiers.filter(specifier => specifier.name !== '*')
+
+    // Statement-level `import type { … }` when there's no namespace and
+    // every named import is type-only. The per-name `type` form is equally
+    // valid; this is purely the more readable output the engine emits.
+    if (named.length > 0 && namespace === undefined && named.every(specifier => specifier.typeOnly)) {
+      const names = named.map(specifier =>
+        specifier.alias ? `${specifier.name} as ${specifier.alias}` : specifier.name
+      )
+      return `import type {${names.join(', ')}} from '${this.module}'`
+    }
+
+    const importObject =
+      named.length > 0 || namespace === undefined ? List.toObject(named.map(renderSpecifier)) : undefined
+    const namespaceRender = namespace ? `* as ${namespace.alias}` : undefined
+    const importItems = new List([namespaceRender, importObject], { separator: ', ', skipEmpty: true })
+
+    return `import ${importItems} from '${this.module}'`
   }
 }

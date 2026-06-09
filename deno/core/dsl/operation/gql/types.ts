@@ -1,9 +1,9 @@
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { Definable } from '@/dsl/Definition.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
@@ -101,7 +101,7 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
     context,
     settings,
     operation
-  }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V & Definable<V>
+  }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'gqlOperation'
   toIdentifier: (args: ToGqlOperationIdentifierArgs<EnrichmentType>) => Identifier
@@ -126,6 +126,8 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
 export type GqlOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'gqlOperation'
+  /** The target language. Resolved by the engine via `context.resolveLang(id)`. */
+  lang: Lang
   transform: <Acc = void>({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean

@@ -1,5 +1,6 @@
 import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
@@ -56,6 +57,8 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
   rootRef?: RefName
   noExport?: boolean
   variant: string
+  /** The projection's language, resolved from the config map by `id`. */
+  lang: Lang
 
   constructor({
     context,
@@ -73,6 +76,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     this.rootRef = rootRef
     this.noExport = noExport
     this.variant = variant
+    this.lang = context.resolveLang(projection.id)
 
     this.context.modelDepth[`${projection.id}:${refName}`] = 0
 
@@ -99,7 +103,8 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       // into the import so type-only identifiers (gen-typescript /
       // gen-graphql-typed-document-node / etc.) emit `import { type Foo }`
       // under `verbatimModuleSyntax: true`.
-      this.context.register({
+      this.lang.register({
+        context: this.context,
         imports: { [exportPath]: [identifier.toImport()] },
         destinationPath
       })
@@ -126,12 +131,15 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       rootRef: this.rootRef
     })
 
-    const definition = value.toDefinition({
+    const definition = this.lang.toDefinition({
+      context: this.context,
       identifier,
+      value,
       noExport: this.noExport
     })
 
-    this.context.register({
+    this.lang.register({
+      context: this.context,
       definitions: [definition],
       destinationPath: exportPath
     })

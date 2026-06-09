@@ -1,9 +1,9 @@
 import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { Definable } from '@/dsl/Definition.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
@@ -101,7 +101,7 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
     context,
     settings,
     operation
-  }: OasOperationProjectionConstructorArgs<EnrichmentType>): V & Definable<V>
+  }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'oasOperation'
   toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
@@ -126,6 +126,8 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
 export type OasOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'oasOperation'
+  /** The target language. Resolved by the engine via `context.resolveLang(id)`. */
+  lang: Lang
   transform: <Acc = void>({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean

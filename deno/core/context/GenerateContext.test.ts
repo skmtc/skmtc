@@ -156,7 +156,7 @@ Deno.test('GenerateContext - File Management', async t => {
       }
     })
 
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -167,7 +167,7 @@ Deno.test('GenerateContext - File Management', async t => {
   await t.step('register should handle imports', () => {
     const { context } = createTestContext()
 
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './types.ts',
       imports: {
         './base': ['BaseType', 'BaseInterface']
@@ -183,7 +183,7 @@ Deno.test('GenerateContext - File Management', async t => {
     const typeId1 = Identifier.createType('User')
     const typeId2 = Identifier.createType('Product')
 
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './index.ts',
       reExports: {
         './types.ts': [typeId1, typeId2]
@@ -199,7 +199,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
     const { context } = createTestContext()
 
     // Register a file first
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: []
     })
@@ -224,7 +224,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
       }
     })
 
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -249,13 +249,13 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
       }
     })
 
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './file1.ts',
       definitions: [definition]
     })
 
     // Create another file
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './file2.ts',
       definitions: []
     })
@@ -342,7 +342,7 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: [definition1, definition2],
       imports: {
@@ -384,7 +384,7 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './constants.ts',
       definitions: [definition]
     })
@@ -415,12 +415,12 @@ Deno.test('GenerateContext - Integration', async t => {
     })
 
     // Same name 'Config' but in different files
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: [typeDefinition]
     })
 
-    context.register({
+    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
       destinationPath: './constants.ts',
       definitions: [constantDefinition]
     })

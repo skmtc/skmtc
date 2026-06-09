@@ -3,6 +3,7 @@ import { spy } from '@std/testing/mock'
 import * as log from '@std/log'
 
 import { GenerateContext } from '@/context/GenerateContext.ts'
+import { File } from '@/dsl/File.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { OasOperationConfig, TransformOasOperationArgs } from '@/dsl/operation/oas/types.ts'
 import type { ModelConfig, TransformModelArgs } from '@/dsl/model/types.ts'
@@ -119,7 +120,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
 
       // Verify Definition emission works inside the dispatcher.
       const id = Identifier.createType(`${gqlOp.fieldName}Args`)
-      context.register({
+      context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
         destinationPath: `gql/operations/${gqlOp.identifier}.generated.ts`,
         definitions: [
           new Definition({

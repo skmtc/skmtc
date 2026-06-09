@@ -12,9 +12,9 @@ import type {
 } from '../../../context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import { fromGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
-import { Definition } from '@/dsl/Definition.ts'
-import type { DefinitionBase, ToDefinitionArgs } from '@/dsl/Definition.ts'
+import type { Definition } from '@/dsl/Definition.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { ModelProjection } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
@@ -143,32 +143,32 @@ export class GqlOperationProjectionBase<EnrichmentType = undefined> extends Snip
     identifier,
     value,
     noExport
-  }: Omit<DefineAndRegisterArgs<V>, 'destinationPath'>): Definition<V> {
+  }: Omit<DefineAndRegisterArgs<V>, 'destinationPath' | 'lang'>): Definition<V> {
+    const { generatorId } = fromGeneratorKey(this.generatorKey)
+
     return this.context.defineAndRegister({
       identifier,
       value,
       destinationPath: this.settings.exportPath,
-      noExport
+      noExport,
+      lang: this.context.resolveLang(generatorId)
     })
   }
 
   /**
    * Register imports/definitions in this projection's own export file.
+   *
+   * Resolves this generator's language by its own `id` (read from
+   * `this.generatorKey`) from the config map (`context.resolveLang`) and delegates to the language's
+   * `register` — the engine never names a concrete `File`.
    */
   override register(args: BaseRegisterArgs): void {
-    this.context.register({
+    const { generatorId } = fromGeneratorKey(this.generatorKey)
+
+    this.context.resolveLang(generatorId).register({
+      context: this.context,
       ...args,
       destinationPath: this.settings.exportPath
     })
-  }
-
-  /**
-   * Wrap this projection's value in a `Definition`. The Driver calls this
-   * instead of `new Definition(...)` so a language-bound projection base
-   * can return its own `*Definition` subclass. Default: the core
-   * {@link Definition} (byte-identical to the prior Driver behaviour).
-   */
-  toDefinition({ identifier, noExport }: ToDefinitionArgs): DefinitionBase<this> {
-    return new Definition({ context: this.context, value: this, identifier, noExport })
   }
 }

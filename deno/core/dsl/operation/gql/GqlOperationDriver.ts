@@ -7,6 +7,7 @@ import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
@@ -54,6 +55,8 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   definition: GeneratedDefinition<V>
   noExport?: boolean
   variant: string
+  /** The projection's language, resolved from the config map by `id`. */
+  lang: Lang
 
   constructor({
     context,
@@ -69,6 +72,7 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.variant = variant
+    this.lang = context.resolveLang(projection.id)
 
     assertPeerVariantExists({
       context,
@@ -96,8 +100,11 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
       // `Identifier.toImport()` carries the identifier's entity type so
       // type-only identifiers render as `import { type Foo }` under
-      // `verbatimModuleSyntax: true`.
-      this.context.register({
+      // `verbatimModuleSyntax: true`. The import lands in the caller's
+      // file (`destinationPath`); `insertOperation` only composes
+      // same-language generators, so the peer's `lang` is the caller's.
+      this.lang.register({
+        context: this.context,
         imports: { [exportPath]: [identifier.toImport()] },
         destinationPath
       })
@@ -122,12 +129,15 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       settings: this.settings
     })
 
-    const definition = value.toDefinition({
+    const definition = this.lang.toDefinition({
+      context: this.context,
       identifier,
+      value,
       noExport: this.noExport
     })
 
-    this.context.register({
+    this.lang.register({
+      context: this.context,
       definitions: [definition],
       destinationPath: exportPath
     })

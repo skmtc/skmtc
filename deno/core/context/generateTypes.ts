@@ -21,6 +21,7 @@ import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { File } from '@/dsl/File.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
@@ -284,6 +285,13 @@ export type DefineAndRegisterArgs<V extends GeneratedValue> = {
   destinationPath: string
   /** Whether to exclude this definition from exports */
   noExport?: boolean
+  /**
+   * The language that owns the destination file — wraps `value` in its
+   * `Definition` and merges it in. Supplied by the language-bound caller
+   * (a projection resolves it from its own `id`; the inline-model path
+   * from the model projection's `id`). See {@link Lang}.
+   */
+  lang: Lang
 }
 
 /**
@@ -301,6 +309,36 @@ export type RegisterArgs = {
   definitions?: (DefinitionBase | undefined)[]
   /** The destination file path where the content should be registered */
   destinationPath: string
+}
+
+/**
+ * Factory that constructs the language-appropriate file for a path.
+ *
+ * The engine is language-blind and must not name a concrete file class, so
+ * the (language-bound) `register` method injects this. Transitionally it
+ * comes from {@link import('@/dsl/SnippetBase.ts').SnippetBase.createFile}
+ * (core's `File`); a language package's base overrides it to return its
+ * own `*File`.
+ */
+export type CreateFile = (path: string) => FileBase
+
+/**
+ * Arguments reaching the engine's `register` / `#addFile` path: the
+ * caller-facing {@link RegisterArgs} plus the language's `createFile`
+ * factory, injected by the language-bound register method.
+ */
+export type ContextRegisterArgs = RegisterArgs & {
+  /**
+   * Language file factory, used only when the destination file is new.
+   *
+   * Injected by the language-bound register path (`SnippetBase.register`
+   * and the Drivers). **Optional, transitionally:** generators that still
+   * call `context.register` directly (the un-migrated stock generators,
+   * all TypeScript) omit it and fall back to core's `File`. Once every
+   * generator registers through `this.register`, this becomes mandatory
+   * and the `File` fallback is removed (Phase C).
+   */
+  createFile?: CreateFile
 }
 
 /**
@@ -471,11 +509,20 @@ export type GenerateContextType = {
     noExport
   }: DefineAndRegisterArgs<V>) => Definition<V>
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
-  register: ({ imports, definitions, destinationPath, reExports }: RegisterArgs) => void
+  register: (args: ContextRegisterArgs) => void
   /** Look up an existing file by path (no creation); the neutral read primitive. */
   getFile: (filePath: string) => FileBase | undefined
   /** Store a language-constructed file; the neutral write primitive. */
   addFile: (file: FileBase) => void
+  /**
+   * Resolve a generator's {@link Lang} by its `id` —
+   * `toGeneratorConfigMap()[generatorId].lang`. The engine reaches the
+   * language this way (never by naming a concrete `File` / `Definition`):
+   * a Driver knows the peer's id from `this.projection.id`, a projection
+   * knows its own from its static `id`. Throws if no generator with that
+   * id is configured, or it declares no `lang`.
+   */
+  resolveLang: (generatorId: string) => Lang
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
     args: InsertOperationArgs<V, EnrichmentType>
   ) => Inserted<V, EnrichmentType>

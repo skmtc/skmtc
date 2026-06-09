@@ -18,7 +18,7 @@ import type {
   InsertNormalizedModelReturn,
   InsertOperationArgs,
   PickArgs,
-  RegisterArgs,
+  ContextRegisterArgs,
   RegisterJsonArgs,
   ToGqlOperationSettingsArgs,
   ToOperationSettingsArgs
@@ -61,6 +61,7 @@ import type { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type {
   OasOperationSource,
   GqlOperationSource,
@@ -762,6 +763,32 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
+   * Resolve a generator's {@link Lang} by `id` from the generator config
+   * map. This is how the engine reaches a language without naming a
+   * concrete `File` / `Definition`: a Driver passes the peer's
+   * `this.projection.id`, a projection its own static `id`.
+   *
+   * Always satisfiable in a real run — a generator can only insert a peer
+   * it has installed, and every installed generator is in the config map.
+   * Throws loudly (rather than fabricating a default language) when the id
+   * is absent or declares no `lang`, since that signals a genuine
+   * misconfiguration.
+   */
+  resolveLang(generatorId: string): Lang {
+    const config = this.toGeneratorConfigMap()[generatorId]
+
+    invariant(
+      config,
+      `Cannot resolve language for generator '${generatorId}': not in the generator config map. ` +
+        `A generator must be installed/configured to be inserted as a peer.`
+    )
+
+    invariant(config.lang, `Generator '${generatorId}' declares no 'lang'.`)
+
+    return config.lang
+  }
+
+  /**
    * Create and register a definition with the given `identifier` at `destinationPath`.
    *
    * @experimental
@@ -770,7 +797,8 @@ export class GenerateContext implements GenerateContextType {
     identifier,
     value,
     destinationPath,
-    noExport
+    noExport,
+    lang
   }: DefineAndRegisterArgs<V>): Definition<V> {
     // @TODO cache check is duplicatd if call comes from
     // createAndRegisterDefinition. Look for a way to share code between
@@ -790,7 +818,8 @@ export class GenerateContext implements GenerateContextType {
       identifier,
       value,
       destinationPath,
-      noExport
+      noExport,
+      lang
     })
   }
 
@@ -803,7 +832,8 @@ export class GenerateContext implements GenerateContextType {
     identifier,
     value,
     destinationPath,
-    noExport
+    noExport,
+    lang
   }: DefineAndRegisterArgs<V>): Definition<V> {
     const definition = new Definition({
       context: this,
@@ -812,7 +842,11 @@ export class GenerateContext implements GenerateContextType {
       noExport
     })
 
-    this.register({
+    // Route through the language's `register` so the destination file is
+    // created in the right language on first write (and merged via its
+    // own semantics).
+    lang.register({
+      context: this,
       definitions: [definition],
       destinationPath
     })
@@ -855,19 +889,26 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  register({ imports = {}, definitions, destinationPath, reExports }: RegisterArgs) {
+  register({ imports = {}, definitions, destinationPath, reExports, createFile }: ContextRegisterArgs) {
     // TODO deduplicate import names and definition names against each other
     const normalizedPath = normalize(destinationPath)
 
     let currentFile = this.getFile(normalizedPath)
 
     if (!currentFile) {
-      // First write to this path creates the file. Core constructs its
-      // transitional `File` (core is the TypeScript-transitional home);
-      // when `register` moves into `lang-typescript` it will construct that
-      // language's File directly. The engine's neutral seam is
-      // `getFile`/`addFile`, not the constructor named here.
-      currentFile = new File({ path: normalizedPath, settings: this.settings })
+      // First write to this path creates the file. The engine is
+      // language-blind and never names a file class — the language-bound
+      // register path supplies `createFile` (the projection's `lang`, via
+      // `this.lang`/`value.lang`). A create with no `createFile` is a
+      // caller that bypassed its language seam: fail loud rather than
+      // fabricate a wrong-language file.
+      invariant(
+        createFile,
+        `Cannot create file "${normalizedPath}": no language file factory. ` +
+          `Register through a language-bound projection (this.register) or pass createFile.`
+      )
+
+      currentFile = createFile(normalizedPath)
       this.addFile(currentFile)
     }
 
@@ -979,7 +1020,8 @@ export class GenerateContext implements GenerateContextType {
       identifier: projection.createIdentifier(fallbackName),
       value,
       destinationPath,
-      noExport
+      noExport,
+      lang: this.resolveLang(projection.id)
     })
 
     // @TODO Using mapped types would help avoid generics casting
