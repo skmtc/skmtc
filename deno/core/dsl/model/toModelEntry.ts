@@ -3,16 +3,9 @@ import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type { TransformModelArgs, ToModelPreviewModuleArgs, ToModelMappingArgs } from './types.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 
 type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
-  /**
-   * The target language for this generator. Rides in the generator
-   * config map so the engine can resolve it by `id` via
-   * `context.resolveLang(id)` — it is never threaded through calls.
-   */
-  lang: Lang
   transform: ({ context, refName, acc, variant }: TransformModelArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
@@ -87,7 +80,6 @@ type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
  */
 export const toModelEntry = <EnrichmentType = undefined, Acc = void>({
   id,
-  lang,
   transform,
   toPreviewModule,
   toMappingModule,
@@ -96,7 +88,6 @@ export const toModelEntry = <EnrichmentType = undefined, Acc = void>({
 }: ToModelEntryArgs<EnrichmentType, Acc>): {
   id: string
   type: 'model'
-  lang: Lang
   transform: ({ context, refName, acc, variant }: TransformModelArgs<Acc>) => Acc
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
@@ -107,7 +98,6 @@ export const toModelEntry = <EnrichmentType = undefined, Acc = void>({
 } => {
   return {
     id,
-    lang,
     type: 'model',
     transform,
     toPreviewModule,

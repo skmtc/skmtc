@@ -5,9 +5,9 @@ import type {
   InsertNormalizedModelReturn
 } from '../../context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { Definition } from '@/dsl/Definition.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import { fromGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { Lang } from '@/dsl/Lang.ts'
+import { langRegister } from '@/dsl/langRegister.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { ModelProjection } from '@/dsl/model/types.ts'
@@ -25,6 +25,8 @@ export type ModelProjectionBaseArgs<EnrichmentType = undefined> = {
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   refName: RefName
+  /** The target language. Injected by the `toModelProjectionBase` factory. */
+  lang: Lang
 }
 
 /**
@@ -43,18 +45,22 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
   settings: ContentSettings<EnrichmentType>
   refName: RefName
   override generatorKey: GeneratorKey
+  /** The target language, injected by the factory from its `lang` config. */
+  lang: Lang
 
   constructor({
     context,
     settings,
     generatorKey,
-    refName
+    refName,
+    lang
   }: ModelProjectionBaseArgs<EnrichmentType>) {
     super({ context })
 
     this.generatorKey = generatorKey
     this.refName = refName
     this.settings = settings
+    this.lang = lang
   }
 
   /**
@@ -114,17 +120,11 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
   /**
    * Register imports/definitions in this projection's own export file.
    *
-   * Resolves this generator's language by its own `id` (read from
-   * `this.generatorKey`) from the config map (`context.resolveLang`) and delegates to the language's
-   * `register` — the engine never names a concrete `File`.
+   * Converts the concise import form via `this.lang.toImports` and stores
+   * through the agnostic `context.register` (the {@link langRegister}
+   * helper) — the engine never names a concrete `File`.
    */
-  override register(args: BaseRegisterArgs): void {
-    const { generatorId } = fromGeneratorKey(this.generatorKey)
-
-    this.context.resolveLang(generatorId).register({
-      context: this.context,
-      ...args,
-      destinationPath: this.settings.exportPath
-    })
+  register(args: BaseRegisterArgs): void {
+    langRegister(this, { ...args, destinationPath: this.settings.exportPath })
   }
 }

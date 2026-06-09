@@ -72,7 +72,9 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.variant = variant
-    this.lang = context.resolveLang(projection.id)
+    // The peer's language, read off the projection class (set by its
+    // factory). No config-map lookup.
+    this.lang = projection.lang
 
     assertPeerVariantExists({
       context,
@@ -103,10 +105,10 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       // `verbatimModuleSyntax: true`. The import lands in the caller's
       // file (`destinationPath`); `insertOperation` only composes
       // same-language generators, so the peer's `lang` is the caller's.
-      this.lang.register({
-        context: this.context,
-        imports: { [exportPath]: [identifier.toImport()] },
-        destinationPath
+      this.context.register({
+        imports: [this.lang.toImport({ identifier, module: exportPath })],
+        destinationPath,
+        createFile: path => this.lang.createFile({ path, settings: this.context.settings })
       })
     }
 
@@ -136,10 +138,10 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       noExport: this.noExport
     })
 
-    this.lang.register({
-      context: this.context,
+    this.context.register({
       definitions: [definition],
-      destinationPath: exportPath
+      destinationPath: exportPath,
+      createFile: path => this.lang.createFile({ path, settings: this.context.settings })
     })
 
     return definition

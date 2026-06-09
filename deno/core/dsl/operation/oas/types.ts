@@ -104,6 +104,8 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
   }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'oasOperation'
+  /** The target language (static), set by `toOasOperationProjectionBase`. The Driver reads it. */
+  lang: Lang
   toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
@@ -126,8 +128,6 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
 export type OasOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'oasOperation'
-  /** The target language. Resolved by the engine via `context.resolveLang(id)`. */
-  lang: Lang
   transform: <Acc = void>({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean

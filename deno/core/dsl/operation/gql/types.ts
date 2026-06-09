@@ -104,6 +104,8 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
   }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'gqlOperation'
+  /** The target language (static), set by `toGqlOperationProjectionBase`. The Driver reads it. */
+  lang: Lang
   toIdentifier: (args: ToGqlOperationIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToGqlOperationEnrichmentsArgs) => EnrichmentType
@@ -126,8 +128,6 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
 export type GqlOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'gqlOperation'
-  /** The target language. Resolved by the engine via `context.resolveLang(id)`. */
-  lang: Lang
   transform: <Acc = void>({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean

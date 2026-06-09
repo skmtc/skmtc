@@ -96,6 +96,8 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
   }: ModelProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
+  /** The target language (static), set by `toModelProjectionBase`. The Driver reads it. */
+  lang: Lang
   toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ refName, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
@@ -112,8 +114,6 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
 export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
-  /** The target language. Resolved by the engine via `context.resolveLang(id)`. */
-  lang: Lang
   transform: <Acc = void>({ context, refName, acc, variant }: TransformModelArgs<Acc>) => Acc
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule

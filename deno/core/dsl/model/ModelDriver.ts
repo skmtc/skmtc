@@ -76,7 +76,9 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     this.rootRef = rootRef
     this.noExport = noExport
     this.variant = variant
-    this.lang = context.resolveLang(projection.id)
+    // The peer's language, read off the projection class (set by its
+    // factory). No config-map lookup — the projection carries its own lang.
+    this.lang = projection.lang
 
     this.context.modelDepth[`${projection.id}:${refName}`] = 0
 
@@ -99,14 +101,13 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     const definition = this.getDefinition({ identifier, exportPath })
 
     if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
-      // `Identifier.toImport()` propagates the identifier's entity type
-      // into the import so type-only identifiers (gen-typescript /
-      // gen-graphql-typed-document-node / etc.) emit `import { type Foo }`
-      // under `verbatimModuleSyntax: true`.
-      this.lang.register({
-        context: this.context,
-        imports: { [exportPath]: [identifier.toImport()] },
-        destinationPath
+      // Cross-file import of the peer's identifier from its export path.
+      // The language builds the import object (`toImport`); the engine
+      // stores it via the agnostic `context.register`.
+      this.context.register({
+        imports: [this.lang.toImport({ identifier, module: exportPath })],
+        destinationPath,
+        createFile: path => this.lang.createFile({ path, settings: this.context.settings })
       })
     }
 
@@ -138,10 +139,10 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       noExport: this.noExport
     })
 
-    this.lang.register({
-      context: this.context,
+    this.context.register({
       definitions: [definition],
-      destinationPath: exportPath
+      destinationPath: exportPath,
+      createFile: path => this.lang.createFile({ path, settings: this.context.settings })
     })
 
     return definition

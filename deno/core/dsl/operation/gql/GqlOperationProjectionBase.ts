@@ -12,7 +12,8 @@ import type {
 } from '../../../context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import { fromGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { Lang } from '@/dsl/Lang.ts'
+import { langRegister } from '@/dsl/langRegister.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { Definition } from '@/dsl/Definition.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -30,6 +31,8 @@ export type GqlOperationProjectionBaseArgs<EnrichmentType = undefined> = {
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   operation: GqlOperation
+  /** The target language. Injected by the `toGqlOperationProjectionBase` factory. */
+  lang: Lang
 }
 
 /**
@@ -48,18 +51,22 @@ export class GqlOperationProjectionBase<EnrichmentType = undefined> extends Snip
   settings: ContentSettings<EnrichmentType>
   operation: GqlOperation
   override generatorKey: GeneratorKey
+  /** The target language, injected by the factory from its `lang` config. */
+  lang: Lang
 
   constructor({
     context,
     generatorKey,
     settings,
-    operation
+    operation,
+    lang
   }: GqlOperationProjectionBaseArgs<EnrichmentType>) {
     super({ context })
 
     this.generatorKey = generatorKey
     this.operation = operation
     this.settings = settings
+    this.lang = lang
   }
 
   /**
@@ -144,31 +151,23 @@ export class GqlOperationProjectionBase<EnrichmentType = undefined> extends Snip
     value,
     noExport
   }: Omit<DefineAndRegisterArgs<V>, 'destinationPath' | 'lang'>): Definition<V> {
-    const { generatorId } = fromGeneratorKey(this.generatorKey)
-
     return this.context.defineAndRegister({
       identifier,
       value,
       destinationPath: this.settings.exportPath,
       noExport,
-      lang: this.context.resolveLang(generatorId)
+      lang: this.lang
     })
   }
 
   /**
    * Register imports/definitions in this projection's own export file.
    *
-   * Resolves this generator's language by its own `id` (read from
-   * `this.generatorKey`) from the config map (`context.resolveLang`) and delegates to the language's
-   * `register` — the engine never names a concrete `File`.
+   * Converts the concise import form via `this.lang.toImports` and stores
+   * through the agnostic `context.register` (the {@link langRegister}
+   * helper) — the engine never names a concrete `File`.
    */
-  override register(args: BaseRegisterArgs): void {
-    const { generatorId } = fromGeneratorKey(this.generatorKey)
-
-    this.context.resolveLang(generatorId).register({
-      context: this.context,
-      ...args,
-      destinationPath: this.settings.exportPath
-    })
+  register(args: BaseRegisterArgs): void {
+    langRegister(this, { ...args, destinationPath: this.settings.exportPath })
   }
 }
