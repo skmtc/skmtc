@@ -15,7 +15,7 @@ import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import { langRegister } from '@/dsl/langRegister.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
-import type { Definition } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { ModelProjection } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
@@ -151,7 +151,7 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
     identifier,
     value,
     noExport
-  }: Omit<DefineAndRegisterArgs<V>, 'destinationPath' | 'lang'>): Definition<V> {
+  }: Omit<DefineAndRegisterArgs<V>, 'destinationPath' | 'lang'>): DefinitionBase<V> {
     return this.context.defineAndRegister({
       identifier,
       value,

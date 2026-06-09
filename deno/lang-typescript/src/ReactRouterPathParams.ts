@@ -1,14 +1,12 @@
-import { SnippetBase } from '../dsl/SnippetBase.ts'
-import type { GenerateContext } from '../context/GenerateContext.ts'
-import type { OasOperation } from '../oas/operation/Operation.ts'
-import type { GeneratorKey } from '../dsl/GeneratorKeys.ts'
+import type { GenerateContextType, OasOperation, GeneratorKey } from '@skmtc/core'
+import { TypescriptSnippet } from './TypescriptSnippet.ts'
 
 /**
  * Constructor arguments for {@link ReactRouterPathParams}.
  */
 type CreateArgs = {
   /** The generation context for registering imports and handling dependencies */
-  context: GenerateContext
+  context: GenerateContextType
   /** The generator key identifying this component */
   generatorKey: GeneratorKey
   /** The OpenAPI operation containing path parameters */
@@ -40,7 +38,7 @@ type CreateArgs = {
  *
  * @example Basic usage with single path parameter
  * ```typescript
- * import { ReactRouterPathParams } from '@skmtc/core';
+ * import { ReactRouterPathParams } from '@skmtc/lang-typescript';
  *
  * const operation = new OasOperation({
  *   path: '/users/{id}',
@@ -92,20 +90,6 @@ type CreateArgs = {
  * // 'orgId={orgId} projectId={projectId} issueId={issueId}'
  * ```
  *
- * @example Generated React component integration
- * ```typescript
- * // Generated component might look like:
- * import { useParams } from 'react-router-dom';
- * import invariant from 'tiny-invariant';
- *
- * function UserDetail() {
- *   const { id } = useParams();
- *   invariant(id, 'Expected id to be defined');
- *
- *   return <UserDetailView id={id} />;
- * }
- * ```
- *
  * @example No path parameters (empty generation)
  * ```typescript
  * const simpleOperation = new OasOperation({
@@ -126,49 +110,8 @@ type CreateArgs = {
  * console.log(emptyParams.passProps);    // ''
  * // No imports registered for this case
  * ```
- *
- * @example Integration in component generation
- * ```typescript
- * class ReactComponentGenerator {
- *   generateDetailComponent(operation: OasOperation) {
- *     const pathParams = new ReactRouterPathParams({
- *       context: this.context,
- *       generatorKey: 'react-component',
- *       operation,
- *       destinationPath: this.getDestinationPath(operation)
- *     });
- *
- *     if (pathParams.names.length === 0) {
- *       // Generate simple component without parameters
- *       return this.generateSimpleComponent(operation);
- *     }
- *
- *     return `
- * function ${operation.operationId}() {
- *   ${pathParams.getParams}
- *   ${pathParams.assertParams}
- *
- *   return (
- *     <DetailView ${pathParams.passProps} />
- *   );
- * }`;
- *   }
- * }
- * ```
- *
- * @example Custom parameter validation
- * ```typescript
- * class CustomReactRouterParams extends ReactRouterPathParams {
- *   generateCustomAssertions(paramName: string): string {
- *     return `
- * invariant(${paramName}, 'Expected ${paramName} to be defined');
- * invariant(typeof ${paramName} === 'string', '${paramName} must be a string');
- * invariant(${paramName}.length > 0, '${paramName} cannot be empty');`;
- *   }
- * }
- * ```
  */
-export class ReactRouterPathParams extends SnippetBase {
+export class ReactRouterPathParams extends TypescriptSnippet {
   /** Generated code for extracting parameters from useParams() */
   getParams: string = ''
 
@@ -189,16 +132,6 @@ export class ReactRouterPathParams extends SnippetBase {
    * prop passing. It automatically registers required imports when parameters are present.
    *
    * @param args - Configuration for React Router parameter generation
-   *
-   * @example
-   * ```typescript
-   * const pathParams = new ReactRouterPathParams({
-   *   context: generateContext,
-   *   generatorKey: 'react-params',
-   *   operation: userDetailOperation, // has path '/users/{id}'
-   *   destinationPath: './UserDetail.tsx'
-   * });
-   * ```
    */
   constructor({ context, operation, generatorKey, destinationPath }: CreateArgs) {
     super({ context, generatorKey })

@@ -54,12 +54,15 @@ export const seenSnippetConstructors = new Set<SnippetConstructor>()
  *   `GqlOperationProjectionBase`) are named, exportable artifacts that the
  *   pipeline wraps in a `Definition` and registers in a `File`.
  * - **Snippets** are anonymous, embedded values whose `toString()` is spliced
- *   into the body of a Projection (or another Snippet). `Definition`,
- *   `CustomValue`, and target-language helpers like `ReactRouterPathParams`
- *   extend `SnippetBase` directly without going through a Projection base.
+ *   into the body of a Projection (or another Snippet). `Definition` and
+ *   `CustomValue` extend `SnippetBase` directly without going through a
+ *   Projection base.
  *
- * Both forms share the plumbing this class provides: a generation context
- * and a `register()` shortcut for adding imports and definitions to files.
+ * `SnippetBase` is **language-blind**: it holds only a generation context and
+ * the attribution plumbing below — no `lang`, no `register`. A snippet that
+ * needs to register imports or definitions extends a language-bound base
+ * (e.g. `TypescriptSnippet` in `@skmtc/lang-typescript`), which carries the
+ * language's `register` / `defineAndRegister` shortcuts.
  *
  * ## Attribution (gen-maps)
  *

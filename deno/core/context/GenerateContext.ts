@@ -1,5 +1,5 @@
 import { normalize } from '@std/path/normalize'
-import { Definition, type DefinitionBase } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -56,12 +56,12 @@ import type { StackTrail } from './StackTrail.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
 import { Inserted } from '@/dsl/Inserted.ts'
-import { File } from '@/dsl/File.ts'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
+import { langDefineAndRegister } from '@/dsl/langRegister.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import type {
   OasOperationSource,
   GqlOperationSource,
@@ -763,32 +763,6 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
-   * Resolve a generator's {@link Lang} by `id` from the generator config
-   * map. This is how the engine reaches a language without naming a
-   * concrete `File` / `Definition`: a Driver passes the peer's
-   * `this.projection.id`, a projection its own static `id`.
-   *
-   * Always satisfiable in a real run — a generator can only insert a peer
-   * it has installed, and every installed generator is in the config map.
-   * Throws loudly (rather than fabricating a default language) when the id
-   * is absent or declares no `lang`, since that signals a genuine
-   * misconfiguration.
-   */
-  resolveLang(generatorId: string): Lang {
-    const config = this.toGeneratorConfigMap()[generatorId]
-
-    invariant(
-      config,
-      `Cannot resolve language for generator '${generatorId}': not in the generator config map. ` +
-        `A generator must be installed/configured to be inserted as a peer.`
-    )
-
-    invariant(config.lang, `Generator '${generatorId}' declares no 'lang'.`)
-
-    return config.lang
-  }
-
-  /**
    * Create and register a definition with the given `identifier` at `destinationPath`.
    *
    * @experimental
@@ -799,7 +773,7 @@ export class GenerateContext implements GenerateContextType {
     destinationPath,
     noExport,
     lang
-  }: DefineAndRegisterArgs<V>): Definition<V> {
+  }: DefineAndRegisterArgs<V>): DefinitionBase<V> {
     // @TODO cache check is duplicatd if call comes from
     // createAndRegisterDefinition. Look for a way to share code between
     // these two functions
@@ -811,7 +785,7 @@ export class GenerateContext implements GenerateContextType {
     // @TODO add check to make sure retrieved definition
     // used same generator and same schema #SKM-47
     if (cachedDefinition) {
-      return cachedDefinition as Definition<V>
+      return cachedDefinition as DefinitionBase<V>
     }
 
     return this.#defineAndRegister({
@@ -834,24 +808,14 @@ export class GenerateContext implements GenerateContextType {
     destinationPath,
     noExport,
     lang
-  }: DefineAndRegisterArgs<V>): Definition<V> {
-    const definition = new Definition({
-      context: this,
-      identifier,
-      value,
-      noExport
-    })
-
-    // Route through the language's `register` so the destination file is
-    // created in the right language on first write (and merged via its
-    // own semantics).
-    lang.register({
-      context: this,
-      definitions: [definition],
-      destinationPath
-    })
-
-    return definition
+  }: DefineAndRegisterArgs<V>): DefinitionBase<V> {
+    // The language builds its own `Definition` (via `lang.toDefinition`) and
+    // the neutral `context.register` creates the destination file through
+    // `lang.createFile` on first write.
+    return langDefineAndRegister(
+      { context: this, lang },
+      { identifier, value, destinationPath, noExport }
+    )
   }
 
   /**
@@ -1011,7 +975,7 @@ export class GenerateContext implements GenerateContextType {
       value,
       destinationPath,
       noExport,
-      lang: this.resolveLang(projection.id)
+      lang: projection.lang
     })
 
     // @TODO Using mapped types would help avoid generics casting

@@ -7,6 +7,7 @@ import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Definition, DefinitionBase } from '@/dsl/Definition.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -508,22 +509,13 @@ export type GenerateContextType = {
     value,
     destinationPath,
     noExport
-  }: DefineAndRegisterArgs<V>) => Definition<V>
+  }: DefineAndRegisterArgs<V>) => DefinitionBase<V>
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   register: (args: ContextRegisterArgs) => void
   /** Look up an existing file by path (no creation); the neutral read primitive. */
   getFile: (filePath: string) => FileBase | undefined
   /** Store a language-constructed file; the neutral write primitive. */
   addFile: (file: FileBase) => void
-  /**
-   * Resolve a generator's {@link Lang} by its `id` —
-   * `toGeneratorConfigMap()[generatorId].lang`. The engine reaches the
-   * language this way (never by naming a concrete `File` / `Definition`):
-   * a Driver knows the peer's id from `this.projection.id`, a projection
-   * knows its own from its static `id`. Throws if no generator with that
-   * id is configured, or it declares no `lang`.
-   */
-  resolveLang: (generatorId: string) => Lang
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
     args: InsertOperationArgs<V, EnrichmentType>
   ) => Inserted<V, EnrichmentType>
