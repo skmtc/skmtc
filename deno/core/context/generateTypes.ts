@@ -21,7 +21,7 @@ import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { File } from '@/dsl/File.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
-import type { Lang } from '@/dsl/Lang.ts'
+import type { ImportBase } from '@/dsl/ImportBase.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
@@ -323,22 +323,23 @@ export type RegisterArgs = {
 export type CreateFile = (path: string) => FileBase
 
 /**
- * Arguments reaching the engine's `register` / `#addFile` path: the
- * caller-facing {@link RegisterArgs} plus the language's `createFile`
- * factory, injected by the language-bound register method.
+ * The neutral arguments the engine's `context.register` speaks — already
+ * standardised into language objects. `imports` are {@link ImportBase}
+ * (the language converted the concise form via `lang.toImports` upstream);
+ * `definitions` are {@link DefinitionBase}; `createFile` is the language's
+ * file factory, used to create the destination file on first write. The
+ * engine never sees the concise / TS-shaped import vocabulary — that lives
+ * only at the `lang.toImports` conversion seam.
  */
-export type ContextRegisterArgs = RegisterArgs & {
-  /**
-   * Language file factory, used only when the destination file is new.
-   *
-   * Injected by the language-bound register path (`SnippetBase.register`
-   * and the Drivers). **Optional, transitionally:** generators that still
-   * call `context.register` directly (the un-migrated stock generators,
-   * all TypeScript) omit it and fall back to core's `File`. Once every
-   * generator registers through `this.register`, this becomes mandatory
-   * and the `File` fallback is removed (Phase C).
-   */
-  createFile?: CreateFile
+export type ContextRegisterArgs = {
+  /** Standardised imports to merge into the destination file. */
+  imports?: ImportBase[]
+  /** Definition objects to include in the destination file. */
+  definitions?: (DefinitionBase | undefined)[]
+  /** The destination file path. */
+  destinationPath: string
+  /** The language's file factory, used when the destination file is new. */
+  createFile: CreateFile
 }
 
 /**

@@ -889,25 +889,16 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  register({ imports = {}, definitions, destinationPath, reExports, createFile }: ContextRegisterArgs) {
-    // TODO deduplicate import names and definition names against each other
+  register({ imports = [], definitions, destinationPath, createFile }: ContextRegisterArgs) {
     const normalizedPath = normalize(destinationPath)
 
     let currentFile = this.getFile(normalizedPath)
 
     if (!currentFile) {
       // First write to this path creates the file. The engine is
-      // language-blind and never names a file class — the language-bound
-      // register path supplies `createFile` (the projection's `lang`, via
-      // `this.lang`/`value.lang`). A create with no `createFile` is a
-      // caller that bypassed its language seam: fail loud rather than
-      // fabricate a wrong-language file.
-      invariant(
-        createFile,
-        `Cannot create file "${normalizedPath}": no language file factory. ` +
-          `Register through a language-bound projection (this.register) or pass createFile.`
-      )
-
+      // language-blind and never names a file class — the caller (a
+      // language-bound projection / Driver) supplies the language's
+      // `createFile`.
       currentFile = createFile(normalizedPath)
       this.addFile(currentFile)
     }
@@ -920,11 +911,10 @@ export class GenerateContext implements GenerateContextType {
       }
     })
 
-    // Imports / re-exports are TypeScript-shaped; in the transitional
-    // engine every code file is a `File`. This whole branch moves to the
-    // language package's `register` when `lang-typescript` lands.
-    if (currentFile instanceof File) {
-      currentFile.addReExports(reExports ?? {})
+    // Imports are standardised `ImportBase` objects; the neutral merge
+    // (keyed by `mergeKey`) lives on `CodeFileBase`. `JsonFile` has no
+    // imports, so the guard skips it.
+    if (imports.length > 0 && currentFile instanceof CodeFileBase) {
       currentFile.addImports(imports)
     }
   }

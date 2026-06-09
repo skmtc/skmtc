@@ -1,5 +1,4 @@
 import type { GenerateContextType } from '../context/generateTypes.ts'
-import type { RegisterArgs } from '../context/generateTypes.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
@@ -111,10 +110,4 @@ export class SnippetBase {
     if (new.target) seenSnippetConstructors.add(new.target)
   }
 
-  /**
-   * Registers generated artifacts with the rendering pipeline.
-   */
-  register(args: RegisterArgs): void {
-    this.context.register(args)
-  }
 }
