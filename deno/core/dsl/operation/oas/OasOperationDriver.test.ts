@@ -47,7 +47,8 @@ const createMockContext = (options?: {
   const mockContext = {
     toOperationContentSettings: toOperationContentSettingsSpy,
     findDefinition: findDefinitionSpy,
-    register: registerSpy
+    register: registerSpy,
+    resolveLang: () => typescript
   } as unknown as GenerateContextType
 
   return {
@@ -81,7 +82,6 @@ const createMockProjection = (options?: {
   isSupported?: () => boolean
 }): OasOperationProjection<any, undefined> => {
   class MockProjection extends OasOperationProjectionBase<undefined> {
-    static lang = typescript
     static id = options?.id ?? 'MockProjection'
     static type = 'oasOperation' as const
     static isSupported = options?.isSupported
@@ -117,7 +117,6 @@ const createMockProjection = (options?: {
       // Call parent constructor with all required arguments
       super({
         context: args.context,
-        lang: typescript,
         settings: args.settings,
         operation: args.operation,
         generatorKey
@@ -512,7 +511,6 @@ Deno.test('OasOperationDriver', async t => {
       let capturedArgs: any = null
 
       class SpyProjection extends OasOperationProjectionBase<undefined> {
-        static lang = typescript
         static id = 'SpyProjection'
         static type = 'oasOperation' as const
         static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
@@ -533,7 +531,6 @@ Deno.test('OasOperationDriver', async t => {
           })
           super({
             context: args.context,
-            lang: typescript,
             settings: args.settings,
             operation: args.operation,
             generatorKey
@@ -672,7 +669,6 @@ Deno.test('OasOperationDriver', async t => {
       let instantiated = false
 
       class TrackingProjection extends OasOperationProjectionBase<undefined> {
-        static lang = typescript
         static id = 'TrackingProjection'
         static type = 'oasOperation' as const
         static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
@@ -693,7 +689,6 @@ Deno.test('OasOperationDriver', async t => {
           })
           super({
             context: args.context,
-            lang: typescript,
             settings: args.settings,
             operation: args.operation,
             generatorKey

@@ -4,7 +4,6 @@ import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { ModelProjectionBase } from '@/dsl/model/ModelProjectionBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import type {
   ToModelIdentifierArgs,
   ToModelExportPathArgs
@@ -39,14 +38,6 @@ type ToEnrichmentsArgs = {
  */
 export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
   id: string
-  /**
-   * The target language for this generator — a `@skmtc/lang-*` package's
-   * `Lang` (e.g. `typescript`). Required: it fixes the language at the
-   * projection base, so a projection cannot be built without one. The
-   * factory exposes it as `static lang` (the Driver reads it) and injects
-   * it as the instance `lang` (the register methods use it).
-   */
-  lang: Lang
   toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
@@ -65,7 +56,6 @@ export const toModelProjectionBase = <EnrichmentType = undefined>(
   return class extends ModelProjectionBase<EnrichmentType> {
     static id = config.id
     static type = 'model' as const
-    static lang: Lang = config.lang
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
@@ -92,7 +82,6 @@ export const toModelProjectionBase = <EnrichmentType = undefined>(
     constructor(args: ModelProjectionArgs<EnrichmentType>) {
       super({
         ...args,
-        lang: config.lang,
         generatorKey: toModelGeneratorKey({
           generatorId: config.id,
           refName: args.refName,

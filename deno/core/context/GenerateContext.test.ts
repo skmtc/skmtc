@@ -10,6 +10,7 @@ import { Definition } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import { typescript } from '@skmtc/lang-typescript'
+import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
@@ -46,7 +47,18 @@ const createTestContext = (options?: {
     settings: options?.settings,
     logger: options?.logger ?? mockLogger,
     captureCurrentResult,
-    toGeneratorConfigMap: () => ({})
+    // The `test` generator carries `lang` so `register({ generatorId: 'test' })`
+    // can resolve the destination file's language. Its transform is a no-op,
+    // so it produces no files of its own.
+    toGeneratorConfigMap: () =>
+      ({
+        test: toModelEntry({
+          id: 'test',
+          lang: typescript,
+          transform: () => {}
+        })
+        // deno-lint-ignore no-explicit-any
+      }) as any
   })
 
   return { context, captureCurrentResult }
@@ -156,7 +168,7 @@ Deno.test('GenerateContext - File Management', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -167,7 +179,7 @@ Deno.test('GenerateContext - File Management', async t => {
   await t.step('register should handle imports', () => {
     const { context } = createTestContext()
 
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './types.ts',
       imports: typescript.toImports({
         './base': ['BaseType', 'BaseInterface']
@@ -187,7 +199,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
     const { context } = createTestContext()
 
     // Register a file first
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './types.ts',
       definitions: []
     })
@@ -212,7 +224,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -237,13 +249,13 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './file1.ts',
       definitions: [definition]
     })
 
     // Create another file
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './file2.ts',
       definitions: []
     })
@@ -330,7 +342,7 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './types.ts',
       definitions: [definition1, definition2],
       imports: typescript.toImports({
@@ -372,7 +384,7 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './constants.ts',
       definitions: [definition]
     })
@@ -403,12 +415,12 @@ Deno.test('GenerateContext - Integration', async t => {
     })
 
     // Same name 'Config' but in different files
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './types.ts',
       definitions: [typeDefinition]
     })
 
-    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
+    context.register({ generatorId: 'test',
       destinationPath: './constants.ts',
       definitions: [constantDefinition]
     })

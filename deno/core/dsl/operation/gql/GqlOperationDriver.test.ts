@@ -53,7 +53,8 @@ const createMockContext = (options?: {
   const mockContext = {
     toOperationContentSettings: toOperationContentSettingsSpy,
     findDefinition: findDefinitionSpy,
-    register: registerSpy
+    register: registerSpy,
+    resolveLang: () => typescript
   } as unknown as GenerateContextType
 
   return {
@@ -83,7 +84,6 @@ const createMockProjection = (options?: {
   isSupported?: () => boolean
 }): GqlOperationProjection<any, undefined> => {
   class MockProjection extends GqlOperationProjectionBase<undefined> {
-    static lang = typescript
     static id = options?.id ?? 'MockProjection'
     static type = 'gqlOperation' as const
     static isSupported = options?.isSupported
@@ -113,7 +113,6 @@ const createMockProjection = (options?: {
 
       super({
         context: args.context,
-        lang: typescript,
         settings: args.settings,
         operation: args.operation,
         generatorKey
@@ -498,7 +497,6 @@ Deno.test('GqlOperationDriver', async t => {
       let capturedArgs: any = null
 
       class SpyProjection extends GqlOperationProjectionBase<undefined> {
-        static lang = typescript
         static id = 'SpyProjection'
         static type = 'gqlOperation' as const
         static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
@@ -515,7 +513,6 @@ Deno.test('GqlOperationDriver', async t => {
           const generatorKey = toKey('SpyProjection', args.operation)
           super({
             context: args.context,
-            lang: typescript,
             settings: args.settings,
             operation: args.operation,
             generatorKey
@@ -650,7 +647,6 @@ Deno.test('GqlOperationDriver', async t => {
       let instantiated = false
 
       class TrackingProjection extends GqlOperationProjectionBase<undefined> {
-        static lang = typescript
         static id = 'TrackingProjection'
         static type = 'gqlOperation' as const
         static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
@@ -667,7 +663,6 @@ Deno.test('GqlOperationDriver', async t => {
           const generatorKey = toKey('TrackingProjection', args.operation)
           super({
             context: args.context,
-            lang: typescript,
             settings: args.settings,
             operation: args.operation,
             generatorKey

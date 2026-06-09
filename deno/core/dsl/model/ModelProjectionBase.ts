@@ -6,7 +6,6 @@ import type {
 } from '../../context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import { langRegister } from '@/dsl/langRegister.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -25,8 +24,6 @@ export type ModelProjectionBaseArgs<EnrichmentType = undefined> = {
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   refName: RefName
-  /** The target language. Injected by the `toModelProjectionBase` factory. */
-  lang: Lang
 }
 
 /**
@@ -45,22 +42,18 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
   settings: ContentSettings<EnrichmentType>
   refName: RefName
   override generatorKey: GeneratorKey
-  /** The target language, injected by the factory from its `lang` config. */
-  lang: Lang
 
   constructor({
     context,
     settings,
     generatorKey,
-    refName,
-    lang
+    refName
   }: ModelProjectionBaseArgs<EnrichmentType>) {
-    super({ context })
+    super({ context, generatorKey })
 
     this.generatorKey = generatorKey
     this.refName = refName
     this.settings = settings
-    this.lang = lang
   }
 
   /**
@@ -118,13 +111,24 @@ export class ModelProjectionBase<EnrichmentType = undefined> extends SnippetBase
   }
 
   /**
-   * Register imports/definitions in this projection's own export file.
-   *
-   * Converts the concise import form via `this.lang.toImports` and stores
-   * through the agnostic `context.register` (the {@link langRegister}
-   * helper) — the engine never names a concrete `File`.
+   * Register imports/definitions in this projection's **own** export file
+   * (`this.settings.exportPath`). The language is resolved by `generatorId`
+   * and the engine creates the file — the call carries no `createFile`.
+   * For a different file use {@link registerInto}; `register` is own-file only,
+   * so a missing path can never silently land in the wrong file.
    */
-  register(args: BaseRegisterArgs): void {
+  override register(args: BaseRegisterArgs): void {
     langRegister(this, { ...args, destinationPath: this.settings.exportPath })
+  }
+
+  /**
+   * Register imports/definitions into an explicitly named file
+   * (`destinationPath`) — distinct from {@link register}, which always targets
+   * this projection's own export file. Use when a generator writes into a file
+   * it doesn't own (e.g. a shared barrel or demo). The language is still this
+   * generator's, resolved by `generatorId`.
+   */
+  registerInto(destinationPath: string, args: BaseRegisterArgs): void {
+    langRegister(this, { ...args, destinationPath })
   }
 }

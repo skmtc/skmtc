@@ -1,4 +1,3 @@
-import { typescript } from '@skmtc/lang-typescript'
 import { toGqlOperationProjectionBase } from './toGqlOperationProjectionBase.ts'
 import { assertEquals } from '@std/assert/equals'
 import { Identifier } from '@/dsl/Identifier.ts'
@@ -28,7 +27,6 @@ const createMockGqlOperation = (
 
 Deno.test('toGqlOperationProjectionBase - returns a class constructor', () => {
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -40,7 +38,6 @@ Deno.test('toGqlOperationProjectionBase - returns a class constructor', () => {
 
 Deno.test('toGqlOperationProjectionBase - sets static id from config', () => {
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'graphql-operations',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -51,7 +48,6 @@ Deno.test('toGqlOperationProjectionBase - sets static id from config', () => {
 
 Deno.test('toGqlOperationProjectionBase - sets static type to operation', () => {
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -65,7 +61,6 @@ Deno.test('toGqlOperationProjectionBase - sets static toIdentifier from config',
     Identifier.createVariable(operation.fieldName)
 
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'test-operation',
     toIdentifier: identifierFn,
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -83,7 +78,6 @@ Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config',
     `./generated/${operation.fieldName}.ts`
 
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: exportPathFn
@@ -102,7 +96,6 @@ Deno.test(
   'toGqlOperationProjectionBase - toEnrichments returns undefined when no enrichmentSchema provided',
   () => {
     const OperationClass = toGqlOperationProjectionBase({
-      lang: typescript,
       id: 'test-operation',
       toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
       toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -124,7 +117,6 @@ Deno.test(
   'toGqlOperationProjectionBase - toEnrichments returns undefined when no enrichments in context',
   () => {
     const OperationClass = toGqlOperationProjectionBase({
-      lang: typescript,
       id: 'test-operation',
       toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
       toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -144,7 +136,6 @@ Deno.test(
 
 Deno.test('toGqlOperationProjectionBase - toIdentifier works with different operations', () => {
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'test-operation',
     toIdentifier: ({ operation }) =>
       Identifier.createVariable(`${operation.rootKind}${operation.fieldName}`),
@@ -165,7 +156,6 @@ Deno.test('toGqlOperationProjectionBase - toIdentifier works with different oper
 
 Deno.test('toGqlOperationProjectionBase - toExportPath works with different operations', () => {
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./types/${operation.rootKind}-${operation.fieldName}.d.ts`
@@ -183,7 +173,6 @@ Deno.test('toGqlOperationProjectionBase - toExportPath works with different oper
 
 Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorKey', () => {
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'graphql-client',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -210,7 +199,6 @@ Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorK
 
 Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase', () => {
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -239,7 +227,6 @@ Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase
 
 Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', () => {
   const OperationClass = toGqlOperationProjectionBase<{ enabled: boolean; timeout?: number }>({
-    lang: typescript,
     id: 'graphql-client',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`,
@@ -283,7 +270,6 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', 
 
 Deno.test('toGqlOperationProjectionBase - toEnrichments retrieves from correct nested path', () => {
   const OperationClass = toGqlOperationProjectionBase({
-    lang: typescript,
     id: 'graphql-api',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`

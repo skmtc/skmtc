@@ -12,7 +12,6 @@ import type {
 } from '@/context/generateTypes.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import { langRegister } from '@/dsl/langRegister.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
@@ -31,8 +30,6 @@ export type OasOperationProjectionBaseArgs<EnrichmentType = undefined> = {
   settings: ContentSettings<EnrichmentType>
   generatorKey: GeneratorKey
   operation: OasOperation
-  /** The target language. Injected by the `toOasOperationProjectionBase` factory. */
-  lang: Lang
 }
 
 /**
@@ -51,22 +48,18 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
   override generatorKey: GeneratorKey
-  /** The target language, injected by the factory from its `lang` config. */
-  lang: Lang
 
   constructor({
     context,
     generatorKey,
     settings,
-    operation,
-    lang
+    operation
   }: OasOperationProjectionBaseArgs<EnrichmentType>) {
-    super({ context })
+    super({ context, generatorKey })
 
     this.generatorKey = generatorKey
     this.operation = operation
     this.settings = settings
-    this.lang = lang
   }
 
   /**
@@ -147,28 +140,39 @@ export class OasOperationProjectionBase<EnrichmentType = undefined> extends Snip
    * Define and register a one-off `Definition` in this projection's export
    * file without going through the standard insertion flow.
    */
-  defineAndRegister<V extends GeneratedValue>({
+  override defineAndRegister<V extends GeneratedValue>({
     identifier,
     value,
     noExport
-  }: Omit<DefineAndRegisterArgs<V>, 'destinationPath' | 'lang'>): DefinitionBase<V> {
+  }: Omit<DefineAndRegisterArgs<V>, 'destinationPath' | 'generatorId'>): DefinitionBase<V> {
     return this.context.defineAndRegister({
       identifier,
       value,
       destinationPath: this.settings.exportPath,
       noExport,
-      lang: this.lang
+      generatorId: this.generatorId
     })
   }
 
   /**
-   * Register imports/definitions in this projection's own export file.
-   *
-   * Converts the concise import form via `this.lang.toImports` and stores
-   * through the agnostic `context.register` (the {@link langRegister}
-   * helper) — the engine never names a concrete `File`.
+   * Register imports/definitions in this projection's **own** export file
+   * (`this.settings.exportPath`). The language is resolved by `generatorId`
+   * and the engine creates the file — the call carries no `createFile`.
+   * For a different file use {@link registerInto}; `register` is own-file only,
+   * so a missing path can never silently land in the wrong file.
    */
-  register(args: BaseRegisterArgs): void {
+  override register(args: BaseRegisterArgs): void {
     langRegister(this, { ...args, destinationPath: this.settings.exportPath })
+  }
+
+  /**
+   * Register imports/definitions into an explicitly named file
+   * (`destinationPath`) — distinct from {@link register}, which always targets
+   * this projection's own export file. Use when a generator writes into a file
+   * it doesn't own (e.g. a shared barrel or demo). The language is still this
+   * generator's, resolved by `generatorId`.
+   */
+  registerInto(destinationPath: string, args: BaseRegisterArgs): void {
+    langRegister(this, { ...args, destinationPath })
   }
 }

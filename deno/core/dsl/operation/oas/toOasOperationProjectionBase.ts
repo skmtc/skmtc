@@ -3,7 +3,6 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import { OasOperationProjectionBase } from '@/dsl/operation/oas/OasOperationProjectionBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import type {
   OasOperationProjectionConstructorArgs,
   ToOasOperationIdentifierArgs,
@@ -19,12 +18,6 @@ import { DEFAULT_VARIANT } from '@/types/Variant.ts'
  */
 export type OasOperationProjectionBaseConfig<EnrichmentType = undefined> = {
   id: string
-  /**
-   * The target language — a `@skmtc/lang-*` package's `Lang`. Required; the
-   * factory exposes it as `static lang` (the Driver reads it) and injects
-   * it as the instance `lang` (the register methods use it).
-   */
-  lang: Lang
   toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
@@ -58,7 +51,6 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
   return class extends OasOperationProjectionBase<EnrichmentType> {
     static id = config.id
     static type = 'oasOperation' as const
-    static lang: Lang = config.lang
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
@@ -91,7 +83,6 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
     constructor(args: OasOperationProjectionConstructorArgs<EnrichmentType>) {
       super({
         ...args,
-        lang: config.lang,
         generatorKey: toOasOperationGeneratorKey({
           generatorId: config.id,
           operation: args.operation,

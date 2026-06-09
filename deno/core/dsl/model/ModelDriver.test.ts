@@ -13,10 +13,12 @@ import type { GeneratorKey } from '../GeneratorKeys.ts'
 import type { Lang, LangToDefinitionArgs } from '@/dsl/Lang.ts'
 import { typescript } from '@skmtc/lang-typescript'
 
-// The Driver reads the projection's STATIC `lang` and calls
-// `lang.toDefinition`. These test langs reuse the real `typescript` lang for
-// `createFile` / `toImport` / `toImports` and override `toDefinition` so the
-// assertions below can pin which Definition subclass flows through.
+// The Driver resolves the projection's language via
+// `context.resolveLang(projection.id)` and calls `lang.toDefinition`. These
+// test langs reuse the real `typescript` lang for `createFile` / `toImport` /
+// `toImports` and override `toDefinition` so the assertions below can pin which
+// Definition subclass flows through. The mock context's `resolveLang` maps each
+// projection `id` to the right lang.
 const coreDefLang: Lang = {
   ...typescript,
   toDefinition: ({ context, identifier, value, noExport }) =>
@@ -31,7 +33,6 @@ class MockGeneratedValue implements GeneratedValue {
 
 class MockProjection extends MockGeneratedValue {
   static id = 'MockProjection'
-  static lang: Lang = coreDefLang
   refName: RefName
   context: GenerateContextType
   settings: ContentSettings<any>
@@ -51,7 +52,11 @@ class MockProjection extends MockGeneratedValue {
     this.settings = args.settings
     this.destinationPath = args.destinationPath
     this.rootRef = args.rootRef
-    this.generatorKey = toModelGeneratorKey({ generatorId: MockProjection.id, refName: args.refName, variant: 'main' })
+    // Read the static `id` off the actual constructed class so subclasses
+    // with their own `id` stamp a matching `generatorKey` (the integrity
+    // check compares against `this.projection.id`).
+    const generatorId = (this.constructor as typeof MockProjection).id
+    this.generatorKey = toModelGeneratorKey({ generatorId, refName: args.refName, variant: 'main' })
   }
 }
 
@@ -64,8 +69,9 @@ class CustomDefinition<V extends GeneratedValue = GeneratedValue> extends Defini
   }
 }
 
-// A lang whose `toDefinition` returns the custom subclass — the Driver reads
-// it off the projection's static `lang`, so the custom Definition flows through.
+// A lang whose `toDefinition` returns the custom subclass — the Driver
+// resolves it by the projection's `id` via `resolveLang`, so the custom
+// Definition flows through.
 const customDefLang: Lang = {
   ...typescript,
   toDefinition: <V extends GeneratedValue>({ context, identifier, value }: LangToDefinitionArgs<V>) =>
@@ -73,7 +79,7 @@ const customDefLang: Lang = {
 }
 
 class MockProjectionWithCustomDef extends MockProjection {
-  static override lang: Lang = customDefLang
+  static override id = 'MockProjectionWithCustomDef'
 }
 
 const createMockContext = (): GenerateContextType => {
@@ -87,6 +93,10 @@ const createMockContext = (): GenerateContextType => {
     })),
     findDefinition: spy(() => undefined),
     register: spy(() => {}),
+    // The Driver resolves the peer's lang by its `id`. `MockProjection` uses
+    // the core Definition; `MockProjectionWithCustomDef` uses the custom one.
+    resolveLang: (id: string): Lang =>
+      id === MockProjectionWithCustomDef.id ? customDefLang : coreDefLang,
     stackTrail: { slice: () => ({ stackTrail: [] }) }
   } as unknown as GenerateContextType
 

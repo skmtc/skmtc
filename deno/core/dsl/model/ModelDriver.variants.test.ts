@@ -45,16 +45,31 @@ const makeDoc = (refNames: string[]) =>
     })
   })
 
-const makeContext = (args: { document: OasDocument; settings: unknown }) =>
-  new GenerateContext({
+const makeContext = (args: {
+  document: OasDocument
+  settings: unknown
+  /**
+   * Generator ids to register in the config map. The Driver resolves a
+   * peer's `Lang` via `context.resolveLang(id)`, which reads
+   * `toGeneratorConfigMap()[id].lang`, so each inserted generator must
+   * appear here with a `lang`.
+   */
+  generatorIds: string[]
+}) => {
+  const generatorConfigMap = Object.fromEntries(
+    args.generatorIds.map(id => [id, { id, type: 'model' as const, lang: typescript }])
+  )
+
+  return new GenerateContext({
     document: { type: 'oas', value: args.document },
     // deno-lint-ignore no-explicit-any
     settings: args.settings as any,
     logger: mockLogger,
     captureCurrentResult: () => {},
     // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({}) as any
+    toGeneratorConfigMap: () => generatorConfigMap as any
   })
+}
 
 // ─── assertPeerVariantExists ─────────────────────────────────────
 
@@ -62,7 +77,6 @@ Deno.test(
   'ModelDriver - insertModel with non-main variant for unconfigured peer throws',
   () => {
     const ZodVariants = class extends toModelProjectionBase({
-      lang: typescript,
       id: '@scope/gen-zod-variants',
       toIdentifier: ({ refName, variant }) =>
         Identifier.createVariable(withVariant(refName, variant)),
@@ -78,6 +92,7 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
+      generatorIds: ['@scope/gen-zod-variants'],
       settings: {} // No enrichments at all
     })
 
@@ -93,7 +108,6 @@ Deno.test(
   'ModelDriver - insertModel with non-main variant absent from peer enrichments throws',
   () => {
     const ZodVariants = class extends toModelProjectionBase({
-      lang: typescript,
       id: '@scope/gen-zod-variants',
       toIdentifier: ({ refName, variant }) =>
         Identifier.createVariable(withVariant(refName, variant)),
@@ -109,6 +123,7 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
+      generatorIds: ['@scope/gen-zod-variants'],
       settings: {
         enrichments: {
           '@scope/gen-zod-variants': {
@@ -134,7 +149,6 @@ Deno.test(
     // `'main'` is universally safe — it's the canonical default and
     // always permitted regardless of the peer's enrichment shape.
     const ZodGen = class extends toModelProjectionBase({
-      lang: typescript,
       id: '@scope/gen-zod',
       toIdentifier: ({ refName }) => Identifier.createVariable(refName),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
@@ -149,6 +163,7 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
+      generatorIds: ['@scope/gen-zod'],
       settings: {}
     })
 
@@ -170,7 +185,6 @@ Deno.test(
     // the cached entry for variant 'main' but the new generatorKey
     // doesn't match — integrity check throws.
     const BrokenZod = class extends toModelProjectionBase({
-      lang: typescript,
       id: '@scope/gen-broken-zod',
       toIdentifier: ({ refName }) => Identifier.createVariable(refName), // ← ignores variant
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`          // ← ignores variant
@@ -185,6 +199,7 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
+      generatorIds: ['@scope/gen-broken-zod'],
       settings: {
         enrichments: {
           '@scope/gen-broken-zod': {
@@ -219,7 +234,6 @@ Deno.test(
     // Two variants of the same refName produce distinct (name,
     // exportPath) cache keys and therefore distinct Definitions.
     const CorrectZod = class extends toModelProjectionBase({
-      lang: typescript,
       id: '@scope/gen-correct-zod',
       toIdentifier: ({ refName, variant }) =>
         Identifier.createVariable(withVariant(refName, variant)),
@@ -235,6 +249,7 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
+      generatorIds: ['@scope/gen-correct-zod'],
       settings: {
         enrichments: {
           '@scope/gen-correct-zod': {
@@ -265,7 +280,6 @@ Deno.test(
   'ModelDriver - same variant twice on a correct Projection hits the cache',
   () => {
     const Zod = class extends toModelProjectionBase({
-      lang: typescript,
       id: '@scope/gen-cache-zod',
       toIdentifier: ({ refName }) => Identifier.createVariable(refName),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
@@ -280,6 +294,7 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
+      generatorIds: ['@scope/gen-cache-zod'],
       settings: {}
     })
 

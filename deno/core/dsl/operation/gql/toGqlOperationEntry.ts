@@ -9,6 +9,7 @@ import type {
   IsSupportedGqlOperationConfigArgs
 } from './types.ts'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
 /**
@@ -22,6 +23,8 @@ import get from 'lodash-es/get'
  */
 export type ToGqlOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
   id: string
+  /** The target language. The engine resolves it by `id` via `resolveLang`. */
+  lang: Lang
   transform: ({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported?: ({
@@ -49,6 +52,7 @@ export type ToGqlOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
  */
 export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
   id,
+  lang,
   transform,
   toEnrichmentSchema,
   isSupported,
@@ -58,6 +62,7 @@ export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
 }: ToGqlOperationConfigArgs<EnrichmentType, Acc>): {
   id: string
   type: 'gqlOperation'
+  lang: Lang
   transform: ({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
@@ -70,6 +75,7 @@ export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
   return {
     id,
     type: 'gqlOperation',
+    lang,
     transform,
     toEnrichmentSchema,
     isSupported: ({ context, operation, variant }: IsSupportedGqlOperationArgs) => {

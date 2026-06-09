@@ -287,12 +287,11 @@ export type DefineAndRegisterArgs<V extends GeneratedValue> = {
   /** Whether to exclude this definition from exports */
   noExport?: boolean
   /**
-   * The language that owns the destination file — wraps `value` in its
-   * `Definition` and merges it in. Supplied by the language-bound caller
-   * (a projection resolves it from its own `id`; the inline-model path
-   * from the model projection's `id`). See {@link Lang}.
+   * The id of the generator this registration belongs to. The engine resolves
+   * the destination file's language via {@link GenerateContextType.resolveLang}
+   * from this id — so the args stay pure data (no `lang` object, no closure).
    */
-  lang: Lang
+  generatorId: string
 }
 
 /**
@@ -339,8 +338,12 @@ export type ContextRegisterArgs = {
   definitions?: (DefinitionBase | undefined)[]
   /** The destination file path. */
   destinationPath: string
-  /** The language's file factory, used when the destination file is new. */
-  createFile: CreateFile
+  /**
+   * The id of the registering generator. When the destination file is new the
+   * engine creates it via `resolveLang(generatorId).createFile(...)` — the args
+   * stay pure data, the engine owns the language lookup.
+   */
+  generatorId: string
 }
 
 /**
@@ -508,10 +511,20 @@ export type GenerateContextType = {
     identifier,
     value,
     destinationPath,
-    noExport
+    noExport,
+    generatorId
   }: DefineAndRegisterArgs<V>) => DefinitionBase<V>
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   register: (args: ContextRegisterArgs) => void
+  /**
+   * Resolve a generator's {@link Lang} by its `id` from the generator config
+   * map (`toGeneratorConfigMap()[generatorId].lang`). The single source of
+   * truth for a generator's language: the engine reaches it this way for
+   * `register`'s `createFile`, Drivers reach a peer's lang by its `id`, and the
+   * lang-aware bases reach their own. Throws if the id is absent or declares no
+   * `lang`.
+   */
+  resolveLang: (generatorId: string) => Lang
   /** Look up an existing file by path (no creation); the neutral read primitive. */
   getFile: (filePath: string) => FileBase | undefined
   /** Store a language-constructed file; the neutral write primitive. */

@@ -45,7 +45,6 @@ const mockLogger: log.Logger = {
 // ─── Fixture: peer generator (variants-unaware) ────────────────────
 
 const HookBase = toOasOperationProjectionBase({
-  lang: typescript,
   id: '@test/hook-gen',
   toIdentifier: () => Identifier.createVariable('usePatchQuote'),
   toExportPath: () => '@/hooks/usePatchQuote.generated.ts'
@@ -62,7 +61,6 @@ class HookProjection extends HookBase {
 // ─── Fixture: form generator (variants-aware) ──────────────────────
 
 const FormBase = toOasOperationProjectionBase({
-  lang: typescript,
   id: '@test/form-gen',
   toIdentifier: ({ variant }) =>
     Identifier.createVariable(withVariant('PatchQuoteForm', variant)),
@@ -114,10 +112,17 @@ const runFixture = (variants: Record<string, unknown>) => {
   })
 
   const formEntry = toOasOperationEntry({
+    lang: typescript,
     id: '@test/form-gen',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
     }
+  })
+
+  const hookEntry = toOasOperationEntry({
+    lang: typescript,
+    id: '@test/hook-gen',
+    transform: () => {}
   })
 
   const context = new GenerateContext({
@@ -132,8 +137,9 @@ const runFixture = (variants: Record<string, unknown>) => {
     },
     logger: mockLogger,
     captureCurrentResult: () => {},
-    // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/form-gen': formEntry } as any)
+    toGeneratorConfigMap: () =>
+      // deno-lint-ignore no-explicit-any
+      ({ '@test/form-gen': formEntry, '@test/hook-gen': hookEntry } as any)
   })
 
   return context.toArtifacts(new StackTrail(['test']))

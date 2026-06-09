@@ -2,7 +2,6 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { GqlOperationProjectionBase } from './GqlOperationProjectionBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import type {
   GqlOperationProjectionConstructorArgs,
   ToGqlOperationIdentifierArgs,
@@ -19,8 +18,6 @@ import { DEFAULT_VARIANT } from '@/types/Variant.ts'
  */
 export type GqlOperationProjectionBaseConfig<EnrichmentType = undefined> = {
   id: string
-  /** The target language — a `@skmtc/lang-*` `Lang`. Exposed as `static lang` + injected as instance `lang`. */
-  lang: Lang
   toIdentifier: (args: ToGqlOperationIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
@@ -55,7 +52,6 @@ export const toGqlOperationProjectionBase = <EnrichmentType = undefined>(
   return class extends GqlOperationProjectionBase<EnrichmentType> {
     static id = config.id
     static type = 'gqlOperation' as const
-    static lang: Lang = config.lang
 
     static toIdentifier = config.toIdentifier.bind(config)
     static toExportPath = config.toExportPath.bind(config)
@@ -83,7 +79,6 @@ export const toGqlOperationProjectionBase = <EnrichmentType = undefined>(
     constructor(args: GqlOperationProjectionConstructorArgs<EnrichmentType>) {
       super({
         ...args,
-        lang: config.lang,
         generatorKey: toGqlOperationGeneratorKey({
           generatorId: config.id,
           operation: args.operation,

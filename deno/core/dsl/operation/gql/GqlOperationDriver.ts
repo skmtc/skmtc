@@ -72,9 +72,10 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.variant = variant
-    // The peer's language, read off the projection class (set by its
-    // factory). No config-map lookup.
-    this.lang = projection.lang
+    // The peer's language, resolved by the engine from the peer's `id`
+    // (the single source of truth). Works on cache-hit too — `id` is known
+    // without constructing the value.
+    this.lang = context.resolveLang(projection.id)
 
     assertPeerVariantExists({
       context,
@@ -108,7 +109,7 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       this.context.register({
         imports: [this.lang.toImport({ identifier, module: exportPath })],
         destinationPath,
-        createFile: path => this.lang.createFile({ path, settings: this.context.settings })
+        generatorId: this.projection.id
       })
     }
 
@@ -141,7 +142,7 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.context.register({
       definitions: [definition],
       destinationPath: exportPath,
-      createFile: path => this.lang.createFile({ path, settings: this.context.settings })
+      generatorId: this.projection.id
     })
 
     return definition

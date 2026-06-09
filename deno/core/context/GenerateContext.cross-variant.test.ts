@@ -56,7 +56,6 @@ const METHOD = 'patch' as const
 // Its `toIdentifier` does NOT consult `variant`, so two variants of
 // the form caller hit the same (name, exportPath) cache key.
 const PeerBase = toOasOperationProjectionBase({
-  lang: typescript,
   id: '@test/peer-gen',
   toIdentifier: () => Identifier.createVariable('usePatchQuote'),
   toExportPath: () => '@/services/usePatchQuote.ts'
@@ -72,7 +71,6 @@ class PeerProjection extends PeerBase {
 // two variants produce distinct (name, exportPath) pairs and each
 // gets its own file.
 const FormBase = toOasOperationProjectionBase({
-  lang: typescript,
   id: '@test/form-gen',
   toIdentifier: ({ variant }) =>
     Identifier.createVariable(withVariant('EditQuotesForm', variant)),
@@ -110,10 +108,17 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
   })
 
   const formEntry = toOasOperationEntry({
+    lang: typescript,
     id: '@test/form-gen',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
     }
+  })
+
+  const peerEntry = toOasOperationEntry({
+    lang: typescript,
+    id: '@test/peer-gen',
+    transform: () => {}
   })
 
   const context = new GenerateContext({
@@ -128,8 +133,9 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
     },
     logger: mockLogger,
     captureCurrentResult: () => {},
-    // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/form-gen': formEntry } as any)
+    toGeneratorConfigMap: () =>
+      // deno-lint-ignore no-explicit-any
+      ({ '@test/form-gen': formEntry, '@test/peer-gen': peerEntry } as any)
   })
 
   const { files } = context.toArtifacts(new StackTrail(['test']))
@@ -163,10 +169,17 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
   })
 
   const formEntry = toOasOperationEntry({
+    lang: typescript,
     id: '@test/form-gen',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
     }
+  })
+
+  const peerEntry = toOasOperationEntry({
+    lang: typescript,
+    id: '@test/peer-gen',
+    transform: () => {}
   })
 
   const context = new GenerateContext({
@@ -181,8 +194,9 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
     },
     logger: mockLogger,
     captureCurrentResult: () => {},
-    // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/form-gen': formEntry } as any)
+    toGeneratorConfigMap: () =>
+      // deno-lint-ignore no-explicit-any
+      ({ '@test/form-gen': formEntry, '@test/peer-gen': peerEntry } as any)
   })
 
   const { files } = context.toArtifacts(new StackTrail(['test']))

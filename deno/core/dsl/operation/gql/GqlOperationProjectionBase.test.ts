@@ -27,7 +27,6 @@ Deno.test('GqlOperationProjectionBase - constructor stores operation correctly',
   const mockOperation = createMockGqlOperation()
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getUsers'),
@@ -52,7 +51,6 @@ Deno.test('GqlOperationProjectionBase - constructor stores settings correctly', 
   })
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'test-generator|mutation|createProduct' as unknown as GeneratorKey,
@@ -66,7 +64,6 @@ Deno.test('GqlOperationProjectionBase - constructor stores generatorKey correctl
   const mockOperation = createMockGqlOperation({ fieldName: 'getOrders' })
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getOrders'),
@@ -84,7 +81,6 @@ Deno.test('GqlOperationProjectionBase - has context property from SnippetBase', 
   const mockOperation = createMockGqlOperation()
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getUsers'),
@@ -101,7 +97,6 @@ Deno.test('GqlOperationProjectionBase - settings.exportPath is accessible', () =
   const mockOperation = createMockGqlOperation({ fieldName: 'getTypes' })
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getTypes'),
@@ -129,7 +124,6 @@ Deno.test('GqlOperationProjectionBase - settings.enrichments is accessible when 
   })
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'validation-operations|mutation|validateOperation' as unknown as GeneratorKey,
@@ -149,7 +143,6 @@ Deno.test('GqlOperationProjectionBase - stores all constructor properties correc
   const mockOperation = createMockGqlOperation({ fieldName: 'testOperation' })
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: mockContext,
     settings,
     generatorKey,
@@ -167,7 +160,6 @@ Deno.test('GqlOperationProjectionBase - works with different root kinds', () => 
     const mockOperation = createMockGqlOperation({ rootKind, fieldName })
 
     return new GqlOperationProjectionBase({
-      lang: typescript,
       context: {} as GenerateContextType,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable(fieldName),
@@ -202,7 +194,6 @@ Deno.test(
     const mockOperation = createMockGqlOperation()
 
     const operation = new GqlOperationProjectionBase({
-      lang: typescript,
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('getUsers'),
@@ -247,7 +238,6 @@ Deno.test('GqlOperationProjectionBase - insertOperation without noExport option'
   const mockOperation = createMockGqlOperation({ fieldName: 'testOp' })
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('testOp'),
@@ -289,7 +279,6 @@ Deno.test('GqlOperationProjectionBase - insertModel calls context.insertModel wi
   })
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('createUser'),
@@ -332,7 +321,6 @@ Deno.test(
     const mockOperation = createMockGqlOperation({ fieldName: 'getData' })
 
     const operation = new GqlOperationProjectionBase({
-      lang: typescript,
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('getData'),
@@ -382,7 +370,6 @@ Deno.test(
     })
 
     const operation = new GqlOperationProjectionBase({
-      lang: typescript,
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('validate'),
@@ -402,13 +389,14 @@ Deno.test(
     })
 
     assertSpyCalls(defineAndRegisterSpy, 1)
-    // The projection base threads its own `lang` through to the context.
+    // The projection base supplies its own `generatorId` (derived from the
+    // generatorKey) so the engine can resolve the language.
     assertEquals(defineAndRegisterSpy.calls[0].args[0] as any, {
       identifier,
       value,
       destinationPath: exportPath,
       noExport: true,
-      lang: typescript
+      generatorId: 'test-gen'
     })
 
     defineAndRegisterSpy.restore()
@@ -419,7 +407,8 @@ Deno.test('GqlOperationProjectionBase - register calls context.register with cor
   const exportPath = './imports/dependencies.ts'
 
   const mockContext = {
-    register: () => {}
+    register: () => {},
+    resolveLang: () => typescript
   } as unknown as GenerateContextType
 
   const registerSpy = spy(mockContext, 'register')
@@ -427,7 +416,6 @@ Deno.test('GqlOperationProjectionBase - register calls context.register with cor
   const mockOperation = createMockGqlOperation({ fieldName: 'apiCall' })
 
   const operation = new GqlOperationProjectionBase({
-    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('apiCall'),
@@ -441,15 +429,16 @@ Deno.test('GqlOperationProjectionBase - register calls context.register with cor
 
   assertSpyCalls(registerSpy, 1)
   // The projection base routes the concise form through `langRegister`, which
-  // converts imports to standardised `ImportBase[]` via `lang.toImports` and
-  // injects the language's `createFile`. (Re-exports await a `ReExportBase`
-  // seam and are not threaded through this path yet.)
+  // resolves the language by `generatorId`, converts imports to standardised
+  // `ImportBase[]` via `lang.toImports`, and hands the neutral result (carrying
+  // `generatorId`, not a `createFile`) to `context.register`. (Re-exports await
+  // a `ReExportBase` seam and are not threaded through this path yet.)
   const registered = registerSpy.calls[0].args[0] as any
   assertEquals(registered.destinationPath, exportPath)
   assertEquals(registered.imports.length, 1)
   assertEquals(registered.imports[0].mergeKey(), './helper')
   assertEquals(registered.imports[0].toString(), `import {helper} from './helper'`)
-  assertEquals(typeof registered.createFile, 'function')
+  assertEquals(registered.generatorId, 'test-gen')
 
   registerSpy.restore()
 })

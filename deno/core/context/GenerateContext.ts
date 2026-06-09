@@ -62,6 +62,7 @@ import { JsonFile } from '@/dsl/JsonFile.ts'
 import { langDefineAndRegister } from '@/dsl/langRegister.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type {
   OasOperationSource,
   GqlOperationSource,
@@ -763,6 +764,28 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
+   * Resolve a generator's {@link Lang} by its `id` from the generator config
+   * map. The single source of truth for a generator's language: `register`
+   * reaches it for `createFile`, Drivers reach a peer's lang by its `id`
+   * (works on cache-hit — no construction needed), and the lang-aware bases
+   * reach their own. Throws when the id is absent or declares no `lang`,
+   * surfacing a genuine misconfiguration loudly.
+   */
+  resolveLang(generatorId: string): Lang {
+    const config = this.toGeneratorConfigMap()[generatorId]
+
+    invariant(
+      config,
+      `Cannot resolve language for generator '${generatorId}': not in the generator config map. ` +
+        `A generator must be installed/configured to be inserted as a peer.`
+    )
+
+    invariant(config.lang, `Generator '${generatorId}' declares no 'lang'.`)
+
+    return config.lang
+  }
+
+  /**
    * Create and register a definition with the given `identifier` at `destinationPath`.
    *
    * @experimental
@@ -772,7 +795,7 @@ export class GenerateContext implements GenerateContextType {
     value,
     destinationPath,
     noExport,
-    lang
+    generatorId
   }: DefineAndRegisterArgs<V>): DefinitionBase<V> {
     // @TODO cache check is duplicatd if call comes from
     // createAndRegisterDefinition. Look for a way to share code between
@@ -793,7 +816,7 @@ export class GenerateContext implements GenerateContextType {
       value,
       destinationPath,
       noExport,
-      lang
+      generatorId
     })
   }
 
@@ -807,13 +830,13 @@ export class GenerateContext implements GenerateContextType {
     value,
     destinationPath,
     noExport,
-    lang
+    generatorId
   }: DefineAndRegisterArgs<V>): DefinitionBase<V> {
-    // The language builds its own `Definition` (via `lang.toDefinition`) and
-    // the neutral `context.register` creates the destination file through
-    // `lang.createFile` on first write.
+    // The language (resolved by `generatorId`) builds its own `Definition`
+    // (via `lang.toDefinition`) and the neutral `context.register` creates the
+    // destination file in that language on first write.
     return langDefineAndRegister(
-      { context: this, lang },
+      { context: this, generatorId },
       { identifier, value, destinationPath, noExport }
     )
   }
@@ -853,17 +876,19 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  register({ imports = [], definitions, destinationPath, createFile }: ContextRegisterArgs) {
+  register({ imports = [], definitions, destinationPath, generatorId }: ContextRegisterArgs) {
     const normalizedPath = normalize(destinationPath)
 
     let currentFile = this.getFile(normalizedPath)
 
     if (!currentFile) {
-      // First write to this path creates the file. The engine is
-      // language-blind and never names a file class — the caller (a
-      // language-bound projection / Driver) supplies the language's
-      // `createFile`.
-      currentFile = createFile(normalizedPath)
+      // First write to this path creates the file. The engine never names a
+      // file class — it resolves the registering generator's language by
+      // `generatorId` and lets that language build its own file.
+      currentFile = this.resolveLang(generatorId).createFile({
+        path: normalizedPath,
+        settings: this.settings
+      })
       this.addFile(currentFile)
     }
 
@@ -975,7 +1000,7 @@ export class GenerateContext implements GenerateContextType {
       value,
       destinationPath,
       noExport,
-      lang: projection.lang
+      generatorId: projection.id
     })
 
     // @TODO Using mapped types would help avoid generics casting

@@ -47,7 +47,6 @@ const mockLogger: log.Logger = {
 
 // Variants-aware form Projection: identifier varies per variant.
 const FormBase = toOasOperationProjectionBase({
-  lang: typescript,
   id: '@test/form',
   toIdentifier: ({ variant }) =>
     Identifier.createVariable(withVariant('EditQuotesForm', variant)),
@@ -104,6 +103,7 @@ Deno.test('variant-bound fallbackName - each variant produces a distinct body De
   })
 
   const entry = toOasOperationEntry({
+    lang: typescript,
     id: '@test/form',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })

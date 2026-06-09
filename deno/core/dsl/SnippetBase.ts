@@ -1,8 +1,13 @@
-import type { GenerateContextType } from '../context/generateTypes.ts'
+import type { GenerateContextType, RegisterArgs } from '../context/generateTypes.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
+import { fromGeneratorKey } from './GeneratorKeys.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
+import { langRegister, langDefineAndRegister, type LangDefineAndRegisterArgs } from '@/dsl/langRegister.ts'
+import invariant from 'tiny-invariant'
 
 /**
  * Constructor arguments for {@link SnippetBase}.
@@ -58,11 +63,12 @@ export const seenSnippetConstructors = new Set<SnippetConstructor>()
  *   `CustomValue` extend `SnippetBase` directly without going through a
  *   Projection base.
  *
- * `SnippetBase` is **language-blind**: it holds only a generation context and
- * the attribution plumbing below — no `lang`, no `register`. A snippet that
- * needs to register imports or definitions extends a language-bound base
- * (e.g. `TypescriptSnippet` in `@skmtc/lang-typescript`), which carries the
- * language's `register` / `defineAndRegister` shortcuts.
+ * `SnippetBase` is **language-blind** in the sense that it never names a
+ * concrete `File` / `Import`: its `register` / `defineAndRegister` shortcuts
+ * convert the concise generator-facing form and hand it to the agnostic
+ * `context.register`, resolving the language by the snippet's `generatorId`
+ * (`context.resolveLang`) — the engine owns that lookup. A registering snippet
+ * therefore needs a `generatorKey` (it carries the `generatorId`).
  *
  * ## Attribution (gen-maps)
  *
@@ -113,4 +119,38 @@ export class SnippetBase {
     if (new.target) seenSnippetConstructors.add(new.target)
   }
 
+  /**
+   * The registering generator's id, derived from `generatorKey`. The engine
+   * resolves the language from it (`context.resolveLang`). Throws if the
+   * snippet has no `generatorKey` — a registration can't be attributed to a
+   * generator (and so can't resolve a language) without one.
+   */
+  get generatorId(): string {
+    invariant(
+      this.generatorKey,
+      'Cannot register from a snippet that has no generatorKey — the engine ' +
+        'resolves the language by generatorId, which is derived from the key.'
+    )
+    return fromGeneratorKey(this.generatorKey).generatorId
+  }
+
+  /**
+   * Register imports / definitions into the file at `destinationPath`.
+   * Converts the concise import form via the resolved language's `toImports`
+   * and stores through the agnostic `context.register` — the engine creates
+   * the file in the generator's language (resolved by `generatorId`).
+   */
+  register(args: RegisterArgs): void {
+    langRegister(this, args)
+  }
+
+  /**
+   * Build a `Definition` from `value` (via the resolved language) and register
+   * it at `destinationPath`.
+   */
+  defineAndRegister<V extends GeneratedValue>(
+    args: LangDefineAndRegisterArgs<V>
+  ): DefinitionBase<V> {
+    return langDefineAndRegister(this, args)
+  }
 }

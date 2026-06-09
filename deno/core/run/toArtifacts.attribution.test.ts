@@ -19,7 +19,6 @@ import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
 const ModelBase = toModelProjectionBase({
-  lang: typescript,
   id: '@test/gen-model',
   toIdentifier: ({ refName }) => Identifier.createType(refName),
   toExportPath: ({ refName }) => `@/types/${refName}.generated.ts`
@@ -37,6 +36,7 @@ class ModelProjection extends ModelBase {
 // a constant body, so the static-shape check is the only blocker —
 // cast through the test boundary.
 const modelEntry = toModelEntry({
+  lang: typescript,
   id: '@test/gen-model',
   transform: ({ context, refName }) => {
     // deno-lint-ignore no-explicit-any

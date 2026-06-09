@@ -1,4 +1,3 @@
-import { typescript } from '@skmtc/lang-typescript'
 import { toModelProjectionBase } from './toModelProjectionBase.ts'
 import { assertEquals } from '@std/assert/equals'
 import { Identifier } from '@/dsl/Identifier.ts'
@@ -11,7 +10,6 @@ import * as v from 'valibot'
 
 Deno.test('toModelProjectionBase - returns a class constructor', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -23,7 +21,6 @@ Deno.test('toModelProjectionBase - returns a class constructor', () => {
 
 Deno.test('toModelProjectionBase - sets static id from config', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'typescript-models',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -34,7 +31,6 @@ Deno.test('toModelProjectionBase - sets static id from config', () => {
 
 Deno.test('toModelProjectionBase - sets static type to model', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -47,7 +43,6 @@ Deno.test('toModelProjectionBase - sets static toIdentifier from config', () => 
   const identifierFn = ({ refName }: ToModelIdentifierArgs) => Identifier.createType(refName)
 
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: identifierFn,
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -66,7 +61,6 @@ Deno.test('toModelProjectionBase - sets static toExportPath from config', () => 
   const exportPathFn = ({ refName }: ToModelExportPathArgs) => `./generated/${refName}.ts`
 
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: exportPathFn
@@ -82,7 +76,6 @@ Deno.test('toModelProjectionBase - sets static toExportPath from config', () => 
 
 Deno.test('toModelProjectionBase - toEnrichments returns undefined when no enrichmentSchema provided', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -99,7 +92,6 @@ Deno.test('toModelProjectionBase - toEnrichments returns undefined when no enric
 
 Deno.test('toModelProjectionBase - toEnrichments returns undefined when no enrichments in context', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -117,7 +109,6 @@ Deno.test('toModelProjectionBase - toEnrichments returns undefined when no enric
 
 Deno.test('toModelProjectionBase - sets static isSupported that returns true', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -128,7 +119,6 @@ Deno.test('toModelProjectionBase - sets static isSupported that returns true', (
 
 Deno.test('toModelProjectionBase - toIdentifier works with different refNames', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createVariable(`${refName}Model`),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -151,7 +141,6 @@ Deno.test('toModelProjectionBase - toIdentifier works with different refNames', 
 
 Deno.test('toModelProjectionBase - toExportPath works with different refNames', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./types/${refName.toLowerCase()}.d.ts`
@@ -173,7 +162,6 @@ Deno.test('toModelProjectionBase - toExportPath works with different refNames', 
 
 Deno.test('toModelProjectionBase - constructor creates correct generatorKey', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'typescript-models',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -198,7 +186,6 @@ Deno.test('toModelProjectionBase - constructor creates correct generatorKey', ()
 
 Deno.test('toModelProjectionBase - constructor threads non-default variant into generatorKey', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'zod-schemas',
     toIdentifier: ({ refName, variant }) =>
       Identifier.createVariable(withVariant(refName, variant)),
@@ -223,7 +210,6 @@ Deno.test('toModelProjectionBase - constructor threads non-default variant into 
 
 Deno.test('toModelProjectionBase - instance is ModelProjectionBase', () => {
   const ModelClass = toModelProjectionBase({
-    lang: typescript,
     id: 'test-model',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`
@@ -248,7 +234,6 @@ Deno.test('toModelProjectionBase - instance is ModelProjectionBase', () => {
 
 Deno.test('toModelProjectionBase - toEnrichments validates with schema', () => {
   const ModelClass = toModelProjectionBase<{ readonly: boolean; nullable?: boolean }>({
-    lang: typescript,
     id: 'typescript-interfaces',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./models/${refName}.ts`,
@@ -288,7 +273,6 @@ Deno.test('toModelProjectionBase - toEnrichments validates with schema', () => {
 
 Deno.test('toModelProjectionBase - toEnrichments retrieves from correct nested path', () => {
   const ModelClass = toModelProjectionBase<{ strictMode: boolean; customRule: string }>({
-    lang: typescript,
     id: 'zod-schemas',
     toIdentifier: ({ refName }) => Identifier.createType(refName),
     toExportPath: ({ refName }) => `./schemas/${refName}.ts`,
@@ -323,7 +307,6 @@ Deno.test('toModelProjectionBase - toEnrichments retrieves from correct nested p
 
 Deno.test('toModelProjectionBase - toEnrichments resolves per-variant payloads independently', () => {
   const ModelClass = toModelProjectionBase<{ coerce: boolean }>({
-    lang: typescript,
     id: '@scope/gen-zod-variants',
     toIdentifier: ({ refName, variant }) =>
       Identifier.createVariable(withVariant(refName, variant)),

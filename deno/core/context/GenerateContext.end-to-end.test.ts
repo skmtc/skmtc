@@ -37,7 +37,6 @@ const mockLogger: log.Logger = {
 } as unknown as log.Logger
 
 const FormBase = toOasOperationProjectionBase({
-  lang: typescript,
   id: '@test/e2e-form',
   toIdentifier: ({ variant }) =>
     Identifier.createVariable(withVariant('PatchQuoteForm', variant)),
@@ -74,6 +73,7 @@ const buildContext = (variants: Record<string, unknown>) => {
   })
 
   const entry = toOasOperationEntry({
+    lang: typescript,
     id: '@test/e2e-form',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })

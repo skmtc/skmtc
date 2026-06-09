@@ -76,9 +76,10 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     this.rootRef = rootRef
     this.noExport = noExport
     this.variant = variant
-    // The peer's language, read off the projection class (set by its
-    // factory). No config-map lookup — the projection carries its own lang.
-    this.lang = projection.lang
+    // The peer's language, resolved by the engine from the peer's `id`
+    // (the single source of truth). Works on cache-hit too — `id` is known
+    // without constructing the value.
+    this.lang = context.resolveLang(projection.id)
 
     this.context.modelDepth[`${projection.id}:${refName}`] = 0
 
@@ -107,7 +108,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       this.context.register({
         imports: [this.lang.toImport({ identifier, module: exportPath })],
         destinationPath,
-        createFile: path => this.lang.createFile({ path, settings: this.context.settings })
+        generatorId: this.projection.id
       })
     }
 
@@ -142,7 +143,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     this.context.register({
       definitions: [definition],
       destinationPath: exportPath,
-      createFile: path => this.lang.createFile({ path, settings: this.context.settings })
+      generatorId: this.projection.id
     })
 
     return definition

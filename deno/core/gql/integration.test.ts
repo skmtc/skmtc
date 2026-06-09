@@ -3,7 +3,6 @@ import { spy } from '@std/testing/mock'
 import * as log from '@std/log'
 
 import { GenerateContext } from '@/context/GenerateContext.ts'
-import { File } from '@/dsl/File.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { OasOperationConfig, TransformOasOperationArgs } from '@/dsl/operation/oas/types.ts'
 import type { ModelConfig, TransformModelArgs } from '@/dsl/model/types.ts'
@@ -19,6 +18,7 @@ import type { OasObject } from '@/oas/object/Object.ts'
 import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { GeneratorConfig } from '@/types/GeneratorType.ts'
+import { typescript } from '@skmtc/lang-typescript'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -80,6 +80,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
   const modelGenerator: ModelConfig = {
     id: 'synthetic-model',
     type: 'model',
+    lang: typescript,
     transform<Acc = void>({ refName }: TransformModelArgs<Acc>): Acc {
       modelRefNames.push(refName)
       return refName as Acc
@@ -98,6 +99,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
   const operationGenerator: GqlOperationConfig = {
     id: 'synthetic-gql-op',
     type: 'gqlOperation',
+    lang: typescript,
     isSupported: () => true,
     transform: <Acc = void>({
       operation,
@@ -120,7 +122,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
 
       // Verify Definition emission works inside the dispatcher.
       const id = Identifier.createType(`${gqlOp.fieldName}Args`)
-      context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+      context.register({ generatorId: 'synthetic-gql-op',
         destinationPath: `gql/operations/${gqlOp.identifier}.generated.ts`,
         definitions: [
           new Definition({
@@ -144,12 +146,14 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     settings: undefined,
     logger: mockLogger,
     captureCurrentResult,
-    toGeneratorConfigMap: () => ({
-      // @ts-expect-error - known issue
-      modelGen: modelGenerator,
-      // @ts-expect-error - known issue
-      operationGen: operationGenerator
-    })
+    toGeneratorConfigMap: () =>
+      // The map must be keyed by each generator's `id` so the engine can
+      // resolve a generator's language via `resolveLang(generatorId)`.
+      // deno-lint-ignore no-explicit-any
+      ({
+        'synthetic-model': modelGenerator,
+        'synthetic-gql-op': operationGenerator
+      }) as any
   })
 
   const result = context.toArtifacts(new StackTrail(['integration']))
@@ -201,6 +205,7 @@ Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL d
   const httpGenerator: OasOperationConfig = {
     id: 'http-only',
     type: 'oasOperation',
+    lang: typescript,
     isSupported: () => true,
     transform: <Acc = void>(args: TransformOasOperationArgs<Acc>): Acc => {
       return httpTransform(args as TransformOasOperationArgs<unknown>) as Acc
