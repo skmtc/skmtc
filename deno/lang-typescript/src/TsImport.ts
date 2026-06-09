@@ -1,5 +1,5 @@
 import { ImportBase, List } from '@skmtc/core'
-import type { ImportNameArg } from '@skmtc/core'
+import type { Identifier, ImportNameArg } from '@skmtc/core'
 
 /**
  * A single imported symbol on a {@link TsImport}.
@@ -62,6 +62,19 @@ export class TsImport extends ImportBase {
   /** Build from the concise `{ module: ImportNameArg[] }` form a generator passes. */
   static fromConcise(module: string, names: ImportNameArg[]): TsImport {
     return new TsImport(module, names.map(toSpecifier))
+  }
+
+  /**
+   * Build the import of a single {@link Identifier} from `module` — the
+   * cross-file import a Driver registers when a generator references a
+   * peer's Definition. The identifier's entity type drives `typeOnly`
+   * (so a type identifier emits `import { type X }`), matching the
+   * engine's `Identifier.toImport()` seam.
+   */
+  static fromIdentifier(module: string, identifier: Identifier): TsImport {
+    return new TsImport(module, [
+      { name: identifier.name, typeOnly: identifier.entityType.type === 'type' }
+    ])
   }
 
   override mergeKey(): string {

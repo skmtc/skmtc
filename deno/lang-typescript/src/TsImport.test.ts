@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { Import } from '@skmtc/core'
+import { Identifier, Import } from '@skmtc/core'
 import type { ImportNameArg } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 
@@ -31,6 +31,20 @@ for (const testCase of cases) {
     assertEquals(tsImport, legacy)
   })
 }
+
+Deno.test('TsImport.fromIdentifier byte-identical to Import of identifier.toImport()', () => {
+  const variableIdentifier = Identifier.createVariable('useThing')
+  const typeIdentifier = Identifier.createType('Thing')
+
+  assertEquals(
+    TsImport.fromIdentifier('@/hooks', variableIdentifier).toString(),
+    new Import({ module: '@/hooks', importNames: [variableIdentifier.toImport()] }).toString()
+  )
+  assertEquals(
+    TsImport.fromIdentifier('@/types', typeIdentifier).toString(),
+    new Import({ module: '@/types', importNames: [typeIdentifier.toImport()] }).toString()
+  )
+})
 
 Deno.test('TsImport merge unions specifiers, dedup on encoded form', () => {
   const first = TsImport.fromConcise('@/models', ['User'])
