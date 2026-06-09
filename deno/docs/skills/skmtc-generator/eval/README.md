@@ -10,8 +10,13 @@ Evaluates the parent `SKILL.md` against a corpus of generator-authoring tasks. D
 | `holdout/` | Held-out set — only consulted via Guard; never used for selection |
 | `invariants.md` | Ground truth digest the judge consults; out of the loop's editable scope |
 | `run.ts` | Runner + judge in one script |
+| `scaffold-check.ts` | Mechanical freshness check — extracts the `// gen-x/<path>`-marked ```ts scaffolds from SKILL.md §6 into a temp package and `deno check`s them against the workspace's current `@skmtc/core` + `@skmtc/lang-typescript` versions |
 | `runs/` | Per-invocation traces (gitignored) |
 | `baseline-holdout.json` | Frozen baseline scores (written once, before first loop) |
+
+The runner's system prompt is the **concatenation of two skills** —
+`skmtc-generator/SKILL.md` + `skmtc-lang-typescript/SKILL.md` — matching
+how a real TypeScript-authoring session loads them (see `run.ts`).
 
 ## Setup
 
@@ -33,7 +38,15 @@ deno run $PERMS run.ts --set=holdout --write-baseline
 
 # Debug a single task
 deno run $PERMS run.ts --set=dev --task=001-no-baseschema --verbose
+
+# Typecheck the SKILL.md scaffolds against the current core/lang versions
+deno run --allow-read --allow-write --allow-env --allow-run=deno --allow-net scaffold-check.ts
 ```
+
+Run `scaffold-check.ts` after every `@skmtc/core` / `@skmtc/lang-typescript`
+release and after any edit to the §6 scaffolds — it catches the
+"scaffold no longer compiles against shipped core" drift class that the
+LLM judge cannot.
 
 ## Output contract
 

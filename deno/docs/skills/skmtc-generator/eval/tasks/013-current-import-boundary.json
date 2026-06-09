@@ -1,0 +1,21 @@
+{
+  "id": "013-current-import-boundary",
+  "category": "vocabulary",
+  "prompt": "I'm writing a new SKMTC generator that emits TypeScript. Since the language-agnostic split, I assume all the TypeScript-specific bits moved into the lang package, so I'm importing like this:\n\nimport { Identifier, List, sanitizePropertyName, typescript } from '@skmtc/lang-typescript'\nimport { toModelEntry, toModelProjectionBase } from '@skmtc/core'\n\nIs that right? If not, give me the corrected import statements.",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response correct the imports so that Identifier, List, and sanitizePropertyName come from '@skmtc/core' (NOT from '@skmtc/lang-typescript')?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response keep `typescript` (the Lang object) imported from '@skmtc/lang-typescript'?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response avoid claiming that Identifier/List/sanitizePropertyName have already moved to the lang package (acknowledging a planned future move is fine; asserting it already happened is a fail)?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "edit"
+}

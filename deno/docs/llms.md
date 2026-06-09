@@ -57,7 +57,7 @@ If unsure which role applies: read **Read this first** + **Verification protocol
 
 ---
 
-## Read this first: four facts that override default LLM intuitions
+## Read this first: five facts that override default LLM intuitions
 
 These assertions are the ones you would most likely get wrong by extrapolating from other codegen tools (orval, openapi-generator, kubb, graphql-codegen).
 
@@ -69,11 +69,13 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
 
+5. **The engine is language-blind; the language lives on the generator entry.** (core 0.7.1+) `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` take a required `lang` (e.g. `typescript` from `@skmtc/lang-typescript`); the engine resolves it by `generatorId` (`GenerateContext.resolveLang`) when creating files and building `Definition`s. Projection bases take no `lang`, snippets carry none, `register` passes plain data (`generatorId`, not a `Lang` or `createFile`). `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers still import from `@skmtc/core` (F5/F6 in `notes/lang/09-migration-checklist.md` track the move).
+
 ---
 
 ## Operational principles for proposing changes
 
-The four facts above are the *highest-priority* overrides. The table below is the broader operational principle list — apply these when proposing solutions for SKMTC code. Each row pairs a *default suggestion an LLM would reach for from generic TypeScript / codegen training data* with *what SKMTC actually requires*.
+The five facts above are the *highest-priority* overrides. The table below is the broader operational principle list — apply these when proposing solutions for SKMTC code. Each row pairs a *default suggestion an LLM would reach for from generic TypeScript / codegen training data* with *what SKMTC actually requires*.
 
 These overrides exist because well-intentioned TS conventions frequently break SKMTC's invariants. If your proposed solution matches the left column, the right column is almost always the correct alternative.
 
@@ -81,13 +83,13 @@ These overrides exist because well-intentioned TS conventions frequently break S
 |---|---|---|
 | Add a config flag to make X customizable | `skmtc clone` the generator and edit | Customization is via source code, not configuration |
 | Add a plugin API for extensibility | Generators coordinate via memoization; there is no plugin registry | Cross-generator coordination is a `Map` cache keyed by `(name, exportPath)` |
-| Run Prettier or Biome in the pipeline | Don't — produce valid TS and stop | Format is the consumer's concern; pipeline renders unformatted output by design |
+| Run Prettier or Biome in the pipeline | Don't — produce valid output and stop | Format is the consumer's concern; pipeline renders unformatted output by design |
 | Provide a runtime client library | Output is committed source code | Zero SKMTC runtime in consumer bundles; generated files are reviewed via git |
 | Fail closed on bad schema input | Fail open, log `ParseIssue`s, prune dependents via `removeErroredItems` | One bad schema mustn't kill the run; manifest is the canonical record |
 | Templates as `.hbs` / `.mustache` files | Templates as template literals inside TypeScript classes | Type safety on interpolated values; full IDE refactoring |
 | Cache between runs for speed | Each generate is from cold; spawn a fresh Worker per run | Determinism > marginal speed; no state leaks between runs |
 | Make `OasSchema` a base class with subclasses | Keep it as a discriminated union of sibling classes | TS narrowing via `.isRef()` and `.type` discriminator beats runtime polymorphism |
-| Use raw strings as identifier names | Use `Identifier.createVariable(name)` or `Identifier.createType(name)` | Entity-type tracking is load-bearing under `verbatimModuleSyntax: true` |
+| Use raw strings as identifier names | Use `Identifier.createVariable(name)` or `Identifier.createType(name)` | The entity kind drives declaration keywords and import forms in the language layer |
 | Use `as` casts to satisfy types | Use type guards or runtime checks | `as` is reserved for tests; production code narrows |
 | Long `if`/`else if` chains for 3+ branches | Use `switch` with exhaustive `never` default | Codebase convention; gets compiler help on missed cases |
 | Use `process.env.X` | Use `Deno.env.get('X')` | Deno codebase; engine runs in Deno workers |
@@ -96,7 +98,10 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Mutate `this` inside `toString()` | Set state in the constructor; `toString()` must be pure | May be called multiple times (previews, integrity checks) |
 | Read another generator's rendered source | Coordinate by *identifier name*, not source text | Use `insertOperation(Other, op).toName()` |
 | Return content from `transform({ context, operation })` | Use `register({ definitions, ... })` or `insertOperation` | Return value is folded into `acc` and discarded |
-| Write `import` statements inside template literals | Register imports via `this.register({ imports, destinationPath })` | Bypasses dedup; lands inside file body not header |
+| Write `import` statements inside template literals | Register imports via `this.register({ imports })` (own file) or `this.registerInto(path, { imports })` (cross-file) | Bypasses dedup; lands inside file body not header |
+| Declare the language on the projection base or snippet | Declare `lang` once, on the entry (`toX…Entry({ lang })`) | The engine resolves language by `generatorId` (`resolveLang`); nothing else carries a `Lang` |
+| Treat `acc` as a GQL-only quirk | All three entries are `transform({ …, acc, variant }) => Acc` with `Acc = void` by default; a declared `Acc` must be returned | The engine threads the accumulator through every visited item; dropping a declared `Acc` leaves downstream calls reading stale state |
+| Give a Projection custom constructor args | Projections receive a fixed `{ context, operation/refName, settings }` from the Driver — re-resolve dependencies inside the constructor | The Driver never passes custom args; the memoization cache makes re-resolution free |
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Mock a database in tests | Use real Supabase / real DB | Project convention — mocked tests previously masked production bugs |
@@ -195,7 +200,7 @@ Both descend from `SnippetBase` (`core/dsl/SnippetBase.ts`). The differentiator:
 |---|---|---|
 | Base class | `ModelProjectionBase`, `OasOperationProjectionBase`, `GqlOperationProjectionBase` | `SnippetBase` (directly) |
 | Static methods required | `id`, `type`, `toIdentifier`, `toExportPath`, `isSupported`, `toEnrichments` | None |
-| Instance has | `settings: ContentSettings` | Just `context`, `register()` |
+| Instance has | `settings: ContentSettings` | `context`, optional `generatorKey`, `register()` |
 | Wrapped in `Definition` | Yes (by Driver) | No |
 | Cached by | `(identifier.name, exportPath)` | Not cached |
 | File-level export | Yes (`export const X = ...`) | No (embedded via `${...}`) |
@@ -284,7 +289,9 @@ Need its own name at file scope (export const X = ...)?
 
 ```
 Final output text?       → SnippetBase descendant's toString() (template literal with ${...})
-Import?                   → this.register({ imports: { module: [names] }, destinationPath })
+Import (own file)?        → this.register({ imports: { module: [names] } })
+Import (another file)?    → this.registerInto(destinationPath, { imports }) — or, from a
+                            Snippet, this.register({ imports, destinationPath })
 Identifier name?          → Identifier.createVariable(name) or Identifier.createType(name)
 File path?                → join('@', ...) from @std/path
 TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
@@ -299,6 +306,14 @@ TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 4. transform returning instead of registering?
                                         → Return value is discarded; must use register
 5. Schema shape wrong for the gate?     → e.g., gen-shadcn-form needs request body type === 'object'
+6. Engine threw "declares no 'lang'"?   → The entry is missing `lang` (e.g. `typescript`
+                                          from @skmtc/lang-typescript)
+7. Threw "not in the generator config map"?
+                                        → A peer passed to insertOperation/insertModel
+                                          isn't installed/configured in the project
+8. Threw "Cannot register from a snippet that has no generatorKey"?
+                                        → A registering Snippet wasn't given the parent's
+                                          generatorKey (transitional — F7 in notes/lang/09)
 ```
 
 ---

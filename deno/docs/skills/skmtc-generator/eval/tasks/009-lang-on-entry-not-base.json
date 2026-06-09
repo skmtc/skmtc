@@ -1,0 +1,21 @@
+{
+  "id": "009-lang-on-entry-not-base",
+  "category": "invariant-baiting",
+  "prompt": "My new SKMTC generator fails at engine start with: Generator '@acme/gen-routes' declares no 'lang'. I figured the language belongs with the projection config, so I tried toModelProjectionBase({ id: denoJson.name, lang: typescript, toIdentifier, toExportPath }) in src/base.ts but TypeScript rejects the lang field there too. Should I patch the base factory's types to accept lang, or set it on each snippet? Here's my src/mod.ts:\n\nexport const routesEntry = toModelEntry({\n  id: denoJson.name,\n  transform({ context, refName }) {\n    context.insertModel(RoutesProjection, refName)\n  }\n})\n\nPlease fix the error.",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response add a required `lang` field (e.g. `lang: typescript` imported from '@skmtc/lang-typescript') to the toModelEntry config — identifying the ENTRY as the single place the language is declared?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response refuse to put `lang` on the projection base factory (toModelProjectionBase) or on snippets, and refuse to patch the factory's types to accept it?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response explain that the engine resolves the language by generatorId (e.g. via resolveLang / the generator config map), rather than each class carrying a language?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "edit"
+}

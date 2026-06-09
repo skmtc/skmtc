@@ -17,8 +17,18 @@ The code-generation DSL. The vocabulary:
 - **`Identifier`** — wraps a string name + entity type
   (variable / type). Use `Identifier.createVariable(name)` or
   `Identifier.createType(name)`.
-- **`Import` / `File`** — internal representations of registered
-  imports and the output file's accumulated state.
+- **`Import` / `File`** — legacy TypeScript-concrete classes. Since
+  core 0.7.x the engine is language-blind: it speaks the abstract
+  bases (`ImportBase`, `CodeFileBase`, `DefinitionBase`) and builds
+  concrete instances through the `Lang` object declared on each
+  generator's entry (`toX…Entry({ lang })`), resolved by `generatorId`
+  via `GenerateContext.resolveLang`. TypeScript subclasses
+  (`TsFile`/`TsImport`/`TsDefinition`) live in `@skmtc/lang-typescript`.
+  `register`/`defineAndRegister` take `generatorId` (pure data — no
+  `createFile`, no `Lang`); projection `register` is own-file-only,
+  `registerInto(path, args)` is the explicit cross-file path; a
+  registering Snippet currently requires a `generatorKey` (F7 in
+  `notes/lang/09-migration-checklist.md` tracks relaxing this).
 - **`GeneratorKey`** — branded pipe-delimited string. 4 segments for
   operations (`id|path|method|variant` OAS, `id|rootKind|fieldName|variant` GQL),
   3 for models (`id|refName|variant`), 1 for generator-only.

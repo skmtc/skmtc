@@ -384,13 +384,18 @@ async function main(): Promise<void> {
 
   const evalDir = dirname(fromFileUrl(import.meta.url))
   const skillPath = resolve(evalDir, "..", "SKILL.md")
+  // TypeScript-emitting generator authoring loads both skills in real
+  // sessions; the eval system prompt mirrors that pairing.
+  const langSkillPath = resolve(evalDir, "..", "..", "skmtc-lang-typescript", "SKILL.md")
   const invariantsPath = join(evalDir, "invariants.md")
   const tasksDir = setName === "dev" ? join(evalDir, "tasks") : join(evalDir, "holdout")
 
-  const [skillText, invariantsText] = await Promise.all([
+  const [generatorSkillText, langSkillText, invariantsText] = await Promise.all([
     Deno.readTextFile(skillPath),
+    Deno.readTextFile(langSkillPath),
     Deno.readTextFile(invariantsPath),
   ])
+  const skillText = `${generatorSkillText}\n\n---\n\n${langSkillText}`
 
   const filterId = typeof args.task === "string" ? args.task : null
   const tasks = await loadTasks(tasksDir, filterId)

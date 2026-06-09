@@ -81,14 +81,17 @@ needs facts 1, 2 and 5 most.
 
 ## 2. What SKMTC is
 
-> SKMTC is a TypeScript code generator. It takes one **OpenAPI v3**
-> document or one **GraphQL SDL** schema and produces idiomatic
-> TypeScript
+> SKMTC is a code generator. It takes one **OpenAPI v3** document or
+> one **GraphQL SDL** schema and produces
 > **source files** — types, runtime validators, query hooks, forms,
 > mocks, server routes — all derived from that one schema, in one
 > run, all consistent with each other. The output is committed to the
 > consumer's repository like any other source code; there is **zero
-> SKMTC runtime** in the consumer's bundle.
+> SKMTC runtime** in the consumer's bundle. The engine is
+> **language-blind** (core 0.7.1+): each generator's entry declares a
+> `lang` from a `@skmtc/lang-*` package. TypeScript
+> (`@skmtc/lang-typescript`) is the production language today; other
+> `lang-*` packages (Kotlin, C#, …) are the roadmap.
 
 The crucial reframing for an infrastructure builder: **SKMTC is an
 engine with several thin hosts, not a CLI.** The CLI is one host.
@@ -138,7 +141,7 @@ another host of the same engine.**
 |---|---|
 | **Strong fit** | An OpenAPI v3 or GraphQL schema is the contract; you need *multiple* artifact types from it; you want generated code committed to the repo. |
 | **Overkill** | You only need types (`openapi-typescript`); you only need a typed fetch client (`@hey-api/openapi-ts`); schemas are dynamic at runtime (use a runtime renderer). |
-| **Wrong tool** | Not a TypeScript stack; can't run Deno *and* won't use the hosted Sandbox API; you need multi-language output (`openapi-generator`). |
+| **Wrong tool** | Can't run Deno *and* won't use the hosted Sandbox API; you need production output in a language with no `@skmtc/lang-*` package yet (today that is everything except TypeScript — use `openapi-generator`). |
 
 SKMTC's closest peer is `kubb` — multi-target, TypeScript-native.
 The distinguishing bet is the **customization model**: clones (source
@@ -271,7 +274,9 @@ you should recognize the vocabulary (defer authoring to
 `skmtc-generator`):
 
 - A **generator** is a JSR package exporting an *entry* built with
-  `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`.
+  `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`. The
+  entry declares the generator's `lang` (e.g. `typescript` from
+  `@skmtc/lang-typescript`); the engine resolves it by `generatorId`.
 - The entry's `transform` hook runs once per matched operation/model
   and produces output by calling `register` / `insert*` — its return
   value is discarded.
@@ -282,7 +287,8 @@ you should recognize the vocabulary (defer authoring to
   interpolation.
 - Templates are TypeScript template literals inside classes — not
   `.hbs`/`.mustache` files. Composition is by `${...}` interpolation
-  of anything `Stringable`.
+  of anything `Stringable`. (Generators are *authored* in
+  TypeScript/Deno regardless of the target language they emit.)
 
 **Vocabulary discipline:** in SKMTC prose use `register`, `insert`,
 `render`. Avoid *emit*, *dispatch*, *stitch* — they map to no

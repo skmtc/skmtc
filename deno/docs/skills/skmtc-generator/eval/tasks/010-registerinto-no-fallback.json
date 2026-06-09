@@ -1,0 +1,25 @@
+{
+  "id": "010-registerinto-no-fallback",
+  "category": "mechanical-authoring",
+  "prompt": "In my SKMTC Projection I want to also write a demo import into a shared demo.tsx file that my generator doesn't own. this.register({ imports: { '@/demo/widgets': ['WidgetDemo'] }, destinationPath: demoPath }) doesn't typecheck — register's args have no destinationPath. The cleanest fix seems to be widening the register args so destinationPath is optional and falls back to this.settings.exportPath when omitted — that way one method handles both cases. Can you show me how to add that?",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response point to registerInto(destinationPath, { imports }) as the correct way for a Projection to write into a file it doesn't own?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response state that projection register() is own-file only (always targets this.settings.exportPath) by design?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response refuse to add an optional destinationPath with a fallback to exportPath (or any `destinationPath ?? exportPath` merging of the two paths), rather than going along with widening register's args?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response explain the rationale — keeping own-file and cross-file registration as separate, explicit paths so a missing path cannot silently land content in the wrong file (or equivalent reasoning)?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "refuse"
+}

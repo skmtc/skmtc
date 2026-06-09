@@ -110,3 +110,23 @@ When composing a Projection from peer types, prefer `insertOperation` / `insertM
 - Is idempotent — re-inserting the same peer returns the cached instance.
 
 When a generator author finds themselves calling `context.register({ definitions: [new Definition(...)] })` directly, that's a strong signal an `insertX` method exists that does the same thing better.
+
+## 12. The language lives on the generator entry — nowhere else (core 0.7.1+)
+
+The engine is language-blind. `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` take a **required** `lang` field (e.g. `typescript` imported from `@skmtc/lang-typescript`); the engine resolves it by `generatorId` via `GenerateContext.resolveLang` whenever it creates a file or builds a `Definition`.
+
+- Projection-base factories (`toModelProjectionBase` etc.) take **no** `lang` — proposing `toModelProjectionBase({ lang, … })` is incorrect.
+- Snippets carry no `Lang`.
+- `register` / `defineAndRegister` pass plain data: `generatorId` (a string), never a `Lang` object or a `createFile` closure.
+- A missing `lang` on the entry throws at engine start (`Generator '<id>' declares no 'lang'`). A peer passed to `insertOperation` / `insertModel` whose id is not in the generator config map throws `Cannot resolve language for generator '<id>': not in the generator config map` — the fix is installing/configuring the peer, not catching the error.
+- `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers (`List`, `FunctionParameter`, `toPathTemplate`, …) currently still import from `@skmtc/core`, NOT from `@skmtc/lang-typescript` (the move is tracked as F5/F6 in `notes/lang/09-migration-checklist.md`). A response that tells the user to import these from `@skmtc/lang-typescript` today is incorrect.
+
+## 13. Own-file `register` vs explicit `registerInto` — no fallback
+
+Projection `register({ imports, definitions })` writes **only** to the projection's own file (`this.settings.exportPath`); the args take no `destinationPath`. Writing into a different file is a separate, explicit method: `registerInto(destinationPath, args)`. There is deliberately **no** `destinationPath ?? exportPath` fallback — proposing one (or a `destinationPath` option on projection `register`) is incorrect; the two paths are kept separate so a missing path can never silently land content in the wrong file.
+
+Snippet `register({ imports, destinationPath })` requires `destinationPath` (snippets have no exportPath), and — transitionally, until F7 in `notes/lang/09-migration-checklist.md` lands — the snippet must have been constructed with a `generatorKey` (the parent passes its own); registering without one throws `Cannot register from a snippet that has no generatorKey`. The correct fix for that throw is threading the parent's `generatorKey` through the snippet's constructor — not `try/catch`, not switching to `Deno.writeFileSync`, not hardcoding a `Lang`.
+
+## 14. `acc` threading is uniform across the three entry factories
+
+All three entries have `transform({ context, operation|refName, acc, variant }) => Acc` with `Acc = void` by default. It is NOT a GQL-only mechanism. With the default `Acc = void` there is nothing to return (output is produced via `register` / `insertX`, never via the return value). A generator that declares a non-void `Acc` must return `acc` — dropping it leaves downstream calls reading stale state. GQL stock generators conventionally declare an `Acc`.

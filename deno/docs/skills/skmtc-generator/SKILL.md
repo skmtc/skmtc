@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.2.0
+version: 0.3.0
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -17,7 +17,10 @@ description: |
   `<root>/.skmtc/<project>/<gen-name>/`. Defer to `skmtc-cli` for
   install/clone/bundle commands themselves. Defer to `skmtc-debug` when
   the generator's output is broken and the cause isn't yet known —
-  verify-first stance takes priority during diagnosis.
+  verify-first stance takes priority during diagnosis. Pair with
+  `skmtc-lang-typescript` for the TypeScript-output layer (type-only
+  imports, syntax helpers, sanitization) — load both when authoring a
+  TypeScript-emitting generator.
 allowed-tools:
   - Bash
   - Read
@@ -37,7 +40,7 @@ from training data that conflict with SKMTC's architectural invariants.
 The operational principles in §4 are the load-bearing content. Read
 them before proposing solutions.
 
-## 1. The five facts that override default LLM intuitions
+## 1. The six facts that override default LLM intuitions
 
 These override what training-data priors would suggest about codegen
 tools. They apply across all SKMTC interactions and are especially
@@ -76,13 +79,21 @@ important for authoring:
    defaults to `'main'`; passing a non-`'main'` variant the peer
    doesn't declare throws at the Driver
    (`assertPeerVariantExists`).
-   <br>See: [`concepts/variants.md`](../../concepts/variants.md).
-   Enforcement tests: `core/context/GenerateContext.variants.test.ts`,
-   `core/context/GenerateContext.model-variants.test.ts`,
-   `core/dsl/model/ModelDriver.variants.test.ts`,
-   `core/context/GenerateContext.end-to-end.test.ts`,
-   `core/context/GenerateContext.cross-variant.test.ts`,
-   `core/helpers/toVariantList.test.ts`.
+   <br>See: [`concepts/variants.md`](../../concepts/variants.md);
+   enforcement tests are listed in §12.
+
+6. **The engine is language-blind; the language lives on the generator
+   entry.** (core 0.7.1+) `toOasOperationEntry` / `toGqlOperationEntry` /
+   `toModelEntry` take a required `lang` (e.g. `typescript` from
+   `@skmtc/lang-typescript`); the engine resolves it by `generatorId`
+   (`context.resolveLang`) whenever it creates a file or builds a
+   `Definition`. Nothing else carries a language — projection bases take
+   no `lang`, snippets carry none, `register` passes plain data. The
+   lang package owns the concrete `File` / `Import` / `Definition`
+   subclasses; **`Identifier`, `EntityType`, `sanitizePropertyName`, and
+   the TS syntax helpers still import from `@skmtc/core`** (scheduled to
+   move — F5/F6 in `notes/lang/09-migration-checklist.md`). For
+   TypeScript-output specifics, load the `skmtc-lang-typescript` skill.
 
 ## 2. The DSL: Projection vs Snippet
 
@@ -93,7 +104,7 @@ differentiator: **does it have a name at file scope?**
 |---|---|---|
 | Base class | `ModelProjectionBase`, `OasOperationProjectionBase`, `GqlOperationProjectionBase` | `SnippetBase` (directly) |
 | Static methods required | `id`, `toIdentifier`, `toExportPath`, `toEnrichments`, `toEnrichmentSchema` | None |
-| Instance has | `settings: ContentSettings` (identifier + exportPath + enrichments) | Just `context`, `register()` |
+| Instance has | `settings: ContentSettings` (identifier + exportPath + enrichments + variant) | `context`, optional `generatorKey`, `register()` |
 | Wrapped in `Definition` | Yes (by Driver) | No |
 | Cached by | `(identifier.name, exportPath)` | Not cached |
 | File-level export | Yes (`export const X = ...`) | No (embedded via `${...}`) |
@@ -136,21 +147,12 @@ Two things this implies in practice:
 
 ### `Stringable` and `ContentSettings` (the type vocabulary)
 
-Two type names from `@skmtc/core` worth recognising when reading or
-typing a generator:
-
 - **`Stringable`** — anything with a `.toString()`. The composition
-  contract: a Projection field or Snippet child typed `Stringable`
-  accepts strings, Snippets, Definitions, `Identifier` instances,
-  and inserted handles interchangeably. Used for `fields:
-  Stringable`, `items: Stringable`, return types from helpers like
-  `schemaToField`.
-- **`ContentSettings<E>`** — the bundle of `(identifier, exportPath,
-  enrichments)` the Driver computes from a Projection's static
-  methods. Available on Projection instances as `this.settings`.
-  Constructor argument types
-  (`OasOperationProjectionConstructorArgs<E>` etc.) carry a
-  `settings: ContentSettings<E>` field.
+  contract: a field typed `Stringable` accepts strings, Snippets,
+  Definitions, `Identifier`s, and inserted handles interchangeably.
+- **`ContentSettings<E>`** — the `(identifier, exportPath,
+  enrichments, variant)` bundle the Driver computes from a
+  Projection's static methods; available as `this.settings`.
 
 ## 3. Cross-generator coordination
 
@@ -183,6 +185,13 @@ referenced by their Projection class — `this.insertOperation(Other,
 op).toName()` returns the identifier name you can use in your
 template. You never read another generator's `toString()`.
 
+One operational requirement (0.7.1+): the peer must be in the run's
+**generator config map** — installed/configured in the project (or
+registered via `toGeneratorConfigMap` in tests). The engine resolves
+the peer's language by its `id` (`context.resolveLang`); an unknown id
+throws `Cannot resolve language for generator '<id>': not in the
+generator config map.`
+
 ### Which helper for which job?
 
 `register` is the underlying primitive; for cross-generator
@@ -195,9 +204,10 @@ directly bypasses dedup and auto-import-registration.
 | Bring in another generator's output for a schema that may be inline or a ref | `this.insertNormalizedModel(PeerProjection, { schema, fallbackName })` (auto-fills `destinationPath`) |
 | Trigger another *operation* generator (e.g., a query hook, a select component) | `this.insertOperation(PeerProjection, op)` or `context.insertOperation({ projection, operation, destinationPath })` from a Snippet |
 | Look up a Definition without triggering construction | `context.findDefinition({ name, exportPath })` |
-| Add a sibling Definition in a file you already own (a type alias, a constant) | `context.defineAndRegister({ identifier, value, destinationPath })` |
-| Register a library import (npm package, hand-written helper) from a **Projection** | `this.register({ imports: { 'pkg': ['Symbol'] } })` — the wrapper fills `destinationPath` from `this.settings.exportPath`; passing it explicitly is TS2353 |
-| Register a library import from a **Snippet** | `this.register({ imports: { 'pkg': ['Symbol'] }, destinationPath })` — Snippets have no `settings`, so the parent that embeds this Snippet passes `destinationPath` through the constructor |
+| Add a sibling Definition in a file you already own (a type alias, a constant) | `this.defineAndRegister({ identifier, value })` from a Projection (own file, `generatorId` auto) — or `context.defineAndRegister({ identifier, value, destinationPath, generatorId })` from a transform |
+| Register a library import (npm package, hand-written helper) from a **Projection** | `this.register({ imports: { 'pkg': ['Symbol'] } })` — own-file only; always lands in `this.settings.exportPath` (the args take no `destinationPath`) |
+| Write imports/definitions into a file the Projection does **not** own (shared demo, scratch file) | `this.registerInto(destinationPath, { imports })` — the explicit cross-file path. There is deliberately no `destinationPath ?? exportPath` fallback: own-file and cross-file are separate, loud paths |
+| Register a library import from a **Snippet** | `this.register({ imports: { 'pkg': ['Symbol'] }, destinationPath })` — the parent passes `destinationPath` through the constructor, plus (until F7) a `generatorKey` so the snippet can register at all |
 | Register an import for a peer-generator output | **Don't** — `insertOperation`/`insertNormalizedModel` already did this for you |
 
 The helpers wrap **Driver** classes (`ModelDriver`,
@@ -210,50 +220,28 @@ cache key wrong.
 ### Variant threading on `insertOperation`
 
 `context.insertOperation({ projection, operation, variant? })`
-accepts an optional `variant` arg. Default: `'main'` — the canonical
-variant that every peer is guaranteed to honour. Pass an explicit
-non-`'main'` variant only when:
-
-- The peer is a variants-aware generator that declares that variant
-  in its enrichment shape, AND
-- You deliberately want the peer's per-variant Definition (not the
-  shared `'main'` one).
-
-If the requested variant isn't declared in the peer's enrichment
-block, the Driver throws at the call site with the available
-variants listed (see
-`OasOperationDriver.assertPeerVariantExists`). Loud beats silent
-zero-output.
-
-Two variants of the same Projection both calling
-`this.insertOperation(VariantsUnawarePeer, op)` (no variant arg) hit
-the same `'main'` cache key and share the peer's Definition — the
-peer's import is registered into each variant's file independently.
-This is the standard pattern for variants-aware Projections
-composing with variants-unaware peers like `gen-typescript` /
-`gen-tanstack-query` / `gen-zod`.
-
-See: `core/context/GenerateContext.cross-variant.test.ts`.
+defaults to `'main'` — the variant every peer honours. Pass a
+non-`'main'` variant only when the peer declares it AND you want the
+peer's per-variant Definition; an undeclared variant throws at the
+Driver (`assertPeerVariantExists`) with the available variants listed.
+Two variants of the same Projection calling
+`this.insertOperation(VariantsUnawarePeer, op)` (no variant arg) share
+the peer's `'main'` Definition — the standard pattern when composing
+with variants-unaware peers like `gen-typescript` / `gen-zod`. Full
+treatment: §10 "Authoring a variants-aware generator"; test:
+`core/context/GenerateContext.cross-variant.test.ts`.
 
 ### `insertOperation` enforces the peer's `isSupported`
 
 Cross-generator `insertOperation` deliberately **bypasses the peer's
-`skip` / `include`** config — dependency edges are filter-blind, so a
-peer the consumer skipped at the top level still materialises when
-another generator depends on it. Capability is the exception:
-`insertOperation` **does** enforce the peer's static `isSupported`. If
-the peer has declared the operation unsupported, the Driver throws
-(`OasOperationDriver` / `GqlOperationDriver` → `assertPeerSupported`).
-The throw unwinds into `GenerateContext`'s per-item `try/catch`, so the
-*calling* generator's item is recorded as `error` and the run
-continues — loud, isolated failure beats a silently-broken Definition.
-
-For the check to bite, the peer must expose `isSupported` on its
-**projection base** (`base.ts`, via the `isSupported` config field of
-`toOasOperationProjectionBase`) — that is the static the Driver probes.
-A peer with no static `isSupported` is treated as supporting every
-operation. See `core/dsl/operation/oas/OasOperationDriver.test.ts` →
-"Peer support validation".
+`skip` / `include`** config (dependency edges are filter-blind) but
+**does** enforce the peer's static `isSupported`: an unsupported
+operation throws at the Driver (`assertPeerSupported`), the calling
+generator's item is recorded as `error`, and the run continues — loud,
+isolated failure beats a silently-broken Definition. The static the
+Driver probes is the one on the peer's **projection base** (`base.ts`
+config field); a peer without one is treated as supporting everything.
+Test: `OasOperationDriver.test.ts` → "Peer support validation".
 
 ## 3.5. The operation-reference protocol
 
@@ -294,33 +282,19 @@ const def = context.insertOperation({
 return `<${def.identifier.name} lens={lens.focus('${path}').defined()} />`
 ```
 
-The four meeting points:
-
-- **Operation reference in the consumer's enrichment** — a string
-  (tag, fieldName, path) identifying an operation. Lives in the
-  *consumer* generator's enrichment schema (§7), not the producer's.
-- **Producer's `isSupported(op)`** — its capability claim. The
-  consumer filters candidate operations with it (the example above);
-  `insertOperation` independently enforces it (see §3).
-- **Producer's static `toIdentifier(op)` / `toExportPath(op)`** —
-  content-addressed identity for the cache key.
-- **`insertOperation`** — registers the producer's Definition + auto-
-  registers the import.
-
-The consumer imports the producer's Projection as a *type-level
-package dependency* — exactly like `gen-shadcn-form` imports
-`ShadcnSelectInput` from `gen-shadcn-select`. No runtime config
-sharing, no cross-namespace enrichment peeking.
+The four meeting points: the **operation reference** (a string — tag,
+fieldName, path — in the *consumer's* enrichment schema, §7), the
+producer's **`isSupported`** (capability claim — the consumer filters
+with it, `insertOperation` independently enforces it), the producer's
+static **`toIdentifier` / `toExportPath`** (content-addressed cache
+identity), and **`insertOperation`** (registers Definition + import).
+The consumer imports the producer's Projection as a package
+dependency — no runtime config sharing, no cross-namespace enrichment
+peeking. Operation references identify operations, not variants — the
+peer's `'main'` variant is inserted; for a variant, insert explicitly
+with `{ variant }`.
 
 Detail and a GraphQL example: [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md).
-
-> **Variants note.** Operation references identify operations, not
-> variants. A reference like `references: "customerList"` resolves
-> to a peer operation and inserts the peer's `'main'` variant
-> (Driver default). Variant-targeted operation references aren't
-> supported — if you need a variant of a referenced operation,
-> insert it explicitly in the consumer's Projection with
-> `{ variant }`.
 
 ## 4. Operational principles
 
@@ -333,15 +307,15 @@ almost always the correct alternative.
 
 | Default intuition (from training data) | SKMTC's stance | Why |
 |---|---|---|
-| Add a config flag to make X customizable | `skmtc clone` the generator and edit | Customization is via source code, not configuration |
+| Add a config flag to make X customizable | `skmtc clone` the generator and edit — this includes binary feature toggles on entries (`emitDocument?: boolean` is two generators in one package) | Customization is via source code, not configuration |
 | Add a plugin API for extensibility | Generators coordinate via memoization; there is no plugin registry | Cross-generator coordination is a `Map` cache keyed by `(name, exportPath)` |
-| Run Prettier or Biome in the pipeline | Don't — produce valid TS and stop | Format is the consumer's concern; pipeline renders unformatted output by design |
+| Run Prettier or Biome in the pipeline | Don't — produce valid output and stop | Format is the consumer's concern; pipeline renders unformatted output by design |
 | Provide a runtime client library | Output is committed source code | Zero SKMTC runtime in consumer bundles; generated files are reviewed via git |
 | Fail closed on bad schema input | Fail open, log `ParseIssue`s, prune dependents via `removeErroredItems` | One bad schema mustn't kill the run; manifest is the canonical record |
 | Templates as `.hbs` / `.mustache` files | Templates as template literals inside TypeScript classes | Type safety on interpolated values; full IDE refactoring |
 | Cache between runs for speed | Each generate is from cold; spawn a fresh Worker per run | Determinism > marginal speed; no state leaks between runs |
 | Make `OasSchema` a base class with subclasses | Keep it as a discriminated union of sibling classes | TS narrowing via `.isRef()` and `.type` discriminator beats runtime polymorphism |
-| Use raw strings as identifier names | Use `Identifier.createVariable(name)` or `Identifier.createType(name)` | Entity-type tracking is load-bearing under `verbatimModuleSyntax: true` |
+| Use raw strings as identifier names | Use `Identifier.createVariable(name)` or `Identifier.createType(name)` | The entity kind drives declaration keywords and import forms in the language layer |
 | Use `as` casts to satisfy types | Use type guards or runtime checks | `as` is reserved for tests; production code narrows |
 | Long `if`/`else if` chains for 3+ branches | Use `switch` with exhaustive `never` default | Codebase convention; gets compiler help on missed cases |
 | Use `process.env.X` | Use `Deno.env.get('X')` | Deno codebase; engine runs in Deno workers |
@@ -350,24 +324,31 @@ almost always the correct alternative.
 | Mutate `this` inside `toString()` | Set state in the constructor; `toString()` must be pure | May be called multiple times (previews, integrity checks) |
 | Read another generator's rendered source | Coordinate by *identifier name*, not source text | Use `insertOperation(Other, op).toName()` |
 | Return content from `transform({ context, operation })` | Use `register({ definitions, ... })` or `insertOperation` | Return value is folded into `acc` and discarded |
-| Write `import` statements inside template literals | Register imports via `this.register({ imports, destinationPath })` | Bypasses dedup; lands inside file body not header |
+| Write `import` statements inside template literals | Register imports via `this.register({ imports })` (own file) or `this.registerInto(path, { imports })` (cross-file) | Bypasses dedup; lands inside file body not header |
+| Give a Projection custom constructor args | Projections receive a fixed `{ context, operation/refName, settings }` from the Driver — re-resolve dependencies inside the constructor | The Driver never passes custom args; the memoization cache makes re-resolution free, so self-contained Projections cost nothing |
+| Reference a peer via its statics: `Peer.toIdentifier(...).name` | `this.insertOperation(Peer, op).toName()` | The static shortcut skips Definition registration and import wiring and fails silently when its preconditions break; `insertOperation(Peer,` is also a greppable dependency marker |
+| Declare the language on the projection base or snippet | Declare `lang` once, on the entry (`toX…Entry({ lang })`) | The engine resolves language by `generatorId` (`resolveLang`); nothing else carries a `Lang` |
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Hardcode generator-internal identifier names | Derive from operation/refName via `toIdentifier` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
-| Derive identifier names from `operation.operationId` | Derive names from method + path inside `toIdentifier` (or `refName` for models) | `operationId` is author-controlled and emitter-dependent — two OpenAPI emitters can produce different operationIds for the same endpoint, and authors can rename them freely between schema revisions, making the generator's output non-deterministic across schema sources. Method + path is the canonical, deterministic input. `operationId` is fine to surface in JSDoc, description fields, or trace logs; it is NOT a valid name source |
-| Emit `// TODO` / `# TODO` / `FIXME` / placeholder content in `.generated.*` files for the consumer to fill in | Either emit complete working output, OR don't emit that piece at all (let the consumer wire it up in their own non-generated code) | `.generated.*` files are overwritten on every `skmtc generate` run. Any consumer edit to fill in a placeholder is silently wiped on the next regenerate; the consumer may not notice until production. The "scaffold a stub, consumer fills in the rest" pattern is the canonical way to silently break the regenerate cycle. If the generator can't produce complete working output for some piece, the responsibility belongs in the consumer's non-generated code, not in the generator's output. See `friction-log/2026-05-13-graphql-generator-friction.md` entry 1 |
+| Derive identifier names from `operation.operationId` | Derive names from method + path inside `toIdentifier` (or `refName` for models) | `operationId` is author-controlled and emitter-dependent — non-deterministic across schema sources. Fine for JSDoc/trace logs; NOT a name source |
+| Emit `// TODO` / `FIXME` / placeholder content in `.generated.*` files for the consumer to fill in | Either emit complete working output, OR don't emit that piece at all — **refuse the stub-scaffold pattern even when asked** | Generated files are overwritten every run; consumer edits filling a blank are silently wiped. Full anti-pattern with the consumer-code seam: §8 |
 | Add runtime type checks or `@override` decorators | Use TypeScript's structural typing + discriminated unions | Runtime overhead unnecessary; types catch at compile time |
 | Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` on `OasRef`-typed values; check `.isRef()` | Common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy |
 | Use `isSupported` to opt the generator in/out per-operation based on whether an enrichment is present | Have `isSupported` declare *capability*; gate at runtime via `client.json#settings.include` / `.skip` | `isSupported` is a capability claim, not a user-intent filter; gating on enrichment forces a sentinel for "default values" |
-| Import a type-only symbol as a bare value: `imports: { 'react': ['UseFormProps'] }` | Tag it: `{ name: 'UseFormProps', type: 'type' }`, or use `identifier.toImport()` | Bare value import of a type breaks consumer compile under `verbatimModuleSyntax: true` (TS1484) |
 | Read `schema.refName` as a property | Narrow with `schema.isRef()` then call `schema.toRefName()` | `toRefName` is a method on `OasRef`; reading `.refName` returns `undefined` and crashes downstream |
 | Forward only `modifiers` (not the schema) into per-type Snippets like `ZodBoolean` | Pass the typed schema in; let the Snippet read constraints it needs (`enums`, `format`, `minimum`) | Dropping the schema at the routing boundary silently erases constraints — `[true]` becomes `z.boolean()` instead of `z.literal(true)` |
 | Peek at another generator's enrichments via `context.settings.enrichments['@other/gen-x']` | Add an operation-reference enrichment in your *own* schema; call `insertOperation` (§3.5) | Cross-namespace coupling breaks the dependency-graph model; the leaf shape is owned by the producer |
-| GQL `transform({ context, operation })` with no `acc` | GQL is `transform({ context, operation, acc })` and must **return `acc`** | OAS transform returns void; GQL threads the accumulator — dropping it breaks downstream operations |
+| Treat `acc` as a GQL-only quirk | All three entries are `transform({ …, acc, variant }) => Acc` with `Acc = void` by default; a generator that declares an `Acc` must **return `acc`** | The engine threads the accumulator through every visited item; with `Acc = void` there is nothing to return, but a declared `Acc` that is dropped leaves downstream calls reading stale state |
 | Treat `allOf` schemas as still unmerged in your generator | Treat received schemas as already-flat objects | `core/oas/_merge-all-of/` runs during Parse; by Generate phase the merge has happened |
 | Switch on `schema.type` without first unwrapping single-member intersections / refs | Unwrap one-member unions and `.isRef()` first, then switch on `.type` | OpenAPI refs can't carry extensions, so SKMTC sometimes models `$ref + extension` as a 1-member union; missing the unwrap loses the schema |
 | Auto-inherit `this.settings.variant` when calling `this.insertOperation(Peer, op)` | Default to `'main'`; pass `{ variant: this.settings.variant }` only when you deliberately want the peer to be variant-bound | Peers are variants-unaware by default; auto-inherit forces every peer to honour every caller's variant — the Driver throws on mismatch (`assertPeerVariantExists`). See `core/dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation" |
 | Variants-aware `toIdentifier` ignores `variant` | Fold `variant` into the returned name (typically via `withVariant`) | `(name, exportPath)` is the cache key. Two variants producing the same name hit the cached Definition on variant 2; the Driver's `generatorKey` integrity check fires `"Registered definition mismatch"`. See `core/context/GenerateContext.end-to-end.test.ts` + `OasOperationDriver.test.ts` → "forgets to vary toIdentifier collides on second variant" |
+
+TypeScript-output-specific principles (type-only imports / TS1484,
+syntax helpers, `sanitizePropertyName`) moved to the
+`skmtc-lang-typescript` skill — load it alongside this one when the
+generator emits TypeScript.
 
 Full discussion of each principle: [`../../explanation/design-philosophy.md`](../../explanation/design-philosophy.md).
 Code-level instances and failure modes: §8 (Anti-patterns) below.
@@ -412,7 +393,9 @@ needed.
 
 ```
 Final output text?       → SnippetBase descendant's toString() (template literal with ${...})
-Import?                   → this.register({ imports: { module: [names] }, destinationPath })
+Import (own file)?        → this.register({ imports: { module: [names] } })
+Import (another file)?    → this.registerInto(destinationPath, { imports }) — or, from a
+                            Snippet, this.register({ imports, destinationPath })
 Identifier name?          → Identifier.createVariable(name) or Identifier.createType(name)
 File path?                → join('@', ...) from @std/path
 TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
@@ -430,6 +413,14 @@ TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 6. Engine threw "must include a 'main' variant"?
                                         → Consumer wrote variants without 'main';
                                           either add `main: {}` or remove variants
+7. Engine threw "declares no 'lang'"?   → The entry is missing `lang` (e.g. `typescript`
+                                          from @skmtc/lang-typescript)
+8. Threw "not in the generator config map"?
+                                        → A peer passed to insertOperation/insertModel
+                                          isn't installed/configured in the project
+9. Threw "Cannot register from a snippet that has no generatorKey"?
+                                        → A registering Snippet wasn't given the parent's
+                                          generatorKey (transitional requirement — F7)
 ```
 
 For deeper "why broken" diagnosis, switch to `skmtc-debug`.
@@ -497,6 +488,7 @@ import { TsProjection } from '@skmtc/gen-typescript'
 import { MyGenBase } from './base.ts'
 import type { EnrichmentSchema } from './enrichments.ts'
 import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'
+import invariant from 'tiny-invariant'
 
 export class MyGen extends MyGenBase {
   tsRequestBodyName: string
@@ -508,10 +500,15 @@ export class MyGen extends MyGenBase {
   }: OasOperationProjectionConstructorArgs<EnrichmentSchema>) {
     super({ context, operation, settings })
 
+    // ⬇ toRequestBody returns undefined when the operation has no body —
+    //   narrow before handing it on (isSupported gates on it, so throw).
+    const requestBody = operation.toRequestBody(({ schema }) => schema)
+    invariant(requestBody, 'Request body is required')
+
     // ⬇ Compose with peer generators by name (not by source).
     // The Driver handles ref resolution, dedup, and import registration.
     const tsRequestBody = this.insertNormalizedModel(TsProjection, {
-      schema: operation.toRequestBody(({ schema }) => schema),
+      schema: requestBody,
       fallbackName: `${settings.identifier.name}Body`
     })
     this.tsRequestBodyName = tsRequestBody.identifier.name
@@ -545,6 +542,7 @@ import {
   toOasOperationEntry,
   type IsSupportedOasOperationConfigArgs
 } from '@skmtc/core'
+import { typescript } from '@skmtc/lang-typescript'
 import type { EnrichmentSchema } from './enrichments.ts'
 import { toEnrichmentSchema } from './enrichments.ts'
 import { MyGen } from './MyGen.ts'
@@ -552,6 +550,11 @@ import denoJson from '../deno.json' with { type: 'json' }
 
 export const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
   id: denoJson.name,
+
+  // ⬇ Required. The target language, declared HERE and nowhere else —
+  //   the engine resolves it by generatorId (context.resolveLang).
+  //   Projection bases and snippets never carry a lang.
+  lang: typescript,
 
   // ⬇ Capability gate: which operations should this generator process?
   //   Declare capability only — do NOT gate on enrichment presence
@@ -569,16 +572,16 @@ export const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
 
   // ⬇ The hook the engine calls per (operation, variant) pair.
   //   Thread `variant` into `insertOperation` so the Driver builds
-  //   per-variant ContentSettings. Return value is discarded — produce
-  //   output via insertOperation / register.
+  //   per-variant ContentSettings. Signature is
+  //   `({ context, operation, acc, variant }) => Acc` with `Acc = void`
+  //   by default — so the return value is discarded here. Produce
+  //   output via insertOperation / register, never by returning.
   transform({ context, operation, variant }) {
     context.insertOperation({ projection: MyGen, operation, variant })
   },
 
   // ⬇ Optional: makes the artifact visible in the Editor's preview UI.
-  //   Thread `variant` into each static-method call so the preview
-  //   metadata reflects the variant (otherwise it stamps everything as
-  //   `'main'`).
+  //   Thread `variant` into each static-method call.
   toPreviewModule: ({ context, operation, variant }) => ({
     name: MyGen.toIdentifier({
       operation,
@@ -599,8 +602,9 @@ export const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
 export default MyGenEntry
 ```
 
-The return value of OAS `transform` is discarded. All output must go
-through `register` / `insertOperation` / `insertNormalizedModel`.
+With the default `Acc = void`, the return value of `transform` is
+discarded. All output must go through `register` / `insertOperation` /
+`insertNormalizedModel`.
 
 ### Scaffold C variant: GraphQL entry (`toGqlOperationEntry`)
 
@@ -608,9 +612,11 @@ Two shape differences from the OAS version above:
 
 ```ts
 import { toGqlOperationEntry, synthesizeArgsObject } from '@skmtc/core'
+import { typescript } from '@skmtc/lang-typescript'
 
 export const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
   id: denoJson.name,
+  lang: typescript,
 
   // ⬇ Mutations only, gated on the existence of a synthesizable args object.
   isSupported({ operation }) {
@@ -634,9 +640,10 @@ export const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
 
 Three GQL-specific things to remember (the others apply equally):
 
-1. **`transform` is `({ context, operation, acc }) => acc`.** Threads
-   the accumulator through every operation the engine visits.
-   Drop `acc` and downstream calls see stale state.
+1. **Stock GQL generators conventionally declare an `Acc` — return it.**
+   The `({ …, acc, variant }) => Acc` signature is uniform across all
+   three entry factories now, but GQL is where accumulators are
+   actually used: drop `acc` and downstream calls see stale state.
 2. **Enrichments are *not* pre-resolved for GQL.** OAS pre-resolves
    by path+method; GQL hands you the raw operation. Walk
    `context.settings.enrichments[id][operation.identifier]` yourself
@@ -652,9 +659,11 @@ Background: [`concepts/the-graphql-pipeline.md`](../../concepts/the-graphql-pipe
 
 ```ts
 import { toModelEntry } from '@skmtc/core'
+import { typescript } from '@skmtc/lang-typescript'
 
 export const MyModelEntry = toModelEntry<EnrichmentSchema>({
   id: denoJson.name,
+  lang: typescript,
   toEnrichmentSchema,
 
   // ⬇ NO `isSupported` for model entries — `transform` runs for every
@@ -708,8 +717,9 @@ operational details — committing this table to memory saves time:
 
 | | `toOasOperationEntry` | `toGqlOperationEntry` | `toModelEntry` |
 |---|---|---|---|
+| `lang` field | required (e.g. `typescript`) | required | required |
 | `transform` arg | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
-| `acc` semantics | omit `return acc` freely | **must** `return acc` | omit `return acc` freely |
+| `acc` semantics | uniform `({ …, acc, variant }) => Acc`; `Acc = void` by default — return `acc` whenever you declare an `Acc` (GQL stock generators do) | same | same |
 | `isSupported` field | optional, default `() => true` | optional, default `() => true` | **absent** — filter in `transform` |
 | Enrichment routing | `enrichments.<id>.<path>.<method>.<variant>` | `enrichments.<id>.<rootKind>.<fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
 | Compose with | `context.insertOperation(P, op, { variant? })` | `context.insertOperation(P, op, { variant? })` | `context.insertModel(P, refName, { variant? })` |
@@ -755,26 +765,29 @@ factory (see [enrichments-shape](../../reference/settings/enrichments-shape.md))
 ```ts
 // gen-x/src/MyFieldSnippet.ts
 import { SnippetBase } from '@skmtc/core'
-import type { GenerateContextType } from '@skmtc/core'
+import type { GenerateContextType, GeneratorKey, OasRef, OasSchema } from '@skmtc/core'
 
 type MyFieldSnippetArgs = {
   context: GenerateContextType
   name: string
   label?: string
-  destinationPath: string  // ⬅ Snippets need this passed in
+  destinationPath: string    // ⬅ Snippets have no exportPath; the parent passes it
+  generatorKey: GeneratorKey // ⬅ required to register (until F7); the parent passes its own
+  schema?: OasSchema | OasRef<'schema'> // ⬅ optional: originating node, for attribution
 }
 
 export class MyFieldSnippet extends SnippetBase {
   name: string
   label: string | undefined
 
-  constructor({ context, name, label, destinationPath }: MyFieldSnippetArgs) {
-    super({ context })
+  constructor({ context, name, label, destinationPath, generatorKey, schema }: MyFieldSnippetArgs) {
+    super({ context, generatorKey, schema })
     this.name = name
     this.label = label
 
     // ⬇ Register imports against the parent's destinationPath.
-    // Snippets don't have their own exportPath, so the parent passes it.
+    // The language is resolved from generatorKey → generatorId, so a
+    // registering snippet must carry the key (throws without it).
     this.register({
       imports: { '@/components/fields/my-field': ['MyField'] },
       destinationPath
@@ -789,7 +802,14 @@ export class MyFieldSnippet extends SnippetBase {
 
 The parent Projection's `toString()` interpolates this snippet with
 `${this.fieldSnippet}` — template-literal interpolation calls
-`toString()` automatically.
+`toString()` automatically. The parent constructs it with
+`new MyFieldSnippet({ …, destinationPath: this.settings.exportPath,
+generatorKey: this.generatorKey })`.
+
+> **Transitional (F7).** The `generatorKey` requirement on registering
+> snippets is slated for removal — `notes/lang/09-migration-checklist.md`
+> F7 makes the key optional attribution input again. Until that lands,
+> thread it; a snippet that never registers can omit it today.
 
 ## 7. Customization seams in stock generators
 
@@ -812,29 +832,20 @@ declares in its Valibot schema (typically labels, descriptions, per-
 field overrides). Anything not in the enrichment schema requires
 cloning.
 
-> **Runtime coupling — path-param naming.** Operation/form generators
-> that read URL params (e.g. `gen-shadcn-form` emits
-> `useSafeParams(z.object({ <oasParamName>: z.string() }))`) hard-code
-> the **OpenAPI** path-param name into the *generated component*. This
-> is a runtime coupling, not just a naming convention: if the
-> consumer's router uses a different param name (`{id}` in the OAS vs
-> `:invoiceId` in the route), the generated form throws a `ZodError`
-> at mount. It is **not** a `toIdentifier` / `toExportPath` seam —
-> those control file and symbol names, not the emitted `useSafeParams`
-> schema. Before migrating such a generator's output, confirm the
-> names line up — `rg ':<param>' src/router*` against the OAS
-> path-param name — and rename one side first.
+> **Runtime coupling — path-param naming.** Generators that read URL
+> params (e.g. `gen-shadcn-form`'s `useSafeParams(z.object({ <oasParamName>:
+> z.string() }))`) hard-code the **OpenAPI** path-param name into the
+> generated component. If the consumer's router names the param
+> differently (`{id}` vs `:invoiceId`), the form throws at mount. Not a
+> `toIdentifier`/`toExportPath` seam — confirm the names line up
+> (`rg ':<param>' src/router*`) before migrating such output.
 
-> **Targeting another package (monorepo output).** To make a cloned
-> generator write into a *different* package of a monorepo, edit
-> `toExportPath` to return a **forward path** under that package's
-> `rootPath` — e.g. `join('packages/models/src', \`${name}.generated.ts\`)`
-> — instead of `join('@', …)`. The consumer declares the package in
-> `client.json#settings.packages`; `normalizeModuleName` then renders
-> intra-package imports as `@/…` and cross-package imports as the
-> target's `moduleName`. Never use `../`-relative paths: set
-> `basePath` to a common ancestor so every path is forward (a `..`
-> segment is rejected at config load). See
+> **Targeting another package (monorepo output).** Edit `toExportPath`
+> to return a **forward path** under the target package's `rootPath` —
+> e.g. `join('packages/models/src', \`${name}.generated.ts\`)` — never a
+> `../`-relative path (rejected at config load). The consumer declares
+> the package in `client.json#settings.packages`; imports then render
+> `@/…` intra-package and `moduleName` cross-package. See
 > [`concepts/multi-package-output.md`](../../concepts/multi-package-output.md).
 
 ## 8. Anti-patterns
@@ -882,10 +893,10 @@ toString() {
 header. TypeScript rejects. Also bypasses `Set`-based dedup.
 
 ```ts
-// ✅ RIGHT — Projection: register without destinationPath; the
-//   projection-base wrapper fills it from this.settings.exportPath.
-//   Passing destinationPath here is TS2353 (BaseRegisterArgs has no
-//   such field).
+// ✅ RIGHT — Projection: `register` targets the projection's OWN file
+//   (this.settings.exportPath); the args take no destinationPath.
+//   To write into a different file, use
+//   this.registerInto(destinationPath, { imports }).
 constructor(args) {
   super(args)
   this.register({ imports: { 'y': ['X'] } })
@@ -894,10 +905,10 @@ toString() {
   return `<X />`
 }
 
-// ✅ RIGHT — Snippet: pass destinationPath through from the parent
-//   that embeds this Snippet (Snippets have no settings.exportPath).
-constructor({ context, destinationPath }) {
-  super({ context })
+// ✅ RIGHT — Snippet: the parent passes destinationPath AND its
+//   generatorKey through the constructor (Snippets have no settings).
+constructor({ context, destinationPath, generatorKey }) {
+  super({ context, generatorKey })
   this.register({ imports: { 'y': ['X'] }, destinationPath })
 }
 toString() {
@@ -945,19 +956,13 @@ toExportPath({ operation, enrichments }) {
 }
 ```
 
-**Fails because:** the cache key is `(name, exportPath)`. Two
-generators that happen to compute the same `name` for the same
-`exportPath` throw `"Registered definition mismatch"` at generation
-time. Two conventions defuse this:
-
-1. **Role suffix.** `Form`, `Table`, `Hook`, `Mock`, `Validator`,
-   `Handler`, `Query` — whatever names the artifact's role.
-   `CreateCustomersForm` collides with no other artifact in the
-   project.
-2. **`.generated.*` filename suffix.** Marks the file as engine-owned
-   (so humans don't hand-edit it), keeps it greppable, and gives the
-   `(name, exportPath)` pair a second axis of separation when the
-   identifier itself overlaps with consumer-side code.
+**Fails because:** the cache key is `(name, exportPath)` — two
+generators computing the same `name` for the same `exportPath` throw
+`"Registered definition mismatch"`. Two conventions defuse this: a
+**role suffix** (`Form`, `Hook`, `Table`, `Mock`, …) makes the name
+project-unique, and the **`.generated.*` filename suffix** marks the
+file engine-owned, keeps it greppable, and separates it from
+consumer-side code.
 
 ### `as` casts in production code
 
@@ -1085,15 +1090,49 @@ toExportPath({ operation, settings }) {
   return settings.exportPathPrefix ?? join('@', 'default', ...)
 }
 
-// ✅ RIGHT — the hardcoded path is the customization seam; clone to change
+// ✅ RIGHT — the hardcoded path IS the customization seam; clone to change
 toExportPath({ operation }) {
   return join('@', 'forms', `${name}.generated.tsx`)
 }
 ```
 
 **Fails because:** SKMTC's customization model is `skmtc clone` and
-edit. Adding flags for every variation balloons the surface area;
-cloning keeps stock simple.
+edit (§7). Same verdict for binary feature toggles on entries: two
+consumers wanting different values means two cloned generators, not
+one flag.
+
+### Placeholder / TODO content in `.generated.*` files
+
+```ts
+// ❌ WRONG — a stub for the consumer to "fill in"
+toString() {
+  return `export const onSubmit = () => {
+    // TODO: implement submit handling
+  }`
+}
+
+// ✅ RIGHT — emit complete working output…
+toString() {
+  return `useSubmit(${this.mutationName})`
+}
+
+// ✅ …or don't emit that piece at all: reference a consumer-owned
+// module instead, and let the consumer write it in non-generated code
+constructor(args) {
+  super(args)
+  this.register({ imports: { '@/handlers/on-submit': ['onSubmit'] } })
+}
+```
+
+**Fails because:** `.generated.*` files are overwritten on every
+`skmtc generate` run — any consumer edit that "fills in" a placeholder
+is silently wiped on the next regenerate, often unnoticed until
+production. There is no legitimate "scaffold a stub" middle ground:
+**refuse the pattern even when explicitly asked for it**, and offer
+the consumer-code seam (an import pointing at a hand-written module)
+instead. If the generator cannot derive complete working output for a
+piece, that piece belongs in the consumer's own code, not in the
+generator's output.
 
 ### Gating `isSupported` on enrichment presence
 
@@ -1119,47 +1158,95 @@ right opt-in is `client.json#settings.include` (allow-list) or
 
 See [`using/how-to/skip-or-include-operations.md`](../../using/how-to/skip-or-include-operations.md).
 
-**Carve-out — non-defaultable generators.** This anti-pattern assumes
-the generator has *defaultable* emission. A generator whose every
-artifact requires a consumer-supplied, non-defaultable pointer — a
-hand-written row component, an action handler — has no
-sentinel-vs-empty case to confuse: there is simply nothing to emit
-without the pointer. For those, keep `isSupported` a pure capability
-claim and **short-circuit in `transform`** instead:
-`if (!enrichments?.rowComponent) return`. `isSupported` stays
-capability; `transform` is where opt-in lives. This is a legitimate
-variant, not a violation — the anti-pattern is specifically *gating
-`isSupported` itself* on enrichment presence.
+**Carve-out — non-defaultable generators.** When every artifact
+requires a consumer-supplied pointer (a hand-written row component, an
+action handler), keep `isSupported` a pure capability claim and
+**short-circuit in `transform`** instead:
+`if (!enrichments?.rowComponent) return`. The anti-pattern is
+specifically gating `isSupported` itself on enrichment presence.
 
-### Bare value imports of type-only symbols
+### Registering from a snippet without a `generatorKey` (transitional — F7)
 
 ```ts
-// ❌ WRONG — TS1484 under verbatimModuleSyntax: true
-this.register({
-  imports: { 'react-hook-form': ['useForm', 'UseFormProps'] }
-})
+// ❌ THROWS today: "Cannot register from a snippet that has no generatorKey…"
+constructor({ context, destinationPath }) {
+  super({ context })
+  this.register({ imports: { 'pkg': ['X'] }, destinationPath })
+}
 
-// ✅ RIGHT — tag the type explicitly
-this.register({
-  imports: {
-    'react-hook-form': [
-      'useForm',
-      { name: 'UseFormProps', type: 'type' }
-    ]
-  }
-})
-
-// ✅ BETTER — when you already hold an Identifier, let it pick the form
-this.register({
-  imports: { './types': [this.userBody.identifier.toImport()] }
-})
+// ✅ RIGHT — the parent threads its own generatorKey down
+constructor({ context, destinationPath, generatorKey }) {
+  super({ context, generatorKey })
+  this.register({ imports: { 'pkg': ['X'] }, destinationPath })
+}
 ```
 
-**Fails because:** consumers compiling with `verbatimModuleSyntax: true`
-(modern Vite, Next.js strict) reject bare value imports of types with
-TS1484. The `{ name, type: 'type' }` form is structural; `toImport()`
-threads the entity-type discriminator automatically. See
-[`reference/api/dsl-import.md`](../../reference/api/dsl-import.md).
+**Fails because:** `register` resolves the language via the snippet's
+`generatorId`, derived from `generatorKey`. The fix is threading the
+parent's key, never a `try/catch`. Transitional: F7 in
+`notes/lang/09-migration-checklist.md` makes the key optional
+attribution input again; until it lands, a registering snippet must
+carry it.
+
+### Passing `lang` to a projection base — or expecting a destinationPath fallback
+
+```ts
+// ❌ WRONG — projection bases take no lang (0.7.1+)
+toModelProjectionBase({ id, lang: typescript, toIdentifier, toExportPath })
+
+// ❌ WRONG — no implicit fallback exists, by design
+this.register({ imports, destinationPath: maybePath ?? this.settings.exportPath })
+
+// ✅ RIGHT — lang once, on the entry; own-file vs cross-file is explicit
+toModelEntry({ id, lang: typescript, transform })
+this.register({ imports })                 // own file, always
+this.registerInto(otherPath, { imports })  // cross-file, explicit
+```
+
+**Fails because:** the entry is the single home of the language — the
+engine resolves it by `generatorId`. And the missing
+`destinationPath ?? exportPath` fallback is deliberate: own-file and
+cross-file registration are separate, loud paths, so a missing path
+can never silently land content in the wrong file.
+
+### Shared file-scope export built as `defineAndRegister`-of-a-Snippet
+
+```ts
+// ❌ WRONG — peers can't reach this Definition
+context.defineAndRegister({
+  identifier: Identifier.createVariable('formatMoney'),
+  value: new FormatMoneySnippet({ context }),
+  destinationPath,
+  generatorId
+})
+
+// ✅ RIGHT — if another generator might reference it by name, make it
+// a Projection and let peers call insertOperation/insertModel on it
+```
+
+**Fails because:** a Definition built this way is unreachable through
+`insertOperation(Producer, op)` — there is no Projection class to
+pass — so every consumer must hardcode the name string, and the
+identifier drifts when the producer changes. Test: *might another
+generator reference this by name?* If yes → Projection.
+(`defineAndRegister` remains right for *private* siblings in a file
+you own, and for the accumulator pattern in §10.)
+
+### Ad-hoc `{ toString: () => '…' }` objects
+
+```ts
+// ❌ WRONG — a Snippet trying to escape
+const field = { toString: () => `<Field name="${name}" />` }
+
+// ✅ RIGHT — extend SnippetBase
+class Field extends SnippetBase { /* … */ }
+```
+
+**Fails because:** the duck-type satisfies `Stringable` while lying
+about capabilities — no `context` (so it can never `register` an
+import), no `generatorKey`, invisible to attribution/gen-maps. If the
+fragment touches `context`, needs imports, or is JSX-shaped, it's a
+`SnippetBase` descendant.
 
 ### Reading `schema.refName` as a property
 
@@ -1226,9 +1313,9 @@ The output compiles but loses precision (`[true]` enum becomes
 `z.boolean()` instead of `z.literal(true)`, breaking discriminated-
 union narrowing in consumer code).
 
-When auditing a new per-type Snippet, ask: *what schema fields beyond
-modifiers does my `toString()` read?* If the answer is any, the
-schema must come through.
+Audit question for any per-type Snippet: *what schema fields beyond
+modifiers does my `toString()` read?* If any, the schema must come
+through.
 
 ### Variants-aware `toIdentifier` that ignores `variant`
 
@@ -1245,16 +1332,10 @@ toIdentifier({ operation, variant }) {
 }
 ```
 
-**Fails because:** the cache key is `(name, exportPath)`. Two
-variants producing the same `name` hit the cached Definition on the
-second variant; the Driver's `generatorKey` integrity check
-(`OasOperationDriver.affirmDefinition`) fires `"Registered
-definition mismatch"` because the cached entry's generatorKey ends
-in `|main` while the new call's ends in `|customer`. Loud
-consumer-visible failure rather than silent doubled-`export const`.
-
-Enforcement test:
-`core/dsl/operation/oas/OasOperationDriver.test.ts` →
+**Fails because:** the cache key is `(name, exportPath)` — variant 2
+hits variant 1's cached Definition and the Driver's `generatorKey`
+integrity check fires `"Registered definition mismatch"` (`|main` vs
+`|customer` trailing segment). Test: `OasOperationDriver.test.ts` →
 "forgets to vary toIdentifier collides on second variant".
 
 ### Auto-inheriting `this.settings.variant` to a peer
@@ -1269,25 +1350,21 @@ this.insertOperation(VariantsUnawarePeer, op, {
 this.insertOperation(VariantsUnawarePeer, op)
 ```
 
-**Fails because:** the Driver throws when an explicit non-`'main'`
-variant isn't declared in the peer's enrichment block. Two variants
-of the form pointing at the same variants-unaware peer should share
-that peer's `'main'` Definition (cache hit on the second call); the
-auto-inherit pattern instead forces the peer to fan out per variant,
-which it isn't built to do.
-
-Thread variant explicitly only when the peer is known to be
-variants-aware AND you want a per-variant peer Definition.
-
-Enforcement tests:
-`core/context/GenerateContext.cross-variant.test.ts`,
-`core/dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation".
+**Fails because:** the Driver throws on a non-`'main'` variant the
+peer doesn't declare. Both of the caller's variants should share the
+peer's `'main'` Definition; thread `variant` only when the peer is
+variants-aware and you want its per-variant Definition. Tests:
+`GenerateContext.cross-variant.test.ts`,
+`OasOperationDriver.test.ts` → "Variant validation".
 
 ## 9. Verification checklist
 
 After writing or editing a generator, verify:
 
-- [ ] All imports go through `this.register({ imports, destinationPath })` — no raw `import` statements in template literals
+- [ ] The entry declares `lang` (from the target language's `lang-*` package, e.g. `typescript` from `@skmtc/lang-typescript`) — and nothing else does: no `lang` on projection bases or snippets
+- [ ] All imports go through `this.register({ imports })` (own file) / `this.registerInto(path, { imports })` (cross-file) / `this.register({ imports, destinationPath })` (Snippet) — no raw `import` statements in template literals
+- [ ] Registering snippets receive the parent's `generatorKey` through their constructor (transitional requirement — F7 in `notes/lang/09-migration-checklist.md`)
+- [ ] Direct `context.defineAndRegister` calls (transform-level, accumulators) pass `generatorId`
 - [ ] No `as` casts in non-test code — narrowing uses type guards or discriminant checks
 - [ ] Identifier names come from `Identifier.createVariable` / `createType` — no raw strings as identifiers
 - [ ] Identifier names carry a role suffix (`Form`, `Hook`, `Table`, …); export paths use a `.generated.*` filename suffix
@@ -1303,11 +1380,11 @@ After writing or editing a generator, verify:
 - [ ] No `BaseSchema` or similar new base classes added to `OasSchema` variants
 - [ ] Enrichment shape declared via Valibot in `enrichments.ts` — not via type-only declaration
 - [ ] `isSupported` is a capability predicate — does *not* gate on enrichment presence (filter via `client.json` `include`/`skip` instead)
-- [ ] Type-only cross-package imports are tagged `{ name, type: 'type' }` or use `identifier.toImport()` — no bare value imports of types
+- [ ] TypeScript-output checks (type-only imports / TS1484, `sanitizePropertyName` on schema-derived keys) — see the `skmtc-lang-typescript` skill §3/§5
 - [ ] `.toRefName()` is only called inside an `.isRef()` branch — and only if `insertNormalizedModel` won't do the same job
 - [ ] Per-type Snippet routers (`toZodValue` / `toTsValue` / equivalent) forward the typed schema — not just modifiers — so constraints survive
 - [ ] No reads of `context.settings.enrichments['@other/gen-id']` — cross-generator references use the operation-reference protocol (§3.5)
-- [ ] GQL entries: `transform` receives `acc` and returns it; mutation gates use `synthesizeArgsObject(operation)`
+- [ ] Entries that declare an `Acc`: `transform` returns `acc`; GQL mutation gates use `synthesizeArgsObject(operation)`
 - [ ] Schema `switch (schema.type)` is preceded by single-member-intersection unwrap and an `.isRef()` resolve
 - [ ] Every static method (`toIdentifier`, `toExportPath`, `toEnrichments`) destructures `variant` from its args; entry callbacks (`transform`, `isSupported`, `toPreviewModule`, `toMappingModule`) too
 - [ ] If this generator is **variants-aware**, `toIdentifier` incorporates `variant` (typically via `withVariant`); `toExportPath` produces distinct paths per variant (variant suffix in the filename)
@@ -1372,7 +1449,9 @@ skmtc create <project> <gen-name> operation   # or 'model'
 
 The scaffolded structure matches scaffolds A-D above. Then:
 
-1. Implement `isSupported` in `src/mod.ts` (capability gate).
+1. Set `lang` on the entry in `src/mod.ts` (e.g. `typescript` from
+   `@skmtc/lang-typescript`) and implement `isSupported` (capability
+   gate).
 2. Implement `toIdentifier` and `toExportPath` in `src/base.ts`.
 3. Implement the Projection class in `src/<MainProjection>.ts`.
 4. Decompose into Snippet classes as needed (scaffold E).
@@ -1408,6 +1487,35 @@ When your generator needs output from a peer generator:
 4. Reference the name in your template literal.
 
 You never read the peer's `toString()`. Coordination is by name only.
+
+### Card: One Projection, several output shapes (orchestrator–delegate)
+
+When a Projection's output varies by schema or enrichment shape (query
+vs mutation hook, create vs edit form), don't accumulate boolean flags
+and `if`-cascades in `toString()`. Give the orchestrator ONE field
+typed as a union of delegate classes; each delegate is a complete
+Snippet with its own state; `toString()` delegates:
+
+```ts
+export class TanstackQuery extends TanstackQueryBase {
+  delegate: QueryHook | MutationHook   // each extends SnippetBase
+
+  constructor(args: OasOperationProjectionConstructorArgs) {
+    super(args)
+
+    this.delegate = args.operation.method === 'get'
+      ? new QueryHook({ /* its own complete state */ })
+      : new MutationHook({ /* its own complete state */ })
+  }
+
+  override toString() {
+    return `${this.delegate}`
+  }
+}
+```
+
+New output shapes become new delegate classes, not new flags. Worked
+example: `gen-tanstack-query-supabase-zod/src/TanstackQuery.ts`.
 
 ### Card: Authoring a variants-aware generator
 
@@ -1468,26 +1576,21 @@ invariants: `core/context/GenerateContext.variants.test.ts`,
 
 ### Card: Emitting a barrel (re-export-only file)
 
-A package entry point that re-exports everything generated is **not**
-an accumulator (next card) — it needs no aggregate class, no
-`defineAndRegister`, no cross-generator `instanceof` coordination. A
-barrel is just a `File` populated with re-exports:
+> **Status (core 0.7.1): temporarily unavailable.** Re-exports were
+> dropped from the neutral `context.register` path during the lang
+> migration — by mistake; restoring the seam (`ReExportBase`) is
+> planned work (F3 in `notes/lang/09-migration-checklist.md`). Until
+> it lands, `register({ reExports })` is not accepted and there is no
+> supported barrel path. Do **not** improvise barrels by emitting
+> re-export statements as `definitions` — wait for the seam.
 
-```ts
-context.register({
-  reExports: { [modelExportPath]: [settings.identifier] },
-  destinationPath: barrelPath
-})
-```
-
-`reExports` is `Record<string, Identifier[]>` (module → identifiers);
-each identifier's entity type picks `export { x }` vs
-`export type { x }`. Many generators may `register` re-exports into
-the same `destinationPath` — `File.reExports` merges them. A `File`
-with only `reExports` (no `Definition`s) is a valid emitted artifact:
-there is no shared *value*, just a shared file accumulating entries,
-so the coordination concerns of the accumulator card below do not
-apply. See [`concepts/multi-package-output.md`](../../concepts/multi-package-output.md).
+The intended API (pre-0.7.0, returns with `ReExportBase`):
+`context.register({ reExports: { [modulePath]: [identifier] },
+destinationPath: barrelPath })` — `Record<string, Identifier[]>`,
+merged across registering generators, each identifier's entity kind
+picking `export { x }` vs `export type { x }`. A barrel is *not* an
+accumulator (next card): no aggregate value, no `defineAndRegister`.
+See [`concepts/multi-package-output.md`](../../concepts/multi-package-output.md).
 
 ### Card: Accumulator-style generator (one shared aggregate, many contributors)
 
@@ -1523,10 +1626,13 @@ transform: ({ context, operation }) => {
   }
 
   // 3b. Cache miss → defineAndRegister a fresh aggregate, then add.
+  //     Transform-level defineAndRegister passes generatorId — the
+  //     entry's own id — so the engine can resolve the language.
   const routesList = context.defineAndRegister({
     identifier: Identifier.createVariable('toRoutesList'),
     value: new MockRoutesList({ context }),
-    destinationPath: exportPath
+    destinationPath: exportPath,
+    generatorId: denoJson.name
   })
   routesList.value.add(route)
 }
@@ -1543,22 +1649,17 @@ Reference: [`reference/stock-generators/gen-msw.md`](../../reference/stock-gener
 
 ### Card: Debugging "my generator produces no output"
 
-This card is the boundary with `skmtc-debug`. Quick checks before
-escalating:
-
-1. Is `transform()` returning instead of registering? (Return value is
-   discarded.)
-2. Does `isSupported` reject the operations you expected? (Check the
-   predicate.)
-3. Is `client.json#settings.skip` or `include` excluding the
-   operations?
-4. Is the schema shape what your gate expects? (e.g., gen-shadcn-form
-   requires request body `type === 'object'`)
-
-If unresolved → hand off to `skmtc-debug` with verify-first stance.
+Run the §5 "Why is my generator's output empty?" tree (nine checks,
+including the 0.7.1 lang/config-map throws). If unresolved → hand off
+to `skmtc-debug` with verify-first stance.
 
 ## 11. Boundary with other skills
 
+- **skmtc-lang-typescript**: the TypeScript target-language layer —
+  what the *emitted* code looks like (type-only imports, syntax
+  helpers, sanitization, the `typescript` Lang object's surface). Load
+  it alongside this skill for any TypeScript-emitting generator; future
+  `skmtc-lang-<X>` skills follow the same template.
 - **skmtc-cli**: install / clone / bundle / dev commands. This skill
   picks up once you're editing generator source.
 - **skmtc-debug**: when output is broken. Verify-first stance takes
@@ -1573,6 +1674,7 @@ something is broken*, hand off to `skmtc-debug`.
 ## 12. Cross-references
 
 - Concept docs: [`concepts/projections-and-snippets.md`](../../concepts/projections-and-snippets.md), [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md), [`concepts/the-three-phases.md`](../../concepts/the-three-phases.md), [`concepts/variants.md`](../../concepts/variants.md)
+- Language seam: the `skmtc-lang-typescript` skill (sibling directory); design + open items in `notes/lang/` (`12` is the shipped end-state; `09` tracks F3/F5/F6/F7)
 - API reference: [`reference/api/`](../../reference/api/) — full DSL surface
 - Per-generator clone seams: [`reference/stock-generators/`](../../reference/stock-generators/)
 - Tutorials: [`extending/tutorials/`](../../extending/tutorials/)

@@ -670,7 +670,9 @@ Then, **by hand**, write under `.skmtc/lab/`:
      mod.ts        # re-export the entry as DEFAULT:
                    #   export { xEntry as default } from './src/mod.ts'
      src/
-       mod.ts      # toOasOperationEntry({ id, ... }) / toModelEntry({ id, ... })
+       mod.ts      # toOasOperationEntry({ id, lang, ... }) / toModelEntry({ id, lang, ... })
+                   #   `lang` is required (core 0.7.1+): e.g. `typescript`
+                   #   from @skmtc/lang-typescript
        base.ts, *.ts
    ```
    - Package name **must** be `@<scope>/gen-<name>` — the `gen-`
@@ -689,6 +691,7 @@ Then, **by hand**, write under `.skmtc/lab/`:
        "@<scope>/gen-<name>": "./<gen-dir>/mod.ts",  // local generator
        "@skmtc/core":   "jsr:@skmtc/core@<pin>",      // peer deps the
        "@skmtc/worker": "jsr:@skmtc/worker@<pin>",    // generator src
+       "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@<pin>", // the entry's `lang`
        "@std/path":     "jsr:@std/path@^1",           // imports by bare
        "tiny-invariant":"npm:tiny-invariant@^1.3.3"   // specifier
        // ...valibot, ts-pattern, etc. as the source needs
