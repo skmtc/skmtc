@@ -7,7 +7,7 @@ import { CreateProjectView } from './CreateProjectView.tsx'
 import { LoginView } from '@/components/LoginView.tsx'
 import { AppInfo } from '@/components/AppInfo.tsx'
 import { GenerateView } from '@/components/GenerateView.tsx'
-import { DeployView } from '@/components/DeployView.tsx'
+import { PublishView } from '@/components/PublishView.tsx'
 import { BundleView } from '@/components/BundleView.tsx'
 import { RuntimeLogsView } from '@/components/RuntimeLogsView.tsx'
 import { ListGeneratorsView } from '@/components/ListGeneratorsView.tsx'
@@ -68,9 +68,9 @@ export const ViewManager = () => {
         />
       )
     }
-    case 'deploy': {
+    case 'publish': {
       const view = state.view
-      return <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      return <PublishView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     }
     case 'bundle': {
       const view = state.view

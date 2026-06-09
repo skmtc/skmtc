@@ -273,7 +273,7 @@ export const readCliWorkerPin = (): string | null => {
 /**
  * The CLI's own `@skmtc/server` pin, read from `cli/deno.json`.
  * `@skmtc/server` is the Hono wrapper bundled into the CF-Workers
- * `server.js` artifact by `skmtc deploy`. Exported so
+ * `server.js` artifact by `skmtc publish`. Exported so
  * `ensureServerDeps` can pin a fresh project to the CLI's version.
  */
 export const readCliServerPin = (): string | null => {

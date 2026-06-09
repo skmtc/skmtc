@@ -11,7 +11,7 @@ type ProjectProps = {
 type ProjectActionValue =
   | 'generate-artifacts'
   | 'generate-artifacts-watch'
-  | 'deploy'
+  | 'publish'
   | 'serve'
   | 'runtime-logs'
   | 'install-generator'

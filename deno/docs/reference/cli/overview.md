@@ -40,11 +40,11 @@ The CLI is installed via Deno's `install` mechanism, then invoked as
 | `clean` | Delete a project's generated files + manifest, pruning emptied dirs | [clean](clean.md) |
 | `dev` | Watch mode for iterative generator development | [dev](dev.md) |
 
-### Deploy
+### Publish
 
 | Command | Purpose | Reference |
 |---------|---------|-----------|
-| `deploy` | Upload a new immutable deployment to skmtc-hub | [deploy](deploy.md) |
+| `publish` | Publish a new immutable stack version to skmtc-hub (`deploy` is a deprecated alias) | [publish](publish.md) |
 
 ### Diagnostics
 

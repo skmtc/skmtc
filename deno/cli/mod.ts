@@ -238,6 +238,28 @@ const run = async () => {
       await dev({ projectName, schemaSourceString })
     })
 
+  const publishCommand = new Command()
+    .description(getCommandDescriptor('publish').description)
+    .arguments('<project:string>')
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .option('--token <token:string>', 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.')
+    .option('--hub-url <url:string>', 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.')
+    .option('--version <version:string>', "Version to publish. Defaults to the project root deno.json's `version`.")
+    .action(async ({ json, input, token, hubUrl, version }, projectName) => {
+      const { renderPublish } = await import('@/commands/publish.tsx')
+      await renderPublish({
+        projectName,
+        token,
+        hubUrl,
+        version,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
+    })
+
+  // Deprecated alias kept so existing scripts don't break. Same surface
+  // as `publish`; prints a one-line deprecation notice, then delegates.
   const deployCommand = new Command()
     .description(getCommandDescriptor('deploy').description)
     .arguments('<project:string>')
@@ -245,12 +267,16 @@ const run = async () => {
     .option('--json', JSON_DESC)
     .option('--token <token:string>', 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.')
     .option('--hub-url <url:string>', 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.')
-    .action(async ({ json, input, token, hubUrl }, projectName) => {
-      const { renderDeploy } = await import('@/commands/deploy.tsx')
-      await renderDeploy({
+    .option('--version <version:string>', "Version to publish. Defaults to the project root deno.json's `version`.")
+    .hidden()
+    .action(async ({ json, input, token, hubUrl, version }, projectName) => {
+      console.error('`skmtc deploy` is deprecated — use `skmtc publish`.')
+      const { renderPublish } = await import('@/commands/publish.tsx')
+      await renderPublish({
         projectName,
         token,
         hubUrl,
+        version,
         jsonFlag: json,
         noInputFlag: input === false
       })
@@ -312,6 +338,7 @@ const run = async () => {
     .command('generate', generateCommand)
     .command('bundle', bundleCommand)
     .command('clean', cleanCommand)
+    .command('publish', publishCommand)
     .command('deploy', deployCommand)
     .command('dev', devCommand)
     .command('doctor', doctorCommand)

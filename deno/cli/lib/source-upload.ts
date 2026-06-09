@@ -1,12 +1,12 @@
 /**
- * Source collection for `deploy`. Walks the project root and returns the
- * user-authored source files. `deploy-headless` then posts these (one
- * multipart `files` part each) alongside the compiled `bundle` part in the
- * single atomic `POST /v1/stacks/{account}/{stack}/deployments` request; the
- * hub writes the tree to R2, reconciles the stack's `stack_generator_refs`
- * from the uploaded `deno.json` (gen-*-prefixed local paths → `cloned`,
- * gen-*-prefixed JSR imports → `imported`), and populates the deployment's
- * source columns.
+ * Source collection for `publish`. Walks the project root and returns the
+ * user-authored source files. `publish-headless` then posts these (one
+ * multipart `files` part each) alongside the `version` and compiled `bundle`
+ * parts in the single atomic `POST /v1/stacks/{account}/{stack}/versions`
+ * request; the hub writes the tree to R2, reconciles the stack's
+ * `stack_generator_refs` from the uploaded `deno.json` (gen-*-prefixed local
+ * paths → `cloned`, gen-*-prefixed JSR imports → `imported`), and populates
+ * the stack version's source columns.
  *
  * What's uploaded is decided by a gitignore-style filter rather than a fixed
  * allow-list — the default is "upload everything the user authored" so we don't
@@ -86,18 +86,18 @@ export const SKMTC_IGNORE_FILE = '.skmtcignore'
 /**
  * Seed `.skmtcignore` written into new projects by `init`. The built-in
  * defaults above already cover derived bundles, deps, secrets and binaries, so
- * the seed is mostly a documented starting point — plus the deploy/generate
+ * the seed is mostly a documented starting point — plus the publish/generate
  * logs, which live under `.settings` (kept for `client.json`) and are pure
  * noise in an upload.
  */
-export const SKMTCIGNORE_TEMPLATE = `# .skmtcignore — files to exclude from \`skmtc deploy\` uploads (gitignore syntax).
+export const SKMTCIGNORE_TEMPLATE = `# .skmtcignore — files to exclude from \`skmtc publish\` uploads (gitignore syntax).
 #
 # Built-in defaults already skip derived bundles (server.ts/js, bundle.js,
 # worker.ts), node_modules, .git, secrets (.env*), and binary assets.
 # Add project-specific exclusions below; use \`!pattern\` to re-include something
 # a default excludes.
 
-# deploy / generate logs
+# publish / generate logs
 .settings/logs.txt
 .settings/error-logs.txt
 `

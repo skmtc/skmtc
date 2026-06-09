@@ -7,7 +7,7 @@ import {
 /**
  * Ensure a project's deno.json pins the peer packages that the
  * CLI-generated `server.ts` (the CF-Workers entry built by
- * `skmtc deploy`) needs in order to bundle:
+ * `skmtc publish`) needs in order to bundle:
  *
  *  - `@skmtc/server` — `server.ts` does `import { createServer } from
  *    '@skmtc/server'`. Like `@skmtc/worker` for the Deno-Worker path,

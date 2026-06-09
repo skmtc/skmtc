@@ -3,37 +3,37 @@ import { Box, Text } from 'ink'
 import { Spinner } from '@/components/Spinner.tsx'
 import { TaskBox } from '@/components/TaskBox.tsx'
 import type { Project } from '@/lib/project.ts'
-import type { ViewStateDeploy } from '@/components/SkmtcContext.tsx'
+import type { ViewStatePublish } from '@/components/SkmtcContext.tsx'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import {
-  deployHeadless,
-  type DeployHeadlessResult
-} from '@/lib/deploy-headless.ts'
+  publishHeadless,
+  type PublishHeadlessResult
+} from '@/lib/publish-headless.ts'
 
-type DeployViewProps = {
+type PublishViewProps = {
   project: Project
-  view: ViewStateDeploy
+  view: ViewStatePublish
 }
 
 type Stage =
   | { kind: 'validating' }
   | { kind: 'running' }
-  | { kind: 'done'; result: DeployHeadlessResult }
+  | { kind: 'done'; result: PublishHeadlessResult }
   | { kind: 'misconfigured'; missing: string[] }
 
 /**
- * Interactive Ink path for `skmtc deploy`. Strict / `--json` /
- * `--no-input` modes hit `deployHeadless` directly from
- * `commands/deploy.tsx`; this view is the human-operator surface.
+ * Interactive Ink path for `skmtc publish`. Strict / `--json` /
+ * `--no-input` modes hit `publishHeadless` directly from
+ * `commands/publish.tsx`; this view is the human-operator surface.
  *
  * The TUI shows three stages:
  *   1. Validating required args (stack, token).
- *   2. Running `deployHeadless` — bundle + deployment create + bundle
- *      upload + source upload.
- *   3. Done — show the deployment URL + bundle size/hash, or the
- *      failure stage + reason.
+ *   2. Running `publishHeadless` — version resolution + bundle +
+ *      version publish (bundle + source in one multipart request).
+ *   3. Done — show the published version + URL + bundle size/hash, or
+ *      the failure stage + reason.
  */
-export const DeployView = ({ project, view }: DeployViewProps) => {
+export const PublishView = ({ project, view }: PublishViewProps) => {
   const { state, dispatch, dispatchMessage, exit } = useSkmtc()
   const [stage, setStage] = useState<Stage>({ kind: 'validating' })
 
@@ -46,26 +46,29 @@ export const DeployView = ({ project, view }: DeployViewProps) => {
 
     if (missing.length > 0) {
       setStage({ kind: 'misconfigured', missing })
-      dispatchMessage({ error: 'Deploy is missing required arguments' })
+      dispatchMessage({ error: 'Publish is missing required arguments' })
       if (!state.interactive) exit()
       return
     }
 
     setStage({ kind: 'running' })
     const run = async () => {
-      const result = await deployHeadless({
+      const result = await publishHeadless({
         skmtcRoot: state.skmtcRoot,
         projectName: project.name,
         token: token as string,
-        hubUrl
+        hubUrl,
+        version: view.version
       })
 
       setStage({ kind: 'done', result })
 
-      if (result.kind === 'deployed') {
-        dispatchMessage({ success: `Deployed ${result.shortId} to ${result.stack.account}/${result.stack.slug}` })
+      if (result.kind === 'published') {
+        dispatchMessage({
+          success: `Published ${result.stack.account}/${result.stack.slug}@${result.version}`
+        })
       } else {
-        dispatchMessage({ error: `Deploy failed at ${result.stage}: ${result.reason}` })
+        dispatchMessage({ error: `Publish failed at ${result.stage}: ${result.reason}` })
       }
 
       if (state.interactive) {
@@ -82,47 +85,47 @@ export const DeployView = ({ project, view }: DeployViewProps) => {
     case 'validating':
       return (
         <TaskBox active>
-          <Spinner label="Validating deploy inputs..." />
+          <Spinner label="Validating publish inputs..." />
         </TaskBox>
       )
     case 'misconfigured':
       return (
         <Box flexDirection="column">
-          <Text color="red">Missing required deploy arguments:</Text>
+          <Text color="red">Missing required publish arguments:</Text>
           {stage.missing.map(m => (
             <Text key={m}>  - {m}</Text>
           ))}
           <Text dimColor>
-            Example: skmtc deploy {project.name} --token $SKMTC_HUB_TOKEN
+            Example: skmtc publish {project.name} --token $SKMTC_HUB_TOKEN
           </Text>
         </Box>
       )
     case 'running':
       return (
         <TaskBox active>
-          <Spinner label={`Deploying ${project.name}...`} />
+          <Spinner label={`Publishing ${project.name}...`} />
         </TaskBox>
       )
     case 'done': {
       const result = stage.result
-      if (result.kind === 'deployed') {
+      if (result.kind === 'published') {
         return (
           <Box flexDirection="column">
             <Text color="green">
-              ✓ Deployed {result.projectName} → {result.stack.account}/{result.stack.slug} ({result.shortId})
+              ✓ Published {result.projectName} → {result.stack.account}/{result.stack.slug}@{result.version}
             </Text>
-            <Text>  bundle:     {result.bundlePath}</Text>
-            <Text>  bytes:      {result.bundleBytes.toLocaleString()}</Text>
-            <Text>  sha256:     {result.bundleSha256.slice(0, 16)}...</Text>
-            <Text>  source:     {result.sourceFileCount} files, {result.sourceTotalBytes.toLocaleString()} bytes</Text>
-            <Text>  deployment: {result.deploymentUrl}</Text>
+            <Text>  bundle:  {result.bundlePath}</Text>
+            <Text>  bytes:   {result.bundleBytes.toLocaleString()}</Text>
+            <Text>  sha256:  {result.bundleSha256.slice(0, 16)}...</Text>
+            <Text>  source:  {result.sourceFileCount} files, {result.sourceTotalBytes.toLocaleString()} bytes</Text>
+            <Text>  version: {result.versionUrl}</Text>
           </Box>
         )
       }
       return (
         <Box flexDirection="column">
           <Text color="red">
-            ✗ Deploy failed for {result.projectName} at {result.stage}
+            ✗ Publish failed for {result.projectName} at {result.stage}
           </Text>
           <Text>  {result.reason}</Text>
         </Box>

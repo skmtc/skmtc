@@ -129,13 +129,26 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
-    name: 'deploy',
-    description: "Build and upload a deployment of this project to skmtc-hub. The deployment lands on the stack <authenticated-user>/<project>; each deploy creates a new immutable deployment.",
+    name: 'publish',
+    description: "Build and publish an immutable version of this project to skmtc-hub. The version lands on the stack <authenticated-user>/<project>; versions are addressed by semver and re-publishing an existing version is rejected.",
     args: ['<project>'],
     flags: [
       ...AGENT_MODE_FLAGS,
       { flag: '--token <pat>', description: 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.' },
-      { flag: '--hub-url <url>', description: 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.' }
+      { flag: '--hub-url <url>', description: 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.' },
+      { flag: '--version <semver>', description: "Version to publish. Defaults to the project root deno.json's `version`." }
+    ],
+    agentMode: 'full'
+  },
+  {
+    name: 'deploy',
+    description: 'Deprecated alias for `publish` — stacks are published as immutable versions now.',
+    args: ['<project>'],
+    flags: [
+      ...AGENT_MODE_FLAGS,
+      { flag: '--token <pat>', description: 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.' },
+      { flag: '--hub-url <url>', description: 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.' },
+      { flag: '--version <semver>', description: "Version to publish. Defaults to the project root deno.json's `version`." }
     ],
     agentMode: 'full'
   },
