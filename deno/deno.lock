@@ -1,25 +1,13 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@std/assert@^1.0.10": "1.0.19",
-    "jsr:@std/assert@^1.0.19": "1.0.19",
-    "jsr:@std/fmt@1": "1.0.10",
-    "jsr:@std/fmt@^1.0.5": "1.0.10",
-    "jsr:@std/fs@^1.0.11": "1.0.24",
-    "jsr:@std/internal@^1.0.12": "1.0.14",
-    "jsr:@std/internal@^1.0.14": "1.0.14",
-    "jsr:@std/io@~0.225.2": "0.225.3",
-    "jsr:@std/log@0.224": "0.224.14",
-    "jsr:@std/log@~0.224.6": "0.224.14",
-    "jsr:@std/path@^1.0.9": "1.1.5",
-    "jsr:@std/testing@^1.0.15": "1.0.18",
+    "jsr:@std/semver@^1.0.5": "1.0.8",
     "jsr:@std/yaml@^1.0.5": "1.1.1",
     "jsr:@std/yaml@^1.1.0": "1.1.1",
     "npm:@babel/helper-validator-identifier@7.27.1": "7.27.1",
     "npm:@inkjs/ui@2": "2.0.0_ink@6.8.0__@types+react@19.2.14__react@19.2.6_@types+react@19.2.14",
     "npm:@modelcontextprotocol/sdk@^1.29.0": "1.29.0_zod@4.4.3",
     "npm:@supabase/supabase-js@^2.57.4": "2.106.0",
-    "npm:@types/babel__helper-validator-identifier@7.15.2": "7.15.2",
     "npm:@types/lodash-es@4.17.12": "4.17.12",
     "npm:@types/react@19": "19.2.14",
     "npm:ajv-draft-04@1": "1.0.0_ajv@8.20.0",
@@ -45,43 +33,8 @@
     "npm:zod@^4.0.14": "4.4.3"
   },
   "jsr": {
-    "@std/assert@1.0.19": {
-      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
-      "dependencies": [
-        "jsr:@std/internal@^1.0.12"
-      ]
-    },
-    "@std/fmt@1.0.10": {
-      "integrity": "90dfba288802ac6de82fb31d0917eb9e4450b9925b954d5e51fc29ac07419db5"
-    },
-    "@std/fs@1.0.24": {
-      "integrity": "f3061b45b81673a2bece689da041df32d174be064c89eb6397fb5718d3fb7877"
-    },
-    "@std/internal@1.0.14": {
-      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
-    },
-    "@std/io@0.225.3": {
-      "integrity": "27b07b591384d12d7b568f39e61dff966b8230559122df1e9fd11cc068f7ddd1"
-    },
-    "@std/log@0.224.14": {
-      "integrity": "257f7adceee3b53bb2bc86c7242e7d1bc59729e57d4981c4a7e5b876c808f05e",
-      "dependencies": [
-        "jsr:@std/fmt@^1.0.5",
-        "jsr:@std/fs",
-        "jsr:@std/io"
-      ]
-    },
-    "@std/path@1.1.5": {
-      "integrity": "ccea00982ea28c36becaf6e62f855406c76a8c32d462f66f415bbb7d83a271bc",
-      "dependencies": [
-        "jsr:@std/internal@^1.0.14"
-      ]
-    },
-    "@std/testing@1.0.18": {
-      "integrity": "d3152f57b11666bf6358d0e127c7e3488e91178b0c2d8fbf0793e1c53cd13cb1",
-      "dependencies": [
-        "jsr:@std/assert@^1.0.19"
-      ]
+    "@std/semver@1.0.8": {
+      "integrity": "dc830e8b8b6a380c895d53fbfd1258dc253704ca57bbe1629ac65fd7830179b7"
     },
     "@std/yaml@1.1.1": {
       "integrity": "a57665ecf3d17b926380593a56625d8a10cc7281802f1e993b5ebc94a48e71f8"
@@ -223,9 +176,6 @@
         "@supabase/realtime-js",
         "@supabase/storage-js"
       ]
-    },
-    "@types/babel__helper-validator-identifier@7.15.2": {
-      "integrity": "sha512-l3dkwCt890NFhMwPKXbxsWXC0Por0/+KaFIiQP1j38/vWSH2P3Tn6m+IuJHkx2SBI3VLFqincFe9JtBk2NFHOw=="
     },
     "@types/lodash-es@4.17.12": {
       "integrity": "sha512-0NgftHUcV4v34VhXm8QBSftKVXtbkBG3ViCjs6+eJ5a6y6Mi/jiFGPc1sC7QK+9BFhWrURE3EOggmWaSxL9OzQ==",
@@ -1090,9 +1040,9 @@
         "dependencies": [
           "jsr:@cliffy/command@1.1.0",
           "jsr:@skmtc/convert@0.1.15",
-          "jsr:@skmtc/core@0.7.0",
-          "jsr:@skmtc/server@0.2.21",
-          "jsr:@skmtc/worker@0.3.10",
+          "jsr:@skmtc/core@0.7.1",
+          "jsr:@skmtc/server@0.2.22",
+          "jsr:@skmtc/worker@0.3.11",
           "npm:@inkjs/ui@2",
           "npm:@supabase/supabase-js@^2.57.4",
           "npm:@types/react@19",
@@ -1130,32 +1080,32 @@
       },
       "lang-csharp": {
         "dependencies": [
-          "jsr:@skmtc/core@0.7.0"
+          "jsr:@skmtc/core@0.7.1"
         ]
       },
       "lang-go": {
         "dependencies": [
-          "jsr:@skmtc/core@0.7.0"
+          "jsr:@skmtc/core@0.7.1"
         ]
       },
       "lang-kotlin": {
         "dependencies": [
-          "jsr:@skmtc/core@0.7.0"
+          "jsr:@skmtc/core@0.7.1"
         ]
       },
       "lang-php": {
         "dependencies": [
-          "jsr:@skmtc/core@0.7.0"
+          "jsr:@skmtc/core@0.7.1"
         ]
       },
       "lang-rust": {
         "dependencies": [
-          "jsr:@skmtc/core@0.7.0"
+          "jsr:@skmtc/core@0.7.1"
         ]
       },
       "lang-typescript": {
         "dependencies": [
-          "jsr:@skmtc/core@0.7.0"
+          "jsr:@skmtc/core@0.7.1"
         ]
       },
       "mcp": {
@@ -1175,7 +1125,7 @@
       "server": {
         "dependencies": [
           "jsr:@skmtc/convert@0.1.15",
-          "jsr:@skmtc/core@0.7.0",
+          "jsr:@skmtc/core@0.7.1",
           "npm:hono@4.7.2"
         ]
       },
@@ -1191,7 +1141,7 @@
       },
       "worker": {
         "dependencies": [
-          "jsr:@skmtc/core@0.7.0",
+          "jsr:@skmtc/core@0.7.1",
           "npm:openapi-types@^12.1.3"
         ]
       }
