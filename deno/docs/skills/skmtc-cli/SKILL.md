@@ -1,13 +1,13 @@
 ---
 name: skmtc-cli
-version: 0.2.0
+version: 0.3.0
 description: |
   Use the SKMTC CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
   artifacts from an OpenAPI v3 or GraphQL SDL schema. Covers the
   command surface (`init`, `create`, `clone`, `install`, `list`,
-  `remove`, `generate`, `bundle`, `dev`, `doctor`, `agent-context`),
-  the `<root>/.skmtc/<project>/` workspace layout, the
+  `remove`, `generate`, `bundle`, `dev`, `publish`, `doctor`,
+  `agent-context`), the `<root>/.skmtc/<project>/` workspace layout, the
   `.settings/client.json` shape (basePath, source, enrichments, skip,
   include), and the agent-native operation modes
   (interactive / strict text / strict JSON) with their exit codes and
@@ -16,7 +16,9 @@ description: |
   Use this skill when the user asks to "run skmtc", "generate code
   from an OpenAPI schema", "install a skmtc generator", "scaffold a
   skmtc project", "watch a skmtc project", "configure enrichments",
-  "skmtc in CI", or invokes any of the CLI subcommands. For *authoring*
+  "publish a stack", "deploy to skmtc-hub" (deploy is the deprecated
+  alias for publish), "skmtc in CI", or invokes any of the CLI
+  subcommands. For *authoring*
   a generator package (Projections, Snippets, transform functions),
   defer to `skmtc-generator`. When something is broken (no output,
   wrong output, error messages, stale bundle), defer to `skmtc-debug`
@@ -149,8 +151,15 @@ follow-up command the agent can run to fetch the candidate set. No
 | `bundle [project]` | Compile local generators without generating | Project required |
 | `clean [project]` | Delete a project's generated files + manifest, pruning emptied dirs | Project required; `--dry-run`, `--verbose`; no Ink variant |
 | `dev <project> [schema]` | Watch + rebundle + regenerate on change | Project required; no `--json` (long-running) |
+| `publish <project>` | Build + publish an immutable stack version to skmtc-hub | Project + `--token` (or `$SKMTC_HUB_TOKEN`) required; version from `deno.json#version` or `--version` |
 | `doctor` | Diagnose project setup | No args; always strict |
 | `agent-context` | Write JSON dump of CLI surface + state to stdout | No args; always strict |
+
+`skmtc deploy` is a hidden, deprecated alias for `publish` — same
+flags, prints a one-line deprecation notice, then delegates. Stacks
+are *published* as immutable semver versions (like generator
+packages); deployments, runs, and the `production` alias belong to
+hub *projects* and are driven from the web app, not the CLI.
 
 Full per-command reference (flags, JSON output, exit codes): see
 [`reference/cli/`](../../reference/cli/) — one file per command.
@@ -409,6 +418,40 @@ A `failed` typecheck → exit 1; generated files stay on disk.
 **`--watch` and `--json` are mutually exclusive.** `--json` writes a
 single result and exits; `--watch` is a long-running stream. Passing
 both → exit 2 with a recipe error.
+
+### `publish`
+
+```jsonc
+// Success — a StackVersion was published. No deploymentId/shortId:
+// versions are addressed by semver.
+{
+  "kind": "published",
+  "projectName": "my-api",
+  "bundlePath": ".skmtc/my-api/server.js",
+  "bundleBytes": 1228801,
+  "bundleSha256": "e3b0c44298fc1c14...",
+  "stack": { "account": "ada", "slug": "my-api" },
+  "version": "3.0.1",
+  "versionUrl": "https://skmtc.dev/ada/stacks/my-api/versions/3.0.1",
+  "sourceFileCount": 28,
+  "sourceTotalBytes": 96512
+}
+
+// Failure — `stage` pinpoints where:
+//   "version"  — no deno.json#version and no --version (fails before
+//                any network call)
+//   "identity" — GET /v1/user failed (usually a bad PAT)
+//   "bundle"   — local Deno bundling / source collection failed
+//   "publish"  — POST .../versions failed (commonly 409: that version
+//                is already published; versions are immutable — bump
+//                and re-publish)
+{
+  "kind": "failed",
+  "projectName": "my-api",
+  "reason": "version 3.0.1 is already published for ada/my-api — ...",
+  "stage": "publish"
+}
+```
 
 ## 9. Decision trees
 
@@ -713,6 +756,42 @@ env vars, spawns only `deno` (bundle) and `sh` (typecheck), and needs
 imports, so those grants are dropped. Empirically validated against
 `doctor` / `generate` / `bundle`.
 
+### Card: Publishing a stack version to skmtc-hub
+
+Use when the project should be shared on the hub as a stack package.
+Publishing creates an immutable semver version of the stack; a hub
+*project* later pins that version and runs it (deployments and the
+`production` alias are project concerns, driven from the web app).
+
+```bash
+# 1. Set the version — `version` in .skmtc/<project>/deno.json,
+#    or pass --version. The CLI never invents or auto-bumps one.
+# 2. Publish (PAT from account settings, or $SKMTC_HUB_TOKEN):
+skmtc publish <project> --token $SKMTC_HUB_TOKEN --json
+```
+
+Key facts:
+
+- **The stack identity is `<authenticated handle>/<project>`** — the
+  PAT picks the account, the project name is the slug. No `--stack`
+  flag; org-owned stacks aren't reachable from the CLI today.
+- **The hub auto-creates the stack on first publish** ("git push
+  creates the repo").
+- **Versions are immutable.** Re-publishing an existing semver →
+  `409`, surfaced as `stage: "publish"` with an "already published"
+  reason. Bump the version and re-run.
+- **Missing version fails fast** (`stage: "version"`, exit 1, before
+  any network call) with the recipe: set `deno.json#version` or pass
+  `--version`.
+- The upload is atomic: `version` + compiled `server.js` bundle + the
+  source tree (filtered by built-in defaults + `.skmtcignore`) in one
+  multipart request. The root `deno.json` must be in the upload — the
+  hub reconciles the version's generator composition from it.
+- Read `version` / `versionUrl` from the JSON output. There is no
+  `deploymentId` or `shortId` anymore.
+
+Full reference: [`reference/cli/publish.md`](../../reference/cli/publish.md).
+
 ### Card: When to hand off to other skills
 
 - "I want to edit this generator" → `skmtc-generator`
@@ -734,6 +813,7 @@ work:
 | Manually edit `bundle.js` or `worker.ts` | They're derived; run `skmtc bundle` to regenerate |
 | Mock the database in tests | Use real Supabase / real DB (project convention) |
 | Use `process.env.X` | Use `Deno.env.get('X')` — Deno codebase |
+| Use `skmtc deploy` to put a stack on the hub | `deploy` is a deprecated alias — use `skmtc publish`. Stacks are published as immutable semver versions (`POST /v1/stacks/{account}/{stack}/versions`); there is no deploymentId/shortId/production alias in the CLI. Deployments and the `production` alias belong to hub *projects*, driven from the web app. |
 | After bumping to `@skmtc/core@0.5.0+`, treat the existing operation-level enrichment as still-valid | Wrap each `[id][path][method]` block in `{ "main": { … } }`. The variant level is now mandatory whenever an operation-level block exists — the engine throws at start with `"must include a 'main' variant"` if it's missing. See `concepts/variants.md`. |
 | Switch a generator between `install` and `clone` by editing only deno.json (or only the on-disk folder) | They're mutually exclusive states. A `jsr:` import in deno.json AND a `gen-X/` folder for the same name in the project root is a silent-failure footgun — deno's workspace resolver picks the local folder over the JSR pin, so the engine runs the vendored source even though the user thinks they're running the pinned version. See the *Imported vs cloned exclusivity* section below. |
 
