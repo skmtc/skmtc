@@ -1,3 +1,4 @@
+import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists, assert, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { GqlOperationDriver } from './GqlOperationDriver.ts'
@@ -10,7 +11,7 @@ import type {
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { GqlOperation, type GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import { OasString } from '@/oas/string/String.ts'
@@ -28,7 +29,7 @@ const toKey = (
   `${generatorId}|${operation.rootKind}|${operation.fieldName}|${variant}` as unknown as GeneratorKey
 
 const createMockContext = (options?: {
-  findDefinition?: Definition<any> | undefined
+  findDefinition?: DefinitionBase<any> | undefined
   existingImports?: Record<string, string[]>
 }) => {
   const toOperationContentSettingsSpy = spy((args: any) => {
@@ -82,6 +83,7 @@ const createMockProjection = (options?: {
   isSupported?: () => boolean
 }): GqlOperationProjection<any, undefined> => {
   class MockProjection extends GqlOperationProjectionBase<undefined> {
+    static lang = typescript
     static id = options?.id ?? 'MockProjection'
     static type = 'gqlOperation' as const
     static isSupported = options?.isSupported
@@ -111,6 +113,7 @@ const createMockProjection = (options?: {
 
       super({
         context: args.context,
+        lang: typescript,
         settings: args.settings,
         operation: args.operation,
         generatorKey
@@ -221,7 +224,7 @@ Deno.test('GqlOperationDriver', async t => {
       })
 
       assertExists(driver.definition)
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
     })
 
     await t.step('should handle different root kinds', () => {
@@ -300,7 +303,11 @@ Deno.test('GqlOperationDriver', async t => {
       const importCall = registerSpy.calls.find(call => call.args[0].imports !== undefined)
 
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports?.['./operations/getUsers.ts'], ['getUsers'])
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './operations/getUsers.ts')
+      assertEquals(
+        importCall.args[0].imports[0].toString(),
+        `import {getUsers} from './operations/getUsers.ts'`
+      )
       assertEquals(importCall.args[0].destinationPath, './api/users.ts')
     })
 
@@ -388,12 +395,15 @@ Deno.test('GqlOperationDriver', async t => {
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
       assertExists(importCall)
 
-      assertEquals(importCall.args[0], {
-        imports: {
-          './ops/create.ts': ['createUser']
-        },
-        destinationPath: './api/handlers.ts'
-      })
+      // `imports` is a standardised `ImportBase[]` built by `lang.toImport`;
+      // the engine no longer sees the concise record form.
+      assertEquals(importCall.args[0].imports.length, 1)
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './ops/create.ts')
+      assertEquals(
+        importCall.args[0].imports[0].toString(),
+        `import {createUser} from './ops/create.ts'`
+      )
+      assertEquals(importCall.args[0].destinationPath, './api/handlers.ts')
     })
 
     await t.step('should normalize paths with redundant separators', () => {
@@ -480,7 +490,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       assertSpyCalls(findDefinitionSpy, 1)
       assertExists(driver.definition)
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
     })
 
     await t.step('should instantiate projection with correct parameters', () => {
@@ -488,6 +498,7 @@ Deno.test('GqlOperationDriver', async t => {
       let capturedArgs: any = null
 
       class SpyProjection extends GqlOperationProjectionBase<undefined> {
+        static lang = typescript
         static id = 'SpyProjection'
         static type = 'gqlOperation' as const
         static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
@@ -504,6 +515,7 @@ Deno.test('GqlOperationDriver', async t => {
           const generatorKey = toKey('SpyProjection', args.operation)
           super({
             context: args.context,
+            lang: typescript,
             settings: args.settings,
             operation: args.operation,
             generatorKey
@@ -543,7 +555,7 @@ Deno.test('GqlOperationDriver', async t => {
         variant: 'main'
       })
 
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
       assertExists(driver.definition.value)
     })
 
@@ -593,7 +605,7 @@ Deno.test('GqlOperationDriver', async t => {
       })
 
       assertExists(driver.definition)
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
     })
 
     await t.step('should use cached definition when available', () => {
@@ -638,6 +650,7 @@ Deno.test('GqlOperationDriver', async t => {
       let instantiated = false
 
       class TrackingProjection extends GqlOperationProjectionBase<undefined> {
+        static lang = typescript
         static id = 'TrackingProjection'
         static type = 'gqlOperation' as const
         static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
@@ -654,6 +667,7 @@ Deno.test('GqlOperationDriver', async t => {
           const generatorKey = toKey('TrackingProjection', args.operation)
           super({
             context: args.context,
+            lang: typescript,
             settings: args.settings,
             operation: args.operation,
             generatorKey
@@ -745,7 +759,7 @@ Deno.test('GqlOperationDriver', async t => {
       })
 
       assertExists(driver.definition)
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
     })
 
     await t.step('should return true for valid cached definition', () => {
@@ -1138,7 +1152,11 @@ Deno.test('GqlOperationDriver', async t => {
 
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports?.['./operations/getUsers.ts'], ['getUsers'])
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './operations/getUsers.ts')
+      assertEquals(
+        importCall.args[0].imports[0].toString(),
+        `import {getUsers} from './operations/getUsers.ts'`
+      )
       assertEquals(importCall.args[0].destinationPath, './api/index.ts')
     })
 

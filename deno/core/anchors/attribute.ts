@@ -18,7 +18,7 @@ import {
   toGeneratorId,
   type GeneratorKeyObject
 } from '@/dsl/GeneratorKeys.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { DefinitionBase } from '@/dsl/Definition.ts'
 import type { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { Attribution } from './types.ts'
 
@@ -46,7 +46,7 @@ export const attribute = (producer: SnippetBase): Attribution => {
       ? schemaPointerFromKey(parsed)
       : producer.schemaPointer.toSchemaPointer(),
     variant: parsed && 'variant' in parsed ? parsed.variant : 'main',
-    definitionName: producer instanceof Definition ? producer.identifier.name : undefined,
+    definitionName: producer instanceof DefinitionBase ? producer.identifier.name : undefined,
     // The producer's class name — `var X = class extends …` still yields
     // `X.name === 'X'` via named evaluation, so this survives `deno bundle`
     // (as long as the bundle isn't minified / collision-renamed).

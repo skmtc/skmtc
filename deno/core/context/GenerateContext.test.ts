@@ -9,7 +9,7 @@ import * as log from '@std/log'
 import { Definition } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import { File } from '@/dsl/File.ts'
+import { typescript } from '@skmtc/lang-typescript'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
@@ -156,7 +156,7 @@ Deno.test('GenerateContext - File Management', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -167,31 +167,19 @@ Deno.test('GenerateContext - File Management', async t => {
   await t.step('register should handle imports', () => {
     const { context } = createTestContext()
 
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './types.ts',
-      imports: {
+      imports: typescript.toImports({
         './base': ['BaseType', 'BaseInterface']
-      }
+      })
     })
 
     assertEquals(true, true)
   })
 
-  await t.step('register should handle re-exports', () => {
-    const { context } = createTestContext()
-
-    const typeId1 = Identifier.createType('User')
-    const typeId2 = Identifier.createType('Product')
-
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
-      destinationPath: './index.ts',
-      reExports: {
-        './types.ts': [typeId1, typeId2]
-      }
-    })
-
-    assertEquals(true, true)
-  })
+  // Re-exports are no longer part of the neutral `context.register` contract:
+  // the concise re-export form awaits a `ReExportBase` seam on the language
+  // (see langRegister.ts). Re-add coverage once that lands.
 })
 
 Deno.test('GenerateContext - Definition Lookup', async t => {
@@ -199,7 +187,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
     const { context } = createTestContext()
 
     // Register a file first
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: []
     })
@@ -224,7 +212,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -249,13 +237,13 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './file1.ts',
       definitions: [definition]
     })
 
     // Create another file
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './file2.ts',
       definitions: []
     })
@@ -342,12 +330,12 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: [definition1, definition2],
-      imports: {
+      imports: typescript.toImports({
         './base': ['BaseEntity']
-      }
+      })
     })
 
     // 2. Look up the definitions
@@ -384,7 +372,7 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './constants.ts',
       definitions: [definition]
     })
@@ -415,12 +403,12 @@ Deno.test('GenerateContext - Integration', async t => {
     })
 
     // Same name 'Config' but in different files
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './types.ts',
       definitions: [typeDefinition]
     })
 
-    context.register({ createFile: (path: string) => new File({ path, settings: undefined }), 
+    context.register({ createFile: (path: string) => typescript.createFile({ path, settings: undefined }), 
       destinationPath: './constants.ts',
       definitions: [constantDefinition]
     })

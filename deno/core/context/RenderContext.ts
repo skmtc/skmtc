@@ -7,7 +7,7 @@ import type { ResultType } from '@/types/Results.ts'
 import { toResolvedArtifactPath } from '@/helpers/toResolvedArtifactPath.ts'
 import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
-import { File } from '@/dsl/File.ts'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import type { Preview, Mapping } from '@/types/Preview.ts'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
@@ -287,7 +287,7 @@ export class RenderContext {
           // installed wrapper is inert while the sink is not in a
           // `captureFile` call.
           let content: string
-          if (this.#sink && file instanceof File) {
+          if (this.#sink && file instanceof CodeFileBase) {
             const captured = this.#sink.captureFile(() => file.toString())
             content = captured.text
             this.#captures.push({
@@ -395,7 +395,7 @@ export class RenderContext {
   pick({ name, exportPath }: PickArgs): DefinitionBase | undefined {
     const file = this.getFile(exportPath)
 
-    invariant(file instanceof File, `File at "${exportPath}" is not a "File" type`)
+    invariant(file instanceof CodeFileBase, `File at "${exportPath}" is not a code file`)
 
     return file.definitions.get(name)
   }

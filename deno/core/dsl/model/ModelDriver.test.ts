@@ -5,12 +5,23 @@ import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
-import type { ToDefinitionArgs } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 import type { GeneratorKey } from '../GeneratorKeys.ts'
+import type { Lang, LangToDefinitionArgs } from '@/dsl/Lang.ts'
+import { typescript } from '@skmtc/lang-typescript'
+
+// The Driver reads the projection's STATIC `lang` and calls
+// `lang.toDefinition`. These test langs reuse the real `typescript` lang for
+// `createFile` / `toImport` / `toImports` and override `toDefinition` so the
+// assertions below can pin which Definition subclass flows through.
+const coreDefLang: Lang = {
+  ...typescript,
+  toDefinition: ({ context, identifier, value, noExport }) =>
+    new Definition({ context, identifier, value, noExport })
+}
 
 class MockGeneratedValue implements GeneratedValue {
   generatedType = 'value' as const
@@ -20,6 +31,7 @@ class MockGeneratedValue implements GeneratedValue {
 
 class MockProjection extends MockGeneratedValue {
   static id = 'MockProjection'
+  static lang: Lang = coreDefLang
   refName: RefName
   context: GenerateContextType
   settings: ContentSettings<any>
@@ -41,27 +53,27 @@ class MockProjection extends MockGeneratedValue {
     this.rootRef = args.rootRef
     this.generatorKey = toModelGeneratorKey({ generatorId: MockProjection.id, refName: args.refName, variant: 'main' })
   }
-
-  // Mirrors the projection-base default: the Driver now delegates
-  // Definition construction to the projection via `toDefinition`.
-  toDefinition({ identifier, noExport }: ToDefinitionArgs): DefinitionBase {
-    return new Definition({ context: this.context, value: this, identifier, noExport })
-  }
 }
 
 // A language-style Definition subclass with its own rendering — stands in
 // for a `lang-*` package's `*Definition`. Proves a non-core Definition
 // flows through the Driver path unchanged (architecture Site 1).
-class CustomDefinition extends DefinitionBase {
+class CustomDefinition<V extends GeneratedValue = GeneratedValue> extends DefinitionBase<V> {
   override toString(): string {
     return `custom ${this.identifier.name} = ${this.value}`
   }
 }
 
+// A lang whose `toDefinition` returns the custom subclass — the Driver reads
+// it off the projection's static `lang`, so the custom Definition flows through.
+const customDefLang: Lang = {
+  ...typescript,
+  toDefinition: <V extends GeneratedValue>({ context, identifier, value }: LangToDefinitionArgs<V>) =>
+    new CustomDefinition<V>({ context, identifier, value })
+}
+
 class MockProjectionWithCustomDef extends MockProjection {
-  override toDefinition({ identifier }: ToDefinitionArgs): DefinitionBase {
-    return new CustomDefinition({ context: this.context, identifier, value: this })
-  }
+  static override lang: Lang = customDefLang
 }
 
 const createMockContext = (): GenerateContextType => {
@@ -294,13 +306,18 @@ Deno.test('ModelDriver', async (t) => {
       const importCall = registerCalls.find((call: any) => call.args[0].imports)
 
       assertEquals(importCall !== undefined, true)
+      // `imports` is now a standardised `ImportBase[]` (the Driver built it via
+      // `lang.toImport`); the engine no longer sees the concise record form.
+      const registeredImports = importCall.args[0].imports
+      assertEquals(registeredImports.length, 1)
+      assertEquals(registeredImports[0].mergeKey(), '/path/to/export.ts')
       // The mock projection's `toModelContentSettings` returns a
       // `createType` identifier (see `createMockContext`), so the
       // import must carry the type-only marker — consumers compiling
       // with `verbatimModuleSyntax: true` would hit TS1484 otherwise.
       assertEquals(
-        importCall.args[0].imports['/path/to/export.ts'],
-        [{ name: refName, type: 'type' }]
+        registeredImports[0].toString(),
+        `import type {${refName}} from '/path/to/export.ts'`
       )
       assertEquals(importCall.args[0].destinationPath, destinationPath)
     })

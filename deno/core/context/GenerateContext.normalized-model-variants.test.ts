@@ -23,6 +23,7 @@
  * variant suffix.
  */
 
+import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -46,6 +47,7 @@ const mockLogger: log.Logger = {
 
 // Variants-aware form Projection: identifier varies per variant.
 const FormBase = toOasOperationProjectionBase({
+  lang: typescript,
   id: '@test/form',
   toIdentifier: ({ variant }) =>
     Identifier.createVariable(withVariant('EditQuotesForm', variant)),

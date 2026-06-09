@@ -14,6 +14,7 @@
  * escape Driver-level unit tests but get caught here.
  */
 
+import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -36,6 +37,7 @@ const mockLogger: log.Logger = {
 } as unknown as log.Logger
 
 const FormBase = toOasOperationProjectionBase({
+  lang: typescript,
   id: '@test/e2e-form',
   toIdentifier: ({ variant }) =>
     Identifier.createVariable(withVariant('PatchQuoteForm', variant)),

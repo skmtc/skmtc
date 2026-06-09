@@ -17,6 +17,7 @@
  * formatter subprocess can run.
  */
 
+import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -44,6 +45,7 @@ const mockLogger: log.Logger = {
 // ─── Fixture: peer generator (variants-unaware) ────────────────────
 
 const HookBase = toOasOperationProjectionBase({
+  lang: typescript,
   id: '@test/hook-gen',
   toIdentifier: () => Identifier.createVariable('usePatchQuote'),
   toExportPath: () => '@/hooks/usePatchQuote.generated.ts'
@@ -60,6 +62,7 @@ class HookProjection extends HookBase {
 // ─── Fixture: form generator (variants-aware) ──────────────────────
 
 const FormBase = toOasOperationProjectionBase({
+  lang: typescript,
   id: '@test/form-gen',
   toIdentifier: ({ variant }) =>
     Identifier.createVariable(withVariant('PatchQuoteForm', variant)),

@@ -1,3 +1,4 @@
+import { typescript } from '@skmtc/lang-typescript'
 import { ModelProjectionBase } from './ModelProjectionBase.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertSpyCalls, spy } from '@std/testing/mock'
@@ -9,6 +10,7 @@ import { Identifier } from '@/dsl/Identifier.ts'
 
 Deno.test('ModelProjectionBase - constructor stores refName correctly', () => {
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('User'),
@@ -28,6 +30,7 @@ Deno.test('ModelProjectionBase - constructor stores settings correctly', () => {
   })
 
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'test-generator|Product' as GeneratorKey,
@@ -39,6 +42,7 @@ Deno.test('ModelProjectionBase - constructor stores settings correctly', () => {
 
 Deno.test('ModelProjectionBase - constructor stores generatorKey correctly', () => {
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Order'),
@@ -55,6 +59,7 @@ Deno.test('ModelProjectionBase - has context property from SnippetBase', () => {
   const mockContext = { name: 'test-context' } as unknown as GenerateContextType
 
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('User'),
@@ -69,6 +74,7 @@ Deno.test('ModelProjectionBase - has context property from SnippetBase', () => {
 
 Deno.test('ModelProjectionBase - settings.exportPath is accessible', () => {
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Type'),
@@ -91,6 +97,7 @@ Deno.test('ModelProjectionBase - settings.enrichments is accessible when provide
   })
 
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'validation-models|Validated' as GeneratorKey,
@@ -110,6 +117,7 @@ Deno.test('ModelProjectionBase - stores all constructor properties correctly', (
   const refName = 'TestModel' as RefName
 
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings,
     generatorKey,
@@ -124,6 +132,7 @@ Deno.test('ModelProjectionBase - stores all constructor properties correctly', (
 
 Deno.test('ModelProjectionBase - works with different refNames', () => {
   const createModel = (refName: RefName) => new ModelProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType(refName),
@@ -145,6 +154,7 @@ Deno.test('ModelProjectionBase - works with different refNames', () => {
 
 Deno.test('ModelProjectionBase - works with different generatorKeys', () => {
   const createModel = (key: GeneratorKey) => new ModelProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Test'),
@@ -171,6 +181,7 @@ Deno.test('ModelProjectionBase - insertModel calls context.insertModel with corr
   const insertModelSpy = spy(mockContext, 'insertModel')
 
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('User'),
@@ -207,6 +218,7 @@ Deno.test('ModelProjectionBase - insertModel without noExport option', () => {
   const insertModelSpy = spy(mockContext, 'insertModel')
 
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Product'),
@@ -241,6 +253,7 @@ Deno.test('ModelProjectionBase - insertNormalizedModel calls context.insertNorma
   const insertNormalizedModelSpy = spy(mockContext, 'insertNormalizedModel')
 
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Order'),
@@ -282,6 +295,7 @@ Deno.test('ModelProjectionBase - register calls context.register with correct pa
   const registerSpy = spy(mockContext, 'register')
 
   const model = new ModelProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createType('Base'),
@@ -291,17 +305,19 @@ Deno.test('ModelProjectionBase - register calls context.register with correct pa
     refName: 'Base' as RefName
   })
 
-  const imports = { './utils': ['helper'] }
-  const reExports = { './types': [Identifier.createType('BaseType')] }
-
-  model.register({ imports, reExports })
+  model.register({ imports: { './utils': ['helper'] } })
 
   assertSpyCalls(registerSpy, 1)
-  assertEquals(registerSpy.calls[0].args[0] as any, {
-    imports,
-    reExports,
-    destinationPath: exportPath
-  })
+  // The projection base routes the concise form through `langRegister`, which
+  // converts imports to standardised `ImportBase[]` via `lang.toImports` and
+  // injects the language's `createFile`. (Re-exports await a `ReExportBase`
+  // seam and are not threaded through this path yet.)
+  const registered = registerSpy.calls[0].args[0] as any
+  assertEquals(registered.destinationPath, exportPath)
+  assertEquals(registered.imports.length, 1)
+  assertEquals(registered.imports[0].mergeKey(), './utils')
+  assertEquals(registered.imports[0].toString(), `import {helper} from './utils'`)
+  assertEquals(typeof registered.createFile, 'function')
 
   registerSpy.restore()
 })

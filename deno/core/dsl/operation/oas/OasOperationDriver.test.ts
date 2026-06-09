@@ -1,3 +1,4 @@
+import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists, assert, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { OasOperationDriver } from './OasOperationDriver.ts'
@@ -10,7 +11,7 @@ import type {
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Method } from '@/types/Method.ts'
@@ -22,7 +23,7 @@ import { OasOperationProjectionBase } from './OasOperationProjectionBase.ts'
 
 // Helper to create a mock GenerateContext
 const createMockContext = (options?: {
-  findDefinition?: Definition<any> | undefined
+  findDefinition?: DefinitionBase<any> | undefined
   existingImports?: Record<string, string[]>
 }) => {
   const toOperationContentSettingsSpy = spy((args: any) => {
@@ -80,6 +81,7 @@ const createMockProjection = (options?: {
   isSupported?: () => boolean
 }): OasOperationProjection<any, undefined> => {
   class MockProjection extends OasOperationProjectionBase<undefined> {
+    static lang = typescript
     static id = options?.id ?? 'MockProjection'
     static type = 'oasOperation' as const
     static isSupported = options?.isSupported
@@ -115,6 +117,7 @@ const createMockProjection = (options?: {
       // Call parent constructor with all required arguments
       super({
         context: args.context,
+        lang: typescript,
         settings: args.settings,
         operation: args.operation,
         generatorKey
@@ -226,7 +229,7 @@ Deno.test('OasOperationDriver', async t => {
       })
 
       assertExists(driver.definition)
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
     })
 
     await t.step('should handle different HTTP methods', () => {
@@ -307,7 +310,11 @@ Deno.test('OasOperationDriver', async t => {
       const importCall = registerSpy.calls.find(call => call.args[0].imports !== undefined)
 
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports?.['./operations/getUsers.ts'], ['getUsers'])
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './operations/getUsers.ts')
+      assertEquals(
+        importCall.args[0].imports[0].toString(),
+        `import {getUsers} from './operations/getUsers.ts'`
+      )
       assertEquals(importCall.args[0].destinationPath, './api/users.ts')
     })
 
@@ -400,12 +407,15 @@ Deno.test('OasOperationDriver', async t => {
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
       assertExists(importCall)
 
-      assertEquals(importCall.args[0], {
-        imports: {
-          './ops/create.ts': ['createUser']
-        },
-        destinationPath: './api/handlers.ts'
-      })
+      // `imports` is a standardised `ImportBase[]` built by `lang.toImport`;
+      // the engine no longer sees the concise record form.
+      assertEquals(importCall.args[0].imports.length, 1)
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './ops/create.ts')
+      assertEquals(
+        importCall.args[0].imports[0].toString(),
+        `import {createUser} from './ops/create.ts'`
+      )
+      assertEquals(importCall.args[0].destinationPath, './api/handlers.ts')
     })
 
     await t.step('should normalize paths with redundant separators', () => {
@@ -494,7 +504,7 @@ Deno.test('OasOperationDriver', async t => {
 
       assertSpyCalls(findDefinitionSpy, 1)
       assertExists(driver.definition)
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
     })
 
     await t.step('should instantiate projection with correct parameters', () => {
@@ -502,6 +512,7 @@ Deno.test('OasOperationDriver', async t => {
       let capturedArgs: any = null
 
       class SpyProjection extends OasOperationProjectionBase<undefined> {
+        static lang = typescript
         static id = 'SpyProjection'
         static type = 'oasOperation' as const
         static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
@@ -522,6 +533,7 @@ Deno.test('OasOperationDriver', async t => {
           })
           super({
             context: args.context,
+            lang: typescript,
             settings: args.settings,
             operation: args.operation,
             generatorKey
@@ -561,7 +573,7 @@ Deno.test('OasOperationDriver', async t => {
         variant: 'main'
       })
 
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
       assertExists(driver.definition.value)
     })
 
@@ -614,7 +626,7 @@ Deno.test('OasOperationDriver', async t => {
       })
 
       assertExists(driver.definition)
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
     })
 
     await t.step('should use cached definition when available', () => {
@@ -660,6 +672,7 @@ Deno.test('OasOperationDriver', async t => {
       let instantiated = false
 
       class TrackingProjection extends OasOperationProjectionBase<undefined> {
+        static lang = typescript
         static id = 'TrackingProjection'
         static type = 'oasOperation' as const
         static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
@@ -680,6 +693,7 @@ Deno.test('OasOperationDriver', async t => {
           })
           super({
             context: args.context,
+            lang: typescript,
             settings: args.settings,
             operation: args.operation,
             generatorKey
@@ -780,7 +794,7 @@ Deno.test('OasOperationDriver', async t => {
       })
 
       assertExists(driver.definition)
-      assert(driver.definition instanceof Definition)
+      assert(driver.definition instanceof DefinitionBase)
     })
 
     await t.step('should return true for valid cached definition', () => {
@@ -1214,7 +1228,11 @@ Deno.test('OasOperationDriver', async t => {
       // Should have import registration
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports?.['./operations/getUsers.ts'], ['getUsers'])
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './operations/getUsers.ts')
+      assertEquals(
+        importCall.args[0].imports[0].toString(),
+        `import {getUsers} from './operations/getUsers.ts'`
+      )
       assertEquals(importCall.args[0].destinationPath, './api/index.ts')
     })
 

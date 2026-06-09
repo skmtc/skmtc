@@ -30,7 +30,7 @@
  */
 
 import { SnippetBase, seenSnippetConstructors } from '@/dsl/SnippetBase.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { DefinitionBase } from '@/dsl/Definition.ts'
 import type { Span } from './types.ts'
 
 /**
@@ -145,7 +145,9 @@ const spansFromRoots = (fileText: string, roots: Occurrence[]): Span[] => {
   for (const root of roots) {
     // File-level roots are Definitions; non-Definition file-scope renders
     // (none today) carry no addressable region in the resolver's model.
-    if (!(root.producer instanceof Definition)) continue
+    // Any language's Definition is a `DefinitionBase` — the engine is
+    // language-blind, so this must not name a concrete (`Definition`) class.
+    if (!(root.producer instanceof DefinitionBase)) continue
 
     const defText = root.output
     if (defText.length === 0) continue

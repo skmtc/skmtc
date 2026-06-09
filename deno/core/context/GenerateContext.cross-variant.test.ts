@@ -26,6 +26,7 @@
  * Definition and the consumer ships a doubled symbol.
  */
 
+import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -55,6 +56,7 @@ const METHOD = 'patch' as const
 // Its `toIdentifier` does NOT consult `variant`, so two variants of
 // the form caller hit the same (name, exportPath) cache key.
 const PeerBase = toOasOperationProjectionBase({
+  lang: typescript,
   id: '@test/peer-gen',
   toIdentifier: () => Identifier.createVariable('usePatchQuote'),
   toExportPath: () => '@/services/usePatchQuote.ts'
@@ -70,6 +72,7 @@ class PeerProjection extends PeerBase {
 // two variants produce distinct (name, exportPath) pairs and each
 // gets its own file.
 const FormBase = toOasOperationProjectionBase({
+  lang: typescript,
   id: '@test/form-gen',
   toIdentifier: ({ variant }) =>
     Identifier.createVariable(withVariant('EditQuotesForm', variant)),

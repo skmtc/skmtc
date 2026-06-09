@@ -1,3 +1,4 @@
+import { typescript } from '@skmtc/lang-typescript'
 import { OasOperationProjectionBase } from './OasOperationProjectionBase.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertSpyCalls, spy } from '@std/testing/mock'
@@ -17,6 +18,7 @@ Deno.test('OasOperationProjectionBase - constructor stores operation correctly',
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getUsers'),
@@ -44,6 +46,7 @@ Deno.test('OasOperationProjectionBase - constructor stores settings correctly', 
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'test-generator|post|/products' as GeneratorKey,
@@ -63,6 +66,7 @@ Deno.test('OasOperationProjectionBase - constructor stores generatorKey correctl
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getOrders'),
@@ -86,6 +90,7 @@ Deno.test('OasOperationProjectionBase - has context property from SnippetBase', 
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getUsers'),
@@ -108,6 +113,7 @@ Deno.test('OasOperationProjectionBase - settings.exportPath is accessible', () =
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('getTypes'),
@@ -138,6 +144,7 @@ Deno.test('OasOperationProjectionBase - settings.enrichments is accessible when 
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: {} as GenerateContextType,
     settings,
     generatorKey: 'validation-operations|post|/validate' as GeneratorKey,
@@ -163,6 +170,7 @@ Deno.test('OasOperationProjectionBase - stores all constructor properties correc
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings,
     generatorKey,
@@ -186,6 +194,7 @@ Deno.test('OasOperationProjectionBase - works with different HTTP methods', () =
     })
 
     return new OasOperationProjectionBase({
+      lang: typescript,
       context: {} as GenerateContextType,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable(operationId),
@@ -229,6 +238,7 @@ Deno.test(
     })
 
     const operation = new OasOperationProjectionBase({
+      lang: typescript,
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('getUsers'),
@@ -282,6 +292,7 @@ Deno.test('OasOperationProjectionBase - insertOperation without noExport option'
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('testOp'),
@@ -332,6 +343,7 @@ Deno.test('OasOperationProjectionBase - insertModel calls context.insertModel wi
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('createUser'),
@@ -380,6 +392,7 @@ Deno.test(
     })
 
     const operation = new OasOperationProjectionBase({
+      lang: typescript,
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('getData'),
@@ -432,6 +445,7 @@ Deno.test(
     })
 
     const operation = new OasOperationProjectionBase({
+      lang: typescript,
       context: mockContext,
       settings: ContentSettings.empty({
         identifier: Identifier.createVariable('validate'),
@@ -451,11 +465,13 @@ Deno.test(
     })
 
     assertSpyCalls(defineAndRegisterSpy, 1)
+    // The projection base threads its own `lang` through to the context.
     assertEquals(defineAndRegisterSpy.calls[0].args[0] as any, {
       identifier,
       value,
       destinationPath: exportPath,
-      noExport: true
+      noExport: true,
+      lang: typescript
     })
 
     defineAndRegisterSpy.restore()
@@ -480,6 +496,7 @@ Deno.test('OasOperationProjectionBase - register calls context.register with cor
   })
 
   const operation = new OasOperationProjectionBase({
+    lang: typescript,
     context: mockContext,
     settings: ContentSettings.empty({
       identifier: Identifier.createVariable('apiCall'),
@@ -489,17 +506,19 @@ Deno.test('OasOperationProjectionBase - register calls context.register with cor
     operation: mockOperation
   })
 
-  const imports = { './helper': ['helper'] }
-  const reExports = { './utils': [Identifier.createVariable('util')] }
-
-  operation.register({ imports, reExports })
+  operation.register({ imports: { './helper': ['helper'] } })
 
   assertSpyCalls(registerSpy, 1)
-  assertEquals(registerSpy.calls[0].args[0] as any, {
-    imports,
-    reExports,
-    destinationPath: exportPath
-  })
+  // The projection base routes the concise form through `langRegister`, which
+  // converts imports to standardised `ImportBase[]` via `lang.toImports` and
+  // injects the language's `createFile`. (Re-exports await a `ReExportBase`
+  // seam and are not threaded through this path yet.)
+  const registered = registerSpy.calls[0].args[0] as any
+  assertEquals(registered.destinationPath, exportPath)
+  assertEquals(registered.imports.length, 1)
+  assertEquals(registered.imports[0].mergeKey(), './helper')
+  assertEquals(registered.imports[0].toString(), `import {helper} from './helper'`)
+  assertEquals(typeof registered.createFile, 'function')
 
   registerSpy.restore()
 })
