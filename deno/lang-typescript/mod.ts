@@ -1,23 +1,20 @@
 /**
  * @module @skmtc/lang-typescript
  *
- * SKMTC language package for **typescript** (Anchor).
+ * SKMTC language package for **TypeScript** (the anchor language).
  *
- * Tests / exercises: the baseline SKMTC emits today
+ * Owns the TypeScript-specific DSL: concrete subclasses of `@skmtc/core`'s
+ * neutral bases (`TsFile` → `CodeFileBase`, `TsImport` → `ImportBase`,
+ * `TsDefinition` → `DefinitionBase`), each rendering itself in its own
+ * `toString()`. The DSL classes are byte-identical to the engine's legacy
+ * `File`/`Import`/`Definition` (pinned by `src/*.test.ts`), so moving
+ * rendering out of core is lossless.
  *
- * Planned contents (see ../../notes/lang/03-architecture.md):
- *   - concrete `File` / `Import` / `Identifier` / `Definition`
- *     subclasses of the abstract bases in `@skmtc/core` — each renders
- *     itself in its own `toString()`
- *   - the `register` family (`register`, `defineAndRegister`)
- *   - this language's `EntityKind` vocabulary
- *   - `sanitizePropertyName` + identifier/casing/visibility rules
- *   - syntax helpers
- *
- * Status: **scaffold only** — no implementation yet. This package is NOT
- * yet a member of the root `deno.json#workspace` array, so it is held
- * out of the `deno task release` cascade until development begins
- * (Phase A in ../../notes/lang/07-migration-and-open-questions.md).
+ * Still to land (see ../../notes/lang/09-migration-checklist.md):
+ *   - `tsLang: Lang` + `TypescriptSnippet` + `toTypescript*ProjectionBase`
+ *   - the `register` family (concise → `ImportBase[]` conversion)
+ *   - `/oas` and `/gql` subpath entrypoints
+ *   - `EntityKind`, `sanitizePropertyName`, the moved `core/typescript/*`.
  */
 
 /** The language id this package targets. */
@@ -26,7 +23,7 @@ export const langId = 'typescript' as const
 /** File extensions this language package renders. */
 export const fileExtensions = ['.ts', '.tsx'] as const
 
-export { TsFile } from './src/TsFile.ts'
-export { TsDefinition } from './src/TsDefinition.ts'
-export { TsImport, type TsImportSpec } from './src/TsImport.ts'
+export { TsFile, type TsFileArgs } from './src/TsFile.ts'
+export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'
+export { TsImport, type TsImportSpecifier } from './src/TsImport.ts'
 export { TsObject, type TsPropertyArgs } from './src/TsObject.ts'

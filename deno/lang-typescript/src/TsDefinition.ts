@@ -1,16 +1,42 @@
-import { DefinitionBase } from '@skmtc/core'
+import { DefinitionBase, withDescription } from '@skmtc/core'
+import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
 
 /**
- * TypeScript rendering of a {@link DefinitionBase}.
- *
- * Spike-level proof that a `@skmtc/lang-*` package can subclass core's
- * abstract `DefinitionBase` (resolved via Deno workspace resolution) and
- * own the rendering. Full fidelity — JSDoc, `noExport`/visibility, type
- * annotations, the trailing `;` — lands as the anchor matures toward the
- * byte-identical gate (notes/lang Track 1).
+ * Constructor arguments for {@link TsDefinition}.
  */
-export class TsDefinition extends DefinitionBase {
+export type TsDefinitionArgs<Value extends GeneratedValue> = {
+  context: GenerateContextType
+  identifier: Identifier
+  value: Value
+  description?: string
+  noExport?: boolean
+}
+
+/**
+ * TypeScript's concrete {@link DefinitionBase}: assembles the `export <kw>
+ * Name[: Type] = value;` declaration (with an optional leading JSDoc from
+ * `description`). Owns the rendering that previously lived on the engine's
+ * `Definition`, byte-for-byte.
+ */
+export class TsDefinition<Value extends GeneratedValue = GeneratedValue> extends DefinitionBase<Value> {
+  description: string | undefined
+  noExport: boolean | undefined
+
+  constructor({ context, identifier, value, description, noExport }: TsDefinitionArgs<Value>) {
+    super({ context, identifier, value })
+
+    this.description = description
+    this.noExport = noExport
+  }
+
   override toString(): string {
-    return `export ${this.identifier.entityType} ${this.identifier.name} = ${this.value}`
+    const identifier = this.identifier.typeName
+      ? `${this.identifier.name}: ${this.identifier.typeName}`
+      : this.identifier.name
+
+    return withDescription(
+      `${this.noExport ? '' : 'export '}${this.identifier.entityType} ${identifier} = ${this.value};\n`,
+      { description: this.description }
+    )
   }
 }
