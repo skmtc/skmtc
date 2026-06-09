@@ -44,7 +44,7 @@ The CLI is installed via Deno's `install` mechanism, then invoked as
 
 | Command | Purpose | Reference |
 |---------|---------|-----------|
-| `publish` | Publish a new immutable stack version to skmtc-hub (`deploy` is a deprecated alias) | [publish](publish.md) |
+| `publish` | Publish a new immutable stack version to skmtc-hub | [publish](publish.md) |
 
 ### Diagnostics
 

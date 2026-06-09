@@ -16,8 +16,8 @@ description: |
   Use this skill when the user asks to "run skmtc", "generate code
   from an OpenAPI schema", "install a skmtc generator", "scaffold a
   skmtc project", "watch a skmtc project", "configure enrichments",
-  "publish a stack", "deploy to skmtc-hub" (deploy is the deprecated
-  alias for publish), "skmtc in CI", or invokes any of the CLI
+  "publish a stack", "deploy to skmtc-hub" (the command is `publish`;
+  there is no `deploy`), "skmtc in CI", or invokes any of the CLI
   subcommands. For *authoring*
   a generator package (Projections, Snippets, transform functions),
   defer to `skmtc-generator`. When something is broken (no output,
@@ -155,11 +155,11 @@ follow-up command the agent can run to fetch the candidate set. No
 | `doctor` | Diagnose project setup | No args; always strict |
 | `agent-context` | Write JSON dump of CLI surface + state to stdout | No args; always strict |
 
-`skmtc deploy` is a hidden, deprecated alias for `publish` — same
-flags, prints a one-line deprecation notice, then delegates. Stacks
-are *published* as immutable semver versions (like generator
-packages); deployments, runs, and the `production` alias belong to
-hub *projects* and are driven from the web app, not the CLI.
+There is no `skmtc deploy` — the old deploy command was replaced by
+`publish`, not aliased. Stacks are *published* as immutable semver
+versions (like generator packages); deployments, runs, and the
+`production` alias belong to hub *projects* and are driven from the
+web app, not the CLI.
 
 Full per-command reference (flags, JSON output, exit codes): see
 [`reference/cli/`](../../reference/cli/) — one file per command.
@@ -813,7 +813,7 @@ work:
 | Manually edit `bundle.js` or `worker.ts` | They're derived; run `skmtc bundle` to regenerate |
 | Mock the database in tests | Use real Supabase / real DB (project convention) |
 | Use `process.env.X` | Use `Deno.env.get('X')` — Deno codebase |
-| Use `skmtc deploy` to put a stack on the hub | `deploy` is a deprecated alias — use `skmtc publish`. Stacks are published as immutable semver versions (`POST /v1/stacks/{account}/{stack}/versions`); there is no deploymentId/shortId/production alias in the CLI. Deployments and the `production` alias belong to hub *projects*, driven from the web app. |
+| Use `skmtc deploy` to put a stack on the hub | The command is `skmtc publish` — `deploy` no longer exists. Stacks are published as immutable semver versions (`POST /v1/stacks/{account}/{stack}/versions`); there is no deploymentId/shortId/production alias in the CLI. Deployments and the `production` alias belong to hub *projects*, driven from the web app. |
 | After bumping to `@skmtc/core@0.5.0+`, treat the existing operation-level enrichment as still-valid | Wrap each `[id][path][method]` block in `{ "main": { … } }`. The variant level is now mandatory whenever an operation-level block exists — the engine throws at start with `"must include a 'main' variant"` if it's missing. See `concepts/variants.md`. |
 | Switch a generator between `install` and `clone` by editing only deno.json (or only the on-disk folder) | They're mutually exclusive states. A `jsr:` import in deno.json AND a `gen-X/` folder for the same name in the project root is a silent-failure footgun — deno's workspace resolver picks the local folder over the JSR pin, so the engine runs the vendored source even though the user thinks they're running the pinned version. See the *Imported vs cloned exclusivity* section below. |
 

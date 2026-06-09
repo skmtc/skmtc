@@ -21,9 +21,6 @@ The version comes from the project root `deno.json#version`, or from
 is rejected with a `409`. The CLI never invents or auto-bumps a
 version.
 
-> `skmtc deploy` is a deprecated, hidden alias for `publish` with the
-> same surface. It prints a one-line deprecation notice and delegates.
-
 ## Synopsis
 
 ```
@@ -253,10 +250,10 @@ by a UUID + 8-char `shortId`, with a `production` alias planned on the
 stack. That model moved: stacks are now published packages whose
 versions carry the bundle; *projects* pin a version and own
 deployments, runs, and the `production` alias (driven from the web
-app). The migration in one sentence: `deploy` → `publish`, set a
-`version` in the project's `deno.json` (or pass `--version`), and read
-`version`/`versionUrl` instead of `deploymentId`/`shortId` from the
-JSON output.
+app). The migration in one sentence: `deploy` → `publish` (the old
+command is gone, not aliased), set a `version` in the project's
+`deno.json` (or pass `--version`), and read `version`/`versionUrl`
+instead of `deploymentId`/`shortId` from the JSON output.
 
 ## See also
 

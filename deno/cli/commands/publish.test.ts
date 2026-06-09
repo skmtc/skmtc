@@ -71,13 +71,3 @@ Deno.test('publish command - descriptor registers the --version flag', () => {
   const versionFlag = descriptor.flags.find(({ flag }) => flag.startsWith('--version'))
   assertEquals(versionFlag !== undefined, true)
 })
-
-Deno.test('deploy command - kept as a deprecated alias for publish', () => {
-  const descriptor = getCommandDescriptor('deploy')
-
-  assertStringIncludes(descriptor.description, 'Deprecated alias for `publish`')
-  // The alias keeps the full publish surface so existing scripts work.
-  assertEquals(descriptor.args, ['<project>'])
-  const versionFlag = descriptor.flags.find(({ flag }) => flag.startsWith('--version'))
-  assertEquals(versionFlag !== undefined, true)
-})
