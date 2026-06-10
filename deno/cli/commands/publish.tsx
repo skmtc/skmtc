@@ -11,7 +11,7 @@ import {
   resolveOutputFormat
 } from '@/lib/strict-mode.ts'
 import { publishHeadless, type PublishHeadlessResult } from '@/lib/publish-headless.ts'
-import { resolveHubToken } from '@/lib/hub-token.ts'
+import { resolveHubAuth } from '@/lib/hub-token.ts'
 
 export const description =
   'Build and publish an immutable version of this project to skmtc-hub. Versions are addressed by semver; re-publishing an existing version is rejected.'
@@ -55,8 +55,10 @@ export const renderPublish = async ({
   }
 
   if (mode === 'strict') {
-    const resolvedToken = resolveHubToken({ tokenFlag: token })
-    const resolvedHubUrl = hubUrl ?? Deno.env.get('SKMTC_HUB_URL')
+    const { token: resolvedToken, hubUrl: resolvedHubUrl } = resolveHubAuth({
+      tokenFlag: token,
+      hubUrlFlag: hubUrl
+    })
 
     if (!resolvedToken) {
       return failWithRecipe({

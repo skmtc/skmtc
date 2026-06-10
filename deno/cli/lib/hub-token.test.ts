@@ -3,6 +3,7 @@ import { stub } from '@std/testing/mock'
 import {
   deleteStoredAuth,
   readStoredAuth,
+  resolveHubAuth,
   resolveHubToken,
   toAuthFilePath,
   validateHubToken,
@@ -154,5 +155,38 @@ Deno.test('login flow - failed validation never writes auth.json', async () => {
     } finally {
       fetchStub.restore()
     }
+  })
+})
+
+Deno.test('resolveHubAuth - stored host rides along only with the stored token', async () => {
+  await withIsolatedEnv(() => {
+    writeStoredAuth({ host: 'http://localhost:4812', token: 'file-token' })
+
+    // Token from the file → hub URL defaults to the file's host.
+    assertEquals(resolveHubAuth(), { token: 'file-token', hubUrl: 'http://localhost:4812' })
+
+    // Explicit flag/env hub URL still wins over the stored host.
+    assertEquals(resolveHubAuth({ hubUrlFlag: 'http://other.test' }), {
+      token: 'file-token',
+      hubUrl: 'http://other.test'
+    })
+
+    // Token from env → stored host does NOT apply (the token and the
+    // host must come from the same place).
+    Deno.env.set('SKMTC_HUB_TOKEN', 'env-token')
+    assertEquals(resolveHubAuth(), { token: 'env-token', hubUrl: 'https://api.skmtc.dev' })
+    Deno.env.delete('SKMTC_HUB_TOKEN')
+
+    // Token from the flag → same.
+    assertEquals(resolveHubAuth({ tokenFlag: 'flag-token' }), {
+      token: 'flag-token',
+      hubUrl: 'https://api.skmtc.dev'
+    })
+  })
+})
+
+Deno.test('resolveHubAuth - production default when nothing is stored', async () => {
+  await withIsolatedEnv(() => {
+    assertEquals(resolveHubAuth(), { token: undefined, hubUrl: 'https://api.skmtc.dev' })
   })
 })

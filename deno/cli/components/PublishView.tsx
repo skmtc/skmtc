@@ -9,7 +9,7 @@ import {
   publishHeadless,
   type PublishHeadlessResult
 } from '@/lib/publish-headless.ts'
-import { resolveHubToken } from '@/lib/hub-token.ts'
+import { resolveHubAuth } from '@/lib/hub-token.ts'
 
 type PublishViewProps = {
   project: Project
@@ -39,8 +39,10 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
   const [stage, setStage] = useState<Stage>({ kind: 'validating' })
 
   useEffect(() => {
-    const token = resolveHubToken({ tokenFlag: view.token })
-    const hubUrl = view.hubUrl ?? Deno.env.get('SKMTC_HUB_URL')
+    const { token, hubUrl } = resolveHubAuth({
+      tokenFlag: view.token,
+      hubUrlFlag: view.hubUrl
+    })
 
     if (!token) {
       setStage({

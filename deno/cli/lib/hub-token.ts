@@ -119,6 +119,38 @@ export const resolveHubToken = ({ tokenFlag }: ResolveHubTokenArgs = {}): string
   return readStoredAuth()?.token
 }
 
+type ResolveHubAuthArgs = {
+  tokenFlag?: string
+  hubUrlFlag?: string
+}
+
+export type ResolvedHubAuth = {
+  token: string | undefined
+  hubUrl: string
+}
+
+/**
+ * Resolve token AND hub URL together so they stay coherent. The token
+ * follows the standard precedence (flag → env → stored file). The hub
+ * URL is flag → `$SKMTC_HUB_URL` → — only when the token came from the
+ * stored file — the file's `host` → the production default. Without
+ * the stored-host step, a `skmtc login --hub-url <local hub>` token
+ * would silently be sent to the production host on the next publish.
+ */
+export const resolveHubAuth = ({ tokenFlag, hubUrlFlag }: ResolveHubAuthArgs = {}): ResolvedHubAuth => {
+  const flagToken = tokenFlag?.trim()
+  const envToken = Deno.env.get('SKMTC_HUB_TOKEN')?.trim()
+  const stored = readStoredAuth()
+
+  const token = flagToken || envToken || stored?.token
+
+  const explicitHubUrl = hubUrlFlag?.trim() || Deno.env.get('SKMTC_HUB_URL')?.trim()
+  const tokenFromStore = !flagToken && !envToken && stored !== null
+  const hubUrl = explicitHubUrl ?? (tokenFromStore ? stored.host : DEFAULT_HUB_URL)
+
+  return { token, hubUrl }
+}
+
 /** Last-4 display form — never echo more of a token than this. */
 export const maskToken = (token: string): string => `…${token.slice(-4)}`
 
