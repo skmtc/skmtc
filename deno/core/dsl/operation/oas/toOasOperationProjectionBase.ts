@@ -1,9 +1,24 @@
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { OasOperation } from '@/oas/operation/Operation.ts'
-import { OasOperationProjectionBase } from '@/dsl/operation/oas/OasOperationProjectionBase.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
 import type {
+  InsertOperationOptions,
+  InsertModelOptions,
+  InsertNormalizedModelArgs,
+  InsertNormalizedModelReturn
+} from '@/context/generateTypes.ts'
+import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { ContentSettings } from '@/dsl/ContentSettings.ts'
+import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
+import type { Identifier } from '@/dsl/Identifier.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { Inserted } from '@/dsl/Inserted.ts'
+import type { ModelProjection } from '@/dsl/model/types.ts'
+import type { RefName } from '@/types/RefName.ts'
+import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasVoid } from '@/oas/void/Void.ts'
+import type {
+  OasOperationProjection,
   OasOperationProjectionConstructorArgs,
   ToOasOperationIdentifierArgs,
   ToOasOperationExportPathArgs
@@ -17,6 +32,14 @@ import { DEFAULT_VARIANT } from '@/types/Variant.ts'
  * Configuration for {@link toOasOperationProjectionBase}.
  */
 export type OasOperationProjectionBaseConfig<EnrichmentType = undefined> = {
+  /**
+   * The language snippet base the projection class is built on — a
+   * `@skmtc/lang-*` package's snippet base (e.g. `TsSnippet`). This is where
+   * language enters the class hierarchy: the base carries the static `lang`,
+   * read by Drivers pre-construction and inherited by every class built on
+   * it. Language packages pre-bind it in their projection-base veneers.
+   */
+  base: LangSnippetConstructor
   id: string
   toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
@@ -40,15 +63,26 @@ type ToEnrichmentsArgs = {
 /**
  * Build an OAS operation projection base class from a per-generator config.
  *
- * The returned class extends {@link OasOperationProjectionBase}, exposes
- * the generator's `id`, `toIdentifier`, `toExportPath`, `toEnrichments`,
- * and `isSupported` statics, and injects `generatorKey` so subclasses
- * don't have to.
+ * The returned class extends `config.base` — the generator's language
+ * snippet base — so the projection hierarchy is language-bound at its root
+ * while core stays language-blind (the base arrives as an opaque
+ * constructor; core never names a concrete language class). The class
+ * exposes the generator's `id`, `toIdentifier`, `toExportPath`,
+ * `toEnrichments`, and `isSupported` statics, inherits the static `lang`
+ * from the base, and injects `generatorKey` so subclasses don't have to.
+ *
+ * Defines NO `register` / `registerInto` — register ergonomics are typed by
+ * each language's concise vocabulary, which core can't name, so they live
+ * in the language package's projection-base veneer over this factory.
+ *
+ * The projection machinery previously hosted on
+ * `OasOperationProjectionBase` lives here now, because the base class is no
+ * longer statically known.
  */
 export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
   config: OasOperationProjectionBaseConfig<EnrichmentType>
 ) => {
-  return class extends OasOperationProjectionBase<EnrichmentType> {
+  return class extends config.base {
     static id = config.id
     static type = 'oasOperation' as const
 
@@ -80,15 +114,94 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
       return v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType
     }
 
+    settings: ContentSettings<EnrichmentType>
+    operation: OasOperation
+
     constructor(args: OasOperationProjectionConstructorArgs<EnrichmentType>) {
       super({
-        ...args,
+        context: args.context,
         generatorKey: toOasOperationGeneratorKey({
           generatorId: config.id,
           operation: args.operation,
           variant: args.settings.variant ?? DEFAULT_VARIANT
         })
       })
+
+      this.operation = args.operation
+      this.settings = args.settings
+    }
+
+    /**
+     * Insert a related operation. The inserted operation is exported to this
+     * projection's own `exportPath` unless `noExport` is set.
+     *
+     * Pass `{ variant }` to target a specific variant on the peer (e.g.
+     * to thread `this.settings.variant` into a within-package sibling
+     * Projection that's also variants-aware). Omitting it defaults to
+     * the peer's `'main'` variant — the safe choice for variants-unaware
+     * peers and the standard pattern for cross-package composition.
+     */
+    insertOperation<V extends GeneratedValue, PeerEnrichmentType = undefined>(
+      projection: OasOperationProjection<V, PeerEnrichmentType>,
+      operation: OasOperation,
+      options: Pick<InsertOperationOptions, 'noExport' | 'variant'> = {}
+    ): Inserted<V, PeerEnrichmentType> {
+      return this.context.insertOperation({
+        projection,
+        operation,
+        destinationPath: this.settings.exportPath,
+        noExport: options.noExport,
+        variant: options.variant
+      })
+    }
+
+    /**
+     * Insert a related model into this projection's export file.
+     *
+     * Pass `{ variant }` to target a specific variant on the peer model
+     * projection. Omitting it defaults to the peer's `'main'` variant.
+     */
+    insertModel<V extends GeneratedValue, PeerEnrichmentType = undefined>(
+      projection: ModelProjection<V, PeerEnrichmentType>,
+      refName: RefName,
+      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+    ): Inserted<V, PeerEnrichmentType> {
+      return this.context.insertModel(projection, refName, {
+        destinationPath: this.settings.exportPath,
+        noExport: options.noExport,
+        variant: options.variant
+      })
+    }
+
+    /**
+     * Insert a related model with reference normalization. Useful for inline
+     * request/response schemas where the schema may be either a `$ref` or a
+     * concrete object.
+     *
+     * `{ variant }` flows through the `$ref` branch only; for inline
+     * schemas, bake the variant into `fallbackName`.
+     */
+    insertNormalizedModel<
+      V extends GeneratedValue,
+      Schema extends OasSchema | OasRef<'schema'> | OasVoid,
+      PeerEnrichmentType = undefined
+    >(
+      projection: ModelProjection<V, PeerEnrichmentType>,
+      { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
+      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+    ): InsertNormalizedModelReturn<V, Schema> {
+      return this.context.insertNormalizedModel(
+        projection,
+        {
+          schema,
+          fallbackName,
+          destinationPath: this.settings.exportPath
+        },
+        {
+          noExport: options.noExport,
+          variant: options.variant
+        }
+      )
     }
   }
 }

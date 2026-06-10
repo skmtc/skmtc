@@ -104,6 +104,13 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
   }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'oasOperation'
+  /**
+   * The projection's language — the static inherited from the language
+   * snippet base the projection class is built on
+   * (`toOasOperationProjectionBase({ base: TsSnippet, … })`). Drivers read
+   * it ephemerally at each use site, pre-construction (cache-hit path).
+   */
+  lang: Lang
   toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType

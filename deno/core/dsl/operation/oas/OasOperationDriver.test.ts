@@ -48,7 +48,10 @@ const createMockContext = (options?: {
     toOperationContentSettings: toOperationContentSettingsSpy,
     findDefinition: findDefinitionSpy,
     register: registerSpy,
-    resolveLang: () => typescript
+    // The Driver pre-ensures destination files caller-side through the
+    // projection's static lang: file-miss → `addFile(lang.createFile(...))`.
+    getFile: spy(() => undefined),
+    addFile: spy(() => {})
   } as unknown as GenerateContextType
 
   return {
@@ -84,6 +87,9 @@ const createMockProjection = (options?: {
   class MockProjection extends OasOperationProjectionBase<undefined> {
     static id = options?.id ?? 'MockProjection'
     static type = 'oasOperation' as const
+    // The static the Driver reads (`this.projection.lang`) — stands in for
+    // the static a real projection inherits from its lang snippet base.
+    static lang = typescript
     static isSupported = options?.isSupported
 
     static toIdentifier({ operation }: ToOasOperationIdentifierArgs): Identifier {
@@ -513,6 +519,7 @@ Deno.test('OasOperationDriver', async t => {
       class SpyProjection extends OasOperationProjectionBase<undefined> {
         static id = 'SpyProjection'
         static type = 'oasOperation' as const
+        static lang = typescript
         static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
           Identifier.createVariable(operation.operationId ?? 'op')
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'

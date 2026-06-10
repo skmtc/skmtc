@@ -8,7 +8,6 @@ import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
@@ -55,8 +54,6 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   definition: GeneratedDefinition<V>
   noExport?: boolean
   variant: string
-  /** The projection's language, resolved from the config map by `id`. */
-  lang: Lang
 
   constructor({
     context,
@@ -72,10 +69,6 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.variant = variant
-    // The peer's language, resolved by the engine from the peer's `id`
-    // (the single source of truth). Works on cache-hit too — `id` is known
-    // without constructing the value.
-    this.lang = context.resolveLang(projection.id)
 
     assertPeerVariantExists({
       context,
@@ -101,19 +94,38 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     const definition = this.getDefinition({ identifier, exportPath })
 
     if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
-      // `Identifier.toImport()` carries the identifier's entity type so
-      // type-only identifiers render as `import { type Foo }` under
-      // `verbatimModuleSyntax: true`. The import lands in the caller's
-      // file (`destinationPath`); `insertOperation` only composes
+      // Cross-file import of the peer's identifier from its export path.
+      // The language builds the import object (`toImport`) and creates the
+      // destination file on first write (caller-side); the engine stores
+      // via the pure-data `context.register`. The import lands in the
+      // caller's file (`destinationPath`); `insertOperation` only composes
       // same-language generators, so the peer's `lang` is the caller's.
+      this.ensureFile(destinationPath)
       this.context.register({
-        imports: [this.lang.toImport({ identifier, module: exportPath })],
-        destinationPath,
-        generatorId: this.projection.id
+        imports: [this.projection.lang.toImport({ identifier, module: exportPath })],
+        destinationPath
       })
     }
 
     return definition
+  }
+
+  /**
+   * Ensure the file at `path` exists, creating it on first write through
+   * the projection's language — the static read off the projection class
+   * at the use site, never persisted (works pre-construction on the
+   * cache-hit path). Returns the normalized path.
+   */
+  private ensureFile(path: string): string {
+    const normalizedPath = normalize(path)
+
+    if (!this.context.getFile(normalizedPath)) {
+      this.context.addFile(
+        this.projection.lang.createFile({ path: normalizedPath, settings: this.context.settings })
+      )
+    }
+
+    return normalizedPath
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
@@ -132,17 +144,17 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       settings: this.settings
     })
 
-    const definition = this.lang.toDefinition({
+    const definition = this.projection.lang.toDefinition({
       context: this.context,
       identifier,
       value,
       noExport: this.noExport
     })
 
+    this.ensureFile(exportPath)
     this.context.register({
       definitions: [definition],
-      destinationPath: exportPath,
-      generatorId: this.projection.id
+      destinationPath: exportPath
     })
 
     return definition
