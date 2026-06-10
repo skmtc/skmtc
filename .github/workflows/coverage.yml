@@ -15,6 +15,12 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
 
+    env:
+      # Workspace `jsr:@skmtc/*` pins (and @std/*) resolve against the
+      # skmtc registry, not public jsr.io — the @skmtc versions only
+      # exist there. Deno honors JSR_URL for `jsr:` import resolution.
+      JSR_URL: https://jsr.skmtc.dev/
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
