@@ -12,7 +12,7 @@ import type { FileBase } from '@/dsl/FileBase.ts'
 import type { Preview, Mapping } from '@/types/Preview.ts'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { StackTrail } from './StackTrail.ts'
-import { CaptureSink, installCapture } from '@/anchors/CaptureSink.ts'
+import { CaptureSink, type CaptureChannel } from '@/anchors/CaptureSink.ts'
 import { postPass } from '@/anchors/postPass.ts'
 import { entriesForSidecar } from '@/anchors/generationMap.ts'
 import type { GenerationMapEntry } from '@/anchors/generationMap.ts'
@@ -63,9 +63,15 @@ type ConstructorArgs = {
    * Attribution (gen-maps) emission config. When `postPass` is set, the
    * single render pass also captures the producer occurrence tree and
    * emits sidecars + a generation map. Capture is skipped entirely when
-   * absent — plain render, no prototype wrapping.
+   * absent — plain render, the capture interval never opens.
    */
   attribution?: AttributionState
+  /**
+   * Shared attribution capture channel — the same object the run's
+   * `GenerateContext` holds, so snippets see the sink this context
+   * publishes during the capturing render. Wired by `CoreContext`.
+   */
+  captureChannel?: CaptureChannel
 }
 
 /**
@@ -119,6 +125,14 @@ export class RenderContext {
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   /** Attribution (gen-maps) emission config; see {@link ConstructorArgs}. */
   attribution: AttributionState | undefined
+  /**
+   * Shared attribution capture channel — the same object the
+   * `GenerateContext` exposes to snippets as `captureSink`. `render` opens
+   * the capture interval by setting `channel.sink` and closes it in
+   * `finally`. Optional: a capturing render without a channel records no
+   * occurrences (snippets read their own context's channel).
+   */
+  #captureChannel: CaptureChannel | undefined
 
   /**
    * Active capture sink for the in-progress render pass, or `undefined`
@@ -147,7 +161,8 @@ export class RenderContext {
     basePath,
     logger,
     captureCurrentResult,
-    attribution
+    attribution,
+    captureChannel
   }: ConstructorArgs) {
     this.files = files
     this.previews = previews
@@ -156,6 +171,7 @@ export class RenderContext {
     this.logger = logger
     this.captureCurrentResult = captureCurrentResult
     this.attribution = attribution
+    this.#captureChannel = captureChannel
   }
 
   /**
@@ -190,8 +206,9 @@ export class RenderContext {
   render(stackTrail: StackTrail): RenderPhaseResult {
     const postPassConfig = this.attribution?.postPass
 
-    // No emission configured → plain render, no capture, no prototype
-    // wrapping. `toString` runs untouched everywhere.
+    // No emission configured → plain render, no capture: the capture
+    // interval never opens, so every snippet's `toString` wrapper takes
+    // the pass-through path.
     if (!postPassConfig) {
       const result = this.collate(stackTrail)
       return {
@@ -202,19 +219,24 @@ export class RenderContext {
       }
     }
 
-    // Capturing render: open a sink, wrap the relevant `toString`
-    // prototypes for the single `collate` walk, and restore them in
-    // `finally`. `collate` routes each File's render through the sink.
+    // Capturing render: open the capture interval by publishing a sink on
+    // the shared channel for the single `collate` walk, and close it in
+    // `finally`. Snippets' self-installed `toString` wrappers observe into
+    // the sink; `collate` routes each File's render through it.
     const sink = new CaptureSink()
     this.#sink = sink
     this.#captures = []
-    const restoreToString = installCapture(sink)
+    if (this.#captureChannel) {
+      this.#captureChannel.sink = sink
+    }
 
     let result: FilesRenderResult
     try {
       result = this.collate(stackTrail)
     } finally {
-      restoreToString()
+      if (this.#captureChannel) {
+        this.#captureChannel.sink = undefined
+      }
       this.#sink = undefined
     }
 

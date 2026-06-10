@@ -7,12 +7,11 @@
  * generation map populated) lands on the result.
  */
 
-import { typescript } from '@skmtc/lang-typescript'
+import { toModelProjectionBase } from '@skmtc/lang-typescript'
 import { assert, assertEquals } from '@std/assert'
 import { toArtifacts } from '@/run/toArtifacts.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
-import { toModelProjectionBase } from '@/dsl/model/toModelProjectionBase.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { oxcAdapter } from '@/anchors/oxcAdapter.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
@@ -36,7 +35,6 @@ class ModelProjection extends ModelBase {
 // a constant body, so the static-shape check is the only blocker —
 // cast through the test boundary.
 const modelEntry = toModelEntry({
-  lang: typescript,
   id: '@test/gen-model',
   transform: ({ context, refName }) => {
     // deno-lint-ignore no-explicit-any

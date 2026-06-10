@@ -2,7 +2,7 @@
  * @fileoverview Derive an Attribution tuple from a producer.
  *
  * `attribute()` is a pure function over a `SnippetBase` — it reads
- * the producer's `generatorKey`, the producer's own `schemaPointer` (if
+ * the producer's `generatorKey`, the producer's own `stackTrail` (if
  * any), and the producer's `Definition`-shaped identifier (if applicable),
  * and returns the canonical
  * `{ generatorId, schemaPointer, variant, definitionName, producerName }`
@@ -26,8 +26,8 @@ import type { Attribution } from './types.ts'
  * Derive the attribution tuple for a producer.
  *
  * Producers without a `generatorKey` (rare — only test doubles or
- * runtime-orphaned Snippets) get `generatorId: '<unknown>'` and inherit
- * `schemaPointer` from caller-supplied fallback.
+ * runtime-orphaned Snippets) get `generatorId: '<unknown>'` and a
+ * key-derived fallback pointer.
  */
 export const attribute = (producer: SnippetBase): Attribution => {
   const key = producer.generatorKey
@@ -42,9 +42,9 @@ export const attribute = (producer: SnippetBase): Attribution => {
     // operational prefix so the pointer is document-relative and
     // resolvable against the input schema — matching the key-derived
     // fallback's form.
-    schemaPointer: producer.schemaPointer.isEmpty()
+    schemaPointer: producer.stackTrail.isEmpty()
       ? schemaPointerFromKey(parsed)
-      : producer.schemaPointer.toSchemaPointer(),
+      : producer.stackTrail.toSchemaPointer(),
     variant: parsed && 'variant' in parsed ? parsed.variant : 'main',
     definitionName: producer instanceof DefinitionBase ? producer.identifier.name : undefined,
     // The producer's class name — `var X = class extends …` still yields

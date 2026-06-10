@@ -1,15 +1,25 @@
 import { assertEquals, assertStrictEquals, assertThrows } from '@std/assert'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import { Definition } from '@/dsl/Definition.ts'
-import { File } from '@/dsl/File.ts'
+import { TsFile } from '@skmtc/lang-typescript'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { CaptureSink, installCapture } from './CaptureSink.ts'
+import { CaptureSink, type CaptureChannel } from './CaptureSink.ts'
 import type { Span } from './types.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 
-// SnippetBase holds no capture state; a bare context stub suffices.
-const stubContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
+// Snippets read the sink through `this.context.captureSink`, so the test
+// context exposes the shared channel the way `GenerateContext` does — a
+// getter over the mutable channel slot.
+const makeCaptureContext = (): { context: GenerateContextType; channel: CaptureChannel } => {
+  const channel: CaptureChannel = { sink: undefined }
+  const context = {
+    get captureSink() {
+      return channel.sink
+    }
+  } as unknown as GenerateContextType
+  return { context, channel }
+}
 
 class FakeSnippet extends SnippetBase {
   body: () => string
@@ -24,8 +34,8 @@ class FakeSnippet extends SnippetBase {
   }
 }
 
-const makeFile = (defs: Definition[]): File => {
-  const file = new File({ path: 'out.ts', settings: undefined })
+const makeFile = (defs: Definition[]): TsFile => {
+  const file = new TsFile({ path: 'out.ts', settings: undefined })
   for (const def of defs) {
     file.definitions.set(def.identifier.name, def)
   }
@@ -33,28 +43,29 @@ const makeFile = (defs: Definition[]): File => {
 }
 
 /**
- * Render a File through a fresh sink with the prototype wrap installed
- * for the duration — the production capture path in miniature.
+ * Render a file through a fresh sink with the capture interval open for
+ * the duration — the production capture path in miniature: publish the
+ * sink on the shared channel, render, clear in `finally`.
  */
-const capture = (file: File): { text: string; spans: Span[] } => {
+const capture = (channel: CaptureChannel, file: TsFile): { text: string; spans: Span[] } => {
   const sink = new CaptureSink()
-  const restore = installCapture(sink)
+  channel.sink = sink
   try {
     return sink.captureFile(() => file.toString())
   } finally {
-    restore()
+    channel.sink = undefined
   }
 }
 
 Deno.test('CaptureSink - top-level Definition spans match file slice', () => {
-  const ctx = stubContext()
+  const { context: ctx, channel } = makeCaptureContext()
   const value = new FakeSnippet(ctx, () => "'hello'")
   const def = new Definition({
     context: ctx,
     identifier: Identifier.createVariable('GREETING'),
     value
   })
-  const { text, spans } = capture(makeFile([def]))
+  const { text, spans } = capture(channel, makeFile([def]))
 
   // Definition span = the whole rendered Definition text.
   const defSpan = spans.find(s => s.producer === def)
@@ -70,7 +81,7 @@ Deno.test('CaptureSink - top-level Definition spans match file slice', () => {
 })
 
 Deno.test('CaptureSink - identical sibling text attributed in document order', () => {
-  const ctx = stubContext()
+  const { context: ctx, channel } = makeCaptureContext()
   const a = new FakeSnippet(ctx, () => 'x')
   const b = new FakeSnippet(ctx, () => 'x')
   const value = new FakeSnippet(ctx, () => `${a}_${b}`)
@@ -79,7 +90,7 @@ Deno.test('CaptureSink - identical sibling text attributed in document order', (
     identifier: Identifier.createVariable('PAIR'),
     value
   })
-  const { text, spans } = capture(makeFile([def]))
+  const { text, spans } = capture(channel, makeFile([def]))
 
   const aSpan = spans.find(s => s.producer === a)
   const bSpan = spans.find(s => s.producer === b)
@@ -92,7 +103,7 @@ Deno.test('CaptureSink - identical sibling text attributed in document order', (
 })
 
 Deno.test('CaptureSink - child whose text is not in parent is skipped', () => {
-  const ctx = stubContext()
+  const { context: ctx, channel } = makeCaptureContext()
   // Child renders one thing, but the parent reshapes it so the
   // original text isn't present in the parent's output.
   const child = new FakeSnippet(ctx, () => 'lowercase')
@@ -106,7 +117,7 @@ Deno.test('CaptureSink - child whose text is not in parent is skipped', () => {
     identifier: Identifier.createVariable('CASED'),
     value
   })
-  const { spans } = capture(makeFile([def]))
+  const { spans } = capture(channel, makeFile([def]))
 
   // Parent and child both rendered, but only the parent's span survives.
   assertEquals(
@@ -120,7 +131,7 @@ Deno.test('CaptureSink - child whose text is not in parent is skipped', () => {
 })
 
 Deno.test('CaptureSink - zero-length child is filtered out', () => {
-  const ctx = stubContext()
+  const { context: ctx, channel } = makeCaptureContext()
   const empty = new FakeSnippet(ctx, () => '')
   const value = new FakeSnippet(ctx, () => `before${empty}after`)
   const def = new Definition({
@@ -128,7 +139,7 @@ Deno.test('CaptureSink - zero-length child is filtered out', () => {
     identifier: Identifier.createVariable('EMPTY'),
     value
   })
-  const { spans } = capture(makeFile([def]))
+  const { spans } = capture(channel, makeFile([def]))
 
   assertEquals(
     spans.some(s => s.producer === empty),
@@ -137,7 +148,7 @@ Deno.test('CaptureSink - zero-length child is filtered out', () => {
 })
 
 Deno.test('CaptureSink - multiple Definitions appear in document order', () => {
-  const ctx = stubContext()
+  const { context: ctx, channel } = makeCaptureContext()
   const first = new Definition({
     context: ctx,
     identifier: Identifier.createVariable('FIRST'),
@@ -148,7 +159,7 @@ Deno.test('CaptureSink - multiple Definitions appear in document order', () => {
     identifier: Identifier.createVariable('SECOND'),
     value: new FakeSnippet(ctx, () => '2')
   })
-  const { spans } = capture(makeFile([first, second]))
+  const { spans } = capture(channel, makeFile([first, second]))
 
   const firstSpan = spans.find(s => s.producer === first)
   const secondSpan = spans.find(s => s.producer === second)
@@ -158,7 +169,7 @@ Deno.test('CaptureSink - multiple Definitions appear in document order', () => {
 })
 
 Deno.test('CaptureSink - property: every span.slice equals producer output', () => {
-  const ctx = stubContext()
+  const { context: ctx, channel } = makeCaptureContext()
   const inner = new FakeSnippet(ctx, () => 'inner')
   const middle = new FakeSnippet(ctx, () => `<${inner}/>`)
   const outer = new FakeSnippet(ctx, () => `[ ${middle} ]`)
@@ -167,7 +178,7 @@ Deno.test('CaptureSink - property: every span.slice equals producer output', () 
     identifier: Identifier.createVariable('NESTED'),
     value: outer
   })
-  const { text, spans } = capture(makeFile([def]))
+  const { text, spans } = capture(channel, makeFile([def]))
 
   for (const span of spans) {
     // Fixtures are deterministic, so re-rendering the producer yields the
@@ -180,14 +191,15 @@ Deno.test('CaptureSink - property: every span.slice equals producer output', () 
   }
 })
 
-Deno.test('CaptureSink - returns empty spans when File has no Definitions', () => {
-  const file = new File({ path: 'empty.ts', settings: undefined })
-  const { spans } = capture(file)
+Deno.test('CaptureSink - returns empty spans when the file has no Definitions', () => {
+  const { channel } = makeCaptureContext()
+  const file = new TsFile({ path: 'empty.ts', settings: undefined })
+  const { spans } = capture(channel, file)
   assertStrictEquals(spans.length, 0)
 })
 
 Deno.test('CaptureSink - cycle detection throws rather than infinite-recurse', () => {
-  const ctx = stubContext()
+  const { context: ctx, channel } = makeCaptureContext()
   // A snippet whose body re-renders itself — a composition cycle.
   let self: FakeSnippet
   // deno-lint-ignore prefer-const
@@ -198,11 +210,11 @@ Deno.test('CaptureSink - cycle detection throws rather than infinite-recurse', (
     value: self
   })
 
-  assertThrows(() => capture(makeFile([def])), Error, 'render cycle')
+  assertThrows(() => capture(channel, makeFile([def])), Error, 'render cycle')
 })
 
-Deno.test('CaptureSink - prototypes restored after capture (pure passthrough)', () => {
-  const ctx = stubContext()
+Deno.test('CaptureSink - pure pass-through after the capture interval closes', () => {
+  const { context: ctx, channel } = makeCaptureContext()
   let calls = 0
   const s = new FakeSnippet(ctx, () => {
     calls++
@@ -213,12 +225,31 @@ Deno.test('CaptureSink - prototypes restored after capture (pure passthrough)', 
     identifier: Identifier.createVariable('PURE'),
     value: s
   })
-  capture(makeFile([def]))
+  capture(channel, makeFile([def]))
   const callsAfterCapture = calls
 
-  // After restore, `toString` is the plain subclass method: no wrapper,
-  // no caching, called once per coercion.
+  // With the interval closed, the wrapper passes straight through to the
+  // subclass method: no caching, called once per coercion.
   assertEquals(`${s}`, 'v')
   assertEquals(`${s}`, 'v')
   assertEquals(calls, callsAfterCapture + 2)
+})
+
+Deno.test('CaptureSink - keyless snippet constructed mid-render is captured', () => {
+  // The old registry-based capture missed snippets constructed DURING the
+  // capture render (the installer had already iterated). Self-wrapping at
+  // construction closes that gap: a keyless snippet born inside another
+  // snippet's toString still gets its own span.
+  const { context: ctx, channel } = makeCaptureContext()
+  const value = new FakeSnippet(ctx, () => `pre ${new FakeSnippet(ctx, () => 'midborn')} post`)
+  const def = new Definition({
+    context: ctx,
+    identifier: Identifier.createVariable('MID'),
+    value
+  })
+  const { text, spans } = capture(channel, makeFile([def]))
+
+  const midSpan = spans.find(s => text.slice(s.from, s.to) === 'midborn')
+  assertEquals(midSpan !== undefined, true)
+  assertEquals(midSpan!.producer.generatorKey, undefined)
 })

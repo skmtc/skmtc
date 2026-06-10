@@ -10,6 +10,7 @@ import { ResultsHandler } from '@/context/ResultsHandler.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { ResultsLog } from '@/helpers/ResultsLog.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
+import type { CaptureChannel } from '@/anchors/CaptureSink.ts'
 import { join } from '@std/path/join'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { Mapping, Preview } from '@/types/Preview.ts'
@@ -74,6 +75,7 @@ type GenerateArgs = {
   document: SkmtcParsedDocument
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  captureChannel: CaptureChannel
 }
 
 type CoreContextArgs = {
@@ -88,6 +90,7 @@ type RenderArgs = {
   mappings: Record<string, Mapping>
   basePath: string | undefined
   attribution: AttributionState | undefined
+  captureChannel: CaptureChannel
 }
 
 /**
@@ -392,11 +395,18 @@ export class CoreContext {
         phase.context.parse(st)
       )
 
+      // The shared attribution capture channel: snippets constructed
+      // during generate hold the GenerateContext, whose `captureSink`
+      // reads this slot; RenderContext flips it around the one capturing
+      // render. One object per run wires the two phases together.
+      const captureChannel: CaptureChannel = { sink: undefined }
+
       const { files, previews, mappings } = stackTrail.trace('generate', st => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           document: parsedDocument,
-          settings
+          settings,
+          captureChannel
         })
 
         return this.#phase.context.toArtifacts(st)
@@ -414,7 +424,8 @@ export class CoreContext {
           previews,
           mappings,
           basePath: settings?.basePath,
-          attribution
+          attribution,
+          captureChannel
         })
 
         return this.#phase.context.render(st)
@@ -494,10 +505,13 @@ export class CoreContext {
       )
 
       const subjects = stackTrail.trace('generate', () => {
+        // Capability probing never renders, so the capture interval never
+        // opens — a throwaway channel satisfies the wiring.
         const generatePhase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           document: parsedDocument,
-          settings
+          settings,
+          captureChannel: { sink: undefined }
         })
         this.#phase = generatePhase
 
@@ -538,13 +552,19 @@ export class CoreContext {
     return { type: 'parse', context: parseContext }
   }
 
-  #setupGeneratePhase({ document, settings, toGeneratorConfigMap }: GenerateArgs): GeneratePhase {
+  #setupGeneratePhase({
+    document,
+    settings,
+    toGeneratorConfigMap,
+    captureChannel
+  }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
       document,
       settings,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),
-      toGeneratorConfigMap
+      toGeneratorConfigMap,
+      captureChannel
     })
 
     return { type: 'generate', context: generateContext }
@@ -582,7 +602,14 @@ export class CoreContext {
     this.#results.capture(stackTrail.toString(), result)
   }
 
-  #setupRenderPhase({ files, previews, mappings, basePath, attribution }: RenderArgs): RenderPhase {
+  #setupRenderPhase({
+    files,
+    previews,
+    mappings,
+    basePath,
+    attribution,
+    captureChannel
+  }: RenderArgs): RenderPhase {
     const renderContext = new RenderContext({
       files,
       previews,
@@ -590,7 +617,8 @@ export class CoreContext {
       basePath,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),
-      attribution
+      attribution,
+      captureChannel
     })
 
     return { type: 'render', context: renderContext }

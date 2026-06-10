@@ -1,8 +1,6 @@
 import type { GenerateContextType } from '../context/generateTypes.ts'
 import type { GeneratorKey } from './GeneratorKeys.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import type { OasSchema } from '@/oas/schema/Schema.ts'
-import type { OasRef } from '@/oas/ref/Ref.ts'
 
 /**
  * Constructor arguments for {@link SnippetBase}.
@@ -13,49 +11,52 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 export type SnippetBaseArgs = {
   /** The generation context providing OAS objects and utilities */
   context: GenerateContextType
-  /** Optional generator key for tracking and identification */
+  /** Optional generator key — attribution (gen-maps) input only */
   generatorKey?: GeneratorKey
   /**
-   * The schema fragment this snippet was built from, when it has a
-   * single originating node. The constructor records a **clone** of its
-   * `stackTrail` into {@link SnippetBase.schemaPointer} for fine-grained
-   * attribution. Omit for snippets with no single originating node
-   * (structural / boilerplate / accumulators) — they carry the empty
-   * trail and the resolver falls back to the key-derived pointer.
+   * Position of the originating schema fragment, when the snippet has a
+   * single originating node — attribution (gen-maps) input only. Callers
+   * that hold a schema pass `stackTrail: schema?.stackTrail.clone() ??
+   * StackTrail.empty()` — the clone stays at the call site, where the
+   * live, mutable trail is in hand. Omit for snippets with no single
+   * originating node (structural / boilerplate / accumulators) — they
+   * carry the empty trail and the resolver falls back to the key-derived
+   * pointer.
    */
-  schema?: OasSchema | OasRef<'schema'>
+  stackTrail?: StackTrail
 }
 
 /**
- * Minimal structural view of a concrete `SnippetBase` subclass — just
- * the `prototype` the render-phase capture installer needs in order to
- * wrap the right `toString`. Avoids depending on the full `Function`
- * type.
- */
-type SnippetConstructor = { prototype: object }
-
-/**
- * Concrete `SnippetBase` subclasses instantiated during this worker's
- * life. Populated by the constructor via `new.target` (one `Set.add`
- * per construction). The render-phase capture installer
- * ({@link import('@/anchors/CaptureSink.ts').installCapture}) reads this
- * to know which prototypes' `toString` to wrap for the single capture
- * render — and only then. Outside that render the prototypes are
- * pristine, so a stray `toString()` anywhere else captures nothing.
+ * The own-property `toString` wrapper every {@link SnippetBase} instance
+ * installs at construction — ONE shared function, no per-instance closure.
  *
- * Each worker has its own module instance, so this state never leaks
- * across worker boundaries.
+ * Own properties shadow every prototype, so this intercepts the leaf
+ * subclass's `toString` no matter where in the hierarchy it is declared —
+ * the same mechanism that defeats base-prototype wrapping, used in our
+ * favor. The real implementation is resolved through the prototype chain
+ * from the leaf (a read made ON the prototype object isn't shadowed by the
+ * instance's own property).
+ *
+ * Outside the capture interval (`context.captureSink` unset) this is a
+ * pure pass-through — one property read and one branch. Bare test mocks
+ * (`{} as GenerateContextType`) read `undefined` and take the pass-through
+ * path.
  */
-export const seenSnippetConstructors = new Set<SnippetConstructor>()
+const capturingToString = function (this: SnippetBase): string {
+  const impl = Object.getPrototypeOf(this).toString
+  const sink = this.context.captureSink // undefined outside the capture interval
+  return sink ? sink.observe(this, impl) : impl.call(this)
+}
 
 /**
  * Abstract root of every stringifiable element in the SKMTC DSL.
  *
  * Two specializations live below this class:
  *
- * - **Projections** (`ModelProjectionBase`, `OasOperationProjectionBase`,
- *   `GqlOperationProjectionBase`) are named, exportable artifacts that the
- *   pipeline wraps in a `Definition` and registers in a `File`.
+ * - **Projections** — named, exportable artifacts built by the
+ *   projection-base factories (`toModelProjectionBase` and the OAS/GQL
+ *   siblings) on a language package's snippet base; the pipeline wraps
+ *   them in a `Definition` and registers them in a file.
  * - **Snippets** are anonymous, embedded values whose `toString()` is spliced
  *   into the body of a Projection (or another Snippet). `Definition` and
  *   `CustomValue` extend `SnippetBase` directly without going through a
@@ -66,18 +67,25 @@ export const seenSnippetConstructors = new Set<SnippetConstructor>()
  * live on each language package's snippet base (e.g. `TsSnippet`'s
  * `register`, which delegates to that package's register function) — a raw
  * `SnippetBase` subclass that tries to register is a compile-time error.
- * `generatorKey` is an *optional* attribution input only.
+ * `generatorKey` and `stackTrail` are *optional* attribution inputs only.
  *
  * ## Attribution (gen-maps)
  *
- * `SnippetBase` holds **no** capture state. `toString()` is the subclass's
- * own pure method and runs verbatim everywhere. Attribution is captured by
- * a single render pass in {@link import('@/context/RenderContext.ts').RenderContext}:
- * it installs a thin wrapper around the relevant `toString` prototypes for
- * the duration of that one render, observes each invocation into a
- * transient {@link import('@/anchors/CaptureSink.ts').CaptureSink} it owns,
- * and restores the prototypes afterwards. Subclass authors write nothing
- * different, and a `toString()` outside that render is a pure pass-through.
+ * Every instance self-wraps its `toString` at construction (an
+ * own-property wrapper — shared function, non-enumerable). The wrapper is
+ * gated by the **capture interval**: the span while
+ * {@link import('@/context/generateTypes.ts').GenerateContextType.captureSink}
+ * is set, which `RenderContext` opens around the one capturing render and
+ * closes in `finally`. Inside the interval each `toString` invocation is
+ * observed into the transient
+ * {@link import('@/anchors/CaptureSink.ts').CaptureSink} occurrence tree;
+ * outside it the wrapper is a pure pass-through. Subclass authors write
+ * nothing different. Snippets constructed *during* the capture render are
+ * captured too — they self-wrap at birth.
+ *
+ * One documented convention: declare `toString` as a prototype method,
+ * never as an instance field (an arrow-function field would overwrite the
+ * wrapper).
  */
 export class SnippetBase {
   /** The generation context providing access to OAS objects and utilities */
@@ -86,34 +94,33 @@ export class SnippetBase {
   /** Whether this generator has been skipped */
   skipped: boolean = false
 
-  /** Optional generator key for identification and tracking */
+  /** Optional generator key — attribution input only */
   generatorKey: GeneratorKey | undefined
 
   /**
    * Position of the schema fragment this snippet was built from, as a
-   * `StackTrail`. A **clone** of the originating schema's trail (taken at
-   * construction so it's a stable snapshot — `StackTrail` is mutable, so
-   * storing the raw reference would let later reuse overwrite the captured
-   * provenance). The empty trail (`StackTrail.empty()`) means "no single
-   * originating node", in which case the resolver uses the
-   * generator-key-derived pointer. Converted to a JSON Pointer string only
-   * at the resolver — never carried as a string here.
+   * `StackTrail`. Callers pass a stable snapshot (a **clone** taken at the
+   * call site — `StackTrail` is mutable, so an un-cloned reference would
+   * alias a trail that later append/remove calls could mutate). The empty
+   * trail (`StackTrail.empty()`) means "no single originating node", in
+   * which case the resolver uses the generator-key-derived pointer.
+   * Converted to a JSON Pointer string only at the resolver — never
+   * carried as a string here.
    */
-  schemaPointer: StackTrail
+  stackTrail: StackTrail
 
-  constructor({ context, generatorKey, schema }: SnippetBaseArgs) {
+  constructor({ context, generatorKey, stackTrail }: SnippetBaseArgs) {
     this.context = context
     this.generatorKey = generatorKey
-    // Clone the trail: `StackTrail` is mutable and `schema.stackTrail`
-    // hands out the live instance, so an un-cloned reference would alias a
-    // trail that later append/remove calls could mutate out from under us.
-    // The resolver reads `schemaPointer` post-render, so it must be a stable
-    // snapshot taken now. `StackTrail.empty()` is already a fresh instance.
-    this.schemaPointer = schema ? schema.stackTrail.clone() : StackTrail.empty()
+    this.stackTrail = stackTrail ?? StackTrail.empty()
 
-    // Register the concrete subclass so the render-phase capture installer
-    // knows which prototype's `toString` to wrap. `new.target` is the class
-    // that was `new`-ed (the leaf), even through `super()` chains.
-    if (new.target) seenSnippetConstructors.add(new.target)
+    // Self-wrap for attribution capture: an own-property `toString`
+    // (shared function value, non-enumerable) that observes into the
+    // context's capture sink while the capture interval is open and
+    // passes through otherwise.
+    Object.defineProperty(this, 'toString', {
+      value: capturingToString,
+      configurable: true
+    })
   }
 }

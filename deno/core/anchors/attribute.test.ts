@@ -18,9 +18,8 @@ const stubContext = (): GenerateContextType =>
   ({}) as unknown as GenerateContextType
 
 class TestProducer extends SnippetBase {
-  constructor(generatorKey?: GeneratorKey, schemaPointerOverride?: StackTrail) {
-    super({ context: stubContext(), generatorKey })
-    if (schemaPointerOverride !== undefined) this.schemaPointer = schemaPointerOverride
+  constructor(generatorKey?: GeneratorKey, stackTrail?: StackTrail) {
+    super({ context: stubContext(), generatorKey, stackTrail })
   }
 
   override toString(): string {

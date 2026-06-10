@@ -1,18 +1,25 @@
 import { assert, assertEquals } from '@std/assert'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import { Definition } from '@/dsl/Definition.ts'
-import { File } from '@/dsl/File.ts'
+import { TsFile } from '@skmtc/lang-typescript'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toModelGeneratorKey, type GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { postPass } from './postPass.ts'
-import { CaptureSink, installCapture } from './CaptureSink.ts'
+import { CaptureSink, type CaptureChannel } from './CaptureSink.ts'
 import type { Span } from './types.ts'
 import { oxcAdapter } from './oxcAdapter.ts'
 
-// SnippetBase holds no capture state; a bare context stub suffices.
-const ctx = (): GenerateContextType => ({}) as unknown as GenerateContextType
+// Snippets read the sink through `this.context.captureSink`; the stub
+// exposes a per-test shared channel the way `GenerateContext` does.
+const channel: CaptureChannel = { sink: undefined }
+const ctx = (): GenerateContextType =>
+  ({
+    get captureSink() {
+      return channel.sink
+    }
+  }) as unknown as GenerateContextType
 
 class FakeSnippet extends SnippetBase {
   body: () => string
@@ -28,18 +35,18 @@ class FakeSnippet extends SnippetBase {
 }
 
 /**
- * Render a File through a sink (prototype wrap installed for the
- * duration) and return the inputs `postPass` now expects: the file path,
- * the rendered source, and the resolved spans.
+ * Render a file through a sink with the capture interval open for the
+ * duration and return the inputs `postPass` expects: the file path, the
+ * rendered source, and the resolved spans.
  */
-const renderFile = (file: File): { filePath: string; source: string; spans: Span[] } => {
+const renderFile = (file: TsFile): { filePath: string; source: string; spans: Span[] } => {
   const sink = new CaptureSink()
-  const restore = installCapture(sink)
+  channel.sink = sink
   try {
     const { text, spans } = sink.captureFile(() => file.toString())
     return { filePath: file.path, source: text, spans }
   } finally {
-    restore()
+    channel.sink = undefined
   }
 }
 
@@ -56,7 +63,7 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
     identifier: Identifier.createVariable('User'),
     value
   })
-  const file = new File({ path: 'out.ts', settings: undefined })
+  const file = new TsFile({ path: 'out.ts', settings: undefined })
   file.definitions.set(def.identifier.name, def)
 
   const sidecar = postPass({
@@ -88,7 +95,7 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
     identifier: Identifier.createVariable('Customer'),
     value
   })
-  const file = new File({ path: 'out.ts', settings: undefined })
+  const file = new TsFile({ path: 'out.ts', settings: undefined })
   file.definitions.set(def.identifier.name, def)
 
   const sidecar = postPass({
@@ -122,7 +129,7 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
     identifier: Identifier.createVariable('B'),
     value: new FakeSnippet(c, () => '2', keyB)
   })
-  const file = new File({ path: 'out.ts', settings: undefined })
+  const file = new TsFile({ path: 'out.ts', settings: undefined })
   file.definitions.set('A', defA)
   file.definitions.set('B', defB)
 
@@ -152,7 +159,7 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
     identifier: Identifier.createVariable('User'),
     value: new FakeSnippet(c, () => "'x'", key)
   })
-  const file = new File({ path: 'out.ts', settings: undefined })
+  const file = new TsFile({ path: 'out.ts', settings: undefined })
   file.definitions.set('User', def)
 
   const sidecar = postPass({
@@ -182,7 +189,7 @@ Deno.test('postPass - anchor bytes survive a slice through the rendered source',
     identifier: Identifier.createVariable('Whole'),
     value
   })
-  const file = new File({ path: 'out.ts', settings: undefined })
+  const file = new TsFile({ path: 'out.ts', settings: undefined })
   file.definitions.set('Whole', def)
 
   const rendered = renderFile(file)
@@ -202,7 +209,7 @@ Deno.test('postPass - anchor bytes survive a slice through the rendered source',
 })
 
 Deno.test('postPass - empty file yields a sidecar with no anchors', () => {
-  const file = new File({ path: 'empty.ts', settings: undefined })
+  const file = new TsFile({ path: 'empty.ts', settings: undefined })
   const sidecar = postPass({
     ...renderFile(file),
     schemaSrc: 'openapi.json',

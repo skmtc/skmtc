@@ -55,6 +55,7 @@ import type { StackTrail } from './StackTrail.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
 import { Inserted } from '@/dsl/Inserted.ts'
+import type { CaptureChannel, CaptureSink } from '@/anchors/CaptureSink.ts'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
@@ -84,6 +85,13 @@ type ConstructorArgs = {
   logger: log.Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  /**
+   * Shared attribution capture channel — the slot `RenderContext` flips to
+   * open/close the capture interval. Snippets read it through this
+   * context's {@link GenerateContext.captureSink}. Optional: when omitted
+   * (tests, capture-less runs) `captureSink` is always `undefined`.
+   */
+  captureChannel?: CaptureChannel
 }
 
 /**
@@ -256,12 +264,16 @@ export class GenerateContext implements GenerateContextType {
    *
    * @param args - Constructor arguments including document, settings, and handlers
    */
+  /** Shared attribution capture channel (see {@link ConstructorArgs}). */
+  #captureChannel: CaptureChannel | undefined
+
   constructor({
     document,
     settings,
     logger,
     captureCurrentResult,
-    toGeneratorConfigMap
+    toGeneratorConfigMap,
+    captureChannel
   }: ConstructorArgs) {
     this.logger = logger
     this.#files = new Map()
@@ -272,6 +284,17 @@ export class GenerateContext implements GenerateContextType {
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
     this.modelDepth = {}
+    this.#captureChannel = captureChannel
+  }
+
+  /**
+   * The active attribution capture sink, or `undefined` outside the
+   * capture interval. Every `SnippetBase` instance's `toString` wrapper
+   * reads this; `RenderContext` opens/closes the interval by flipping the
+   * shared channel's `sink`.
+   */
+  get captureSink(): CaptureSink | undefined {
+    return this.#captureChannel?.sink
   }
 
   /**

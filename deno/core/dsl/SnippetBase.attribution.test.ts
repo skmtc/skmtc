@@ -1,20 +1,22 @@
-import { assert, assertEquals, assertNotStrictEquals } from '@std/assert'
-import { SnippetBase, seenSnippetConstructors } from './SnippetBase.ts'
+import { assert, assertEquals, assertNotStrictEquals, assertStrictEquals } from '@std/assert'
+import { SnippetBase } from './SnippetBase.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import type { OasSchema } from '@/oas/schema/Schema.ts'
+import { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
-// SnippetBase holds no capture state and installs no shadow `toString`.
-// Capture is the render phase's job (see CaptureSink.test.ts); here we
-// pin SnippetBase's own contract.
+// SnippetBase self-wraps `toString` at construction (own-property wrapper)
+// and reads the capture sink through `this.context.captureSink`. Outside
+// the capture interval the wrapper is a pure pass-through. Full occurrence
+// semantics live in CaptureSink.test.ts; here we pin SnippetBase's own
+// contract.
 const stubContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
 class FakeSnippet extends SnippetBase {
   body: () => string
   toStringCalls = 0
 
-  constructor(context: GenerateContextType, body: () => string, schema?: OasSchema) {
-    super({ context, schema })
+  constructor(context: GenerateContextType, body: () => string, stackTrail?: StackTrail) {
+    super({ context, stackTrail })
     this.body = body
   }
 
@@ -24,21 +26,44 @@ class FakeSnippet extends SnippetBase {
   }
 }
 
-Deno.test(
-  'SnippetBase - no instance-level toString shadow; toString stays on the prototype',
-  () => {
-    const s = new FakeSnippet(stubContext(), () => 'hello')
-    // The constructor no longer reassigns `this.toString`.
-    assertEquals(Object.hasOwn(s, 'toString'), false)
-    assertEquals(`${s}`, 'hello')
-  }
-)
+Deno.test('SnippetBase - installs a shared, non-enumerable own-property toString wrapper', () => {
+  const first = new FakeSnippet(stubContext(), () => 'hello')
+  const second = new FakeSnippet(stubContext(), () => 'world')
 
-Deno.test('SnippetBase - toString is a pure pass-through outside capture (no caching)', () => {
+  // Self-wrap at birth: the wrapper is an own property (it must shadow
+  // every prototype toString)...
+  assertEquals(Object.hasOwn(first, 'toString'), true)
+  // ...one shared function value, no per-instance closure...
+  assertStrictEquals(first.toString, second.toString)
+  // ...non-enumerable, so it never shows up in spreads / Object.keys.
+  assertEquals(Object.keys(first).includes('toString'), false)
+  // The prototype's real implementation is untouched.
+  assertEquals(`${first}`, 'hello')
+  assertEquals(`${second}`, 'world')
+})
+
+Deno.test('SnippetBase - toString is a pure pass-through outside the capture interval', () => {
+  // Bare mock context: `.captureSink` reads `undefined` → pass-through.
   const s = new FakeSnippet(stubContext(), () => 'hello')
   assertEquals(`${s}`, 'hello')
   assertEquals(`${s}`, 'hello')
   // No cache: the subclass body runs on every coercion.
+  assertEquals(s.toStringCalls, 2)
+})
+
+Deno.test('SnippetBase - observes into the context capture sink during a file render', () => {
+  const sink = new CaptureSink()
+  const context = { captureSink: sink } as unknown as GenerateContextType
+  const s = new FakeSnippet(context, () => 'observed')
+
+  // Inside the sink's file render, the wrapper routes through observe —
+  // output is returned verbatim and the real toString still runs.
+  const { text } = sink.captureFile(() => `${s}`)
+  assertEquals(text, 'observed')
+  assertEquals(s.toStringCalls, 1)
+
+  // Between files (interval open, no file rendering) observe passes through.
+  assertEquals(`${s}`, 'observed')
   assertEquals(s.toStringCalls, 2)
 })
 
@@ -49,26 +74,22 @@ Deno.test('SnippetBase - carries no _rendered / _children capture fields', () =>
   assertEquals('_children' in s, false)
 })
 
-Deno.test('SnippetBase - registers its concrete subclass via new.target', () => {
-  new FakeSnippet(stubContext(), () => 'x')
-  assert(seenSnippetConstructors.has(FakeSnippet))
-})
-
-Deno.test('SnippetBase - empty schemaPointer when no originating schema', () => {
+Deno.test('SnippetBase - empty stackTrail when no originating position is passed', () => {
   const s = new FakeSnippet(stubContext(), () => 'x')
-  assert(s.schemaPointer.isEmpty())
+  assert(s.stackTrail.isEmpty())
 })
 
-Deno.test('SnippetBase - clones the schema stackTrail (snapshot, not alias)', () => {
-  const trail = new StackTrail(['components', 'schemas', 'Pet'])
-  const schema = { stackTrail: trail } as unknown as OasSchema
-  const s = new FakeSnippet(stubContext(), () => 'x', schema)
+Deno.test('SnippetBase - stores the caller-supplied stackTrail snapshot as-is', () => {
+  // The clone lives at the CALL SITE — the boundary where the live,
+  // mutable trail is in hand: `stackTrail: schema.stackTrail.clone()`.
+  const live = new StackTrail(['components', 'schemas', 'Pet'])
+  const s = new FakeSnippet(stubContext(), () => 'x', live.clone())
 
   // The snapshot is a distinct instance with equal frames...
-  assertNotStrictEquals(s.schemaPointer, trail)
-  assertEquals(s.schemaPointer.stackTrail, ['components', 'schemas', 'Pet'])
+  assertNotStrictEquals(s.stackTrail, live)
+  assertEquals(s.stackTrail.stackTrail, ['components', 'schemas', 'Pet'])
 
-  // ...so mutating the source trail does not corrupt the captured pointer.
-  trail.append('properties')
-  assertEquals(s.schemaPointer.stackTrail, ['components', 'schemas', 'Pet'])
+  // ...so mutating the source trail does not corrupt the captured position.
+  live.append('properties')
+  assertEquals(s.stackTrail.stackTrail, ['components', 'schemas', 'Pet'])
 })

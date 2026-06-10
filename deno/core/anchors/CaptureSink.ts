@@ -3,18 +3,22 @@
  *
  * The capture mechanism for gen-maps. A {@link CaptureSink} is owned by
  * {@link import('@/context/RenderContext.ts').RenderContext} for the
- * duration of the single render pass. {@link installCapture} wraps the
- * `toString` of every concrete `SnippetBase` subclass seen during generate
- * (discovered via `seenSnippetCtors`) so that, while the sink is active,
- * each `toString` invocation is observed into an **occurrence tree** — one
- * node per call, keyed by invocation, not by instance. The wrapper is a
- * pure pass-through: it returns the subclass `toString`'s output verbatim
- * and only *observes* it.
+ * duration of the single render pass and published to snippets through the
+ * shared {@link CaptureChannel}: every `SnippetBase` instance self-wraps
+ * its `toString` at construction (own-property wrapper), and the wrapper
+ * observes into the channel's sink while the **capture interval** is open
+ * — the span while `channel.sink` is set. Each `toString` invocation is
+ * observed into an **occurrence tree** — one node per call, keyed by
+ * invocation, not by instance. The wrapper is a pure pass-through: it
+ * returns the subclass `toString`'s output verbatim and only *observes*
+ * it.
  *
- * This replaces the old always-on, instance-level capture (`_rendered` /
- * `_children` on `SnippetBase` + a module-global render stack). All capture
- * state now lives here, transiently, and is discarded once sidecars are
- * built. Outside the render pass there is no wrapper and no state, so a
+ * This replaces the old module-global constructor registry +
+ * render-time prototype wrapping: discovery is per-instance (self-wrap at
+ * birth — snippets constructed mid-render are captured too), the sink
+ * travels by object reference through `this.context` (no duplicate-module
+ * silent-failure hazard), and opening/closing the interval is a flag flip
+ * (no install/restore pass). Outside the interval there is no state, so a
  * stray `toString()` during the generate phase captures nothing.
  *
  * Offset capture (this is the "store output, locate via `indexOf`" cut —
@@ -29,9 +33,19 @@
  * consistent with the rest of the attribution layer.
  */
 
-import { SnippetBase, seenSnippetConstructors } from '@/dsl/SnippetBase.ts'
+import type { SnippetBase } from '@/dsl/SnippetBase.ts'
 import { DefinitionBase } from '@/dsl/Definition.ts'
 import type { Span } from './types.ts'
+
+/**
+ * The shared slot through which the capture sink travels — created once
+ * per run by `CoreContext`, handed to `GenerateContext` (snippets read it
+ * via `this.context.captureSink`) and to `RenderContext` (which sets
+ * `channel.sink` around the one capturing render and clears it in
+ * `finally`). The capture interval is exactly the span while `sink` is
+ * set.
+ */
+export type CaptureChannel = { sink: CaptureSink | undefined }
 
 /**
  * One `toString` invocation captured during the render pass. Keyed by
@@ -50,10 +64,10 @@ type Occurrence = {
 /**
  * Transient capture state for one render pass. Owned by `RenderContext`.
  *
- * `active` gates the installed wrapper: only while a file is rendering
- * (inside {@link captureFile}) does the wrapper observe; otherwise it is an
- * inert pass-through. This keeps a stray `toString()` between files (or
- * between install and the first `captureFile`) from polluting the tree.
+ * `active` gates {@link observe}: only while a file is rendering (inside
+ * {@link captureFile}) does an observation record; otherwise `observe` is
+ * an inert pass-through. This keeps a stray `toString()` between files
+ * from polluting the tree even while the capture interval is open.
  */
 export class CaptureSink {
   /** Live stack of occurrences currently rendering (innermost last). */
@@ -63,7 +77,7 @@ export class CaptureSink {
   /** Whether a file render is in progress (wrapper observes only then). */
   #active = false
 
-  /** True while a file is rendering — the installed wrapper checks this. */
+  /** True while a file is rendering — {@link observe} checks this. */
   get active(): boolean {
     return this.#active
   }
@@ -94,17 +108,23 @@ export class CaptureSink {
   }
 
   /**
-   * Observe one `toString` invocation. Installed wrapper calls this while
-   * the sink is active. Pushes an occurrence node, links it to its parent
-   * (or the file roots), runs the original `toString`, records the output,
-   * and returns it verbatim.
+   * Observe one `toString` invocation. The per-instance wrapper installed
+   * by the `SnippetBase` constructor calls this whenever the capture
+   * interval is open. Outside a file render (`active` false) it is a pure
+   * pass-through; inside one it pushes an occurrence node, links it to its
+   * parent (or the file roots), runs the real `toString`, records the
+   * output, and returns it verbatim.
    *
-   * @throws when `instance` is already live on the stack — a snippet that
+   * @throws when `producer` is already live on the stack — a snippet that
    *   composes itself, which would otherwise infinitely recurse.
    */
-  capture(instance: SnippetBase, original: () => string): string {
+  observe(producer: SnippetBase, impl: (this: SnippetBase) => string): string {
+    if (!this.#active) {
+      return impl.call(producer)
+    }
+
     for (const node of this.#stack) {
-      if (node.producer === instance) {
+      if (node.producer === producer) {
         throw new Error(
           'CaptureSink: render cycle detected — a Snippet recursively ' +
             'includes itself via composition. Break the cycle in your ' +
@@ -113,13 +133,13 @@ export class CaptureSink {
       }
     }
 
-    const node: Occurrence = { producer: instance, output: '', children: [] }
+    const node: Occurrence = { producer, output: '', children: [] }
     const parent = this.#stack[this.#stack.length - 1]
     ;(parent ? parent.children : (this.#fileRoots ?? [])).push(node)
 
     this.#stack.push(node)
     try {
-      node.output = original.call(instance)
+      node.output = impl.call(producer)
       return node.output
     } finally {
       this.#stack.pop()
@@ -181,62 +201,5 @@ const walkChildren = (parent: Occurrence, parentStart: number, out: Span[]): voi
     out.push({ from, to: from + childText.length, producer: child.producer })
     walkChildren(child, from, out)
     cursor = index + childText.length
-  }
-}
-
-/**
- * Structural view of a `toString`-bearing prototype, for the reflective
- * wrap. The cast to this shape is the one unavoidable bit of prototype
- * metaprogramming.
- */
-type ToStringHost = { toString: (this: SnippetBase) => string }
-
-/**
- * Install the capture wrapper for a render pass and return a restore
- * function (call it in `finally`).
- *
- * For each concrete subclass seen during generate, find the prototype its
- * instances' `toString` resolves to (walking up to, but not past,
- * `SnippetBase.prototype`) and replace that prototype's `toString` with a
- * wrapper closing over `sink`. The wrapper observes via `sink.capture` only
- * while the sink is active, else passes through. Each prototype is wrapped
- * once even if several leaves resolve to it.
- *
- * Wrapping the *resolved* prototype (not blindly every prototype in the
- * chain) means an inner call reaches the real method, not another wrapper —
- * there is no `super.toString()` in the corpus, so no double-capture.
- */
-export const installCapture = (sink: CaptureSink): (() => void) => {
-  const restores: Array<() => void> = []
-  const wrapped = new Set<object>()
-
-  for (const subclass of seenSnippetConstructors) {
-    let prototype: object | null = subclass.prototype
-    while (
-      prototype &&
-      prototype !== SnippetBase.prototype &&
-      !Object.hasOwn(prototype, 'toString')
-    ) {
-      prototype = Object.getPrototypeOf(prototype)
-    }
-
-    if (!prototype || wrapped.has(prototype) || !Object.hasOwn(prototype, 'toString')) {
-      continue
-    }
-    wrapped.add(prototype)
-
-    // Reflective wrap: read and replace the prototype's own `toString`.
-    const host = prototype as ToStringHost
-    const original = host.toString
-    host.toString = function (this: SnippetBase): string {
-      return sink.active ? sink.capture(this, original) : original.call(this)
-    }
-    restores.push(() => {
-      host.toString = original
-    })
-  }
-
-  return () => {
-    for (const restore of restores) restore()
   }
 }

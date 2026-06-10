@@ -26,6 +26,7 @@ import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
+import type { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { Sidecar } from '@/anchors/sidecar.ts'
 import type { GenerationMapEntry } from '@/anchors/generationMap.ts'
 
@@ -430,6 +431,15 @@ export type GenerateContextType = {
    * skipped entirely — zero cost.
    */
   attribution?: AttributionState
+  /**
+   * The active attribution capture sink, or `undefined` outside the
+   * capture interval. Read by every `SnippetBase` instance's `toString`
+   * wrapper; `RenderContext` opens/closes the interval through the shared
+   * {@link import('@/anchors/CaptureSink.ts').CaptureChannel} that
+   * `CoreContext` wires into both contexts. Bare test mocks read
+   * `undefined` and take the pass-through path.
+   */
+  captureSink: CaptureSink | undefined
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   register: (args: ContextRegisterArgs) => void
