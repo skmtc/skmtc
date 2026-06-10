@@ -54,7 +54,10 @@ const createMockContext = (options?: {
     toOperationContentSettings: toOperationContentSettingsSpy,
     findDefinition: findDefinitionSpy,
     register: registerSpy,
-    resolveLang: () => typescript
+    // The Driver pre-ensures destination files caller-side through the
+    // projection's static lang: file-miss → `addFile(lang.createFile(...))`.
+    getFile: spy(() => undefined),
+    addFile: spy(() => {})
   } as unknown as GenerateContextType
 
   return {
@@ -85,6 +88,9 @@ const createMockProjection = (options?: {
 }): GqlOperationProjection<any, undefined> => {
   class MockProjection extends GqlOperationProjectionBase<undefined> {
     static id = options?.id ?? 'MockProjection'
+    // The static the Driver reads (`this.projection.lang`) — stands in for
+    // the static a real projection inherits from its lang snippet base.
+    static lang = typescript
     static type = 'gqlOperation' as const
     static isSupported = options?.isSupported
 
@@ -498,6 +504,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       class SpyProjection extends GqlOperationProjectionBase<undefined> {
         static id = 'SpyProjection'
+        static lang = typescript
         static type = 'gqlOperation' as const
         static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
           Identifier.createVariable(operation.fieldName)
@@ -648,6 +655,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       class TrackingProjection extends GqlOperationProjectionBase<undefined> {
         static id = 'TrackingProjection'
+        static lang = typescript
         static type = 'gqlOperation' as const
         static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
           Identifier.createVariable(operation.fieldName)

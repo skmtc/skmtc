@@ -3,7 +3,7 @@ import { assertEquals } from '@std/assert/equals'
 import { Identifier } from '@/dsl/Identifier.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
-import { GqlOperationProjectionBase } from './GqlOperationProjectionBase.ts'
+import { TsSnippet } from '@skmtc/lang-typescript'
 import { OasString } from '@/oas/string/String.ts'
 import type {
   ToGqlOperationIdentifierArgs,
@@ -27,6 +27,7 @@ const createMockGqlOperation = (
 
 Deno.test('toGqlOperationProjectionBase - returns a class constructor', () => {
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -38,6 +39,7 @@ Deno.test('toGqlOperationProjectionBase - returns a class constructor', () => {
 
 Deno.test('toGqlOperationProjectionBase - sets static id from config', () => {
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'graphql-operations',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -48,6 +50,7 @@ Deno.test('toGqlOperationProjectionBase - sets static id from config', () => {
 
 Deno.test('toGqlOperationProjectionBase - sets static type to operation', () => {
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -61,6 +64,7 @@ Deno.test('toGqlOperationProjectionBase - sets static toIdentifier from config',
     Identifier.createVariable(operation.fieldName)
 
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'test-operation',
     toIdentifier: identifierFn,
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -78,6 +82,7 @@ Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config',
     `./generated/${operation.fieldName}.ts`
 
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: exportPathFn
@@ -96,6 +101,7 @@ Deno.test(
   'toGqlOperationProjectionBase - toEnrichments returns undefined when no enrichmentSchema provided',
   () => {
     const OperationClass = toGqlOperationProjectionBase({
+      base: TsSnippet,
       id: 'test-operation',
       toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
       toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -117,6 +123,7 @@ Deno.test(
   'toGqlOperationProjectionBase - toEnrichments returns undefined when no enrichments in context',
   () => {
     const OperationClass = toGqlOperationProjectionBase({
+      base: TsSnippet,
       id: 'test-operation',
       toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
       toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -136,6 +143,7 @@ Deno.test(
 
 Deno.test('toGqlOperationProjectionBase - toIdentifier works with different operations', () => {
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'test-operation',
     toIdentifier: ({ operation }) =>
       Identifier.createVariable(`${operation.rootKind}${operation.fieldName}`),
@@ -156,6 +164,7 @@ Deno.test('toGqlOperationProjectionBase - toIdentifier works with different oper
 
 Deno.test('toGqlOperationProjectionBase - toExportPath works with different operations', () => {
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./types/${operation.rootKind}-${operation.fieldName}.d.ts`
@@ -173,6 +182,7 @@ Deno.test('toGqlOperationProjectionBase - toExportPath works with different oper
 
 Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorKey', () => {
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'graphql-client',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -199,6 +209,7 @@ Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorK
 
 Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase', () => {
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'test-operation',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`
@@ -221,12 +232,13 @@ Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase
     } as any
   })
 
-  assertEquals(instance instanceof GqlOperationProjectionBase, true)
+  assertEquals(instance instanceof TsSnippet, true)
   assertEquals(instance instanceof OperationClass, true)
 })
 
 Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', () => {
   const OperationClass = toGqlOperationProjectionBase<{ enabled: boolean; timeout?: number }>({
+    base: TsSnippet,
     id: 'graphql-client',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`,
@@ -270,6 +282,7 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', 
 
 Deno.test('toGqlOperationProjectionBase - toEnrichments retrieves from correct nested path', () => {
   const OperationClass = toGqlOperationProjectionBase({
+    base: TsSnippet,
     id: 'graphql-api',
     toIdentifier: ({ operation }) => Identifier.createVariable(operation.fieldName),
     toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`

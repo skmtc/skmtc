@@ -39,6 +39,10 @@ export {
   toOasOperationProjectionBase,
   type TsOasOperationProjectionBaseConfig
 } from './src/toOasOperationProjectionBase.ts'
+export {
+  toGqlOperationProjectionBase,
+  type TsGqlOperationProjectionBaseConfig
+} from './src/toGqlOperationProjectionBase.ts'
 export { ReactRouterPathParams } from './src/ReactRouterPathParams.ts'
 export { TsFile, type TsFileArgs } from './src/TsFile.ts'
 export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'
