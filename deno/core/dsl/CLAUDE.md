@@ -4,11 +4,14 @@ The code-generation DSL. The vocabulary:
 
 - **`SnippetBase`** — anonymous, embedded value. `toString()` is
   interpolated into a Projection's body.
-- **`Projection`** — exportable named artifact. Three flavours:
-  `ModelProjectionBase`, `OasOperationProjectionBase`,
-  `GqlOperationProjectionBase`. Each carries
-  `settings: ContentSettings<E>` (which includes
-  `settings.variant`) and a `generatorKey`.
+- **`Projection`** — exportable named artifact. Three flavours, built by
+  the projection-base factories (`toModelProjectionBase`,
+  `toOasOperationProjectionBase`, `toGqlOperationProjectionBase`) on a
+  language package's snippet base (`base: LangSnippetConstructor`) —
+  generators consume them through the lang package's veneers (e.g.
+  `toModelProjectionBase` from `@skmtc/lang-typescript`). Each carries
+  `settings: ContentSettings<E>` (which includes `settings.variant`) and
+  a `generatorKey`.
 - **`Definition`** — the Driver-built wrapper around a Projection's
   value. Stamped with `generatorKey` for the integrity check.
 - **`ContentSettings`** — the bundle of `(identifier, exportPath,
@@ -17,18 +20,20 @@ The code-generation DSL. The vocabulary:
 - **`Identifier`** — wraps a string name + entity type
   (variable / type). Use `Identifier.createVariable(name)` or
   `Identifier.createType(name)`.
-- **`Import` / `File`** — legacy TypeScript-concrete classes. Since
-  core 0.7.x the engine is language-blind: it speaks the abstract
-  bases (`ImportBase`, `CodeFileBase`, `DefinitionBase`) and builds
-  concrete instances through the `Lang` object declared on each
-  generator's entry (`toX…Entry({ lang })`), resolved by `generatorId`
-  via `GenerateContext.resolveLang`. TypeScript subclasses
-  (`TsFile`/`TsImport`/`TsDefinition`) live in `@skmtc/lang-typescript`.
-  `register`/`defineAndRegister` take `generatorId` (pure data — no
-  `createFile`, no `Lang`); projection `register` is own-file-only,
-  `registerInto(path, args)` is the explicit cross-file path; a
-  registering Snippet currently requires a `generatorKey` (F7 in
-  `notes/lang/checklist.md` tracks relaxing this).
+- **`ImportBase` / `ReExportBase` / `CodeFileBase` / `DefinitionBase`** —
+  the neutral contracts the language-blind engine speaks. Concrete
+  classes (`TsFile`/`TsImport`/`TsReExport`/`TsDefinition`) live in
+  `@skmtc/lang-typescript`; Drivers reach them through the `Lang`
+  factories read ephemerally off the projection class's static
+  (`projection.lang`, inherited from the lang snippet base). The legacy
+  core `File`/`Import` classes are deleted. `context.register` is pure
+  data (`ImportBase[]`/`ReExportBase[]`/`DefinitionBase[]` +
+  `destinationPath`) and never creates files — callers pre-create
+  through their language (the lang package's register function, the
+  Drivers). Projection `register` (on the lang veneer) is own-file-only;
+  `registerInto(path, args)` is the explicit cross-file path; snippet
+  `register` (on `TsSnippet`) takes an explicit `destinationPath` and is
+  **keyless** — `generatorKey` is optional attribution input only.
 - **`GeneratorKey`** — branded pipe-delimited string. 4 segments for
   operations (`id|path|method|variant` OAS, `id|rootKind|fieldName|variant` GQL),
   3 for models (`id|refName|variant`), 1 for generator-only.

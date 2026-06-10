@@ -3,18 +3,22 @@
 The model half of the projection machinery, symmetric with
 `core/dsl/operation/oas/`. Files:
 
-- `ModelProjectionBase.ts` — runtime base class. Subclasses extend
-  it. Carries `settings: ContentSettings<E>` (including
-  `settings.variant`) and `generatorKey`. The `insertModel` /
-  `insertNormalizedModel` wrappers accept an optional `variant` arg
-  and forward it through `context`.
-- `toModelProjectionBase.ts` — factory. Builds a class with static
-  `toIdentifier` / `toExportPath` / `toEnrichments` / `isSupported`
-  / `id` / `type`. The constructor reads `args.settings.variant`
-  and threads it into the `toModelGeneratorKey` call so the
-  resulting Definition's `generatorKey` carries the variant.
-  Enrichment lookup walks `enrichments.${id}.${refName}.${variant}`.
-- `toModelEntry.ts` — pipeline-side factory. `transform`,
+- `toModelProjectionBase.ts` — factory. Takes a
+  `base: LangSnippetConstructor` (a language package's snippet base,
+  pre-bound by the lang veneer — e.g. `toModelProjectionBase` from
+  `@skmtc/lang-typescript`) and builds a class on it carrying the
+  projection machinery (`settings`, `refName`, `generatorKey`
+  injection, `insertModel` / `insertNormalizedModel` with optional
+  `variant`) plus the statics `toIdentifier` / `toExportPath` /
+  `toEnrichments` / `isSupported` / `id` / `type` / the inherited
+  `lang`. Defines NO register — that's the veneer's. The constructor
+  reads `args.settings.variant` and threads it into the
+  `toModelGeneratorKey` call so the resulting Definition's
+  `generatorKey` carries the variant. Enrichment lookup walks
+  `enrichments.${id}.${refName}.${variant}`.
+- `toModelEntry.ts` — pipeline-side factory; pure pipeline config (no
+  `lang` — the import graph declares the language). `transform`
+  (`({ context, refName, variant }) => void` — no accumulator),
   `toPreviewModule`, and `toMappingModule` all receive `variant`.
   No `isSupported` field; model entries filter inside `transform`.
 - `ModelDriver.ts` — the insertion lifecycle (compose

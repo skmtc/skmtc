@@ -3,15 +3,17 @@
 This directory contains the OAS-operation half of the projection
 machinery. Files:
 
-- `OasOperationProjectionBase.ts` — runtime base class. Subclasses
-  extend it. Carries `settings: ContentSettings<E>` (including
-  `settings.variant`) and `generatorKey`.
-- `toOasOperationProjectionBase.ts` — factory. Builds a class with
-  static `toIdentifier` / `toExportPath` / `toEnrichments` /
-  `isSupported` / `id` / `type`. The constructor reads
-  `args.settings.variant` and threads it into the
-  `toOasOperationGeneratorKey` call so the resulting Definition's
-  `generatorKey` carries the variant.
+- `toOasOperationProjectionBase.ts` — factory. Takes a
+  `base: LangSnippetConstructor` (pre-bound by the lang veneer — e.g.
+  `toOasOperationProjectionBase` from `@skmtc/lang-typescript`) and
+  builds a class on it carrying the projection machinery (`settings`,
+  `operation`, `generatorKey` injection, `insertOperation` /
+  `insertModel` / `insertNormalizedModel`) plus the statics
+  `toIdentifier` / `toExportPath` / `toEnrichments` / `isSupported` /
+  `id` / `type` / the inherited `lang`. Defines NO register — that's
+  the veneer's. The constructor reads `args.settings.variant` and
+  threads it into the `toOasOperationGeneratorKey` call so the
+  resulting Definition's `generatorKey` carries the variant.
 - `toOasOperationEntry.ts` — pipeline-side factory. Wraps user's
   `isSupported` / `transform` etc. in a config object. The
   `isSupported` wrapper does its own enrichment-path walk via

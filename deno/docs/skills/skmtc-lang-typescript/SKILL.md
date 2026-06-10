@@ -3,9 +3,11 @@ name: skmtc-lang-typescript
 version: 0.1.0
 description: |
   The TypeScript target-language layer for SKMTC generators
-  (`@skmtc/lang-typescript`). Covers wiring `lang: typescript` on a
-  generator entry, what the lang package exports (the `typescript` Lang
-  object, `TsFile` / `TsImport` / `TsDefinition` / `TsObject`), entity
+  (`@skmtc/lang-typescript`). Covers how a generator declares
+  TypeScript as its target language (importing the projection-base
+  veneers and `TsSnippet` from the lang package), what the lang package
+  exports (the `typescript` Lang object, the register family,
+  `TsFile` / `TsImport` / `TsDefinition` / `TsObject`), entity
   kinds and `Identifier` factories, the import model of emitted
   TypeScript (type-only imports, TS1484 / `verbatimModuleSyntax`,
   `toImport()`), the TS syntax helpers (`List`, `FunctionParameter`,
@@ -13,12 +15,12 @@ description: |
 
   Use this skill alongside `skmtc-generator` whenever a generator emits
   TypeScript — i.e. for almost all generator authoring today — and
-  specifically when the user asks about "lang: typescript", "type-only
-  imports", "TS1484", "import type", "where do I import List from",
-  "sanitizePropertyName", or anything about the *shape of the emitted
-  TypeScript* rather than engine behavior. Engine rules (Projections,
-  Snippets, register, cross-generator coordination, variants) live in
-  `skmtc-generator`. This skill is also the TEMPLATE for future
+  specifically when the user asks about "lang-typescript", "TsSnippet",
+  "type-only imports", "TS1484", "import type", "where do I import List
+  from", "sanitizePropertyName", or anything about the *shape of the
+  emitted TypeScript* rather than engine behavior. Engine rules
+  (Projections, Snippets, cross-generator coordination, variants) live
+  in `skmtc-generator`. This skill is also the TEMPLATE for future
   `skmtc-lang-<X>` skills (Kotlin, C#, …): a new language skill keeps
   these section headings and replaces the answers.
 allowed-tools:
@@ -57,42 +59,60 @@ piece. The boundary rule, worth internalizing first:
 
 | Export | What it is |
 |---|---|
-| `typescript` | The `Lang` object. Four neutral factories the **engine** calls: `createFile`, `toDefinition`, `toImports`, `toImport`. Generators pass it to the entry factory and otherwise never call it. |
-| `TsFile` | `CodeFileBase` subclass — a TypeScript output file (imports, definitions, package-aware module normalization) |
+| `typescript` | The `Lang` object. Three neutral factories the engine's **Drivers** call, reading it ephemerally off the projection class's inherited static (`projection.lang`): `createFile`, `toDefinition`, `toImport`. Generators never call it. |
+| `TsSnippet` | The snippet base — where TypeScript enters the DSL class hierarchy. Carries the static `lang`; its `register` / `defineAndRegister` methods are typed by the concise vocabulary. Registering snippets are **keyless** (`generatorKey` is optional attribution input) |
+| `toModelProjectionBase` / `toOasOperationProjectionBase` / `toGqlOperationProjectionBase` | The projection-base veneers over core's factories — pre-bind `base: TsSnippet` and add own-file `register(args)` + explicit cross-file `registerInto(destinationPath, args)` (+ `Ts*ProjectionBaseConfig` types) |
+| `register` / `defineAndRegister` | The register **functions** — convert the concise form, ensure the destination file, hand pure data to the neutral `context.register`. Transforms (closures with no class) import `defineAndRegister` directly |
+| `TsRegisterArgs` / `TsDefineAndRegisterArgs` | The concise register vocabulary (`imports` / `reExports` / `definitions`) |
+| `TsFile` | `CodeFileBase` subclass — a TypeScript output file (imports, re-exports, definitions, package-aware module normalization) |
 | `TsImport` | `ImportBase` subclass — renders import statements, including per-name `type` tags and statement-level `import type { … }` optimization |
+| `TsReExport` | `ReExportBase` subclass — renders `export { x }` / `export type { x }` re-export statements (the barrel seam) |
 | `TsDefinition` | `DefinitionBase` subclass — wraps a generated value as `export const/type Name: Type = value;` with optional JSDoc |
 | `TsObject` | Renders TypeScript object type literals (`{ a: T; b?: U }`) from `TsPropertyArgs[]` |
-| `ReactRouterPathParams` | A stock `SnippetBase` for React-Router param plumbing |
+| `ImportNameArg` | The concise import-name shape (`'name'`, `{ name, type: 'type' }`, `{ name, alias }`) accepted by `register({ imports })` |
+| `normalizeModuleName` | Module-specifier normalization helper |
+| `ReactRouterPathParams` | A stock snippet (`TsSnippet` subclass) for React-Router param plumbing |
 | `langId` | `'typescript'` |
 | `fileExtensions` | `['.ts', '.tsx']` |
 
-### Wiring — the ONE place the language is declared
+### Wiring — the import graph declares the language
 
 ```ts
-// gen-x/src/mod.ts
+// gen-x/src/base.ts — the language enters HERE, through the import
+import { toModelProjectionBase } from '@skmtc/lang-typescript'
+
+export const MyBase = toModelProjectionBase({
+  id: denoJson.name,
+  toIdentifier({ refName }) { /* … */ },
+  toExportPath({ refName }) { /* … */ }
+})
+```
+
+```ts
+// gen-x/src/mod.ts — the entry is pure pipeline config; NO lang field
 import { toModelEntry } from '@skmtc/core'
-import { typescript } from '@skmtc/lang-typescript'
 import denoJson from '../deno.json' with { type: 'json' }
 
 export const myEntry = toModelEntry({
   id: denoJson.name,
-  lang: typescript,            // ⬅ required; the single home of the language
   transform({ context, refName }) { /* … */ }
 })
 ```
 
-`lang` goes on the **entry** (`toModelEntry` / `toOasOperationEntry` /
-`toGqlOperationEntry`) and nowhere else. The engine resolves it by
-`generatorId` (`context.resolveLang`) when it needs to create a file or
-build a Definition. Projection bases do **not** take `lang`; snippets
-do **not** carry it; `register` calls never pass it. A generator
-emitting TypeScript needs exactly one `import { typescript }` — in the
-entry file.
+There is no `lang` config field anywhere — not on the entry, not on
+the projection base, not on snippets; `register` calls never pass one.
+A generator declares its language by importing its projection-base
+factory (and, for registering snippets, `TsSnippet`) from this
+package. The language rides the class hierarchy as the static `lang`
+on `TsSnippet`; the engine's Drivers read it ephemerally off the
+projection class (`projection.lang`) when they need to create a file
+or build a Definition.
 
 Generators normally never construct `TsFile` / `TsDefinition` /
-`TsImport` directly — the engine builds them through the `typescript`
-Lang object. If you find yourself `new TsImport(...)` in a generator,
-you almost certainly wanted `this.register({ imports })`.
+`TsImport` directly — this package's register functions and the
+engine's Drivers build them. If you find yourself `new TsImport(...)`
+in a generator, you almost certainly wanted
+`this.register({ imports })`.
 
 The package dependency (both required):
 
@@ -132,8 +152,10 @@ Identifier.createType('FooBar')                          // → export type FooB
 
 ## 3. The import model of emitted TypeScript
 
-Generators register imports in the concise form; the language converts
-them to `TsImport`s at the register boundary:
+Generators register imports in the concise form (`ImportNameArg`,
+exported from this package — not from `@skmtc/core`); the language's
+register function converts them to `TsImport`s at the register
+boundary:
 
 ```ts
 this.register({
@@ -233,9 +255,9 @@ equivalents; do not reach for these when targeting another language.
   and `import type` collapsing. Engine-side rule (`skmtc-generator`
   §8) — listed here because the failure is a TS compile error.
 - **Constructing `TsFile` / `TsImport` / `TsDefinition` in a
-  generator** — those are the engine's to build via the `typescript`
-  Lang object. Generators speak `register` / `insertOperation` /
-  `defineAndRegister`.
+  generator** — those are built by this package's register functions
+  and the engine's Drivers. Generators speak `register` /
+  `insertOperation` / `defineAndRegister`.
 - **Running a formatter over the output** — render is unformatted by
   design; the consumer formats. (Engine fact; restated because "add
   Prettier" is a TS-flavored instinct.)
@@ -252,9 +274,11 @@ equivalents; do not reach for these when targeting another language.
 
 ### Status note (read before relying on import paths)
 
-The code boundary lags the design: `Identifier`, `EntityType`,
-`sanitizePropertyName`, and the §4 syntax helpers still live in
-`@skmtc/core` (F5/F6 in `notes/lang/checklist.md`). This
-skill documents the **current** import paths; when F5/F6 land, the
+The code boundary still lags the design in the naming layer:
+`Identifier`, `EntityType`, `sanitizePropertyName`, and the §4 syntax
+helpers still live in `@skmtc/core` (F5/F6 in
+`notes/lang/checklist.md`). `ImportNameArg` has already moved — it is
+exported from `@skmtc/lang-typescript`, not from core. This skill
+documents the **current** import paths; when F5/F6 land, the remaining
 symbols move to `@skmtc/lang-typescript` and this skill (and every
 `lang-<X>` skill cloned from it) must be updated in the same change.

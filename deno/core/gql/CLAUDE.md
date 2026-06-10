@@ -124,10 +124,9 @@ import { toGqlOperationEntry } from '@skmtc/core'
 export const myEntry = toGqlOperationEntry({
   id: '@scope/my-gen',
   isSupported: () => true,
-  transform: ({ context, operation, acc }) => {
+  transform: ({ context, operation }) => {
     // operation is GqlOperation; access fieldName / arguments / returnType
-    // directly. emit via context.register / context.insertNormalizedModel.
-    return acc
+    // directly. Emit via context.insertOperation / insertNormalizedModel.
   }
 })
 ```

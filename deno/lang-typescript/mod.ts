@@ -1,20 +1,34 @@
 /**
  * @module @skmtc/lang-typescript
  *
- * SKMTC language package for **TypeScript** (the anchor language).
+ * SKMTC language package for **TypeScript** (the anchor language) — where
+ * the TypeScript language enters the DSL.
  *
- * Owns the TypeScript-specific DSL: concrete subclasses of `@skmtc/core`'s
- * neutral bases (`TsFile` → `CodeFileBase`, `TsImport` → `ImportBase`,
- * `TsDefinition` → `DefinitionBase`), each rendering itself in its own
- * `toString()`. The DSL classes are byte-identical to the engine's legacy
- * `File`/`Import`/`Definition` (pinned by `src/*.test.ts`), so moving
- * rendering out of core is lossless.
+ * Owns everything language-shaped:
  *
- * Still to land (see ../../notes/lang/checklist.md):
- *   - `tsLang: Lang` + `TypescriptSnippet` + `toTypescript*ProjectionBase`
- *   - the `register` family (concise → `ImportBase[]` conversion)
- *   - `/oas` and `/gql` subpath entrypoints
- *   - `EntityKind`, `sanitizePropertyName`, the moved `core/typescript/*`.
+ * - The concrete DSL subclasses of `@skmtc/core`'s neutral bases
+ *   (`TsFile` → `CodeFileBase`, `TsImport` → `ImportBase`, `TsReExport` →
+ *   `ReExportBase`, `TsDefinition` → `DefinitionBase`), each rendering
+ *   itself in its own `toString()` — pinned byte-identical to the engine's
+ *   legacy rendering by `src/*.test.ts`.
+ * - The snippet base ({@link TsSnippet}) — where language enters the class
+ *   hierarchy; registering snippets are keyless.
+ * - The concise register vocabulary ({@link TsRegisterArgs},
+ *   {@link ImportNameArg}) and the register family ({@link register},
+ *   {@link defineAndRegister}) — convert locally, ensure the destination
+ *   file, hand pure data to the neutral `context.register`.
+ * - The projection-base veneers ({@link toModelProjectionBase},
+ *   {@link toOasOperationProjectionBase},
+ *   {@link toGqlOperationProjectionBase}) — pre-bind `base: TsSnippet` and
+ *   add the own-file `register` / cross-file `registerInto` ergonomics.
+ * - The {@link typescript} `Lang` object — the engine-facing factories,
+ *   read by Drivers off the projection class's inherited static.
+ *
+ * A generator declares its language through its import graph: it imports
+ * its projection-base factory and snippet base from this package; entries
+ * carry no `lang`. Still tracked (see ../../notes/lang/checklist.md):
+ * F5/F6 — `Identifier`, `EntityType`, `sanitizePropertyName`, and the
+ * `core/typescript/*` syntax helpers still import from `@skmtc/core`.
  */
 
 /** The language id this package targets. */

@@ -69,7 +69,7 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
 
-5. **The engine is language-blind; the language lives on the generator entry.** (core 0.7.1+) `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` take a required `lang` (e.g. `typescript` from `@skmtc/lang-typescript`); the engine resolves it by `generatorId` (`GenerateContext.resolveLang`) when creating files and building `Definition`s. Projection bases take no `lang`, snippets carry none, `register` passes plain data (`generatorId`, not a `Lang` or `createFile`). `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers still import from `@skmtc/core` (F5/F6 in `notes/lang/checklist.md` track the move).
+5. **The engine is language-blind; the import graph declares the language.** A generator imports its projection-base factories and snippet base from its language package (e.g. `toModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — language enters the DSL class hierarchy at the lang package's snippet base, and the engine's Drivers read it off the projection class's inherited static (`projection.lang`) when creating files and building `Definition`s. Entries (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) carry **no `lang` field**; `register` passes plain data (no `Lang`, no `createFile`, no `generatorId`). `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers still import from `@skmtc/core` (F5/F6 in `notes/lang/checklist.md` track the move).
 
 ---
 
@@ -97,10 +97,10 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Add defensive `if (!already-registered)` around `register` calls | Just call `register` | Already idempotent via Set / Map semantics |
 | Mutate `this` inside `toString()` | Set state in the constructor; `toString()` must be pure | May be called multiple times (previews, integrity checks) |
 | Read another generator's rendered source | Coordinate by *identifier name*, not source text | Use `insertOperation(Other, op).toName()` |
-| Return content from `transform({ context, operation })` | Use `register({ definitions, ... })` or `insertOperation` | Return value is folded into `acc` and discarded |
+| Return content from `transform({ context, operation })` | Use `register({ definitions, ... })` or `insertOperation` | `transform` returns `void` — the engine ignores any return; output flows through registration only |
 | Write `import` statements inside template literals | Register imports via `this.register({ imports })` (own file) or `this.registerInto(path, { imports })` (cross-file) | Bypasses dedup; lands inside file body not header |
-| Declare the language on the projection base or snippet | Declare `lang` once, on the entry (`toX…Entry({ lang })`) | The engine resolves language by `generatorId` (`resolveLang`); nothing else carries a `Lang` |
-| Treat `acc` as a GQL-only quirk | All three entries are `transform({ …, acc, variant }) => Acc` with `Acc = void` by default; a declared `Acc` must be returned | The engine threads the accumulator through every visited item; dropping a declared `Acc` leaves downstream calls reading stale state |
+| Declare the language via a `lang` config field (entry, base, or snippet) | Import your factories and snippet base from the lang package (`toModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — the import graph declares the language; entries carry no `lang` | Language enters the class hierarchy at the lang snippet base; Drivers read it off the projection class's inherited static |
+| Thread an `acc` accumulator through `transform` | Transforms return `void` — the `Acc` accumulator is removed (F11). Accumulate via the gen-msw definition pattern (`findDefinition` + the lang package's `defineAndRegister` function) or module-scope state | The engine no longer threads an accumulator; a fresh Worker per run makes module-scope state per-run-safe |
 | Give a Projection custom constructor args | Projections receive a fixed `{ context, operation/refName, settings }` from the Driver — re-resolve dependencies inside the constructor | The Driver never passes custom args; the memoization cache makes re-resolution free |
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
@@ -198,9 +198,9 @@ Both descend from `SnippetBase` (`core/dsl/SnippetBase.ts`). The differentiator:
 
 | | Projection | Snippet |
 |---|---|---|
-| Base class | `ModelProjectionBase`, `OasOperationProjectionBase`, `GqlOperationProjectionBase` | `SnippetBase` (directly) |
+| Base class | A class built by the lang package's projection-base veneers (`toModelProjectionBase`, `toOasOperationProjectionBase`, `toGqlOperationProjectionBase` from `@skmtc/lang-typescript`) | `TsSnippet` (the lang snippet base) when it registers; `SnippetBase` directly for pure value fragments |
 | Static methods required | `id`, `type`, `toIdentifier`, `toExportPath`, `isSupported`, `toEnrichments` | None |
-| Instance has | `settings: ContentSettings` | `context`, optional `generatorKey`, `register()` |
+| Instance has | `settings: ContentSettings` | `context`, optional `generatorKey` / `stackTrail` (attribution), `register()` (from `TsSnippet`, keyless) |
 | Wrapped in `Definition` | Yes (by Driver) | No |
 | Cached by | `(identifier.name, exportPath)` | Not cached |
 | File-level export | Yes (`export const X = ...`) | No (embedded via `${...}`) |
@@ -219,8 +219,8 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 
 **Code path** (for `ShadcnForm.constructor` calling `this.insertOperation(TanstackQuery, operation)`):
 
-1. `OasOperationProjectionBase.insertOperation` (`core/dsl/operation/oas/OasOperationProjectionBase.ts:68-79`) auto-fills `destinationPath`, delegates to `context.insertOperation`.
-2. `GenerateContext.insertOperation` (`core/context/GenerateContext.ts:722-746`) instantiates `new OasOperationDriver(...)`.
+1. The projection base's `insertOperation` (built by the factory — `core/dsl/operation/oas/toOasOperationProjectionBase.ts:144`) auto-fills `destinationPath`, delegates to `context.insertOperation`.
+2. `GenerateContext.insertOperation` (`core/context/GenerateContext.ts:859`) instantiates `new OasOperationDriver(...)`.
 3. Driver computes `settings = context.toOperationContentSettings({ projection, operation })`.
 4. Driver calls `getDefinition({ identifier, exportPath })` (`OasOperationDriver.ts:85-114`):
    - Cache hit + `affirmDefinition` passes: return cached.
@@ -281,8 +281,9 @@ Need to change identifier naming, export paths, peer deps, or output shape?
 
 ```
 Need its own name at file scope (export const X = ...)?
-├── Yes → Projection (extends *ProjectionBase, has static toIdentifier/toExportPath)
-└── No  → Snippet   (extends SnippetBase, anonymous, embedded via ${this.x})
+├── Yes → Projection (extends a lang projection base, has static toIdentifier/toExportPath)
+└── No  → Snippet   (extends TsSnippet — or SnippetBase if it never registers —
+                     anonymous, embedded via ${this.x})
 ```
 
 ### Where should generated string content go?
@@ -306,14 +307,6 @@ TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 4. transform returning instead of registering?
                                         → Return value is discarded; must use register
 5. Schema shape wrong for the gate?     → e.g., gen-shadcn-form needs request body type === 'object'
-6. Engine threw "declares no 'lang'"?   → The entry is missing `lang` (e.g. `typescript`
-                                          from @skmtc/lang-typescript)
-7. Threw "not in the generator config map"?
-                                        → A peer passed to insertOperation/insertModel
-                                          isn't installed/configured in the project
-8. Threw "Cannot register from a snippet that has no generatorKey"?
-                                        → A registering Snippet wasn't given the parent's
-                                          generatorKey (transitional — F7 in notes/lang/09)
 ```
 
 ---
@@ -397,15 +390,17 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 | Definition (export wrapper) | `Definition.ts` |
 | Identifier | `Identifier.ts` |
 | EntityType | `EntityType.ts` |
-| Import | `Import.ts` |
-| File container | `File.ts` |
+| Import base (neutral; concrete `TsImport` lives in `@skmtc/lang-typescript`) | `ImportBase.ts` |
+| Re-export base (neutral; concrete `TsReExport` in `@skmtc/lang-typescript`) | `ReExportBase.ts` |
+| File containers (neutral; concrete `TsFile` in `@skmtc/lang-typescript`) | `FileBase.ts`, `CodeFileBase.ts` |
+| Lang contract (`Lang`, `LangSnippetConstructor`) | `Lang.ts` |
 | ContentSettings | `ContentSettings.ts` |
 | CustomValue (escape hatch) | `CustomValue.ts` |
-| Operation projection base (OAS) | `operation/oas/OasOperationProjectionBase.ts` |
+| Operation projection-base factory (OAS) | `operation/oas/toOasOperationProjectionBase.ts` |
 | Operation driver (OAS) | `operation/oas/OasOperationDriver.ts` |
-| Operation projection base (GQL) | `operation/gql/GqlOperationProjectionBase.ts` |
+| Operation projection-base factory (GQL) | `operation/gql/toGqlOperationProjectionBase.ts` |
 | Operation driver (GQL) | `operation/gql/GqlOperationDriver.ts` |
-| Model projection base | `model/ModelProjectionBase.ts` |
+| Model projection-base factory | `model/toModelProjectionBase.ts` |
 | Model driver | `model/ModelDriver.ts` |
 
 ### CLI — `skmtc/deno/cli/`
@@ -435,7 +430,7 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 
 | # | Invariant | Mechanism | Code |
 |---|---|---|---|
-| 1 | Identifier and exportPath are pure functions of input | Static methods take `{ operation, enrichments }`; no `this`, no async | `OasOperationProjectionBase.ts` (factory) |
+| 1 | Identifier and exportPath are pure functions of input | Static methods take `{ operation, enrichments }`; no `this`, no async | `toOasOperationProjectionBase.ts` (factory) |
 | 2 | Generate side effects are idempotent | `register({ imports })` uses `Set.add`; `register({ definitions })` first-write-wins | `GenerateContext.ts:659-708` |
 | 3 | Parse never throws to caller | `tryParseAt` wraps every per-item parser | `tryParseAt.ts:72-100` |
 | 4 | `OasRef.resolve()` returns a typed-correct target | `resolveOnce` checks `oasType` matches expected | `Ref.ts:198-225` |
@@ -455,7 +450,7 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 | Anti-pattern | Why it fails |
 |---|---|
 | Writing strings outside `toString()` | File not in `context.#files`; invisible to coordination and persistence |
-| Returning content from `transform()` | Return value is folded into `acc` and discarded |
+| Returning content from `transform()` | `transform` returns `void` — the engine ignores any return value |
 | Raw `import` statements in template literals | Import lands in body not header; TS rejects; bypasses dedup |
 | Hardcoded identifier names | Breaks cache-key uniqueness |
 | Assuming generator order | Order isn't controllable; use `insertOperation` to declare dependencies |
@@ -618,7 +613,7 @@ Use this as the first read when an agent enters a SKMTC project cold.
 
 ## Glossary
 
-- **Projection** — a named, file-level generated artifact. Extends `*ProjectionBase`. Wrapped in `Definition`. Cached by `(name, exportPath)`.
+- **Projection** — a named, file-level generated artifact. Extends a class built by the lang package's `to*ProjectionBase` veneers. Wrapped in `Definition`. Cached by `(name, exportPath)`.
 - **Snippet** — an anonymous, embeddable generated fragment. Extends `SnippetBase`. Embedded via `${...}`.
 - **Definition** — the `export const X = VALUE` wrapper around a Projection's value. Created by Drivers.
 - **Driver** — the orchestrator for inserting a Projection: settings → cache check → instantiate → register.
