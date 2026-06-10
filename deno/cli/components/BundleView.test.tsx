@@ -4,7 +4,6 @@ import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { BundleView } from './BundleView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
@@ -13,12 +12,6 @@ import { stub } from '@std/testing/mock'
 // Helper to create initial state
 const createInitialState = (projectName: string, interactive = false): SkmtcState => {
   const manager = createMockManager()
-
-  // Configure the mock to return empty array for generators endpoint
-  const supabaseMock = (manager as unknown as { _supabaseMock: { mockResponse: (path: string, response: { data?: unknown; error?: unknown }) => void } })._supabaseMock
-  if (supabaseMock) {
-    supabaseMock.mockResponse('/generators', { data: [], error: null })
-  }
 
   const mockProject = createMockProject(manager, { name: projectName })
   const skmtcRoot = createMockSkmtcRoot(manager, { projects: [mockProject] })

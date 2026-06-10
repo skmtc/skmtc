@@ -2,25 +2,15 @@ import { render } from 'ink-testing-library'
 import { assertExists, assertStringIncludes, assertEquals } from '@std/assert'
 import { HomeView } from '@/components/HomeView.tsx'
 import { SkmtcProvider, SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '../mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 
 Deno.test('HomeView - renders without errors', () => {
-  const mockSession = createTestSession()
 
   const mockExit = () => {}
 
   const mockSkmtcRoot = {
     projects: [],
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {
@@ -49,20 +39,11 @@ Deno.test('HomeView - renders without errors', () => {
 })
 
 Deno.test('HomeView - shows no projects message when empty', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
 
   const mockSkmtcRoot = {
     projects: [],
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {
@@ -93,22 +74,13 @@ Deno.test('HomeView - shows no projects message when empty', () => {
 })
 
 Deno.test('HomeView - shows projects when available', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
 
   const mockProjects = [{ name: 'project-alpha' }, { name: 'project-beta' }]
 
   const mockSkmtcRoot = {
     projects: mockProjects,
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {

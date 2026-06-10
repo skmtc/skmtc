@@ -1,25 +1,8 @@
 import type { Manager } from '@/lib/manager.ts'
-import type { Auth } from '@/lib/auth.ts'
-import { createMockSupabaseClient } from '@/tests/mocks/supabase.mock.ts'
 
 export function createMockManager(): Manager {
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-
-  const mockAuth: Auth = {
-    supabase: supabaseClient,
-    isLoggedIn: () => false,
-    login: async () => {},
-    logout: async () => {},
-    toSession: async () => {}
-  } as unknown as Auth
-
-  const mockManager: Manager = {
-    auth: mockAuth,
+  return {
     cleanupActions: [],
-    cleanup: async () => {},
-    success: async (_logSuccess?: string) => {},
-    _supabaseMock: supabaseMock
+    cleanup: async () => {}
   } as unknown as Manager
-
-  return mockManager
 }

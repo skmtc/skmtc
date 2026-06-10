@@ -4,7 +4,6 @@ import { assertEquals } from '@std/assert'
 import { ListGeneratorsView } from './ListGeneratorsView.tsx'
 import { App } from './App.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import type { Project } from '@/lib/project.ts'
@@ -15,13 +14,6 @@ const createMockSkmtcRoot = (project: Project): SkmtcRoot =>
   ({
     projects: [project],
     manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      },
       cleanup: () => Promise.resolve()
     },
     findProject: (name: string) => (name === project.name ? project : null)

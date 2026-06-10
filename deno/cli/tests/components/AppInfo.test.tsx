@@ -31,15 +31,7 @@ type TestWrapperProps = {
 
 const TestWrapper = ({ children, view = { page: 'home' }, interactive = true }: TestWrapperProps) => {
   const skmtcRoot = {
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: mockGenerators, error: null })
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {

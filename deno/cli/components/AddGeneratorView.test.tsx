@@ -23,13 +23,6 @@ const createMockSkmtcRoot = (project: Project): SkmtcRoot =>
   ({
     projects: [project],
     manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      },
       cleanup: () => Promise.resolve()
     }
   }) as unknown as SkmtcRoot

@@ -4,7 +4,6 @@ import { assertEquals } from '@std/assert'
 import { BooleanTask } from './BooleanTask.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { TaskProvider } from '@/components/TaskContext.tsx'
-import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Generator } from '@/types/generator.ts'
 
@@ -27,18 +26,6 @@ const createMockSkmtcRoot = (): SkmtcRoot =>
   ({
     projects: [],
     manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: (path: string) => {
-              if (path === '/generators') {
-                return Promise.resolve({ data: mockGenerators, error: null })
-              }
-              return Promise.resolve({ data: [], error: null })
-            }
-          }
-        }
-      }
     }
   }) as unknown as SkmtcRoot
 

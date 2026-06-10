@@ -3,7 +3,6 @@ import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { GenerateView } from '@/components/GenerateView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import type { Project } from '@/lib/project.ts'
@@ -68,23 +67,11 @@ const createMockProjectWithoutSchema = (
   return mockProject
 }
 
-// Mock SkmtcRoot with proper Supabase mocking
+// Mock SkmtcRoot
 const createMockSkmtcRoot = (project: Project): SkmtcRoot =>
   ({
     projects: [project],
     manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: (path: string) => {
-              if (path === '/generators') {
-                return Promise.resolve({ data: mockGenerators, error: null })
-              }
-              return Promise.resolve({ data: [], error: null })
-            }
-          }
-        }
-      },
       cleanup: () => Promise.resolve()
     }
   }) as unknown as SkmtcRoot

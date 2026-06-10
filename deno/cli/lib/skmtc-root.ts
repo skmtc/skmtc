@@ -57,18 +57,6 @@ export class SkmtcRoot {
     return project
   }
 
-  get isLoggedIn() {
-    return this.manager.auth.isLoggedIn()
-  }
-
-  async login() {
-    await this.manager.auth.login()
-  }
-
-  async logout({ silent }: { silent: boolean }) {
-    await this.manager.auth.logout({ silent })
-  }
-
   async createProject({ name, basePath, generators, availableGenerators }: CreateProjectArgs) {
     const project = await Project.create({
       name,
