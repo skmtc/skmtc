@@ -2,7 +2,7 @@
 import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
 import { camelCase } from '@skmtc/core'
 import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '@skmtc/core'
-import type { TsDefinition } from './TsDefinition.ts'
+import type { DefinitionBase } from '@skmtc/core'
 import { List, type SkipEmptyOption } from './List.ts'
 import type { Stringable } from '@skmtc/core'
 import { isEmpty } from '@skmtc/core'
@@ -14,7 +14,7 @@ type FunctionParameterArgs = {
   /** Optional parameter name (if undefined and destructure is true, uses destructured syntax) */
   name?: string
   /** The type definition for the parameter */
-  typeDefinition: TsDefinition<TypeSystemObject | TypeSystemVoid>
+  typeDefinition: DefinitionBase<TypeSystemObject | TypeSystemVoid>
   /** Whether to use destructured parameter syntax */
   destructure?: boolean
   /** Whether the parameter is required (affects optional marker) */
@@ -40,7 +40,7 @@ export type VoidParameter = {
  */
 export type DestructuredParameter = {
   type: 'destructured'
-  typeDefinition: TsDefinition<TypeSystemObject>
+  typeDefinition: DefinitionBase<TypeSystemObject>
   required: true
 }
 
@@ -50,7 +50,7 @@ export type DestructuredParameter = {
 export type RegularParameter = {
   type: 'regular'
   name: string
-  typeDefinition: TsDefinition<TypeSystemValue>
+  typeDefinition: DefinitionBase<TypeSystemValue>
   required: boolean
 }
 
@@ -235,14 +235,14 @@ export class FunctionParameter {
       if (args.destructure === true && args.required === true) {
         this.properties = {
           type: 'destructured' as const,
-          typeDefinition: args.typeDefinition as TsDefinition<TypeSystemObject>,
+          typeDefinition: args.typeDefinition as DefinitionBase<TypeSystemObject>,
           required: args.required
         };
       } else if (typeof args.name === 'string') {
         this.properties = {
           type: 'regular' as const,
           name: args.name,
-          typeDefinition: args.typeDefinition as TsDefinition<TypeSystemObject>,
+          typeDefinition: args.typeDefinition as DefinitionBase<TypeSystemObject>,
           required: args.required ?? false
         };
       } else {
@@ -512,7 +512,7 @@ export class FunctionParameter {
  * ```
  */
 const toDestructured = (
-  typeDefinition: TsDefinition<TypeSystemObject>,
+  typeDefinition: DefinitionBase<TypeSystemObject>,
   { skipEmpty }: SkipEmptyOption = {}
 ): List<Stringable[], ', ', '{}'> => {
   return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(
