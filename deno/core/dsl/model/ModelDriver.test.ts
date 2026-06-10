@@ -4,7 +4,8 @@ import { ModelDriver } from './ModelDriver.ts'
 import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
+import { DefinitionBase } from '@/dsl/Definition.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
@@ -22,7 +23,7 @@ import { typescript } from '@skmtc/lang-typescript'
 const coreDefLang: Lang = {
   ...typescript,
   toDefinition: ({ context, identifier, value, noExport }) =>
-    new Definition({ context, identifier, value, noExport })
+    new TsDefinition({ context, identifier, value, noExport })
 }
 
 class MockGeneratedValue implements GeneratedValue {
@@ -218,7 +219,7 @@ Deno.test('ModelDriver', async (t) => {
       })
 
       assertEquals(driver.definition !== undefined, true)
-      assertEquals(driver.definition instanceof Definition, true)
+      assertEquals(driver.definition instanceof TsDefinition, true)
     })
 
     await t.step('delegates to the projection toDefinition override (lang Definition flows through)', () => {
@@ -234,7 +235,7 @@ Deno.test('ModelDriver', async (t) => {
       // The Driver used the projection's overridden `toDefinition`, so the
       // registered definition is the custom subclass, NOT the core Definition.
       assertEquals(driver.definition instanceof CustomDefinition, true)
-      assertEquals(driver.definition instanceof Definition, false)
+      assertEquals(driver.definition instanceof TsDefinition, false)
     })
 
     await t.step('should reset modelDepth to 0 after construction', () => {
@@ -406,7 +407,7 @@ Deno.test('ModelDriver', async (t) => {
         variant: 'main'
       })
 
-      assertEquals(driver.definition instanceof Definition, true)
+      assertEquals(driver.definition instanceof TsDefinition, true)
       assertEquals(driver.definition.identifier.name, refName)
     })
   })
@@ -445,7 +446,7 @@ Deno.test('ModelDriver', async (t) => {
         variant: 'main'
       })
 
-      assertEquals(driver.definition instanceof Definition, true)
+      assertEquals(driver.definition instanceof TsDefinition, true)
     })
 
     await t.step('should create projection instance with correct parameters', () => {
@@ -477,7 +478,7 @@ Deno.test('ModelDriver', async (t) => {
         variant: 'main'
       })
 
-      assertEquals(driver.definition instanceof Definition, true)
+      assertEquals(driver.definition instanceof TsDefinition, true)
       assertEquals(driver.definition.value instanceof MockProjection, true)
     })
 
@@ -547,7 +548,7 @@ Deno.test('ModelDriver', async (t) => {
       })
 
       assertEquals(driver.definition !== undefined, true)
-      assertEquals(driver.definition instanceof Definition, true)
+      assertEquals(driver.definition instanceof TsDefinition, true)
     })
 
     await t.step('should use cached definition when available', () => {
@@ -555,7 +556,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,
@@ -584,7 +585,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,
@@ -633,7 +634,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,
@@ -662,7 +663,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,
@@ -695,7 +696,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,
@@ -728,7 +729,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,
@@ -761,7 +762,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,
@@ -790,7 +791,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,
@@ -831,7 +832,7 @@ Deno.test('ModelDriver', async (t) => {
       assertEquals(driver.context, context)
       assertEquals(driver.refName, refName)
       assertEquals(driver.settings !== undefined, true)
-      assertEquals(driver.definition instanceof Definition, true)
+      assertEquals(driver.definition instanceof TsDefinition, true)
       assertEquals(context.modelDepth[`${projection.id}:${refName}`], 0)
     })
 
@@ -1014,7 +1015,7 @@ Deno.test('ModelDriver', async (t) => {
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      const mockDefinition = new Definition({
+      const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
           refName,

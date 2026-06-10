@@ -2,7 +2,7 @@ import { assertEquals } from '@std/assert/equals'
 import { Inserted } from '@/dsl/Inserted.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '../context/generateTypes.ts'
 
@@ -17,7 +17,7 @@ Deno.test('Inserted - toName returns identifier name', () => {
     exportPath: './src/models/User.ts'
   })
 
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value: { generatorKey: testGeneratorKey, toString: () => '{ id: string }' }
@@ -38,7 +38,7 @@ Deno.test('Inserted - toIdentifier returns full identifier', () => {
     exportPath: './src/api.ts'
   })
 
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value: { generatorKey: testGeneratorKey, toString: () => 'new Client()' }
@@ -63,7 +63,7 @@ Deno.test('Inserted - toExportPath returns export path', () => {
     exportPath: './src/models/Product.ts'
   })
 
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value: { generatorKey: testGeneratorKey, toString: () => '{ name: string }' }
@@ -85,7 +85,7 @@ Deno.test('Inserted - toValue returns generated value', () => {
   })
 
   const value = { generatorKey: testGeneratorKey, toString: () => "'active' | 'inactive'" }
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value
@@ -109,7 +109,7 @@ Deno.test('Inserted - works with enrichments', () => {
     variant: 'main'
   })
 
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value: { generatorKey: testGeneratorKey, toString: () => '{ id: string }' }

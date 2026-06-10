@@ -1,4 +1,5 @@
-import { DefinitionBase, withDescription } from '@skmtc/core'
+import { DefinitionBase } from '@skmtc/core'
+import { withDescription } from './withDescription.ts'
 import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
 
 /**

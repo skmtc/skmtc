@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { Definition, Identifier, toGeneratorOnlyKey } from '@skmtc/core'
+import { Identifier, toGeneratorOnlyKey } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType } from '@skmtc/core'
 import { TsDefinition } from './TsDefinition.ts'
 import { TsFile } from './TsFile.ts'
@@ -13,58 +13,56 @@ const generatorKey = toGeneratorOnlyKey({ generatorId: 'test' })
 const value = (content: string): GeneratedValue => ({ generatorKey, toString: () => content })
 
 /**
- * `TsDefinition` must render byte-identically to the engine's `Definition`
- * for every declaration shape — same output, now owned by the language.
+ * `TsDefinition` must keep rendering the exact declarations the engine's
+ * legacy `Definition` produced. The expected literals were pinned against
+ * the legacy class before it was deleted (F5/F6 step 1 — note `17`).
  */
-Deno.test('TsDefinition byte-identical to Definition', async testContext => {
+Deno.test('TsDefinition renders the legacy-pinned declarations', async testContext => {
   const definitionCases = [
     {
       name: 'exported type alias',
       identifier: Identifier.createType('User'),
       content: '{ id: string }',
       description: undefined as string | undefined,
-      noExport: false
+      noExport: false,
+      expected: 'export type User = { id: string };\n'
     },
     {
       name: 'exported const with type annotation',
       identifier: Identifier.createVariable('API_URL', { typeName: 'string' }),
       content: '"https://example.com"',
       description: undefined,
-      noExport: false
+      noExport: false,
+      expected: 'export const API_URL: string = "https://example.com";\n'
     },
     {
       name: 'const without annotation',
       identifier: Identifier.createVariable('count'),
       content: '42',
       description: undefined,
-      noExport: false
+      noExport: false,
+      expected: 'export const count = 42;\n'
     },
     {
       name: 'non-exported',
       identifier: Identifier.createVariable('helper'),
       content: '() => {}',
       description: undefined,
-      noExport: true
+      noExport: true,
+      expected: 'const helper = () => {};\n'
     },
     {
       name: 'with JSDoc description',
       identifier: Identifier.createType('Status'),
-      content: `'a' | 'b'`,
+      content: "'a' | 'b'",
       description: 'Possible status values',
-      noExport: false
+      noExport: false,
+      expected: "/** Possible status values */\nexport type Status = 'a' | 'b';\n"
     }
   ]
 
   for (const definitionCase of definitionCases) {
     await testContext.step(definitionCase.name, () => {
-      const legacy = new Definition({
-        context: mockContext,
-        identifier: definitionCase.identifier,
-        value: value(definitionCase.content),
-        description: definitionCase.description,
-        noExport: definitionCase.noExport
-      }).toString()
-
       const tsDefinition = new TsDefinition({
         context: mockContext,
         identifier: definitionCase.identifier,
@@ -73,7 +71,7 @@ Deno.test('TsDefinition byte-identical to Definition', async testContext => {
         noExport: definitionCase.noExport
       }).toString()
 
-      assertEquals(tsDefinition, legacy)
+      assertEquals(tsDefinition, definitionCase.expected)
     })
   }
 })

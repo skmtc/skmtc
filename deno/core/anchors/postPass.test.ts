@@ -1,6 +1,6 @@
 import { assert, assertEquals } from '@std/assert'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import { TsFile } from '@skmtc/lang-typescript'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toModelGeneratorKey, type GeneratorKey } from '@/dsl/GeneratorKeys.ts'
@@ -58,7 +58,7 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
     variant: 'main'
   })
   const value = new FakeSnippet(c, () => 'z.object({ id: z.string() })', key)
-  const def = new Definition({
+  const def = new TsDefinition({
     context: c,
     identifier: Identifier.createVariable('User'),
     value
@@ -90,7 +90,7 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
     variant: 'main'
   })
   const value = new FakeSnippet(c, () => "'inner'", key)
-  const def = new Definition({
+  const def = new TsDefinition({
     context: c,
     identifier: Identifier.createVariable('Customer'),
     value
@@ -119,12 +119,12 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
     refName: 'B' as RefName,
     variant: 'main'
   })
-  const defA = new Definition({
+  const defA = new TsDefinition({
     context: c,
     identifier: Identifier.createVariable('A'),
     value: new FakeSnippet(c, () => '1', keyA)
   })
-  const defB = new Definition({
+  const defB = new TsDefinition({
     context: c,
     identifier: Identifier.createVariable('B'),
     value: new FakeSnippet(c, () => '2', keyB)
@@ -154,7 +154,7 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
     refName: 'User' as RefName,
     variant: 'main'
   })
-  const def = new Definition({
+  const def = new TsDefinition({
     context: c,
     identifier: Identifier.createVariable('User'),
     value: new FakeSnippet(c, () => "'x'", key)
@@ -184,7 +184,7 @@ Deno.test('postPass - anchor bytes survive a slice through the rendered source',
     variant: 'main'
   })
   const value = new FakeSnippet(c, () => '"payload"', key)
-  const def = new Definition({
+  const def = new TsDefinition({
     context: c,
     identifier: Identifier.createVariable('Whole'),
     value

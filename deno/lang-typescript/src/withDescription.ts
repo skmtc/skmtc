@@ -1,5 +1,5 @@
-import type { Stringable } from '../dsl/Stringable.ts'
-import type { Modifiers } from '../types/Modifiers.ts'
+import type { Stringable } from '@skmtc/core'
+import type { Modifiers } from '@skmtc/core'
 
 /**
  * Wraps a value with a JSDoc comment if a description is provided.
@@ -16,7 +16,7 @@ import type { Modifiers } from '../types/Modifiers.ts'
  * 
  * @example With description
  * ```typescript
- * import { withDescription } from '@skmtc/core';
+ * import { withDescription } from '@skmtc/lang-typescript';
  * 
  * const result = withDescription(
  *   'export const API_URL = "https://api.example.com";',
@@ -65,7 +65,7 @@ import type { Modifiers } from '../types/Modifiers.ts'
  * 
  * @example Integration with generated definitions
  * ```typescript
- * import { Definition, Identifier, withDescription } from '@skmtc/core';
+ * import { Definition, Identifier, withDescription } from '@skmtc/lang-typescript';
  * 
  * class DocumentedGenerator {
  *   createDefinition(name: string, value: string, docs?: string) {

@@ -15,7 +15,7 @@
  *
  * @example Basic path parameter conversion
  * ```typescript
- * import { toPathParams } from '@skmtc/core';
+ * import { toPathParams } from '@skmtc/lang-typescript';
  *
  * const routePath = toPathParams('/users/{id}/posts/{postId}');
  * console.log(routePath); // '/users/:id/posts/:postId'

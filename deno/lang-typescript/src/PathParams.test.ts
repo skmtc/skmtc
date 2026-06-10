@@ -1,7 +1,7 @@
 import { assertEquals } from '@std/assert'
 import { PathParams } from './PathParams.ts'
-import type { GenerateContext } from '@/context/GenerateContext.ts'
-import type { TypeSystemObject, TypeSystemString } from '@/types/TypeSystem.ts'
+import type { GenerateContext } from '@skmtc/core'
+import type { TypeSystemObject, TypeSystemString } from '@skmtc/core'
 
 // Mock helper to create a simple GenerateContext
 const createMockContext = (): GenerateContext => {

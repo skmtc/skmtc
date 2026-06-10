@@ -7,7 +7,7 @@ import { StackTrail } from './StackTrail.ts'
 import { spy, assertSpyCalls } from '@std/testing/mock'
 import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
-import { Definition } from '@/dsl/Definition.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGenerateContext } from '@/test/toGenerateContext.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
@@ -25,7 +25,7 @@ const mockLogger: log.Logger = {
 // Helper to create a file with definitions
 const createFileWithDefinition = (path: string, name: string, content: string): TsFile => {
   const file = new TsFile({ path, settings: undefined })
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: toGenerateContext(),
     identifier: Identifier.createVariable(name),
     value: {
@@ -455,7 +455,7 @@ Deno.test('RenderContext', async t => {
         settings: undefined
       })
 
-      const userDefinition = new Definition({
+      const userDefinition = new TsDefinition({
         context: toGenerateContext(),
         identifier: Identifier.createType('User'),
         value: {
@@ -577,7 +577,7 @@ Deno.test('RenderContext', async t => {
         settings: undefined
       })
 
-      const userDefinition = new Definition({
+      const userDefinition = new TsDefinition({
         context: toGenerateContext(),
         identifier: Identifier.createType('User'),
         value: {

@@ -1,5 +1,5 @@
-import { EMPTY } from '../dsl/constants.ts'
-import type { Stringable } from '../dsl/Stringable.ts'
+import { EMPTY } from '@skmtc/core'
+import type { Stringable } from '@skmtc/core'
 
 /**
  * Converts a properties object into a formatted TypeScript object literal string.
@@ -17,7 +17,7 @@ import type { Stringable } from '../dsl/Stringable.ts'
  * 
  * @example Basic object generation
  * ```typescript
- * import { keyValues } from '@skmtc/core';
+ * import { keyValues } from '@skmtc/lang-typescript';
  * 
  * const props = {
  *   name: { toString: () => 'string' },

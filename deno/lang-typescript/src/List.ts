@@ -1,4 +1,4 @@
-import type { Stringable } from '../dsl/Stringable.ts'
+import type { Stringable } from '@skmtc/core'
 
 /** Type alias for object-style lists with curly braces: `{item1, item2}` */
 export type ListObject<V extends Stringable> = List<V[], ', ', '{}'>
@@ -83,7 +83,7 @@ type ToConditionalReturn<
  *
  * @example Basic usage
  * ```typescript
- * import { List } from '@skmtc/core';
+ * import { List } from '@skmtc/lang-typescript';
  *
  * // Create a comma-separated list
  * const items = new List(['apple', 'banana', 'cherry']);

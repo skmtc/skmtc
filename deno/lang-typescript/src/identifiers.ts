@@ -14,7 +14,7 @@ import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
  * 
  * @example Valid identifiers (no quotes needed)
  * ```typescript
- * import { handleKey } from '@skmtc/core';
+ * import { handleKey } from '@skmtc/lang-typescript';
  * 
  * console.log(handleKey('name'));      // 'name'
  * console.log(handleKey('userName'));  // 'userName'
@@ -97,7 +97,7 @@ export const handleKey = (key: string): string => {
  * 
  * @example Valid identifiers (dot notation)
  * ```typescript
- * import { handlePropertyName } from '@skmtc/core';
+ * import { handlePropertyName } from '@skmtc/lang-typescript';
  * 
  * console.log(handlePropertyName('name', 'user'));      // 'user.name'
  * console.log(handlePropertyName('firstName', 'user')); // 'user.firstName'

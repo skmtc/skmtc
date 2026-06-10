@@ -11,7 +11,8 @@ import type {
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
+import { DefinitionBase } from '@/dsl/Definition.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { GqlOperation, type GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import { OasString } from '@/oas/string/String.ts'
@@ -626,7 +627,7 @@ Deno.test('GqlOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: mockContext,
         identifier: Identifier.createVariable('cached'),
         value: cachedValue
@@ -689,7 +690,7 @@ Deno.test('GqlOperationDriver', async t => {
 
       instantiated = false
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('cached'),
         value: tempValue
@@ -711,7 +712,7 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should preserve settings when using cached definition', () => {
       const operation = createMockOperation({ fieldName: 'testOp' })
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('cached'),
         value: {
@@ -771,7 +772,7 @@ Deno.test('GqlOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: cachedValue
@@ -808,7 +809,7 @@ Deno.test('GqlOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: cachedValue
@@ -834,7 +835,7 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should include operation details in error message', () => {
       const operation = createMockOperation({ fieldName: 'testOperation', rootKind: 'query' })
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('testOperation'),
         value: {
@@ -868,7 +869,7 @@ Deno.test('GqlOperationDriver', async t => {
     await t.step('should include both keys in error message', () => {
       const operation = createMockOperation()
       const cachedKey = toKey('CachedGenerator', operation)
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: {
@@ -920,7 +921,7 @@ Deno.test('GqlOperationDriver', async t => {
 
     await t.step('should handle edge case of wrong value type', () => {
       const operation = createMockOperation()
-      const wrongDef = new Definition({
+      const wrongDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: {
@@ -984,7 +985,7 @@ Deno.test('GqlOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: cachedValue
@@ -1007,7 +1008,7 @@ Deno.test('GqlOperationDriver', async t => {
     await t.step('should throw on key collision with different generator', () => {
       const operation = createMockOperation()
       const wrongKey = toKey('DifferentGenerator', operation)
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: {
@@ -1091,7 +1092,7 @@ Deno.test('GqlOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: cachedValue
@@ -1252,7 +1253,7 @@ Deno.test('GqlOperationDriver', async t => {
     await t.step('should throw descriptive errors on failures', () => {
       const operation = createMockOperation()
       const wrongKey = toKey('WrongGenerator', operation)
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: {

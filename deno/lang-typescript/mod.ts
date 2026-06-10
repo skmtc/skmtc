@@ -26,9 +26,11 @@
  *
  * A generator declares its language through its import graph: it imports
  * its projection-base factory and snippet base from this package; entries
- * carry no `lang`. Still tracked (see ../../notes/lang/checklist.md):
- * F5/F6 — `Identifier`, `EntityType`, `sanitizePropertyName`, and the
- * `core/typescript/*` syntax helpers still import from `@skmtc/core`.
+ * carry no `lang`. The TypeScript syntax helpers (`List`, `NextList`,
+ * `FunctionParameter`, `PathParams`, `toPathParams`, `toPathTemplate`,
+ * `identifiers`, `keyValues`, `withDescription`) and the naming layer
+ * (`sanitizePropertyName`) live HERE (moved from core under F5/F6 —
+ * see ../../notes/lang/17-naming-layer-and-helpers-move.md).
  */
 
 /** The language id this package targets. */
@@ -63,3 +65,15 @@ export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'
 export { TsImport, type TsImportSpecifier, type ImportNameArg } from './src/TsImport.ts'
 export { TsReExport } from './src/TsReExport.ts'
 export { TsObject, type TsPropertyArgs } from './src/TsObject.ts'
+
+// TypeScript syntax helpers + naming layer (moved from @skmtc/core — F5/F6)
+export * from './src/List.ts'
+export { NextList } from './src/NextList.ts'
+export * from './src/FunctionParameter.ts'
+export * from './src/PathParams.ts'
+export * from './src/toPathParams.ts'
+export * from './src/toPathTemplate.ts'
+export * from './src/identifiers.ts'
+export * from './src/keyValues.ts'
+export * from './src/withDescription.ts'
+export * from './src/sanitizePropertyName.ts'

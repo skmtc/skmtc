@@ -1,11 +1,11 @@
 // @deno-types="npm:@types/babel__helper-validator-identifier@7.15.2"
 import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
-import { camelCase } from '../helpers/strings.ts'
-import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '../types/TypeSystem.ts'
-import type { Definition } from '../dsl/Definition.ts'
+import { camelCase } from '@skmtc/core'
+import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '@skmtc/core'
+import type { TsDefinition } from './TsDefinition.ts'
 import { List, type SkipEmptyOption } from './List.ts'
-import type { Stringable } from '../dsl/Stringable.ts'
-import { isEmpty } from '../helpers/isEmpty.ts'
+import type { Stringable } from '@skmtc/core'
+import { isEmpty } from '@skmtc/core'
 
 /**
  * Constructor arguments for {@link FunctionParameter}.
@@ -14,7 +14,7 @@ type FunctionParameterArgs = {
   /** Optional parameter name (if undefined and destructure is true, uses destructured syntax) */
   name?: string
   /** The type definition for the parameter */
-  typeDefinition: Definition<TypeSystemObject | TypeSystemVoid>
+  typeDefinition: TsDefinition<TypeSystemObject | TypeSystemVoid>
   /** Whether to use destructured parameter syntax */
   destructure?: boolean
   /** Whether the parameter is required (affects optional marker) */
@@ -40,7 +40,7 @@ export type VoidParameter = {
  */
 export type DestructuredParameter = {
   type: 'destructured'
-  typeDefinition: Definition<TypeSystemObject>
+  typeDefinition: TsDefinition<TypeSystemObject>
   required: true
 }
 
@@ -50,7 +50,7 @@ export type DestructuredParameter = {
 export type RegularParameter = {
   type: 'regular'
   name: string
-  typeDefinition: Definition<TypeSystemValue>
+  typeDefinition: TsDefinition<TypeSystemValue>
   required: boolean
 }
 
@@ -76,7 +76,7 @@ export type RegularParameter = {
  *
  * @example Named parameter generation
  * ```typescript
- * import { FunctionParameter, Definition, Identifier } from '@skmtc/core';
+ * import { FunctionParameter, Definition, Identifier } from '@skmtc/lang-typescript';
  *
  * const userIdParam = new FunctionParameter({
  *   name: 'userId',
@@ -235,14 +235,14 @@ export class FunctionParameter {
       if (args.destructure === true && args.required === true) {
         this.properties = {
           type: 'destructured' as const,
-          typeDefinition: args.typeDefinition as Definition<TypeSystemObject>,
+          typeDefinition: args.typeDefinition as TsDefinition<TypeSystemObject>,
           required: args.required
         };
       } else if (typeof args.name === 'string') {
         this.properties = {
           type: 'regular' as const,
           name: args.name,
-          typeDefinition: args.typeDefinition as Definition<TypeSystemObject>,
+          typeDefinition: args.typeDefinition as TsDefinition<TypeSystemObject>,
           required: args.required ?? false
         };
       } else {
@@ -512,7 +512,7 @@ export class FunctionParameter {
  * ```
  */
 const toDestructured = (
-  typeDefinition: Definition<TypeSystemObject>,
+  typeDefinition: TsDefinition<TypeSystemObject>,
   { skipEmpty }: SkipEmptyOption = {}
 ): List<Stringable[], ', ', '{}'> => {
   return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(

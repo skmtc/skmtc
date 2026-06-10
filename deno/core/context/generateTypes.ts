@@ -6,7 +6,7 @@ import type { ResultsItem } from '@/types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { Definition, DefinitionBase } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -419,8 +419,8 @@ export type InsertNormalizedModelReturn<
   Schema extends OasSchema | OasRef<'schema'> | OasVoid
 > =
   Schema extends OasRef<'schema'>
-    ? Definition<V>
-    : Definition<TypeSystemOutput<SchemaToNonRef<Schema>['type']>>
+    ? DefinitionBase<V>
+    : DefinitionBase<TypeSystemOutput<SchemaToNonRef<Schema>['type']>>
 
 export type GenerateContextType = {
   settings: ClientSettings | undefined

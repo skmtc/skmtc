@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { EMPTY } from '../dsl/constants.ts'
+import { EMPTY } from '@skmtc/core'
 import { keyValues } from './keyValues.ts'
 
 Deno.test('keyValues - formats object with properties', () => {

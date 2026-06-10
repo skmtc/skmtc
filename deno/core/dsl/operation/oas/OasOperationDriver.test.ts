@@ -11,7 +11,8 @@ import type {
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
+import { DefinitionBase } from '@/dsl/Definition.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Method } from '@/types/Method.ts'
@@ -647,7 +648,7 @@ Deno.test('OasOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: mockContext,
         identifier: Identifier.createVariable('cached'),
         value: cachedValue
@@ -717,7 +718,7 @@ Deno.test('OasOperationDriver', async t => {
       // Reset flag after creating cached value
       instantiated = false
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('cached'),
         value: tempValue
@@ -738,7 +739,7 @@ Deno.test('OasOperationDriver', async t => {
     })
 
     await t.step('should preserve settings when using cached definition', () => {
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('cached'),
         value: {
@@ -806,7 +807,7 @@ Deno.test('OasOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: cachedValue
@@ -846,7 +847,7 @@ Deno.test('OasOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: cachedValue
@@ -876,7 +877,7 @@ Deno.test('OasOperationDriver', async t => {
         path: '/test',
         method: 'get'
       })
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('testOperation'),
         value: {
@@ -915,7 +916,7 @@ Deno.test('OasOperationDriver', async t => {
         operation,
         variant: 'main'
         })
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: {
@@ -968,7 +969,7 @@ Deno.test('OasOperationDriver', async t => {
 
     await t.step('should handle edge case of wrong value type', () => {
       const operation = createMockOperation()
-      const wrongDef = new Definition({
+      const wrongDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: {
@@ -1036,7 +1037,7 @@ Deno.test('OasOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: cachedValue
@@ -1064,7 +1065,7 @@ Deno.test('OasOperationDriver', async t => {
         operation,
         variant: 'main'
         })
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: {
@@ -1173,7 +1174,7 @@ Deno.test('OasOperationDriver', async t => {
         operation
       })
 
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: cachedValue
@@ -1380,7 +1381,7 @@ Deno.test('OasOperationDriver', async t => {
         operation,
         variant: 'main'
         })
-      const cachedDef = new Definition({
+      const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: Identifier.createVariable('test'),
         value: {
@@ -1533,7 +1534,7 @@ Deno.test('OasOperationDriver', async t => {
           operation,
           variant: 'main'
         })
-        const cachedDef = new Definition({
+        const cachedDef = new TsDefinition({
           context: {} as any,
           identifier: Identifier.createVariable('getQuotesForm'),
           value: {

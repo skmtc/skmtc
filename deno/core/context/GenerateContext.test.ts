@@ -6,7 +6,7 @@ import { StackTrail } from './StackTrail.ts'
 import { spy, assertSpyCalls } from '@std/testing/mock'
 import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
-import { Definition } from '@/dsl/Definition.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import { register } from '@skmtc/lang-typescript'
@@ -149,7 +149,7 @@ Deno.test('GenerateContext - File Management', async t => {
   await t.step('register should handle file registration with definitions', () => {
     const { context } = createTestContext()
 
-    const definition = new Definition({
+    const definition = new TsDefinition({
       context,
       identifier: Identifier.createType('TestType'),
       value: {
@@ -204,7 +204,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
   await t.step('findDefinition should find registered definition', () => {
     const { context } = createTestContext()
 
-    const definition = new Definition({
+    const definition = new TsDefinition({
       context,
       identifier: Identifier.createType('ExistingType'),
       value: {
@@ -229,7 +229,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
   await t.step('findDefinition should not find definition in wrong file', () => {
     const { context } = createTestContext()
 
-    const definition = new Definition({
+    const definition = new TsDefinition({
       context,
       identifier: Identifier.createType('TypeInFile1'),
       value: {
@@ -312,7 +312,7 @@ Deno.test('GenerateContext - Integration', async t => {
     const { context } = createTestContext()
 
     // 1. Register some definitions
-    const definition1 = new Definition({
+    const definition1 = new TsDefinition({
       context,
       identifier: Identifier.createType('User'),
       value: {
@@ -321,7 +321,7 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    const definition2 = new Definition({
+    const definition2 = new TsDefinition({
       context,
       identifier: Identifier.createType('Product'),
       value: {
@@ -363,7 +363,7 @@ Deno.test('GenerateContext - Integration', async t => {
     })
 
     // Register TypeScript file
-    const definition = new Definition({
+    const definition = new TsDefinition({
       context,
       identifier: Identifier.createVariable('CONFIG'),
       value: {
@@ -384,7 +384,7 @@ Deno.test('GenerateContext - Integration', async t => {
   await t.step('should maintain separate definition namespaces per file', () => {
     const { context } = createTestContext()
 
-    const typeDefinition = new Definition({
+    const typeDefinition = new TsDefinition({
       context,
       identifier: Identifier.createType('Config'),
       value: {
@@ -393,7 +393,7 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    const constantDefinition = new Definition({
+    const constantDefinition = new TsDefinition({
       context,
       identifier: Identifier.createVariable('Config'),
       value: {

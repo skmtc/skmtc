@@ -7,7 +7,7 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import type { OasOperationConfig, TransformOasOperationArgs } from '@/dsl/operation/oas/types.ts'
 import type { ModelConfig, TransformModelArgs } from '@/dsl/model/types.ts'
 import type { ResultType } from '@/types/Results.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import { toGqlDocument } from '@/gql/document/toGqlDocument.ts'
@@ -115,7 +115,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
       register(context, {
         destinationPath: `gql/operations/${gqlOp.identifier}.generated.ts`,
         definitions: [
-          new Definition({
+          new TsDefinition({
             context,
             identifier: id,
             value: {

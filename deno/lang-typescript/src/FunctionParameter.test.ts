@@ -1,16 +1,16 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { FunctionParameter } from './FunctionParameter.ts'
-import type { Definition } from '@/dsl/Definition.ts'
-import type { TypeSystemObject, TypeSystemVoid, TypeSystemString } from '@/types/TypeSystem.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
+import type { TsDefinition } from './TsDefinition.ts'
+import type { TypeSystemObject, TypeSystemVoid, TypeSystemString } from '@skmtc/core'
+import { Identifier } from '@skmtc/core'
 
 // Mock helper to create a simple Definition-like object
-const createMockDefinition = (value: TypeSystemObject | TypeSystemVoid, identifierName = 'MockType'): Definition<TypeSystemObject | TypeSystemVoid> => {
+const createMockDefinition = (value: TypeSystemObject | TypeSystemVoid, identifierName = 'MockType'): TsDefinition<TypeSystemObject | TypeSystemVoid> => {
   return {
     identifier: Identifier.createType(identifierName),
     value,
     toString: () => identifierName
-  } as Definition<TypeSystemObject | TypeSystemVoid>
+  } as TsDefinition<TypeSystemObject | TypeSystemVoid>
 }
 
 // Helper to create a mock string type for testing

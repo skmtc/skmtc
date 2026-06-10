@@ -1,7 +1,7 @@
-import type { GenerateContext } from '../context/GenerateContext.ts'
-import { Definition } from '../dsl/Definition.ts'
-import { Identifier } from '../dsl/Identifier.ts'
-import type { TypeSystemObject } from '../types/TypeSystem.ts'
+import type { GenerateContext } from '@skmtc/core'
+import { TsDefinition } from './TsDefinition.ts'
+import { Identifier } from '@skmtc/core'
+import type { TypeSystemObject } from '@skmtc/core'
 import { FunctionParameter } from './FunctionParameter.ts'
 import { toPathTemplate } from './toPathTemplate.ts'
 
@@ -43,7 +43,7 @@ type ConstructorArgs = {
  * 
  * @example Basic path parameters with destructuring
  * ```typescript
- * import { PathParams } from '@skmtc/core';
+ * import { PathParams } from '@skmtc/lang-typescript';
  * 
  * const pathParams = new PathParams({
  *   context: generateContext,
@@ -183,7 +183,7 @@ export class PathParams {
   context: GenerateContext
   
   /** The TypeScript type definition for the path parameters */
-  typeDefinition: Definition<TypeSystemObject>
+  typeDefinition: TsDefinition<TypeSystemObject>
   
   /** The function parameter representation for method signatures */
   parameter: FunctionParameter
@@ -229,7 +229,7 @@ export class PathParams {
   }: ConstructorArgs) {
     this.context = context
 
-    this.typeDefinition = new Definition<TypeSystemObject>({
+    this.typeDefinition = new TsDefinition<TypeSystemObject>({
       context,
       identifier: Identifier.createType(typeName),
       value: typeValue

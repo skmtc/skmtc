@@ -1,4 +1,5 @@
-import { ImportBase, List } from '@skmtc/core'
+import { ImportBase } from '@skmtc/core'
+import { List } from './List.ts'
 import type { Identifier, EntityTypeValue } from '@skmtc/core'
 
 /**

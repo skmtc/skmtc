@@ -1,4 +1,4 @@
-import type { Stringable } from '../dsl/Stringable.ts'
+import type { Stringable } from '@skmtc/core'
 
 /**
  * Internal cleanups (no call-site impact)
