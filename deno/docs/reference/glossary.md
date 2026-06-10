@@ -75,9 +75,9 @@ are rejected at `init` time. See [projects-and-workspaces](../concepts/projects-
 ### Bundle
 
 `bundle.js` — the compiled JS file the SKMTC Worker loads. Produced
-by `deno bundle worker.ts -o bundle.js`. Only present when the
-project has at least one cloned (local) generator; remote-only
-projects use the JSR-published bundle. See [the-worker-runtime](../concepts/the-worker-runtime.md).
+by `deno bundle worker.ts -o bundle.js`. Every project builds one —
+remote-only projects included; `jsr:` specifiers resolve through the
+project's import map at bundle time. See [the-worker-runtime](../concepts/the-worker-runtime.md).
 
 ### Bundle freshness
 
@@ -548,9 +548,9 @@ See [files-and-dedup §Reading a mismatch error](../concepts/files-and-dedup.md#
 ### Remote-only project
 
 A SKMTC project whose `deno.json#imports` contains only JSR-installed
-generators (no local clones). Skips local bundling — uses the
-JSR-published `bundle.js` at generate time. `skmtc bundle` reports
-`{ kind: 'noop', reason: 'remote-only' }`.
+generators (no local clones). Bundles and generates like any other
+project — `skmtc bundle` compiles the JSR-resolved generators into
+the project-local `bundle.js` that `generate` loads.
 
 ### Render phase
 

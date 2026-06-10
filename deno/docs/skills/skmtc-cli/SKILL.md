@@ -111,7 +111,7 @@ wrappers needed.
 
 | Code | Meaning |
 |---|---|
-| `0` | Success (including documented no-ops like a remote-only `bundle`) |
+| `0` | Success (including documented no-ops like `clean` on a project with no manifest) |
 | `2` | Required input missing or invalid (recipe error on stderr) |
 | `1` | Anything else (registry unreachable, schema parse failure, fatal parseIssue, typecheck failed) |
 
@@ -189,8 +189,8 @@ Known check ids:
 | `project-deno-json/<project>` | `deno.json` exists and parses |
 | `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
 | `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
-| `project-bundle/<project>` | If local generators exist, `bundle.js` is built; otherwise ok-noop |
-| `project-worker-pin/<project>` | If local generators exist, `@skmtc/worker` is pinned (the generated `worker.ts` needs it); otherwise ok-noop |
+| `project-bundle/<project>` | `bundle.js` exists — every project (remote-only included) generates from it; warning with a `skmtc bundle` hint when missing |
+| `project-worker-pin/<project>` | If `worker.ts` exists, `@skmtc/worker` is pinned (the generated worker imports it); ok-noop before the first bundle |
 | `project-manifest/<project>` | `manifest.json` matches the current `@skmtc/core` schema |
 
 ## 6. The client.json shape
@@ -353,13 +353,13 @@ Agents drive on these shapes. Discriminator field is usually `kind`.
 {
   "projectName": "my-api",
   "installed": ["@skmtc/gen-zod"],
-  "bundle": { "kind": "noop", "reason": "remote-only", "detail": "..." },
+  "bundle": { "kind": "bundled", "projectName": "my-api", "bundlePath": "..." },
   "verifyWith": "cat .skmtc/my-api/deno.json"
 }
 ```
 
-For hybrid projects (already has clones), `bundle.kind` becomes
-`"bundled"` with `bundlePath`.
+The post-install rebundle runs for every project — remote-only and
+hybrid alike — so `bundle.kind` is always `"bundled"`.
 
 ### `clone`
 
@@ -382,11 +382,9 @@ refuses with exit 2 before any state mutation. `--force` overrides
 ### `bundle`
 
 ```jsonc
-// Wrote bundle.js:
+// Wrote bundle.js — the only outcome; every project (remote-only
+// included) builds a local bundle, since `generate` loads it:
 { "kind": "bundled", "projectName": "my-api", "bundlePath": "..." }
-
-// Remote-only project — JSR-published bundle.js is used at generate time:
-{ "kind": "noop", "projectName": "my-api", "reason": "remote-only", "detail": "..." }
 ```
 
 ### `generate`
@@ -506,9 +504,9 @@ Inspect `errors` and `parseIssues` for any non-success outcomes.
 skmtc install @skmtc/gen-<name> <project> --json
 ```
 
-If `installed` is non-empty and `bundle.kind === "noop"` → ready to
-`generate`. If `bundle.kind === "bundled"` (project has clones) →
-also ready; the rebundle ran automatically.
+If `installed` is non-empty and `bundle.kind === "bundled"` → ready
+to `generate`; the rebundle ran automatically (remote-only and
+hybrid projects alike).
 
 ### Card: Configuring enrichments
 
@@ -706,7 +704,8 @@ Then, **by hand**, write under `.skmtc/lab/`:
    **do** still pin every *other* bare specifier the generator source
    imports (`@std/path`, `valibot`, `tiny-invariant`, …) — `bundle`
    only knows about the worker peer deps. Remote-only projects need
-   none of this; the JSR bundle is self-contained.
+   no hand-pinning beyond the `jsr:` generator entries — published
+   packages carry their own dependencies.
 
 3. Set the schema in `.skmtc/lab/.settings/client.json#source` (or
    pass it as the `generate` positional). `basePath` is set by `init`.
@@ -716,17 +715,18 @@ skmtc bundle lab --json   # → { kind: "bundled", bundlePath } — writes worke
 skmtc generate lab <schema> --json --typecheck
 ```
 
-`bundle` for a correctly-wired local-generator project returns
-`kind: "bundled"`. If it returns `kind: "noop", reason: "remote-only"`
-the step-2 wiring didn't take — the import key isn't a non-`jsr:`
-`gen-*` entry.
+`bundle` returns `kind: "bundled"` for every project. To confirm the
+step-2 wiring took, check the generated `worker.ts` imports the
+local `@<scope>/gen-<name>` id — a missing entry means the import
+key isn't a `gen-*` entry in `deno.json#imports`.
 
 ### Card: Using SKMTC in CI
 
 ```bash
 # Setup (once per CI run):
 deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>
-# If the project has any cloned generators:
+# Build the project's bundle.js (required for every project unless a
+# fresh one is committed/cached):
 skmtc bundle <project>
 
 # Run:

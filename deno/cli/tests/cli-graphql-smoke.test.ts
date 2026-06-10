@@ -68,7 +68,8 @@ const FIXTURE_SDL = /* GraphQL */ `
 // on the sibling `skmtc-generators` repo.
 const FIXTURE_WORKER = `
 import toWorker from '@skmtc/worker'
-import { toModelEntry, toModelProjectionBase, Identifier } from '@skmtc/core'
+import { toModelEntry, Identifier } from '@skmtc/core'
+import { toModelProjectionBase } from '@skmtc/lang-typescript'
 
 const ModelBase = toModelProjectionBase({
   id: '@fake/gen-minimal',

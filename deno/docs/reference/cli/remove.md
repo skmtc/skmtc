@@ -134,8 +134,9 @@ on `.skmtc/<project>/<generator>/`.
 skmtc remove my-api @skmtc/gen-zod
 ```
 
-Removes the import entry; bundle is unaffected (the source was
-remote-only).
+Removes the import entry. Rebuild the bundle (`skmtc bundle my-api`)
+before the next generate so the removed generator drops out of
+`bundle.js` — strict-mode `generate` refuses on the drift otherwise.
 
 ### Remove a local generator (with source deletion)
 

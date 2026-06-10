@@ -44,8 +44,9 @@ This adds a JSR import to `.skmtc/my-project/deno.json`:
 }
 ```
 
-No local source. At generate time, the engine loads the
-JSR-published bundle directly (via Deno's content-addressed cache).
+No local source — `skmtc bundle` compiles the JSR-resolved
+generator code into the project-local `bundle.js` that `generate`
+loads, same as for cloned source.
 
 ### Customization surface when installed
 
@@ -61,54 +62,20 @@ clone.
 
 ### Bundle behavior when installed
 
-If the project has *only* installed generators (no clones), there's
-no local `bundle.js`. The JSR-published bundle is used at generate
-time. `skmtc bundle` reports
-`{ kind: 'noop', reason: 'remote-only' }` and exits cleanly without
-writing anything.
-
-This is intentional: for a fully-stock project, there's nothing to
-build locally, so why pay the bundling time?
-
-## Clone (local source)
-
-The mechanism:
-
-```bash
-skmtc clone my-project -g @skmtc/gen-zod
-```
-
-This:
-
-- Copies the generator source from JSR into
-  `.skmtc/my-project/gen-zod/`
-- Changes the `deno.json` import entry from a JSR specifier to a
-  local path:
-
-  ```json
-  { "@skmtc/gen-zod": "./gen-zod/mod.ts" }
-  ```
-
-- Triggers an **automatic rebundle** (the post-clone bundle step)
-- Performs a **pre-flight peer-pin check** that the cloned
-  generator's `@skmtc/core` peer version matches your project's pin
-
-After cloning, the generator's source is **your code**. Edit
-`gen-zod/src/base.ts` to change paths and identifiers. Edit the
-output template files to change the rendered code shape. Add new
-field types. Swap peer imports.
-
-### Customization surface when cloned
-
-Everything. The whole TypeScript source is editable. Anything you
-can do in TypeScript, you can do to a cloned generator.
+Identical to cloned: `skmtc bundle` regenerates `worker.ts` from
+`deno.json#imports` and compiles `bundle.js`, resolving the `jsr:`
+specifiers through the project's import map. A project with only
+installed generators still needs its `bundle.js` — it is the only
+artifact `generate` loads. (Older CLI versions no-op'd here with
+`{ kind: 'noop', reason: 'remote-only' }`; that special case is
+gone.)
 
 ### Bundle behavior when cloned
 
 Every `skmtc bundle` (and `skmtc dev`) rebuilds `worker.ts` from
 `deno.json#imports` and runs `deno bundle worker.ts -o bundle.js`.
-The locally-built `bundle.js` is what runs at generate time — the
-JSR-published bundle is bypassed.
+The locally-built `bundle.js` is what runs at generate time; cloned
+source enters it by relative path instead of a `jsr:` specifier.
 
 ## Customization seams in stock generators
 

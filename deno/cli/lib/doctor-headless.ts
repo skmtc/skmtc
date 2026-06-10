@@ -18,7 +18,6 @@ import { toRootPath } from '@/lib/to-root-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
 import { Manifest } from '@/lib/manifest.ts'
-import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { homedir } from 'node:os'
 import cliDenoJson from '../deno.json' with { type: 'json' }
 import {
@@ -216,7 +215,7 @@ const checkProject = (
   checks.push(checkProjectBasePath(projectName, clientJsonPath))
   checks.push(checkProjectCorePin(projectName, denoJsonPath, ctx.cliCorePin))
   checks.push(checkProjectBundle(projectName, denoJsonPath, bundlePath))
-  checks.push(checkProjectWorkerPin(projectName, denoJsonPath))
+  checks.push(checkProjectWorkerPin(projectName, denoJsonPath, join(projectPath, 'worker.ts')))
   checks.push(checkProjectManifest(projectName))
   // Gen-maps (anchors) checks — all three short-circuit to `skipped`
   // when the project hasn't opted in, so they're free for users not
@@ -465,19 +464,6 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
   }
 }
 
-/**
- * A project has a local generator when its deno.json imports a
- * `gen-*` package via a non-`jsr:` specifier — a relative path to
- * cloned or hand-authored source. Such projects need a built
- * `bundle.js` and an `@skmtc/worker` pin; remote-only projects do not.
- */
-const hasLocalGenerator = (imports: Record<string, unknown>): boolean =>
-  Object.entries(imports).some(([id, value]) => {
-    const isGenerator = parseModuleName(id).packageName.startsWith('gen-')
-    if (!isGenerator) return false
-    return typeof value === 'string' && !value.startsWith('jsr:')
-  })
-
 const checkProjectBundle = (
   projectName: string,
   denoJsonPath: string,
@@ -491,9 +477,8 @@ const checkProjectBundle = (
       message: `Project "${projectName}" has no deno.json — bundle check skipped.`
     }
   }
-  let parsed: unknown
   try {
-    parsed = JSON.parse(Deno.readTextFileSync(denoJsonPath))
+    JSON.parse(Deno.readTextFileSync(denoJsonPath))
   } catch {
     return {
       id: `project-bundle/${projectName}`,
@@ -501,30 +486,23 @@ const checkProjectBundle = (
       message: `Project "${projectName}" deno.json is unparseable — bundle check skipped.`
     }
   }
-  const imports = (parsed as { imports?: Record<string, unknown> })?.imports ?? {}
 
-  if (!hasLocalGenerator(imports)) {
-    return {
-      id: `project-bundle/${projectName}`,
-      status: 'ok',
-      message: `Project "${projectName}" is remote-only; bundle.js is not needed (published JSR bundles are used at generate time).`,
-      data: { hasLocalGenerator: false }
-    }
-  }
+  // Every project — remote-only included — generates from its local
+  // bundle.js, so its absence is always actionable.
   if (!existsSync(bundlePath)) {
     return {
       id: `project-bundle/${projectName}`,
       status: 'warning',
-      message: `Project "${projectName}" has local generators but no bundle.js at ${bundlePath}.`,
+      message: `Project "${projectName}" has no bundle.js at ${bundlePath}.`,
       hint: `Run \`skmtc bundle ${projectName}\` to build it.`,
-      data: { hasLocalGenerator: true, bundlePath }
+      data: { bundlePath }
     }
   }
   return {
     id: `project-bundle/${projectName}`,
     status: 'ok',
     message: `Project "${projectName}" has a local bundle.js.`,
-    data: { hasLocalGenerator: true, bundlePath }
+    data: { bundlePath }
   }
 }
 
@@ -534,9 +512,15 @@ const checkProjectBundle = (
  * `import toWorker from '@skmtc/worker'`, so without that pin
  * `deno bundle` fails with an unresolved-import error. `bundle` now
  * writes the pin via `ensureWorkerDeps`; this check surfaces a project
- * that predates that fix or had the pin removed.
+ * that predates that fix or had the pin removed. A project with no
+ * `worker.ts` yet is ok-noop: the first `skmtc bundle` writes both
+ * the worker and the pin.
  */
-const checkProjectWorkerPin = (projectName: string, denoJsonPath: string): Check => {
+const checkProjectWorkerPin = (
+  projectName: string,
+  denoJsonPath: string,
+  workerPath: string
+): Check => {
   if (!existsSync(denoJsonPath)) {
     return {
       id: `project-worker-pin/${projectName}`,
@@ -556,12 +540,11 @@ const checkProjectWorkerPin = (projectName: string, denoJsonPath: string): Check
   }
   const imports = (parsed as { imports?: Record<string, unknown> })?.imports ?? {}
 
-  if (!hasLocalGenerator(imports)) {
+  if (!existsSync(workerPath)) {
     return {
       id: `project-worker-pin/${projectName}`,
       status: 'ok',
-      message: `Project "${projectName}" is remote-only; no worker.ts is generated, so @skmtc/worker is not needed.`,
-      data: { hasLocalGenerator: false }
+      message: `Project "${projectName}" has no worker.ts yet; the first \`skmtc bundle\` writes it along with the @skmtc/worker pin.`
     }
   }
 
@@ -569,17 +552,15 @@ const checkProjectWorkerPin = (projectName: string, denoJsonPath: string): Check
     return {
       id: `project-worker-pin/${projectName}`,
       status: 'warning',
-      message: `Project "${projectName}" has local generators but no @skmtc/worker pin — the generated worker.ts will not bundle.`,
-      hint: `Run \`skmtc bundle ${projectName}\` — it writes the pin automatically — or add "@skmtc/worker" to the project's deno.json imports.`,
-      data: { hasLocalGenerator: true }
+      message: `Project "${projectName}" has no @skmtc/worker pin — the generated worker.ts will not bundle.`,
+      hint: `Run \`skmtc bundle ${projectName}\` — it writes the pin automatically — or add "@skmtc/worker" to the project's deno.json imports.`
     }
   }
 
   return {
     id: `project-worker-pin/${projectName}`,
     status: 'ok',
-    message: `Project "${projectName}" pins @skmtc/worker.`,
-    data: { hasLocalGenerator: true }
+    message: `Project "${projectName}" pins @skmtc/worker.`
   }
 }
 

@@ -238,9 +238,10 @@ as a soft signal.
 
 ### Bundle metadata unavailable
 
-If the project has no clones or local generators, the
-`bundle.present` field is `false` and `bundle.path` is absent —
-this is the expected state for remote-only projects, not a failure.
+If `bundle.present` is `false` and `bundle.path` is absent, the
+project has never been bundled. Every project — remote-only
+included — needs a `bundle.js` to generate; run
+`skmtc bundle <project>` to build it.
 
 ## See also
 

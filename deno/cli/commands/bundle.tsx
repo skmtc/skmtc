@@ -74,12 +74,11 @@ type PrintBundleResultOptions = {
 }
 
 /**
- * Renders the bundle result. Two outcomes:
- *   - `bundled` — a `bundle.js` was written; report the path.
- *   - `noop` (remote-only) — explicitly explain the reason. Friction
- *     #8 used to leave the operator guessing whether nothing landed.
+ * Renders the bundle result — a `bundle.js` was written; report the
+ * path. Every project (remote-only included) builds a local bundle,
+ * so there is no no-op outcome.
  *
- * JSON shape is the discriminated union — readable for `jq -e
+ * JSON shape keeps the `kind` discriminator — readable for `jq -e
  * '.kind == "bundled"'` style scripting.
  */
 export const printBundleResult = (
@@ -92,22 +91,9 @@ export const printBundleResult = (
       return
     }
     case 'text': {
-      switch (result.kind) {
-        case 'bundled': {
-          console.log(`Bundled "${result.projectName}":`)
-          console.log(`  ${result.bundlePath}`)
-          return
-        }
-        case 'noop': {
-          console.log(`Bundle is a no-op for "${result.projectName}": ${result.reason}`)
-          console.log(result.detail)
-          return
-        }
-        default: {
-          const _exhaustive: never = result
-          throw new Error(`Unhandled bundle result: ${JSON.stringify(_exhaustive)}`)
-        }
-      }
+      console.log(`Bundled "${result.projectName}":`)
+      console.log(`  ${result.bundlePath}`)
+      return
     }
     default: {
       const _exhaustive: never = format

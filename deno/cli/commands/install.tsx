@@ -118,17 +118,9 @@ export const printInstallResult = (
       for (const id of result.installed) {
         console.log(`  - ${id}`)
       }
-      // For remote-only installs the bundle is a noop (the JSR
-      // bundle.js is reused); for hybrid projects the post-install
-      // rebundle picks up the new cross-generator import.
-      switch (result.bundle.kind) {
-        case 'bundled':
-          console.log(`\nRebundled: ${result.bundle.bundlePath}`)
-          break
-        case 'noop':
-          console.log(`\nBundle: ${result.bundle.detail}`)
-          break
-      }
+      // The post-install rebundle picks up the new generator so the
+      // next `skmtc generate` runs it — remote-only and hybrid alike.
+      console.log(`\nRebundled: ${result.bundle.bundlePath}`)
       console.log(`Verify with: cat .skmtc/${result.projectName}/deno.json`)
       return
     }

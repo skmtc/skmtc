@@ -3,18 +3,20 @@
  * artifact without any Ink rendering. Strict mode invokes this
  * directly.
  *
- * For **remote-only** projects (no local-cloned or local-authored
- * generators), `deno bundle` produces a `worker.ts` and a `deno.lock`
- * but no `bundle.js` — the published JSR bundle is used at
- * `generate` time instead. Pre-fix this was silent (friction #8);
- * now the result returns `noop: 'remote-only'` so the caller can
- * see why no `bundle.js` was emitted.
+ * Every project gets a local `bundle.js`, including **remote-only**
+ * projects (only `jsr:`-installed generators): `generate` always
+ * dynamic-imports the project-local `bundle.js`, and `deno bundle`
+ * resolves `jsr:` specifiers through the project's import map, so
+ * the build works identically for installed and cloned generators.
+ * (An earlier version no-op'd here on the assumption that a
+ * published JSR bundle would be used at generate time — no such
+ * path exists; the no-op left pure-install projects unable to
+ * generate.)
  */
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { createBundle } from '@/lib/create-bundle.ts'
 import { exists } from '@std/fs/exists'
-import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
 
 type BundleHeadlessArgs = {
@@ -22,45 +24,17 @@ type BundleHeadlessArgs = {
   projectName: string
 }
 
-export type BundleHeadlessResult =
-  | {
-      kind: 'bundled'
-      projectName: string
-      bundlePath: string
-    }
-  | {
-      kind: 'noop'
-      projectName: string
-      reason: 'remote-only'
-      detail: string
-    }
+export type BundleHeadlessResult = {
+  kind: 'bundled'
+  projectName: string
+  bundlePath: string
+}
 
 export const bundleHeadless = async ({
   skmtcRoot,
   projectName
 }: BundleHeadlessArgs): Promise<BundleHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
-  const imports = project.rootDenoJson.contents.imports ?? {}
-
-  // A generator entry is "local" iff its value isn't a `jsr:` specifier.
-  // Local clones / created generators use relative paths like
-  // `../gen-x/mod.ts`. Remote installs always go through `jsr:`.
-  const hasLocalGenerator = Object.entries(imports).some(([id, value]) => {
-    const isGenerator = parseModuleName(id).packageName.startsWith('gen-')
-    if (!isGenerator) return false
-    return typeof value === 'string' && !value.startsWith('jsr:')
-  })
-
-  if (!hasLocalGenerator) {
-    return {
-      kind: 'noop',
-      projectName,
-      reason: 'remote-only',
-      detail:
-        'Project has only remote (installed) generators; the published JSR ' +
-        '`bundle.js` will be used by `skmtc generate`. No local bundle.js to build.'
-    }
-  }
 
   const bundlePath = await createBundle({ project })
 

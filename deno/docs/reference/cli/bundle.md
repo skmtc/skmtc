@@ -6,8 +6,13 @@ Regenerates `worker.ts` from `deno.json#imports`, then runs
 `deno bundle worker.ts -o bundle.js`. The resulting `bundle.js` is
 what the SKMTC Worker loads at generate time.
 
-For remote-only projects (no cloned generators), this is a documented
-no-op — the JSR-published bundle is used instead.
+Every project builds a local bundle — remote-only (all generators
+installed from JSR) and hybrid (some cloned) alike. `deno bundle`
+resolves `jsr:` specifiers through the project's import map, so the
+build is identical either way. (Older CLI versions no-op'd on
+remote-only projects on the assumption that a published JSR bundle
+would be used at generate time; no such path existed, which left
+pure-install projects unable to generate.)
 
 ## Synopsis
 
@@ -33,19 +38,10 @@ Write JSON output to stdout. Implies `--no-input`.
 
 ## Behavior
 
-### Detection: local vs remote-only
-
-The CLI inspects `<project>/deno.json#imports`. For each entry whose
-key matches `gen-*`, the value is checked:
-
-- **All entries are `jsr:...` specifiers** → remote-only; bundle is
-  a no-op.
-- **At least one entry is a local path** → hybrid; bundle proceeds.
-
 ### worker.ts regeneration
 
-For hybrid projects, the CLI regenerates `<project>/worker.ts` from
-the current `deno.json#imports`. The file is templated as:
+The CLI regenerates `<project>/worker.ts` from the current
+`deno.json#imports`. The file is templated as:
 
 ```ts
 import toWorker from '@skmtc/worker'
@@ -111,21 +107,9 @@ run.
 }
 ```
 
-### Remote-only no-op
-
-```jsonc
-{
-  "kind": "noop",
-  "projectName": "my-api",
-  "reason": "remote-only",
-  "detail": "Project has only remote (installed) generators; the published JSR `bundle.js` will be used by `skmtc generate`. No local bundle.js to build."
-}
-```
-
-The explicit no-op outcome closes a historical confusion: in older
-versions, `bundle` on a remote-only project completed silently with
-no visible effect, leaving operators unsure whether the command had
-worked. The discriminated outcome makes the state-change explicit.
+There is no no-op outcome: a successful run always writes
+`bundle.js`. (The former `kind: "noop", reason: "remote-only"` result
+was removed along with the remote-only special case.)
 
 ## Examples
 
@@ -145,14 +129,14 @@ skmtc bundle my-api --json --no-input
 
 ```bash
 skmtc bundle my-api --json | jq '.kind'
-# "bundled" or "noop"
+# "bundled"
 ```
 
 ## When to run bundle explicitly
 
 The CLI runs `bundle` automatically after `skmtc clone` and after
-`skmtc install` (if the project has any local generators). So in
-normal workflows, manual `bundle` is rarely needed.
+`skmtc install`. So in normal workflows, manual `bundle` is rarely
+needed.
 
 Explicit bundle is useful when:
 
@@ -178,7 +162,7 @@ The `skmtc doctor` command surfaces freshness as
 
 | Code | Meaning |
 |---|---|
-| `0` | Success — bundle written OR no-op |
+| `0` | Success — bundle written |
 | `1` | `deno bundle` failed (check `.settings/error-logs.txt`) |
 | `2` | Required argument missing |
 

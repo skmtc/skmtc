@@ -12,19 +12,21 @@ type InstallHeadlessArgs = {
   skmtcRoot: SkmtcRoot
   projectName: string
   generators: string[]
+  /**
+   * Override for the post-install rebundle — tests stub this to keep
+   * the install assertions free of the `deno bundle` subprocess.
+   */
+  bundleFn?: typeof bundleHeadless
 }
 
 export type InstallHeadlessResult = {
   projectName: string
   installed: string[]
   /**
-   * Result of the post-install rebundle. Will be `kind: 'noop'`
-   * (reason `remote-only`) when the project still has no local
-   * generators after the install — installed JSR generators run
-   * their published `bundle.js` so no local bundle is needed.
-   * `kind: 'bundled'` only when the project already has a cloned
-   * or hand-authored generator that needed picking up the new
-   * cross-generator import.
+   * Result of the post-install rebundle. Always `kind: 'bundled'` —
+   * every project (remote-only included) generates from its local
+   * `bundle.js`, so install rebuilds it to pick up the newly
+   * installed generator.
    *
    * Surfacing the bundle here is the install-side counterpart to
    * the same fix in `cloneHeadless`: post-mutation state is now
@@ -37,7 +39,8 @@ export type InstallHeadlessResult = {
 export const installHeadless = async ({
   skmtcRoot,
   projectName,
-  generators
+  generators,
+  bundleFn = bundleHeadless
 }: InstallHeadlessArgs): Promise<InstallHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
 
@@ -46,7 +49,7 @@ export const installHeadless = async ({
     await project.installGenerator({ moduleName })
   }
 
-  const bundle = await bundleHeadless({ skmtcRoot, projectName })
+  const bundle = await bundleFn({ skmtcRoot, projectName })
 
   return {
     projectName,

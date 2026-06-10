@@ -56,16 +56,24 @@ const withProject = async (
   }
 }
 
-Deno.test('checkBundleFreshness - returns no-local-bundle for remote-only projects', async () => {
-  await withProject(async ({ projectName, writeDenoJson }) => {
+Deno.test('checkBundleFreshness - remote-only projects are checked like any other', async () => {
+  await withProject(async ({ projectName, writeDenoJson, writeWorker }) => {
     // Remote-only: every generator import is a `jsr:` specifier.
+    // `generate` still loads the project-local bundle.js, so the
+    // worker snapshot must exist and match — never bundled means
+    // missing-worker, not a pass.
     writeDenoJson({
       '@skmtc/gen-typescript': 'jsr:@skmtc/gen-typescript@0.0.55',
       '@skmtc/gen-zod': 'jsr:@skmtc/gen-zod@0.0.55'
     })
 
-    const result = checkBundleFreshness({ projectName })
-    assertEquals(result.kind, 'no-local-bundle')
+    const beforeBundle = checkBundleFreshness({ projectName })
+    assertEquals(beforeBundle.kind, 'missing-worker')
+
+    writeWorker(['@skmtc/gen-typescript', '@skmtc/gen-zod'])
+
+    const afterBundle = checkBundleFreshness({ projectName })
+    assertEquals(afterBundle.kind, 'fresh')
   })
 })
 

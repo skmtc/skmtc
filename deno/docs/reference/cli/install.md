@@ -71,14 +71,10 @@ the shape, then type the keys into
 
 ### Post-install rebundle
 
-If the project has at least one *cloned* (local) generator, the
-CLI automatically rebundles after the install. This ensures the
-local `bundle.js` picks up the new generator without a separate
-`skmtc bundle` step.
-
-If the project is remote-only (no clones), the rebundle is skipped
-— there's no local bundle to update. The JSR-published bundle is
-used at generate time.
+The CLI automatically rebundles after the install — remote-only and
+hybrid projects alike. This ensures the project-local `bundle.js`
+(the artifact `generate` loads) picks up the new generator without
+a separate `skmtc bundle` step.
 
 ### Verification
 
@@ -88,23 +84,6 @@ silently no-op'd; now if the write fails, the CLI surfaces an
 error.
 
 ## JSON output
-
-### Remote-only project (no clones)
-
-```jsonc
-{
-  "projectName": "my-api",
-  "installed": ["@skmtc/gen-zod"],
-  "bundle": {
-    "kind": "noop",
-    "reason": "remote-only",
-    "detail": "Project has only remote (installed) generators; the published JSR `bundle.js` will be used by `skmtc generate`."
-  },
-  "verifyWith": "cat .skmtc/my-api/deno.json"
-}
-```
-
-### Hybrid project (has at least one clone)
 
 ```jsonc
 {
@@ -123,9 +102,9 @@ error.
 
 - **`projectName`**: echoed from the argument.
 - **`installed`**: array of generator IDs added in this invocation.
-- **`bundle.kind`**: `"noop"` (remote-only) or `"bundled"` (rebuild ran).
-  The CLI writes an explicit no-op rather than silently doing nothing
-  — eliminates the "did it work?" ambiguity.
+- **`bundle.kind`**: always `"bundled"` — the post-install rebundle
+  runs for every project. (The former `"noop"` remote-only outcome
+  was removed along with the remote-only special case.)
 - **`verifyWith`**: a follow-up command the agent can run to confirm
   the install landed.
 

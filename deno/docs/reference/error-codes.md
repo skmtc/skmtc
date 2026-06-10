@@ -326,7 +326,7 @@ provides the canonical fix in its `hint` field.
 
 | Code | Meaning |
 |---|---|
-| `0` | Success (including documented no-ops like a remote-only `bundle`) |
+| `0` | Success (including documented no-ops, e.g. `clean` on a project with no manifest) |
 | `1` | Fatal failure — parseIssue at level `error`, typecheck failed, or other unrecoverable error |
 | `2` | Required input missing or invalid — recipe error printed to stderr |
 

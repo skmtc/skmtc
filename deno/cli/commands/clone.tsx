@@ -146,14 +146,7 @@ export const printCloneResult = (
       // `skmtc generate` will pick up the new generator. Without this,
       // friction #4 reappears as "I cloned it but generate produces
       // nothing for it."
-      switch (result.bundle.kind) {
-        case 'bundled':
-          console.log(`\nRebundled: ${result.bundle.bundlePath}`)
-          break
-        case 'noop':
-          console.log(`\nBundle: ${result.bundle.detail}`)
-          break
-      }
+      console.log(`\nRebundled: ${result.bundle.bundlePath}`)
       console.log(`Verify with: ls .skmtc/${result.projectName}/`)
       return
     }

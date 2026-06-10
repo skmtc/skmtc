@@ -116,8 +116,8 @@ instead.
 
 ### Worker spawn and protocol
 
-The CLI spawns a Deno Worker from the project's `bundle.js` (or the
-JSR-published bundle for remote-only projects). Worker permissions:
+The CLI spawns a Deno Worker from the project's `bundle.js` —
+remote-only and hybrid projects alike. Worker permissions:
 `read`, `write`, `env=true`; `net=false`, `run=false`.
 
 Three-message protocol: `READY` (worker boot) → `GENERATE` (host →

@@ -69,15 +69,12 @@ Deno.test('printInstallResult - text format reports installed ids + verify hint'
       {
         projectName: 'my-api',
         installed: ['@skmtc/gen-zod', '@skmtc/gen-tanstack-query'],
-        // Remote-only project: no local generators, JSR-published
-        // bundle.js is reused, so the post-install bundle is a noop.
+        // Remote-only projects rebundle like any other: generate
+        // loads the project-local bundle.js.
         bundle: {
-          kind: 'noop',
+          kind: 'bundled',
           projectName: 'my-api',
-          reason: 'remote-only',
-          detail:
-            'Project has only remote (installed) generators; the published JSR ' +
-            '`bundle.js` will be used by `skmtc generate`. No local bundle.js to build.'
+          bundlePath: '.skmtc/my-api/bundle.js'
         }
       },
       { format: 'text' }
@@ -89,7 +86,7 @@ Deno.test('printInstallResult - text format reports installed ids + verify hint'
     'Installed 2 generator(s) in "my-api":',
     '  - @skmtc/gen-zod',
     '  - @skmtc/gen-tanstack-query',
-    '\nBundle: Project has only remote (installed) generators; the published JSR `bundle.js` will be used by `skmtc generate`. No local bundle.js to build.',
+    '\nRebundled: .skmtc/my-api/bundle.js',
     'Verify with: cat .skmtc/my-api/deno.json'
   ])
 })
@@ -134,10 +131,9 @@ Deno.test('printInstallResult - json format emits a parseable object with verify
         projectName: 'my-api',
         installed: ['@skmtc/gen-zod'],
         bundle: {
-          kind: 'noop',
+          kind: 'bundled',
           projectName: 'my-api',
-          reason: 'remote-only',
-          detail: 'detail string'
+          bundlePath: '.skmtc/my-api/bundle.js'
         }
       },
       { format: 'json' }
@@ -149,7 +145,7 @@ Deno.test('printInstallResult - json format emits a parseable object with verify
   const parsed: InstallHeadlessResult & { verifyWith: string } = JSON.parse(logs[0])
   assertEquals(parsed.projectName, 'my-api')
   assertEquals(parsed.installed, ['@skmtc/gen-zod'])
-  assertEquals(parsed.bundle.kind, 'noop')
+  assertEquals(parsed.bundle.kind, 'bundled')
   assertEquals(parsed.verifyWith, 'cat .skmtc/my-api/deno.json')
 })
 

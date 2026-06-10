@@ -69,43 +69,13 @@ Deno.test('printBundleResult - text format for bundled outcome', () => {
   assertEquals(logs, ['Bundled "my-api":', '  /path/to/bundle.js'])
 })
 
-Deno.test('printBundleResult - text format for remote-only noop', () => {
-  // Friction #8: previously this case was a silent "no bundle.js
-  // appeared" — operators couldn't tell it was an expected no-op.
-  // The text form now spells it out.
+Deno.test('printBundleResult - json format emits the discriminated result', () => {
   const logs: string[] = []
   const original = console.log
   console.log = (msg: string) => logs.push(msg)
   try {
     printBundleResult(
-      {
-        kind: 'noop',
-        projectName: 'my-api',
-        reason: 'remote-only',
-        detail: 'Project has only remote (installed) generators; …'
-      },
-      { format: 'text' }
-    )
-  } finally {
-    console.log = original
-  }
-  assertEquals(logs.length, 2)
-  assertStringIncludes(logs[0], 'no-op')
-  assertStringIncludes(logs[0], 'remote-only')
-})
-
-Deno.test('printBundleResult - json format emits the full discriminated union', () => {
-  const logs: string[] = []
-  const original = console.log
-  console.log = (msg: string) => logs.push(msg)
-  try {
-    printBundleResult(
-      {
-        kind: 'noop',
-        projectName: 'my-api',
-        reason: 'remote-only',
-        detail: 'Project has only remote (installed) generators'
-      },
+      { kind: 'bundled', projectName: 'my-api', bundlePath: '/path/to/bundle.js' },
       { format: 'json' }
     )
   } finally {
@@ -113,8 +83,8 @@ Deno.test('printBundleResult - json format emits the full discriminated union', 
   }
   assertEquals(logs.length, 1)
   const parsed = JSON.parse(logs[0])
-  assertEquals(parsed.kind, 'noop')
-  assertEquals(parsed.reason, 'remote-only')
+  assertEquals(parsed.kind, 'bundled')
+  assertEquals(parsed.bundlePath, '/path/to/bundle.js')
   assertEquals(parsed.projectName, 'my-api')
 })
 

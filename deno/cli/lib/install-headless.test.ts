@@ -1,5 +1,18 @@
 import { assertEquals, assertRejects } from '@std/assert'
 import { installHeadless } from '@/lib/install-headless.ts'
+import type { BundleHeadlessResult } from '@/lib/bundle-headless.ts'
+
+/**
+ * Stub for the post-install rebundle. The real `bundleHeadless` runs
+ * `deno bundle` in a subprocess; these tests assert the install-side
+ * behavior only, so the bundle step is dependency-injected out.
+ */
+const stubBundleFn = ({ projectName }: { projectName: string }): Promise<BundleHeadlessResult> =>
+  Promise.resolve({
+    kind: 'bundled',
+    projectName,
+    bundlePath: `.skmtc/${projectName}/bundle.js`
+  })
 
 type InstallCall = { moduleName: string }
 
@@ -7,15 +20,6 @@ type FakeProject = {
   name: string
   installs: InstallCall[]
   installGenerator: (args: InstallCall) => Promise<void>
-  /**
-   * Stub for the post-install rebundle path (`bundleHeadless` reads
-   * `project.rootDenoJson.contents.imports` to decide whether to
-   * rebuild). Empty `imports` keeps `hasLocalGenerator` false so the
-   * bundle short-circuits to a remote-only noop, letting the
-   * install-side assertions run without dragging the bundle
-   * machinery into the test.
-   */
-  rootDenoJson: { contents: { imports: Record<string, unknown> } }
 }
 
 const createFakeProject = (name: string): FakeProject => {
@@ -25,8 +29,7 @@ const createFakeProject = (name: string): FakeProject => {
     installs,
     installGenerator: async (args: InstallCall) => {
       installs.push(args)
-    },
-    rootDenoJson: { contents: { imports: {} } }
+    }
   }
 }
 
@@ -52,7 +55,8 @@ Deno.test('installHeadless - installs each generator with jsr: prefix', async ()
     // deno-lint-ignore no-explicit-any
     skmtcRoot: root as any,
     projectName: 'my-api',
-    generators: ['@skmtc/gen-zod', '@skmtc/gen-tanstack-query']
+    generators: ['@skmtc/gen-zod', '@skmtc/gen-tanstack-query'],
+    bundleFn: stubBundleFn
   })
 
   assertEquals(project.installs, [
@@ -71,7 +75,8 @@ Deno.test('installHeadless - preserves existing jsr: prefix instead of double-pr
     // deno-lint-ignore no-explicit-any
     skmtcRoot: root as any,
     projectName: 'my-api',
-    generators: ['jsr:@skmtc/gen-zod']
+    generators: ['jsr:@skmtc/gen-zod'],
+    bundleFn: stubBundleFn
   })
 
   assertEquals(project.installs, [{ moduleName: 'jsr:@skmtc/gen-zod' }])
@@ -86,7 +91,8 @@ Deno.test('installHeadless - propagates findProject error when project does not 
         // deno-lint-ignore no-explicit-any
         skmtcRoot: root as any,
         projectName: 'missing',
-        generators: ['@skmtc/gen-zod']
+        generators: ['@skmtc/gen-zod'],
+        bundleFn: stubBundleFn
       }),
     Error,
     'Project "missing" not found'
@@ -109,7 +115,8 @@ Deno.test('installHeadless - surfaces underlying install error instead of swallo
         // deno-lint-ignore no-explicit-any
         skmtcRoot: root as any,
         projectName: 'my-api',
-        generators: ['@skmtc/gen-zod']
+        generators: ['@skmtc/gen-zod'],
+        bundleFn: stubBundleFn
       }),
     Error,
     'JSR returned 404'

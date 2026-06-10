@@ -46,10 +46,6 @@ export type BundleFreshness =
       message: string
       hint: string
     }
-  | {
-      kind: 'no-local-bundle'
-      message: string
-    }
 
 const generatorIdImportPattern = /^import\s+\w+\s+from\s+['"]([^'"]+)['"]/gm
 
@@ -104,21 +100,11 @@ export const checkBundleFreshness = ({
   const imports = readProjectImports(projectPath)
   const currentIds = toGeneratorIds(imports)
 
-  // No local generators means the published JSR bundle.js is used at
-  // generate time (see bundle-headless.ts's `remote-only` branch).
-  // There's nothing local to be stale.
-  const hasLocalGenerator = currentIds.some(id => {
-    const value = imports[id]
-    return typeof value === 'string' && !value.startsWith('jsr:')
-  })
-  if (!hasLocalGenerator) {
-    return {
-      kind: 'no-local-bundle',
-      message:
-        'Project has only remote (installed) generators; the published JSR bundle is used at generate time.'
-    }
-  }
-
+  // Remote-only (all-`jsr:`) projects get the same treatment as
+  // projects with cloned generators: `generate` loads the
+  // project-local `bundle.js`, so a `worker.ts` snapshot must exist
+  // and match `deno.json#imports` regardless of where the generator
+  // source comes from.
   const workerPath = join(projectPath, 'worker.ts')
   if (!existsSync(workerPath)) {
     return {

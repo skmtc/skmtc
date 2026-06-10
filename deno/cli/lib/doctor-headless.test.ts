@@ -171,7 +171,7 @@ Deno.test(
 )
 
 Deno.test(
-  'runDoctor - warns when a project with local generators has no @skmtc/worker pin',
+  'runDoctor - warns when a project with a worker.ts has no @skmtc/worker pin',
   async () => {
     await withTempSkmtcRoot(async tempRoot => {
       const projectPath = join(tempRoot, '.skmtc', 'no-worker-pin')
@@ -183,6 +183,14 @@ Deno.test(
             '@scope/gen-x': './gen-x/mod.ts' // local generator, no jsr:
           }
         })
+      )
+      // A generated worker.ts is what makes the missing pin a real
+      // problem — it imports '@skmtc/worker', so the next bundle
+      // fails to resolve. Pre-bundle projects (no worker.ts) are an
+      // ok-noop instead.
+      await Deno.writeTextFile(
+        join(projectPath, 'worker.ts'),
+        "import toWorker from '@skmtc/worker'\n"
       )
       await Deno.writeTextFile(
         join(projectPath, '.settings', 'client.json'),
@@ -341,7 +349,7 @@ Deno.test(
 )
 
 Deno.test(
-  'runDoctor - flags remote-only project as ok (no bundle needed)',
+  'runDoctor - remote-only project without a bundle.js gets a warning',
   async () => {
     await withTempSkmtcRoot(async tempRoot => {
       const projectPath = join(tempRoot, '.skmtc', 'remote-only')
@@ -360,9 +368,17 @@ Deno.test(
       )
 
       const result = await runDoctor({ cliVersion: '0.1.5' })
+
+      // Remote-only projects generate from a local bundle.js like
+      // any other project — its absence is actionable, not a pass.
       const bundleCheck = result.checks.find(c => c.id === 'project-bundle/remote-only')
-      assertEquals(bundleCheck?.status, 'ok')
-      assertStringIncludes(bundleCheck?.message ?? '', 'remote-only')
+      assertEquals(bundleCheck?.status, 'warning')
+      assertStringIncludes(bundleCheck?.hint ?? '', 'skmtc bundle')
+
+      // No worker.ts yet → the pin check is an ok-noop (the first
+      // `skmtc bundle` writes worker.ts and the pin together).
+      const pinCheck = result.checks.find(c => c.id === 'project-worker-pin/remote-only')
+      assertEquals(pinCheck?.status, 'ok')
     })
   }
 )

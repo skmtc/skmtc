@@ -146,20 +146,15 @@ The template:
 `deno bundle` then resolves all imports (JSR + local) into a single
 JS file. This is what the Worker spawns.
 
-### Local vs JSR-published bundle
+### One bundle path for every project
 
-Two paths:
-
-- **Remote-only projects** (all generators installed from JSR, no
-  clones): no local `bundle.js`. The JSR-published bundle is used at
-  generate time. `skmtc bundle` exits as a no-op.
-- **Hybrid projects** (at least one cloned or locally-authored
-  generator): a local `bundle.js` is built. The JSR-published bundles
-  are bundled in alongside the local code.
-
-The decision is automatic: `skmtc bundle-headless.ts` checks
-`deno.json#imports` for any non-`jsr:` entry. If found, bundle
-locally; otherwise, no-op.
+`skmtc bundle` always builds the project-local `bundle.js` — it is
+the only artifact `generate` loads. Generator source enters the
+bundle either as a `jsr:` specifier (installed) or a relative path
+(cloned / locally authored); `deno bundle` resolves both through the
+project's import map. (Older CLI versions no-op'd on remote-only
+projects, which left pure-install projects unable to generate; that
+special case is gone.)
 
 ### Bundle freshness
 
