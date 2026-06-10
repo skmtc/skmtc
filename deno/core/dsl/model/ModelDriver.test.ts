@@ -13,12 +13,12 @@ import type { GeneratorKey } from '../GeneratorKeys.ts'
 import type { Lang, LangToDefinitionArgs } from '@/dsl/Lang.ts'
 import { typescript } from '@skmtc/lang-typescript'
 
-// The Driver resolves the projection's language via
-// `context.resolveLang(projection.id)` and calls `lang.toDefinition`. These
-// test langs reuse the real `typescript` lang for `createFile` / `toImport` /
-// `toImports` and override `toDefinition` so the assertions below can pin which
-// Definition subclass flows through. The mock context's `resolveLang` maps each
-// projection `id` to the right lang.
+// The Driver reads the projection's language off the projection CLASS — the
+// static `lang` inherited from the language snippet base (declared directly
+// on these mocks) — ephemerally at each use site; no config-map resolution.
+// These test langs reuse the real `typescript` lang for `createFile` /
+// `toImport` and override `toDefinition` so the assertions below can pin
+// which Definition subclass flows through.
 const coreDefLang: Lang = {
   ...typescript,
   toDefinition: ({ context, identifier, value, noExport }) =>
@@ -33,6 +33,9 @@ class MockGeneratedValue implements GeneratedValue {
 
 class MockProjection extends MockGeneratedValue {
   static id = 'MockProjection'
+  // The static the Driver reads (`this.projection.lang`) — stands in for
+  // the static a real projection inherits from its lang snippet base.
+  static lang: Lang = coreDefLang
   refName: RefName
   context: GenerateContextType
   settings: ContentSettings<any>
@@ -70,7 +73,7 @@ class CustomDefinition<V extends GeneratedValue = GeneratedValue> extends Defini
 }
 
 // A lang whose `toDefinition` returns the custom subclass — the Driver
-// resolves it by the projection's `id` via `resolveLang`, so the custom
+// reads it off the projection class's static `lang`, so the custom
 // Definition flows through.
 const customDefLang: Lang = {
   ...typescript,
@@ -80,6 +83,7 @@ const customDefLang: Lang = {
 
 class MockProjectionWithCustomDef extends MockProjection {
   static override id = 'MockProjectionWithCustomDef'
+  static override lang: Lang = customDefLang
 }
 
 const createMockContext = (): GenerateContextType => {
@@ -93,10 +97,10 @@ const createMockContext = (): GenerateContextType => {
     })),
     findDefinition: spy(() => undefined),
     register: spy(() => {}),
-    // The Driver resolves the peer's lang by its `id`. `MockProjection` uses
-    // the core Definition; `MockProjectionWithCustomDef` uses the custom one.
-    resolveLang: (id: string): Lang =>
-      id === MockProjectionWithCustomDef.id ? customDefLang : coreDefLang,
+    // The Driver pre-ensures destination files caller-side through the
+    // projection's static lang: file-miss → `addFile(lang.createFile(...))`.
+    getFile: spy(() => undefined),
+    addFile: spy(() => {}),
     stackTrail: { slice: () => ({ stackTrail: [] }) }
   } as unknown as GenerateContextType
 

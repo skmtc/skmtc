@@ -13,7 +13,7 @@
  *      `"Registered definition mismatch"`.
  */
 
-import { typescript } from '@skmtc/lang-typescript'
+import { toModelProjectionBase } from '@skmtc/lang-typescript'
 import { assertEquals, assertThrows } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -23,7 +23,6 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasComponents } from '@/oas/components/Components.ts'
 import { OasString } from '@/oas/string/String.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { toModelProjectionBase } from '@/dsl/model/toModelProjectionBase.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
 import type { RefName } from '@/types/RefName.ts'
 
@@ -45,29 +44,17 @@ const makeDoc = (refNames: string[]) =>
     })
   })
 
-const makeContext = (args: {
-  document: OasDocument
-  settings: unknown
-  /**
-   * Generator ids to register in the config map. The Driver resolves a
-   * peer's `Lang` via `context.resolveLang(id)`, which reads
-   * `toGeneratorConfigMap()[id].lang`, so each inserted generator must
-   * appear here with a `lang`.
-   */
-  generatorIds: string[]
-}) => {
-  const generatorConfigMap = Object.fromEntries(
-    args.generatorIds.map(id => [id, { id, type: 'model' as const, lang: typescript }])
-  )
-
+const makeContext = (args: { document: OasDocument; settings: unknown }) => {
+  // The config map stays EMPTY: the Driver reads the peer's `Lang` off the
+  // projection class's static (inherited from `TsSnippet` through the lang
+  // veneer), so inserted generators need no config-map entry.
   return new GenerateContext({
     document: { type: 'oas', value: args.document },
     // deno-lint-ignore no-explicit-any
     settings: args.settings as any,
     logger: mockLogger,
     captureCurrentResult: () => {},
-    // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => generatorConfigMap as any
+    toGeneratorConfigMap: () => ({})
   })
 }
 
@@ -92,7 +79,6 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
-      generatorIds: ['@scope/gen-zod-variants'],
       settings: {} // No enrichments at all
     })
 
@@ -123,7 +109,6 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
-      generatorIds: ['@scope/gen-zod-variants'],
       settings: {
         enrichments: {
           '@scope/gen-zod-variants': {
@@ -163,7 +148,6 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
-      generatorIds: ['@scope/gen-zod'],
       settings: {}
     })
 
@@ -199,7 +183,6 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
-      generatorIds: ['@scope/gen-broken-zod'],
       settings: {
         enrichments: {
           '@scope/gen-broken-zod': {
@@ -249,7 +232,6 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
-      generatorIds: ['@scope/gen-correct-zod'],
       settings: {
         enrichments: {
           '@scope/gen-correct-zod': {
@@ -294,7 +276,6 @@ Deno.test(
 
     const context = makeContext({
       document: makeDoc(['Customer']),
-      generatorIds: ['@scope/gen-cache-zod'],
       settings: {}
     })
 
