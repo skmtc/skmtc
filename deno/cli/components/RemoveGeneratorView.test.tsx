@@ -50,7 +50,6 @@ const createInitialState = (
       ...viewOverrides
     },
     skmtcRoot,
-    session: createTestSession(),
     interactive: true,
     message: null,
     shortcuts: [],

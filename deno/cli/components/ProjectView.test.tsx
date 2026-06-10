@@ -63,7 +63,6 @@ const createMockProject = (): Project =>
 const createInitialState = (): SkmtcState => ({
   view: { page: 'project', projectName: 'test-project' },
   skmtcRoot: createMockSkmtcRoot(),
-  session: createTestSession(),
   interactive: true,
   message: null,
   shortcuts: [],

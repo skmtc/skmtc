@@ -69,12 +69,9 @@ export const renderInstall = async ({
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  const session = await skmtcRoot.manager.auth.toSession()
-
   const initialState: SkmtcState = {
     view: { page: 'install-generator', projectName, generators },
     skmtcRoot,
-    session,
     message: null,
     interactive: false,
     shortcuts: [],

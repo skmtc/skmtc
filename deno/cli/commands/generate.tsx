@@ -1,44 +1,17 @@
 import React from 'react'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
-import { isProjectKey, Project } from '@/lib/project.ts'
+import type { Project } from '@/lib/project.ts'
 import { formatNumber } from '@skmtc/core/formatNumber'
 import type { GenerationStats } from '@/lib/generationStats.ts'
-import { RemoteProject } from '@/lib/remote-project.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
-import { SchemaFile } from '@/lib/schema-file.ts'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { existsSync } from '@std/fs/exists'
-import invariant from 'tiny-invariant'
 import { generate } from '../lib/generate.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { toBundleFsPath, toBundlePath } from '@/lib/to-bundle-path.ts'
-
-type ToProjectArgs = {
-  skmtcRoot: SkmtcRoot
-  projectName: string
-  schemaSourceString: string | undefined
-}
-
-export const toProject = async ({
-  skmtcRoot,
-  projectName,
-  schemaSourceString
-}: ToProjectArgs): Promise<Project | RemoteProject> => {
-  if (isProjectKey(projectName)) {
-    return await RemoteProject.fromKey({
-      projectKey: projectName,
-      schemaFile: schemaSourceString
-        ? await SchemaFile.openFromSource(schemaSourceString)
-        : SchemaFile.create(),
-      manager: skmtcRoot.manager
-    })
-  }
-
-  return skmtcRoot.findProject(projectName)
-}
 
 type RenderGenerateArgs = {
   skmtcRoot?: SkmtcRoot
@@ -61,15 +34,11 @@ export const renderGenerate = async ({
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  const session = await skmtcRoot.manager.auth.toSession()
-
-  const project = await toProject({ skmtcRoot, projectName, schemaSourceString })
+  const project = skmtcRoot.findProject(projectName)
 
   const checks = checkGenerateParams({ project, schemaSourceString })
 
   if (hasRequiredParams(checks)) {
-    invariant(project instanceof Project, 'Project must be a local project')
-
     const schemaContents = await toSchemaContents(
       schemaSourceString ?? project.clientJson.contents?.source ?? ''
     )
@@ -78,11 +47,9 @@ export const renderGenerate = async ({
       project,
       bundlePath: toBundlePath(project.toPath()),
       skmtcRoot,
-      accountName: session?.user.user_metadata.user_name,
       schemaContents: schemaContents.contents,
       fileType: schemaContents.fileType,
-      clientSettings: project.clientJson.contents?.settings,
-      token: session?.access_token
+      clientSettings: project.clientJson.contents?.settings
     })
 
     Deno.exit(0)
@@ -96,7 +63,6 @@ export const renderGenerate = async ({
       watchMode: Boolean(watch)
     },
     skmtcRoot,
-    session,
     message: null,
     interactive: true,
     shortcuts: [],
@@ -131,7 +97,7 @@ type GenerateChecks = {
 }
 
 type CheckGenerateParamsArgs = {
-  project: Project | RemoteProject
+  project: Project
   schemaSourceString: string | undefined
 }
 
@@ -139,8 +105,6 @@ const checkGenerateParams = ({
   project,
   schemaSourceString
 }: CheckGenerateParamsArgs): GenerateChecks => {
-  invariant(project instanceof Project, 'Project must be a local project')
-
   const basePath = project.clientJson.contents?.settings.basePath
   const schemaSource = schemaSourceString ?? project.clientJson.contents?.source
   const hasBundle = existsSync(toBundleFsPath(project.toPath()))

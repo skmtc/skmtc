@@ -3,7 +3,6 @@ import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { printInstallResult, renderInstall } from './install.tsx'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
-import { toMockSession } from '../tests/commands/session.test.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
@@ -16,9 +15,6 @@ Deno.test(
   async () => {
     await withFakeTty(async () => {
       const manager = createMockManager()
-      const mockSession = toMockSession()
-      const toSessionSpy = spy(() => Promise.resolve(mockSession))
-      manager.auth.toSession = toSessionSpy
 
       const skmtcRoot = createMockSkmtcRoot(manager)
       const testProjectName = 'test-project'
@@ -34,7 +30,6 @@ Deno.test(
         AppComponent: AppSpy
       })
 
-      assertSpyCalls(toSessionSpy, 1)
       assertSpyCalls(renderSpy, 1)
       assertSpyCall(renderSpy, 0, {
         args: [
@@ -47,7 +42,6 @@ Deno.test(
                 generators: undefined
               },
               skmtcRoot,
-              session: mockSession,
               message: null,
               interactive: false,
               shortcuts: [],

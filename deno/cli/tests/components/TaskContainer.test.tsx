@@ -31,7 +31,6 @@ Deno.test('TaskContainer - renders with prompt and children', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],

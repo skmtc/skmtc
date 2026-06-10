@@ -4,7 +4,6 @@ import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { AddGeneratorView } from './AddGeneratorView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { assertSpyCall, stub } from '@std/testing/mock'
@@ -45,7 +44,6 @@ const createInitialState = (project: Project): SkmtcState => {
       projectName: project.name
     },
     skmtcRoot,
-    session: createTestSession(),
     interactive: true,
     message: null,
     shortcuts: [],
@@ -159,8 +157,7 @@ Deno.test(
         args: [
           {
             moduleName: 'my-generator',
-            type: 'operation',
-            username: 'testuser'
+            type: 'operation'
           }
         ]
       })
@@ -224,8 +221,7 @@ Deno.test(
         args: [
           {
             moduleName: 'user-model',
-            type: 'model',
-            username: 'testuser'
+            type: 'model'
           }
         ]
       })
@@ -279,8 +275,7 @@ Deno.test(
         args: [
           {
             moduleName: 'failing-generator',
-            type: 'operation',
-            username: 'testuser'
+            type: 'operation'
           }
         ]
       })
@@ -293,132 +288,3 @@ Deno.test(
   }
 )
 
-// Test 4: Username from session
-Deno.test(
-  'AddGeneratorView - uses username from session',
-  { sanitizeResources: false, sanitizeOps: false },
-  async () => {
-    const mockProject = createMockProject()
-    const addGeneratorStub = stub(mockProject, 'addGenerator', () => Promise.resolve())
-
-    // Create session with specific username
-    const customSession = {
-      ...createTestSession(),
-      user: {
-        ...createTestSession().user,
-        user_metadata: {
-          user_name: 'customuser'
-        }
-      }
-    }
-
-    const initialState = {
-      ...createInitialState(mockProject),
-      session: customSession
-    }
-
-    try {
-      const { lastFrame, unmount, stdin } = renderAddGeneratorView({
-        initialState,
-        project: mockProject
-      })
-
-      await new Promise(resolve => setTimeout(resolve, 200))
-
-      // Select operation
-      stdin.write('\r')
-
-      await new Promise(resolve => setTimeout(resolve, 50))
-
-      // Type generator name
-      stdin.write('custom-generator')
-
-      await new Promise(resolve => setTimeout(resolve, 25))
-
-      // Submit
-      stdin.write('\r')
-
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // Verify username from session is passed
-      assertSpyCall(addGeneratorStub, 0, {
-        args: [
-          {
-            moduleName: 'custom-generator',
-            type: 'operation',
-            username: 'customuser'
-          }
-        ]
-      })
-
-      unmount()
-    } finally {
-      addGeneratorStub.restore()
-    }
-  }
-)
-
-// Test 5: Empty username
-Deno.test(
-  'AddGeneratorView - handles empty username',
-  { sanitizeResources: false, sanitizeOps: false },
-  async () => {
-    const mockProject = createMockProject()
-    const addGeneratorStub = stub(mockProject, 'addGenerator', () => Promise.resolve())
-
-    // Create session with empty username
-    const sessionWithEmptyUsername = {
-      ...createTestSession(),
-      user: {
-        ...createTestSession().user,
-        user_metadata: {
-          user_name: ''
-        }
-      }
-    }
-
-    const initialState = {
-      ...createInitialState(mockProject),
-      session: sessionWithEmptyUsername
-    }
-
-    try {
-      const { lastFrame, unmount, stdin } = renderAddGeneratorView({
-        initialState,
-        project: mockProject
-      })
-
-      await new Promise(resolve => setTimeout(resolve, 200))
-
-      // Select operation
-      stdin.write('\r')
-
-      await new Promise(resolve => setTimeout(resolve, 50))
-
-      // Type generator name
-      stdin.write('no-user-generator')
-
-      await new Promise(resolve => setTimeout(resolve, 25))
-
-      // Submit
-      stdin.write('\r')
-
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // Verify empty username is passed
-      assertSpyCall(addGeneratorStub, 0, {
-        args: [
-          {
-            moduleName: 'no-user-generator',
-            type: 'operation',
-            username: ''
-          }
-        ]
-      })
-
-      unmount()
-    } finally {
-      addGeneratorStub.restore()
-    }
-  }
-)

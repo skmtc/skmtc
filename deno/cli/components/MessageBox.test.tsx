@@ -25,7 +25,6 @@ Deno.test('MessageBox - renders nothing when no message', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -66,7 +65,6 @@ Deno.test('MessageBox - renders error message', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: {
       content: { error: 'Something went wrong' }
@@ -109,7 +107,6 @@ Deno.test('MessageBox - renders success message', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: {
       content: { success: 'Operation completed successfully' }
@@ -152,7 +149,6 @@ Deno.test('MessageBox - renders info message', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: {
       content: { info: 'This is some information' }
@@ -195,7 +191,6 @@ Deno.test('MessageBox - renders message with sub-text', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: {
       content: {
@@ -242,7 +237,6 @@ Deno.test('MessageBox - renders correctly in non-interactive mode', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: false,
     message: {
       content: { info: 'Non-interactive message' }

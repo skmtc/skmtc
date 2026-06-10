@@ -60,7 +60,6 @@ const createMockSkmtcRoot = (): SkmtcRoot =>
 const createInitialState = (overrides: Partial<SkmtcState> = {}): SkmtcState => ({
   view: { page: 'create-project' },
   skmtcRoot: createMockSkmtcRoot(),
-  session: createTestSession(),
   interactive: true,
   message: null,
   shortcuts: [],

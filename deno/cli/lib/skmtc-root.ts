@@ -1,4 +1,4 @@
-import { Project, isProjectKey } from '@/lib/project.ts'
+import { Project } from '@/lib/project.ts'
 import type { Manager } from '@/lib/manager.ts'
 import { exists } from '@std/fs/exists'
 import { toRootPath } from '@/lib/to-root-path.ts'
@@ -6,10 +6,7 @@ import { Jsr } from '@/lib/jsr.ts'
 import cliDenoJson from '../deno.json' with { type: 'json' }
 import { compare } from '@std/semver/compare'
 import { parse } from '@std/semver/parse'
-import { createApiServers } from '@/services/createApiServers.generated.ts'
-import { RemoteProject } from '@/lib/remote-project.ts'
 import invariant from 'tiny-invariant'
-import { SchemaFile } from '@/lib/schema-file.ts'
 import type { Generator } from '@/types/generator.generated.ts'
 
 type CreateProjectArgs = {
@@ -17,11 +14,6 @@ type CreateProjectArgs = {
   basePath: string
   generators: string[]
   availableGenerators: Generator[]
-}
-
-type ToProjectArgs = {
-  projectName: string
-  schemaPath: string | undefined
 }
 
 export class SkmtcRoot {
@@ -75,33 +67,6 @@ export class SkmtcRoot {
 
   async logout({ silent }: { silent: boolean }) {
     await this.manager.auth.logout({ silent })
-  }
-
-  async toProject({ projectName, schemaPath }: ToProjectArgs) {
-    if (isProjectKey(projectName)) {
-      const schemaFile = schemaPath
-        ? await SchemaFile.openFromSource(schemaPath)
-        : SchemaFile.create()
-
-      return await RemoteProject.fromKey({
-        projectKey: projectName,
-        schemaFile,
-        manager: this.manager
-      })
-    }
-
-    return this.findProject(projectName)
-  }
-
-  async createDenoProject(serverName: string) {
-    const project = await createApiServers({
-      supabase: this.manager.auth.supabase,
-      body: {
-        serverName
-      }
-    })
-
-    return project
   }
 
   async createProject({ name, basePath, generators, availableGenerators }: CreateProjectArgs) {

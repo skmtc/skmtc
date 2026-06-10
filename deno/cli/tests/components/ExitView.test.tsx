@@ -29,7 +29,6 @@ Deno.test('ExitView - renders', () => {
   const initialState: SkmtcState = {
     view: { page: 'exit' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     message: null,
     interactive: true,
     shortcuts: [],

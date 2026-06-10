@@ -28,7 +28,6 @@ export const HomeView = () => {
   const items: HomeActionItem[] = [
     ...projectOptions,
     { value: 'create-project', label: 'Create new project', space: true },
-    // session ? { value: 'logout', label: 'Log out' } : { value: 'login', label: 'Log in to Skmtc' },
     { value: 'exit', label: 'Exit' }
   ]
 

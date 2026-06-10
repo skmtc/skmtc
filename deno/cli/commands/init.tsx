@@ -83,12 +83,9 @@ export const renderInit = async ({
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  const session = await skmtcRoot.manager.auth.toSession()
-
   const initialState: SkmtcState = {
     view: { page: 'create-project', projectName, basePath },
     skmtcRoot,
-    session,
     message: null,
     interactive: false,
     shortcuts: [],

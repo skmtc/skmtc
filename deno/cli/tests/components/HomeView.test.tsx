@@ -26,7 +26,6 @@ Deno.test('HomeView - renders without errors', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -69,7 +68,6 @@ Deno.test('HomeView - shows no projects message when empty', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -116,7 +114,6 @@ Deno.test('HomeView - shows projects when available', () => {
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],

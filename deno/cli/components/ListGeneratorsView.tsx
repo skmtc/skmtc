@@ -1,19 +1,18 @@
 import React from 'react'
 import { type ViewStateListGenerators, useSkmtc } from '@/components/SkmtcContext.tsx'
-import { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
+import type { Project } from '@/lib/project.ts'
 import { Box, Text } from 'ink'
 import { useShortcut } from './useShortcut.tsx'
 
 type ListGeneratorsViewProps = {
-  project: Project | RemoteProject
+  project: Project
   view: ViewStateListGenerators
 }
 
 export const ListGeneratorsView = ({ project }: ListGeneratorsViewProps) => {
   const { dispatch } = useSkmtc()
 
-  const generators = project instanceof Project ? project.toGeneratorIds() : []
+  const generators = project.toGeneratorIds()
 
   useShortcut({
     key: 'esc',

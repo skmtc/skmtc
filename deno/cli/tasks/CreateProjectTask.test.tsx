@@ -122,7 +122,6 @@ Deno.test('CreateProjectTask - handles Project.create error correctly', async ()
   const skmtcState: SkmtcState = {
     view: { page: 'create-project' },
     skmtcRoot: mockSkmtcRoot,
-    session: createTestSession(),
     interactive: false,
     message: null,
     shortcuts: [],
@@ -202,7 +201,6 @@ Deno.test({
     const skmtcState: SkmtcState = {
       view: { page: 'create-project' },
       skmtcRoot: mockSkmtcRoot,
-      session: createTestSession(),
       interactive: false,
       message: null,
       shortcuts: [],
@@ -271,7 +269,6 @@ Deno.test({
   const skmtcState: SkmtcState = {
     view: { page: 'create-project' },
     skmtcRoot: mockSkmtcRoot,
-    session: createTestSession(),
     interactive: false,
     message: null,
     shortcuts: [],
@@ -340,7 +337,6 @@ Deno.test({
   const skmtcState: SkmtcState = {
     view: { page: 'create-project' },
     skmtcRoot: mockSkmtcRoot,
-    session: createTestSession(),
     interactive: false,
     message: null,
     shortcuts: [],

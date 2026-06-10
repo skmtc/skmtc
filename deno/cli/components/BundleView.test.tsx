@@ -29,7 +29,6 @@ const createInitialState = (projectName: string, interactive = false): SkmtcStat
       projectName
     },
     skmtcRoot,
-    session: createTestSession(),
     interactive,
     message: null,
     shortcuts: [],

@@ -108,7 +108,6 @@ const createInitialState = (project: Project): SkmtcState => {
       watchMode: undefined
     },
     skmtcRoot,
-    session: createTestSession(),
     interactive: true,
     message: null,
     shortcuts: [],
@@ -198,8 +197,8 @@ Deno.test(
       throw new Error('Connection refused')
     })
 
-    // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
+    // Stub generateArtifacts to prevent worker runs
+    const generateStub = stub(GenerateArtifacts, 'generateWithWorker', () =>
       Promise.resolve(mockGenerateResponse)
     )
 

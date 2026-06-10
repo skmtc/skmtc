@@ -1,7 +1,6 @@
 import React from 'react'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import { Project } from '@/lib/project.ts'
-import { RemoteProject } from '@/lib/remote-project.ts'
+import type { Project } from '@/lib/project.ts'
 import { useEffect, useState } from 'react'
 import { toGenerateMessage } from '@/commands/generate.tsx'
 import { generate } from '@/lib/generate.ts'
@@ -26,7 +25,7 @@ import { GenerateWorkerTask } from '../tasks/GenerateWorkerTask.tsx'
 import { toWorkerPath } from '../lib/to-worker-path.ts'
 
 type GenerateProps = {
-  project: Project | RemoteProject
+  project: Project
   schemaSourceString: string | undefined
   watchMode: boolean | undefined
 }
@@ -43,22 +42,15 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
   }, [])
 
   const includeGenerateWorkerTask = useMemo(() => {
-    if (project instanceof RemoteProject) {
-      return false
-    }
     const workerPath = join(project.toPath(), 'worker.ts')
 
     return !existsSync(workerPath)
   }, [])
 
   const workerPath = useMemo(() => {
-    if (project instanceof Project) {
-      const workerPath = toWorkerPath(project.toPath())
+    const workerPath = toWorkerPath(project.toPath())
 
-      return existsSync(workerPath) ? workerPath : undefined
-    }
-
-    return undefined
+    return existsSync(workerPath) ? workerPath : undefined
   }, [])
 
   const includeWatchTask = useMemo(() => {
@@ -92,21 +84,13 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
           taskKey: 'generate-worker-task',
           include: includeGenerateWorkerTask,
           state: workerPath,
-          render: () => {
-            invariant(project instanceof Project, 'Local project is required to generate worker')
-
-            return <GenerateWorkerTask project={project} />
-          }
+          render: () => <GenerateWorkerTask project={project} />
         },
         {
           taskKey: 'generate-bundle-task',
           include: true,
           state: undefined,
-          render: () => {
-            invariant(project instanceof Project, 'Local project is required to generate bundle')
-
-            return <GenerateBundleTask project={project} />
-          }
+          render: () => <GenerateBundleTask project={project} />
         },
         {
           taskKey: 'watch-mode-task',
@@ -135,14 +119,11 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
 }
 
 type GenerateTaskProps = {
-  project: Project | RemoteProject
+  project: Project
 }
 
 const GenerateTask = ({ project }: GenerateTaskProps) => {
-  const { state } = useSkmtc()
   const { state: taskState } = useTask()
-
-  const token = state.session?.access_token
 
   const {
     'base-path': basePath,
@@ -161,26 +142,19 @@ const GenerateTask = ({ project }: GenerateTaskProps) => {
       project={project}
       bundlePath={bundlePath}
       schemaSourceString={schemaLocation}
-      token={token}
     />
   ) : (
-    <RunGenerateTask
-      project={project}
-      bundlePath={bundlePath}
-      schemaSourceString={schemaLocation}
-      token={token}
-    />
+    <RunGenerateTask project={project} bundlePath={bundlePath} schemaSourceString={schemaLocation} />
   )
 }
 
 type RunGenerateProps = {
-  project: Project | RemoteProject
+  project: Project
   bundlePath: string
   schemaSourceString: string
-  token: string | undefined
 }
 
-const RunGenerateTask = ({ project, bundlePath, schemaSourceString, token }: RunGenerateProps) => {
+const RunGenerateTask = ({ project, bundlePath, schemaSourceString }: RunGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
 
@@ -202,11 +176,9 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString, token }: Run
             project,
             bundlePath,
             skmtcRoot: state.skmtcRoot,
-            accountName: state.session?.user?.user_metadata?.user_name,
             schemaContents: schemaContents.contents,
             fileType: schemaContents.fileType,
-            clientSettings: project.clientJson?.contents?.settings,
-            token
+            clientSettings: project.clientJson?.contents?.settings
           })
         } catch (error) {
           console.error(error)
@@ -236,18 +208,12 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString, token }: Run
 type Activity = 'watching' | 'generating'
 
 type WatchGenerateProps = {
-  project: Project | RemoteProject
+  project: Project
   bundlePath: string
   schemaSourceString: string
-  token: string | undefined
 }
 
-const WatchGenerateTask = ({
-  project,
-  bundlePath,
-  schemaSourceString,
-  token
-}: WatchGenerateProps) => {
+const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
   const [watcher, setWatcher] = useState<FSWatcher>()
@@ -283,12 +249,10 @@ const WatchGenerateTask = ({
         return generate({
           project,
           bundlePath,
-          accountName: state.session?.user?.user_metadata?.user_name,
           skmtcRoot: state.skmtcRoot,
           schemaContents: contents,
           fileType,
-          clientSettings: project.clientJson?.contents?.settings,
-          token
+          clientSettings: project.clientJson?.contents?.settings
         })
       })
       .then(stats => {

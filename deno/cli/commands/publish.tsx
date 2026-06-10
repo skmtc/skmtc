@@ -80,7 +80,6 @@ export const renderPublish = async ({
   }
 
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
-  const session = await skmtcRoot.manager.auth.toSession()
 
   // Thread the CLI args through to the Ink view so the PublishView
   // can run `publishHeadless` without re-resolving env vars.
@@ -93,7 +92,6 @@ export const renderPublish = async ({
       version
     },
     skmtcRoot,
-    session,
     message: null,
     interactive: false,
     shortcuts: [],

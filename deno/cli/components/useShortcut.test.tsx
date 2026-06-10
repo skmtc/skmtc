@@ -58,7 +58,6 @@ Deno.test('useShortcut - dispatches add-shortcut event after mount', async () =>
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -118,7 +117,6 @@ Deno.test('useShortcut - does not dispatch when interactive is false and key is 
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: false, // Not interactive
     message: null,
     shortcuts: [],
@@ -171,7 +169,6 @@ Deno.test('useShortcut - dispatches when interactive is true and key is esc', as
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true, // Interactive
     message: null,
     shortcuts: [],

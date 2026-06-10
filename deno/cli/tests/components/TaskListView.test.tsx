@@ -40,7 +40,6 @@ Deno.test('TaskListView - renders empty list when no tasks', () => {
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -77,7 +76,6 @@ Deno.test('TaskListView - renders only included tasks', () => {
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -122,7 +120,6 @@ Deno.test('TaskListView - respects currentTask index', () => {
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -160,7 +157,6 @@ Deno.test('TaskListView - applies paddingTop based on interactive mode', () => {
   const skmtcStateNonInteractive: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: false,
     message: null,
     shortcuts: [],
@@ -185,7 +181,6 @@ Deno.test('TaskListView - applies paddingTop based on interactive mode', () => {
   const skmtcStateInteractive: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -223,7 +218,6 @@ Deno.test('TaskListView - combined filtering with include and currentTask', () =
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -277,7 +271,6 @@ Deno.test('TaskListView - renders multiple tasks with custom render functions', 
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],

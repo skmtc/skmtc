@@ -3,17 +3,13 @@ import type { Manager } from '@/lib/manager.ts'
 import { Generator } from '@/lib/generator.ts'
 import invariant from 'tiny-invariant'
 import { Jsr } from '@/lib/jsr.ts'
-import { Deployment } from '@/lib/deployment.ts'
 import { ClientJson } from '@/lib/client-json.ts'
-import { toAssets } from '@/deploy/to-assets.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { SchemaFile } from '@/lib/schema-file.ts'
-import { formatNumber } from '@skmtc/core/formatNumber'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { join } from '@std/path/join'
 import { Manifest } from '@/lib/manifest.ts'
-import type { SkmtcDispatch, SkmtcState, SkmtcMessage } from '@/components/SkmtcContext.tsx'
 import type { Generator as GeneratorType } from '@/types/generator.generated.ts'
 import { toServer } from './to-server.ts'
 import { toWorker } from './to-worker.ts'
@@ -24,7 +20,7 @@ import { SKMTC_IGNORE_FILE, SKMTCIGNORE_TEMPLATE } from '@/lib/source-upload.ts'
 type AddGeneratorArgs = {
   moduleName: string
   type: 'operation' | 'model'
-  username: string
+  username?: string
 }
 
 type CloneGeneratorArgs = {
@@ -48,12 +44,6 @@ type ConstructorArgs = {
   manifest: Manifest
   manager: Manager
   schemaFile: SchemaFile
-}
-
-type DeployArgs = {
-  state: SkmtcState
-  dispatch: SkmtcDispatch
-  dispatchMessage: (payload: SkmtcMessage) => void
 }
 
 type InstallGeneratorArgs = {
@@ -317,60 +307,6 @@ export class Project {
     return this.rootDenoJson.toGeneratorIds()
   }
 
-  async deploy({ state, dispatch, dispatchMessage }: DeployArgs) {
-    const startTime = Date.now()
-
-    const deployment = new Deployment(this.manager)
-
-    const assets = await toAssets({ projectRoot: toProjectPath(this.name) })
-
-    try {
-      const deployed = await deployment.deploy({
-        state,
-        assets,
-        serverName: toServerName(this),
-        project: this,
-        dispatch
-      })
-
-      if (!deployed) {
-        throw new Error('Deployment failed')
-      }
-
-      const duration = (Date.now() - startTime) / 1000
-
-      dispatchMessage({ success: `Deployed in ${formatNumber(duration)}secs` })
-
-      dispatchMessage({ success: 'Deployment successful' })
-    } catch (error) {
-      console.error(error)
-
-      // Sentry.captureException(error)
-
-      // await Sentry.flush()
-
-      dispatchMessage({ error: 'Deployment failed' })
-
-      // if (error === 'Deployment failed' && deployment.denoDeploymentId) {
-      //   const buildLogs = await deployment.getBuildLogs(deployment.denoDeploymentId)
-
-      //   buildLogs.forEach(log => {
-      //     if (log?.message) {
-      //       console.error(log.message)
-      //     }
-      //   })
-      //   await this.manager.fail('')
-      // } else if (error) {
-      //   console.error(error)
-      //   await this.manager.fail('Failed to deploy generators')
-      // } else {
-      //   await this.manager.fail('Failed to deploy generators')
-      // }
-    } finally {
-      await this.manager.cleanup()
-    }
-  }
-
   async addGenerator({ moduleName, type, username }: AddGeneratorArgs) {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
@@ -394,17 +330,6 @@ export class Project {
     }
   }
 
-  toProjectKey(): ProjectKey {
-    const projectKey = this.clientJson.contents?.projectKey
-
-    invariant(
-      projectKey,
-      'Project is missing "projectKey" in ".settings/client.json". Has it been deployed?'
-    )
-
-    return toProjectKey(projectKey)
-  }
-
   static async open(name: string, manager: Manager) {
     const rootDenoJson = await RootDenoJson.open(name, manager)
 
@@ -426,20 +351,6 @@ export class Project {
       schemaFile
     })
   }
-}
-
-const toServerName = (project: Project) => {
-  const projectKey = project.clientJson.contents?.projectKey
-
-  if (!projectKey) {
-    return project.name
-  }
-
-  const [_accountName, serverName] = projectKey.split('/')
-
-  invariant(serverName, 'Server name not found')
-
-  return serverName
 }
 
 type GetDependencyIdsArgs = {
@@ -487,35 +398,3 @@ export const getDependencyIds = ({
 }
 
 export type ProjectKey = `@${string}/${string}`
-
-export const isProjectKey = (value: string): value is ProjectKey => {
-  if (!value.startsWith('@')) {
-    return false
-  }
-
-  const chunks = value.split('/')
-
-  if (chunks.length !== 2) {
-    return false
-  }
-
-  const [accountName, projectName] = chunks
-
-  if (accountName.length < 4 || projectName.length < 3) {
-    return false
-  }
-
-  if (projectName.startsWith('gen-')) {
-    throw new Error('Project name cannot start with "gen-"')
-  }
-
-  return true
-}
-
-export const toProjectKey = (value: string): ProjectKey => {
-  if (isProjectKey(value)) {
-    return value
-  }
-
-  throw new Error('Project key must be in the format "@<accountName>/<projectName>"')
-}

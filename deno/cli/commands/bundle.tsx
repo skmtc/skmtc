@@ -54,12 +54,9 @@ export const renderBundle = async ({
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  const session = await skmtcRoot.manager.auth.toSession()
-
   const initialState: SkmtcState = {
     view: { page: 'bundle', projectName },
     skmtcRoot,
-    session,
     message: null,
     interactive: false,
     shortcuts: [],

@@ -57,7 +57,6 @@ const createInitialState = (project: Project): SkmtcState => {
       projectName: project.name
     },
     skmtcRoot,
-    session: createTestSession(),
     interactive: true,
     message: null,
     shortcuts: [],

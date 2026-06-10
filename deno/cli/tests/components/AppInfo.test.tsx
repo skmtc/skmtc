@@ -6,10 +6,8 @@ import { SkmtcProvider } from '@/components/SkmtcContext.tsx'
 import type { ViewState } from '@/components/SkmtcContext.tsx'
 import denoJson from '../../deno.json' with { type: 'json' }
 import { assertExists } from '@std/assert/exists'
-import type { Session } from '@supabase/supabase-js'
 import type { Generator } from '@/types/generator.generated.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { createTestSession } from '../mocks/session.mock.ts'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 
 // Mock modules before importing components that use them
@@ -35,16 +33,10 @@ const mockGenerators: Generator[] = [
 type TestWrapperProps = {
   children: React.ReactNode
   view?: ViewState
-  session?: Session | null
   interactive?: boolean
 }
 
-const TestWrapper = ({
-  children,
-  view = { page: 'home' },
-  session = null,
-  interactive = true
-}: TestWrapperProps) => {
+const TestWrapper = ({ children, view = { page: 'home' }, interactive = true }: TestWrapperProps) => {
   const skmtcRoot = {
     manager: {
       auth: {
@@ -60,7 +52,6 @@ const TestWrapper = ({
   const initialState: SkmtcState = {
     view,
     skmtcRoot,
-    session,
     interactive,
     message: null,
     shortcuts: [],
@@ -73,11 +64,9 @@ const TestWrapper = ({
   )
 }
 
-// Helper to create test session
-
-Deno.test('AppInfo - should not render when page is login', () => {
+Deno.test('AppInfo - renders with version', () => {
   const { lastFrame, unmount } = render(
-    <TestWrapper view={{ page: 'login' }}>
+    <TestWrapper>
       <AppInfo />
     </TestWrapper>
   )
@@ -85,47 +74,10 @@ Deno.test('AppInfo - should not render when page is login', () => {
   const output = lastFrame()
 
   assertExists(output)
-  assertEquals(output, '')
+  assertStringIncludes(output, `＊ Skmtc CLI (v${denoJson.version})`)
 
   unmount()
 })
-
-// Deno.test('AppInfo - renders with version and no user logged in', () => {
-//   const { lastFrame, unmount } = render(
-//     <TestWrapper>
-//       <AppInfo />
-//     </TestWrapper>
-//   )
-
-//   const output = lastFrame()
-
-//   assertExists(output)
-//   assertStringIncludes(output, `＊ Skmtc CLI (v${denoJson.version})`)
-//   assertStringIncludes(output, 'You are not logged in')
-//   assertStringIncludes(output, 'directory: /test/path')
-
-//   unmount()
-// })
-
-// Deno.test('AppInfo - renders with logged in user', () => {
-//   const session = createTestSession('alice')
-
-//   const { lastFrame, unmount } = render(
-//     <TestWrapper session={session}>
-//       <AppInfo />
-//     </TestWrapper>
-//   )
-
-//   const output = lastFrame()
-
-//   assertExists(output)
-
-//   // Check for logged in user
-//   assertStringIncludes(output, 'Logged in as')
-//   assertStringIncludes(output, 'alice')
-
-//   unmount()
-// })
 
 Deno.test('AppInfo - renders with project name', () => {
   const { lastFrame, unmount } = render(

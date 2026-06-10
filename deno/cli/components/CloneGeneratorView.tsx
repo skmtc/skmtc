@@ -1,7 +1,6 @@
 import React from 'react'
 import { type ViewStateCloneGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
-import { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
+import type { Project } from '@/lib/project.ts'
 import { Box, Text } from 'ink'
 import { useState } from 'react'
 import { MultiSelect } from '@inkjs/ui'
@@ -10,7 +9,7 @@ import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { useShortcut } from './useShortcut.tsx'
 
 type CloneGeneratorViewProps = {
-  project: Project | RemoteProject
+  project: Project
   view: ViewStateCloneGenerator
 }
 
@@ -18,15 +17,12 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
   const { dispatch, dispatchMessage } = useSkmtc()
   const [cloning, setCloning] = useState(false)
 
-  const cloneableGenerators =
-    project instanceof Project
-      ? Object.entries(project.rootDenoJson.contents.imports ?? {})
-          .filter(([_, source]) => {
-            const { scheme, packageName } = parseModuleName(String(source))
-            return Boolean(scheme) && packageName.startsWith('gen-')
-          })
-          .map(([moduleName]) => moduleName)
-      : []
+  const cloneableGenerators = Object.entries(project.rootDenoJson.contents.imports ?? {})
+    .filter(([_, source]) => {
+      const { scheme, packageName } = parseModuleName(String(source))
+      return Boolean(scheme) && packageName.startsWith('gen-')
+    })
+    .map(([moduleName]) => moduleName)
 
   useShortcut({
     key: 'esc',
@@ -64,7 +60,6 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
     setCloning(true)
 
     const runClones = async () => {
-      if (!(project instanceof Project)) return [] as { moduleName: string; version: string }[]
       const results: { moduleName: string; version: string }[] = []
       for (const moduleName of selectedValues) {
         const result = await project.cloneGenerator({

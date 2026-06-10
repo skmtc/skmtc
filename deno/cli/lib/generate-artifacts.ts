@@ -1,18 +1,8 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { SerializableAttribution } from '@skmtc/worker/types'
-import { generateSandboxApi } from '@/services/generateSandboxApi.ts'
 import { generateWithWorker } from './generate-worker.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
-import { fileTypeToProtocol, type FileType } from '@/lib/types.ts'
-
-type GenerateWithSandboxApiArgs = {
-  projectName: string
-  schemaContents: string
-  fileType: FileType
-  clientSettings: ClientSettings | undefined
-  accountName: string
-  token: string | undefined
-}
+import type { FileType } from '@/lib/types.ts'
 
 type GenerateWithWorkerArgs = {
   bundlePath: string
@@ -37,24 +27,6 @@ export class GenerateArtifacts {
       clientSettings,
       bundlePath,
       attribution
-    })
-  }
-
-  static async generateWithSandboxApi({
-    projectName,
-    schemaContents,
-    fileType,
-    clientSettings,
-    accountName,
-    token
-  }: GenerateWithSandboxApiArgs): Promise<GenerateResponse> {
-    return await generateSandboxApi({
-      accountName: accountName,
-      serverName: projectName,
-      schema: schemaContents,
-      protocol: fileTypeToProtocol(fileType),
-      clientSettings,
-      token
     })
   }
 }

@@ -82,7 +82,6 @@ const createMockSkmtcRoot = (includeProjects = true, project?: Project): SkmtcRo
 const createInitialState = (overrides: Partial<SkmtcState> = {}, project?: Project): SkmtcState => ({
   view: { page: 'install-generator', projectName: undefined, generators: undefined },
   skmtcRoot: overrides.skmtcRoot || createMockSkmtcRoot(true, project),
-  session: createTestSession(),
   interactive: true,
   message: null,
   shortcuts: [],
