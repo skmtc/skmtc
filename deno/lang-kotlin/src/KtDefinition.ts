@@ -1,36 +1,86 @@
 import { DefinitionBase } from '@skmtc/core'
+import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
+import { isKtAnnotated } from './KtAnnotation.ts'
+import { withDescription } from './withDescription.ts'
 
 /**
- * Kotlin rendering of a {@link DefinitionBase}.
- *
- * Roadmap-tier language. Two things it demonstrates:
- *
- * 1. **One Definition subclass spans structurally different shells via the
- *    opaque `kind`.** A `data class` is a `Name( … )` container; a
- *    top-level `val` is a `Name = value` assignment. The same
- *    `KtDefinition` dispatches between them on `kind` — the shell/body
- *    split holds across both forms within one language.
- *
- * 2. **Kotlin's distinctive constraint: top-level `val`/`fun` are legal.**
- *    Unlike C#/PHP/Java (which forbid a value at file scope), Kotlin's
- *    EntityKind vocabulary includes file-scope values — so `kind: 'val'`
- *    renders a real top-level declaration.
- *
- * Visibility: Kotlin defaults to `public`, so the neutral `exported` fact
- * renders as *nothing* when exported and `private ` when not — a sixth
- * distinct `exported` behaviour (keyword only to restrict).
+ * Constructor arguments for {@link KtDefinition}.
  */
-export class KtDefinition extends DefinitionBase {
-  override toString(): string {
-    const visibility = this.identifier.exported ? '' : 'private '
+export type KtDefinitionArgs<Value extends GeneratedValue> = {
+  context: GenerateContextType
+  identifier: Identifier
+  value: Value
+  description?: string
+  noExport?: boolean
+}
 
-    switch (this.identifier.kind) {
+/**
+ * Kotlin's concrete {@link DefinitionBase}: assembles the declaration
+ * shell around the generated value, dispatching on the identifier's
+ * opaque `kind` — exhaustive over this language's vocabulary, throwing
+ * outside it (no silent fallback).
+ *
+ * | kind | shell |
+ * |---|---|
+ * | `data-class` | `data class Name(\n…\n)` |
+ * | `enum-class` | `enum class Name {\n…\n}` |
+ * | `sealed-interface` | `sealed interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
+ * | `typealias` | `typealias Name = …` |
+ * | `val` | `val Name[: Type] = …` (Kotlin's distinctive file-scope value) |
+ *
+ * Class-level annotations ride on the VALUE via the
+ * {@link import('./KtAnnotation.ts').KtAnnotated} protocol (the neutral
+ * `Lang.toDefinition` signature has no annotations slot) and render one
+ * per line above the shell; a `description` renders as a KDoc block above
+ * the annotations.
+ *
+ * Visibility: Kotlin defaults to `public`, so the neutral `exported`
+ * renders as *nothing* when exported and `private ` (file-local) when
+ * not — keyword only to restrict. `noExport` restricts the same way.
+ */
+export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends DefinitionBase<Value> {
+  description: string | undefined
+  noExport: boolean | undefined
+
+  constructor({ context, identifier, value, description, noExport }: KtDefinitionArgs<Value>) {
+    super({ context, identifier, value })
+
+    this.description = description
+    this.noExport = noExport
+  }
+
+  override toString(): string {
+    const restricted = this.noExport === true || this.identifier.exported === false
+    const visibility = restricted ? 'private ' : ''
+
+    const annotations = isKtAnnotated(this.value)
+      ? this.value.annotations.map(annotation => `${annotation}\n`).join('')
+      : ''
+
+    const declaration = `${annotations}${visibility}${this.toShell()}`
+
+    return withDescription(declaration, { description: this.description })
+  }
+
+  private toShell(): string {
+    const { name, kind, typeName } = this.identifier
+
+    switch (kind) {
+      case 'data-class':
+        return `data class ${name}(\n${this.value}\n)`
+      case 'enum-class':
+        return `enum class ${name} {\n${this.value}\n}`
+      case 'sealed-interface': {
+        const body = `${this.value}`
+
+        return body.length ? `sealed interface ${name} {\n${body}\n}` : `sealed interface ${name}`
+      }
+      case 'typealias':
+        return `typealias ${name} = ${this.value}`
       case 'val':
-        return `${visibility}val ${this.identifier.name} = ${this.value}`
-      case 'class':
-        return `${visibility}class ${this.identifier.name}(\n${this.value}\n)`
+        return `val ${name}${typeName ? `: ${typeName}` : ''} = ${this.value}`
       default:
-        return `${visibility}data class ${this.identifier.name}(\n${this.value}\n)`
+        throw new Error(`Unknown Kotlin entity kind: ${kind}`)
     }
   }
 }

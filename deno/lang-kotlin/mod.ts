@@ -29,8 +29,11 @@ export const langId = 'kotlin' as const
 export const fileExtensions = ['.kt'] as const
 
 export { KtFile, type KtFileArgs } from './src/KtFile.ts'
-export { KtDefinition } from './src/KtDefinition.ts'
-export { KtDataClass, type KtParameterArgs } from './src/KtDataClass.ts'
+export { KtDefinition, type KtDefinitionArgs } from './src/KtDefinition.ts'
+export { KtImport, type KtImportNameArg, type KtImportSpecifier } from './src/KtImport.ts'
+export { KtParameterList, type KtParameterArgs } from './src/KtParameterList.ts'
+export { KtAnnotation, isKtAnnotated, type KtAnnotated } from './src/KtAnnotation.ts'
+export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
 export {
   createDataClass,
   createEnumClass,
