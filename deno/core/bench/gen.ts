@@ -14,7 +14,7 @@ export const gen = async () => {
     traceId,
     spanId,
     startAt: Date.now(),
-    documentObject: JSON.parse(schema),
+    document: { type: 'oas', value: JSON.parse(schema) },
     settings: undefined,
     // @ts-ignore - enrichment types do not work at this level
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),
@@ -22,6 +22,8 @@ export const gen = async () => {
     logsPath: './logs',
     silent: true
   })
+
+  return { artifacts, manifest }
 }
 
 console.time('GEN')
