@@ -25,6 +25,7 @@ import {
   checkAnchorsCoverage,
   checkAnchorsStaleness
 } from '@/lib/doctor-anchors.ts'
+import { maskToken, readStoredAuth, toAuthFilePath } from '@/lib/hub-token.ts'
 
 export type CheckStatus = 'ok' | 'warning' | 'error' | 'skipped'
 
@@ -81,6 +82,7 @@ export const runDoctor = async ({
 
   checks.push(checkInstallLockfile())
   checks.push(checkDenoVersion(denoVersion))
+  checks.push(checkHubAuth())
 
   const cliCorePin = readCliCorePin()
   const projectCtx: CheckProjectContext = { cliCorePin }
@@ -161,6 +163,43 @@ const checkInstallLockfile = (): Check => {
 const extractPin = (content: string, pattern: RegExp): string | null => {
   const match = content.match(pattern)
   return match?.[1] ?? null
+}
+
+/**
+ * Offline shape check of the stored hub credential
+ * (`~/.skmtc/auth.json`, written by `skmtc login`). No network call —
+ * `skmtc login` is the place that validates the token against the
+ * hub. Never includes token material beyond the last 4 characters.
+ */
+const checkHubAuth = (): Check => {
+  const authPath = toAuthFilePath()
+
+  if (!existsSync(authPath)) {
+    return {
+      id: 'hub-auth',
+      status: 'skipped',
+      message: `No stored hub credential at ${authPath} — \`skmtc login\` stores one (publish also accepts --token / $SKMTC_HUB_TOKEN).`
+    }
+  }
+
+  const stored = readStoredAuth()
+
+  if (stored === null) {
+    return {
+      id: 'hub-auth',
+      status: 'warning',
+      message: `${authPath} exists but is not the expected { host, token } shape.`,
+      hint: 'Run `skmtc logout` to delete it, then `skmtc login` to store a fresh token.',
+      data: { authPath }
+    }
+  }
+
+  return {
+    id: 'hub-auth',
+    status: 'ok',
+    message: `Stored hub credential for ${stored.host} (token ${maskToken(stored.token)}).`,
+    data: { authPath, host: stored.host }
+  }
 }
 
 /**

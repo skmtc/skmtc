@@ -428,3 +428,46 @@ Deno.test('printDoctorResult - json format emits a parseable object', async () =
   assertEquals(parsed.checks.length, 1)
   assertEquals(parsed.checks[0].id, 'c')
 })
+
+Deno.test('runDoctor - hub-auth check reports stored credential shape offline', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    // Point HOME at the temp root so the check reads a hermetic
+    // ~/.skmtc/auth.json instead of the operator's real one.
+    const originalHome = Deno.env.get('HOME')
+    Deno.env.set('HOME', tempRoot)
+
+    try {
+      // 1. No auth.json → skipped.
+      const noFile = await runDoctor({ cliVersion: '0.0.0' })
+      const skipped = noFile.checks.find(check => check.id === 'hub-auth')
+      assertEquals(skipped?.status, 'skipped')
+
+      // 2. Malformed file → warning with the logout/login hint.
+      await ensureDir(join(tempRoot, '.skmtc'))
+      await Deno.writeTextFile(join(tempRoot, '.skmtc', 'auth.json'), 'not json')
+      const malformed = await runDoctor({ cliVersion: '0.0.0' })
+      const warning = malformed.checks.find(check => check.id === 'hub-auth')
+      assertEquals(warning?.status, 'warning')
+      assertStringIncludes(warning?.hint ?? '', 'skmtc logout')
+
+      // 3. Valid file → ok; message shows host + last 4 only, never
+      //    the full token.
+      await Deno.writeTextFile(
+        join(tempRoot, '.skmtc', 'auth.json'),
+        JSON.stringify({ host: 'https://api.example.test', token: 'skmtc_pat_secret9876' })
+      )
+      const valid = await runDoctor({ cliVersion: '0.0.0' })
+      const ok = valid.checks.find(check => check.id === 'hub-auth')
+      assertEquals(ok?.status, 'ok')
+      assertStringIncludes(ok?.message ?? '', 'https://api.example.test')
+      assertStringIncludes(ok?.message ?? '', '…9876')
+      assertEquals((ok?.message ?? '').includes('skmtc_pat_secret9876'), false)
+    } finally {
+      if (originalHome === undefined) {
+        Deno.env.delete('HOME')
+      } else {
+        Deno.env.set('HOME', originalHome)
+      }
+    }
+  })
+})
