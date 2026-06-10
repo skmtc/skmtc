@@ -15,10 +15,9 @@
  * 3. A snippet with NO `generatorKey` can register — the F7 bug does not
  *    exist in this model.
  */
-import { typescript, TsSnippet, TsFile, toModelProjectionBase } from '@skmtc/lang-typescript'
+import { TsFile, TsSnippet, createVariable, toModelProjectionBase, typescript } from '@skmtc/lang-typescript'
 import { toGenerateContext } from '../../test/toGenerateContext.ts'
 import type { ModelProjectionArgs } from '@/dsl/model/toModelProjectionBase.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
@@ -58,14 +57,14 @@ class SpikeField extends TsSnippet {
 
 const SpikeModelBase = toModelProjectionBase({
   id: '@spike/gen-option2',
-  toIdentifier: ({ refName }) => Identifier.createVariable(`${refName}Spike`),
+  toIdentifier: ({ refName }) => createVariable(`${refName}Spike`),
   toExportPath: () => '@/spike/models.generated.ts'
 })
 
 class SpikeModel extends SpikeModelBase {
   // deno-lint-ignore no-explicit-any
   static schemaToValueFn: any = () => ({ toString: () => '' })
-  static createIdentifier = Identifier.createVariable
+  static createIdentifier = createVariable
 
   field: SpikeField
 

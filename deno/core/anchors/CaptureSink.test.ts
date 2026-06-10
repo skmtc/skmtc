@@ -1,8 +1,7 @@
 import { assertEquals, assertStrictEquals, assertThrows } from '@std/assert'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
-import { TsDefinition } from '@skmtc/lang-typescript'
+import { TsDefinition, createVariable } from '@skmtc/lang-typescript'
 import { TsFile } from '@skmtc/lang-typescript'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { CaptureSink, type CaptureChannel } from './CaptureSink.ts'
 import type { Span } from './types.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -62,7 +61,7 @@ Deno.test('CaptureSink - top-level Definition spans match file slice', () => {
   const value = new FakeSnippet(ctx, () => "'hello'")
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('GREETING'),
+    identifier: createVariable('GREETING'),
     value
   })
   const { text, spans } = capture(channel, makeFile([def]))
@@ -87,7 +86,7 @@ Deno.test('CaptureSink - identical sibling text attributed in document order', (
   const value = new FakeSnippet(ctx, () => `${a}_${b}`)
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('PAIR'),
+    identifier: createVariable('PAIR'),
     value
   })
   const { text, spans } = capture(channel, makeFile([def]))
@@ -114,7 +113,7 @@ Deno.test('CaptureSink - child whose text is not in parent is skipped', () => {
   })
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('CASED'),
+    identifier: createVariable('CASED'),
     value
   })
   const { spans } = capture(channel, makeFile([def]))
@@ -136,7 +135,7 @@ Deno.test('CaptureSink - zero-length child is filtered out', () => {
   const value = new FakeSnippet(ctx, () => `before${empty}after`)
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('EMPTY'),
+    identifier: createVariable('EMPTY'),
     value
   })
   const { spans } = capture(channel, makeFile([def]))
@@ -151,12 +150,12 @@ Deno.test('CaptureSink - multiple Definitions appear in document order', () => {
   const { context: ctx, channel } = makeCaptureContext()
   const first = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('FIRST'),
+    identifier: createVariable('FIRST'),
     value: new FakeSnippet(ctx, () => '1')
   })
   const second = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('SECOND'),
+    identifier: createVariable('SECOND'),
     value: new FakeSnippet(ctx, () => '2')
   })
   const { spans } = capture(channel, makeFile([first, second]))
@@ -175,7 +174,7 @@ Deno.test('CaptureSink - property: every span.slice equals producer output', () 
   const outer = new FakeSnippet(ctx, () => `[ ${middle} ]`)
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('NESTED'),
+    identifier: createVariable('NESTED'),
     value: outer
   })
   const { text, spans } = capture(channel, makeFile([def]))
@@ -206,7 +205,7 @@ Deno.test('CaptureSink - cycle detection throws rather than infinite-recurse', (
   self = new FakeSnippet(ctx, () => `wrap(${self})`)
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('CYCLE'),
+    identifier: createVariable('CYCLE'),
     value: self
   })
 
@@ -222,7 +221,7 @@ Deno.test('CaptureSink - pure pass-through after the capture interval closes', (
   })
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('PURE'),
+    identifier: createVariable('PURE'),
     value: s
   })
   capture(channel, makeFile([def]))
@@ -244,7 +243,7 @@ Deno.test('CaptureSink - keyless snippet constructed mid-render is captured', ()
   const value = new FakeSnippet(ctx, () => `pre ${new FakeSnippet(ctx, () => 'midborn')} post`)
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('MID'),
+    identifier: createVariable('MID'),
     value
   })
   const { text, spans } = capture(channel, makeFile([def]))

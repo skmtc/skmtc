@@ -2,13 +2,12 @@ import { assertEquals, assertThrows } from '@std/assert'
 import { RenderContext } from './RenderContext.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
-import { TsFile } from '@skmtc/lang-typescript'
+import { TsFile, createType, createVariable } from '@skmtc/lang-typescript'
 import { StackTrail } from './StackTrail.ts'
 import { spy, assertSpyCalls } from '@std/testing/mock'
 import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
 import { TsDefinition } from '@skmtc/lang-typescript'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { toGenerateContext } from '@/test/toGenerateContext.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import type { Preview, Mapping } from '@/types/Preview.ts'
@@ -27,7 +26,7 @@ const createFileWithDefinition = (path: string, name: string, content: string): 
   const file = new TsFile({ path, settings: undefined })
   const definition = new TsDefinition({
     context: toGenerateContext(),
-    identifier: Identifier.createVariable(name),
+    identifier: createVariable(name),
     value: {
       generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
       toString: () => content
@@ -457,7 +456,7 @@ Deno.test('RenderContext', async t => {
 
       const userDefinition = new TsDefinition({
         context: toGenerateContext(),
-        identifier: Identifier.createType('User'),
+        identifier: createType('User'),
         value: {
           generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
           toString: () => 'export interface User { id: string; }'
@@ -579,7 +578,7 @@ Deno.test('RenderContext', async t => {
 
       const userDefinition = new TsDefinition({
         context: toGenerateContext(),
-        identifier: Identifier.createType('User'),
+        identifier: createType('User'),
         value: {
           generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
           toString: () => 'export interface User {}'

@@ -12,7 +12,7 @@ const context = {} as unknown as GenerateContextType
 Deno.test('RsDefinition + RsStruct render the User DTO as a pub struct', () => {
   const definition = new RsDefinition({
     context,
-    identifier: Identifier.createType('User', { kind: 'struct' }),
+    identifier: new Identifier({ name: 'User', kind: 'struct' }),
     value: new RsStruct([
       { name: 'id', type: 'String' },
       { name: 'name', type: 'String' },
@@ -44,7 +44,7 @@ Deno.test('RsDefinition + RsEnum render a oneOf as a native tagged enum', () => 
   // enum, where TypeScript would emit a union and Go has no sum type.
   const definition = new RsDefinition({
     context,
-    identifier: Identifier.createType('Pet', { kind: 'enum' }),
+    identifier: new Identifier({ name: 'Pet', kind: 'enum' }),
     value: new RsEnum([
       { name: 'Cat', payload: 'Cat' },
       { name: 'Dog', payload: 'Dog' }
@@ -54,23 +54,23 @@ Deno.test('RsDefinition + RsEnum render a oneOf as a native tagged enum', () => 
   assertEquals(definition.toString(), 'pub enum Pet {\n\tCat(Cat),\n\tDog(Dog),\n}')
 })
 
-Deno.test('declaration keyword follows opaque Identifier.kind, not entityType', () => {
-  // All three are `entityType: 'type'` — only the opaque `kind` differs.
-  // This is the forcing proof: the binary entityType cannot tell struct
-  // from enum from alias, so the keyword must come from `kind`.
+Deno.test('declaration keyword follows the opaque Identifier.kind', () => {
+  // All three are type-level entities — only the opaque `kind` differs.
+  // This was the forcing proof for `kind`: the old binary entityType
+  // (deleted under F6) could not tell struct from enum from alias.
   const asStruct = new RsDefinition({
     context,
-    identifier: Identifier.createType('Thing', { kind: 'struct' }),
+    identifier: new Identifier({ name: 'Thing', kind: 'struct' }),
     value: new RsStruct([{ name: 'id', type: 'String' }])
   })
   const asEnum = new RsDefinition({
     context,
-    identifier: Identifier.createType('Thing', { kind: 'enum' }),
+    identifier: new Identifier({ name: 'Thing', kind: 'enum' }),
     value: new RsEnum([{ name: 'A' }])
   })
   const asAlias = new RsDefinition({
     context,
-    identifier: Identifier.createType('Thing', { kind: 'type' }),
+    identifier: new Identifier({ name: 'Thing', kind: 'type' }),
     value: 'String'
   })
 
@@ -78,10 +78,6 @@ Deno.test('declaration keyword follows opaque Identifier.kind, not entityType', 
   assertEquals(asEnum.toString().startsWith('pub enum Thing '), true)
   assertEquals(asAlias.toString(), 'pub type Thing = String;')
 
-  // entityType is identical across all three — proof it is insufficient.
-  assertEquals(asStruct.identifier.entityType.type, 'type')
-  assertEquals(asEnum.identifier.entityType.type, 'type')
-  assertEquals(asAlias.identifier.entityType.type, 'type')
 })
 
 Deno.test('exported renders as the `pub` keyword, name untouched (contrast Go casing)', () => {
@@ -89,7 +85,7 @@ Deno.test('exported renders as the `pub` keyword, name untouched (contrast Go ca
   // (Go would capitalize it; Rust does not).
   const exported = new RsDefinition({
     context,
-    identifier: Identifier.createType('user', { exported: true, kind: 'struct' }),
+    identifier: new Identifier({ name: 'user', exported: true, kind: 'struct' }),
     value: new RsStruct([{ name: 'id', type: 'String' }])
   })
   assertEquals(exported.toString().startsWith('pub struct user '), true)
@@ -97,7 +93,7 @@ Deno.test('exported renders as the `pub` keyword, name untouched (contrast Go ca
   // Unexported intent → no `pub`, name kept verbatim.
   const private_ = new RsDefinition({
     context,
-    identifier: Identifier.createType('Secret', { exported: false, kind: 'struct' }),
+    identifier: new Identifier({ name: 'Secret', exported: false, kind: 'struct' }),
     value: new RsStruct([{ name: 'id', type: 'String' }])
   })
   assertEquals(private_.toString().startsWith('struct Secret '), true)
@@ -116,7 +112,7 @@ Deno.test('RsFile assembles use imports + definitions', () => {
     'User',
     new RsDefinition({
       context,
-      identifier: Identifier.createType('User', { kind: 'struct' }),
+      identifier: new Identifier({ name: 'User', kind: 'struct' }),
       value: new RsStruct([{ name: 'id', type: 'String' }])
     })
   )

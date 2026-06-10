@@ -5,8 +5,7 @@ import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { DefinitionBase } from '@/dsl/Definition.ts'
-import { TsDefinition } from '@skmtc/lang-typescript'
-import { Identifier } from '@/dsl/Identifier.ts'
+import { TsDefinition, createType } from '@skmtc/lang-typescript'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
@@ -91,7 +90,7 @@ const createMockContext = (): GenerateContextType => {
   const mockContext = {
     modelDepth: {} as Record<string, number>,
     toModelContentSettings: spy(({ refName, variant }: { refName: RefName; variant: string }) => ({
-      identifier: Identifier.createType(refName),
+      identifier: createType(refName),
       exportPath: '/path/to/export.ts',
       enrichments: undefined,
       variant
@@ -561,10 +560,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
@@ -590,10 +589,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
@@ -639,10 +638,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
@@ -668,10 +667,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = 'DifferentKey:DifferentRef' as GeneratorKey
 
@@ -701,10 +700,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = 'WrongKey:WrongRef' as GeneratorKey
 
@@ -734,10 +733,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = 'WrongKey:WrongRef' as GeneratorKey
 
@@ -767,10 +766,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
@@ -796,10 +795,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant: 'main' }) as GeneratorKey
 
@@ -1020,10 +1019,10 @@ Deno.test('ModelDriver', async (t) => {
         value: new MockProjection({
           refName,
           context,
-          settings: { identifier: Identifier.createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
+          settings: { identifier: createType(refName), exportPath: '/path/to/export.ts', enrichments: undefined, variant: 'main' },
           destinationPath: '/path/to/export.ts'
         }),
-        identifier: Identifier.createType(refName)
+        identifier: createType(refName)
       })
       mockDefinition.generatorKey = 'WrongGenerator:WrongRef' as GeneratorKey
 

@@ -1,5 +1,6 @@
 import { assertEquals } from '@std/assert'
-import { Identifier, toGeneratorOnlyKey } from '@skmtc/core'
+import { createType, createVariable } from './createIdentifier.ts'
+import { toGeneratorOnlyKey } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType } from '@skmtc/core'
 import { TsDefinition } from './TsDefinition.ts'
 import { TsFile } from './TsFile.ts'
@@ -21,7 +22,7 @@ Deno.test('TsDefinition renders the legacy-pinned declarations', async testConte
   const definitionCases = [
     {
       name: 'exported type alias',
-      identifier: Identifier.createType('User'),
+      identifier: createType('User'),
       content: '{ id: string }',
       description: undefined as string | undefined,
       noExport: false,
@@ -29,7 +30,7 @@ Deno.test('TsDefinition renders the legacy-pinned declarations', async testConte
     },
     {
       name: 'exported const with type annotation',
-      identifier: Identifier.createVariable('API_URL', { typeName: 'string' }),
+      identifier: createVariable('API_URL', { typeName: 'string' }),
       content: '"https://example.com"',
       description: undefined,
       noExport: false,
@@ -37,7 +38,7 @@ Deno.test('TsDefinition renders the legacy-pinned declarations', async testConte
     },
     {
       name: 'const without annotation',
-      identifier: Identifier.createVariable('count'),
+      identifier: createVariable('count'),
       content: '42',
       description: undefined,
       noExport: false,
@@ -45,7 +46,7 @@ Deno.test('TsDefinition renders the legacy-pinned declarations', async testConte
     },
     {
       name: 'non-exported',
-      identifier: Identifier.createVariable('helper'),
+      identifier: createVariable('helper'),
       content: '() => {}',
       description: undefined,
       noExport: true,
@@ -53,7 +54,7 @@ Deno.test('TsDefinition renders the legacy-pinned declarations', async testConte
     },
     {
       name: 'with JSDoc description',
-      identifier: Identifier.createType('Status'),
+      identifier: createType('Status'),
       content: "'a' | 'b'",
       description: 'Possible status values',
       noExport: false,
@@ -87,10 +88,10 @@ Deno.test('TsFile renders the legacy-pinned file — imports + definitions + reE
   const path = '@/types/models.generated.ts'
 
   const tsFile = new TsFile({ path, settings: undefined })
-  tsFile.addReExports([TsReExport.fromConcise('./shared', [Identifier.createVariable('helper')])])
+  tsFile.addReExports([TsReExport.fromConcise('./shared', [createVariable('helper')])])
   tsFile.addImports([TsImport.fromConcise('zod', ['z']), TsImport.fromConcise('@/models', ['User', 'Account'])])
   tsFile.addDefinition(
-    new TsDefinition({ context: mockContext, identifier: Identifier.createType('Account'), value: value('{ id: string }') })
+    new TsDefinition({ context: mockContext, identifier: createType('Account'), value: value('{ id: string }') })
   )
 
   assertEquals(

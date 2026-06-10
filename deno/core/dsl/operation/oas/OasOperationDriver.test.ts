@@ -1,4 +1,4 @@
-import { typescript } from '@skmtc/lang-typescript'
+import { createVariable, typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists, assert, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { OasOperationDriver } from './OasOperationDriver.ts'
@@ -94,7 +94,7 @@ const createMockProjection = (options?: {
     static isSupported = options?.isSupported
 
     static toIdentifier({ operation }: ToOasOperationIdentifierArgs): Identifier {
-      return Identifier.createVariable(operation.operationId ?? 'operation')
+      return createVariable(operation.operationId ?? 'operation')
     }
 
     static toExportPath({ operation }: ToOasOperationExportPathArgs): string {
@@ -106,7 +106,7 @@ const createMockProjection = (options?: {
     }
 
     static createIdentifier(name: string): Identifier {
-      return Identifier.createVariable(name)
+      return createVariable(name)
     }
 
     settings: ContentSettings<undefined>
@@ -522,10 +522,10 @@ Deno.test('OasOperationDriver', async t => {
         static type = 'oasOperation' as const
         static lang = typescript
         static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
-          Identifier.createVariable(operation.operationId ?? 'op')
+          createVariable(operation.operationId ?? 'op')
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
-        static createIdentifier = (name: string) => Identifier.createVariable(name)
+        static createIdentifier = (name: string) => createVariable(name)
 
         constructor(args: {
           context: GenerateContextType
@@ -636,7 +636,7 @@ Deno.test('OasOperationDriver', async t => {
       // Create a proper cached value by instantiating the projection
       const mockContext = {} as any
       const mockSettings = new ContentSettings({
-        identifier: Identifier.createVariable('cached'),
+        identifier: createVariable('cached'),
         exportPath: './test.ts',
         enrichments: undefined,
         variant: 'main'
@@ -650,7 +650,7 @@ Deno.test('OasOperationDriver', async t => {
 
       const cachedDef = new TsDefinition({
         context: mockContext,
-        identifier: Identifier.createVariable('cached'),
+        identifier: createVariable('cached'),
         value: cachedValue
       })
 
@@ -676,10 +676,10 @@ Deno.test('OasOperationDriver', async t => {
         static type = 'oasOperation' as const
         static lang = typescript
         static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
-          Identifier.createVariable(operation.operationId ?? 'op')
+          createVariable(operation.operationId ?? 'op')
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
-        static createIdentifier = (name: string) => Identifier.createVariable(name)
+        static createIdentifier = (name: string) => createVariable(name)
 
         constructor(args: {
           context: GenerateContextType
@@ -707,7 +707,7 @@ Deno.test('OasOperationDriver', async t => {
       const tempValue = new TrackingProjection({
         context: {} as any,
         settings: new ContentSettings({
-          identifier: Identifier.createVariable('cached'),
+          identifier: createVariable('cached'),
           exportPath: './test.ts',
           enrichments: undefined,
         variant: 'main'
@@ -720,7 +720,7 @@ Deno.test('OasOperationDriver', async t => {
 
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('cached'),
+        identifier: createVariable('cached'),
         value: tempValue
       })
 
@@ -741,7 +741,7 @@ Deno.test('OasOperationDriver', async t => {
     await t.step('should preserve settings when using cached definition', () => {
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('cached'),
+        identifier: createVariable('cached'),
         value: {
           generatorKey: toOasOperationGeneratorKey({
             generatorId: 'MockProjection',
@@ -799,7 +799,7 @@ Deno.test('OasOperationDriver', async t => {
       const cachedValue = new projection({
         context: {} as any,
         settings: new ContentSettings({
-          identifier: Identifier.createVariable('test'),
+          identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
         variant: 'main'
@@ -809,7 +809,7 @@ Deno.test('OasOperationDriver', async t => {
 
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('test'),
+        identifier: createVariable('test'),
         value: cachedValue
       })
 
@@ -839,7 +839,7 @@ Deno.test('OasOperationDriver', async t => {
       const cachedValue = new differentProjection({
         context: {} as any,
         settings: new ContentSettings({
-          identifier: Identifier.createVariable('test'),
+          identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
         variant: 'main'
@@ -849,7 +849,7 @@ Deno.test('OasOperationDriver', async t => {
 
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('test'),
+        identifier: createVariable('test'),
         value: cachedValue
       })
 
@@ -879,7 +879,7 @@ Deno.test('OasOperationDriver', async t => {
       })
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('testOperation'),
+        identifier: createVariable('testOperation'),
         value: {
           generatorKey: toOasOperationGeneratorKey({
             generatorId: 'DifferentGenerator',
@@ -918,7 +918,7 @@ Deno.test('OasOperationDriver', async t => {
         })
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('test'),
+        identifier: createVariable('test'),
         value: {
           generatorKey: cachedKey,
           toString: () => 'cached'
@@ -971,7 +971,7 @@ Deno.test('OasOperationDriver', async t => {
       const operation = createMockOperation()
       const wrongDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('test'),
+        identifier: createVariable('test'),
         value: {
           generatorKey: 'wrong-type-key',
           toString: () => 'wrong'
@@ -1029,7 +1029,7 @@ Deno.test('OasOperationDriver', async t => {
       const cachedValue = new projection({
         context: {} as any,
         settings: new ContentSettings({
-          identifier: Identifier.createVariable('test'),
+          identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
         variant: 'main'
@@ -1039,7 +1039,7 @@ Deno.test('OasOperationDriver', async t => {
 
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('test'),
+        identifier: createVariable('test'),
         value: cachedValue
       })
 
@@ -1067,7 +1067,7 @@ Deno.test('OasOperationDriver', async t => {
         })
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('test'),
+        identifier: createVariable('test'),
         value: {
           generatorKey: wrongKey,
           toString: () => 'cached'
@@ -1166,7 +1166,7 @@ Deno.test('OasOperationDriver', async t => {
       const cachedValue = new projection({
         context: {} as any,
         settings: new ContentSettings({
-          identifier: Identifier.createVariable('test'),
+          identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
         variant: 'main'
@@ -1176,7 +1176,7 @@ Deno.test('OasOperationDriver', async t => {
 
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('test'),
+        identifier: createVariable('test'),
         value: cachedValue
       })
 
@@ -1383,7 +1383,7 @@ Deno.test('OasOperationDriver', async t => {
         })
       const cachedDef = new TsDefinition({
         context: {} as any,
-        identifier: Identifier.createVariable('test'),
+        identifier: createVariable('test'),
         value: {
           generatorKey: wrongKey,
           toString: () => 'cached'
@@ -1536,7 +1536,7 @@ Deno.test('OasOperationDriver', async t => {
         })
         const cachedDef = new TsDefinition({
           context: {} as any,
-          identifier: Identifier.createVariable('getQuotesForm'),
+          identifier: createVariable('getQuotesForm'),
           value: {
             generatorKey: mainKey,
             toString: () => 'cached'

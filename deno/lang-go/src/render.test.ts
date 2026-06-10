@@ -11,7 +11,7 @@ const context = {} as unknown as GenerateContextType
 Deno.test('GoDefinition + GoStruct render the User DTO as a struct', () => {
   const definition = new GoDefinition({
     context,
-    identifier: Identifier.createType('User'),
+    identifier: new Identifier({ name: 'User', kind: 'type' }),
     value: new GoStruct([
       { name: 'id', type: 'string' },
       { name: 'name', type: 'string' },
@@ -48,7 +48,7 @@ Deno.test('GoDefinition casing follows Identifier.exported, not input name casin
   // Exported intent + lowercase input → Go capitalizes it.
   const exported = new GoDefinition({
     context,
-    identifier: Identifier.createType('user', { exported: true }),
+    identifier: new Identifier({ name: 'user', exported: true, kind: 'type' }),
     value: new GoStruct([{ name: 'id', type: 'string' }])
   })
   assertEquals(exported.toString().startsWith('type User struct {'), true)
@@ -56,7 +56,7 @@ Deno.test('GoDefinition casing follows Identifier.exported, not input name casin
   // Unexported intent + capitalized input → Go lowercases it.
   const unexported = new GoDefinition({
     context,
-    identifier: Identifier.createType('Secret', { exported: false }),
+    identifier: new Identifier({ name: 'Secret', exported: false, kind: 'type' }),
     value: new GoStruct([{ name: 'id', type: 'string' }])
   })
   assertEquals(unexported.toString().startsWith('type secret struct {'), true)

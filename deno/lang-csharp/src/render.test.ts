@@ -11,7 +11,7 @@ const context = {} as unknown as GenerateContextType
 Deno.test('CsDefinition + CsRecord render the User DTO as a positional record', () => {
   const definition = new CsDefinition({
     context,
-    identifier: Identifier.createType('User', { kind: 'record' }),
+    identifier: new Identifier({ name: 'User', kind: 'record' }),
     value: new CsRecord([
       { name: 'Id', type: 'string' },
       { name: 'Name', type: 'string' },
@@ -32,7 +32,7 @@ Deno.test('CsDefinition + CsRecord render the User DTO as a positional record', 
 Deno.test('declaration keyword follows opaque Identifier.kind', () => {
   const asInterface = new CsDefinition({
     context,
-    identifier: Identifier.createType('Named', { kind: 'interface' }),
+    identifier: new Identifier({ name: 'Named', kind: 'interface' }),
     value: new CsRecord([{ name: 'Id', type: 'string' }])
   })
 
@@ -42,7 +42,7 @@ Deno.test('declaration keyword follows opaque Identifier.kind', () => {
 Deno.test('exported renders public vs internal (fifth exported behaviour)', () => {
   const internal = new CsDefinition({
     context,
-    identifier: Identifier.createType('User', { exported: false, kind: 'record' }),
+    identifier: new Identifier({ name: 'User', exported: false, kind: 'record' }),
     value: new CsRecord([{ name: 'Id', type: 'string' }])
   })
 
@@ -55,7 +55,7 @@ Deno.test('CsFile renders the file-scoped namespace header', () => {
     'User',
     new CsDefinition({
       context,
-      identifier: Identifier.createType('User', { kind: 'record' }),
+      identifier: new Identifier({ name: 'User', kind: 'record' }),
       value: new CsRecord([{ name: 'Id', type: 'string' }])
     })
   )

@@ -7,8 +7,7 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import type { OasOperationConfig, TransformOasOperationArgs } from '@/dsl/operation/oas/types.ts'
 import type { ModelConfig, TransformModelArgs } from '@/dsl/model/types.ts'
 import type { ResultType } from '@/types/Results.ts'
-import { TsDefinition } from '@skmtc/lang-typescript'
-import { Identifier } from '@/dsl/Identifier.ts'
+import { TsDefinition, createType } from '@skmtc/lang-typescript'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import { toGqlDocument } from '@/gql/document/toGqlDocument.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
@@ -111,7 +110,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
 
       // Verify Definition emission works inside the dispatcher — through
       // the lang package's register function (pre-creates the file).
-      const id = Identifier.createType(`${gqlOp.fieldName}Args`)
+      const id = createType(`${gqlOp.fieldName}Args`)
       register(context, {
         destinationPath: `gql/operations/${gqlOp.identifier}.generated.ts`,
         definitions: [

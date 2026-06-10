@@ -26,9 +26,9 @@ export class TsReExport extends ReExportBase {
   static fromConcise(module: string, identifiers: Identifier[]): TsReExport {
     const groups: Record<string, Set<string>> = {}
     for (const identifier of identifiers) {
-      const entityType = identifier.entityType.type
-      groups[entityType] ??= new Set()
-      groups[entityType].add(identifier.name)
+      const kind = identifier.kind
+      groups[kind] ??= new Set()
+      groups[kind].add(identifier.name)
     }
     return new TsReExport(module, groups)
   }

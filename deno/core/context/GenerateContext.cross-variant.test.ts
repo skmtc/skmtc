@@ -33,8 +33,7 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
-import { TsFile } from '@skmtc/lang-typescript'
+import { TsFile, createVariable } from '@skmtc/lang-typescript'
 import { withVariant } from '@/helpers/withVariant.ts'
 import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
@@ -56,7 +55,7 @@ const METHOD = 'patch' as const
 // the form caller hit the same (name, exportPath) cache key.
 const PeerBase = toOasOperationProjectionBase({
   id: '@test/peer-gen',
-  toIdentifier: () => Identifier.createVariable('usePatchQuote'),
+  toIdentifier: () => createVariable('usePatchQuote'),
   toExportPath: () => '@/services/usePatchQuote.ts'
 })
 
@@ -72,7 +71,7 @@ class PeerProjection extends PeerBase {
 const FormBase = toOasOperationProjectionBase({
   id: '@test/form-gen',
   toIdentifier: ({ variant }) =>
-    Identifier.createVariable(withVariant('EditQuotesForm', variant)),
+    createVariable(withVariant('EditQuotesForm', variant)),
   toExportPath: ({ variant }) => `@/forms/${withVariant('EditQuotesForm', variant)}.tsx`
 })
 

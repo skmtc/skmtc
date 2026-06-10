@@ -77,3 +77,11 @@ export * from './src/identifiers.ts'
 export * from './src/keyValues.ts'
 export * from './src/withDescription.ts'
 export * from './src/sanitizePropertyName.ts'
+export {
+  createVariable,
+  createType,
+  toTsKeyword,
+  type TsEntityKind,
+  type CreateVariableArgs,
+  type CreateTypeArgs
+} from './src/createIdentifier.ts'

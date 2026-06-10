@@ -1,5 +1,6 @@
 import { DefinitionBase } from '@skmtc/core'
 import { withDescription } from './withDescription.ts'
+import { toTsKeyword } from './createIdentifier.ts'
 import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
 
 /**
@@ -36,7 +37,7 @@ export class TsDefinition<Value extends GeneratedValue = GeneratedValue> extends
       : this.identifier.name
 
     return withDescription(
-      `${this.noExport ? '' : 'export '}${this.identifier.entityType} ${identifier} = ${this.value};\n`,
+      `${this.noExport ? '' : 'export '}${toTsKeyword(this.identifier.kind)} ${identifier} = ${this.value};\n`,
       { description: this.description }
     )
   }

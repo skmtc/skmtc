@@ -66,7 +66,7 @@ type CreateArgs<EnrichmentType = undefined> = {
  *
  * const settings = ContentSettings.empty({
  *   exportPath: './src/generated/models.ts',
- *   identifier: Identifier.createType('UserModels')
+ *   identifier: createType('UserModels')
  * });
  *
  * console.log(settings.exportPath); // './src/generated/models.ts'
@@ -82,7 +82,7 @@ type CreateArgs<EnrichmentType = undefined> = {
  * };
  *
  * const enrichedSettings = new ContentSettings({
- *   identifier: Identifier.createType('ValidatedModels'),
+ *   identifier: createType('ValidatedModels'),
  *   exportPath: './src/models/validated.ts',
  *   enrichments: {
  *     validateRequired: true,
@@ -104,7 +104,7 @@ type CreateArgs<EnrichmentType = undefined> = {
  *     super({
  *       ...args,
  *       settings: new ContentSettings({
- *         identifier: Identifier.createType(args.refName),
+ *         identifier: createType(args.refName),
  *         exportPath: './src/validated-models.ts',
  *         enrichments: {
  *           validateRequired: true,
@@ -162,7 +162,7 @@ export class ContentSettings<EnrichmentType = undefined> {
    * @example
    * ```typescript
    * const settings = new ContentSettings({
-   *   identifier: Identifier.createType('ApiModels'),
+   *   identifier: createType('ApiModels'),
    *   exportPath: './src/api/models.ts',
    *   enrichments: {
    *     includeValidation: true,
@@ -194,7 +194,7 @@ export class ContentSettings<EnrichmentType = undefined> {
    * @example
    * ```typescript
    * const basicSettings = ContentSettings.empty({
-   *   identifier: Identifier.createType('SimpleModels'),
+   *   identifier: createType('SimpleModels'),
    *   exportPath: './src/models.ts'
    * });
    *
@@ -206,7 +206,7 @@ export class ContentSettings<EnrichmentType = undefined> {
    *     super({
    *       ...args,
    *       settings: ContentSettings.empty({
-   *         identifier: Identifier.createType(args.refName),
+   *         identifier: createType(args.refName),
    *         exportPath: './src/simple-models.ts'
    *       })
    *     });

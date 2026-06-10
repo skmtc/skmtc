@@ -82,7 +82,7 @@ export type RegularParameter = {
  *   name: 'userId',
  *   typeDefinition: new Definition({
  *     context: generateContext,
- *     identifier: Identifier.createType('string'),
+ *     identifier: createType('string'),
  *     value: { type: 'string' }
  *   }),
  *   required: true
@@ -97,7 +97,7 @@ export type RegularParameter = {
  * const destructuredParam = new FunctionParameter({
  *   typeDefinition: new Definition({
  *     context: generateContext,
- *     identifier: Identifier.createType('UserParams'),
+ *     identifier: createType('UserParams'),
  *     value: {
  *       type: 'object',
  *       objectProperties: {
@@ -136,7 +136,7 @@ export type RegularParameter = {
  * const voidParam = new FunctionParameter({
  *   typeDefinition: new Definition({
  *     context: generateContext,
- *     identifier: Identifier.createType('void'),
+ *     identifier: createType('void'),
  *     value: { type: 'void' }
  *   })
  * });
@@ -493,7 +493,7 @@ export class FunctionParameter {
  * ```typescript
  * const objectDef = new Definition({
  *   context: generateContext,
- *   identifier: Identifier.createType('ApiParams'),
+ *   identifier: createType('ApiParams'),
  *   value: {
  *     type: 'object',
  *     objectProperties: {

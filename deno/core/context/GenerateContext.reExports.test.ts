@@ -9,9 +9,8 @@
  * now against the step-5 shape: concise form converts in the lang
  * package, `context.register` speaks `ReExportBase[]` pure data.
  */
-import { register, TsFile } from '@skmtc/lang-typescript'
+import { TsFile, createType, createVariable, register } from '@skmtc/lang-typescript'
 import { toGenerateContext } from '../test/toGenerateContext.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertInstanceOf } from '@std/assert/instance-of'
 
@@ -21,7 +20,7 @@ Deno.test('barrel pattern - re-exports register and merge through the lang regis
 
   // First registering generator contributes a value re-export.
   register(context, {
-    reExports: { '@/models/User.generated.ts': [Identifier.createVariable('User')] },
+    reExports: { '@/models/User.generated.ts': [createVariable('User')] },
     destinationPath: barrelPath
   })
 
@@ -29,8 +28,8 @@ Deno.test('barrel pattern - re-exports register and merge through the lang regis
   // into the existing entry) and a new module (appends).
   register(context, {
     reExports: {
-      '@/models/User.generated.ts': [Identifier.createType('UserDto')],
-      '@/models/Order.generated.ts': [Identifier.createVariable('Order')]
+      '@/models/User.generated.ts': [createType('UserDto')],
+      '@/models/Order.generated.ts': [createVariable('Order')]
     },
     destinationPath: barrelPath
   })
@@ -54,11 +53,11 @@ Deno.test('barrel pattern - duplicate re-exported names dedup within an entry', 
   const barrelPath = '@/models/index.generated.ts'
 
   register(context, {
-    reExports: { '@/models/User.generated.ts': [Identifier.createVariable('User')] },
+    reExports: { '@/models/User.generated.ts': [createVariable('User')] },
     destinationPath: barrelPath
   })
   register(context, {
-    reExports: { '@/models/User.generated.ts': [Identifier.createVariable('User')] },
+    reExports: { '@/models/User.generated.ts': [createVariable('User')] },
     destinationPath: barrelPath
   })
 

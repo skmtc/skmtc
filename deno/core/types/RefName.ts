@@ -109,7 +109,7 @@ import type { Brand } from './Brand.ts'
  *     // RefName ensures we're working with valid schema identifiers
  *     const schemaName = this.refName; // Type: RefName
  *     return new Definition({
- *       identifier: Identifier.createType(schemaName),
+ *       identifier: createType(schemaName),
  *       // ...
  *     });
  *   }

@@ -30,9 +30,8 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { defineAndRegister, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { createType, createVariable, defineAndRegister, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -48,7 +47,7 @@ const mockLogger: log.Logger = {
 const FormBase = toOasOperationProjectionBase({
   id: '@test/form',
   toIdentifier: ({ variant }) =>
-    Identifier.createVariable(withVariant('EditQuotesForm', variant)),
+    createVariable(withVariant('EditQuotesForm', variant)),
   toExportPath: ({ variant }) => `@/forms/${withVariant('EditQuotesForm', variant)}.tsx`
 })
 
@@ -75,7 +74,7 @@ class FormProjection extends FormBase {
     // pinning is the same: the Definition lands under the variant-bound
     // fallbackName at the form's exportPath.
     defineAndRegister(this.context, {
-      identifier: Identifier.createType(fallbackName),
+      identifier: createType(fallbackName),
       value: { toString: () => `type ${fallbackName} = { /* body */ }` },
       destinationPath: this.settings.exportPath
     })

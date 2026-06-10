@@ -11,7 +11,7 @@ const context = {} as unknown as GenerateContextType
 Deno.test('PhpDefinition + PhpClass render the User DTO as a class container', () => {
   const definition = new PhpDefinition({
     context,
-    identifier: Identifier.createType('User', { kind: 'class' }),
+    identifier: new Identifier({ name: 'User', kind: 'class' }),
     value: new PhpClass([
       { name: 'id', type: 'string' },
       { name: 'name', type: 'string' },
@@ -52,12 +52,12 @@ Deno.test('declaration keyword follows opaque Identifier.kind', () => {
   // second consumer of the opaque discriminant (after Rust).
   const asInterface = new PhpDefinition({
     context,
-    identifier: Identifier.createType('Named', { kind: 'interface' }),
+    identifier: new Identifier({ name: 'Named', kind: 'interface' }),
     value: new PhpClass([{ name: 'id', type: 'string' }])
   })
   const asClass = new PhpDefinition({
     context,
-    identifier: Identifier.createType('Named', { kind: 'class' }),
+    identifier: new Identifier({ name: 'Named', kind: 'class' }),
     value: new PhpClass([{ name: 'id', type: 'string' }])
   })
 
@@ -70,12 +70,12 @@ Deno.test('exported is ignored at the class level (no file-private class in PHP)
   // top-level visibility keyword on a class — `exported` is a no-op here.
   const exported = new PhpDefinition({
     context,
-    identifier: Identifier.createType('A', { exported: true, kind: 'class' }),
+    identifier: new Identifier({ name: 'A', exported: true, kind: 'class' }),
     value: new PhpClass([{ name: 'id', type: 'string' }])
   })
   const unexported = new PhpDefinition({
     context,
-    identifier: Identifier.createType('A', { exported: false, kind: 'class' }),
+    identifier: new Identifier({ name: 'A', exported: false, kind: 'class' }),
     value: new PhpClass([{ name: 'id', type: 'string' }])
   })
 
@@ -89,7 +89,7 @@ Deno.test('PhpFile renders the <?php + namespace header', () => {
     'User',
     new PhpDefinition({
       context,
-      identifier: Identifier.createType('User', { kind: 'class' }),
+      identifier: new Identifier({ name: 'User', kind: 'class' }),
       value: new PhpClass([{ name: 'id', type: 'string' }])
     })
   )

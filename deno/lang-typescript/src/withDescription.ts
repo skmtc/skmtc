@@ -71,7 +71,7 @@ import type { Modifiers } from '@skmtc/core'
  *   createDefinition(name: string, value: string, docs?: string) {
  *     return new Definition({
  *       context: this.context,
- *       identifier: Identifier.createVariable(name),
+ *       identifier: createVariable(name),
  *       description: docs, // This gets processed by withDescription internally
  *       value: {
  *         generatorKey: 'documented',

@@ -1,7 +1,6 @@
 import { assertEquals } from '@std/assert'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
-import { TsDefinition } from '@skmtc/lang-typescript'
-import { Identifier } from '@/dsl/Identifier.ts'
+import { TsDefinition, createVariable } from '@skmtc/lang-typescript'
 import {
   toOasOperationGeneratorKey,
   toGqlOperationGeneratorKey,
@@ -128,7 +127,7 @@ Deno.test('attribute - Definition producer populates defName from identifier', (
   const value = new TestProducer(undefined)
   const def = new TsDefinition({
     context: ctx,
-    identifier: Identifier.createVariable('GREETING'),
+    identifier: createVariable('GREETING'),
     value
   })
 

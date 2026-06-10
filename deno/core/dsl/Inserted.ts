@@ -55,7 +55,7 @@ type ConstructorArgs<V extends GeneratedValue, EnrichmentType> = {
  *     const identifier = userModel.toName(); // 'User'
  *
  *     return new Definition({
- *       identifier: Identifier.createType(this.refName),
+ *       identifier: createType(this.refName),
  *       value: {
  *         generatorKey: this.generatorKey,
  *         content: `export interface Order { user: ${userTypeName}; }`
@@ -120,8 +120,8 @@ export class Inserted<V extends GeneratedValue, EnrichmentType> {
    * const identifier = model.toIdentifier();
    *
    * console.log(identifier.name);        // 'User'
-   * console.log(identifier.entityType);  // EntityType instance
-   * console.log(identifier.typeName);    // Optional type annotation
+   * console.log(identifier.kind);      // opaque declaration kind
+   * console.log(identifier.typeName);  // optional type annotation
    * ```
    */
   toIdentifier(): Identifier {

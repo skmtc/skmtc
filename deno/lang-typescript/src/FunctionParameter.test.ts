@@ -1,13 +1,13 @@
 import { assertEquals, assertThrows } from '@std/assert'
+import { createType } from './createIdentifier.ts'
 import { FunctionParameter } from './FunctionParameter.ts'
 import type { TsDefinition } from './TsDefinition.ts'
 import type { TypeSystemObject, TypeSystemVoid, TypeSystemString } from '@skmtc/core'
-import { Identifier } from '@skmtc/core'
 
 // Mock helper to create a simple Definition-like object
 const createMockDefinition = (value: TypeSystemObject | TypeSystemVoid, identifierName = 'MockType'): TsDefinition<TypeSystemObject | TypeSystemVoid> => {
   return {
-    identifier: Identifier.createType(identifierName),
+    identifier: createType(identifierName),
     value,
     toString: () => identifierName
   } as TsDefinition<TypeSystemObject | TypeSystemVoid>

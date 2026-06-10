@@ -1,8 +1,7 @@
 import { assert, assertEquals } from '@std/assert'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
-import { TsDefinition } from '@skmtc/lang-typescript'
+import { TsDefinition, createVariable } from '@skmtc/lang-typescript'
 import { TsFile } from '@skmtc/lang-typescript'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { toModelGeneratorKey, type GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
@@ -60,7 +59,7 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
   const value = new FakeSnippet(c, () => 'z.object({ id: z.string() })', key)
   const def = new TsDefinition({
     context: c,
-    identifier: Identifier.createVariable('User'),
+    identifier: createVariable('User'),
     value
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
@@ -92,7 +91,7 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
   const value = new FakeSnippet(c, () => "'inner'", key)
   const def = new TsDefinition({
     context: c,
-    identifier: Identifier.createVariable('Customer'),
+    identifier: createVariable('Customer'),
     value
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
@@ -121,12 +120,12 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
   })
   const defA = new TsDefinition({
     context: c,
-    identifier: Identifier.createVariable('A'),
+    identifier: createVariable('A'),
     value: new FakeSnippet(c, () => '1', keyA)
   })
   const defB = new TsDefinition({
     context: c,
-    identifier: Identifier.createVariable('B'),
+    identifier: createVariable('B'),
     value: new FakeSnippet(c, () => '2', keyB)
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
@@ -156,7 +155,7 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
   })
   const def = new TsDefinition({
     context: c,
-    identifier: Identifier.createVariable('User'),
+    identifier: createVariable('User'),
     value: new FakeSnippet(c, () => "'x'", key)
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
@@ -186,7 +185,7 @@ Deno.test('postPass - anchor bytes survive a slice through the rendered source',
   const value = new FakeSnippet(c, () => '"payload"', key)
   const def = new TsDefinition({
     context: c,
-    identifier: Identifier.createVariable('Whole'),
+    identifier: createVariable('Whole'),
     value
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })

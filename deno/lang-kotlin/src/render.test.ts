@@ -11,7 +11,7 @@ const context = {} as unknown as GenerateContextType
 Deno.test('KtDefinition + KtDataClass render the User DTO as a data class', () => {
   const definition = new KtDefinition({
     context,
-    identifier: Identifier.createType('User', { kind: 'data-class' }),
+    identifier: new Identifier({ name: 'User', kind: 'data-class' }),
     value: new KtDataClass([
       { name: 'id', type: 'String' },
       { name: 'name', type: 'String' },
@@ -34,7 +34,7 @@ Deno.test('top-level val is a legal Kotlin declaration (distinctive: file-scope 
   // KtDefinition dispatches to the `Name = value` shell on `kind: 'val'`.
   const definition = new KtDefinition({
     context,
-    identifier: Identifier.createVariable('MAX_RETRIES', { kind: 'val' }),
+    identifier: new Identifier({ name: 'MAX_RETRIES', kind: 'val' }),
     value: '3'
   })
 
@@ -44,12 +44,12 @@ Deno.test('top-level val is a legal Kotlin declaration (distinctive: file-scope 
 Deno.test('exported renders nothing (public default) vs `private` (sixth behaviour)', () => {
   const exported = new KtDefinition({
     context,
-    identifier: Identifier.createType('User', { exported: true, kind: 'data-class' }),
+    identifier: new Identifier({ name: 'User', exported: true, kind: 'data-class' }),
     value: new KtDataClass([{ name: 'id', type: 'String' }])
   })
   const private_ = new KtDefinition({
     context,
-    identifier: Identifier.createType('User', { exported: false, kind: 'data-class' }),
+    identifier: new Identifier({ name: 'User', exported: false, kind: 'data-class' }),
     value: new KtDataClass([{ name: 'id', type: 'String' }])
   })
 
@@ -63,7 +63,7 @@ Deno.test('KtFile renders the package header (no semicolon)', () => {
     'User',
     new KtDefinition({
       context,
-      identifier: Identifier.createType('User', { kind: 'data-class' }),
+      identifier: new Identifier({ name: 'User', kind: 'data-class' }),
       value: new KtDataClass([{ name: 'id', type: 'String' }])
     })
   )

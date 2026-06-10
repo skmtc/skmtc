@@ -21,9 +21,8 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { createVariable, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -38,7 +37,7 @@ const mockLogger: log.Logger = {
 const FormBase = toOasOperationProjectionBase({
   id: '@test/e2e-form',
   toIdentifier: ({ variant }) =>
-    Identifier.createVariable(withVariant('PatchQuoteForm', variant)),
+    createVariable(withVariant('PatchQuoteForm', variant)),
   toExportPath: ({ variant }) =>
     `@/forms/${withVariant('PatchQuoteForm', variant)}.tsx`
 })

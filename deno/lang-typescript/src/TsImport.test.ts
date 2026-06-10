@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { Identifier } from '@skmtc/core'
+import { createType, createVariable } from './createIdentifier.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
 
 /**
@@ -57,8 +57,8 @@ for (const testCase of cases) {
 }
 
 Deno.test('TsImport.fromIdentifier threads the entity type into the import form', () => {
-  const variableIdentifier = Identifier.createVariable('useThing')
-  const typeIdentifier = Identifier.createType('Thing')
+  const variableIdentifier = createVariable('useThing')
+  const typeIdentifier = createType('Thing')
 
   assertEquals(
     TsImport.fromIdentifier('@/hooks', variableIdentifier).toString(),

@@ -217,7 +217,7 @@ export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V,
  *
  *     return new Definition({
  *       context: this.context,
- *       identifier: Identifier.createType(this.refName),
+ *       identifier: createType(this.refName),
  *       description: schema.description,
  *       value: {
  *         generatorKey: this.generatorKey,

@@ -1,6 +1,7 @@
 import { ImportBase } from '@skmtc/core'
 import { List } from './List.ts'
-import type { Identifier, EntityTypeValue } from '@skmtc/core'
+import type { Identifier } from '@skmtc/core'
+import type { TsEntityKind } from './createIdentifier.ts'
 
 /**
  * The concise import form a TypeScript generator passes to `register` —
@@ -13,7 +14,7 @@ import type { Identifier, EntityTypeValue } from '@skmtc/core'
 export type ImportNameArg =
   | string
   | { [name: string]: string }
-  | { name: string; alias?: string; type?: EntityTypeValue }
+  | { name: string; alias?: string; type?: TsEntityKind }
 
 /**
  * A single imported symbol on a {@link TsImport}.
@@ -81,13 +82,12 @@ export class TsImport extends ImportBase {
   /**
    * Build the import of a single {@link Identifier} from `module` — the
    * cross-file import a Driver registers when a generator references a
-   * peer's Definition. The identifier's entity type drives `typeOnly`
-   * (so a type identifier emits `import { type X }`), matching the
-   * engine's `Identifier.toImport()` seam.
+   * peer's Definition. The identifier's `kind` drives `typeOnly`
+   * (so a type identifier emits `import { type X }`).
    */
   static fromIdentifier(module: string, identifier: Identifier): TsImport {
     return new TsImport(module, [
-      { name: identifier.name, typeOnly: identifier.entityType.type === 'type' }
+      { name: identifier.name, typeOnly: identifier.kind === 'type' }
     ])
   }
 

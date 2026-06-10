@@ -1,8 +1,7 @@
 import { assertEquals } from '@std/assert/equals'
 import { Inserted } from '@/dsl/Inserted.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
-import { TsDefinition } from '@skmtc/lang-typescript'
+import { TsDefinition, createType, createVariable } from '@skmtc/lang-typescript'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '../context/generateTypes.ts'
 
@@ -11,7 +10,7 @@ const mockContext = {} as GenerateContextType
 const testGeneratorKey = toGeneratorOnlyKey({ generatorId: 'test' })
 
 Deno.test('Inserted - toName returns identifier name', () => {
-  const identifier = Identifier.createType('User')
+  const identifier = createType('User')
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/models/User.ts'
@@ -32,7 +31,7 @@ Deno.test('Inserted - toName returns identifier name', () => {
 })
 
 Deno.test('Inserted - toIdentifier returns full identifier', () => {
-  const identifier = Identifier.createVariable('apiClient', { typeName: 'ApiClient' })
+  const identifier = createVariable('apiClient', { typeName: 'ApiClient' })
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/api.ts'
@@ -53,11 +52,11 @@ Deno.test('Inserted - toIdentifier returns full identifier', () => {
 
   assertEquals(resultIdentifier.name, 'apiClient')
   assertEquals(resultIdentifier.typeName, 'ApiClient')
-  assertEquals(resultIdentifier.entityType.type, 'variable')
+  assertEquals(resultIdentifier.kind, 'variable')
 })
 
 Deno.test('Inserted - toExportPath returns export path', () => {
-  const identifier = Identifier.createType('Product')
+  const identifier = createType('Product')
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/models/Product.ts'
@@ -78,7 +77,7 @@ Deno.test('Inserted - toExportPath returns export path', () => {
 })
 
 Deno.test('Inserted - toValue returns generated value', () => {
-  const identifier = Identifier.createType('Status')
+  const identifier = createType('Status')
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/types.ts'
@@ -100,7 +99,7 @@ Deno.test('Inserted - toValue returns generated value', () => {
 })
 
 Deno.test('Inserted - works with enrichments', () => {
-  const identifier = Identifier.createType('ValidatedUser')
+  const identifier = createType('ValidatedUser')
   const enrichments = { validateRequired: true, generateComments: false }
   const settings = new ContentSettings({
     identifier,

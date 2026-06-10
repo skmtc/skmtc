@@ -1,6 +1,6 @@
 import type { GenerateContext } from '@skmtc/core'
 import { TsDefinition } from './TsDefinition.ts'
-import { Identifier } from '@skmtc/core'
+import { createType } from './createIdentifier.ts'
 import type { TypeSystemObject } from '@skmtc/core'
 import { FunctionParameter } from './FunctionParameter.ts'
 import { toPathTemplate } from './toPathTemplate.ts'
@@ -231,7 +231,7 @@ export class PathParams {
 
     this.typeDefinition = new TsDefinition<TypeSystemObject>({
       context,
-      identifier: Identifier.createType(typeName),
+      identifier: createType(typeName),
       value: typeValue
     })
 

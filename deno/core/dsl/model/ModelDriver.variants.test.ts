@@ -13,7 +13,7 @@
  *      `"Registered definition mismatch"`.
  */
 
-import { toModelProjectionBase } from '@skmtc/lang-typescript'
+import { createVariable, toModelProjectionBase } from '@skmtc/lang-typescript'
 import { assertEquals, assertThrows } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -22,7 +22,6 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasComponents } from '@/oas/components/Components.ts'
 import { OasString } from '@/oas/string/String.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
 import type { RefName } from '@/types/RefName.ts'
 
@@ -66,12 +65,12 @@ Deno.test(
     const ZodVariants = class extends toModelProjectionBase({
       id: '@scope/gen-zod-variants',
       toIdentifier: ({ refName, variant }) =>
-        Identifier.createVariable(withVariant(refName, variant)),
+        createVariable(withVariant(refName, variant)),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = Identifier.createVariable
+      static createIdentifier = createVariable
       override toString() {
         return `z.object({})`
       }
@@ -96,12 +95,12 @@ Deno.test(
     const ZodVariants = class extends toModelProjectionBase({
       id: '@scope/gen-zod-variants',
       toIdentifier: ({ refName, variant }) =>
-        Identifier.createVariable(withVariant(refName, variant)),
+        createVariable(withVariant(refName, variant)),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = Identifier.createVariable
+      static createIdentifier = createVariable
       override toString() {
         return `z.object({})`
       }
@@ -135,12 +134,12 @@ Deno.test(
     // always permitted regardless of the peer's enrichment shape.
     const ZodGen = class extends toModelProjectionBase({
       id: '@scope/gen-zod',
-      toIdentifier: ({ refName }) => Identifier.createVariable(refName),
+      toIdentifier: ({ refName }) => createVariable(refName),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = Identifier.createVariable
+      static createIdentifier = createVariable
       override toString() {
         return `z.object({})`
       }
@@ -170,12 +169,12 @@ Deno.test(
     // doesn't match — integrity check throws.
     const BrokenZod = class extends toModelProjectionBase({
       id: '@scope/gen-broken-zod',
-      toIdentifier: ({ refName }) => Identifier.createVariable(refName), // ← ignores variant
+      toIdentifier: ({ refName }) => createVariable(refName), // ← ignores variant
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`          // ← ignores variant
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = Identifier.createVariable
+      static createIdentifier = createVariable
       override toString() {
         return `z.object({})`
       }
@@ -219,12 +218,12 @@ Deno.test(
     const CorrectZod = class extends toModelProjectionBase({
       id: '@scope/gen-correct-zod',
       toIdentifier: ({ refName, variant }) =>
-        Identifier.createVariable(withVariant(refName, variant)),
+        createVariable(withVariant(refName, variant)),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = Identifier.createVariable
+      static createIdentifier = createVariable
       override toString() {
         return `z.object({})`
       }
@@ -263,12 +262,12 @@ Deno.test(
   () => {
     const Zod = class extends toModelProjectionBase({
       id: '@scope/gen-cache-zod',
-      toIdentifier: ({ refName }) => Identifier.createVariable(refName),
+      toIdentifier: ({ refName }) => createVariable(refName),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = Identifier.createVariable
+      static createIdentifier = createVariable
       override toString() {
         return `z.object({})`
       }

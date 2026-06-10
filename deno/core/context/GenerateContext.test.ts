@@ -6,8 +6,7 @@ import { StackTrail } from './StackTrail.ts'
 import { spy, assertSpyCalls } from '@std/testing/mock'
 import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
-import { TsDefinition } from '@skmtc/lang-typescript'
-import { Identifier } from '@/dsl/Identifier.ts'
+import { TsDefinition, createType, createVariable } from '@skmtc/lang-typescript'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import { register } from '@skmtc/lang-typescript'
 import { JsonFile } from '@/dsl/JsonFile.ts'
@@ -151,7 +150,7 @@ Deno.test('GenerateContext - File Management', async t => {
 
     const definition = new TsDefinition({
       context,
-      identifier: Identifier.createType('TestType'),
+      identifier: createType('TestType'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type TestType = string;'
@@ -206,7 +205,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
 
     const definition = new TsDefinition({
       context,
-      identifier: Identifier.createType('ExistingType'),
+      identifier: createType('ExistingType'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type ExistingType = string;'
@@ -231,7 +230,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
 
     const definition = new TsDefinition({
       context,
-      identifier: Identifier.createType('TypeInFile1'),
+      identifier: createType('TypeInFile1'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type TypeInFile1 = string;'
@@ -314,7 +313,7 @@ Deno.test('GenerateContext - Integration', async t => {
     // 1. Register some definitions
     const definition1 = new TsDefinition({
       context,
-      identifier: Identifier.createType('User'),
+      identifier: createType('User'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type User = { id: string; name: string; };'
@@ -323,7 +322,7 @@ Deno.test('GenerateContext - Integration', async t => {
 
     const definition2 = new TsDefinition({
       context,
-      identifier: Identifier.createType('Product'),
+      identifier: createType('Product'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type Product = { id: string; price: number; };'
@@ -365,7 +364,7 @@ Deno.test('GenerateContext - Integration', async t => {
     // Register TypeScript file
     const definition = new TsDefinition({
       context,
-      identifier: Identifier.createVariable('CONFIG'),
+      identifier: createVariable('CONFIG'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export const CONFIG = { /* ... */ };'
@@ -386,7 +385,7 @@ Deno.test('GenerateContext - Integration', async t => {
 
     const typeDefinition = new TsDefinition({
       context,
-      identifier: Identifier.createType('Config'),
+      identifier: createType('Config'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type Config = { /* ... */ };'
@@ -395,7 +394,7 @@ Deno.test('GenerateContext - Integration', async t => {
 
     const constantDefinition = new TsDefinition({
       context,
-      identifier: Identifier.createVariable('Config'),
+      identifier: createVariable('Config'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export const Config = { /* ... */ };'
