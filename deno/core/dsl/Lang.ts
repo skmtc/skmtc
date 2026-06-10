@@ -84,4 +84,4 @@ export type LangSnippet = SnippetBase & { lang: Lang }
  * language-specific members beyond this contract are type-erased on
  * projection classes (present at runtime, invisible to the checker).
  */
-export type LangSnippetCtor = (new (args: SnippetBaseArgs) => LangSnippet) & { lang: Lang }
+export type LangSnippetConstructor = (new (args: SnippetBaseArgs) => LangSnippet) & { lang: Lang }

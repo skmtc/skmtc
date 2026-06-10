@@ -13,7 +13,7 @@ import invariant from 'tiny-invariant'
  * Constructor arguments for {@link SnippetBase}.
  *
  * Exported so language packages can type their snippet base constructors
- * against it (see `LangSnippetCtor` in `dsl/Lang.ts`).
+ * against it (see `LangSnippetConstructor` in `dsl/Lang.ts`).
  */
 export type SnippetBaseArgs = {
   /** The generation context providing OAS objects and utilities */

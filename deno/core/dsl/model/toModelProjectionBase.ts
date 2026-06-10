@@ -8,7 +8,7 @@ import type {
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { LangSnippetCtor } from '@/dsl/Lang.ts'
+import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
 import { registerViaLang } from '@/dsl/langRegister.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
@@ -56,7 +56,7 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
    * static side (read by Drivers, pre-construction) and the instance side
    * (used by the register methods). SPIKE (option 2 — see `notes/lang/14`).
    */
-  base: LangSnippetCtor
+  base: LangSnippetConstructor
   id: string
   toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
