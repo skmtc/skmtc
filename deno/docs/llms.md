@@ -389,7 +389,6 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 | SnippetBase root | `SnippetBase.ts` |
 | Definition (export wrapper) | `Definition.ts` |
 | Identifier | `Identifier.ts` |
-| EntityType | `EntityType.ts` |
 | Import base (neutral; concrete `TsImport` lives in `@skmtc/lang-typescript`) | `ImportBase.ts` |
 | Re-export base (neutral; concrete `TsReExport` in `@skmtc/lang-typescript`) | `ReExportBase.ts` |
 | File containers (neutral; concrete `TsFile` in `@skmtc/lang-typescript`) | `FileBase.ts`, `CodeFileBase.ts` |

@@ -146,13 +146,12 @@ The CLI uses Cliffy framework with these patterns:
 
 `core/` subdirectories (separate package):
 - `context/` - `ParseContext`, `GenerateContext`, `RenderContext`, `CoreContext`
-- `dsl/` - `Identifier`, `Definition`, `File`, `Import`, `SnippetBase`, projection-base factories
+- `dsl/` - `Identifier`, `SnippetBase`, the neutral bases (`DefinitionBase`/`CodeFileBase`/`ImportBase`/`ReExportBase`), projection-base factories (concrete `TsFile`/`TsImport`/`TsDefinition` live in `lang-typescript/`)
 - `oas/` - OpenAPI v3 schema types and parsing
 - `gql/` - GraphQL types and parsing
 - `run/` - `toArtifacts`, `toV3JsonDocument` entry points
 - `helpers/` - Naming and string utilities
 - `types/` - Manifest, Settings, branded types
-- `typescript/` - TypeScript-specific generation helpers
 
 ### Key Dependencies
 - `@cliffy/command` & `@cliffy/prompt` - CLI framework

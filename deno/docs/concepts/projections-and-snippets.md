@@ -194,7 +194,7 @@ class FormValuesSnippet extends SnippetBase {
 }
 
 context.defineAndRegister({
-  identifier: Identifier.createType(`${name}Values`),
+  identifier: createType(`${name}Values`),
   value: new FormValuesSnippet({ context }),
   destinationPath: settings.exportPath
 })
@@ -366,7 +366,7 @@ lines.
 
 ### What if I want a named export but not a full Projection?
 
-Use `register({ definitions: [new Definition({...})] })` directly.
+Use `register({ definitions: [new TsDefinition({...})] })` directly.
 This is the escape hatch — you produce a Definition without going
 through a Projection base. The trade-off: no cross-generator
 coordination (no cache, no integrity check) for that definition.

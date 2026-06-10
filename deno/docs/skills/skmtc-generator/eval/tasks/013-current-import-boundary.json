@@ -1,19 +1,19 @@
 {
   "id": "013-current-import-boundary",
   "category": "vocabulary",
-  "prompt": "I'm writing a new SKMTC generator that emits TypeScript. Since the language-agnostic split, I assume all the TypeScript-specific bits moved into the lang package, so I'm importing like this:\n\nimport { Identifier, List, sanitizePropertyName, typescript } from '@skmtc/lang-typescript'\nimport { toModelEntry, toModelProjectionBase } from '@skmtc/core'\n\nIs that right? If not, give me the corrected import statements.",
+  "prompt": "I'm writing a new SKMTC generator that emits TypeScript. I wasn't sure where things live since the language-agnostic split, so I'm importing like this:\n\nimport { Identifier, List, sanitizePropertyName, toModelProjectionBase } from '@skmtc/core'\nimport { typescript } from '@skmtc/lang-typescript'\n\nIn base.ts I call Identifier.createVariable(name) inside toIdentifier. Is that right? If not, give me the corrected import statements and call.",
   "criteria": [
     {
       "id": "C1",
-      "check": "Did the response correct the imports so that Identifier, List, and sanitizePropertyName come from '@skmtc/core' (NOT from '@skmtc/lang-typescript')?"
+      "check": "Did the response correct the imports so that List, sanitizePropertyName, and the identifier factories come from '@skmtc/lang-typescript' (NOT from '@skmtc/core')? The F5/F6 move has landed: the syntax helpers and naming layer are owned by the lang package."
     },
     {
       "id": "C2",
-      "check": "Did the response keep `typescript` (the Lang object) imported from '@skmtc/lang-typescript'?"
+      "check": "Did the response replace Identifier.createVariable(name) with the createVariable(name) factory function imported from '@skmtc/lang-typescript' (the statics on Identifier no longer exist)?"
     },
     {
       "id": "C3",
-      "check": "Did the response avoid claiming that Identifier/List/sanitizePropertyName have already moved to the lang package (acknowledging a planned future move is fine; asserting it already happened is a fail)?"
+      "check": "Did the response point the generator at the lang package's toModelProjectionBase veneer (imported from '@skmtc/lang-typescript') rather than core's factory, and avoid telling the user to import the `typescript` Lang object into a generator (generators never use it; the import graph declares the language through the veneer / TsSnippet)?"
     }
   ],
   "scoring": "all_or_nothing",

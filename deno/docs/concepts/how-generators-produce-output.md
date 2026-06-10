@@ -215,7 +215,7 @@ is almost always the cause.
 
 ```ts
 transform: ({ context, operation, acc }) => {
-  return new Definition({ ... })  // ← discarded
+  return new TsDefinition({ ... })  // ← discarded
 }
 ```
 
@@ -316,7 +316,7 @@ The exported config is what populates the map.
 ### Can I produce output without a Projection?
 
 Yes. A generator whose `transform` calls `context.register({
-definitions: [new Definition({...})], destinationPath })` directly
+definitions: [new TsDefinition({...})], destinationPath })` directly
 produces output without ever defining a Projection class.
 Projections give you (a) cross-generator coordination via the
 `(name, exportPath)` cache and (b) the `insertOperation` /

@@ -74,7 +74,7 @@ export const SchemaMetaBase = toModelProjectionBase({
 
   toIdentifier({ refName }): Identifier {
     const name = decapitalize(camelCase(refName))
-    return Identifier.createVariable(`${name}Meta`)
+    return createVariable(`${name}Meta`)
   },
 
   toExportPath({ refName }): string {
@@ -83,7 +83,7 @@ export const SchemaMetaBase = toModelProjectionBase({
 })
 ```
 
-`Identifier.createVariable` marks this as a runtime value (not a
+`createVariable` marks this as a runtime value (not a
 type). Under `verbatimModuleSyntax: true`, this distinction is
 load-bearing — see [the Identifier reference](../../reference/api/dsl-identifier.md).
 

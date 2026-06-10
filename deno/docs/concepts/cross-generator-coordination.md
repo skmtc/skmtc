@@ -76,7 +76,7 @@ export const ShadcnFormBase = toOasOperationProjectionBase<EnrichmentSchema>({
   toIdentifier({ operation }): Identifier {
     const verb = capitalize(toMethodVerb(operation.method))
     const name = `${verb}${camelCase(operation.path, { upperFirst: true })}Form`
-    return Identifier.createVariable(name)
+    return createVariable(name)
   },
 
   toExportPath({ operation, enrichments }): string {

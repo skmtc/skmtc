@@ -132,7 +132,7 @@ The canonical operational principles table — every row from `llms.md`'s
 LLM-training-data-default mistakes.
 
 Includes the "Don't suggest config flags," "Don't add a base class for
-OasSchema," "Use `Identifier.createVariable` not raw strings," etc.
+OasSchema," "Use `createVariable` not raw strings," etc.
 
 Each row: default intuition → SKMTC's stance → why.
 
@@ -184,7 +184,7 @@ After writing or editing a generator, verify:
 
 - [ ] All imports go through `register({ imports, destinationPath })`
 - [ ] No `as` casts in non-test code
-- [ ] No raw identifier strings — `Identifier.createVariable/createType`
+- [ ] No raw identifier strings — `createVariable/createType`
 - [ ] No `if/else` chains of length ≥ 3 — use `switch` + `never` default
 - [ ] `toString()` is pure (no mutation of `this`)
 - [ ] `transform()` returns nothing (uses `register` / `insertOperation`)

@@ -309,7 +309,7 @@ zod schema for the same component model.
 
 ```ts
 toIdentifier: ({ refName, variant }) =>
-  Identifier.createVariable(withVariant(`${refName}Schema`, variant)),
+  createVariable(withVariant(`${refName}Schema`, variant)),
 toExportPath: ({ refName, variant }) =>
   join('@', 'schemas', `${withVariant(refName, variant)}.generated.ts`)
 ```

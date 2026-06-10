@@ -92,7 +92,7 @@ export const CurlCmdBase = toOasOperationProjectionBase({
 
   toIdentifier({ operation }): Identifier {
     const name = `${toEndpointName(operation)}Curl`
-    return Identifier.createVariable(name)
+    return createVariable(name)
   },
 
   toExportPath({ operation }): string {

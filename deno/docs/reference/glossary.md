@@ -205,14 +205,16 @@ that would validate a user-authored value — the AI path doesn't
 bypass validation, it just defers the author. See
 [enrichments §AI-driven enrichments](../concepts/enrichments.md#ai-driven-enrichments--enrichmentrequest).
 
-### EntityType
+### Entity kind (`Identifier.kind`)
 
-A property of `Identifier` that distinguishes types (`'type'`) from
-values (`'variable'` — the discriminator value; the rendered TS
-declaration keyword is `const`). Determines whether imports render
-as `import { X }` or `import { type X }` under
-`verbatimModuleSyntax`. See
-[stringable-composition](../concepts/stringable-composition.md#identifier-and-entity-type).
+The opaque per-language declaration discriminant on `Identifier`.
+Each language package owns its vocabulary — TypeScript's
+(`TsEntityKind`) is `'variable'` (declares `const`, imports
+`import { X }`) vs `'type'` (declares `type`, imports
+`import { type X }` under `verbatimModuleSyntax`). The old core
+`EntityType` class is gone (F6); `toTsKeyword` in
+`@skmtc/lang-typescript` maps `kind` to the keyword. See
+[stringable-composition](../concepts/stringable-composition.md#identifier-and-entity-kinds).
 
 ### `exportPath`
 
@@ -282,11 +284,13 @@ explain a failure.
 
 ### `Identifier`
 
-A name + entity-type marker. Created via `Identifier.createVariable`
-(value; renders as `import { X }`) or `Identifier.createType`
-(type; renders as `import { type X }`). The entity-type tracking is
-load-bearing under `verbatimModuleSyntax: true`. See
-[stringable-composition](../concepts/stringable-composition.md#identifier-and-entity-type).
+Neutral naming data: a name + opaque per-language `kind` +
+`exported` + opaque `typeName`. Created via the language package's
+factories — `createVariable` (value; renders as `import { X }`) or
+`createType` (type; renders as `import { type X }`) from
+`@skmtc/lang-typescript`. The kind tracking is load-bearing under
+`verbatimModuleSyntax: true`. See
+[stringable-composition](../concepts/stringable-composition.md#identifier-and-entity-kinds).
 
 ### `include` / `skip` filters
 
@@ -370,8 +374,8 @@ inference is logged as a `ParseIssue`. See
 
 ### `List`
 
-The typed list-builder utility in
-`core/typescript/List.ts`. Typed bookend styles
+The typed list-builder utility in `@skmtc/lang-typescript`
+(moved from core under F5). Typed bookend styles
 (`ListObject = {…}`, `ListArray = […]`, `ListParams = (…)`,
 `ListLines = \n-joined`), `skipEmpty` rendering, automatic
 `undefined`-filtering, and helpers `toRecord`,
@@ -663,7 +667,7 @@ The structural type alias for anything with a `toString(): string`
 method. The composition mechanism for the DSL: template-literal
 interpolation calls `toString()` on every interpolated value,
 recursively. All `SnippetBase` descendants, every `List`, `Identifier`,
-`EntityType`, `Definition`, and `CustomValue` are Stringable. See
+`TsDefinition`, and `CustomValue` are Stringable. See
 [stringable-composition](../concepts/stringable-composition.md).
 
 ### Strict mode

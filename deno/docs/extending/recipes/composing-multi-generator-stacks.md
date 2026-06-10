@@ -311,7 +311,7 @@ constructor({ context, operation, settings }: ConstructorArgs) {
   // Path-params destructuring helper Snippet (local to this Projection).
   this.pathParams = new PathParams({
     context, operation,
-    settings: { ...settings, identifier: Identifier.createVariable('pathParams') }
+    settings: { ...settings, identifier: createVariable('pathParams') }
   })
 
   // Consumer-side library import.

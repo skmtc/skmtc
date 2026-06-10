@@ -183,7 +183,7 @@ export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
     // Hardcoded here on purpose — this is the seam users edit
     // (in a clone) to change names.
     const name = `${capitalize(operation.method)}${camelCase(operation.path, { upperFirst: true })}`
-    return Identifier.createVariable(name)
+    return createVariable(name)
   },
 
   toExportPath({ operation, enrichments }): string {

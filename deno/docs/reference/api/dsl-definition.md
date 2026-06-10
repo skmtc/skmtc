@@ -1,320 +1,168 @@
-# Definition
+# Definition (DefinitionBase & TsDefinition)
 
-> The `export const NAME = VALUE;` wrapper around a Projection's
-> generated value. Bridges Projection (unit of output) and File
-> (rendered output). Created automatically by Drivers; rarely
+> The named, exportable wrapper around a Projection's generated value
+> — the bridge between a Projection (unit of output) and a File
+> (rendered output). Split across the language seam: the neutral
+> coordination surface (`DefinitionBase`) lives in core; the
+> TypeScript rendering (`TsDefinition`) lives in
+> `@skmtc/lang-typescript`. Created automatically by Drivers; rarely
 > instantiated directly.
-
-`Definition` is the bridge layer between a Projection (which produces
-*just the value* — e.g., `z.object({...})`) and the rendered file
-(which needs the full `export const NAME = VALUE;` statement).
-Drivers handle the wrapping; generators rarely touch `Definition`
-directly.
 
 ## Source
 
-`skmtc/deno/core/dsl/Definition.ts`
+- `skmtc/deno/core/dsl/Definition.ts` — `DefinitionBase` (abstract)
+- `skmtc/deno/lang-typescript/src/TsDefinition.ts` — `TsDefinition`
 
-## Class
+(Core's concrete TS-rendering `Definition` was deleted under F5/F6 —
+`notes/lang/17-naming-layer-and-helpers-move.md`. `TsDefinition`
+renders byte-identically to it.)
+
+## DefinitionBase (`@skmtc/core`) — the coordination surface
 
 ```ts
-class Definition<V extends GeneratedValue = GeneratedValue> extends SnippetBase {
+abstract class DefinitionBase<V extends GeneratedValue = GeneratedValue> extends SnippetBase {
   identifier: Identifier
-  description: string | undefined
   value: V
-  noExport?: boolean
+
+  constructor(args: { context: GenerateContextType; identifier: Identifier; value: V })
+
+  abstract toString(): string
+}
+```
+
+The cross-generator cache reads only this surface — the definition's
+`identifier` (the `(name, exportPath)` cache key), its `value`, and
+the `generatorKey` (via `SnippetBase`) for the integrity check. How a
+definition renders — the `export const X = ...` wrapper, JSDoc, the
+visibility keyword — is the concrete language subclass's concern.
+
+Engine code types against the base: `findDefinition` returns
+`DefinitionBase | undefined`; `context.register({ definitions })`
+accepts `DefinitionBase[]`; `insertNormalizedModel` returns
+`DefinitionBase<V>`; `GeneratedDefinition<V> = DefinitionBase<V>`.
+
+## TsDefinition (`@skmtc/lang-typescript`) — the TypeScript renderer
+
+```ts
+class TsDefinition<Value extends GeneratedValue = GeneratedValue> extends DefinitionBase<Value> {
+  description: string | undefined
+  noExport: boolean | undefined
 
   constructor(args: {
     context: GenerateContextType
     identifier: Identifier
-    value: V
-    description?: string
-    noExport?: boolean
+    value: Value
+    description?: string   // optional JSDoc text
+    noExport?: boolean     // omit the `export` keyword
   })
 
   override toString(): string
 }
 ```
 
-Extends `SnippetBase` — technically a Snippet (with `register()`
-inherited), but plays a unique bridging role.
+`toString()` assembles the declaration:
 
-## Type parameter
-
-`V extends GeneratedValue` — the value being wrapped. The generic
-parameter preserves the type of the underlying Projection's output.
-Most callers don't specify `V` explicitly; type inference handles it.
-
-## Constructor
-
-```ts
-new Definition({
-  context: GenerateContextType,
-  identifier: Identifier,          // the name + entityType
-  value: V,                        // the Projection's output (typically a Projection instance)
-  description?: string,             // optional JSDoc description
-  noExport?: boolean                // omit the `export` keyword
-})
-```
-
-Created by Drivers as part of the cross-generator coordination
-flow. You typically don't write `new Definition(...)` in generator
-code.
-
-## Properties
-
-### `identifier: Identifier`
-
-The name and entity-type marker. The `identifier.entityType` is
-an `EntityType` instance; read `.type` for the discriminator
-value. The declaration shape:
-
-- `entityType.type === 'variable'` → `export const <name> = <value>;`
-- `entityType.type === 'type'`     → `export type <Name> = <value>;`
-
-(`EntityType.toString()` maps the discriminator to the rendered
-TS keyword — `'variable'` becomes `const`, `'type'` stays `type` —
-which is what `Definition.toString()` interpolates into the
-declaration.)
-
-Plus optional `typeName` annotation for variables (e.g.,
-`export const useUser: UseQueryResult<...> = ...`).
-
-### `description: string | undefined`
-
-Optional JSDoc text that prefixes the declaration. When set, the
-rendered output includes:
-
-```ts
-/**
- * <description text>
- */
-export const NAME = VALUE;
-```
-
-When unset (default), no JSDoc is rendered.
-
-### `value: V`
-
-The generated content. Typically a Projection instance (whose
-`toString()` produces the value text). May also be any other
-`Stringable` (e.g., a string, a `CustomValue`).
-
-When `Definition.toString()` runs, it calls `String(this.value)`
-(via template-literal interpolation), which falls back to
-`this.value.toString()`.
-
-### `noExport?: boolean`
-
-When true, the `export` keyword is omitted:
-
-```ts
-// noExport: true
-const X = VALUE;
-
-// noExport: false (default)
-export const X = VALUE;
-```
-
-Useful for internal helpers that shouldn't be part of the file's
-public surface. Rarely needed in practice — most generated
-artifacts are exports.
-
-## Methods
-
-### `toString(): string`
-
-Produces the full declaration:
-
-```ts
-override toString(): string {
-  const identifier = this.identifier.typeName
-    ? `${this.identifier.name}: ${this.identifier.typeName}`
-    : this.identifier.name
-
-  return withDescription(
-    `${this.noExport ? '' : 'export '}${this.identifier.entityType} ${identifier} = ${this.value};\n`,
-    { description: this.description }
-  )
-}
-```
-
-Layout:
-
-1. Optional JSDoc block (from `description`)
+1. Optional JSDoc block (from `description`, via `withDescription`)
 2. `export` keyword (unless `noExport`)
-3. Entity-type keyword (`const` or `type`)
+3. Declaration keyword from the identifier's `kind`
+   (`toTsKeyword`: `'variable'` → `const`, `'type'` → `type`)
 4. Identifier name (with optional `: typeName` annotation)
-5. `=`
-6. The value (stringified via `String(value)`)
-7. `;\n`
+5. `=`, the value (stringified via template interpolation), `;\n`
 
 Output examples:
 
 ```ts
-// Const, no typeName, no description
+// kind 'variable', no typeName
 export const userBody = z.object({ name: z.string() });
 
-// Const with typeName
+// kind 'variable' with typeName
 export const useCreateUser: UseMutationResult<UserData, Error, CreateUserArgs> = (...) => { ... };
 
-// Type
+// kind 'type'
 export type UserBody = { name: string; email: string };
 
-// With description
-/**
- * The validated request body for creating a user.
- */
+// with description
+/** The validated request body for creating a user. */
 export const createUserBody = z.object({ ... });
 
-// Non-exported (rare)
+// noExport (rare)
 const _privateHelper = (...) => { ... };
 ```
 
 ## How Drivers create Definitions
 
-The Driver flow (simplified):
+Drivers never name a concrete class — they read the `Lang` off the
+projection class's inherited static and use its factory:
 
 ```ts
-// In OasOperationDriver.getDefinition or similar
+// In ModelDriver / OasOperationDriver / GqlOperationDriver (simplified)
 const cached = context.findDefinition({ name, exportPath })
 if (cached && affirmDefinition(cached)) return cached
 
-const value = new this.projection({ ... })  // construct the Projection
-const definition = new Definition({
-  context: this.context,
-  identifier,
-  value,
-  noExport: this.noExport
-})
+const value = new this.projection({ ... })          // construct the Projection
+const definition = this.projection.lang.toDefinition({
+  context, identifier, value, noExport
+})                                                   // → a TsDefinition for TS generators
 
-context.register({
-  definitions: [definition],
-  destinationPath: exportPath
-})
-
-return definition
+context.register({ definitions: [definition], destinationPath: exportPath })
 ```
 
-So a `Definition` wraps the Projection instance. When the file is
-later serialized, `Definition.toString()` is called, which calls
-`String(value)` — which calls `value.toString()` — which is the
-Projection's `toString()`. The value text is sandwiched between
-`export const NAME = ` and `;\n`.
+When the file is later serialized, `definition.toString()` runs,
+which interpolates `value` — the Projection's `toString()` — between
+`export const NAME = ` and `;`.
 
-## When to create a Definition directly
+## When to create a definition directly
 
-Rare. Two scenarios:
-
-### Custom declarations outside the projection-base flow
-
-If you have a one-off definition that doesn't fit the Projection
-model (e.g., a constants object, a default-values map):
+Rare. For a one-off sibling declaration in a file you own (a
+constants object, a default-values map), use the lang package's
+`defineAndRegister` function — it builds the `TsDefinition` and
+registers it in one step:
 
 ```ts
-const constantsDef = new Definition({
-  context: this.context,
-  identifier: Identifier.createVariable('EMPTY_VALUES'),
-  value: '{ ... }',                              // raw string
-  description: 'Default empty values for the form fields.'
-})
+import { defineAndRegister, createVariable } from '@skmtc/lang-typescript'
 
-this.register({
-  definitions: [constantsDef],
+defineAndRegister(context, {
+  identifier: createVariable('EMPTY_VALUES'),
+  value: '{ ... }',                                  // raw string is fine
   destinationPath: this.settings.exportPath
 })
 ```
 
-**Trade-off**: bypasses cross-generator coordination. The Definition
-exists in the file's `definitions` map, but its `generatorKey` is
-the parent Projection's, so other generators can't find it via
-`insertOperation`. Use only for definitions that don't need
-cross-generator discoverability.
-
-### Use a primitive value type
-
-If wrapping a primitive (`number`, `string`, etc.) directly:
-
-```ts
-new Definition({
-  context: this.context,
-  identifier: Identifier.createVariable('DEFAULT_TIMEOUT', 'number'),
-  value: '5000',
-  description: 'Default timeout in milliseconds.'
-})
-```
-
-The `value` is a string in this case (the source code for `5000`),
-not the number itself.
+**Trade-off**: bypasses cross-generator coordination — other
+generators can't reach this definition via `insertOperation` /
+`insertModel` (there is no Projection class to hand them). Use only
+for definitions that don't need cross-generator discoverability; if a
+peer might reference it by name, make it a Projection.
 
 ## Common questions
 
-### Is Definition really a Snippet?
+### Is a definition really a Snippet?
 
-By inheritance, yes — `Definition extends SnippetBase`. By role,
-no — it's a bridging wrapper for Projections. The fact that it
-extends `SnippetBase` is a technical detail; the inheritance
-provides `register()` and `context` access that the bridge needs.
+By inheritance, yes — `DefinitionBase extends SnippetBase` (which
+provides `context` and the attribution surface). By role, no — it's
+the bridging wrapper for Projections, addressed by file position
+rather than embedded in templates.
 
-You won't typically interpolate a Definition into another template
-(though `${someDefinition}` would work — it'd embed the full
-`export const ...;` statement). Definitions are addressed by file
-position, not by embedding.
+### Can I update a definition after registering it?
 
-### Why a generic type parameter?
-
-`Definition<V>` preserves the type of the underlying Projection so
-that callers manipulating the Definition's value get type-correct
-access. In practice, most callers receive `Definition` (the default,
-where `V = GeneratedValue`) and don't need the precise type. The
-generic parameter helps when generator authors want strongly-typed
-Definition references in their own code.
+No — definitions are append-only into the file map; first-write-wins
+(`addDefinition` ignores a duplicate name). Vary content via
+enrichments or the Projection's inputs, not by mutating a
+registered definition. (One sanctioned exception: the accumulator
+pattern mutates the *value* of a single shared definition — see
+gen-msw and the `skmtc-generator` skill's accumulator card.)
 
 ### What happens if `value` has no `toString()`?
 
-You'd get `[object Object]` in the output — a clear sign of a bug.
-In practice this doesn't happen because the values are typically
-Projection instances (which inherit `toString()` requirements from
-`SnippetBase`) or strings/numbers (which have natural string
-conversions).
-
-### Can I update a Definition after registering it?
-
-No — Definitions are append-only into the file map. The
-`File.definitions.has(name)` gate in `register` means first-write-
-wins; subsequent registrations with the same name are silently
-ignored.
-
-If you need to vary content per generation run, do it via
-enrichments or parametric inputs to the Projection's constructor,
-not by mutating the Definition.
-
-### What's the relationship between Definition and the `export const NAME` literal?
-
-Definition is the **mechanism** that produces the literal. Without
-Definition, generators would have to render `export const NAME = ...`
-strings directly, manage `entityType` themselves, deal with JSDoc
-formatting, etc. Definition consolidates all of that into one
-class.
-
-## Related types
-
-```ts
-// What Definition wraps
-type GeneratedValue = {
-  generatorKey?: GeneratorKey
-  // ... structurally a Stringable
-}
-
-// Convenient alias used in Driver code
-type GeneratedDefinition<V> = Definition<V>
-```
+You'd get `[object Object]` in the output — a clear bug signal. In
+practice values are Projection instances (whose `toString()` contract
+comes from `SnippetBase`) or strings.
 
 ## See also
 
-- [API: Identifier](dsl-identifier.md) — what `Definition.identifier` is
-- [API: GenerateContext](generate-context.md) — `register({ definitions })` accepts Definitions
-- [API: SnippetBase](dsl-snippet-base.md) — what Definition extends
-- [Projections and Snippets concept](../../concepts/projections-and-snippets.md) — how Definitions bridge Projections to Files
-- [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md) — how Drivers create Definitions
+- [API: Identifier](dsl-identifier.md) — `identifier`, `kind`, `typeName`
+- [API: GenerateContext](generate-context.md) — `register({ definitions })`
+- [API: SnippetBase](dsl-snippet-base.md) — what DefinitionBase extends
+- [Projections and Snippets concept](../../concepts/projections-and-snippets.md)
+- [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md)
 - [Glossary: Definition](../glossary.md)

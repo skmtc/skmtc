@@ -668,10 +668,14 @@ Then, **by hand**, write under `.skmtc/lab/`:
      mod.ts        # re-export the entry as DEFAULT:
                    #   export { xEntry as default } from './src/mod.ts'
      src/
-       mod.ts      # toOasOperationEntry({ id, lang, ... }) / toModelEntry({ id, lang, ... })
-                   #   `lang` is required (core 0.7.1+): e.g. `typescript`
-                   #   from @skmtc/lang-typescript
-       base.ts, *.ts
+       mod.ts      # toOasOperationEntry({ id, transform, ... }) /
+                   #   toModelEntry({ id, transform }) — pure pipeline
+                   #   config, NO `lang` field (core 0.8.0+)
+       base.ts     # imports its projection-base veneer from the lang
+                   #   package (e.g. toOasOperationProjectionBase from
+                   #   @skmtc/lang-typescript) — the import graph
+                   #   declares the language
+       *.ts
    ```
    - Package name **must** be `@<scope>/gen-<name>` — the `gen-`
      prefix is the discovery filter.

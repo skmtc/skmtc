@@ -219,7 +219,7 @@ export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
 
   toIdentifier({ operation }): Identifier {
     // Pure function of the operation
-    return Identifier.createVariable(deriveName(operation))
+    return createVariable(deriveName(operation))
   },
 
   toExportPath({ operation, enrichments }): string {
@@ -263,7 +263,7 @@ export const ZodBase = toModelProjectionBase<EnrichmentSchema>({
   toEnrichmentSchema,
 
   toIdentifier({ refName }): Identifier {
-    return Identifier.createVariable(decapitalize(refName))
+    return createVariable(decapitalize(refName))
   },
 
   toExportPath({ refName }): string {
@@ -337,7 +337,7 @@ export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
   toIdentifier({ operation }) {
     const verb = capitalize(toMethodVerb(operation.method))
     const name = `${verb}${camelCase(operation.path, { upperFirst: true })}`
-    return Identifier.createVariable(name)
+    return createVariable(name)
   },
 
   toExportPath({ operation, enrichments }) {
@@ -383,7 +383,7 @@ export const ZodBase = toModelProjectionBase<EnrichmentSchema>({
   toEnrichmentSchema,
 
   toIdentifier({ refName }) {
-    return Identifier.createVariable(decapitalize(refName))
+    return createVariable(decapitalize(refName))
   },
 
   toExportPath({ refName }) {

@@ -23,22 +23,23 @@ plain string) carrying both the name AND the entity-type marker.
 
 ### Edit `toIdentifier`
 
-Always use `Identifier.createVariable` or `Identifier.createType`
+Always use `createVariable` or `createType` (imported from
+`@skmtc/lang-typescript`)
 — **never** return a raw string.
 
 ```ts
 import { Identifier } from '@skmtc/core'
 
 // gen-zod default
-toIdentifier: ({ refName }) => Identifier.createVariable(decapitalize(refName))
+toIdentifier: ({ refName }) => createVariable(decapitalize(refName))
 // → "user", "order", "pet"
 
 // Your house style: PascalCase with suffix
-toIdentifier: ({ refName }) => Identifier.createVariable(`${refName}Schema`)
+toIdentifier: ({ refName }) => createVariable(`${refName}Schema`)
 // → "UserSchema", "OrderSchema", "PetSchema"
 
 // For a type generator
-toIdentifier: ({ refName }) => Identifier.createType(refName)
+toIdentifier: ({ refName }) => createType(refName)
 // → rendered as `export type User = ...` and imports as `import { type User }`
 ```
 
@@ -87,7 +88,7 @@ it via `insertModel(...).toName()`, not by hardcoded reference.
 
 ## Troubleshooting
 
-- **`Identifier.createVariable is not a function`** — you might be
+- **`createVariable is not a function`** — you might be
   using `new Identifier({...})` directly. The factory methods are
   the recommended path. Direct construction works but is rarer
   (and easier to get wrong).

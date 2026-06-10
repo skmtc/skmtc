@@ -184,7 +184,7 @@ Subscription. The GraphQL counterpart to `OasOperation`.
 ### `identifier`
 
 A computed `Identifier` whose name is derived from `rootKind`
-and `fieldName` (e.g., `Identifier.createType('Query_getUser')`).
+and `fieldName` (e.g., `createType('Query_getUser')`).
 Used by generators that need a canonical TypeScript name for the
 operation.
 

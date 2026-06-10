@@ -3,11 +3,10 @@
 > SKMTC builds generated code by composing typed `Stringable` values
 > through template-literal interpolation. It is not a templating
 > system (no Mustache, Handlebars, EJS) and not raw string
-> concatenation. Every DSL primitive — `Definition`, `Identifier`,
-> `Snippet`, `CustomValue`, `List`, `Inserted`, even
-> `EntityType` — implements `toString(): string`, and writing
-> `${value}` inside a template literal triggers the chain
-> recursively.
+> concatenation. Every DSL primitive — `TsDefinition`, `Identifier`,
+> `Snippet`, `CustomValue`, `List`, `Inserted` — implements
+> `toString(): string`, and writing `${value}` inside a template
+> literal triggers the chain recursively.
 
 If you have built code generators before, the default expectation
 is one of two shapes: external template files
@@ -77,9 +76,8 @@ interpolation. The result is one composed string.
 The chain is recursive. A `Definition.toString()` interpolates
 its `value` (which is another `Stringable`); that value's
 `toString` may interpolate further Snippets, which interpolate
-`Identifier` instances, which interpolate `EntityType`. The chain
-runs depth-first, leaf strings at the bottom, fully composed
-string at the top.
+`Identifier` instances. The chain runs depth-first, leaf strings
+at the bottom, fully composed string at the top.
 
 ### A concrete trace
 
@@ -88,16 +86,16 @@ string at the top.
 the top-level `File.toString()` call is roughly:
 
 ```
-File.toString()
+TsFile.toString()
 └─ joins file.imports → "import { ... } from '...'"
-└─ joins file.definitions, each calls Definition.toString()
-   Definition.toString()           // core/dsl/Definition.ts:232
-   ├─ ${this.identifier.entityType}   → EntityType.toString() → "type"
-   ├─ ${this.identifier.name}         → "User"
-   └─ ${this.value}                   → Snippet.toString()
-                                        └─ uses a ListObject of properties
-                                           List.toString()       // core/typescript/List.ts:197
-                                           └─ for each value: value.toString()
+└─ joins file.definitions, each calls TsDefinition.toString()
+   TsDefinition.toString()         // lang-typescript/src/TsDefinition.ts
+   ├─ toTsKeyword(this.identifier.kind)  → "type"
+   ├─ ${this.identifier.name}            → "User"
+   └─ ${this.value}                      → Snippet.toString()
+                                           └─ uses a ListObject of properties
+                                              List.toString()    // lang-typescript/src/List.ts
+                                              └─ for each value: value.toString()
                                               (each is "id: string", "name: string", ...)
 ```
 
@@ -124,30 +122,30 @@ file-scope artifacts wrapped in `Definition`) and **Snippets**
 (anonymous, embedded fragments). Both inherit `register()`; both
 implement their own `toString()` to define how they render.
 
-`Definition` is the file-scope wrapper that produces `export const
-... = ...;` or `export type ... = ...;`. Its `toString()`
-interpolates `this.identifier`, `this.identifier.entityType`, and
-`this.value` — three further `Stringable`s.
+`TsDefinition` (from `@skmtc/lang-typescript`) is the file-scope
+wrapper that produces `export const ... = ...;` or
+`export type ... = ...;`. Its `toString()` maps the identifier's
+`kind` to the declaration keyword (`toTsKeyword`) and interpolates
+`this.identifier` and `this.value` — further `Stringable`s.
 
 `CustomValue` is the escape hatch for an arbitrary fragment that
 doesn't have a structured DSL representation
 (`Required<UserBody>`, `keyof typeof Status`, etc.).
 
-### Identifier and entity-type
+### Identifier and entity kinds
 
 | Class | Role |
 |---|---|
-| `Identifier` | A name + entity-type marker (`'variable'` / `'type'`). `toString()` returns the name. |
-| `EntityType` | The discriminator. `toString()` returns `'const'` or `'type'` — the TypeScript declaration keyword |
+| `Identifier` | Neutral naming data: a name + opaque per-language `kind`. `toString()` returns the name. |
 
-`Identifier` (`core/dsl/Identifier.ts`) is created via factory
-methods: `Identifier.createVariable(name)` or
-`Identifier.createType(name)`. The `entityType` tag travels with
-the identifier and is what `Definition.toString()` interpolates
-to choose between `const` and `type` in the rendered declaration.
-It also controls whether `register({ imports })` renders
-`import { X }` or `import { type X }` under
-`verbatimModuleSyntax`.
+`Identifier` (`core/dsl/Identifier.ts`) is created via the language
+package's factory functions: `createVariable(name)` or
+`createType(name)` from `@skmtc/lang-typescript`. The `kind` they
+write (`'variable'` / `'type'`) travels with the identifier and is
+what `TsDefinition.toString()` maps to `const` vs `type` in the
+rendered declaration (`toTsKeyword`). It also controls whether
+`register({ imports })` renders `import { X }` or
+`import { type X }` under `verbatimModuleSyntax`.
 
 ### The `List` builder
 
@@ -156,7 +154,7 @@ It also controls whether `register({ imports })` renders
 | `List<V, Sep, Bookends>` | A typed list with separator + bookend style. `toString()` joins values with the separator and wraps with bookends. |
 | `KeyList`, `EntryList` | Helpers for transforming string-keyed records into Lists. |
 
-`List` (`core/typescript/List.ts`) is the most-used utility in
+`List` (from `@skmtc/lang-typescript`) is the most-used utility in
 the codebase. Stock generators reach for it for any object
 literal, parameter list, array, or line-separated block. Five
 typed shortcuts cover the common cases:
@@ -297,11 +295,11 @@ Why the split:
   template literal that contains `import { z } from 'zod'` lands
   in the file body at whatever position the snippet was spliced.
   The header is built separately from `File.imports`.
-- Imports need to know **entity types** for `verbatimModuleSyntax`.
-  `Identifier.toImport()` propagates the identifier's
-  `'variable'` / `'type'` tag into the import name, so
-  `import { type Foo }` renders correctly for type-only
-  identifiers.
+- Imports need to know **entity kinds** for `verbatimModuleSyntax`.
+  The identifier's `kind` propagates into the import form (the
+  Driver's `TsImport.fromIdentifier`, or an explicit
+  `{ name, type: 'type' }` tag), so `import { type Foo }` renders
+  correctly for type-only identifiers.
 
 So the rule of thumb is: **anything inside the file's body
 composes through template literals; anything at the file header
@@ -431,21 +429,23 @@ const validators = List.fromKeys(schema.properties).toLines((key) =>
 Returns a `ListLines<string>` that interpolates as newline-
 separated content.
 
-### Composing into a Definition
+### Composing into a definition
 
 ```ts
-new Definition({
-  context,
-  identifier: Identifier.createVariable('userSchema'),
+import { defineAndRegister, createVariable } from '@skmtc/lang-typescript'
+
+defineAndRegister(context, {
+  identifier: createVariable('userSchema'),
   value: new CustomValue({
     context,
     value: `z.object(${List.toRecord(propertyValidators)})`
-  })
+  }),
+  destinationPath
 })
 ```
 
 The `CustomValue` wraps a string that interpolates the
-`ListObject` of property validators. `Definition.toString()`
+`ListObject` of property validators. `TsDefinition.toString()`
 interpolates `value`, which calls `CustomValue.toString()`, which
 splices the rendered List.
 

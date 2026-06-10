@@ -90,9 +90,9 @@ const allRequired = new CustomValue({
   value: `Required<${userBodyIdentifier}>`
 })
 
-return new Definition({
+return new TsDefinition({
   context,
-  identifier: Identifier.createType('AllRequiredUserBody'),
+  identifier: createType('AllRequiredUserBody'),
   value: allRequired
 })
 ```

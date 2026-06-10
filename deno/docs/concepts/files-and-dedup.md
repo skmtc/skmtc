@@ -95,7 +95,7 @@ Object.entries(reExports ?? {}).forEach(([importModule, identifiers]) => {
     currentFile.reExports.set(importModule, {})
   }
   identifiers.forEach(identifier => {
-    const entityType = identifier.entityType.type   // 'variable' | 'type'
+    const kind = identifier.kind                    // 'variable' | 'type' (TS vocabulary)
     const module = currentFile.reExports.get(importModule)
     if (!module[entityType]) {
       module[entityType] = new Set()
@@ -429,7 +429,7 @@ For `verbatimModuleSyntax: true`. Under that mode, value
 re-exports and type re-exports require different statements
 (`export { X }` vs `export type { X }`). Keying the inner
 structure by entity-type lets the render step produce the right
-form per name. The `Identifier.entityType` is the source of
+form per name. The `Identifier.kind` is the source of
 truth for which bucket a name lands in.
 
 ### Does `JsonFile` participate in the dedup story?

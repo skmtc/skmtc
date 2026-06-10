@@ -63,7 +63,7 @@ import { Identifier, capitalize } from '@skmtc/core'
 
 // House style: PascalCase with "Schema" suffix
 export const toIdentifier = ({ refName }) =>
-  Identifier.createVariable(`${capitalize(refName)}Schema`)
+  createVariable(`${capitalize(refName)}Schema`)
 
 // House style: per-domain subdirectories
 export const toExportPath = ({ refName }) => {

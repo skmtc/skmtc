@@ -124,7 +124,7 @@ explicit: "no enrichments here, just the identifier and path."
 
 ```ts
 const settings = ContentSettings.empty({
-  identifier: Identifier.createVariable('userBody'),
+  identifier: createVariable('userBody'),
   exportPath: '@/types/userBody.generated.ts'
 })
 // → ContentSettings<undefined>
@@ -219,7 +219,7 @@ of comparing object references.
 
 ```ts
 const settings = ContentSettings.empty({
-  identifier: Identifier.createVariable('userBody'),
+  identifier: createVariable('userBody'),
   exportPath: '@/types/userBody.generated.ts'
 })
 
@@ -243,7 +243,7 @@ type EnrichmentSchema = {
 }
 
 const settings = new ContentSettings<EnrichmentSchema>({
-  identifier: Identifier.createVariable('createUserForm'),
+  identifier: createVariable('createUserForm'),
   exportPath: '/forms/CreateUser.generated.tsx',
   enrichments: { title: 'Create User', submitLabel: 'Create' }
 })

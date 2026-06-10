@@ -87,14 +87,19 @@ return `<Form onSubmit={form.handleSubmit(${inserted.toName()})} />`
 ### `toIdentifier(): Identifier`
 
 Returns `this.settings.identifier`. The full `Identifier` object —
-useful when the consumer needs the entity-type for an import
+useful when the consumer needs the `kind` for an import
 registration:
 
 ```ts
-context.register({
-  destinationPath: settings.exportPath,
+const identifier = inserted.toIdentifier()
+
+this.register({
   imports: {
-    [inserted.toExportPath()]: [inserted.toIdentifier().toImport()]
+    [inserted.toExportPath()]: [
+      identifier.kind === 'type'
+        ? { name: identifier.name, type: 'type' }
+        : identifier.name
+    ]
   }
 })
 ```

@@ -138,7 +138,7 @@ The TypeScript-level utility types and interfaces.
 
 | Type | Purpose |
 |------|---------|
-| `EntityTypeValue` | `'variable' \| 'type'` — Identifier's entity discriminator (maps to `const` / `type` keywords at render time) |
+| `Identifier.kind` | opaque per-language declaration discriminant — TypeScript's vocabulary (`TsEntityKind`, `'variable' \| 'type'`) and its keyword mapping live in `@skmtc/lang-typescript` |
 | `ImportNameArg` | `string \| { name, alias?, isType? }` — input to `register({ imports })` |
 | `GeneratedValue` | Base structural type for what `Definition` wraps |
 | `Method` | HTTP method literal type |
@@ -196,7 +196,7 @@ for the full reasoning.
 `@skmtc/core` follows semantic versioning. Breaking changes to:
 
 - Context class APIs (e.g., `register` signature)
-- DSL class APIs (e.g., `Identifier.createVariable`)
+- DSL class APIs (e.g., the lang package's `createVariable`)
 - OAS or GraphQL parsed model shapes
 
 are major-version bumps. Additive changes (new helper methods, new

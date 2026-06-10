@@ -1,124 +1,108 @@
-# Import
+# Import (ImportBase & TsImport)
 
-> The DSL class that renders an `import { X } from '...'` statement
-> into a file. Constructed by File from accumulated import requests
-> during serialization; rarely instantiated directly by generators.
+> The import seam, split across the language boundary: core's neutral
+> `ImportBase` (merge contract only) and `@skmtc/lang-typescript`'s
+> `TsImport` (the concrete class that renders
+> `import { X } from '...'` statements). Built by the lang package's
+> register function and by Drivers; rarely instantiated directly.
 
-`Import` is the *output* end of the import system. The *input* end is
-the `register({ imports })` call on `GenerateContext` (or via
-SnippetBase). Between input and output, the File accumulates import
-names into a deduplicated `Map<module, Set<importNameKey>>`, then
-materializes one `Import` per module entry at render time.
+The *input* end of the import system is the concise
+`register({ imports })` call (typed by the lang package's
+`TsRegisterArgs`). The conversion to structured `TsImport`s happens at
+the register boundary; the file accumulates them in a neutral
+`Map<mergeKey, ImportBase>` and renders them at serialization time.
 
 ## Source
 
-`skmtc/deno/core/dsl/Import.ts`
+- `skmtc/deno/core/dsl/ImportBase.ts` — the neutral contract
+- `skmtc/deno/lang-typescript/src/TsImport.ts` — the TypeScript class
 
-## Constructor
+(The engine's legacy `core/dsl/Import.ts` was deleted when the lang
+seam landed; `TsImport` renders identically.)
+
+## ImportBase (`@skmtc/core`)
 
 ```ts
-class Import {
-  module: string
-  importNames: ImportNameArg[]
-
-  constructor(args: {
-    module: string
-    importNames: ImportNameArg[]
-  })
-
-  toString(): string
-  toRecord(): Record<string, string>
+abstract class ImportBase {
+  abstract mergeKey(): string                    // imports with the same key merge
+  abstract merge(other: ImportBase): ImportBase  // combine two same-key imports
+  abstract toString(): string                    // render the statement
 }
 ```
 
-## Properties
+Core stores and merges imports without interpreting them. Each
+language ships its own subclass; the import-section *arrangement* is
+the language file's concern (`TsFile.toString()`).
 
-### `module`
-
-The module specifier — the right-hand side of the `from` clause. May
-be:
-
-- A package name: `'@tanstack/react-query'`, `'zod'`
-- A bare-package subpath: `'@tanstack/react-query/types'`
-- A relative path: `'./User.generated'`, `'../../shared/types'`
-- An alias-prefixed path: `'@/types/User'`
-
-The engine preserves whatever string is passed in. Path resolution
-(if any) is the consumer's responsibility — the file renders the
-literal string into the import statement.
-
-### `importNames`
-
-The named imports for this statement. Each entry is either:
-
-- A **string** — a plain runtime-value import (`'X'` → `import { X }`)
-- A **name→alias record** `{ origName: 'aliasName' }` — a compact
-  form for one-off rename imports without entity-type info
-- An **object** `{ name, alias?, type? }` — the full form with
-  optional alias and explicit entity-type discriminator
+## TsImport (`@skmtc/lang-typescript`)
 
 ```ts
-// Verified against core/dsl/Import.ts:267-270
+type TsImportSpecifier = {
+  name: string        // '*' (with alias) is a namespace import
+  alias?: string
+  typeOnly: boolean   // drives `type X` / statement-level `import type`
+}
+
+class TsImport extends ImportBase {
+  module: string
+  specifiers: TsImportSpecifier[]
+
+  constructor(module: string, specifiers: TsImportSpecifier[])
+
+  static fromConcise(module: string, names: ImportNameArg[]): TsImport
+  static fromIdentifier(module: string, identifier: Identifier): TsImport
+}
+```
+
+- **`fromConcise`** converts the ergonomic form a generator passes to
+  `register({ imports })` — the concise vocabulary lives only at this
+  boundary.
+- **`fromIdentifier`** builds the cross-file import a Driver registers
+  when a generator references a peer's Definition; the identifier's
+  `kind` drives `typeOnly` (`kind === 'type'` → `import { type X }`).
+- **`merge`** dedups on the rendered specifier (matching the engine's
+  legacy `Set<string>` semantics, where `type Foo` and `Foo` are
+  distinct entries).
+
+## ImportNameArg — the concise form
+
+```ts
+// lang-typescript/src/TsImport.ts
 type ImportNameArg =
-  | string
-  | { [name: string]: string }
-  | { name: string; alias?: string; type?: EntityTypeValue }
+  | string                                            // 'X' — plain value import
+  | { [name: string]: string }                        // { merge: 'lodashMerge' } — rename form
+  | { name: string; alias?: string; type?: TsEntityKind }  // full form
+
+type TsEntityKind = 'variable' | 'type'
 ```
 
-`EntityTypeValue` is `'variable' | 'type'`. Omitting `type`
-defaults to a value import.
+Owned by `@skmtc/lang-typescript` (each language defines its own
+concise vocabulary; the neutral engine never sees it). Set
+`type: 'type'` for a type-only import; omitting `type` means a value
+import.
 
-## Methods
+## Rendering rules
 
-### `toString()`
+- Per-name `type` tags render inline:
+  `import { useForm, type UseFormProps } from 'react-hook-form'`
+- When **every** specifier is type-only, the statement collapses to
+  the statement-level form: `import type { A, B } from './types'`
+- Aliases render as `X as Y` (`type X as Y` when type-only)
+- `name: '*'` with an alias renders a namespace import:
+  `import * as X from '...'`
+- Module specifiers pass through literally; `@/...` paths resolve
+  against the consumer's bundler alias (per-package when
+  `client.json#settings.packages` is configured — cross-package
+  imports render the target's `moduleName`)
 
-Renders the import statement. The exact format depends on which
-`importNames` are present:
+This is **load-bearing under `verbatimModuleSyntax: true`** — the
+compile mode that rejects bare value imports of types (TS1484).
+Generated artifacts that misclassify a type as a value fail the
+consumer's build.
 
-```ts
-// Bare names only
-import { X, Y } from '@module'
+## Examples
 
-// Aliased import
-import { X as MyX } from '@module'
-
-// Type-only import (single)
-import { type X } from '@module'
-
-// Mixed value + type imports
-import { X, type Y } from '@module'
-
-// All-type imports
-import { type X, type Y } from '@module'
-```
-
-The rendering rules:
-
-1. If all `importNames` are type-only, the single shared `type`
-   keyword may be placed before the brace pair
-   (`import type { X, Y } from ...`) — depends on the implementation.
-2. If mixed value + type, each type-import is individually marked
-   (`import { X, type Y } from ...`).
-3. Aliases are rendered with the `as` keyword (`{ X as MyX }`).
-4. Names are joined with `, ` inside the braces.
-
-### `toRecord()`
-
-Returns the imports as a plain record, useful for serialization or
-diagnostics:
-
-```ts
-{ X: '@module', Y: '@module' }
-```
-
-Aliases use the alias as the key; type-only-ness is not represented
-in the record.
-
-## How `register({ imports })` populates Imports
-
-The end-to-end flow:
-
-### Step 1: Generator code calls `register`
+### From a generator's `register` call (the normal path)
 
 ```ts
 this.register({
@@ -127,234 +111,39 @@ this.register({
     '@tanstack/react-query': [
       'useMutation',
       { name: 'UseMutationResult', type: 'type' }
-    ]
-  },
-  destinationPath: this.settings.exportPath
+    ],
+    'lodash': [{ merge: 'lodashMerge' }]
+  }
 })
+
+// Rendered:
+//   import { z } from 'zod'
+//   import { useMutation, type UseMutationResult } from '@tanstack/react-query'
+//   import { merge as lodashMerge } from 'lodash'
 ```
 
-### Step 2: GenerateContext.register routes to File
-
-The context locates (or creates) the `File` at `destinationPath` and
-calls `file.addImports(imports)`.
-
-### Step 3: File accumulates into a deduplicated Map
-
-`File.imports` is `Map<string /* module */, Set<string /* importNameKey */>>`.
-The Set's key is a normalized string representation of the
-`ImportNameArg` (e.g., `'X'`, `'type:Y'`, `'X as MyX'`). Duplicates
-are silently elided.
-
-### Step 4: At render time, File constructs Imports
-
-```ts
-// In File.toString()
-const imports: Import[] = []
-for (const [module, nameKeySet] of this.imports) {
-  const importNames = Array.from(nameKeySet).map(parseKeyToImportName)
-  imports.push(new Import({ module, importNames }))
-}
-
-const importsBlock = imports.map(i => i.toString()).join('\n')
-return `${importsBlock}\n\n${definitions}`
-```
-
-### Step 5: Each Import.toString() renders a line
-
-The final file starts with one `import { ... } from '...';`
-line per module the file uses, deduplicated and correctly typed.
-
-## Dedup via `Set<importName>` in File
-
-The Set holds a *normalized key* — not the raw `ImportNameArg`. The
-key encodes:
-
-- The name
-- Whether it's a type-only import
-- Whether it has an alias (and what the alias is)
-
-Two calls registering the same name + same `type` discriminator +
-same alias collapse into one entry. Two calls registering the same
-name with *different* `type` values land as separate entries —
-meaning a name registered both as a value and as a type would appear
-twice in the import statement (one with `type`, one without). In
-practice, the same name is rarely imported both ways from the same
-module.
-
-If the first registration is `{ name: 'X', type: 'type' }` and a
-subsequent call registers plain `'X'`, both keys land in the Set:
-
-- `'type:X'`
-- `'X'`
-
-And the rendered output would be `import { X, type X } from ...` —
-likely a bug in the calling code (it imported X two ways), but the
-engine renders faithfully.
-
-## Type-only import rendering
-
-The `EntityTypeValue` distinction (`'variable'` vs `'type'`) drives
-the `type` field on `ImportNameArg`. See
-[API: Identifier](dsl-identifier.md) for how identifiers carry
-this distinction.
-
-`Identifier.toImport()` produces the correct `ImportNameArg`:
-
-```ts
-Identifier.createVariable('useUser').toImport()
-// → 'useUser'    (plain string, runtime value)
-
-Identifier.createType('UserBody').toImport()
-// → { name: 'UserBody', type: 'type' }
-```
-
-When a generator passes the result of `toImport()` to `register`, the
-type-only-ness is preserved through the file's accumulation and
-appears as `import { type UserBody }` in the rendered output.
-
-This is **load-bearing under `verbatimModuleSyntax: true`** — the
-TypeScript compile mode that requires type-only imports to be
-explicitly marked. Generated artifacts that misclassify a type as a
-value (or vice versa) fail compilation under verbatim mode.
-
-## Examples
-
-### Single value import
-
-```ts
-new Import({
-  module: 'zod',
-  importNames: ['z']
-}).toString()
-// → "import { z } from 'zod'"
-```
-
-### Mixed value + type from one module
-
-```ts
-new Import({
-  module: '@tanstack/react-query',
-  importNames: [
-    'useMutation',
-    { name: 'UseMutationResult', type: 'type' }
-  ]
-}).toString()
-// → "import { useMutation, type UseMutationResult } from '@tanstack/react-query'"
-```
-
-### Aliased import
-
-```ts
-new Import({
-  module: 'lodash',
-  importNames: [{ name: 'merge', alias: 'lodashMerge' }]
-}).toString()
-// → "import { merge as lodashMerge } from 'lodash'"
-```
-
-### From a generator's `register` call
+### Deriving the tag from an Identifier you hold
 
 ```ts
 this.register({
   imports: {
-    'zod': ['z'],
     '@/generated/User': [
-      this.userBody.identifier.toImport(),   // 'userBody' (value)
-      this.UserBody.identifier.toImport()    // { name: 'UserBody', type: 'type' }
+      identifier.kind === 'type'
+        ? { name: identifier.name, type: 'type' }
+        : identifier.name
     ]
-  },
-  destinationPath: this.settings.exportPath
+  }
 })
-
-// At render time, file produces:
-//   import { z } from 'zod'
-//   import { userBody, type UserBody } from '@/generated/User'
 ```
 
-## Common questions
-
-### Why is `Import` a class rather than just a string template?
-
-Three reasons:
-
-1. **Deduplication**: a class instance carries the parsed structure,
-   so the File can deduplicate by content rather than by literal
-   string.
-2. **Type vs value discriminator**: the `type` field on
-   `ImportNameArg` is a per-name property, not a per-module
-   property. Mixed imports require structural representation.
-3. **Future flexibility**: tracking imports as structured data lets
-   the engine adjust the output format (e.g., sort, group, switch
-   between `import { type X }` and `import type { X }`) without
-   touching call sites.
-
-### Can I create an Import directly?
-
-You can, but you almost never should. The accepted path is to call
-`register({ imports })` and let the File materialize Imports during
-render. Direct construction skips the deduplication step and may
-result in duplicate import lines in the output.
-
-The one valid reason for direct construction is in low-level testing
-of the Import rendering itself.
-
-### What's an "alias" used for?
-
-When the imported name collides with a name already in scope:
-
-```ts
-import { merge as lodashMerge } from 'lodash'
-// because there's already a `merge` from somewhere else
-```
-
-Generators rarely need aliases — the names they generate are derived
-from `operationId`/`refName`, which are unique within the file. But
-when integrating with hand-written user code that already defines a
-name, aliasing is a clean way to disambiguate.
-
-### Does Import support default imports?
-
-The standard `register` flow handles named imports. Default imports
-(`import X from '...'`) are rendered via `defaultImports` on
-`register`, which goes through a separate channel in File. The
-default-import flow is similar to named imports but produces
-`import X from '...'` syntax.
-
-### Does Import support side-effect imports?
-
-`import '@some/css-side-effect'` is supported via a slightly different
-path on `register`. The Import class itself focuses on named imports;
-the File's serialization step handles the side-effect-only case
-separately.
-
-## Related types
-
-```ts
-// Verified against core/dsl/Import.ts:267-270
-type ImportNameArg =
-  | string
-  | { [name: string]: string }
-  | { name: string; alias?: string; type?: EntityTypeValue }
-
-type EntityTypeValue = 'variable' | 'type'
-
-// Used by register on GenerateContext / SnippetBase
-type RegisterArgsImports = Record<string /* module */, ImportNameArg[]>
-```
-
-Three variants:
-- **`string`** — `'X'` is an unaliased value import.
-- **`{ [name: string]: string }`** — compact rename form, e.g.
-  `{ merge: 'lodashMerge' }`. No entity-type info; treated as a
-  value import.
-- **`{ name, alias?, type? }`** — full form. Set `type: 'type'`
-  for a type-only import. Omit `type` (or set `'variable'`) for
-  a value import.
+(For peer Definitions inserted via `insertOperation` / `insertModel`
+the Driver already registers the import with the right form via
+`TsImport.fromIdentifier` — you only hand-tag imports you register
+yourself.)
 
 ## See also
 
-- [API: Identifier](dsl-identifier.md) — produces ImportNameArgs via `toImport()`
-- [API: GenerateContext](generate-context.md) — `register({ imports })` is the entry point
-- [API: SnippetBase](dsl-snippet-base.md) — the `register` helper inherited by Snippets and Projections
-- [Projections and Snippets concept](../../concepts/projections-and-snippets.md) — register's role
-- [Glossary: Import, EntityType, verbatimModuleSyntax](../glossary.md)
+- [API: Identifier](dsl-identifier.md) — `kind` drives type-only imports
+- [API: GenerateContext](generate-context.md) — the neutral `register` primitive
+- [Projections and Snippets concept](../../concepts/projections-and-snippets.md)
+- [Glossary: Import, verbatimModuleSyntax](../glossary.md)

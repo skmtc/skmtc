@@ -281,7 +281,7 @@ export const ReapitGraphqlClientBase = toGqlOperationProjectionBase<EnrichmentSc
   toEnrichmentSchema,
   toIdentifier({ operation }) {
     const verb = operation.rootKind === 'query' ? 'use' : 'use'
-    return Identifier.createVariable(`${verb}${capitalize(operation.fieldName)}`)
+    return createVariable(`${verb}${capitalize(operation.fieldName)}`)
   },
   toExportPath({ operation, enrichments }) {
     const { name } = this.toIdentifier({ operation, enrichments })
@@ -324,7 +324,7 @@ import { toGqlOperationProjectionBase } from '@skmtc/core'
 
 export const MyGqlFormBase = toGqlOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
-  toIdentifier: ({ operation }) => Identifier.createVariable(
+  toIdentifier: ({ operation }) => createVariable(
     `${capitalize(operation.fieldName)}Form`
   ),
   toExportPath: ({ operation }) => join('@', 'forms', `${operation.fieldName}.tsx`),

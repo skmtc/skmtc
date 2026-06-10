@@ -35,7 +35,7 @@ export const MyGqlBase = toGqlOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
   toIdentifier: ({ operation }) =>
-    Identifier.createVariable(`use${capitalize(operation.fieldName)}`),
+    createVariable(`use${capitalize(operation.fieldName)}`),
   toExportPath: ({ operation }) =>
     join('@', 'graphql', `use${capitalize(operation.fieldName)}.generated.ts`)
 })
@@ -139,7 +139,7 @@ mechanical:
   convention plus an export path — which is exactly what a
   Projection class encapsulates.
 - The functional shape bypassed `affirmDefinition` integrity checks
-  (it called `context.register({ definitions: [new Definition(...)] })`
+  (it called `context.register({ definitions: [new TsDefinition(...)] })`
   directly with hand-built `generatorKey`s).
 
 Class-based Projections get all four framework guarantees from

@@ -102,14 +102,14 @@ The "scaffold a stub for the consumer to fill in" middle ground silently breaks 
 
 ## 11. Driver-mediated insertion over manual `register`
 
-When composing a Projection from peer types, prefer `insertOperation` / `insertModel` / `insertNormalizedModel` over hand-rolling `this.register({ definitions: [new Definition(...)], imports: { ... } })`. The Driver-mediated path:
+When composing a Projection from peer types, prefer `insertOperation` / `insertModel` / `insertNormalizedModel` over hand-rolling `this.register({ definitions: [new TsDefinition(...)], imports: { ... } })`. The Driver-mediated path:
 
 - Computes per-(operation × generatorId) cache keys correctly (no manual `toGeneratorOnlyKey({ generatorId })` calls).
 - Detects cross-generator collisions loudly via `affirmDefinition` (otherwise "first write wins" silently).
 - Auto-registers imports into the calling Projection's file (no manual `imports: { [targetPath]: [targetName] }`).
 - Is idempotent — re-inserting the same peer returns the cached instance.
 
-When a generator author finds themselves calling `context.register({ definitions: [new Definition(...)] })` directly, that's a strong signal an `insertX` method exists that does the same thing better.
+When a generator author finds themselves calling `context.register({ definitions: [new TsDefinition(...)] })` directly, that's a strong signal an `insertX` method exists that does the same thing better.
 
 ## 12. The language lives on the generator entry — nowhere else (core 0.7.1+)
 
@@ -119,7 +119,7 @@ The engine is language-blind. `toOasOperationEntry` / `toGqlOperationEntry` / `t
 - Snippets carry no `Lang`.
 - `register` / `defineAndRegister` pass plain data: `generatorId` (a string), never a `Lang` object or a `createFile` closure.
 - A missing `lang` on the entry throws at engine start (`Generator '<id>' declares no 'lang'`). A peer passed to `insertOperation` / `insertModel` whose id is not in the generator config map throws `Cannot resolve language for generator '<id>': not in the generator config map` — the fix is installing/configuring the peer, not catching the error.
-- `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers (`List`, `FunctionParameter`, `toPathTemplate`, …) currently still import from `@skmtc/core`, NOT from `@skmtc/lang-typescript` (the move is tracked as F5/F6 in `notes/lang/checklist.md`). A response that tells the user to import these from `@skmtc/lang-typescript` today is incorrect.
+- The identifier factories (`createVariable` / `createType`), `sanitizePropertyName`, and the TS syntax helpers (`List`, `FunctionParameter`, `toPathTemplate`, …) import from `@skmtc/lang-typescript` (moved out of core under F5/F6 — `notes/lang/17-naming-layer-and-helpers-move.md`). Core's `Identifier` is neutral data (`name`, opaque `kind`, `exported`, `typeName`); core's `EntityType`, its concrete `Definition`, and the `Identifier.create*` statics no longer exist. A response that tells the user to import the factories or helpers from `@skmtc/core` today is incorrect.
 
 ## 13. Own-file `register` vs explicit `registerInto` — no fallback
 

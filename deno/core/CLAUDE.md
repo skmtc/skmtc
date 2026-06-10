@@ -68,7 +68,6 @@ The system follows a three-phase pipeline orchestrated by `CoreContext`:
 - `run/` - Main execution entry points (`toArtifacts`, `toV3JsonDocument`)
 - `types/` - Type definitions and branded types
 - `helpers/` - Utilities for naming, tracing, and string manipulation
-- `typescript/` - TypeScript-specific code generation utilities
 
 ### Key Entry Points
 

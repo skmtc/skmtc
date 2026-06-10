@@ -60,7 +60,7 @@ export const ZodBase = toModelProjectionBase({
 
   toIdentifier({ refName }): Identifier {
     const name = decapitalize(camelCase(refName))
-    return Identifier.createVariable(name)
+    return createVariable(name)
   },
 
   toExportPath({ refName, enrichments }): string {
