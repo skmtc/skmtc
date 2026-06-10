@@ -11,6 +11,7 @@ const createManifest = (files: Record<string, unknown>) => ({
   files,
   previews: {},
   mappings: {},
+  parseIssues: [],
   results: {},
   startAt: Date.now(),
   endAt: Date.now()
@@ -245,3 +246,89 @@ Deno.test('deletePreviousArtifacts - handles nested directory paths', async () =
     await Deno.remove(tempDir, { recursive: true })
   }
 })
+
+Deno.test(
+  'deletePreviousArtifacts - skips cleanup gracefully when manifest is stale-schema',
+  async () => {
+    // Same tolerance contract as `Manifest.open` — a stale manifest
+    // shouldn't abort the generate run. Here we verify the
+    // sync-codepath version of that behavior: the function logs a
+    // warning on stderr and returns without throwing or deleting
+    // any user files.
+    const tempDir = await Deno.makeTempDir()
+    const errors: string[] = []
+    const originalError = console.error
+    console.error = (msg: string) => errors.push(msg)
+
+    try {
+      const skmtcDir = join(tempDir, 'skmtc')
+      await Deno.mkdir(skmtcDir)
+
+      const manifestPath = join(skmtcDir, 'manifest.json')
+      const oldFilePath = join(tempDir, 'old-file.ts')
+      await Deno.writeTextFile(oldFilePath, 'should not be touched')
+
+      // Stale-schema manifest: missing `parseIssues`.
+      await Deno.writeTextFile(
+        manifestPath,
+        JSON.stringify({
+          deploymentId: 'stale',
+          traceId: 'stale',
+          spanId: 'stale',
+          files: {
+            'old-file.ts': { lines: 1, characters: 1, destinationPath: 'old-file.ts' }
+          },
+          previews: {},
+          results: {},
+          startAt: 0,
+          endAt: 0
+        })
+      )
+
+      deletePreviousArtifacts({
+        skmtcRootPath: skmtcDir,
+        manifestPath,
+        incomingPaths: []
+      })
+
+      // File should NOT be deleted — we couldn't trust the manifest.
+      const stillExists = await Deno.stat(oldFilePath)
+        .then(() => true)
+        .catch(() => false)
+      assertEquals(stillExists, true)
+      assertEquals(errors.length, 1)
+    } finally {
+      console.error = originalError
+      await Deno.remove(tempDir, { recursive: true })
+    }
+  }
+)
+
+Deno.test(
+  'deletePreviousArtifacts - skips cleanup gracefully when manifest has malformed JSON',
+  async () => {
+    const tempDir = await Deno.makeTempDir()
+    const errors: string[] = []
+    const originalError = console.error
+    console.error = (msg: string) => errors.push(msg)
+
+    try {
+      const skmtcDir = join(tempDir, 'skmtc')
+      await Deno.mkdir(skmtcDir)
+      const manifestPath = join(skmtcDir, 'manifest.json')
+      await Deno.writeTextFile(manifestPath, '{not actually json')
+
+      // Should not throw
+      deletePreviousArtifacts({
+        skmtcRootPath: skmtcDir,
+        manifestPath,
+        incomingPaths: []
+      })
+
+      assertEquals(errors.length, 1)
+    } finally {
+      console.error = originalError
+      await Deno.remove(tempDir, { recursive: true })
+    }
+  }
+)

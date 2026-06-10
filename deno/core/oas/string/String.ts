@@ -1,6 +1,8 @@
 import type { OasRef } from '../ref/Ref.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Constructor fields for {@link OasString}.
@@ -38,7 +40,7 @@ export type StringFields<Nullable extends boolean | undefined> = {
   deprecated?: boolean
 }
 
-export class OasString<Nullable extends boolean | undefined = boolean | undefined> {
+export class OasString<Nullable extends boolean | undefined = boolean | undefined> extends OasBase {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -100,7 +102,8 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
    * Whether the string is deprecated.
    */
   deprecated: boolean | undefined
-  constructor(fields: StringFields<Nullable> = {}) {
+  constructor(fields: StringFields<Nullable> = {}, context?: ParseContextType) {
+    super(context)
     this.title = fields.title
     this.description = fields.description
     this.format = fields.format

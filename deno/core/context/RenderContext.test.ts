@@ -1,15 +1,16 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { RenderContext } from './RenderContext.ts'
-import { File } from '@/dsl/File.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
+import type { FileBase } from '@/dsl/FileBase.ts'
+import { TsFile, createType, createVariable } from '@skmtc/lang-typescript'
 import { StackTrail } from './StackTrail.ts'
 import { spy, assertSpyCalls } from '@std/testing/mock'
 import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
-import { Definition } from '@/dsl/Definition.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
+import { TsDefinition } from '@skmtc/lang-typescript'
 import { toGenerateContext } from '@/test/toGenerateContext.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
+import type { Preview, Mapping } from '@/types/Preview.ts'
 
 // Mock logger
 const mockLogger: log.Logger = {
@@ -17,28 +18,28 @@ const mockLogger: log.Logger = {
   info: () => {},
   warn: () => {},
   error: () => {},
-  critical: () => {},
+  critical: () => {}
 } as unknown as log.Logger
 
 // Helper to create a file with definitions
-const createFileWithDefinition = (path: string, name: string, content: string): File => {
-  const file = new File({ path, settings: undefined })
-  const definition = new Definition({
+const createFileWithDefinition = (path: string, name: string, content: string): TsFile => {
+  const file = new TsFile({ path, settings: undefined })
+  const definition = new TsDefinition({
     context: toGenerateContext(),
-    identifier: Identifier.createVariable(name),
+    identifier: createVariable(name),
     value: {
       generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
-      toString: () => content,
-    },
+      toString: () => content
+    }
   })
   file.definitions.set(name, definition)
   return file
 }
 
-Deno.test('RenderContext', async (t) => {
-  await t.step('constructor', async (t) => {
+Deno.test('RenderContext', async t => {
+  await t.step('constructor', async t => {
     await t.step('should initialize with all required parameters', () => {
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       const previews = {}
       const mappings = {}
       const basePath = './src'
@@ -50,7 +51,7 @@ Deno.test('RenderContext', async (t) => {
         mappings,
         basePath,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       assertEquals(context.files, files)
@@ -62,7 +63,7 @@ Deno.test('RenderContext', async (t) => {
     })
 
     await t.step('should handle undefined basePath', () => {
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
@@ -71,18 +72,18 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       assertEquals(context.basePath, undefined)
     })
   })
 
-  await t.step('render() method', async (t) => {
+  await t.step('render() method', async t => {
     await t.step('should render single file', () => {
       const file = createFileWithDefinition('test.ts', 'x', 'const x = 1;')
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('test.ts', file)
 
       const previews = {}
@@ -95,7 +96,7 @@ Deno.test('RenderContext', async (t) => {
         mappings,
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -108,9 +109,31 @@ Deno.test('RenderContext', async (t) => {
     })
 
     await t.step('should include previews and mappings in result', () => {
-      const files = new Map<string, File | JsonFile>()
-      const previews = { test: {} }
-      const mappings = { test: {} }
+      const files = new Map<string, TsFile | JsonFile>()
+      const previews: Record<string, Preview> = {
+        test: {
+          module: { name: 'test', exportPath: 'test' },
+          source: {
+            type: 'oasOperation',
+            generatorId: 'test',
+            operationPath: 'test',
+            operationMethod: 'get',
+            variant: 'main'
+          }
+        }
+      }
+      const mappings: Record<string, Mapping> = {
+        test: {
+          module: { name: 'test', exportPath: 'test', schema: 'test' },
+          source: {
+            type: 'oasOperation',
+            generatorId: 'test',
+            operationPath: 'test',
+            operationMethod: 'get',
+            variant: 'main'
+          }
+        }
+      }
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
@@ -119,7 +142,7 @@ Deno.test('RenderContext', async (t) => {
         mappings,
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -130,15 +153,15 @@ Deno.test('RenderContext', async (t) => {
     })
   })
 
-  await t.step('collate() method', async (t) => {
+  await t.step('collate() method', async t => {
     await t.step('should collate single file with metadata', () => {
       const file = createFileWithDefinition(
         'utils.ts',
         'helper',
-        'const helper = () => {};\nconst another = 1;',
+        'const helper = () => {};\nconst another = 1;'
       )
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('utils.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -149,7 +172,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -165,7 +188,7 @@ Deno.test('RenderContext', async (t) => {
       const file1 = createFileWithDefinition('file1.ts', 'a', 'export const a = 1;')
       const file2 = createFileWithDefinition('file2.ts', 'b', 'export const b = 2;')
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('file1.ts', file1)
       files.set('file2.ts', file2)
 
@@ -177,7 +200,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -191,7 +214,7 @@ Deno.test('RenderContext', async (t) => {
     })
 
     await t.step('should handle empty files map', () => {
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
@@ -200,7 +223,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -211,13 +234,9 @@ Deno.test('RenderContext', async (t) => {
     })
 
     await t.step('should resolve paths with basePath', () => {
-      const file = createFileWithDefinition(
-        'models/User.ts',
-        'User',
-        'export interface User {}',
-      )
+      const file = createFileWithDefinition('models/User.ts', 'User', 'export interface User {}')
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('models/User.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -228,23 +247,20 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: './src/generated',
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
       const result = context.collate(stackTrail)
 
       // Path should be resolved with basePath
-      assertEquals(
-        result.files['src/generated/models/User.ts']?.destinationPath,
-        'models/User.ts',
-      )
+      assertEquals(result.files['src/generated/models/User.ts']?.destinationPath, 'models/User.ts')
     })
 
     await t.step('should calculate line count correctly', () => {
       const file = createFileWithDefinition('test.ts', 'test', 'line1\nline2\nline3')
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('test.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -255,7 +271,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -269,7 +285,7 @@ Deno.test('RenderContext', async (t) => {
       const content = 'const x = 1;'
       const file = createFileWithDefinition('test.ts', 'x', content)
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('test.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -280,7 +296,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -292,7 +308,7 @@ Deno.test('RenderContext', async (t) => {
     await t.step('should call captureCurrentResult for each file', () => {
       const file = createFileWithDefinition('test.ts', 'x', 'const x = 1;')
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('test.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -304,7 +320,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult: captureSpy,
+        captureCurrentResult: captureSpy
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -316,10 +332,10 @@ Deno.test('RenderContext', async (t) => {
     await t.step('should handle JsonFile', () => {
       const jsonFile = new JsonFile({
         path: 'config.json',
-        content: { key: 'value', nested: { foo: 'bar' } },
+        content: { key: 'value', nested: { foo: 'bar' } }
       })
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('config.json', jsonFile)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -330,7 +346,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -341,14 +357,14 @@ Deno.test('RenderContext', async (t) => {
     })
   })
 
-  await t.step('getFile() method', async (t) => {
+  await t.step('getFile() method', async t => {
     await t.step('should retrieve existing file', () => {
-      const file = new File({
+      const file = new TsFile({
         path: 'test.ts',
-        settings: undefined,
+        settings: undefined
       })
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('test.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -359,7 +375,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const retrieved = context.getFile('test.ts')
@@ -367,12 +383,12 @@ Deno.test('RenderContext', async (t) => {
     })
 
     await t.step('should normalize paths', () => {
-      const file = new File({
+      const file = new TsFile({
         path: 'models/User.ts',
-        settings: undefined,
+        settings: undefined
       })
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('models/User.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -383,7 +399,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       // All these should work due to normalization
@@ -395,7 +411,7 @@ Deno.test('RenderContext', async (t) => {
     })
 
     await t.step('should throw error when file not found', () => {
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
@@ -404,18 +420,18 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       assertThrows(
         () => context.getFile('nonexistent.ts'),
         Error,
-        'File not found during render phase: nonexistent.ts',
+        'File not found during render phase: nonexistent.ts'
       )
     })
 
     await t.step('should include normalized path in error message', () => {
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
@@ -424,36 +440,32 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
-      assertThrows(
-        () => context.getFile('./path/to/file.ts'),
-        Error,
-        'path/to/file.ts',
-      )
+      assertThrows(() => context.getFile('./path/to/file.ts'), Error, 'path/to/file.ts')
     })
   })
 
-  await t.step('pick() method', async (t) => {
+  await t.step('pick() method', async t => {
     await t.step('should pick definition from File', () => {
-      const file = new File({
+      const file = new TsFile({
         path: 'types.ts',
-        settings: undefined,
+        settings: undefined
       })
 
-      const userDefinition = new Definition({
+      const userDefinition = new TsDefinition({
         context: toGenerateContext(),
-        identifier: Identifier.createType('User'),
+        identifier: createType('User'),
         value: {
           generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
-          toString: () => 'export interface User { id: string; }',
-        },
+          toString: () => 'export interface User { id: string; }'
+        }
       })
 
       file.definitions.set('User', userDefinition)
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, FileBase>()
       files.set('types.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -464,24 +476,24 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const picked = context.pick({
         name: 'User',
-        exportPath: 'types.ts',
+        exportPath: 'types.ts'
       })
 
       assertEquals(picked, userDefinition)
     })
 
     await t.step('should return undefined when definition not found', () => {
-      const file = new File({
+      const file = new TsFile({
         path: 'types.ts',
-        settings: undefined,
+        settings: undefined
       })
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, FileBase>()
       files.set('types.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -492,19 +504,19 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const picked = context.pick({
         name: 'NonExistent',
-        exportPath: 'types.ts',
+        exportPath: 'types.ts'
       })
 
       assertEquals(picked, undefined)
     })
 
     await t.step('should throw error when file not found', () => {
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
@@ -513,27 +525,27 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       assertThrows(
         () =>
           context.pick({
             name: 'User',
-            exportPath: 'nonexistent.ts',
+            exportPath: 'nonexistent.ts'
           }),
         Error,
-        'File not found during render phase',
+        'File not found during render phase'
       )
     })
 
     await t.step('should throw error when file is JsonFile', () => {
       const jsonFile = new JsonFile({
         path: 'config.json',
-        content: { key: 'value' },
+        content: { key: 'value' }
       })
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('config.json', jsonFile)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -544,38 +556,38 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       assertThrows(
         () =>
           context.pick({
             name: 'Something',
-            exportPath: 'config.json',
+            exportPath: 'config.json'
           }),
         Error,
-        'File at "config.json" is not a "File" type',
+        'File at "config.json" is not a code file'
       )
     })
 
     await t.step('should work with normalized paths', () => {
-      const file = new File({
+      const file = new TsFile({
         path: 'models/User.ts',
-        settings: undefined,
+        settings: undefined
       })
 
-      const userDefinition = new Definition({
+      const userDefinition = new TsDefinition({
         context: toGenerateContext(),
-        identifier: Identifier.createType('User'),
+        identifier: createType('User'),
         value: {
           generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
-          toString: () => 'export interface User {}',
-        },
+          toString: () => 'export interface User {}'
+        }
       })
 
       file.definitions.set('User', userDefinition)
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, FileBase>()
       files.set('models/User.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -586,18 +598,18 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       // Should work with both normalized and non-normalized paths
       const picked1 = context.pick({
         name: 'User',
-        exportPath: 'models/User.ts',
+        exportPath: 'models/User.ts'
       })
 
       const picked2 = context.pick({
         name: 'User',
-        exportPath: './models/User.ts',
+        exportPath: './models/User.ts'
       })
 
       assertEquals(picked1, userDefinition)
@@ -605,20 +617,20 @@ Deno.test('RenderContext', async (t) => {
     })
   })
 
-  await t.step('integration tests', async (t) => {
+  await t.step('integration tests', async t => {
     await t.step('should handle complete render pipeline', () => {
       const file1 = createFileWithDefinition(
         'models/User.ts',
         'User',
-        'export interface User { id: string; name: string; }',
+        'export interface User { id: string; name: string; }'
       )
       const file2 = createFileWithDefinition(
         'models/Post.ts',
         'Post',
-        'export interface Post { id: string; title: string; }',
+        'export interface Post { id: string; title: string; }'
       )
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('models/User.ts', file1)
       files.set('models/Post.ts', file2)
 
@@ -632,7 +644,7 @@ Deno.test('RenderContext', async (t) => {
         mappings,
         basePath: './src/generated',
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])
@@ -657,12 +669,12 @@ Deno.test('RenderContext', async (t) => {
         content: {
           compilerOptions: {
             target: 'ES2020',
-            module: 'ESNext',
-          },
-        },
+            module: 'ESNext'
+          }
+        }
       })
 
-      const files = new Map<string, File | JsonFile>()
+      const files = new Map<string, TsFile | JsonFile>()
       files.set('index.ts', tsFile)
       files.set('tsconfig.json', jsonFile)
 
@@ -674,7 +686,7 @@ Deno.test('RenderContext', async (t) => {
         mappings: {},
         basePath: undefined,
         logger: mockLogger,
-        captureCurrentResult,
+        captureCurrentResult
       })
 
       const stackTrail = new StackTrail(['TEST'])

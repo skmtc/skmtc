@@ -28,7 +28,12 @@ const createTestContext = (): ParseContextType =>
       remove: () => {},
       clone: () => ({ append: () => {}, remove: () => {}, clone: () => ({}) })
     },
-    documentObject: {} as any
+    documentObject: {} as any,
+    attribution: undefined,
+    currentStackTrail: undefined,
+    withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
+      return fn()
+    }
   }) as unknown as ParseContextType
 
 Deno.test('toSchemasV3', async t => {

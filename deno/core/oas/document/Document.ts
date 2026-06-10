@@ -48,10 +48,49 @@ export type DocumentFields = {
  * ## Key Features
  *
  * - **Normalized Structure**: Operations are flattened from nested paths for easier processing
- * - **Lazy Initialization**: Fields are set after construction during parsing
+ * - **Lazy Initialization**: Fields are set after construction during parsing — see
+ *   "Why empty-at-construction" below for the architectural reason.
  * - **Type Safety**: All properties are typed and validated on access
  * - **Extensibility**: Supports OpenAPI extension fields (x-* properties)
  * - **JSON Serialization**: Can be converted back to standard OpenAPI JSON format
+ *
+ * ## Why empty-at-construction (forward-declared refs)
+ *
+ * `OasDocument` is intentionally constructable without fields, with
+ * `oasDocument.fields = ...` assigned later by the parser. This is not a
+ * convenience for tests — it's load-bearing for ref resolution.
+ *
+ * `OasRef` resolves through an `OasDocument` instance (by reaching into its
+ * `components.schemas` etc.). During parsing, refs are encountered *before*
+ * the targets they point at have been parsed:
+ *
+ *   1. The parser walks `paths./users.get.responses.200.content...schema` and
+ *      sees `$ref: '#/components/schemas/User'`.
+ *   2. It constructs an `OasRef` that resolves through the in-flight
+ *      `oasDocument` — but at this moment `oasDocument.components.schemas`
+ *      hasn't been populated yet (components are parsed in a later pass, or
+ *      the same pass at a different node).
+ *   3. The ref must still be constructable now; resolution can wait.
+ *
+ * By creating an empty `OasDocument` in `ParseContext`'s constructor and
+ * filling its fields after the walk completes, every `OasRef` constructed
+ * during parsing points at the *same instance*. Once `parse()` finishes and
+ * sets `oasDocument.fields`, every previously-issued ref becomes resolvable
+ * retroactively. If `OasDocument` were a value object populated at
+ * construction time, refs couldn't exist until every component had been
+ * parsed — but the components can't be parsed until the refs that point into
+ * them are constructable. Chicken-and-egg.
+ *
+ * The same pattern recurs in `GqlRegistry.#refDocument`: an empty
+ * `OasDocument` mirror that `createRef()` hands out refs against, populated
+ * as types are registered. If you find yourself reaching for the same trick
+ * elsewhere, that's the pattern.
+ *
+ * Consequence for code touching `OasDocument`: accessors throw when `#fields`
+ * is unset, on the assumption that no production code reads the document
+ * outside the parse flow. Test code that needs to inspect mid-parse state
+ * should call `parse()` first; defensive callers (e.g. `removeItem`) should
+ * either parse-then-inspect or check the field's setness.
  *
  * @example Basic document access
  * ```typescript

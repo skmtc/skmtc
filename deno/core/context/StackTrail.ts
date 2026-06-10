@@ -1,4 +1,5 @@
 import { componentsKeys } from '@/oas/components/Components.ts'
+import { toJsonPointer, type JsonPointer } from '@/types/JsonPointer.ts'
 
 export class StackTrail {
   /** Internal stack of traversal frames */
@@ -6,6 +7,21 @@ export class StackTrail {
 
   constructor(stack: string[] = []) {
     this.#stack = stack
+  }
+
+  /**
+   * The canonical empty trail — used for nodes that were synthesized
+   * programmatically rather than parsed from a source document (they
+   * have no position). Distinct from any parsed position: no parsed
+   * `OasBase` node ever sits at the empty trail.
+   */
+  static empty(): StackTrail {
+    return new StackTrail([])
+  }
+
+  /** True when the trail holds no frames (a synthetic / positionless node). */
+  isEmpty(): boolean {
+    return this.#stack.length === 0
   }
 
   /**
@@ -135,6 +151,78 @@ export class StackTrail {
    * console.log(ref); // undefined
    * ```
    */
+  /**
+   * Converts the trail to an RFC 6901 JSON Pointer (URI fragment form).
+   *
+   * Unlike {@link toStackRef}, this works for *any* visitor path — not
+   * just components-rooted references. Used by the gen-maps system to
+   * attach a `location` field to every parsed OAS schema, recording
+   * exactly where in the document the schema lives.
+   *
+   * Special characters in stack frames (`/`, `~`) are escaped per
+   * RFC 6901.
+   *
+   * @returns A JSON Pointer string starting with `#/`
+   *
+   * @example Components-rooted
+   * ```typescript
+   * const trail = new StackTrail(['components', 'schemas', 'User'])
+   * trail.toJsonPointer() // '#/components/schemas/User'
+   * ```
+   *
+   * @example Path-rooted (escapes slashes in path segments)
+   * ```typescript
+   * const trail = new StackTrail(['paths', '/users/{id}', 'get'])
+   * trail.toJsonPointer() // '#/paths/~1users~1{id}/get'
+   * ```
+   */
+  toJsonPointer(): JsonPointer {
+    return toJsonPointer(this.#stack)
+  }
+
+  /**
+   * The **document-relative** JSON Pointer for a parsed node, with the
+   * run's operational prefix stripped — the resolvable form used as a
+   * schema pointer in gen-maps.
+   *
+   * A parsed node's trail is seeded with operational frames before any
+   * document traversal: the worker pushes `[traceId, spanId]` and
+   * `CoreContext.toArtifacts` wraps each phase in `.trace('parse', …)` /
+   * `.trace('generate', …)` etc. The document path
+   * (`components/schemas/Pet/properties/name`) is appended on top. Unlike
+   * {@link toJsonPointer} — which serializes the *whole* trail and so does
+   * NOT resolve against the input document — this drops everything up to
+   * and including the phase frame, leaving only the document-relative path.
+   *
+   * Protocol-agnostic: the remaining frames are the input document's own
+   * keys (`components`, `paths`, … for OAS), never an `oas:`/`gql:` scheme.
+   *
+   * Falls back to the full trail when no phase frame is present (a trail
+   * seeded empty — e.g. in tests — is already document-relative). Returns
+   * `#/` (document root) for the empty trail.
+   *
+   * @example
+   * ```typescript
+   * new StackTrail(['trace-1', 'span-1', 'parse', 'components', 'schemas', 'Pet'])
+   *   .toSchemaPointer() // '#/components/schemas/Pet'
+   *
+   * new StackTrail(['components', 'schemas', 'User']) // already doc-relative
+   *   .toSchemaPointer() // '#/components/schemas/User'
+   * ```
+   */
+  toSchemaPointer(): JsonPointer {
+    // Phase frames seeded by `CoreContext.toArtifacts` (PhaseType plus the
+    // `post-pass` trace). The operational phase always sits before any
+    // document key, so the FIRST match is the boundary — a document key
+    // that happens to share a phase name (e.g. a schema literally named
+    // `parse`) appears later and is unaffected.
+    const phaseFrames = new Set(['parse', 'generate', 'render', 'post-pass'])
+    const phaseIndex = this.#stack.findIndex(frame => phaseFrames.has(frame))
+    const documentFrames = phaseIndex === -1 ? this.#stack : this.#stack.slice(phaseIndex + 1)
+
+    return toJsonPointer(documentFrames)
+  }
+
   toStackRef(): string | undefined {
     const [first, second, third] = this.stackTrail
 

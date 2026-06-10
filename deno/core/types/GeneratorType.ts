@@ -1,134 +1,71 @@
-import type { OperationConfig } from '../dsl/operation/types.ts'
-import type { ModelConfig } from '../dsl/model/types.ts'
+import type { OasOperationConfig } from '@/dsl/operation/oas/types.ts'
+import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
+import type { ModelConfig } from '@/dsl/model/types.ts'
 
 /**
- * Union type representing all possible generator configurations.
- * 
- * Generator configurations define how different types of generators should
- * process OpenAPI documents. This includes both operation generators (which
- * process API endpoints) and model generators (which process data schemas).
- * 
+ * Discriminated union of every generator configuration the dispatcher
+ * recognizes. The `type` field discriminates the variant — `'oasOperation'`
+ * for HTTP-flavored operation generators, `'gqlOperation'` for GraphQL
+ * operation generators, `'model'` for protocol-neutral model generators.
+ *
+ * Operation variants are routed only to the matching document protocol; a
+ * `'oasOperation'` config is silently skipped on a GraphQL document and
+ * vice versa. Model generators run against either protocol's registry.
+ *
  * @template EnrichmentType - Optional type for custom enrichment data
- * 
- * @example
+ *
+ * @example OAS operation generator
  * ```typescript
- * import { GeneratorConfig } from '@skmtc/core';
- * 
- * // Operation generator configuration
- * const apiClientConfig: GeneratorConfig = {
- *   type: 'operation',
- *   generatorId: 'api-client',
- *   settings: {
- *     exportPath: './src/api/client.ts',
- *     enrichment: customEnrichments
- *   },
- *   toGenerator: (args) => new ApiClientGenerator(args)
- * };
- * 
- * // Model generator configuration
- * const typescriptModels: GeneratorConfig = {
- *   type: 'model', 
- *   generatorId: 'typescript-models',
- *   settings: {
- *     exportPath: './src/types/models.ts'
- *   },
- *   toGenerator: (args) => new TypeScriptModelGenerator(args)
- * };
+ * import { toOasOperationEntry } from '@skmtc/core';
+ *
+ * const apiClientEntry = toOasOperationEntry({
+ *   id: 'api-client',
+ *   transform: ({ context, operation }) => {},
+ *   isSupported: ({ operation }) => operation.method === 'get'
+ * });
+ * // apiClientEntry.type === 'oasOperation'
+ * ```
+ *
+ * @example GraphQL operation generator
+ * ```typescript
+ * import { toGqlOperationEntry } from '@skmtc/core';
+ *
+ * const gqlEntry = toGqlOperationEntry({
+ *   id: 'gql-client',
+ *   transform: ({ context, operation }) => {}
+ * });
+ * // gqlEntry.type === 'gqlOperation'
+ * ```
+ *
+ * @example Model generator
+ * ```typescript
+ * import { toModelEntry } from '@skmtc/core';
+ *
+ * const modelEntry = toModelEntry({
+ *   id: 'typescript-models',
+ *   transform: ({ context, refName }) => {}
+ * });
+ * // modelEntry.type === 'model'
  * ```
  */
 export type GeneratorConfig<EnrichmentType = undefined> =
-  | OperationConfig<EnrichmentType>
+  | OasOperationConfig<EnrichmentType>
+  | GqlOperationConfig<EnrichmentType>
   | ModelConfig<EnrichmentType>
 
 /**
- * Type-safe mapping of generator configurations.
- * 
- * This type preserves the structure and types of generator configurations
- * within a map, ensuring that each generator maintains its specific
- * configuration type and enrichment data.
- * 
- * @template G - The generator configuration type
- * @template EnrichmentType - The enrichment type for the generators
- * 
- * @example
- * ```typescript
- * type MyGenerators = {
- *   'api-client': OperationConfig<ApiEnrichment>;
- *   'typescript-models': ModelConfig<ModelEnrichment>;
- *   'validation': ModelConfig<ValidationEnrichment>;
- * };
- * 
- * type MyGeneratorsMap = GeneratorsMap<MyGenerators, undefined>;
- * // Preserves the exact structure and types of MyGenerators
- * ```
+ * A name → generator-config map. Keys are arbitrary generator
+ * identifiers (the same string a caller might pass to `--skip` etc.);
+ * each value is a `GeneratorConfig` variant.
+ *
+ * The runtime treats this as a plain `Record<string, GeneratorConfig>`
+ * — it iterates with `Object.values` and `Object.keys` — so the type
+ * mirrors that shape. There is no per-key type narrowing: callers who
+ * want type-level distinctions between specific entries can keep the
+ * literal map well-typed at its definition site and only widen here at
+ * the boundary.
  */
-export type GeneratorsMap<G extends GeneratorConfig<EnrichmentType>, EnrichmentType> = {
-  [K in keyof G]: G[K]
-}
-
-/**
- * Container type for a complete generators map with optional enrichment.
- * 
- * This type represents a complete mapping of generators that can process
- * an OpenAPI document. It's used as the main configuration structure
- * passed to the SKMTC processing pipeline.
- * 
- * @template EnrichmentType - Optional type for custom enrichment data across all generators
- * 
- * @example Basic generators map
- * ```typescript
- * import { GeneratorsMapContainer } from '@skmtc/core';
- * 
- * const generators: GeneratorsMapContainer = {
- *   'api-client': {
- *     type: 'operation',
- *     generatorId: 'api-client',
- *     settings: { exportPath: './src/api.ts' },
- *     toGenerator: (args) => new ApiClientGenerator(args)
- *   },
- *   'typescript-models': {
- *     type: 'model',
- *     generatorId: 'typescript-models', 
- *     settings: { exportPath: './src/models.ts' },
- *     toGenerator: (args) => new TypeScriptModels(args)
- *   }
- * };
- * 
- * // Use with toArtifacts
- * const result = await toArtifacts({
- *   documentObject: openApiDoc,
- *   settings: clientSettings,
- *   toGeneratorConfigMap: () => generators,
- *   traceId: 'generation',
- *   spanId: 'main',
- *   startAt: Date.now()
- * });
- * ```
- * 
- * @example With enrichments
- * ```typescript
- * type MyEnrichments = {
- *   customValidation: boolean;
- *   generateComments: boolean;
- * };
- * 
- * const enrichedGenerators: GeneratorsMapContainer<MyEnrichments> = {
- *   'enhanced-models': {
- *     type: 'model',
- *     generatorId: 'enhanced-models',
- *     settings: {
- *       exportPath: './src/enhanced.ts',
- *       enrichment: {
- *         customValidation: true,
- *         generateComments: true
- *       }
- *     },
- *     toGenerator: (args) => new EnhancedModelGenerator(args)
- *   }
- * };
- * ```
- */
-export type GeneratorsMapContainer<EnrichmentType = undefined> = GeneratorsMap<
-  GeneratorConfig<EnrichmentType>,
-  EnrichmentType
+export type GeneratorsMapContainer<EnrichmentType = undefined> = Record<
+  string,
+  GeneratorConfig<EnrichmentType>
 >

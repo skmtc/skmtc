@@ -1,4 +1,4 @@
-import { mockParseContext } from '@/test/mockParseContext.ts'
+import { mockParseContext, toRefParseContextStub } from '@/test/mockParseContext.ts'
 import type { OpenAPIV3_1 } from 'openapi-types'
 import { toRefV31 } from './toRefV31.ts'
 import { assertEquals } from '@std/assert/equals'
@@ -15,9 +15,12 @@ Deno.test('toRefV31 - basic schema reference', () => {
     operations: []
   })
 
+  const parsedDocument = { type: 'oas', value: mockDocument } as const
+
   const contextWithDocument = {
     ...mockParseContext,
     oasDocument: mockDocument,
+    parsedDocument,
     registerRef: () => {},
     stackTrail: { clone: () => ({ clone: () => ({}) }) }
   }
@@ -26,11 +29,15 @@ Deno.test('toRefV31 - basic schema reference', () => {
     ref,
     refType: 'schema',
     stackTrail,
+    // deno-lint-ignore no-explicit-any
     context: contextWithDocument as any
   })
 
   assertEquals(
     oasRef,
-    new OasRef({ refType: 'schema', $ref: '#/components/schemas/TestSchema' }, mockDocument)
+    new OasRef(
+      { refType: 'schema', $ref: '#/components/schemas/TestSchema' },
+      toRefParseContextStub(parsedDocument)
+    )
   )
 })

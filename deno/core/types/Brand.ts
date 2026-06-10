@@ -93,8 +93,8 @@ declare const brand: unique symbol
  * const schemaRef: RefName = 'User' as RefName;
  * 
  * // GeneratorKey ensures generator identification safety
- * type OperationGeneratorKey = Brand<string, 'OperationGeneratorKey'>;
- * const opKey: OperationGeneratorKey = 'api-client|/users|get' as OperationGeneratorKey;
+ * type OasOperationGeneratorKey = Brand<string, 'OasOperationGeneratorKey'>;
+ * const opKey: OasOperationGeneratorKey = 'api-client|/users|get' as OasOperationGeneratorKey;
  * ```
  * 
  * @example Runtime behavior

@@ -15,9 +15,9 @@ import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '../../helpers/refFns.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
-import invariant from 'tiny-invariant'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToSchemasV3Args = {
+export type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
   stackTrail: StackTrail
   context: ParseContextType
@@ -32,26 +32,23 @@ export const toSchemasV3 = ({
   const entries = Object.entries(schemas)
 
   for (const [key, schema] of entries) {
-    try {
-      output[key] = stackTrail.trace(key, st => toSchemaV3({ schema, stackTrail: st, context }))
-    } catch (error) {
-      invariant(error instanceof Error, 'Invalid error')
-
-      context.logIssue({
-        key,
-        level: 'error',
-        error,
-        parent: schema,
-        stackTrail,
-        type: 'INVALID_SCHEMA'
-      })
+    const value = tryParseAt({
+      stackTrail,
+      key,
+      context,
+      type: 'INVALID_SCHEMA',
+      parent: schema,
+      fn: st => toSchemaV3({ schema, stackTrail: st, context })
+    })
+    if (value !== undefined) {
+      output[key] = value
     }
   }
 
   return output
 }
 
-type ToOptionalSchemasV3Args = {
+export type ToOptionalSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject> | undefined
   stackTrail: StackTrail
   context: ParseContextType
@@ -69,7 +66,7 @@ export const toOptionalSchemasV3 = ({
   return toSchemasV3({ schemas, stackTrail, context })
 }
 
-type ToSchemaV3Args = {
+export type ToSchemaV3Args = {
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
   stackTrail: StackTrail
   context: ParseContextType
@@ -299,7 +296,7 @@ const possibleObject = (value: unknown) => {
   )
 }
 
-type ToOptionalSchemaV3Args = {
+export type ToOptionalSchemaV3Args = {
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject | undefined
   stackTrail: StackTrail
   context: ParseContextType

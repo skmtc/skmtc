@@ -16,7 +16,7 @@ export const toParseContext = () => {
   }
 
   return new ParseContext({
-    documentObject,
+    input: { type: 'oas', value: documentObject },
     logger: new log.Logger('test', 'ERROR'),
     silent: true
   })

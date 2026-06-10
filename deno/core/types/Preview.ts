@@ -1,130 +1,143 @@
 /**
  * @fileoverview Preview and Mapping System for SKMTC Core
- * 
- * This module provides comprehensive types and utilities for creating preview
- * interfaces and mapping configurations for generated code. The preview system
- * enables interactive demonstrations of generated APIs, forms, tables, and
- * other UI components within development tools and documentation.
- * 
- * The mapping system provides metadata about how OpenAPI operations and models
- * translate to generated code, enabling rich tooling experiences and
- * reverse-engineering capabilities.
- * 
- * ## Key Features
- * 
- * - **Interactive Previews**: Rich preview interfaces for generated components
- * - **Source Mapping**: Traceability from generated code back to OpenAPI sources
- * - **UI Grouping**: Organized grouping of related UI components (forms, tables, inputs)
- * - **Generator Integration**: Deep integration with the generator pipeline
- * - **Type Safety**: Comprehensive validation and type safety throughout
- * 
- * @example Creating operation previews
+ *
+ * Types and Valibot schemas for the preview and mapping systems. Generators
+ * may emit a {@link PreviewModule} and/or a {@link MappingModule} per
+ * operation or model; the dispatcher pairs each module with a `*Source`
+ * descriptor so tooling can trace generated code back to its origin in the
+ * source schema.
+ *
+ * ## Source descriptors
+ *
+ * The `source` discriminated union narrows on `type`:
+ *
+ * - `oasOperation` — carries `operationPath` and `operationMethod` (HTTP)
+ * - `gqlOperation` — carries `rootKind` and `fieldName` (GraphQL)
+ * - `model` — carries `refName` (protocol-neutral)
+ *
+ * @example Building an OAS operation source
  * ```typescript
- * import type { PreviewModule, OperationSource } from '@skmtc/core/Preview';
- * 
- * const operationSource: OperationSource = {
- *   type: 'operation',
+ * import type { OasOperationSource } from '@skmtc/core/Preview';
+ *
+ * const source: OasOperationSource = {
+ *   type: 'oasOperation',
  *   generatorId: 'react-forms',
  *   operationPath: '/users',
- *   operationMethod: 'POST'
- * };
- * 
- * const preview: PreviewModule = {
- *   title: 'Create User Form',
- *   description: 'Interactive form for creating new users',
- *   group: 'forms',
- *   source: operationSource,
- *   moduleName: 'CreateUserForm',
- *   exportName: 'default'
+ *   operationMethod: 'post'
  * };
  * ```
- * 
- * @example Creating model previews
+ *
+ * @example Building a GraphQL operation source
  * ```typescript
- * import type { PreviewModule, ModelSource } from '@skmtc/core/Preview';
- * 
- * const modelSource: ModelSource = {
+ * import type { GqlOperationSource } from '@skmtc/core/Preview';
+ *
+ * const source: GqlOperationSource = {
+ *   type: 'gqlOperation',
+ *   generatorId: 'react-forms',
+ *   rootKind: 'mutation',
+ *   fieldName: 'createUser'
+ * };
+ * ```
+ *
+ * @example Building a model source
+ * ```typescript
+ * import type { ModelSource } from '@skmtc/core/Preview';
+ *
+ * const source: ModelSource = {
  *   type: 'model',
  *   generatorId: 'typescript-types',
- *   refName: 'User'
- * };
- * 
- * const preview: PreviewModule = {
- *   title: 'User Type Definition',
- *   description: 'TypeScript interface for User model',
- *   group: 'tables',
- *   source: modelSource,
- *   moduleName: 'UserTypes',
- *   exportName: 'User'
+ *   refName: 'User',
+ *   variant: 'main'
  * };
  * ```
- * 
- * @example Working with mappings
+ *
+ * @example Pairing a module with a source
  * ```typescript
- * import type { MappingModule } from '@skmtc/core/Preview';
- * 
- * const mapping: MappingModule = {
- *   source: operationSource,
- *   moduleName: 'UserApi',
- *   exportName: 'createUser',
- *   generatedPath: './src/generated/UserApi.ts'
+ * import type { Preview, PreviewModule } from '@skmtc/core/Preview';
+ *
+ * const module: PreviewModule = {
+ *   name: 'CreateUserForm',
+ *   exportPath: './generated/forms/CreateUserForm.tsx',
+ *   group: 'forms'
  * };
+ *
+ * const preview: Preview = { module, source };
  * ```
- * 
+ *
  * @module Preview
  */
 
 import { method, type Method } from './Method.ts'
+import type { GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import * as v from 'valibot'
 
-export type OperationSource = {
-  type: 'operation'
+export type OasOperationSource = {
+  type: 'oasOperation'
   generatorId: string
   operationPath: string
   operationMethod: Method
+  /**
+   * Operation variant the artifact was emitted for. `'main'` for
+   * variants-unaware generators and for single-variant projects; one
+   * of the consumer-named variant keys otherwise (see {@link Variant}).
+   */
+  variant: string
+}
+
+export type GqlOperationSource = {
+  type: 'gqlOperation'
+  generatorId: string
+  rootKind: GqlRootKind
+  fieldName: string
+  /**
+   * Operation variant the artifact was emitted for (see {@link Variant}).
+   */
+  variant: string
 }
 
 export type ModelSource = {
   type: 'model'
   generatorId: string
   refName: string
+  /**
+   * Model variant the artifact was emitted for. `'main'` for
+   * variants-unaware generators and for single-variant projects; one
+   * of the consumer-named variant keys otherwise (see {@link Variant}).
+   */
+  variant: string
 }
-
-export type PreviewGroup = 'forms' | 'tables' | 'inputs'
 
 export type PreviewModule = {
   name: string
   exportPath: string
-  group: PreviewGroup
 }
 
 export type MappingModule = {
   name: string
   exportPath: string
-  group: PreviewGroup
-  itemType: 'input' | 'formatter'
   schema: string
 }
 
 export type Preview = {
   module: PreviewModule
-  source: OperationSource | ModelSource
+  source: OasOperationSource | GqlOperationSource | ModelSource
 }
 
 export type Mapping = {
   module: MappingModule
-  source: OperationSource | ModelSource
+  source: OasOperationSource | GqlOperationSource | ModelSource
 }
 
 /**
- * Valibot schema for validating operation source objects.
- * 
- * Validates operation source structures including type, generator ID,
- * operation path, and HTTP method information.
+ * Valibot schema for validating OAS operation source objects.
+ *
+ * Validates the `oasOperation` source variant — type, generator ID,
+ * operation path, and HTTP method. See {@link gqlOperationSource} for the
+ * GraphQL counterpart.
  */
-export const operationSource: v.ObjectSchema<
+export const oasOperationSource: v.ObjectSchema<
   {
-    readonly type: v.LiteralSchema<'operation', undefined>
+    readonly type: v.LiteralSchema<'oasOperation', undefined>
     readonly generatorId: v.StringSchema<undefined>
     readonly operationPath: v.StringSchema<undefined>
     readonly operationMethod: v.UnionSchema<
@@ -140,18 +153,43 @@ export const operationSource: v.ObjectSchema<
       ],
       undefined
     >
+    readonly variant: v.StringSchema<undefined>
   },
   undefined
 > = v.object({
-  type: v.literal('operation'),
+  type: v.literal('oasOperation'),
   generatorId: v.string(),
   operationPath: v.string(),
-  operationMethod: method
+  operationMethod: method,
+  variant: v.string()
+})
+
+/**
+ * Valibot schema for validating GraphQL operation source objects.
+ *
+ * Sibling to {@link oasOperationSource} for the GraphQL protocol — validates
+ * `rootKind` and `fieldName` instead of `path` / `method`.
+ */
+export const gqlOperationSource: v.ObjectSchema<
+  {
+    readonly type: v.LiteralSchema<'gqlOperation', undefined>
+    readonly generatorId: v.StringSchema<undefined>
+    readonly rootKind: v.PicklistSchema<['query', 'mutation', 'subscription'], undefined>
+    readonly fieldName: v.StringSchema<undefined>
+    readonly variant: v.StringSchema<undefined>
+  },
+  undefined
+> = v.object({
+  type: v.literal('gqlOperation'),
+  generatorId: v.string(),
+  rootKind: v.picklist(['query', 'mutation', 'subscription']),
+  fieldName: v.string(),
+  variant: v.string()
 })
 
 /**
  * Valibot schema for validating model source objects.
- * 
+ *
  * Validates model source structures including type, generator ID,
  * and reference name information.
  */
@@ -160,51 +198,47 @@ export const modelSource: v.ObjectSchema<
     readonly type: v.LiteralSchema<'model', undefined>
     readonly generatorId: v.StringSchema<undefined>
     readonly refName: v.StringSchema<undefined>
+    readonly variant: v.StringSchema<undefined>
   },
   undefined
 > = v.object({
   type: v.literal('model'),
   generatorId: v.string(),
-  refName: v.string()
+  refName: v.string(),
+  variant: v.string()
 })
 
 /**
- * Valibot schema for validating preview group values.
- * 
- * Validates preview group categories for UI organization.
- */
-export const previewGroup: v.GenericSchema<PreviewGroup> = v.picklist(['forms', 'tables', 'inputs'])
-
-/**
  * Valibot schema for validating preview module objects.
- * 
- * Validates preview module structures including group, title, and description.
+ *
+ * Validates preview module structures: name, export path, and group.
  */
 export const previewModule: v.GenericSchema<PreviewModule> = v.object({
   name: v.string(),
-  exportPath: v.string(),
-  group: previewGroup
+  exportPath: v.string()
 })
 
 /**
  * Valibot schema for validating mapping module objects.
- * 
- * Validates mapping module structures for file relationship tracking.
+ *
+ * Validates mapping module structures: name, export path, group, item type
+ * (`'input'` | `'formatter'`), and schema reference.
  */
 export const mappingModule: v.GenericSchema<MappingModule> = v.object({
   name: v.string(),
   exportPath: v.string(),
-  group: previewGroup,
-  itemType: v.picklist(['input', 'formatter']),
   schema: v.string()
 })
 
-const source: v.VariantSchema<'type', [typeof operationSource, typeof modelSource], undefined> =
-  v.variant('type', [operationSource, modelSource])
+const source: v.VariantSchema<
+  'type',
+  [typeof oasOperationSource, typeof gqlOperationSource, typeof modelSource],
+  undefined
+> = v.variant('type', [oasOperationSource, gqlOperationSource, modelSource])
 
 /**
  * Valibot schema for validating preview objects.
- * 
+ *
  * Validates complete preview structures including module and source information.
  */
 export const preview: v.GenericSchema<Preview> = v.object({
@@ -214,7 +248,7 @@ export const preview: v.GenericSchema<Preview> = v.object({
 
 /**
  * Valibot schema for validating mapping objects.
- * 
+ *
  * Validates complete mapping structures including module and source information.
  */
 export const mapping: v.GenericSchema<Mapping> = v.object({

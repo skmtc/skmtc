@@ -1,6 +1,8 @@
 import type { OasRef } from '../ref/Ref.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 /**
  * Constructor fields for {@link OasInteger}.
  *
@@ -41,7 +43,7 @@ export type IntegerFields<Nullable extends boolean | undefined> = {
   deprecated?: boolean
 }
 
-export class OasInteger<Nullable extends boolean | undefined = boolean | undefined> {
+export class OasInteger<Nullable extends boolean | undefined = boolean | undefined> extends OasBase {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -113,7 +115,8 @@ export class OasInteger<Nullable extends boolean | undefined = boolean | undefin
    * Whether the integer is deprecated.
    */
   deprecated: boolean | undefined
-  constructor(fields: IntegerFields<Nullable> = {}) {
+  constructor(fields: IntegerFields<Nullable> = {}, context?: ParseContextType) {
+    super(context)
     this.title = fields.title
     this.description = fields.description
     this.nullable = fields.nullable

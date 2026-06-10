@@ -1,36 +1,77 @@
-import type { PrettierConfigType } from '@/types/PrettierConfig.ts'
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { FilesRenderResult, RenderResult } from './generateTypes.ts'
 import { normalize } from '@std/path/normalize'
-import type { Definition } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { PickArgs } from './generateTypes.ts'
 import type { ResultType } from '@/types/Results.ts'
 import { toResolvedArtifactPath } from '@/helpers/toResolvedArtifactPath.ts'
 import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
-import { File } from '@/dsl/File.ts'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
+import type { FileBase } from '@/dsl/FileBase.ts'
 import type { Preview, Mapping } from '@/types/Preview.ts'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { StackTrail } from './StackTrail.ts'
+import { CaptureSink, type CaptureChannel } from '@/anchors/CaptureSink.ts'
+import { postPass } from '@/anchors/postPass.ts'
+import { entriesForSidecar } from '@/anchors/generationMap.ts'
+import type { GenerationMapEntry } from '@/anchors/generationMap.ts'
+import type { AttributionState } from '@/types/AttributionState.ts'
+import type { Sidecar } from '@/anchors/sidecar.ts'
+import type { Span } from '@/anchors/types.ts'
+
+/**
+ * One file's render output retained for the attribution post-pass:
+ * the file's own path, the rendered text, and the byte spans the
+ * `CaptureSink` resolved. Populated by {@link RenderContext.collate}
+ * during the single capture render, consumed by {@link RenderContext.render}.
+ */
+type FileCapture = {
+  destinationPath: string
+  filePath: string
+  source: string
+  spans: Span[]
+}
+
+/**
+ * Result of the render phase: artifacts + file metadata + previews +
+ * mappings, plus the attribution sidecars / generation-map when the run
+ * configured `attribution.postPass`.
+ */
+type RenderPhaseResult = Omit<RenderResult, 'results'> & {
+  sidecars?: Record<string, Sidecar>
+  generationMap?: GenerationMapEntry[]
+}
 
 /**
  * Constructor arguments for {@link RenderContext}.
  */
 type ConstructorArgs = {
   /** Map of generated files to render */
-  files: Map<string, File | JsonFile>
+  files: Map<string, FileBase>
   /** Preview data for generated content */
-  previews: Record<string, Record<string, Preview>>
+  previews: Record<string, Preview>
   /** Mapping data for file relationships */
-  mappings: Record<string, Record<string, Mapping>>
-  /** Optional formatter configuration (using Prettier format for compatibility) */
-  prettierConfig?: PrettierConfigType
+  mappings: Record<string, Mapping>
   /** Base path for resolving file paths */
   basePath: string | undefined
   /** Logger instance for debug information */
   logger: log.Logger
   /** Function to capture result status */
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
+  /**
+   * Attribution (gen-maps) emission config. When `postPass` is set, the
+   * single render pass also captures the producer occurrence tree and
+   * emits sidecars + a generation map. Capture is skipped entirely when
+   * absent — plain render, the capture interval never opens.
+   */
+  attribution?: AttributionState
+  /**
+   * Shared attribution capture channel — the same object the run's
+   * `GenerateContext` holds, so snippets see the sink this context
+   * publishes during the capturing render. Wired by `CoreContext`.
+   */
+  captureChannel?: CaptureChannel
 }
 
 /**
@@ -71,19 +112,39 @@ type RenderOutput = {
 
 export class RenderContext {
   /** Map of generated files to render */
-  files: Map<string, File | JsonFile>
+  files: Map<string, FileBase>
   /** Preview data for generated content */
-  previews: Record<string, Record<string, Preview>>
+  previews: Record<string, Preview>
   /** Mapping data for file relationships */
-  mappings: Record<string, Record<string, Mapping>>
-  /** Optional formatter configuration (using Prettier format for compatibility) */
-  #prettierConfig?: PrettierConfigType
+  mappings: Record<string, Mapping>
   /** Base path for resolving file paths */
   basePath: string | undefined
   /** Logger instance for debug information */
   logger: Logger
   /** Function to capture result status */
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
+  /** Attribution (gen-maps) emission config; see {@link ConstructorArgs}. */
+  attribution: AttributionState | undefined
+  /**
+   * Shared attribution capture channel — the same object the
+   * `GenerateContext` exposes to snippets as `captureSink`. `render` opens
+   * the capture interval by setting `channel.sink` and closes it in
+   * `finally`. Optional: a capturing render without a channel records no
+   * occurrences (snippets read their own context's channel).
+   */
+  #captureChannel: CaptureChannel | undefined
+
+  /**
+   * Active capture sink for the in-progress render pass, or `undefined`
+   * when rendering without attribution. `collate` checks this to decide
+   * whether to capture; set + cleared by `render`.
+   */
+  #sink: CaptureSink | undefined
+  /**
+   * Per-file render output retained during a capturing render, consumed
+   * by `render` to build sidecars. Reset each capturing render.
+   */
+  #captures: FileCapture[] = []
 
   /**
    * Creates a new RenderContext instance with the specified configuration.
@@ -97,26 +158,27 @@ export class RenderContext {
     files,
     previews,
     mappings,
-    prettierConfig,
     basePath,
     logger,
-    captureCurrentResult
+    captureCurrentResult,
+    attribution,
+    captureChannel
   }: ConstructorArgs) {
     this.files = files
     this.previews = previews
     this.mappings = mappings
-    this.#prettierConfig = prettierConfig
     this.basePath = basePath
     this.logger = logger
     this.captureCurrentResult = captureCurrentResult
+    this.attribution = attribution
+    this.#captureChannel = captureChannel
   }
 
   /**
-   * Renders all files in the context to their final formatted form.
+   * Renders all files in the context to their final form.
    *
-   * This is the main rendering method that orchestrates the collation and
-   * formatting of all generated files. It processes files through Biome
-   * formatting (if configured), resolves paths, and produces the final
+   * This is the main rendering method that orchestrates the collation of
+   * all generated files. It resolves paths and produces the final
    * artifacts ready for writing to the filesystem.
    *
    * @returns Promise resolving to render result containing artifacts, file metadata, previews, and mappings
@@ -127,7 +189,6 @@ export class RenderContext {
    *   files: generatedFiles,
    *   previews: previewData,
    *   mappings: mappingData,
-   *   prettierConfig: { semi: false, singleQuote: true },
    *   basePath: './src/generated',
    *   stackTrail: traceStack,
    *   logger: logger,
@@ -142,28 +203,82 @@ export class RenderContext {
    * });
    * ```
    */
-  render(stackTrail: StackTrail): Omit<RenderResult, 'results'> {
-    const result = this.collate(stackTrail)
+  render(stackTrail: StackTrail): RenderPhaseResult {
+    const postPassConfig = this.attribution?.postPass
 
-    const rendered: Omit<RenderResult, 'results'> = {
+    // No emission configured → plain render, no capture: the capture
+    // interval never opens, so every snippet's `toString` wrapper takes
+    // the pass-through path.
+    if (!postPassConfig) {
+      const result = this.collate(stackTrail)
+      return {
+        artifacts: result.artifacts,
+        files: result.files,
+        previews: this.previews,
+        mappings: this.mappings
+      }
+    }
+
+    // Capturing render: open the capture interval by publishing a sink on
+    // the shared channel for the single `collate` walk, and close it in
+    // `finally`. Snippets' self-installed `toString` wrappers observe into
+    // the sink; `collate` routes each File's render through it.
+    const sink = new CaptureSink()
+    this.#sink = sink
+    this.#captures = []
+    if (this.#captureChannel) {
+      this.#captureChannel.sink = sink
+    }
+
+    let result: FilesRenderResult
+    try {
+      result = this.collate(stackTrail)
+    } finally {
+      if (this.#captureChannel) {
+        this.#captureChannel.sink = undefined
+      }
+      this.#sink = undefined
+    }
+
+    // Build one sidecar per captured File from the spans the sink
+    // resolved (no re-render, no `toString`). Keyed by destination path,
+    // matching the file map. Accumulate the flat generation map.
+    const { parser, schemaSrc, generatorMeta } = postPassConfig
+    const sidecars: Record<string, Sidecar> = {}
+    const generationMap: GenerationMapEntry[] = []
+    for (const capture of this.#captures) {
+      const sidecar = postPass({
+        filePath: capture.filePath,
+        source: capture.source,
+        spans: capture.spans,
+        schemaSrc,
+        parser,
+        generatorMeta
+      })
+      sidecars[capture.destinationPath] = sidecar
+      generationMap.push(...entriesForSidecar(sidecar))
+    }
+    this.#captures = []
+
+    return {
       artifacts: result.artifacts,
       files: result.files,
       previews: this.previews,
-      mappings: this.mappings
+      mappings: this.mappings,
+      sidecars,
+      generationMap
     }
-
-    return rendered
   }
 
   /**
    * Collates all files in the context into a unified render result.
    *
    * This method processes each file in the context through the rendering pipeline,
-   * applying Biome formatting and path resolution. It coordinates the parallel
-   * processing of all files and aggregates the results into a single output structure.
+   * applying path resolution. It coordinates the parallel processing of all files
+   * and aggregates the results into a single output structure.
    *
    * The collation process includes:
-   * - File content rendering with optional Biome formatting
+   * - File content rendering
    * - Path resolution using base path configuration
    * - Metadata calculation (line count, character count)
    * - Result aggregation into artifacts and file metadata maps
@@ -188,11 +303,29 @@ export class RenderContext {
     const fileObjects: FileObject[] = fileEntries
       .map(([destinationPath, file]) => {
         return stackTrail.trace(destinationPath, st => {
+          // When capturing, route a File's render through the sink so the
+          // occurrence tree + spans are recorded for this one render.
+          // JsonFile (and the non-capturing path) render plainly — the
+          // installed wrapper is inert while the sink is not in a
+          // `captureFile` call.
+          let content: string
+          if (this.#sink && file instanceof CodeFileBase) {
+            const captured = this.#sink.captureFile(() => file.toString())
+            content = captured.text
+            this.#captures.push({
+              destinationPath,
+              filePath: file.path,
+              source: captured.text,
+              spans: captured.spans
+            })
+          } else {
+            content = file.toString()
+          }
+
           const renderedFile: FileObject = renderFile({
-            content: file.toString(),
+            content,
             destinationPath,
-            basePath: this.basePath,
-            prettierConfig: this.#prettierConfig
+            basePath: this.basePath
           })
 
           this.captureCurrentResult('success', st)
@@ -240,12 +373,12 @@ export class RenderContext {
    * const alsoSameFile = renderContext.getFile('/absolute/path/src/models/User.ts');
    * ```
    */
-  getFile(filePath: string): File | JsonFile {
-    const normalisedPath = normalize(filePath)
+  getFile(filePath: string): FileBase {
+    const normalizedPath = normalize(filePath)
 
-    const currentFile = this.files.get(normalisedPath)
+    const currentFile = this.files.get(normalizedPath)
 
-    invariant(currentFile, `File not found during render phase: ${normalisedPath}`)
+    invariant(currentFile, `File not found during render phase: ${normalizedPath}`)
 
     return currentFile
   }
@@ -281,10 +414,10 @@ export class RenderContext {
    * });
    * ```
    */
-  pick({ name, exportPath }: PickArgs): Definition | undefined {
+  pick({ name, exportPath }: PickArgs): DefinitionBase | undefined {
     const file = this.getFile(exportPath)
 
-    invariant(file instanceof File, `File at "${exportPath}" is not a "File" type`)
+    invariant(file instanceof CodeFileBase, `File at "${exportPath}" is not a code file`)
 
     return file.definitions.get(name)
   }
@@ -300,34 +433,30 @@ type RenderFileArgs = {
   destinationPath: string
   /** Optional base path for path resolution */
   basePath?: string
-  /** Optional formatter configuration (using Prettier format for compatibility) */
-  prettierConfig?: PrettierConfigType
 }
 
 /**
- * Renders a single file with formatting and metadata calculation.
+ * Renders a single file with metadata calculation.
  *
  * This function processes a single file through the rendering pipeline,
- * applying Biome formatting if configured and calculating file metadata
- * such as line count and character count. It resolves the final path using
- * the base path configuration.
+ * calculating file metadata such as line count and character count. It
+ * resolves the final path using the base path configuration.
  *
  * @param args - File rendering arguments
- * @returns Promise resolving to a FileObject with content and metadata
+ * @returns A FileObject with content and metadata
  *
  * @example
  * ```typescript
- * const fileObject = await renderFile({
+ * const fileObject = renderFile({
  *   content: 'const x = 1;',
  *   destinationPath: 'utils.ts',
- *   basePath: './src',
- *   prettierConfig: { semi: false }
+ *   basePath: './src'
  * });
  *
  * console.log(fileObject.path); // './src/utils.ts'
- * console.log(fileObject.content); // 'const x = 1' (formatted)
+ * console.log(fileObject.content); // 'const x = 1;'
  * console.log(fileObject.lines); // 1
- * console.log(fileObject.characters); // 11
+ * console.log(fileObject.characters); // 12
  * ```
  */
 const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {

@@ -1,129 +1,218 @@
 import React from 'react'
 import { assertEquals } from '@std/assert/equals'
+import { assertStringIncludes } from '@std/assert/string-includes'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
-import { createMockSupabaseClient } from '@/tests/mocks/supabase.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
-import { renderInit } from './init.tsx'
+import { printInitResult, renderInit } from './init.tsx'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
-import { toMockSession } from '../tests/commands/session.test.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
-import type { Generator } from '@/types/generator.generated.ts'
-import { getApiGenerators } from '@/services/getApiGenerators.generated.ts'
+import type { Generator } from '@/types/generator.ts'
+import { withCapturedExit, withFakeTty } from '@/tests/strict-mode-helpers.test.ts'
+import { validateBasePath, InvalidBasePathError } from '@/lib/init-headless.ts'
+import { assertThrows } from '@std/assert/throws'
 
 const mockGenerators: Generator[] = [
   {
-    id: '1',
-    name: 'TypeScript Generator',
-    description: 'Generate TypeScript types',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-typescript',
-    registryUrl: 'https://jsr.io/@skmtc/gen-typescript',
-    readme: 'TypeScript generator',
     scope: 'skmtc',
     packageName: 'gen-typescript',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   },
   {
-    id: '2',
-    name: 'Zod Generator',
-    description: 'Generate Zod schemas',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-zod',
-    registryUrl: 'https://jsr.io/@skmtc/gen-zod',
-    readme: 'Zod generator',
     scope: 'skmtc',
     packageName: 'gen-zod',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   }
 ]
 
-Deno.test('renderInit - should call toSession, render, and App with expected props', async () => {
-  // Set up mocks
-  const manager = createMockManager()
+Deno.test(
+  'renderInit - interactive mode mounts the Ink App with the expected state',
+  async () => {
+    await withFakeTty(async () => {
+      const manager = createMockManager()
 
-  const mockSession = toMockSession()
-  // Spy on toSession
-  const toSessionSpy = spy(() => Promise.resolve(mockSession))
-  manager.auth.toSession = toSessionSpy
+      const skmtcRoot = createMockSkmtcRoot(manager)
+      const testProjectName = 'test-project'
+      const testBasePath = './src'
+      const renderSpy = spy((_element: React.ReactNode) => ({}) as Instance)
+      const AppSpy = (_props: AppProps): React.JSX.Element =>
+        'AppSpy' as unknown as React.JSX.Element
 
-  const skmtcRoot = createMockSkmtcRoot(manager)
+      await renderInit({
+        skmtcRoot,
+        projectName: testProjectName,
+        basePath: testBasePath,
+        renderFn: renderSpy as InkRenderFn,
+        AppComponent: AppSpy
+      })
 
-  // Test input values
-  const testProjectName = 'test-project'
-  const testBasePath = './src'
-
-  // Mock render function that captures what it receives
-  const renderSpy = spy((_element: React.ReactNode) => ({}) as Instance)
-
-  // Mock App component - we don't need to spy on it being called
-  // because we can inspect the React element directly
-  const AppSpy = (_props: AppProps): React.JSX.Element => {
-    // Return a valid React element
-
-    return 'AppSpy' as unknown as React.JSX.Element
+      assertSpyCalls(renderSpy, 1)
+      assertSpyCall(renderSpy, 0, {
+        args: [
+          // deno-lint-ignore jsx-key
+          <AppSpy
+            initialState={{
+              view: {
+                page: 'create-project',
+                projectName: testProjectName,
+                basePath: testBasePath
+              },
+              skmtcRoot,
+              message: null,
+              interactive: false,
+              shortcuts: [],
+              generators: []
+            }}
+          />
+        ]
+      })
+    })
   }
+)
 
-  // Call renderInit with our spies
-  await renderInit({
-    skmtcRoot,
-    projectName: testProjectName,
-    basePath: testBasePath,
-    renderFn: renderSpy as InkRenderFn,
-    AppComponent: AppSpy
-  })
-
-  // Verify toSession was called
-  assertSpyCalls(toSessionSpy, 1)
-
-  // Verify render was called with an element
-  assertSpyCalls(renderSpy, 1)
-
-  assertSpyCall(renderSpy, 0, {
-    args: [
-      // deno-lint-ignore jsx-key
-      <AppSpy
-        initialState={{
-          view: {
-            page: 'create-project',
-            projectName: testProjectName,
-            basePath: testBasePath
-          },
-          skmtcRoot,
-          session: mockSession,
-          message: null,
-          interactive: false,
-          shortcuts: [],
-          generators: []
-        }}
-      />
-    ]
-  })
+Deno.test('printInitResult - text format for created project', () => {
+  const logs: string[] = []
+  const original = console.log
+  console.log = (msg: string) => logs.push(msg)
+  try {
+    printInitResult(
+      { kind: 'created', projectName: 'my-api', basePath: './src' },
+      { format: 'text' }
+    )
+  } finally {
+    console.log = original
+  }
+  assertEquals(logs[0], 'Initialized project "my-api" at .skmtc/my-api/')
+  assertStringIncludes(logs[1], 'basePath: ./src')
+  assertStringIncludes(logs[2], 'skmtc install <generators...> my-api')
 })
 
-Deno.test('init - getApiGenerators returns mocked generators', async () => {
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-
-  // Mock the generators API response
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
-
-  const generators = await getApiGenerators({ supabase: supabaseClient })
-
-  assertEquals(generators.length, 2)
-  assertEquals(generators[0].packageName, 'gen-typescript')
-  assertEquals(generators[1].packageName, 'gen-zod')
+Deno.test('printInitResult - text format for existing project (no-op)', () => {
+  const logs: string[] = []
+  const original = console.log
+  console.log = (msg: string) => logs.push(msg)
+  try {
+    printInitResult({ kind: 'existed', projectName: 'my-api' }, { format: 'text' })
+  } finally {
+    console.log = original
+  }
+  assertEquals(logs.length, 1)
+  assertStringIncludes(logs[0], 'already exists')
+  assertStringIncludes(logs[0], 'nothing to do')
 })
+
+Deno.test(
+  'printInitResult - json format includes nextStep hint for created projects',
+  () => {
+    const logs: string[] = []
+    const original = console.log
+    console.log = (msg: string) => logs.push(msg)
+    try {
+      printInitResult(
+        { kind: 'created', projectName: 'my-api', basePath: './src' },
+        { format: 'json' }
+      )
+    } finally {
+      console.log = original
+    }
+    assertEquals(logs.length, 1)
+    const parsed = JSON.parse(logs[0])
+    assertEquals(parsed.kind, 'created')
+    assertEquals(parsed.basePath, './src')
+    assertEquals(parsed.nextStep, 'skmtc install <generators...> my-api')
+  }
+)
+
+Deno.test(
+  'printInitResult - json format nextStep is null when project already existed',
+  () => {
+    const logs: string[] = []
+    const original = console.log
+    console.log = (msg: string) => logs.push(msg)
+    try {
+      printInitResult(
+        { kind: 'existed', projectName: 'my-api' },
+        { format: 'json' }
+      )
+    } finally {
+      console.log = original
+    }
+    const parsed = JSON.parse(logs[0])
+    assertEquals(parsed.kind, 'existed')
+    assertEquals(parsed.nextStep, null)
+  }
+)
+
+Deno.test('renderInit - missing projectName fails with recipe', async () => {
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await renderInit({
+      projectName: undefined,
+      basePath: './src',
+      noInputFlag: true
+    })
+  })
+  assertEquals(exitCode, 2)
+  assertStringIncludes(errors[0], 'missing required argument: <projectName>')
+})
+
+Deno.test('renderInit - missing basePath fails with recipe', async () => {
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await renderInit({
+      projectName: 'my-api',
+      basePath: undefined,
+      noInputFlag: true
+    })
+  })
+  assertEquals(exitCode, 2)
+  assertStringIncludes(errors[0], 'missing required argument: <basePath>')
+  // The discover hint surfaces the `@`-alias convention from
+  // friction #24 so callers don't have to read the skill to know it.
+  assertStringIncludes(errors[0], '@')
+})
+
+Deno.test(
+  'validateBasePath - rejects absolute paths (friction #13)',
+  () => {
+    // Pre-fix, an absolute basePath was silently concatenated onto
+    // the SKMTC root, producing artifacts at
+    // <skmtc-root>/<absolute-path>/... Now it throws so the caller
+    // can correct the invocation.
+    assertThrows(
+      () => validateBasePath('/Users/dmitri/web/src'),
+      InvalidBasePathError,
+      'absolute path'
+    )
+  }
+)
+
+Deno.test('validateBasePath - accepts relative paths', () => {
+  assertEquals(validateBasePath('./src'), './src')
+  assertEquals(validateBasePath('src'), 'src')
+  assertEquals(validateBasePath('mobile-app/src'), 'mobile-app/src')
+})
+
+Deno.test(
+  'renderInit - absolute basePath in strict mode fails with recipe',
+  async () => {
+    const skmtcRoot = createMockSkmtcRoot(createMockManager(), { projects: [] })
+    const { errors, exitCode } = await withCapturedExit(async () => {
+      await renderInit({
+        skmtcRoot,
+        projectName: 'my-api',
+        basePath: '/Users/dmitri/src',
+        noInputFlag: true
+      })
+    })
+    assertEquals(exitCode, 2)
+    assertStringIncludes(errors[0], 'missing required argument: <basePath>')
+    assertStringIncludes(errors[0], 'absolute path')
+  }
+)
 
 Deno.test('init - creates new project with multiple generators', async () => {
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-
-  // Mock the generators API response
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
-
   const manager = createMockManager()
-  manager.auth.supabase = supabaseClient
 
   const skmtcRoot = createMockSkmtcRoot(manager, { projects: [] })
 
@@ -147,8 +236,12 @@ Deno.test('init - creates new project with multiple generators', async () => {
   const generators = ['@skmtc/gen-typescript', '@skmtc/gen-zod']
   const basePath = 'src'
 
-  const availableGenerators = await getApiGenerators({ supabase: supabaseClient })
-  await skmtcRoot.createProject({ name: projectName, basePath, generators, availableGenerators })
+  await skmtcRoot.createProject({
+    name: projectName,
+    basePath,
+    generators,
+    availableGenerators: mockGenerators
+  })
 
   assertEquals(createdProject.name, 'my-new-project')
   assertEquals(createdProject.basePath, 'src')
@@ -156,13 +249,7 @@ Deno.test('init - creates new project with multiple generators', async () => {
 })
 
 Deno.test('init - handles project creation with single generator', async () => {
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-
-  // Mock the generators API response
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
-
   const manager = createMockManager()
-  manager.auth.supabase = supabaseClient
 
   const skmtcRoot = createMockSkmtcRoot(manager, { projects: [] })
 
@@ -186,8 +273,12 @@ Deno.test('init - handles project creation with single generator', async () => {
   const generators = ['@skmtc/gen-typescript']
   const basePath = './lib'
 
-  const availableGenerators = await getApiGenerators({ supabase: supabaseClient })
-  await skmtcRoot.createProject({ name: projectName, basePath, generators, availableGenerators })
+  await skmtcRoot.createProject({
+    name: projectName,
+    basePath,
+    generators,
+    availableGenerators: mockGenerators
+  })
 
   assertEquals(createdProject.name, 'simple-project')
   assertEquals(createdProject.basePath, './lib')

@@ -3,7 +3,6 @@ import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { renderCreate } from './create.tsx'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
-import { toMockSession } from '../tests/commands/session.test.ts'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
@@ -12,10 +11,7 @@ Deno.test('renderCreate - should call toSession, render, and App with expected p
   // Set up mocks
   const manager = createMockManager()
 
-  const mockSession = toMockSession()
   // Spy on toSession
-  const toSessionSpy = spy(() => Promise.resolve(mockSession))
-  manager.auth.toSession = toSessionSpy
 
   const skmtcRoot = createMockSkmtcRoot(manager)
 
@@ -45,7 +41,6 @@ Deno.test('renderCreate - should call toSession, render, and App with expected p
   })
 
   // Verify toSession was called
-  assertSpyCalls(toSessionSpy, 1)
 
   // Verify render was called with an element
   assertSpyCalls(renderSpy, 1)
@@ -62,7 +57,6 @@ Deno.test('renderCreate - should call toSession, render, and App with expected p
             generatorType: testType
           },
           skmtcRoot,
-          session: mockSession,
           message: null,
           interactive: false,
           shortcuts: [],

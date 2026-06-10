@@ -8,7 +8,7 @@ import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToBooleanArgs = {
+export type ToBooleanArgs = {
   value: OpenAPIV3.SchemaObject
   stackTrail: StackTrail
   context: ParseContextType
@@ -160,18 +160,23 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
     parentType: 'schema:boolean'
   })
 
-  return new OasBoolean({
-    nullable,
-    title,
-    description,
-    example,
-    enums: enums,
-    default: defaultValue,
-    extensionFields,
-    readOnly,
-    writeOnly,
-    deprecated
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasBoolean(
+      {
+        nullable,
+        title,
+        description,
+        example,
+        enums: enums,
+        default: defaultValue,
+        extensionFields,
+        readOnly,
+        writeOnly,
+        deprecated
+      },
+      context
+    )
+  )
 }
 
 type ParseExampleArgs = {

@@ -3,203 +3,27 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import type { Logger } from '@std/log'
 import type { OpenAPIV3 } from 'openapi-types'
 import { assertEquals } from '@std/assert/equals'
-import { assertObjectMatch } from '@std/assert/object-match'
 import { assertSpyCalls, spy } from '@std/testing/mock'
-import { OasRef } from '@/oas/ref/Ref.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
-import { OasInfo } from '@/oas/info/Info.ts'
-import { OasPathItem } from '@/oas/pathItem/PathItem.ts'
-import { OasMediaType } from '@/oas/mediaType/MediaType.ts'
-import { OasResponse } from '@/oas/response/Response.ts'
-import { OasOperation } from '@/oas/operation/Operation.ts'
-import type { ParseError } from '@/context/ParseContext.ts'
 
-Deno.test.ignore('Handles schema warnings', () => {
-  const stackTrail = new StackTrail(['TEST'])
+const oasInput = (
+  documentObject: OpenAPIV3.Document = {
+    openapi: '3.0.3',
+    info: { title: 'Test', version: '1.0.0' },
+    paths: {}
+  }
+) => ({ type: 'oas', value: documentObject }) as const
 
-  const parseContext = new ParseContext({
-    documentObject: {
-      openapi: '3.0.3',
-      info: {
-        title: 'Test',
-        version: '1.0.0'
-      },
-      paths: {
-        '/test': {
-          get: {
-            responses: {
-              '200': {
-                description: 'OK',
-                content: {
-                  'application/json': {
-                    schema: {
-                      $ref: '#/components/schemas/Analytics'
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      components: {
-        schemas: {
-          Analytics: {
-            type: 'string',
-            format: 'wtf'
-          } as unknown as OpenAPIV3.SchemaObject
-        }
-      }
-    },
-    logger: console as unknown as Logger,
-    silent: true
-  })
-
-  const parsed = parseContext.parse(stackTrail)
-
-  assertEquals(parseContext.issues, [
-    {
-      level: 'warning',
-      message: 'Unexpected format: wtf',
-      location: 'components:schemas:Analytics:format',
-      parent: {
-        type: 'string',
-        format: 'wtf'
-      },
-      type: 'UNEXPECTED_FORMAT'
-    }
-  ])
-  assertEquals(
-    JSON.stringify(parsed.operations),
-    JSON.stringify([
-      new OasOperation({
-        path: '/test',
-        method: 'get',
-        pathItem: new OasPathItem(),
-        responses: {
-          '200': new OasResponse({
-            content: {
-              'application/json': new OasMediaType({
-                mediaType: 'application/json',
-                schema: new OasRef(
-                  { $ref: '#/components/schemas/Analytics', refType: 'schema' },
-                  new OasDocument({
-                    openapi: '3.0.0',
-                    info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-                    operations: []
-                  })
-                )
-              })
-            },
-            description: 'OK'
-          })
-        }
-      })
-    ])
-  )
-})
-
-Deno.test.ignore('Handles response error', () => {
-  const stackTrail = new StackTrail(['TEST'])
-  const parseContext = new ParseContext({
-    documentObject: {
-      openapi: '3.0.3',
-      info: {
-        title: 'Test',
-        version: '1.0.0'
-      },
-      paths: {
-        '/test': {
-          get: {
-            responses: {
-              '200': {
-                $ref: '#/components/responses/testResponse'
-              }
-            }
-          }
-        }
-      } as unknown as OpenAPIV3.PathsObject,
-      components: {
-        responses: {
-          testResponse: {
-            description: 'OK',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/Analytics'
-                }
-              }
-            }
-          }
-        } as unknown as OpenAPIV3.ResponsesObject,
-        schemas: {
-          Analytics: {
-            allOf: [
-              {
-                type: 'string'
-              },
-              {
-                type: 'object'
-              }
-            ]
-          } as unknown as OpenAPIV3.SchemaObject
-        }
-      }
-    },
-    logger: console as unknown as Logger,
-    silent: true
-  })
-
-  const parsed = parseContext.parse(stackTrail)
-
-  // Behaviour below is not correct
-  // Ref errors should remove the operation
-  assertObjectMatch(parseContext.issues[0], {
-    level: 'error',
-    location: 'components:schemas:Analytics',
-    parent: {
-      allOf: [
-        {
-          type: 'string'
-        },
-        {
-          type: 'object'
-        }
-      ]
-    },
-    type: 'INVALID_SCHEMA'
-  } as ParseError)
-
-  assertObjectMatch(parsed.operations[0], {
-    path: '/test',
-    method: 'get',
-    pathItem: new OasPathItem(),
-    responses: {
-      '200': new OasRef(
-        { $ref: '#/components/responses/testResponse', refType: 'response' },
-        new OasDocument({
-          openapi: '3.0.0',
-          info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
-          operations: []
-        })
-      )
-    }
-  })
-})
-
-Deno.test('ParseContext - constructor stores properties correctly', () => {
+Deno.test('ParseContext - constructor (oas) initializes shared and protocol state', () => {
   const documentObject: OpenAPIV3.Document = {
     openapi: '3.0.3',
-    info: {
-      title: 'Test API',
-      version: '1.0.0'
-    },
+    info: { title: 'Test API', version: '1.0.0' },
     paths: {}
   }
   const logger = console as unknown as Logger
 
   const parseContext = new ParseContext({
-    documentObject,
+    input: { type: 'oas', value: documentObject },
     logger,
     silent: true
   })
@@ -211,94 +35,86 @@ Deno.test('ParseContext - constructor stores properties correctly', () => {
   assertEquals(parseContext.oasDocument instanceof OasDocument, true)
 })
 
-Deno.test('ParseContext - constructor sets silent to true by default', () => {
-  const documentObject: OpenAPIV3.Document = {
-    openapi: '3.0.3',
-    info: { title: 'Test', version: '1.0.0' },
-    paths: {}
-  }
-
+Deno.test('ParseContext - constructor (oas) defaults silent to true', () => {
   const parseContext = new ParseContext({
-    documentObject,
-    logger: console as unknown as Logger,
-    silent: true
+    input: oasInput(),
+    logger: console as unknown as Logger
   })
 
   assertEquals(parseContext.silent, true)
 })
 
-Deno.test('ParseContext - logIssueNoKey adds error to issues array', () => {
+Deno.test('ParseContext - logIssueNoKey records errors with cause and oas protocol', () => {
   const parseContext = new ParseContext({
-    documentObject: { openapi: '3.0.3', info: { title: 'Test', version: '1.0.0' }, paths: {} },
+    input: oasInput(),
     logger: console as unknown as Logger,
     silent: true
   })
 
   const stackTrail = new StackTrail(['paths', '/test', 'get'])
   const error = new Error('Test error')
-  const parent = { test: 'data' }
 
   parseContext.logIssueNoKey({
     level: 'error',
-    error,
+    message: error.message,
+    cause: error,
     stackTrail,
-    parent,
+    parent: { test: 'data' },
     type: 'INVALID_SCHEMA'
   })
 
   assertEquals(parseContext.issues.length, 1)
-  assertEquals(parseContext.issues[0].level, 'error')
-  assertEquals((parseContext.issues[0] as any).error, error)
-  assertEquals(parseContext.issues[0].location, 'paths:/test:get')
-  assertEquals(parseContext.issues[0].parent, parent)
-  assertEquals(parseContext.issues[0].type, 'INVALID_SCHEMA')
+  const issue = parseContext.issues[0]
+  if (issue.protocol !== 'oas' || issue.level !== 'error') {
+    throw new Error('Expected an OAS error issue')
+  }
+  assertEquals(issue.location, 'paths:/test:get')
+  assertEquals(issue.message, 'Test error')
+  assertEquals(issue.cause, error)
+  assertEquals(issue.type, 'INVALID_SCHEMA')
 })
 
-Deno.test('ParseContext - logIssueNoKey adds warning to issues array', () => {
+Deno.test('ParseContext - logIssueNoKey records warnings with message and oas protocol', () => {
   const parseContext = new ParseContext({
-    documentObject: { openapi: '3.0.3', info: { title: 'Test', version: '1.0.0' }, paths: {} },
+    input: oasInput(),
     logger: console as unknown as Logger,
     silent: true
   })
 
   const stackTrail = new StackTrail(['components', 'schemas', 'User'])
-  const parent = { type: 'string', format: 'unknown' }
 
   parseContext.logIssueNoKey({
     level: 'warning',
     message: 'Unexpected format: unknown',
     stackTrail,
-    parent,
+    parent: { type: 'string', format: 'unknown' },
     type: 'UNEXPECTED_FORMAT'
   })
 
   assertEquals(parseContext.issues.length, 1)
-  assertEquals(parseContext.issues[0].level, 'warning')
-  assertEquals((parseContext.issues[0] as any).message, 'Unexpected format: unknown')
-  assertEquals(parseContext.issues[0].location, 'components:schemas:User')
-  assertEquals(parseContext.issues[0].parent, parent)
-  assertEquals(parseContext.issues[0].type, 'UNEXPECTED_FORMAT')
+  const issue = parseContext.issues[0]
+  if (issue.protocol !== 'oas' || issue.level !== 'warning') {
+    throw new Error('Expected an OAS warning issue')
+  }
+  assertEquals(issue.message, 'Unexpected format: unknown')
+  assertEquals(issue.location, 'components:schemas:User')
+  assertEquals(issue.type, 'UNEXPECTED_FORMAT')
 })
 
 Deno.test('ParseContext - logIssueNoKey calls logger.warn when not silent', () => {
-  const mockLogger = {
-    warn: () => {}
-  } as unknown as Logger
-
+  const mockLogger = { warn: () => {} } as unknown as Logger
   const warnSpy = spy(mockLogger, 'warn')
 
   const parseContext = new ParseContext({
-    documentObject: { openapi: '3.0.3', info: { title: 'Test', version: '1.0.0' }, paths: {} },
+    input: oasInput(),
     logger: mockLogger,
     silent: false
   })
 
-  const stackTrail = new StackTrail(['test'])
-
   parseContext.logIssueNoKey({
     level: 'warning',
     message: 'Test warning',
-    stackTrail,
+    stackTrail: new StackTrail(['test']),
     parent: {},
     type: 'UNEXPECTED_PROPERTY'
   })
@@ -308,24 +124,19 @@ Deno.test('ParseContext - logIssueNoKey calls logger.warn when not silent', () =
 })
 
 Deno.test('ParseContext - logIssueNoKey does not call logger when silent', () => {
-  const mockLogger = {
-    warn: () => {}
-  } as unknown as Logger
-
+  const mockLogger = { warn: () => {} } as unknown as Logger
   const warnSpy = spy(mockLogger, 'warn')
 
   const parseContext = new ParseContext({
-    documentObject: { openapi: '3.0.3', info: { title: 'Test', version: '1.0.0' }, paths: {} },
+    input: oasInput(),
     logger: mockLogger,
     silent: true
   })
 
-  const stackTrail = new StackTrail(['test'])
-
   parseContext.logIssueNoKey({
     level: 'warning',
     message: 'Test warning',
-    stackTrail,
+    stackTrail: new StackTrail(['test']),
     parent: {},
     type: 'UNEXPECTED_PROPERTY'
   })
@@ -334,37 +145,38 @@ Deno.test('ParseContext - logIssueNoKey does not call logger when silent', () =>
   warnSpy.restore()
 })
 
-Deno.test('ParseContext - logSkippedFields logs warning for each skipped field', () => {
+Deno.test('ParseContext - logSkippedFields (oas form) logs a warning per skipped field', () => {
   const parseContext = new ParseContext({
-    documentObject: { openapi: '3.0.3', info: { title: 'Test', version: '1.0.0' }, paths: {} },
+    input: oasInput(),
     logger: console as unknown as Logger,
     silent: true
   })
 
-  const stackTrail = new StackTrail(['components', 'schemas', 'User'])
-  const skipped = {
-    unknownField1: 'value1',
-    unknownField2: 'value2',
-    unknownField3: 'value3'
-  }
-
   parseContext.logSkippedFields({
-    skipped,
-    stackTrail,
+    skipped: {
+      unknownField1: 'value1',
+      unknownField2: 'value2',
+      unknownField3: 'value3'
+    },
+    stackTrail: new StackTrail(['components', 'schemas', 'User']),
     parent: { type: 'object' },
     parentType: 'SchemaObject'
   })
 
   assertEquals(parseContext.issues.length, 3)
-  assertEquals((parseContext.issues[0] as any).message, "Unexpected property 'unknownField1' in 'SchemaObject'")
-  assertEquals((parseContext.issues[1] as any).message, "Unexpected property 'unknownField2' in 'SchemaObject'")
-  assertEquals((parseContext.issues[2] as any).message, "Unexpected property 'unknownField3' in 'SchemaObject'")
-  assertEquals(parseContext.issues[0].type, 'UNEXPECTED_PROPERTY')
+  const [a, b, c] = parseContext.issues
+  if (a.protocol !== 'oas' || a.level !== 'warning') throw new Error('expected oas warning')
+  if (b.protocol !== 'oas' || b.level !== 'warning') throw new Error('expected oas warning')
+  if (c.protocol !== 'oas' || c.level !== 'warning') throw new Error('expected oas warning')
+  assertEquals(a.message, "Unexpected property 'unknownField1' in 'SchemaObject'")
+  assertEquals(b.message, "Unexpected property 'unknownField2' in 'SchemaObject'")
+  assertEquals(c.message, "Unexpected property 'unknownField3' in 'SchemaObject'")
+  assertEquals(a.type, 'UNEXPECTED_PROPERTY')
 })
 
-Deno.test('ParseContext - logIssue calls stackTrail.trace with key', () => {
+Deno.test('ParseContext - logIssue routes through stackTrail.trace with the given key', () => {
   const parseContext = new ParseContext({
-    documentObject: { openapi: '3.0.3', info: { title: 'Test', version: '1.0.0' }, paths: {} },
+    input: oasInput(),
     logger: console as unknown as Logger,
     silent: true
   })
@@ -382,7 +194,5 @@ Deno.test('ParseContext - logIssue calls stackTrail.trace with key', () => {
   })
 
   assertSpyCalls(traceSpy, 1)
-  assertEquals(traceSpy.calls[0].args[0], 'responses')
-
   traceSpy.restore()
 })

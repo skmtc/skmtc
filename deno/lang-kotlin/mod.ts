@@ -1,0 +1,60 @@
+/**
+ * @module @skmtc/lang-kotlin
+ *
+ * The Kotlin target-language layer for SKMTC generators.
+ *
+ * Status: **production (Phase D complete).** The full register/write
+ * path on the frozen language seam: the `kotlin` {@link Lang} object,
+ * `KtSnippet` (static `lang`, keyless registers), the register family
+ * (`register`/`defineAndRegister` + `KtRegisterArgs` — deliberately no
+ * `reExports` field), the model projection-base veneer, `KtFile`
+ * (path-derived `package` directive, sorted imports, same-package
+ * suppression), `KtImport` (symbol-level, `as` aliases), `KtDefinition`
+ * (exhaustive five-kind shells, `KtAnnotated` protocol, KDoc), the
+ * identifier factories, `sanitizePropertyName` (hard keywords +
+ * backticks), and `toPackageName` (segment-validated).
+ *
+ * Grammar only: serialization flavor (kotlinx annotations) is generator
+ * policy — `@skmtc/gen-kotlin` is the proving generator. Architecture
+ * spec: `notes/lang/19-kotlin-architecture.md`. Template:
+ * `@skmtc/lang-typescript`.
+ */
+
+/** The language id this package targets. */
+export const langId = 'kotlin' as const
+
+/** File extensions this language package renders. */
+export const fileExtensions = ['.kt'] as const
+
+export { KtFile, type KtFileArgs } from './src/KtFile.ts'
+export { KtDefinition, type KtDefinitionArgs } from './src/KtDefinition.ts'
+export { KtImport, type KtImportNameArg, type KtImportSpecifier } from './src/KtImport.ts'
+export { KtParameterList, type KtParameterArgs } from './src/KtParameterList.ts'
+export { KtAnnotation, isKtAnnotated, type KtAnnotated } from './src/KtAnnotation.ts'
+export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
+export {
+  createDataClass,
+  createEnumClass,
+  createSealedInterface,
+  createTypeAlias,
+  createValue,
+  toKtKeyword,
+  type KtEntityKind,
+  type CreateKtIdentifierArgs,
+  type CreateValueArgs
+} from './src/createIdentifier.ts'
+export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
+export { toPackageName } from './src/toPackageName.ts'
+export { ktHardKeywords, isKtIdentifierName } from './src/hardKeywords.ts'
+export { kotlin } from './src/ktLang.ts'
+export { KtSnippet } from './src/KtSnippet.ts'
+export {
+  register,
+  defineAndRegister,
+  type KtRegisterArgs,
+  type KtDefineAndRegisterArgs
+} from './src/register.ts'
+export {
+  toModelProjectionBase,
+  type KtModelProjectionBaseConfig
+} from './src/toModelProjectionBase.ts'

@@ -3,7 +3,6 @@ import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { GenerateView } from '@/components/GenerateView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import type { Project } from '@/lib/project.ts'
@@ -21,16 +20,9 @@ const minimalOpenAPISchema = JSON.stringify({
 // Mock generators data to prevent API calls
 const mockGenerators = [
   {
-    id: '1',
-    name: 'TypeScript Generator',
-    description: 'Generate TypeScript types',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-typescript',
-    registryUrl: 'https://jsr.io/@skmtc/gen-typescript',
-    readme: 'TypeScript generator',
     scope: 'skmtc',
     packageName: 'gen-typescript',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   }
 ]
 
@@ -51,7 +43,9 @@ const mockGenerateResponse = {
       }
     },
     previews: {},
+    mappings: {},
     results: {},
+    parseIssues: [],
     startAt: Date.now() - 1000,
     endAt: Date.now()
   }
@@ -73,23 +67,11 @@ const createMockProjectWithoutSchema = (
   return mockProject
 }
 
-// Mock SkmtcRoot with proper Supabase mocking
+// Mock SkmtcRoot
 const createMockSkmtcRoot = (project: Project): SkmtcRoot =>
   ({
     projects: [project],
     manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: (path: string) => {
-              if (path === '/generators') {
-                return Promise.resolve({ data: mockGenerators, error: null })
-              }
-              return Promise.resolve({ data: [], error: null })
-            }
-          }
-        }
-      },
       cleanup: () => Promise.resolve()
     }
   }) as unknown as SkmtcRoot
@@ -106,7 +88,6 @@ const createInitialState = (project: Project): SkmtcState => {
       watchMode: undefined
     },
     skmtcRoot,
-    session: createTestSession(),
     interactive: true,
     message: null,
     shortcuts: [],
@@ -196,8 +177,8 @@ Deno.test(
       throw new Error('Connection refused')
     })
 
-    // Stub generateArtifacts to prevent API calls
-    const generateStub = stub(GenerateArtifacts, 'generateWithSandboxApi', () =>
+    // Stub generateArtifacts to prevent worker runs
+    const generateStub = stub(GenerateArtifacts, 'generateWithWorker', () =>
       Promise.resolve(mockGenerateResponse)
     )
 
@@ -216,7 +197,7 @@ Deno.test(
 
       assertEquals(
         schemaPrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │`
       )
 
@@ -229,7 +210,7 @@ Deno.test(
 
       assertEquals(
         schemaPath,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json`
       )
 
@@ -244,7 +225,7 @@ Deno.test(
 
       assertEquals(
         bundlePrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
@@ -262,7 +243,7 @@ Deno.test(
 
       assertEquals(
         watchPrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
@@ -287,7 +268,7 @@ Deno.test(
 
       assertEquals(
         watchingFrame,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
@@ -752,7 +733,7 @@ Deno.test(
 
       assertEquals(
         schemaPrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │`
       )
 
@@ -770,7 +751,7 @@ Deno.test(
 
       assertEquals(
         bundlePrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?
@@ -788,7 +769,7 @@ Deno.test(
 
       assertEquals(
         watchPrompt,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?
@@ -815,7 +796,7 @@ Deno.test(
 
       assertEquals(
         generatingFrame,
-        `│  Input OpenAPI schema path or URL
+        `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?

@@ -10,12 +10,9 @@ export const runPrompt = async () => {
   const manager = new Manager()
   const skmtcRoot = await SkmtcRoot.open(manager)
 
-  const session = await skmtcRoot.manager.auth.toSession()
-
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot,
-    session,
     interactive: true,
     message: null,
     shortcuts: [],

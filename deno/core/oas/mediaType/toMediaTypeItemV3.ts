@@ -10,7 +10,7 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 /**
  * Arguments for transforming an OpenAPI v3 media type item into an OAS media type.
  */
-type ToMediaTypeItemV3Args = {
+export type ToMediaTypeItemV3Args = {
   /** The OpenAPI v3 media type object to transform */
   mediaTypeItem: OpenAPIV3.MediaTypeObject
   /** The media type string (e.g., 'application/json', 'text/plain') */
@@ -157,13 +157,13 @@ export const toMediaTypeItemV3 = ({
     extensionFields
   }
 
-  return new OasMediaType(fields)
+  return context.withStackTrail(stackTrail, () => new OasMediaType(fields, context))
 }
 
 /**
  * Arguments for transforming multiple OpenAPI v3 media type items.
  */
-type ToMediaTypeItemsV3Args = {
+export type ToMediaTypeItemsV3Args = {
   /** Map of media type strings to OpenAPI v3 MediaType objects */
   content: Record<string, OpenAPIV3.MediaTypeObject>
   /** The stack trail for tracing */
@@ -275,7 +275,7 @@ export const toMediaTypeItemsV3 = ({
 /**
  * Arguments for optionally transforming OpenAPI v3 media type items.
  */
-type ToOptionalMediaTypeItemsV3Args = {
+export type ToOptionalMediaTypeItemsV3Args = {
   /** Optional map of media type strings to OpenAPI v3 MediaType objects */
   content: Record<string, OpenAPIV3.MediaTypeObject> | undefined
   /** The stack trail for tracing */

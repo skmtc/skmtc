@@ -2,38 +2,24 @@ import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { InstallGeneratorView } from '@/components/InstallGeneratorView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { assertSpyCall, stub } from '@std/testing/mock'
-import type { Generator } from '@/types/generator.generated.ts'
+import { stubRegistryGenerators } from '@/tests/mocks/registry.mock.ts'
+import type { Generator } from '@/types/generator.ts'
 import type { Project } from '@/lib/project.ts'
 import type { Generator as GeneratorClass } from '@/lib/generator.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
   {
-    id: '1',
-    name: 'TypeScript Generator',
-    description: 'Generate TypeScript types',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-typescript',
-    registryUrl: 'https://jsr.io/@skmtc/gen-typescript',
-    readme: 'TypeScript generator',
     scope: 'skmtc',
     packageName: 'gen-typescript',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   },
   {
-    id: '2',
-    name: 'Zod Generator',
-    description: 'Generate Zod schemas',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-zod',
-    registryUrl: 'https://jsr.io/@skmtc/gen-zod',
-    readme: 'Zod generator',
     scope: 'skmtc',
     packageName: 'gen-zod',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   }
 ]
 
@@ -62,27 +48,13 @@ const createMockSkmtcRoot = (includeProjects = true, project?: Project): SkmtcRo
       }
       throw new Error(`Project "${name}" not found`)
     },
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: (path: string) => {
-              if (path === '/generators') {
-                return Promise.resolve({ data: mockGenerators, error: null })
-              }
-              return Promise.resolve({ data: [], error: null })
-            }
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 }
 
 const createInitialState = (overrides: Partial<SkmtcState> = {}, project?: Project): SkmtcState => ({
   view: { page: 'install-generator', projectName: undefined, generators: undefined },
   skmtcRoot: overrides.skmtcRoot || createMockSkmtcRoot(true, project),
-  session: createTestSession(),
   interactive: true,
   message: null,
   shortcuts: [],
@@ -115,6 +87,8 @@ const renderInstallGenerator = ({ initialState, projectName, generators }: Rende
 
 // Test 1: Interactive flow - Select project and generators
 Deno.test('InstallGenerator - requests project selection and generators', async () => {
+  using fetchStub = stubRegistryGenerators(mockGenerators)
+
   const mockProject = createMockProject()
   const installStub = stub(mockProject, 'installGenerator', () => Promise.resolve(mockGeneratorInstance))
 
@@ -196,6 +170,8 @@ Deno.test('InstallGenerator - requests project selection and generators', async 
 
 // Test 2: Project provided, select generators
 Deno.test('InstallGenerator - project provided, requests generators', { sanitizeResources: false, sanitizeOps: false }, async () => {
+  using fetchStub = stubRegistryGenerators(mockGenerators)
+
   const mockProject = createMockProject()
   const installStub = stub(mockProject, 'installGenerator', () => Promise.resolve(mockGeneratorInstance))
 

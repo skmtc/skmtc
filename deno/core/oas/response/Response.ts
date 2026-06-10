@@ -4,6 +4,8 @@ import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Constructor fields for {@link OasResponse}.
@@ -202,13 +204,14 @@ export type ResponseFields = {
  * });
  * ```
  */
-export class OasResponse {
+export class OasResponse extends OasBase {
   oasType: 'response' = 'response'
   description: string | undefined
   headers: Record<string, OasHeader | OasRef<'header'>> | undefined
   content: Record<string, OasMediaType> | undefined
   extensionFields: Record<string, unknown> | undefined
-  constructor(fields: ResponseFields) {
+  constructor(fields: ResponseFields, context?: ParseContextType) {
+    super(context)
     this.description = fields.description
     this.headers = fields.headers
     this.content = fields.content

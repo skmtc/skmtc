@@ -1,6 +1,6 @@
 import { join } from '@std/path/join'
 import { skmtcClientConfig } from '@skmtc/core/Settings'
-import * as v from 'valibot'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 
 export const toClientJsonContents = (projectPath: string) => {
   try {
@@ -9,8 +9,8 @@ export const toClientJsonContents = (projectPath: string) => {
 
     const clientJson = JSON.parse(clientJsonString)
 
-    return v.parse(skmtcClientConfig, clientJson)
-  } catch (error) {
+    return parseOrExplain(skmtcClientConfig, clientJson, `client.json at ${clientJsonPath}`)
+  } catch (_error) {
     return undefined
   }
 }

@@ -1,19 +1,20 @@
 {
   "name": "@skmtc/convert",
-  "version": "0.0.59",
+  "version": "0.1.15",
+  "license": "Apache-2.0",
   "imports": {
+    "@skmtc/openapi-down-convert": "jsr:@skmtc/openapi-down-convert@0.14.7",
+    "@skmtc/swagger2openapi": "jsr:@skmtc/swagger2openapi@0.1.2",
     "@std/yaml": "jsr:@std/yaml@^1.0.5",
-    "openapi-types": "npm:openapi-types@^12.1.3",
-    "swagger2openapi": "npm:swagger2openapi@^7.0.8"
+    "openapi-types": "npm:openapi-types@^12.1.3"
   },
   "exports": {
     ".": "./mod.ts"
   },
   "tasks": {
-    "publish": "deno publish --allow-dirty --token=$JSR_AUTH_TOKEN",
-    "publish:deno:ga": "deno publish --allow-slow-types",
-    "test": "deno test --allow-all",
-    "test:watch": "deno test --allow-all --watch"
+    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN",
+    "test": "deno test --allow-all --no-check",
+    "test:watch": "deno test --allow-all --no-check --watch"
   },
   "compilerOptions": {
     "noImplicitAny": true

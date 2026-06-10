@@ -1,256 +1,129 @@
 /**
- * @fileoverview Enrichment System for SKMTC Core
- * 
- * This module provides comprehensive enrichment types and schemas for enhancing
- * OpenAPI operations with UI generation metadata. Enrichments allow generators
- * to create forms, tables, inputs, and other UI components with rich metadata
- * about how data should be presented and interacted with.
- * 
- * The enrichment system supports a hierarchical structure:
- * Generator → Path → Method → Operation → Component Type (form/table/input)
- * 
- * ## Key Features
- * 
- * - **Form Enrichments**: Field definitions with inputs, labels, and validation
- * - **Table Enrichments**: Column definitions with formatters and headers
- * - **Input Enrichments**: Standalone input components with formatting
- * - **Hierarchical Organization**: Nested structure for easy lookup and management
- * - **Type Safety**: Comprehensive Valibot validation for all enrichment data
- * 
- * @example Basic form enrichment
- * ```typescript
- * import type { FormItem } from '@skmtc/core/Enrichments';
- * 
- * const userForm: FormItem = {
- *   title: 'User Registration',
- *   description: 'Create a new user account',
- *   fields: [
- *     {
- *       id: 'name',
- *       accessorPath: ['name'],
- *       input: { moduleName: 'TextInput', exportName: 'default' },
- *       label: 'Full Name',
- *       placeholder: 'Enter your full name'
- *     }
- *   ],
- *   submitLabel: 'Create Account'
- * };
+ * @fileoverview Enrichment hierarchy for SKMTC Core.
+ *
+ * Core owns only the lookup *hierarchy* — the keys that locate an
+ * enrichment payload for a generator + operation/model:
+ *
+ *   - **Models** are keyed by name (component schema name in OAS;
+ *     registry-named type in GraphQL).
+ *   - **OAS operations** are keyed by HTTP path → method.
+ *   - **GraphQL operations** are keyed by root kind → field name.
+ *
+ * The leaf at the bottom of each hierarchy is opaque to core — its
+ * shape is owned by the generator that consumes it. Each generator
+ * declares its own enrichment schema via the `toEnrichmentSchema`
+ * configuration on its entry factory; the dispatcher parses the
+ * generator's slice of the enrichments record through that schema
+ * before handing typed enrichments to `transform`.
+ *
+ * This means **no leaf shapes live in core**. A generator adding a
+ * new enrichment field is a purely local change — no coordinated
+ * core update, no canonical schema to extend. Two generators with
+ * different needs at the same operation can declare different leaf
+ * shapes and they don't collide.
+ *
+ * @example A generator declaring its own leaf shape
+ * ```ts
+ * // gen-myform/src/enrichments.ts
+ * import * as v from 'valibot'
+ *
+ * const enrichmentSchema = v.optional(v.object({
+ *   title: v.optional(v.string()),
+ *   submitLabel: v.optional(v.string()),
+ *   fields: v.optional(v.array(v.object({
+ *     id: v.string(),
+ *     label: v.optional(v.string())
+ *   })))
+ * }))
+ *
+ * export type EnrichmentSchema = v.InferOutput<typeof enrichmentSchema>
+ * export const toEnrichmentSchema = () => enrichmentSchema
  * ```
- * 
- * @example Table enrichment with formatters
- * ```typescript
- * import type { TableItem } from '@skmtc/core/Enrichments';
- * 
- * const userTable: TableItem = {
- *   title: 'User Directory',
- *   columns: [
- *     {
- *       id: 'email',
- *       accessorPath: ['email'],
- *       formatter: { moduleName: 'EmailFormatter', exportName: 'default' },
- *       label: 'Email Address'
- *     }
- *   ]
- * };
- * ```
- * 
+ *
  * @module Enrichments
  */
 
-import { moduleExport, type ModuleExport } from './ModuleExport.ts'
 import * as v from 'valibot'
 
 /**
- * Valibot schema for form field items.
- * 
- * Validates individual form field configurations including input components,
- * labels, placeholders, and data access paths.
+ * Generator-owned enrichment payload at a hierarchy leaf. Core treats
+ * it as opaque; the consuming generator parses it through its own
+ * `toEnrichmentSchema()`.
  */
-export const formFieldItem: v.GenericSchema<FormFieldItem> = v.object({
-  id: v.string(),
-  accessorPath: v.array(v.string()),
-  input: moduleExport,
-  label: v.string(),
-  placeholder: v.optional(v.string())
-})
+export type EnrichmentLeaf = unknown
 
 /**
- * Configuration for a single form field.
- * 
- * Defines how a form field should be rendered, including its input component,
- * label text, data binding path, and optional placeholder text.
+ * Model enrichments: schema name → leaf payload.
+ *
+ * Used by `toModelEntry`-shaped generators (TS types, Zod validators,
+ * mappers, etc.).
  */
-export type FormFieldItem = {
-  id: string
-  accessorPath: string[]
-  input: ModuleExport
-  label: string
-  placeholder?: string
-}
+export type ModelEnrichments = Record<string, EnrichmentLeaf>
+
+export const modelEnrichments: v.GenericSchema<ModelEnrichments> = v.record(
+  v.string(),
+  v.unknown()
+)
 
 /**
- * Valibot schema for form configurations.
- * 
- * Validates complete form definitions including title, description,
- * field configurations, and submit button labels.
+ * OAS method enrichments: HTTP method (`get`, `post`, ...) → leaf payload.
  */
-export const formItem: v.GenericSchema<FormItem> = v.object({
-  title: v.optional(v.string()),
-  description: v.optional(v.string()),
-  fields: v.optional(v.array(formFieldItem)),
-  submitLabel: v.optional(v.string())
-})
+export type OasMethodEnrichments = Record<string, EnrichmentLeaf>
+
+export const oasMethodEnrichments: v.GenericSchema<OasMethodEnrichments> = v.record(
+  v.string(),
+  v.unknown()
+)
 
 /**
- * Configuration for a complete form.
- * 
- * Represents a form with optional title, description, field definitions,
- * and customizable submit button label.
+ * OAS path enrichments: path template → method enrichments.
  */
-export type FormItem = {
-  title?: string
-  description?: string
-  fields?: FormFieldItem[]
-  submitLabel?: string
-}
+export type OasPathEnrichments = Record<string, OasMethodEnrichments>
+
+export const oasPathEnrichments: v.GenericSchema<OasPathEnrichments> = v.record(
+  v.string(),
+  oasMethodEnrichments
+)
 
 /**
- * Valibot schema for table column items.
- * 
- * Validates table column configurations including formatter components,
- * labels, and data access paths.
+ * GraphQL field enrichments: root field name → leaf payload.
  */
-export const tableColumnItem: v.GenericSchema<TableColumnItem> = v.object({
-  id: v.string(),
-  accessorPath: v.array(v.string()),
-  formatter: moduleExport,
-  label: v.string()
-})
+export type GqlFieldEnrichments = Record<string, EnrichmentLeaf>
+
+export const gqlFieldEnrichments: v.GenericSchema<GqlFieldEnrichments> = v.record(
+  v.string(),
+  v.unknown()
+)
 
 /**
- * Configuration for a single table column.
- * 
- * Defines how a table column should be rendered, including its formatter
- * component, display label, and data binding path.
+ * GraphQL root-kind enrichments: `query` / `mutation` / `subscription`
+ * → field enrichments.
  */
-export type TableColumnItem = {
-  id: string
-  accessorPath: string[]
-  formatter: ModuleExport
-  label: string
-}
+export type GqlRootKindEnrichments = Record<string, GqlFieldEnrichments>
+
+export const gqlRootKindEnrichments: v.GenericSchema<GqlRootKindEnrichments> = v.record(
+  v.string(),
+  gqlFieldEnrichments
+)
 
 /**
- * Valibot schema for table configurations.
- * 
- * Validates complete table definitions including title, description,
- * and column configurations.
+ * Top-level enrichments: generator id → hierarchy.
+ *
+ * Each generator's value is one of three structurally-distinct
+ * hierarchies depending on the generator's entry kind:
+ *  - `ModelEnrichments` for `toModelEntry`
+ *  - `OasPathEnrichments` for `toOasOperationEntry`
+ *  - `GqlRootKindEnrichments` for `toGqlOperationEntry`
+ *
+ * The dispatcher knows which shape applies based on the generator's
+ * declared entry type; the union is the wire format.
  */
-export const tableItem: v.GenericSchema<TableItem> = v.object({
-  title: v.optional(v.string()),
-  description: v.optional(v.string()),
-  columns: v.optional(v.array(tableColumnItem))
-})
+export type GeneratorEnrichments = Record<
+  string,
+  ModelEnrichments | OasPathEnrichments | GqlRootKindEnrichments
+>
 
-/**
- * Configuration for a complete table.
- * 
- * Represents a table with optional title, description, and column definitions.
- */
-export type TableItem = {
-  title?: string
-  description?: string
-  columns?: TableColumnItem[]
-}
-
-/**
- * Valibot schema for input items.
- * 
- * Validates input component configurations including formatter components
- * and data access paths.
- */
-export const inputItem: v.GenericSchema<InputItem> = v.object({
-  id: v.string(),
-  accessorPath: v.array(v.string()),
-  formatter: moduleExport
-})
-
-/**
- * Configuration for a single input component.
- * 
- * Defines how an input should be rendered, including its formatter
- * component and data binding path.
- */
-export type InputItem = {
-  id: string
-  accessorPath: string[]
-  formatter: ModuleExport
-}
-
-/**
- * Valibot schema for operation-level enrichments.
- * 
- * Validates enrichment configurations that can be applied to OpenAPI operations,
- * including table, form, and input component definitions.
- */
-export const operationEnrichments: v.GenericSchema<OperationEnrichments> = v.object({
-  table: v.optional(tableItem),
-  form: v.optional(formItem),
-  input: v.optional(inputItem)
-})
-
-/**
- * Enrichment configurations for a single OpenAPI operation.
- * 
- * Contains optional table, form, and input configurations that can enhance
- * how an operation is presented and interacted with in generated UIs.
- */
-export type OperationEnrichments = {
-  table?: TableItem
-  form?: FormItem
-  input?: InputItem
-}
-
-/**
- * Valibot schema for HTTP method-level enrichments.
- * 
- * Maps HTTP methods (GET, POST, etc.) to their operation enrichment configurations.
- */
-export const methodEnrichments: v.GenericSchema<MethodEnrichments> = v.record(v.string(), operationEnrichments)
-
-/**
- * HTTP method to operation enrichments mapping.
- * 
- * Associates HTTP methods with their corresponding operation enrichment configurations.
- */
-export type MethodEnrichments = Record<string, OperationEnrichments>
-
-/**
- * Valibot schema for API path-level enrichments.
- * 
- * Maps API paths to their method enrichment configurations.
- */
-export const pathEnrichments: v.GenericSchema<PathEnrichments> = v.record(v.string(), methodEnrichments)
-
-/**
- * API path to method enrichments mapping.
- * 
- * Associates API paths with their corresponding method enrichment configurations.
- */
-export type PathEnrichments = Record<string, MethodEnrichments>
-
-/**
- * Valibot schema for generator-level enrichments.
- * 
- * Maps generator IDs to their path enrichment configurations,
- * creating a complete hierarchy of enrichment data.
- */
-export const generatorEnrichments: v.GenericSchema<GeneratorEnrichments> = v.record(v.string(), pathEnrichments)
-
-/**
- * Generator ID to path enrichments mapping.
- * 
- * Top-level enrichment structure that organizes enrichment data by generator,
- * then by path, then by HTTP method, providing complete enrichment hierarchies.
- */
-export type GeneratorEnrichments = Record<string, PathEnrichments>
+export const generatorEnrichments: v.GenericSchema<GeneratorEnrichments> = v.record(
+  v.string(),
+  v.union([modelEnrichments, oasPathEnrichments, gqlRootKindEnrichments])
+)

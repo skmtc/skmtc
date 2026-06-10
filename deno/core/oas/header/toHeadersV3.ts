@@ -10,7 +10,7 @@ import type { HeaderFields } from './Header.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToHeadersV3Args = {
+export type ToHeadersV3Args = {
   headers: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject> | undefined
   stackTrail: StackTrail
   context: ParseContextType
@@ -37,7 +37,7 @@ export const toHeadersV3 = ({
   return output
 }
 
-type ToHeaderV3Args = {
+export type ToHeaderV3Args = {
   header: OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject
   stackTrail: StackTrail
   context: ParseContextType

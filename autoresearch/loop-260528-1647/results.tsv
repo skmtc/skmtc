@@ -1,0 +1,4 @@
+# metric_direction: higher_is_better
+iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
+0	2026-05-28T15:53:58Z	3ac4bc55a8c5846ba17db3ad92aa63fbfad475a2	6	0	pass	3	baseline	initial state (post-fix)
+1	2026-05-28T15:57:18Z	e6cc3ec68f332507a8e3c61130e9982196292b83	7	1	pass	3	keep	add operationId anti-pattern row to §4

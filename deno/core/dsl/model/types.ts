@@ -1,18 +1,22 @@
 import type { GenerateContextType } from '../../context/generateTypes.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
 
 /**
- * Constructor arguments for model insertable instances.
+ * External constructor signature for a model projection class.
  *
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * The pipeline calls `new SomeProjection(args)` with this shape; the
+ * runtime base class ({@link ModelProjectionBase}) injects `generatorKey`
+ * before calling `super()`.
  */
-export type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
+export type ModelProjectionConstructorArgs<EnrichmentType = undefined> = {
   context: GenerateContextType
   refName: RefName
   settings: ContentSettings<EnrichmentType>
@@ -20,98 +24,103 @@ export type ModelInsertableConstructorArgs<EnrichmentType = undefined> = {
   rootRef?: RefName
 }
 
-/**
- * Interface for objects that provide model transformation capabilities.
- *
- * Used by generator configurations to transform model definitions
- * during the code generation process.
- */
 export type WithTransformModel = {
   transformModel: (refName: RefName) => void
 }
 
-/**
- * Arguments for generating enrichment data for models.
- */
 export type ToModelEnrichmentsArgs = {
   refName: RefName
   context: GenerateContextType
+  /** Model variant whose enrichment should be resolved (see {@link Variant}) */
+  variant: string
 }
 
-/**
- * Arguments passed to model transformation functions.
- *
- * @template Acc - Accumulator type for collecting transformation results
- */
-export type TransformModelArgs<Acc> = {
+export type TransformModelArgs = {
   context: GenerateContextType
   refName: RefName
-  acc: Acc | undefined
+  /**
+   * The model variant the engine is dispatching for this call. The
+   * engine fans out one `transform` call per variant declared in the
+   * consumer's `enrichments[id][refName]` block (or just `'main'`
+   * when no enrichments are configured). See {@link Variant}.
+   */
+  variant: string
 }
 
-/**
- * Arguments for generating model preview modules.
- *
- * Preview modules provide quick insights into generated models
- * without full code generation.
- */
 export type ToModelPreviewModuleArgs = {
   context: GenerateContextType
   refName: RefName
+  /** Model variant the preview module describes (see {@link Variant}) */
+  variant: string
 }
 
-/**
- * Arguments for generating model mapping information.
- *
- * Mappings track relationships between OAS schemas and generated models,
- * enabling cross-references and dependency analysis.
- */
 export type ToModelMappingArgs = {
   context: GenerateContextType
   refName: RefName
+  /** Model variant the mapping module describes (see {@link Variant}) */
+  variant: string
 }
 
 /**
- * Configuration object for insertable model generators.
+ * Static structural type of a model projection class.
  *
- * Defines the contract for model generator classes that can be inserted
- * into the generation context to produce type-safe model definitions.
- *
- * @template V - Generated value type produced by the model generator
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * Captures both the instance side (`new(...) => V`) and the static side
+ * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`,
+ * `schemaToValueFn`, `createIdentifier`). Passed as a type parameter to
+ * `context.insertModel(...)`.
  */
-export type ModelInsertable<V, EnrichmentType = undefined> = { prototype: V } & {
+export type ToModelIdentifierArgs<EnrichmentType = undefined> = {
+  refName: RefName
+  enrichments: EnrichmentType
+  /** Model variant the identifier should disambiguate (see {@link Variant}) */
+  variant: string
+}
+
+export type ToModelExportPathArgs<EnrichmentType = undefined> = {
+  refName: RefName
+  enrichments: EnrichmentType
+  /** Model variant the export path should disambiguate (see {@link Variant}) */
+  variant: string
+}
+
+export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
+  prototype: V
+} & {
   new ({
     context,
     refName,
     settings,
     destinationPath,
     rootRef
-  }: ModelInsertableConstructorArgs<EnrichmentType>): V
+  }: ModelProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
-  toIdentifier: (refName: RefName) => Identifier
-  toExportPath: (refName: RefName) => string
-  toEnrichments: ({ refName, context }: ToModelEnrichmentsArgs) => EnrichmentType
+  /**
+   * The projection's language — the static inherited from the language
+   * snippet base the projection class is built on
+   * (`toModelProjectionBase({ base: TsSnippet, … })`). Drivers read it
+   * pre-construction (cache-hit path). SPIKE (option 2 — see `notes/lang/14`).
+   */
+  lang: Lang
+  toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
+  toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
+  toEnrichments: ({ refName, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
   schemaToValueFn: SchemaToValueFn
   createIdentifier: (name: string) => Identifier
   // deno-lint-ignore ban-types
 } & Function
 
 /**
- * Configuration object for model generators.
- *
- * Defines the behavior and capabilities of model generators including
- * transformation logic, preview generation, and enrichment handling.
- *
- * @template EnrichmentType - Optional enrichment data type for additional metadata
+ * Pipeline-side configuration for a model projection (built by
+ * `toModelEntry`). Carries the iteration callback (`transform`) and
+ * optional preview/mapping/enrichment hooks.
  */
 export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
-  transform: <Acc = void>({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
-  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, refName }: ToModelMappingArgs) => MappingModule
+  transform: ({ context, refName, variant }: TransformModelArgs) => void
+  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName

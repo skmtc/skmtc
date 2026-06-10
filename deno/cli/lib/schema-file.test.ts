@@ -122,7 +122,7 @@ Deno.test('SchemaFile.getFromSource - rejects unsupported file extension', async
         await SchemaFile.getFromSource(source)
       },
       Error,
-      'File type is not JSON or YAML'
+      'Schema file extension not recognized'
     )
   } finally {
     await Deno.remove(tempDir, { recursive: true })

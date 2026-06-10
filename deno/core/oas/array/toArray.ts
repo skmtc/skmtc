@@ -10,7 +10,7 @@ import { oasArrayDataWithoutItems } from './array-types.ts'
 import { tracer } from '../../helpers/tracer.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToArrayArgs = {
+export type ToArrayArgs = {
   value: OpenAPIV3.ArraySchemaObject
   stackTrail: StackTrail
   context: ParseContextType
@@ -181,22 +181,29 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
   //   throw new Error('No items')
   // }
 
-  return new OasArray({
-    title,
-    description,
-    nullable,
-    defaultValue,
-    items: stackTrail.trace('items', st => toSchemaV3({ schema: items, stackTrail: st, context })),
-    extensionFields,
-    example,
-    uniqueItems,
-    maxItems,
-    minItems,
-    enums,
-    readOnly,
-    writeOnly,
-    deprecated
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasArray(
+      {
+        title,
+        description,
+        nullable,
+        defaultValue,
+        items: stackTrail.trace('items', st =>
+          toSchemaV3({ schema: items, stackTrail: st, context })
+        ),
+        extensionFields,
+        example,
+        uniqueItems,
+        maxItems,
+        minItems,
+        enums,
+        readOnly,
+        writeOnly,
+        deprecated
+      },
+      context
+    )
+  )
 }
 
 type ParseExampleArgs = {

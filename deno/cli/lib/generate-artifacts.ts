@@ -1,20 +1,15 @@
-import type { ClientSettings } from '@/types/clientSettings.generated.ts'
-import { generateSandboxApi } from '@/services/generateSandboxApi.ts'
+import type { ClientSettings } from '@skmtc/core/Settings'
+import type { SerializableAttribution } from '@skmtc/worker/types'
 import { generateWithWorker } from './generate-worker.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
-
-type GenerateWithSandboxApiArgs = {
-  projectName: string
-  schemaContents: string
-  clientSettings: ClientSettings | undefined
-  accountName: string
-  token: string | undefined
-}
+import type { FileType } from '@/lib/types.ts'
 
 type GenerateWithWorkerArgs = {
   bundlePath: string
   schemaContents: string
+  fileType: FileType
   clientSettings: ClientSettings | undefined
+  attribution?: SerializableAttribution
 }
 
 // Class is used as a proxy for easy mocking in tests
@@ -22,28 +17,16 @@ export class GenerateArtifacts {
   static async generateWithWorker({
     bundlePath,
     schemaContents,
-    clientSettings
+    fileType,
+    clientSettings,
+    attribution
   }: GenerateWithWorkerArgs): Promise<GenerateResponse> {
     return await generateWithWorker({
       schemaContents,
+      fileType,
       clientSettings,
-      bundlePath
-    })
-  }
-
-  static async generateWithSandboxApi({
-    projectName,
-    schemaContents,
-    clientSettings,
-    accountName,
-    token
-  }: GenerateWithSandboxApiArgs): Promise<GenerateResponse> {
-    return await generateSandboxApi({
-      accountName: accountName,
-      serverName: projectName,
-      schema: schemaContents,
-      clientSettings,
-      token
+      bundlePath,
+      attribution
     })
   }
 }

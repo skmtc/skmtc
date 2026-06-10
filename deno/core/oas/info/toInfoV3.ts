@@ -6,7 +6,7 @@ import { toLicenseV3 } from '../license/toLicenseV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToInfoV3Args = {
+export type ToInfoV3Args = {
   info: OpenAPIV3.InfoObject
   stackTrail: StackTrail
   context: ParseContextType

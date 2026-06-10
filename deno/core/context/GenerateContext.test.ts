@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from '@std/assert'
+import { assertEquals, assertExists, assertThrows } from '@std/assert'
 import { GenerateContext } from './GenerateContext.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
@@ -6,11 +6,14 @@ import { StackTrail } from './StackTrail.ts'
 import { spy, assertSpyCalls } from '@std/testing/mock'
 import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
-import { Definition } from '@/dsl/Definition.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
+import { TsDefinition, createType, createVariable } from '@skmtc/lang-typescript'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import { File } from '@/dsl/File.ts'
+import { register } from '@skmtc/lang-typescript'
 import { JsonFile } from '@/dsl/JsonFile.ts'
+import { GqlDocument } from '@/gql/document/GqlDocument.ts'
+import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
+import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
+import { OasString } from '@/oas/string/String.ts'
 
 // Mock logger
 const mockLogger: log.Logger = {
@@ -18,7 +21,7 @@ const mockLogger: log.Logger = {
   info: () => {},
   warn: () => {},
   error: () => {},
-  critical: () => {},
+  critical: () => {}
 } as unknown as log.Logger
 
 // Helper to create a GenerateContext for testing
@@ -29,23 +32,28 @@ const createTestContext = (options?: {
 }) => {
   const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
 
-  const context = new GenerateContext({
-    oasDocument: options?.oasDocument ?? new OasDocument({
+  const oasDocument =
+    options?.oasDocument ??
+    new OasDocument({
       openapi: '3.0.0',
       info: new OasInfo({ title: 'Test API', version: '1.0.0' }),
       operations: []
-    }),
+    })
+
+  const context = new GenerateContext({
+    document: { type: 'oas', value: oasDocument },
     settings: options?.settings,
     logger: options?.logger ?? mockLogger,
     captureCurrentResult,
-    // @ts-expect-error - mock implementation
+    // File management goes through the lang package's register function
+    // (which pre-creates files), so no generator config is needed here.
     toGeneratorConfigMap: () => ({})
   })
 
   return { context, captureCurrentResult }
 }
 
-Deno.test('GenerateContext - Constructor', async (t) => {
+Deno.test('GenerateContext - Constructor', async t => {
   await t.step('should initialize with all required parameters', () => {
     const oasDocument = new OasDocument({
       openapi: '3.0.0',
@@ -57,15 +65,15 @@ Deno.test('GenerateContext - Constructor', async (t) => {
     const toGeneratorConfigMap = () => ({})
 
     const context = new GenerateContext({
-      oasDocument,
+      document: { type: 'oas', value: oasDocument },
       settings,
       logger: mockLogger,
       captureCurrentResult,
-      // @ts-expect-error - mock implementation
       toGeneratorConfigMap
     })
 
-    assertEquals(context.oasDocument, oasDocument)
+    assertEquals(context.document.type, 'oas')
+    assertEquals(context.document.value, oasDocument)
     assertEquals(context.settings, settings)
     assertEquals(context.logger, mockLogger)
     assertEquals(context.captureCurrentResult, captureCurrentResult)
@@ -97,7 +105,7 @@ Deno.test('GenerateContext - Constructor', async (t) => {
   })
 })
 
-Deno.test('GenerateContext - File Management', async (t) => {
+Deno.test('GenerateContext - File Management', async t => {
   await t.step('registerJson should create a JSON file', () => {
     const { context } = createTestContext()
 
@@ -140,16 +148,16 @@ Deno.test('GenerateContext - File Management', async (t) => {
   await t.step('register should handle file registration with definitions', () => {
     const { context } = createTestContext()
 
-    const definition = new Definition({
+    const definition = new TsDefinition({
       context,
-      identifier: Identifier.createType('TestType'),
+      identifier: createType('TestType'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type TestType = string;'
       }
     })
 
-    context.register({
+    register(context, {
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -160,7 +168,7 @@ Deno.test('GenerateContext - File Management', async (t) => {
   await t.step('register should handle imports', () => {
     const { context } = createTestContext()
 
-    context.register({
+    register(context, {
       destinationPath: './types.ts',
       imports: {
         './base': ['BaseType', 'BaseInterface']
@@ -170,29 +178,16 @@ Deno.test('GenerateContext - File Management', async (t) => {
     assertEquals(true, true)
   })
 
-  await t.step('register should handle re-exports', () => {
-    const { context } = createTestContext()
-
-    const typeId1 = Identifier.createType('User')
-    const typeId2 = Identifier.createType('Product')
-
-    context.register({
-      destinationPath: './index.ts',
-      reExports: {
-        './types.ts': [typeId1, typeId2]
-      }
-    })
-
-    assertEquals(true, true)
-  })
+  // Re-export coverage lives in GenerateContext.reExports.test.ts — the
+  // barrel-pattern fixture over the ReExportBase seam.
 })
 
-Deno.test('GenerateContext - Definition Lookup', async (t) => {
+Deno.test('GenerateContext - Definition Lookup', async t => {
   await t.step('findDefinition should return undefined for non-existent definition', () => {
     const { context } = createTestContext()
 
     // Register a file first
-    context.register({
+    register(context, {
       destinationPath: './types.ts',
       definitions: []
     })
@@ -208,16 +203,16 @@ Deno.test('GenerateContext - Definition Lookup', async (t) => {
   await t.step('findDefinition should find registered definition', () => {
     const { context } = createTestContext()
 
-    const definition = new Definition({
+    const definition = new TsDefinition({
       context,
-      identifier: Identifier.createType('ExistingType'),
+      identifier: createType('ExistingType'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type ExistingType = string;'
       }
     })
 
-    context.register({
+    register(context, {
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -233,22 +228,22 @@ Deno.test('GenerateContext - Definition Lookup', async (t) => {
   await t.step('findDefinition should not find definition in wrong file', () => {
     const { context } = createTestContext()
 
-    const definition = new Definition({
+    const definition = new TsDefinition({
       context,
-      identifier: Identifier.createType('TypeInFile1'),
+      identifier: createType('TypeInFile1'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type TypeInFile1 = string;'
       }
     })
 
-    context.register({
+    register(context, {
       destinationPath: './file1.ts',
       definitions: [definition]
     })
 
     // Create another file
-    context.register({
+    register(context, {
       destinationPath: './file2.ts',
       definitions: []
     })
@@ -262,7 +257,7 @@ Deno.test('GenerateContext - Definition Lookup', async (t) => {
   })
 })
 
-Deno.test('GenerateContext - Artifact Generation', async (t) => {
+Deno.test('GenerateContext - Artifact Generation', async t => {
   await t.step('toArtifacts should return empty results with no generators', () => {
     const { context } = createTestContext()
     const stackTrail = new StackTrail(['test'])
@@ -283,7 +278,6 @@ Deno.test('GenerateContext - Artifact Generation', async (t) => {
     })
 
     // Override toGeneratorConfigMap to return a test generator
-    // @ts-expect-error - minimal mock for testing
     context.toGeneratorConfigMap = () => ({
       generator1: {
         id: 'generator1',
@@ -312,30 +306,30 @@ Deno.test('GenerateContext - Artifact Generation', async (t) => {
   })
 })
 
-Deno.test('GenerateContext - Integration', async (t) => {
+Deno.test('GenerateContext - Integration', async t => {
   await t.step('should handle complete registration and lookup workflow', () => {
     const { context } = createTestContext()
 
     // 1. Register some definitions
-    const definition1 = new Definition({
+    const definition1 = new TsDefinition({
       context,
-      identifier: Identifier.createType('User'),
+      identifier: createType('User'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type User = { id: string; name: string; };'
       }
     })
 
-    const definition2 = new Definition({
+    const definition2 = new TsDefinition({
       context,
-      identifier: Identifier.createType('Product'),
+      identifier: createType('Product'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type Product = { id: string; price: number; };'
       }
     })
 
-    context.register({
+    register(context, {
       destinationPath: './types.ts',
       definitions: [definition1, definition2],
       imports: {
@@ -368,16 +362,16 @@ Deno.test('GenerateContext - Integration', async (t) => {
     })
 
     // Register TypeScript file
-    const definition = new Definition({
+    const definition = new TsDefinition({
       context,
-      identifier: Identifier.createVariable('CONFIG'),
+      identifier: createVariable('CONFIG'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export const CONFIG = { /* ... */ };'
       }
     })
 
-    context.register({
+    register(context, {
       destinationPath: './constants.ts',
       definitions: [definition]
     })
@@ -389,18 +383,18 @@ Deno.test('GenerateContext - Integration', async (t) => {
   await t.step('should maintain separate definition namespaces per file', () => {
     const { context } = createTestContext()
 
-    const typeDefinition = new Definition({
+    const typeDefinition = new TsDefinition({
       context,
-      identifier: Identifier.createType('Config'),
+      identifier: createType('Config'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export type Config = { /* ... */ };'
       }
     })
 
-    const constantDefinition = new Definition({
+    const constantDefinition = new TsDefinition({
       context,
-      identifier: Identifier.createVariable('Config'),
+      identifier: createVariable('Config'),
       value: {
         generatorKey: toGeneratorOnlyKey({ generatorId: 'test' }),
         toString: () => 'export const Config = { /* ... */ };'
@@ -408,12 +402,12 @@ Deno.test('GenerateContext - Integration', async (t) => {
     })
 
     // Same name 'Config' but in different files
-    context.register({
+    register(context, {
       destinationPath: './types.ts',
       definitions: [typeDefinition]
     })
 
-    context.register({
+    register(context, {
       destinationPath: './constants.ts',
       definitions: [constantDefinition]
     })
@@ -459,5 +453,163 @@ Deno.test('GenerateContext - Integration', async (t) => {
 
     assertEquals(context.modelDepth['User'], 1)
     assertEquals(context.modelDepth['Product'], 2)
+  })
+})
+
+// Helper for GraphQL-side testing
+const createGqlContext = (operations: GqlOperation[] = []) => {
+  const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
+
+  const gqlDocument = new GqlDocument({
+    registry: new GqlRegistry({ schemas: {} }),
+    operations,
+    rootTypes: {}
+  })
+
+  const context = new GenerateContext({
+    document: { type: 'gql', value: gqlDocument },
+    settings: undefined,
+    logger: mockLogger,
+    captureCurrentResult,
+    toGeneratorConfigMap: () => ({})
+  })
+
+  return { context, captureCurrentResult, gqlDocument }
+}
+
+Deno.test('GenerateContext - SkmtcDocument discrimination', async t => {
+  await t.step('document.type is "oas" for OAS context with matching value', () => {
+    const { context } = createTestContext()
+    assertEquals(context.document.type, 'oas')
+    assertExists(context.document.value)
+  })
+
+  await t.step('document.type is "gql" for GQL context with matching value', () => {
+    const { context, gqlDocument } = createGqlContext()
+    assertEquals(context.document.type, 'gql')
+    assertEquals(context.document.value, gqlDocument)
+  })
+})
+
+Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
+  await t.step('oas operation generator runs for OAS document', () => {
+    const { context } = createTestContext()
+    const transform = spy(() => undefined)
+
+    context.toGeneratorConfigMap = () => ({
+      'http-gen': {
+        id: 'http-gen',
+        type: 'oasOperation',
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    // Operations array on the OAS doc is empty in createTestContext, so
+    // transform is never invoked — but the generator is dispatched without
+    // throwing, which is what we're validating here.
+    assertSpyCalls(transform, 0)
+  })
+
+  await t.step('gql operation generator runs for GQL document', () => {
+    const op = new GqlOperation({
+      rootKind: 'query',
+      fieldName: 'getUser',
+      arguments: [],
+      returnType: new OasString({})
+    })
+    const { context } = createGqlContext([op])
+    const transform = spy(() => undefined)
+
+    context.toGeneratorConfigMap = () => ({
+      'gql-gen': {
+        id: 'gql-gen',
+        type: 'gqlOperation',
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 1)
+  })
+
+  await t.step('oas generator does not run for GQL document', () => {
+    const op = new GqlOperation({
+      rootKind: 'query',
+      fieldName: 'getUser',
+      arguments: [],
+      returnType: new OasString({})
+    })
+    const { context } = createGqlContext([op])
+    const transform = spy(() => undefined)
+
+    context.toGeneratorConfigMap = () => ({
+      'http-gen': {
+        id: 'http-gen',
+        type: 'oasOperation',
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 0)
+  })
+
+  await t.step('gql generator does not run for OAS document', () => {
+    const { context } = createTestContext()
+    const transform = spy(() => undefined)
+
+    context.toGeneratorConfigMap = () => ({
+      'gql-gen': {
+        id: 'gql-gen',
+        type: 'gqlOperation',
+        transform,
+        isSupported: () => true
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 0)
+  })
+})
+
+Deno.test('GenerateContext - model dispatch is protocol-neutral', async t => {
+  await t.step('model generator runs on GQL document via registry', () => {
+    const captureCurrentResult = spy((_result: ResultType, _st: StackTrail) => {})
+
+    const registry = new GqlRegistry({
+      schemas: {
+        ['User' as never]: new OasString({})
+      }
+    })
+    const gqlDocument = new GqlDocument({
+      registry,
+      operations: [],
+      rootTypes: {}
+    })
+
+    const context = new GenerateContext({
+      document: { type: 'gql', value: gqlDocument },
+      settings: undefined,
+      logger: mockLogger,
+      captureCurrentResult,
+      toGeneratorConfigMap: () => ({})
+    })
+
+    const transform = spy(() => undefined)
+
+    context.toGeneratorConfigMap = () => ({
+      'model-gen': {
+        id: 'model-gen',
+        type: 'model',
+        transform
+      }
+    })
+
+    context.toArtifacts(new StackTrail(['test']))
+    assertSpyCalls(transform, 1)
   })
 })

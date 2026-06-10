@@ -1,0 +1,23 @@
+{
+  "name": "@skmtc/openapi-down-convert",
+  "version": "0.14.7",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./mod.ts"
+  },
+  "imports": {
+    "@std/yaml": "jsr:@std/yaml@^1.1.0"
+  },
+  "tasks": {
+    "test": "deno test --allow-read",
+    "test:watch": "deno test --allow-read --watch",
+    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:dry": "JSR_URL=https://jsr.skmtc.dev/ deno publish --dry-run --allow-dirty"
+  },
+  "publish": {
+    "exclude": [
+      "**/*.test.ts",
+      "fixtures/"
+    ]
+  }
+}

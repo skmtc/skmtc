@@ -4,7 +4,7 @@ import { OasUnknown } from './Unknown.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToUnknownArgs = {
+export type ToUnknownArgs = {
   value: OpenAPIV3.SchemaObject
   stackTrail: StackTrail
   context: ParseContextType
@@ -21,11 +21,16 @@ export const toUnknown = ({ value, stackTrail, context }: ToUnknownArgs): OasUnk
     parentType: 'schema:unknown'
   })
 
-  return new OasUnknown({
-    title,
-    description,
-    nullable,
-    extensionFields,
-    example
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasUnknown(
+      {
+        title,
+        description,
+        nullable,
+        extensionFields,
+        example
+      },
+      context
+    )
+  )
 }

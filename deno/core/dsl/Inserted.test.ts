@@ -1,8 +1,7 @@
 import { assertEquals } from '@std/assert/equals'
 import { Inserted } from '@/dsl/Inserted.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import { TsDefinition, createType, createVariable } from '@skmtc/lang-typescript'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '../context/generateTypes.ts'
 
@@ -11,13 +10,13 @@ const mockContext = {} as GenerateContextType
 const testGeneratorKey = toGeneratorOnlyKey({ generatorId: 'test' })
 
 Deno.test('Inserted - toName returns identifier name', () => {
-  const identifier = Identifier.createType('User')
+  const identifier = createType('User')
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/models/User.ts'
   })
 
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value: { generatorKey: testGeneratorKey, toString: () => '{ id: string }' }
@@ -32,13 +31,13 @@ Deno.test('Inserted - toName returns identifier name', () => {
 })
 
 Deno.test('Inserted - toIdentifier returns full identifier', () => {
-  const identifier = Identifier.createVariable('apiClient', 'ApiClient')
+  const identifier = createVariable('apiClient', { typeName: 'ApiClient' })
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/api.ts'
   })
 
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value: { generatorKey: testGeneratorKey, toString: () => 'new Client()' }
@@ -53,17 +52,17 @@ Deno.test('Inserted - toIdentifier returns full identifier', () => {
 
   assertEquals(resultIdentifier.name, 'apiClient')
   assertEquals(resultIdentifier.typeName, 'ApiClient')
-  assertEquals(resultIdentifier.entityType.type, 'variable')
+  assertEquals(resultIdentifier.kind, 'variable')
 })
 
 Deno.test('Inserted - toExportPath returns export path', () => {
-  const identifier = Identifier.createType('Product')
+  const identifier = createType('Product')
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/models/Product.ts'
   })
 
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value: { generatorKey: testGeneratorKey, toString: () => '{ name: string }' }
@@ -78,14 +77,14 @@ Deno.test('Inserted - toExportPath returns export path', () => {
 })
 
 Deno.test('Inserted - toValue returns generated value', () => {
-  const identifier = Identifier.createType('Status')
+  const identifier = createType('Status')
   const settings = ContentSettings.empty({
     identifier,
     exportPath: './src/types.ts'
   })
 
   const value = { generatorKey: testGeneratorKey, toString: () => "'active' | 'inactive'" }
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value
@@ -100,15 +99,16 @@ Deno.test('Inserted - toValue returns generated value', () => {
 })
 
 Deno.test('Inserted - works with enrichments', () => {
-  const identifier = Identifier.createType('ValidatedUser')
+  const identifier = createType('ValidatedUser')
   const enrichments = { validateRequired: true, generateComments: false }
   const settings = new ContentSettings({
     identifier,
     exportPath: './src/validated.ts',
-    enrichments
+    enrichments,
+    variant: 'main'
   })
 
-  const definition = new Definition({
+  const definition = new TsDefinition({
     context: mockContext,
     identifier,
     value: { generatorKey: testGeneratorKey, toString: () => '{ id: string }' }

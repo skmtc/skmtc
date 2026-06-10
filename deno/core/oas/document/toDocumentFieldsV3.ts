@@ -11,7 +11,7 @@ import { toSecurityRequirementsV3 } from '@/oas/securityRequirement/toSecurityRe
 import { toExternalDocs } from '@/oas/externalDocs/toExternalDocs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToDocumentV3Args = {
+export type ToDocumentV3Args = {
   documentObject: OpenAPIV3.Document
   stackTrail: StackTrail
   context: ParseContextType

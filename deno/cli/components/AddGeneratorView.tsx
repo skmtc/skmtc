@@ -1,7 +1,6 @@
 import React from 'react'
 import { type ViewStateAddGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
-import { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
+import type { Project } from '@/lib/project.ts'
 import { useState, useEffect } from 'react'
 import { SelectTask } from './SelectTask.tsx'
 import { TaskListView } from './TaskListView.tsx'
@@ -12,14 +11,12 @@ import { TaskBox } from './TaskBox.tsx'
 import { Spinner } from '@/components/Spinner.tsx'
 
 type AddGeneratorViewProps = {
-  project: Project | RemoteProject
+  project: Project
   view: ViewStateAddGenerator
 }
 
 export const AddGeneratorView = ({ project }: AddGeneratorViewProps) => {
   const { dispatch, state } = useSkmtc()
-
-  invariant(project instanceof Project, 'Local project is required')
 
   return (
     <TaskProvider
@@ -61,10 +58,8 @@ type AddGeneratorTaskProps = {
 }
 
 const AddGeneratorTask = ({ project }: AddGeneratorTaskProps) => {
-  const { state: skmtcState, dispatch, dispatchMessage } = useSkmtc()
+  const { dispatch, dispatchMessage } = useSkmtc()
   const { state: taskState } = useTask()
-
-  const username = skmtcState.session?.user.user_metadata.user_name
 
   useEffect(() => {
     const taskEntries = taskState.tasks.map(task => [task.taskKey, task.state])
@@ -78,7 +73,7 @@ const AddGeneratorTask = ({ project }: AddGeneratorTaskProps) => {
     invariant(generatorType, 'Generator type is required')
 
     project
-      .addGenerator({ moduleName: generatorName, type: generatorType, username })
+      .addGenerator({ moduleName: generatorName, type: generatorType })
       .then(() => {
         dispatchMessage({
           success: `"${generatorName}" (${generatorType}) generator added to ${project.name}`

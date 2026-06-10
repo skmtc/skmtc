@@ -1,11 +1,10 @@
 import type { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
 import { useTask } from '@/components/TaskContext.tsx'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { StringTask } from '@/components/StringTask.tsx'
 import { relative } from '@std/path/relative'
 type SchemaLocationTaskProps = {
-  project: Project | RemoteProject
+  project: Project
 }
 
 export const SchemaLocationTask = ({ project }: SchemaLocationTaskProps) => {
@@ -15,7 +14,7 @@ export const SchemaLocationTask = ({ project }: SchemaLocationTaskProps) => {
 
   return (
     <StringTask
-      prompt="Input OpenAPI schema path or URL"
+      prompt="Input schema path or URL (.json / .yaml / .graphql)"
       defaultValue={
         schemaSource?.type === 'local' ? relative(absoluteRootPath, schemaSource.path) : undefined
       }

@@ -1,21 +1,31 @@
-import type { ModelInsertable } from './types.ts'
+import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
-import { Definition } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedDefinition } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
+import get from 'lodash-es/get'
 
 type CreateModelArgs<V extends GeneratedValue, EnrichmentType> = {
   context: GenerateContextType
-  insertable: ModelInsertable<V, EnrichmentType>
+  projection: ModelProjection<V, EnrichmentType>
   refName: RefName
   destinationPath?: string
   rootRef?: RefName
   noExport?: boolean
+  /**
+   * Target variant of the projection. The Driver resolves the
+   * peer's enrichment for this variant, asserts the variant exists
+   * (or is the default `'main'` which is always permitted), and
+   * threads it into the projection's `ContentSettings`.
+   */
+  variant: string
 }
 type ApplyArgs = {
   destinationPath?: string
@@ -28,82 +38,70 @@ type GetDefinitionArgs = {
 }
 
 /**
- * Driver class responsible for managing model generation lifecycle.
+ * Driver for the model insertion lifecycle.
  *
- * @template V - The generated value type
- * @template T - The generation type
- * @template EnrichmentType - Optional enrichment type
+ * Resolves the projection's identifier and export path, looks up an
+ * existing `Definition` in the target file, instantiates the projection
+ * (constructing its value) when no cache hit exists, registers the new
+ * definition, and stitches an import into `destinationPath` if it differs
+ * from the projection's `exportPath`.
  */
 export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
-  /** The generation context */
   context: GenerateContextType
-  /** The insertable model configuration */
-  insertable: ModelInsertable<V, EnrichmentType>
-  /** Reference name for the model */
+  projection: ModelProjection<V, EnrichmentType>
   refName: RefName
-  /** Content settings for the model */
   settings: ContentSettings<EnrichmentType>
-  /** Optional destination path for the generated file */
   destinationPath?: string
-  /** The generated definition */
   definition: GeneratedDefinition<V>
-  /** Optional root reference name */
   rootRef?: RefName
-  /** Whether to skip export declaration */
   noExport?: boolean
+  variant: string
 
-  /**
-   * Creates a new ModelDriver instance.
-   *
-   * @param args - Constructor arguments
-   * @param args.context - Generation context
-   * @param args.insertable - Model insertable configuration
-   * @param args.refName - Reference name for the model
-   * @param args.destinationPath - Optional destination path
-   * @param args.rootRef - Optional root reference name
-   * @param args.noExport - Whether to skip export declaration
-   */
   constructor({
     context,
-    insertable,
+    projection,
     refName,
     destinationPath,
     rootRef,
-    noExport
+    noExport,
+    variant
   }: CreateModelArgs<V, EnrichmentType>) {
     this.context = context
-    this.insertable = insertable
+    this.projection = projection
     this.refName = refName
     this.destinationPath = destinationPath
     this.rootRef = rootRef
     this.noExport = noExport
+    this.variant = variant
 
-    this.context.modelDepth[`${insertable.id}:${refName}`] = 0
+    this.context.modelDepth[`${projection.id}:${refName}`] = 0
 
-    this.settings = this.context.toModelContentSettings({ refName, insertable })
+    assertPeerVariantExists({
+      context,
+      generatorId: projection.id,
+      refName,
+      variant
+    })
+
+    this.settings = this.context.toModelContentSettings({ refName, projection, variant })
     this.definition = this.apply({ destinationPath })
 
-    this.context.modelDepth[`${insertable.id}:${refName}`] = 0
+    this.context.modelDepth[`${projection.id}:${refName}`] = 0
   }
 
-  /**
-   * Applies generation configuration to create the model definition.
-   *
-   * This method handles the core generation logic, including identifier resolution,
-   * export path management, and import registration for cross-file dependencies.
-   *
-   * @param args - Apply configuration arguments
-   * @param args.destinationPath - Optional destination path for imports
-   * @returns Generated definition for the model
-   */
   private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {
     const { identifier, exportPath } = this.settings
 
     const definition = this.getDefinition({ identifier, exportPath })
 
     if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
+      // Cross-file import of the peer's identifier from its export path.
+      // The language builds the import object (`toImport`) and creates the
+      // destination file on first write (caller-side); the engine stores
+      // via the pure-data `context.register`.
+      this.ensureFile(destinationPath)
       this.context.register({
-        imports: { [exportPath]: [identifier.name] },
+        imports: [this.projection.lang.toImport({ identifier, module: exportPath })],
         destinationPath
       })
     }
@@ -112,18 +110,24 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
   }
 
   /**
-   * Retrieves or creates a definition for the model.
-   *
-   * This method first checks for cached definitions to avoid duplicate generation,
-   * then creates a new definition if none exists. It handles the complete model
-   * transformation process including schema resolution and value generation.
-   *
-   * @param args - Definition retrieval arguments
-   * @param args.identifier - The identifier for the definition
-   * @param args.exportPath - The export path for the definition
-   * @returns Model definition instance
+   * Ensure the file at `path` exists, creating it on first write through
+   * the projection's language — the static read off the projection class
+   * at the use site, never persisted (works pre-construction on the
+   * cache-hit path). Returns the normalized path.
    */
-  private getDefinition({ identifier, exportPath }: GetDefinitionArgs): Definition<V> {
+  private ensureFile(path: string): string {
+    const normalizedPath = normalize(path)
+
+    if (!this.context.getFile(normalizedPath)) {
+      this.context.addFile(
+        this.projection.lang.createFile({ path: normalizedPath, settings: this.context.settings })
+      )
+    }
+
+    return normalizedPath
+  }
+
+  private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
       exportPath
@@ -133,17 +137,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       return cachedDefinition
     }
 
-    // const [previous, current] = this.context.stackTrail.slice(-2).stackTrail
-
-    // if (
-    //   previous === this.insertable.id &&
-    //   current === this.refName &&
-    //   this.refName === this.rootRef
-    // ) {
-    //   this.context.modelDepth++
-    // }
-
-    const value = new this.insertable({
+    const value = new this.projection({
       refName: this.refName,
       context: this.context,
       settings: this.settings,
@@ -151,13 +145,14 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       rootRef: this.rootRef
     })
 
-    const definition = new Definition({
+    const definition = this.projection.lang.toDefinition({
       context: this.context,
-      value,
       identifier,
+      value,
       noExport: this.noExport
     })
 
+    this.ensureFile(exportPath)
     this.context.register({
       definitions: [definition],
       destinationPath: exportPath
@@ -166,28 +161,18 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     return definition
   }
 
-  /**
-   * Type guard to verify a definition matches the expected generated value type.
-   *
-   * This method performs type narrowing to ensure a cached definition is compatible
-   * with the current generation requirements, including export path validation.
-   *
-   * @template V - The expected generated value type
-   * @param definition - The definition to verify (may be undefined)
-   * @param exportPath - Expected export path for validation
-   * @returns True if definition matches expected type and constraints
-   */
   private affirmDefinition<V extends GeneratedValue>(
-    definition: Definition | undefined,
+    definition: DefinitionBase | undefined,
     exportPath: string
-  ): definition is Definition<V> {
+  ): definition is DefinitionBase<V> {
     if (!definition) {
       return false
     }
 
     const currentKey = toModelGeneratorKey({
-      generatorId: this.insertable.id,
-      refName: this.refName
+      generatorId: this.projection.id,
+      refName: this.refName,
+      variant: this.settings.variant
     })
 
     if (currentKey !== definition.generatorKey) {
@@ -196,6 +181,65 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       )
     }
 
-    return definition.value instanceof this.insertable
+    return definition.value instanceof this.projection
+  }
+}
+
+type AssertPeerVariantExistsArgs = {
+  context: GenerateContextType
+  generatorId: string
+  refName: RefName
+  variant: string
+}
+
+/**
+ * Guard the peer-variant-mismatch invariant for model insertions.
+ *
+ * `'main'` is the universally-safe variant — it's guaranteed to be
+ * present on every peer (the engine fills it when no enrichments are
+ * configured, and the missing-`'main'` check throws when other
+ * variants exist without it). So calls with `variant === 'main'`
+ * always succeed regardless of the peer's enrichment shape.
+ *
+ * For any other variant, the peer's enrichment block at
+ * `[generatorId][refName]` must explicitly declare that variant
+ * key. The Driver throws here — loud at the call site — rather than
+ * letting silently-wrong output reach the consumer.
+ */
+const assertPeerVariantExists = ({
+  context,
+  generatorId,
+  refName,
+  variant
+}: AssertPeerVariantExistsArgs): void => {
+  if (variant === DEFAULT_VARIANT) {
+    return
+  }
+
+  const modelEnrichments: unknown = get(
+    context.settings,
+    `enrichments.${generatorId}.${refName}`
+  )
+
+  if (modelEnrichments === null || modelEnrichments === undefined) {
+    throw new Error(
+      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}' — ` +
+        `peer has no enrichments configured. Only '${DEFAULT_VARIANT}' is permitted.`
+    )
+  }
+
+  if (typeof modelEnrichments !== 'object' || Array.isArray(modelEnrichments)) {
+    throw new Error(
+      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}' — ` +
+        `peer enrichment is not a variant record.`
+    )
+  }
+
+  if (!(variant in modelEnrichments)) {
+    const available = Object.keys(modelEnrichments).join(', ')
+    throw new Error(
+      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}'. ` +
+        `Available variants: ${available}.`
+    )
   }
 }

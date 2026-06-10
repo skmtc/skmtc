@@ -1,37 +1,31 @@
 import { assertEquals } from '@std/assert/equals'
 import { Identifier } from '@/dsl/Identifier.ts'
 
-Deno.test('Identifier.createVariable - creates untyped variable', () => {
-  const identifier = Identifier.createVariable('userName')
-
-  assertEquals(identifier.name, 'userName')
-  assertEquals(identifier.typeName, undefined)
-  assertEquals(identifier.entityType.type, 'variable')
-  assertEquals(identifier.toString(), 'userName')
-})
-
-Deno.test('Identifier.createVariable - creates typed variable', () => {
-  const identifier = Identifier.createVariable('userId', 'string')
+Deno.test('Identifier - carries name, kind, typeName, exported', () => {
+  const identifier = new Identifier({ name: 'userId', typeName: 'string', kind: 'variable' })
 
   assertEquals(identifier.name, 'userId')
   assertEquals(identifier.typeName, 'string')
-  assertEquals(identifier.entityType.type, 'variable')
-  assertEquals(identifier.toString(), 'userId')
+  assertEquals(identifier.kind, 'variable')
+  assertEquals(identifier.exported, true)
 })
 
-Deno.test('Identifier.createType - creates type identifier', () => {
-  const identifier = Identifier.createType('User')
+Deno.test('Identifier - exported defaults to true and can be switched off', () => {
+  const hidden = new Identifier({ name: 'helper', kind: 'variable', exported: false })
 
-  assertEquals(identifier.name, 'User')
-  assertEquals(identifier.typeName, undefined)
-  assertEquals(identifier.entityType.type, 'type')
-  assertEquals(identifier.toString(), 'User')
+  assertEquals(hidden.exported, false)
 })
 
-Deno.test('Identifier - toString returns identifier name', () => {
-  const variable = Identifier.createVariable('count', 'number')
-  const type = Identifier.createType('Status')
+Deno.test('Identifier - kind is opaque to the engine', () => {
+  // A non-TypeScript vocabulary flows through untouched — core never
+  // interprets the value (a language package's renderer does).
+  const rustStruct = new Identifier({ name: 'User', kind: 'struct' })
 
-  assertEquals(variable.toString(), 'count')
-  assertEquals(type.toString(), 'Status')
+  assertEquals(rustStruct.kind, 'struct')
+})
+
+Deno.test('Identifier - toString returns the name', () => {
+  const identifier = new Identifier({ name: 'count', typeName: 'number', kind: 'variable' })
+
+  assertEquals(identifier.toString(), 'count')
 })

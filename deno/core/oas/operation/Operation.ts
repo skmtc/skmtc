@@ -12,6 +12,8 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
 import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasServer } from '../server/Server.ts'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Fields for configuring an OpenAPI operation object.
@@ -60,7 +62,7 @@ export type ToRequestBodyMapArgs = {
   requestBody: OasRequestBody
 }
 
-export class OasOperation {
+export class OasOperation extends OasBase {
   /** Type identifier for OAS operation objects */
   oasType: 'operation' = 'operation'
 
@@ -99,7 +101,8 @@ export class OasOperation {
    *
    * @param fields - Operation field data from OpenAPI specification
    */
-  constructor(fields: OperationFields) {
+  constructor(fields: OperationFields, context?: ParseContextType) {
+    super(context)
     this.path = fields.path
     this.method = fields.method
     this.pathItem = fields.pathItem

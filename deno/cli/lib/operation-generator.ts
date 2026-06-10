@@ -19,7 +19,7 @@ export class OperationGenerator {
     const modContent = this.toOperationMod(mainModule)
     await Deno.writeTextFile(join(srcPath, 'mod.ts'), modContent)
 
-    const baseContent = this.toOperationBase(mainModule)
+    const baseContent = this.toOasOperationProjectionBase(mainModule)
     await Deno.writeTextFile(join(srcPath, 'base.ts'), baseContent)
 
     const mainModuleContent = this.toOperationMainModule(mainModule)
@@ -27,9 +27,9 @@ export class OperationGenerator {
   }
 
   toOperationMod(mainModule: string) {
-    return `import { toOperationEntry } from '@skmtc/core'
+    return `import { toOasOperationEntry } from '@skmtc/core'
 import { ${mainModule} } from './${mainModule}.ts'
-export const ${mainModule}Entry = toOperationEntry({
+export const ${mainModule}Entry = toOasOperationEntry({
   id: '${this.generator.toModuleName()}',
 
   isSupported({ operation }) {
@@ -37,27 +37,27 @@ export const ${mainModule}Entry = toOperationEntry({
   },
 
   transform({ context, operation }) {
-    context.insertOperation(${mainModule}, operation)
+    context.insertOperation({ projection: ${mainModule}, operation })
   }
 })`
   }
 
-  toOperationBase(mainModule: string) {
-    return `import { camelCase, capitalize, Identifier, toMethodVerb, toOperationBase } from '@skmtc/core'
+  toOasOperationProjectionBase(mainModule: string) {
+    return `import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationProjectionBase } from '@skmtc/core'
 import { join } from '@std/path/join'
 
-export const ${mainModule}Base = toOperationBase({
+export const ${mainModule}Base = toOasOperationProjectionBase({
   id: '${this.generator.toModuleName()}',
 
-  toIdentifier(operation): Identifier {
+  toIdentifier({ operation }): Identifier {
     const verb = capitalize(toMethodVerb(operation.method))
     const name = \`\${verb}\${camelCase(operation.path, { upperFirst: true })}\`
 
     return Identifier.createVariable(name)
   },
 
-  toExportPath(operation): string {
-    const { name } = this.toIdentifier(operation)
+  toExportPath({ operation, enrichments }): string {
+    const { name } = this.toIdentifier({ operation, enrichments })
 
     return join('@', \`\${name}.generated.tsx\`)
   }
@@ -65,11 +65,11 @@ export const ${mainModule}Base = toOperationBase({
   }
 
   toOperationMainModule(mainModule: string) {
-    return `import type { OperationInsertableArgs } from '@skmtc/core'
+    return `import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'
 import { ${mainModule}Base } from './base.ts'
 
 export class ${mainModule} extends ${mainModule}Base {
-  constructor({ context, operation, settings }: OperationInsertableArgs) {
+  constructor({ context, operation, settings }: OasOperationProjectionConstructorArgs) {
     super({ context, operation, settings })
   }
 

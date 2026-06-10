@@ -9,6 +9,8 @@ import { OasObject } from '../object/Object.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import { OasDocument } from '../document/Document.ts'
 import { OasInfo } from '../info/Info.ts'
+import { toOasParsedDocument } from '@/types/SkmtcDocument.ts'
+import { toRefParseContextStub } from '@/test/mockParseContext.ts'
 
 // Helper to create basic ToJsonSchemaOptions
 const createMockOptions = (): ToJsonSchemaOptions => ({
@@ -154,14 +156,16 @@ Deno.test('OasResponse - toSchema()', async (t) => {
   })
 
   await t.step('should handle OasRef as schema', () => {
-    const document = new OasDocument({
-      openapi: '3.0.0',
-      info: new OasInfo({ title: 'Test', version: '1.0.0' }),
-      operations: []
-    })
+    const document = toOasParsedDocument(
+      new OasDocument({
+        openapi: '3.0.0',
+        info: new OasInfo({ title: 'Test', version: '1.0.0' }),
+        operations: []
+      })
+    )
     const schemaRef = new OasRef(
       { $ref: '#/components/schemas/User', refType: 'schema' },
-      document
+      toRefParseContextStub(document)
     )
     const response = new OasResponse({
       description: 'Test',
@@ -318,14 +322,16 @@ Deno.test('OasResponse - Integration Tests', async (t) => {
   const options = createMockOptions()
 
   await t.step('should handle response with headers containing OasRef', () => {
-    const document = new OasDocument({
-      openapi: '3.0.0',
-      info: new OasInfo({ title: 'Test', version: '1.0.0' }),
-      operations: []
-    })
+    const document = toOasParsedDocument(
+      new OasDocument({
+        openapi: '3.0.0',
+        info: new OasInfo({ title: 'Test', version: '1.0.0' }),
+        operations: []
+      })
+    )
     const headerRef = new OasRef(
       { $ref: '#/components/headers/X-Rate-Limit', refType: 'header' },
-      document
+      toRefParseContextStub(document)
     )
 
     const response = new OasResponse({

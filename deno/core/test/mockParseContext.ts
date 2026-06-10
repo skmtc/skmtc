@@ -1,5 +1,5 @@
-import type { ParseContextType } from '../context/parseTypes.ts'
-import type { LogSkippedValuesArgs } from '../context/parseTypes.ts'
+import type { ParseContextType, LogSkippedValuesArgs } from '../context/parseTypes.ts'
+import type { SkmtcParsedDocument } from '../types/SkmtcDocument.ts'
 /**
  * Mock implementation of ParseContext for testing purposes.
  *
@@ -44,5 +44,26 @@ export const mockParseContext = {
     append: () => {},
     remove: () => {},
     clone: () => ({ append: () => {}, remove: () => {}, clone: () => ({}) })
+  },
+
+  // gen-maps surface: no current stackTrail, so capture no-ops.
+  // withStackTrail is a passthrough so factories don't blow up.
+  currentStackTrail: undefined,
+  withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
+    return fn()
   }
 } as unknown as ParseContextType
+
+/**
+ * Build a minimal `ParseContextType` stub wrapping a parsed document.
+ * Used by tests that need to construct an `OasRef` (whose constructor
+ * derives `document` from `context.parsedDocument`) without spinning
+ * up a full ParseContext.
+ */
+export const toRefParseContextStub = (
+  parsedDocument: SkmtcParsedDocument
+): ParseContextType =>
+  ({
+    parsedDocument,
+    currentStackTrail: undefined
+  }) as unknown as ParseContextType

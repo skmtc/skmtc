@@ -1,7 +1,7 @@
 /**
  * @module SKMTC Core
  *
- * SKMTC (Schema Kit Mapping & Type Conversion) is a powerful TypeScript/Deno library
+ * SKMTC is a powerful TypeScript/Deno library
  * for processing OpenAPI v3 documents and generating code artifacts. It provides a
  * comprehensive three-phase pipeline for parsing, generating, and rendering OpenAPI
  * schemas into various output formats.
@@ -36,8 +36,11 @@
  *
  * - {@link CoreContext} - Main orchestration class for the pipeline
  * - {@link toArtifacts} - Primary transformation function
- * - {@link ContentBase} - Base class for creating generators
- * - {@link ModelBase} and {@link OperationBase} - DSL building blocks
+ * - {@link SnippetBase} - Abstract root for both Projections (named, exported
+ *   artifacts) and Snippets (anonymous, embedded values)
+ * - {@link toModelProjectionBase}, {@link toOasOperationProjectionBase}, and
+ *   {@link toGqlOperationProjectionBase} - the projection-base factories
+ *   language packages build their veneers on
  * - {@link List} - Powerful string manipulation and code generation utility
  *
  * ## Type System
@@ -59,7 +62,6 @@
  *   documentObject: myOpenApiDoc,
  *   settings: mySettings,
  *   toGeneratorConfigMap: () => myGenerators,
- *   prettier: prettierConfig,
  *   silent: false
  * });
  * ```
@@ -72,26 +74,30 @@ export * from './context/ParseContext.ts'
 export * from './context/RenderContext.ts'
 export * from './context/generateTypes.ts'
 export * from './dsl/constants.ts'
-export * from './dsl/ContentBase.ts'
+export * from './dsl/SnippetBase.ts'
+export * from './dsl/Lang.ts'
 export * from './dsl/ContentSettings.ts'
 export * from './dsl/Definition.ts'
-export * from './dsl/EntityType.ts'
-export * from './dsl/File.ts'
+export * from './dsl/FileBase.ts'
+export * from './dsl/CodeFileBase.ts'
+export * from './dsl/ImportBase.ts'
+export * from './dsl/ReExportBase.ts'
 export * from './dsl/JsonFile.ts'
 export * from './dsl/GeneratedValueList.ts'
 export * from './dsl/Identifier.ts'
-export * from './dsl/Import.ts'
 export * from './dsl/Inserted.ts'
-export * from './dsl/model/ModelBase.ts'
 export * from './dsl/model/ModelDriver.ts'
-export * from './dsl/model/toModelBase.ts'
+export * from './dsl/model/toModelProjectionBase.ts'
 export * from './dsl/model/toModelEntry.ts'
 export * from './dsl/model/types.ts'
-export * from './dsl/operation/OperationBase.ts'
-export * from './dsl/operation/OperationDriver.ts'
-export * from './dsl/operation/toOperationBase.ts'
-export * from './dsl/operation/toOperationEntry.ts'
-export * from './dsl/operation/types.ts'
+export * from './dsl/operation/oas/OasOperationDriver.ts'
+export * from './dsl/operation/oas/toOasOperationProjectionBase.ts'
+export * from './dsl/operation/oas/toOasOperationEntry.ts'
+export * from './dsl/operation/oas/types.ts'
+export * from './dsl/operation/gql/GqlOperationDriver.ts'
+export * from './dsl/operation/gql/toGqlOperationProjectionBase.ts'
+export * from './dsl/operation/gql/toGqlOperationEntry.ts'
+export * from './dsl/operation/gql/types.ts'
 export * from './dsl/Stringable.ts'
 export * from './helpers/collateExamples.ts'
 export * from './helpers/formatNumber.ts'
@@ -103,6 +109,8 @@ export * from './helpers/refFns.ts'
 export * from './helpers/strings.ts'
 export * from './helpers/parseModuleName.ts'
 export * from './helpers/toResolvedArtifactPath.ts'
+export * from './helpers/withVariant.ts'
+export * from './helpers/toVariantList.ts'
 export * from './context/StackTrail.ts'
 export * from './oas/array/Array.ts'
 export * from './oas/array/array-types.ts'
@@ -141,7 +149,6 @@ export * from './oas/ref/ref-types.ts'
 export * from './oas/ref/toRefV31.ts'
 export * from './oas/requestBody/RequestBody.ts'
 export * from './oas/response/Response.ts'
-export * from './helpers/sanitizePropertyName.ts'
 export * from './oas/schema/Schema.ts'
 export * from './oas/schema/toSchemasV3.ts'
 export * from './oas/securityRequirement/SecurityRequirement.ts'
@@ -160,6 +167,8 @@ export * from './oas/unknown/unknown-types.ts'
 export * from './oas/unknown/toUnknown.ts'
 export * from './oas/void/Void.ts'
 export * from './run/toArtifacts.ts'
+export * from './run/toSupportedSubjects.ts'
+export type * from './types/SupportedSubjects.ts'
 export * from './dsl/CustomValue.ts'
 export * from './types/DenoJson.ts'
 export * from './types/EnrichmentRequest.ts'
@@ -172,18 +181,24 @@ export * from './types/Manifest.ts'
 export * from './types/Method.ts'
 export * from './types/Modifiers.ts'
 export * from './types/ModuleExport.ts'
-export * from './types/PrettierConfig.ts'
+export * from './types/AccessorPath.ts'
+export * from './enrichments/toEnrichmentDescriptor.ts'
 export * from './types/Preview.ts'
 export * from './types/RefName.ts'
 export * from './types/Results.ts'
 export * from './types/Settings.ts'
+export * from './types/SkmtcDocument.ts'
 export * from './types/TypeSystem.ts'
-export * from './typescript/FunctionParameter.ts'
-export * from './typescript/identifiers.ts'
-export * from './typescript/keyValues.ts'
-export * from './typescript/List.ts'
-export * from './typescript/PathParams.ts'
-export * from './typescript/ReactRouterPathParams.ts'
-export * from './typescript/toPathTemplate.ts'
-export * from './typescript/toPathParams.ts'
-export * from './typescript/withDescription.ts'
+export * from './types/Variant.ts'
+export * from './gql/document/GqlDocument.ts'
+export * from './gql/registry/GqlRegistry.ts'
+export * from './gql/operation/GqlOperation.ts'
+export * from './gql/operation/synthesizeArgsObject.ts'
+export * from './gql/argument/GqlArgument.ts'
+export * from './gql/rootType/GqlRootTypes.ts'
+export * from './context/ParseIssue.ts'
+// GraphQL parser entry points are imported directly from their specific
+// files (e.g. `parsers/graphql/toGqlDocument.ts`) rather than through a
+// barrel — the unified `ParseContext` is the primary surface for GQL
+// parsing and lives in `context/ParseContext.ts`, already exported
+// above.

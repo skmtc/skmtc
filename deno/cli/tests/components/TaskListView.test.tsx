@@ -4,21 +4,12 @@ import { assertExists, assertStringIncludes, assertEquals } from '@std/assert'
 import { TaskListView } from '@/components/TaskListView.tsx'
 import { TaskProvider, type Task } from '@/components/TaskContext.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '../mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Text } from 'ink'
 
 const createMockSkmtcRoot = (): SkmtcRoot => ({
   projects: [],
-  manager: {
-    auth: {
-      supabase: {
-        functions: {
-          invoke: () => Promise.resolve({ data: [], error: null })
-        }
-      }
-    }
-  }
+  manager: {}
 }) as unknown as SkmtcRoot
 
 const createMockTask = (
@@ -33,14 +24,12 @@ const createMockTask = (
 })
 
 Deno.test('TaskListView - renders empty list when no tasks', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockLeave = () => {}
 
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -64,7 +53,6 @@ Deno.test('TaskListView - renders empty list when no tasks', () => {
 })
 
 Deno.test('TaskListView - renders only included tasks', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockLeave = () => {}
 
@@ -77,7 +65,6 @@ Deno.test('TaskListView - renders only included tasks', () => {
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -108,7 +95,6 @@ Deno.test('TaskListView - renders only included tasks', () => {
 })
 
 Deno.test('TaskListView - respects currentTask index', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockLeave = () => {}
 
@@ -122,7 +108,6 @@ Deno.test('TaskListView - respects currentTask index', () => {
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -150,7 +135,6 @@ Deno.test('TaskListView - respects currentTask index', () => {
 })
 
 Deno.test('TaskListView - applies paddingTop based on interactive mode', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockLeave = () => {}
 
@@ -160,7 +144,6 @@ Deno.test('TaskListView - applies paddingTop based on interactive mode', () => {
   const skmtcStateNonInteractive: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: false,
     message: null,
     shortcuts: [],
@@ -185,7 +168,6 @@ Deno.test('TaskListView - applies paddingTop based on interactive mode', () => {
   const skmtcStateInteractive: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -208,7 +190,6 @@ Deno.test('TaskListView - applies paddingTop based on interactive mode', () => {
 })
 
 Deno.test('TaskListView - combined filtering with include and currentTask', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockLeave = () => {}
 
@@ -223,7 +204,6 @@ Deno.test('TaskListView - combined filtering with include and currentTask', () =
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -255,7 +235,6 @@ Deno.test('TaskListView - combined filtering with include and currentTask', () =
 })
 
 Deno.test('TaskListView - renders multiple tasks with custom render functions', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockLeave = () => {}
 
@@ -277,7 +256,6 @@ Deno.test('TaskListView - renders multiple tasks with custom render functions', 
   const skmtcState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: createMockSkmtcRoot(),
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],

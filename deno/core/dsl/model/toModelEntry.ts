@@ -4,12 +4,12 @@ import type { TransformModelArgs, ToModelPreviewModuleArgs, ToModelMappingArgs }
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 
-type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
+type ToModelEntryArgs<EnrichmentType = undefined> = {
   id: string
-  transform: ({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
+  transform: ({ context, refName, variant }: TransformModelArgs) => void
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
-  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, refName }: ToModelMappingArgs) => MappingModule
+  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -26,7 +26,6 @@ type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
  * mapping generation, enrichment handling, and schema validation.
  *
  * @template EnrichmentType - Type of enrichments that can be applied to models
- * @template Acc - Accumulator type for the transformation process
  * @param args - Configuration for the model entry
  * @param args.id - Unique identifier for this model entry
  * @param args.transform - Function to transform schemas into artifacts
@@ -42,10 +41,8 @@ type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
  *
  * const typeScriptModelEntry = toModelEntry({
  *   id: 'typescript-models',
- *   transform: ({ context, refName, acc }) => {
- *     const schema = context.getSchemaByRefName(refName);
- *     const tsInterface = generateTypeScriptInterface(schema);
- *     return { ...acc, [refName]: tsInterface };
+ *   transform: ({ context, refName }) => {
+ *     context.insertModel(TsModel, refName);
  *   },
  *   toPreviewModule: ({ context, refName }) => ({
  *     group: 'forms',
@@ -59,13 +56,8 @@ type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
  * ```typescript
  * const validationModelEntry = toModelEntry({
  *   id: 'validation-schemas',
- *   transform: ({ context, refName, acc }) => {
- *     const enrichments = context.getEnrichments(refName);
- *     const schema = context.getSchemaByRefName(refName);
- *     const validationSchema = generateValidationSchema(schema, {
- *       strict: enrichments?.strict ?? false
- *     });
- *     return { ...acc, [refName]: validationSchema };
+ *   transform: ({ context, refName }) => {
+ *     context.insertModel(ValidationModel, refName);
  *   },
  *   toEnrichmentSchema: () => v.object({
  *     strict: v.optional(v.boolean()),
@@ -78,19 +70,19 @@ type ToModelEntryArgs<EnrichmentType = undefined, Acc = void> = {
  * });
  * ```
  */
-export const toModelEntry = <EnrichmentType = undefined, Acc = void>({
+export const toModelEntry = <EnrichmentType = undefined>({
   id,
   transform,
   toPreviewModule,
   toMappingModule,
   toEnrichmentSchema,
   toEnrichmentRequest
-}: ToModelEntryArgs<EnrichmentType, Acc>): {
+}: ToModelEntryArgs<EnrichmentType>): {
   id: string
   type: 'model'
-  transform: ({ context, refName, acc }: TransformModelArgs<Acc>) => Acc
-  toPreviewModule?: ({ context, refName }: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, refName }: ToModelMappingArgs) => MappingModule
+  transform: ({ context, refName, variant }: TransformModelArgs) => void
+  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName

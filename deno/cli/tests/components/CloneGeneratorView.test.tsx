@@ -12,6 +12,7 @@ Deno.test('CloneGeneratorView - space key should toggle selection', async () => 
   const clonedGenerators: string[] = []
   mockProject.cloneGenerator = async ({ moduleName }) => {
     clonedGenerators.push(moduleName)
+    return { moduleName, version: '0.0.0' }
   }
 
   // Simulate the space toggle behavior
@@ -43,8 +44,9 @@ Deno.test('CloneGeneratorView - escape key should cancel without cloning', async
   })
 
   let cloneCalled = false
-  mockProject.cloneGenerator = async () => {
+  mockProject.cloneGenerator = async ({ moduleName }) => {
     cloneCalled = true
+    return { moduleName, version: '0.0.0' }
   }
 
   // Simulate escape press behavior - should not trigger cloning
@@ -55,8 +57,7 @@ Deno.test('CloneGeneratorView - escape key should cancel without cloning', async
     // Cloning would happen here
     await mockProject.cloneGenerator({
       moduleName: '@skmtc/gen-typescript',
-      projectName: mockProject.name,
-      generatorsDenoJson: {} as any
+      projectName: mockProject.name
     })
   }
 
@@ -74,6 +75,7 @@ Deno.test('CloneGeneratorView - multiple generators can be selected and cloned',
   const clonedGenerators: string[] = []
   mockProject.cloneGenerator = async ({ moduleName }) => {
     clonedGenerators.push(moduleName)
+    return { moduleName, version: '0.0.0' }
   }
 
   // Simulate selecting multiple generators
@@ -88,8 +90,7 @@ Deno.test('CloneGeneratorView - multiple generators can be selected and cloned',
     Array.from(selectedGenerators).map(gen =>
       mockProject.cloneGenerator({
         moduleName: gen,
-        projectName: mockProject.name,
-        generatorsDenoJson: {} as any
+        projectName: mockProject.name
       })
     )
   )

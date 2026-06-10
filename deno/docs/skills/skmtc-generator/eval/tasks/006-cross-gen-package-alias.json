@@ -1,0 +1,25 @@
+{
+  "id": "006-cross-gen-package-alias",
+  "category": "cross-gen",
+  "prompt": "I'm authoring @skmtc/gen-shadcn-form and I need to import the FieldConfig type from @skmtc/gen-shadcn's source. Looking at the directory layout, gen-shadcn lives at ../gen-shadcn/ relative to my package. What's the cleanest import statement?\n\n```ts\n// gen-shadcn-form/src/Projection.ts\nimport type { FieldConfig } from '???'\n```",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response refuse to use a relative path import like '../gen-shadcn/src/...' that reaches across sibling generator package boundaries?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response recommend importing via the @skmtc/gen-shadcn package alias declared in deno.json (e.g. `import type { FieldConfig } from '@skmtc/gen-shadcn'`)?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response cite generator location-independence (or equivalent: generators must not depend on each other's directory layout) as the reason for using the package alias?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response avoid teaching the user to do filesystem-relative imports between sibling generator packages?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "refuse"
+}

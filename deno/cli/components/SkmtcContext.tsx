@@ -1,12 +1,9 @@
 import React from 'react'
-import { createContext, type ReactNode, useContext, useReducer, useEffect } from 'react'
+import { createContext, type ReactNode, useContext, useReducer } from 'react'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import type { Session } from '@supabase/supabase-js'
 import type { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
 import type { Key } from 'ink'
-import type { Generator } from '@/types/generator.generated.ts'
-import { getApiGenerators } from '../services/getApiGenerators.generated.ts'
+import type { Generator } from '@/types/generator.ts'
 
 export type ErrorMessage = {
   error: ReactNode
@@ -28,12 +25,6 @@ export type SkmtcMessage = ErrorMessage | SuccessMessage | InfoMessage
 type SkmtcAction =
   | { type: 'set-view'; payload: ViewState }
   | {
-      type: 'set-session'
-      payload: {
-        session: Session | null
-      }
-    }
-  | {
       type: 'set-message'
       payload: AppMessage | null
     }
@@ -44,10 +35,6 @@ type SkmtcAction =
   | {
       type: 'remove-shortcut'
       payload: string
-    }
-  | {
-      type: 'set-generators'
-      payload: Generator[]
     }
 
 type Shortcut = {
@@ -68,10 +55,6 @@ export type ViewStateCreateProject = {
   basePath?: string
 }
 
-export type ViewStateLogin = {
-  page: 'login'
-}
-
 export type ViewStateProject = {
   page: 'project'
   projectName: string
@@ -79,23 +62,26 @@ export type ViewStateProject = {
 
 export type ViewStateGenerate = {
   page: 'generate'
-  project: Project | RemoteProject
+  project: Project
   schemaSourceString?: string
   watchMode?: boolean
 }
 
-export type ViewStateDeploy = {
-  page: 'deploy'
+export type ViewStatePublish = {
+  page: 'publish'
   projectName: string
+  /** PAT for the hub. From --token or `SKMTC_HUB_TOKEN`. */
+  token?: string
+  /** Hub base URL override (defaults to https://api.skmtc.dev or
+   *  `SKMTC_HUB_URL`). */
+  hubUrl?: string
+  /** Version override from --version. Defaults to the project root
+   *  `deno.json#version`. */
+  version?: string
 }
 
 export type ViewStateBundle = {
   page: 'bundle'
-  projectName: string
-}
-
-export type ViewStateRuntimeLogs = {
-  page: 'runtime-logs'
   projectName: string
 }
 
@@ -144,12 +130,10 @@ export type ViewStateExit = {
 export type ViewState =
   | ViewStateHome
   | ViewStateCreateProject
-  | ViewStateLogin
   | ViewStateProject
   | ViewStateGenerate
-  | ViewStateDeploy
+  | ViewStatePublish
   | ViewStateBundle
-  | ViewStateRuntimeLogs
   | ViewStateListGenerators
   | ViewStateAddGenerator
   | ViewStateInstallGenerator
@@ -164,7 +148,6 @@ export type AppMessage = {
 export type SkmtcState = {
   view: ViewState
   skmtcRoot: SkmtcRoot
-  session: Session | null
   message: AppMessage | null
   interactive: boolean
   shortcuts: Shortcut[]
@@ -186,9 +169,6 @@ const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
     case 'set-view': {
       return { ...state, view: action.payload }
     }
-    case 'set-session': {
-      return { ...state, session: action.payload.session }
-    }
     case 'set-message': {
       return { ...state, message: action.payload }
     }
@@ -204,16 +184,11 @@ const skmtcReducer = (state: SkmtcState, action: SkmtcAction) => {
         shortcuts: state.shortcuts.filter(shortcut => shortcut.id !== action.payload)
       }
     }
-    case 'set-generators': {
-      return { ...state, generators: action.payload }
-    }
   }
 }
 
 const SkmtcProvider = ({ initialState, children, exit }: SkmtcProviderProps) => {
   const [state, dispatch] = useReducer(skmtcReducer, initialState)
-
-  useInitialLoad({ state, dispatch })
 
   // NOTE: you *might* need to memoize this value
   // Learn more in http://kcd.im/optimize-context
@@ -239,22 +214,6 @@ const useSkmtc = () => {
 
 export { SkmtcProvider, useSkmtc }
 
-type UseInitialLoadArgs = {
-  state: SkmtcState
-  dispatch: SkmtcDispatch
-}
-
-const useInitialLoad = ({ state, dispatch }: UseInitialLoadArgs) => {
-  useEffect(() => {
-    getApiGenerators({ supabase: state.skmtcRoot.manager.auth.supabase }).then(generators => {
-      const sortedGenerators = generators.toSorted((a, b) =>
-        a.packageName.localeCompare(b.packageName)
-      )
-      dispatch({ type: 'set-generators', payload: sortedGenerators })
-    })
-  }, [])
-}
-
 type ToProjectNameArgs = {
   view: ViewState
 }
@@ -264,9 +223,8 @@ export const toProjectName = ({ view }: ToProjectNameArgs) => {
     case 'create-generator':
     case 'create-project':
     case 'project':
-    case 'deploy':
+    case 'publish':
     case 'bundle':
-    case 'runtime-logs':
     case 'list-generators':
     case 'install-generator':
     case 'clone-generator':

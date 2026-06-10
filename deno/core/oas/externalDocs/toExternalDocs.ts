@@ -5,7 +5,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToExternalDocsArgs = {
+export type ToExternalDocsArgs = {
   externalDocs: OpenAPIV3.ExternalDocumentationObject | undefined
   stackTrail: StackTrail
   context: ParseContextType

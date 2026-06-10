@@ -1,21 +1,21 @@
-import { toArtifacts } from '@skmtc/core'
-import skmtcGenZod from '../../../../.skmtc/skmtc-zod/gen-zod/mod.ts'
+import { toArtifacts, StackTrail } from '@skmtc/core'
+import skmtcGenZod from '../../../../skmtc-generators/gen-zod/mod.ts'
 
 Deno.bench('gen', async () => {
   const schemaPath = new URL('./openapi.json', import.meta.url)
 
   const schema = await Deno.readTextFile(schemaPath)
 
-  const { artifacts, manifest } = toArtifacts({
+  toArtifacts({
     traceId: 'AAA',
     spanId: 'BBB',
     startAt: Date.now(),
-    documentObject: JSON.parse(schema),
-    prettier: undefined,
+    document: { type: 'oas', value: JSON.parse(schema) },
     settings: undefined,
-    // @ts-expect-error - TODO: fix this
+    // @ts-ignore - enrichment types do not work at this level
     toGeneratorConfigMap: () => Object.fromEntries([skmtcGenZod].map(g => [g.id, g])),
     logsPath: undefined,
-    silent: true
+    silent: true,
+    stackTrail: new StackTrail(['bench'])
   })
 })

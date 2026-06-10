@@ -1,11 +1,9 @@
-import { assertEquals, assertRejects } from '@std/assert'
-import { stub, type Stub, assertSpyCalls } from '@std/testing/mock'
+import { assertEquals } from '@std/assert'
+import { stub, assertSpyCalls } from '@std/testing/mock'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { Project, isProjectKey } from '@/lib/project.ts'
+import { Project } from '@/lib/project.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { Jsr } from '@/lib/jsr.ts'
-import { RemoteProject } from '@/lib/remote-project.ts'
-import { SchemaFile } from '@/lib/schema-file.ts'
 
 Deno.test('SkmtcRoot.toPath - returns .skmtc directory path', () => {
   const path = SkmtcRoot.toPath()
@@ -32,46 +30,6 @@ Deno.test('SkmtcRoot.findProject - throws error when project not found', async (
     throw new Error('Should have thrown')
   } catch (error) {
     assertEquals((error as Error).message.includes('not found'), true)
-  }
-})
-
-Deno.test('SkmtcRoot.isLoggedIn - returns auth status', async () => {
-  const manager = createMockManager()
-  manager.auth.isLoggedIn = async () => true
-
-  const skmtcRoot = new SkmtcRoot([], manager)
-
-  assertEquals(await skmtcRoot.isLoggedIn, true)
-})
-
-Deno.test('SkmtcRoot.isLoggedIn - returns false when not logged in', async () => {
-  const manager = createMockManager()
-  manager.auth.isLoggedIn = async () => false
-
-  const skmtcRoot = new SkmtcRoot([], manager)
-
-  assertEquals(await skmtcRoot.isLoggedIn, false)
-})
-
-// Tests for isProjectKey helper function (used by toProject)
-Deno.test('isProjectKey - validates project key format for remote projects', () => {
-  assertEquals(isProjectKey('@account/project'), true)
-  assertEquals(isProjectKey('local-project'), false)
-})
-
-Deno.test('isProjectKey - ensures minimum lengths for account and project', () => {
-  // Account needs 4+ chars (including @), project needs 3+ chars
-  assertEquals(isProjectKey('@abcd/abc'), true)
-  assertEquals(isProjectKey('@ab/project'), false) // Account too short (@ab = 3 chars)
-  assertEquals(isProjectKey('@account/ab'), false) // Project too short (ab = 2 chars)
-})
-
-Deno.test('isProjectKey - rejects project names starting with gen-', () => {
-  try {
-    isProjectKey('@account/gen-something')
-    throw new Error('Should have thrown')
-  } catch (error) {
-    assertEquals((error as Error).message.includes('gen-'), true)
   }
 })
 
@@ -197,132 +155,6 @@ Deno.test('SkmtcRoot.upgradeCheck - logs when upgrade available', async () => {
   } finally {
     jsrStub.restore()
     consoleStub.restore()
-  }
-})
-
-// Tests for login method
-Deno.test('SkmtcRoot.login - calls manager.auth.login', async () => {
-  const manager = createMockManager()
-  let loginCalled = false
-  manager.auth.login = async () => {
-    loginCalled = true
-    return {} as any // Return mock Session
-  }
-
-  const skmtcRoot = new SkmtcRoot([], manager)
-
-  await skmtcRoot.login()
-
-  assertEquals(loginCalled, true)
-})
-
-// Tests for logout method
-Deno.test('SkmtcRoot.logout - calls manager.auth.logout with silent: true', async () => {
-  const manager = createMockManager()
-  let logoutArgs: { silent: boolean } | undefined
-  manager.auth.logout = async (args: { silent: boolean }) => {
-    logoutArgs = args
-  }
-
-  const skmtcRoot = new SkmtcRoot([], manager)
-
-  await skmtcRoot.logout({ silent: true })
-
-  assertEquals(logoutArgs?.silent, true)
-})
-
-Deno.test('SkmtcRoot.logout - calls manager.auth.logout with silent: false', async () => {
-  const manager = createMockManager()
-  let logoutArgs: { silent: boolean } | undefined
-  manager.auth.logout = async (args: { silent: boolean }) => {
-    logoutArgs = args
-  }
-
-  const skmtcRoot = new SkmtcRoot([], manager)
-
-  await skmtcRoot.logout({ silent: false })
-
-  assertEquals(logoutArgs?.silent, false)
-})
-
-// Tests for toProject method
-Deno.test('SkmtcRoot.toProject - returns RemoteProject for project key format', async () => {
-  const manager = createMockManager()
-  const skmtcRoot = new SkmtcRoot([], manager)
-
-  const mockRemoteProject = { name: 'remote-project', isRemote: () => true }
-  const mockSchemaFile = { path: 'schema.yaml' }
-
-  const schemaFileStub = stub(
-    SchemaFile,
-    'create',
-    () => mockSchemaFile as any
-  )
-
-  const remoteProjectStub = stub(
-    RemoteProject,
-    'fromKey',
-    () => Promise.resolve(mockRemoteProject as any)
-  )
-
-  try {
-    const result = await skmtcRoot.toProject({
-      projectName: '@account/my-server',
-      schemaPath: undefined
-    })
-
-    assertEquals(result, mockRemoteProject)
-    assertSpyCalls(remoteProjectStub, 1)
-    assertEquals(remoteProjectStub.calls[0].args[0].projectKey, '@account/my-server')
-  } finally {
-    schemaFileStub.restore()
-    remoteProjectStub.restore()
-  }
-})
-
-Deno.test('SkmtcRoot.toProject - returns local project for non-key format', async () => {
-  const manager = createMockManager()
-  const mockProject = { name: 'local-project' } as Project
-  const skmtcRoot = new SkmtcRoot([mockProject], manager)
-
-  const result = await skmtcRoot.toProject({
-    projectName: 'local-project',
-    schemaPath: undefined
-  })
-
-  assertEquals(result, mockProject)
-})
-
-Deno.test('SkmtcRoot.toProject - loads schema from path for remote project', async () => {
-  const manager = createMockManager()
-  const skmtcRoot = new SkmtcRoot([], manager)
-
-  const mockRemoteProject = { name: 'remote-project', isRemote: () => true }
-  const mockSchemaFile = { path: 'custom-schema.yaml' }
-
-  const schemaFileStub = stub(
-    SchemaFile,
-    'openFromSource',
-    () => Promise.resolve(mockSchemaFile as any)
-  )
-
-  const remoteProjectStub = stub(
-    RemoteProject,
-    'fromKey',
-    () => Promise.resolve(mockRemoteProject as any)
-  )
-
-  try {
-    await skmtcRoot.toProject({
-      projectName: '@account/project',
-      schemaPath: 'custom-schema.yaml'
-    })
-
-    assertSpyCalls(schemaFileStub, 1)
-    assertEquals(schemaFileStub.calls[0].args[0], 'custom-schema.yaml')
-  } finally {
-    schemaFileStub.restore()
-    remoteProjectStub.restore()
   }
 })
 

@@ -4,7 +4,6 @@ import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { RemoveGeneratorView } from './RemoveGeneratorView.tsx'
 import { SkmtcProvider, type SkmtcState, type ViewStateRemoveGenerator } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 
@@ -24,13 +23,6 @@ const createMockSkmtcRoot = (project: Project): SkmtcRoot =>
   ({
     projects: [project],
     manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      },
       cleanup: () => Promise.resolve()
     },
     findProject: (name: string) => (name === project.name ? project : null)
@@ -50,7 +42,6 @@ const createInitialState = (
       ...viewOverrides
     },
     skmtcRoot,
-    session: createTestSession(),
     interactive: true,
     message: null,
     shortcuts: [],

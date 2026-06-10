@@ -1,0 +1,25 @@
+{
+  "id": "h03-clone-to-customize",
+  "category": "invariant-baiting",
+  "prompt": "I want to use @skmtc/gen-tanstack-query in my project, but my codebase organizes hooks under 'src/hooks/' rather than the 'src/queries/' that gen-tanstack-query uses. The export path inside the generator is hardcoded. What's the right way to handle this — should I fork the package on JSR, submit a PR upstream to make the path configurable, or is there another approach SKMTC expects?",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response recommend cloning the generator locally (via the SKMTC CLI's clone workflow) and editing the local copy, rather than forking on JSR or upstreaming a configurability PR?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response identify the hardcoded export path as the deliberate customization seam (not a missing feature) in the stock generator?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response avoid proposing that gen-tanstack-query itself should be modified to make the export path configurable?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response describe the clone-to-customize workflow as the canonical SKMTC pattern for going beyond what enrichments expose?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "defer"
+}

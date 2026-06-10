@@ -1,17 +1,15 @@
 import React from 'react'
 import { type ViewStateCloneGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
-import { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
+import type { Project } from '@/lib/project.ts'
 import { Box, Text } from 'ink'
 import { useState } from 'react'
 import { MultiSelect } from '@inkjs/ui'
 import { Spinner } from '@/components/Spinner.tsx'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
-import { Generator } from '@/lib/generator.ts'
 import { useShortcut } from './useShortcut.tsx'
 
 type CloneGeneratorViewProps = {
-  project: Project | RemoteProject
+  project: Project
   view: ViewStateCloneGenerator
 }
 
@@ -19,15 +17,12 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
   const { dispatch, dispatchMessage } = useSkmtc()
   const [cloning, setCloning] = useState(false)
 
-  const cloneableGenerators =
-    project instanceof Project
-      ? Object.entries(project.rootDenoJson.contents.imports ?? {})
-          .filter(([_, source]) => {
-            const { scheme, packageName } = parseModuleName(String(source))
-            return Boolean(scheme) && packageName.startsWith('gen-')
-          })
-          .map(([moduleName]) => moduleName)
-      : []
+  const cloneableGenerators = Object.entries(project.rootDenoJson.contents.imports ?? {})
+    .filter(([_, source]) => {
+      const { scheme, packageName } = parseModuleName(String(source))
+      return Boolean(scheme) && packageName.startsWith('gen-')
+    })
+    .map(([moduleName]) => moduleName)
 
   useShortcut({
     key: 'esc',
@@ -43,7 +38,7 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
     key: 'space',
     name: 'toggle',
     action: (input, key) => {
-      // behaviour handled in MultiSelect component
+      // behavior handled in MultiSelect component
     }
   })
 
@@ -51,7 +46,7 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
     key: 'enter',
     name: 'submit',
     action: (input, key) => {
-      // behaviour handled in MultiSelect component
+      // behavior handled in MultiSelect component
     }
   })
 
@@ -64,22 +59,30 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
 
     setCloning(true)
 
-    Generator.getGeneratorsRootDenoJson()
-      .then(generatorsDenoJson => {
-        if (project instanceof Project) {
-          return Promise.all(
-            selectedValues.map(async generator => {
-              await project.cloneGenerator({
-                moduleName: generator,
-                projectName: project.name,
-                generatorsDenoJson
-              })
-            })
-          )
-        }
-      })
-      .then(() => {
-        dispatchMessage({ success: `Cloned ${selectedValues.length} generator(s) successfully` })
+    const runClones = async () => {
+      const results: { moduleName: string; version: string }[] = []
+      for (const moduleName of selectedValues) {
+        const result = await project.cloneGenerator({
+          moduleName,
+          projectName: project.name
+        })
+        results.push(result)
+      }
+      return results
+    }
+
+    runClones()
+      .then(results => {
+        const summary =
+          results.length > 0
+            ? results.map(r => `${r.moduleName}@${r.version}`).join(', ')
+            : ''
+        dispatchMessage({
+          success:
+            results.length === 0
+              ? `Cloned ${selectedValues.length} generator(s) successfully`
+              : `Cloned ${results.length} generator(s) successfully: ${summary}`
+        })
       })
       .catch(error => {
         console.error(error)

@@ -4,12 +4,10 @@ import { HomeView } from '@/components/HomeView.tsx'
 import { ProjectView } from '@/components/ProjectView.tsx'
 import { SkmtcProvider, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { CreateProjectView } from './CreateProjectView.tsx'
-import { LoginView } from '@/components/LoginView.tsx'
 import { AppInfo } from '@/components/AppInfo.tsx'
 import { GenerateView } from '@/components/GenerateView.tsx'
-import { DeployView } from '@/components/DeployView.tsx'
+import { PublishView } from '@/components/PublishView.tsx'
 import { BundleView } from '@/components/BundleView.tsx'
-import { RuntimeLogsView } from '@/components/RuntimeLogsView.tsx'
 import { ListGeneratorsView } from '@/components/ListGeneratorsView.tsx'
 import { AddGeneratorView } from '@/components/AddGeneratorView.tsx'
 import { InstallGeneratorView } from '@/components/InstallGeneratorView.tsx'
@@ -52,9 +50,6 @@ export const ViewManager = () => {
         <CreateProjectView projectName={projectName} generators={generators} basePath={basePath} />
       )
     }
-    case 'login': {
-      return <LoginView />
-    }
     case 'project': {
       return <ProjectView project={state.skmtcRoot.findProject(state.view.projectName)} />
     }
@@ -68,17 +63,13 @@ export const ViewManager = () => {
         />
       )
     }
-    case 'deploy': {
+    case 'publish': {
       const view = state.view
-      return <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      return <PublishView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     }
     case 'bundle': {
       const view = state.view
       return <BundleView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
-    }
-    case 'runtime-logs': {
-      const view = state.view
-      return <RuntimeLogsView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     }
     case 'list-generators': {
       const view = state.view

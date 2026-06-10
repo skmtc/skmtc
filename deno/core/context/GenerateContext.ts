@@ -1,34 +1,52 @@
 import { normalize } from '@std/path/normalize'
-import { Import } from '@/dsl/Import.ts'
-import { Definition } from '@/dsl/Definition.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
+import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
+import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
 import type {
   BuildModelSettingsArgs,
-  DefineAndRegisterArgs,
   GenerateContextType,
   GenerateResult,
-  GetFileOptions,
+  InsertGqlOperationArgs,
   InsertModelOptions,
-  InsertNormalisedModelArgs,
-  InsertNormalisedModelOptions,
-  InsertNormalisedModelReturn,
-  InsertOperationOptions,
+  InsertNormalizedModelArgs,
+  InsertNormalizedModelOptions,
+  InsertNormalizedModelReturn,
+  InsertOperationArgs,
   PickArgs,
-  RegisterArgs,
+  ContextRegisterArgs,
   RegisterJsonArgs,
+  ToGqlOperationSettingsArgs,
   ToOperationSettingsArgs
 } from './generateTypes.ts'
-import type { ClientSettings, SkipModels, SkipOperations, SkipPaths } from '@/types/Settings.ts'
+import type {
+  ClientSettings,
+  IncludeModelRefs,
+  IncludeModels,
+  IncludeOperations,
+  IncludePaths,
+  SkipModelRefs,
+  SkipModels,
+  SkipOperations,
+  SkipPaths
+} from '@/types/Settings.ts'
 import type { Method } from '@/types/Method.ts'
-import type { OperationConfig, OperationInsertable } from '@/dsl/operation/types.ts'
+import type { OasOperationConfig } from '@/dsl/operation/oas/types.ts'
+import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
-import type { ModelConfig, ModelInsertable } from '@/dsl/model/types.ts'
-import { OperationDriver } from '@/dsl/operation/OperationDriver.ts'
+import type { ModelConfig, ModelProjection } from '@/dsl/model/types.ts'
+import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
+import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { toVariantList } from '@/helpers/toVariantList.ts'
+// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
+import get from 'lodash-es/get'
 import type { RefName } from '@/types/RefName.ts'
 import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
@@ -37,26 +55,43 @@ import type { StackTrail } from './StackTrail.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
 import { Inserted } from '@/dsl/Inserted.ts'
-import { File } from '@/dsl/File.ts'
+import type { CaptureChannel, CaptureSink } from '@/anchors/CaptureSink.ts'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
+import type { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import invariant from 'tiny-invariant'
-import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
+import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type {
-  OperationSource,
+  OasOperationSource,
+  GqlOperationSource,
   ModelSource,
   Preview,
   PreviewModule,
   MappingModule,
   Mapping
 } from '@/types/Preview.ts'
+import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 
 type ConstructorArgs = {
-  oasDocument: OasDocument
+  /**
+   * Source document for generation, wrapped in the {@link SkmtcParsedDocument}
+   * discriminated union. Generators that target a specific protocol
+   * narrow on `document.type` to access the underlying `OasDocument` or
+   * `GqlDocument` via `document.value`.
+   */
+  document: SkmtcParsedDocument
   settings: ClientSettings | undefined
   logger: log.Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  /**
+   * Shared attribution capture channel — the slot `RenderContext` flips to
+   * open/close the capture interval. Snippets read it through this
+   * context's {@link GenerateContext.captureSink}. Optional: when omitted
+   * (tests, capture-less runs) `captureSink` is always `undefined`.
+   */
+  captureChannel?: CaptureChannel
 }
 
 /**
@@ -174,15 +209,15 @@ export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V,
  *
  * @example Basic usage in a model generator
  * ```typescript
- * import { ModelBase } from '@skmtc/core';
+ * import { ModelProjectionBase } from '@skmtc/core';
  *
- * class TypeScriptInterface extends ModelBase {
+ * class TypeScriptInterface extends ModelProjectionBase {
  *   generate(): Definition {
  *     const schema = this.context.getSchema(this.refName);
  *
  *     return new Definition({
  *       context: this.context,
- *       identifier: Identifier.createType(this.refName),
+ *       identifier: createType(this.refName),
  *       description: schema.description,
  *       value: {
  *         generatorKey: this.generatorKey,
@@ -194,12 +229,25 @@ export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V,
  * ```
  */
 
+const isGqlInsertOperationArgs = <V extends GeneratedValue, EnrichmentType>(
+  args: InsertOperationArgs<V, EnrichmentType>
+): args is InsertGqlOperationArgs<V, EnrichmentType> => args.operation.oasType === 'gqlOperation'
+
+const isGqlToOperationSettingsArgs = <V extends GeneratedValue, EnrichmentType>(
+  args: ToOperationSettingsArgs<V, EnrichmentType>
+): args is ToGqlOperationSettingsArgs<V, EnrichmentType> =>
+  args.operation.oasType === 'gqlOperation'
+
 export class GenerateContext implements GenerateContextType {
-  #files: Map<string, File | JsonFile>
-  #previews: Record<string, Record<string, Preview>>
-  #mappings: Record<string, Record<string, Mapping>>
-  /** The parsed OpenAPI document being processed */
-  oasDocument: OasDocument
+  #files: Map<string, FileBase>
+  #previews: Record<string, Preview>
+  #mappings: Record<string, Mapping>
+  /**
+   * Parsed source document, wrapped in the {@link SkmtcParsedDocument}
+   * discriminated union. Canonical representation; both protocol-neutral
+   * (model) and protocol-specific (operation) dispatch reads through this.
+   */
+  document: SkmtcParsedDocument
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Logger instance for tracking generation progress */
@@ -216,35 +264,61 @@ export class GenerateContext implements GenerateContextType {
    *
    * @param args - Constructor arguments including document, settings, and handlers
    */
+  /** Shared attribution capture channel (see {@link ConstructorArgs}). */
+  #captureChannel: CaptureChannel | undefined
+
   constructor({
-    oasDocument,
+    document,
     settings,
     logger,
     captureCurrentResult,
-    toGeneratorConfigMap
+    toGeneratorConfigMap,
+    captureChannel
   }: ConstructorArgs) {
     this.logger = logger
     this.#files = new Map()
     this.#previews = {}
     this.#mappings = {}
-    this.oasDocument = oasDocument
+    this.document = document
     this.settings = settings
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
     this.modelDepth = {}
+    this.#captureChannel = captureChannel
+  }
+
+  /**
+   * The active attribution capture sink, or `undefined` outside the
+   * capture interval. Every `SnippetBase` instance's `toString` wrapper
+   * reads this; `RenderContext` opens/closes the interval by flipping the
+   * shared channel's `sink`.
+   */
+  get captureSink(): CaptureSink | undefined {
+    return this.#captureChannel?.sink
   }
 
   /**
    * @internal
    */
   toArtifacts(stackTrail: StackTrail): GenerateResult {
-    const generators = Object.values(this.toGeneratorConfigMap())
+    const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
 
     generators.forEach(generatorConfig => {
       stackTrail.trace(generatorConfig.id, st => {
+        // Whole-generator skip (string entry in `skip`). Silent no-op:
+        // no per-operation `skipped` results emitted.
         if (this.settings?.skip?.includes(generatorConfig.id)) {
           return
         }
+
+        // `include` is per-generator, not document-global. A generator
+        // with a per-operation include slice runs in allow-list mode
+        // (only the listed operations); a generator absent from
+        // `include` is unaffected and runs default-on. There is
+        // therefore no whole-generator include gate here — the slice
+        // extracted below is applied per-operation in the run* arms.
+        // (Whole-generator opt-out is `skip`. A bare-string `include`
+        // entry carries no per-operation filter and is a no-op.)
 
         const skip: SkipOperations | SkipModels | undefined = this.settings?.skip?.find(
           (skip): skip is SkipOperations | SkipModels => {
@@ -252,25 +326,60 @@ export class GenerateContext implements GenerateContextType {
           }
         )
 
+        // Extract the per-generator include slice (if any). Same
+        // dispatch shape as skip: object entries get matched by key,
+        // string entries don't produce a per-op filter (they mean
+        // "everything from this generator is included", which is
+        // semantically equivalent to "no per-op filter" once the
+        // whole-generator gate above has admitted us).
+        const include: IncludeOperations | IncludeModels | undefined =
+          this.settings?.include?.find(
+            (entry): entry is IncludeOperations | IncludeModels => {
+              return typeof entry === 'object' && Boolean(entry[generatorConfig.id])
+            }
+          )
+
         switch (generatorConfig.type) {
-          case 'operation':
-            this.#runOperationGenerator(
-              this.oasDocument,
+          case 'oasOperation':
+            if (this.document.type !== 'oas') {
+              // Generator targets OAS; current document is GraphQL — skip silently.
+              return
+            }
+            this.#runOasOperationGenerator(
+              this.document.value,
               generatorConfig,
+              toIncludePaths(include, generatorConfig.id),
               toSkipPaths(skip, generatorConfig.id),
               st
-            );
-            break;
+            )
+            break
+          case 'gqlOperation':
+            if (this.document.type !== 'gql') {
+              // Generator targets GraphQL; current document is OAS — skip silently.
+              return
+            }
+            // GraphQL operations don't yet have skip/include support
+            // at the per-operation level. The whole-generator gate
+            // above does apply (so `include: ['my-gql-gen']` works as
+            // expected), but per-(rootKind, fieldName) filtering is a
+            // follow-up that needs the same dispatch shape added for
+            // GqlOperation. Tracked alongside the existing GQL-skip
+            // gap.
+            this.#runGqlOperationGenerator(this.document.value, generatorConfig, st)
+            break
           case 'model':
             this.#runModelGenerator(
-              this.oasDocument,
+              this.document,
               generatorConfig,
+              toIncludeModels(include, generatorConfig.id),
               toSkipModels(skip, generatorConfig.id),
               st
-            );
-            break;
-          default:
-            throw new Error(`Invalid generator type: '${generatorConfig.type}' on ${generatorConfig.id}`);
+            )
+            break
+          default: {
+            const _exhaustive: never = generatorConfig
+            throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
+          }
         }
       })
     })
@@ -281,194 +390,386 @@ export class GenerateContext implements GenerateContextType {
       mappings: this.#mappings
     }
   }
-  #runOperationGenerator(
+
+  /**
+   * Evaluate each generator's `isSupported` over the parsed document's subjects
+   * and report the subjects each generator supports — capability only, no
+   * transform and no render. Operation generators report the operations their
+   * `isSupported` accepts; model generators report every model (the generate
+   * pipeline applies no model-level `isSupported`). A generator targeting the
+   * other protocol reports nothing.
+   */
+  toSupportedSubjects(): SupportedSubjects {
+    const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
+    const out: SupportedSubjects = {}
+
+    generators.forEach(generatorConfig => {
+      switch (generatorConfig.type) {
+        case 'oasOperation': {
+          const operations =
+            this.document.type === 'oas'
+              ? this.document.value.operations
+                  .filter(operation =>
+                    this.#supports(() => generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT }))
+                  )
+                  .map(operation => ({ path: operation.path, method: operation.method }))
+              : []
+          out[generatorConfig.id] = { type: 'oasOperation', operations }
+          break
+        }
+        case 'gqlOperation': {
+          const operations =
+            this.document.type === 'gql'
+              ? this.document.value.operations
+                  .filter(operation =>
+                    this.#supports(() => generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT }))
+                  )
+                  .map(operation => ({
+                    rootKind: operation.rootKind,
+                    fieldName: operation.fieldName
+                  }))
+              : []
+          out[generatorConfig.id] = { type: 'gqlOperation', operations }
+          break
+        }
+        case 'model': {
+          const refNames =
+            this.document.type === 'oas'
+              ? (this.document.value.components?.toSchemasRefNames() ?? [])
+              : this.document.value.registry.toSchemasRefNames()
+          out[generatorConfig.id] = { type: 'model', models: [...refNames] }
+          break
+        }
+        default: {
+          const _exhaustive: never = generatorConfig
+          throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
+        }
+      }
+    })
+
+    return out
+  }
+
+  /** Run an `isSupported` probe defensively — a throwing predicate excludes the subject. */
+  #supports(probe: () => boolean): boolean {
+    try {
+      return probe()
+    } catch (error) {
+      this.logger.error(error)
+      return false
+    }
+  }
+
+  #runOasOperationGenerator(
     oasDocument: OasDocument,
-    generatorConfig: OperationConfig,
+    generatorConfig: OasOperationConfig,
+    include: IncludePaths | undefined,
     skip: SkipPaths | undefined,
     stackTrail: StackTrail
   ) {
-    oasDocument.operations.reduce((acc, operation) => {
-      return stackTrail.trace(`${operation.path}:${operation.method}`, st => {
-        try {
-          if (
-            typeof generatorConfig?.isSupported === 'function' &&
-            !generatorConfig.isSupported({ operation, context: this })
-          ) {
-            this.captureCurrentResult('notSupported', st)
-            return acc
-          }
+    oasDocument.operations.forEach(operation => {
+      stackTrail.trace(`${operation.path}:${operation.method}`, opTrail => {
+        // Resolve the variant list to fan out over. The consumer's
+        // enrichments are keyed `[generatorId][path][method][variant]`;
+        // the block at `[path][method]` is therefore a record of
+        // variant names. Three cases handled in `toVariantList`:
+        //
+        //   - absent → run a single 'main' pass with no enrichment
+        //   - present, non-object → treat as a single 'main' pass
+        //     (the per-variant Valibot wrap will reject this shape
+        //     at config-load time once it lands)
+        //   - present, object → enumerate keys; 'main' must be among
+        //     them or we throw (loud beats silent zero-output)
+        const opEnrichments: unknown = get(
+          this.settings,
+          `enrichments.${generatorConfig.id}.${operation.path}.${operation.method}`
+        )
 
-          if (skip?.[operation.path]?.includes(operation.method)) {
-            this.captureCurrentResult('skipped', st)
-            return acc
-          }
+        const variants = toVariantList({
+          opEnrichments,
+          generatorId: generatorConfig.id,
+          operationLabel: `${operation.method.toUpperCase()} ${operation.path}`
+        })
 
-          const result = generatorConfig.transform({ context: this, operation, acc })
+        variants.forEach(variant => {
+          opTrail.trace(`variant: ${variant}`, st => {
+            try {
+              if (
+                typeof generatorConfig?.isSupported === 'function' &&
+                !generatorConfig.isSupported({ operation, context: this, variant })
+              ) {
+                this.captureCurrentResult('notSupported', st)
+                return
+              }
 
-          const source = toOperationSource({ operation, generatorId: generatorConfig.id })
+              // Order: isSupported (capability) → include (allow) → skip
+              // (deny). Match is now on `(path, method, variant)`. An
+              // empty variant array on a method means "every variant of
+              // this method"; a populated array names the variants the
+              // entry applies to.
+              if (
+                include !== undefined &&
+                !matchesPathFilter({ paths: include, path: operation.path, method: operation.method, variant })
+              ) {
+                this.captureCurrentResult('skipped', st)
+                return
+              }
 
-          this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, operation }))
+              if (matchesPathFilter({ paths: skip, path: operation.path, method: operation.method, variant })) {
+                this.captureCurrentResult('skipped', st)
+                return
+              }
 
-          this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, operation }))
+              generatorConfig.transform({
+                context: this,
+                operation,
+                variant
+              })
 
-          this.captureCurrentResult('success', st)
+              const source = toOasOperationSource({
+                operation,
+                generatorId: generatorConfig.id,
+                variant
+              })
 
-          return result
-        } catch (error) {
-          this.logger.error(error)
+              this.#addPreview(
+                source,
+                generatorConfig.toPreviewModule?.({ context: this, operation, variant })
+              )
 
-          this.captureCurrentResult('error', st)
-        }
+              this.#addMapping(
+                source,
+                generatorConfig.toMappingModule?.({ context: this, operation, variant })
+              )
+
+              this.captureCurrentResult('success', st)
+            } catch (error) {
+              this.logger.error(error)
+
+              this.captureCurrentResult('error', st)
+            }
+          })
+        })
       })
-    }, undefined)
+    })
+  }
+
+  #runGqlOperationGenerator(
+    gqlDocument: GqlDocument,
+    generatorConfig: GqlOperationConfig,
+    stackTrail: StackTrail
+  ) {
+    gqlDocument.operations.forEach(operation => {
+      stackTrail.trace(operation.identifier, opTrail => {
+        // GraphQL enrichment routing key is
+        // `[generatorId][rootKind][fieldName][variant]`.
+        const opEnrichments: unknown = get(
+          this.settings,
+          `enrichments.${generatorConfig.id}.${operation.rootKind}.${operation.fieldName}`
+        )
+
+        const variants = toVariantList({
+          opEnrichments,
+          generatorId: generatorConfig.id,
+          operationLabel: `${operation.rootKind} ${operation.fieldName}`
+        })
+
+        variants.forEach(variant => {
+          opTrail.trace(`variant: ${variant}`, st => {
+            try {
+              if (
+                typeof generatorConfig.isSupported === 'function' &&
+                !generatorConfig.isSupported({ operation, context: this, variant })
+              ) {
+                this.captureCurrentResult('notSupported', st)
+                return
+              }
+
+              generatorConfig.transform({
+                context: this,
+                operation,
+                variant
+              })
+
+              const source = toGqlOperationSource({
+                operation,
+                generatorId: generatorConfig.id,
+                variant
+              })
+
+              this.#addPreview(
+                source,
+                generatorConfig.toPreviewModule?.({ context: this, operation, variant })
+              )
+
+              this.#addMapping(
+                source,
+                generatorConfig.toMappingModule?.({ context: this, operation, variant })
+              )
+
+              this.captureCurrentResult('success', st)
+            } catch (error) {
+              this.logger.error(error)
+              this.captureCurrentResult('error', st)
+            }
+          })
+        })
+      })
+    })
   }
 
   #runModelGenerator(
-    oasDocument: OasDocument,
+    document: SkmtcParsedDocument,
     generatorConfig: ModelConfig,
-    skip: string[] | undefined,
+    include: IncludeModelRefs | undefined,
+    skip: SkipModelRefs | undefined,
     stackTrail: StackTrail
   ) {
-    const refNames = oasDocument.components?.toSchemasRefNames() ?? []
+    const refNames =
+      document.type === 'oas'
+        ? (document.value.components?.toSchemasRefNames() ?? [])
+        : document.value.registry.toSchemasRefNames()
 
-    return refNames.reduce((acc, refName) => {
-      return stackTrail.trace(refName, st => {
-        try {
-          if (skip?.includes(refName)) {
-            this.captureCurrentResult('skipped', st)
-            return acc
-          }
+    refNames.forEach(refName => {
+      stackTrail.trace(refName, refTrail => {
+        // Resolve the variant list to fan out over. The consumer's
+        // enrichments are keyed `[generatorId][refName][variant]`; the
+        // block at `[refName]` is therefore a record of variant names.
+        // Three cases handled in `toVariantList`:
+        //
+        //   - absent → run a single 'main' pass with no enrichment
+        //   - present, non-object → treat as a single 'main' pass
+        //     (the per-variant Valibot wrap will reject this shape
+        //     at config-load time once it lands)
+        //   - present, object → enumerate keys; 'main' must be among
+        //     them or we throw (loud beats silent zero-output)
+        const modelEnrichments: unknown = get(
+          this.settings,
+          `enrichments.${generatorConfig.id}.${refName}`
+        )
 
-          const result = generatorConfig.transform({ context: this, refName, acc })
+        const variants = toVariantList({
+          opEnrichments: modelEnrichments,
+          generatorId: generatorConfig.id,
+          operationLabel: refName
+        })
 
-          const source = toModelSource({ refName, generatorId: generatorConfig.id })
+        variants.forEach(variant => {
+          refTrail.trace(`variant: ${variant}`, st => {
+            try {
+              // Order: include (allow) → skip (deny). Match is now on
+              // `(refName, variant)`. An empty variant array on a
+              // refName means "every variant of this refName"; a
+              // populated array names the variants the entry applies
+              // to.
+              if (
+                include !== undefined &&
+                !matchesRefFilter({ refs: include, refName, variant })
+              ) {
+                this.captureCurrentResult('skipped', st)
+                return
+              }
 
-          this.#addPreview(source, generatorConfig.toPreviewModule?.({ context: this, refName }))
+              if (matchesRefFilter({ refs: skip, refName, variant })) {
+                this.captureCurrentResult('skipped', st)
+                return
+              }
 
-          this.#addMapping(source, generatorConfig.toMappingModule?.({ context: this, refName }))
+              generatorConfig.transform({
+                context: this,
+                refName,
+                variant
+              })
 
-          this.captureCurrentResult('success', st)
+              const source = toModelSource({
+                refName,
+                generatorId: generatorConfig.id,
+                variant
+              })
 
-          return result
-        } catch (error) {
-          this.logger.error(error)
-          this.captureCurrentResult('error', st)
-        }
+              this.#addPreview(
+                source,
+                generatorConfig.toPreviewModule?.({ context: this, refName, variant })
+              )
+
+              this.#addMapping(
+                source,
+                generatorConfig.toMappingModule?.({ context: this, refName, variant })
+              )
+
+              this.captureCurrentResult('success', st)
+            } catch (error) {
+              this.logger.error(error)
+              this.captureCurrentResult('error', st)
+            }
+          })
+        })
       })
-    }, undefined)
+    })
   }
 
-  #addPreview(source: OperationSource | ModelSource, module: PreviewModule | undefined) {
+  #addPreview(
+    source: OasOperationSource | GqlOperationSource | ModelSource,
+    module: PreviewModule | undefined
+  ) {
     if (!module) {
       return
     }
 
-    if (!this.#previews[module.group]) {
-      this.#previews[module.group] = {}
+    if (this.#previews[module.name]) {
+      throw new Error(`Cannot override preview module "${module.name}"`)
     }
 
-    if (this.#previews[module.group][module.name]) {
-      throw new Error(`Cannot override preview module "${module.name}" in group "${module.group}"`)
-    }
-
-    this.#previews[module.group][module.name] = {
+    this.#previews[module.name] = {
       module,
       source
     }
   }
 
-  #addMapping(source: OperationSource | ModelSource, module: MappingModule | undefined) {
+  #addMapping(
+    source: OasOperationSource | GqlOperationSource | ModelSource,
+    module: MappingModule | undefined
+  ) {
     if (!module) {
       return
     }
 
-    if (!this.#mappings[module.group]) {
-      this.#mappings[module.group] = {}
+    if (this.#mappings[module.name]) {
+      throw new Error(`Cannot override mapping module "${module.name}"`)
     }
 
-    if (this.#mappings[module.group][module.name]) {
-      throw new Error(`Cannot override mapping module "${module.name}" in group "${module.group}"`)
-    }
-
-    this.#mappings[module.group][module.name] = {
+    this.#mappings[module.name] = {
       module,
       source
     }
   }
 
-  #getFile(filePath: string, { throwIfNotFound = false }: GetFileOptions = {}): File | JsonFile {
-    const normalisedPath = normalize(filePath)
-
-    const currentFile = this.#files.get(normalisedPath)
-
-    if (!currentFile) {
-      if (throwIfNotFound) {
-        throw new Error(`File not found: '${normalisedPath}'`)
-      } else {
-        return this.#addFile(normalisedPath)
-      }
-    }
-
-    return currentFile
+  /**
+   * Look up an already-registered file by path, or `undefined` if none
+   * exists. Neutral primitive: returns the abstract `FileBase` and never
+   * constructs anything, so a (future) language-owned `register` can ask
+   * "does this file exist yet?" without the engine knowing the language.
+   * To create-on-miss, use the internal `#getFile`; to add a
+   * language-constructed file, use {@link addFile}.
+   */
+  getFile(filePath: string): FileBase | undefined {
+    return this.#files.get(normalize(filePath))
   }
 
   /**
-   * Create and register a definition with the given `identifier` at `destinationPath`.
-   *
-   * @experimental
+   * Store a language-constructed file. The engine never constructs a
+   * concrete (language) `File`; the language's `register` builds its own
+   * `FileBase` subclass and hands it in here. Throws if a file already
+   * exists at the (normalized) path.
    */
-  defineAndRegister<V extends GeneratedValue>({
-    identifier,
-    value,
-    destinationPath,
-    noExport
-  }: DefineAndRegisterArgs<V>): Definition<V> {
-    // @TODO cache check is duplicatd if call comes from
-    // createAndRegisterDefinition. Look for a way to share code between
-    // these two functions
-    const cachedDefinition = this.findDefinition({
-      name: identifier.name,
-      exportPath: destinationPath
-    })
+  addFile(file: FileBase): void {
+    const normalizedPath = normalize(file.path)
 
-    // @TODO add check to make sure retrieved definition
-    // used same generator and same schema #SKM-47
-    if (cachedDefinition) {
-      return cachedDefinition as Definition<V>
+    if (this.#files.has(normalizedPath)) {
+      throw new Error(`File already exists: ${normalizedPath}`)
     }
 
-    return this.#defineAndRegister({
-      identifier,
-      value,
-      destinationPath,
-      noExport
-    })
-  }
-
-  /**
-   * Create and register a definition with the given `identifier` at `destinationPath` without duplication checks.
-   *
-   * @experimental
-   */
-  #defineAndRegister<V extends GeneratedValue>({
-    identifier,
-    value,
-    destinationPath,
-    noExport
-  }: DefineAndRegisterArgs<V>): Definition<V> {
-    const definition = new Definition({
-      context: this,
-      identifier,
-      value,
-      noExport
-    })
-
-    this.register({
-      definitions: [definition],
-      destinationPath
-    })
-
-    return definition
+    this.#files.set(normalizedPath, file)
   }
 
   /**
@@ -478,7 +779,14 @@ export class GenerateContext implements GenerateContextType {
    * @param args - Registration arguments with destination path and JSON content
    */
   registerJson({ destinationPath, json }: RegisterJsonArgs) {
-    const currentFile = this.#getFile(destinationPath)
+    const normalizedPath = normalize(destinationPath)
+
+    let currentFile = this.getFile(normalizedPath)
+
+    if (!currentFile) {
+      currentFile = new JsonFile({ path: normalizedPath, content: {} })
+      this.addFile(currentFile)
+    }
 
     invariant(
       currentFile instanceof JsonFile,
@@ -499,112 +807,110 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  register({ imports = {}, definitions, destinationPath, reExports }: RegisterArgs) {
-    // TODO deduplicate import names and definition names against each other
-    const currentFile = this.#getFile(destinationPath)
+  register({ imports = [], reExports = [], definitions, destinationPath }: ContextRegisterArgs) {
+    const normalizedPath = normalize(destinationPath)
 
-    invariant(currentFile instanceof File, `File at "${destinationPath}" is not a "File" type`)
+    const currentFile = this.getFile(normalizedPath)
 
-    Object.entries(reExports ?? {}).forEach(([importModule, identifiers]) => {
-      if (!currentFile.reExports.get(importModule) && identifiers.length) {
-        currentFile.reExports.set(importModule, {})
-      }
+    // `register` never creates files — it speaks pure data and the engine
+    // never names a file class. Callers pre-create the destination file
+    // through their language (the lang package's register function, the
+    // Drivers' ensureFile); reaching a file-miss here is a bug at the
+    // caller.
+    invariant(
+      currentFile,
+      `Cannot register into '${normalizedPath}' — the file does not exist. ` +
+        `Pre-create it through your lang (its register function does this).`
+    )
 
-      identifiers.forEach(identifier => {
-        const entityType = identifier.entityType.type
-
-        const module = currentFile.reExports.get(importModule)
-
-        invariant(module, 'Module not found')
-
-        if (!module[entityType]) {
-          module[entityType] = new Set()
-        }
-
-        module[entityType].add(identifier.name)
-      })
-    })
-
-    Object.entries(imports).forEach(([importModule, importNames]) => {
-      const module = currentFile.imports.get(importModule)
-
-      const importItem = new Import({ module: importModule, importNames })
-
-      if (module) {
-        importItem.importNames.forEach(n => module.add(`${n}`))
-      } else {
-        currentFile.imports.set(importModule, new Set(importItem.importNames.map(n => `${n}`)))
-      }
-    })
-
+    // Definitions merge is language-neutral — `addDefinition` lives on
+    // `FileBase`, so this works for any language's file.
     definitions?.forEach(definition => {
-      if (!definition) {
-        return
-      }
-
-      const { name } = definition.identifier
-
-      if (!currentFile.definitions.has(name)) {
-        currentFile.definitions.set(name, definition)
+      if (definition) {
+        currentFile.addDefinition(definition)
       }
     })
+
+    // Imports and re-exports are standardised `ImportBase` /
+    // `ReExportBase` objects; the neutral merges (keyed by `mergeKey`)
+    // live on `CodeFileBase`. `JsonFile` has neither, so the guard skips
+    // it.
+    if (imports.length > 0 && currentFile instanceof CodeFileBase) {
+      currentFile.addImports(imports)
+    }
+
+    if (reExports.length > 0 && currentFile instanceof CodeFileBase) {
+      currentFile.addReExports(reExports)
+    }
   }
 
   /**
    * Insert operation into the output file with path `destinationPath`.
    *
    * Insert will perform the following steps:
-   * 1. Generate content settings for the supplied operation
-   * 2. Look up definition in file with path `destinationPath`
-   * 3. If definition is not found, it will create a new one and register it
-   * 4. If the definition is defined at a location that is different from
-   *    the current file, it will add an import to the current file from
-   *    that location
-   * 5. Use the content settings to generate the operation using the
-   *    insertable's driver
+   * Insert an operation definition into `destinationPath`.
+   *
+   * Resolves identifier and export path from the projection, registers the
+   * definition (or reuses a cached one), and stitches an import into
+   * `destinationPath` if it differs from the projection's `exportPath`.
+   *
    * @mutates this.files
    */
   insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
-    insertable: OperationInsertable<V, EnrichmentType>,
-    operation: OasOperation,
-    { destinationPath, noExport = false }: InsertOperationOptions = {}
+    args: InsertOperationArgs<V, EnrichmentType>
   ): Inserted<V, EnrichmentType> {
-    const { settings, definition } = new OperationDriver({
+    // Default to the canonical variant. Callers who explicitly thread
+    // a variant (e.g. variants-aware Projections threading
+    // `this.settings.variant`) override this default.
+    const variant = args.variant ?? DEFAULT_VARIANT
+
+    if (isGqlInsertOperationArgs(args)) {
+      const { settings, definition } = new GqlOperationDriver({
+        context: this,
+        projection: args.projection,
+        operation: args.operation,
+        destinationPath: args.destinationPath,
+        noExport: args.noExport ?? false,
+        variant
+      })
+
+      return new Inserted({ settings, definition })
+    }
+
+    const { settings, definition } = new OasOperationDriver({
       context: this,
-      insertable,
-      operation,
-      destinationPath,
-      noExport
+      projection: args.projection,
+      operation: args.operation,
+      destinationPath: args.destinationPath,
+      noExport: args.noExport ?? false,
+      variant
     })
 
     return new Inserted({ settings, definition })
   }
 
   /**
-   * Inserts a normalized model definition into the generation context.
-   *
-   * @param insertable - Model insertable configuration with prototype and transform functions
-   * @param schema - OAS schema, reference, or void type to generate model from
-   * @param options - Insertion options including generation type and destination
-   * @returns Inserted model instance with settings and definition
+   * Insert a normalized model: dispatch to {@link insertModel} when the schema
+   * is a `$ref`, otherwise produce a one-off definition under `fallbackName`.
    */
-  insertNormalisedModel<
+  insertNormalizedModel<
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
     EnrichmentType
   >(
-    insertable: ModelInsertable<V, EnrichmentType>,
-    { schema, fallbackName, destinationPath }: InsertNormalisedModelArgs<Schema>,
-    { noExport = false }: InsertNormalisedModelOptions = {}
-  ): InsertNormalisedModelReturn<V, Schema> {
+    projection: ModelProjection<V, EnrichmentType>,
+    { schema, fallbackName, destinationPath }: InsertNormalizedModelArgs<Schema>,
+    { noExport = false, variant }: InsertNormalizedModelOptions = {}
+  ): InsertNormalizedModelReturn<V, Schema> {
     if (schema.isRef()) {
-      const { definition } = this.insertModel(insertable, schema.toRefName(), {
+      const { definition } = this.insertModel(projection, schema.toRefName(), {
         destinationPath,
-        noExport
+        noExport,
+        variant
       })
 
       // @TODO Using mapped types would help avoid generics casting
-      return definition as InsertNormalisedModelReturn<V, Schema>
+      return definition as InsertNormalizedModelReturn<V, Schema>
     }
 
     const cachedDefinition = this.findDefinition({
@@ -615,121 +921,144 @@ export class GenerateContext implements GenerateContextType {
     // @TODO add check to make sure retrieved definition
     // used same generator and same schema #SKM-47
     if (cachedDefinition) {
-      return cachedDefinition as InsertNormalisedModelReturn<V, Schema>
+      return cachedDefinition as InsertNormalizedModelReturn<V, Schema>
     }
 
-    const value = insertable.schemaToValueFn({
+    const value = projection.schemaToValueFn({
       context: this,
       schema,
       destinationPath,
       required: true
     })
 
-    const definition = this.#defineAndRegister({
-      identifier: insertable.createIdentifier(fallbackName),
+    // The inline-schema fallback builds the Definition through the
+    // projection's language — the static read off the projection class at
+    // the use site (same ephemeral read the Drivers make) — pre-creates
+    // the destination file caller-side, and stores via the pure-data
+    // `register`.
+    const normalizedPath = normalize(destinationPath)
+
+    if (!this.getFile(normalizedPath)) {
+      this.addFile(projection.lang.createFile({ path: normalizedPath, settings: this.settings }))
+    }
+
+    const definition = projection.lang.toDefinition({
+      context: this,
+      identifier: projection.createIdentifier(fallbackName),
       value,
-      destinationPath,
       noExport
     })
 
+    this.register({ definitions: [definition], destinationPath: normalizedPath })
+
     // @TODO Using mapped types would help avoid generics casting
-    return definition as InsertNormalisedModelReturn<V, Schema>
+    return definition as InsertNormalizedModelReturn<V, Schema>
   }
 
   /**
-   * Insert model into the output file with path `destinationPath`.
+   * Insert a model definition into `destinationPath`.
    *
-   * Insert will perform the following steps:
-   * 1. Generate content settings for the supplied model
-   * 2. Look up definition in file with path `destinationPath`
-   * 3. If definition is not found, it will create a new one and register it
-   * 4. If the definition is defined at a location that is different from
-   *    the current file, it will add an import to the current file from
-   *    that location
-   * 5. Use the content settings to generate the model using the
-   *    insertable's driver
+   * Resolves identifier and export path from the projection, registers the
+   * definition (or reuses a cached one), and stitches an import into
+   * `destinationPath` if it differs from the projection's `exportPath`.
+   *
    * @mutates this.files
    */
-
   insertModel<V extends GeneratedValue, EnrichmentType>(
-    insertable: ModelInsertable<V, EnrichmentType>,
+    projection: ModelProjection<V, EnrichmentType>,
     refName: RefName,
-    { destinationPath, noExport = false }: InsertModelOptions = {}
+    { destinationPath, noExport = false, variant }: InsertModelOptions = {}
   ): Inserted<V, EnrichmentType> {
+    // Default to the canonical variant. Callers who explicitly thread
+    // a variant (e.g. variants-aware Projections threading
+    // `this.settings.variant`) override this default.
+    const resolvedVariant = variant ?? DEFAULT_VARIANT
+
     const { settings, definition } = new ModelDriver({
       context: this,
-      insertable,
+      projection,
       refName,
       destinationPath,
       rootRef: refName,
-      noExport
+      noExport,
+      variant: resolvedVariant
     })
 
     return new Inserted({ settings, definition })
   }
 
   /**
-   * Generate and return content settings for operation insertable and
-   * operation.
-   *
-   * Content settings are produced by passing base settings and operation
-   * through toIdentifier and toExportPath static methods on the
-   * insertable.
-   * @param { operation, insertable }
-   * @returns
+   * Build content settings for an operation projection by calling its
+   * static `toIdentifier`, `toExportPath`, and `toEnrichments` against the
+   * given operation.
    */
-  toOperationContentSettings<V, EnrichmentType>({
-    operation,
-    insertable
-  }: ToOperationSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
+  toOperationContentSettings<V extends GeneratedValue, EnrichmentType>(
+    args: ToOperationSettingsArgs<V, EnrichmentType>
+  ): ContentSettings<EnrichmentType> {
+    const { variant } = args
+
+    if (isGqlToOperationSettingsArgs(args)) {
+      const enrichments = args.projection.toEnrichments({
+        operation: args.operation,
+        context: this,
+        variant
+      })
+      return new ContentSettings<EnrichmentType>({
+        identifier: args.projection.toIdentifier({
+          operation: args.operation,
+          enrichments,
+          variant
+        }),
+        exportPath: args.projection.toExportPath({
+          operation: args.operation,
+          enrichments,
+          variant
+        }),
+        enrichments,
+        variant
+      })
+    }
+
+    const enrichments = args.projection.toEnrichments({
+      operation: args.operation,
+      context: this,
+      variant
+    })
     return new ContentSettings<EnrichmentType>({
-      identifier: insertable.toIdentifier(operation),
-      exportPath: insertable.toExportPath(operation),
-      enrichments: insertable.toEnrichments({ operation, context: this })
+      identifier: args.projection.toIdentifier({
+        operation: args.operation,
+        enrichments,
+        variant
+      }),
+      exportPath: args.projection.toExportPath({
+        operation: args.operation,
+        enrichments,
+        variant
+      }),
+      enrichments,
+      variant
     })
   }
 
   /**
-   * Generate and return content settings for model insertable and refName.
-   *
-   * Content settings are produced by passing base settings and refName
-   * through toIdentifier and toExportPath static methods on the
-   * insertable.
-   * @param { refName, insertable }
-   * @returns Content settings for model
+   * Build content settings for a model projection by calling its static
+   * `toIdentifier`, `toExportPath`, and `toEnrichments` against the given
+   * `refName` and `variant`.
    */
-  toModelContentSettings<V, EnrichmentType>({
+  toModelContentSettings<V extends GeneratedValue, EnrichmentType>({
     refName,
-    insertable
+    projection,
+    variant
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
+    const enrichments = projection.toEnrichments({ refName, context: this, variant })
     return new ContentSettings<EnrichmentType>({
-      identifier: insertable.toIdentifier(refName),
-      exportPath: insertable.toExportPath(refName),
-      enrichments: insertable.toEnrichments({ refName, context: this })
+      identifier: projection.toIdentifier({ refName, enrichments, variant }),
+      exportPath: projection.toExportPath({ refName, enrichments, variant }),
+      enrichments,
+      variant
     })
   }
 
-  #addFile(normalisedPath: string): File | JsonFile {
-    if (this.#files.has(normalisedPath)) {
-      throw new Error(`File already exists: ${normalisedPath}`)
-    }
-
-    const extension = normalisedPath.split('.').pop()
-
-    let newFile: File | JsonFile;
-    switch (extension) {
-      case 'json':
-        newFile = new JsonFile({ path: normalisedPath, content: {} });
-        break;
-      default:
-        newFile = new File({ path: normalisedPath, settings: this.settings });
-        break;
-    }
-
-    this.#files.set(normalisedPath, newFile)
-
-    return newFile
-  }
   /**
    * Perform one lookup of schema by `refName`.
    * @param refName
@@ -739,10 +1068,19 @@ export class GenerateContext implements GenerateContextType {
   resolveSchemaRefOnce(refName: RefName, generatorId: string): OasSchema | OasRef<'schema'> {
     this.modelDepth[`${generatorId}:${refName}`]++
 
-    const schema = this.oasDocument.components?.schemas?.[refName]?.resolveOnce()
+    const schema =
+      this.document.type === 'oas'
+        ? this.document.value.components?.schemas?.[refName]?.resolveOnce()
+        : this.document.value.registry.schemas[refName]
 
     if (!schema) {
       throw new Error(`Schema not found: ${refName}`)
+    }
+
+    // GqlRegistry stores raw OasSchema | OasRef entries that we need to
+    // resolve once for parity with the OAS code path.
+    if (this.document.type === 'gql' && 'resolveOnce' in schema) {
+      return (schema as OasRef<'schema'>).resolveOnce()
     }
 
     return schema
@@ -755,57 +1093,182 @@ export class GenerateContext implements GenerateContextType {
    * @param { name, exportPath }
    * @returns Matching definition if found or `undefined` otherwise
    */
-  findDefinition({ name, exportPath }: PickArgs): Definition | undefined {
-    const file = this.#getFile(exportPath)
-
-    invariant(file instanceof File, `File at "${exportPath}" is not a "File" type`)
-
-    return file.definitions.get(name)
+  findDefinition({ name, exportPath }: PickArgs): DefinitionBase | undefined {
+    // Pure lookup — no file is created on a miss. `definitions` lives on
+    // `FileBase`, so this reads any language's file without narrowing.
+    return this.getFile(exportPath)?.definitions.get(name)
   }
 }
 
-type ToOperationSourceArgs = {
-  operation: OasOperation
-  generatorId: string
+type MatchesPathFilterArgs = {
+  paths: SkipPaths | IncludePaths | undefined
+  path: string
+  method: Method
+  variant: string
 }
 
 /**
- * Creates an OperationSource from an operation and generator ID.
+ * Match a `(path, method, variant)` tuple against an operation-shaped
+ * skip or include entry. Shared by both arms because skip and include
+ * have the same matching rules; only the engine's interpretation of
+ * the result differs (skip = deny, include = allow).
+ *
+ * Returns `false` when:
+ * - `paths` is `undefined` (no filter applies)
+ * - the `path` isn't keyed in the entry
+ * - the `method` isn't present in the inner record
+ *
+ * Returns `true` when:
+ * - the method's variant array is empty (matches every variant)
+ * - the method's variant array contains `variant`
+ */
+const matchesPathFilter = ({
+  paths,
+  path,
+  method,
+  variant
+}: MatchesPathFilterArgs): boolean => {
+  if (!paths) {
+    return false
+  }
+
+  const methodMap = paths[path]
+  if (!methodMap) {
+    return false
+  }
+
+  const variants = methodMap[method]
+  if (variants === undefined) {
+    return false
+  }
+
+  if (variants.length === 0) {
+    return true
+  }
+
+  return variants.includes(variant)
+}
+
+type MatchesRefFilterArgs = {
+  refs: SkipModelRefs | IncludeModelRefs | undefined
+  refName: string
+  variant: string
+}
+
+/**
+ * Match a `(refName, variant)` tuple against a model-shaped skip or
+ * include entry. Sibling to {@link matchesPathFilter} — both arms
+ * share matching rules; only the engine's interpretation of the
+ * result differs (skip = deny, include = allow).
+ *
+ * Returns `false` when:
+ * - `refs` is `undefined` (no filter applies)
+ * - the `refName` isn't keyed in the entry
+ *
+ * Returns `true` when:
+ * - the refName's variant array is empty (matches every variant)
+ * - the refName's variant array contains `variant`
+ */
+const matchesRefFilter = ({
+  refs,
+  refName,
+  variant
+}: MatchesRefFilterArgs): boolean => {
+  if (!refs) {
+    return false
+  }
+
+  const variants = refs[refName]
+  if (variants === undefined) {
+    return false
+  }
+
+  if (variants.length === 0) {
+    return true
+  }
+
+  return variants.includes(variant)
+}
+
+
+type ToOasOperationSourceArgs = {
+  operation: OasOperation
+  generatorId: string
+  /** Operation variant the artifact was emitted for (see {@link Variant}) */
+  variant: string
+}
+
+/**
+ * Creates an OasOperationSource from an operation, generator ID, and variant.
  *
  * Transforms operation and generator information into a source descriptor
  * that can be used for tracking operation origins in the generation pipeline.
  *
- * @param args - Arguments containing operation and generator ID
- * @returns OperationSource descriptor for the operation
+ * @param args - Arguments containing operation, generator ID, and variant
+ * @returns OasOperationSource descriptor for the operation
  */
-export const toOperationSource = ({
+export const toOasOperationSource = ({
   operation,
-  generatorId
-}: ToOperationSourceArgs): OperationSource => ({
-  type: 'operation',
+  generatorId,
+  variant
+}: ToOasOperationSourceArgs): OasOperationSource => ({
+  type: 'oasOperation',
   generatorId,
   operationPath: operation.path,
-  operationMethod: operation.method
+  operationMethod: operation.method,
+  variant
+})
+
+type ToGqlOperationSourceArgs = {
+  operation: GqlOperation
+  generatorId: string
+  /** Operation variant the artifact was emitted for (see {@link Variant}) */
+  variant: string
+}
+
+/**
+ * Creates a GraphQL operation source descriptor.
+ *
+ * Sibling to {@link toOasOperationSource} for the GraphQL protocol — encodes
+ * `rootKind` and `fieldName` instead of `path` / `method`.
+ */
+export const toGqlOperationSource = ({
+  operation,
+  generatorId,
+  variant
+}: ToGqlOperationSourceArgs): GqlOperationSource => ({
+  type: 'gqlOperation',
+  generatorId,
+  rootKind: operation.rootKind,
+  fieldName: operation.fieldName,
+  variant
 })
 
 type ToModelSourceArgs = {
   refName: RefName
   generatorId: string
+  /** Model variant the artifact was emitted for (see {@link Variant}) */
+  variant: string
 }
 
 /**
- * Creates a ModelSource from a reference name and generator ID.
+ * Creates a ModelSource from a reference name, generator ID, and variant.
  *
  * Transforms model reference and generator information into a source descriptor
  * that can be used for tracking model origins in the generation pipeline.
  *
- * @param args - Arguments containing reference name and generator ID
+ * @param args - Arguments containing reference name, generator ID, and variant
  * @returns ModelSource descriptor for the model
  */
-export const toModelSource = ({ refName, generatorId }: ToModelSourceArgs): ModelSource => ({
+export const toModelSource = ({
+  refName,
+  generatorId,
+  variant
+}: ToModelSourceArgs): ModelSource => ({
   type: 'model',
   generatorId,
-  refName
+  refName,
+  variant
 })
 
 const toSkipPaths = (
@@ -814,8 +1277,24 @@ const toSkipPaths = (
 ): SkipPaths | undefined => {
   const generatorSkip = skip?.[generatorId]
 
-  if (typeof generatorSkip === 'object' && !Array.isArray(generatorSkip)) {
-    return generatorSkip
+  // Operation-shaped entries have records-of-records at the inner
+  // slot (`Record<path, Record<method, variant[]>>`); model-shaped
+  // entries have records-of-arrays (`Record<refName, variant[]>`).
+  // Discriminate by inner value shape. An empty record is ambiguous
+  // and admitted by both helpers — each arm will see its own empty
+  // filter (`{}`), which means "match nothing" in both cases.
+  if (
+    typeof generatorSkip === 'object' &&
+    generatorSkip !== null &&
+    !Array.isArray(generatorSkip)
+  ) {
+    const values = Object.values(generatorSkip)
+    if (
+      values.length === 0 ||
+      values.every(v => typeof v === 'object' && v !== null && !Array.isArray(v))
+    ) {
+      return generatorSkip as SkipPaths
+    }
   }
 
   return undefined
@@ -824,11 +1303,78 @@ const toSkipPaths = (
 const toSkipModels = (
   skip: SkipOperations | SkipModels | undefined,
   generatorId: string
-): string[] | undefined => {
+): SkipModelRefs | undefined => {
   const generatorSkip = skip?.[generatorId]
 
-  if (Array.isArray(generatorSkip)) {
-    return generatorSkip
+  // SkipModelRefs is `Record<refName, variant[]>`. The operation arm
+  // entries are `Record<path, Record<method, variant[]>>` — discriminate
+  // by inner value shape (arrays vs nested records). An empty record is
+  // ambiguous and admitted by both helpers — see `toSkipPaths`.
+  if (
+    typeof generatorSkip === 'object' &&
+    generatorSkip !== null &&
+    !Array.isArray(generatorSkip)
+  ) {
+    const values = Object.values(generatorSkip)
+    if (values.length === 0 || values.every(v => Array.isArray(v))) {
+      return generatorSkip as SkipModelRefs
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * Extracts the per-operation include slice for a generator, mirroring
+ * {@link toSkipPaths}. Returns `undefined` when the include entry
+ * isn't operation-shaped for this generator (e.g. the user passed a
+ * model-shaped array or no entry at all) — the caller then treats
+ * "no per-op filter active" as the semantics.
+ */
+const toIncludePaths = (
+  include: IncludeOperations | IncludeModels | undefined,
+  generatorId: string
+): IncludePaths | undefined => {
+  const generatorInclude = include?.[generatorId]
+
+  // Same model/operation discrimination as `toSkipPaths`.
+  if (
+    typeof generatorInclude === 'object' &&
+    generatorInclude !== null &&
+    !Array.isArray(generatorInclude)
+  ) {
+    const values = Object.values(generatorInclude)
+    if (
+      values.length === 0 ||
+      values.every(v => typeof v === 'object' && v !== null && !Array.isArray(v))
+    ) {
+      return generatorInclude as IncludePaths
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * Extracts the per-model include slice for a generator, mirroring
+ * {@link toSkipModels}. Returns `undefined` when the include entry
+ * isn't model-shaped for this generator.
+ */
+const toIncludeModels = (
+  include: IncludeOperations | IncludeModels | undefined,
+  generatorId: string
+): IncludeModelRefs | undefined => {
+  const generatorInclude = include?.[generatorId]
+
+  if (
+    typeof generatorInclude === 'object' &&
+    generatorInclude !== null &&
+    !Array.isArray(generatorInclude)
+  ) {
+    const values = Object.values(generatorInclude)
+    if (values.length === 0 || values.every(v => Array.isArray(v))) {
+      return generatorInclude as IncludeModelRefs
+    }
   }
 
   return undefined

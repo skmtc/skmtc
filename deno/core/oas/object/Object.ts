@@ -2,6 +2,8 @@ import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { CustomValue } from '../../dsl/CustomValue.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { OasBase } from '@/types/OasBase.ts'
+import type { ParseContextType } from '@/context/parseTypes.ts'
 
 /**
  * Constructor fields for {@link OasObject}.
@@ -144,7 +146,7 @@ export type AddPropertyArgs = {
  * // This represents: { name: string } | null
  * ```
  */
-export class OasObject<Nullable extends boolean | undefined = boolean | undefined> {
+export class OasObject<Nullable extends boolean | undefined = boolean | undefined> extends OasBase {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.
@@ -229,7 +231,8 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
    * });
    * ```
    */
-  constructor(fields: OasObjectFields<Nullable> = {}) {
+  constructor(fields: OasObjectFields<Nullable> = {}, context?: ParseContextType) {
+    super(context)
     this.title = fields.title
     this.description = fields.description
     this.properties = fields.properties

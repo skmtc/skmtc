@@ -1,10 +1,12 @@
 import type { ClientSettings } from '../types/Settings.ts'
-import type { PrettierConfigType } from '../types/PrettierConfig.ts'
 import { CoreContext } from '../context/CoreContext.ts'
 import type { ManifestContent } from '../types/Manifest.ts'
 import type { GeneratorsMapContainer } from '../types/GeneratorType.ts'
-import type { OpenAPIV3 } from 'openapi-types'
 import type { StackTrail } from '../context/StackTrail.ts'
+import type { SkmtcDocumentInput } from '../types/SkmtcDocument.ts'
+import type { AttributionState } from '../types/AttributionState.ts'
+import type { Sidecar } from '../anchors/sidecar.ts'
+import type { GenerationMapEntry } from '../anchors/generationMap.ts'
 
 /**
  * Arguments for the {@link toArtifacts} transformation function.
@@ -30,12 +32,15 @@ type TransformArgs = {
   traceId: string
   /** Unique identifier for this transformation span */
   spanId: string
-  /** The OpenAPI v3 document to process */
-  documentObject: OpenAPIV3.Document
+  /**
+   * Source document. Discriminated union: an OpenAPI v3 document
+   * (`{ type: 'oas', value }`) or a GraphQL SDL string / `GraphQLSchema`
+   * (`{ type: 'gql', value }`). Protocol-specific parsing runs inside
+   * the pipeline.
+   */
+  document: SkmtcDocumentInput
   /** Client settings for customizing generation behavior */
   settings: ClientSettings | undefined
-  /** Optional Prettier configuration for code formatting */
-  prettier?: PrettierConfigType
   /** Optional path for writing log files */
   logsPath?: string
   /** Stack trail for distributed tracing */
@@ -46,6 +51,12 @@ type TransformArgs = {
   startAt: number
   /** Whether to suppress console output during generation */
   silent: boolean
+  /**
+   * Optional attribution (gen-maps) state. When set with a
+   * `postPass` block, the pipeline emits sidecars + a generation-map index
+   * alongside the standard artifacts. See {@link AttributionState}.
+   */
+  attribution?: AttributionState
 }
 
 /**
@@ -99,24 +110,6 @@ type TransformArgs = {
  * console.log(`Generation took ${result.manifest.endAt - result.manifest.startAt}ms`);
  * ```
  *
- * @example With Prettier formatting
- * ```typescript
- * const result = await toArtifacts({
- *   traceId: 'formatted-generation',
- *   spanId: 'api-client',
- *   documentObject: openApiDoc,
- *   settings: clientSettings,
- *   prettier: {
- *     semi: true,
- *     singleQuote: true,
- *     trailingComma: 'es5'
- *   },
- *   toGeneratorConfigMap: () => generatorMap,
- *   startAt: Date.now(),
- *   silent: true
- * });
- * ```
- *
  * @example Error handling
  * ```typescript
  * try {
@@ -137,24 +130,38 @@ type TransformArgs = {
 export const toArtifacts = ({
   traceId,
   spanId,
-  documentObject,
+  document,
   settings,
-  prettier,
   toGeneratorConfigMap,
   logsPath,
   startAt,
   silent,
-  stackTrail
-}: TransformArgs): { artifacts: Record<string, string>; manifest: ManifestContent } => {
+  stackTrail,
+  attribution
+}: TransformArgs): {
+  artifacts: Record<string, string>
+  manifest: ManifestContent
+  sidecars?: Record<string, Sidecar>
+  generationMap?: GenerationMapEntry[]
+} => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  const { artifacts, files, previews, results, mappings } = context.toArtifacts({
+  const {
+    artifacts,
+    files,
+    previews,
+    results,
+    mappings,
+    parseIssues,
+    sidecars,
+    generationMap
+  } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
-    prettier,
-    documentObject,
+    document,
     stackTrail,
-    silent
+    silent,
+    attribution
   })
 
   const manifest: ManifestContent = {
@@ -164,11 +171,12 @@ export const toArtifacts = ({
     traceId,
     spanId,
     results,
-    deploymentId: Deno.env.get('DENO_DEPLOYMENT_ID') ?? Date.now().toString(),
-    region: Deno.env.get('DENO_REGION'),
+    parseIssues,
+    deploymentId: Date.now().toString(),
+    region: undefined,
     startAt,
     endAt: Date.now()
   }
 
-  return { artifacts, manifest }
+  return { artifacts, manifest, sidecars, generationMap }
 }

@@ -17,77 +17,122 @@
  * - **Generator Organization**: Clear mapping between generators and their artifacts
  * - **Reference Integration**: Seamless integration with OpenAPI reference system
  *
- * @example Creating operation generator keys
+ * @example Creating an OAS operation generator key
  * ```typescript
- * import { toOperationGeneratorKey, parseOperationGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ * import { toOasOperationGeneratorKey, fromGeneratorKey } from '@skmtc/core/GeneratorKeys';
  *
- * // Create a key for a GET /users operation in api-client generator
- * const key = toOperationGeneratorKey({
+ * const key = toOasOperationGeneratorKey({
  *   generatorId: 'api-client',
  *   path: '/users',
- *   method: 'GET'
+ *   method: 'get'
  * });
  *
- * // Parse the key back into components
- * const parsed = parseOperationGeneratorKey(key);
- * console.log(parsed); // { generatorId: 'api-client', path: '/users', method: 'GET' }
+ * const parsed = fromGeneratorKey(key);
+ * if (parsed.type === 'oasOperation') {
+ *   console.log(parsed); // { type: 'oasOperation', generatorId: 'api-client', path: '/users', method: 'get' }
+ * }
+ * ```
+ *
+ * @example Creating a GraphQL operation generator key
+ * ```typescript
+ * import { toGqlOperationGeneratorKey, fromGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ *
+ * const key = toGqlOperationGeneratorKey({
+ *   generatorId: 'graphql-client',
+ *   rootKind: 'query',
+ *   fieldName: 'getUser'
+ * });
+ *
+ * const parsed = fromGeneratorKey(key);
+ * if (parsed.type === 'gqlOperation') {
+ *   console.log(parsed); // { type: 'gqlOperation', generatorId: 'graphql-client', rootKind: 'query', fieldName: 'getUser' }
+ * }
  * ```
  *
  * @example Working with model keys
  * ```typescript
  * import { toModelGeneratorKey } from '@skmtc/core/GeneratorKeys';
+ * import type { RefName } from '@skmtc/core/RefName';
  *
  * const modelKey = toModelGeneratorKey({
  *   generatorId: 'typescript-models',
- *   refName: 'User' as RefName
+ *   refName: 'User' as RefName,
+ *   variant: 'main'
  * });
- * ```
- *
- * @example Type-safe key handling
- * ```typescript
- * import type { OperationGeneratorKey, ModelGeneratorKey } from '@skmtc/core/GeneratorKeys';
- *
- * function handleOperationKey(key: OperationGeneratorKey) {
- *   // TypeScript ensures this is specifically an operation key
- *   const parsed = parseOperationGeneratorKey(key);
- *   return `Processing ${parsed.method} ${parsed.path}`;
- * }
- *
- * function handleModelKey(key: ModelGeneratorKey) {
- *   // TypeScript ensures this is specifically a model key
- *   const parsed = parseModelGeneratorKey(key);
- *   return `Processing model ${parsed.refName}`;
- * }
  * ```
  *
  * @module GeneratorKeys
  */
 
 import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { GqlOperation, GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import type { Brand } from '@/types/Brand.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { type Method, isMethod } from '@/types/Method.ts'
 
+const GQL_ROOT_KINDS: readonly GqlRootKind[] = ['query', 'mutation', 'subscription']
+
+const isGqlRootKind = (value: string): value is GqlRootKind =>
+  (GQL_ROOT_KINDS as readonly string[]).includes(value)
+
 /**
- * Template literal type for operation generator keys before branding.
- * Format: `generatorId|path|method` (e.g., 'api-client|/users|get')
+ * Template literal type for OAS operation generator keys before branding.
+ * Format: `generatorId|path|method|variant`
+ * (e.g., 'api-client|/users|get|main', 'forms|/quotes|patch|customer').
+ *
+ * The trailing `variant` segment carries the operation-variant axis
+ * (see {@link Variant}). For variants-unaware generators it is always
+ * `'main'`; for variants-aware generators it carries the per-call
+ * variant name.
  */
-export type NakedOperationGeneratorKey = `${string}|${string}|${Method}`
+export type NakedOasOperationGeneratorKey = `${string}|${string}|${Method}|${string}`
+
+/**
+ * Template literal type for GraphQL operation generator keys before branding.
+ * Format: `generatorId|rootKind|fieldName|variant`
+ * (e.g., 'graphql-client|query|getUser|main',
+ * 'graphql-client|mutation|createPost|customer').
+ *
+ * The trailing `variant` segment carries the operation-variant axis
+ * (see {@link Variant}).
+ */
+export type NakedGqlOperationGeneratorKey = `${string}|${GqlRootKind}|${string}|${string}`
 
 /**
  * Template literal type for model generator keys before branding.
- * Format: `generatorId|refName` (e.g., 'typescript-models|User')
+ * Format: `generatorId|refName|variant`
+ * (e.g., 'typescript-models|User|main',
+ * 'zod-schemas|Customer|coercive').
+ *
+ * The trailing `variant` segment carries the model-variant axis
+ * (see {@link Variant}). For variants-unaware generators it is always
+ * `'main'`; for variants-aware generators it carries the per-call
+ * variant name. The shape mirrors the operation key so the integrity
+ * check in `ModelDriver.affirmDefinition` catches a variants-aware
+ * generator that forgot to fold `variant` into its `toIdentifier`.
  */
-export type NakedModelGeneratorKey = `${string}|${string}`
+export type NakedModelGeneratorKey = `${string}|${string}|${string}`
 
 /**
- * Branded type for operation generator keys.
+ * Branded type for OAS operation generator keys.
  *
- * Operation generator keys uniquely identify generators that process
- * OpenAPI operations (HTTP methods on API paths). The key encodes
- * the generator ID, API path, and HTTP method.
+ * Uniquely identifies a generator processing a specific OpenAPI operation —
+ * encodes generator ID, API path, and HTTP method. See
+ * {@link GqlOperationGeneratorKey} for the GraphQL counterpart.
  */
-export type OperationGeneratorKey = Brand<NakedOperationGeneratorKey, 'OperationGeneratorKey'>
+export type OasOperationGeneratorKey = Brand<NakedOasOperationGeneratorKey, 'OasOperationGeneratorKey'>
+
+/**
+ * Branded type for GraphQL operation generator keys.
+ *
+ * Sibling to {@link OasOperationGeneratorKey} for the GraphQL protocol. The key
+ * encodes the generator ID, the root kind (`query` / `mutation` /
+ * `subscription`), and the root field name.
+ */
+export type GqlOperationGeneratorKey = Brand<
+  NakedGqlOperationGeneratorKey,
+  'GqlOperationGeneratorKey'
+>
 
 /**
  * Branded type for model generator keys.
@@ -116,17 +161,25 @@ export type GeneratorOnlyKey = Brand<string, 'GeneratorOnlyKey'>
  *
  * @example
  * ```typescript
- * // Operation generator key
- * const opKey: GeneratorKey = toOperationGeneratorKey({
+ * // OAS operation generator key
+ * const opKey: GeneratorKey = toOasOperationGeneratorKey({
  *   generatorId: 'api-client',
  *   path: '/users/{id}',
  *   method: 'get'
  * });
  *
+ * // GraphQL operation generator key
+ * const gqlKey: GeneratorKey = toGqlOperationGeneratorKey({
+ *   generatorId: 'graphql-client',
+ *   rootKind: 'query',
+ *   fieldName: 'getUser'
+ * });
+ *
  * // Model generator key
  * const modelKey: GeneratorKey = toModelGeneratorKey({
  *   generatorId: 'typescript-types',
- *   refName: 'User'
+ *   refName: 'User',
+ *   variant: 'main'
  * });
  *
  * // Generator-only key
@@ -135,15 +188,21 @@ export type GeneratorOnlyKey = Brand<string, 'GeneratorOnlyKey'>
  * });
  * ```
  */
-export type GeneratorKey = OperationGeneratorKey | ModelGeneratorKey | GeneratorOnlyKey
+export type GeneratorKey =
+  | OasOperationGeneratorKey
+  | GqlOperationGeneratorKey
+  | ModelGeneratorKey
+  | GeneratorOnlyKey
 
 /**
- * Arguments for {@link toOperationGeneratorKey}.
+ * Arguments for {@link toOasOperationGeneratorKey}.
  *
  * Can specify operation details directly or provide an OasOperation
- * object from which the path and method will be extracted.
+ * object from which the path and method will be extracted. The
+ * `variant` segment is always required so the resulting key
+ * disambiguates per-variant Definitions (see {@link Variant}).
  */
-type ToOperationGeneratorKeyArgs =
+type ToOasOperationGeneratorKeyArgs =
   | {
       /** Unique identifier for the generator */
       generatorId: string
@@ -151,26 +210,31 @@ type ToOperationGeneratorKeyArgs =
       path: string
       /** HTTP method */
       method: Method
+      /** Operation variant name (use `'main'` for variants-unaware generators) */
+      variant: string
     }
   | {
       /** Unique identifier for the generator */
       generatorId: string
       /** OpenAPI operation object containing path and method */
       operation: OasOperation
+      /** Operation variant name (use `'main'` for variants-unaware generators) */
+      variant: string
     }
 
 /**
- * Creates an operation generator key from generator ID and operation details.
+ * Creates an OAS operation generator key from generator ID and operation details.
  *
- * Operation generator keys uniquely identify generators processing specific
- * API operations. The key format is: `generatorId|path|method`
+ * Uniquely identifies a generator processing a specific API operation. The
+ * key format is: `generatorId|path|method`. See
+ * {@link toGqlOperationGeneratorKey} for the GraphQL counterpart.
  *
- * @param args - Operation generator key arguments
- * @returns A branded OperationGeneratorKey
+ * @param args - Key construction arguments
+ * @returns A branded OasOperationGeneratorKey
  *
  * @example With explicit path and method
  * ```typescript
- * const key = toOperationGeneratorKey({
+ * const key = toOasOperationGeneratorKey({
  *   generatorId: 'api-client',
  *   path: '/users/{id}',
  *   method: 'get'
@@ -186,39 +250,95 @@ type ToOperationGeneratorKeyArgs =
  *   // ... other operation details
  * });
  *
- * const key = toOperationGeneratorKey({
+ * const key = toOasOperationGeneratorKey({
  *   generatorId: 'rest-client',
  *   operation
  * });
  * // Result: 'rest-client|/posts|post' (branded)
  * ```
  */
-export const toOperationGeneratorKey = ({
+export const toOasOperationGeneratorKey = ({
   generatorId,
+  variant,
   ...rest
-}: ToOperationGeneratorKeyArgs): OperationGeneratorKey => {
+}: ToOasOperationGeneratorKeyArgs): OasOperationGeneratorKey => {
   const { path, method } = 'operation' in rest ? rest.operation : rest
 
-  const nakedKey: NakedOperationGeneratorKey = `${generatorId}|${path}|${method}`
+  const nakedKey: NakedOasOperationGeneratorKey = `${generatorId}|${path}|${method}|${variant}`
 
-  return nakedKey as OperationGeneratorKey
+  return nakedKey as OasOperationGeneratorKey
+}
+
+/**
+ * Arguments for {@link toGqlOperationGeneratorKey}.
+ *
+ * Can specify operation details directly or provide a {@link GqlOperation}
+ * object from which the root kind and field name will be extracted. The
+ * `variant` segment is always required (see {@link Variant}).
+ */
+type ToGqlOperationGeneratorKeyArgs =
+  | {
+      /** Unique identifier for the generator */
+      generatorId: string
+      /** GraphQL root kind */
+      rootKind: GqlRootKind
+      /** Root field name */
+      fieldName: string
+      /** Operation variant name (use `'main'` for variants-unaware generators) */
+      variant: string
+    }
+  | {
+      /** Unique identifier for the generator */
+      generatorId: string
+      /** GraphQL operation object */
+      operation: GqlOperation
+      /** Operation variant name (use `'main'` for variants-unaware generators) */
+      variant: string
+    }
+
+/**
+ * Creates a GraphQL operation generator key.
+ *
+ * Sibling to {@link toOasOperationGeneratorKey} for the GraphQL protocol. Format:
+ * `generatorId|rootKind|fieldName|variant`.
+ */
+export const toGqlOperationGeneratorKey = ({
+  generatorId,
+  variant,
+  ...rest
+}: ToGqlOperationGeneratorKeyArgs): GqlOperationGeneratorKey => {
+  const { rootKind, fieldName } =
+    'operation' in rest
+      ? { rootKind: rest.operation.rootKind, fieldName: rest.operation.fieldName }
+      : rest
+
+  const nakedKey: NakedGqlOperationGeneratorKey = `${generatorId}|${rootKind}|${fieldName}|${variant}`
+
+  return nakedKey as GqlOperationGeneratorKey
 }
 
 /**
  * Arguments for {@link toModelGeneratorKey}.
+ *
+ * The `variant` segment is always required so the resulting key
+ * disambiguates per-variant Definitions (see {@link Variant}).
  */
 type ToModelGeneratorKeyArgs = {
   /** Unique identifier for the generator */
   generatorId: string
   /** Reference name of the schema model */
   refName: RefName
+  /** Model variant name (use `'main'` for variants-unaware generators) */
+  variant: string
 }
 
 /**
- * Creates a model generator key from generator ID and schema reference name.
+ * Creates a model generator key from generator ID, schema reference name,
+ * and variant.
  *
  * Model generator keys uniquely identify generators processing specific
- * OpenAPI schema models. The key format is: `generatorId|refName`
+ * OpenAPI schema models for a given variant. The key format is:
+ * `generatorId|refName|variant`.
  *
  * @param args - Model generator key arguments
  * @returns A branded ModelGeneratorKey
@@ -227,22 +347,25 @@ type ToModelGeneratorKeyArgs = {
  * ```typescript
  * const key = toModelGeneratorKey({
  *   generatorId: 'typescript-interfaces',
- *   refName: 'User'
+ *   refName: 'User',
+ *   variant: 'main'
  * });
- * // Result: 'typescript-interfaces|User' (branded)
+ * // Result: 'typescript-interfaces|User|main' (branded)
  *
- * const validationKey = toModelGeneratorKey({
+ * const coercive = toModelGeneratorKey({
  *   generatorId: 'zod-schemas',
- *   refName: 'CreateUserRequest'
+ *   refName: 'CreateUserRequest',
+ *   variant: 'coercive'
  * });
- * // Result: 'zod-schemas|CreateUserRequest' (branded)
+ * // Result: 'zod-schemas|CreateUserRequest|coercive' (branded)
  * ```
  */
 export const toModelGeneratorKey = ({
   generatorId,
-  refName
+  refName,
+  variant
 }: ToModelGeneratorKeyArgs): ModelGeneratorKey => {
-  const nakedKey: NakedModelGeneratorKey = `${generatorId}|${refName}`
+  const nakedKey: NakedModelGeneratorKey = `${generatorId}|${refName}|${variant}`
 
   return nakedKey as ModelGeneratorKey
 }
@@ -305,45 +428,50 @@ export const toGeneratorOnlyKey = ({ generatorId }: ToGeneratorOnlyKeyArgs): Gen
  * ```
  */
 export const isGeneratorKey = (arg: unknown): arg is GeneratorKey => {
-  return isModelGeneratorKey(arg) || isOperationGeneratorKey(arg) || isGeneratorOnlyKey(arg)
+  return (
+    isModelGeneratorKey(arg) ||
+    isOasOperationGeneratorKey(arg) ||
+    isGqlOperationGeneratorKey(arg) ||
+    isGeneratorOnlyKey(arg)
+  )
 }
 
 /**
- * Type guard to check if a value is a valid OperationGeneratorKey.
+ * Type guard to check if a value is a valid OasOperationGeneratorKey.
  *
  * Validates that the argument is a string with the correct format:
  * `generatorId|path|method` where each part is non-empty and method
  * is a valid HTTP method.
  *
  * @param arg - Value to check
- * @returns True if the value is a valid OperationGeneratorKey
+ * @returns True if the value is a valid OasOperationGeneratorKey
  *
  * @example
  * ```typescript
  * const key = 'api-client|/users/{id}|get';
  *
- * if (isOperationGeneratorKey(key)) {
- *   // key is now typed as OperationGeneratorKey
+ * if (isOasOperationGeneratorKey(key)) {
+ *   // key is now typed as OasOperationGeneratorKey
  *   const obj = fromGeneratorKey(key);
- *   console.log(obj.type);        // 'operation'
+ *   console.log(obj.type);        // 'oasOperation'
  *   console.log(obj.generatorId); // 'api-client'
  *   console.log(obj.path);        // '/users/{id}'
  *   console.log(obj.method);      // 'get'
  * }
  * ```
  */
-export const isOperationGeneratorKey = (arg: unknown): arg is OperationGeneratorKey => {
+export const isOasOperationGeneratorKey = (arg: unknown): arg is OasOperationGeneratorKey => {
   if (typeof arg !== 'string') {
     return false
   }
 
   const keyTokens = arg.split('|')
 
-  if (keyTokens.length !== 3) {
+  if (keyTokens.length !== 4) {
     return false
   }
 
-  const [generatorId, path, method] = keyTokens
+  const [generatorId, path, method, variant] = keyTokens
 
   if (typeof generatorId !== 'string' || !generatorId.length) {
     return false
@@ -354,6 +482,49 @@ export const isOperationGeneratorKey = (arg: unknown): arg is OperationGenerator
   }
 
   if (!isMethod(method)) {
+    return false
+  }
+
+  if (typeof variant !== 'string' || !variant.length) {
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Type guard to check if a value is a valid {@link GqlOperationGeneratorKey}.
+ *
+ * Validates that the argument is a string with the format
+ * `generatorId|rootKind|fieldName`, with `rootKind` constrained to a
+ * GraphQL root operation kind (`query` / `mutation` / `subscription`).
+ */
+export const isGqlOperationGeneratorKey = (arg: unknown): arg is GqlOperationGeneratorKey => {
+  if (typeof arg !== 'string') {
+    return false
+  }
+
+  const keyTokens = arg.split('|')
+
+  if (keyTokens.length !== 4) {
+    return false
+  }
+
+  const [generatorId, rootKind, fieldName, variant] = keyTokens
+
+  if (typeof generatorId !== 'string' || !generatorId.length) {
+    return false
+  }
+
+  if (typeof rootKind !== 'string' || !isGqlRootKind(rootKind)) {
+    return false
+  }
+
+  if (typeof fieldName !== 'string' || !fieldName.length) {
+    return false
+  }
+
+  if (typeof variant !== 'string' || !variant.length) {
     return false
   }
 
@@ -371,7 +542,7 @@ export const isOperationGeneratorKey = (arg: unknown): arg is OperationGenerator
  *
  * @example
  * ```typescript
- * const key = 'zod-schemas|User';
+ * const key = 'zod-schemas|User|main';
  *
  * if (isModelGeneratorKey(key)) {
  *   // key is now typed as ModelGeneratorKey
@@ -379,6 +550,7 @@ export const isOperationGeneratorKey = (arg: unknown): arg is OperationGenerator
  *   console.log(obj.type);        // 'model'
  *   console.log(obj.generatorId); // 'zod-schemas'
  *   console.log(obj.refName);     // 'User'
+ *   console.log(obj.variant);     // 'main'
  * }
  * ```
  */
@@ -389,17 +561,21 @@ export const isModelGeneratorKey = (arg: unknown): arg is ModelGeneratorKey => {
 
   const keyTokens = arg.split('|')
 
-  if (keyTokens.length !== 2) {
+  if (keyTokens.length !== 3) {
     return false
   }
 
-  const [generatorId, refName] = keyTokens
+  const [generatorId, refName, variant] = keyTokens
 
   if (typeof generatorId !== 'string' || !generatorId.length) {
     return false
   }
 
   if (typeof refName !== 'string' || !refName.length) {
+    return false
+  }
+
+  if (typeof variant !== 'string' || !variant.length) {
     return false
   }
 
@@ -448,7 +624,7 @@ export const isGeneratorOnlyKey = (arg: unknown): arg is GeneratorOnlyKey => {
  *
  * @example
  * ```typescript
- * const opKey = toOperationGeneratorKey({
+ * const opKey = toOasOperationGeneratorKey({
  *   generatorId: 'api-client',
  *   path: '/users',
  *   method: 'get'
@@ -457,7 +633,8 @@ export const isGeneratorOnlyKey = (arg: unknown): arg is GeneratorOnlyKey => {
  *
  * const modelKey = toModelGeneratorKey({
  *   generatorId: 'typescript-types',
- *   refName: 'User'
+ *   refName: 'User',
+ *   variant: 'main'
  * });
  * console.log(toGeneratorId(modelKey)); // 'typescript-types'
  *
@@ -468,7 +645,11 @@ export const isGeneratorOnlyKey = (arg: unknown): arg is GeneratorOnlyKey => {
  * ```
  */
 export const toGeneratorId = (generatorKey: GeneratorKey): string => {
-  if (isOperationGeneratorKey(generatorKey)) {
+  if (isOasOperationGeneratorKey(generatorKey)) {
+    return generatorKey.split('|')[0]
+  }
+
+  if (isGqlOperationGeneratorKey(generatorKey)) {
     return generatorKey.split('|')[0]
   }
 
@@ -488,14 +669,28 @@ export const toGeneratorId = (generatorKey: GeneratorKey): string => {
  */
 export type GeneratorKeyObject =
   | {
-      /** Discriminator for operation generator keys */
-      type: 'operation'
+      /** Discriminator for OAS operation generator keys */
+      type: 'oasOperation'
       /** Generator identifier */
       generatorId: string
       /** API path */
       path: string
       /** HTTP method */
       method: Method
+      /** Operation variant name */
+      variant: string
+    }
+  | {
+      /** Discriminator for GraphQL operation generator keys */
+      type: 'gqlOperation'
+      /** Generator identifier */
+      generatorId: string
+      /** GraphQL root kind */
+      rootKind: GqlRootKind
+      /** Root field name */
+      fieldName: string
+      /** Operation variant name */
+      variant: string
     }
   | {
       /** Discriminator for model generator keys */
@@ -504,6 +699,8 @@ export type GeneratorKeyObject =
       generatorId: string
       /** Schema reference name */
       refName: string
+      /** Model variant name */
+      variant: string
     }
   | {
       /** Discriminator for generator-only keys */
@@ -524,10 +721,10 @@ export type GeneratorKeyObject =
  *
  * @example Operation key parsing
  * ```typescript
- * const opKey = 'api-client|/users/{id}|get' as OperationGeneratorKey;
+ * const opKey = 'api-client|/users/{id}|get' as OasOperationGeneratorKey;
  * const parsed = fromGeneratorKey(opKey);
  *
- * if (parsed.type === 'operation') {
+ * if (parsed.type === 'oasOperation') {
  *   console.log(parsed.generatorId); // 'api-client'
  *   console.log(parsed.path);        // '/users/{id}'
  *   console.log(parsed.method);      // 'get'
@@ -536,12 +733,13 @@ export type GeneratorKeyObject =
  *
  * @example Model key parsing
  * ```typescript
- * const modelKey = 'zod-schemas|User' as ModelGeneratorKey;
+ * const modelKey = 'zod-schemas|User|main' as ModelGeneratorKey;
  * const parsed = fromGeneratorKey(modelKey);
  *
  * if (parsed.type === 'model') {
  *   console.log(parsed.generatorId); // 'zod-schemas'
  *   console.log(parsed.refName);     // 'User'
+ *   console.log(parsed.variant);     // 'main'
  * }
  * ```
  *
@@ -556,14 +754,25 @@ export type GeneratorKeyObject =
  * ```
  */
 export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject => {
-  if (isOperationGeneratorKey(generatorKey)) {
-    const [generatorId, path, method] = generatorKey.split('|')
-    return { type: 'operation', generatorId, path, method: method as Method }
+  if (isOasOperationGeneratorKey(generatorKey)) {
+    const [generatorId, path, method, variant] = generatorKey.split('|')
+    return { type: 'oasOperation', generatorId, path, method: method as Method, variant }
+  }
+
+  if (isGqlOperationGeneratorKey(generatorKey)) {
+    const [generatorId, rootKind, fieldName, variant] = generatorKey.split('|')
+    return {
+      type: 'gqlOperation',
+      generatorId,
+      rootKind: rootKind as GqlRootKind,
+      fieldName,
+      variant
+    }
   }
 
   if (isModelGeneratorKey(generatorKey)) {
-    const [generatorId, refName] = generatorKey.split('|')
-    return { type: 'model', generatorId, refName }
+    const [generatorId, refName, variant] = generatorKey.split('|')
+    return { type: 'model', generatorId, refName, variant }
   }
 
   return { type: 'generator-only', generatorId: generatorKey }

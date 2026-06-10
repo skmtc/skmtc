@@ -15,16 +15,19 @@ Deno.test('OperationGenerator - toOperationMod generates correct mod.ts content'
   const operationGenerator = new OperationGenerator(generator)
   const result = operationGenerator.toOperationMod('UserOperations')
 
-  assertStringIncludes(result, "import { toOperationEntry } from '@skmtc/core'")
+  assertStringIncludes(result, "import { toOasOperationEntry } from '@skmtc/core'")
   assertStringIncludes(result, "import { UserOperations } from './UserOperations.ts'")
-  assertStringIncludes(result, 'export const UserOperationsEntry = toOperationEntry({')
+  assertStringIncludes(result, 'export const UserOperationsEntry = toOasOperationEntry({')
   assertStringIncludes(result, "id: '@test/user-operations'")
   assertStringIncludes(result, 'isSupported({ operation })')
   assertStringIncludes(result, 'return true')
-  assertStringIncludes(result, 'context.insertOperation(UserOperations, operation)')
+  assertStringIncludes(
+    result,
+    'context.insertOperation({ projection: UserOperations, operation })'
+  )
 })
 
-Deno.test('OperationGenerator - toOperationBase generates correct base.ts content', () => {
+Deno.test('OperationGenerator - toOasOperationProjectionBase generates correct base.ts content', () => {
   const generator = Generator.create({
     projectName: 'test-project',
     scopeName: '@skmtc',
@@ -33,13 +36,13 @@ Deno.test('OperationGenerator - toOperationBase generates correct base.ts conten
   })
 
   const operationGenerator = new OperationGenerator(generator)
-  const result = operationGenerator.toOperationBase('ProductOps')
+  const result = operationGenerator.toOasOperationProjectionBase('ProductOps')
 
-  assertStringIncludes(result, 'export const ProductOpsBase = toOperationBase({')
+  assertStringIncludes(result, 'export const ProductOpsBase = toOasOperationProjectionBase({')
   assertStringIncludes(result, "id: '@skmtc/product-ops'")
-  assertStringIncludes(result, 'toIdentifier(operation): Identifier')
-  assertStringIncludes(result, 'toExportPath(operation): string')
-  assertStringIncludes(result, "import { camelCase, capitalize, Identifier, toMethodVerb, toOperationBase } from '@skmtc/core'")
+  assertStringIncludes(result, 'toIdentifier({ operation }): Identifier')
+  assertStringIncludes(result, 'toExportPath({ operation, enrichments }): string')
+  assertStringIncludes(result, "import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationProjectionBase } from '@skmtc/core'")
   assertStringIncludes(result, "import { join } from '@std/path/join'")
 })
 
@@ -54,10 +57,10 @@ Deno.test('OperationGenerator - toOperationMainModule generates correct main mod
   const operationGenerator = new OperationGenerator(generator)
   const result = operationGenerator.toOperationMainModule('OrderOps')
 
-  assertStringIncludes(result, "import type { OperationInsertableArgs } from '@skmtc/core'")
+  assertStringIncludes(result, "import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'")
   assertStringIncludes(result, "import { OrderOpsBase } from './base.ts'")
   assertStringIncludes(result, 'export class OrderOps extends OrderOpsBase')
-  assertStringIncludes(result, 'constructor({ context, operation, settings }: OperationInsertableArgs)')
+  assertStringIncludes(result, 'constructor({ context, operation, settings }: OasOperationProjectionConstructorArgs)')
   assertStringIncludes(result, 'super({ context, operation, settings })')
   assertStringIncludes(result, 'override toString()')
 })
@@ -107,7 +110,7 @@ Deno.test('OperationGenerator - handles different package names correctly', () =
 
   const operationGenerator = new OperationGenerator(generator)
   const modContent = operationGenerator.toOperationMod('MyCustomOperations')
-  const baseContent = operationGenerator.toOperationBase('MyCustomOperations')
+  const baseContent = operationGenerator.toOasOperationProjectionBase('MyCustomOperations')
   const mainContent = operationGenerator.toOperationMainModule('MyCustomOperations')
 
   // Verify module name is used correctly
@@ -169,7 +172,7 @@ Deno.test('OperationGenerator - toOperationMod includes isSupported predicate', 
   assertStringIncludes(result, 'return true')
 })
 
-Deno.test('OperationGenerator - toOperationBase includes identifier generation logic', () => {
+Deno.test('OperationGenerator - toOasOperationProjectionBase includes identifier generation logic', () => {
   const generator = Generator.create({
     projectName: 'test',
     scopeName: '@test',
@@ -178,7 +181,7 @@ Deno.test('OperationGenerator - toOperationBase includes identifier generation l
   })
 
   const operationGenerator = new OperationGenerator(generator)
-  const result = operationGenerator.toOperationBase('RestApi')
+  const result = operationGenerator.toOasOperationProjectionBase('RestApi')
 
   // Verify identifier generation uses verb and camelCase
   assertStringIncludes(result, 'const verb = capitalize(toMethodVerb(operation.method))')

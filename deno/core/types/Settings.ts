@@ -54,10 +54,31 @@ import * as v from 'valibot'
 import { method, type Method } from './Method.ts'
 
 /**
+ * Whether a relative path contains a `..` parent-reference segment.
+ * `..` is a parent reference only as a whole path segment — a
+ * directory name that merely contains dots is not flagged.
+ */
+const hasParentSegment = (path: string): boolean =>
+  path.split(/[/\\]/).some(segment => segment === '..')
+
+/**
  * Valibot schema for {@link ModulePackage}.
+ *
+ * `rootPath` must be a **forward** path: `client.json` `basePath` is
+ * the common on-disk anchor, so every package sits forward from it.
+ * A `..` segment means `basePath` was placed too deep — a misconfig
+ * that otherwise misplaces every artifact silently.
  */
 export const modulePackage: v.GenericSchema<ModulePackage> = v.object({
-  rootPath: v.string(),
+  rootPath: v.pipe(
+    v.string(),
+    v.check(
+      rootPath => !hasParentSegment(rootPath),
+      'package rootPath must be a forward path with no ".." segments — ' +
+        'set client.json basePath to a common ancestor of every package ' +
+        'so each rootPath is written forward from it'
+    )
+  ),
   moduleName: v.optional(v.string())
 })
 
@@ -91,9 +112,15 @@ export type ModulePackage = {
 /**
  * Valibot schema for validating skip paths configuration.
  *
- * Validates path-to-methods mappings for skipping specific operations.
+ * Validates `path → method → variant[]` mappings for skipping specific
+ * operations. An empty variant array means "every variant of this
+ * method"; a populated array names the variants to deny. Methods
+ * absent from the inner record are unaffected.
  */
-export const skipPaths: v.GenericSchema<SkipPaths> = v.record(v.string(), v.array(method))
+export const skipPaths: v.GenericSchema<SkipPaths> = v.record(
+  v.string(),
+  v.record(method, v.array(v.string()))
+)
 
 /**
  * Valibot schema for validating skip operations configuration.
@@ -103,58 +130,160 @@ export const skipPaths: v.GenericSchema<SkipPaths> = v.record(v.string(), v.arra
 export const skipOperations: v.GenericSchema<SkipOperations> = v.record(v.string(), skipPaths)
 
 /**
+ * Valibot schema for {@link SkipModelRefs}. Structurally identical to
+ * the operation-arm inner: `refName → variant[]`, with the same
+ * empty-array-means-"all variants" rule.
+ */
+export const skipModelRefs: v.GenericSchema<SkipModelRefs> = v.record(
+  v.string(),
+  v.array(v.string())
+)
+
+/**
  * Valibot schema for validating skip models configuration.
  *
- * Validates generator-to-model-names mappings for skipping specific models.
+ * Validates generator-to-skip-model-refs mappings for skipping specific
+ * models and variants by generator.
  */
-export const skipModels: v.GenericSchema<SkipModels> = v.record(v.string(), v.array(v.string()))
+export const skipModels: v.GenericSchema<SkipModels> = v.record(v.string(), skipModelRefs)
 
 const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.string()])
+
+/**
+ * Valibot schema for {@link IncludePaths}. Structurally identical to
+ * {@link skipPaths} — both map a path to a `method → variant[]` record
+ * — but kept distinct so docstrings can convey the opposite semantics
+ * (allow vs deny) and so the two shapes can diverge in the future
+ * without breaking the other.
+ */
+export const includePaths: v.GenericSchema<IncludePaths> = v.record(
+  v.string(),
+  v.record(method, v.array(v.string()))
+)
+
+/**
+ * Valibot schema for {@link IncludeOperations}. Maps generator id to
+ * {@link IncludePaths}.
+ */
+export const includeOperations: v.GenericSchema<IncludeOperations> = v.record(
+  v.string(),
+  includePaths
+)
+
+/**
+ * Valibot schema for {@link IncludeModelRefs}. Sibling to
+ * {@link skipModelRefs} — `refName → variant[]`. Same shape, opposite
+ * semantics.
+ */
+export const includeModelRefs: v.GenericSchema<IncludeModelRefs> = v.record(
+  v.string(),
+  v.array(v.string())
+)
+
+/**
+ * Valibot schema for {@link IncludeModels}. Maps generator id to a
+ * `refName → variant[]` record.
+ */
+export const includeModels: v.GenericSchema<IncludeModels> = v.record(
+  v.string(),
+  includeModelRefs
+)
+
+const include: v.GenericSchema<Include> = v.union([
+  includeOperations,
+  includeModels,
+  v.string()
+])
 
 /**
  * Valibot schema for validating client settings configuration.
  *
  * Validates the complete client settings structure including base paths,
- * packages, skip configurations, and enrichments.
+ * packages, include/skip filters, and enrichments.
  */
+/**
+ * Valibot schema for the gen-maps (`anchors`) settings block. Lives
+ * inside {@link clientSettings} as an optional field. See
+ * {@link AnchorsSettings} for the consumer-facing fields.
+ */
+export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
+  enabled: v.boolean(),
+  out: v.optional(v.string())
+})
+
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(v.string()),
   schemaSource: v.optional(v.string()),
   packages: v.optional(v.array(modulePackage)),
   enrichments: v.optional(generatorEnrichments),
-  skip: v.optional(v.array(skip))
+  include: v.optional(v.array(include)),
+  skip: v.optional(v.array(skip)),
+  anchors: v.optional(anchorsSettings)
 })
 
 /**
- * Configuration for skipping specific HTTP methods on API paths.
+ * Configuration for skipping specific HTTP methods + variants on API paths.
  *
- * Maps path patterns to arrays of HTTP methods that should be excluded
- * from generation.
+ * Maps `path → method → variant[]`. The variant array uses these conventions:
+ *
+ * - `[]` (empty) means "every variant of this method" — the equivalent
+ *   of pre-variants `[method]`-only entries.
+ * - `['main', 'customer']` means "only those variants" — paired with
+ *   `include`, a way to opt in a subset; paired with `skip`, a way to
+ *   deny a subset.
+ * - Method key absent means "this method is not affected by the entry".
  *
  * @example
  * ```typescript
  * const skipPaths: SkipPaths = {
- *   '/admin/**': ['get', 'post'],
- *   '/debug': ['*']  // Skip all methods
+ *   '/admin/users': { get: [], post: [] },                // skip all variants of both
+ *   '/quotes/{id}': { patch: ['description', 'validity'] } // skip just two variants
  * };
  * ```
  */
-export type SkipPaths = Record<string, Method[]>
+export type SkipPaths = Record<string, Partial<Record<Method, string[]>>>
+
+/**
+ * Configuration for skipping specific model refNames + variants.
+ *
+ * Maps `refName → variant[]`. The variant array uses the same
+ * conventions as {@link SkipPaths}:
+ *
+ * - `[]` (empty) means "every variant of this refName" — the equivalent
+ *   of pre-variants whole-model entries.
+ * - `['main', 'coercive']` means "only those variants" — paired with
+ *   `include`, a way to opt in a subset; paired with `skip`, a way to
+ *   deny a subset.
+ * - refName key absent means "this refName is not affected by the entry".
+ *
+ * @example
+ * ```typescript
+ * const skipModelRefs: SkipModelRefs = {
+ *   'InternalModel': [],              // skip all variants
+ *   'Customer':      ['coercive']     // skip just one variant
+ * };
+ * ```
+ */
+export type SkipModelRefs = Record<string, string[]>
 
 /**
  * Configuration for skipping model generation by generator type.
  *
- * Maps generator keys to arrays of model names that should be excluded.
+ * Maps generator keys to {@link SkipModelRefs} configurations for
+ * excluding specific models (and their variants) from generation.
+ *
+ * Model names are matched exactly against the schema's refName; variant
+ * names are matched exactly against the per-model variant key.
  *
  * @example
  * ```typescript
  * const skipModels: SkipModels = {
- *   'typescript-models': ['InternalModel', 'DebugInfo'],
- *   'validation': ['TempModel*']  // Supports glob patterns
+ *   'typescript-models': { 'InternalModel': [], 'DebugInfo': [] },
+ *   'validation':        { 'TempModel': [] }
  * };
  * ```
  */
-export type SkipModels = Record<string, string[]>
+export type SkipModels = Record<string, SkipModelRefs>
 
 /**
  * Configuration for skipping operation generation by generator type.
@@ -183,6 +312,94 @@ export type SkipOperations = Record<string, SkipPaths>
 export type Skip = SkipOperations | SkipModels | string
 
 /**
+ * Allow-list counterpart to {@link SkipPaths}. Same `path → method →
+ * variant[]` shape and the same `[]`-means-"all variants" rule, but
+ * with opposite semantics: only matching `(path, method, variant)`
+ * tuples are admitted. Matching is exact on path, method, and variant
+ * name. No wildcards or globs.
+ *
+ * @example
+ * ```typescript
+ * const includePaths: IncludePaths = {
+ *   '/customers': { post: [] },                 // all variants of POST
+ *   '/quotes/{id}': { patch: ['description'] }  // only the 'description' variant
+ * };
+ * ```
+ */
+export type IncludePaths = Record<string, Partial<Record<Method, string[]>>>
+
+/**
+ * Allow-list counterpart to {@link SkipModelRefs}. Same
+ * `refName → variant[]` shape and the same `[]`-means-"all variants"
+ * rule, but with opposite semantics: only matching `(refName, variant)`
+ * tuples are admitted. Matching is exact on refName and variant name.
+ * No wildcards or globs.
+ *
+ * @example
+ * ```typescript
+ * const includeModelRefs: IncludeModelRefs = {
+ *   'Customer': [],            // all variants of Customer
+ *   'Order':    ['coercive']   // only the 'coercive' variant of Order
+ * };
+ * ```
+ */
+export type IncludeModelRefs = Record<string, string[]>
+
+/**
+ * Allow-list counterpart to {@link SkipModels}. Maps generator id to
+ * {@link IncludeModelRefs}.
+ *
+ * @example
+ * ```typescript
+ * const includeModels: IncludeModels = {
+ *   '@skmtc/gen-zod-variants': { 'Customer': [], 'Order': ['coercive'] }
+ * };
+ * ```
+ */
+export type IncludeModels = Record<string, IncludeModelRefs>
+
+/**
+ * Allow-list counterpart to {@link SkipOperations}. Maps generator id
+ * to {@link IncludePaths}.
+ *
+ * @example
+ * ```typescript
+ * const includeOperations: IncludeOperations = {
+ *   '@skmtc/gen-shadcn-form': {
+ *     '/customers': ['post'],
+ *     '/locations': ['post']
+ *   }
+ * };
+ * ```
+ */
+export type IncludeOperations = Record<string, IncludePaths>
+
+/**
+ * Union type representing allow-list filter entries. Mirrors the
+ * {@link Skip} shape so the two can be combined consistently in
+ * {@link ClientSettings}:
+ *
+ * - A string entry like `'@skmtc/gen-form'` includes the whole generator
+ *   (every operation/model it would otherwise emit).
+ * - An {@link IncludeOperations} entry includes specific (path, method)
+ *   pairs for one operation generator.
+ * - An {@link IncludeModels} entry includes specific refNames for one
+ *   model generator.
+ *
+ * **Presence is the gate.** When `include` is `undefined` or `[]`, no
+ * filter is active (everything emits as if no include were set).
+ * When `include` is set and non-empty, only generators / operations /
+ * models matching at least one entry will emit; everything else is
+ * silently filtered out.
+ *
+ * **Precedence vs `skip`:** `include` builds the candidate set, `skip`
+ * removes from it. An operation that's in both an `include` allow-list
+ * entry AND a `skip` deny-list entry is skipped. This mirrors
+ * `tsconfig.json`'s `include` + `exclude` pair.
+ */
+export type Include = IncludeOperations | IncludeModels | string
+
+/**
  * Main configuration object for SKMTC client settings.
  *
  * Controls various aspects of code generation including output paths,
@@ -203,36 +420,73 @@ export type Skip = SkipOperations | SkipModels | string
  * };
  * ```
  *
- * @example Advanced configuration with packages
+ * @example Advanced configuration with enrichments
  * ```typescript
+ * // OAS enrichment hierarchy: generatorId → path → method → { table | form | input }
  * const settings: ClientSettings = {
  *   basePath: './generated',
  *   packages: [
  *     {
  *       rootPath: './packages/client',
  *       moduleName: '@company/api-client'
- *     },
- *     {
- *       rootPath: './packages/types',
- *       moduleName: '@company/api-types'
  *     }
  *   ],
  *   enrichments: {
- *     models: customModelEnrichments,
- *     operations: customOperationEnrichments
+ *     'react-forms': {
+ *       '/users': {
+ *         post: { form: { title: 'Create User', fields: [] } }
+ *       }
+ *     }
  *   },
  *   skip: [
  *     {
- *       'models': ['Internal*', 'Debug*'],
- *       'operations': {
- *         '/health': ['get'],
- *         '/metrics/**': ['*']
+ *       'api-client': {
+ *         '/health': ['get']
  *       }
  *     }
  *   ]
  * };
  * ```
+ *
+ * @example GraphQL enrichment hierarchy
+ * ```typescript
+ * // GraphQL enrichment hierarchy: generatorId → rootKind → fieldName → { table | form | input }
+ * const settings: ClientSettings = {
+ *   basePath: './generated',
+ *   enrichments: {
+ *     'react-forms': {
+ *       mutation: {
+ *         createUser: { form: { title: 'Create User', fields: [] } }
+ *       }
+ *     }
+ *   }
+ * };
+ * ```
  */
+/**
+ * Per-project gen-maps (`anchors`) configuration. Lives at
+ * `client.json#settings.anchors`.
+ *
+ * v1 honours the two fields below. Future fields (parser choice,
+ * gzip compression, map toggle) will land additively as the
+ * Phase G adapter swap and Phase D polish work proceeds.
+ */
+export type AnchorsSettings = {
+  /**
+   * Master switch. `true` emits a sidecar per generated source file
+   * and a project-level generation map. `false` (or omitted) runs
+   * generation as if gen-maps didn't exist — zero overhead.
+   */
+  enabled: boolean
+  /**
+   * Output directory for sidecars + generation map, relative to
+   * `.skmtc/<project>/`. Defaults to `'.maps'` when omitted. The
+   * `skmtc init` template gitignores the `.maps` subtree by default
+   * since sidecars are build output, not source.
+   */
+  out?: string
+}
+
 export type ClientSettings = {
   /** Base output path for generated files */
   basePath?: string
@@ -240,8 +494,22 @@ export type ClientSettings = {
   packages?: ModulePackage[]
   /** Custom enrichments for extending generation */
   enrichments?: GeneratorEnrichments
-  /** Array of skip configurations to exclude content */
+  /**
+   * Allow-list filter applied before {@link skip}. When set and
+   * non-empty, only generators / operations / models matching an
+   * entry are emitted; everything else is silently filtered out.
+   * See {@link Include} for the per-entry shape and precedence rules.
+   */
+  include?: Include[]
+  /** Array of skip (deny-list) configurations to exclude content */
   skip?: Skip[]
+  /**
+   * Gen-maps (`anchors`) configuration. When `enabled: true`, the CLI
+   * emits per-file sidecars and a generation map alongside the
+   * generated artifacts. Omitted by default; the feature is opt-in
+   * in v1. See {@link AnchorsSettings}.
+   */
+  anchors?: AnchorsSettings
 }
 
 /**

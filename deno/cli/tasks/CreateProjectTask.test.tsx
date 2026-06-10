@@ -6,52 +6,30 @@ import { CreateProjectTask } from './CreateProjectTask.tsx'
 import { Project } from '@/lib/project.ts'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { TaskProvider, type Task } from '@/components/TaskContext.tsx'
-import { createTestSession } from '../tests/mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import type { Generator } from '@/types/generator.generated.ts'
-import { createMockSupabaseClient } from '../tests/mocks/supabase.mock.ts'
+import type { Generator } from '@/types/generator.ts'
+import { stubRegistryGenerators } from '../tests/mocks/registry.mock.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
   {
-    id: '1',
-    name: 'TypeScript Generator',
-    description: 'Generate TypeScript types',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-typescript',
-    registryUrl: 'https://jsr.io/@skmtc/gen-typescript',
-    readme: 'TypeScript generator',
     scope: 'skmtc',
     packageName: 'gen-typescript',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   },
   {
-    id: '2',
-    name: 'Zod Generator',
-    description: 'Generate Zod schemas',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-zod',
-    registryUrl: 'https://jsr.io/@skmtc/gen-zod',
-    readme: 'Zod generator',
     scope: 'skmtc',
     packageName: 'gen-zod',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   }
 ]
 
 // Mock setup helpers
-const createMockSkmtcRoot = (dispatchMessage: (msg: unknown) => void): SkmtcRoot => {
-  const { client } = createMockSupabaseClient()
-
-  return {
+const createMockSkmtcRoot = (): SkmtcRoot =>
+  ({
     projects: [],
-    manager: {
-      auth: {
-        supabase: client
-      }
-    }
-  } as unknown as SkmtcRoot
-}
+    manager: {}
+  }) as unknown as SkmtcRoot
 
 const createMockTasks = (): Task[] => [
   {
@@ -79,7 +57,6 @@ const createMockProject = () => ({
   toPath: () => '/path/to/test-project',
   rootDenoJson: {},
   clientJson: {},
-  prettierJson: null,
   manifest: {},
   manager: {},
   schemaFile: {}
@@ -106,24 +83,15 @@ Deno.test('CreateProjectTask - handles Project.create error correctly', async ()
   // Create spy for leave function
   const leaveSpy = spy()
 
-  // Mock generators API response
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
+  // Mock the registry catalog response
+  using fetchStub = stubRegistryGenerators(mockGenerators)
 
   // Create mock SkmtcRoot
-  const mockSkmtcRoot: SkmtcRoot = {
-    projects: [],
-    manager: {
-      auth: {
-        supabase: supabaseClient
-      }
-    }
-  } as unknown as SkmtcRoot
+  const mockSkmtcRoot = createMockSkmtcRoot()
 
   const skmtcState: SkmtcState = {
     view: { page: 'create-project' },
     skmtcRoot: mockSkmtcRoot,
-    session: createTestSession(),
     interactive: false,
     message: null,
     shortcuts: [],
@@ -186,24 +154,15 @@ Deno.test({
     // Create spy for leave function
     const leaveSpy = spy()
 
-    // Mock generators API response
-    const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-    supabaseMock.mockResponse('/generators', { data: mockGenerators })
+    // Mock the registry catalog response
+    using fetchStub = stubRegistryGenerators(mockGenerators)
 
     // Create mock SkmtcRoot
-    const mockSkmtcRoot: SkmtcRoot = {
-      projects: [],
-      manager: {
-        auth: {
-          supabase: supabaseClient
-        }
-      }
-    } as unknown as SkmtcRoot
+    const mockSkmtcRoot = createMockSkmtcRoot()
 
     const skmtcState: SkmtcState = {
       view: { page: 'create-project' },
       skmtcRoot: mockSkmtcRoot,
-      session: createTestSession(),
       interactive: false,
       message: null,
       shortcuts: [],
@@ -256,23 +215,14 @@ Deno.test({
     () => Promise.resolve(mockProject as unknown as Project)
   )
 
-  // Mock generators API response that takes time to load
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
+  // Mock the registry catalog response
+  using fetchStub = stubRegistryGenerators(mockGenerators)
 
-  const mockSkmtcRoot: SkmtcRoot = {
-    projects: [],
-    manager: {
-      auth: {
-        supabase: supabaseClient
-      }
-    }
-  } as unknown as SkmtcRoot
+  const mockSkmtcRoot = createMockSkmtcRoot()
 
   const skmtcState: SkmtcState = {
     view: { page: 'create-project' },
     skmtcRoot: mockSkmtcRoot,
-    session: createTestSession(),
     interactive: false,
     message: null,
     shortcuts: [],
@@ -326,22 +276,13 @@ Deno.test({
     () => Promise.resolve(mockProject as unknown as Project)
   )
 
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
+  using fetchStub = stubRegistryGenerators(mockGenerators)
 
-  const mockSkmtcRoot: SkmtcRoot = {
-    projects: [],
-    manager: {
-      auth: {
-        supabase: supabaseClient
-      }
-    }
-  } as unknown as SkmtcRoot
+  const mockSkmtcRoot = createMockSkmtcRoot()
 
   const skmtcState: SkmtcState = {
     view: { page: 'create-project' },
     skmtcRoot: mockSkmtcRoot,
-    session: createTestSession(),
     interactive: false,
     message: null,
     shortcuts: [],

@@ -261,3 +261,92 @@ Deno.test('StackTrail - complex workflow example', () => {
   assertEquals(userTrail.toStackRef(), '#/components/schemas/User')
   assertEquals(productTrail.toStackRef(), '#/components/schemas/Product')
 })
+
+Deno.test('StackTrail - toJsonPointer for components root', () => {
+  const trail = new StackTrail(['components', 'schemas', 'User'])
+  assertEquals(trail.toJsonPointer(), '#/components/schemas/User')
+})
+
+Deno.test('StackTrail - toJsonPointer escapes path segments per RFC 6901', () => {
+  const trail = new StackTrail(['paths', '/users/{id}', 'get'])
+  assertEquals(trail.toJsonPointer(), '#/paths/~1users~1{id}/get')
+})
+
+Deno.test('StackTrail - toJsonPointer for empty stack returns root', () => {
+  const trail = new StackTrail()
+  assertEquals(trail.toJsonPointer(), '#/')
+})
+
+Deno.test('StackTrail - toJsonPointer escapes tildes', () => {
+  const trail = new StackTrail(['components', 'schemas', 'Has~Tilde'])
+  assertEquals(trail.toJsonPointer(), '#/components/schemas/Has~0Tilde')
+})
+
+Deno.test('StackTrail - toJsonPointer covers non-components paths', () => {
+  // toStackRef returns undefined for non-components paths; toJsonPointer
+  // produces a valid pointer for any visitor path.
+  const trail = new StackTrail(['paths', '/users', 'get', 'responses', '200'])
+  assertEquals(trail.toStackRef(), undefined)
+  assertEquals(trail.toJsonPointer(), '#/paths/~1users/get/responses/200')
+})
+
+Deno.test('StackTrail - toSchemaPointer strips the run operational prefix', () => {
+  // Production-shaped trail: worker seeds [traceId, spanId], parse phase
+  // adds 'parse', then the document traversal is appended.
+  const trail = new StackTrail([
+    'trace-1780233682442',
+    'span-1780233682442',
+    'parse',
+    'components',
+    'schemas',
+    'Pet',
+    'properties',
+    'name'
+  ])
+  assertEquals(
+    trail.toSchemaPointer(),
+    '#/components/schemas/Pet/properties/name'
+  )
+  // toJsonPointer keeps the raw (non-resolvable) trail.
+  assertEquals(
+    trail.toJsonPointer(),
+    '#/trace-1780233682442/span-1780233682442/parse/components/schemas/Pet/properties/name'
+  )
+})
+
+Deno.test('StackTrail - toSchemaPointer leaves an already document-relative trail unchanged', () => {
+  // Test/empty-seeded trails have no phase frame and are already
+  // document-relative; toSchemaPointer is then identical to toJsonPointer.
+  const trail = new StackTrail(['components', 'schemas', 'User'])
+  assertEquals(trail.toSchemaPointer(), '#/components/schemas/User')
+})
+
+Deno.test('StackTrail - toSchemaPointer for an operation path strips the prefix', () => {
+  const trail = new StackTrail([
+    'trace-1',
+    'span-1',
+    'parse',
+    'paths',
+    '/users/{id}',
+    'get'
+  ])
+  assertEquals(trail.toSchemaPointer(), '#/paths/~1users~1{id}/get')
+})
+
+Deno.test('StackTrail - toSchemaPointer for empty trail returns document root', () => {
+  assertEquals(new StackTrail().toSchemaPointer(), '#/')
+})
+
+Deno.test('StackTrail - toSchemaPointer matches the first phase frame, not a same-named document key', () => {
+  // A schema literally named 'parse' sits after the operational phase
+  // frame; only the operational one (earliest) is the boundary.
+  const trail = new StackTrail([
+    'trace-1',
+    'span-1',
+    'parse',
+    'components',
+    'schemas',
+    'parse'
+  ])
+  assertEquals(trail.toSchemaPointer(), '#/components/schemas/parse')
+})

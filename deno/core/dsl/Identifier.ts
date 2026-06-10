@@ -1,203 +1,96 @@
-import { EntityType } from '@/dsl/EntityType.ts'
-
 /**
  * Constructor arguments for {@link Identifier}.
  */
 type ConstructorArgs = {
   /** The identifier name */
   name: string
-  /** Optional type name for typed identifiers */
+  /** Optional type annotation, opaque to the engine (lang-interpreted) */
   typeName?: string
-  /** The entity type (variable, type, etc.) */
-  entityType: EntityType
+  /** Whether the identifier is exported. Defaults to `true`. */
+  exported?: boolean
+  /** Opaque per-language declaration kind */
+  kind: string
 }
 
 /**
- * Represents a TypeScript identifier in the SKMTC DSL system.
+ * A named entity in generated code — pure neutral data.
  *
- * The `Identifier` class encapsulates named entities in generated code,
- * providing type-safe creation and management of variables, types, and other
- * identifiers. It distinguishes between different kinds of identifiers and
- * optionally tracks type information.
+ * `Identifier` is engine machinery: it rides `ContentSettings`, the
+ * `(name, exportPath)` cross-generator cache key, and `DefinitionBase`.
+ * Core never interprets its fields beyond `name`; everything
+ * language-shaped lives in the language packages:
  *
- * This class uses factory methods instead of direct construction to ensure
- * proper entity type classification and to provide a cleaner API.
+ * - **Construction** goes through a language package's factory functions
+ *   (e.g. `createVariable` / `createType` from `@skmtc/lang-typescript`),
+ *   which pick the `kind` vocabulary for their language. Direct
+ *   `new Identifier({ ... })` is the escape hatch for language authors.
+ * - **`kind`** is an opaque per-language declaration discriminant — the
+ *   language's `Definition` subclass maps it to a keyword (TypeScript:
+ *   `'variable'` → `const`, `'type'` → `type`; Rust would add `struct` /
+ *   `enum`; Kotlin `val` / `data class`).
+ * - **`exported`** is a language-neutral visibility fact — TypeScript
+ *   emits/omits `export`, Go capitalizes the name, Rust prefixes `pub`.
+ * - **`typeName`** is an optional type annotation the engine never reads;
+ *   TypeScript's `TsDefinition` renders it as `name: typeName`.
  *
- * ## Key Features
+ * @example Through a language factory (the normal path)
+ * ```typescript
+ * // createVariable / createType are exported by the language package
+ * // (for TypeScript: the lang-typescript package)
+ * const userName = createVariable('userName');
+ * const userType = createType('User');
  *
- * - **Type Safety**: Distinguishes between variables, types, and other entities
- * - **Factory Methods**: Provides semantic constructors for different identifier types
- * - **Optional Typing**: Can associate type information with variable identifiers
- * - **String Conversion**: Clean string representation for code generation
+ * console.log(userName.toString()); // 'userName'
+ * console.log(userType.kind);       // 'type'
+ * ```
  *
- * @example Creating variable identifiers
+ * @example Direct construction (language-package authors)
  * ```typescript
  * import { Identifier } from '@skmtc/core';
  *
- * // Simple variable without type
- * const userName = Identifier.createVariable('userName');
- * console.log(userName.toString()); // 'userName'
- *
- * // Typed variable
- * const userId = Identifier.createVariable('userId', 'string');
- * console.log(userId.name);     // 'userId'
- * console.log(userId.typeName); // 'string'
- * ```
- *
- * @example Creating type identifiers
- * ```typescript
- * // Type identifier
- * const userType = Identifier.createType('User');
- * console.log(userType.toString());        // 'User'
- * console.log(userType.entityType.value); // 'type'
- * ```
- *
- * @example Using in code generation
- * ```typescript
- * import { Definition, Identifier } from '@skmtc/core';
- *
- * class ApiGenerator {
- *   generateFunction(name: string) {
- *     const funcId = Identifier.createVariable(name);
- *     const requestType = Identifier.createType('RequestType');
- *
- *     return new Definition({
- *       name: funcId.name,
- *       content: `function ${funcId}(data: ${requestType}) {
- *         // Implementation
- *       }`
- *     });
- *   }
- * }
+ * const structId = new Identifier({ name: 'User', kind: 'struct' });
  * ```
  */
 export class Identifier {
   /** The identifier name */
   name: string
 
-  /** The entity type (variable, type, etc.) */
-  entityType: EntityType
-
-  /** Optional type name for typed variables */
+  /** Optional type annotation, opaque to the engine (lang-interpreted) */
   typeName?: string
 
   /**
-   * Creates a new Identifier instance.
+   * Whether this identifier is exported.
    *
-   * This constructor is private to enforce the use of factory methods
-   * that provide better semantic clarity and type safety.
-   *
-   * @param args - Identifier configuration
+   * A language-neutral fact the engine never interprets — each language's
+   * renderer decides what it means syntactically: TypeScript emits/omits
+   * `export`, Go capitalizes the name (visibility via casing), others may
+   * ignore it. Defaults to `true`.
    */
-  private constructor({ name, typeName, entityType }: ConstructorArgs) {
+  exported: boolean
+
+  /**
+   * Opaque per-language declaration kind — the discriminant a language's
+   * `Definition` subclass reads to pick its declaration keyword.
+   *
+   * Sibling to {@link exported}: a language-neutral fact the engine never
+   * interprets. Each language package owns its vocabulary and assigns
+   * `kind` in its identifier factories. Rust is the forcing case for
+   * opacity — `struct`, `enum` (native tagged = `oneOf`), and `type`
+   * alias are all type-level entities, yet render with three different
+   * keywords; only an opaque `kind` distinguishes them.
+   */
+  kind: string
+
+  constructor({ name, typeName, exported, kind }: ConstructorArgs) {
     this.name = name
     this.typeName = typeName
-    this.entityType = entityType
+    this.exported = exported ?? true
+    this.kind = kind
   }
 
   /**
-   * Creates a variable identifier with optional type information.
-   *
-   * This factory method creates an identifier for variables, constants,
-   * function parameters, and other value-based entities. Optionally
-   * associates type information for typed variables.
-   *
-   * @param name - The variable name
-   * @param typeName - Optional type name for the variable
-   * @returns A new variable Identifier instance
-   *
-   * @example Untyped variable
-   * ```typescript
-   * const count = Identifier.createVariable('count');
-   * console.log(count.name); // 'count'
-   * console.log(count.typeName); // undefined
-   * ```
-   *
-   * @example Typed variable
-   * ```typescript
-   * const userId = Identifier.createVariable('userId', 'string');
-   * console.log(userId.name);     // 'userId'
-   * console.log(userId.typeName); // 'string'
-   * ```
-   *
-   * @example In function generation
-   * ```typescript
-   * const param = Identifier.createVariable('data', 'RequestData');
-   * const funcDef = `function processRequest(${param.name}: ${param.typeName}) {}`;
-   * ```
-   */
-  static createVariable(name: string, typeName?: string): Identifier {
-    if (typeName) {
-      return new Identifier({
-        name,
-        typeName,
-        entityType: new EntityType('variable')
-      })
-    }
-
-    return new Identifier({
-      name,
-      entityType: new EntityType('variable')
-    })
-  }
-
-  /**
-   * Creates a type identifier for TypeScript types.
-   *
-   * This factory method creates an identifier for type entities like
-   * interfaces, type aliases, classes, and other type-level constructs.
-   * Type identifiers don't have associated type information since they
-   * represent types themselves.
-   *
-   * @param name - The type name
-   * @returns A new type Identifier instance
-   *
-   * @example Interface type
-   * ```typescript
-   * const userInterface = Identifier.createType('User');
-   * console.log(userInterface.name);                // 'User'
-   * console.log(userInterface.entityType.value);   // 'type'
-   * ```
-   *
-   * @example Type alias
-   * ```typescript
-   * const statusType = Identifier.createType('Status');
-   * const typeDef = `type ${statusType} = 'pending' | 'complete'`;
-   * ```
-   *
-   * @example Generic type
-   * ```typescript
-   * const responseType = Identifier.createType('ApiResponse');
-   * const genericDef = `interface ${responseType}<T> { data: T; success: boolean; }`;
-   * ```
-   */
-  static createType(name: string): Identifier {
-    return new Identifier({
-      name,
-      entityType: new EntityType('type')
-    })
-  }
-
-  /**
-   * Returns the string representation of the identifier.
-   *
-   * This method simply returns the identifier name, which is the most
-   * common usage when generating code. The name can be used directly
-   * in code generation contexts.
-   *
-   * @returns The identifier name as a string
-   *
-   * @example
-   * ```typescript
-   * const variable = Identifier.createVariable('userName');
-   * const typeId = Identifier.createType('User');
-   *
-   * console.log(variable.toString()); // 'userName'
-   * console.log(typeId.toString());   // 'User'
-   *
-   * // Can be used directly in template strings
-   * const code = `const ${variable}: ${typeId} = getUserData();`;
-   * ```
+   * Returns the identifier name — the most common usage when the
+   * identifier is interpolated into generated code.
    */
   toString(): string {
     return this.name

@@ -2,7 +2,6 @@ import { render } from 'ink-testing-library'
 import { assertEquals, assertExists } from '@std/assert'
 import { useShortcut } from '@/components/useShortcut.tsx'
 import { SkmtcProvider, type SkmtcState, useSkmtc } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '../tests/mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Key } from 'ink'
 import { Text } from 'ink'
@@ -38,27 +37,17 @@ function StateInspector({
 }
 
 Deno.test('useShortcut - dispatches add-shortcut event after mount', async () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockAction = () => {}
 
   const mockSkmtcRoot = {
     projects: [],
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true,
     message: null,
     shortcuts: [],
@@ -98,27 +87,17 @@ Deno.test('useShortcut - dispatches add-shortcut event after mount', async () =>
 })
 
 Deno.test('useShortcut - does not dispatch when interactive is false and key is esc', () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockAction = () => {}
 
   const mockSkmtcRoot = {
     projects: [],
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: false, // Not interactive
     message: null,
     shortcuts: [],
@@ -151,27 +130,17 @@ Deno.test('useShortcut - does not dispatch when interactive is false and key is 
 })
 
 Deno.test('useShortcut - dispatches when interactive is true and key is esc', async () => {
-  const mockSession = createTestSession()
   const mockExit = () => {}
   const mockAction = () => {}
 
   const mockSkmtcRoot = {
     projects: [],
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {
     view: { page: 'home' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     interactive: true, // Interactive
     message: null,
     shortcuts: [],

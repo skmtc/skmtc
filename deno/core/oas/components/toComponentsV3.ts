@@ -12,7 +12,7 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { toSecuritySchemesV3 } from '../securitySchemes/toSecuritySchemes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToComponentsV3Args = {
+export type ToComponentsV3Args = {
   components: OpenAPIV3.ComponentsObject | undefined
   stackTrail: StackTrail
   context: ParseContextType

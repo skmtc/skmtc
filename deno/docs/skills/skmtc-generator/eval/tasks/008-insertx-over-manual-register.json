@@ -1,0 +1,25 @@
+{
+  "id": "008-insertx-over-manual-register",
+  "category": "mechanical-authoring",
+  "prompt": "In my SKMTC operation Projection's transform, I need to register a model Definition for the response type so other generators can reference it. Here's what I have:\n\n```ts\ntransform({ operation, context }) {\n  const responseSchema = operation.toSuccessResponse().toContent()\n  const refName = responseSchema.toRefName()\n  const identifier = new Identifier({\n    name: capitalize(refName),\n    exportPath: `models/${refName}.ts`\n  })\n  const definition = new Definition({\n    identifier,\n    generatorKey: toGeneratorOnlyKey({ generatorId: this.generatorId }),\n    value: toTsTypeFor(responseSchema),\n  })\n  this.register({\n    definitions: [definition],\n    imports: { [`models/${refName}.ts`]: [refName] }\n  })\n}\n```\n\nIs this the idiomatic way to do it?",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response recommend replacing the manual `register({ definitions: [new Definition(...)] })` call with `this.insertModel(PeerModelProjection, refName)` (or `insertNormalizedModel` for the ref/inline dispatch case)?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response identify that the `insertX` methods auto-register imports — meaning the manual `imports: { ... }` field on the register call becomes unnecessary?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response cite at least one mechanical benefit of the Driver-mediated path (per-(operation × generatorId) cache-key handling, cross-generator collision detection via affirmDefinition, idempotent re-insertion, or auto-import registration)?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response avoid endorsing the manual-register pattern in the prompt as 'idiomatic'?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "edit"
+}

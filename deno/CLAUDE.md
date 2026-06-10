@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SKMTC (Schema Kit Mapping & Type Conversion) is a Deno-based monorepo that generates code artifacts from OpenAPI v3 documents. It consists of a core library for schema processing and a CLI tool for interactive code generation.
+SKMTC is a Deno-based monorepo that generates code artifacts from OpenAPI v3 documents. It consists of a core library for schema processing and a CLI tool for interactive code generation.
 
 ## Key Commands
 
 ### Root Workspace
 ```bash
-# Publish all packages
-deno task publish
+# Release: cascade version bumps + publish in dependency order (see "Releasing")
+deno task release
 
 # Run tests across workspace
 deno test
@@ -25,6 +25,39 @@ deno lint
 # Type check
 deno check mod.ts
 ```
+
+## Releasing
+
+**Always release through `deno task release` (the `.scripts/release.ts`
+cascade). Never publish a workspace package by hand with `deno publish` /
+`deno task publish`** — manual publishing skips the cascade and silently
+leaves downstream `@skmtc/*` consumers pinned to the old version.
+
+The canonical flow:
+
+1. Bump the `version` in `deno.json` of **only** the package(s) whose source
+   you directly changed. Leave downstream consumers alone.
+2. From `skmtc/deno/`, run `deno task release`.
+
+The script then, against the JSR registry as the source of truth:
+- treats any package whose `deno.json` version is **not yet published** as a
+  direct release;
+- **cascades** — every workspace package that depends (directly or
+  transitively) on a releasing package gets its `@skmtc/*` import pins
+  rewritten to the new versions and its own patch version bumped;
+- publishes in dependency order so a dependency is live before its dependents
+  resolve against it.
+
+Flags: `--reinstall-cli=none|local-compile|jsr-install` controls whether the
+local `skmtc` binary is rebuilt when `@skmtc/cli` is part of the release
+(default `none`, which just prints the install command).
+
+**Cascade trigger caveat:** the cascade fires only for dependents of packages
+that are *pending* on the registry. If you publish a dependency manually, that
+trigger is spent — re-running `release` will report "nothing to publish" while
+downstream pins stay drifted. To recover, bump the directly-affected
+consumer's `version` by hand and run `release` again; the cascade picks up the
+rest.
 
 ### Core Library (`/core/`)
 ```bash
@@ -73,7 +106,7 @@ The core follows a three-phase pipeline:
 
 1. **Parse Phase** (`ParseContext`): OpenAPI v3 JSON → internal OAS objects
 2. **Generate Phase** (`GenerateContext`): OAS objects → generator artifacts 
-3. **Render Phase** (`RenderContext`): Artifacts → formatted files
+3. **Render Phase** (`RenderContext`): Artifacts → `{ path: content }` map (no formatter runs in-pipeline; host writes to disk after worker returns)
 
 Key components:
 - **Context System** (`context/`) - Pipeline orchestration with logging/tracing
@@ -97,22 +130,35 @@ The CLI uses Cliffy framework with these patterns:
 - MUST use `type` keyword when importing types
 
 ### Code Organization
-- `/lib/` - Core business logic and utilities
-- `/generators/` - Generator-specific commands  
-- `/auth/` - Authentication code
-- `/schemas/` - Schema processing
-- `/workspaces/` - Workspace management
-- `/context/` - Pipeline contexts
-- `/dsl/` - DSL components
-- `/oas/` - OpenAPI processing
-- `/types/` - Type definitions
+
+`cli/` subdirectories:
+- `commands/` - One file per CLI subcommand (`init`, `clone`, `install`, `generate`, etc.)
+- `lib/` - Shared CLI utilities (`manager.ts`, `generator.ts`, `bundle-headless.ts`, `doctor-headless.ts`)
+- `auth/` - Supabase authentication
+- `components/` - Ink/React terminal-UI components
+- `prompt/` - Interactive prompt system
+- `services/` - Generated API service clients (used by the CLI itself)
+- `workspaces/` - Workspace operations (generate, serve, runtime-logs)
+- `deploy/` - Deploy commands
+- `tasks/` - Deno-task helpers
+- `tests/` - Test fixtures
+- `types/` - CLI-specific type definitions
+
+`core/` subdirectories (separate package):
+- `context/` - `ParseContext`, `GenerateContext`, `RenderContext`, `CoreContext`
+- `dsl/` - `Identifier`, `SnippetBase`, the neutral bases (`DefinitionBase`/`CodeFileBase`/`ImportBase`/`ReExportBase`), projection-base factories (concrete `TsFile`/`TsImport`/`TsDefinition` live in `lang-typescript/`)
+- `oas/` - OpenAPI v3 schema types and parsing
+- `gql/` - GraphQL types and parsing
+- `run/` - `toArtifacts`, `toV3JsonDocument` entry points
+- `helpers/` - Naming and string utilities
+- `types/` - Manifest, Settings, branded types
 
 ### Key Dependencies
 - `@cliffy/command` & `@cliffy/prompt` - CLI framework
 - `@skmtc/core` - Core functionality
 - `@std/*` - Deno standard library (from JSR)
 - `valibot` - Schema validation
-- `prettier` - Code formatting
+- `ts-pattern` - Pattern matching in generator dispatch
 
 ## Entry Points
 
@@ -125,4 +171,14 @@ The CLI uses Cliffy framework with these patterns:
 ## Instructions
 
 - Always run a type check using `deno check ./**/*.ts ./**/*.tsx` at the end of session to verify results
-- Use absolute import paths prefixed with `@/`, not of relative path imports 
+- Use absolute import paths prefixed with `@/`, not of relative path imports
+
+Use US English spelling in code, prose and documentation
+
+<claude-mem-context>
+# Recent Activity
+
+<!-- This section is auto-generated by claude-mem. Edit content outside the tags. -->
+
+*No recent activity*
+</claude-mem-context>

@@ -1,16 +1,18 @@
 {
   "name": "@skmtc/mcp",
-  "version": "0.0.275",
+  "version": "0.0.280",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
-    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.17.3",
-    "zod": "npm:zod@^3.25.76",
-    "@skmtc/cli": "jsr:@skmtc/cli@^0.0.405",
-    "@std/log": "jsr:@std/log@^0.224.6"
+    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.29.0",
+    "zod": "npm:zod@^4.0.14",
+    "@std/fs": "jsr:@std/fs@^1.0.7",
+    "@std/log": "jsr:@std/log@^0.224.6",
+    "@std/path": "jsr:@std/path@^1.0.9"
   },
   "tasks": {
-    "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"
+    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"
   }
 }

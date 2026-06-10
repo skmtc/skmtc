@@ -1,13 +1,16 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.0.405",
+  "version": "0.5.1",
+  "license": "Apache-2.0",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
-    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
-    "@skmtc/core": "jsr:@skmtc/core@^0.0.984",
-    "@skmtc/convert": "jsr:@skmtc/convert@^0.0.59",
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.57.4",
+    "@cliffy/command": "jsr:@cliffy/command@1.1.0",
+    "@skmtc/core": "jsr:@skmtc/core@0.9.0",
+    "@skmtc/convert": "jsr:@skmtc/convert@0.1.15",
+    "@skmtc/worker": "jsr:@skmtc/worker@0.3.13",
+    "@skmtc/worker/types": "jsr:@skmtc/worker@0.3.13/types",
+    "@skmtc/server": "jsr:@skmtc/server@0.2.24",
     "chokidar": "npm:chokidar@^4.0.3",
     "ink": "npm:ink@^6.2.3",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
@@ -15,7 +18,8 @@
     "ink-link": "npm:ink-link@^5.0.0",
     "react": "npm:react@^19.1.1",
     "ink-testing-library": "npm:ink-testing-library@^4.0.0",
-    "gpt-tokenizer": "npm:gpt-tokenizer@^3.2.0"
+    "gpt-tokenizer": "npm:gpt-tokenizer@^3.2.0",
+    "ignore": "npm:ignore@^7.0.5"
   },
   "permissions": {
     "default": {
@@ -44,8 +48,7 @@
   },
   "tasks": {
     "publish": "deno task publish:deno",
-    "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
-    "publish:deno:ga": "deno publish --allow-slow-types",
+    "publish:deno": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN",
     "test": "deno test --allow-all",
     "test:watch": "deno test --allow-all --watch",
     "test:coverage": "deno test --allow-all --coverage=coverage",

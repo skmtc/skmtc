@@ -53,10 +53,13 @@
  * @module toV3Document
  */
 
-import type { OpenAPIV2, OpenAPIV3 } from 'openapi-types'
+import type { OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import { parse as parseYaml } from '@std/yaml/parse'
-// @deno-types="npm:@types/swagger2openapi@7.0.4"
-import converter from 'swagger2openapi'
+import {
+  Converter as ThreeOneToThreeZeroConverter,
+  type ConverterOptions
+} from '@skmtc/openapi-down-convert'
+import type { JsonValue } from '@skmtc/swagger2openapi/converter'
 import type { AnyOasDocument } from './types.ts'
 
 /**
@@ -152,34 +155,46 @@ export const stringToSchema = (schema: string): AnyOasDocument => {
  * @throws {Error} If the document version is not recognized or supported
  */
 export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Document> => {
-  // Check for OpenAPI 3.0.x
   if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.0')) {
     return schema as OpenAPIV3.Document
   }
 
-  // Check for OpenAPI 3.1.x (currently commented out)
-  // if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.1')) {
-  //   const options: ConverterOptions = {
-  //     verbose: false,
-  //     deleteExampleWithId: false,
-  //     allOfTransform: true
-  //   }
-  //
-  //   const converter = new ThreeOneToThreeZeroConverter(schema, options)
-  //
-  //   return converter.convert() as OpenAPIV3.Document
-  // }
+  if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.1')) {
+    const options: ConverterOptions = {
+      verbose: false,
+      deleteExampleWithId: false,
+      allOfTransform: true
+    }
 
-  // Check for Swagger 2.0
-  if ('swagger' in schema && typeof schema.swagger === 'string' && schema.swagger.startsWith('2.0')) {
-    const parsed = await converter.convertObj(schema as OpenAPIV2.Document, {})
-    return parsed.openapi
+    const downConverter = new ThreeOneToThreeZeroConverter(
+      schema as OpenAPIV3_1.Document,
+      options
+    )
+
+    return downConverter.convert() as OpenAPIV3.Document
   }
 
-  // Unrecognized version
-  console.log(
-    'Unrecognized OpenAPI version',
-    JSON.stringify(schema, null, 2).substring(0, 1000)
+  if ('swagger' in schema && typeof schema.swagger === 'string' && schema.swagger.startsWith('2.0')) {
+    // Import the converter-only subpath, NOT the package root: the root
+    // (`mod.ts`) re-exports the ajv-based validator, whose `ajv-draft-04`
+    // CJS deep-requires bloat the bundle and trip stricter bundlers. The
+    // `/converter` subpath has zero ajv and zero `node:` built-ins, so
+    // `@skmtc/convert` stays lean and Workers-portable. Kept lazy so the
+    // common OAS 3.0 / 3.1 cases never load it at all. `convertObj` is
+    // synchronous (pure object manipulation).
+    const { convertObj } = await import('@skmtc/swagger2openapi/converter')
+    const { openapi } = convertObj(schema as unknown as JsonValue, {})
+    return openapi as unknown as OpenAPIV3.Document
+  }
+
+  const versionField =
+    'openapi' in schema
+      ? `openapi=${(schema as { openapi?: unknown }).openapi}`
+      : 'swagger' in schema
+        ? `swagger=${(schema as { swagger?: unknown }).swagger}`
+        : 'no version field found'
+
+  throw new Error(
+    `Unrecognized OpenAPI version (${versionField}). Supported: OpenAPI 3.0.x, 3.1.x, and Swagger 2.0.`
   )
-  throw new Error('Unrecognized OpenAPI version')
 }

@@ -2,18 +2,16 @@ import React, { useEffect, useId } from 'react'
 import { Box, Newline, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
-import { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
+import type { Project } from '@/lib/project.ts'
 type ProjectProps = {
-  project: Project | RemoteProject
+  project: Project
 }
 
 type ProjectActionValue =
   | 'generate-artifacts'
   | 'generate-artifacts-watch'
-  | 'deploy'
+  | 'publish'
   | 'serve'
-  | 'runtime-logs'
   | 'install-generator'
   | 'create-generator'
   | 'clone-generator'

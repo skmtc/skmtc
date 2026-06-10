@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
-import { getApiGenerators } from '@/services/getApiGenerators.generated.ts'
-import type { Generator } from '@/types/generator.generated.ts'
-import { useSkmtc } from './SkmtcContext.tsx'
+import { listRegistryGenerators } from '@/services/listRegistryGenerators.ts'
+import type { Generator } from '@/types/generator.ts'
 
 export const useGetGenerators = () => {
-  const { state } = useSkmtc()
   const [generators, setGenerators] = useState<Generator[] | undefined>(undefined)
 
   useEffect(() => {
-    getApiGenerators({ supabase: state.skmtcRoot.manager.auth.supabase }).then(items => {
+    listRegistryGenerators().then(items => {
       setGenerators(items.toSorted((a, b) => a.packageName.localeCompare(b.packageName)))
     })
   }, [])

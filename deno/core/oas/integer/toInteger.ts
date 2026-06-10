@@ -8,7 +8,7 @@ import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToIntegerArgs = {
+export type ToIntegerArgs = {
   value: OpenAPIV3.SchemaObject
   stackTrail: StackTrail
   context: ParseContextType
@@ -107,24 +107,29 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     parentType: 'schema:integer'
   })
 
-  return new OasInteger<Nullable>({
-    title,
-    description,
-    nullable,
-    format,
-    enums,
-    example,
-    multipleOf,
-    maximum,
-    exclusiveMaximum,
-    minimum,
-    exclusiveMinimum,
-    default: defaultValue,
-    readOnly,
-    writeOnly,
-    extensionFields,
-    deprecated
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasInteger<Nullable>(
+      {
+        title,
+        description,
+        nullable,
+        format,
+        enums,
+        example,
+        multipleOf,
+        maximum,
+        exclusiveMaximum,
+        minimum,
+        exclusiveMinimum,
+        default: defaultValue,
+        readOnly,
+        writeOnly,
+        extensionFields,
+        deprecated
+      },
+      context
+    )
+  )
 }
 
 type ParseIntegerFormatArgs = {

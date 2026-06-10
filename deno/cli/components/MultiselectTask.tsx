@@ -24,7 +24,7 @@ export const MultiselectTask = ({ prompt, options, setValues }: MultiselectTaskP
     key: 'space',
     name: 'toggle',
     action: (input, key) => {
-      // behaviour handled in MultiSelect component
+      // behavior handled in MultiSelect component
     }
   })
 
@@ -32,7 +32,7 @@ export const MultiselectTask = ({ prompt, options, setValues }: MultiselectTaskP
     key: 'enter',
     name: 'submit',
     action: (input, key) => {
-      // behaviour handled in MultiSelect component
+      // behavior handled in MultiSelect component
     }
   })
 

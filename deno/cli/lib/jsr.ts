@@ -2,6 +2,7 @@ import type { Generator } from '@/lib/generator.ts'
 import { maxSatisfying } from '@std/semver/max-satisfying'
 import { parse } from '@std/semver/parse'
 import { parseRange } from '@std/semver/parse-range'
+import { toJsrUrl } from '@/lib/jsr-registry.ts'
 
 export type Pkg = {
   name: string
@@ -52,7 +53,7 @@ export class Jsr {
     scopeName,
     packageName
   }: GetLatestMetaArgs): Promise<JsrPkgMetaVersions> {
-    const url = `https://jsr.io/${scopeName}/${packageName}/meta.json`
+    const url = toJsrUrl(`${scopeName}/${packageName}/meta.json`)
 
     const res = await fetch(url)
 
@@ -93,7 +94,18 @@ export class Jsr {
     return version
   }
 
-  static async download(generator: Generator): Promise<Record<string, string>> {
+  /**
+   * Downloads every file of the JSR package at the version satisfying
+   * `generator.version` (treated as a semver constraint via
+   * `getLatestVersion`'s `maxSatisfying`). Returns both the file map
+   * (path → contents, paths relative to the package root and starting
+   * with `/`) and the concrete resolved version — callers need the
+   * version to surface it to the user (e.g. `clone` output) and to
+   * write a stable record into the project's workspace.
+   */
+  static async download(
+    generator: Generator
+  ): Promise<{ files: Record<string, string>; version: string }> {
     const [scopeName, packageName] = generator.toModuleName().split('/')
 
     const version = await Jsr.getLatestVersion({
@@ -102,7 +114,7 @@ export class Jsr {
       semver: generator.version
     })
 
-    const versionMetaUrl = `https://jsr.io/${scopeName}/${packageName}/${version}_meta.json`
+    const versionMetaUrl = toJsrUrl(`${scopeName}/${packageName}/${version}_meta.json`)
 
     const versionMetaRes = await fetch(versionMetaUrl)
 
@@ -114,8 +126,8 @@ export class Jsr {
 
     const versionMeta: JsrPkgVersionInfo = await versionMetaRes.json()
 
-    const files = Object.keys(versionMeta.manifest ?? {}).map(async key => {
-      const fileRes = await fetch(`https://jsr.io/${scopeName}/${packageName}/${version}/${key}`)
+    const fileEntries = Object.keys(versionMeta.manifest ?? {}).map(async key => {
+      const fileRes = await fetch(toJsrUrl(`${scopeName}/${packageName}/${version}/${key}`))
 
       if (!fileRes.ok) {
         throw new Error(`Failed to get file for jsr:${scopeName}/${packageName}`)
@@ -126,6 +138,8 @@ export class Jsr {
       return [key, file] as [string, string]
     })
 
-    return Object.fromEntries(await Promise.all(files))
+    const files = Object.fromEntries(await Promise.all(fileEntries))
+
+    return { files, version }
   }
 }

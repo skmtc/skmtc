@@ -1,7 +1,6 @@
 import React from 'react'
 import { type ViewStateRemoveGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
-import { Project } from '@/lib/project.ts'
-import type { RemoteProject } from '@/lib/remote-project.ts'
+import type { Project } from '@/lib/project.ts'
 import { Box, Text } from 'ink'
 import { useState, useEffect, useRef } from 'react'
 import SelectInput from 'ink-select-input'
@@ -10,7 +9,7 @@ import { ConfirmInput } from '@inkjs/ui'
 import { Spinner } from '@/components/Spinner.tsx'
 
 type RemoveGeneratorViewProps = {
-  project: Project | RemoteProject
+  project: Project
   view: ViewStateRemoveGenerator
 }
 
@@ -23,7 +22,7 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
   const [removing, setRemoving] = useState(false)
   const removalInitiated = useRef(false)
 
-  const generators = project instanceof Project ? project.toGeneratorIds() : []
+  const generators = project.toGeneratorIds()
 
   useShortcut({
     key: 'esc',
@@ -37,7 +36,7 @@ export const RemoveGeneratorView = ({ project, view }: RemoveGeneratorViewProps)
 
   // Execute removal when confirmed
   useEffect(() => {
-    if (confirmed && !removalInitiated.current && selectedGenerator && project instanceof Project) {
+    if (confirmed && !removalInitiated.current && selectedGenerator) {
       removalInitiated.current = true
       setRemoving(true)
 

@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { parse } from 'jsr:@std/path'
-import { ensureDir } from 'jsr:@std/fs'
+import { parse } from '@std/path'
+import { ensureDir } from '@std/fs'
 
 const server = new McpServer({
   name: 'Skmtc MCP Server',
@@ -15,7 +15,7 @@ server.tool(
     url: z.string().describe('The url to an OpenAPI 3.0 schema file'),
     basePath: z.string().optional().describe('prefix path for generated artifacts')
   },
-  async ({ url, basePath }) => {
+  async ({ url, basePath }: { url: string; basePath?: string }) => {
     try {
       const schemaResponse = await fetch(url)
 

@@ -3,9 +3,10 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasTag } from './Tag.ts'
 import type { TagFields } from './Tag.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
+import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-type ToTagsV3Args = {
+export type ToTagsV3Args = {
   tags: OpenAPIV3.TagObject[] | undefined
   stackTrail: StackTrail
   context: ParseContextType
@@ -19,14 +20,18 @@ export const toTagsV3 = ({ tags, stackTrail, context }: ToTagsV3Args): OasTag[] 
   return tags.map(tag => toTagV3({ tag, stackTrail, context }))
 }
 
-type ToTagV3Args = {
+export type ToTagV3Args = {
   tag: OpenAPIV3.TagObject
   stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toTagV3 = ({ tag, stackTrail, context }: ToTagV3Args): OasTag => {
-  const { name, description, ...skipped } = tag
+  const { name, description, externalDocs, ...skipped } = tag
+
+  const parsedExternalDocs = stackTrail.trace('externalDocs', st =>
+    toExternalDocs({ externalDocs, stackTrail: st, context })
+  )
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -39,6 +44,7 @@ export const toTagV3 = ({ tag, stackTrail, context }: ToTagV3Args): OasTag => {
   const fields: TagFields = {
     name,
     description,
+    externalDocs: parsedExternalDocs,
     extensionFields
   }
 

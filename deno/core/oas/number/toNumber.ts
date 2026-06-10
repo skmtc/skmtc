@@ -7,7 +7,7 @@ import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
-type ToNumberArgs = {
+export type ToNumberArgs = {
   value: OpenAPIV3.SchemaObject
   stackTrail: StackTrail
   context: ParseContextType
@@ -106,24 +106,29 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
     parentType: 'schema:number'
   })
 
-  return new OasNumber<Nullable>({
-    title,
-    description,
-    nullable,
-    default: defaultValue,
-    extensionFields,
-    example,
-    enums,
-    format,
-    multipleOf,
-    maximum,
-    exclusiveMaximum,
-    minimum,
-    readOnly,
-    writeOnly,
-    exclusiveMinimum,
-    deprecated
-  })
+  return context.withStackTrail(stackTrail, () =>
+    new OasNumber<Nullable>(
+      {
+        title,
+        description,
+        nullable,
+        default: defaultValue,
+        extensionFields,
+        example,
+        enums,
+        format,
+        multipleOf,
+        maximum,
+        exclusiveMaximum,
+        minimum,
+        readOnly,
+        writeOnly,
+        exclusiveMinimum,
+        deprecated
+      },
+      context
+    )
+  )
 }
 
 type ParseNumberFormatArgs = {

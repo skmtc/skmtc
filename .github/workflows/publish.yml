@@ -1,43 +1,39 @@
+# Manual-dispatch release via the cascade script, against the
+# jsr.skmtc.dev registry (NOT public jsr.io).
+#
+# Releases are deliberate: bump the `version` of the package(s) you
+# changed, merge, then trigger this workflow (or run
+# `cd deno && deno task release` locally — same script, same registry).
+# The cascade publishes any workspace package whose deno.json version
+# isn't yet on the registry and cascades pins + patch bumps to every
+# downstream dependent, so nothing auto-fires on merge to main.
+#
+# Requires the `JSR_AUTH_TOKEN` repository secret (a token for
+# jsr.skmtc.dev). OIDC is NOT used — that only works against public
+# jsr.io.
+
 name: Publish
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # The OIDC ID token is used for authentication with JSR.
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Update npm
-        run: npm install -g npm@latest
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
 
       - name: Install Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
-      - name: Install deno dependencies
-        run: cd deno && deno install --frozen
-
-      - name: Publish to JSR
-        run: cd deno && deno task publish:deno:ga
-
-      - name: Build for npm
-        run: cd deno && deno task build
-      - name: Publish core to npm
-        run: cd packages/core && npm publish
+      - name: Release via cascade to jsr.skmtc.dev
+        env:
+          JSR_URL: https://jsr.skmtc.dev/
+          JSR_AUTH_TOKEN: ${{ secrets.JSR_AUTH_TOKEN }}
+        working-directory: deno
+        run: deno task release

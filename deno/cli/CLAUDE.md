@@ -29,16 +29,15 @@ This is the SKMTC CLI - a Deno-based command-line tool for generating code from 
 ### Core Components
 
 - **mod.ts** - Main entry point that sets up the CLI with all available commands and interactive prompts
-- **Manager** (`lib/manager.ts`) - Central management class that handles authentication, and cleanup actions
+- **Manager** (`lib/manager.ts`) - Central management class that handles cleanup actions
 - **SkmtcRoot** (`lib/skmtc-root.ts`) - Root workspace manager that handles project creation and discovery
 - **Project** (`lib/project.ts`) - Individual project management
 
 ### Command Structure
 
 Commands are organized into categories:
-- `generators/*` - Code generation commands (add, clone, deploy, install, list, remove)
-- `workspaces/*` - Workspace management (generate, serve, runtime-logs)
-- `auth/*` - Authentication (login, logout)
+- `commands/*` - One module per CLI command (init, create, clone, install, list, remove, generate, bundle, clean, dev, doctor, agent-context, publish)
+- `workspaces/*` - Workspace management (serve)
 - `lib/*` - Core business logic and utilities
 
 ### Interactive UI Architecture
@@ -50,24 +49,23 @@ The CLI features a React/Ink-based interactive interface:
 
 **IMPORTANT**: This project uses Ink CLI to create terminal user interface components. Ink uses special React components designed for terminal rendering (like `<Box>`, `<Text>`, `<Input>`, etc.) instead of HTML elements. When working with React components in this project, NEVER use HTML React components like `<div>`, `<span>`, `<button>`, etc. Always use Ink-specific components from the `ink` and `@inkjs/ui` packages.
 
-### Authentication & Storage
+### Authentication
 
-- Uses Supabase for authentication (`auth/supabase-client.ts`)
-- Deno KV or file system for local state storage
-
+The only credential is a skmtc-hub personal access token (PAT), used by
+`skmtc publish` via `--token` or `$SKMTC_HUB_TOKEN`. There is no
+interactive login and no stored session.
 
 ### Generator System
 
-The CLI supports multiple code generators with automatic dependency resolution:
-- **Remote Generators** - Fetched from JSR registry (e.g., `@skmtc/supabase-backend`)
+The CLI supports multiple code generators:
+- **Remote Generators** - Fetched from the JSR registry (`JSR_URL`, defaults to `https://jsr.skmtc.dev/`)
 - **Local Projects** - Created and managed locally within the SKMTC root directory
-- **Generator Types** - Shadcn UI, MSW, Tanstack Query, Supabase/Hono, Zod, TypeScript
 
 Key generator operations:
-- `add` - Add generators to existing projects
-- `clone` - Clone generators from remote sources
-- `install` - Install generator dependencies
-- `deploy` - Deploy projects to Supabase/Deno platforms
+- `create` - Scaffold a new local generator in a project
+- `clone` - Pull generator source into the project for editing
+- `install` - Add JSR generators to a project
+- `publish` - Build and publish an immutable stack version to skmtc-hub
 
 ## Development Patterns
 
@@ -78,9 +76,8 @@ Each command follows a consistent pattern:
 - Command logic is separated from CLI setup
 
 ### State Management
-- Uses Deno KV or file system for persistent storage
+- File system for persistent storage
 - Manager class handles cleanup actions
-- Auth state is managed through Auth class
 
 ### Error Handling
 - Manager has `success()` and `fail()` methods for cleanup
@@ -107,15 +104,64 @@ Each command follows a consistent pattern:
 ## Project Structure
 
 ### Key Directories
-- `/lib/` - Core business logic (Manager, SkmtcRoot, Project, Auth)
-- `/generators/` - Generator-specific commands (add, clone, deploy, install, list, remove)
-- `/workspaces/` - Workspace operations (generate, serve, runtime-logs)
-- `/auth/` - Authentication with Supabase integration
+- `/lib/` - Core business logic (Manager, SkmtcRoot, Project)
+- `/commands/` - CLI command modules
+- `/workspaces/` - Workspace operations (serve)
 - `/components/` - React/Ink UI components
 - `/prompt/` - Interactive prompt system
-- `/services/` - Generated API service clients
+- `/services/` - API service clients (JSR registry)
+
+## Installing the CLI from local source
+
+Use `deno compile`, **not** `deno install`:
+
+```bash
+deno compile --no-check \
+  --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir \
+  --unstable-worker-options \
+  --config /path/to/skmtc/deno/cli/deno.json \
+  --include /path/to/skmtc/deno/cli \
+  -o ~/.deno/bin/skmtc \
+  /path/to/skmtc/deno/cli/mod.ts
+```
+
+The scoped permissions (instead of `-A`) match the published install: skmtc
+needs read/write/net/env, spawns only `deno` + `sh`, and `homedir` to find
+the workspace root — no FFI, no remote imports. `--unstable-worker-options`
+**must** be passed here: `cli/deno.json` carries no `unstable` field, so
+without it the compiled binary fails the first `generate` on
+`Worker.deno.permissions`. (For a throwaway dev run, `deno run --allow-all`
+below is fine — it's ephemeral, not a distributed binary.)
+
+`mod.ts` lazy-loads commands via `await import('@/commands/<name>.tsx')`. The `@/` alias is resolved by `deno publish` at publish time — the JSR-published artifact contains relative paths, which is why `deno install jsr:@skmtc/cli` works. Against local source there is no resolution step, so `deno install` produces a launcher whose runtime cwd cannot resolve `@/` and dynamic imports fail with `Module not found ".../.deno/bin/.skmtc/commands/<name>.tsx"`.
+
+`deno compile --include <cli-dir>` bundles the entire CLI tree at build time, so dynamic alias-imports just work. Cost: the binary is ~175 MB (Deno runtime is bundled in) and you must recompile after editing `mod.ts` or any statically-imported file. For iterative work on a specific command, `deno run --allow-all --config <cli/deno.json> <cli/mod.ts> <args>` picks up edits without recompilation.
 
 ## TypeScript
 
 - Do not use `any` types
 - Avoid casting with `as` unless absoloutely necessary. Use `as const` is fine
+
+<claude-mem-context>
+# Recent Activity
+
+<!-- This section is auto-generated by claude-mem. Edit content outside the tags. -->
+
+### May 6, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #18751 | 11:07 AM | ✅ | Configured all monorepo packages to publish to local JSR instance | ~480 |
+
+### May 9, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #19895 | 9:22 AM | 🔵 | SKMTC CLI architecture and command structure reviewed | ~461 |
+
+### May 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #20644 | 8:34 AM | 🔵 | SKMTC architecture - three-phase pipeline and CLI commands | ~812 |
+</claude-mem-context>

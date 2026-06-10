@@ -2,12 +2,10 @@ import { render } from 'ink-testing-library'
 import { assertExists } from '@std/assert'
 import { ExitView } from '@/components/ExitView.tsx'
 import { SkmtcProvider, SkmtcState } from '@/components/SkmtcContext.tsx'
-import { createTestSession } from '../mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { assertEquals } from '@std/assert/equals'
 
 Deno.test('ExitView - renders', () => {
-  const mockSession = createTestSession()
 
   let exitCount = 0
   const mockExit = () => {
@@ -15,21 +13,12 @@ Deno.test('ExitView - renders', () => {
   }
 
   const mockSkmtcRoot = {
-    manager: {
-      auth: {
-        supabase: {
-          functions: {
-            invoke: () => Promise.resolve({ data: [], error: null })
-          }
-        }
-      }
-    }
+    manager: {}
   } as unknown as SkmtcRoot
 
   const initialState: SkmtcState = {
     view: { page: 'exit' },
     skmtcRoot: mockSkmtcRoot,
-    session: mockSession,
     message: null,
     interactive: true,
     shortcuts: [],

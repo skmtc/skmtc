@@ -1,7 +1,6 @@
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { RenderContext } from '@/context/RenderContext.ts'
 import { ParseContext } from '@/context/ParseContext.ts'
-import type { PrettierConfigType } from '@/types/PrettierConfig.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ResultType } from '@/types/Results.ts'
@@ -10,14 +9,19 @@ import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { ResultsLog } from '@/helpers/ResultsLog.ts'
-import type { File } from '@/dsl/File.ts'
+import type { FileBase } from '@/dsl/FileBase.ts'
+import type { CaptureChannel } from '@/anchors/CaptureSink.ts'
 import { join } from '@std/path/join'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { Mapping, Preview } from '@/types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
-import type { RenderResult } from './generateTypes.ts'
+import type { ToArtifactsResult } from './generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
+import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
+import type { AttributionState } from '@/types/AttributionState.ts'
+import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
+import type { ParseIssue } from '@/context/ParseIssue.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -28,7 +32,8 @@ import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 export type ParsePhase = {
   /** Identifies this as the parse phase */
   type: 'parse'
-  /** The parse context containing parsed document and utilities */
+  /** The unified parse context — handles both OAS and GQL via its
+   * internal protocol-discriminated state. */
   context: ParseContext
 }
 
@@ -67,9 +72,10 @@ export type RenderPhase = {
 export type ExecutionPhase = ParsePhase | GeneratePhase | RenderPhase
 
 type GenerateArgs = {
-  oasDocument: OasDocument
+  document: SkmtcParsedDocument
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
+  captureChannel: CaptureChannel
 }
 
 type CoreContextArgs = {
@@ -79,32 +85,50 @@ type CoreContextArgs = {
 }
 
 type RenderArgs = {
-  files: Map<string, File | JsonFile>
-  previews: Record<string, Record<string, Preview>>
-  mappings: Record<string, Record<string, Mapping>>
-  prettier?: PrettierConfigType
+  files: Map<string, FileBase>
+  previews: Record<string, Preview>
+  mappings: Record<string, Mapping>
   basePath: string | undefined
+  attribution: AttributionState | undefined
+  captureChannel: CaptureChannel
 }
 
 /**
  * Arguments for the `toArtifacts` method of CoreContext.
  *
- * Contains all the necessary configuration for transforming an OpenAPI document
- * into code artifacts through the SKMTC pipeline.
+ * Contains all the necessary configuration for transforming a
+ * source document into code artifacts through the SKMTC parse +
+ * generate + render phases.
+ *
+ * On the OAS side `document.value` is the *raw* OpenAPI v3 document —
+ * `CoreContext.toArtifacts` runs the parse phase itself. On the GQL
+ * side `document.value` is a pre-parsed {@link GqlDocument}, since SDL
+ * parsing lives in the `parsers/graphql` sub-export to keep the
+ * `graphql` npm dependency optional for consumers.
  */
 export type ToArtifactsArgs = {
   /** Stack trail for distributed tracing */
   stackTrail: StackTrail
-  /** The OpenAPI v3 document to process */
-  documentObject: OpenAPIV3.Document
+  /**
+   * Source document. OAS variant carries the raw OpenAPI v3 JSON; GQL
+   * variant carries a pre-parsed {@link GqlDocument}. The generate
+   * phase reads the post-parse {@link SkmtcDocument}; both model and
+   * operation generators dispatch on `document.type`.
+   */
+  document: SkmtcDocumentInput
   /** Client settings for customization (optional) */
   settings: ClientSettings | undefined
   /** Function that returns the generator configuration map */
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-  /** Prettier configuration for code formatting (optional) */
-  prettier?: PrettierConfigType
   /** Whether to suppress console output */
   silent: boolean
+  /**
+   * Optional attribution (gen-maps) **emission** config. Capture is
+   * always on; when `postPass` is set, the pipeline emits sidecars + a
+   * generation map alongside the usual artifacts. See
+   * {@link AttributionState}.
+   */
+  attribution?: AttributionState
 }
 
 type SetupLoggerArgs = {
@@ -136,11 +160,11 @@ type SetupLoggerArgs = {
  * });
  *
  * const result = await context.toArtifacts({
- *   documentObject: openApiDoc,
+ *   document: { type: 'oas', value: openApiDoc },
  *   settings: clientSettings,
  *   toGeneratorConfigMap: () => generators,
- *   prettier: prettierConfig,
- *   silent: false
+ *   silent: false,
+ *   stackTrail: new StackTrail(['gen'])
  * });
  * ```
  *
@@ -277,12 +301,16 @@ export class CoreContext {
    * ```
    */
   parse(documentObject: OpenAPIV3.Document, stackTrail: StackTrail): { oasDocument: OasDocument } {
-    this.#phase = this.#setupParsePhase(documentObject)
+    this.#phase = this.#setupParsePhase({ type: 'oas', value: documentObject })
 
-    const oasDocument = this.#phase.context.parse(stackTrail)
+    const parsed = this.#phase.context.parse(stackTrail)
+    if (parsed.type !== 'oas') {
+      // Unreachable: input was tagged 'oas' so the parsed branch must match.
+      throw new Error('CoreContext.parse: expected OAS parsed document')
+    }
 
     return {
-      oasDocument
+      oasDocument: parsed.value
     }
   }
 
@@ -298,48 +326,41 @@ export class CoreContext {
    * about the generation process, including file mappings, previews, and results.
    *
    * @param args - Configuration for the artifact generation
-   * @param args.documentObject - The OpenAPI v3 document to process
+   * @param args.document - The source document, discriminated by protocol
+   *   (`{ type: 'oas', value: OpenAPIV3.Document }` or
+   *   `{ type: 'gql', value: GqlDocument }`)
    * @param args.settings - Client settings for customization
    * @param args.toGeneratorConfigMap - Function returning generator configuration
-   * @param args.prettier - Optional Prettier configuration for code formatting
    * @param args.silent - Whether to suppress console output during generation
+   * @param args.stackTrail - Stack trail for distributed tracing
    * @returns Promise resolving to rendered artifacts and metadata
    *
    * @example Complete pipeline
    * ```typescript
+   * import { CoreContext, StackTrail, toModelEntry, toOasOperationEntry } from '@skmtc/core';
+   *
    * const context = new CoreContext({
    *   spanId: 'api-client-gen',
    *   silent: false
    * });
    *
-   * const result = await context.toArtifacts({
-   *   documentObject: openApiDoc,
+   * const result = context.toArtifacts({
+   *   document: { type: 'oas', value: openApiDoc },
    *   settings: {
-   *     basePath: './src/api',
-   *     skip: {
-   *       models: ['Internal*'],
-   *       operations: {
-   *         '/health': ['get'],
-   *         '/debug/**': ['*']
-   *       }
-   *     }
+   *     basePath: './src/api'
    *   },
    *   toGeneratorConfigMap: () => ({
-   *     models: {
-   *       generator: MyModelGenerator,
-   *       settings: { includeValidation: true }
-   *     },
-   *     operations: {
-   *       generator: MyOperationGenerator,
-   *       settings: { generateTypes: true }
-   *     }
+   *     'typescript-models': toModelEntry({
+   *       id: 'typescript-models',
+   *       transform: ({ context, refName }) => {}
+   *     }),
+   *     'api-client': toOasOperationEntry({
+   *       id: 'api-client',
+   *       transform: ({ context, operation }) => {}
+   *     })
    *   }),
-   *   prettier: {
-   *     semi: false,
-   *     singleQuote: true,
-   *     trailingComma: 'all'
-   *   },
-   *   silent: false
+   *   silent: false,
+   *   stackTrail: new StackTrail(['gen'])
    * });
    *
    * // Access generated artifacts
@@ -358,36 +379,53 @@ export class CoreContext {
    * @throws Will throw an error if any phase of the pipeline fails
    */
   toArtifacts({
-    documentObject,
+    document,
     settings,
     toGeneratorConfigMap,
     stackTrail,
-    prettier
-  }: ToArtifactsArgs): RenderResult {
+    attribution
+  }: ToArtifactsArgs): ToArtifactsResult {
     try {
-      const oasDocument = stackTrail.trace('parse', st => {
-        this.#phase = this.#setupParsePhase(documentObject)
+      // Parse phase: one unified ParseContext handles both protocols
+      // via its internal protocol-discriminated state. `parse()` returns
+      // a SkmtcParsedDocument; we collect issues from `context.issues`.
+      const phase = this.#setupParsePhase(document)
+      this.#phase = phase
+      const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
+        phase.context.parse(st)
+      )
 
-        return this.#phase.context.parse(st)
-      })
+      // The shared attribution capture channel: snippets constructed
+      // during generate hold the GenerateContext, whose `captureSink`
+      // reads this slot; RenderContext flips it around the one capturing
+      // render. One object per run wires the two phases together.
+      const captureChannel: CaptureChannel = { sink: undefined }
 
       const { files, previews, mappings } = stackTrail.trace('generate', st => {
         this.#phase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
-          oasDocument,
-          settings
+          document: parsedDocument,
+          settings,
+          captureChannel
         })
 
         return this.#phase.context.toArtifacts(st)
       })
 
+      // Render is a single capture pass: it renders each File once and,
+      // when `attribution.postPass` is configured, simultaneously captures
+      // the producer occurrence tree and emits sidecars + the generation
+      // map (folded into `RenderContext.render`). No separate pre-render
+      // post-pass, no re-render — the old `_rendered` cache that faked
+      // "render once" across two passes is gone.
       const renderOutput = stackTrail.trace('render', st => {
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
           mappings,
-          prettier,
-          basePath: settings?.basePath
+          basePath: settings?.basePath,
+          attribution,
+          captureChannel
         })
 
         return this.#phase.context.render(st)
@@ -395,19 +433,46 @@ export class CoreContext {
 
       return {
         ...renderOutput,
-        results: this.#results.toTree()
+        results: this.#results.toTree(),
+        parseIssues: phase.context.issues
       }
     } catch (error) {
       console.error(error)
 
       this.logger.error(error)
 
+      // Surface the fatal error as a synthesized parse-issue so
+      // downstream consumers (CLI `generate`, the manifest writer)
+      // can tell a successful 0-file run apart from a crashed run.
+      // Before this, the catch returned `parseIssues: []` and an
+      // empty `artifacts`, which read on the CLI side as "everything
+      // generated, just nothing emitted" — silent failure.
+      //
+      // We pull whatever parse-phase issues were already recorded
+      // before the throw, so any incremental diagnostics aren't lost,
+      // and append the top-level failure on the end. Protocol is
+      // hardcoded to 'oas' because the synthesized issue is
+      // post-protocol-dispatch and we don't have a discriminator at
+      // this catch site; OAS is the more common case and the
+      // location format ('toArtifacts') is unambiguous regardless.
+      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      const message = error instanceof Error ? error.message : String(error)
+      const fatalIssue = {
+        protocol: 'oas' as const,
+        level: 'error' as const,
+        type: 'INVALID_SCHEMA' as const,
+        location: 'toArtifacts',
+        message: `Top-level toArtifacts failure: ${message}`,
+        cause: error
+      }
+
       return {
         artifacts: {},
         files: {},
         previews: {},
         mappings: {},
-        results: this.#results.toTree()
+        results: this.#results.toTree(),
+        parseIssues: [...priorIssues, fatalIssue]
       }
     } finally {
       this.logger.handlers.forEach(handler => {
@@ -418,9 +483,68 @@ export class CoreContext {
     }
   }
 
-  #setupParsePhase(documentObject: OpenAPIV3.Document): ParsePhase {
+  /**
+   * Capability-only sibling of {@link toArtifacts}: parse the document, then
+   * evaluate each generator's `isSupported` over its subjects — no transform,
+   * no render. Returns the subjects each generator supports, plus parse issues.
+   */
+  toSupportedSubjects({
+    document,
+    settings,
+    toGeneratorConfigMap,
+    stackTrail
+  }: Pick<
+    ToArtifactsArgs,
+    'document' | 'settings' | 'toGeneratorConfigMap' | 'stackTrail'
+  >): { subjects: SupportedSubjects; parseIssues: ParseIssue[] } {
+    try {
+      const phase = this.#setupParsePhase(document)
+      this.#phase = phase
+      const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
+        phase.context.parse(st)
+      )
+
+      const subjects = stackTrail.trace('generate', () => {
+        // Capability probing never renders, so the capture interval never
+        // opens — a throwaway channel satisfies the wiring.
+        const generatePhase = this.#setupGeneratePhase({
+          toGeneratorConfigMap,
+          document: parsedDocument,
+          settings,
+          captureChannel: { sink: undefined }
+        })
+        this.#phase = generatePhase
+
+        return generatePhase.context.toSupportedSubjects()
+      })
+
+      return { subjects, parseIssues: phase.context.issues }
+    } catch (error) {
+      this.logger.error(error)
+
+      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      const message = error instanceof Error ? error.message : String(error)
+
+      return {
+        subjects: {},
+        parseIssues: [
+          ...priorIssues,
+          {
+            protocol: 'oas' as const,
+            level: 'error' as const,
+            type: 'INVALID_SCHEMA' as const,
+            location: 'toSupportedSubjects',
+            message: `Top-level toSupportedSubjects failure: ${message}`,
+            cause: error
+          }
+        ]
+      }
+    }
+  }
+
+  #setupParsePhase(input: SkmtcDocumentInput): ParsePhase {
     const parseContext = new ParseContext({
-      documentObject,
+      input,
       logger: this.logger,
       silent: this.silent
     })
@@ -429,16 +553,18 @@ export class CoreContext {
   }
 
   #setupGeneratePhase({
-    oasDocument,
+    document,
     settings,
-    toGeneratorConfigMap
+    toGeneratorConfigMap,
+    captureChannel
   }: GenerateArgs): GeneratePhase {
     const generateContext = new GenerateContext({
-      oasDocument,
+      document,
       settings,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),
-      toGeneratorConfigMap
+      toGeneratorConfigMap,
+      captureChannel
     })
 
     return { type: 'generate', context: generateContext }
@@ -476,15 +602,23 @@ export class CoreContext {
     this.#results.capture(stackTrail.toString(), result)
   }
 
-  #setupRenderPhase({ files, previews, mappings, prettier, basePath }: RenderArgs): RenderPhase {
+  #setupRenderPhase({
+    files,
+    previews,
+    mappings,
+    basePath,
+    attribution,
+    captureChannel
+  }: RenderArgs): RenderPhase {
     const renderContext = new RenderContext({
       files,
       previews,
       mappings,
-      prettierConfig: prettier,
       basePath,
       logger: this.logger,
-      captureCurrentResult: this.captureCurrentResult.bind(this)
+      captureCurrentResult: this.captureCurrentResult.bind(this),
+      attribution,
+      captureChannel
     })
 
     return { type: 'render', context: renderContext }
