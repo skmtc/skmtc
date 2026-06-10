@@ -1,5 +1,18 @@
 import { EntityType } from '@/dsl/EntityType.ts'
-import type { ImportNameArg } from '@/dsl/Import.ts'
+import type { EntityTypeValue } from '@/dsl/EntityType.ts'
+
+/**
+ * The concise import-name shape {@link Identifier.toImport} produces —
+ * a bare name, a single-entry alias record, or the explicit
+ * `{ name, alias?, type? }` object. Structurally identical to the
+ * concise form each language package's register vocabulary accepts
+ * (e.g. lang-typescript's import-name argument); core deliberately
+ * doesn't name that vocabulary.
+ */
+type IdentifierImportName =
+  | string
+  | { [name: string]: string }
+  | { name: string; alias?: string; type?: EntityTypeValue }
 
 /**
  * Constructor arguments for {@link Identifier}.
@@ -268,7 +281,7 @@ export class Identifier {
   }
 
   /**
-   * Builds an {@link ImportNameArg} that imports this identifier from
+   * Builds a concise import name that imports this identifier from
    * another module, threading the identifier's entity-type discriminator
    * through so the renderer can emit `import { type Foo }` for type-only
    * identifiers (avoiding TS1484 under `verbatimModuleSyntax: true`)
@@ -305,7 +318,7 @@ export class Identifier {
    * // → import { type User as IUser } from './types'
    * ```
    */
-  toImport({ alias }: { alias?: string } = {}): ImportNameArg {
+  toImport({ alias }: { alias?: string } = {}): IdentifierImportName {
     const isType = this.entityType.type === 'type'
     if (isType) {
       // Type-only imports always emit the explicit object form so the
@@ -315,9 +328,9 @@ export class Identifier {
         ? { name: this.name, alias, type: 'type' }
         : { name: this.name, type: 'type' }
     }
-    // Variable imports match the canonical wire shape used by
-    // `Import#toRecord`: bare string for plain value imports,
-    // single-entry alias-record for aliased value imports.
+    // Variable imports match the canonical concise wire shape:
+    // bare string for plain value imports, single-entry alias-record
+    // for aliased value imports.
     // Returning a bare string here means `register({ imports: [...]
     // })` consumers see the same shape as a hand-written
     // `imports: { 'x': ['Foo'] }` — preserving prior conventions and

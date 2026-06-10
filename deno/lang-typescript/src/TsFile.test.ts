@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { Definition, File, Identifier, toGeneratorOnlyKey } from '@skmtc/core'
+import { Definition, Identifier, toGeneratorOnlyKey } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType } from '@skmtc/core'
 import { TsDefinition } from './TsDefinition.ts'
 import { TsFile } from './TsFile.ts'
@@ -78,18 +78,14 @@ Deno.test('TsDefinition byte-identical to Definition', async testContext => {
 })
 
 /**
- * `TsFile` must render byte-identically to the engine's `File` — re-exports,
- * imports (with package normalisation), then definitions.
+ * `TsFile` must keep rendering the exact file the engine's legacy `File`
+ * produced — re-exports, imports (with package normalisation), then
+ * definitions. The expected literal below was pinned against the legacy
+ * class before core's `File` was deleted (step 5 of the convergence
+ * tracker).
  */
-Deno.test('TsFile byte-identical to File — imports + definitions + reExports', () => {
+Deno.test('TsFile renders the legacy-pinned file — imports + definitions + reExports', () => {
   const path = '@/types/models.generated.ts'
-
-  const legacyFile = new File({ path, settings: undefined })
-  legacyFile.addReExports({ './shared': [Identifier.createVariable('helper')] })
-  legacyFile.addImports({ zod: ['z'], '@/models': ['User', 'Account'] })
-  legacyFile.addDefinition(
-    new Definition({ context: mockContext, identifier: Identifier.createType('Account'), value: value('{ id: string }') })
-  )
 
   const tsFile = new TsFile({ path, settings: undefined })
   tsFile.addReExports({ './shared': [Identifier.createVariable('helper')] })
@@ -98,40 +94,37 @@ Deno.test('TsFile byte-identical to File — imports + definitions + reExports',
     new TsDefinition({ context: mockContext, identifier: Identifier.createType('Account'), value: value('{ id: string }') })
   )
 
-  assertEquals(tsFile.toString(), legacyFile.toString())
+  assertEquals(
+    tsFile.toString(),
+    `export  { helper } from './shared'\n\nimport {z} from 'zod'\nimport {User, Account} from '@/models'\n\nexport type Account = { id: string };\n`
+  )
 })
 
 /**
- * INTENDED DIVERGENCE from core `File`. Core stores imports as
- * `Set<string>` (encoded), so an all-type-only import round-trips through
- * the string `'type User'`, loses its type flag, and degrades the clean
- * statement-level `import type { … }` into per-name `import { type … }`.
- * `TsFile` keeps structured `TsImport`s, so it emits the cleaner form.
- * Both are valid, semantically-identical TS — this is the representation
- * improvement the notes (`04`) flagged. Surfaced at the regression gate.
+ * INTENDED DIVERGENCE from the legacy core `File` (deleted in step 5).
+ * It stored imports as `Set<string>` (encoded), so an all-type-only import
+ * round-tripped through the string `'type User'`, lost its type flag, and
+ * degraded the clean statement-level `import type { … }` into per-name
+ * `import { type … }`. `TsFile` keeps structured `TsImport`s, so it emits
+ * the cleaner form. Both are valid, semantically-identical TS — this is
+ * the representation improvement the notes (`04`) flagged. Surfaced at the
+ * regression gate.
  */
-Deno.test('TsFile improves on File for all-type-only imports (structured, not Set<string>)', () => {
+Deno.test('TsFile improves on the legacy File for all-type-only imports (structured, not Set<string>)', () => {
   const path = '@/types/models.generated.ts'
-
-  const legacyFile = new File({ path, settings: undefined })
-  legacyFile.addImports({ '@/models': [{ name: 'User', type: 'type' }] })
 
   const tsFile = new TsFile({ path, settings: undefined })
   tsFile.addImports([TsImport.fromConcise('@/models', [{ name: 'User', type: 'type' }])])
 
-  assertEquals(legacyFile.toString(), `import {type User} from '@/models'`) // degraded
   assertEquals(tsFile.toString(), `import type {User} from '@/models'`) // clean
 })
 
-Deno.test('TsFile byte-identical to File — cross-package import normalisation', () => {
+Deno.test('TsFile renders the legacy-pinned cross-package import normalisation', () => {
   const settings = { packages: [{ rootPath: 'packages/models/src', moduleName: '@app/models' }] }
   const path = 'packages/client/src/api.generated.ts'
-
-  const legacyFile = new File({ path, settings })
-  legacyFile.addImports({ 'packages/models/src/User.ts': ['User'] })
 
   const tsFile = new TsFile({ path, settings })
   tsFile.addImports([TsImport.fromConcise('packages/models/src/User.ts', ['User'])])
 
-  assertEquals(tsFile.toString(), legacyFile.toString())
+  assertEquals(tsFile.toString(), `import {User} from '@app/models'`)
 })

@@ -46,5 +46,5 @@ export {
 export { ReactRouterPathParams } from './src/ReactRouterPathParams.ts'
 export { TsFile, type TsFileArgs } from './src/TsFile.ts'
 export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'
-export { TsImport, type TsImportSpecifier } from './src/TsImport.ts'
+export { TsImport, type TsImportSpecifier, type ImportNameArg } from './src/TsImport.ts'
 export { TsObject, type TsPropertyArgs } from './src/TsObject.ts'

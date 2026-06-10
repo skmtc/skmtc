@@ -132,12 +132,6 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
 export type GqlOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'gqlOperation'
-  /**
-   * The target language for this generator. The engine resolves it by
-   * `generatorId` (`resolveLang`) — the single source of truth for the
-   * generator's language. Set by the author via `toGqlOperationEntry({ lang })`.
-   */
-  lang: Lang
   transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean

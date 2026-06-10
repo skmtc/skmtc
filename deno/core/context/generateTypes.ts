@@ -7,7 +7,6 @@ import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Definition, DefinitionBase } from '@/dsl/Definition.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -16,11 +15,9 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type { ModelProjection } from '@/dsl/model/types.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
-import type { ImportNameArg } from '@/dsl/Import.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
-import type { File } from '@/dsl/File.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
@@ -172,21 +169,6 @@ export type ToArtifactsResult = RenderResult & {
 }
 
 /**
- * Base arguments for registering generated content in the generation context.
- *
- * Provides the fundamental configuration options for registering imports,
- * re-exports, and definitions that will be included in generated files.
- */
-export type BaseRegisterArgs = {
-  /** Import statements to include, organized by module path */
-  imports?: Record<string, ImportNameArg[]>
-  /** Re-export statements to include, organized by module path */
-  reExports?: Record<string, Identifier[]>
-  /** Definition objects to include in the generated content */
-  definitions?: (DefinitionBase | undefined)[]
-}
-
-/**
  * Union type representing any supported OpenAPI document version.
  */
 export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3_1.Document
@@ -270,66 +252,14 @@ export type RegisterJsonArgs = {
 }
 
 /**
- * Arguments for defining and registering a value in the generation context.
- *
- * Used to create definitions from pre-generated values and register them
- * in the generation context for inclusion in output files.
- *
- * @template V - The generated value type extending GeneratedValue
- */
-export type DefineAndRegisterArgs<V extends GeneratedValue> = {
-  /** The identifier for the definition */
-  identifier: Identifier
-  /** The generated value to define */
-  value: V
-  /** The destination file path where the definition should be registered */
-  destinationPath: string
-  /** Whether to exclude this definition from exports */
-  noExport?: boolean
-  /**
-   * The id of the generator this registration belongs to. The engine resolves
-   * the destination file's language via {@link GenerateContextType.resolveLang}
-   * from this id — so the args stay pure data (no `lang` object, no closure).
-   */
-  generatorId: string
-}
-
-/**
- * Arguments for registering generated content with a specific destination.
- *
- * Extends BaseRegisterArgs to include a destination path, allowing content
- * to be registered and associated with a specific output file location.
- */
-export type RegisterArgs = {
-  /** Import statements to include, organized by module path */
-  imports?: Record<string, ImportNameArg[]>
-  /** Re-export statements to include, organized by module path */
-  reExports?: Record<string, Identifier[]>
-  /** Definition objects to include in the generated content */
-  definitions?: (DefinitionBase | undefined)[]
-  /** The destination file path where the content should be registered */
-  destinationPath: string
-}
-
-/**
- * Factory that constructs the language-appropriate file for a path.
- *
- * The engine is language-blind and must not name a concrete file class, so
- * the (language-bound) `register` method injects this. Transitionally it
- * comes from {@link import('@/dsl/SnippetBase.ts').SnippetBase.createFile}
- * (core's `File`); a language package's base overrides it to return its
- * own `*File`.
- */
-export type CreateFile = (path: string) => FileBase
-
-/**
- * The neutral arguments the engine's `context.register` speaks — already
- * standardised into language objects. `imports` are {@link ImportBase}
- * (the language converted the concise form via `lang.toImports` upstream);
- * `definitions` are {@link DefinitionBase}; `createFile` is the language's
- * file factory, used to create the destination file on first write. The
- * engine never sees the concise / TS-shaped import vocabulary — that lives
- * only at the `lang.toImports` conversion seam.
+ * The neutral arguments the engine's `context.register` speaks — **pure
+ * data**, already standardised into language objects. `imports` are
+ * {@link ImportBase} (each language's register function converted its own
+ * concise form upstream); `definitions` are {@link DefinitionBase}. The
+ * engine never sees a concise / TS-shaped import vocabulary and never
+ * creates files: callers pre-create the destination file through their
+ * language (the lang's register function, the Drivers), and a file-miss
+ * here is a loud throw.
  */
 export type ContextRegisterArgs = {
   /** Standardised imports to merge into the destination file. */
@@ -338,17 +268,6 @@ export type ContextRegisterArgs = {
   definitions?: (DefinitionBase | undefined)[]
   /** The destination file path. */
   destinationPath: string
-  /**
-   * The id of the registering generator. When the destination file is new the
-   * engine creates it via `resolveLang(generatorId).createFile(...)` — the args
-   * stay pure data, the engine owns the language lookup.
-   *
-   * Optional (transitional — deleted in step 5 of the convergence tracker):
-   * lang-package callers (the lang's register function, the Drivers)
-   * pre-create the file through their own language, so the engine never
-   * needs to resolve one; a file-miss with no `generatorId` is a loud error.
-   */
-  generatorId?: string
 }
 
 /**
@@ -512,24 +431,8 @@ export type GenerateContextType = {
    */
   attribution?: AttributionState
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
-  defineAndRegister: <V extends GeneratedValue>({
-    identifier,
-    value,
-    destinationPath,
-    noExport,
-    generatorId
-  }: DefineAndRegisterArgs<V>) => DefinitionBase<V>
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   register: (args: ContextRegisterArgs) => void
-  /**
-   * Resolve a generator's {@link Lang} by its `id` from the generator config
-   * map (`toGeneratorConfigMap()[generatorId].lang`). The single source of
-   * truth for a generator's language: the engine reaches it this way for
-   * `register`'s `createFile`, Drivers reach a peer's lang by its `id`, and the
-   * lang-aware bases reach their own. Throws if the id is absent or declares no
-   * `lang`.
-   */
-  resolveLang: (generatorId: string) => Lang
   /** Look up an existing file by path (no creation); the neutral read primitive. */
   getFile: (filePath: string) => FileBase | undefined
   /** Store a language-constructed file; the neutral write primitive. */

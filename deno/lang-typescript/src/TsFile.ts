@@ -1,4 +1,5 @@
-import { CodeFileBase, normalizeModuleName } from '@skmtc/core'
+import { CodeFileBase } from '@skmtc/core'
+import { normalizeModuleName } from './normalizeModuleName.ts'
 import type { ClientSettings, Identifier, ImportBase, ModulePackage } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 

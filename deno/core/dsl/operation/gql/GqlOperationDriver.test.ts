@@ -15,7 +15,7 @@ import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { GqlOperation, type GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import { OasString } from '@/oas/string/String.ts'
-import { GqlOperationProjectionBase } from './GqlOperationProjectionBase.ts'
+import { SnippetBase } from '@/dsl/SnippetBase.ts'
 
 // ============================================================================
 // Test Helpers
@@ -86,7 +86,7 @@ const createMockProjection = (options?: {
   enrichments?: any
   isSupported?: () => boolean
 }): GqlOperationProjection<any, undefined> => {
-  class MockProjection extends GqlOperationProjectionBase<undefined> {
+  class MockProjection extends SnippetBase {
     static id = options?.id ?? 'MockProjection'
     // The static the Driver reads (`this.projection.lang`) — stands in for
     // the static a real projection inherits from its lang snippet base.
@@ -110,6 +110,9 @@ const createMockProjection = (options?: {
       return Identifier.createVariable(name)
     }
 
+    settings: ContentSettings<undefined>
+    operation: GqlOperation
+
     constructor(args: {
       context: GenerateContextType
       settings: ContentSettings<undefined>
@@ -117,12 +120,10 @@ const createMockProjection = (options?: {
     }) {
       const generatorKey = toKey(MockProjection.id, args.operation)
 
-      super({
-        context: args.context,
-        settings: args.settings,
-        operation: args.operation,
-        generatorKey
-      })
+      super({ context: args.context, generatorKey })
+
+      this.settings = args.settings
+      this.operation = args.operation
     }
 
     override toString(): string {
@@ -502,7 +503,7 @@ Deno.test('GqlOperationDriver', async t => {
       const { context } = createMockContext()
       let capturedArgs: any = null
 
-      class SpyProjection extends GqlOperationProjectionBase<undefined> {
+      class SpyProjection extends SnippetBase {
         static id = 'SpyProjection'
         static lang = typescript
         static type = 'gqlOperation' as const
@@ -518,12 +519,7 @@ Deno.test('GqlOperationDriver', async t => {
           operation: GqlOperation
         }) {
           const generatorKey = toKey('SpyProjection', args.operation)
-          super({
-            context: args.context,
-            settings: args.settings,
-            operation: args.operation,
-            generatorKey
-          })
+          super({ context: args.context, generatorKey })
           capturedArgs = args
         }
 
@@ -653,7 +649,7 @@ Deno.test('GqlOperationDriver', async t => {
     await t.step('should skip instantiation when definition cached', () => {
       let instantiated = false
 
-      class TrackingProjection extends GqlOperationProjectionBase<undefined> {
+      class TrackingProjection extends SnippetBase {
         static id = 'TrackingProjection'
         static lang = typescript
         static type = 'gqlOperation' as const
@@ -669,12 +665,7 @@ Deno.test('GqlOperationDriver', async t => {
           operation: GqlOperation
         }) {
           const generatorKey = toKey('TrackingProjection', args.operation)
-          super({
-            context: args.context,
-            settings: args.settings,
-            operation: args.operation,
-            generatorKey
-          })
+          super({ context: args.context, generatorKey })
           instantiated = true
         }
 

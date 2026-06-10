@@ -1,4 +1,3 @@
-import { typescript } from '@skmtc/lang-typescript'
 import { toGqlOperationEntry } from './toGqlOperationEntry.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -16,7 +15,6 @@ const createMockGqlOperation = () =>
 Deno.test('toGqlOperationEntry - returns object with id and type operation', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: () => {}
   })
 
@@ -31,7 +29,6 @@ Deno.test('toGqlOperationEntry - includes provided transform function', () => {
   }
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: transformFn
   })
 
@@ -48,7 +45,6 @@ Deno.test('toGqlOperationEntry - includes provided transform function', () => {
 Deno.test('toGqlOperationEntry - isSupported defaults to true when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: () => {}
   })
 
@@ -66,7 +62,6 @@ Deno.test('toGqlOperationEntry - isSupported defaults to true when not provided'
 Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: () => {}
   })
 
@@ -76,7 +71,6 @@ Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided'
 Deno.test('toGqlOperationEntry - toMappingModule is undefined when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: () => {}
   })
 
@@ -86,7 +80,6 @@ Deno.test('toGqlOperationEntry - toMappingModule is undefined when not provided'
 Deno.test('toGqlOperationEntry - toEnrichmentSchema is undefined when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: () => {}
   })
 
@@ -96,7 +89,6 @@ Deno.test('toGqlOperationEntry - toEnrichmentSchema is undefined when not provid
 Deno.test('toGqlOperationEntry - toEnrichmentRequest is undefined when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: () => {}
   })
 
@@ -114,7 +106,6 @@ Deno.test('toGqlOperationEntry - includes toPreviewModule when provided', () => 
 
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: () => {},
     toPreviewModule: previewFn
   })
@@ -134,7 +125,6 @@ Deno.test('toGqlOperationEntry - includes toMappingModule when provided', () => 
 
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: () => {},
     toMappingModule: mappingFn
   })
@@ -164,7 +154,6 @@ Deno.test('toGqlOperationEntry - includes all optional functions when provided',
 
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    lang: typescript,
     transform: transformFn,
     toPreviewModule: previewFn,
     toMappingModule: mappingFn,

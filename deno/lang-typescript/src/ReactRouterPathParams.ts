@@ -1,5 +1,5 @@
 import type { GenerateContextType, OasOperation, GeneratorKey } from '@skmtc/core'
-import { SnippetBase } from '@skmtc/core'
+import { TsSnippet } from './TsSnippet.ts'
 
 /**
  * Constructor arguments for {@link ReactRouterPathParams}.
@@ -111,7 +111,7 @@ type CreateArgs = {
  * // No imports registered for this case
  * ```
  */
-export class ReactRouterPathParams extends SnippetBase {
+export class ReactRouterPathParams extends TsSnippet {
   /** Generated code for extracting parameters from useParams() */
   getParams: string = ''
 

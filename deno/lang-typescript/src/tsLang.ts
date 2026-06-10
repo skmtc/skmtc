@@ -4,21 +4,18 @@ import { TsDefinition } from './TsDefinition.ts'
 import { TsImport } from './TsImport.ts'
 
 /**
- * The TypeScript {@link Lang} — the object a generator binds to its
- * projection base (`toModelProjectionBase({ lang: typescript })`) and that
- * {@link TypescriptSnippet} carries. The engine reaches TypeScript only
- * through these four neutral factories; it never names `TsFile` /
- * `TsDefinition` / `TsImport` itself.
+ * The TypeScript {@link Lang} — carried as the static `lang` on
+ * {@link import('./TsSnippet.ts').TsSnippet} and inherited by every class
+ * built on it. Its only consumers are the engine's Drivers, which read it
+ * off the projection class (`projection.lang`) ephemerally at each use
+ * site. The engine reaches TypeScript only through these neutral
+ * factories; it never names `TsFile` / `TsDefinition` / `TsImport` itself.
  */
 export const typescript: Lang = {
   createFile: ({ path, settings }) => new TsFile({ path, settings }),
 
   toDefinition: ({ context, identifier, value, noExport, description }) =>
     new TsDefinition({ context, identifier, value, noExport, description }),
-
-  // Concise generator input (`{ 'zod': ['z'] }`) -> one TsImport per module.
-  toImports: imports =>
-    Object.entries(imports).map(([module, names]) => TsImport.fromConcise(module, names)),
 
   // The Driver's cross-file import of a peer Definition's identifier.
   toImport: ({ identifier, module }) => TsImport.fromIdentifier(module, identifier)

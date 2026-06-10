@@ -15,7 +15,7 @@ import { Definition, DefinitionBase } from '@/dsl/Definition.ts'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Method } from '@/types/Method.ts'
-import { OasOperationProjectionBase } from './OasOperationProjectionBase.ts'
+import { SnippetBase } from '@/dsl/SnippetBase.ts'
 
 // ============================================================================
 // Test Helpers
@@ -84,7 +84,7 @@ const createMockProjection = (options?: {
   enrichments?: any
   isSupported?: () => boolean
 }): OasOperationProjection<any, undefined> => {
-  class MockProjection extends OasOperationProjectionBase<undefined> {
+  class MockProjection extends SnippetBase {
     static id = options?.id ?? 'MockProjection'
     static type = 'oasOperation' as const
     // The static the Driver reads (`this.projection.lang`) — stands in for
@@ -108,6 +108,9 @@ const createMockProjection = (options?: {
       return Identifier.createVariable(name)
     }
 
+    settings: ContentSettings<undefined>
+    operation: OasOperation
+
     constructor(args: {
       context: GenerateContextType
       settings: ContentSettings<undefined>
@@ -117,16 +120,13 @@ const createMockProjection = (options?: {
       const generatorKey = toOasOperationGeneratorKey({
         generatorId: MockProjection.id,
         operation: args.operation,
-      variant: 'main'
+        variant: 'main'
       })
 
-      // Call parent constructor with all required arguments
-      super({
-        context: args.context,
-        settings: args.settings,
-        operation: args.operation,
-        generatorKey
-      })
+      super({ context: args.context, generatorKey })
+
+      this.settings = args.settings
+      this.operation = args.operation
     }
 
     // The instance itself is the generated value, so it needs toString()
@@ -516,7 +516,7 @@ Deno.test('OasOperationDriver', async t => {
       const { context } = createMockContext()
       let capturedArgs: any = null
 
-      class SpyProjection extends OasOperationProjectionBase<undefined> {
+      class SpyProjection extends SnippetBase {
         static id = 'SpyProjection'
         static type = 'oasOperation' as const
         static lang = typescript
@@ -534,14 +534,9 @@ Deno.test('OasOperationDriver', async t => {
           const generatorKey = toOasOperationGeneratorKey({
             generatorId: 'SpyProjection',
             operation: args.operation,
-      variant: 'main'
+            variant: 'main'
           })
-          super({
-            context: args.context,
-            settings: args.settings,
-            operation: args.operation,
-            generatorKey
-          })
+          super({ context: args.context, generatorKey })
           capturedArgs = args
         }
 
@@ -675,9 +670,10 @@ Deno.test('OasOperationDriver', async t => {
     await t.step('should skip instantiation when definition cached', () => {
       let instantiated = false
 
-      class TrackingProjection extends OasOperationProjectionBase<undefined> {
+      class TrackingProjection extends SnippetBase {
         static id = 'TrackingProjection'
         static type = 'oasOperation' as const
+        static lang = typescript
         static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
           Identifier.createVariable(operation.operationId ?? 'op')
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
@@ -692,14 +688,9 @@ Deno.test('OasOperationDriver', async t => {
           const generatorKey = toOasOperationGeneratorKey({
             generatorId: 'TrackingProjection',
             operation: args.operation,
-      variant: 'main'
+            variant: 'main'
           })
-          super({
-            context: args.context,
-            settings: args.settings,
-            operation: args.operation,
-            generatorKey
-          })
+          super({ context: args.context, generatorKey })
           instantiated = true
         }
 

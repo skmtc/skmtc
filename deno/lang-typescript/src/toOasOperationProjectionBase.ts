@@ -44,7 +44,7 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
      * (`this.settings.exportPath`). For a different file use
      * {@link registerInto}.
      */
-    override register(args: TsRegisterArgs): void {
+    register(args: TsRegisterArgs): void {
       register(this.context, { ...args, destinationPath: this.settings.exportPath })
     }
 

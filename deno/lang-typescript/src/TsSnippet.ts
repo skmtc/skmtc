@@ -36,7 +36,7 @@ export class TsSnippet extends SnippetBase {
    * typed by TypeScript's concise vocabulary — keyless: no `generatorId`
    * resolution, no `generatorKey` requirement.
    */
-  override register(args: TsRegisterArgs & { destinationPath: string }): void {
+  register(args: TsRegisterArgs & { destinationPath: string }): void {
     register(this.context, args)
   }
 
@@ -44,7 +44,7 @@ export class TsSnippet extends SnippetBase {
    * Build a {@link TsDefinition} from `value` and register it at
    * `destinationPath`.
    */
-  override defineAndRegister<Value extends GeneratedValue>(
+  defineAndRegister<Value extends GeneratedValue>(
     args: TsDefineAndRegisterArgs<Value>
   ): TsDefinition<Value> {
     return defineAndRegister(this.context, args)

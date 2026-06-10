@@ -118,12 +118,6 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
 export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
-  /**
-   * The target language for this generator. The engine resolves it by
-   * `generatorId` (`resolveLang`) — the single source of truth for the
-   * generator's language. Set by the author via `toModelEntry({ lang })`.
-   */
-  lang: Lang
   transform: ({ context, refName, variant }: TransformModelArgs) => void
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule

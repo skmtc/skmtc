@@ -1,5 +1,18 @@
 import { ImportBase, List } from '@skmtc/core'
-import type { Identifier, ImportNameArg } from '@skmtc/core'
+import type { Identifier, EntityTypeValue } from '@skmtc/core'
+
+/**
+ * The concise import form a TypeScript generator passes to `register` —
+ * `'z'`, `{ User: 'IUser' }` (aliased record), or
+ * `{ name, alias?, type? }` (the `type: 'type'` tag drives type-only
+ * imports under `verbatimModuleSyntax`). Owned by this package: the
+ * concise vocabulary is language-specific, so each `lang-*` package
+ * defines its own; the neutral engine never sees it.
+ */
+export type ImportNameArg =
+  | string
+  | { [name: string]: string }
+  | { name: string; alias?: string; type?: EntityTypeValue }
 
 /**
  * A single imported symbol on a {@link TsImport}.

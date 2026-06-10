@@ -46,10 +46,11 @@
  * The discriminator string an entity-type carries.
  *
  * Shared between {@link EntityType} (the class that wraps it and adds
- * the `'const' | 'type'` keyword mapping) and the import-registration
- * API ({@link ImportNameArg}'s `type` field), so an {@link Identifier}
- * can hand its `entityType.type` directly to `register({ imports })`
- * without instantiating a new EntityType.
+ * the `'const' | 'type'` keyword mapping) and the concise import form
+ * each language package's register vocabulary accepts (its `type`
+ * field), so an {@link Identifier} can hand its `entityType.type`
+ * directly to `register({ imports })` without instantiating a new
+ * EntityType.
  *
  * - `'variable'` — value imports (`import { Foo }`) and `const`
  *   declarations.

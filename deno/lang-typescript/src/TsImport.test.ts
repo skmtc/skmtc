@@ -1,48 +1,72 @@
 import { assertEquals } from '@std/assert'
-import { Identifier, Import } from '@skmtc/core'
-import type { ImportNameArg } from '@skmtc/core'
-import { TsImport } from './TsImport.ts'
+import { Identifier } from '@skmtc/core'
+import { TsImport, type ImportNameArg } from './TsImport.ts'
 
 /**
- * `TsImport` must render byte-identically to the engine's legacy `Import`
- * for every shape a generator emits — it's the same output, just owned by
- * the language package now. When core's `Import` is eventually deleted,
- * this test is what proves the move was lossless.
+ * `TsImport` must keep rendering the exact statements the engine's legacy
+ * `Import` produced — the expected strings below were pinned against it
+ * before core's `Import` was deleted (step 5 of the convergence tracker),
+ * so these literals are what proves the move was lossless.
  */
-const cases: { name: string; module: string; names: ImportNameArg[] }[] = [
-  { name: 'plain value imports', module: 'zod', names: ['z'] },
-  { name: 'multiple value imports', module: './utils', names: ['formatDate', 'parseJson'] },
-  { name: 'alias record', module: 'lodash', names: [{ isEqual: 'deepEqual' }, 'cloneDeep'] },
-  { name: 'explicit type import (statement-level)', module: 'react', names: [{ name: 'FC', type: 'type' }] },
+const cases: { name: string; module: string; names: ImportNameArg[]; expected: string }[] = [
+  { name: 'plain value imports', module: 'zod', names: ['z'], expected: `import {z} from 'zod'` },
+  {
+    name: 'multiple value imports',
+    module: './utils',
+    names: ['formatDate', 'parseJson'],
+    expected: `import {formatDate, parseJson} from './utils'`
+  },
+  {
+    name: 'alias record',
+    module: 'lodash',
+    names: [{ isEqual: 'deepEqual' }, 'cloneDeep'],
+    expected: `import {isEqual as deepEqual, cloneDeep} from 'lodash'`
+  },
+  {
+    name: 'explicit type import (statement-level)',
+    module: 'react',
+    names: [{ name: 'FC', type: 'type' }],
+    expected: `import type {FC} from 'react'`
+  },
   {
     name: 'mixed type and value (per-name type)',
     module: '@/models',
-    names: [{ name: 'User', type: 'type' }, 'createUser']
+    names: [{ name: 'User', type: 'type' }, 'createUser'],
+    expected: `import {type User, createUser} from '@/models'`
   },
-  { name: 'type alias', module: '@/models', names: [{ name: 'User', alias: 'IUser', type: 'type' }] },
-  { name: 'namespace import', module: 'react', names: [{ '*': 'React' }] }
+  {
+    name: 'type alias',
+    module: '@/models',
+    names: [{ name: 'User', alias: 'IUser', type: 'type' }],
+    expected: `import type {User as IUser} from '@/models'`
+  },
+  {
+    name: 'namespace import',
+    module: 'react',
+    names: [{ '*': 'React' }],
+    expected: `import * as React from 'react'`
+  }
 ]
 
 for (const testCase of cases) {
-  Deno.test(`TsImport byte-identical to Import — ${testCase.name}`, () => {
-    const legacy = new Import({ module: testCase.module, importNames: testCase.names }).toString()
+  Deno.test(`TsImport renders the legacy-pinned statement — ${testCase.name}`, () => {
     const tsImport = TsImport.fromConcise(testCase.module, testCase.names).toString()
 
-    assertEquals(tsImport, legacy)
+    assertEquals(tsImport, testCase.expected)
   })
 }
 
-Deno.test('TsImport.fromIdentifier byte-identical to Import of identifier.toImport()', () => {
+Deno.test('TsImport.fromIdentifier threads the entity type into the import form', () => {
   const variableIdentifier = Identifier.createVariable('useThing')
   const typeIdentifier = Identifier.createType('Thing')
 
   assertEquals(
     TsImport.fromIdentifier('@/hooks', variableIdentifier).toString(),
-    new Import({ module: '@/hooks', importNames: [variableIdentifier.toImport()] }).toString()
+    `import {useThing} from '@/hooks'`
   )
   assertEquals(
     TsImport.fromIdentifier('@/types', typeIdentifier).toString(),
-    new Import({ module: '@/types', importNames: [typeIdentifier.toImport()] }).toString()
+    `import type {Thing} from '@/types'`
   )
 })
 

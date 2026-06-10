@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert/equals'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { Import, ImportName } from '@/dsl/Import.ts'
+import { TsImport } from '@skmtc/lang-typescript'
 
 Deno.test('Identifier.createVariable - creates untyped variable', () => {
   const identifier = Identifier.createVariable('userName')
@@ -39,14 +39,13 @@ Deno.test('Identifier - toString returns identifier name', () => {
 
 Deno.test('Identifier.toImport - variable identifier emits a bare string', () => {
   // Variable identifiers serialize as bare strings — the canonical
-  // wire shape for plain value imports. This matches `Import#toRecord`
-  // output and keeps consumers (including Driver-internal register
-  // calls) compatible with hand-written `imports: { 'x': ['Foo'] }`.
+  // concise wire shape for plain value imports, keeping consumers
+  // compatible with hand-written `imports: { 'x': ['Foo'] }`.
   const id = Identifier.createVariable('useCustomer')
   assertEquals(id.toImport(), 'useCustomer')
 
-  const importName = new ImportName(id.toImport())
-  assertEquals(importName.toString(), 'useCustomer')
+  const rendered = TsImport.fromConcise('./api', [id.toImport()]).toString()
+  assertEquals(rendered, `import {useCustomer} from './api'`)
 })
 
 Deno.test(
@@ -58,8 +57,8 @@ Deno.test(
       { useCustomer: 'useCust' }
     )
 
-    const importName = new ImportName(id.toImport({ alias: 'useCust' }))
-    assertEquals(importName.toString(), 'useCustomer as useCust')
+    const rendered = TsImport.fromConcise('./api', [id.toImport({ alias: 'useCust' })]).toString()
+    assertEquals(rendered, `import {useCustomer as useCust} from './api'`)
   }
 )
 
@@ -67,8 +66,8 @@ Deno.test('Identifier.toImport - type identifier emits the explicit type-import 
   const id = Identifier.createType('UserDto')
   assertEquals(id.toImport(), { name: 'UserDto', type: 'type' })
 
-  const importName = new ImportName(id.toImport())
-  assertEquals(importName.toString(), 'type UserDto')
+  const rendered = TsImport.fromConcise('./api', ['useThing', id.toImport()]).toString()
+  assertEquals(rendered, `import {useThing, type UserDto} from './api'`)
 })
 
 Deno.test('Identifier.toImport - type identifier with alias keeps the explicit object', () => {
@@ -78,8 +77,8 @@ Deno.test('Identifier.toImport - type identifier with alias keeps the explicit o
     { name: 'User', alias: 'IUser', type: 'type' }
   )
 
-  const importName = new ImportName(id.toImport({ alias: 'IUser' }))
-  assertEquals(importName.toString(), 'type User as IUser')
+  const rendered = TsImport.fromConcise('./api', ['useThing', id.toImport({ alias: 'IUser' })]).toString()
+  assertEquals(rendered, `import {useThing, type User as IUser} from './api'`)
 })
 
 Deno.test('Identifier.toImport - integrates with Import statement rendering', () => {
@@ -90,10 +89,7 @@ Deno.test('Identifier.toImport - integrates with Import statement rendering', ()
   const typeId = Identifier.createType('UserDto')
   const varId = Identifier.createVariable('useCustomer')
 
-  const statement = new Import({
-    module: './api',
-    importNames: [varId.toImport(), typeId.toImport()]
-  })
+  const statement = TsImport.fromConcise('./api', [varId.toImport(), typeId.toImport()])
 
   assertEquals(
     statement.toString(),
@@ -107,10 +103,7 @@ Deno.test('Identifier.toImport - all-type list renders statement-level import ty
   const a = Identifier.createType('UserDto')
   const b = Identifier.createType('OrderDto')
 
-  const statement = new Import({
-    module: './types',
-    importNames: [a.toImport(), b.toImport()]
-  })
+  const statement = TsImport.fromConcise('./types', [a.toImport(), b.toImport()])
 
   assertEquals(
     statement.toString(),

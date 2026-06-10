@@ -38,8 +38,9 @@
  * - {@link toArtifacts} - Primary transformation function
  * - {@link SnippetBase} - Abstract root for both Projections (named, exported
  *   artifacts) and Snippets (anonymous, embedded values)
- * - {@link ModelProjectionBase}, {@link OasOperationProjectionBase}, and
- *   {@link GqlOperationProjectionBase} - extended by user-authored projections
+ * - {@link toModelProjectionBase}, {@link toOasOperationProjectionBase}, and
+ *   {@link toGqlOperationProjectionBase} - the projection-base factories
+ *   language packages build their veneers on
  * - {@link List} - Powerful string manipulation and code generation utility
  *
  * ## Type System
@@ -75,30 +76,24 @@ export * from './context/generateTypes.ts'
 export * from './dsl/constants.ts'
 export * from './dsl/SnippetBase.ts'
 export * from './dsl/Lang.ts'
-export * from './dsl/langRegister.ts'
 export * from './dsl/ContentSettings.ts'
 export * from './dsl/Definition.ts'
 export * from './dsl/EntityType.ts'
 export * from './dsl/FileBase.ts'
 export * from './dsl/CodeFileBase.ts'
 export * from './dsl/ImportBase.ts'
-export * from './dsl/File.ts'
 export * from './dsl/JsonFile.ts'
 export * from './dsl/GeneratedValueList.ts'
 export * from './dsl/Identifier.ts'
-export * from './dsl/Import.ts'
 export * from './dsl/Inserted.ts'
-export * from './dsl/model/ModelProjectionBase.ts'
 export * from './dsl/model/ModelDriver.ts'
 export * from './dsl/model/toModelProjectionBase.ts'
 export * from './dsl/model/toModelEntry.ts'
 export * from './dsl/model/types.ts'
-export * from './dsl/operation/oas/OasOperationProjectionBase.ts'
 export * from './dsl/operation/oas/OasOperationDriver.ts'
 export * from './dsl/operation/oas/toOasOperationProjectionBase.ts'
 export * from './dsl/operation/oas/toOasOperationEntry.ts'
 export * from './dsl/operation/oas/types.ts'
-export * from './dsl/operation/gql/GqlOperationProjectionBase.ts'
 export * from './dsl/operation/gql/GqlOperationDriver.ts'
 export * from './dsl/operation/gql/toGqlOperationProjectionBase.ts'
 export * from './dsl/operation/gql/toGqlOperationEntry.ts'

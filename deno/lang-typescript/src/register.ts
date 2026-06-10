@@ -3,11 +3,10 @@ import type {
   DefinitionBase,
   GenerateContextType,
   GeneratedValue,
-  Identifier,
-  ImportNameArg
+  Identifier
 } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
-import { TsImport } from './TsImport.ts'
+import { TsImport, type ImportNameArg } from './TsImport.ts'
 import { TsDefinition } from './TsDefinition.ts'
 
 /**

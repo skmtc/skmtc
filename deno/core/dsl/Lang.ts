@@ -3,7 +3,6 @@ import type { FileBase } from '@/dsl/FileBase.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { ImportNameArg } from '@/dsl/Import.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { SnippetBase, SnippetBaseArgs } from '@/dsl/SnippetBase.ts'
@@ -42,19 +41,18 @@ export type LangToImportArgs = {
  *
  * - `createFile` — construct this language's file for a path.
  * - `toDefinition` — wrap a generated value in this language's `Definition`.
- * - `toImports` — convert the concise, generator-facing import form
- *   (`{ 'zod': ['z'] }`) into this language's `ImportBase` objects. The
- *   concise/TS-shaped vocabulary lives only here, at the conversion seam.
  * - `toImport` — build the import of a single peer `Identifier` from a
  *   module (the Driver's cross-file import).
+ *
+ * There is deliberately no concise-import conversion here: the concise
+ * vocabulary is intra-lang-package (each language's register function
+ * converts its own form), so the neutral interface never names one.
  */
 export type Lang = {
   /** Construct the language's file for `path`. */
   createFile: (args: { path: string; settings: ClientSettings | undefined }) => FileBase
   /** Wrap a generated `value` in this language's `Definition` subclass. */
   toDefinition: <V extends GeneratedValue>(args: LangToDefinitionArgs<V>) => DefinitionBase<V>
-  /** Convert the concise import form into this language's `ImportBase` objects. */
-  toImports: (imports: Record<string, ImportNameArg[]>) => ImportBase[]
   /** Build the import of one peer `Identifier` from a module. */
   toImport: (args: LangToImportArgs) => ImportBase
 }

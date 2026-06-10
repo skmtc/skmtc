@@ -8,7 +8,6 @@ import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
 import type {
   BuildModelSettingsArgs,
-  DefineAndRegisterArgs,
   GenerateContextType,
   GenerateResult,
   InsertGqlOperationArgs,
@@ -59,10 +58,8 @@ import { Inserted } from '@/dsl/Inserted.ts'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
-import { langDefineAndRegister } from '@/dsl/langRegister.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import type {
   OasOperationSource,
   GqlOperationSource,
@@ -753,84 +750,6 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
-   * Resolve a generator's {@link Lang} by its `id` from the generator config
-   * map. The single source of truth for a generator's language: `register`
-   * reaches it for `createFile`, Drivers reach a peer's lang by its `id`
-   * (works on cache-hit — no construction needed), and the lang-aware bases
-   * reach their own. Throws when the id is absent or declares no `lang`,
-   * surfacing a genuine misconfiguration loudly.
-   */
-  resolveLang(generatorId: string): Lang {
-    const config = this.toGeneratorConfigMap()[generatorId]
-
-    invariant(
-      config,
-      `Cannot resolve language for generator '${generatorId}': not in the generator config map. ` +
-        `A generator must be installed/configured to be inserted as a peer.`
-    )
-
-    invariant(config.lang, `Generator '${generatorId}' declares no 'lang'.`)
-
-    return config.lang
-  }
-
-  /**
-   * Create and register a definition with the given `identifier` at `destinationPath`.
-   *
-   * @experimental
-   */
-  defineAndRegister<V extends GeneratedValue>({
-    identifier,
-    value,
-    destinationPath,
-    noExport,
-    generatorId
-  }: DefineAndRegisterArgs<V>): DefinitionBase<V> {
-    // @TODO cache check is duplicatd if call comes from
-    // createAndRegisterDefinition. Look for a way to share code between
-    // these two functions
-    const cachedDefinition = this.findDefinition({
-      name: identifier.name,
-      exportPath: destinationPath
-    })
-
-    // @TODO add check to make sure retrieved definition
-    // used same generator and same schema #SKM-47
-    if (cachedDefinition) {
-      return cachedDefinition as DefinitionBase<V>
-    }
-
-    return this.#defineAndRegister({
-      identifier,
-      value,
-      destinationPath,
-      noExport,
-      generatorId
-    })
-  }
-
-  /**
-   * Create and register a definition with the given `identifier` at `destinationPath` without duplication checks.
-   *
-   * @experimental
-   */
-  #defineAndRegister<V extends GeneratedValue>({
-    identifier,
-    value,
-    destinationPath,
-    noExport,
-    generatorId
-  }: DefineAndRegisterArgs<V>): DefinitionBase<V> {
-    // The language (resolved by `generatorId`) builds its own `Definition`
-    // (via `lang.toDefinition`) and the neutral `context.register` creates the
-    // destination file in that language on first write.
-    return langDefineAndRegister(
-      { context: this, generatorId },
-      { identifier, value, destinationPath, noExport }
-    )
-  }
-
-  /**
    * Registers JSON content for output to a file.
    *
    * @experimental This method is experimental and may change in future versions
@@ -865,30 +784,21 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  register({ imports = [], definitions, destinationPath, generatorId }: ContextRegisterArgs) {
+  register({ imports = [], definitions, destinationPath }: ContextRegisterArgs) {
     const normalizedPath = normalize(destinationPath)
 
-    let currentFile = this.getFile(normalizedPath)
+    const currentFile = this.getFile(normalizedPath)
 
-    if (!currentFile) {
-      // First write to this path creates the file. The engine never names a
-      // file class — it resolves the registering generator's language by
-      // `generatorId` and lets that language build its own file. Lang-package
-      // callers (the lang's register function, the Drivers) pre-create the
-      // file instead and pass no generatorId; reaching this branch without
-      // one is a bug at the caller.
-      invariant(
-        generatorId,
-        `Cannot create file '${normalizedPath}' — no generatorId to resolve a ` +
-          `language. Either pass generatorId, or pre-create the file through ` +
-          `your lang (its register function does this).`
-      )
-      currentFile = this.resolveLang(generatorId).createFile({
-        path: normalizedPath,
-        settings: this.settings
-      })
-      this.addFile(currentFile)
-    }
+    // `register` never creates files — it speaks pure data and the engine
+    // never names a file class. Callers pre-create the destination file
+    // through their language (the lang package's register function, the
+    // Drivers' ensureFile); reaching a file-miss here is a bug at the
+    // caller.
+    invariant(
+      currentFile,
+      `Cannot register into '${normalizedPath}' — the file does not exist. ` +
+        `Pre-create it through your lang (its register function does this).`
+    )
 
     // Definitions merge is language-neutral — `addDefinition` lives on
     // `FileBase`, so this works for any language's file.
@@ -993,13 +903,25 @@ export class GenerateContext implements GenerateContextType {
       required: true
     })
 
-    const definition = this.#defineAndRegister({
+    // The inline-schema fallback builds the Definition through the
+    // projection's language — the static read off the projection class at
+    // the use site (same ephemeral read the Drivers make) — pre-creates
+    // the destination file caller-side, and stores via the pure-data
+    // `register`.
+    const normalizedPath = normalize(destinationPath)
+
+    if (!this.getFile(normalizedPath)) {
+      this.addFile(projection.lang.createFile({ path: normalizedPath, settings: this.settings }))
+    }
+
+    const definition = projection.lang.toDefinition({
+      context: this,
       identifier: projection.createIdentifier(fallbackName),
       value,
-      destinationPath,
-      noExport,
-      generatorId: projection.id
+      noExport
     })
+
+    this.register({ definitions: [definition], destinationPath: normalizedPath })
 
     // @TODO Using mapped types would help avoid generics casting
     return definition as InsertNormalizedModelReturn<V, Schema>
