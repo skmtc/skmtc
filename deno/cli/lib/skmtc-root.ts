@@ -7,7 +7,7 @@ import cliDenoJson from '../deno.json' with { type: 'json' }
 import { compare } from '@std/semver/compare'
 import { parse } from '@std/semver/parse'
 import invariant from 'tiny-invariant'
-import type { Generator } from '@/types/generator.generated.ts'
+import type { Generator } from '@/types/generator.ts'
 
 type CreateProjectArgs = {
   name: string

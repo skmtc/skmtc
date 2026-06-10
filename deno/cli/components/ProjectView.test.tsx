@@ -5,34 +5,20 @@ import { ProjectView } from './ProjectView.tsx'
 import { SkmtcProvider, type SkmtcState } from './SkmtcContext.tsx'
 import { createTestSession } from '@/tests/mocks/session.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import type { Generator } from '@/types/generator.generated.ts'
+import type { Generator } from '@/types/generator.ts'
 import type { Project } from '@/lib/project.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
   {
-    id: '1',
-    name: 'TypeScript Generator',
-    description: 'Generate TypeScript types',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-typescript',
-    registryUrl: 'https://jsr.io/@skmtc/gen-typescript',
-    readme: 'TypeScript generator',
     scope: 'skmtc',
     packageName: 'gen-typescript',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   },
   {
-    id: '2',
-    name: 'Zod Generator',
-    description: 'Generate Zod schemas',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-zod',
-    registryUrl: 'https://jsr.io/@skmtc/gen-zod',
-    readme: 'Zod generator',
     scope: 'skmtc',
     packageName: 'gen-zod',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   }
 ]
 // Mock setup helpers

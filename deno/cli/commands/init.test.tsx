@@ -10,36 +10,21 @@ import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
-import type { Generator } from '@/types/generator.generated.ts'
-import { getApiGenerators } from '@/services/getApiGenerators.generated.ts'
+import type { Generator } from '@/types/generator.ts'
 import { withCapturedExit, withFakeTty } from '@/tests/strict-mode-helpers.test.ts'
 import { validateBasePath, InvalidBasePathError } from '@/lib/init-headless.ts'
 import { assertThrows } from '@std/assert/throws'
 
 const mockGenerators: Generator[] = [
   {
-    id: '1',
-    name: 'TypeScript Generator',
-    description: 'Generate TypeScript types',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-typescript',
-    registryUrl: 'https://jsr.io/@skmtc/gen-typescript',
-    readme: 'TypeScript generator',
     scope: 'skmtc',
     packageName: 'gen-typescript',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   },
   {
-    id: '2',
-    name: 'Zod Generator',
-    description: 'Generate Zod schemas',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-zod',
-    registryUrl: 'https://jsr.io/@skmtc/gen-zod',
-    readme: 'Zod generator',
     scope: 'skmtc',
     packageName: 'gen-zod',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   }
 ]
 
@@ -227,27 +212,8 @@ Deno.test(
   }
 )
 
-Deno.test('init - getApiGenerators returns mocked generators', async () => {
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-
-  // Mock the generators API response
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
-
-  const generators = await getApiGenerators({ supabase: supabaseClient })
-
-  assertEquals(generators.length, 2)
-  assertEquals(generators[0].packageName, 'gen-typescript')
-  assertEquals(generators[1].packageName, 'gen-zod')
-})
-
 Deno.test('init - creates new project with multiple generators', async () => {
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-
-  // Mock the generators API response
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
-
   const manager = createMockManager()
-  manager.auth.supabase = supabaseClient
 
   const skmtcRoot = createMockSkmtcRoot(manager, { projects: [] })
 
@@ -271,8 +237,12 @@ Deno.test('init - creates new project with multiple generators', async () => {
   const generators = ['@skmtc/gen-typescript', '@skmtc/gen-zod']
   const basePath = 'src'
 
-  const availableGenerators = await getApiGenerators({ supabase: supabaseClient })
-  await skmtcRoot.createProject({ name: projectName, basePath, generators, availableGenerators })
+  await skmtcRoot.createProject({
+    name: projectName,
+    basePath,
+    generators,
+    availableGenerators: mockGenerators
+  })
 
   assertEquals(createdProject.name, 'my-new-project')
   assertEquals(createdProject.basePath, 'src')
@@ -280,13 +250,7 @@ Deno.test('init - creates new project with multiple generators', async () => {
 })
 
 Deno.test('init - handles project creation with single generator', async () => {
-  const { client: supabaseClient, mock: supabaseMock } = createMockSupabaseClient()
-
-  // Mock the generators API response
-  supabaseMock.mockResponse('/generators', { data: mockGenerators })
-
   const manager = createMockManager()
-  manager.auth.supabase = supabaseClient
 
   const skmtcRoot = createMockSkmtcRoot(manager, { projects: [] })
 
@@ -310,8 +274,12 @@ Deno.test('init - handles project creation with single generator', async () => {
   const generators = ['@skmtc/gen-typescript']
   const basePath = './lib'
 
-  const availableGenerators = await getApiGenerators({ supabase: supabaseClient })
-  await skmtcRoot.createProject({ name: projectName, basePath, generators, availableGenerators })
+  await skmtcRoot.createProject({
+    name: projectName,
+    basePath,
+    generators,
+    availableGenerators: mockGenerators
+  })
 
   assertEquals(createdProject.name, 'simple-project')
   assertEquals(createdProject.basePath, './lib')

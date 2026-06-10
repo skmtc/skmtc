@@ -1,23 +1,16 @@
 import { assertEquals } from '@std/assert'
 import { getDependencyIds } from '@/lib/project.ts'
-import type { Generator } from '@/types/generator.generated.ts'
+import type { Generator } from '@/types/generator.ts'
 // Helper to create a mock generator
 const createMockGenerator = (
-  id: string,
+  _id: string,
   scope: string,
   packageName: string,
   dependencies: string[] = []
 ): Generator => ({
-  id,
-  name: packageName,
   scope,
   packageName,
-  dependencies,
-  description: 'Test generator',
-  sourceUrl: 'https://github.com/test',
-  registryUrl: `jsr:@${scope}/${packageName}`,
-  readme: 'Test readme',
-  createdAt: '2024-01-01'
+  dependencies
 })
 // Tests for getDependencyIds utility function
 Deno.test('getDependencyIds - returns original set when no dependencies', () => {

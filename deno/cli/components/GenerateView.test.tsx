@@ -21,16 +21,9 @@ const minimalOpenAPISchema = JSON.stringify({
 // Mock generators data to prevent API calls
 const mockGenerators = [
   {
-    id: '1',
-    name: 'TypeScript Generator',
-    description: 'Generate TypeScript types',
-    dependencies: [],
-    sourceUrl: 'https://github.com/skmtc/gen-typescript',
-    registryUrl: 'https://jsr.io/@skmtc/gen-typescript',
-    readme: 'TypeScript generator',
     scope: 'skmtc',
     packageName: 'gen-typescript',
-    createdAt: '2024-01-01T00:00:00Z'
+    dependencies: []
   }
 ]
 

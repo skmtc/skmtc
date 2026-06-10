@@ -6,23 +6,16 @@ import { SkmtcProvider } from '@/components/SkmtcContext.tsx'
 import type { ViewState } from '@/components/SkmtcContext.tsx'
 import denoJson from '../../deno.json' with { type: 'json' }
 import { assertExists } from '@std/assert/exists'
-import type { Generator } from '@/types/generator.generated.ts'
+import type { Generator } from '@/types/generator.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 
 // Mock modules before importing components that use them
 const mockGenerators: Generator[] = [
   {
-    id: '1',
-    name: 'test-generator',
-    description: 'Test generator',
-    dependencies: [],
-    sourceUrl: 'https://example.com',
-    registryUrl: 'https://jsr.io/@test/generator',
-    readme: 'Test readme',
     scope: '@test',
     packageName: '@test/generator',
-    createdAt: '2024-01-01'
+    dependencies: []
   }
 ]
 
