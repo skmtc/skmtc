@@ -39,6 +39,7 @@ philosophy.
 | `@skmtc/gen-zod` | Zod validation schemas | [gen-zod](gen-zod.md) |
 | `@skmtc/gen-valibot` | Valibot validation schemas | [gen-valibot](gen-valibot.md) |
 | `@skmtc/gen-arktype` | ArkType validation schemas | [gen-arktype](gen-arktype.md) |
+| `@skmtc/gen-kotlin` | Kotlin DTOs (`kotlinx.serialization` data classes) — the first non-TypeScript target | [gen-kotlin](gen-kotlin.md) |
 
 ### Client-side (data fetching, mocks)
 

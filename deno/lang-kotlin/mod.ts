@@ -1,25 +1,23 @@
 /**
  * @module @skmtc/lang-kotlin
  *
- * SKMTC language package for **kotlin** (Roadmap).
+ * The Kotlin target-language layer for SKMTC generators.
  *
- * Tests / exercises: top-level fun/val, `as` import aliases, `data class` DTOs, relaxed file-name-vs-class rule, sealed classes
+ * Status: **production (Phase D complete).** The full register/write
+ * path on the frozen language seam: the `kotlin` {@link Lang} object,
+ * `KtSnippet` (static `lang`, keyless registers), the register family
+ * (`register`/`defineAndRegister` + `KtRegisterArgs` — deliberately no
+ * `reExports` field), the model projection-base veneer, `KtFile`
+ * (path-derived `package` directive, sorted imports, same-package
+ * suppression), `KtImport` (symbol-level, `as` aliases), `KtDefinition`
+ * (exhaustive five-kind shells, `KtAnnotated` protocol, KDoc), the
+ * identifier factories, `sanitizePropertyName` (hard keywords +
+ * backticks), and `toPackageName` (segment-validated).
  *
- * Planned contents (see ../../notes/lang/03-architecture.md):
- *   - concrete `File` / `Import` / `Identifier` / `Definition`
- *     subclasses of the abstract bases in `@skmtc/core` — each renders
- *     itself in its own `toString()`
- *   - the `register` family (`register`, `defineAndRegister`)
- *   - this language's `EntityKind` vocabulary
- *   - `sanitizePropertyName` + identifier/casing/visibility rules
- *   - syntax helpers
- *
- * Status: **early spike (roadmap tier).** `KtFile`/`KtDefinition`/
- * `KtDataClass` render a `data class` DTO and a top-level `val`. One
- * Definition subclass spans both shells (container vs assignment) via the
- * opaque `kind`; the top-level `val` is Kotlin's distinctive file-scope
- * value (illegal in C#/PHP/Java). Sixth `exported` behaviour (public
- * default, `private` to restrict). Not yet wired into the engine.
+ * Grammar only: serialization flavor (kotlinx annotations) is generator
+ * policy — `@skmtc/gen-kotlin` is the proving generator. Architecture
+ * spec: `notes/lang/19-kotlin-architecture.md`. Template:
+ * `@skmtc/lang-typescript`.
  */
 
 /** The language id this package targets. */
