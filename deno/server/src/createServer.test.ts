@@ -97,9 +97,7 @@ Deno.test('GET /generators - lists configured generator IDs', async () => {
   const modelGen: ModelConfig = {
     id: 'modelGen',
     type: 'model',
-    transform<Acc = void>({ acc }: TransformModelArgs<Acc>): Acc {
-      return acc as Acc
-    }
+    transform(_args: TransformModelArgs): void {}
   }
   const app = createServer({
     toGeneratorConfigMap: (() => ({ modelGen })) as <
@@ -119,9 +117,7 @@ Deno.test('POST /descriptors - returns one descriptor per generator', async () =
     id: 'modelGen',
     type: 'model',
     toEnrichmentSchema: () => v.object({ coerce: v.optional(v.boolean()) }),
-    transform<Acc = void>({ acc }: TransformModelArgs<Acc>): Acc {
-      return acc as Acc
-    }
+    transform(_args: TransformModelArgs): void {}
   }
   const app = createServer({
     toGeneratorConfigMap: (() => ({ modelGen })) as <
