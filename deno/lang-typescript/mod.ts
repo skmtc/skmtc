@@ -10,7 +10,7 @@
  * `File`/`Import`/`Definition` (pinned by `src/*.test.ts`), so moving
  * rendering out of core is lossless.
  *
- * Still to land (see ../../notes/lang/09-migration-checklist.md):
+ * Still to land (see ../../notes/lang/checklist.md):
  *   - `tsLang: Lang` + `TypescriptSnippet` + `toTypescript*ProjectionBase`
  *   - the `register` family (concise → `ImportBase[]` conversion)
  *   - `/oas` and `/gql` subpath entrypoints

@@ -92,7 +92,7 @@ important for authoring:
    lang package owns the concrete `File` / `Import` / `Definition`
    subclasses; **`Identifier`, `EntityType`, `sanitizePropertyName`, and
    the TS syntax helpers still import from `@skmtc/core`** (scheduled to
-   move — F5/F6 in `notes/lang/09-migration-checklist.md`). For
+   move — F5/F6 in `notes/lang/checklist.md`). For
    TypeScript-output specifics, load the `skmtc-lang-typescript` skill.
 
 ## 2. The DSL: Projection vs Snippet
@@ -807,7 +807,7 @@ The parent Projection's `toString()` interpolates this snippet with
 generatorKey: this.generatorKey })`.
 
 > **Transitional (F7).** The `generatorKey` requirement on registering
-> snippets is slated for removal — `notes/lang/09-migration-checklist.md`
+> snippets is slated for removal — `notes/lang/checklist.md`
 > F7 makes the key optional attribution input again. Until that lands,
 > thread it; a snippet that never registers can omit it today.
 
@@ -1184,7 +1184,7 @@ constructor({ context, destinationPath, generatorKey }) {
 **Fails because:** `register` resolves the language via the snippet's
 `generatorId`, derived from `generatorKey`. The fix is threading the
 parent's key, never a `try/catch`. Transitional: F7 in
-`notes/lang/09-migration-checklist.md` makes the key optional
+`notes/lang/checklist.md` makes the key optional
 attribution input again; until it lands, a registering snippet must
 carry it.
 
@@ -1363,7 +1363,7 @@ After writing or editing a generator, verify:
 
 - [ ] The entry declares `lang` (from the target language's `lang-*` package, e.g. `typescript` from `@skmtc/lang-typescript`) — and nothing else does: no `lang` on projection bases or snippets
 - [ ] All imports go through `this.register({ imports })` (own file) / `this.registerInto(path, { imports })` (cross-file) / `this.register({ imports, destinationPath })` (Snippet) — no raw `import` statements in template literals
-- [ ] Registering snippets receive the parent's `generatorKey` through their constructor (transitional requirement — F7 in `notes/lang/09-migration-checklist.md`)
+- [ ] Registering snippets receive the parent's `generatorKey` through their constructor (transitional requirement — F7 in `notes/lang/checklist.md`)
 - [ ] Direct `context.defineAndRegister` calls (transform-level, accumulators) pass `generatorId`
 - [ ] No `as` casts in non-test code — narrowing uses type guards or discriminant checks
 - [ ] Identifier names come from `Identifier.createVariable` / `createType` — no raw strings as identifiers
@@ -1579,7 +1579,7 @@ invariants: `core/context/GenerateContext.variants.test.ts`,
 > **Status (core 0.7.1): temporarily unavailable.** Re-exports were
 > dropped from the neutral `context.register` path during the lang
 > migration — by mistake; restoring the seam (`ReExportBase`) is
-> planned work (F3 in `notes/lang/09-migration-checklist.md`). Until
+> planned work (F3 in `notes/lang/checklist.md`). Until
 > it lands, `register({ reExports })` is not accepted and there is no
 > supported barrel path. Do **not** improvise barrels by emitting
 > re-export statements as `definitions` — wait for the seam.

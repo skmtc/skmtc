@@ -48,7 +48,7 @@ piece. The boundary rule, worth internalizing first:
 > the seven section headings below and replaces the answers. Sections
 > marked `[F5]` / `[F6]` document symbols that *currently* live in
 > `@skmtc/core` and are scheduled to move into the lang package — see
-> `notes/lang/09-migration-checklist.md`. A new language gets no
+> `notes/lang/checklist.md`. A new language gets no
 > equivalents of those until F5/F6 land.
 
 ## 1. Package surface
@@ -254,7 +254,7 @@ equivalents; do not reach for these when targeting another language.
 
 The code boundary lags the design: `Identifier`, `EntityType`,
 `sanitizePropertyName`, and the §4 syntax helpers still live in
-`@skmtc/core` (F5/F6 in `notes/lang/09-migration-checklist.md`). This
+`@skmtc/core` (F5/F6 in `notes/lang/checklist.md`). This
 skill documents the **current** import paths; when F5/F6 land, the
 symbols move to `@skmtc/lang-typescript` and this skill (and every
 `lang-<X>` skill cloned from it) must be updated in the same change.

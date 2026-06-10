@@ -69,7 +69,7 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
 
-5. **The engine is language-blind; the language lives on the generator entry.** (core 0.7.1+) `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` take a required `lang` (e.g. `typescript` from `@skmtc/lang-typescript`); the engine resolves it by `generatorId` (`GenerateContext.resolveLang`) when creating files and building `Definition`s. Projection bases take no `lang`, snippets carry none, `register` passes plain data (`generatorId`, not a `Lang` or `createFile`). `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers still import from `@skmtc/core` (F5/F6 in `notes/lang/09-migration-checklist.md` track the move).
+5. **The engine is language-blind; the language lives on the generator entry.** (core 0.7.1+) `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` take a required `lang` (e.g. `typescript` from `@skmtc/lang-typescript`); the engine resolves it by `generatorId` (`GenerateContext.resolveLang`) when creating files and building `Definition`s. Projection bases take no `lang`, snippets carry none, `register` passes plain data (`generatorId`, not a `Lang` or `createFile`). `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers still import from `@skmtc/core` (F5/F6 in `notes/lang/checklist.md` track the move).
 
 ---
 

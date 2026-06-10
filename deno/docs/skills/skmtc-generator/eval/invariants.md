@@ -119,13 +119,13 @@ The engine is language-blind. `toOasOperationEntry` / `toGqlOperationEntry` / `t
 - Snippets carry no `Lang`.
 - `register` / `defineAndRegister` pass plain data: `generatorId` (a string), never a `Lang` object or a `createFile` closure.
 - A missing `lang` on the entry throws at engine start (`Generator '<id>' declares no 'lang'`). A peer passed to `insertOperation` / `insertModel` whose id is not in the generator config map throws `Cannot resolve language for generator '<id>': not in the generator config map` — the fix is installing/configuring the peer, not catching the error.
-- `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers (`List`, `FunctionParameter`, `toPathTemplate`, …) currently still import from `@skmtc/core`, NOT from `@skmtc/lang-typescript` (the move is tracked as F5/F6 in `notes/lang/09-migration-checklist.md`). A response that tells the user to import these from `@skmtc/lang-typescript` today is incorrect.
+- `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers (`List`, `FunctionParameter`, `toPathTemplate`, …) currently still import from `@skmtc/core`, NOT from `@skmtc/lang-typescript` (the move is tracked as F5/F6 in `notes/lang/checklist.md`). A response that tells the user to import these from `@skmtc/lang-typescript` today is incorrect.
 
 ## 13. Own-file `register` vs explicit `registerInto` — no fallback
 
 Projection `register({ imports, definitions })` writes **only** to the projection's own file (`this.settings.exportPath`); the args take no `destinationPath`. Writing into a different file is a separate, explicit method: `registerInto(destinationPath, args)`. There is deliberately **no** `destinationPath ?? exportPath` fallback — proposing one (or a `destinationPath` option on projection `register`) is incorrect; the two paths are kept separate so a missing path can never silently land content in the wrong file.
 
-Snippet `register({ imports, destinationPath })` requires `destinationPath` (snippets have no exportPath), and — transitionally, until F7 in `notes/lang/09-migration-checklist.md` lands — the snippet must have been constructed with a `generatorKey` (the parent passes its own); registering without one throws `Cannot register from a snippet that has no generatorKey`. The correct fix for that throw is threading the parent's `generatorKey` through the snippet's constructor — not `try/catch`, not switching to `Deno.writeFileSync`, not hardcoding a `Lang`.
+Snippet `register({ imports, destinationPath })` requires `destinationPath` (snippets have no exportPath), and — transitionally, until F7 in `notes/lang/checklist.md` lands — the snippet must have been constructed with a `generatorKey` (the parent passes its own); registering without one throws `Cannot register from a snippet that has no generatorKey`. The correct fix for that throw is threading the parent's `generatorKey` through the snippet's constructor — not `try/catch`, not switching to `Deno.writeFileSync`, not hardcoding a `Lang`.
 
 ## 14. `acc` threading is uniform across the three entry factories
 

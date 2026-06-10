@@ -28,7 +28,7 @@ The code-generation DSL. The vocabulary:
   `createFile`, no `Lang`); projection `register` is own-file-only,
   `registerInto(path, args)` is the explicit cross-file path; a
   registering Snippet currently requires a `generatorKey` (F7 in
-  `notes/lang/09-migration-checklist.md` tracks relaxing this).
+  `notes/lang/checklist.md` tracks relaxing this).
 - **`GeneratorKey`** — branded pipe-delimited string. 4 segments for
   operations (`id|path|method|variant` OAS, `id|rootKind|fieldName|variant` GQL),
   3 for models (`id|refName|variant`), 1 for generator-only.
