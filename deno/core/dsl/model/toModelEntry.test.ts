@@ -8,7 +8,7 @@ Deno.test('toModelEntry - returns object with id and type model', () => {
   const entry = toModelEntry({
     id: 'test-model',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.id, 'test-model')
@@ -16,7 +16,10 @@ Deno.test('toModelEntry - returns object with id and type model', () => {
 })
 
 Deno.test('toModelEntry - includes provided transform function', () => {
-  const transformFn = ({ acc }: { acc: number | undefined }) => (acc ?? 0) + 1
+  let callCount = 0
+  const transformFn = () => {
+    callCount = callCount + 1
+  }
   const entry = toModelEntry({
     id: 'test-model',
     lang: typescript,
@@ -25,20 +28,19 @@ Deno.test('toModelEntry - includes provided transform function', () => {
 
   assertEquals(entry.transform, transformFn)
   // Verify transform actually works
-  const result = entry.transform({
+  entry.transform({
     context: {} as GenerateContextType,
     refName: 'Test' as RefName,
-    acc: 5,
     variant: 'main'
   })
-  assertEquals(result, 6)
+  assertEquals(callCount, 1)
 })
 
 Deno.test('toModelEntry - toPreviewModule is undefined when not provided', () => {
   const entry = toModelEntry({
     id: 'test-model',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toPreviewModule, undefined)
@@ -48,7 +50,7 @@ Deno.test('toModelEntry - toMappingModule is undefined when not provided', () =>
   const entry = toModelEntry({
     id: 'test-model',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toMappingModule, undefined)
@@ -58,7 +60,7 @@ Deno.test('toModelEntry - toEnrichmentSchema is undefined when not provided', ()
   const entry = toModelEntry({
     id: 'test-model',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toEnrichmentSchema, undefined)
@@ -68,7 +70,7 @@ Deno.test('toModelEntry - toEnrichmentRequest is undefined when not provided', (
   const entry = toModelEntry({
     id: 'test-model',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toEnrichmentRequest, undefined)
@@ -86,7 +88,7 @@ Deno.test('toModelEntry - includes toPreviewModule when provided', () => {
   const entry = toModelEntry({
     id: 'test-model',
     lang: typescript,
-    transform: ({ acc }) => acc,
+    transform: () => {},
     toPreviewModule: previewFn
   })
 
@@ -106,7 +108,7 @@ Deno.test('toModelEntry - includes toMappingModule when provided', () => {
   const entry = toModelEntry({
     id: 'test-model',
     lang: typescript,
-    transform: ({ acc }) => acc,
+    transform: () => {},
     toMappingModule: mappingFn
   })
 
@@ -114,7 +116,7 @@ Deno.test('toModelEntry - includes toMappingModule when provided', () => {
 })
 
 Deno.test('toModelEntry - includes all optional functions when provided', () => {
-  const transformFn = ({ acc }: { acc: string | undefined }) => acc ?? 'default'
+  const transformFn = () => {}
   const previewFn = () => ({
     name: 'test',
     exportPath: './preview.ts',

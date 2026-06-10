@@ -447,8 +447,8 @@ export class GenerateContext implements GenerateContextType {
     skip: SkipPaths | undefined,
     stackTrail: StackTrail
   ) {
-    oasDocument.operations.reduce<unknown>((acc, operation) => {
-      return stackTrail.trace(`${operation.path}:${operation.method}`, opTrail => {
+    oasDocument.operations.forEach(operation => {
+      stackTrail.trace(`${operation.path}:${operation.method}`, opTrail => {
         // Resolve the variant list to fan out over. The consumer's
         // enrichments are keyed `[generatorId][path][method][variant]`;
         // the block at `[path][method]` is therefore a record of
@@ -471,15 +471,15 @@ export class GenerateContext implements GenerateContextType {
           operationLabel: `${operation.method.toUpperCase()} ${operation.path}`
         })
 
-        return variants.reduce<unknown>((variantAcc, variant) => {
-          return opTrail.trace(`variant: ${variant}`, st => {
+        variants.forEach(variant => {
+          opTrail.trace(`variant: ${variant}`, st => {
             try {
               if (
                 typeof generatorConfig?.isSupported === 'function' &&
                 !generatorConfig.isSupported({ operation, context: this, variant })
               ) {
                 this.captureCurrentResult('notSupported', st)
-                return variantAcc
+                return
               }
 
               // Order: isSupported (capability) → include (allow) → skip
@@ -492,18 +492,17 @@ export class GenerateContext implements GenerateContextType {
                 !matchesPathFilter({ paths: include, path: operation.path, method: operation.method, variant })
               ) {
                 this.captureCurrentResult('skipped', st)
-                return variantAcc
+                return
               }
 
               if (matchesPathFilter({ paths: skip, path: operation.path, method: operation.method, variant })) {
                 this.captureCurrentResult('skipped', st)
-                return variantAcc
+                return
               }
 
-              const result = generatorConfig.transform({
+              generatorConfig.transform({
                 context: this,
                 operation,
-                acc: variantAcc,
                 variant
               })
 
@@ -524,18 +523,15 @@ export class GenerateContext implements GenerateContextType {
               )
 
               this.captureCurrentResult('success', st)
-
-              return result
             } catch (error) {
               this.logger.error(error)
 
               this.captureCurrentResult('error', st)
-              return variantAcc
             }
           })
-        }, acc)
+        })
       })
-    }, undefined)
+    })
   }
 
   #runGqlOperationGenerator(
@@ -543,8 +539,8 @@ export class GenerateContext implements GenerateContextType {
     generatorConfig: GqlOperationConfig,
     stackTrail: StackTrail
   ) {
-    gqlDocument.operations.reduce<unknown>((acc, operation) => {
-      return stackTrail.trace(operation.identifier, opTrail => {
+    gqlDocument.operations.forEach(operation => {
+      stackTrail.trace(operation.identifier, opTrail => {
         // GraphQL enrichment routing key is
         // `[generatorId][rootKind][fieldName][variant]`.
         const opEnrichments: unknown = get(
@@ -558,21 +554,20 @@ export class GenerateContext implements GenerateContextType {
           operationLabel: `${operation.rootKind} ${operation.fieldName}`
         })
 
-        return variants.reduce<unknown>((variantAcc, variant) => {
-          return opTrail.trace(`variant: ${variant}`, st => {
+        variants.forEach(variant => {
+          opTrail.trace(`variant: ${variant}`, st => {
             try {
               if (
                 typeof generatorConfig.isSupported === 'function' &&
                 !generatorConfig.isSupported({ operation, context: this, variant })
               ) {
                 this.captureCurrentResult('notSupported', st)
-                return variantAcc
+                return
               }
 
-              const result = generatorConfig.transform({
+              generatorConfig.transform({
                 context: this,
                 operation,
-                acc: variantAcc,
                 variant
               })
 
@@ -593,16 +588,14 @@ export class GenerateContext implements GenerateContextType {
               )
 
               this.captureCurrentResult('success', st)
-              return result
             } catch (error) {
               this.logger.error(error)
               this.captureCurrentResult('error', st)
-              return variantAcc
             }
           })
-        }, acc)
+        })
       })
-    }, undefined)
+    })
   }
 
   #runModelGenerator(
@@ -617,8 +610,8 @@ export class GenerateContext implements GenerateContextType {
         ? (document.value.components?.toSchemasRefNames() ?? [])
         : document.value.registry.toSchemasRefNames()
 
-    return refNames.reduce<unknown>((acc, refName) => {
-      return stackTrail.trace(refName, refTrail => {
+    refNames.forEach(refName => {
+      stackTrail.trace(refName, refTrail => {
         // Resolve the variant list to fan out over. The consumer's
         // enrichments are keyed `[generatorId][refName][variant]`; the
         // block at `[refName]` is therefore a record of variant names.
@@ -641,8 +634,8 @@ export class GenerateContext implements GenerateContextType {
           operationLabel: refName
         })
 
-        return variants.reduce<unknown>((variantAcc, variant) => {
-          return refTrail.trace(`variant: ${variant}`, st => {
+        variants.forEach(variant => {
+          refTrail.trace(`variant: ${variant}`, st => {
             try {
               // Order: include (allow) → skip (deny). Match is now on
               // `(refName, variant)`. An empty variant array on a
@@ -654,18 +647,17 @@ export class GenerateContext implements GenerateContextType {
                 !matchesRefFilter({ refs: include, refName, variant })
               ) {
                 this.captureCurrentResult('skipped', st)
-                return variantAcc
+                return
               }
 
               if (matchesRefFilter({ refs: skip, refName, variant })) {
                 this.captureCurrentResult('skipped', st)
-                return variantAcc
+                return
               }
 
-              const result = generatorConfig.transform({
+              generatorConfig.transform({
                 context: this,
                 refName,
-                acc: variantAcc,
                 variant
               })
 
@@ -686,17 +678,14 @@ export class GenerateContext implements GenerateContextType {
               )
 
               this.captureCurrentResult('success', st)
-
-              return result
             } catch (error) {
               this.logger.error(error)
               this.captureCurrentResult('error', st)
-              return variantAcc
             }
           })
-        }, acc)
+        })
       })
-    }, undefined)
+    })
   }
 
   #addPreview(

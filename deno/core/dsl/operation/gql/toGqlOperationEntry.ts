@@ -19,13 +19,12 @@ import get from 'lodash-es/get'
  * functions, enrichment schemas, preview/mapping modules, and support validation.
  *
  * @template EnrichmentType - Type of enrichment data this operation can provide
- * @template Acc - Accumulator type used during operation processing
  */
-export type ToGqlOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
+export type ToGqlOperationConfigArgs<EnrichmentType = undefined> = {
   id: string
   /** The target language. The engine resolves it by `id` via `resolveLang`. */
   lang: Lang
-  transform: ({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
+  transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported?: ({
     context,
@@ -46,11 +45,10 @@ export type ToGqlOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
  * GraphQL-operation processing with optional enrichment support and preview capabilities.
  *
  * @template EnrichmentType - Type of enrichment data this operation provides
- * @template Acc - Accumulator type used during operation processing
  * @param config - Configuration object defining operation behavior
  * @returns Configured operation generator entry ready for pipeline integration
  */
-export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
+export const toGqlOperationEntry = <EnrichmentType = undefined>({
   id,
   lang,
   transform,
@@ -59,11 +57,11 @@ export const toGqlOperationEntry = <EnrichmentType = undefined, Acc = void>({
   toPreviewModule,
   toMappingModule,
   toEnrichmentRequest
-}: ToGqlOperationConfigArgs<EnrichmentType, Acc>): {
+}: ToGqlOperationConfigArgs<EnrichmentType>): {
   id: string
   type: 'gqlOperation'
   lang: Lang
-  transform: ({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
+  transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule

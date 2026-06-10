@@ -8,7 +8,7 @@ Deno.test('toOasOperationEntry - returns object with id and type operation', () 
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.id, 'test-operation')
@@ -16,7 +16,10 @@ Deno.test('toOasOperationEntry - returns object with id and type operation', () 
 })
 
 Deno.test('toOasOperationEntry - includes provided transform function', () => {
-  const transformFn = ({ acc }: { acc: number | undefined }) => (acc ?? 0) + 1
+  let callCount = 0
+  const transformFn = () => {
+    callCount = callCount + 1
+  }
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
@@ -31,20 +34,19 @@ Deno.test('toOasOperationEntry - includes provided transform function', () => {
     pathItem: undefined,
     responses: {}
   })
-  const result = entry.transform({
+  entry.transform({
     context: {} as GenerateContextType,
     operation: mockOperation,
-    acc: 5,
     variant: 'main'
   })
-  assertEquals(result, 6)
+  assertEquals(callCount, 1)
 })
 
 Deno.test('toOasOperationEntry - isSupported defaults to true when not provided', () => {
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   const mockOperation = new OasOperation({
@@ -67,7 +69,7 @@ Deno.test('toOasOperationEntry - toPreviewModule is undefined when not provided'
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toPreviewModule, undefined)
@@ -77,7 +79,7 @@ Deno.test('toOasOperationEntry - toMappingModule is undefined when not provided'
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toMappingModule, undefined)
@@ -87,7 +89,7 @@ Deno.test('toOasOperationEntry - toEnrichmentSchema is undefined when not provid
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toEnrichmentSchema, undefined)
@@ -97,7 +99,7 @@ Deno.test('toOasOperationEntry - toEnrichmentRequest is undefined when not provi
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toEnrichmentRequest, undefined)
@@ -115,7 +117,7 @@ Deno.test('toOasOperationEntry - includes toPreviewModule when provided', () => 
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc,
+    transform: () => {},
     toPreviewModule: previewFn
   })
 
@@ -135,7 +137,7 @@ Deno.test('toOasOperationEntry - includes toMappingModule when provided', () => 
   const entry = toOasOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc,
+    transform: () => {},
     toMappingModule: mappingFn
   })
 
@@ -143,7 +145,7 @@ Deno.test('toOasOperationEntry - includes toMappingModule when provided', () => 
 })
 
 Deno.test('toOasOperationEntry - includes all optional functions when provided', () => {
-  const transformFn = ({ acc }: { acc: string | undefined }) => acc ?? 'default'
+  const transformFn = () => {}
   const previewFn = () => ({
     name: 'test',
     exportPath: './preview.ts',

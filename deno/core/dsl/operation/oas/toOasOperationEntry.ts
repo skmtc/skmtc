@@ -19,13 +19,12 @@ import get from 'lodash-es/get'
  * enrichment schemas, preview/mapping modules, and support validation.
  *
  * @template EnrichmentType - Type of enrichment data this operation can provide
- * @template Acc - Accumulator type used during operation processing
  */
-export type ToOasOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
+export type ToOasOperationConfigArgs<EnrichmentType = undefined> = {
   id: string
   /** The target language. The engine resolves it by `id` via `resolveLang`. */
   lang: Lang
-  transform: ({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
+  transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported?: ({
     context,
@@ -46,7 +45,6 @@ export type ToOasOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
  * with optional enrichment support and preview capabilities.
  *
  * @template EnrichmentType - Type of enrichment data this operation provides
- * @template Acc - Accumulator type used during operation processing
  * @param config - Configuration object defining operation behavior
  * @returns Configured operation generator entry ready for pipeline integration
  *
@@ -56,9 +54,8 @@ export type ToOasOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
  *
  * const operationEntry = toOperationEntry({
  *   id: 'my-operation-generator',
- *   transform: ({ context, operation, acc }) => {
- *     // Transform operation into desired format
- *     return processedOperation;
+ *   transform: ({ context, operation }) => {
+ *     context.insertOperation({ projection: MyOperation, operation });
  *   },
  *   isSupported: ({ operation }) => {
  *     return operation.method === 'POST';
@@ -66,7 +63,7 @@ export type ToOasOperationConfigArgs<EnrichmentType = undefined, Acc = void> = {
  * });
  * ```
  */
-export const toOasOperationEntry = <EnrichmentType = undefined, Acc = void>({
+export const toOasOperationEntry = <EnrichmentType = undefined>({
   id,
   lang,
   transform,
@@ -75,11 +72,11 @@ export const toOasOperationEntry = <EnrichmentType = undefined, Acc = void>({
   toPreviewModule,
   toMappingModule,
   toEnrichmentRequest
-}: ToOasOperationConfigArgs<EnrichmentType, Acc>): {
+}: ToOasOperationConfigArgs<EnrichmentType>): {
   id: string
   type: 'oasOperation'
   lang: Lang
-  transform: ({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
+  transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule

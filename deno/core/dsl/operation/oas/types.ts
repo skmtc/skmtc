@@ -20,10 +20,9 @@ export type OasOperationProjectionConstructorArgs<EnrichmentType = undefined> = 
   operation: OasOperation
 }
 
-export type TransformOasOperationArgs<Acc> = {
+export type TransformOasOperationArgs = {
   context: GenerateContextType
   operation: OasOperation
-  acc: Acc | undefined
   /**
    * The operation variant the engine is dispatching for this call. The
    * engine fans out one `transform` call per variant declared in the
@@ -139,7 +138,7 @@ export type OasOperationConfig<EnrichmentType = undefined> = {
    * generator's language. Set by the author via `toOasOperationEntry({ lang })`.
    */
   lang: Lang
-  transform: <Acc = void>({ context, operation, acc }: TransformOasOperationArgs<Acc>) => Acc
+  transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule

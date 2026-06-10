@@ -20,7 +20,7 @@ import type { ModelConfig } from '@/dsl/model/types.ts'
  *
  * const apiClientEntry = toOasOperationEntry({
  *   id: 'api-client',
- *   transform: ({ context, operation, acc }) => acc,
+ *   transform: ({ context, operation }) => {},
  *   isSupported: ({ operation }) => operation.method === 'get'
  * });
  * // apiClientEntry.type === 'oasOperation'
@@ -32,7 +32,7 @@ import type { ModelConfig } from '@/dsl/model/types.ts'
  *
  * const gqlEntry = toGqlOperationEntry({
  *   id: 'gql-client',
- *   transform: ({ context, operation, acc }) => acc
+ *   transform: ({ context, operation }) => {}
  * });
  * // gqlEntry.type === 'gqlOperation'
  * ```
@@ -43,7 +43,7 @@ import type { ModelConfig } from '@/dsl/model/types.ts'
  *
  * const modelEntry = toModelEntry({
  *   id: 'typescript-models',
- *   transform: ({ context, refName, acc }) => acc
+ *   transform: ({ context, refName }) => {}
  * });
  * // modelEntry.type === 'model'
  * ```

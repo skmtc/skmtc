@@ -17,7 +17,7 @@ Deno.test('toGqlOperationEntry - returns object with id and type operation', () 
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.id, 'test-operation')
@@ -25,7 +25,10 @@ Deno.test('toGqlOperationEntry - returns object with id and type operation', () 
 })
 
 Deno.test('toGqlOperationEntry - includes provided transform function', () => {
-  const transformFn = ({ acc }: { acc: number | undefined }) => (acc ?? 0) + 1
+  let callCount = 0
+  const transformFn = () => {
+    callCount = callCount + 1
+  }
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
@@ -34,20 +37,19 @@ Deno.test('toGqlOperationEntry - includes provided transform function', () => {
 
   assertEquals(entry.transform, transformFn)
   const mockOperation = createMockGqlOperation()
-  const result = entry.transform({
+  entry.transform({
     context: {} as GenerateContextType,
     operation: mockOperation,
-    acc: 5,
     variant: 'main'
   })
-  assertEquals(result, 6)
+  assertEquals(callCount, 1)
 })
 
 Deno.test('toGqlOperationEntry - isSupported defaults to true when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   const mockOperation = createMockGqlOperation()
@@ -65,7 +67,7 @@ Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided'
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toPreviewModule, undefined)
@@ -75,7 +77,7 @@ Deno.test('toGqlOperationEntry - toMappingModule is undefined when not provided'
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toMappingModule, undefined)
@@ -85,7 +87,7 @@ Deno.test('toGqlOperationEntry - toEnrichmentSchema is undefined when not provid
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toEnrichmentSchema, undefined)
@@ -95,7 +97,7 @@ Deno.test('toGqlOperationEntry - toEnrichmentRequest is undefined when not provi
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc
+    transform: () => {}
   })
 
   assertEquals(entry.toEnrichmentRequest, undefined)
@@ -113,7 +115,7 @@ Deno.test('toGqlOperationEntry - includes toPreviewModule when provided', () => 
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc,
+    transform: () => {},
     toPreviewModule: previewFn
   })
 
@@ -133,7 +135,7 @@ Deno.test('toGqlOperationEntry - includes toMappingModule when provided', () => 
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     lang: typescript,
-    transform: ({ acc }) => acc,
+    transform: () => {},
     toMappingModule: mappingFn
   })
 
@@ -141,7 +143,7 @@ Deno.test('toGqlOperationEntry - includes toMappingModule when provided', () => 
 })
 
 Deno.test('toGqlOperationEntry - includes all optional functions when provided', () => {
-  const transformFn = ({ acc }: { acc: string | undefined }) => acc ?? 'default'
+  const transformFn = () => {}
   const previewFn = () => ({
     name: 'test',
     exportPath: './preview.ts',

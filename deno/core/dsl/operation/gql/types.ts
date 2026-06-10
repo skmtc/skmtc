@@ -20,10 +20,9 @@ export type GqlOperationProjectionConstructorArgs<EnrichmentType = undefined> = 
   operation: GqlOperation
 }
 
-export type TransformGqlOperationArgs<Acc> = {
+export type TransformGqlOperationArgs = {
   context: GenerateContextType
   operation: GqlOperation
-  acc: Acc | undefined
   /**
    * The operation variant the engine is dispatching for this call. The
    * engine fans out one `transform` call per variant declared in the
@@ -139,7 +138,7 @@ export type GqlOperationConfig<EnrichmentType = undefined> = {
    * generator's language. Set by the author via `toGqlOperationEntry({ lang })`.
    */
   lang: Lang
-  transform: <Acc = void>({ context, operation, acc }: TransformGqlOperationArgs<Acc>) => Acc
+  transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
   toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule

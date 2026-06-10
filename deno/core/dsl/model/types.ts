@@ -35,10 +35,9 @@ export type ToModelEnrichmentsArgs = {
   variant: string
 }
 
-export type TransformModelArgs<Acc> = {
+export type TransformModelArgs = {
   context: GenerateContextType
   refName: RefName
-  acc: Acc | undefined
   /**
    * The model variant the engine is dispatching for this call. The
    * engine fans out one `transform` call per variant declared in the
@@ -125,7 +124,7 @@ export type ModelConfig<EnrichmentType = undefined> = {
    * generator's language. Set by the author via `toModelEntry({ lang })`.
    */
   lang: Lang
-  transform: <Acc = void>({ context, refName, acc, variant }: TransformModelArgs<Acc>) => Acc
+  transform: ({ context, refName, variant }: TransformModelArgs) => void
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
