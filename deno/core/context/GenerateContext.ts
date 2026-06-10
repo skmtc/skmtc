@@ -807,7 +807,7 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  register({ imports = [], definitions, destinationPath }: ContextRegisterArgs) {
+  register({ imports = [], reExports = [], definitions, destinationPath }: ContextRegisterArgs) {
     const normalizedPath = normalize(destinationPath)
 
     const currentFile = this.getFile(normalizedPath)
@@ -831,11 +831,16 @@ export class GenerateContext implements GenerateContextType {
       }
     })
 
-    // Imports are standardised `ImportBase` objects; the neutral merge
-    // (keyed by `mergeKey`) lives on `CodeFileBase`. `JsonFile` has no
-    // imports, so the guard skips it.
+    // Imports and re-exports are standardised `ImportBase` /
+    // `ReExportBase` objects; the neutral merges (keyed by `mergeKey`)
+    // live on `CodeFileBase`. `JsonFile` has neither, so the guard skips
+    // it.
     if (imports.length > 0 && currentFile instanceof CodeFileBase) {
       currentFile.addImports(imports)
+    }
+
+    if (reExports.length > 0 && currentFile instanceof CodeFileBase) {
+      currentFile.addReExports(reExports)
     }
   }
 

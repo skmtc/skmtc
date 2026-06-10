@@ -20,6 +20,7 @@ import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
+import type { ReExportBase } from '@/dsl/ReExportBase.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
@@ -265,6 +266,8 @@ export type RegisterJsonArgs = {
 export type ContextRegisterArgs = {
   /** Standardised imports to merge into the destination file. */
   imports?: ImportBase[]
+  /** Standardised re-exports to merge into the destination file. */
+  reExports?: ReExportBase[]
   /** Definition objects to include in the destination file. */
   definitions?: (DefinitionBase | undefined)[]
   /** The destination file path. */

@@ -1,7 +1,8 @@
 import { CodeFileBase } from '@skmtc/core'
 import { normalizeModuleName } from './normalizeModuleName.ts'
-import type { ClientSettings, Identifier, ImportBase, ModulePackage } from '@skmtc/core'
+import type { ClientSettings, ModulePackage } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
+import { TsReExport } from './TsReExport.ts'
 
 /**
  * Constructor arguments for {@link TsFile}.
@@ -22,53 +23,28 @@ export class TsFile extends CodeFileBase {
   /** Package configuration for cross-package module-name resolution. */
   packages: ModulePackage[] | undefined
 
-  /** Re-exported symbols, grouped by module then entity type. */
-  reExports: Map<string, Record<string, Set<string>>> = new Map()
-
   constructor({ path, settings }: TsFileArgs) {
     super({ path })
     this.packages = settings?.packages
   }
 
-  /**
-   * Merge re-export entries in, grouped by entity type so the renderer can
-   * pick `export type { … }` vs `export { … }`.
-   */
-  addReExports(reExports: Record<string, Identifier[]>): void {
-    for (const [importModule, identifiers] of Object.entries(reExports)) {
-      if (identifiers.length === 0) {
-        continue
-      }
-
-      let moduleEntry = this.reExports.get(importModule)
-      if (!moduleEntry) {
-        moduleEntry = {}
-        this.reExports.set(importModule, moduleEntry)
-      }
-
-      for (const identifier of identifiers) {
-        const entityType = identifier.entityType.type
-        if (!moduleEntry[entityType]) {
-          moduleEntry[entityType] = new Set()
-        }
-        moduleEntry[entityType].add(identifier.name)
-      }
-    }
-  }
-
   override toString(): string {
-    const reExports = Array.from(this.reExports.entries()).flatMap(([module, entityTypes]) => {
+    const reExports = Array.from(this.reExports.values()).map(reExportEntry => {
+      // Re-exports land here as the neutral `ReExportBase`; in a
+      // TypeScript file they are always `TsReExport`s. Re-key to the
+      // package-normalised module at render time — the same arrangement
+      // step the import section gets.
+      if (!(reExportEntry instanceof TsReExport)) {
+        return reExportEntry.toString()
+      }
+
       const updatedModuleName = normalizeModuleName({
         destinationPath: this.path,
-        exportPath: module,
+        exportPath: reExportEntry.module,
         packages: this.packages
       })
 
-      return Object.entries(entityTypes).map(([entityType, names]) => {
-        const prefix = entityType === 'type' ? 'type' : ''
-
-        return `export ${prefix} { ${Array.from(names).join(', ')} } from '${updatedModuleName}'`
-      })
+      return new TsReExport(updatedModuleName, reExportEntry.groups).toString()
     })
 
     const imports = Array.from(this.imports.values()).map(importEntry => {

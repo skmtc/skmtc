@@ -7,6 +7,7 @@ import type {
 } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
+import { TsReExport } from './TsReExport.ts'
 import { TsDefinition } from './TsDefinition.ts'
 
 /**
@@ -14,12 +15,15 @@ import { TsDefinition } from './TsDefinition.ts'
  *
  * Owned by this package (F10): each language defines its own concise args
  * type exposing only what the language supports, and the neutral
- * `context.register` only ever sees standardised objects. `reExports`
- * return with the `ReExportBase` seam (F3).
+ * `context.register` only ever sees standardised objects. TypeScript
+ * supports `reExports`; a language without them omits the field, so the
+ * absence is compile-time.
  */
 export type TsRegisterArgs = {
   /** Import statements to include, organized by module path. */
   imports?: Record<string, ImportNameArg[]>
+  /** Re-export statements to include, organized by source module path. */
+  reExports?: Record<string, Identifier[]>
   /** Definition objects to include in the destination file. */
   definitions?: (DefinitionBase | undefined)[]
 }
@@ -48,6 +52,9 @@ export const register = (
     imports: Object.entries(args.imports ?? {}).map(([module, names]) =>
       TsImport.fromConcise(module, names)
     ),
+    reExports: Object.entries(args.reExports ?? {})
+      .filter(([, identifiers]) => identifiers.length > 0)
+      .map(([module, identifiers]) => TsReExport.fromConcise(module, identifiers)),
     definitions: args.definitions,
     destinationPath
   })

@@ -4,6 +4,7 @@ import type { GeneratedValue, GenerateContextType } from '@skmtc/core'
 import { TsDefinition } from './TsDefinition.ts'
 import { TsFile } from './TsFile.ts'
 import { TsImport } from './TsImport.ts'
+import { TsReExport } from './TsReExport.ts'
 
 // Minimal mock context — the established test pattern (Definition.test.ts).
 const mockContext = {} as GenerateContextType
@@ -88,7 +89,7 @@ Deno.test('TsFile renders the legacy-pinned file — imports + definitions + reE
   const path = '@/types/models.generated.ts'
 
   const tsFile = new TsFile({ path, settings: undefined })
-  tsFile.addReExports({ './shared': [Identifier.createVariable('helper')] })
+  tsFile.addReExports([TsReExport.fromConcise('./shared', [Identifier.createVariable('helper')])])
   tsFile.addImports([TsImport.fromConcise('zod', ['z']), TsImport.fromConcise('@/models', ['User', 'Account'])])
   tsFile.addDefinition(
     new TsDefinition({ context: mockContext, identifier: Identifier.createType('Account'), value: value('{ id: string }') })
