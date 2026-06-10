@@ -25,6 +25,16 @@ export const fileExtensions = ['.ts', '.tsx'] as const
 
 export { typescript } from './src/tsLang.ts'
 export { TsSnippet } from './src/TsSnippet.ts'
+export {
+  register,
+  defineAndRegister,
+  type TsRegisterArgs,
+  type TsDefineAndRegisterArgs
+} from './src/register.ts'
+export {
+  toModelProjectionBase,
+  type TsModelProjectionBaseConfig
+} from './src/toModelProjectionBase.ts'
 export { ReactRouterPathParams } from './src/ReactRouterPathParams.ts'
 export { TsFile, type TsFileArgs } from './src/TsFile.ts'
 export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'

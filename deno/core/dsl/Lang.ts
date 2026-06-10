@@ -33,12 +33,12 @@ export type LangToImportArgs = {
 /**
  * The language-specific surface the engine reaches through.
  *
- * A `Lang` is the object a `@skmtc/lang-*` package exposes. A generator
- * binds it to its projection base (`toModelProjectionBase({ lang })`) and
- * its snippet base (`extends TypescriptSnippet`); the engine then reads it
- * off the projection class (`projection.lang`) and the projection instance
- * (`this.lang`). The engine never names a concrete `File` / `Definition` /
- * `Import` — it only ever calls these four neutral factories:
+ * A `Lang` is the object a `@skmtc/lang-*` package exposes, carried as the
+ * static `lang` on the package's snippet base ({@link LangSnippetConstructor}).
+ * Its only consumers are the Drivers — peers the engine can't name
+ * concretely — which read it off the projection class (`projection.lang`)
+ * ephemerally at each use site. The engine never names a concrete `File` /
+ * `Definition` / `Import` — it only ever calls these neutral factories:
  *
  * - `createFile` — construct this language's file for a path.
  * - `toDefinition` — wrap a generated value in this language's `Definition`.
@@ -60,23 +60,18 @@ export type Lang = {
 }
 
 /**
- * A snippet that carries its language. SPIKE (option 2 — see
- * `notes/lang/14`): language packages export a snippet base satisfying
- * this shape (`TsSnippet`); it is where language enters the DSL class
- * hierarchy. `SnippetBase` itself stays language-blind.
- */
-export type LangSnippet = SnippetBase & { lang: Lang }
-
-/**
  * The constructor contract a language's snippet base class must satisfy to
  * be used as the `base` of a projection-base factory
- * (`toModelProjectionBase({ base: TsSnippet, … })`).
+ * (`toModelProjectionBase({ base: TsSnippet, … })`). It is where language
+ * enters the DSL class hierarchy; `SnippetBase` itself stays language-blind.
  *
- * Both sides carry the language: the **instance** `lang` serves the register
- * helpers (`this.lang`), and the **static** `lang` serves the Drivers, which
- * need the peer's language *before* constructing the value (cache-hit path).
- * The static is inherited by every class built on this base, so a generator's
- * projection class exposes `lang` automatically.
+ * `lang` is **static-only**: its reader is the Drivers, which need the
+ * peer's language *before* constructing the value (cache-hit path) and read
+ * it ephemerally at each use site (`projection.lang`). Statics inherit
+ * through class expressions, so every projection class built on the base
+ * exposes it with no re-declaration. There is no instance slot — the
+ * register paths delegate to the language package's register function,
+ * which names its own classes directly.
  *
  * Deliberately a CONCRETE constructor type, not a generic parameter: a core
  * factory generic over the base's instance type cannot type-safely extend it
@@ -84,4 +79,4 @@ export type LangSnippet = SnippetBase & { lang: Lang }
  * language-specific members beyond this contract are type-erased on
  * projection classes (present at runtime, invisible to the checker).
  */
-export type LangSnippetConstructor = (new (args: SnippetBaseArgs) => LangSnippet) & { lang: Lang }
+export type LangSnippetConstructor = (new (args: SnippetBaseArgs) => SnippetBase) & { lang: Lang }

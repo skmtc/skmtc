@@ -1,6 +1,5 @@
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type {
-  BaseRegisterArgs,
   InsertModelOptions,
   InsertNormalizedModelArgs,
   InsertNormalizedModelReturn
@@ -9,7 +8,6 @@ import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
-import { registerViaLang } from '@/dsl/langRegister.ts'
 import type { Identifier } from '@/dsl/Identifier.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -52,9 +50,9 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
   /**
    * The language snippet base the projection class is built on — a
    * `@skmtc/lang-*` package's snippet base (e.g. `TsSnippet`). This is where
-   * language enters the class hierarchy: the base carries `lang` on both the
-   * static side (read by Drivers, pre-construction) and the instance side
-   * (used by the register methods). SPIKE (option 2 — see `notes/lang/14`).
+   * language enters the class hierarchy: the base carries the static `lang`,
+   * read by Drivers pre-construction and inherited by every class built on
+   * it. Language packages pre-bind it in their projection-base veneers.
    */
   base: LangSnippetConstructor
   id: string
@@ -71,8 +69,12 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
  * while core stays language-blind (the base arrives as an opaque
  * constructor; core never names a concrete language class). The class
  * exposes the generator's `id`, `toIdentifier`, `toExportPath`, and
- * `toEnrichments` statics, inherits `lang` (static + instance) from the
- * base, and injects `generatorKey` so subclasses don't have to.
+ * `toEnrichments` statics, inherits the static `lang` from the base, and
+ * injects `generatorKey` so subclasses don't have to.
+ *
+ * Defines NO `register` / `registerInto` — register ergonomics are typed by
+ * each language's concise vocabulary, which core can't name, so they live
+ * in the language package's projection-base veneer over this factory.
  *
  * The projection machinery previously hosted on `ModelProjectionBase` lives
  * here now, because the base class is no longer statically known.
@@ -165,25 +167,6 @@ export const toModelProjectionBase = <EnrichmentType = undefined>(
           variant: options.variant
         }
       )
-    }
-
-    /**
-     * Register imports/definitions in this projection's **own** export file
-     * (`this.settings.exportPath`), through this projection's own `lang`
-     * (inherited from the language snippet base) — no `generatorId`
-     * resolution involved. For a different file use {@link registerInto}.
-     */
-    override register(args: BaseRegisterArgs): void {
-      registerViaLang(this, { ...args, destinationPath: this.settings.exportPath })
-    }
-
-    /**
-     * Register imports/definitions into an explicitly named file
-     * (`destinationPath`) — distinct from {@link register}, which always
-     * targets this projection's own export file.
-     */
-    registerInto(destinationPath: string, args: BaseRegisterArgs): void {
-      registerViaLang(this, { ...args, destinationPath })
     }
   }
 }

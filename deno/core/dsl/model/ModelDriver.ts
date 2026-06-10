@@ -1,7 +1,5 @@
 import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
-import type { Lang } from '@/dsl/Lang.ts'
-import { ensureFileViaLang } from '@/dsl/langRegister.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
@@ -58,8 +56,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
   rootRef?: RefName
   noExport?: boolean
   variant: string
-  /** The projection's language, resolved from the config map by `id`. */
-  lang: Lang
 
   constructor({
     context,
@@ -77,11 +73,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     this.rootRef = rootRef
     this.noExport = noExport
     this.variant = variant
-    // The peer's language, read off the projection CLASS — the static
-    // inherited from the language snippet base it was built on. Works on
-    // cache-hit too: the static is known without constructing the value.
-    // SPIKE (option 2 — see notes/lang/14): no config-map resolution.
-    this.lang = projection.lang
 
     this.context.modelDepth[`${projection.id}:${refName}`] = 0
 
@@ -108,14 +99,32 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       // The language builds the import object (`toImport`) and creates the
       // destination file on first write (caller-side); the engine stores
       // via the pure-data `context.register`.
-      ensureFileViaLang(this, destinationPath)
+      this.ensureFile(destinationPath)
       this.context.register({
-        imports: [this.lang.toImport({ identifier, module: exportPath })],
+        imports: [this.projection.lang.toImport({ identifier, module: exportPath })],
         destinationPath
       })
     }
 
     return definition
+  }
+
+  /**
+   * Ensure the file at `path` exists, creating it on first write through
+   * the projection's language — the static read off the projection class
+   * at the use site, never persisted (works pre-construction on the
+   * cache-hit path). Returns the normalized path.
+   */
+  private ensureFile(path: string): string {
+    const normalizedPath = normalize(path)
+
+    if (!this.context.getFile(normalizedPath)) {
+      this.context.addFile(
+        this.projection.lang.createFile({ path: normalizedPath, settings: this.context.settings })
+      )
+    }
+
+    return normalizedPath
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
@@ -136,14 +145,14 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       rootRef: this.rootRef
     })
 
-    const definition = this.lang.toDefinition({
+    const definition = this.projection.lang.toDefinition({
       context: this.context,
       identifier,
       value,
       noExport: this.noExport
     })
 
-    ensureFileViaLang(this, exportPath)
+    this.ensureFile(exportPath)
     this.context.register({
       definitions: [definition],
       destinationPath: exportPath
