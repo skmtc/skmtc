@@ -4,11 +4,14 @@ The Kotlin target-language layer for SKMTC generators.
 
 Renders: `'.kt'`
 
-**Status: production (0.1.0, Phase D complete).** The full
-register/write path on the frozen language seam — the second language
-after TypeScript, proven end-to-end by the
+**Status: production (0.2.0).** The full register/write path on the
+frozen language seam — the second language after TypeScript, proven
+end-to-end by the
 [`@skmtc/gen-kotlin`](../../../skmtc-generators/gen-kotlin/) DTO
-generator.
+generator. 0.2.0 adds the `KtSupertyped` value protocol (the supertype
+clause — `data class Dog(…) : Animal` — for gen-kotlin's
+sealed-interface `oneOf` mapping; spec
+`notes/lang/22-kotlin-sealed-oneof-architecture.md`).
 
 ## What this package owns
 
@@ -33,7 +36,9 @@ generator.
   vocabulary (`data-class` / `enum-class` / `sealed-interface` /
   `typealias` / `val`); visibility renders nothing when public,
   `private` to restrict; class-level annotations ride the value via the
-  **`KtAnnotated`** protocol; KDoc via `withDescription`.
+  **`KtAnnotated`** protocol and the supertype clause
+  (`data class Dog(…) : Animal`, data-class kind only in v1) via the
+  **`KtSupertyped`** protocol; KDoc via `withDescription`.
 - **`KtParameterList`** / **`KtAnnotation`** — construct helpers
   (nullability `?`, `= default`, inline annotations; generic
   annotation grammar — *which* annotation is generator policy).

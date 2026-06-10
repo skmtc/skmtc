@@ -67,10 +67,11 @@ The boundary rule, worth internalizing first:
 | `KtRegisterArgs` / `KtDefineAndRegisterArgs` | The concise register vocabulary (`imports` / `definitions`) — **deliberately NO `reExports` field**: Kotlin has no re-exports, so registering one is a compile-time error, not a runtime no-op |
 | `KtFile` | `CodeFileBase` subclass — a Kotlin output file: `package` directive **derived from its own path**, alphabetically sorted import section, same-package import suppression |
 | `KtImport` | `ImportBase` subclass — symbol-level specifiers, `as` aliases, one statement per symbol (no brace grouping), mergeKey/merge dedup, `@/`-path → package resolution at render |
-| `KtDefinition` | `DefinitionBase` subclass — the declaration shells, exhaustive over the kind vocabulary (throws outside it); visibility from `exported`; reads class-level annotations off the value via the `KtAnnotated` protocol; KDoc from `description` |
+| `KtDefinition` | `DefinitionBase` subclass — the declaration shells, exhaustive over the kind vocabulary (throws outside it); visibility from `exported`; reads class-level annotations off the value via the `KtAnnotated` protocol and the supertype clause via `KtSupertyped`; KDoc from `description` |
 | `KtParameterList` / `KtParameter(Args)` | Primary-constructor parameter rendering: `    @Anno val name: Type? = default`, comma-joined, no trailing comma |
 | `KtAnnotation` | Generic annotation rendering: `@Name` / `@Name(arg, …)` — args pre-quoted by the caller |
 | `KtAnnotated` / `isKtAnnotated` | The protocol (`{ annotations: KtAnnotation[] }`) by which a Definition's VALUE supplies class-level annotations to `KtDefinition` (the neutral `Lang.toDefinition` has no annotations slot); cast-free type guard |
+| `KtSupertyped` / `isKtSupertyped` | The protocol (`{ supertypes: Stringable[] }`) by which a Definition's VALUE supplies a supertype clause — `data class Dog(\n…\n) : Animal` (rendered for the `data-class` kind only in v1); same value-carried pattern as `KtAnnotated`; bare names, no import behavior (same-package suppression makes them correct) |
 | `KtImportNameArg` | The concise import-name shape (`'Name'`, `{ name, alias }`) accepted by `register({ imports })` |
 | `createDataClass` / `createEnumClass` / `createSealedInterface` / `createTypeAlias` / `createValue` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary (`createValue` also takes `typeName` for `val x: T = …`) |
 | `KtEntityKind` / `toKtKeyword` | The five-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary |
@@ -128,8 +129,10 @@ createValue('timeout', { typeName: 'Long' })  // → val timeout: Long = …
   import form: every Kotlin import is `import pkg.Name`.
 - Top-level `val` is Kotlin's distinctive file-scope value (illegal in
   C#/PHP/Java) — the language's distinctive-constraint test.
-- `sealed-interface` is in the vocabulary now; the gen-side `oneOf`
-  mapping is a named follow-up (see `gen-kotlin`'s README).
+- `sealed-interface` is in the vocabulary AND gen-kotlin maps
+  qualifying discriminated `oneOf`s onto it (spec
+  `notes/lang/22-kotlin-sealed-oneof-architecture.md`); members carry
+  the ` : Parent` clause via `KtSupertyped`.
 - Visibility: Kotlin defaults to `public`, so `exported: true` renders
   *nothing* and `exported: false` renders `private ` (file-local) —
   keyword only to restrict.
@@ -188,6 +191,7 @@ Construct-level helpers for Kotlin syntax — all `Stringable`-compatible:
 | `KtParameterList` / `KtParameterArgs` | A primary-constructor parameter list: `    @SerialName("x_y") val xY: String? = null`, comma-joined, **no trailing comma** (cosmetic non-decision — formatters normalize; SKMTC renders unformatted) |
 | `KtAnnotation` | `@Serializable` / `@SerialName("user_id")` — grammar only; args pre-quoted by the caller; which annotation is generator policy |
 | `KtAnnotated` / `isKtAnnotated` | The value-carried class-level-annotation protocol `KtDefinition` reads (one annotation per line above the shell) |
+| `KtSupertyped` / `isKtSupertyped` | The value-carried supertype protocol `KtDefinition` reads (` : A, B` after the data-class parameter list) |
 | `withDescription` | KDoc block (`/** … */`) above a declaration |
 
 The schema→type mapping (`String`, `Int`/`Long`, `List<…>`,
@@ -227,9 +231,10 @@ in `gen-kotlin`'s value layer, not here.
   instead.
 - **Baking the declaration into the value** — `toString()` returning
   `data class Foo(…)` or `@Serializable` ahead of it. The Driver +
-  `KtDefinition` add annotations (via `KtAnnotated`), visibility, the
-  keyword, the name, and the shell. Return only the body (the parameter
-  list / enum entries / aliased type).
+  `KtDefinition` add annotations (via `KtAnnotated`), the supertype
+  clause (via `KtSupertyped`), visibility, the keyword, the name, and
+  the shell. Return only the body (the parameter list / enum entries /
+  aliased type).
 - **Adding `?` twice** — the type expression is the single owner of
   nullability; the parameter layer adds `= null` defaults, never a
   second `?`. (`gen-kotlin`'s `applyModifiers` guards this; keep the
@@ -269,9 +274,12 @@ in `gen-kotlin`'s value layer, not here.
 
 ### Status note
 
-Shipped by the Kotlin Phase D milestone (`lang-kotlin@0.1.0` +
-`@skmtc/gen-kotlin`, spec `notes/lang/19-kotlin-architecture.md`):
-the naming layer, DSL classes, write path (model veneer), and the
-proving generator are production; operation veneers, `sealed-interface`
-gen-side mapping (`oneOf`), and serialization flavors beyond
-kotlinx.serialization are named follow-ups.
+Shipped by the Kotlin Phase D milestone (spec
+`notes/lang/19-kotlin-architecture.md`) and the sealed-`oneOf`
+milestone (`lang-kotlin@0.2.0`, spec
+`notes/lang/22-kotlin-sealed-oneof-architecture.md`): the naming
+layer, DSL classes, write path (model veneer), the `KtAnnotated` +
+`KtSupertyped` value protocols, and the proving generator (incl. the
+sealed-interface `oneOf` mapping) are production; operation veneers
+and serialization flavors beyond kotlinx.serialization are named
+follow-ups (the Spring milestone).
