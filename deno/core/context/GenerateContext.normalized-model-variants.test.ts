@@ -23,7 +23,6 @@
  * variant suffix.
  */
 
-import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -33,7 +32,7 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
+import { defineAndRegister, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -75,9 +74,10 @@ class FormProjection extends FormBase {
     // pulling a real ModelProjection into the test. The contract we're
     // pinning is the same: the Definition lands under the variant-bound
     // fallbackName at the form's exportPath.
-    this.defineAndRegister({
+    defineAndRegister(this.context, {
       identifier: Identifier.createType(fallbackName),
-      value: { toString: () => `type ${fallbackName} = { /* body */ }` }
+      value: { toString: () => `type ${fallbackName} = { /* body */ }` },
+      destinationPath: this.settings.exportPath
     })
 
     this.bodyName = fallbackName
@@ -103,7 +103,6 @@ Deno.test('variant-bound fallbackName - each variant produces a distinct body De
   })
 
   const entry = toOasOperationEntry({
-    lang: typescript,
     id: '@test/form',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })

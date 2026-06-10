@@ -14,7 +14,6 @@
  * escape Driver-level unit tests but get caught here.
  */
 
-import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -24,7 +23,7 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
+import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -73,7 +72,6 @@ const buildContext = (variants: Record<string, unknown>) => {
   })
 
   const entry = toOasOperationEntry({
-    lang: typescript,
     id: '@test/e2e-form',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })

@@ -18,7 +18,7 @@ import type { OasObject } from '@/oas/object/Object.ts'
 import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { GeneratorConfig } from '@/types/GeneratorType.ts'
-import { typescript } from '@skmtc/lang-typescript'
+import { register } from '@skmtc/lang-typescript'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -80,10 +80,8 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
   const modelGenerator: ModelConfig = {
     id: 'synthetic-model',
     type: 'model',
-    lang: typescript,
-    transform<Acc = void>({ refName }: TransformModelArgs<Acc>): Acc {
+    transform({ refName }: TransformModelArgs): void {
       modelRefNames.push(refName)
-      return refName as Acc
     }
   }
 
@@ -99,17 +97,8 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
   const operationGenerator: GqlOperationConfig = {
     id: 'synthetic-gql-op',
     type: 'gqlOperation',
-    lang: typescript,
     isSupported: () => true,
-    transform: <Acc = void>({
-      operation,
-      acc,
-      context
-    }: {
-      operation: unknown
-      acc: Acc | undefined
-      context: import('@/context/generateTypes.ts').GenerateContextType
-    }): Acc => {
+    transform: ({ operation, context }): void => {
       const gqlOp = operation as unknown as GqlOperation
 
       const args = synthesizeArgsObject(gqlOp)
@@ -120,9 +109,10 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
         argsKeys: args ? Object.keys(args.properties ?? {}) : []
       })
 
-      // Verify Definition emission works inside the dispatcher.
+      // Verify Definition emission works inside the dispatcher — through
+      // the lang package's register function (pre-creates the file).
       const id = Identifier.createType(`${gqlOp.fieldName}Args`)
-      context.register({ generatorId: 'synthetic-gql-op',
+      register(context, {
         destinationPath: `gql/operations/${gqlOp.identifier}.generated.ts`,
         definitions: [
           new Definition({
@@ -135,8 +125,6 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
           })
         ]
       })
-
-      return acc as Acc
     }
   }
 
@@ -147,8 +135,8 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     logger: mockLogger,
     captureCurrentResult,
     toGeneratorConfigMap: () =>
-      // The map must be keyed by each generator's `id` so the engine can
-      // resolve a generator's language via `resolveLang(generatorId)`.
+      // The map is keyed by each generator's `id` — the engine's dispatch
+      // routes on it.
       // deno-lint-ignore no-explicit-any
       ({
         'synthetic-model': modelGenerator,
@@ -200,15 +188,14 @@ Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL d
   `
   const gqlDocument = toGqlDocument(sdl)
 
-  const httpTransform = spy((_args: TransformOasOperationArgs<unknown>) => undefined)
+  const httpTransform = spy((_args: TransformOasOperationArgs) => undefined)
 
   const httpGenerator: OasOperationConfig = {
     id: 'http-only',
     type: 'oasOperation',
-    lang: typescript,
     isSupported: () => true,
-    transform: <Acc = void>(args: TransformOasOperationArgs<Acc>): Acc => {
-      return httpTransform(args as TransformOasOperationArgs<unknown>) as Acc
+    transform: (args: TransformOasOperationArgs): void => {
+      httpTransform(args)
     }
   }
 

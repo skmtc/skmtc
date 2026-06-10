@@ -26,7 +26,6 @@
  * Definition and the consumer ships a doubled symbol.
  */
 
-import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -35,9 +34,9 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
-import { File } from '@/dsl/File.ts'
+import { TsFile } from '@skmtc/lang-typescript'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
+import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -108,7 +107,6 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
   })
 
   const formEntry = toOasOperationEntry({
-    lang: typescript,
     id: '@test/form-gen',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
@@ -116,7 +114,6 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
   })
 
   const peerEntry = toOasOperationEntry({
-    lang: typescript,
     id: '@test/peer-gen',
     transform: () => {}
   })
@@ -169,7 +166,6 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
   })
 
   const formEntry = toOasOperationEntry({
-    lang: typescript,
     id: '@test/form-gen',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
@@ -177,7 +173,6 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
   })
 
   const peerEntry = toOasOperationEntry({
-    lang: typescript,
     id: '@test/peer-gen',
     transform: () => {}
   })
@@ -209,15 +204,15 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
   // Each form-variant file has an import of `usePatchQuote` from the
   // peer file. The Driver auto-registers this import whenever the
   // peer's exportPath differs from the caller's destinationPath.
-  if (mainFile instanceof File) {
+  if (mainFile instanceof TsFile) {
     const mainImport = mainFile.imports.get('@/services/usePatchQuote.ts')
     assertExists(mainImport, 'main-variant file should import from peer file')
-    assertEquals(mainImport.has('usePatchQuote'), true)
+    assertEquals(mainImport.toString(), `import {usePatchQuote} from '@/services/usePatchQuote.ts'`)
   }
 
-  if (customerFile instanceof File) {
+  if (customerFile instanceof TsFile) {
     const customerImport = customerFile.imports.get('@/services/usePatchQuote.ts')
     assertExists(customerImport, 'customer-variant file should import from peer file')
-    assertEquals(customerImport.has('usePatchQuote'), true)
+    assertEquals(customerImport.toString(), `import {usePatchQuote} from '@/services/usePatchQuote.ts'`)
   }
 })

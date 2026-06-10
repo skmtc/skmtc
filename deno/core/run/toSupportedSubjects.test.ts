@@ -5,7 +5,6 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
-import { typescript } from '@skmtc/lang-typescript'
 
 const doc: OpenAPIV3.Document = {
   openapi: '3.0.0',
@@ -25,20 +24,17 @@ const doc: OpenAPIV3.Document = {
 const generators = <E = undefined>(): GeneratorsMapContainer<E> =>
   ({
     'gets-only': toOasOperationEntry({
-      lang: typescript,
       id: 'gets-only',
       isSupported: ({ operation }) => operation.method === 'get',
-      transform: ({ acc }) => acc,
+      transform: () => {},
     }),
     'all-ops': toOasOperationEntry({
-      lang: typescript,
       id: 'all-ops',
-      transform: ({ acc }) => acc,
+      transform: () => {},
     }),
     models: toModelEntry({
-      lang: typescript,
       id: 'models',
-      transform: ({ acc }) => acc,
+      transform: () => {},
     }),
   }) as GeneratorsMapContainer<E>
 

@@ -17,7 +17,6 @@
  * formatter subprocess can run.
  */
 
-import { typescript } from '@skmtc/lang-typescript'
 import { assertEquals } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -27,7 +26,7 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
+import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
@@ -112,7 +111,6 @@ const runFixture = (variants: Record<string, unknown>) => {
   })
 
   const formEntry = toOasOperationEntry({
-    lang: typescript,
     id: '@test/form-gen',
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
@@ -120,7 +118,6 @@ const runFixture = (variants: Record<string, unknown>) => {
   })
 
   const hookEntry = toOasOperationEntry({
-    lang: typescript,
     id: '@test/hook-gen',
     transform: () => {}
   })

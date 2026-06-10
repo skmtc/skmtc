@@ -9,8 +9,7 @@ import * as log from '@std/log'
 import { Definition } from '@/dsl/Definition.ts'
 import { Identifier } from '@/dsl/Identifier.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import { typescript } from '@skmtc/lang-typescript'
-import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
+import { register } from '@skmtc/lang-typescript'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
@@ -47,18 +46,9 @@ const createTestContext = (options?: {
     settings: options?.settings,
     logger: options?.logger ?? mockLogger,
     captureCurrentResult,
-    // The `test` generator carries `lang` so `register({ generatorId: 'test' })`
-    // can resolve the destination file's language. Its transform is a no-op,
-    // so it produces no files of its own.
-    toGeneratorConfigMap: () =>
-      ({
-        test: toModelEntry({
-          id: 'test',
-          lang: typescript,
-          transform: () => {}
-        })
-        // deno-lint-ignore no-explicit-any
-      }) as any
+    // File management goes through the lang package's register function
+    // (which pre-creates files), so no generator config is needed here.
+    toGeneratorConfigMap: () => ({})
   })
 
   return { context, captureCurrentResult }
@@ -168,7 +158,7 @@ Deno.test('GenerateContext - File Management', async t => {
       }
     })
 
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -179,19 +169,18 @@ Deno.test('GenerateContext - File Management', async t => {
   await t.step('register should handle imports', () => {
     const { context } = createTestContext()
 
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './types.ts',
-      imports: typescript.toImports({
+      imports: {
         './base': ['BaseType', 'BaseInterface']
-      })
+      }
     })
 
     assertEquals(true, true)
   })
 
-  // Re-exports are no longer part of the neutral `context.register` contract:
-  // the concise re-export form awaits a `ReExportBase` seam on the language
-  // (see langRegister.ts). Re-add coverage once that lands.
+  // Re-export coverage lives in GenerateContext.reExports.test.ts — the
+  // barrel-pattern fixture over the ReExportBase seam.
 })
 
 Deno.test('GenerateContext - Definition Lookup', async t => {
@@ -199,7 +188,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
     const { context } = createTestContext()
 
     // Register a file first
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './types.ts',
       definitions: []
     })
@@ -224,7 +213,7 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
       }
     })
 
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './types.ts',
       definitions: [definition]
     })
@@ -249,13 +238,13 @@ Deno.test('GenerateContext - Definition Lookup', async t => {
       }
     })
 
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './file1.ts',
       definitions: [definition]
     })
 
     // Create another file
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './file2.ts',
       definitions: []
     })
@@ -294,7 +283,6 @@ Deno.test('GenerateContext - Artifact Generation', async t => {
       generator1: {
         id: 'generator1',
         type: 'model',
-        // @ts-expect-error - minimal mock; real transform is generic over Acc
         transform: () => {}
       }
     })
@@ -342,12 +330,12 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './types.ts',
       definitions: [definition1, definition2],
-      imports: typescript.toImports({
+      imports: {
         './base': ['BaseEntity']
-      })
+      }
     })
 
     // 2. Look up the definitions
@@ -384,7 +372,7 @@ Deno.test('GenerateContext - Integration', async t => {
       }
     })
 
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './constants.ts',
       definitions: [definition]
     })
@@ -415,12 +403,12 @@ Deno.test('GenerateContext - Integration', async t => {
     })
 
     // Same name 'Config' but in different files
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './types.ts',
       definitions: [typeDefinition]
     })
 
-    context.register({ generatorId: 'test',
+    register(context, {
       destinationPath: './constants.ts',
       definitions: [constantDefinition]
     })
@@ -513,7 +501,6 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
       'http-gen': {
         id: 'http-gen',
         type: 'oasOperation',
-        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform,
         isSupported: () => true
       }
@@ -540,7 +527,6 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
       'gql-gen': {
         id: 'gql-gen',
         type: 'gqlOperation',
-        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform,
         isSupported: () => true
       }
@@ -564,7 +550,6 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
       'http-gen': {
         id: 'http-gen',
         type: 'oasOperation',
-        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform,
         isSupported: () => true
       }
@@ -582,7 +567,6 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
       'gql-gen': {
         id: 'gql-gen',
         type: 'gqlOperation',
-        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform,
         isSupported: () => true
       }
@@ -622,7 +606,6 @@ Deno.test('GenerateContext - model dispatch is protocol-neutral', async t => {
       'model-gen': {
         id: 'model-gen',
         type: 'model',
-        // @ts-expect-error - spy doesn't satisfy the generic transform signature
         transform
       }
     })
