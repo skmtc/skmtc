@@ -14,7 +14,11 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'dev',
   'doctor',
   'agent-context',
-  'clean'
+  'clean',
+  // login/logout talk to the hub (or just the local filesystem), not
+  // the JSR registry.
+  'login',
+  'logout'
 ])
 
 const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
@@ -258,6 +262,30 @@ const run = async () => {
       })
     })
 
+  const loginCommand = new Command()
+    .description(getCommandDescriptor('login').description)
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .option('--with-token', 'Read the token from stdin instead of prompting.')
+    .option('--hub-url <url:string>', 'Hub base URL to validate against. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.')
+    .action(async ({ json, input, withToken, hubUrl }) => {
+      const { renderLogin } = await import('@/commands/login.tsx')
+      await renderLogin({
+        hubUrl,
+        withToken,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
+    })
+
+  const logoutCommand = new Command()
+    .description(getCommandDescriptor('logout').description)
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }) => {
+      const { renderLogout } = await import('@/commands/logout.ts')
+      renderLogout({ jsonFlag: json })
+    })
+
   const doctorCommand = new Command()
     .description(getCommandDescriptor('doctor').description)
     .option('--json', 'Emit structured JSON output.')
@@ -315,6 +343,8 @@ const run = async () => {
     .command('bundle', bundleCommand)
     .command('clean', cleanCommand)
     .command('publish', publishCommand)
+    .command('login', loginCommand)
+    .command('logout', logoutCommand)
     .command('dev', devCommand)
     .command('doctor', doctorCommand)
     .command('agent-context', agentContextCommand)

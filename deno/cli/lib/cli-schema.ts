@@ -134,11 +134,29 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     args: ['<project>'],
     flags: [
       ...AGENT_MODE_FLAGS,
-      { flag: '--token <pat>', description: 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.' },
+      { flag: '--token <pat>', description: 'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.' },
       { flag: '--hub-url <url>', description: 'Hub base URL. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.' },
       { flag: '--version <semver>', description: "Version to publish. Defaults to the project root deno.json's `version`." }
     ],
     agentMode: 'full'
+  },
+  {
+    name: 'login',
+    description: 'Validate and store a skmtc-hub personal access token (paste-a-PAT login). When a token is already stored, reports the logged-in handle instead of prompting.',
+    args: [],
+    flags: [
+      ...AGENT_MODE_FLAGS,
+      { flag: '--with-token', description: 'Read the token from stdin instead of prompting (works in non-interactive mode).' },
+      { flag: '--hub-url <url>', description: 'Hub base URL to validate against. Defaults to $SKMTC_HUB_URL or https://api.skmtc.dev.' }
+    ],
+    agentMode: 'full'
+  },
+  {
+    name: 'logout',
+    description: 'Delete the stored skmtc-hub token (~/.skmtc/auth.json). Idempotent.',
+    args: [],
+    flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
+    agentMode: 'json-only'
   },
   {
     name: 'generate',

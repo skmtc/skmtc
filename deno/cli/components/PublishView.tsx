@@ -9,6 +9,7 @@ import {
   publishHeadless,
   type PublishHeadlessResult
 } from '@/lib/publish-headless.ts'
+import { resolveHubToken } from '@/lib/hub-token.ts'
 
 type PublishViewProps = {
   project: Project
@@ -38,14 +39,14 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
   const [stage, setStage] = useState<Stage>({ kind: 'validating' })
 
   useEffect(() => {
-    const token = view.token ?? Deno.env.get('SKMTC_HUB_TOKEN')
+    const token = resolveHubToken({ tokenFlag: view.token })
     const hubUrl = view.hubUrl ?? Deno.env.get('SKMTC_HUB_URL')
 
-    const missing: string[] = []
-    if (!token) missing.push('--token <pat> (or $SKMTC_HUB_TOKEN)')
-
-    if (missing.length > 0) {
-      setStage({ kind: 'misconfigured', missing })
+    if (!token) {
+      setStage({
+        kind: 'misconfigured',
+        missing: ['--token <pat> (or $SKMTC_HUB_TOKEN, or `skmtc login`)']
+      })
       dispatchMessage({ error: 'Publish is missing required arguments' })
       if (!state.interactive) exit()
       return
@@ -56,7 +57,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
       const result = await publishHeadless({
         skmtcRoot: state.skmtcRoot,
         projectName: project.name,
-        token: token as string,
+        token,
         hubUrl,
         version: view.version
       })
