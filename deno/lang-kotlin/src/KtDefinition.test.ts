@@ -4,6 +4,7 @@ import type { GenerateContextType } from '@skmtc/core/generate'
 import { KtDefinition } from './KtDefinition.ts'
 import { KtParameterList } from './KtParameterList.ts'
 import { KtAnnotation } from './KtAnnotation.ts'
+import { isKtSupertyped } from './KtSupertyped.ts'
 import {
   createDataClass,
   createEnumClass,
@@ -151,4 +152,111 @@ Deno.test('description renders as a KDoc block above annotations and shell', () 
   })
 
   assertEquals(definition.toString(), '/** Opaque user identifier */\ntypealias UserId = String')
+})
+
+Deno.test('a supertype clause rides on the value via the KtSupertyped protocol', () => {
+  class MemberValue {
+    supertypes = ['Animal']
+
+    toString(): string {
+      return '    val name: String'
+    }
+  }
+
+  class MultiMemberValue {
+    supertypes = ['Animal', { toString: () => 'Pet' }]
+
+    toString(): string {
+      return '    val name: String'
+    }
+  }
+
+  const single = new KtDefinition({
+    context,
+    identifier: createDataClass('Dog'),
+    value: new MemberValue()
+  })
+  const multiple = new KtDefinition({
+    context,
+    identifier: createDataClass('Dog'),
+    value: new MultiMemberValue()
+  })
+
+  assertEquals(single.toString(), 'data class Dog(\n    val name: String\n) : Animal')
+  assertEquals(multiple.toString(), 'data class Dog(\n    val name: String\n) : Animal, Pet')
+})
+
+Deno.test('annotations and supertypes compose on one value', () => {
+  class SealedMemberValue {
+    annotations = [new KtAnnotation('Serializable'), new KtAnnotation('SerialName', ['"dog"'])]
+    supertypes = ['Animal']
+
+    toString(): string {
+      return '    val name: String'
+    }
+  }
+
+  const definition = new KtDefinition({
+    context,
+    identifier: createDataClass('Dog'),
+    value: new SealedMemberValue()
+  })
+
+  assertEquals(
+    definition.toString(),
+    '@Serializable\n@SerialName("dog")\ndata class Dog(\n    val name: String\n) : Animal'
+  )
+})
+
+Deno.test('empty or absent supertypes render no clause (byte-identical to pre-protocol output)', () => {
+  class EmptySupertypesValue {
+    supertypes: string[] = []
+
+    toString(): string {
+      return '    val id: String'
+    }
+  }
+
+  const empty = new KtDefinition({
+    context,
+    identifier: createDataClass('User'),
+    value: new EmptySupertypesValue()
+  })
+  const absent = new KtDefinition({
+    context,
+    identifier: createDataClass('User'),
+    value: new KtParameterList([{ name: 'id', type: 'String' }])
+  })
+
+  assertEquals(empty.toString(), 'data class User(\n    val id: String\n)')
+  assertEquals(absent.toString(), 'data class User(\n    val id: String\n)')
+})
+
+Deno.test('non-data-class kinds ignore the KtSupertyped protocol in v1', () => {
+  class SupertypedAlias {
+    supertypes = ['Animal']
+
+    toString(): string {
+      return 'JsonElement'
+    }
+  }
+
+  const definition = new KtDefinition({
+    context,
+    identifier: createTypeAlias('Payload'),
+    value: new SupertypedAlias()
+  })
+
+  assertEquals(definition.toString(), 'typealias Payload = JsonElement')
+})
+
+Deno.test('isKtSupertyped narrows the protocol without casts', () => {
+  assertEquals(isKtSupertyped({ supertypes: ['Animal'] }), true)
+  assertEquals(isKtSupertyped({ supertypes: [{ toString: () => 'Pet' }] }), true)
+  assertEquals(isKtSupertyped({ supertypes: [] }), true)
+  assertEquals(isKtSupertyped({ supertypes: 'Animal' }), false)
+  assertEquals(isKtSupertyped({ supertypes: [null] }), false)
+  assertEquals(isKtSupertyped({}), false)
+  assertEquals(isKtSupertyped(null), false)
+  assertEquals(isKtSupertyped('Animal'), false)
 })

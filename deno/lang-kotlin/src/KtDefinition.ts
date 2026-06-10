@@ -1,6 +1,7 @@
 import { DefinitionBase } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
 import { isKtAnnotated } from './KtAnnotation.ts'
+import { isKtSupertyped } from './KtSupertyped.ts'
 import { withDescription } from './withDescription.ts'
 
 /**
@@ -22,7 +23,7 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  *
  * | kind | shell |
  * |---|---|
- * | `data-class` | `data class Name(\n…\n)` |
+ * | `data-class` | `data class Name(\n…\n)` (+ ` : A, B` via the supertype protocol) |
  * | `enum-class` | `enum class Name {\n…\n}` |
  * | `sealed-interface` | `sealed interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
  * | `typealias` | `typealias Name = …` |
@@ -31,8 +32,10 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  * Class-level annotations ride on the VALUE via the
  * {@link import('./KtAnnotation.ts').KtAnnotated} protocol (the neutral
  * `Lang.toDefinition` signature has no annotations slot) and render one
- * per line above the shell; a `description` renders as a KDoc block above
- * the annotations.
+ * per line above the shell; a supertype clause rides the same way via
+ * {@link import('./KtSupertyped.ts').KtSupertyped} (rendered for the
+ * `data-class` kind only in v1); a `description` renders as a KDoc block
+ * above the annotations.
  *
  * Visibility: Kotlin defaults to `public`, so the neutral `exported`
  * renders as *nothing* when exported and `private ` (file-local) when
@@ -66,8 +69,14 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
     const { name, kind, typeName } = this.identifier
 
     switch (kind) {
-      case 'data-class':
-        return `data class ${name}(\n${this.value}\n)`
+      case 'data-class': {
+        const clause =
+          isKtSupertyped(this.value) && this.value.supertypes.length
+            ? ` : ${this.value.supertypes.join(', ')}`
+            : ''
+
+        return `data class ${name}(\n${this.value}\n)${clause}`
+      }
       case 'enum-class':
         return `enum class ${name} {\n${this.value}\n}`
       case 'sealed-interface': {
