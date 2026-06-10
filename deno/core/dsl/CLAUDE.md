@@ -17,9 +17,11 @@ The code-generation DSL. The vocabulary:
 - **`ContentSettings`** — the bundle of `(identifier, exportPath,
   enrichments, variant)` computed by the engine and threaded into
   every Projection.
-- **`Identifier`** — wraps a string name + entity type
-  (variable / type). Use `Identifier.createVariable(name)` or
-  `Identifier.createType(name)`.
+- **`Identifier`** — neutral naming data: `name` + opaque per-language
+  `kind` + `exported` + opaque `typeName`. Built via a language
+  package's factories (`createVariable(name)` / `createType(name)`
+  from `@skmtc/lang-typescript`); core never interprets `kind`.
+  `EntityType` and the `Identifier.create*` statics are gone (F6).
 - **`ImportBase` / `ReExportBase` / `CodeFileBase` / `DefinitionBase`** —
   the neutral contracts the language-blind engine speaks. Concrete
   classes (`TsFile`/`TsImport`/`TsReExport`/`TsDefinition`) live in

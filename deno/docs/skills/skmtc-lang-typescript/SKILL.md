@@ -47,11 +47,11 @@ piece. The boundary rule, worth internalizing first:
 
 > **Template contract.** This is the first `skmtc-lang-<X>` skill and
 > the template for the rest. A new language skill (Kotlin, C#, …) keeps
-> the seven section headings below and replaces the answers. Sections
-> marked `[F5]` / `[F6]` document symbols that *currently* live in
-> `@skmtc/core` and are scheduled to move into the lang package — see
-> `notes/lang/checklist.md`. A new language gets no
-> equivalents of those until F5/F6 land.
+> the seven section headings below and replaces the answers. Every
+> section now describes symbols owned by THIS package — the naming
+> layer and syntax helpers moved out of `@skmtc/core` under F5/F6
+> (`notes/lang/17-naming-layer-and-helpers-move.md`); a new language
+> ships its own equivalents of §2/§4/§5.
 
 ## 1. Package surface
 
@@ -70,6 +70,10 @@ piece. The boundary rule, worth internalizing first:
 | `TsDefinition` | `DefinitionBase` subclass — wraps a generated value as `export const/type Name: Type = value;` with optional JSDoc |
 | `TsObject` | Renders TypeScript object type literals (`{ a: T; b?: U }`) from `TsPropertyArgs[]` |
 | `ImportNameArg` | The concise import-name shape (`'name'`, `{ name, type: 'type' }`, `{ name, alias }`) accepted by `register({ imports })` |
+| `createVariable` / `createType` | The identifier factories (formerly `Identifier.createVariable` / `.createType` statics on core) — build neutral `Identifier`s with this language's `kind` vocabulary |
+| `TsEntityKind` / `toTsKeyword` | The two-kind vocabulary (`'variable' \| 'type'`) and its declaration-keyword mapping (`const` / `type`) |
+| `List` / `NextList` / `FunctionParameter` / `PathParams` / `toPathParams` / `toPathTemplate` / `handleKey` / `handlePropertyName` / `keyValues` / `withDescription` | The TypeScript syntax helpers (§4) — moved from core under F5 |
+| `sanitizePropertyName` | TS/JS-specific property-name sanitization (§5) — moved from core under F6 |
 | `normalizeModuleName` | Module-specifier normalization helper |
 | `ReactRouterPathParams` | A stock snippet (`TsSnippet` subclass) for React-Router param plumbing |
 | `langId` | `'typescript'` |
@@ -124,31 +128,37 @@ The package dependency (both required):
 }
 ```
 
-## 2. Entity kinds & identifiers  `[F6 — currently imported from @skmtc/core]`
+## 2. Entity kinds & identifiers
 
-TypeScript output has two entity kinds, created via `Identifier`
-factories:
+TypeScript output has two entity kinds (`TsEntityKind`), created via
+the identifier factory functions exported by THIS package:
 
 ```ts
-import { Identifier } from '@skmtc/core'   // F6: moves to lang-typescript later
+import { createVariable, createType } from '@skmtc/lang-typescript'
 
-Identifier.createVariable('fooBar')                      // → export const fooBar = …
-Identifier.createVariable('fooBar', { typeName: 'Foo' }) // → export const fooBar: Foo = …
-Identifier.createType('FooBar')                          // → export type FooBar = …
+createVariable('fooBar')                      // → export const fooBar = …
+createVariable('fooBar', { typeName: 'Foo' }) // → export const fooBar: Foo = …
+createType('FooBar')                          // → export type FooBar = …
 ```
 
-- The entity kind drives both the **declaration keyword** (`const` vs
-  `type`, rendered by `TsDefinition`) and the **import form** (value
-  vs type import, see §3).
+- Core's `Identifier` is pure neutral data (`name`, opaque `kind`,
+  `exported`, opaque `typeName`); the factories write this language's
+  `kind` vocabulary (`'variable'` / `'type'`) into it. The old
+  `Identifier.createVariable` / `.createType` statics on core are
+  gone.
+- The kind drives both the **declaration keyword** (`toTsKeyword`:
+  `'variable'` → `const`, `'type'` → `type`, rendered by
+  `TsDefinition`) and the **import form** (value vs type import,
+  see §3).
 - **The typed-const annotation (`: Foo`) comes from the Identifier's
   `typeName`, not from the value.** A Projection/Snippet `toString()`
   returns only the right-hand-side expression; `TsDefinition` wraps it
   with `export`, the keyword, the name, and the annotation. Never bake
   `: Foo` or `export const` into the value itself.
-- `kind` is an opaque per-language discriminant (defaults to the
-  entity type). Languages with richer declaration vocabularies
-  (`interface`, `enum`, C# `record`, Kotlin `data class`) interpret it;
-  TypeScript currently uses the two-kind vocabulary above.
+- Languages with richer declaration vocabularies (`interface`, `enum`,
+  C# `record`, Kotlin `data class`, Rust `struct`) define their own
+  kind sets in their own factories; `toTsKeyword` throws on a kind
+  outside this language's vocabulary.
 
 ## 3. The import model of emitted TypeScript
 
@@ -195,21 +205,26 @@ this.register({
   }
 })
 
-// ✅ BETTER — when you already hold an Identifier, let it pick the form
+// ✅ ALSO RIGHT — derive the tag from an Identifier you hold
 this.register({
-  imports: { './types': [this.userBody.identifier.toImport()] }
+  imports: { './types': [
+    identifier.kind === 'type'
+      ? { name: identifier.name, type: 'type' }
+      : identifier.name
+  ] }
 })
 ```
 
 **Fails because:** consumers compiling with `verbatimModuleSyntax:
 true` (modern Vite, Next.js strict) reject bare value imports of types
-with TS1484. `identifier.toImport()` threads the entity kind through
-automatically — prefer it whenever the symbol came from an
-`Identifier` (e.g. a peer Definition's identifier). Note this is a
-**target-language** failure: the generator compiles fine; the
-*consumer's* build breaks.
+with TS1484. (For peer Definitions inserted via
+`insertOperation` / `insertModel`, the Driver already registers the
+import with the right form — `TsImport.fromIdentifier` reads the
+identifier's `kind`; you only hand-tag imports you register yourself.)
+Note this is a **target-language** failure: the generator compiles
+fine; the *consumer's* build breaks.
 
-## 4. Syntax helpers  `[F5 — currently exported from @skmtc/core]`
+## 4. Syntax helpers
 
 String-building helpers for TypeScript syntax. They all return
 `Stringable`-compatible values that compose in template literals:
@@ -223,11 +238,11 @@ String-building helpers for TypeScript syntax. They all return
 | `keyValues` | An object literal from a record, skipping `undefined` values |
 | `withDescription` | Prefixes a value with a JSDoc comment block |
 
-All currently import from `@skmtc/core` (they predate the lang split —
-F5 moves them here). A future `lang-<X>` package ships its own
-equivalents; do not reach for these when targeting another language.
+All import from `@skmtc/lang-typescript` (moved from core under F5).
+A future `lang-<X>` package ships its own equivalents; do not reach
+for these when targeting another language.
 
-## 5. Naming & sanitization  `[F6 — currently imported from @skmtc/core]`
+## 5. Naming & sanitization
 
 - **`sanitizePropertyName(name)`** — makes an arbitrary OAS property
   name safe as a TypeScript object key. JS-specific end to end: babel
@@ -272,13 +287,13 @@ equivalents; do not reach for these when targeting another language.
 - **`skmtc-cli`** — install/clone/bundle/generate commands.
 - **`skmtc-debug`** — broken output, verify-first stance.
 
-### Status note (read before relying on import paths)
+### Status note
 
-The code boundary still lags the design in the naming layer:
-`Identifier`, `EntityType`, `sanitizePropertyName`, and the §4 syntax
-helpers still live in `@skmtc/core` (F5/F6 in
-`notes/lang/checklist.md`). `ImportNameArg` has already moved — it is
-exported from `@skmtc/lang-typescript`, not from core. This skill
-documents the **current** import paths; when F5/F6 land, the remaining
-symbols move to `@skmtc/lang-typescript` and this skill (and every
-`lang-<X>` skill cloned from it) must be updated in the same change.
+The naming layer and syntax helpers landed in this package under
+F5/F6 (core ≥0.9.0 / lang-typescript ≥0.2.0 — see
+`notes/lang/17-naming-layer-and-helpers-move.md`): the identifier
+factories, `TsEntityKind`, `sanitizePropertyName`, and the §4 helpers
+all import from `@skmtc/lang-typescript`. Core's `Identifier` is
+neutral data with a public constructor; core's `EntityType`, its
+concrete `Definition`, and `Identifier.toImport` no longer exist.
+The code boundary now matches the design.

@@ -91,11 +91,12 @@ important for authoring:
    (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) are
    pure pipeline config and carry **no `lang` field**; `register` passes
    plain data. The lang package owns the concrete `File` / `Import` /
-   `Definition` subclasses and the register ergonomics;
-   **`Identifier`, `EntityType`, `sanitizePropertyName`, and
-   the TS syntax helpers still import from `@skmtc/core`** (scheduled to
-   move — F5/F6 in `notes/lang/checklist.md`). For
-   TypeScript-output specifics, load the `skmtc-lang-typescript` skill.
+   `Definition` subclasses, the register ergonomics, **the identifier
+   factories (`createVariable` / `createType`), the TS syntax helpers
+   (`List`, …), and `sanitizePropertyName`** (all moved out of core —
+   F5/F6, landed; core's `Identifier` is neutral data, `EntityType` is
+   gone). For TypeScript-output specifics, load the
+   `skmtc-lang-typescript` skill.
 
 ## 2. The DSL: Projection vs Snippet
 
@@ -311,7 +312,7 @@ almost always the correct alternative.
 | Templates as `.hbs` / `.mustache` files | Templates as template literals inside TypeScript classes | Type safety on interpolated values; full IDE refactoring |
 | Cache between runs for speed | Each generate is from cold; spawn a fresh Worker per run | Determinism > marginal speed; no state leaks between runs |
 | Make `OasSchema` a base class with subclasses | Keep it as a discriminated union of sibling classes | TS narrowing via `.isRef()` and `.type` discriminator beats runtime polymorphism |
-| Use raw strings as identifier names | Use `Identifier.createVariable(name)` or `Identifier.createType(name)` | The entity kind drives declaration keywords and import forms in the language layer |
+| Use raw strings as identifier names | Use `createVariable(name)` or `createType(name)` from the lang package | The identifier's `kind` drives declaration keywords and import forms in the language layer |
 | Use `as` casts to satisfy types | Use type guards or runtime checks | `as` is reserved for tests; production code narrows |
 | Long `if`/`else if` chains for 3+ branches | Use `switch` with exhaustive `never` default | Codebase convention; gets compiler help on missed cases |
 | Use `process.env.X` | Use `Deno.env.get('X')` | Deno codebase; engine runs in Deno workers |
@@ -393,7 +394,7 @@ Final output text?       → SnippetBase descendant's toString() (template liter
 Import (own file)?        → this.register({ imports: { module: [names] } })
 Import (another file)?    → this.registerInto(destinationPath, { imports }) — or, from a
                             Snippet, this.register({ imports, destinationPath })
-Identifier name?          → Identifier.createVariable(name) or Identifier.createType(name)
+Identifier name?          → createVariable(name) or createType(name) (from @skmtc/lang-typescript)
 File path?                → join('@', ...) from @std/path
 TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 ```
@@ -426,14 +427,14 @@ and modify the marked extension points.
 import {
   capitalize,
   camelCase,
-  Identifier,
   toMethodVerb,
   withVariant  // only needed for variants-aware generators
 } from '@skmtc/core'
-// ⬇ The factory comes from the LANG package — this import is what
-//   declares the generator's target language (no `lang` config field
-//   exists anywhere).
-import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import type { Identifier } from '@skmtc/core'
+// ⬇ The factory AND the identifier factories come from the LANG
+//   package — this import is what declares the generator's target
+//   language (no `lang` config field exists anywhere).
+import { toOasOperationProjectionBase, createVariable } from '@skmtc/lang-typescript'
 import { join } from '@std/path'
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
 import denoJson from '../deno.json' with { type: 'json' }
@@ -450,9 +451,9 @@ export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
   toIdentifier({ operation, variant }): Identifier {
     const verb = capitalize(toMethodVerb(operation.method))
     const base = `${verb}${camelCase(operation.path, { upperFirst: true })}`
-    // Variants-unaware:    return Identifier.createVariable(base)
+    // Variants-unaware:    return createVariable(base)
     // Variants-aware:
-    return Identifier.createVariable(withVariant(base, variant))
+    return createVariable(withVariant(base, variant))
   },
 
   // ⬇ Customize: where does the generated file land?
@@ -906,14 +907,14 @@ const name = `${capitalize(toEndpointName(operation))}Body`
 ```
 
 **Fails because:** hardcoded names break the `(name, exportPath)`
-cache-key uniqueness. Use `Identifier.createVariable(derivedName)`.
+cache-key uniqueness. Use `createVariable(derivedName)`.
 
 ### Bare-noun identifiers and missing `.generated` suffixes
 
 ```ts
 // ❌ WRONG — bare noun, plausible collision with peer generators
 toIdentifier({ operation }) {
-  return Identifier.createVariable(camelCase(operation.path))
+  return createVariable(camelCase(operation.path))
   // → `customers` — what if gen-table or gen-mock also picks this?
 }
 toExportPath({ operation }) {
@@ -925,7 +926,7 @@ toExportPath({ operation }) {
 toIdentifier({ operation }) {
   const verb = capitalize(toMethodVerb(operation.method))  // 'Create'
   const path = camelCase(operation.path, { upperFirst: true })  // 'Customers'
-  return Identifier.createVariable(`${verb}${path}Form`)
+  return createVariable(`${verb}${path}Form`)
   // → `CreateCustomersForm`
 }
 toExportPath({ operation, enrichments }) {
@@ -1177,7 +1178,7 @@ can never silently land content in the wrong file.
 import { defineAndRegister } from '@skmtc/lang-typescript'
 
 defineAndRegister(context, {
-  identifier: Identifier.createVariable('formatMoney'),
+  identifier: createVariable('formatMoney'),
   value: new FormatMoneySnippet({ context }),
   destinationPath
 })
@@ -1284,13 +1285,13 @@ through.
 ```ts
 // ❌ WRONG — collision on the second variant
 toIdentifier({ operation, variant }) {
-  return Identifier.createVariable(`${toName(operation)}Form`)
+  return createVariable(`${toName(operation)}Form`)
 }
 
 // ✅ RIGHT — disambiguate by variant
 import { withVariant } from '@skmtc/core'
 toIdentifier({ operation, variant }) {
-  return Identifier.createVariable(withVariant(`${toName(operation)}Form`, variant))
+  return createVariable(withVariant(`${toName(operation)}Form`, variant))
 }
 ```
 
@@ -1328,7 +1329,7 @@ After writing or editing a generator, verify:
 - [ ] Registering snippets extend `TsSnippet` and receive an explicit `destinationPath`; `generatorKey` / `stackTrail` are optional attribution inputs only (registers are keyless)
 - [ ] Transform-level and projection-internal sibling definitions use the `defineAndRegister` function imported from `@skmtc/lang-typescript` — not `this.defineAndRegister`, which does not type-check on factory-built projections
 - [ ] No `as` casts in non-test code — narrowing uses type guards or discriminant checks
-- [ ] Identifier names come from `Identifier.createVariable` / `createType` — no raw strings as identifiers
+- [ ] Identifier names come from `createVariable` / `createType` (imported from `@skmtc/lang-typescript`) — no raw strings as identifiers
 - [ ] Identifier names carry a role suffix (`Form`, `Hook`, `Table`, …); export paths use a `.generated.*` filename suffix
 - [ ] No `if`/`else if` chains of length ≥ 3 — `switch` + exhaustive `never` default
 - [ ] `toString()` is pure — no mutation of `this`, no side effects, deterministic in `this.*` fields set during construction
@@ -1598,7 +1599,7 @@ transform: ({ context, operation }) => {
   //     @skmtc/lang-typescript — a transform is a closure with no
   //     class, so the language comes from the import.
   const routesList = defineAndRegister(context, {
-    identifier: Identifier.createVariable('toRoutesList'),
+    identifier: createVariable('toRoutesList'),
     value: new MockRoutesList({ context }),
     destinationPath: exportPath
   })

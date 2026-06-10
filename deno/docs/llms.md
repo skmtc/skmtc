@@ -69,7 +69,7 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
 
-5. **The engine is language-blind; the import graph declares the language.** A generator imports its projection-base factories and snippet base from its language package (e.g. `toModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — language enters the DSL class hierarchy at the lang package's snippet base, and the engine's Drivers read it off the projection class's inherited static (`projection.lang`) when creating files and building `Definition`s. Entries (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) carry **no `lang` field**; `register` passes plain data (no `Lang`, no `createFile`, no `generatorId`). `Identifier`, `EntityType`, `sanitizePropertyName`, and the TS syntax helpers still import from `@skmtc/core` (F5/F6 in `notes/lang/checklist.md` track the move).
+5. **The engine is language-blind; the import graph declares the language.** A generator imports its projection-base factories and snippet base from its language package (e.g. `toModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — language enters the DSL class hierarchy at the lang package's snippet base, and the engine's Drivers read it off the projection class's inherited static (`projection.lang`) when creating files and building `Definition`s. Entries (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) carry **no `lang` field**; `register` passes plain data (no `Lang`, no `createFile`, no `generatorId`). The lang package also owns the identifier factories (`createVariable` / `createType`), the TS syntax helpers (`List`, `FunctionParameter`, …), and `sanitizePropertyName` (moved from core under F5/F6 — note `17`); core's `Identifier` is neutral data (`name`, opaque `kind`, `exported`, opaque `typeName`) and `EntityType` no longer exists.
 
 ---
 
@@ -89,7 +89,7 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Templates as `.hbs` / `.mustache` files | Templates as template literals inside TypeScript classes | Type safety on interpolated values; full IDE refactoring |
 | Cache between runs for speed | Each generate is from cold; spawn a fresh Worker per run | Determinism > marginal speed; no state leaks between runs |
 | Make `OasSchema` a base class with subclasses | Keep it as a discriminated union of sibling classes | TS narrowing via `.isRef()` and `.type` discriminator beats runtime polymorphism |
-| Use raw strings as identifier names | Use `Identifier.createVariable(name)` or `Identifier.createType(name)` | The entity kind drives declaration keywords and import forms in the language layer |
+| Use raw strings as identifier names | Use `createVariable(name)` or `createType(name)` from the lang package | The identifier's `kind` drives declaration keywords and import forms in the language layer |
 | Use `as` casts to satisfy types | Use type guards or runtime checks | `as` is reserved for tests; production code narrows |
 | Long `if`/`else if` chains for 3+ branches | Use `switch` with exhaustive `never` default | Codebase convention; gets compiler help on missed cases |
 | Use `process.env.X` | Use `Deno.env.get('X')` | Deno codebase; engine runs in Deno workers |
@@ -293,7 +293,7 @@ Final output text?       → SnippetBase descendant's toString() (template liter
 Import (own file)?        → this.register({ imports: { module: [names] } })
 Import (another file)?    → this.registerInto(destinationPath, { imports }) — or, from a
                             Snippet, this.register({ imports, destinationPath })
-Identifier name?          → Identifier.createVariable(name) or Identifier.createType(name)
+Identifier name?          → createVariable(name) or createType(name) (from @skmtc/lang-typescript)
 File path?                → join('@', ...) from @std/path
 TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 ```
@@ -617,7 +617,7 @@ Use this as the first read when an agent enters a SKMTC project cold.
 - **Snippet** — an anonymous, embeddable generated fragment. Extends `SnippetBase`. Embedded via `${...}`.
 - **Definition** — the `export const X = VALUE` wrapper around a Projection's value. Created by Drivers.
 - **Driver** — the orchestrator for inserting a Projection: settings → cache check → instantiate → register.
-- **Identifier** — a name + entity-type marker (`'variable'` vs `'type'`; `'variable'` renders as the TS keyword `const`). Created via `Identifier.createVariable` / `createType`.
+- **Identifier** — neutral naming data: a name + opaque per-language `kind` (TypeScript's vocabulary: `'variable'` → `const`, `'type'` → `type`) + `exported` + opaque `typeName`. Created via the lang package's `createVariable` / `createType` factories.
 - **ContentSettings** — `{ identifier, exportPath, enrichments }`. Computed by Drivers from the Projection's static methods.
 - **Enrichment** — user-supplied config attached to a generator, declared per-generator via Valibot in `enrichments.ts`.
 - **Generator** — a JSR package (or local TypeScript file) exporting an entry function.
