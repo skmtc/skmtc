@@ -48,3 +48,15 @@ export {
 export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
 export { toPackageName } from './src/toPackageName.ts'
 export { ktHardKeywords, isKtIdentifierName } from './src/hardKeywords.ts'
+export { kotlin } from './src/ktLang.ts'
+export { KtSnippet } from './src/KtSnippet.ts'
+export {
+  register,
+  defineAndRegister,
+  type KtRegisterArgs,
+  type KtDefineAndRegisterArgs
+} from './src/register.ts'
+export {
+  toModelProjectionBase,
+  type KtModelProjectionBaseConfig
+} from './src/toModelProjectionBase.ts'
