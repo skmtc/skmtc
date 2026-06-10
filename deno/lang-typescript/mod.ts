@@ -24,6 +24,7 @@ export const langId = 'typescript' as const
 export const fileExtensions = ['.ts', '.tsx'] as const
 
 export { typescript } from './src/tsLang.ts'
+export { TsSnippet } from './src/TsSnippet.ts'
 export { ReactRouterPathParams } from './src/ReactRouterPathParams.ts'
 export { TsFile, type TsFileArgs } from './src/TsFile.ts'
 export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'

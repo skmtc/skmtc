@@ -6,6 +6,7 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { ImportNameArg } from '@/dsl/Import.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
+import type { SnippetBase, SnippetBaseArgs } from '@/dsl/SnippetBase.ts'
 
 /**
  * Arguments for {@link Lang.toDefinition} — everything the language needs
@@ -57,3 +58,30 @@ export type Lang = {
   /** Build the import of one peer `Identifier` from a module. */
   toImport: (args: LangToImportArgs) => ImportBase
 }
+
+/**
+ * A snippet that carries its language. SPIKE (option 2 — see
+ * `notes/lang/14`): language packages export a snippet base satisfying
+ * this shape (`TsSnippet`); it is where language enters the DSL class
+ * hierarchy. `SnippetBase` itself stays language-blind.
+ */
+export type LangSnippet = SnippetBase & { lang: Lang }
+
+/**
+ * The constructor contract a language's snippet base class must satisfy to
+ * be used as the `base` of a projection-base factory
+ * (`toModelProjectionBase({ base: TsSnippet, … })`).
+ *
+ * Both sides carry the language: the **instance** `lang` serves the register
+ * helpers (`this.lang`), and the **static** `lang` serves the Drivers, which
+ * need the peer's language *before* constructing the value (cache-hit path).
+ * The static is inherited by every class built on this base, so a generator's
+ * projection class exposes `lang` automatically.
+ *
+ * Deliberately a CONCRETE constructor type, not a generic parameter: a core
+ * factory generic over the base's instance type cannot type-safely extend it
+ * (TS2415/TS2545 — see the scratch in `notes/lang/14`). The price is that
+ * language-specific members beyond this contract are type-erased on
+ * projection classes (present at runtime, invisible to the checker).
+ */
+export type LangSnippetCtor = (new (args: SnippetBaseArgs) => LangSnippet) & { lang: Lang }

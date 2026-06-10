@@ -884,7 +884,15 @@ export class GenerateContext implements GenerateContextType {
     if (!currentFile) {
       // First write to this path creates the file. The engine never names a
       // file class — it resolves the registering generator's language by
-      // `generatorId` and lets that language build its own file.
+      // `generatorId` and lets that language build its own file. Class-carried
+      // callers (registerViaLang) pre-create the file instead and pass no
+      // generatorId; reaching this branch without one is a bug at the caller.
+      invariant(
+        generatorId,
+        `Cannot create file '${normalizedPath}' — no generatorId to resolve a ` +
+          `language. Either pass generatorId, or pre-create the file through ` +
+          `your lang (registerViaLang does this).`
+      )
       currentFile = this.resolveLang(generatorId).createFile({
         path: normalizedPath,
         settings: this.settings

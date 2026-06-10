@@ -96,6 +96,13 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
   }: ModelProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'model'
+  /**
+   * The projection's language — the static inherited from the language
+   * snippet base the projection class is built on
+   * (`toModelProjectionBase({ base: TsSnippet, … })`). Drivers read it
+   * pre-construction (cache-hit path). SPIKE (option 2 — see `notes/lang/14`).
+   */
+  lang: Lang
   toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ refName, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType

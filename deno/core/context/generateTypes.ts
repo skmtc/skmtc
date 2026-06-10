@@ -342,8 +342,13 @@ export type ContextRegisterArgs = {
    * The id of the registering generator. When the destination file is new the
    * engine creates it via `resolveLang(generatorId).createFile(...)` — the args
    * stay pure data, the engine owns the language lookup.
+   *
+   * SPIKE (option 2 — see `notes/lang/14`): optional. Class-carried-lang
+   * callers (`registerViaLang`) pre-create the file through their own `lang`,
+   * so the engine never needs to resolve one; a file-miss with no
+   * `generatorId` is a loud error.
    */
-  generatorId: string
+  generatorId?: string
 }
 
 /**
