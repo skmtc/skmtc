@@ -37,14 +37,16 @@ Each check has an ID, a target (workspace or project), and a
 pass/fail result. Failures include a remediation hint.
 
 There are exactly **six** check IDs (the full surface is enumerated
-in `cli/lib/doctor-headless.ts` — every `id:` literal). One
-workspace-scoped check and five per-project checks:
+in `cli/lib/doctor-headless.ts` — every `id:` literal). Workspace-scoped
+checks plus per-project checks:
 
 #### Workspace-level checks
 
 | Check ID | What it verifies |
 |---|---|
 | `install-lockfile` | The installed CLI's `deno.lock` (under `~/.deno/bin/.skmtc/`) exists and pins `@skmtc/cli` and `@skmtc/core` to compatible versions |
+| `deno-version` | The running Deno satisfies the `>= 2.4.0` floor for the esbuild-based `deno bundle` |
+| `hub-auth` | `~/.skmtc/auth.json` (written by `skmtc login`) parses to the expected `{ host, token }` shape. Offline only — no network call; `skipped` when not logged in, `warning` with a logout/login hint when malformed. Reports at most the token's last 4 characters. |
 
 #### Per-project checks
 

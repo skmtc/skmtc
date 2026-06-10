@@ -129,17 +129,15 @@ The scope falls back through `Project.addGenerator` in
 1. **Explicit scope from the input.** If you ran
    `skmtc create my-api @myorg/my-zod-schema model`, the scope is
    `@myorg` (parsed by `parseModuleName`).
-2. **Authed username.** If no explicit scope and the user is
-   logged in (Supabase auth), the scope is `@<username>`.
-3. **`jsr-user` fallback.** No explicit scope, not authed → the
-   literal `jsr-user/<name>` (no `@` prefix).
+2. **`jsr-user` fallback.** No explicit scope → the literal
+   `jsr-user/<name>` (no `@` prefix). (Earlier CLIs substituted the
+   Supabase-auth username here when logged in; that auth system is
+   removed, so the fallback is now deterministic — the hub PAT plays
+   no part in `create`.)
 
-`@local/` is never used by the implementation. Don't pin shared
-scripts or CI build steps to a fixed scope — the resulting import
-key depends on who ran `create`, which makes the produced scope
-non-portable across team members or unauthenticated CI. If you
-need a stable scope across environments, pass it explicitly when
-running `create`.
+`@local/` is never used by the implementation. For a meaningful
+scope in shared scripts or CI, pass it explicitly when running
+`create`.
 
 ### Post-create rebundle
 

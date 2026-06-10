@@ -38,10 +38,16 @@ stack slug — the version lands on the stack `<auth-handle>/<project>`.
 
 ### `--token <pat>`
 
-Personal access token. Required (or set `$SKMTC_HUB_TOKEN`). Mint one
-in the SPA's account settings. The PAT also determines the account
-half of the stack identity — the CLI looks up your handle with
-`GET /v1/user` at publish time.
+Personal access token. Resolution order:
+
+1. `--token` flag
+2. `$SKMTC_HUB_TOKEN`
+3. The token stored by [`skmtc login`](login.md) (`~/.skmtc/auth.json`)
+
+Mint one in the SPA's account settings (`write:releases` alone is
+enough). The PAT also determines the account half of the stack
+identity — the CLI looks up your handle with `GET /v1/user` at
+publish time.
 
 ### `--version <semver>`
 
@@ -51,7 +57,11 @@ any network call) with a recipe-style error.
 
 ### `--hub-url <url>`
 
-Hub base URL. Defaults to `$SKMTC_HUB_URL` or `https://api.skmtc.dev`.
+Hub base URL. Defaults to `$SKMTC_HUB_URL`; then — only when the
+token came from the stored `skmtc login` file — the `host` recorded
+in that file; then `https://api.skmtc.dev`. The stored-host step
+keeps token and destination coherent: a token minted against a local
+dev hub is never silently sent to production.
 
 ### `--no-input` / `--json`
 
@@ -94,8 +104,9 @@ repo" behavior as before.
 
 When `--no-input` or `--json` is set:
 
-- Missing `<project>` or `--token` (and no `$SKMTC_HUB_TOKEN`) → exit
-  code 2 with a recipe error on stderr.
+- Missing `<project>`, or no token from any source (`--token`,
+  `$SKMTC_HUB_TOKEN`, stored `skmtc login`) → exit code 2 with a
+  recipe error on stderr.
 - The Ink TUI is skipped; publish runs straight through
   `publishHeadless` and prints either a one-line text summary or a
   single JSON object.
@@ -205,7 +216,8 @@ All errors use the uniform `ApiError` envelope (`{ code, message, … }`):
 | `SKMTC_HUB_TOKEN` | Default PAT | `--token` |
 | `SKMTC_HUB_URL` | Default hub base URL | `--hub-url` |
 
-CLI flags always win over env vars.
+CLI flags always win over env vars; env vars win over the stored
+`skmtc login` credential (so CI can override a developer login).
 
 ## Exit codes
 
