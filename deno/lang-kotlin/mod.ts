@@ -31,3 +31,17 @@ export const fileExtensions = ['.kt'] as const
 export { KtFile, type KtFileArgs } from './src/KtFile.ts'
 export { KtDefinition } from './src/KtDefinition.ts'
 export { KtDataClass, type KtParameterArgs } from './src/KtDataClass.ts'
+export {
+  createDataClass,
+  createEnumClass,
+  createSealedInterface,
+  createTypeAlias,
+  createValue,
+  toKtKeyword,
+  type KtEntityKind,
+  type CreateKtIdentifierArgs,
+  type CreateValueArgs
+} from './src/createIdentifier.ts'
+export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
+export { toPackageName } from './src/toPackageName.ts'
+export { ktHardKeywords, isKtIdentifierName } from './src/hardKeywords.ts'
