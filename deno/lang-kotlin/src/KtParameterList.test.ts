@@ -21,6 +21,24 @@ Deno.test('parameters render nullability, defaults, and inline annotations', () 
   )
 })
 
+Deno.test('parameters render visibility after annotations (Kotlin modifier order)', () => {
+  const parameters = new KtParameterList([
+    { name: 'service', type: 'UsersService', visibility: 'private' },
+    {
+      name: 'tagged',
+      type: 'String',
+      visibility: 'internal',
+      annotations: [new KtAnnotation('SerialName', ['"t"'])]
+    }
+  ])
+
+  assertEquals(
+    parameters.toString(),
+    '    private val service: UsersService,\n' +
+      '    @SerialName("t") internal val tagged: String'
+  )
+})
+
 Deno.test('no trailing comma after the last parameter (formatter territory)', () => {
   const parameters = new KtParameterList([{ name: 'id', type: 'String' }])
 

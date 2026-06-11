@@ -5,6 +5,9 @@ import { Identifier } from '@skmtc/core'
  * into the neutral `Identifier.kind` and the discriminator its renderers
  * narrow against.
  *
+ * - `'class'` — a concrete `class Name(…) { … }` declaration (the
+ *   generated-controller idiom; constructor properties ride the
+ *   `KtConstructed` value protocol).
  * - `'data-class'` — a `data class Name(…)` DTO container.
  * - `'enum-class'` — an `enum class Name { … }` declaration.
  * - `'interface'` — an `interface Name { … }` declaration (the Spring
@@ -22,6 +25,7 @@ import { Identifier } from '@skmtc/core'
  * desired behavior until then.
  */
 export type KtEntityKind =
+  | 'class'
   | 'data-class'
   | 'enum-class'
   | 'interface'
@@ -47,6 +51,19 @@ export type CreateValueArgs = {
   typeName?: string
   /** Whether the identifier is public (Kotlin's default). Defaults to `true`; `false` renders `private`. */
   exported?: boolean
+}
+
+/**
+ * Creates a concrete `class` identifier.
+ *
+ * @example
+ * ```typescript
+ * const controller = createClass('UsersController')
+ * // KtDefinition renders: class UsersController(…) { … }
+ * ```
+ */
+export const createClass = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
+  return new Identifier({ name, exported: args.exported, kind: 'class' })
 }
 
 /**
@@ -147,6 +164,8 @@ export const createValue = (name: string, args: CreateValueArgs = {}): Identifie
  */
 export const toKtKeyword = (kind: string): string => {
   switch (kind) {
+    case 'class':
+      return 'class'
     case 'data-class':
       return 'data class'
     case 'enum-class':

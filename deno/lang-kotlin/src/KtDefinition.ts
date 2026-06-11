@@ -1,6 +1,7 @@
 import { DefinitionBase } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
 import { isKtAnnotated } from './KtAnnotation.ts'
+import { isKtConstructed } from './KtConstructed.ts'
 import { isKtSupertyped } from './KtSupertyped.ts'
 import { withDescription } from './withDescription.ts'
 
@@ -23,6 +24,7 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  *
  * | kind | shell |
  * |---|---|
+ * | `class` | `class Name` (+ `(\n…\n)` via the `KtConstructed` protocol; + ` {\n…\n}` when the value renders non-empty) |
  * | `data-class` | `data class Name(\n…\n)` (+ ` : A, B` via the supertype protocol) |
  * | `enum-class` | `enum class Name {\n…\n}` |
  * | `interface` | `interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
@@ -70,6 +72,16 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
     const { name, kind, typeName } = this.identifier
 
     switch (kind) {
+      case 'class': {
+        const constructorClause = isKtConstructed(this.value)
+          ? `(\n${this.value.constructorParameters}\n)`
+          : ''
+        const body = `${this.value}`
+
+        return body.length
+          ? `class ${name}${constructorClause} {\n${body}\n}`
+          : `class ${name}${constructorClause}`
+      }
       case 'data-class': {
         const clause =
           isKtSupertyped(this.value) && this.value.supertypes.length

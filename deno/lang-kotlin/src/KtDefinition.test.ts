@@ -6,6 +6,7 @@ import { KtParameterList } from './KtParameterList.ts'
 import { KtAnnotation } from './KtAnnotation.ts'
 import { isKtSupertyped } from './KtSupertyped.ts'
 import {
+  createClass,
   createDataClass,
   createEnumClass,
   createInterface,
@@ -13,6 +14,7 @@ import {
   createTypeAlias,
   createValue
 } from './createIdentifier.ts'
+import { isKtConstructed } from './KtConstructed.ts'
 
 // Construction only stores `context`; `toString()` never reads it (test-only cast).
 const context = {} as unknown as GenerateContextType
@@ -46,6 +48,48 @@ Deno.test('enum-class shell renders entries in braces', () => {
   })
 
   assertEquals(definition.toString(), 'enum class Status {\n    ACTIVE,\n    INACTIVE\n}')
+})
+
+Deno.test('class shell renders the KtConstructed clause, body, and annotations', () => {
+  const value = {
+    annotations: [new KtAnnotation('RestController')],
+    constructorParameters: new KtParameterList([
+      { name: 'service', type: 'UsersService', visibility: 'private' }
+    ]),
+    toString: () => '    fun getUsersId(id: String): User = service.getUsersId(id)'
+  }
+
+  // the guard narrows without casts
+  assertEquals(isKtConstructed(value), true)
+  assertEquals(isKtConstructed({ toString: () => 'x' }), false)
+
+  const definition = new KtDefinition({
+    context,
+    identifier: createClass('UsersController'),
+    value
+  })
+
+  assertEquals(
+    definition.toString(),
+    '@RestController\n' +
+      'class UsersController(\n' +
+      '    private val service: UsersService\n' +
+      ') {\n' +
+      '    fun getUsersId(id: String): User = service.getUsersId(id)\n' +
+      '}'
+  )
+})
+
+Deno.test('class shell collapses without the protocol and without a body', () => {
+  const bare = new KtDefinition({ context, identifier: createClass('Marker'), value: '' })
+  const bodyOnly = new KtDefinition({
+    context,
+    identifier: createClass('Holder'),
+    value: '    val x: Int = 1'
+  })
+
+  assertEquals(bare.toString(), 'class Marker')
+  assertEquals(bodyOnly.toString(), 'class Holder {\n    val x: Int = 1\n}')
 })
 
 Deno.test('interface shell renders a body in braces, bodyless when the value is empty', () => {

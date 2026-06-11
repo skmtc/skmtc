@@ -59,6 +59,12 @@ export type KtFunctionSignatureArgs = {
   returnType?: Stringable
   /** Annotations rendered one per line above the signature (e.g. `@GetMapping("…")`). */
   annotations?: KtAnnotation[]
+  /**
+   * Expression body (` = …`), e.g. a delegation
+   * (`service.getUsersId(id, verbose)`). Absent → the abstract form.
+   * Block bodies are deliberately unsupported.
+   */
+  body?: Stringable
 }
 
 /**
@@ -80,12 +86,14 @@ export class KtFunctionSignature {
   parameters: KtFunctionParameter[]
   returnType: Stringable | undefined
   annotations: KtAnnotation[] | undefined
+  body: Stringable | undefined
 
-  constructor({ name, parameters, returnType, annotations }: KtFunctionSignatureArgs) {
+  constructor({ name, parameters, returnType, annotations, body }: KtFunctionSignatureArgs) {
     this.name = name
     this.parameters = parameters.map(parameter => new KtFunctionParameter(parameter))
     this.returnType = returnType
     this.annotations = annotations
+    this.body = body
   }
 
   toString(): string {
@@ -94,7 +102,8 @@ export class KtFunctionSignature {
       : ''
     const parameters = this.parameters.join(', ')
     const returns = this.returnType !== undefined ? `: ${this.returnType}` : ''
+    const body = this.body !== undefined ? ` = ${this.body}` : ''
 
-    return `${annotations}    fun ${this.name}(${parameters})${returns}`
+    return `${annotations}    fun ${this.name}(${parameters})${returns}${body}`
   }
 }

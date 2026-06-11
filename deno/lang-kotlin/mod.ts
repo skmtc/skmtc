@@ -40,8 +40,10 @@ export {
 } from './src/KtFunctionSignature.ts'
 export { KtAnnotation, isKtAnnotated, type KtAnnotated } from './src/KtAnnotation.ts'
 export { isKtSupertyped, type KtSupertyped } from './src/KtSupertyped.ts'
+export { isKtConstructed, type KtConstructed } from './src/KtConstructed.ts'
 export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
 export {
+  createClass,
   createDataClass,
   createEnumClass,
   createInterface,

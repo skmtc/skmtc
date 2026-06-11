@@ -15,6 +15,12 @@ export type KtParameterArgs = {
   defaultValue?: Stringable
   /** Inline annotations rendered before `val` (e.g. `@SerialName("…")`). */
   annotations?: KtAnnotation[]
+  /**
+   * Visibility modifier rendered after the annotations, before `val`
+   * (`@Anno private val service: …` — Kotlin's conventional order).
+   * Absent = Kotlin's public default — keyword only to restrict.
+   */
+  visibility?: 'private' | 'protected' | 'internal'
 }
 
 /**
@@ -38,13 +44,14 @@ export class KtParameterList {
   toString(): string {
     return this.parameters
       .map(parameter => {
+        const visibility = parameter.visibility ? `${parameter.visibility} ` : ''
         const annotations = parameter.annotations?.length
           ? parameter.annotations.map(annotation => `${annotation} `).join('')
           : ''
         const nullable = parameter.nullable ? '?' : ''
         const defaultValue = parameter.defaultValue !== undefined ? ` = ${parameter.defaultValue}` : ''
 
-        return `    ${annotations}val ${parameter.name}: ${parameter.type}${nullable}${defaultValue}`
+        return `    ${annotations}${visibility}val ${parameter.name}: ${parameter.type}${nullable}${defaultValue}`
       })
       .join(',\n')
   }

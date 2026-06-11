@@ -58,6 +58,26 @@ Deno.test('signature renders the worked Spring example', () => {
   )
 })
 
+Deno.test('signature renders an expression body, with and without a return type', () => {
+  const delegating = new KtFunctionSignature({
+    name: 'getUsersId',
+    parameters: [{ name: 'id', type: 'String' }],
+    returnType: 'User',
+    body: 'service.getUsersId(id)'
+  })
+  const unitDelegating = new KtFunctionSignature({
+    name: 'deleteUsersId',
+    parameters: [{ name: 'id', type: 'String' }],
+    body: 'service.deleteUsersId(id)'
+  })
+
+  assertEquals(delegating.toString(), '    fun getUsersId(id: String): User = service.getUsersId(id)')
+  assertEquals(
+    unitDelegating.toString(),
+    '    fun deleteUsersId(id: String) = service.deleteUsersId(id)'
+  )
+})
+
 Deno.test('signature renders multiple above-annotations one per line', () => {
   const signature = new KtFunctionSignature({
     name: 'postUsers',
