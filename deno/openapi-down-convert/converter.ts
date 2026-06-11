@@ -161,6 +161,7 @@ export class Converter {
     this.convertJsonSchemaContentEncoding()
     this.convertJsonSchemaContentMediaType()
     this.convertConstToEnum()
+    this.convertNullableOneOfAnyOf()
     this.convertNullableTypeArray()
     this.convertExclusiveMinMax()
     this.removeWebhooksObject()
@@ -309,6 +310,56 @@ export class Converter {
         `Merged ${exclusiveKey}:${exclusiveRaw} + ${inclusiveKey}:${inclusiveRaw} → kept inclusive ${inclusiveKey}:${inclusiveRaw}`,
       )
     }
+  }
+
+  /**
+   * Fold `{type: 'null'}` (or bare `{enum: [null]}`) members of `oneOf`/
+   * `anyOf` into `nullable: true` on the wrapper. OpenAPI 3.1 expresses a
+   * nullable reference as `oneOf: [{$ref: ...}, {type: 'null'}]` — 3.0 has no
+   * null type, so the member is removed and the group is marked `nullable`.
+   * The group keyword is kept even when a single member remains: `nullable`
+   * as a direct sibling of a `$ref` would be ignored in 3.0, while a
+   * single-member group with a sibling `nullable` is 3.0's encoding for a
+   * nullable reference.
+   */
+  convertNullableOneOfAnyOf(): void {
+    const schemaVisitor: SchemaVisitor = (schema: SchemaObject): SchemaObject => {
+      for (const groupType of ['oneOf', 'anyOf']) {
+        const members = schema[groupType]
+        if (!Array.isArray(members) || !members.some((member) => this.isNullSchema(member))) {
+          continue
+        }
+        const remaining = members.filter((member) => !this.isNullSchema(member))
+        if (remaining.length === 0) {
+          this.error(
+            `Unable to down-convert ${groupType} with only null members: ${JSON.stringify(schema)}`,
+          )
+          continue
+        }
+        schema[groupType] = remaining
+        schema['nullable'] = true
+        this.log(`Converted null member of ${groupType} to nullable: true`)
+      }
+      return this.walkNestedSchemaObjects(schema, schemaVisitor)
+    }
+    visitSchemaObjects(this.openapi30, schemaVisitor)
+  }
+
+  /**
+   * A schema that matches only `null`: `type: 'null'` (with any annotations),
+   * or a bare single-value `enum: [null]` with no `type`.
+   */
+  private isNullSchema(member: unknown): boolean {
+    if (member === null || typeof member !== 'object') {
+      return false
+    }
+    const schema = member as SchemaObject
+    if (schema['type'] === 'null') {
+      return true
+    }
+    const enumValues = schema['enum']
+    return !Object.hasOwn(schema, 'type') && Array.isArray(enumValues) &&
+      enumValues.length === 1 && enumValues[0] === null
   }
 
   /**
