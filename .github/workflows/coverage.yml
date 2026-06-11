@@ -30,6 +30,10 @@ jobs:
       with:
         deno-version: v2.x
 
+    - name: Verify docs sync (skill chain + discrepancy catalog)
+      working-directory: deno
+      run: deno task verify-docs
+
     - name: Run tests with coverage
       working-directory: deno
       run: deno task test:coverage

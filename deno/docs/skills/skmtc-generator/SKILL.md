@@ -1647,7 +1647,7 @@ something is broken*, hand off to `skmtc-debug`.
 
 ## 12. Cross-references
 
-- Concept docs: [`concepts/projections-and-snippets.md`](../../concepts/projections-and-snippets.md), [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md), [`concepts/the-three-phases.md`](../../concepts/the-three-phases.md), [`concepts/variants.md`](../../concepts/variants.md)
+- Concept docs: [`concepts/projections-and-snippets.md`](../../concepts/projections-and-snippets.md), [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md), [`concepts/the-three-phases.md`](../../concepts/the-three-phases.md), [`concepts/variants.md`](../../concepts/variants.md), [`concepts/languages.md`](../../concepts/languages.md)
 - Language seam: the `skmtc-lang-typescript` skill (sibling directory); design + open items in `notes/lang/` (`16` is the target architecture, now landed; `checklist.md` tracks the remaining F5/F6)
 - API reference: [`reference/api/`](../../reference/api/) — full DSL surface
 - Per-generator clone seams: [`reference/stock-generators/`](../../reference/stock-generators/)

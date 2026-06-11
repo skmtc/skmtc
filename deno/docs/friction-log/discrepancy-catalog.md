@@ -1287,7 +1287,13 @@ import { toBaseIdentifier, toExportPath } from '@skmtc/gen-graphql-operation'
 
 **Verification command:**
 ```bash
-grep -rn "@skmtc/gen-graphql-operation" skmtc-generators/gen-graphql-typed-document-node/src/
+# Verifies the RESOLVED state within this repo (2026-06-11 update — the
+# original command grepped the pre-merge package in the sibling
+# skmtc-generators checkout; that package was deleted, and the merged
+# gen-graphql-operation was itself deleted in a later cleanup, so the
+# premise's absence IS the fix. The in-repo guard: the stock-generator
+# reference must not present either package as current):
+! grep -rln "gen-graphql-operation\|gen-graphql-typed-document-node" docs/reference/stock-generators/
 ```
 
 **Actual (verbatim from source):**
@@ -1310,7 +1316,7 @@ Together: the typed-document-node package was structurally a feature of gen-grap
 
 **Fix sketch:** merge the two packages. Make Document emission an opt-in config on a `toGraphqlOperationEntry({ emitDocument?: boolean })` factory. Drop the `toBaseIdentifier` / `toExportPath` exports from `gen-graphql-operation`'s root `mod.ts` (no external consumers — only typed-document-node used them, and it's merging in). Keep a deprecated re-export shim in `gen-graphql-typed-document-node` so existing consumers' imports don't break.
 
-**Fix status:** code-fixed 2026-05-13 (package merger shipped); doc/skill propagation open — see follow-up section at the bottom of this entry.
+**Fix status:** code-fixed 2026-05-13 (package merger shipped); doc/skill propagation open — see follow-up section at the bottom of this entry. **Addendum 2026-06-11:** the merged `gen-graphql-operation` was itself deleted in the later GraphQL cleanup (`docs/explanation/status-and-roadmap.md` — both thin wrappers gone; `gen-reapit-graphql-client` is the only stock GraphQL generator); the verification command now guards the within-repo resolved state.
 
 **Code-surface changes shipped:**
 
