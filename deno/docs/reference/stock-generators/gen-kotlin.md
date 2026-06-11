@@ -87,6 +87,30 @@ data class Dog(                         // else the member's schema name
   `SerializersModule`; `Json.decodeFromString<Animal>(...)` dispatches
   on the discriminator.
 
+## Union hints (enrichments)
+
+A consumer can assert what the schema author omitted — a discriminator
+(and, for inline unions, a name) — and the union flows through the
+sealed machinery above (`settings.enrichments["@skmtc/gen-kotlin"]`):
+
+```jsonc
+// top-level union refName:
+"Animal": { "main": { "discriminator": { "propertyName": "petType" } } }
+// inline union, one level of properties.<prop>:
+"ListPrice": { "main": { "properties": { "structure": {
+  "name": "PricingStructure",
+  "discriminator": { "propertyName": "pricingType" }
+} } } }
+```
+
+Hinted wire tags derive from each member's discriminator property when
+it resolves to a single-valued string enum (`GRADUATED`), else the
+member refName. Hints are VALIDATED: every member must be a `$ref` to
+an object carrying the asserted property; a bogus hint fails its item
+loudly (manifest error), never a silent `JsonElement` fallback. Two
+hint sites may share one synthesized parent name (claims dedup).
+Deeper-than-one-level paths are a named exclusion.
+
 ## Entry — a factory, no default export
 
 `basePackage` is required and has no default:
