@@ -1,41 +1,91 @@
 import { DefinitionBase } from '@skmtc/core'
+import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
+import { toCsKeyword } from './createIdentifier.ts'
+import { isCsAttributed } from './CsAttribute.ts'
+import { isCsDocumented } from './CsDocumented.ts'
+import { withDescription } from './withDescription.ts'
 
 /**
- * C# rendering of a {@link DefinitionBase} — a `public record Name( … );`
- * (or `class` / `struct` / `interface` / `enum`) declaration.
- *
- * Roadmap-tier language. Confirms the resolved Definition-assembly split
- * (shell on the subclass, body on the value) on a *positional* shell:
- * `${vis}${keyword} ${name}(\n${params}\n);`. The opaque
- * `Identifier.kind` picks the keyword (third consumer after Rust and PHP).
- *
- * Visibility: C# top-level types default to `internal`; the neutral
- * `exported` fact renders as `public` vs `internal` — a fifth distinct
- * `exported` behaviour (TS `export`, Go casing, Rust `pub`, PHP
- * member-only, C# `public`/`internal`).
+ * Constructor arguments for {@link CsDefinition}.
  */
-export class CsDefinition extends DefinitionBase {
+export type CsDefinitionArgs<Value extends GeneratedValue> = {
+  context: GenerateContextType
+  identifier: Identifier
+  value: Value
+  description?: string
+  noExport?: boolean
+}
+
+/**
+ * C#'s concrete {@link DefinitionBase}: assembles the declaration shell
+ * around the generated value, dispatching on the identifier's opaque
+ * `kind` — exhaustive over this language's vocabulary, throwing outside
+ * it (no silent fallback; {@link toCsKeyword} is the single source for
+ * both the throw and the keyword chain).
+ *
+ * | kind | shell |
+ * |---|---|
+ * | `record` | `sealed partial record Name\n{\n…\n}` (bodyless collapse to `…Name;` when the value renders empty) |
+ * | `enum` | `enum Name\n{\n…\n}` |
+ *
+ * Class-level attributes ride on the VALUE via the
+ * {@link import('./CsAttribute.ts').CsAttributed} protocol (the neutral
+ * `Lang.toDefinition` signature has no attributes slot) and render one
+ * per line above the shell; a `description` renders as an XML-doc
+ * `<summary>` block above the attributes (C#'s conventional order:
+ * doc comment, attributes, declaration). The
+ * {@link import('./CsBased.ts').CsBased} base-type clause is declared at
+ * CS-A but rendered from CS-B (it appears on polymorphic members, which
+ * arrive with the `abstract-record` kind).
+ *
+ * Visibility: C# types default to `internal`, so BOTH `exported` states
+ * render a keyword — `public ` when exported, `internal ` when not (the
+ * fifth distinct `exported` behavior, spike-proved). `noExport`
+ * restricts the same way.
+ */
+export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends DefinitionBase<Value> {
+  description: string | undefined
+  noExport: boolean | undefined
+
+  constructor({ context, identifier, value, description, noExport }: CsDefinitionArgs<Value>) {
+    super({ context, identifier, value })
+
+    this.description = description
+    this.noExport = noExport
+  }
+
   override toString(): string {
-    const visibility = this.identifier.exported ? 'public' : 'internal'
+    const restricted = this.noExport === true || this.identifier.exported === false
+    const visibility = restricted ? 'internal ' : 'public '
 
-    let keyword: string
-    switch (this.identifier.kind) {
-      case 'class':
-        keyword = 'class'
-        break
-      case 'struct':
-        keyword = 'struct'
-        break
-      case 'interface':
-        keyword = 'interface'
-        break
+    const attributes = isCsAttributed(this.value)
+      ? this.value.attributes.map(attribute => `${attribute}\n`).join('')
+      : ''
+
+    const declaration = `${attributes}${visibility}${this.toShell()}`
+
+    // Constructor description wins; else the value-carried protocol.
+    const description =
+      this.description ?? (isCsDocumented(this.value) ? this.value.description : undefined)
+
+    return withDescription(declaration, { description })
+  }
+
+  private toShell(): string {
+    const { name, kind } = this.identifier
+
+    const keyword = toCsKeyword(kind)
+
+    switch (kind) {
+      case 'record': {
+        const body = `${this.value}`
+
+        return body.length ? `${keyword} ${name}\n{\n${body}\n}` : `${keyword} ${name};`
+      }
       case 'enum':
-        keyword = 'enum'
-        break
+        return `${keyword} ${name}\n{\n${this.value}\n}`
       default:
-        keyword = 'record'
+        throw new Error(`Unknown C# entity kind: ${kind}`)
     }
-
-    return `${visibility} ${keyword} ${this.identifier.name}(\n${this.value}\n);`
   }
 }

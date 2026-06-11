@@ -1,24 +1,34 @@
 /**
  * @module @skmtc/lang-csharp
  *
- * SKMTC language package for **csharp** (Roadmap).
+ * SKMTC language package for **C#** — the third language on the frozen
+ * seam (TypeScript, Kotlin, C#).
  *
- * Tests / exercises: namespace-bulk imports, records, no file-scope values, nullable reference types
+ * Contents (arc spec: ../../notes/lang/31-csharp-kickoff.md → CS-A
+ * binding spec):
+ *   - the naming layer: `CsEntityKind` (`record` / `enum` at CS-A) with
+ *     spelled-out identifier factories, `sanitizePropertyName` (the `@`
+ *     verbatim-identifier escape), `toNamespaceName` (export path →
+ *     dotted namespace), enum member naming with full-set dedup
+ *   - concrete `CsFile` / `CsImport` / `CsDefinition` subclasses of the
+ *     neutral bases in `@skmtc/core` — each renders itself in its own
+ *     `toString()`
+ *   - the construct helpers: `CsPropertyList` (nominal-record property
+ *     members), `CsAttribute`
+ *   - the value protocols `CsDefinition` reads off a Definition's value:
+ *     `CsAttributed` (class-level attributes), `CsDocumented` (XML-doc
+ *     summary), `CsBased` (base-type clause — declared at CS-A, rendered
+ *     at CS-B)
+ *   - `withDescription` (XML-doc block, XML-escaped in lang)
  *
- * Planned contents (see ../../notes/lang/03-architecture.md):
- *   - concrete `File` / `Import` / `Identifier` / `Definition`
- *     subclasses of the abstract bases in `@skmtc/core` — each renders
- *     itself in its own `toString()`
- *   - the `register` family (`register`, `defineAndRegister`)
- *   - this language's `EntityKind` vocabulary
- *   - `sanitizePropertyName` + identifier/casing/visibility rules
- *   - syntax helpers
+ * Grammar/policy split: `System.Text.Json` is never named in this
+ * package — the lang renders any attribute it is handed; serialization
+ * flavor is generator policy (`gen-csharp`'s value files, the
+ * Newtonsoft-sibling clone seam).
  *
- * Status: **early spike (roadmap tier).** `CsFile`/`CsDefinition`/
- * `CsRecord` render a positional `record` DTO, confirming the resolved
- * Definition-assembly split on a positional shell and adding a fifth
- * `exported` behaviour (`public`/`internal`). Third consumer of the
- * opaque `Identifier.kind`. Not yet wired into the engine.
+ * Status: **CS-A in progress.** The write path (`csharp` Lang object,
+ * `CsSnippet`, the register functions, `toModelProjectionBase`) lands at
+ * CS-A step 3.
  */
 
 /** The language id this package targets. */
@@ -45,5 +55,14 @@ export {
 } from './src/toCsEnumMemberName.ts'
 
 export { CsFile, type CsFileArgs } from './src/CsFile.ts'
-export { CsDefinition } from './src/CsDefinition.ts'
-export { CsRecord, type CsParameterArgs } from './src/CsRecord.ts'
+export {
+  CsImport,
+  type CsImportNameArg,
+  type CsImportSpecifier
+} from './src/CsImport.ts'
+export { CsDefinition, type CsDefinitionArgs } from './src/CsDefinition.ts'
+export { CsPropertyList, type CsPropertyArgs } from './src/CsPropertyList.ts'
+export { CsAttribute, isCsAttributed, type CsAttributed } from './src/CsAttribute.ts'
+export { isCsDocumented, type CsDocumented } from './src/CsDocumented.ts'
+export { isCsBased, type CsBased } from './src/CsBased.ts'
+export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
