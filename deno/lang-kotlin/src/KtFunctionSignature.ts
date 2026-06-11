@@ -76,18 +76,20 @@ export type KtFunctionSignatureArgs = {
 }
 
 /**
- * Renders a Kotlin abstract-method signature — the building block of an
- * `interface` body (the Spring "interfaceOnly" idiom):
+ * Renders a Kotlin method signature — the building block of an
+ * `interface` or `class` body:
  *
  * ```kotlin
  *     @GetMapping("/users/{id}")
  *     fun getUsersId(@PathVariable("id") id: String, @RequestParam("verbose") verbose: Boolean?): User
  * ```
  *
- * Indented one level (it lives inside an interface body); parameters on
- * one line (formatting is the consumer's formatter's job). Grammar only —
- * no body support (abstract methods), no `suspend`, no default values in
- * v1; the mapping annotations are generator policy.
+ * Indented one level (it lives inside a declaration body); parameters on
+ * one line (formatting is the consumer's formatter's job). Abstract by
+ * default; an expression `body` renders the delegation form (` = …` —
+ * block bodies deliberately unsupported). Optional KDoc `description`
+ * above the annotations and per-parameter `= default`. Grammar only —
+ * no `suspend`; the mapping annotations are generator policy.
  */
 export class KtFunctionSignature {
   name: string

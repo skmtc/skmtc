@@ -88,10 +88,14 @@ needs facts 1, 2 and 5 most.
 > run, all consistent with each other. The output is committed to the
 > consumer's repository like any other source code; there is **zero
 > SKMTC runtime** in the consumer's bundle. The engine is
-> **language-blind** (core 0.7.1+): each generator's entry declares a
-> `lang` from a `@skmtc/lang-*` package. TypeScript
-> (`@skmtc/lang-typescript`) is the production language today; other
-> `lang-*` packages (Kotlin, C#, …) are the roadmap.
+> **language-blind** (core 0.8.0+): a generator declares its target
+> language by importing its projection-base factories and snippet
+> base from a `@skmtc/lang-*` package — the import graph alone
+> carries the language; entries have no `lang` field. TypeScript
+> (`@skmtc/lang-typescript`) and Kotlin (`@skmtc/lang-kotlin`, proven
+> by `gen-kotlin` DTOs + `gen-kotlin-spring` controllers) are the
+> production languages; other `lang-*` packages (C#, …) are the
+> roadmap.
 
 The crucial reframing for an infrastructure builder: **SKMTC is an
 engine with several thin hosts, not a CLI.** The CLI is one host.
@@ -274,9 +278,11 @@ you should recognize the vocabulary (defer authoring to
 `skmtc-generator`):
 
 - A **generator** is a JSR package exporting an *entry* built with
-  `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`. The
-  entry declares the generator's `lang` (e.g. `typescript` from
-  `@skmtc/lang-typescript`); the engine resolves it by `generatorId`.
+  `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`.
+  Entries are pure pipeline config — no `lang` field; the generator
+  declares its target language by importing its projection bases
+  from a `@skmtc/lang-*` package, and the engine's Drivers read it
+  off the projection class's inherited static.
 - The entry's `transform` hook runs once per matched operation/model
   and produces output by calling `register` / `insert*` — its return
   value is discarded.

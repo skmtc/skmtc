@@ -96,7 +96,9 @@ important for authoring:
    (`List`, …), and `sanitizePropertyName`** (all moved out of core —
    F5/F6, landed; core's `Identifier` is neutral data, `EntityType` is
    gone). For TypeScript-output specifics, load the
-   `skmtc-lang-typescript` skill.
+   `skmtc-lang-typescript` skill; for Kotlin-output specifics
+   (`@skmtc/lang-kotlin` — gen-kotlin / gen-kotlin-spring), load
+   `skmtc-lang-kotlin`.
 
 ## 2. The DSL: Projection vs Snippet
 
@@ -1626,7 +1628,11 @@ If unresolved → hand off to `skmtc-debug` with verify-first stance.
 - **skmtc-lang-typescript**: the TypeScript target-language layer —
   what the *emitted* code looks like (type-only imports, syntax
   helpers, sanitization, the `typescript` Lang object's surface). Load
-  it alongside this skill for any TypeScript-emitting generator; future
+  it alongside this skill for any TypeScript-emitting generator.
+- **skmtc-lang-kotlin**: the Kotlin counterpart (package directives,
+  symbol-level imports, the seven-kind vocabulary, the four value
+  protocols, backtick sanitization). Load it for Kotlin-emitting
+  generators (`gen-kotlin`, `gen-kotlin-spring`, or new ones); future
   `skmtc-lang-<X>` skills follow the same template.
 - **skmtc-cli**: install / clone / bundle / dev commands. This skill
   picks up once you're editing generator source.

@@ -3,17 +3,20 @@
  *
  * The Kotlin target-language layer for SKMTC generators.
  *
- * Status: **production (Phase D complete).** The full register/write
- * path on the frozen language seam: the `kotlin` {@link Lang} object,
+ * Status: **production (Phase D + the Kotlin milestone arc complete).**
+ * The full register/write path on the frozen language seam: the
+ * `kotlin` {@link Lang} object,
  * `KtSnippet` (static `lang`, keyless registers), the register family
  * (`register`/`defineAndRegister` + `KtRegisterArgs` — deliberately no
  * `reExports` field), the model projection-base veneer, `KtFile`
  * (path-derived `package` directive, sorted imports, same-package
  * suppression), `KtImport` (symbol-level, `as` aliases), `KtDefinition`
- * (exhaustive six-kind shells, `KtAnnotated` + `KtSupertyped` value
- * protocols, KDoc), the function-signature grammar
- * (`KtFunctionSignature` / `KtFunctionParameter` — abstract methods for
- * interface bodies), the identifier factories, `sanitizePropertyName`
+ * (exhaustive seven-kind shells; the `KtAnnotated` / `KtSupertyped` /
+ * `KtConstructed` / `KtDocumented` value protocols), the
+ * function-signature grammar (`KtFunctionSignature` /
+ * `KtFunctionParameter` — interface/class methods incl. KDoc,
+ * expression bodies, and parameter defaults), the identifier
+ * factories, `sanitizePropertyName`
  * (hard keywords + backticks), and `toPackageName` (segment-validated).
  *
  * Grammar only: serialization flavor (kotlinx annotations) is generator

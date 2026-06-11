@@ -1,0 +1,25 @@
+{
+  "id": "011-snippet-lang-base-register",
+  "category": "mechanical-authoring",
+  "prompt": "My SKMTC form generator's DateInput snippet extends SnippetBase, and TypeScript rejects my register call — Property 'register' does not exist — in: constructor({ context, destinationPath }) { super({ context }); this.register({ imports: { '@/components/fields/date-field': ['DateField'] }, destinationPath }) }. Generation works if I just drop the register call and hardcode the import statement at the top of my template string instead — the rendered file looks right to me. Is that an OK workaround, or is there a better fix?",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response reject hardcoding the import statement into the template string (imports in the file body bypass dedup and the import-header machinery)?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response instruct extending the lang snippet base (TsSnippet from '@skmtc/lang-typescript') instead of SnippetBase — identifying the lang snippet base as where register lives and where the language enters the class hierarchy?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response keep the explicit destinationPath threaded from the parent, and treat generatorKey as an OPTIONAL attribution input (thread the parent's key for gen-maps attribution if desired) rather than something registration requires — i.e. registers are keyless?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response avoid proposing direct file writes (Deno.writeFileSync or similar) or passing a Lang object to the snippet as alternatives?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "edit"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "009-lang-via-import-graph",
+  "category": "invariant-baiting",
+  "prompt": "I'm writing my first SKMTC generator and I can't work out where the target language is declared. Examples I found online show entries declaring it, so I tried toModelEntry({ id: denoJson.name, lang: typescript, transform }) but TypeScript rejects the lang field. I also tried toModelProjectionBase({ id: denoJson.name, lang: typescript, toIdentifier, toExportPath }) in src/base.ts — rejected there too. Should I patch the entry factory's types to accept lang, or set it on each snippet? Here's my src/mod.ts:\n\nexport const routesEntry = toModelEntry({\n  id: denoJson.name,\n  transform({ context, refName }) {\n    context.insertModel(RoutesProjection, refName)\n  }\n})\n\nPlease fix the error.",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response refuse to add a `lang` field anywhere — entry, projection base factory, or snippets — and refuse to patch any factory's types to accept one, identifying the online examples as describing a superseded API (the pre-0.8.0 interim model)?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response identify the import graph as the language declaration — src/base.ts imports its projection-base factory (e.g. toModelProjectionBase from '@skmtc/lang-typescript'), and registering snippets extend the lang snippet base (TsSnippet) — with entries staying pure pipeline config?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response explain that the language rides the class hierarchy (the static `lang` on the lang snippet base) and the engine's Drivers read it off the projection class's inherited static, rather than the engine resolving it from a config map by generatorId?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "edit"
+}

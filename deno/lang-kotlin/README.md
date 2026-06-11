@@ -4,7 +4,7 @@ The Kotlin target-language layer for SKMTC generators.
 
 Renders: `'.kt'`
 
-**Status: production (0.4.0).** The full register/write path on the
+**Status: production (0.5.0).** The full register/write path on the
 frozen language seam — the second language after TypeScript, proven
 end-to-end by the
 [`@skmtc/gen-kotlin`](../../../skmtc-generators/gen-kotlin/) DTO
@@ -14,11 +14,15 @@ sealed-interface `oneOf` mapping; spec
 `notes/lang/22-kotlin-sealed-oneof-architecture.md`). 0.3.0 added the
 `interface` kind and the function-signature grammar
 (`KtFunctionSignature` / `KtFunctionParameter`) for
-`@skmtc/gen-kotlin-spring` (spec `notes/lang/23`). 0.4.0 adds the
+`@skmtc/gen-kotlin-spring` (spec `notes/lang/23`). 0.4.0 added the
 concrete-`class` kind, the `KtConstructed` value protocol (primary
 constructors), parameter visibility, and expression-bodied methods —
 the generated-controller idiom (spec
-`notes/lang/25-kotlin-controller-service-architecture.md`).
+`notes/lang/25-kotlin-controller-service-architecture.md`). 0.5.0 adds
+the `KtDocumented` KDoc value protocol, signature-level KDoc, and
+function-parameter defaults (`verbose: Boolean? = null` — the
+service-seam ergonomics) — the production-polish arc (specs
+`notes/lang/28`/`29`).
 
 ## What this package owns
 
@@ -28,8 +32,10 @@ the generated-controller idiom (spec
 - **`KtSnippet`** — the snippet base; where Kotlin enters the DSL
   class hierarchy. Keyless `register` / `defineAndRegister`.
 - **`toModelProjectionBase`** — the projection-base veneer (own-file
-  `register(args)` + cross-file `registerInto(path, args)`). Operation
-  veneers arrive with the first operation-emitting generator.
+  `register(args)` + cross-file `registerInto(path, args)`). No
+  operation veneer yet — the first operation generator
+  (`gen-kotlin-spring`) is accumulator-style and didn't need one;
+  veneers are demand-driven.
 - **`register` / `defineAndRegister`** functions +
   **`KtRegisterArgs`** — the concise vocabulary. Deliberately **no
   `reExports` field**: Kotlin has none, so the absence is compile-time.
@@ -44,15 +50,19 @@ the generated-controller idiom (spec
   `sealed-interface` / `typealias` / `val`); visibility renders
   nothing when public,
   `private` to restrict; class-level annotations ride the value via the
-  **`KtAnnotated`** protocol and the supertype clause
+  **`KtAnnotated`** protocol, the supertype clause
   (`data class Dog(…) : Animal`, data-class kind only in v1) via the
-  **`KtSupertyped`** protocol; KDoc via `withDescription`.
+  **`KtSupertyped`** protocol, the primary constructor via the
+  **`KtConstructed`** protocol, and KDoc via the **`KtDocumented`**
+  protocol (rendered with `withDescription`) — mirror protocol getters
+  on the projection: the Driver wraps the projection, not the value.
 - **`KtParameterList`** / **`KtFunctionSignature`** /
   **`KtFunctionParameter`** / **`KtAnnotation`** — construct helpers
   (constructor params: nullability `?`, `= default`, inline
-  annotations; abstract-method signatures for interface bodies;
-  generic annotation grammar — *which* annotation is generator
-  policy).
+  annotations; method signatures for interface and class bodies with
+  optional KDoc, expression bodies (` = …` delegation), and
+  per-parameter defaults; generic annotation grammar — *which*
+  annotation is generator policy).
 - **Identifier factories** — `createDataClass`, `createEnumClass`,
   `createSealedInterface`, `createTypeAlias`, `createValue` (+
   `toKtKeyword`, throws outside the vocabulary).

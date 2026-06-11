@@ -20,9 +20,10 @@ description: |
   from", "sanitizePropertyName", or anything about the *shape of the
   emitted TypeScript* rather than engine behavior. Engine rules
   (Projections, Snippets, cross-generator coordination, variants) live
-  in `skmtc-generator`. This skill is also the TEMPLATE for future
-  `skmtc-lang-<X>` skills (Kotlin, C#, …): a new language skill keeps
-  these section headings and replaces the answers.
+  in `skmtc-generator`. This skill is also the TEMPLATE for
+  `skmtc-lang-<X>` skills — instantiated first by `skmtc-lang-kotlin`
+  (C#, … to follow): a new language skill keeps these section
+  headings and replaces the answers.
 allowed-tools:
   - Bash
   - Read
@@ -46,7 +47,8 @@ piece. The boundary rule, worth internalizing first:
 > generators whose target is TypeScript.
 
 > **Template contract.** This is the first `skmtc-lang-<X>` skill and
-> the template for the rest. A new language skill (Kotlin, C#, …) keeps
+> the template for the rest — `skmtc-lang-kotlin` is the first
+> instantiation. A new language skill (C#, …) keeps
 > the seven section headings below and replaces the answers. Every
 > section now describes symbols owned by THIS package — the naming
 > layer and syntax helpers moved out of `@skmtc/core` under F5/F6
