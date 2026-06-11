@@ -93,3 +93,20 @@ Deno.test('signature renders multiple above-annotations one per line', () => {
       '    fun postUsers(@RequestBody body: CreateUserBody): User'
   )
 })
+
+Deno.test('signature renders KDoc above annotations; parameters render defaults', () => {
+  const signature = new KtFunctionSignature({
+    name: 'getCreditNotes',
+    parameters: [{ name: 'limit', type: 'Int', nullable: true, defaultValue: 'null' }],
+    returnType: 'CreditNotePage',
+    description: 'List all Credit Notes.',
+    annotations: [new KtAnnotation('GetMapping', ['"/credit-notes"'])]
+  })
+
+  assertEquals(
+    signature.toString(),
+    '    /** List all Credit Notes. */\n' +
+      '    @GetMapping("/credit-notes")\n' +
+      '    fun getCreditNotes(limit: Int? = null): CreditNotePage'
+  )
+})

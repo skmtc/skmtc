@@ -337,3 +337,23 @@ Deno.test('isKtSupertyped narrows the protocol without casts', () => {
   assertEquals(isKtSupertyped(null), false)
   assertEquals(isKtSupertyped('Animal'), false)
 })
+
+Deno.test('KtDocumented value supplies the KDoc; constructor description wins', () => {
+  const fromValue = new KtDefinition({
+    context,
+    identifier: createDataClass('User'),
+    value: { description: 'A user.', toString: () => '    val id: String' }
+  })
+  const fromConstructor = new KtDefinition({
+    context,
+    identifier: createDataClass('User'),
+    description: 'Explicit.',
+    value: { description: 'A user.', toString: () => '    val id: String' }
+  })
+
+  assertEquals(fromValue.toString(), '/** A user. */\ndata class User(\n    val id: String\n)')
+  assertEquals(
+    fromConstructor.toString(),
+    '/** Explicit. */\ndata class User(\n    val id: String\n)'
+  )
+})

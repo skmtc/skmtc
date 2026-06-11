@@ -2,6 +2,7 @@ import { DefinitionBase } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
 import { isKtAnnotated } from './KtAnnotation.ts'
 import { isKtConstructed } from './KtConstructed.ts'
+import { isKtDocumented } from './KtDocumented.ts'
 import { isKtSupertyped } from './KtSupertyped.ts'
 import { withDescription } from './withDescription.ts'
 
@@ -65,7 +66,11 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
 
     const declaration = `${annotations}${visibility}${this.toShell()}`
 
-    return withDescription(declaration, { description: this.description })
+    // Constructor description wins; else the value-carried protocol.
+    const description =
+      this.description ?? (isKtDocumented(this.value) ? this.value.description : undefined)
+
+    return withDescription(declaration, { description })
   }
 
   private toShell(): string {

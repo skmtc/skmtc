@@ -41,6 +41,7 @@ export {
 export { KtAnnotation, isKtAnnotated, type KtAnnotated } from './src/KtAnnotation.ts'
 export { isKtSupertyped, type KtSupertyped } from './src/KtSupertyped.ts'
 export { isKtConstructed, type KtConstructed } from './src/KtConstructed.ts'
+export { isKtDocumented, type KtDocumented } from './src/KtDocumented.ts'
 export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
 export {
   createClass,
