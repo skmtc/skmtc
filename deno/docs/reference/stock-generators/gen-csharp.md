@@ -133,10 +133,22 @@ never at entry construction.
 - A ref cycle of non-declarable schemas fails the item loudly (C# has
   no alias to break it); the run continues.
 
-## Enrichments
+## Enrichments (CS-D)
 
-None at CS-A. Model renames (the gen-kotlin `name` channel) arrive at
-CS-D with their declared Valibot schema.
+Per refName under `["@skmtc/gen-csharp"][refName].main`:
+
+- `name` — the model rename: aliases the identifier AND the file; ref
+  sites, member base clauses, and the parent's
+  `[JsonDerivedType(typeof(<Name>))]` arguments all follow; wire tags
+  are unchanged.
+- `discriminator.propertyName` — a UNION HINT upgrading an
+  undiscriminated top-level union to the abstract-record mapping; tags
+  come from each member's single-valued enum discriminator property
+  (else refName). Members must CARRY the asserted property — an
+  invalid hint fails the item loudly.
+- `properties.<prop>.{ name, discriminator }` — the INLINE union hint
+  (one level deep): the named parent is synthesized at its canonical
+  path and the property is typed by it.
 
 ## Customization seams (clone to change)
 

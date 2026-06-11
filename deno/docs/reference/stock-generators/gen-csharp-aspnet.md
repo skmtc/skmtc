@@ -52,10 +52,28 @@ export default toCsharpAspnetEntry({
 })
 ```
 
+## The error channel (CS-D)
+
+Every run emits `ApiException` (a status-bearing exception — ASP.NET
+has no `ResponseStatusException` equivalent) and
+`ApiExceptionHandler : IExceptionHandler`, rendering the
+platform-native **ProblemDetails** wire shape (RFC 9457,
+`application/problem+json`). ServiceImpls throw
+`new ApiException(404, "No such user")` — pure business logic.
+
+## Enrichments (CS-D)
+
+`["@skmtc/gen-csharp-aspnet"][path][method].main.serviceMethodName` —
+renames the seam method AND the controller action in lockstep; the
+value is taken VERBATIM (write the C# convention: `GetCreditNote`).
+
 ## Consumer setup
 
 - Implement each `I<Tag>Service`; register in DI.
 - `builder.Services.AddControllers()` + `app.MapControllers()`.
+- The error channel:
+  `builder.Services.AddExceptionHandler<ApiExceptionHandler>()` +
+  `builder.Services.AddProblemDetails()` + `app.UseExceptionHandler()`.
 - For CS-B polymorphic types in payloads, set
   `AllowOutOfOrderMetadataProperties = true` (see gen-csharp's
   reference).
@@ -71,8 +89,6 @@ export default toCsharpAspnetEntry({
 
 ## Limits (documented, deliberate)
 
-- Renames (`serviceMethodName`) and the error channel
-  (`ProblemDetails` advice) arrive at CS-D.
 - Bodyless 201/202 render the 200-style shape +
   `[ProducesResponseType]`.
 - `trace` operations use `[AcceptVerbs("TRACE", Route = …)]` (ASP.NET
