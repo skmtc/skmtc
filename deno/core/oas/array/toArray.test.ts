@@ -19,6 +19,20 @@ Deno.test('toArray', async (t) => {
       assertEquals(oasArray.items.type, 'unknown')
     })
 
+    await t.step('should fail open on a missing items field (invalid OAS): unknown items + logged issue', () => {
+      // Real-world regression: the Sequence API schema declares a query
+      // parameter as `{ "type": "array" }` with NO items — invalid per
+      // the spec, but it must produce a parse issue, not a TypeError
+      // ("Cannot use 'in' operator to search for 'allOf' in undefined").
+      const stackTrail = new StackTrail(['TEST'])
+      const schema = { type: 'array' } as OpenAPIV3.ArraySchemaObject
+      const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
+
+      assertEquals(oasArray.type, 'array')
+      assertExists(oasArray.items)
+      assertEquals(oasArray.items.type, 'unknown')
+    })
+
     await t.step('should parse array with string items', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
