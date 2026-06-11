@@ -25,8 +25,8 @@ renderer registry, and no `lang` config field anywhere.
   per-language `kind`.
 - Rendering lives on each DSL object's own `toString()` in its
   language subclass — there is no central renderer or visitor.
-- **Production languages: TypeScript and Kotlin.** The other lang
-  packages (C#, Go, Rust, PHP; Python/Java unspiked) are render-only
+- **Production languages: TypeScript, Kotlin, and C#.** The other
+  lang packages (Go, Rust, PHP; Python/Java unspiked) are render-only
   spikes.
 - One composition must resolve exactly ONE copy of each lang package
   (see "The dual-copy hazard" below).
@@ -36,16 +36,16 @@ renderer registry, and no `lang` config field anywhere.
 `@skmtc/lang-typescript` is the template; a new language ships its
 own equivalents of each piece:
 
-| Piece | TypeScript | Kotlin |
-|---|---|---|
-| The `Lang` object (three neutral factories Drivers call: `createFile` / `toDefinition` / `toImport`) | `typescript` | `kotlin` |
-| Snippet base (where the language enters the hierarchy; keyless `register`) | `TsSnippet` | `KtSnippet` |
-| Projection-base veneers | `toModelProjectionBase` / `toOasOperationProjectionBase` / `toGqlOperationProjectionBase` | `toModelProjectionBase` (operation veneers are demand-driven — none exists yet; the Spring generator is accumulator-style) |
-| Register family (functions + concise vocabulary) | `register` / `defineAndRegister`, `TsRegisterArgs` (`imports` / `reExports` / `definitions`) | same, `KtRegisterArgs` — deliberately **no `reExports`** (Kotlin has none; the absence is compile-time) |
-| Concrete file / import / definition classes | `TsFile` / `TsImport` / `TsReExport` / `TsDefinition` | `KtFile` / `KtImport` / `KtDefinition` |
-| Identifier factories + kind vocabulary | `createVariable` / `createType` (`'variable'` / `'type'`) | `createClass` / `createDataClass` / `createEnumClass` / `createInterface` / `createSealedInterface` / `createTypeAlias` / `createValue` (seven kinds) |
-| Name sanitization | `sanitizePropertyName` (quoting / camelCase fallback) | `sanitizePropertyName` (backtick escaping; JVM-unescapable characters throw) |
-| Syntax helpers | `List`, `FunctionParameter`, `toPathTemplate`, … | `KtParameterList`, `KtFunctionSignature`, `KtAnnotation`, … |
+| Piece | TypeScript | Kotlin | C# |
+|---|---|---|---|
+| The `Lang` object (three neutral factories Drivers call: `createFile` / `toDefinition` / `toImport`) | `typescript` | `kotlin` | `csharp` |
+| Snippet base (where the language enters the hierarchy; keyless `register`) | `TsSnippet` | `KtSnippet` | `CsSnippet` |
+| Projection-base veneers | `toModelProjectionBase` / `toOasOperationProjectionBase` / `toGqlOperationProjectionBase` | `toModelProjectionBase` (operation veneers are demand-driven — none exists yet; the Spring generator is accumulator-style) | `toModelProjectionBase` (operation veneers arrive with CS-C) |
+| Register family (functions + concise vocabulary) | `register` / `defineAndRegister`, `TsRegisterArgs` (`imports` / `reExports` / `definitions`) | same, `KtRegisterArgs` — deliberately **no `reExports`** (Kotlin has none; the absence is compile-time) | same, `CsRegisterArgs` — also no `reExports` |
+| Concrete file / import / definition classes | `TsFile` / `TsImport` / `TsReExport` / `TsDefinition` | `KtFile` / `KtImport` / `KtDefinition` | `CsFile` / `CsImport` / `CsDefinition` |
+| Identifier factories + kind vocabulary | `createVariable` / `createType` (`'variable'` / `'type'`) | `createClass` / `createDataClass` / `createEnumClass` / `createInterface` / `createSealedInterface` / `createTypeAlias` / `createValue` (seven kinds) | `createRecord` / `createEnum` (two kinds at CS-A; NO alias kind — non-declarable schemas inline at ref sites) |
+| Name sanitization | `sanitizePropertyName` (quoting / camelCase fallback) | `sanitizePropertyName` (backtick escaping; JVM-unescapable characters throw) | `sanitizePropertyName` (`@` verbatim-identifier escape; unescapable names throw) |
+| Syntax helpers | `List`, `FunctionParameter`, `toPathTemplate`, … | `KtParameterList`, `KtFunctionSignature`, `KtAnnotation`, … | `CsPropertyList`, `CsAttribute`, `toCsEnumMemberNames`, … |
 
 Generators never construct the file/import/definition classes
 directly — the register functions and the engine's Drivers build
@@ -61,8 +61,11 @@ meaning.* Core carries only opaque discriminants (`kind`,
 language's package admits exactly what the language has:
 
 - **Kind vocabularies differ.** TypeScript has two kinds; Kotlin has
-  seven. Each language's `toKeyword` mapping throws on a foreign
-  kind — a C# identifier reaching the Kotlin renderer fails loudly.
+  seven; C# has two at CS-A — and deliberately NO alias kind (C# has
+  no exported type alias, so non-declarable schemas inline at ref
+  sites instead of aliasing). Each language's `toKeyword` mapping
+  throws on a foreign kind — a Kotlin identifier reaching the C#
+  renderer fails loudly.
 - **Capabilities differ at compile time, not runtime.** Kotlin has
   no re-exports, so `KtRegisterArgs` has no `reExports` field —
   registering one is a type error, not a silent no-op.
@@ -72,15 +75,19 @@ language's package admits exactly what the language has:
   shell, a supertype clause, a primary constructor, KDoc), so
   lang-kotlin defines duck-typed protocols the Definition's VALUE
   supplies: `KtAnnotated`, `KtSupertyped`, `KtConstructed`,
-  `KtDocumented`. The Driver wraps the **projection**, so a
-  projection must mirror its value's protocol fields as getters.
+  `KtDocumented` — and lang-csharp its analogs (`CsAttributed`,
+  `CsDocumented`, `CsBased`). The Driver wraps the **projection**, so
+  a projection must mirror its value's protocol fields as getters.
   This is the extension pattern for any future language whose
   declaration grammar outgrows `identifier + value`: add a protocol
   in the lang package; never widen core.
 - **Import models differ.** TypeScript: brace-grouped names,
   type-only imports, `@/` alias resolution. Kotlin: one statement
   per symbol, the `package` directive derived from the export path,
-  same-package import suppression. Core's `ImportBase` knows none of
+  same-package import suppression. C#: symbol-level registration
+  collapsing to namespace-level `using` directives at render, the
+  file-scoped `namespace` derived from the export path,
+  same-namespace suppression. Core's `ImportBase` knows none of
   this.
 
 ## Grammar vs policy
@@ -89,8 +96,10 @@ A lang package renders **grammar**; a generator decides **policy**.
 The boundary in one grep: `grep kotlinx lang-kotlin/src/` is empty —
 the lang package renders any annotation it is handed, while *which*
 annotation (`@Serializable` vs a Jackson equivalent) belongs to
-`gen-kotlin`. Swapping serialization flavor means a sibling
-generator, not a lang change. The same split holds for TypeScript:
+`gen-kotlin`. The same grep holds for C#: `System.Text.Json` is never
+named in lang-csharp production code — `[JsonPropertyName]` vs a
+Newtonsoft equivalent belongs to `gen-csharp`. Swapping serialization
+flavor means a sibling generator, not a lang change. The same split holds for TypeScript:
 `TsImport` renders type-only imports; *deciding* a symbol is
 type-only is the generator's (or Driver's) call.
 
@@ -116,7 +125,8 @@ must point ALL wrappers at local sources, not just the changed one.
 
 ## Adding a language
 
-The worked path (Kotlin is the proof, shipped in one milestone arc):
+The worked path (Kotlin is the proof, shipped in one milestone arc;
+C# replayed it):
 
 1. **Spike the renderer** — throwaway `File`/`Import`/`Definition`
    subclasses proving the language's distinctive constraints render
@@ -149,5 +159,5 @@ template instantiation).
   — the register path end to end
 - [stringable-composition.md](stringable-composition.md) — why
   rendering lives on `toString()`
-- The `skmtc-lang-typescript` and `skmtc-lang-kotlin` skills — the
-  per-language operational answers
+- The `skmtc-lang-typescript`, `skmtc-lang-kotlin`, and
+  `skmtc-lang-csharp` skills — the per-language operational answers

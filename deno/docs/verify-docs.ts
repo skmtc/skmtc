@@ -194,46 +194,52 @@ if (deadModelHits === 0) {
 }
 
 // ---------------------------------------------------------------------
-// 3. lang-kotlin source ↔ skill sync.
+// 3. lang-<X> source ↔ skill sync — one block per shipped language.
 // ---------------------------------------------------------------------
 
-const kotlinSkillPath = join(docsDir, 'skills', 'skmtc-lang-kotlin', 'SKILL.md')
-const kotlinSkill = await Deno.readTextFile(kotlinSkillPath)
-const kotlinFactories = await Deno.readTextFile(
-  join(denoDir, 'lang-kotlin', 'src', 'createIdentifier.ts')
-)
-const kotlinMod = await Deno.readTextFile(join(denoDir, 'lang-kotlin', 'mod.ts'))
-
-const factoryNames = [
-  ...new Set([...kotlinFactories.matchAll(/export const (create[A-Z]\w+)/g)].map(m => m[1]))
+const languageSyncTargets = [
+  { packageDirectory: 'lang-kotlin', skillName: 'skmtc-lang-kotlin', guardPrefix: 'isKt' },
+  { packageDirectory: 'lang-csharp', skillName: 'skmtc-lang-csharp', guardPrefix: 'isCs' }
 ]
 
-const kindWord = numberWords[factoryNames.length]
-if (!kotlinSkill.includes(`${kindWord} entity kinds`)) {
-  fail(
-    `skmtc-lang-kotlin SKILL.md: expected "${kindWord} entity kinds" ` +
-      `(lang-kotlin exports ${factoryNames.length} identifier factories: ${factoryNames.join(', ')})`
+for (const { packageDirectory, skillName, guardPrefix } of languageSyncTargets) {
+  const skillPath = join(docsDir, 'skills', skillName, 'SKILL.md')
+  const skill = await Deno.readTextFile(skillPath)
+  const factories = await Deno.readTextFile(
+    join(denoDir, packageDirectory, 'src', 'createIdentifier.ts')
   )
-} else {
-  pass(`lang-kotlin kind vocabulary: skill says "${kindWord} entity kinds" matching ${factoryNames.length} factories`)
-}
+  const packageMod = await Deno.readTextFile(join(denoDir, packageDirectory, 'mod.ts'))
 
-for (const factory of factoryNames) {
-  if (!kotlinSkill.includes(factory)) {
-    fail(`skmtc-lang-kotlin SKILL.md: identifier factory ${factory} is exported but never mentioned`)
-  }
-}
+  const factoryNames = [
+    ...new Set([...factories.matchAll(/export const (create[A-Z]\w+)/g)].map(m => m[1]))
+  ]
 
-const protocolGuards = [
-  ...new Set([...kotlinMod.matchAll(/\b(isKt[A-Z]\w+)/g)].map(m => m[1]))
-]
-for (const guard of protocolGuards) {
-  if (!kotlinSkill.includes(guard)) {
-    fail(`skmtc-lang-kotlin SKILL.md: value-protocol guard ${guard} is exported but never mentioned`)
+  const kindWord = numberWords[factoryNames.length]
+  if (!skill.includes(`${kindWord} entity kinds`)) {
+    fail(
+      `${skillName} SKILL.md: expected "${kindWord} entity kinds" ` +
+        `(${packageDirectory} exports ${factoryNames.length} identifier factories: ${factoryNames.join(', ')})`
+    )
+  } else {
+    pass(`${packageDirectory} kind vocabulary: skill says "${kindWord} entity kinds" matching ${factoryNames.length} factories`)
   }
-}
-if (protocolGuards.every(guard => kotlinSkill.includes(guard))) {
-  pass(`lang-kotlin protocols: all ${protocolGuards.length} exported guards (${protocolGuards.join(', ')}) appear in the skill`)
+
+  for (const factory of factoryNames) {
+    if (!skill.includes(factory)) {
+      fail(`${skillName} SKILL.md: identifier factory ${factory} is exported but never mentioned`)
+    }
+  }
+
+  const guardPattern = new RegExp(`\\b(${guardPrefix}[A-Z]\\w+)`, 'g')
+  const protocolGuards = [...new Set([...packageMod.matchAll(guardPattern)].map(m => m[1]))]
+  for (const guard of protocolGuards) {
+    if (!skill.includes(guard)) {
+      fail(`${skillName} SKILL.md: value-protocol guard ${guard} is exported but never mentioned`)
+    }
+  }
+  if (protocolGuards.every(guard => skill.includes(guard))) {
+    pass(`${packageDirectory} protocols: all ${protocolGuards.length} exported guards (${protocolGuards.join(', ')}) appear in the skill`)
+  }
 }
 
 // ---------------------------------------------------------------------
