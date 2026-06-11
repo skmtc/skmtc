@@ -1,13 +1,15 @@
 # @skmtc/gen-kotlin-spring
 
-> Produce Spring Boot server interfaces (one annotated
-> `interface <Tag>Api` per tag) from OpenAPI operations.
+> Produce Spring Boot server code from OpenAPI operations: per tag, a
+> generated `@RestController` with complete delegating bodies plus the
+> `<Tag>Service` interface the consumer implements.
 
-An operation generator — the "interfaceOnly" pattern: generated output
-is complete (never a stub); the consumer writes
-`@RestController class UsersController : UsersApi` in non-generated
-code and Spring binds the interface-declared annotations at startup.
-The first accumulator-style operation generator on the Kotlin path.
+An operation generator following the `gen-supabase-hono` pattern: the
+generated artifact is the complete web layer; business logic lives
+behind a generated, DTO-typed service seam the consumer implements as
+a Spring bean. Output is never a stub — every generated body is a
+working delegation. (This replaced the 0.0.x "interfaceOnly" shape;
+spec: `notes/lang/25-kotlin-controller-service-architecture.md`.)
 
 ## Source
 
@@ -15,66 +17,76 @@ The first accumulator-style operation generator on the Kotlin path.
 
 ## What it generates
 
-For `GET /users/{id}` (path `id`, optional query `verbose`, 200 →
-`User`) and `POST /users` (body `CreateUserBody`, 201 → `User`), both
-tagged `users`:
+ONE file per tag — `<Tag>Api.generated.kt` — holding both
+declarations (a single destination keeps inline-shape synthesis and
+imports deduplicated):
 
 ```kotlin
 package com.example.api
 
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.*   // rendered individually
 
-interface UsersApi {
+interface UsersService {
+    fun getUsersId(id: String, verbose: Boolean?): User
+
+    fun postUsers(body: CreateUserBody): User
+}
+
+@RestController
+class UsersController(
+    private val service: UsersService
+) {
     @GetMapping("/users/{id}")
-    fun getUsersId(@PathVariable("id") id: String, @RequestParam("verbose") verbose: Boolean?): User
+    fun getUsersId(@PathVariable("id") id: String, @RequestParam("verbose") verbose: Boolean?): User = service.getUsersId(id, verbose)
 
     @PostMapping("/users")
-    fun postUsers(@RequestBody body: CreateUserBody): User
+    @ResponseStatus(HttpStatus.CREATED)
+    fun postUsers(@RequestBody body: CreateUserBody): User = service.postUsers(body)
 }
 ```
 
-(`User` / `CreateUserBody` imports suppressed — same package as the
-DTOs in the default setup.)
+The consumer writes ONE class per tag — pure business logic, no web
+concerns:
 
-## Grouping and naming
+```kotlin
+@Service
+class UsersServiceImpl : UsersService {
+    override fun getUsersId(id: String, verbose: Boolean?): User { … }
+    override fun postUsers(body: CreateUserBody): User { … }
+}
+```
 
-- One interface per tag: `users` → `UsersApi`. Untagged operations land
-  in `DefaultApi`; a multi-tag operation joins its FIRST tag only.
+Spring DI verifies the seam at startup: a scanned controller with no
+service bean fails loudly.
+
+## Grouping, naming, method policy
+
+- One file per tag (`users` → `UsersApi.generated.kt` holding
+  `UsersService` + `UsersController`); untagged → `Default…`;
+  multi-tag joins the FIRST tag only. Accumulator construction;
+  method order = document order.
 - Method names derive from method + path (`get /users/{id}` →
-  `getUsersId`) — never from `operationId` (author-controlled,
-  emitter-dependent).
-- Construction is accumulator-style (the gen-msw pattern): the first
-  operation in a tag creates the interface Definition via
-  `findDefinition` + `defineAndRegister`; later operations `add` their
-  method. Method order = document order.
-
-## Method policy (v1)
-
-- Mapping annotation: `@GetMapping` / `@PostMapping` / `@PutMapping` /
-  `@PatchMapping` / `@DeleteMapping`; `head`/`options`/`trace` fall back
-  to `@RequestMapping(method = [RequestMethod.HEAD], path = ["…"])`.
-  The OAS path goes in verbatim — `{id}` is already Spring's template
-  syntax.
-- Parameters, in order: path params (`@PathVariable("wire_name")`,
-  non-null), query params (`@RequestParam("wire_name")`, optional →
-  nullable type), then the JSON body (`@RequestBody body: T`, nullable
-  when the requestBody is not `required`). Binding annotations ALWAYS
-  carry the explicit wire name, so camelCase/sanitization renames are
-  free.
-- Types come from gen-kotlin's value layer (`toKtValue`) — refs insert
-  the DTO peer (the dependency edge needs no gen-kotlin transform);
-  inline shapes synthesize named siblings in the tag file
-  (`PostUsersBody`). The value owns the nullability `?`.
-- Return type = the lowest-2xx response's `application/json` schema;
-  none → no `: T` (Kotlin's implicit `Unit`).
+  `getUsersId`) — never `operationId`. Service and controller share
+  the name; the controller body is
+  `service.<name>(<params in order>)`.
+- Mapping annotations: `@Get/Post/Put/Patch/DeleteMapping`;
+  `head`/`options`/`trace` →
+  `@RequestMapping(method = [RequestMethod.X], path = ["…"])`. The
+  OAS path goes in verbatim.
+- Parameters: path (`@PathVariable("wire")`, non-null) → query
+  (`@RequestParam("wire")`, optional → nullable) → JSON body
+  (`@RequestBody`). Wire names always explicit. Types via
+  gen-kotlin's value layer — refs insert the DTO peer; inline shapes
+  synthesize named siblings in the tag file; the value owns the
+  nullability `?`.
+- Return type = lowest-2xx `application/json` schema; none →
+  implicit `Unit`.
+- **Status-code inference:** lowest-2xx of 201/202/204 renders
+  `@ResponseStatus(HttpStatus.CREATED/ACCEPTED/NO_CONTENT)`; 200 is
+  Spring's default and renders nothing.
 
 ## Entry — a factory, no default export
-
-`basePackage` is required and has no default:
 
 ```ts
 import { toKotlinSpringEntry } from '@skmtc/gen-kotlin-spring'
@@ -82,44 +94,41 @@ import { toKotlinSpringEntry } from '@skmtc/gen-kotlin-spring'
 export default toKotlinSpringEntry({ basePackage: 'com.example.api' })
 ```
 
-May equal or differ from gen-kotlin's `basePackage`: same package →
-DTO references render bare; different packages → imports render
-automatically. Run `@skmtc/gen-kotlin` beside it on the same document
-for the DTOs.
+`basePackage` is required (no default); it may equal or differ from
+gen-kotlin's (different → DTO imports render automatically). Run
+`@skmtc/gen-kotlin` beside it for the DTOs.
 
 ## Consumer setup (kotlinx end-to-end, validated by bootRun)
 
-- `spring-boot-starter-web` with `spring-boot-starter-json` (Jackson)
-  EXCLUDED — Spring then auto-registers the
-  `KotlinSerializationJsonHttpMessageConverter` when
-  `kotlinx-serialization-json` is on the classpath.
-- `kotlin-reflect` on the classpath — Spring MVC's Kotlin parameter
-  handling throws `NoClassDefFoundError` without it.
-- The `plugin.spring` Gradle plugin (opens Spring-annotated classes).
+- `spring-boot-starter-web` with `spring-boot-starter-json` EXCLUDED
+  (Spring auto-registers the kotlinx converter when
+  `kotlinx-serialization-json` is on the classpath).
+- `kotlin-reflect` on the classpath; the `plugin.spring` Gradle
+  plugin.
+- Component-scan must cover `basePackage` (the generated controllers)
+  AND the package holding your `ServiceImpl`s.
 
 ## Customization seams (clone to change)
 
 | Seam | Location |
 |---|---|
-| Grouping (per-tag) + interface naming | `src/apiFile.ts` |
-| Method naming, parameter/body/return policy, mapping annotations | `src/SpringApiMethod.ts` |
-| Interface body arrangement | `src/SpringApiInterface.ts` |
+| Grouping + file/service/controller naming | `src/apiFile.ts` |
+| Method naming, parameter/body/return policy, mapping + status annotations, delegation shape | `src/SpringApiMethod.ts` |
+| Class shells (annotations, injection) | `src/SpringApiInterface.ts` |
 
 ## Limits (documented, deliberate)
 
-- Spring MVC with plain `fun` — no WebFlux, no `suspend` (a later
-  sibling/clone, same no-flavor-flag rule as serialization).
-- Named exclusions: header/cookie params, non-JSON content types,
-  multi-status response unions, `ResponseEntity<T>`, security
-  annotations, servers/base-path prefixes.
-- kotlinx.serialization flavor only — the Jackson flavor
-  (`gen-kotlin-jackson` + Jackson-flavored Spring docs) is the named
-  follow-up.
+- Spring MVC, plain `fun` — WebFlux/`suspend` is a later sibling.
+- Named exclusions: header/cookie params, non-JSON content,
+  multi-status unions, `ResponseEntity<T>`, security annotations
+  (the `operation.security` inference is a named follow-up),
+  servers/base-path prefixes, `serviceMethodName` enrichment
+  (domain-shaped seam names).
+- kotlinx flavor only; Jackson is the named follow-up sibling.
 - Peer-version rule: gen-kotlin-spring and gen-kotlin must pin the
-  SAME `@skmtc/lang-kotlin` version — two lang copies in one module
-  graph break `KtFile`'s same-package import suppression
-  (`instanceof` fails across copies). The release cascade keeps them
-  aligned.
+  SAME `@skmtc/lang-kotlin` — two lang copies break cross-copy
+  `instanceof` (same-package import suppression). The cascade keeps
+  them aligned.
 
-Architecture: `notes/lang/23-kotlin-spring-architecture.md`.
+Architecture: `notes/lang/25-kotlin-controller-service-architecture.md`.
 Language layer skill: `docs/skills/skmtc-lang-kotlin/`.

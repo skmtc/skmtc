@@ -69,13 +69,14 @@ The boundary rule, worth internalizing first:
 | `KtImport` | `ImportBase` subclass — symbol-level specifiers, `as` aliases, one statement per symbol (no brace grouping), mergeKey/merge dedup, `@/`-path → package resolution at render |
 | `KtDefinition` | `DefinitionBase` subclass — the declaration shells, exhaustive over the kind vocabulary (throws outside it); visibility from `exported`; reads class-level annotations off the value via the `KtAnnotated` protocol and the supertype clause via `KtSupertyped`; KDoc from `description` |
 | `KtParameterList` / `KtParameter(Args)` | Primary-constructor parameter rendering: `    @Anno val name: Type? = default`, comma-joined, no trailing comma |
-| `KtFunctionSignature` / `KtFunctionParameter` | The abstract-method grammar for interface bodies (the Spring "interfaceOnly" idiom): above-annotations one per line, inline parameter annotations, nullable `?`, return type omitted → implicit `Unit`. Distinct production from `KtParameterList` (no `val`, no defaults) |
+| `KtFunctionSignature` / `KtFunctionParameter` | The method grammar for interface and class bodies: above-annotations one per line, inline parameter annotations, nullable `?`, return type omitted → implicit `Unit`, optional EXPRESSION body (` = service.x(…)` — delegation; no block bodies, no `override`). Distinct production from `KtParameterList` (no `val`, no defaults) |
 | `KtAnnotation` | Generic annotation rendering: `@Name` / `@Name(arg, …)` — args pre-quoted by the caller |
 | `KtAnnotated` / `isKtAnnotated` | The protocol (`{ annotations: KtAnnotation[] }`) by which a Definition's VALUE supplies class-level annotations to `KtDefinition` (the neutral `Lang.toDefinition` has no annotations slot); cast-free type guard |
+| `KtConstructed` / `isKtConstructed` | The protocol (`{ constructorParameters: Stringable }`) by which a Definition's VALUE supplies a primary constructor to the `class` shell (`class UsersController(\n    private val service: …\n) { … }`); same value-carried pattern as `KtAnnotated` |
 | `KtSupertyped` / `isKtSupertyped` | The protocol (`{ supertypes: Stringable[] }`) by which a Definition's VALUE supplies a supertype clause — `data class Dog(\n…\n) : Animal` (rendered for the `data-class` kind only in v1); same value-carried pattern as `KtAnnotated`; bare names, no import behavior (same-package suppression makes them correct) |
 | `KtImportNameArg` | The concise import-name shape (`'Name'`, `{ name, alias }`) accepted by `register({ imports })` |
-| `createDataClass` / `createEnumClass` / `createInterface` / `createSealedInterface` / `createTypeAlias` / `createValue` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary (`createValue` also takes `typeName` for `val x: T = …`) |
-| `KtEntityKind` / `toKtKeyword` | The six-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary |
+| `createClass` / `createDataClass` / `createEnumClass` / `createInterface` / `createSealedInterface` / `createTypeAlias` / `createValue` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary (`createValue` also takes `typeName` for `val x: T = …`) |
+| `KtEntityKind` / `toKtKeyword` | The seven-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary |
 | `sanitizePropertyName` | Kotlin-specific property-name sanitization (§5) |
 | `toPackageName` | `@/`-path → dotted-package derivation + segment validation (Kotlin's `validateDestinationPath`) |
 | `ktHardKeywords` / `isKtIdentifierName` | The pinned hard-keyword set and the plain-identifier syntax check |
@@ -111,12 +112,13 @@ the ref snippet.
 
 ## 2. Entity kinds & identifiers
 
-Kotlin output has six entity kinds (`KtEntityKind`), created via the
+Kotlin output has seven entity kinds (`KtEntityKind`), created via the
 factories exported by THIS package:
 
 ```ts
 import { createDataClass, createValue } from '@skmtc/lang-kotlin'
 
+createClass('UsersController')                // → class UsersController(…) { … }
 createDataClass('User')                       // → data class User( … )
 createEnumClass('Status')                     // → enum class Status { … }
 createInterface('UsersApi')                   // → interface UsersApi { … }
@@ -293,8 +295,10 @@ milestone (`lang-kotlin@0.3.0`, spec
 classes, write path (model veneer), the `KtAnnotated` + `KtSupertyped`
 value protocols, the `interface` kind + function-signature grammar,
 and two production generators (`gen-kotlin` DTOs incl. the
-sealed-interface `oneOf` mapping; `gen-kotlin-spring` server
-interfaces). Named follow-ups: operation projection-base veneers (the
+sealed-interface `oneOf` mapping; `gen-kotlin-spring` controllers +
+service seams — the `class` kind, `KtConstructed`, parameter
+visibility, and expression bodies carry the generated-controller
+idiom). Named follow-ups: operation projection-base veneers (the
 Spring generator is accumulator-style and didn't need one),
 serialization flavors beyond kotlinx (`gen-kotlin-jackson`),
 WebFlux/`suspend`. One operational rule: generators sharing this

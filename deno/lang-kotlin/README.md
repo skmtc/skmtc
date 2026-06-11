@@ -4,18 +4,21 @@ The Kotlin target-language layer for SKMTC generators.
 
 Renders: `'.kt'`
 
-**Status: production (0.3.0).** The full register/write path on the
+**Status: production (0.4.0).** The full register/write path on the
 frozen language seam — the second language after TypeScript, proven
 end-to-end by the
 [`@skmtc/gen-kotlin`](../../../skmtc-generators/gen-kotlin/) DTO
 generator. 0.2.0 added the `KtSupertyped` value protocol (the supertype
 clause — `data class Dog(…) : Animal` — for gen-kotlin's
 sealed-interface `oneOf` mapping; spec
-`notes/lang/22-kotlin-sealed-oneof-architecture.md`). 0.3.0 adds the
+`notes/lang/22-kotlin-sealed-oneof-architecture.md`). 0.3.0 added the
 `interface` kind and the function-signature grammar
 (`KtFunctionSignature` / `KtFunctionParameter`) for
-`@skmtc/gen-kotlin-spring`'s annotated `<Tag>Api` interfaces (spec
-`notes/lang/23-kotlin-spring-architecture.md`).
+`@skmtc/gen-kotlin-spring` (spec `notes/lang/23`). 0.4.0 adds the
+concrete-`class` kind, the `KtConstructed` value protocol (primary
+constructors), parameter visibility, and expression-bodied methods —
+the generated-controller idiom (spec
+`notes/lang/25-kotlin-controller-service-architecture.md`).
 
 ## What this package owns
 
@@ -37,7 +40,7 @@ sealed-interface `oneOf` mapping; spec
 - **`KtImport`** — symbol-level, `as` aliases, one statement per
   symbol, dotted-package and `@/`-path module keys.
 - **`KtDefinition`** — declaration shells, exhaustive over the kind
-  vocabulary (`data-class` / `enum-class` / `interface` /
+  vocabulary (`class` / `data-class` / `enum-class` / `interface` /
   `sealed-interface` / `typealias` / `val`); visibility renders
   nothing when public,
   `private` to restrict; class-level annotations ride the value via the
