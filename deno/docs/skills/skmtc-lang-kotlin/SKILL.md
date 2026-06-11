@@ -69,12 +69,13 @@ The boundary rule, worth internalizing first:
 | `KtImport` | `ImportBase` subclass — symbol-level specifiers, `as` aliases, one statement per symbol (no brace grouping), mergeKey/merge dedup, `@/`-path → package resolution at render |
 | `KtDefinition` | `DefinitionBase` subclass — the declaration shells, exhaustive over the kind vocabulary (throws outside it); visibility from `exported`; reads class-level annotations off the value via the `KtAnnotated` protocol and the supertype clause via `KtSupertyped`; KDoc from `description` |
 | `KtParameterList` / `KtParameter(Args)` | Primary-constructor parameter rendering: `    @Anno val name: Type? = default`, comma-joined, no trailing comma |
+| `KtFunctionSignature` / `KtFunctionParameter` | The abstract-method grammar for interface bodies (the Spring "interfaceOnly" idiom): above-annotations one per line, inline parameter annotations, nullable `?`, return type omitted → implicit `Unit`. Distinct production from `KtParameterList` (no `val`, no defaults) |
 | `KtAnnotation` | Generic annotation rendering: `@Name` / `@Name(arg, …)` — args pre-quoted by the caller |
 | `KtAnnotated` / `isKtAnnotated` | The protocol (`{ annotations: KtAnnotation[] }`) by which a Definition's VALUE supplies class-level annotations to `KtDefinition` (the neutral `Lang.toDefinition` has no annotations slot); cast-free type guard |
 | `KtSupertyped` / `isKtSupertyped` | The protocol (`{ supertypes: Stringable[] }`) by which a Definition's VALUE supplies a supertype clause — `data class Dog(\n…\n) : Animal` (rendered for the `data-class` kind only in v1); same value-carried pattern as `KtAnnotated`; bare names, no import behavior (same-package suppression makes them correct) |
 | `KtImportNameArg` | The concise import-name shape (`'Name'`, `{ name, alias }`) accepted by `register({ imports })` |
-| `createDataClass` / `createEnumClass` / `createSealedInterface` / `createTypeAlias` / `createValue` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary (`createValue` also takes `typeName` for `val x: T = …`) |
-| `KtEntityKind` / `toKtKeyword` | The five-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary |
+| `createDataClass` / `createEnumClass` / `createInterface` / `createSealedInterface` / `createTypeAlias` / `createValue` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary (`createValue` also takes `typeName` for `val x: T = …`) |
+| `KtEntityKind` / `toKtKeyword` | The six-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary |
 | `sanitizePropertyName` | Kotlin-specific property-name sanitization (§5) |
 | `toPackageName` | `@/`-path → dotted-package derivation + segment validation (Kotlin's `validateDestinationPath`) |
 | `ktHardKeywords` / `isKtIdentifierName` | The pinned hard-keyword set and the plain-identifier syntax check |
@@ -110,7 +111,7 @@ the ref snippet.
 
 ## 2. Entity kinds & identifiers
 
-Kotlin output has five entity kinds (`KtEntityKind`), created via the
+Kotlin output has six entity kinds (`KtEntityKind`), created via the
 factories exported by THIS package:
 
 ```ts
@@ -118,6 +119,7 @@ import { createDataClass, createValue } from '@skmtc/lang-kotlin'
 
 createDataClass('User')                       // → data class User( … )
 createEnumClass('Status')                     // → enum class Status { … }
+createInterface('UsersApi')                   // → interface UsersApi { … }
 createSealedInterface('Animal')               // → sealed interface Animal
 createTypeAlias('UserList')                   // → typealias UserList = …
 createValue('MAX_RETRIES')                    // → val MAX_RETRIES = …
@@ -133,6 +135,12 @@ createValue('timeout', { typeName: 'Long' })  // → val timeout: Long = …
   qualifying discriminated `oneOf`s onto it (spec
   `notes/lang/22-kotlin-sealed-oneof-architecture.md`); members carry
   the ` : Parent` clause via `KtSupertyped`.
+- `interface` carries gen-kotlin-spring's `<Tag>Api` declarations
+  (spec `notes/lang/23-kotlin-spring-architecture.md`); the body is a
+  blank-line-joined list of `KtFunctionSignature`s. Same bodyless
+  collapse as `sealed-interface` when the value renders empty.
+  There is deliberately NO `fun` kind — v1 methods live inside
+  interface bodies, never at file scope.
 - Visibility: Kotlin defaults to `public`, so `exported: true` renders
   *nothing* and `exported: false` renders `private ` (file-local) —
   keyword only to restrict.
@@ -189,6 +197,8 @@ Construct-level helpers for Kotlin syntax — all `Stringable`-compatible:
 | Helper | Renders |
 |---|---|
 | `KtParameterList` / `KtParameterArgs` | A primary-constructor parameter list: `    @SerialName("x_y") val xY: String? = null`, comma-joined, **no trailing comma** (cosmetic non-decision — formatters normalize; SKMTC renders unformatted) |
+| `KtFunctionSignature` / `KtFunctionSignatureArgs` | An abstract-method signature for an interface body, indented one level: above-annotations one per line, parameters on one line, `: T` omitted when `returnType` is absent (implicit `Unit`). No body, no `suspend`, no defaults in v1 |
+| `KtFunctionParameter` / `KtFunctionParameterArgs` | One function parameter: `@PathVariable("id") id: String` / `verbose: Boolean?` — inline annotations before the name; no `val` prefix (that is the constructor-parameter production) |
 | `KtAnnotation` | `@Serializable` / `@SerialName("user_id")` — grammar only; args pre-quoted by the caller; which annotation is generator policy |
 | `KtAnnotated` / `isKtAnnotated` | The value-carried class-level-annotation protocol `KtDefinition` reads (one annotation per line above the shell) |
 | `KtSupertyped` / `isKtSupertyped` | The value-carried supertype protocol `KtDefinition` reads (` : A, B` after the data-class parameter list) |
@@ -275,11 +285,20 @@ in `gen-kotlin`'s value layer, not here.
 ### Status note
 
 Shipped by the Kotlin Phase D milestone (spec
-`notes/lang/19-kotlin-architecture.md`) and the sealed-`oneOf`
+`notes/lang/19-kotlin-architecture.md`), the sealed-`oneOf`
 milestone (`lang-kotlin@0.2.0`, spec
-`notes/lang/22-kotlin-sealed-oneof-architecture.md`): the naming
-layer, DSL classes, write path (model veneer), the `KtAnnotated` +
-`KtSupertyped` value protocols, and the proving generator (incl. the
-sealed-interface `oneOf` mapping) are production; operation veneers
-and serialization flavors beyond kotlinx.serialization are named
-follow-ups (the Spring milestone).
+`notes/lang/22-kotlin-sealed-oneof-architecture.md`), and the Spring
+milestone (`lang-kotlin@0.3.0`, spec
+`notes/lang/23-kotlin-spring-architecture.md`): the naming layer, DSL
+classes, write path (model veneer), the `KtAnnotated` + `KtSupertyped`
+value protocols, the `interface` kind + function-signature grammar,
+and two production generators (`gen-kotlin` DTOs incl. the
+sealed-interface `oneOf` mapping; `gen-kotlin-spring` server
+interfaces). Named follow-ups: operation projection-base veneers (the
+Spring generator is accumulator-style and didn't need one),
+serialization flavors beyond kotlinx (`gen-kotlin-jackson`),
+WebFlux/`suspend`. One operational rule: generators sharing this
+package in one composition must pin the SAME version — two lang-kotlin
+copies in a module graph break cross-copy `instanceof` checks
+(`KtFile`'s same-package import suppression); the release cascade
+keeps peers aligned.

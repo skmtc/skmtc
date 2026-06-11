@@ -72,6 +72,7 @@ app/router Projection.
 |-----------|--------|-----------|
 | `@skmtc/gen-express` | Express route registration | [gen-express](gen-express.md) |
 | `@skmtc/gen-supabase-hono` | Hono routes for Supabase Edge Functions | [gen-supabase-hono](gen-supabase-hono.md) |
+| `@skmtc/gen-kotlin-spring` | Spring Boot `interface <Tag>Api` per tag (Kotlin, "interfaceOnly" pattern) | [gen-kotlin-spring](gen-kotlin-spring.md) |
 
 ### GraphQL (Reapit set)
 
