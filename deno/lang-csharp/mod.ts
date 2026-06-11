@@ -26,9 +26,12 @@
  * flavor is generator policy (`gen-csharp`'s value files, the
  * Newtonsoft-sibling clone seam).
  *
- * Status: **CS-A in progress.** The write path (`csharp` Lang object,
- * `CsSnippet`, the register functions, `toModelProjectionBase`) lands at
- * CS-A step 3.
+ * The write path: the `csharp` Lang object (Drivers read it off the
+ * projection class's inherited static — generators never call it),
+ * `CsSnippet` (keyless registers), the `register` /
+ * `defineAndRegister` functions, and the `toModelProjectionBase`
+ * veneer (own-file `register` + explicit cross-file `registerInto`).
+ * Operation veneers are demand-driven and arrive with CS-C.
  */
 
 /** The language id this package targets. */
@@ -66,3 +69,16 @@ export { CsAttribute, isCsAttributed, type CsAttributed } from './src/CsAttribut
 export { isCsDocumented, type CsDocumented } from './src/CsDocumented.ts'
 export { isCsBased, type CsBased } from './src/CsBased.ts'
 export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
+
+export { csharp } from './src/csLang.ts'
+export { CsSnippet } from './src/CsSnippet.ts'
+export {
+  register,
+  defineAndRegister,
+  type CsRegisterArgs,
+  type CsDefineAndRegisterArgs
+} from './src/register.ts'
+export {
+  toModelProjectionBase,
+  type CsModelProjectionBaseConfig
+} from './src/toModelProjectionBase.ts'

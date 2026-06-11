@@ -1,0 +1,62 @@
+import {
+  toModelProjectionBase as toCoreModelProjectionBase,
+  type ModelProjectionBaseConfig
+} from '@skmtc/core'
+import { CsSnippet } from './CsSnippet.ts'
+import { register, type CsRegisterArgs } from './register.ts'
+
+/**
+ * Configuration for the C# {@link toModelProjectionBase} veneer —
+ * core's config minus `base`, which this veneer pre-binds to
+ * {@link CsSnippet}.
+ */
+export type CsModelProjectionBaseConfig<EnrichmentType = undefined> = Omit<
+  ModelProjectionBaseConfig<EnrichmentType>,
+  'base'
+>
+
+/**
+ * Build a C# model projection base class.
+ *
+ * Thin veneer over core's `toModelProjectionBase`: pre-binds
+ * `base: CsSnippet` (the hierarchy is language-bound at its root) and adds
+ * the register ergonomics core deliberately doesn't define — typed with
+ * C#'s concise vocabulary, which core can't name:
+ *
+ * - `register(args)` — **own-file**: `destinationPath` is always this
+ *   projection's `settings.exportPath` (the foundation rule; never a
+ *   fallback).
+ * - `registerInto(destinationPath, args)` — the explicit cross-file path.
+ *
+ * Both delegate to this package's register *function* — never
+ * `super.register` (lang-base members are type-erased on core's factory
+ * result).
+ *
+ * Operation veneers (`toOasOperationProjectionBase`,
+ * `toGqlOperationProjectionBase`) arrive with the first operation-emitting
+ * C# generator (the CS-C ASP.NET milestone) — veneers are demand-driven,
+ * the Kotlin precedent.
+ */
+export const toModelProjectionBase = <EnrichmentType = undefined>(
+  config: CsModelProjectionBaseConfig<EnrichmentType>
+) => {
+  return class extends toCoreModelProjectionBase<EnrichmentType>({ ...config, base: CsSnippet }) {
+    /**
+     * Register imports/definitions in this projection's **own** export file
+     * (`this.settings.exportPath`). For a different file use
+     * {@link registerInto}.
+     */
+    register(args: CsRegisterArgs): void {
+      register(this.context, { ...args, destinationPath: this.settings.exportPath })
+    }
+
+    /**
+     * Register imports/definitions into an explicitly named file —
+     * distinct from {@link register}, which always targets this
+     * projection's own export file.
+     */
+    registerInto(destinationPath: string, args: CsRegisterArgs): void {
+      register(this.context, { ...args, destinationPath })
+    }
+  }
+}
