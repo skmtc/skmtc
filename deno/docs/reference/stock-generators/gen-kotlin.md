@@ -120,9 +120,17 @@ import { toKotlinEntry } from '@skmtc/gen-kotlin'
 
 export default toKotlinEntry({
   basePackage: 'com.example.api',
-  scalars: { 'date-time': 'String' }   // optional format overrides
+  scalars: { 'date-time': 'kotlinx.datetime.Instant' }   // optional format overrides
 })
 ```
+
+A DOTTED scalar value renders its simple name and registers the
+import; kotlinx-datetime types are natively `@Serializable`, so no
+serializer wiring is needed — the consumer adds the
+`kotlinx-datetime` dependency. Model renames and KDoc: the
+`[refName].main.name` enrichment aliases the identifier, the FILE,
+every ref site, and supertype clauses; schema `description`s render
+as class-level KDoc.
 
 `client.json#settings.basePath` points at the Gradle source root
 (`./app/src/main/kotlin`); export paths encode the package

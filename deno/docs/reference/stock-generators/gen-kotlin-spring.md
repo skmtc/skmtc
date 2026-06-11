@@ -108,6 +108,24 @@ gen-kotlin's (different → DTO imports render automatically). Run
 - Component-scan must cover `basePackage` (the generated controllers)
   AND the package holding your `ServiceImpl`s.
 
+## Error channel (generated)
+
+One `ApiError.generated.kt` per `basePackage`: a `@Serializable
+ApiError(status, message?)` body and a `@RestControllerAdvice` that
+maps Spring's own `ResponseStatusException` — throw it from
+ServiceImpls (`throw ResponseStatusException(HttpStatus.NOT_FOUND,
+"No such user")` → `{"status":404,"message":"No such user"}`).
+Required because the Jackson-less setup breaks Spring Boot's default
+error rendering. Schema-derived error DTOs are a named follow-up.
+
+## Enrichments
+
+`[path][method].main.serviceMethodName` renames the seam method
+(`getCreditNote` instead of `getCreditNotesId`) — declaration and
+delegation stay in lockstep. Seam methods carry KDoc from the
+operation `summary`/`description`; optional params default to `null`
+on the seam only.
+
 ## Customization seams (clone to change)
 
 | Seam | Location |
