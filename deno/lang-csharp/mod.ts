@@ -42,12 +42,21 @@ export const fileExtensions = ['.cs'] as const
 
 export {
   createAbstractRecord,
+  createClass,
   createEnum,
+  createInterface,
   createRecord,
   toCsKeyword,
   type CreateCsIdentifierArgs,
   type CsEntityKind
 } from './src/createIdentifier.ts'
+export { isCsConstructed, type CsConstructed } from './src/CsConstructed.ts'
+export {
+  CsMethodParameter,
+  CsMethodSignature,
+  type CsMethodParameterArgs,
+  type CsMethodSignatureArgs
+} from './src/CsMethodSignature.ts'
 export { csHardKeywords, isCsIdentifierName } from './src/hardKeywords.ts'
 export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
 export { toNamespaceName } from './src/toNamespaceName.ts'

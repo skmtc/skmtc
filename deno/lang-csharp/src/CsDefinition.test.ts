@@ -4,7 +4,7 @@ import { Identifier } from '@skmtc/core'
 import { CsAttribute } from './CsAttribute.ts'
 import { CsDefinition } from './CsDefinition.ts'
 import { CsPropertyList } from './CsPropertyList.ts'
-import { createAbstractRecord, createEnum, createRecord } from './createIdentifier.ts'
+import { createAbstractRecord, createClass, createEnum, createInterface, createRecord } from './createIdentifier.ts'
 
 // Construction only stores `context`; `toString()` never reads it (test-only cast).
 const context = {} as unknown as GenerateContextType
@@ -220,4 +220,52 @@ Deno.test('a foreign-language kind throws (no silent fallback)', () => {
   })
 
   assertThrows(() => definition.toString(), Error, 'Unknown C# entity kind: data-class')
+})
+
+Deno.test('the class shell composes the primary constructor (CsConstructed) with the base clause', () => {
+  class ControllerValue {
+    attributes = [new CsAttribute('ApiController')]
+    constructorParameters = 'IUsersService service'
+    baseTypes = ['ControllerBase']
+
+    toString(): string {
+      return '    public void X();'
+    }
+  }
+
+  const definition = new CsDefinition({
+    context,
+    identifier: createClass('UsersController'),
+    value: new ControllerValue()
+  })
+
+  assertEquals(
+    definition.toString(),
+    '[ApiController]\n' +
+      'public sealed partial class UsersController(IUsersService service) : ControllerBase\n' +
+      '{\n' +
+      '    public void X();\n' +
+      '}'
+  )
+})
+
+Deno.test('the interface shell renders body and bodyless forms', () => {
+  const withBody = new CsDefinition({
+    context,
+    identifier: createInterface('IUsersService'),
+    value: '    Task<User> GetUser();'
+  })
+
+  assertEquals(
+    withBody.toString(),
+    'public interface IUsersService\n{\n    Task<User> GetUser();\n}'
+  )
+
+  const bodyless = new CsDefinition({
+    context,
+    identifier: createInterface('IMarker'),
+    value: ''
+  })
+
+  assertEquals(bodyless.toString(), 'public interface IMarker;')
 })

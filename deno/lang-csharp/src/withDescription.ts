@@ -8,7 +8,14 @@ export type WithDescriptionArgs = {
   description?: string
 }
 
-const escapeXml = (text: string): string => {
+/**
+ * XML-escapes text destined for an XML-doc block (`&` / `<` / `>`) —
+ * shared by {@link withDescription} (declaration-level) and
+ * `CsMethodSignature` (member-level). Escaping is grammar (note-30
+ * lesson 3): it lives HERE, in the lang, so no gen-side copy exists to
+ * drift.
+ */
+export const escapeXml = (text: string): string => {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 

@@ -3,6 +3,7 @@ import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/cor
 import { toCsKeyword } from './createIdentifier.ts'
 import { isCsAttributed } from './CsAttribute.ts'
 import { isCsBased } from './CsBased.ts'
+import { isCsConstructed } from './CsConstructed.ts'
 import { isCsDocumented } from './CsDocumented.ts'
 import { withDescription } from './withDescription.ts'
 
@@ -28,6 +29,8 @@ export type CsDefinitionArgs<Value extends GeneratedValue> = {
  * |---|---|
  * | `record` | `sealed partial record Name[ : A, B]\n{\n…\n}` (bodyless collapse to `…Name[ : A, B];` when the value renders empty) |
  * | `abstract-record` | `abstract partial record Name[ : A, B]\n{\n…\n}` (same bodyless collapse — the polymorphic parent is normally bodyless) |
+ * | `class` | `sealed partial class Name[(…)][ : A, B]\n{\n…\n}` — the primary constructor rides the `CsConstructed` protocol, inline (C# 12) |
+ * | `interface` | `interface Name[ : A, B]\n{\n…\n}` (same bodyless collapse) |
  * | `enum` | `enum Name\n{\n…\n}` |
  *
  * Class-level attributes ride on the VALUE via the
@@ -80,7 +83,13 @@ export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends
 
     switch (kind) {
       case 'record':
-      case 'abstract-record': {
+      case 'abstract-record':
+      case 'class':
+      case 'interface': {
+        const constructorClause =
+          kind === 'class' && isCsConstructed(this.value)
+            ? `(${this.value.constructorParameters})`
+            : ''
         const clause =
           isCsBased(this.value) && this.value.baseTypes.length
             ? ` : ${this.value.baseTypes.join(', ')}`
@@ -88,8 +97,8 @@ export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends
         const body = `${this.value}`
 
         return body.length
-          ? `${keyword} ${name}${clause}\n{\n${body}\n}`
-          : `${keyword} ${name}${clause};`
+          ? `${keyword} ${name}${constructorClause}${clause}\n{\n${body}\n}`
+          : `${keyword} ${name}${constructorClause}${clause};`
       }
       case 'enum':
         return `${keyword} ${name}\n{\n${this.value}\n}`

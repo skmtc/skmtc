@@ -13,6 +13,11 @@ import { Identifier } from '@skmtc/core'
  *   parent-side `[JsonPolymorphic]`/`[JsonDerivedType]` attributes via
  *   the `CsAttributed` protocol).
  * - `'enum'` — an `enum Name { … }` declaration.
+ * - `'class'` — a `sealed partial class Name(…) : Base { … }`
+ *   declaration (CS-C: the generated-controller idiom; the primary
+ *   constructor rides the `CsConstructed` value protocol).
+ * - `'interface'` — an `interface IName { … }` declaration (CS-C: the
+ *   service seam the consumer implements).
  *
  * Deliberately NO alias kind (C# has no exported type alias — `using X
  * = …` is file-scoped, D6) and NO `val`-analog kind: C#'s distinctive
@@ -21,11 +26,8 @@ import { Identifier } from '@skmtc/core'
  *
  * Unlike TypeScript, the kind does NOT drive import form — every C#
  * using is namespace-level. It drives only the declaration shell.
- * Deferred kinds (`class` / `interface` at CS-C) arrive with the
- * milestones that need them; {@link toCsKeyword} throwing on them is
- * the desired behavior until then.
  */
-export type CsEntityKind = 'record' | 'abstract-record' | 'enum'
+export type CsEntityKind = 'record' | 'abstract-record' | 'enum' | 'class' | 'interface'
 
 /**
  * Options shared by the identifier factories — every field optional, so
@@ -79,6 +81,32 @@ export const createEnum = (name: string, args: CreateCsIdentifierArgs = {}): Ide
 }
 
 /**
+ * Creates a concrete `class` identifier.
+ *
+ * @example
+ * ```typescript
+ * const controller = createClass('UsersController')
+ * // CsDefinition renders: public sealed partial class UsersController(…) : ControllerBase { … }
+ * ```
+ */
+export const createClass = (name: string, args: CreateCsIdentifierArgs = {}): Identifier => {
+  return new Identifier({ name, exported: args.exported, kind: 'class' })
+}
+
+/**
+ * Creates an `interface` identifier.
+ *
+ * @example
+ * ```typescript
+ * const seam = createInterface('IUsersService')
+ * // CsDefinition renders: public interface IUsersService { … }
+ * ```
+ */
+export const createInterface = (name: string, args: CreateCsIdentifierArgs = {}): Identifier => {
+  return new Identifier({ name, exported: args.exported, kind: 'interface' })
+}
+
+/**
  * Maps an identifier's opaque `kind` to its C# declaration keyword
  * chain. The D3 modifiers ride the mapping — `'record'` renders `sealed
  * partial record`, so "sealed by default, partial always" is a property
@@ -99,6 +127,10 @@ export const toCsKeyword = (kind: string): string => {
       return 'abstract partial record'
     case 'enum':
       return 'enum'
+    case 'class':
+      return 'sealed partial class'
+    case 'interface':
+      return 'interface'
     default:
       throw new Error(`Unknown C# entity kind: ${kind}`)
   }

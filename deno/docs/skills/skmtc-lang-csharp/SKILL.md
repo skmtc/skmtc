@@ -68,8 +68,10 @@ boundary rule, worth internalizing first:
 | `CsDocumented` / `isCsDocumented` | The protocol (`{ description?: string }`) on a Definition's VALUE supplying the XML-doc `<summary>` block `CsDefinition` renders above the attributes (an explicit constructor `description` wins). The lang renders (and XML-escapes) the block; WHAT the text is is generator policy. Gotcha (spec 28): the Driver wraps the PROJECTION, so value protocols must be MIRRORED as getters on the projection |
 | `CsBased` / `isCsBased` | The protocol (`{ baseTypes: Stringable[] }`) for the ` : Animal` base-type clause, rendered for the record-family kinds (between the name and the body, or before the `;` on the bodyless collapse); bare names, no import behavior (same-namespace suppression makes them correct); mirror it on the projection — the Driver wraps the projection, not the value |
 | `CsImportNameArg` | The concise import-name shape (`'Name'`, `{ name, alias }`) accepted by `register({ imports })` |
-| `createRecord` / `createAbstractRecord` / `createEnum` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary |
-| `CsEntityKind` / `toCsKeyword` | The three-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary. The D3/D14 modifiers ride the mapping: `'record'` → `sealed partial record`, `'abstract-record'` → `abstract partial record` |
+| `createRecord` / `createAbstractRecord` / `createEnum` / `createClass` / `createInterface` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary |
+| `CsEntityKind` / `toCsKeyword` | The five-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary. The modifiers ride the mapping: `'record'` → `sealed partial record`, `'abstract-record'` → `abstract partial record`, `'class'` → `sealed partial class` |
+| `CsConstructed` / `isCsConstructed` | The protocol (`{ constructorParameters: Stringable }`) by which a Definition's VALUE supplies a C# 12 PRIMARY CONSTRUCTOR to the `class` shell (`class UsersController(IUsersService service) : ControllerBase` — the injected-service idiom); parameters inline on the shell line; mirror it on the projection |
+| `CsMethodSignature` / `CsMethodParameter` | The method grammar for interface and class bodies (CS-C): XML-doc above the attributes, `modifiers` text (`public async`), REQUIRED return type (absent → `void`), inline parameter attributes (`[FromQuery(Name = "…")] int? limit`), optional ` = default`, optional EXPRESSION body (` => …;` — delegation; block bodies live in custom snippets) |
 | `sanitizePropertyName` | C#-specific name sanitization (§5) |
 | `toNamespaceName` | `@/`-path → dotted-namespace derivation + segment validation (C#'s `validateDestinationPath`) |
 | `csHardKeywords` / `isCsIdentifierName` | The pinned reserved-keyword set (77) and the plain-identifier syntax check |
@@ -107,15 +109,19 @@ transform emits no artifact and ref sites inline the type expression.
 
 ## 2. Entity kinds & identifiers
 
-C# output has three entity kinds (`CsEntityKind`), created via the
+C# output has five entity kinds (`CsEntityKind`), created via the
 factories exported by THIS package:
 
 ```ts
-import { createRecord, createAbstractRecord, createEnum } from '@skmtc/lang-csharp'
+import {
+  createRecord, createAbstractRecord, createEnum, createClass, createInterface
+} from '@skmtc/lang-csharp'
 
-createRecord('User')            // → public sealed partial record User { … }
-createAbstractRecord('Animal')  // → public abstract partial record Animal;
-createEnum('Status')            // → public enum Status { … }
+createRecord('User')               // → public sealed partial record User { … }
+createAbstractRecord('Animal')     // → public abstract partial record Animal;
+createEnum('Status')               // → public enum Status { … }
+createClass('UsersController')     // → public sealed partial class UsersController(…) : ControllerBase { … }
+createInterface('IUsersService')   // → public interface IUsersService { … }
 ```
 
 - The kind drives ONLY the declaration shell (`toCsKeyword` /
