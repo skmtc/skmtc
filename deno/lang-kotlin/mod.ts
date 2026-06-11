@@ -10,8 +10,10 @@
  * `reExports` field), the model projection-base veneer, `KtFile`
  * (path-derived `package` directive, sorted imports, same-package
  * suppression), `KtImport` (symbol-level, `as` aliases), `KtDefinition`
- * (exhaustive five-kind shells, `KtAnnotated` + `KtSupertyped` value
- * protocols, KDoc), the identifier factories, `sanitizePropertyName`
+ * (exhaustive six-kind shells, `KtAnnotated` + `KtSupertyped` value
+ * protocols, KDoc), the function-signature grammar
+ * (`KtFunctionSignature` / `KtFunctionParameter` — abstract methods for
+ * interface bodies), the identifier factories, `sanitizePropertyName`
  * (hard keywords + backticks), and `toPackageName` (segment-validated).
  *
  * Grammar only: serialization flavor (kotlinx annotations) is generator
@@ -30,12 +32,19 @@ export { KtFile, type KtFileArgs } from './src/KtFile.ts'
 export { KtDefinition, type KtDefinitionArgs } from './src/KtDefinition.ts'
 export { KtImport, type KtImportNameArg, type KtImportSpecifier } from './src/KtImport.ts'
 export { KtParameterList, type KtParameterArgs } from './src/KtParameterList.ts'
+export {
+  KtFunctionSignature,
+  KtFunctionParameter,
+  type KtFunctionSignatureArgs,
+  type KtFunctionParameterArgs
+} from './src/KtFunctionSignature.ts'
 export { KtAnnotation, isKtAnnotated, type KtAnnotated } from './src/KtAnnotation.ts'
 export { isKtSupertyped, type KtSupertyped } from './src/KtSupertyped.ts'
 export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
 export {
   createDataClass,
   createEnumClass,
+  createInterface,
   createSealedInterface,
   createTypeAlias,
   createValue,

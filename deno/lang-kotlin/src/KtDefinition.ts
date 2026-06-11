@@ -25,6 +25,7 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  * |---|---|
  * | `data-class` | `data class Name(\n…\n)` (+ ` : A, B` via the supertype protocol) |
  * | `enum-class` | `enum class Name {\n…\n}` |
+ * | `interface` | `interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
  * | `sealed-interface` | `sealed interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
  * | `typealias` | `typealias Name = …` |
  * | `val` | `val Name[: Type] = …` (Kotlin's distinctive file-scope value) |
@@ -79,6 +80,11 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
       }
       case 'enum-class':
         return `enum class ${name} {\n${this.value}\n}`
+      case 'interface': {
+        const body = `${this.value}`
+
+        return body.length ? `interface ${name} {\n${body}\n}` : `interface ${name}`
+      }
       case 'sealed-interface': {
         const body = `${this.value}`
 

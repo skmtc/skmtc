@@ -8,6 +8,7 @@ import { isKtSupertyped } from './KtSupertyped.ts'
 import {
   createDataClass,
   createEnumClass,
+  createInterface,
   createSealedInterface,
   createTypeAlias,
   createValue
@@ -45,6 +46,38 @@ Deno.test('enum-class shell renders entries in braces', () => {
   })
 
   assertEquals(definition.toString(), 'enum class Status {\n    ACTIVE,\n    INACTIVE\n}')
+})
+
+Deno.test('interface shell renders a body in braces, bodyless when the value is empty', () => {
+  const bodyless = new KtDefinition({
+    context,
+    identifier: createInterface('Marker'),
+    value: ''
+  })
+  const withBody = new KtDefinition({
+    context,
+    identifier: createInterface('UsersApi'),
+    value: '    fun getUsersId(id: String): User'
+  })
+
+  assertEquals(bodyless.toString(), 'interface Marker')
+  assertEquals(withBody.toString(), 'interface UsersApi {\n    fun getUsersId(id: String): User\n}')
+})
+
+Deno.test('interface shell renders class-level annotations and private visibility', () => {
+  const definition = new KtDefinition({
+    context,
+    identifier: createInterface('UsersApi', { exported: false }),
+    value: {
+      annotations: [new KtAnnotation('Suppress', ['"unused"'])],
+      toString: () => '    fun getUsersId(id: String): User'
+    }
+  })
+
+  assertEquals(
+    definition.toString(),
+    '@Suppress("unused")\nprivate interface UsersApi {\n    fun getUsersId(id: String): User\n}'
+  )
 })
 
 Deno.test('sealed-interface shell renders bodyless when the value is empty', () => {

@@ -2,6 +2,7 @@ import { assertEquals, assertThrows } from '@std/assert'
 import {
   createDataClass,
   createEnumClass,
+  createInterface,
   createSealedInterface,
   createTypeAlias,
   createValue,
@@ -21,6 +22,13 @@ Deno.test('createEnumClass writes the enum-class kind', () => {
 
   assertEquals(identifier.name, 'Status')
   assertEquals(identifier.kind, 'enum-class')
+})
+
+Deno.test('createInterface writes the interface kind', () => {
+  const identifier = createInterface('UsersApi')
+
+  assertEquals(identifier.name, 'UsersApi')
+  assertEquals(identifier.kind, 'interface')
 })
 
 Deno.test('createSealedInterface writes the sealed-interface kind', () => {
@@ -55,6 +63,7 @@ Deno.test('factories honor exported: false (renders private downstream)', () => 
 Deno.test('toKtKeyword maps the full vocabulary', () => {
   assertEquals(toKtKeyword('data-class'), 'data class')
   assertEquals(toKtKeyword('enum-class'), 'enum class')
+  assertEquals(toKtKeyword('interface'), 'interface')
   assertEquals(toKtKeyword('sealed-interface'), 'sealed interface')
   assertEquals(toKtKeyword('typealias'), 'typealias')
   assertEquals(toKtKeyword('val'), 'val')
