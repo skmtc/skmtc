@@ -19,7 +19,8 @@ than .NET 9 — `[JsonStringEnumMemberName]` is the floor-setter).
 |---|---|
 | object with properties | `public sealed partial record` with `required`/`init` property members |
 | string with enums | `public enum` — PascalCase members, `[JsonStringEnumMemberName]` wire values, class-level `[JsonConverter(typeof(JsonStringEnumConverter))]` |
-| everything else | **NO artifact** (D6: C# has no exported type alias) — ref sites inline the type expression: arrays → `IReadOnlyList<T>`, additionalProperties-objects → `IReadOnlyDictionary<string, T>`, empty objects → `JsonObject`, unions → `JsonElement` (abstract-record `oneOf` arrives at CS-B) |
+| qualifying discriminated `oneOf` | `public abstract partial record` parent with parent-side `[JsonPolymorphic]`/`[JsonDerivedType]` attributes + member wiring (below) |
+| everything else | **NO artifact** (D6: C# has no exported type alias) — ref sites inline the type expression: arrays → `IReadOnlyList<T>`, additionalProperties-objects → `IReadOnlyDictionary<string, T>`, empty objects → `JsonObject`, non-qualifying unions → `JsonElement` |
 
 Property mapping (D4 + A1):
 
@@ -48,6 +49,43 @@ gen-kotlin's same-file siblings, since D6 inlining reached from
 several files would otherwise duplicate the type in one namespace).
 Name chains extend per property: `User` → `UserAddress` →
 `UserAddressItem`.
+
+## Polymorphic `oneOf` mapping (CS-B)
+
+A union qualifies when it is **discriminated, has ≥2 members, every
+member is a `$ref`, and every target is an object-with-properties**
+(core merges `oneOf`/`anyOf`, so a discriminated `anyOf` qualifies
+too). The parent renders bodyless with parent-side attributes —
+OpenAPI's own direction, zero custom converters:
+
+```csharp
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "petType")]
+[JsonDerivedType(typeof(Dog), "dog")]
+[JsonDerivedType(typeof(Cat), "cat")]
+public abstract partial record Animal;
+```
+
+Tags come from `discriminator.mapping` (full-ref and bare-name forms
+accepted) else the member's refName. Members carry ` : Animal` and
+OMIT the discriminator property (STJ rejects the collision); a member
+left empty after omission renders the bodyless
+`public sealed partial record X : Animal;`. The parent inserts its
+members, so subtypes exist even when nothing else references them.
+
+**Consumer setup:** out-of-order discriminators (`petType` not first
+in the payload) throw `NotSupportedException` under default options.
+Servers accepting arbitrary client payloads should set
+`AllowOutOfOrderMetadataProperties = true` (.NET 9+): minimal APIs via
+`builder.Services.ConfigureHttpJsonOptions(o =>
+o.SerializerOptions.AllowOutOfOrderMetadataProperties = true)`, MVC
+via `.AddControllers().AddJsonOptions(…)`.
+
+**Limit:** a member claimed by MULTIPLE qualifying unions fails its
+item loudly — a C# record derives from one base record (Kotlin's
+sealed interfaces admit multi-parent membership; abstract records do
+not). Restructure the schema. Inline unions can never be polymorphic
+(no refName for the membership inversion) — `JsonElement` until CS-D
+union hints.
 
 ## Scalars (D12 — rich defaults)
 
@@ -104,9 +142,9 @@ CS-D with their declared Valibot schema.
 
 | Seam | Location |
 |---|---|
-| Serialization flavor (`[JsonPropertyName]`/`[JsonIgnore]`/`[JsonExtensionData]`/enum converter → Newtonsoft) | `src/CsRecordValue.ts` + `src/CsEnumMembers.ts` — the only files that construct STJ attributes |
+| Serialization flavor (`[JsonPropertyName]`/`[JsonIgnore]`/`[JsonExtensionData]`/`[JsonPolymorphic]`/enum converter → Newtonsoft) | `src/CsRecordValue.ts` + `src/CsEnumMembers.ts` + `src/CsPolymorphicParentValue.ts` — the only files that construct STJ attributes |
 | Identifier naming / export layout | `src/base.ts` |
-| Shape dispatch (what is declarable) | `src/toCsProjection.ts` |
+| Shape dispatch (what is declarable) + polymorphic qualifying predicate | `src/toCsProjection.ts`, `src/polymorphicMembership.ts` |
 | Scalar/type mapping | `src/scalars.ts`, `src/CsPrimitives.ts` |
 | Collection types (`IReadOnlyList` → `List`) | `src/CsArray.ts`, `src/CsObjectValue.ts` |
 
@@ -116,6 +154,8 @@ CS-D with their declared Valibot schema.
   wanting a named type for an array/map schema restructures it as an
   object or accepts the inlined expression.
 - Undiscriminated unions are `JsonElement` until CS-D's union hints.
+- Multi-parent polymorphic members fail loudly (one base record per
+  C# record).
 - `insertNormalizedModel` against the projections throws — insert by
   refName via `insertModel`; inline shapes synthesize internally.
 - Unknown enum wire values throw on deserialize — for server request

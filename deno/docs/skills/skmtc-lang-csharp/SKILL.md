@@ -318,20 +318,25 @@ lives in `gen-csharp`'s value layer, not here.
 
 ### Status note
 
-Shipped by Milestone CS-A of the C# arc (single-document spec:
-`notes/lang/31-csharp-kickoff.md` — kickoff D1–D16 + amendments A1–A6 +
-the CS-A binding spec section, all signed off 2026-06-11): the naming
-layer, the DSL classes, the write path, and the proving generator
-`gen-csharp` (nominal `sealed partial record` DTOs with
-`required`/`init` properties, `[JsonPropertyName]` renames,
+Shipped by Milestones CS-A and CS-B of the C# arc (single-document
+spec: `notes/lang/31-csharp-kickoff.md` — kickoff D1–D16 + amendments
+A1–A6 + per-milestone binding spec sections, all signed off
+2026-06-11): the naming layer, the DSL classes, the write path
+(lang-csharp 0.1.0), the `abstract-record` kind + `CsBased` clause
+rendering (0.2.0), and the proving generator `gen-csharp` (0.0.1:
+nominal `sealed partial record` DTOs with `required`/`init`
+properties, `[JsonPropertyName]` renames,
 `[JsonIgnore(WhenWritingNull)]` on optionals (A1),
 `[JsonExtensionData]` on mixed objects (D16), enums with
 `[JsonStringEnumMemberName]`, rich BCL scalar defaults — `Guid`,
 `DateTimeOffset`, `DateOnly`, `TimeOnly`, `byte[]` — and the D6
-inline-at-ref-sites rule for non-declarable schemas, with a loud cycle
-guard). Validated floor = validation toolchain = .NET 10 LTS (A5).
-Named follow-ups: `abstract-record` polymorphic `oneOf` + `CsBased`
-rendering (CS-B), ASP.NET controllers + `<Tag>Service` seam with
+inline-at-ref-sites rule with a loud cycle guard; 0.0.2: polymorphic
+`oneOf` → `abstract partial record` parents with parent-side
+`[JsonPolymorphic]`/`[JsonDerivedType]`, members carrying ` : Parent`
+and omitting the discriminator property via the membership inversion,
+multi-parent members failing loudly — one base record per C# record).
+Validated floor = validation toolchain = .NET 10 LTS (A5). Named
+follow-ups: ASP.NET controllers + `<Tag>Service` seam with
 `class`/`interface` kinds + `CsConstructed` (CS-C), polish parity —
 renames, union hints, `ProblemDetails` error channel (CS-D). The
 same-version pinning rule (the dual-copy hazard) and release-via-cascade
