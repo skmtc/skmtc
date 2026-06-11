@@ -140,8 +140,7 @@ on the seam only.
 - Named exclusions: header/cookie params, non-JSON content,
   multi-status unions, `ResponseEntity<T>`, security annotations
   (the `operation.security` inference is a named follow-up),
-  servers/base-path prefixes, `serviceMethodName` enrichment
-  (domain-shaped seam names).
+  servers/base-path prefixes.
 - kotlinx flavor only; Jackson is the named follow-up sibling.
 - Peer-version rule: gen-kotlin-spring and gen-kotlin must pin the
   SAME `@skmtc/lang-kotlin` — two lang copies break cross-copy
