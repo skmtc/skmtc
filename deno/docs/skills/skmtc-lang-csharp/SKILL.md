@@ -66,10 +66,10 @@ boundary rule, worth internalizing first:
 | `CsAttribute` | Generic attribute rendering: `[Name]` / `[Name(arg, …)]` — args pre-quoted by the caller |
 | `CsAttributed` / `isCsAttributed` | The protocol (`{ attributes: CsAttribute[] }`) by which a Definition's VALUE supplies class-level attributes to `CsDefinition` (the neutral `Lang.toDefinition` has no attributes slot); cast-free type guard |
 | `CsDocumented` / `isCsDocumented` | The protocol (`{ description?: string }`) on a Definition's VALUE supplying the XML-doc `<summary>` block `CsDefinition` renders above the attributes (an explicit constructor `description` wins). The lang renders (and XML-escapes) the block; WHAT the text is is generator policy. Gotcha (spec 28): the Driver wraps the PROJECTION, so value protocols must be MIRRORED as getters on the projection |
-| `CsBased` / `isCsBased` | The protocol (`{ baseTypes: Stringable[] }`) for the ` : Animal` base-type clause — DECLARED at CS-A, RENDERED at CS-B (polymorphic members arrive with the `abstract-record` kind); bare names, no import behavior (same-namespace suppression makes them correct) |
+| `CsBased` / `isCsBased` | The protocol (`{ baseTypes: Stringable[] }`) for the ` : Animal` base-type clause, rendered for the record-family kinds (between the name and the body, or before the `;` on the bodyless collapse); bare names, no import behavior (same-namespace suppression makes them correct); mirror it on the projection — the Driver wraps the projection, not the value |
 | `CsImportNameArg` | The concise import-name shape (`'Name'`, `{ name, alias }`) accepted by `register({ imports })` |
-| `createRecord` / `createEnum` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary |
-| `CsEntityKind` / `toCsKeyword` | The two-kind vocabulary (CS-A) and its declaration-keyword mapping; throws outside the vocabulary. The D3 modifiers ride the mapping: `'record'` → `sealed partial record` |
+| `createRecord` / `createAbstractRecord` / `createEnum` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary |
+| `CsEntityKind` / `toCsKeyword` | The three-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary. The D3/D14 modifiers ride the mapping: `'record'` → `sealed partial record`, `'abstract-record'` → `abstract partial record` |
 | `sanitizePropertyName` | C#-specific name sanitization (§5) |
 | `toNamespaceName` | `@/`-path → dotted-namespace derivation + segment validation (C#'s `validateDestinationPath`) |
 | `csHardKeywords` / `isCsIdentifierName` | The pinned reserved-keyword set (77) and the plain-identifier syntax check |
@@ -107,25 +107,27 @@ transform emits no artifact and ref sites inline the type expression.
 
 ## 2. Entity kinds & identifiers
 
-C# output has two entity kinds (`CsEntityKind`) at CS-A, created via
-the factories exported by THIS package:
+C# output has three entity kinds (`CsEntityKind`), created via the
+factories exported by THIS package:
 
 ```ts
-import { createRecord, createEnum } from '@skmtc/lang-csharp'
+import { createRecord, createAbstractRecord, createEnum } from '@skmtc/lang-csharp'
 
-createRecord('User')    // → public sealed partial record User { … }
-createEnum('Status')    // → public enum Status { … }
+createRecord('User')            // → public sealed partial record User { … }
+createAbstractRecord('Animal')  // → public abstract partial record Animal;
+createEnum('Status')            // → public enum Status { … }
 ```
 
 - The kind drives ONLY the declaration shell (`toCsKeyword` /
   `CsDefinition`'s dispatch) — like Kotlin and unlike TypeScript, it
   does NOT drive import form: every C# using is namespace-level.
-- The D3 modifiers are a property of the KIND, not flags:
+- The D3/D14 modifiers are a property of the KIND, not flags:
   `toCsKeyword('record')` returns `sealed partial record` — `sealed`
   by default, `partial` always (the idiomatic consumer extension seam:
   hand-written members live in a non-generated file of the same
-  `partial` type). The CS-B `abstract-record` becomes a distinct kind
-  rendering `abstract partial record`, not a toggle.
+  `partial` type) — and `toCsKeyword('abstract-record')` returns
+  `abstract partial record` (the polymorphic parent is open by
+  definition; a distinct kind, not a toggle).
 - Deliberately NO alias kind (C# has no exported type alias — `using
   X = …` is file-scoped) and NO `val`-analog kind: C#'s distinctive
   constraint is *types only at namespace scope*. `toCsKeyword` throwing
@@ -135,9 +137,9 @@ createEnum('Status')    // → public enum Status { … }
   This is the **fifth distinct `exported` behavior** across the
   languages (TS `export`, Go casing, Rust `pub`, Kotlin
   nothing-or-`private`, C# `public`/`internal`).
-- Deferred kinds (`abstract-record` at CS-B, `class` / `interface` at
-  CS-C) arrive with the milestones that need them; `toCsKeyword`
-  throwing on them is the desired behavior until then.
+- Deferred kinds (`class` / `interface` at CS-C) arrive with the
+  milestones that need them; `toCsKeyword` throwing on them is the
+  desired behavior until then.
 
 ## 3. The import model of emitted C#
 

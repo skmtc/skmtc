@@ -4,7 +4,7 @@ import { Identifier } from '@skmtc/core'
 import { CsAttribute } from './CsAttribute.ts'
 import { CsDefinition } from './CsDefinition.ts'
 import { CsPropertyList } from './CsPropertyList.ts'
-import { createEnum, createRecord } from './createIdentifier.ts'
+import { createAbstractRecord, createEnum, createRecord } from './createIdentifier.ts'
 
 // Construction only stores `context`; `toString()` never reads it (test-only cast).
 const context = {} as unknown as GenerateContextType
@@ -143,6 +143,72 @@ Deno.test('the CsDocumented protocol supplies the description when the construct
   assertEquals(
     definition.toString(),
     '/// <summary>\n/// From the value protocol\n/// </summary>\npublic enum Status\n{\n    Active\n}'
+  )
+})
+
+Deno.test('the CsBased clause renders between the name and the body (record family)', () => {
+  class BasedValue {
+    baseTypes = ['Animal']
+    properties: CsPropertyList
+
+    constructor(properties: CsPropertyList) {
+      this.properties = properties
+    }
+
+    toString(): string {
+      return `${this.properties}`
+    }
+  }
+
+  const withBody = new CsDefinition({
+    context,
+    identifier: createRecord('Dog'),
+    value: new BasedValue(new CsPropertyList([{ name: 'Name', type: 'string', required: true }]))
+  })
+
+  assertEquals(
+    withBody.toString(),
+    'public sealed partial record Dog : Animal\n' +
+      '{\n' +
+      '    public required string Name { get; init; }\n' +
+      '}'
+  )
+
+  // Empty-after-omission member: the clause precedes the semicolon.
+  const bodyless = new CsDefinition({
+    context,
+    identifier: createRecord('Ghost'),
+    value: new BasedValue(new CsPropertyList([]))
+  })
+
+  assertEquals(bodyless.toString(), 'public sealed partial record Ghost : Animal;')
+})
+
+Deno.test('the abstract-record parent renders bodyless with parent-side attributes', () => {
+  class PolymorphicParentValue {
+    attributes = [
+      new CsAttribute('JsonPolymorphic', ['TypeDiscriminatorPropertyName = "petType"']),
+      new CsAttribute('JsonDerivedType', ['typeof(Dog)', '"dog"']),
+      new CsAttribute('JsonDerivedType', ['typeof(Cat)', '"cat"'])
+    ]
+
+    toString(): string {
+      return ''
+    }
+  }
+
+  const definition = new CsDefinition({
+    context,
+    identifier: createAbstractRecord('Animal'),
+    value: new PolymorphicParentValue()
+  })
+
+  assertEquals(
+    definition.toString(),
+    '[JsonPolymorphic(TypeDiscriminatorPropertyName = "petType")]\n' +
+      '[JsonDerivedType(typeof(Dog), "dog")]\n' +
+      '[JsonDerivedType(typeof(Cat), "cat")]\n' +
+      'public abstract partial record Animal;'
   )
 })
 

@@ -41,6 +41,7 @@ export const langId = 'csharp' as const
 export const fileExtensions = ['.cs'] as const
 
 export {
+  createAbstractRecord,
   createEnum,
   createRecord,
   toCsKeyword,

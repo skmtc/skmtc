@@ -8,6 +8,10 @@ import { Identifier } from '@skmtc/core'
  * - `'record'` — a nominal `sealed partial record Name { … }` DTO with
  *   property members (D3: nominal, not positional; `sealed` by default,
  *   `partial` always — the consumer extension seam).
+ * - `'abstract-record'` — an `abstract partial record Name;` polymorphic
+ *   parent (CS-B / D14: open by definition — NOT sealed — carrying the
+ *   parent-side `[JsonPolymorphic]`/`[JsonDerivedType]` attributes via
+ *   the `CsAttributed` protocol).
  * - `'enum'` — an `enum Name { … }` declaration.
  *
  * Deliberately NO alias kind (C# has no exported type alias — `using X
@@ -17,11 +21,11 @@ import { Identifier } from '@skmtc/core'
  *
  * Unlike TypeScript, the kind does NOT drive import form — every C#
  * using is namespace-level. It drives only the declaration shell.
- * Deferred kinds (`abstract-record` at CS-B, `class` / `interface` at
- * CS-C) arrive with the milestones that need them; {@link toCsKeyword}
- * throwing on them is the desired behavior until then.
+ * Deferred kinds (`class` / `interface` at CS-C) arrive with the
+ * milestones that need them; {@link toCsKeyword} throwing on them is
+ * the desired behavior until then.
  */
-export type CsEntityKind = 'record' | 'enum'
+export type CsEntityKind = 'record' | 'abstract-record' | 'enum'
 
 /**
  * Options shared by the identifier factories — every field optional, so
@@ -43,6 +47,22 @@ export type CreateCsIdentifierArgs = {
  */
 export const createRecord = (name: string, args: CreateCsIdentifierArgs = {}): Identifier => {
   return new Identifier({ name, exported: args.exported, kind: 'record' })
+}
+
+/**
+ * Creates a polymorphic-parent record identifier.
+ *
+ * @example
+ * ```typescript
+ * const animal = createAbstractRecord('Animal')
+ * // CsDefinition renders: public abstract partial record Animal;
+ * ```
+ */
+export const createAbstractRecord = (
+  name: string,
+  args: CreateCsIdentifierArgs = {}
+): Identifier => {
+  return new Identifier({ name, exported: args.exported, kind: 'abstract-record' })
 }
 
 /**
@@ -75,6 +95,8 @@ export const toCsKeyword = (kind: string): string => {
   switch (kind) {
     case 'record':
       return 'sealed partial record'
+    case 'abstract-record':
+      return 'abstract partial record'
     case 'enum':
       return 'enum'
     default:

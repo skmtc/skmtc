@@ -2,6 +2,7 @@ import { DefinitionBase } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
 import { toCsKeyword } from './createIdentifier.ts'
 import { isCsAttributed } from './CsAttribute.ts'
+import { isCsBased } from './CsBased.ts'
 import { isCsDocumented } from './CsDocumented.ts'
 import { withDescription } from './withDescription.ts'
 
@@ -25,7 +26,8 @@ export type CsDefinitionArgs<Value extends GeneratedValue> = {
  *
  * | kind | shell |
  * |---|---|
- * | `record` | `sealed partial record Name\n{\n…\n}` (bodyless collapse to `…Name;` when the value renders empty) |
+ * | `record` | `sealed partial record Name[ : A, B]\n{\n…\n}` (bodyless collapse to `…Name[ : A, B];` when the value renders empty) |
+ * | `abstract-record` | `abstract partial record Name[ : A, B]\n{\n…\n}` (same bodyless collapse — the polymorphic parent is normally bodyless) |
  * | `enum` | `enum Name\n{\n…\n}` |
  *
  * Class-level attributes ride on the VALUE via the
@@ -33,10 +35,10 @@ export type CsDefinitionArgs<Value extends GeneratedValue> = {
  * `Lang.toDefinition` signature has no attributes slot) and render one
  * per line above the shell; a `description` renders as an XML-doc
  * `<summary>` block above the attributes (C#'s conventional order:
- * doc comment, attributes, declaration). The
- * {@link import('./CsBased.ts').CsBased} base-type clause is declared at
- * CS-A but rendered from CS-B (it appears on polymorphic members, which
- * arrive with the `abstract-record` kind).
+ * doc comment, attributes, declaration); the record-family shells read
+ * the {@link import('./CsBased.ts').CsBased} base-type clause
+ * (` : Animal` between the name and the body — or before the `;` on
+ * the bodyless collapse).
  *
  * Visibility: C# types default to `internal`, so BOTH `exported` states
  * render a keyword — `public ` when exported, `internal ` when not (the
@@ -77,10 +79,17 @@ export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends
     const keyword = toCsKeyword(kind)
 
     switch (kind) {
-      case 'record': {
+      case 'record':
+      case 'abstract-record': {
+        const clause =
+          isCsBased(this.value) && this.value.baseTypes.length
+            ? ` : ${this.value.baseTypes.join(', ')}`
+            : ''
         const body = `${this.value}`
 
-        return body.length ? `${keyword} ${name}\n{\n${body}\n}` : `${keyword} ${name};`
+        return body.length
+          ? `${keyword} ${name}${clause}\n{\n${body}\n}`
+          : `${keyword} ${name}${clause};`
       }
       case 'enum':
         return `${keyword} ${name}\n{\n${this.value}\n}`

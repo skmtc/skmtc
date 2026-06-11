@@ -1,5 +1,10 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import { createEnum, createRecord, toCsKeyword } from './createIdentifier.ts'
+import {
+  createAbstractRecord,
+  createEnum,
+  createRecord,
+  toCsKeyword
+} from './createIdentifier.ts'
 
 Deno.test('createRecord writes the record kind', () => {
   const identifier = createRecord('User')
@@ -7,6 +12,13 @@ Deno.test('createRecord writes the record kind', () => {
   assertEquals(identifier.name, 'User')
   assertEquals(identifier.kind, 'record')
   assertEquals(identifier.exported, true)
+})
+
+Deno.test('createAbstractRecord writes the abstract-record kind', () => {
+  const identifier = createAbstractRecord('Animal')
+
+  assertEquals(identifier.name, 'Animal')
+  assertEquals(identifier.kind, 'abstract-record')
 })
 
 Deno.test('createEnum writes the enum kind', () => {
@@ -22,8 +34,9 @@ Deno.test('factories honor exported: false (renders internal downstream)', () =>
   assertEquals(identifier.exported, false)
 })
 
-Deno.test('toCsKeyword maps the CS-A vocabulary with the D3 modifiers riding the kind', () => {
+Deno.test('toCsKeyword maps the vocabulary with the D3/D14 modifiers riding the kind', () => {
   assertEquals(toCsKeyword('record'), 'sealed partial record')
+  assertEquals(toCsKeyword('abstract-record'), 'abstract partial record')
   assertEquals(toCsKeyword('enum'), 'enum')
 })
 
@@ -33,7 +46,6 @@ Deno.test('toCsKeyword throws outside the vocabulary (foreign-language identifie
 })
 
 Deno.test('toCsKeyword throws on deferred kinds until their milestone lands', () => {
-  assertThrows(() => toCsKeyword('abstract-record'), Error, 'Unknown C# entity kind')
   assertThrows(() => toCsKeyword('class'), Error, 'Unknown C# entity kind')
   assertThrows(() => toCsKeyword('interface'), Error, 'Unknown C# entity kind')
 })
