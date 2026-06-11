@@ -27,6 +27,23 @@ export const langId = 'csharp' as const
 /** File extensions this language package renders. */
 export const fileExtensions = ['.cs'] as const
 
+export {
+  createEnum,
+  createRecord,
+  toCsKeyword,
+  type CreateCsIdentifierArgs,
+  type CsEntityKind
+} from './src/createIdentifier.ts'
+export { csHardKeywords, isCsIdentifierName } from './src/hardKeywords.ts'
+export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
+export { toNamespaceName } from './src/toNamespaceName.ts'
+export {
+  toCsEnumMemberName,
+  toCsEnumMemberNames,
+  type CsEnumMember,
+  type ToCsEnumMemberNamesArgs
+} from './src/toCsEnumMemberName.ts'
+
 export { CsFile, type CsFileArgs } from './src/CsFile.ts'
 export { CsDefinition } from './src/CsDefinition.ts'
 export { CsRecord, type CsParameterArgs } from './src/CsRecord.ts'
