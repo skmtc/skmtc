@@ -54,6 +54,7 @@ export {
   createSealedInterface,
   createTypeAlias,
   createValue,
+  createVerbatim,
   toKtKeyword,
   type KtEntityKind,
   type CreateKtIdentifierArgs,
@@ -74,3 +75,7 @@ export {
   toModelProjectionBase,
   type KtModelProjectionBaseConfig
 } from './src/toModelProjectionBase.ts'
+export {
+  toOasOperationProjectionBase,
+  type KtOasOperationProjectionBaseConfig
+} from './src/toOasOperationProjectionBase.ts'

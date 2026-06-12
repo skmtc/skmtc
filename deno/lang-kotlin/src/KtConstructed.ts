@@ -20,6 +20,16 @@ import type { Stringable } from '@skmtc/core'
  */
 export type KtConstructed = {
   constructorParameters: Stringable
+  /**
+   * Optional modifiers between the class name and the parameter list —
+   * constructor annotations and/or a visibility keyword
+   * (`@JsonCreator(mode = JsonCreator.Mode.DISABLED) private`). When
+   * present, Kotlin REQUIRES the explicit `constructor` keyword; the
+   * lang adds it (that's the grammar rule this package owns) —
+   * `class Name @Anno private constructor(\n…\n)`. WHAT the modifiers
+   * are is generator policy.
+   */
+  constructorModifiers?: Stringable
 }
 
 const isStringable = (item: unknown): item is Stringable => {

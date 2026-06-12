@@ -12,7 +12,8 @@ import {
   createInterface,
   createSealedInterface,
   createTypeAlias,
-  createValue
+  createValue,
+  createVerbatim
 } from './createIdentifier.ts'
 import { isKtConstructed } from './KtConstructed.ts'
 
@@ -355,5 +356,63 @@ Deno.test('KtDocumented value supplies the KDoc; constructor description wins', 
   assertEquals(
     fromConstructor.toString(),
     '/** Explicit. */\ndata class User(\n    val id: String\n)'
+  )
+})
+
+Deno.test('verbatim kind renders the value as-is — no shell, visibility, or annotations', () => {
+  const body =
+    'internal fun add(a: Int, b: Int): Int = a + b\n\ninternal fun sub(a: Int, b: Int): Int = a - b'
+
+  const definition = new KtDefinition({
+    context,
+    identifier: createVerbatim('MathUtilsBody'),
+    value: body,
+    // Ignored on verbatim — there is nothing to restrict
+    noExport: true
+  })
+
+  assertEquals(definition.toString(), body)
+})
+
+Deno.test('class shell renders constructor modifiers with the explicit constructor keyword', () => {
+  const value = {
+    constructorModifiers: '@JsonCreator(mode = JsonCreator.Mode.DISABLED) private',
+    constructorParameters: '    private val id: JsonField<String>',
+    toString: (): string => ''
+  }
+
+  const definition = new KtDefinition({
+    context,
+    identifier: createClass('User'),
+    value
+  })
+
+  assertEquals(
+    definition.toString(),
+    'class User @JsonCreator(mode = JsonCreator.Mode.DISABLED) private constructor(\n' +
+      '    private val id: JsonField<String>\n' +
+      ')'
+  )
+})
+
+Deno.test('class shell without constructor modifiers keeps the bare parameter list', () => {
+  const value = {
+    constructorParameters: '    private val service: UsersService',
+    toString: (): string => '    fun list(): List<User> = service.list()'
+  }
+
+  const definition = new KtDefinition({
+    context,
+    identifier: createClass('UsersController'),
+    value
+  })
+
+  assertEquals(
+    definition.toString(),
+    'class UsersController(\n' +
+      '    private val service: UsersService\n' +
+      ') {\n' +
+      '    fun list(): List<User> = service.list()\n' +
+      '}'
   )
 })

@@ -114,3 +114,67 @@ Deno.test('the Track 2 User-DTO worked example renders byte-for-byte (note 19 sn
       ')\n'
   )
 })
+
+Deno.test('multi-package mode derives the package with the owning rootPath stripped', () => {
+  const settings = {
+    basePath: 'generated',
+    packages: [
+      { rootPath: 'my-sdk-core/src/main/kotlin' },
+      { rootPath: 'my-sdk-client-okhttp/src/main/kotlin' }
+    ]
+  }
+
+  const file = new KtFile({
+    path: 'my-sdk-core/src/main/kotlin/com/example/core/ClientOptions.kt',
+    settings
+  })
+
+  assertEquals(file.packageName, 'com.example.core')
+})
+
+Deno.test('multi-package mode resolves cross-rootPath imports to real dotted packages', () => {
+  const settings = {
+    basePath: 'generated',
+    packages: [
+      { rootPath: 'my-sdk-core/src/main/kotlin' },
+      { rootPath: 'my-sdk-client-okhttp/src/main/kotlin' }
+    ]
+  }
+
+  const file = new KtFile({
+    path: 'my-sdk-client-okhttp/src/main/kotlin/com/example/client/okhttp/OkHttpClient.kt',
+    settings
+  })
+  file.addImports([
+    // Cross-module import → the target module's real package
+    KtImport.fromConcise('my-sdk-core/src/main/kotlin/com/example/core/ClientOptions.kt', [
+      'ClientOptions'
+    ]),
+    // Same-package import within this module → suppressed
+    KtImport.fromConcise(
+      'my-sdk-client-okhttp/src/main/kotlin/com/example/client/okhttp/Defaults.kt',
+      ['Defaults']
+    )
+  ])
+
+  assertEquals(
+    file.toString(),
+    'package com.example.client.okhttp\n\nimport com.example.core.ClientOptions\n'
+  )
+})
+
+Deno.test('header renders above the package directive', () => {
+  const file = new KtFile({
+    path: '@/com/example/api/User.generated.kt',
+    settings: undefined,
+    header: '// Generated file — do not edit.'
+  })
+  file.addImports([KtImport.fromConcise('kotlinx.serialization', ['Serializable'])])
+
+  assertEquals(
+    file.toString(),
+    '// Generated file — do not edit.\n\n' +
+      'package com.example.api\n\n' +
+      'import kotlinx.serialization.Serializable\n'
+  )
+})

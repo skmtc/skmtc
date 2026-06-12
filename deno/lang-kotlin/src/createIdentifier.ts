@@ -18,6 +18,10 @@ import { Identifier } from '@skmtc/core'
  * - `'val'` — a top-level `val Name = …` assignment (Kotlin's distinctive
  *   file-scope value, illegal in C#/PHP/Java).
  *
+ * - `'verbatim'` — NO shell: the value renders as-is (multi-declaration
+ *   template files, where the identifier serves cache identity only —
+ *   the gen-kotlin-sdk static-runtime idiom, note `32` §A5).
+ *
  * Unlike TypeScript, the kind does NOT drive import form — every Kotlin
  * import is `import pkg.Name`. It drives only the declaration shell.
  * Deferred kinds (`object`, `fun`, `var`, `const-val`) arrive with the
@@ -32,6 +36,7 @@ export type KtEntityKind =
   | 'sealed-interface'
   | 'typealias'
   | 'val'
+  | 'verbatim'
 
 /**
  * Options shared by the identifier factories — every field optional, so
@@ -157,6 +162,23 @@ export const createValue = (name: string, args: CreateValueArgs = {}): Identifie
 }
 
 /**
+ * Creates a `verbatim` identifier — the value renders as-is with NO
+ * declaration shell, visibility, or annotations. For content whose text
+ * is already complete Kotlin (parameterized template files, bodies with
+ * several top-level declarations); `name` serves cache identity only
+ * and must be unique within the destination file.
+ *
+ * @example
+ * ```typescript
+ * const utils = createVerbatim('UtilsFileBody')
+ * // KtDefinition renders the value's text untouched
+ * ```
+ */
+export const createVerbatim = (name: string): Identifier => {
+  return new Identifier({ name, kind: 'verbatim' })
+}
+
+/**
  * Maps an identifier's opaque `kind` to its Kotlin declaration keyword.
  * Throws on a kind outside this language's vocabulary — a loud signal
  * that an identifier built for another language (or with a typo'd kind)
@@ -178,6 +200,8 @@ export const toKtKeyword = (kind: string): string => {
       return 'typealias'
     case 'val':
       return 'val'
+    case 'verbatim':
+      return ''
     default:
       throw new Error(`Unknown Kotlin entity kind: ${kind}`)
   }

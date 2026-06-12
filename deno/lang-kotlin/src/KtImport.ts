@@ -1,5 +1,5 @@
 import { ImportBase } from '@skmtc/core'
-import type { Identifier } from '@skmtc/core'
+import type { Identifier, ModulePackage } from '@skmtc/core'
 import { toPackageName } from './toPackageName.ts'
 
 /**
@@ -72,10 +72,14 @@ export class KtImport extends ImportBase {
   /**
    * The package this import's symbols come from: a path-form module
    * (contains `/`) derives via {@link toPackageName}; a dotted package
-   * passes through.
+   * passes through. In multi-package output the owning
+   * {@link import('./KtFile.ts').KtFile} passes its `settings.packages`
+   * so a path under another module's `rootPath` resolves to that
+   * module's real dotted package — Kotlin imports are always packages;
+   * `moduleName` has no Kotlin meaning.
    */
-  resolvedPackage(): string {
-    return this.module.includes('/') ? toPackageName(this.module) : this.module
+  resolvedPackage(packages?: ModulePackage[]): string {
+    return this.module.includes('/') ? toPackageName(this.module, packages) : this.module
   }
 
   override mergeKey(): string {
@@ -96,8 +100,8 @@ export class KtImport extends ImportBase {
   }
 
   /** One `import pkg.Name[ as Alias]` line per specifier. */
-  toLines(): string[] {
-    const packageName = this.resolvedPackage()
+  toLines(packages?: ModulePackage[]): string[] {
+    const packageName = this.resolvedPackage(packages)
 
     if (packageName === '') {
       // Kotlin cannot import from the default package. A same-file or

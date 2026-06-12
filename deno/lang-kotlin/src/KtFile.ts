@@ -9,6 +9,15 @@ import { toPackageName } from './toPackageName.ts'
 export type KtFileArgs = {
   path: string
   settings: ClientSettings | undefined
+  /**
+   * Optional comment block rendered ABOVE the `package` directive
+   * (e.g. a generated-file attribution line). Also settable after
+   * construction — the register function applies a first-writer-wins
+   * `fileHeader` from the concise vocabulary, since Drivers create
+   * files through the neutral `Lang.createFile` which has no header
+   * slot.
+   */
+  header?: string
 }
 
 /**
@@ -35,29 +44,38 @@ export type KtFileArgs = {
  * them — so rendering ignores the (always empty) neutral map.
  */
 export class KtFile extends CodeFileBase {
-  /** The `package` this file declares — derived from `path`. */
+  /**
+   * The `package` this file declares — derived from `path`, with the
+   * owning package's `rootPath` stripped first in multi-package mode
+   * (`settings.packages`).
+   */
   packageName: string
-  /** Held for the multi-module (`settings.packages`) story; unused in v1. */
+  /** Threaded into package derivation and same-package suppression. */
   settings: ClientSettings | undefined
+  /** Comment block rendered above the `package` directive, if set. */
+  header: string | undefined
 
-  constructor({ path, settings }: KtFileArgs) {
+  constructor({ path, settings, header }: KtFileArgs) {
     super({ path })
-    this.packageName = toPackageName(path)
+    this.packageName = toPackageName(path, settings?.packages)
     this.settings = settings
+    this.header = header
   }
 
   override toString(): string {
+    const packages = this.settings?.packages
+
     const importLines = Array.from(this.imports.values())
       .flatMap(importEntry => {
         if (!(importEntry instanceof KtImport)) {
           return [importEntry.toString()]
         }
 
-        if (importEntry.resolvedPackage() === this.packageName) {
+        if (importEntry.resolvedPackage(packages) === this.packageName) {
           return []
         }
 
-        return importEntry.toLines()
+        return importEntry.toLines(packages)
       })
       .sort()
 
@@ -66,6 +84,7 @@ export class KtFile extends CodeFileBase {
       .join('\n\n')
 
     const sections = [
+      this.header ?? '',
       this.packageName ? `package ${this.packageName}` : '',
       importLines.join('\n'),
       definitions

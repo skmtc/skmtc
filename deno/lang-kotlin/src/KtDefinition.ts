@@ -1,5 +1,5 @@
 import { DefinitionBase } from '@skmtc/core'
-import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
+import type { GeneratedValue, GenerateContextType, Identifier, Stringable } from '@skmtc/core'
 import { isKtAnnotated } from './KtAnnotation.ts'
 import { isKtConstructed } from './KtConstructed.ts'
 import { isKtDocumented } from './KtDocumented.ts'
@@ -57,6 +57,12 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
   }
 
   override toString(): string {
+    if (this.identifier.kind === 'verbatim') {
+      // The value IS the declaration text (template files, multi-
+      // declaration bodies) — no shell, no visibility, no annotations.
+      return `${this.value}`
+    }
+
     const restricted = this.noExport === true || this.identifier.exported === false
     const visibility = restricted ? 'private ' : ''
 
@@ -79,7 +85,7 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
     switch (kind) {
       case 'class': {
         const constructorClause = isKtConstructed(this.value)
-          ? `(\n${this.value.constructorParameters}\n)`
+          ? `${toConstructorKeyword(this.value.constructorModifiers)}(\n${this.value.constructorParameters}\n)`
           : ''
         const body = `${this.value}`
 
@@ -115,4 +121,16 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
         throw new Error(`Unknown Kotlin entity kind: ${kind}`)
     }
   }
+}
+
+/**
+ * Constructor modifiers (annotations / visibility) between the class
+ * name and the parameter list require Kotlin's explicit `constructor`
+ * keyword — the lang owns that rule; the modifiers' content is
+ * generator policy.
+ */
+const toConstructorKeyword = (modifiers: Stringable | undefined): string => {
+  const rendered = modifiers === undefined ? '' : `${modifiers}`
+
+  return rendered.length ? ` ${rendered} constructor` : ''
 }
