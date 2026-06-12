@@ -79,7 +79,7 @@ export const toGqlOperationEntry = <EnrichmentType = undefined>({
       // the rationale.
       const operationEnrichments = get(
         context.settings,
-        `enrichments.${id}.${operation.rootKind}.${operation.fieldName}.${variant}`
+        ['enrichments', id, operation.rootKind, operation.fieldName, variant]
       )
 
       const enrichmentSchema = toEnrichmentSchema?.() ?? v.undefined()

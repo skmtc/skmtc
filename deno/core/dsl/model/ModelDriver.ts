@@ -218,7 +218,7 @@ const assertPeerVariantExists = ({
 
   const modelEnrichments: unknown = get(
     context.settings,
-    `enrichments.${generatorId}.${refName}`
+    ['enrichments', generatorId, refName]
   )
 
   if (modelEnrichments === null || modelEnrichments === undefined) {

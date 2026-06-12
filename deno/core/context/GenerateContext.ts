@@ -482,7 +482,7 @@ export class GenerateContext implements GenerateContextType {
         //     them or we throw (loud beats silent zero-output)
         const opEnrichments: unknown = get(
           this.settings,
-          `enrichments.${generatorConfig.id}.${operation.path}.${operation.method}`
+          ['enrichments', generatorConfig.id, operation.path, operation.method]
         )
 
         const variants = toVariantList({
@@ -565,7 +565,7 @@ export class GenerateContext implements GenerateContextType {
         // `[generatorId][rootKind][fieldName][variant]`.
         const opEnrichments: unknown = get(
           this.settings,
-          `enrichments.${generatorConfig.id}.${operation.rootKind}.${operation.fieldName}`
+          ['enrichments', generatorConfig.id, operation.rootKind, operation.fieldName]
         )
 
         const variants = toVariantList({
@@ -645,7 +645,7 @@ export class GenerateContext implements GenerateContextType {
         //     them or we throw (loud beats silent zero-output)
         const modelEnrichments: unknown = get(
           this.settings,
-          `enrichments.${generatorConfig.id}.${refName}`
+          ['enrichments', generatorConfig.id, refName]
         )
 
         const variants = toVariantList({

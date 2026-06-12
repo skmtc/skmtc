@@ -102,7 +102,7 @@ export const toGqlOperationProjectionBase = <EnrichmentType = undefined>(
       // `[generatorId][rootKind][fieldName][variant]`.
       const operationEnrichments = get(
         context.settings,
-        `enrichments.${config.id}.${operation.rootKind}.${operation.fieldName}.${variant}`
+        ['enrichments', config.id, operation.rootKind, operation.fieldName, variant]
       )
 
       const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())

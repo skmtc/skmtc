@@ -217,7 +217,7 @@ const assertPeerVariantExists = ({
 
   const opEnrichments: unknown = get(
     context.settings,
-    `enrichments.${generatorId}.${operation.path}.${operation.method}`
+    ['enrichments', generatorId, operation.path, operation.method]
   )
 
   const operationLabel = `${operation.method.toUpperCase()} ${operation.path}`

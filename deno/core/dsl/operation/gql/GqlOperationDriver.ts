@@ -210,7 +210,7 @@ const assertPeerVariantExists = ({
 
   const opEnrichments: unknown = get(
     context.settings,
-    `enrichments.${generatorId}.${operation.rootKind}.${operation.fieldName}`
+    ['enrichments', generatorId, operation.rootKind, operation.fieldName]
   )
 
   const operationLabel = `${operation.rootKind} ${operation.fieldName}`

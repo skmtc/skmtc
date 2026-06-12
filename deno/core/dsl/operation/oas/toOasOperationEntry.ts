@@ -95,7 +95,7 @@ export const toOasOperationEntry = <EnrichmentType = undefined>({
       // projection-base resolve to the same inner value.
       const operationEnrichments = get(
         context.settings,
-        `enrichments.${id}.${operation.path}.${operation.method}.${variant}`
+        ['enrichments', id, operation.path, operation.method, variant]
       )
 
       const enrichmentSchema = toEnrichmentSchema?.() ?? v.undefined()

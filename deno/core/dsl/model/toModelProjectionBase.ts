@@ -99,7 +99,7 @@ export const toModelProjectionBase = <EnrichmentType = undefined>(
       // `v.optional(...)` envelope.
       const modelEnrichments = get(
         context.settings,
-        `enrichments.${config.id}.${refName}.${variant}`
+        ['enrichments', config.id, refName, variant]
       )
 
       const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())

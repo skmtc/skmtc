@@ -106,7 +106,7 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
       // accepts via its `v.optional(...)` envelope.
       const operationEnrichments = get(
         context.settings,
-        `enrichments.${config.id}.${operation.path}.${operation.method}.${variant}`
+        ['enrichments', config.id, operation.path, operation.method, variant]
       )
 
       const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
