@@ -87,11 +87,15 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
         const constructorClause = isKtConstructed(this.value)
           ? `${toConstructorKeyword(this.value.constructorModifiers)}(\n${this.value.constructorParameters}\n)`
           : ''
+        const supertypeClause =
+          isKtSupertyped(this.value) && this.value.supertypes.length
+            ? ` : ${this.value.supertypes.join(', ')}`
+            : ''
         const body = `${this.value}`
 
         return body.length
-          ? `class ${name}${constructorClause} {\n${body}\n}`
-          : `class ${name}${constructorClause}`
+          ? `class ${name}${constructorClause}${supertypeClause} {\n${body}\n}`
+          : `class ${name}${constructorClause}${supertypeClause}`
       }
       case 'data-class': {
         const clause =

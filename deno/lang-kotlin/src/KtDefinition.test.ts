@@ -416,3 +416,27 @@ Deno.test('class shell without constructor modifiers keeps the bare parameter li
       '}'
   )
 })
+
+Deno.test('class shell renders a supertype clause via the KtSupertyped protocol', () => {
+  const value = {
+    constructorModifiers: 'private',
+    constructorParameters: '    private val stopId: String?',
+    supertypes: ['Params'],
+    toString: (): string => '    fun stopId(): String? = stopId'
+  }
+
+  const definition = new KtDefinition({
+    context,
+    identifier: createClass('StopRetrieveParams'),
+    value
+  })
+
+  assertEquals(
+    definition.toString(),
+    'class StopRetrieveParams private constructor(\n' +
+      '    private val stopId: String?\n' +
+      ') : Params {\n' +
+      '    fun stopId(): String? = stopId\n' +
+      '}'
+  )
+})
