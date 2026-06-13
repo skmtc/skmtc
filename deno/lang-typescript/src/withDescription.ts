@@ -65,7 +65,7 @@ import type { Modifiers } from '@skmtc/core'
  * 
  * @example Integration with generated definitions
  * ```typescript
- * import { Definition, Identifier, withDescription } from '@skmtc/lang-typescript';
+ * import { withDescription } from '@skmtc/lang-typescript';
  * 
  * class DocumentedGenerator {
  *   createDefinition(name: string, value: string, docs?: string) {

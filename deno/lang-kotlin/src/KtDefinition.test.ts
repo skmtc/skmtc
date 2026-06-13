@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import { Identifier } from '@skmtc/core'
+import { IdentifierBase } from '@skmtc/core'
 import type { GenerateContextType } from '@skmtc/core/generate'
 import { KtDefinition } from './KtDefinition.ts'
 import { KtParameterList } from './KtParameterList.ts'
@@ -168,16 +168,21 @@ Deno.test('top-level val is a legal Kotlin declaration (distinctive: file-scope 
   assertEquals(typed.toString(), 'val timeout: Long = 5000')
 })
 
-Deno.test('unknown kinds throw — no silent fallback shell', () => {
-  // A foreign-language identifier (TypeScript's 'variable') reaching the
-  // Kotlin renderer must fail loudly.
+Deno.test('a foreign identifier throws — no silent fallback shell', () => {
+  // A neutral IdentifierBase built for another language — the engine holds
+  // identifiers as IdentifierBase, so KtDefinition narrows to KtIdentifier
+  // and refuses anything else (cast-free, via isKtIdentifier).
   const definition = new KtDefinition({
     context,
-    identifier: new Identifier({ name: 'User', kind: 'variable' }),
+    identifier: new IdentifierBase({ name: 'User' }),
     value: 'x'
   })
 
-  assertThrows(() => definition.toString(), Error, 'Unknown Kotlin entity kind: variable')
+  assertThrows(
+    () => definition.toString(),
+    Error,
+    "KtDefinition needs a KtIdentifier to render 'User', got a foreign identifier"
+  )
 })
 
 Deno.test('exported renders nothing (public default) vs `private` to restrict', () => {

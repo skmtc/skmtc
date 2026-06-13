@@ -1,17 +1,19 @@
-import {
-  toModelProjectionBase as toCoreModelProjectionBase,
-  type ModelProjectionBaseConfig
-} from '@skmtc/core'
+import { toModelProjectionBase as toCoreModelProjectionBase } from '@skmtc/core'
+import type { ModelProjectionBaseConfig } from '@skmtc/core'
 import { TsSnippet } from './TsSnippet.ts'
 import { register, type TsRegisterArgs } from './register.ts'
+import type { TsLang } from './tsLang.ts'
 
 /**
  * Configuration for the TypeScript {@link toModelProjectionBase} veneer —
- * core's config minus `base`, which this veneer pre-binds to
- * {@link TsSnippet}.
+ * core's config parameterized over {@link TsLang} (so `toIdentifierType`
+ * returns this language's `IdentifierType<TsLang>` — the `kind` bound to
+ * `TsEntityKind`) minus `base` (this veneer pre-binds it to {@link TsSnippet}).
+ *
+ * No recast: the `TsLang` type argument tightens `toIdentifierType` directly.
  */
 export type TsModelProjectionBaseConfig<EnrichmentType = undefined> = Omit<
-  ModelProjectionBaseConfig<EnrichmentType>,
+  ModelProjectionBaseConfig<EnrichmentType, TsLang>,
   'base'
 >
 

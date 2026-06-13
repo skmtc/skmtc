@@ -2,7 +2,7 @@ import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
@@ -73,13 +73,10 @@ export type ToOasOperationMappingArgs = {
 }
 
 /**
- * Static structural type of an OAS operation projection class.
- *
- * Captures both the instance side (`new(...) => V`) and the static side
- * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`). Passed as a
- * type parameter to `context.insertOperation(...)`.
+ * Arguments for an OAS operation projection's `toIdentifierName` — the
+ * pure, cache-key-source half of the old `toIdentifier`.
  */
-export type ToOasOperationIdentifierArgs<EnrichmentType = undefined> = {
+export type ToOasOperationIdentifierNameArgs<EnrichmentType = undefined> = {
   operation: OasOperation
   enrichments: EnrichmentType
   /** Operation variant the identifier should disambiguate (see {@link Variant}) */
@@ -93,6 +90,14 @@ export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
+/**
+ * Static structural type of an OAS operation projection class.
+ *
+ * Captures both the instance side (`new(...) => V`) and the static side
+ * (`id`, `toIdentifierName`, `toIdentifierType`, `toExportPath`,
+ * `toEnrichments`). Passed as a type parameter to
+ * `context.insertOperation(...)`.
+ */
 export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
   prototype: V
 } & {
@@ -110,7 +115,15 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
    * it ephemerally at each use site, pre-construction (cache-hit path).
    */
   lang: Lang
-  toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
+  /** Pure: the cache-key name. */
+  toIdentifierName: (args: ToOasOperationIdentifierNameArgs<EnrichmentType>) => string
+  /**
+   * Context-aware, overridable: the non-`name` parts of the identifier,
+   * derived from the operation/schema. The engine assembles
+   * `lang.toIdentifier({ name: toIdentifierName(args),
+   * ...toIdentifierType(operation, context) })`.
+   */
+  toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdentifierType
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
   /**

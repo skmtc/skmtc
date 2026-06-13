@@ -2,13 +2,13 @@ import { normalize } from '@std/path/normalize'
 import type {
   DefinitionBase,
   GenerateContextType,
-  GeneratedValue,
-  Identifier
+  GeneratedValue
 } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
 import { TsReExport } from './TsReExport.ts'
 import { TsDefinition } from './TsDefinition.ts'
+import type { TsIdentifier } from './TsIdentifier.ts'
 
 /**
  * TypeScript's concise register vocabulary — the generator-facing form.
@@ -23,7 +23,7 @@ export type TsRegisterArgs = {
   /** Import statements to include, organized by module path. */
   imports?: Record<string, ImportNameArg[]>
   /** Re-export statements to include, organized by source module path. */
-  reExports?: Record<string, Identifier[]>
+  reExports?: Record<string, TsIdentifier[]>
   /** Definition objects to include in the destination file. */
   definitions?: (DefinitionBase | undefined)[]
 }
@@ -64,7 +64,7 @@ export const register = (
  * Arguments for {@link defineAndRegister}.
  */
 export type TsDefineAndRegisterArgs<Value extends GeneratedValue> = {
-  identifier: Identifier
+  identifier: TsIdentifier
   value: Value
   destinationPath: string
   noExport?: boolean

@@ -2,12 +2,12 @@ import { normalize } from '@std/path/normalize'
 import type {
   DefinitionBase,
   GenerateContextType,
-  GeneratedValue,
-  Identifier
+  GeneratedValue
 } from '@skmtc/core'
 import { KtFile } from './KtFile.ts'
 import { KtImport, type KtImportNameArg } from './KtImport.ts'
 import { KtDefinition } from './KtDefinition.ts'
+import type { KtIdentifier } from './KtIdentifier.ts'
 
 /**
  * Kotlin's concise register vocabulary — the generator-facing form.
@@ -77,7 +77,7 @@ export const register = (
  * Arguments for {@link defineAndRegister}.
  */
 export type KtDefineAndRegisterArgs<Value extends GeneratedValue> = {
-  identifier: Identifier
+  identifier: KtIdentifier
   value: Value
   destinationPath: string
   noExport?: boolean

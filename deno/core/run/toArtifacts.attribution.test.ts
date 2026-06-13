@@ -7,7 +7,7 @@
  * generation map populated) lands on the result.
  */
 
-import { createType, toModelProjectionBase } from '@skmtc/lang-typescript'
+import { toModelProjectionBase } from '@skmtc/lang-typescript'
 import { assert, assertEquals } from '@std/assert'
 import { toArtifacts } from '@/run/toArtifacts.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
@@ -18,7 +18,8 @@ import type { OpenAPIV3 } from 'openapi-types'
 
 const ModelBase = toModelProjectionBase({
   id: '@test/gen-model',
-  toIdentifier: ({ refName }) => createType(refName),
+  toIdentifierName: ({ refName }) => refName,
+  toIdentifierType: () => ({ kind: 'type' }),
   toExportPath: ({ refName }) => `@/types/${refName}.generated.ts`
 })
 

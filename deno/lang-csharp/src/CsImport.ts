@@ -1,5 +1,5 @@
 import { ImportBase } from '@skmtc/core'
-import type { Identifier } from '@skmtc/core'
+import type { IdentifierBase } from '@skmtc/core'
 import { toNamespaceName } from './toNamespaceName.ts'
 
 /**
@@ -69,12 +69,13 @@ export class CsImport extends ImportBase {
   }
 
   /**
-   * Build the import of a single {@link Identifier} from `module` — the
+   * Build the import of a single {@link IdentifierBase} from `module` — the
    * cross-file import a Driver registers when a generator references a
    * peer's Definition. The identifier's `kind` is ignored: every C#
-   * using has the same form.
+   * using has the same form, so the neutral `IdentifierBase` (which the
+   * engine holds) is all that's needed — no narrowing.
    */
-  static fromIdentifier(module: string, identifier: Identifier): CsImport {
+  static fromIdentifier(module: string, identifier: IdentifierBase): CsImport {
     return new CsImport(module, [{ name: identifier.name }])
   }
 

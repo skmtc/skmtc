@@ -2,12 +2,12 @@ import { normalize } from '@std/path/normalize'
 import type {
   DefinitionBase,
   GenerateContextType,
-  GeneratedValue,
-  Identifier
+  GeneratedValue
 } from '@skmtc/core'
 import { CsFile } from './CsFile.ts'
 import { CsImport, type CsImportNameArg } from './CsImport.ts'
 import { CsDefinition } from './CsDefinition.ts'
+import type { CsIdentifier } from './CsIdentifier.ts'
 
 /**
  * C#'s concise register vocabulary — the generator-facing form.
@@ -64,7 +64,7 @@ export const register = (
  * Arguments for {@link defineAndRegister}.
  */
 export type CsDefineAndRegisterArgs<Value extends GeneratedValue> = {
-  identifier: Identifier
+  identifier: CsIdentifier
   value: Value
   destinationPath: string
   noExport?: boolean

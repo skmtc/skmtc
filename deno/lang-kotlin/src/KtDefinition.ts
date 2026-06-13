@@ -1,9 +1,12 @@
 import { DefinitionBase } from '@skmtc/core'
-import type { GeneratedValue, GenerateContextType, Identifier, Stringable } from '@skmtc/core'
+import invariant from 'npm:tiny-invariant@1.3.3'
+import type { GeneratedValue, GenerateContextType, IdentifierBase, Stringable } from '@skmtc/core'
 import { isKtAnnotated } from './KtAnnotation.ts'
 import { isKtConstructed } from './KtConstructed.ts'
 import { isKtDocumented } from './KtDocumented.ts'
 import { isKtSupertyped } from './KtSupertyped.ts'
+import { isKtIdentifier } from './KtIdentifier.ts'
+import type { KtIdentifier } from './KtIdentifier.ts'
 import { withDescription } from './withDescription.ts'
 
 /**
@@ -11,7 +14,7 @@ import { withDescription } from './withDescription.ts'
  */
 export type KtDefinitionArgs<Value extends GeneratedValue> = {
   context: GenerateContextType
-  identifier: Identifier
+  identifier: IdentifierBase
   value: Value
   description?: string
   noExport?: boolean
@@ -57,20 +60,28 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
   }
 
   override toString(): string {
-    if (this.identifier.kind === 'verbatim') {
+    // The engine holds the identifier as the neutral `IdentifierBase`;
+    // narrow to `KtIdentifier` cast-free to read the typed `kind`.
+    const identifier = this.identifier
+    invariant(
+      isKtIdentifier(identifier),
+      `KtDefinition needs a KtIdentifier to render '${identifier.name}', got a foreign identifier`
+    )
+
+    if (identifier.kind === 'verbatim') {
       // The value IS the declaration text (template files, multi-
       // declaration bodies) — no shell, no visibility, no annotations.
       return `${this.value}`
     }
 
-    const restricted = this.noExport === true || this.identifier.exported === false
+    const restricted = this.noExport === true || identifier.exported === false
     const visibility = restricted ? 'private ' : ''
 
     const annotations = isKtAnnotated(this.value)
       ? this.value.annotations.map(annotation => `${annotation}\n`).join('')
       : ''
 
-    const declaration = `${annotations}${visibility}${this.toShell()}`
+    const declaration = `${annotations}${visibility}${this.toShell(identifier)}`
 
     // Constructor description wins; else the value-carried protocol.
     const description =
@@ -79,8 +90,8 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
     return withDescription(declaration, { description })
   }
 
-  private toShell(): string {
-    const { name, kind, typeName } = this.identifier
+  private toShell(identifier: KtIdentifier): string {
+    const { name, kind, typeName } = identifier
 
     switch (kind) {
       case 'class': {

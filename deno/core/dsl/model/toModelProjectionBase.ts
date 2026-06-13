@@ -7,8 +7,8 @@ import type {
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { Lang, LangSnippetConstructor } from '@/dsl/Lang.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
@@ -16,7 +16,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type {
   ModelProjection,
-  ToModelIdentifierArgs,
+  ToModelIdentifierNameArgs,
   ToModelExportPathArgs
 } from '@/dsl/model/types.ts'
 import * as v from 'valibot'
@@ -45,18 +45,34 @@ type ToEnrichmentsArgs = {
 
 /**
  * Configuration for {@link toModelProjectionBase}.
+ *
+ * Generic over the language `L`: a language veneer parameterizes this config
+ * (`ModelProjectionBaseConfig<E, KtLang>`) so `toIdentifierType`'s return
+ * tightens to that language's `IdentifierType<L>` — no recast. A bare
+ * config (`L = Lang`) keeps the loose `kind: string` boundary.
  */
-export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
+export type ModelProjectionBaseConfig<EnrichmentType = undefined, L extends Lang = Lang> = {
   /**
    * The language snippet base the projection class is built on — a
    * `@skmtc/lang-*` package's snippet base (e.g. `TsSnippet`). This is where
    * language enters the class hierarchy: the base carries the static `lang`,
    * read by Drivers pre-construction and inherited by every class built on
    * it. Language packages pre-bind it in their projection-base veneers.
+   * Typed `LangSnippetConstructor<L>`, so `L` is inferred from the base.
    */
-  base: LangSnippetConstructor
+  base: LangSnippetConstructor<L>
   id: string
-  toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
+  /** Pure: the cache-key name (the cache-check path runs this). */
+  toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType>) => string
+  /**
+   * Context-aware, overridable: the non-`name` parts of the identifier
+   * (`kind` / `typeName` / `exported`), derived from the schema. Runs only
+   * on cache-miss. Returns this language's `IdentifierType<L>` — the `kind`
+   * is bound to `L`'s `EntityKind` vocabulary (the loose `string` when
+   * `L = Lang`). The tightening rides the type argument, replacing the old
+   * veneer recast.
+   */
+  toIdentifierType: (refName: RefName, context: GenerateContextType) => IdentifierType<L>
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
 }
@@ -68,8 +84,9 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
  * snippet base — so the projection hierarchy is language-bound at its root
  * while core stays language-blind (the base arrives as an opaque
  * constructor; core never names a concrete language class). The class
- * exposes the generator's `id`, `toIdentifier`, `toExportPath`, and
- * `toEnrichments` statics, inherits the static `lang` from the base, and
+ * exposes the generator's `id`, `toIdentifierName`, `toIdentifierType`,
+ * `toExportPath`, and `toEnrichments` statics, inherits the static `lang`
+ * from the base, and
  * injects `generatorKey` so subclasses don't have to.
  *
  * Defines NO `register` / `registerInto` — register ergonomics are typed by
@@ -79,14 +96,15 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
  * The projection machinery previously hosted on `ModelProjectionBase` lives
  * here now, because the base class is no longer statically known.
  */
-export const toModelProjectionBase = <EnrichmentType = undefined>(
-  config: ModelProjectionBaseConfig<EnrichmentType>
+export const toModelProjectionBase = <EnrichmentType = undefined, L extends Lang = Lang>(
+  config: ModelProjectionBaseConfig<EnrichmentType, L>
 ) => {
   return class extends config.base {
     static id = config.id
     static type = 'model' as const
 
-    static toIdentifier = config.toIdentifier.bind(config)
+    static toIdentifierName = config.toIdentifierName.bind(config)
+    static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
     static toEnrichments = ({ refName, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
       // The variant axis is owned by core: consumer enrichments are keyed

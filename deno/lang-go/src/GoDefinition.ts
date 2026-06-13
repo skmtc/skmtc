@@ -9,8 +9,9 @@ import { capitalize, decapitalize, DefinitionBase } from '@skmtc/core'
  * from TypeScript's `export const/type X = …`. Spike-level: record/struct
  * declarations only.
  *
- * The declaration name's casing follows the neutral `Identifier.exported`
- * fact — capitalized when exported, lowercase otherwise — so a generator
+ * The declaration name's casing follows the neutral `GoIdentifier.exported`
+ * fact (inherited from `IdentifierBase`) — capitalized when exported,
+ * lowercase otherwise — so a generator
  * declares *intent* (`exported`) and Go renders the visibility, rather
  * than the generator hand-casing the name and risking a silently-private
  * type.

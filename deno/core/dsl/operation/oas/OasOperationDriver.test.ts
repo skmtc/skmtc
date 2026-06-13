@@ -5,12 +5,12 @@ import { OasOperationDriver } from './OasOperationDriver.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type {
   OasOperationProjection,
-  ToOasOperationIdentifierArgs,
+  ToOasOperationIdentifierNameArgs,
   ToOasOperationExportPathArgs
 } from '@/dsl/operation/oas/types.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { DefinitionBase } from '@/dsl/Definition.ts'
 import { TsDefinition } from '@skmtc/lang-typescript'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
@@ -35,7 +35,10 @@ const createMockContext = (options?: {
       variant
     })
     return new ContentSettings({
-      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments, variant }),
+      identifier: args.projection.lang.toIdentifier({
+        name: args.projection.toIdentifierName({ operation: args.operation, enrichments, variant }),
+        ...args.projection.toIdentifierType(args.operation, mockContext)
+      }),
       exportPath: args.projection.toExportPath({ operation: args.operation, enrichments, variant }),
       enrichments,
       variant
@@ -93,8 +96,12 @@ const createMockProjection = (options?: {
     static lang = typescript
     static isSupported = options?.isSupported
 
-    static toIdentifier({ operation }: ToOasOperationIdentifierArgs): Identifier {
-      return createVariable(operation.operationId ?? 'operation')
+    static toIdentifierName({ operation }: ToOasOperationIdentifierNameArgs): string {
+      return operation.operationId ?? 'operation'
+    }
+
+    static toIdentifierType(): IdentifierType {
+      return { kind: 'variable' }
     }
 
     static toExportPath({ operation }: ToOasOperationExportPathArgs): string {
@@ -105,7 +112,7 @@ const createMockProjection = (options?: {
       return options?.enrichments
     }
 
-    static createIdentifier(name: string): Identifier {
+    static createIdentifier(name: string) {
       return createVariable(name)
     }
 
@@ -521,8 +528,9 @@ Deno.test('OasOperationDriver', async t => {
         static id = 'SpyProjection'
         static type = 'oasOperation' as const
         static lang = typescript
-        static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
-          createVariable(operation.operationId ?? 'op')
+        static toIdentifierName = ({ operation }: ToOasOperationIdentifierNameArgs) =>
+          operation.operationId ?? 'op'
+        static toIdentifierType = (): IdentifierType => ({ kind: 'variable' })
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
@@ -675,8 +683,9 @@ Deno.test('OasOperationDriver', async t => {
         static id = 'TrackingProjection'
         static type = 'oasOperation' as const
         static lang = typescript
-        static toIdentifier = ({ operation }: ToOasOperationIdentifierArgs) =>
-          createVariable(operation.operationId ?? 'op')
+        static toIdentifierName = ({ operation }: ToOasOperationIdentifierNameArgs) =>
+          operation.operationId ?? 'op'
+        static toIdentifierType = (): IdentifierType => ({ kind: 'variable' })
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)

@@ -1,8 +1,8 @@
-import { Identifier } from '@skmtc/core'
+import { KtIdentifier } from './KtIdentifier.ts'
 
 /**
- * Kotlin's declaration-kind vocabulary — the values this package writes
- * into the neutral `Identifier.kind` and the discriminator its renderers
+ * Kotlin's declaration-kind vocabulary — the typed `kind` this package
+ * writes onto its {@link KtIdentifier} and the discriminator its renderers
  * narrow against.
  *
  * - `'class'` — a concrete `class Name(…) { … }` declaration (the
@@ -67,8 +67,8 @@ export type CreateValueArgs = {
  * // KtDefinition renders: class UsersController(…) { … }
  * ```
  */
-export const createClass = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'class' })
+export const createClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'class' })
 }
 
 /**
@@ -80,8 +80,8 @@ export const createClass = (name: string, args: CreateKtIdentifierArgs = {}): Id
  * // KtDefinition renders: data class User(…)
  * ```
  */
-export const createDataClass = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'data-class' })
+export const createDataClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'data-class' })
 }
 
 /**
@@ -93,8 +93,8 @@ export const createDataClass = (name: string, args: CreateKtIdentifierArgs = {})
  * // KtDefinition renders: enum class Status { … }
  * ```
  */
-export const createEnumClass = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'enum-class' })
+export const createEnumClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'enum-class' })
 }
 
 /**
@@ -106,8 +106,8 @@ export const createEnumClass = (name: string, args: CreateKtIdentifierArgs = {})
  * // KtDefinition renders: interface UsersApi { … }
  * ```
  */
-export const createInterface = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'interface' })
+export const createInterface = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'interface' })
 }
 
 /**
@@ -122,8 +122,8 @@ export const createInterface = (name: string, args: CreateKtIdentifierArgs = {})
 export const createSealedInterface = (
   name: string,
   args: CreateKtIdentifierArgs = {}
-): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'sealed-interface' })
+): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'sealed-interface' })
 }
 
 /**
@@ -135,8 +135,8 @@ export const createSealedInterface = (
  * // KtDefinition renders: typealias UserList = …
  * ```
  */
-export const createTypeAlias = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'typealias' })
+export const createTypeAlias = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'typealias' })
 }
 
 /**
@@ -155,10 +155,10 @@ export const createTypeAlias = (name: string, args: CreateKtIdentifierArgs = {})
  * // KtDefinition renders: val timeout: Long = …
  * ```
  */
-export const createValue = (name: string, args: CreateValueArgs = {}): Identifier => {
+export const createValue = (name: string, args: CreateValueArgs = {}): KtIdentifier => {
   const { typeName, exported } = args
 
-  return new Identifier({ name, typeName, exported, kind: 'val' })
+  return new KtIdentifier({ name, typeName, exported, kind: 'val' })
 }
 
 /**
@@ -174,8 +174,8 @@ export const createValue = (name: string, args: CreateValueArgs = {}): Identifie
  * // KtDefinition renders the value's text untouched
  * ```
  */
-export const createVerbatim = (name: string): Identifier => {
-  return new Identifier({ name, kind: 'verbatim' })
+export const createVerbatim = (name: string): KtIdentifier => {
+  return new KtIdentifier({ name, kind: 'verbatim' })
 }
 
 /**
@@ -202,6 +202,35 @@ export const toKtKeyword = (kind: string): string => {
       return 'val'
     case 'verbatim':
       return ''
+    default:
+      throw new Error(`Unknown Kotlin entity kind: ${kind}`)
+  }
+}
+
+/**
+ * Narrow the engine's opaque `kind: string` (from `Lang.toIdentifier`'s
+ * neutral args) to this language's {@link KtEntityKind} — cast-free, via a
+ * validating switch. Throws on a kind outside the vocabulary, the same loud
+ * signal {@link toKtKeyword} gives.
+ */
+export const toKtEntityKind = (kind: string): KtEntityKind => {
+  switch (kind) {
+    case 'class':
+      return 'class'
+    case 'data-class':
+      return 'data-class'
+    case 'enum-class':
+      return 'enum-class'
+    case 'interface':
+      return 'interface'
+    case 'sealed-interface':
+      return 'sealed-interface'
+    case 'typealias':
+      return 'typealias'
+    case 'val':
+      return 'val'
+    case 'verbatim':
+      return 'verbatim'
     default:
       throw new Error(`Unknown Kotlin entity kind: ${kind}`)
   }

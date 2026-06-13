@@ -8,8 +8,8 @@ import type {
 } from '@/context/generateTypes.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { Lang, LangSnippetConstructor } from '@/dsl/Lang.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { ModelProjection } from '@/dsl/model/types.ts'
@@ -20,7 +20,7 @@ import type { OasVoid } from '@/oas/void/Void.ts'
 import type {
   OasOperationProjection,
   OasOperationProjectionConstructorArgs,
-  ToOasOperationIdentifierArgs,
+  ToOasOperationIdentifierNameArgs,
   ToOasOperationExportPathArgs
 } from '@/dsl/operation/oas/types.ts'
 import * as v from 'valibot'
@@ -30,18 +30,31 @@ import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
 /**
  * Configuration for {@link toOasOperationProjectionBase}.
+ *
+ * Generic over the language `L`: a language veneer parameterizes this config
+ * (`OasOperationProjectionBaseConfig<E, KtLang>`) so `toIdentifierType`'s
+ * return tightens to that language's `IdentifierType<L>` — no recast.
  */
-export type OasOperationProjectionBaseConfig<EnrichmentType = undefined> = {
+export type OasOperationProjectionBaseConfig<EnrichmentType = undefined, L extends Lang = Lang> = {
   /**
    * The language snippet base the projection class is built on — a
    * `@skmtc/lang-*` package's snippet base (e.g. `TsSnippet`). This is where
    * language enters the class hierarchy: the base carries the static `lang`,
    * read by Drivers pre-construction and inherited by every class built on
    * it. Language packages pre-bind it in their projection-base veneers.
+   * Typed `LangSnippetConstructor<L>`, so `L` is inferred from the base.
    */
-  base: LangSnippetConstructor
+  base: LangSnippetConstructor<L>
   id: string
-  toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
+  /** Pure: the cache-key name (the cache-check path runs this). */
+  toIdentifierName: (args: ToOasOperationIdentifierNameArgs<EnrichmentType>) => string
+  /**
+   * Context-aware, overridable: the non-`name` parts of the identifier,
+   * derived from the operation/schema. Runs only on cache-miss. Returns this
+   * language's `IdentifierType<L>` (the loose `kind: string` when `L = Lang`);
+   * the tightening rides the type argument, replacing the old veneer recast.
+   */
+  toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdentifierType<L>
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
   /**
@@ -67,8 +80,9 @@ type ToEnrichmentsArgs = {
  * snippet base — so the projection hierarchy is language-bound at its root
  * while core stays language-blind (the base arrives as an opaque
  * constructor; core never names a concrete language class). The class
- * exposes the generator's `id`, `toIdentifier`, `toExportPath`,
- * `toEnrichments`, and `isSupported` statics, inherits the static `lang`
+ * exposes the generator's `id`, `toIdentifierName`, `toIdentifierType`,
+ * `toExportPath`, `toEnrichments`, and `isSupported` statics, inherits the
+ * static `lang`
  * from the base, and injects `generatorKey` so subclasses don't have to.
  *
  * Defines NO `register` / `registerInto` — register ergonomics are typed by
@@ -79,14 +93,15 @@ type ToEnrichmentsArgs = {
  * `OasOperationProjectionBase` lives here now, because the base class is no
  * longer statically known.
  */
-export const toOasOperationProjectionBase = <EnrichmentType = undefined>(
-  config: OasOperationProjectionBaseConfig<EnrichmentType>
+export const toOasOperationProjectionBase = <EnrichmentType = undefined, L extends Lang = Lang>(
+  config: OasOperationProjectionBaseConfig<EnrichmentType, L>
 ) => {
   return class extends config.base {
     static id = config.id
     static type = 'oasOperation' as const
 
-    static toIdentifier = config.toIdentifier.bind(config)
+    static toIdentifierName = config.toIdentifierName.bind(config)
+    static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
 
     static isSupported = config.isSupported ?? (() => true)

@@ -64,8 +64,8 @@ Deno.test(
   () => {
     const ZodVariants = class extends toModelProjectionBase({
       id: '@scope/gen-zod-variants',
-      toIdentifier: ({ refName, variant }) =>
-        createVariable(withVariant(refName, variant)),
+      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+      toIdentifierType: () => ({ kind: 'variable' }),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
@@ -94,8 +94,8 @@ Deno.test(
   () => {
     const ZodVariants = class extends toModelProjectionBase({
       id: '@scope/gen-zod-variants',
-      toIdentifier: ({ refName, variant }) =>
-        createVariable(withVariant(refName, variant)),
+      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+      toIdentifierType: () => ({ kind: 'variable' }),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
@@ -134,7 +134,8 @@ Deno.test(
     // always permitted regardless of the peer's enrichment shape.
     const ZodGen = class extends toModelProjectionBase({
       id: '@scope/gen-zod',
-      toIdentifier: ({ refName }) => createVariable(refName),
+      toIdentifierName: ({ refName }) => refName,
+      toIdentifierType: () => ({ kind: 'variable' }),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
@@ -169,7 +170,8 @@ Deno.test(
     // doesn't match — integrity check throws.
     const BrokenZod = class extends toModelProjectionBase({
       id: '@scope/gen-broken-zod',
-      toIdentifier: ({ refName }) => createVariable(refName), // ← ignores variant
+      toIdentifierName: ({ refName }) => refName, // ← ignores variant
+      toIdentifierType: () => ({ kind: 'variable' }),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`          // ← ignores variant
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
@@ -217,8 +219,8 @@ Deno.test(
     // exportPath) cache keys and therefore distinct Definitions.
     const CorrectZod = class extends toModelProjectionBase({
       id: '@scope/gen-correct-zod',
-      toIdentifier: ({ refName, variant }) =>
-        createVariable(withVariant(refName, variant)),
+      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+      toIdentifierType: () => ({ kind: 'variable' }),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
@@ -262,7 +264,8 @@ Deno.test(
   () => {
     const Zod = class extends toModelProjectionBase({
       id: '@scope/gen-cache-zod',
-      toIdentifier: ({ refName }) => createVariable(refName),
+      toIdentifierName: ({ refName }) => refName,
+      toIdentifierType: () => ({ kind: 'variable' }),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised

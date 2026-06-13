@@ -34,6 +34,12 @@ export const fileExtensions = ['.kt'] as const
 export { KtFile, type KtFileArgs } from './src/KtFile.ts'
 export { KtDefinition, type KtDefinitionArgs } from './src/KtDefinition.ts'
 export { KtImport, type KtImportNameArg, type KtImportSpecifier } from './src/KtImport.ts'
+export {
+  KtIdentifier,
+  isKtIdentifier,
+  type KtIdentifierType,
+  type KtIdentifierArgs
+} from './src/KtIdentifier.ts'
 export { KtParameterList, type KtParameterArgs } from './src/KtParameterList.ts'
 export {
   KtFunctionSignature,
@@ -56,6 +62,7 @@ export {
   createValue,
   createVerbatim,
   toKtKeyword,
+  toKtEntityKind,
   type KtEntityKind,
   type CreateKtIdentifierArgs,
   type CreateValueArgs
@@ -63,7 +70,7 @@ export {
 export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
 export { toPackageName } from './src/toPackageName.ts'
 export { ktHardKeywords, isKtIdentifierName } from './src/hardKeywords.ts'
-export { kotlin } from './src/ktLang.ts'
+export { kotlin, type KtLang } from './src/ktLang.ts'
 export { KtSnippet } from './src/KtSnippet.ts'
 export {
   register,

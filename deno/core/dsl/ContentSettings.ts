@@ -1,4 +1,4 @@
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
 /**
@@ -8,7 +8,7 @@ type EmptyArgs = {
   /** The path where generated content will be exported */
   exportPath: string
   /** The identifier for the content being generated */
-  identifier: Identifier
+  identifier: IdentifierBase
   /**
    * The operation variant this content belongs to. Optional on
    * {@link ContentSettings.empty} — defaults to `'main'` since model
@@ -25,7 +25,7 @@ type EmptyArgs = {
  */
 type CreateArgs<EnrichmentType = undefined> = {
   /** The identifier for the content being generated */
-  identifier: Identifier
+  identifier: IdentifierBase
   /** The path where generated content will be exported */
   exportPath: string
   /** Custom enrichment data for extending generation */
@@ -62,7 +62,8 @@ type CreateArgs<EnrichmentType = undefined> = {
  *
  * @example Basic settings without enrichments
  * ```typescript
- * import { ContentSettings, Identifier } from '@skmtc/core';
+ * import { ContentSettings } from '@skmtc/core';
+ * import { createType } from '@skmtc/lang-typescript';
  *
  * const settings = ContentSettings.empty({
  *   exportPath: './src/generated/models.ts',
@@ -134,7 +135,7 @@ type CreateArgs<EnrichmentType = undefined> = {
  */
 export class ContentSettings<EnrichmentType = undefined> {
   /** The identifier for the content being generated */
-  identifier: Identifier
+  identifier: IdentifierBase
 
   /** The path where generated content will be exported */
   exportPath: string

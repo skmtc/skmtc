@@ -1,10 +1,13 @@
 import { DefinitionBase } from '@skmtc/core'
-import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
+import invariant from 'npm:tiny-invariant@1.3.3'
+import type { GeneratedValue, GenerateContextType, IdentifierBase } from '@skmtc/core'
 import { toCsKeyword } from './createIdentifier.ts'
 import { isCsAttributed } from './CsAttribute.ts'
 import { isCsBased } from './CsBased.ts'
 import { isCsConstructed } from './CsConstructed.ts'
 import { isCsDocumented } from './CsDocumented.ts'
+import { isCsIdentifier } from './CsIdentifier.ts'
+import type { CsIdentifier } from './CsIdentifier.ts'
 import { withDescription } from './withDescription.ts'
 
 /**
@@ -12,7 +15,7 @@ import { withDescription } from './withDescription.ts'
  */
 export type CsDefinitionArgs<Value extends GeneratedValue> = {
   context: GenerateContextType
-  identifier: Identifier
+  identifier: IdentifierBase
   value: Value
   description?: string
   noExport?: boolean
@@ -60,14 +63,22 @@ export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends
   }
 
   override toString(): string {
-    const restricted = this.noExport === true || this.identifier.exported === false
+    // The engine holds the identifier as the neutral `IdentifierBase`;
+    // narrow to `CsIdentifier` cast-free to read the typed `kind`.
+    const identifier = this.identifier
+    invariant(
+      isCsIdentifier(identifier),
+      `CsDefinition needs a CsIdentifier to render '${identifier.name}', got a foreign identifier`
+    )
+
+    const restricted = this.noExport === true || identifier.exported === false
     const visibility = restricted ? 'internal ' : 'public '
 
     const attributes = isCsAttributed(this.value)
       ? this.value.attributes.map(attribute => `${attribute}\n`).join('')
       : ''
 
-    const declaration = `${attributes}${visibility}${this.toShell()}`
+    const declaration = `${attributes}${visibility}${this.toShell(identifier)}`
 
     // Constructor description wins; else the value-carried protocol.
     const description =
@@ -76,8 +87,8 @@ export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends
     return withDescription(declaration, { description })
   }
 
-  private toShell(): string {
-    const { name, kind } = this.identifier
+  private toShell(identifier: CsIdentifier): string {
+    const { name, kind } = identifier
 
     const keyword = toCsKeyword(kind)
 

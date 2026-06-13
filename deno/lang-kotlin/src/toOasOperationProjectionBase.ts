@@ -1,17 +1,19 @@
-import {
-  toOasOperationProjectionBase as toCoreOasOperationProjectionBase,
-  type OasOperationProjectionBaseConfig
-} from '@skmtc/core'
+import { toOasOperationProjectionBase as toCoreOasOperationProjectionBase } from '@skmtc/core'
+import type { OasOperationProjectionBaseConfig } from '@skmtc/core'
 import { KtSnippet } from './KtSnippet.ts'
 import { register, type KtRegisterArgs } from './register.ts'
+import type { KtLang } from './ktLang.ts'
 
 /**
  * Configuration for the Kotlin {@link toOasOperationProjectionBase}
- * veneer — core's config minus `base`, which this veneer pre-binds to
- * {@link KtSnippet}.
+ * veneer — core's config parameterized over {@link KtLang} (so
+ * `toIdentifierType` returns `IdentifierType<KtLang>`) minus `base` (this
+ * veneer pre-binds it to {@link KtSnippet}).
+ *
+ * No recast: the `KtLang` type argument tightens `toIdentifierType` directly.
  */
 export type KtOasOperationProjectionBaseConfig<EnrichmentType = undefined> = Omit<
-  OasOperationProjectionBaseConfig<EnrichmentType>,
+  OasOperationProjectionBaseConfig<EnrichmentType, KtLang>,
   'base'
 >
 

@@ -1,7 +1,8 @@
 import { assertEquals } from '@std/assert/equals'
 import { Inserted } from '@/dsl/Inserted.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { TsDefinition, createType, createVariable } from '@skmtc/lang-typescript'
+import { TsDefinition, createType, createVariable, isTsIdentifier } from '@skmtc/lang-typescript'
+import { assert } from '@std/assert'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '../context/generateTypes.ts'
 
@@ -52,6 +53,7 @@ Deno.test('Inserted - toIdentifier returns full identifier', () => {
 
   assertEquals(resultIdentifier.name, 'apiClient')
   assertEquals(resultIdentifier.typeName, 'ApiClient')
+  assert(isTsIdentifier(resultIdentifier))
   assertEquals(resultIdentifier.kind, 'variable')
 })
 

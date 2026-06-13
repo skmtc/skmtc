@@ -1,9 +1,9 @@
-import { Identifier } from '@skmtc/core'
+import { TsIdentifier } from './TsIdentifier.ts'
 
 /**
- * TypeScript's declaration-kind vocabulary — the values this package
- * writes into the neutral `Identifier.kind` and the discriminator its
- * renderers narrow against.
+ * TypeScript's declaration-kind vocabulary — the typed `kind` this package
+ * writes onto its {@link TsIdentifier} and the discriminator its renderers
+ * narrow against.
  *
  * - `'variable'` — value entities: `const` declarations and plain
  *   (`import { Foo }`) imports.
@@ -11,8 +11,8 @@ import { Identifier } from '@skmtc/core'
  *   (`import { type Foo }` / `import type { Foo }`) imports.
  *
  * (Formerly core's `EntityTypeValue` — moved here under F5/F6: each
- * language package owns its kind vocabulary; core keeps only the opaque
- * `kind` string.)
+ * language package owns its kind vocabulary; core's `IdentifierBase` no
+ * longer carries a `kind` at all.)
  */
 export type TsEntityKind = 'variable' | 'type'
 
@@ -53,10 +53,10 @@ export type CreateTypeArgs = {
  * // TsDefinition renders: export const userId: string = …;
  * ```
  */
-export const createVariable = (name: string, args: CreateVariableArgs = {}): Identifier => {
+export const createVariable = (name: string, args: CreateVariableArgs = {}): TsIdentifier => {
   const { typeName, exported } = args
 
-  return new Identifier({ name, typeName, exported, kind: 'variable' })
+  return new TsIdentifier({ name, typeName, exported, kind: 'variable' })
 }
 
 /**
@@ -69,10 +69,10 @@ export const createVariable = (name: string, args: CreateVariableArgs = {}): Ide
  * // TsDefinition renders: export type User = …;
  * ```
  */
-export const createType = (name: string, args: CreateTypeArgs = {}): Identifier => {
+export const createType = (name: string, args: CreateTypeArgs = {}): TsIdentifier => {
   const { exported } = args
 
-  return new Identifier({ name, exported, kind: 'type' })
+  return new TsIdentifier({ name, exported, kind: 'type' })
 }
 
 /**
@@ -85,6 +85,23 @@ export const toTsKeyword = (kind: string): string => {
   switch (kind) {
     case 'variable':
       return 'const'
+    case 'type':
+      return 'type'
+    default:
+      throw new Error(`Unknown TypeScript entity kind: ${kind}`)
+  }
+}
+
+/**
+ * Narrow the engine's opaque `kind: string` (from `Lang.toIdentifier`'s
+ * neutral args) to this language's {@link TsEntityKind} — cast-free, via a
+ * validating switch. Throws on a kind outside the vocabulary, the same loud
+ * signal {@link toTsKeyword} gives.
+ */
+export const toTsEntityKind = (kind: string): TsEntityKind => {
+  switch (kind) {
+    case 'variable':
+      return 'variable'
     case 'type':
       return 'type'
     default:

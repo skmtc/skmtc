@@ -47,9 +47,16 @@ export {
   createInterface,
   createRecord,
   toCsKeyword,
+  toCsEntityKind,
   type CreateCsIdentifierArgs,
   type CsEntityKind
 } from './src/createIdentifier.ts'
+export {
+  CsIdentifier,
+  isCsIdentifier,
+  type CsIdentifierType,
+  type CsIdentifierArgs
+} from './src/CsIdentifier.ts'
 export { isCsConstructed, type CsConstructed } from './src/CsConstructed.ts'
 export {
   CsMethodParameter,
@@ -80,7 +87,7 @@ export { isCsDocumented, type CsDocumented } from './src/CsDocumented.ts'
 export { isCsBased, type CsBased } from './src/CsBased.ts'
 export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
 
-export { csharp } from './src/csLang.ts'
+export { csharp, type CsLang } from './src/csLang.ts'
 export { CsSnippet } from './src/CsSnippet.ts'
 export {
   register,

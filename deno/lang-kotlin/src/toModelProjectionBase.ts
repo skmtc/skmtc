@@ -1,17 +1,19 @@
-import {
-  toModelProjectionBase as toCoreModelProjectionBase,
-  type ModelProjectionBaseConfig
-} from '@skmtc/core'
+import { toModelProjectionBase as toCoreModelProjectionBase } from '@skmtc/core'
+import type { ModelProjectionBaseConfig } from '@skmtc/core'
 import { KtSnippet } from './KtSnippet.ts'
 import { register, type KtRegisterArgs } from './register.ts'
+import type { KtLang } from './ktLang.ts'
 
 /**
  * Configuration for the Kotlin {@link toModelProjectionBase} veneer —
- * core's config minus `base`, which this veneer pre-binds to
- * {@link KtSnippet}.
+ * core's config parameterized over {@link KtLang} (so `toIdentifierType`
+ * returns this language's `IdentifierType<KtLang>` — the `kind` bound to
+ * `KtEntityKind`) minus `base` (this veneer pre-binds it to {@link KtSnippet}).
+ *
+ * No recast: the `KtLang` type argument tightens `toIdentifierType` directly.
  */
 export type KtModelProjectionBaseConfig<EnrichmentType = undefined> = Omit<
-  ModelProjectionBaseConfig<EnrichmentType>,
+  ModelProjectionBaseConfig<EnrichmentType, KtLang>,
   'base'
 >
 

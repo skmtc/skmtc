@@ -70,7 +70,8 @@ class SpikeField extends KtSnippet {
 
 const SpikeModelBase = toModelProjectionBase({
   id: '@spike/gen-kotlin-option2',
-  toIdentifier: ({ refName }) => createValue(`${refName}Spike`),
+  toIdentifierName: ({ refName }) => `${refName}Spike`,
+  toIdentifierType: () => ({ kind: 'val' }),
   toExportPath: () => '@/spike/models/Models.generated.kt'
 })
 

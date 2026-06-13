@@ -21,7 +21,7 @@ export type RsVariantArgs = {
  * `FileBase`/`DefinitionBase` seam confirms the abstraction reaches a
  * language whose declaration vocabulary (`struct` vs `enum` vs `type`) is
  * richer than the binary `EntityType` can express — which is what forces
- * the opaque `Identifier.kind`.
+ * the per-language `RsIdentifier.kind`.
  */
 export class RsEnum {
   variants: RsVariantArgs[]

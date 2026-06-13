@@ -32,4 +32,5 @@ export const fileExtensions = ['.php'] as const
 
 export { PhpFile, type PhpFileArgs } from './src/PhpFile.ts'
 export { PhpDefinition } from './src/PhpDefinition.ts'
+export { PhpIdentifier, isPhpIdentifier, type PhpEntityKind } from './src/PhpIdentifier.ts'
 export { PhpClass, type PhpPropertyArgs } from './src/PhpClass.ts'

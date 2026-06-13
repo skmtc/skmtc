@@ -1,16 +1,18 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { createType } from './createIdentifier.ts'
 import { FunctionParameter } from './FunctionParameter.ts'
-import type { TsDefinition } from './TsDefinition.ts'
-import type { TypeSystemObject, TypeSystemVoid, TypeSystemString } from '@skmtc/core'
+import type { DefinitionBase, TypeSystemObject, TypeSystemVoid, TypeSystemString } from '@skmtc/core'
 
-// Mock helper to create a simple Definition-like object
-const createMockDefinition = (value: TypeSystemObject | TypeSystemVoid, identifierName = 'MockType'): TsDefinition<TypeSystemObject | TypeSystemVoid> => {
+// Mock helper to create a simple Definition-like object. FunctionParameter
+// only consumes the neutral `DefinitionBase` surface (`.value`), so the mock
+// ducks that shape; bridging a plain object onto the abstract class needs the
+// `unknown` hop (a test-only structural mock, not an identifier cast).
+const createMockDefinition = (value: TypeSystemObject | TypeSystemVoid, identifierName = 'MockType'): DefinitionBase<TypeSystemObject | TypeSystemVoid> => {
   return {
     identifier: createType(identifierName),
     value,
     toString: () => identifierName
-  } as TsDefinition<TypeSystemObject | TypeSystemVoid>
+  } as unknown as DefinitionBase<TypeSystemObject | TypeSystemVoid>
 }
 
 // Helper to create a mock string type for testing

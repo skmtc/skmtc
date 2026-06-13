@@ -3,7 +3,7 @@ import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
@@ -32,7 +32,7 @@ type ApplyArgs = {
 }
 
 type GetDefinitionArgs = {
-  identifier: Identifier
+  identifier: IdentifierBase
   exportPath: string
 }
 

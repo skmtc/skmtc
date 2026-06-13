@@ -39,7 +39,7 @@ export const langId = 'typescript' as const
 /** File extensions this language package renders. */
 export const fileExtensions = ['.ts', '.tsx'] as const
 
-export { typescript } from './src/tsLang.ts'
+export { typescript, type TsLang } from './src/tsLang.ts'
 export { TsSnippet } from './src/TsSnippet.ts'
 export {
   register,
@@ -65,6 +65,12 @@ export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'
 export { TsImport, type TsImportSpecifier, type ImportNameArg } from './src/TsImport.ts'
 export { TsReExport } from './src/TsReExport.ts'
 export { TsObject, type TsPropertyArgs } from './src/TsObject.ts'
+export {
+  TsIdentifier,
+  isTsIdentifier,
+  type TsIdentifierType,
+  type TsIdentifierArgs
+} from './src/TsIdentifier.ts'
 
 // TypeScript syntax helpers + naming layer (moved from @skmtc/core — F5/F6)
 export * from './src/List.ts'
@@ -81,6 +87,7 @@ export {
   createVariable,
   createType,
   toTsKeyword,
+  toTsEntityKind,
   type TsEntityKind,
   type CreateVariableArgs,
   type CreateTypeArgs

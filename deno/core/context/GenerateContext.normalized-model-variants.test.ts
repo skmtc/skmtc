@@ -31,7 +31,7 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { createType, createVariable, defineAndRegister, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { createType, defineAndRegister, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -46,8 +46,8 @@ const mockLogger: log.Logger = {
 // Variants-aware form Projection: identifier varies per variant.
 const FormBase = toOasOperationProjectionBase({
   id: '@test/form',
-  toIdentifier: ({ variant }) =>
-    createVariable(withVariant('EditQuotesForm', variant)),
+  toIdentifierName: ({ variant }) => withVariant('EditQuotesForm', variant),
+  toIdentifierType: () => ({ kind: 'variable' }),
   toExportPath: ({ variant }) => `@/forms/${withVariant('EditQuotesForm', variant)}.tsx`
 })
 

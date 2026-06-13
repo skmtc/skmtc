@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import type { GenerateContextType } from '@skmtc/core/generate'
-import { Identifier } from '@skmtc/core'
+import { IdentifierBase } from '@skmtc/core'
 import { CsAttribute } from './CsAttribute.ts'
 import { CsDefinition } from './CsDefinition.ts'
 import { CsPropertyList } from './CsPropertyList.ts'
@@ -212,14 +212,21 @@ Deno.test('the abstract-record parent renders bodyless with parent-side attribut
   )
 })
 
-Deno.test('a foreign-language kind throws (no silent fallback)', () => {
+Deno.test('a foreign identifier throws (no silent fallback)', () => {
+  // A neutral IdentifierBase built for another language — the engine holds
+  // identifiers as IdentifierBase, so CsDefinition narrows to CsIdentifier
+  // and refuses anything else (cast-free, via isCsIdentifier).
   const definition = new CsDefinition({
     context,
-    identifier: new Identifier({ name: 'User', kind: 'data-class' }),
+    identifier: new IdentifierBase({ name: 'User' }),
     value: new CsPropertyList([])
   })
 
-  assertThrows(() => definition.toString(), Error, 'Unknown C# entity kind: data-class')
+  assertThrows(
+    () => definition.toString(),
+    Error,
+    "CsDefinition needs a CsIdentifier to render 'User', got a foreign identifier"
+  )
 })
 
 Deno.test('the class shell composes the primary constructor (CsConstructed) with the base clause', () => {

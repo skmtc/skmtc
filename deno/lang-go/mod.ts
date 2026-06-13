@@ -27,4 +27,5 @@ export const fileExtensions = ['.go'] as const
 
 export { GoFile, type GoFileArgs } from './src/GoFile.ts'
 export { GoDefinition } from './src/GoDefinition.ts'
+export { GoIdentifier, isGoIdentifier, type GoEntityKind } from './src/GoIdentifier.ts'
 export { GoStruct, type GoFieldArgs } from './src/GoStruct.ts'

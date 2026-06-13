@@ -1,8 +1,8 @@
-import { Identifier } from '@skmtc/core'
+import { CsIdentifier } from './CsIdentifier.ts'
 
 /**
- * C#'s declaration-kind vocabulary — the values this package writes into
- * the neutral `Identifier.kind` and the discriminator its renderers
+ * C#'s declaration-kind vocabulary — the typed `kind` this package writes
+ * onto its {@link CsIdentifier} and the discriminator its renderers
  * narrow against.
  *
  * - `'record'` — a nominal `sealed partial record Name { … }` DTO with
@@ -47,8 +47,8 @@ export type CreateCsIdentifierArgs = {
  * // CsDefinition renders: public sealed partial record User { … }
  * ```
  */
-export const createRecord = (name: string, args: CreateCsIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'record' })
+export const createRecord = (name: string, args: CreateCsIdentifierArgs = {}): CsIdentifier => {
+  return new CsIdentifier({ name, exported: args.exported, kind: 'record' })
 }
 
 /**
@@ -63,8 +63,8 @@ export const createRecord = (name: string, args: CreateCsIdentifierArgs = {}): I
 export const createAbstractRecord = (
   name: string,
   args: CreateCsIdentifierArgs = {}
-): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'abstract-record' })
+): CsIdentifier => {
+  return new CsIdentifier({ name, exported: args.exported, kind: 'abstract-record' })
 }
 
 /**
@@ -76,8 +76,8 @@ export const createAbstractRecord = (
  * // CsDefinition renders: public enum Status { … }
  * ```
  */
-export const createEnum = (name: string, args: CreateCsIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'enum' })
+export const createEnum = (name: string, args: CreateCsIdentifierArgs = {}): CsIdentifier => {
+  return new CsIdentifier({ name, exported: args.exported, kind: 'enum' })
 }
 
 /**
@@ -89,8 +89,8 @@ export const createEnum = (name: string, args: CreateCsIdentifierArgs = {}): Ide
  * // CsDefinition renders: public sealed partial class UsersController(…) : ControllerBase { … }
  * ```
  */
-export const createClass = (name: string, args: CreateCsIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'class' })
+export const createClass = (name: string, args: CreateCsIdentifierArgs = {}): CsIdentifier => {
+  return new CsIdentifier({ name, exported: args.exported, kind: 'class' })
 }
 
 /**
@@ -102,8 +102,8 @@ export const createClass = (name: string, args: CreateCsIdentifierArgs = {}): Id
  * // CsDefinition renders: public interface IUsersService { … }
  * ```
  */
-export const createInterface = (name: string, args: CreateCsIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'interface' })
+export const createInterface = (name: string, args: CreateCsIdentifierArgs = {}): CsIdentifier => {
+  return new CsIdentifier({ name, exported: args.exported, kind: 'interface' })
 }
 
 /**
@@ -129,6 +129,29 @@ export const toCsKeyword = (kind: string): string => {
       return 'enum'
     case 'class':
       return 'sealed partial class'
+    case 'interface':
+      return 'interface'
+    default:
+      throw new Error(`Unknown C# entity kind: ${kind}`)
+  }
+}
+
+/**
+ * Narrow the engine's opaque `kind: string` (from `Lang.toIdentifier`'s
+ * neutral args) to this language's {@link CsEntityKind} — cast-free, via a
+ * validating switch. Throws on a kind outside the vocabulary, the same loud
+ * signal {@link toCsKeyword} gives.
+ */
+export const toCsEntityKind = (kind: string): CsEntityKind => {
+  switch (kind) {
+    case 'record':
+      return 'record'
+    case 'abstract-record':
+      return 'abstract-record'
+    case 'enum':
+      return 'enum'
+    case 'class':
+      return 'class'
     case 'interface':
       return 'interface'
     default:

@@ -1,5 +1,5 @@
 import { ReExportBase } from '@skmtc/core'
-import type { Identifier } from '@skmtc/core'
+import type { TsIdentifier } from './TsIdentifier.ts'
 
 /**
  * TypeScript's concrete {@link ReExportBase}: one source module's worth of
@@ -22,8 +22,8 @@ export class TsReExport extends ReExportBase {
     this.groups = groups
   }
 
-  /** Build from the concise `{ module: Identifier[] }` form a generator passes. */
-  static fromConcise(module: string, identifiers: Identifier[]): TsReExport {
+  /** Build from the concise `{ module: TsIdentifier[] }` form a generator passes. */
+  static fromConcise(module: string, identifiers: TsIdentifier[]): TsReExport {
     const groups: Record<string, Set<string>> = {}
     for (const identifier of identifiers) {
       const kind = identifier.kind

@@ -5,12 +5,12 @@ import { GqlOperationDriver } from './GqlOperationDriver.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type {
   GqlOperationProjection,
-  ToGqlOperationIdentifierArgs,
+  ToGqlOperationIdentifierNameArgs,
   ToGqlOperationExportPathArgs
 } from './types.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { Identifier } from '@/dsl/Identifier.ts'
 import { DefinitionBase } from '@/dsl/Definition.ts'
 import { TsDefinition } from '@skmtc/lang-typescript'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
@@ -41,7 +41,10 @@ const createMockContext = (options?: {
       variant
     })
     return new ContentSettings({
-      identifier: args.projection.toIdentifier({ operation: args.operation, enrichments, variant }),
+      identifier: args.projection.lang.toIdentifier({
+        name: args.projection.toIdentifierName({ operation: args.operation, enrichments, variant }),
+        ...args.projection.toIdentifierType(args.operation, mockContext)
+      }),
       exportPath: args.projection.toExportPath({ operation: args.operation, enrichments, variant }),
       enrichments,
       variant
@@ -95,8 +98,12 @@ const createMockProjection = (options?: {
     static type = 'gqlOperation' as const
     static isSupported = options?.isSupported
 
-    static toIdentifier({ operation }: ToGqlOperationIdentifierArgs): Identifier {
-      return createVariable(operation.fieldName)
+    static toIdentifierName({ operation }: ToGqlOperationIdentifierNameArgs): string {
+      return operation.fieldName
+    }
+
+    static toIdentifierType(): IdentifierType {
+      return { kind: 'variable' }
     }
 
     static toExportPath({ operation }: ToGqlOperationExportPathArgs): string {
@@ -107,7 +114,7 @@ const createMockProjection = (options?: {
       return options?.enrichments
     }
 
-    static createIdentifier(name: string): Identifier {
+    static createIdentifier(name: string) {
       return createVariable(name)
     }
 
@@ -508,8 +515,9 @@ Deno.test('GqlOperationDriver', async t => {
         static id = 'SpyProjection'
         static lang = typescript
         static type = 'gqlOperation' as const
-        static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
-          createVariable(operation.fieldName)
+        static toIdentifierName = ({ operation }: ToGqlOperationIdentifierNameArgs) =>
+          operation.fieldName
+        static toIdentifierType = (): IdentifierType => ({ kind: 'variable' })
         static toExportPath = (_args: ToGqlOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
@@ -654,8 +662,9 @@ Deno.test('GqlOperationDriver', async t => {
         static id = 'TrackingProjection'
         static lang = typescript
         static type = 'gqlOperation' as const
-        static toIdentifier = ({ operation }: ToGqlOperationIdentifierArgs) =>
-          createVariable(operation.fieldName)
+        static toIdentifierName = ({ operation }: ToGqlOperationIdentifierNameArgs) =>
+          operation.fieldName
+        static toIdentifierType = (): IdentifierType => ({ kind: 'variable' })
         static toExportPath = (_args: ToGqlOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)

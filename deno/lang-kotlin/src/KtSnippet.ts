@@ -1,5 +1,5 @@
-import { SnippetBase, type Lang, type GeneratedValue } from '@skmtc/core'
-import { kotlin } from './ktLang.ts'
+import { SnippetBase, type GeneratedValue } from '@skmtc/core'
+import { kotlin, type KtLang } from './ktLang.ts'
 import {
   register,
   defineAndRegister,
@@ -28,8 +28,13 @@ import type { KtDefinition } from './KtDefinition.ts'
  * projection-base veneers.
  */
 export class KtSnippet extends SnippetBase {
-  /** The language every class built on this base renders into. */
-  static lang: Lang = kotlin
+  /**
+   * The language every class built on this base renders into. Typed
+   * {@link KtLang} (not the loose `Lang`) so a projection-base veneer
+   * inferring `L` from `base: KtSnippet` lands on `KtLang` — the tightening
+   * that lets `toIdentifierType` return `IdentifierType<KtLang>`.
+   */
+  static lang: KtLang = kotlin
 
   /**
    * Register imports / definitions into the file at `destinationPath`,

@@ -40,9 +40,11 @@ Deno.test('OperationGenerator - toOasOperationProjectionBase generates correct b
 
   assertStringIncludes(result, 'export const ProductOpsBase = toOasOperationProjectionBase({')
   assertStringIncludes(result, "id: '@skmtc/product-ops'")
-  assertStringIncludes(result, 'toIdentifier({ operation }): Identifier')
-  assertStringIncludes(result, 'toExportPath({ operation, enrichments }): string')
-  assertStringIncludes(result, "import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationProjectionBase } from '@skmtc/core'")
+  assertStringIncludes(result, 'toIdentifierName({ operation }): string')
+  assertStringIncludes(result, 'toIdentifierType(): TsIdentifierType')
+  assertStringIncludes(result, 'toExportPath({ operation, enrichments, variant }): string')
+  assertStringIncludes(result, "import { camelCase, capitalize, toMethodVerb } from '@skmtc/core'")
+  assertStringIncludes(result, "import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'")
   assertStringIncludes(result, "import { join } from '@std/path/join'")
 })
 
@@ -185,6 +187,6 @@ Deno.test('OperationGenerator - toOasOperationProjectionBase includes identifier
 
   // Verify identifier generation uses verb and camelCase
   assertStringIncludes(result, 'const verb = capitalize(toMethodVerb(operation.method))')
-  assertStringIncludes(result, 'const name = `${verb}${camelCase(operation.path, { upperFirst: true })}`')
-  assertStringIncludes(result, 'return Identifier.createVariable(name)')
+  assertStringIncludes(result, 'return `${verb}${camelCase(operation.path, { upperFirst: true })}`')
+  assertStringIncludes(result, "toIdentifierType(): TsIdentifierType")
 })

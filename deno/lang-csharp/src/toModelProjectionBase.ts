@@ -1,17 +1,19 @@
-import {
-  toModelProjectionBase as toCoreModelProjectionBase,
-  type ModelProjectionBaseConfig
-} from '@skmtc/core'
+import { toModelProjectionBase as toCoreModelProjectionBase } from '@skmtc/core'
+import type { ModelProjectionBaseConfig } from '@skmtc/core'
 import { CsSnippet } from './CsSnippet.ts'
 import { register, type CsRegisterArgs } from './register.ts'
+import type { CsLang } from './csLang.ts'
 
 /**
  * Configuration for the C# {@link toModelProjectionBase} veneer —
- * core's config minus `base`, which this veneer pre-binds to
- * {@link CsSnippet}.
+ * core's config parameterized over {@link CsLang} (so `toIdentifierType`
+ * returns this language's `IdentifierType<CsLang>` — the `kind` bound to
+ * `CsEntityKind`) minus `base` (this veneer pre-binds it to {@link CsSnippet}).
+ *
+ * No recast: the `CsLang` type argument tightens `toIdentifierType` directly.
  */
 export type CsModelProjectionBaseConfig<EnrichmentType = undefined> = Omit<
-  ModelProjectionBaseConfig<EnrichmentType>,
+  ModelProjectionBaseConfig<EnrichmentType, CsLang>,
   'base'
 >
 

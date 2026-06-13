@@ -52,7 +52,7 @@ import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
 import type { ResultType } from '@/types/Results.ts'
 import type { StackTrail } from './StackTrail.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
 import { Inserted } from '@/dsl/Inserted.ts'
 import type { CaptureChannel, CaptureSink } from '@/anchors/CaptureSink.ts'
@@ -119,7 +119,7 @@ export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   /** The OpenAPI schema to transform into a definition */
   schema: Schema
   /** The identifier for the generated definition */
-  identifier: Identifier
+  identifier: IdentifierBase
   /** The destination file path where the definition should be registered */
   destinationPath: string
   /** Function to transform the schema into a generated value */
@@ -989,7 +989,8 @@ export class GenerateContext implements GenerateContextType {
 
   /**
    * Build content settings for an operation projection by calling its
-   * static `toIdentifier`, `toExportPath`, and `toEnrichments` against the
+   * statics `toIdentifierName` + `toIdentifierType`, `toExportPath`, and
+   * `toEnrichments` against the
    * given operation.
    */
   toOperationContentSettings<V extends GeneratedValue, EnrichmentType>(
@@ -1004,10 +1005,13 @@ export class GenerateContext implements GenerateContextType {
         variant
       })
       return new ContentSettings<EnrichmentType>({
-        identifier: args.projection.toIdentifier({
-          operation: args.operation,
-          enrichments,
-          variant
+        identifier: args.projection.lang.toIdentifier({
+          name: args.projection.toIdentifierName({
+            operation: args.operation,
+            enrichments,
+            variant
+          }),
+          ...args.projection.toIdentifierType(args.operation, this)
         }),
         exportPath: args.projection.toExportPath({
           operation: args.operation,
@@ -1025,10 +1029,13 @@ export class GenerateContext implements GenerateContextType {
       variant
     })
     return new ContentSettings<EnrichmentType>({
-      identifier: args.projection.toIdentifier({
-        operation: args.operation,
-        enrichments,
-        variant
+      identifier: args.projection.lang.toIdentifier({
+        name: args.projection.toIdentifierName({
+          operation: args.operation,
+          enrichments,
+          variant
+        }),
+        ...args.projection.toIdentifierType(args.operation, this)
       }),
       exportPath: args.projection.toExportPath({
         operation: args.operation,
@@ -1041,9 +1048,12 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
-   * Build content settings for a model projection by calling its static
-   * `toIdentifier`, `toExportPath`, and `toEnrichments` against the given
-   * `refName` and `variant`.
+   * Build content settings for a model projection by calling its statics
+   * `toIdentifierName` (pure, for the name) + `toIdentifierType`
+   * (context-aware, for kind/typeName/exported), `toExportPath`, and
+   * `toEnrichments` against the given `refName` and `variant`. The full
+   * identifier is assembled through the projection's language
+   * (`lang.toIdentifier`).
    */
   toModelContentSettings<V extends GeneratedValue, EnrichmentType>({
     refName,
@@ -1052,7 +1062,10 @@ export class GenerateContext implements GenerateContextType {
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
     const enrichments = projection.toEnrichments({ refName, context: this, variant })
     return new ContentSettings<EnrichmentType>({
-      identifier: projection.toIdentifier({ refName, enrichments, variant }),
+      identifier: projection.lang.toIdentifier({
+        name: projection.toIdentifierName({ refName, enrichments, variant }),
+        ...projection.toIdentifierType(refName, this)
+      }),
       exportPath: projection.toExportPath({ refName, enrichments, variant }),
       enrichments,
       variant

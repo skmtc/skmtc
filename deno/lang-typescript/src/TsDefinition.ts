@@ -1,14 +1,16 @@
 import { DefinitionBase } from '@skmtc/core'
+import invariant from 'npm:tiny-invariant@1.3.3'
 import { withDescription } from './withDescription.ts'
 import { toTsKeyword } from './createIdentifier.ts'
-import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
+import { isTsIdentifier } from './TsIdentifier.ts'
+import type { GeneratedValue, GenerateContextType, IdentifierBase } from '@skmtc/core'
 
 /**
  * Constructor arguments for {@link TsDefinition}.
  */
 export type TsDefinitionArgs<Value extends GeneratedValue> = {
   context: GenerateContextType
-  identifier: Identifier
+  identifier: IdentifierBase
   value: Value
   description?: string
   noExport?: boolean
@@ -32,6 +34,11 @@ export class TsDefinition<Value extends GeneratedValue = GeneratedValue> extends
   }
 
   override toString(): string {
+    invariant(
+      isTsIdentifier(this.identifier),
+      `TsDefinition needs a TsIdentifier to render '${this.identifier.name}', got a foreign identifier`
+    )
+
     const identifier = this.identifier.typeName
       ? `${this.identifier.name}: ${this.identifier.typeName}`
       : this.identifier.name

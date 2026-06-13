@@ -1,5 +1,5 @@
 import { ImportBase } from '@skmtc/core'
-import type { Identifier, ModulePackage } from '@skmtc/core'
+import type { IdentifierBase, ModulePackage } from '@skmtc/core'
 import { toPackageName } from './toPackageName.ts'
 
 /**
@@ -60,12 +60,13 @@ export class KtImport extends ImportBase {
   }
 
   /**
-   * Build the import of a single {@link Identifier} from `module` — the
+   * Build the import of a single {@link IdentifierBase} from `module` — the
    * cross-file import a Driver registers when a generator references a
    * peer's Definition. The identifier's `kind` is ignored: every Kotlin
-   * import has the same form.
+   * import has the same form, so the neutral `IdentifierBase` (which the
+   * engine holds) is all that's needed — no narrowing.
    */
-  static fromIdentifier(module: string, identifier: Identifier): KtImport {
+  static fromIdentifier(module: string, identifier: IdentifierBase): KtImport {
     return new KtImport(module, [{ name: identifier.name }])
   }
 
