@@ -24,24 +24,26 @@ const doc: OpenAPIV3.Document = {
 
 const generators = <E = undefined>(): GeneratorsMapContainer<E> =>
   ({
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
     'gets-only': toOasOperationEntry({
       id: 'gets-only',
       toEnrichmentSchema: () => emptyEnrichmentSchema,
       isSupported: ({ operation }) => operation.method === 'get',
       transform: () => {},
     }),
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
     'all-ops': toOasOperationEntry({
       id: 'all-ops',
       toEnrichmentSchema: () => emptyEnrichmentSchema,
       transform: () => {},
     }),
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
     models: toModelEntry({
       id: 'models',
       toEnrichmentSchema: () => emptyEnrichmentSchema,
       transform: () => {},
     }),
-    // deno-lint-ignore no-explicit-any
-  }) as any as GeneratorsMapContainer<E>
+  })
 
 Deno.test('toSupportedSubjects', async (t) => {
   const result = toSupportedSubjects({

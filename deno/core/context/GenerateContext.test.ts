@@ -284,11 +284,11 @@ Deno.test('GenerateContext - Artifact Generation', async t => {
         generator1: {
           id: 'generator1',
           type: 'model',
+          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
           toEnrichmentSchema: () => emptyEnrichmentSchema,
           transform: () => {}
         }
-        // deno-lint-ignore no-explicit-any
-      }) as any
+      })
 
     const stackTrail = new StackTrail(['test'])
     context.toArtifacts(stackTrail)
@@ -505,12 +505,12 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
         'http-gen': {
           id: 'http-gen',
           type: 'oasOperation',
+          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
           toEnrichmentSchema: () => emptyEnrichmentSchema,
           transform,
           isSupported: () => true
         }
-        // deno-lint-ignore no-explicit-any
-      }) as any
+      })
 
     context.toArtifacts(new StackTrail(['test']))
     // Operations array on the OAS doc is empty in createTestContext, so
@@ -534,12 +534,12 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
         'gql-gen': {
           id: 'gql-gen',
           type: 'gqlOperation',
+          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
           toEnrichmentSchema: () => emptyEnrichmentSchema,
           transform,
           isSupported: () => true
         }
-        // deno-lint-ignore no-explicit-any
-      }) as any
+      })
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 1)
@@ -560,12 +560,12 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
         'http-gen': {
           id: 'http-gen',
           type: 'oasOperation',
+          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
           toEnrichmentSchema: () => emptyEnrichmentSchema,
           transform,
           isSupported: () => true
         }
-        // deno-lint-ignore no-explicit-any
-      }) as any
+      })
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 0)
@@ -580,12 +580,12 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
         'gql-gen': {
           id: 'gql-gen',
           type: 'gqlOperation',
+          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
           toEnrichmentSchema: () => emptyEnrichmentSchema,
           transform,
           isSupported: () => true
         }
-        // deno-lint-ignore no-explicit-any
-      }) as any
+      })
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 0)
@@ -622,11 +622,11 @@ Deno.test('GenerateContext - model dispatch is protocol-neutral', async t => {
         'model-gen': {
           id: 'model-gen',
           type: 'model',
+          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
           toEnrichmentSchema: () => emptyEnrichmentSchema,
           transform
         }
-        // deno-lint-ignore no-explicit-any
-      }) as any
+      })
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 1)
