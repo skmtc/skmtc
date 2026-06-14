@@ -62,7 +62,7 @@ The boundary rule, worth internalizing first:
 |---|---|
 | `kotlin` | The `Lang` object. Three neutral factories the engine's **Drivers** call, reading it ephemerally off the projection class's inherited static (`projection.lang`): `createFile`, `toDefinition`, `toImport`. Generators never call it. |
 | `KtSnippet` | The snippet base — where Kotlin enters the DSL class hierarchy. Carries the static `lang`; its `register` / `defineAndRegister` methods are typed by the concise vocabulary. Registering snippets are **keyless** (`generatorKey` is optional attribution input) |
-| `toModelProjectionBase` | The model projection-base veneer over core's factory — pre-binds `base: KtSnippet` and adds own-file `register(args)` + explicit cross-file `registerInto(destinationPath, args)` (+ `KtModelProjectionBaseConfig`). No operation veneer exists — the first operation generator (`gen-kotlin-spring`) is accumulator-style (`KtSnippet` + `defineAndRegister` + `findDefinition`) and didn't need one; veneers are demand-driven |
+| `toKtModelProjectionBase` / `toKtOasOperationProjectionBase` | The projection-base veneers over core's factories. Each passes `KtSnippet` to core's factory as a **positional first argument** (`toModelProjectionBase(KtSnippet, config)`) — the base is no longer a config field — so generators see just `(config)` and never pass `base`. Each adds own-file `register(args)` + explicit cross-file `registerInto(destinationPath, args)`. The config is core's `ModelProjectionBaseConfig` / `OasOperationProjectionBaseConfig` parameterized over `KtLang` (the per-veneer alias types are gone). The operation veneer is now present, demanded by `gen-kotlin-sdk`'s Response models; earlier operation generators (`gen-kotlin-spring`) were accumulator-style (`KtSnippet` + `defineAndRegister` + `findDefinition`) and didn't need one |
 | `register` / `defineAndRegister` | The register **functions** — convert the concise form, ensure the destination `KtFile`, hand pure data to the neutral `context.register`. Transforms (closures with no class) import `defineAndRegister` directly |
 | `KtRegisterArgs` / `KtDefineAndRegisterArgs` | The concise register vocabulary (`imports` / `definitions`) — **deliberately NO `reExports` field**: Kotlin has no re-exports, so registering one is a compile-time error, not a runtime no-op |
 | `KtFile` | `CodeFileBase` subclass — a Kotlin output file: `package` directive **derived from its own path**, alphabetically sorted import section, same-package import suppression |
@@ -89,18 +89,23 @@ The boundary rule, worth internalizing first:
 
 ```ts
 // gen-x/src/base.ts — the language enters HERE, through the import
-import { toModelProjectionBase, createDataClass } from '@skmtc/lang-kotlin'
+import { toKtModelProjectionBase, createDataClass } from '@skmtc/lang-kotlin'
 
-export const MyBase = toModelProjectionBase({
+export const MyBase = toKtModelProjectionBase({
   id: denoJson.name,
   toIdentifier({ refName }) { return createDataClass(name) },
-  toExportPath({ refName }) { /* @/<package dirs>/<Name>.generated.kt */ }
+  toExportPath({ refName }) { /* @/<package dirs>/<Name>.generated.kt */ },
+  toEnrichmentSchema() { return MyEnrichmentSchema } // required; emptyEnrichmentSchema for none
 })
 ```
 
-There is no `lang` config field anywhere; entries are pure pipeline
-config. Generators never construct `KtFile` / `KtDefinition` /
-`KtImport` directly — the register functions and Drivers build them.
+The veneer pre-binds the base by passing `KtSnippet` as core's
+positional first argument (`toModelProjectionBase(KtSnippet, config)`) —
+there is no `base` field on the config, and a generator never passes
+`base`. There is no `lang` config field anywhere either; entries are
+pure pipeline config. Generators never construct `KtFile` /
+`KtDefinition` / `KtImport` directly — the register functions and
+Drivers build them.
 
 One Kotlin-specific wrinkle the TypeScript template doesn't have:
 **Kotlin's declaration kind varies by schema shape** (object → `data
@@ -298,18 +303,24 @@ seam (`0.4.0`, spec `notes/lang/25` — the `class` kind,
 `KtConstructed`, parameter visibility, expression bodies), and the
 production-polish arc (`0.5.0`, specs `notes/lang/28`/`29` — the
 `KtDocumented` KDoc protocol, signature-level KDoc, and
-function-parameter defaults). Two production generators ride it:
+function-parameter defaults), and the projection-base veneer refresh
+(`lang-kotlin@0.8.0` on `@skmtc/core@0.11.0` — `Kt`-prefixed
+veneer names, the snippet base passed as core's positional first
+argument, the required `toEnrichmentSchema` config field returning the
+`{ subject, generator, stack }` umbrella, and the arrival of
+`toKtOasOperationProjectionBase` for `gen-kotlin-sdk`'s Response
+models). Two production generators ride it:
 `gen-kotlin` (DTOs incl. the sealed-interface `oneOf` mapping,
 enrichment-asserted union hints, model renames via `name`, KDoc, and
 dotted `scalars` values that wire their own imports — e.g.
 `kotlinx.datetime.Instant`) and `gen-kotlin-spring` (per-tag
 `<Tag>Service` seam + delegating `@RestController` in ONE file per
 tag, `serviceMethodName` renames, seam parameter defaults, and the
-generated `ApiError` + `@RestControllerAdvice` error channel). Named
-follow-ups: operation projection-base veneers (the Spring generator
-is accumulator-style and didn't need one — veneers are
-demand-driven), serialization flavors beyond kotlinx
-(`gen-kotlin-jackson`), WebFlux/`suspend`. Gotcha burned in (spec
+generated `ApiError` + `@RestControllerAdvice` error channel), plus
+`gen-kotlin-sdk` (the operation-keyed family that demanded
+`toKtOasOperationProjectionBase`). Named follow-ups: serialization
+flavors beyond kotlinx (`gen-kotlin-jackson`), WebFlux/`suspend`.
+Gotcha burned in (spec
 28): the Driver wraps the PROJECTION, so value protocols
 (`annotations`, `supertypes`, `description`) must be MIRRORED as
 getters on the projection. One operational rule: generators sharing

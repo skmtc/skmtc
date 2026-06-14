@@ -1,28 +1,32 @@
 # Enrichments
 
-> The per-operation, per-model configuration surface declared by each
-> generator via a Valibot schema and supplied by users in
-> `client.json`. Enrichments are the *configurability* lever of the
-> customization gradient — the narrow tweaks that don't require
-> cloning. Each projection-base factory routes enrichments from its
-> own hardcoded key path; there is no single uniform shape.
+> The configuration surface declared by each generator via a Valibot
+> schema and supplied by users in `client.json`. Enrichments are the
+> *configurability* lever of the customization gradient — the narrow
+> tweaks that don't require cloning. An enrichment is a
+> generator-owned opaque leaf at one of three **scopes** — `subject`,
+> `generator`, `stack` — distinguished by key depth in
+> `client.json#settings.enrichments`.
 
 Enrichments are how stock generators expose user-facing options
 without compromising the clone-to-customize philosophy. A generator
-declares what payload it accepts (in its Valibot schema). A user
-supplies values at a routing key derived from the operation or
-model (in `client.json`). The factory does the lookup and delivers
-the validated value to the Projection constructor.
+declares what payload it accepts (one composite Valibot schema
+spanning the three scopes). A user supplies values at a key whose
+depth selects the scope (in `client.json`). The engine assembles the
+three scopes into a single `{ subject, generator, stack }` umbrella
+and delivers the validated value to the Projection.
 
 ## What enrichments are (and aren't)
 
 Enrichments **are**:
 
-- Per-operation or per-model user overrides
-- Declared per-generator via Valibot schema
+- User overrides at one of three scopes — per-item (`subject`),
+  per-generator (`generator`), or per-composition (`stack`)
+- Declared per-generator via a single composite Valibot schema
 - Validated at parse time
 - Supplied by the user in `.settings/client.json`
-- Available at generation time as `this.settings.enrichments`
+- Available at generation time as the
+  `this.settings.enrichments.{subject,generator,stack}` umbrella
   inside a Projection
 
 Enrichments **are not**:
@@ -36,6 +40,51 @@ Enrichments **are not**:
 The mental model: enrichments are the inputs the *author* of a
 generator decided to make user-configurable. Everything else stays
 hardcoded as the clone seam.
+
+## The three scopes
+
+An enrichment is a generator-owned opaque leaf at one of three
+scopes. The scope is selected by **how deep its key sits** in
+`client.json#settings.enrichments`:
+
+| Scope | Key path | Varies | What it's for |
+|---|---|---|---|
+| **subject** | `[id][subject][variant]` | per item | The original per-operation / per-model override — one value per `(refName)` or `(path, method)`, resolved per item. |
+| **generator** | `[id]._generator` | run-constant | A single bag for one generator across the whole run — the generator's own knobs that don't vary per item. |
+| **stack** | `._stack` | run-constant | A single bag shared across *every* generator in the composition — one value the whole stack reads. |
+
+- `subject` is the enrichment that has always existed: its storage
+  (`[id][subject][variant]`) is **unchanged**. What's new is that it's
+  now one member of a three-scope umbrella.
+- `generator` lives inside a generator's own slot, alongside its
+  subject keys, under the reserved key `_generator`.
+- `stack` lives at the top level of the enrichments record, a sibling
+  of the generator-id keys, under the reserved key `_stack`.
+
+### Reserved keys are `_`-prefixed
+
+The two run-constant scopes use **reserved** keys. The rule:
+
+- `_stack` — the only reserved *top-level* key (sibling of generator
+  ids).
+- `_generator` — the only reserved *per-generator* key (sibling of
+  subject names).
+- Every other key is a **customer** key — a generator id at the top
+  level, a subject name inside a slot — and **must not start with
+  `_`**.
+
+Core's single predicate is the source of truth:
+
+```ts
+// core/types/Enrichments.ts
+export const isReservedEnrichmentKey = (key: string): boolean => key.startsWith('_')
+```
+
+The reserved-key segregation is a core / migration concern only —
+generators never iterate enrichments themselves. They read each scope
+by known key through the typed umbrella (`ContentSettings`) or the
+helper readers (everywhere else), so they can't trip over the reserved
+keys.
 
 ### Enrichments aren't a filter — don't gate `isSupported` on them
 
@@ -139,8 +188,7 @@ edits.
 ## Core owns the hierarchy; the generator owns the leaf
 
 The design fact that explains everything else on this page: core's
-type for enrichments
-(`core/types/Enrichments.ts:121-124`) is
+top-level type for enrichments (`core/types/Enrichments.ts`) is
 
 ```ts
 type GeneratorEnrichments = Record<
@@ -149,15 +197,17 @@ type GeneratorEnrichments = Record<
 >
 ```
 
-Where each of the three "shape" types is a routing-key hierarchy
-ending in `EnrichmentLeaf = unknown`. Core's Valibot schema types
-the leaf as `v.unknown()`. **There is no canonical enrichment leaf
-shape in core.**
+Each generator-id slot is a subject hierarchy ending in
+`EnrichmentLeaf = unknown` (plus the optional reserved `_generator`
+leaf); the reserved top-level `_stack` key holds the stack leaf. Core's
+Valibot schema types every leaf as `v.unknown()`. **There is no
+canonical enrichment leaf shape in core** — at any of the three scopes.
 
-The leaf shape lives entirely in the generator's
-`toEnrichmentSchema()`. The engine hands a generator the unparsed
-leaf at its routing key; the generator's own Valibot schema decides
-what shape is acceptable.
+The leaf shapes live entirely in the generator's
+`toEnrichmentSchema()`. The engine hands a generator the unparsed leaf
+at each scope's key; the generator's own composite Valibot schema
+decides what shape is acceptable for `subject`, `generator`, and
+`stack`.
 
 Two consequences worth knowing:
 
@@ -178,10 +228,10 @@ constructor.
 
 ## Where enrichments live
 
-User-supplied enrichments go in `client.json`. The routing keys
-under each generator depend on the generator's projection-base
-kind; the payload shape *under* those routing keys is defined by
-the generator's Valibot schema (see
+User-supplied enrichments go in `client.json`. Key depth selects the
+scope. The subject scope's routing keys under each generator depend on
+the generator's projection-base kind; the payload shape *under* the
+leaf-locating keys is defined by the generator's Valibot schema (see
 [routing structure](#the-routing-structure) below):
 
 ```json
@@ -190,19 +240,23 @@ the generator's Valibot schema (see
   "settings": {
     "basePath": "src/generated",
     "enrichments": {
+      "_stack": { "apiTitle": "Acme API" },
       "@skmtc/gen-shadcn-form": {
+        "_generator": { "defaultSubmitLabel": "Save" },
         "/contacts": {
           "post": {
-            "title": "Create Contact",
-            "submitLabel": "Save",
-            "fields": [
-              {
-                "id": "officeIds",
-                "references": "GetOffices",
-                "referenceKind": "searchable",
-                "label": "Offices"
-              }
-            ]
+            "main": {
+              "title": "Create Contact",
+              "submitLabel": "Save",
+              "fields": [
+                {
+                  "id": "officeIds",
+                  "references": "GetOffices",
+                  "referenceKind": "searchable",
+                  "label": "Offices"
+                }
+              ]
+            }
           }
         }
       }
@@ -211,20 +265,36 @@ the generator's Valibot schema (see
 }
 ```
 
-Here `/contacts` and `post` are the **routing** keys (the engine
-navigates these); everything beneath is the **payload** shape
-declared by the generator's Valibot schema.
+Three scopes are visible here:
+
+- `_stack` — top-level reserved key; one bag shared across every
+  generator in the composition.
+- `["@skmtc/gen-shadcn-form"]._generator` — per-generator reserved
+  key; one bag for this generator.
+- `["@skmtc/gen-shadcn-form"]["/contacts"].post.main` — the subject
+  leaf. `/contacts` and `post` are the **routing** keys (the engine
+  navigates these), `main` is the variant; everything beneath is the
+  **payload** shape declared by the generator's Valibot schema.
 
 ## The routing structure
 
-Each projection-base factory hardcodes its own `get(context.settings, ...)`
-lookup. There are three shapes:
+Routing applies to the **subject** scope only — the per-item leaf.
+(The `generator` and `stack` scopes are run-constants at fixed reserved
+keys; they aren't routed by item.) Each projection-base factory
+hardcodes its own `get(context.settings, ...)` lookup for the subject
+leaf. There are three shapes:
 
-| Factory | Path read |
+| Factory | Subject path read |
 |---|---|
 | `toOasOperationProjectionBase` | `enrichments.${generatorId}.${operation.path}.${operation.method}.${variant}` |
 | `toModelProjectionBase` | `enrichments.${generatorId}.${refName}.${variant}` |
 | `toGqlOperationProjectionBase` | `enrichments.${generatorId}.${operation.rootKind}.${operation.fieldName}.${variant}` |
+
+(These are core's own factory names. Generators don't call them
+directly — they wire up through their language package's veneer:
+`toTsModelProjectionBase` / `toTsOasOperationProjectionBase` /
+`toTsGqlOperationProjectionBase` from `@skmtc/lang-typescript`, and the
+`toKt*` / `toCs*` equivalents in the Kotlin and C# lang packages.)
 
 Specifically:
 
@@ -250,10 +320,10 @@ for the actual routing details and complete examples.
 
 ## How enrichments are declared
 
-Each generator declares its accepted enrichment payload via a
-Valibot schema in `gen-x/src/enrichments.ts`. The schema describes
-what arrives at the lookup target — it does **not** describe the
-routing keys above it:
+Each generator declares ONE **composite** schema covering all three
+scopes — `v.object({ subject, generator, stack })` — in
+`gen-x/src/enrichments.ts`. Each member describes the leaf at that
+scope; unused scopes are declared `v.undefined()`:
 
 ```ts
 // gen-shadcn-form/src/enrichments.ts
@@ -269,6 +339,7 @@ export const formFieldItem = v.object({
   references: v.optional(v.string())
 })
 
+// The subject-scoped leaf — the per-operation form override.
 export const formSchema = v.optional(
   v.object({
     title: v.optional(v.string()),
@@ -278,11 +349,22 @@ export const formSchema = v.optional(
   })
 )
 
-export type EnrichmentSchema = v.InferOutput<typeof formSchema>
-export const toEnrichmentSchema = () => formSchema
+// The three-scope enrichment umbrella. This generator only consumes the
+// subject scope; `generator` / `stack` are unused (declared `v.undefined()`).
+export const enrichmentSchema = v.object({
+  subject: formSchema,
+  generator: v.undefined(),
+  stack: v.undefined()
+})
+
+export type EnrichmentSchema = v.InferOutput<typeof enrichmentSchema>
+export const toEnrichmentSchema = () => enrichmentSchema
 ```
 
-The schema is registered with the generator's entry function:
+`toEnrichmentSchema` is **required** on both the entry factory and the
+projection-base config — it's what lets the engine assemble and parse
+the umbrella cast-free (see [how routing works](#how-routing-works-at-generate-time)).
+It's wired in both places:
 
 ```ts
 // gen-shadcn-form/src/mod.ts
@@ -293,19 +375,43 @@ export const ShadcnFormEntry = toOasOperationEntry<EnrichmentSchema>({
 })
 ```
 
+```ts
+// gen-shadcn-form/src/base.ts
+export const ShadcnFormBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+  // ...
+})
+```
+
+A generator with **no enrichments at any scope** declares core's
+`emptyEnrichmentSchema` (every member `v.undefined()`) instead of
+hand-rolling the umbrella:
+
+```ts
+// gen-typescript/src/enrichments.ts
+import { emptyEnrichmentSchema, type EmptyEnrichments } from '@skmtc/core'
+
+export const toEnrichmentSchema = () => emptyEnrichmentSchema
+
+export type EnrichmentSchema = EmptyEnrichments
+```
+
 This declaration is the canonical source of truth for what
 enrichment fields the generator accepts. **To know what payload a
 generator's enrichments take, read its `enrichments.ts`.**
 
 ## How enrichments are consumed
 
-Inside a Projection constructor, the validated enrichment value is
-available as `this.settings.enrichments`:
+Inside a Projection, the validated three-scope umbrella is available as
+`this.settings.enrichments`. Read the scope you want —
+`.subject`, `.generator`, or `.stack` — each typed (and `undefined`
+when the generator declares nothing for that scope):
 
 ```ts
 // gen-shadcn-form/src/ShadcnForm.ts
 override toString(): string {
-  const { title, description, submitLabel } = this.settings.enrichments ?? {}
+  const { title, description, submitLabel } = this.settings.enrichments.subject ?? {}
 
   return `(${this.parameter}) => {
     return (
@@ -321,25 +427,57 @@ override toString(): string {
 ```
 
 The enrichments are pre-validated by the engine using the
-generator's declared Valibot schema, so the Projection can assume
-the shape is correct. Unknown keys are stripped silently; missing
-optional keys arrive as `undefined`.
+generator's declared composite Valibot schema, so the Projection can
+assume the shape is correct. Unknown keys are stripped silently;
+missing optional keys arrive as `undefined`.
+
+### Reading scopes outside a Projection
+
+`this.settings.enrichments` only exists where there's a
+`ContentSettings` — i.e. inside a Projection. The `generator` and
+`stack` scopes are run-constants, so they're often needed elsewhere:
+in `transform`, in `isSupported`, in an accumulator snippet. From
+those contexts (anywhere holding a `context`), read them with the
+helper readers from `@skmtc/core`:
+
+```ts
+import { toGeneratorEnrichment, toStackEnrichment } from '@skmtc/core'
+
+// generator-scoped leaf — context.settings.enrichments[id]._generator
+const genConfig = toGeneratorEnrichment(context, id, generatorSchema)
+
+// stack-scoped leaf — context.settings.enrichments._stack
+const stackConfig = toStackEnrichment(context, stackSchema)
+```
+
+The return type is inferred from the schema you pass — no cast. Each
+reader looks up by a known reserved key and never enumerates, so a
+generator can't trip over the reserved keys. (There is no
+`subject` reader here: the subject scope is per-item and is resolved by
+the engine into `ContentSettings`.)
 
 ## How routing works at generate time
 
 For each Projection the engine builds:
 
-1. The factory's static `toEnrichments({ operation | refName, context })`
+1. The factory's static `toEnrichments({ operation | refName, context, variant })`
    runs.
-2. It calls `get(context.settings, ...)` at the path shown in the
-   table above for that projection-base kind.
-3. The looked-up value is parsed via `v.parse(schema, value)`
-   using the generator's declared Valibot schema.
-4. The parsed value is delivered as `settings.enrichments` to the
-   Projection constructor.
+2. It reads the **raw umbrella** from the three storage spots:
+   - `subject` — `get(context.settings, ['enrichments', id, <subject…>, variant])`
+     at the path shown in the routing table for that projection-base kind.
+   - `generator` — `get(context.settings, ['enrichments', id, '_generator'])`.
+   - `stack` — `get(context.settings, ['enrichments', '_stack'])`.
+3. The `{ subject, generator, stack }` raw object is parsed **once**
+   through the generator's composite `toEnrichmentSchema()` —
+   `v.parse(config.toEnrichmentSchema(), raw)`. Because the composite
+   schema is required, this parse is cast-free.
+4. The parsed umbrella is delivered as `settings.enrichments` to the
+   Projection.
 
-For most generators, `toEnrichments` is generated by the factory; you
-don't write it manually unless you have unusual routing needs.
+`toEnrichments` is generated by the factory; you don't write it
+manually. The single `EnrichmentType` generic on the projection chain
+now *means* this `{ subject, generator, stack }` umbrella — the chain
+stays single-param; there are no new type parameters per scope.
 
 ## The relationship to clone-vs-install
 
@@ -499,28 +637,36 @@ per-operation tweaks.
 
 ### What about per-model enrichments (vs per-operation)?
 
-Model generators (like `gen-zod` or `gen-typescript`) route by
-`refName`:
+Model generators (like `gen-zod` or `gen-typescript`) route the
+subject scope by `refName` (then `variant`):
 
 ```json
 {
   "enrichments": {
     "@skmtc/gen-zod": {
-      "UserModel":  { "description": "A user account" }
+      "UserModel": { "main": { "description": "A user account" } }
     }
   }
 }
 ```
 
-There is no second routing level — the value directly beneath the
-refName **is** the validated payload.
+`refName` → `variant` locates the subject leaf; the value beneath the
+variant **is** the validated subject payload. (`variant` defaults to
+`'main'`.)
 
 ### Can I share enrichment values across generators?
 
-Not via the schema — each generator declares its own shape
-independently. If you want shared values, replicate the relevant
-portion to each generator's section. The engine doesn't share
-enrichments across generators automatically.
+Yes — that's exactly what the **stack** scope is for. The reserved
+top-level `_stack` key holds one leaf every generator in the
+composition can read (via `toStackEnrichment(context, schema)`). Each
+consuming generator passes a *partial* schema describing only the
+fields it reads — Valibot ignores unknown keys, so fields other
+generators consume don't interfere.
+
+What you *can't* share is a **subject** or **generator** scope leaf —
+each generator declares its own shape independently there. If you want
+the same per-item value across generators without using `_stack`, you
+replicate the relevant portion to each generator's section.
 
 ### Do enrichments survive when I clone the generator?
 

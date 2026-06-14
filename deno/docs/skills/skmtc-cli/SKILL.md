@@ -279,6 +279,50 @@ Known check ids:
 To know what enrichment keys a generator accepts, **read its
 `gen-x/src/enrichments.ts`** — Valibot schema is canonical.
 
+### Three enrichment scopes
+
+The `enrichments` namespace carries **per-subject** enrichments (the
+original, unchanged form) plus **two reserved `_`-prefixed scopes**.
+Three scopes in all, distinguished by key-depth:
+
+| Scope | Where the key sits | Reserved key | Lifetime |
+|---|---|---|---|
+| **subject** | `[id][subject][variant]` | — (customer subject names) | per item (model / operation) |
+| **generator** | `[id]._generator` | `_generator` | run-constant for that one generator |
+| **stack** | `._stack` | `_stack` | run-constant shared across every generator |
+
+`_stack` is a **top-level** key — a sibling of the generator-id keys.
+`_generator` lives **inside a generator's slot** — a sibling of the
+subject keys.
+
+**Reserved-key rule:** customer keys (generator ids at the top level,
+subject names inside a slot) **must not start with `_`**. The only
+reserved keys are `_stack` and `_generator`; any other `_`-prefixed key
+fails config validation at start.
+
+```jsonc
+"enrichments": {
+  // Stack scope — one leaf shared across every generator.
+  "_stack": { "apiTitle": "Billing API" },
+
+  "@skmtc/gen-zod": {
+    // Generator scope — a run-constant for gen-zod only.
+    "_generator": { "strict": true },
+
+    // Subject scope — per-model, unchanged. `'main'` is the
+    // default variant.
+    "Pagination": { "main": { "coerce": true } }
+  }
+}
+```
+
+Per-subject enrichments are otherwise unchanged: the routing keys and
+the mandatory `'main'` variant level (see the `client.json` shape above
+and §7) work exactly as before. A generator reads each scope by known
+key through typed helpers (`toStackEnrichment` /
+`toGeneratorEnrichment` / the per-subject path) — it never iterates the
+enrichments record itself.
+
 `packages` is optional; omit it for the common single-`basePath`
 project. With `packages` set, point `basePath` at a common ancestor
 of every package (the monorepo root) so each `rootPath` — and every
@@ -675,9 +719,10 @@ Then, **by hand**, write under `.skmtc/lab/`:
                    #   toModelEntry({ id, transform }) — pure pipeline
                    #   config, NO `lang` field (core 0.8.0+)
        base.ts     # imports its projection-base veneer from the lang
-                   #   package (e.g. toOasOperationProjectionBase from
-                   #   @skmtc/lang-typescript) — the import graph
-                   #   declares the language
+                   #   package (e.g. toTsOasOperationProjectionBase from
+                   #   @skmtc/lang-typescript; toKt*/toCs* for the Kotlin
+                   #   / C# lang packages) — the import graph declares the
+                   #   language
        *.ts
    ```
    - Package name **must** be `@<scope>/gen-<name>` — the `gen-`

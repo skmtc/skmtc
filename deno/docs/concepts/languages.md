@@ -15,8 +15,11 @@ renderer registry, and no `lang` config field anywhere.
 - The language enters the DSL class hierarchy at the lang package's
   **snippet base** (`TsSnippet` / `KtSnippet`), which carries a
   static `lang`. Projection bases are built by the lang package's
-  veneers (`toModelProjectionBase` et al.), so every projection
-  inherits that static. The engine's Drivers read it **ephemerally**
+  veneers (`toTsModelProjectionBase`, `toKtModelProjectionBase`,
+  `toCsModelProjectionBase`, …), so every projection inherits that
+  static. (Core's own factory keeps the bare name
+  `toModelProjectionBase`; the veneer pre-binds the snippet base as its
+  positional first argument.) The engine's Drivers read it **ephemerally**
   (`projection.lang`) when they create files and build Definitions —
   nothing persists a language reference.
 - Entries (`toOasOperationEntry` / `toGqlOperationEntry` /
@@ -40,7 +43,7 @@ own equivalents of each piece:
 |---|---|---|---|
 | The `Lang` object (three neutral factories Drivers call: `createFile` / `toDefinition` / `toImport`) | `typescript` | `kotlin` | `csharp` |
 | Snippet base (where the language enters the hierarchy; keyless `register`) | `TsSnippet` | `KtSnippet` | `CsSnippet` |
-| Projection-base veneers | `toModelProjectionBase` / `toOasOperationProjectionBase` / `toGqlOperationProjectionBase` | `toModelProjectionBase` (operation veneers are demand-driven — none exists yet; the Spring generator is accumulator-style) | `toModelProjectionBase` (operation veneers arrive with CS-C) |
+| Projection-base veneers (over core's `toModelProjectionBase` et al., which keep their names; the veneer pre-binds the snippet base as the positional first arg) | `toTsModelProjectionBase` / `toTsOasOperationProjectionBase` / `toTsGqlOperationProjectionBase` | `toKtModelProjectionBase` / `toKtOasOperationProjectionBase` (Spring is accumulator-style and uses neither) | `toCsModelProjectionBase` (operation veneers are demand-driven — gen-csharp-aspnet is accumulator-style) |
 | Register family (functions + concise vocabulary) | `register` / `defineAndRegister`, `TsRegisterArgs` (`imports` / `reExports` / `definitions`) | same, `KtRegisterArgs` — deliberately **no `reExports`** (Kotlin has none; the absence is compile-time) | same, `CsRegisterArgs` — also no `reExports` |
 | Concrete file / import / definition classes | `TsFile` / `TsImport` / `TsReExport` / `TsDefinition` | `KtFile` / `KtImport` / `KtDefinition` | `CsFile` / `CsImport` / `CsDefinition` |
 | Identifier factories + kind vocabulary | `createVariable` / `createType` (`'variable'` / `'type'`) | `createClass` / `createDataClass` / `createEnumClass` / `createInterface` / `createSealedInterface` / `createTypeAlias` / `createValue` (seven kinds) | `createRecord` / `createEnum` (two kinds at CS-A; NO alias kind — non-declarable schemas inline at ref sites) |

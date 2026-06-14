@@ -52,6 +52,7 @@ The package's identity and dependencies:
   "exports": "./mod.ts",
   "imports": {
     "@skmtc/core": "jsr:@skmtc/core@^0.3.7",
+    "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@^0.4.0",
     "@skmtc/worker": "jsr:@skmtc/worker@^0.2.0",
     "@std/path": "jsr:@std/path@^1.0.0",
     "valibot": "jsr:valibot@^0.40.0"
@@ -169,12 +170,13 @@ customization seams when the generator is cloned:
 
 ```ts
 // gen-x/src/base.ts
-import { Identifier, toOasOperationProjectionBase, capitalize, camelCase } from '@skmtc/core'
+import { Identifier, capitalize, camelCase } from '@skmtc/core'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { join } from '@std/path'
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 
-export const MyGenBase = toOasOperationProjectionBase<EnrichmentSchema>({
+export const MyGenBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
 

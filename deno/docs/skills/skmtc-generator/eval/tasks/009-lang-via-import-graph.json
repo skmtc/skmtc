@@ -9,7 +9,7 @@
     },
     {
       "id": "C2",
-      "check": "Did the response identify the import graph as the language declaration — src/base.ts imports its projection-base factory (e.g. toModelProjectionBase from '@skmtc/lang-typescript'), and registering snippets extend the lang snippet base (TsSnippet) — with entries staying pure pipeline config?"
+      "check": "Did the response identify the import graph as the language declaration — src/base.ts imports its projection-base factory (e.g. toTsModelProjectionBase from '@skmtc/lang-typescript'), and registering snippets extend the lang snippet base (TsSnippet) — with entries staying pure pipeline config?"
     },
     {
       "id": "C3",

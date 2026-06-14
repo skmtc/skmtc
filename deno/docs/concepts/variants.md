@@ -99,7 +99,7 @@ No introspection, no `typeof` check, no shape guessing.
 Every operation that any generator processes has a `'main'` variant.
 If the consumer didn't write enrichments at all for a `(generator,
 operation)`, the engine dispatches a single pass with `variant:
-'main'` and `enrichments: undefined`. If the consumer wrote any
+'main'` and an empty umbrella (`enrichments.subject` is `undefined`). If the consumer wrote any
 variant keys, `'main'` MUST be among them — the engine throws at
 start with `"must include a 'main' variant"` otherwise.
 
@@ -324,7 +324,7 @@ toExportPath: ({ refName, variant }) =>
 ```
 
 Inside the Projection, branch on `this.settings.variant === 'coercive'`
-(or read `this.settings.enrichments.coerce`) to pick `z.coerce.number()`
+(or read `this.settings.enrichments.subject?.coerce`) to pick `z.coerce.number()`
 vs `z.number()`. An operation generator that needs the coercive flavour
 for query-param parsing calls
 `context.insertModel(ZodVariants, refName, { variant: 'coercive' })`;
