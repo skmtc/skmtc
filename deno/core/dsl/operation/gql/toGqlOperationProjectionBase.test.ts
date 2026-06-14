@@ -8,11 +8,8 @@ import type {
   ToGqlOperationIdentifierNameArgs,
   ToGqlOperationExportPathArgs
 } from './types.ts'
-import { emptyEnrichmentSchema, type Enrichments } from '@/types/Enrichments.ts'
+import { emptyEnrichmentSchema, type EmptyEnrichments } from '@/types/Enrichments.ts'
 import * as v from 'valibot'
-
-/** The empty enrichment umbrella `emptyEnrichmentSchema` parses to. */
-type EmptyEnrichments = Enrichments<undefined, undefined, undefined>
 
 const createMockGqlOperation = (
   overrides?: Partial<{

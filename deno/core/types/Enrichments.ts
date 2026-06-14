@@ -60,10 +60,7 @@ export type EnrichmentLeaf = unknown
  */
 export type ModelEnrichments = Record<string, EnrichmentLeaf>
 
-export const modelEnrichments: v.GenericSchema<ModelEnrichments> = v.record(
-  v.string(),
-  v.unknown()
-)
+export const modelEnrichments: v.GenericSchema<ModelEnrichments> = v.record(v.string(), v.unknown())
 
 /**
  * OAS method enrichments: HTTP method (`get`, `post`, ...) → leaf payload.
@@ -242,3 +239,5 @@ export const emptyEnrichmentSchema: v.GenericSchema<Enrichments<undefined, undef
     generator: v.undefined(),
     stack: v.undefined()
   })
+
+export type EmptyEnrichments = v.InferOutput<typeof emptyEnrichmentSchema>

@@ -18,10 +18,7 @@ import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { GeneratorConfig } from '@/types/GeneratorType.ts'
 import { register } from '@skmtc/lang-typescript'
-import { emptyEnrichmentSchema, type Enrichments } from '@/types/Enrichments.ts'
-
-/** The empty enrichment umbrella `emptyEnrichmentSchema` parses to. */
-type EmptyEnrichments = Enrichments<undefined, undefined, undefined>
+import { emptyEnrichmentSchema, type EmptyEnrichments } from '@/types/Enrichments.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
