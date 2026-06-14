@@ -17,8 +17,13 @@
  *    static read — and, C#-specifically, that using is SUPPRESSED when
  *    the destination shares the peer's namespace.
  */
-import { GenerateContext, OasDocument, SnippetBase } from '@skmtc/core'
-import type { GenerateContextType, ModelProjectionConstructorArgs, RefName } from '@skmtc/core'
+import { GenerateContext, OasDocument, SnippetBase, emptyEnrichmentSchema } from '@skmtc/core'
+import type {
+  GenerateContextType,
+  ModelProjectionConstructorArgs,
+  RefName,
+  Enrichments
+} from '@skmtc/core'
 import * as log from 'jsr:@std/log@0.224/logger'
 import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
@@ -74,7 +79,8 @@ const SpikeModelBase = toCsModelProjectionBase({
   id: '@spike/gen-csharp-option2',
   toIdentifierName: ({ refName }) => `${refName}Spike`,
   toIdentifierType: () => ({ kind: 'record' }),
-  toExportPath: () => '@/Spike/Models/Models.generated.cs'
+  toExportPath: () => '@/Spike/Models/Models.generated.cs',
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
 class SpikeModel extends SpikeModelBase {
@@ -84,7 +90,7 @@ class SpikeModel extends SpikeModelBase {
 
   field: SpikeField
 
-  constructor(args: ModelProjectionConstructorArgs) {
+  constructor(args: ModelProjectionConstructorArgs<Enrichments<undefined, undefined, undefined>>) {
     super(args)
 
     this.field = new SpikeField({

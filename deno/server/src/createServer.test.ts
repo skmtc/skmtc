@@ -1,6 +1,7 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert@^1.0.10'
 import * as v from 'valibot'
-import type { GeneratorsMapContainer, ModelConfig, TransformModelArgs } from '@skmtc/core'
+import type { Enrichments, GeneratorsMapContainer, ModelConfig, TransformModelArgs } from '@skmtc/core'
+import { emptyEnrichmentSchema } from '@skmtc/core'
 import { createServer } from './createServer.ts'
 
 /**
@@ -94,9 +95,10 @@ Deno.test('POST /artifacts - rejects body with invalid protocol', async () => {
 })
 
 Deno.test('GET /generators - lists configured generator IDs', async () => {
-  const modelGen: ModelConfig = {
+  const modelGen: ModelConfig<Enrichments> = {
     id: 'modelGen',
     type: 'model',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     transform(_args: TransformModelArgs): void {}
   }
   const app = createServer({

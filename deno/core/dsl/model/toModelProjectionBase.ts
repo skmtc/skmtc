@@ -21,6 +21,7 @@ import type {
 } from '@/dsl/model/types.ts'
 import * as v from 'valibot'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
 
@@ -65,7 +66,13 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined, L extends Lang
    */
   toIdentifierType: (refName: RefName, context: GenerateContextType) => IdentifierType<L>
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
-  toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
+  /**
+   * Required composite schema for the `{ subject, generator, stack }`
+   * enrichment umbrella. Required (not optional) is load-bearing: it is what
+   * lets `static toEnrichments` parse cast-free. A no-enrichment generator
+   * passes `emptyEnrichmentSchema`.
+   */
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
 }
 
 /**
@@ -99,22 +106,19 @@ export const toModelProjectionBase = <EnrichmentType = undefined, L extends Lang
     static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
     static toEnrichments = ({ refName, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
-      // The variant axis is owned by core: consumer enrichments are keyed
-      // `[generatorId][refName][variant]`, and the generator's own schema
-      // describes the per-variant inner value. The engine has already
-      // enumerated valid variants and asserted `'main'` exists, so the
-      // lookup here either hits a declared variant or — for the synthetic
-      // single-`'main'` pass when no enrichments are configured — returns
-      // `undefined`, which the Valibot schema accepts via its
-      // `v.optional(...)` envelope.
-      const modelEnrichments = get(
-        context.settings,
-        ['enrichments', config.id, refName, variant]
-      )
+      // The three enrichment scopes assembled into the umbrella a generator
+      // reads off `this.settings.enrichments`. Subject is per-item
+      // (`[id][refName][variant]`) — the variant axis is core-owned, and the
+      // engine has already asserted `'main'` exists; generator and stack are
+      // run-constants (`[id][_generator]`, `[_stack]`). The required composite
+      // schema parses the raw umbrella once — typed, cast-free.
+      const raw = {
+        subject: get(context.settings, ['enrichments', config.id, refName, variant]),
+        generator: get(context.settings, ['enrichments', config.id, GENERATOR_ENRICHMENT_KEY]),
+        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
+      }
 
-      const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
-
-      return v.parse(enrichmentSchema, modelEnrichments) as EnrichmentType
+      return v.parse(config.toEnrichmentSchema(), raw)
     }
     static isSupported = () => true
 

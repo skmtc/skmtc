@@ -2,11 +2,13 @@ import { toOasOperationEntry } from './toOasOperationEntry.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 
 Deno.test('toOasOperationEntry - returns object with id and type operation', () => {
   const entry = toOasOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.id, 'test-operation')
@@ -20,7 +22,8 @@ Deno.test('toOasOperationEntry - includes provided transform function', () => {
   }
   const entry = toOasOperationEntry({
     id: 'test-operation',
-    transform: transformFn
+    transform: transformFn,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.transform, transformFn)
@@ -42,7 +45,8 @@ Deno.test('toOasOperationEntry - includes provided transform function', () => {
 Deno.test('toOasOperationEntry - isSupported defaults to true when not provided', () => {
   const entry = toOasOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const mockOperation = new OasOperation({
@@ -64,7 +68,8 @@ Deno.test('toOasOperationEntry - isSupported defaults to true when not provided'
 Deno.test('toOasOperationEntry - toPreviewModule is undefined when not provided', () => {
   const entry = toOasOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.toPreviewModule, undefined)
@@ -73,25 +78,29 @@ Deno.test('toOasOperationEntry - toPreviewModule is undefined when not provided'
 Deno.test('toOasOperationEntry - toMappingModule is undefined when not provided', () => {
   const entry = toOasOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.toMappingModule, undefined)
 })
 
-Deno.test('toOasOperationEntry - toEnrichmentSchema is undefined when not provided', () => {
+Deno.test('toOasOperationEntry - toEnrichmentSchema reflects the provided schema', () => {
+  const enrichmentSchemaFn = () => emptyEnrichmentSchema
   const entry = toOasOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: enrichmentSchemaFn
   })
 
-  assertEquals(entry.toEnrichmentSchema, undefined)
+  assertEquals(entry.toEnrichmentSchema, enrichmentSchemaFn)
 })
 
 Deno.test('toOasOperationEntry - toEnrichmentRequest is undefined when not provided', () => {
   const entry = toOasOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.toEnrichmentRequest, undefined)
@@ -109,6 +118,7 @@ Deno.test('toOasOperationEntry - includes toPreviewModule when provided', () => 
   const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     toPreviewModule: previewFn
   })
 
@@ -128,6 +138,7 @@ Deno.test('toOasOperationEntry - includes toMappingModule when provided', () => 
   const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     toMappingModule: mappingFn
   })
 
@@ -152,11 +163,13 @@ Deno.test('toOasOperationEntry - includes all optional functions when provided',
     items: []
   })
   const isSupportedFn = () => true
+  const enrichmentSchemaFn = () => emptyEnrichmentSchema
   const enrichmentRequestFn = () => undefined
 
   const entry = toOasOperationEntry({
     id: 'test-operation',
     transform: transformFn,
+    toEnrichmentSchema: enrichmentSchemaFn,
     toPreviewModule: previewFn,
     toMappingModule: mappingFn,
     isSupported: isSupportedFn,
@@ -166,6 +179,7 @@ Deno.test('toOasOperationEntry - includes all optional functions when provided',
   assertEquals(entry.id, 'test-operation')
   assertEquals(entry.type, 'oasOperation')
   assertEquals(entry.transform, transformFn)
+  assertEquals(entry.toEnrichmentSchema, enrichmentSchemaFn)
   assertEquals(entry.toPreviewModule, previewFn)
   assertEquals(entry.toMappingModule, mappingFn)
   assertEquals(entry.toEnrichmentRequest, enrichmentRequestFn)

@@ -14,6 +14,7 @@ import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { OasString } from '@/oas/string/String.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 
 // Mock logger
 const mockLogger: log.Logger = {
@@ -278,13 +279,16 @@ Deno.test('GenerateContext - Artifact Generation', async t => {
     })
 
     // Override toGeneratorConfigMap to return a test generator
-    context.toGeneratorConfigMap = () => ({
-      generator1: {
-        id: 'generator1',
-        type: 'model',
-        transform: () => {}
-      }
-    })
+    context.toGeneratorConfigMap = () =>
+      ({
+        generator1: {
+          id: 'generator1',
+          type: 'model',
+          toEnrichmentSchema: () => emptyEnrichmentSchema,
+          transform: () => {}
+        }
+        // deno-lint-ignore no-explicit-any
+      }) as any
 
     const stackTrail = new StackTrail(['test'])
     context.toArtifacts(stackTrail)
@@ -496,14 +500,17 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
     const { context } = createTestContext()
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () => ({
-      'http-gen': {
-        id: 'http-gen',
-        type: 'oasOperation',
-        transform,
-        isSupported: () => true
-      }
-    })
+    context.toGeneratorConfigMap = () =>
+      ({
+        'http-gen': {
+          id: 'http-gen',
+          type: 'oasOperation',
+          toEnrichmentSchema: () => emptyEnrichmentSchema,
+          transform,
+          isSupported: () => true
+        }
+        // deno-lint-ignore no-explicit-any
+      }) as any
 
     context.toArtifacts(new StackTrail(['test']))
     // Operations array on the OAS doc is empty in createTestContext, so
@@ -522,14 +529,17 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
     const { context } = createGqlContext([op])
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () => ({
-      'gql-gen': {
-        id: 'gql-gen',
-        type: 'gqlOperation',
-        transform,
-        isSupported: () => true
-      }
-    })
+    context.toGeneratorConfigMap = () =>
+      ({
+        'gql-gen': {
+          id: 'gql-gen',
+          type: 'gqlOperation',
+          toEnrichmentSchema: () => emptyEnrichmentSchema,
+          transform,
+          isSupported: () => true
+        }
+        // deno-lint-ignore no-explicit-any
+      }) as any
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 1)
@@ -545,14 +555,17 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
     const { context } = createGqlContext([op])
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () => ({
-      'http-gen': {
-        id: 'http-gen',
-        type: 'oasOperation',
-        transform,
-        isSupported: () => true
-      }
-    })
+    context.toGeneratorConfigMap = () =>
+      ({
+        'http-gen': {
+          id: 'http-gen',
+          type: 'oasOperation',
+          toEnrichmentSchema: () => emptyEnrichmentSchema,
+          transform,
+          isSupported: () => true
+        }
+        // deno-lint-ignore no-explicit-any
+      }) as any
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 0)
@@ -562,14 +575,17 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
     const { context } = createTestContext()
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () => ({
-      'gql-gen': {
-        id: 'gql-gen',
-        type: 'gqlOperation',
-        transform,
-        isSupported: () => true
-      }
-    })
+    context.toGeneratorConfigMap = () =>
+      ({
+        'gql-gen': {
+          id: 'gql-gen',
+          type: 'gqlOperation',
+          toEnrichmentSchema: () => emptyEnrichmentSchema,
+          transform,
+          isSupported: () => true
+        }
+        // deno-lint-ignore no-explicit-any
+      }) as any
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 0)
@@ -601,13 +617,16 @@ Deno.test('GenerateContext - model dispatch is protocol-neutral', async t => {
 
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () => ({
-      'model-gen': {
-        id: 'model-gen',
-        type: 'model',
-        transform
-      }
-    })
+    context.toGeneratorConfigMap = () =>
+      ({
+        'model-gen': {
+          id: 'model-gen',
+          type: 'model',
+          toEnrichmentSchema: () => emptyEnrichmentSchema,
+          transform
+        }
+        // deno-lint-ignore no-explicit-any
+      }) as any
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 1)

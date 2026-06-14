@@ -12,6 +12,7 @@ import { assert, assertEquals } from '@std/assert'
 import { toArtifacts } from '@/run/toArtifacts.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import { oxcAdapter } from '@/anchors/oxcAdapter.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { OpenAPIV3 } from 'openapi-types'
@@ -20,7 +21,8 @@ const ModelBase = toTsModelProjectionBase({
   id: '@test/gen-model',
   toIdentifierName: ({ refName }) => refName,
   toIdentifierType: () => ({ kind: 'type' }),
-  toExportPath: ({ refName }) => `@/types/${refName}.generated.ts`
+  toExportPath: ({ refName }) => `@/types/${refName}.generated.ts`,
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
 class ModelProjection extends ModelBase {
@@ -36,6 +38,7 @@ class ModelProjection extends ModelBase {
 // cast through the test boundary.
 const modelEntry = toModelEntry({
   id: '@test/gen-model',
+  toEnrichmentSchema: () => emptyEnrichmentSchema,
   transform: ({ context, refName }) => {
     // deno-lint-ignore no-explicit-any
     context.insertModel(ModelProjection as any, refName)

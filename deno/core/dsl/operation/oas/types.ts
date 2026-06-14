@@ -146,7 +146,7 @@ export type OasOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'oasOperation'
   transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule

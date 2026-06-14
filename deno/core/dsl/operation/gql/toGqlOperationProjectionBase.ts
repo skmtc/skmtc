@@ -27,6 +27,7 @@ import * as v from 'valibot'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
 
 /**
  * Configuration for {@link toGqlOperationProjectionBase}.
@@ -47,7 +48,13 @@ export type GqlOperationProjectionBaseConfig<EnrichmentType = undefined, L exten
    */
   toIdentifierType: (operation: GqlOperation, context: GenerateContextType) => IdentifierType<L>
   toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
-  toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
+  /**
+   * Required composite schema for the `{ subject, generator, stack }`
+   * enrichment umbrella. Required (not optional) is load-bearing: it is what
+   * lets `static toEnrichments` parse cast-free. A no-enrichment generator
+   * passes `emptyEnrichmentSchema`.
+   */
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   /**
    * Family-level applicability predicate. Becomes a static `isSupported`
    * on the returned base class so other projections can probe it via the
@@ -104,17 +111,22 @@ export const toGqlOperationProjectionBase = <EnrichmentType = undefined, L exten
       context,
       variant
     }: ToEnrichmentsArgs): EnrichmentType => {
-      // Same shape as the OAS branch — see the comment there for the
-      // full rationale. GraphQL routing key is
-      // `[generatorId][rootKind][fieldName][variant]`.
-      const operationEnrichments = get(
-        context.settings,
-        ['enrichments', config.id, operation.rootKind, operation.fieldName, variant]
-      )
+      // The three enrichment scopes assembled into the umbrella a generator
+      // reads off `this.settings.enrichments`. Subject is per-operation
+      // (`[id][rootKind][fieldName][variant]`) — GraphQL has no path/method,
+      // and the variant axis is core-owned; generator and stack are
+      // run-constants (`[id][_generator]`, `[_stack]`). The required composite
+      // schema parses the raw umbrella once — typed, cast-free.
+      const raw = {
+        subject: get(
+          context.settings,
+          ['enrichments', config.id, operation.rootKind, operation.fieldName, variant]
+        ),
+        generator: get(context.settings, ['enrichments', config.id, GENERATOR_ENRICHMENT_KEY]),
+        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
+      }
 
-      const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
-
-      return v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType
+      return v.parse(config.toEnrichmentSchema(), raw)
     }
 
     settings: ContentSettings<EnrichmentType>

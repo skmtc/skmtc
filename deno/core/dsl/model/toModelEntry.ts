@@ -7,7 +7,7 @@ import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 type ToModelEntryArgs<EnrichmentType = undefined> = {
   id: string
   transform: ({ context, refName, variant }: TransformModelArgs) => void
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
@@ -83,7 +83,7 @@ export const toModelEntry = <EnrichmentType = undefined>({
   transform: ({ context, refName, variant }: TransformModelArgs) => void
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined

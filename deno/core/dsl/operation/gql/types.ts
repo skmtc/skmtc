@@ -146,7 +146,7 @@ export type GqlOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'gqlOperation'
   transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule

@@ -23,7 +23,19 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasComponents } from '@/oas/components/Components.ts'
 import { OasString } from '@/oas/string/String.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { RefName } from '@/types/RefName.ts'
+import * as v from 'valibot'
+
+// A composite umbrella schema that accepts the empty `{}` subject blocks the
+// variant-collision tests declare per variant. The subject value is never
+// asserted here — these tests pin the peer-variant guard and the
+// `generatorKey` collision check, so an empty-object subject is enough.
+const variantPlaceholderEnrichmentSchema = v.object({
+  subject: v.optional(v.object({})),
+  generator: v.optional(v.unknown()),
+  stack: v.optional(v.unknown())
+})
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -66,7 +78,8 @@ Deno.test(
       id: '@scope/gen-zod-variants',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
       toIdentifierType: () => ({ kind: 'variable' }),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
+      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+      toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -96,7 +109,8 @@ Deno.test(
       id: '@scope/gen-zod-variants',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
       toIdentifierType: () => ({ kind: 'variable' }),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
+      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+      toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -136,7 +150,8 @@ Deno.test(
       id: '@scope/gen-zod',
       toIdentifierName: ({ refName }) => refName,
       toIdentifierType: () => ({ kind: 'variable' }),
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
+      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
+      toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -172,7 +187,8 @@ Deno.test(
       id: '@scope/gen-broken-zod',
       toIdentifierName: ({ refName }) => refName, // ← ignores variant
       toIdentifierType: () => ({ kind: 'variable' }),
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`          // ← ignores variant
+      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,         // ← ignores variant
+      toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -221,7 +237,8 @@ Deno.test(
       id: '@scope/gen-correct-zod',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
       toIdentifierType: () => ({ kind: 'variable' }),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
+      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+      toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -266,7 +283,8 @@ Deno.test(
       id: '@scope/gen-cache-zod',
       toIdentifierName: ({ refName }) => refName,
       toIdentifierType: () => ({ kind: 'variable' }),
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
+      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
+      toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
