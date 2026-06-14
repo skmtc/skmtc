@@ -27,7 +27,7 @@ import { assertInstanceOf } from '@std/assert/instance-of'
 import { CsSnippet } from './CsSnippet.ts'
 import { CsFile } from './CsFile.ts'
 import { csharp } from './csLang.ts'
-import { toModelProjectionBase } from './toModelProjectionBase.ts'
+import { toCsModelProjectionBase } from './toCsModelProjectionBase.ts'
 import { createRecord } from './createIdentifier.ts'
 
 const toGenerateContext = (): GenerateContextType => {
@@ -70,7 +70,7 @@ class SpikeField extends CsSnippet {
   }
 }
 
-const SpikeModelBase = toModelProjectionBase({
+const SpikeModelBase = toCsModelProjectionBase({
   id: '@spike/gen-csharp-option2',
   toIdentifierName: ({ refName }) => `${refName}Spike`,
   toIdentifierType: () => ({ kind: 'record' }),

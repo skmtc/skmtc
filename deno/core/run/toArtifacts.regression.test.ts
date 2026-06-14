@@ -25,7 +25,7 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
@@ -42,7 +42,7 @@ const mockLogger: log.Logger = {
 
 // ─── Fixture: peer generator (variants-unaware) ────────────────────
 
-const HookBase = toOasOperationProjectionBase({
+const HookBase = toTsOasOperationProjectionBase({
   id: '@test/hook-gen',
   toIdentifierName: () => 'usePatchQuote',
   toIdentifierType: () => ({ kind: 'variable' }),
@@ -59,7 +59,7 @@ class HookProjection extends HookBase {
 
 // ─── Fixture: form generator (variants-aware) ──────────────────────
 
-const FormBase = toOasOperationProjectionBase({
+const FormBase = toTsOasOperationProjectionBase({
   id: '@test/form-gen',
   toIdentifierName: ({ variant }) => withVariant('PatchQuoteForm', variant),
   toIdentifierType: () => ({ kind: 'variable' }),

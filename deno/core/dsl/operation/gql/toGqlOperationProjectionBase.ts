@@ -36,15 +36,6 @@ import { DEFAULT_VARIANT } from '@/types/Variant.ts'
  * return tightens to that language's `IdentifierType<L>` — no recast.
  */
 export type GqlOperationProjectionBaseConfig<EnrichmentType = undefined, L extends Lang = Lang> = {
-  /**
-   * The language snippet base the projection class is built on — a
-   * `@skmtc/lang-*` package's snippet base (e.g. `TsSnippet`). This is where
-   * language enters the class hierarchy: the base carries the static `lang`,
-   * read by Drivers pre-construction and inherited by every class built on
-   * it. Language packages pre-bind it in their projection-base veneers.
-   * Typed `LangSnippetConstructor<L>`, so `L` is inferred from the base.
-   */
-  base: LangSnippetConstructor<L>
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
   toIdentifierName: (args: ToGqlOperationIdentifierNameArgs<EnrichmentType>) => string
@@ -77,7 +68,7 @@ type ToEnrichmentsArgs = {
  * Build a GraphQL operation projection base class from a per-generator
  * config.
  *
- * The returned class extends `config.base` — the generator's language
+ * The returned class extends `base` — the generator's language
  * snippet base — so the projection hierarchy is language-bound at its root
  * while core stays language-blind (the base arrives as an opaque
  * constructor; core never names a concrete language class). The class
@@ -95,9 +86,10 @@ type ToEnrichmentsArgs = {
  * longer statically known.
  */
 export const toGqlOperationProjectionBase = <EnrichmentType = undefined, L extends Lang = Lang>(
+  base: LangSnippetConstructor<L>,
   config: GqlOperationProjectionBaseConfig<EnrichmentType, L>
 ) => {
-  return class extends config.base {
+  return class extends base {
     static id = config.id
     static type = 'gqlOperation' as const
 

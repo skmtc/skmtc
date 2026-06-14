@@ -44,11 +44,11 @@ export const ${mainModule}Entry = toOasOperationEntry({
 
   toOasOperationProjectionBase(mainModule: string) {
     return `import { camelCase, capitalize, toMethodVerb } from '@skmtc/core'
-import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path/join'
 
-export const ${mainModule}Base = toOasOperationProjectionBase({
+export const ${mainModule}Base = toTsOasOperationProjectionBase({
   id: '${this.generator.toModuleName()}',
 
   toIdentifierName({ operation }): string {

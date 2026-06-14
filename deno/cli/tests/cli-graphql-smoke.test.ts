@@ -69,9 +69,9 @@ const FIXTURE_SDL = /* GraphQL */ `
 const FIXTURE_WORKER = `
 import toWorker from '@skmtc/worker'
 import { toModelEntry } from '@skmtc/core'
-import { toModelProjectionBase } from '@skmtc/lang-typescript'
+import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 
-const ModelBase = toModelProjectionBase({
+const ModelBase = toTsModelProjectionBase({
   id: '@fake/gen-minimal',
   toIdentifierName: ({ refName }) => refName,
   toIdentifierType: () => ({ kind: 'type' }),

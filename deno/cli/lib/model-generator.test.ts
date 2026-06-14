@@ -33,13 +33,13 @@ Deno.test('ModelGenerator - toModelProjectionBase generates correct base.ts cont
   const modelGenerator = new ModelGenerator(generator)
   const result = modelGenerator.toModelProjectionBase('ProductModel')
 
-  assertStringIncludes(result, 'export const ProductModelBase = toModelProjectionBase({')
+  assertStringIncludes(result, 'export const ProductModelBase = toTsModelProjectionBase({')
   assertStringIncludes(result, "id: '@skmtc/product-model'")
   assertStringIncludes(result, 'toIdentifierName({ refName }): string')
   assertStringIncludes(result, 'toIdentifierType(): TsIdentifierType')
   assertStringIncludes(result, 'toExportPath({ refName, enrichments, variant }): string')
   assertStringIncludes(result, "import { decapitalize, camelCase } from '@skmtc/core'")
-  assertStringIncludes(result, "import { toModelProjectionBase } from '@skmtc/lang-typescript'")
+  assertStringIncludes(result, "import { toTsModelProjectionBase } from '@skmtc/lang-typescript'")
 })
 
 Deno.test('ModelGenerator - toModelProjection generates correct projection content', () => {

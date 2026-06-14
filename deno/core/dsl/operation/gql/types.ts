@@ -111,7 +111,7 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
   /**
    * The projection's language — the static inherited from the language
    * snippet base the projection class is built on
-   * (`toGqlOperationProjectionBase({ base: TsSnippet, … })`). Drivers read
+   * (`toGqlOperationProjectionBase(TsSnippet, …)`). Drivers read
    * it ephemerally at each use site, pre-construction (cache-hit path).
    */
   lang: Lang

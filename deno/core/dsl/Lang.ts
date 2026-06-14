@@ -114,7 +114,7 @@ export type LangKind<L extends Lang> = ReturnType<L['toIdentifier']> extends {
 /**
  * The constructor contract a language's snippet base class must satisfy to
  * be used as the `base` of a projection-base factory
- * (`toModelProjectionBase({ base: TsSnippet, … })`). It is where language
+ * (`toModelProjectionBase(TsSnippet, …)`). It is where language
  * enters the DSL class hierarchy; `SnippetBase` itself stays language-blind.
  *
  * `lang` is **static-only**: its reader is the Drivers, which need the

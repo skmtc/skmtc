@@ -25,8 +25,7 @@ const createMockGqlOperation = (
 }
 
 Deno.test('toGqlOperationProjectionBase - returns a class constructor', () => {
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'test-operation',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -38,8 +37,7 @@ Deno.test('toGqlOperationProjectionBase - returns a class constructor', () => {
 })
 
 Deno.test('toGqlOperationProjectionBase - sets static id from config', () => {
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'graphql-operations',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -50,8 +48,7 @@ Deno.test('toGqlOperationProjectionBase - sets static id from config', () => {
 })
 
 Deno.test('toGqlOperationProjectionBase - sets static type to operation', () => {
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'test-operation',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -65,8 +62,7 @@ Deno.test('toGqlOperationProjectionBase - sets static toIdentifierName from conf
   const identifierNameFn = ({ operation }: ToGqlOperationIdentifierNameArgs) =>
     operation.fieldName
 
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'test-operation',
     toIdentifierName: identifierNameFn,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -84,8 +80,7 @@ Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config',
   const exportPathFn = ({ operation }: ToGqlOperationExportPathArgs) =>
     `./generated/${operation.fieldName}.ts`
 
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'test-operation',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -104,8 +99,7 @@ Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config',
 Deno.test(
   'toGqlOperationProjectionBase - toEnrichments returns undefined when no enrichmentSchema provided',
   () => {
-    const OperationClass = toGqlOperationProjectionBase({
-      base: TsSnippet,
+    const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
       id: 'test-operation',
       toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -127,8 +121,7 @@ Deno.test(
 Deno.test(
   'toGqlOperationProjectionBase - toEnrichments returns undefined when no enrichments in context',
   () => {
-    const OperationClass = toGqlOperationProjectionBase({
-      base: TsSnippet,
+    const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
       id: 'test-operation',
       toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -148,8 +141,7 @@ Deno.test(
 )
 
 Deno.test('toGqlOperationProjectionBase - toIdentifierName works with different operations', () => {
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'test-operation',
     toIdentifierName: ({ operation }) => `${operation.rootKind}${operation.fieldName}`,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -169,8 +161,7 @@ Deno.test('toGqlOperationProjectionBase - toIdentifierName works with different 
 })
 
 Deno.test('toGqlOperationProjectionBase - toExportPath works with different operations', () => {
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'test-operation',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -188,8 +179,7 @@ Deno.test('toGqlOperationProjectionBase - toExportPath works with different oper
 })
 
 Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorKey', () => {
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'graphql-client',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -216,8 +206,7 @@ Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorK
 })
 
 Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase', () => {
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'test-operation',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -246,8 +235,7 @@ Deno.test('toGqlOperationProjectionBase - instance is GqlOperationProjectionBase
 })
 
 Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', () => {
-  const OperationClass = toGqlOperationProjectionBase<{ enabled: boolean; timeout?: number }>({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase<{ enabled: boolean; timeout?: number }>(TsSnippet, {
     id: 'graphql-client',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),
@@ -291,8 +279,7 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', 
 })
 
 Deno.test('toGqlOperationProjectionBase - toEnrichments retrieves from correct nested path', () => {
-  const OperationClass = toGqlOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
     id: 'graphql-api',
     toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ kind: 'variable' }),

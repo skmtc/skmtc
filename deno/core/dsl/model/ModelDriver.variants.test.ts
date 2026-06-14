@@ -13,7 +13,7 @@
  *      `"Registered definition mismatch"`.
  */
 
-import { createVariable, toModelProjectionBase } from '@skmtc/lang-typescript'
+import { createVariable, toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import { assertEquals, assertThrows } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -62,7 +62,7 @@ const makeContext = (args: { document: OasDocument; settings: unknown }) => {
 Deno.test(
   'ModelDriver - insertModel with non-main variant for unconfigured peer throws',
   () => {
-    const ZodVariants = class extends toModelProjectionBase({
+    const ZodVariants = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod-variants',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
       toIdentifierType: () => ({ kind: 'variable' }),
@@ -92,7 +92,7 @@ Deno.test(
 Deno.test(
   'ModelDriver - insertModel with non-main variant absent from peer enrichments throws',
   () => {
-    const ZodVariants = class extends toModelProjectionBase({
+    const ZodVariants = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod-variants',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
       toIdentifierType: () => ({ kind: 'variable' }),
@@ -132,7 +132,7 @@ Deno.test(
   () => {
     // `'main'` is universally safe — it's the canonical default and
     // always permitted regardless of the peer's enrichment shape.
-    const ZodGen = class extends toModelProjectionBase({
+    const ZodGen = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod',
       toIdentifierName: ({ refName }) => refName,
       toIdentifierType: () => ({ kind: 'variable' }),
@@ -168,7 +168,7 @@ Deno.test(
     // into the key). On the second insertion, `findDefinition` hits
     // the cached entry for variant 'main' but the new generatorKey
     // doesn't match — integrity check throws.
-    const BrokenZod = class extends toModelProjectionBase({
+    const BrokenZod = class extends toTsModelProjectionBase({
       id: '@scope/gen-broken-zod',
       toIdentifierName: ({ refName }) => refName, // ← ignores variant
       toIdentifierType: () => ({ kind: 'variable' }),
@@ -217,7 +217,7 @@ Deno.test(
     // `withVariant`, and toExportPath inherits the variant suffix.
     // Two variants of the same refName produce distinct (name,
     // exportPath) cache keys and therefore distinct Definitions.
-    const CorrectZod = class extends toModelProjectionBase({
+    const CorrectZod = class extends toTsModelProjectionBase({
       id: '@scope/gen-correct-zod',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
       toIdentifierType: () => ({ kind: 'variable' }),
@@ -262,7 +262,7 @@ Deno.test(
 Deno.test(
   'ModelDriver - same variant twice on a correct Projection hits the cache',
   () => {
-    const Zod = class extends toModelProjectionBase({
+    const Zod = class extends toTsModelProjectionBase({
       id: '@scope/gen-cache-zod',
       toIdentifierName: ({ refName }) => refName,
       toIdentifierType: () => ({ kind: 'variable' }),

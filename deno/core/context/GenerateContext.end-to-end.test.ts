@@ -22,7 +22,7 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -34,7 +34,7 @@ const mockLogger: log.Logger = {
   critical: () => {}
 } as unknown as log.Logger
 
-const FormBase = toOasOperationProjectionBase({
+const FormBase = toTsOasOperationProjectionBase({
   id: '@test/e2e-form',
   toIdentifierName: ({ variant }) => withVariant('PatchQuoteForm', variant),
   toIdentifierType: () => ({ kind: 'variable' }),

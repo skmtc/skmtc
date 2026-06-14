@@ -1,28 +1,15 @@
-import { toModelProjectionBase as toCoreModelProjectionBase } from '@skmtc/core'
-import type { ModelProjectionBaseConfig } from '@skmtc/core'
+import { toGqlOperationProjectionBase } from '@skmtc/core'
+import type { GqlOperationProjectionBaseConfig } from '@skmtc/core'
 import { TsSnippet } from './TsSnippet.ts'
 import { register, type TsRegisterArgs } from './register.ts'
 import type { TsLang } from './tsLang.ts'
 
 /**
- * Configuration for the TypeScript {@link toModelProjectionBase} veneer —
- * core's config parameterized over {@link TsLang} (so `toIdentifierType`
- * returns this language's `IdentifierType<TsLang>` — the `kind` bound to
- * `TsEntityKind`) minus `base` (this veneer pre-binds it to {@link TsSnippet}).
+ * Build a TypeScript GraphQL operation projection base class.
  *
- * No recast: the `TsLang` type argument tightens `toIdentifierType` directly.
- */
-export type TsModelProjectionBaseConfig<EnrichmentType = undefined> = Omit<
-  ModelProjectionBaseConfig<EnrichmentType, TsLang>,
-  'base'
->
-
-/**
- * Build a TypeScript model projection base class.
- *
- * Thin veneer over core's `toModelProjectionBase`: pre-binds
- * `base: TsSnippet` (the hierarchy is language-bound at its root) and adds
- * the register ergonomics core deliberately doesn't define — typed with
+ * Thin veneer over core's `toGqlOperationProjectionBase`: passes `TsSnippet`
+ * as the base (the hierarchy is language-bound at its root) and adds the
+ * register ergonomics core deliberately doesn't define — typed with
  * TypeScript's concise vocabulary, which core can't name (F10):
  *
  * - `register(args)` — **own-file**: `destinationPath` is always this
@@ -33,11 +20,15 @@ export type TsModelProjectionBaseConfig<EnrichmentType = undefined> = Omit<
  * Both delegate to this package's register *function* — never
  * `super.register` (lang-base members are type-erased on core's factory
  * result).
+ *
+ * The config is core's `GqlOperationProjectionBaseConfig` parameterized over
+ * {@link TsLang} (so `toIdentifierType` returns `IdentifierType<TsLang>`). The
+ * base is the factory's first argument, not a config field.
  */
-export const toModelProjectionBase = <EnrichmentType = undefined>(
-  config: TsModelProjectionBaseConfig<EnrichmentType>
+export const toTsGqlOperationProjectionBase = <EnrichmentType = undefined>(
+  config: GqlOperationProjectionBaseConfig<EnrichmentType, TsLang>
 ) => {
-  return class extends toCoreModelProjectionBase<EnrichmentType>({ ...config, base: TsSnippet }) {
+  return class extends toGqlOperationProjectionBase(TsSnippet, config) {
     /**
      * Register imports/definitions in this projection's **own** export file
      * (`this.settings.exportPath`). For a different file use

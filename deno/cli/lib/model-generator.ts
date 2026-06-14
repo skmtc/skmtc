@@ -41,11 +41,11 @@ export const ${this.generator.packageName}Entry = toModelEntry({
 
   toModelProjectionBase(mainModule: string) {
     return `import { decapitalize, camelCase } from '@skmtc/core'
-import { toModelProjectionBase } from '@skmtc/lang-typescript'
+import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path/join'
 
-export const ${mainModule}Base = toModelProjectionBase({
+export const ${mainModule}Base = toTsModelProjectionBase({
   id: '${this.generator.toModuleName()}',
 
   toIdentifierName({ refName }): string {

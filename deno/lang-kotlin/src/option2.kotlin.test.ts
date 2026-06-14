@@ -26,7 +26,7 @@ import { assertInstanceOf } from '@std/assert/instance-of'
 import { KtSnippet } from './KtSnippet.ts'
 import { KtFile } from './KtFile.ts'
 import { kotlin } from './ktLang.ts'
-import { toModelProjectionBase } from './toModelProjectionBase.ts'
+import { toKtModelProjectionBase } from './toKtModelProjectionBase.ts'
 import { createValue } from './createIdentifier.ts'
 
 const toGenerateContext = (): GenerateContextType => {
@@ -68,7 +68,7 @@ class SpikeField extends KtSnippet {
   }
 }
 
-const SpikeModelBase = toModelProjectionBase({
+const SpikeModelBase = toKtModelProjectionBase({
   id: '@spike/gen-kotlin-option2',
   toIdentifierName: ({ refName }) => `${refName}Spike`,
   toIdentifierType: () => ({ kind: 'val' }),

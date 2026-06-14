@@ -35,7 +35,7 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { TsFile } from '@skmtc/lang-typescript'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -53,7 +53,7 @@ const METHOD = 'patch' as const
 // Variants-unaware peer — a stand-in for TanstackQuery / TsProjection.
 // Its `toIdentifier` does NOT consult `variant`, so two variants of
 // the form caller hit the same (name, exportPath) cache key.
-const PeerBase = toOasOperationProjectionBase({
+const PeerBase = toTsOasOperationProjectionBase({
   id: '@test/peer-gen',
   toIdentifierName: () => 'usePatchQuote',
   toIdentifierType: () => ({ kind: 'variable' }),
@@ -69,7 +69,7 @@ class PeerProjection extends PeerBase {
 // Variants-aware form — its `toIdentifier` uses `withVariant` so the
 // two variants produce distinct (name, exportPath) pairs and each
 // gets its own file.
-const FormBase = toOasOperationProjectionBase({
+const FormBase = toTsOasOperationProjectionBase({
   id: '@test/form-gen',
   toIdentifierName: ({ variant }) => withVariant('EditQuotesForm', variant),
   toIdentifierType: () => ({ kind: 'variable' }),

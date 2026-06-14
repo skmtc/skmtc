@@ -1,29 +1,16 @@
-import { toModelProjectionBase as toCoreModelProjectionBase } from '@skmtc/core'
+import { toModelProjectionBase } from '@skmtc/core'
 import type { ModelProjectionBaseConfig } from '@skmtc/core'
 import { CsSnippet } from './CsSnippet.ts'
 import { register, type CsRegisterArgs } from './register.ts'
 import type { CsLang } from './csLang.ts'
 
 /**
- * Configuration for the C# {@link toModelProjectionBase} veneer —
- * core's config parameterized over {@link CsLang} (so `toIdentifierType`
- * returns this language's `IdentifierType<CsLang>` — the `kind` bound to
- * `CsEntityKind`) minus `base` (this veneer pre-binds it to {@link CsSnippet}).
- *
- * No recast: the `CsLang` type argument tightens `toIdentifierType` directly.
- */
-export type CsModelProjectionBaseConfig<EnrichmentType = undefined> = Omit<
-  ModelProjectionBaseConfig<EnrichmentType, CsLang>,
-  'base'
->
-
-/**
  * Build a C# model projection base class.
  *
- * Thin veneer over core's `toModelProjectionBase`: pre-binds
- * `base: CsSnippet` (the hierarchy is language-bound at its root) and adds
- * the register ergonomics core deliberately doesn't define — typed with
- * C#'s concise vocabulary, which core can't name:
+ * Thin veneer over core's `toModelProjectionBase`: passes `CsSnippet` as the
+ * base (the hierarchy is language-bound at its root) and adds the register
+ * ergonomics core deliberately doesn't define — typed with C#'s concise
+ * vocabulary, which core can't name:
  *
  * - `register(args)` — **own-file**: `destinationPath` is always this
  *   projection's `settings.exportPath` (the foundation rule; never a
@@ -34,15 +21,20 @@ export type CsModelProjectionBaseConfig<EnrichmentType = undefined> = Omit<
  * `super.register` (lang-base members are type-erased on core's factory
  * result).
  *
+ * The config is core's `ModelProjectionBaseConfig` parameterized over
+ * {@link CsLang} (so `toIdentifierType` returns `IdentifierType<CsLang>` — the
+ * `kind` bound to `CsEntityKind`). The base is the factory's first argument,
+ * not a config field.
+ *
  * Operation veneers (`toOasOperationProjectionBase`,
  * `toGqlOperationProjectionBase`) arrive with the first operation-emitting
  * C# generator (the CS-C ASP.NET milestone) — veneers are demand-driven,
  * the Kotlin precedent.
  */
-export const toModelProjectionBase = <EnrichmentType = undefined>(
-  config: CsModelProjectionBaseConfig<EnrichmentType>
+export const toCsModelProjectionBase = <EnrichmentType = undefined>(
+  config: ModelProjectionBaseConfig<EnrichmentType, CsLang>
 ) => {
-  return class extends toCoreModelProjectionBase<EnrichmentType>({ ...config, base: CsSnippet }) {
+  return class extends toModelProjectionBase(CsSnippet, config) {
     /**
      * Register imports/definitions in this projection's **own** export file
      * (`this.settings.exportPath`). For a different file use

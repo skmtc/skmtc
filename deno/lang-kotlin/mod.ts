@@ -78,11 +78,5 @@ export {
   type KtRegisterArgs,
   type KtDefineAndRegisterArgs
 } from './src/register.ts'
-export {
-  toModelProjectionBase,
-  type KtModelProjectionBaseConfig
-} from './src/toModelProjectionBase.ts'
-export {
-  toOasOperationProjectionBase,
-  type KtOasOperationProjectionBaseConfig
-} from './src/toOasOperationProjectionBase.ts'
+export { toKtModelProjectionBase } from './src/toKtModelProjectionBase.ts'
+export { toKtOasOperationProjectionBase } from './src/toKtOasOperationProjectionBase.ts'

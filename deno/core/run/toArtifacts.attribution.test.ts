@@ -7,7 +7,7 @@
  * generation map populated) lands on the result.
  */
 
-import { toModelProjectionBase } from '@skmtc/lang-typescript'
+import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import { assert, assertEquals } from '@std/assert'
 import { toArtifacts } from '@/run/toArtifacts.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
@@ -16,7 +16,7 @@ import { oxcAdapter } from '@/anchors/oxcAdapter.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
-const ModelBase = toModelProjectionBase({
+const ModelBase = toTsModelProjectionBase({
   id: '@test/gen-model',
   toIdentifierName: ({ refName }) => refName,
   toIdentifierType: () => ({ kind: 'type' }),

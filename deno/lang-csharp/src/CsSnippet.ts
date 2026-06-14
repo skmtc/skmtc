@@ -18,7 +18,7 @@ import type { CsDefinition } from './CsDefinition.ts'
  * the C# {@link Lang} as a **static only**: Drivers read it off the
  * projection class (`projection.lang`), pre-construction, inherited through
  * every class built on this base (including projection classes from this
- * package's `toModelProjectionBase`). No instance slot — the register
+ * package's `toCsModelProjectionBase`). No instance slot — the register
  * methods delegate to this package's register functions, which name the
  * C# classes directly.
  *

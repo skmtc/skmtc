@@ -47,18 +47,9 @@ export {
   type TsRegisterArgs,
   type TsDefineAndRegisterArgs
 } from './src/register.ts'
-export {
-  toModelProjectionBase,
-  type TsModelProjectionBaseConfig
-} from './src/toModelProjectionBase.ts'
-export {
-  toOasOperationProjectionBase,
-  type TsOasOperationProjectionBaseConfig
-} from './src/toOasOperationProjectionBase.ts'
-export {
-  toGqlOperationProjectionBase,
-  type TsGqlOperationProjectionBaseConfig
-} from './src/toGqlOperationProjectionBase.ts'
+export { toTsModelProjectionBase } from './src/toTsModelProjectionBase.ts'
+export { toTsOasOperationProjectionBase } from './src/toTsOasOperationProjectionBase.ts'
+export { toTsGqlOperationProjectionBase } from './src/toTsGqlOperationProjectionBase.ts'
 export { ReactRouterPathParams } from './src/ReactRouterPathParams.ts'
 export { TsFile, type TsFileArgs } from './src/TsFile.ts'
 export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'

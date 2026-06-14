@@ -29,7 +29,7 @@
  * The write path: the `csharp` Lang object (Drivers read it off the
  * projection class's inherited static — generators never call it),
  * `CsSnippet` (keyless registers), the `register` /
- * `defineAndRegister` functions, and the `toModelProjectionBase`
+ * `defineAndRegister` functions, and the `toCsModelProjectionBase`
  * veneer (own-file `register` + explicit cross-file `registerInto`).
  * Operation veneers are demand-driven and arrive with CS-C.
  */
@@ -95,7 +95,4 @@ export {
   type CsRegisterArgs,
   type CsDefineAndRegisterArgs
 } from './src/register.ts'
-export {
-  toModelProjectionBase,
-  type CsModelProjectionBaseConfig
-} from './src/toModelProjectionBase.ts'
+export { toCsModelProjectionBase } from './src/toCsModelProjectionBase.ts'

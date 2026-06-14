@@ -103,7 +103,7 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
   /**
    * The projection's language — the static inherited from the language
    * snippet base the projection class is built on
-   * (`toModelProjectionBase({ base: TsSnippet, … })`). Drivers read it
+   * (`toModelProjectionBase(TsSnippet, …)`). Drivers read it
    * pre-construction (cache-hit path). SPIKE (option 2 — see `notes/lang/14`).
    */
   lang: Lang

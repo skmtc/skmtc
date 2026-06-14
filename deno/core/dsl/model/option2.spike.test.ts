@@ -5,8 +5,8 @@
  *
  * 1. A core factory can take a language snippet base class and build the
  *    projection machinery on top of it, type-safely — consumed here through
- *    the lang package's veneer (`toModelProjectionBase` from
- *    `@skmtc/lang-typescript`), which pre-binds `base: TsSnippet` and adds
+ *    the lang package's veneer (`toTsModelProjectionBase` from
+ *    `@skmtc/lang-typescript`), which pre-binds `TsSnippet` and adds
  *    the register ergonomics.
  * 2. The language static (`lang`) is inherited through the whole chain —
  *    `TsSnippet` → factory class → generator subclass — so the Driver reads
@@ -15,7 +15,7 @@
  * 3. A snippet with NO `generatorKey` can register — the F7 bug does not
  *    exist in this model.
  */
-import { TsFile, TsSnippet, createVariable, toModelProjectionBase, typescript } from '@skmtc/lang-typescript'
+import { TsFile, TsSnippet, createVariable, toTsModelProjectionBase, typescript } from '@skmtc/lang-typescript'
 import { toGenerateContext } from '../../test/toGenerateContext.ts'
 import type { ModelProjectionArgs } from '@/dsl/model/toModelProjectionBase.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
@@ -55,7 +55,7 @@ class SpikeField extends TsSnippet {
   }
 }
 
-const SpikeModelBase = toModelProjectionBase({
+const SpikeModelBase = toTsModelProjectionBase({
   id: '@spike/gen-option2',
   toIdentifierName: ({ refName }) => `${refName}Spike`,
   toIdentifierType: () => ({ kind: 'variable' }),
