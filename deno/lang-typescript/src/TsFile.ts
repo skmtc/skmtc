@@ -73,7 +73,7 @@ export class TsFile extends CodeFileBase {
       return new TsImport(updatedModuleName, importEntry.specifiers).toString()
     })
 
-    const definitions = Array.from(this.definitions.values())
+    const definitions = [...this.definitions.values(), ...this.mergedDefinitions]
 
     const body = [reExports, imports, definitions]
       .filter(section => Boolean(section.length))

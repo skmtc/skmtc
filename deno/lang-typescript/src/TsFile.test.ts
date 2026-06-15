@@ -178,6 +178,37 @@ Deno.test('toDefinition falls back to the value description for the JSDoc', () =
   )
 })
 
+Deno.test('TsFile renders same-name companions (declaration merging) after primaries', () => {
+  const tsFile = new TsFile({ path: '@/resources/models.generated.ts', settings: undefined })
+
+  const classDef = new TsDefinition({
+    context: mockContext,
+    identifier: createClass('Models'),
+    value: value('extends APIResource {}')
+  })
+  const interfaceDef = new TsDefinition({
+    context: mockContext,
+    identifier: createInterface('Model'),
+    value: value('{ id: string }')
+  })
+  const namespaceDef = new TsDefinition({
+    context: mockContext,
+    identifier: createNamespace('Models'),
+    value: value('{ export { type Model as Model } }')
+  })
+
+  tsFile.addDefinition(classDef)
+  tsFile.addDefinition(interfaceDef)
+  tsFile.addDefinition(namespaceDef) // same name as the class → companion
+  tsFile.addDefinition(classDef) // exact re-add → idempotent no-op
+
+  assertEquals(tsFile.mergedDefinitions.length, 1)
+  assertEquals(
+    tsFile.toString(),
+    `export class Models extends APIResource {}\n\nexport interface Model { id: string }\n\nexport declare namespace Models { export { type Model as Model } }\n`
+  )
+})
+
 Deno.test('TsFile renders the legacy-pinned cross-package import normalisation', () => {
   const settings = { packages: [{ rootPath: 'packages/models/src', moduleName: '@app/models' }] }
   const path = 'packages/client/src/api.generated.ts'
