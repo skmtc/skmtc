@@ -50,7 +50,6 @@
     "npm:ink-select-input@^6.2.0": "6.2.0_ink@6.8.0__@types+react@19.2.14__react@19.2.6_react@19.2.6_@types+react@19.2.14",
     "npm:ink-testing-library@4": "4.0.0_@types+react@19.2.14",
     "npm:ink@^6.2.3": "6.8.0_@types+react@19.2.14_react@19.2.6",
-    "npm:jsonpath-plus@^10.4.0": "10.4.0",
     "npm:lodash-es@4.17.21": "4.17.21",
     "npm:openapi-types@^12.1.3": "12.1.3",
     "npm:oxc-parser@0.41.0": "0.41.0",
@@ -191,18 +190,6 @@
         "deepmerge",
         "figures",
         "ink"
-      ]
-    },
-    "@jsep-plugin/assignment@1.3.0_jsep@1.4.0": {
-      "integrity": "sha512-VVgV+CXrhbMI3aSusQyclHkenWSAm95WaiKrMxRFam3JSUiIaQjoMIw2sEs/OX4XifnqeQUN4DYbJjlA8EfktQ==",
-      "dependencies": [
-        "jsep"
-      ]
-    },
-    "@jsep-plugin/regex@1.0.4_jsep@1.4.0": {
-      "integrity": "sha512-q7qL4Mgjs1vByCaTnDFcBnV9HS7GVPJX5vyVoCgZHNSC9rjwIlmbXG5sUuorR5ndfHAIlJ8pVStxvjXHbNvtUg==",
-      "dependencies": [
-        "jsep"
       ]
     },
     "@modelcontextprotocol/sdk@1.29.0_zod@4.4.3": {
@@ -737,23 +724,11 @@
     "jose@6.2.3": {
       "integrity": "sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw=="
     },
-    "jsep@1.4.0": {
-      "integrity": "sha512-B7qPcEVE3NVkmSJbaYxvv4cHkVW7DQsZz13pUMrfS8z8Q/BuShN+gcTXrUlPiGqM2/t/EEaI030bpxMqY8gMlw=="
-    },
     "json-schema-traverse@1.0.0": {
       "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="
     },
     "json-schema-typed@8.0.2": {
       "integrity": "sha512-fQhoXdcvc3V28x7C7BMs4P5+kNlgUURe2jmUT1T//oBRMDrqy1QPelJimwZGo7Hg9VPV3EQV5Bnq4hbFy2vetA=="
-    },
-    "jsonpath-plus@10.4.0": {
-      "integrity": "sha512-T92WWatJXmhBbKsgH/0hl+jxjdXrifi5IKeMY02DWggRxX0UElcbVzPlmgLTbvsPeW1PasQ6xE2Q75stkhGbsA==",
-      "dependencies": [
-        "@jsep-plugin/assignment",
-        "@jsep-plugin/regex",
-        "jsep"
-      ],
-      "bin": true
     },
     "lodash-es@4.17.21": {
       "integrity": "sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw=="
@@ -1239,8 +1214,7 @@
       },
       "openapi-overlays": {
         "dependencies": [
-          "jsr:@std/yaml@^1.1.0",
-          "npm:jsonpath-plus@^10.4.0"
+          "jsr:@std/yaml@^1.1.0"
         ]
       },
       "server": {

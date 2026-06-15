@@ -2,7 +2,7 @@
 import { overlayFiles, type OverlayFormat } from './overlay.ts'
 
 // Keep in sync with deno.json's `version`.
-const VERSION = '0.1.0'
+const VERSION = '0.2.0'
 
 const HELP = `Usage: overlay --openapi FILEPATH --overlay FILEPATH [--format yaml|json]
 
@@ -15,6 +15,7 @@ Options:
   --format <yaml|json>  Output format (default: inferred from the --openapi
                         file extension, falling back to yaml)
   --json                Shorthand for --format json
+  --strict              Exit non-zero if any overlay action fails to apply
   --version             Print the version
   --help                Show this help`
 
@@ -23,13 +24,14 @@ type Flags = {
   overlay?: string
   format?: string
   json: boolean
+  strict: boolean
   version: boolean
   help: boolean
   unknown?: string
 }
 
 function parseFlags(args: string[]): Flags {
-  const flags: Flags = { json: false, version: false, help: false }
+  const flags: Flags = { json: false, strict: false, version: false, help: false }
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
@@ -50,6 +52,9 @@ function parseFlags(args: string[]): Flags {
         break
       case '--json':
         flags.json = true
+        break
+      case '--strict':
+        flags.strict = true
         break
       case '--version':
         flags.version = true
@@ -101,7 +106,12 @@ export async function main(args: string[]): Promise<number> {
     return 1
   }
 
-  console.log(await overlayFiles(flags.openapi, flags.overlay, { format }))
+  try {
+    console.log(await overlayFiles(flags.openapi, flags.overlay, { format, strict: flags.strict }))
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
   return 0
 }
 

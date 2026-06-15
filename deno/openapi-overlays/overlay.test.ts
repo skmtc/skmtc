@@ -1,4 +1,4 @@
-import { assertEquals } from '@std/assert'
+import { assertEquals, assertThrows } from '@std/assert'
 import { parse as parseYaml } from '@std/yaml'
 import {
   applyOverlay,
@@ -160,6 +160,64 @@ Deno.test('applyOverlay - removes an array element by filter', () => {
     actions: [{ target: "$.servers[?(@.description == 'Dev')]", remove: true }],
   }) as Record<string, JsonValue>
   assertEquals(result.servers, [{ url: 'prod', description: 'Prod' }])
+})
+
+Deno.test('applyOverlay - recursive filter applies over specs containing null nodes', () => {
+  // Regression: jsonpath-plus 10.x throws when `@.description` hits a null
+  // node during recursive descent, which silently aborted the action. Our
+  // engine null-guards, so the overlay applies without a `@ && …` workaround.
+  const spec: JsonValue = {
+    components: {
+      schemas: {
+        Check: {
+          properties: {
+            value: { description: 'The value of the check, should it exist.' },
+            nullable: null,
+          },
+        },
+      },
+    },
+  }
+
+  const result = applyOverlay(spec, {
+    overlay: '1.0.0',
+    actions: [
+      {
+        target: "$..[?(@.description == 'The value of the check, should it exist.')]",
+        update: { type: 'string' },
+      },
+    ],
+  })
+
+  const value = JSON.parse(JSON.stringify(result)).components.schemas.Check.properties.value
+  assertEquals(value.type, 'string')
+})
+
+Deno.test('applyOverlay - strict mode throws on a failed action', () => {
+  const spec: JsonValue = { info: { version: '1.0.0' } }
+  const overlay: Overlay = {
+    overlay: '1.0.0',
+    actions: [{ target: 'info.version', update: { nope: true } }],
+  }
+
+  // Non-strict: logged and skipped, document unchanged.
+  assertEquals(applyOverlay(structuredClone(spec), overlay), spec)
+
+  // Strict: surfaces the failure instead of silently shipping it.
+  assertThrows(
+    () => applyOverlay(structuredClone(spec), overlay, { strict: true }),
+    Error,
+    'info.version',
+  )
+})
+
+Deno.test('applyOverlay - strict mode ignores actions that simply match nothing', () => {
+  const spec: JsonValue = { info: { title: 'API' } }
+  const result = applyOverlay(structuredClone(spec), {
+    overlay: '1.0.0',
+    actions: [{ target: '$.paths.does.not.exist', update: { x: 1 } }],
+  }, { strict: true })
+  assertEquals(result, spec)
 })
 
 Deno.test('applyOverlay - injects a $ref by replacing an inline schema', () => {

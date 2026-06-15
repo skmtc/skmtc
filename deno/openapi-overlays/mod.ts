@@ -29,6 +29,7 @@
 
 export { applyOverlay, overlayFiles, stringifyDocument } from './overlay.ts'
 export type {
+  ApplyOverlayOptions,
   JsonObject,
   JsonPrimitive,
   JsonValue,
@@ -36,3 +37,4 @@ export type {
   OverlayAction,
   OverlayFormat,
 } from './overlay.ts'
+export { type PathMatch, queryPaths } from './jsonpath.ts'

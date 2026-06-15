@@ -1,13 +1,12 @@
 {
   "name": "@skmtc/openapi-overlays",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts",
     "./cli": "./cli.ts"
   },
   "imports": {
-    "jsonpath-plus": "npm:jsonpath-plus@^10.4.0",
     "@std/yaml": "jsr:@std/yaml@^1.1.0"
   },
   "fmt": {

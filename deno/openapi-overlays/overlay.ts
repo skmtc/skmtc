@@ -1,5 +1,5 @@
-import { JSONPath } from 'jsonpath-plus'
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml'
+import { type PathMatch, queryPaths } from './jsonpath.ts'
 
 /** A JSON scalar. */
 export type JsonPrimitive = string | number | boolean | null
@@ -78,19 +78,6 @@ function buildMerger(update: JsonValue): (chunk: JsonValue) => JsonValue {
   }
 }
 
-type PathMatch = {
-  value: JsonValue
-  parent: JsonObject | JsonValue[] | null
-  parentProperty: string | number | null
-}
-
-function queryAll(json: JsonValue, path: string): PathMatch[] {
-  // jsonpath-plus' result type is intentionally loose; `resultType: 'all'`
-  // yields live `parent`/`parentProperty` references we mutate in place.
-  const result = JSONPath({ path, json: json as object, resultType: 'all', wrap: true })
-  return Array.isArray(result) ? (result as PathMatch[]) : []
-}
-
 /**
  * Remove every node matching `target`. The document is re-queried after each
  * deletion so array index shifts and recursive descent (`$..foo`) are handled
@@ -99,7 +86,7 @@ function queryAll(json: JsonValue, path: string): PathMatch[] {
 function applyRemove(spec: JsonValue, target: string): void {
   // Upper bound guards against a pathological expression that never converges.
   for (let iterations = 0; iterations < 1_000_000; iterations++) {
-    const matches = queryAll(spec, target)
+    const matches: PathMatch[] = queryPaths(spec, target)
     if (matches.length === 0) return
 
     const { parent, parentProperty } = matches[0]
@@ -122,7 +109,7 @@ function applyUpdate(spec: JsonValue, action: OverlayAction): JsonValue {
     return merger(spec)
   }
 
-  for (const match of queryAll(spec, action.target)) {
+  for (const match of queryPaths(spec, action.target)) {
     const { parent, parentProperty } = match
     if (parent === null || parentProperty === null) continue
 
@@ -135,6 +122,17 @@ function applyUpdate(spec: JsonValue, action: OverlayAction): JsonValue {
   }
 
   return spec
+}
+
+/** Options for {@link applyOverlay}. */
+export type ApplyOverlayOptions = {
+  /**
+   * Fail loudly. When `true`, a failed action throws instead of being logged
+   * and skipped — so a caller can't silently ship an un-applied overlay.
+   * Defaults to `false` (the reference tool's log-and-continue behaviour). An
+   * action whose target simply matches nothing is never an error.
+   */
+  strict?: boolean
 }
 
 /**
@@ -150,25 +148,31 @@ function applyUpdate(spec: JsonValue, action: OverlayAction): JsonValue {
  * })
  * ```
  */
-export function applyOverlay(spec: JsonValue, overlay: Overlay): JsonValue {
+export function applyOverlay(
+  spec: JsonValue,
+  overlay: Overlay,
+  options: ApplyOverlayOptions = {},
+): JsonValue {
   const actions = overlay.actions
   if (!Array.isArray(actions) || actions.length === 0) {
     return spec
   }
 
   for (const action of actions) {
-    // Presence of the `remove` key (regardless of value) selects removal,
-    // matching the reference tool.
-    if (Object.prototype.hasOwnProperty.call(action, 'remove')) {
-      applyRemove(spec, action.target)
-      continue
-    }
-
     try {
-      spec = applyUpdate(spec, action)
+      // Presence of the `remove` key (regardless of value) selects removal,
+      // matching the reference tool.
+      if (Object.prototype.hasOwnProperty.call(action, 'remove')) {
+        applyRemove(spec, action.target)
+      } else {
+        spec = applyUpdate(spec, action)
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.error(`Error applying overlay: ${message}`)
+      if (options.strict) {
+        throw new Error(`Failed to apply overlay action (target: ${action.target}): ${message}`)
+      }
+      console.error(`Error applying overlay action (target: ${action.target}): ${message}`)
     }
   }
 
@@ -242,13 +246,13 @@ export function stringifyDocument(document: JsonValue, format: OverlayFormat = '
 export async function overlayFiles(
   openapiPath: string,
   overlayPath: string,
-  options: { format?: OverlayFormat } = {},
+  options: { format?: OverlayFormat; strict?: boolean } = {},
 ): Promise<string> {
   // Casts sit at the parse boundary: @std/yaml returns `unknown`.
   const spec = parseYaml(await Deno.readTextFile(openapiPath)) as JsonValue
   const overlay = parseYaml(await Deno.readTextFile(overlayPath)) as Overlay
 
-  const result = applyOverlay(spec, overlay)
+  const result = applyOverlay(spec, overlay, { strict: options.strict })
 
   return stringifyDocument(result, options.format ?? 'yaml')
 }
