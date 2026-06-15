@@ -3,7 +3,7 @@ import invariant from 'npm:tiny-invariant@1.3.3'
 import { List } from './List.ts'
 import { isTsIdentifier } from './TsIdentifier.ts'
 import type { IdentifierBase } from '@skmtc/core'
-import type { TsEntityKind } from './createIdentifier.ts'
+import { isTypeOnlyKind, type TsEntityKind } from './createIdentifier.ts'
 
 /**
  * The concise import form a TypeScript generator passes to `register` —
@@ -95,7 +95,7 @@ export class TsImport extends ImportBase {
     )
 
     return new TsImport(module, [
-      { name: identifier.name, typeOnly: identifier.kind === 'type' }
+      { name: identifier.name, typeOnly: isTypeOnlyKind(identifier.kind) }
     ])
   }
 

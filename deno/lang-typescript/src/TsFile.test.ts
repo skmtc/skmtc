@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { createType, createVariable } from './createIdentifier.ts'
+import { createClass, createInterface, createNamespace, createType, createVariable } from './createIdentifier.ts'
 import { toGeneratorOnlyKey } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType } from '@skmtc/core'
 import { TsDefinition } from './TsDefinition.ts'
@@ -59,6 +59,30 @@ Deno.test('TsDefinition renders the legacy-pinned declarations', async testConte
       description: 'Possible status values',
       noExport: false,
       expected: "/** Possible status values */\nexport type Status = 'a' | 'b';\n"
+    },
+    {
+      name: 'block-form class (value carries heritage + body, no `=`/`;`)',
+      identifier: createClass('Models'),
+      content: 'extends APIResource {\n  retrieve() {}\n}',
+      description: undefined,
+      noExport: false,
+      expected: 'export class Models extends APIResource {\n  retrieve() {}\n}\n'
+    },
+    {
+      name: 'block-form interface',
+      identifier: createInterface('Model'),
+      content: '{\n  id: string;\n}',
+      description: undefined,
+      noExport: false,
+      expected: 'export interface Model {\n  id: string;\n}\n'
+    },
+    {
+      name: 'block-form declare namespace',
+      identifier: createNamespace('Models'),
+      content: '{\n  export { type Model as Model };\n}',
+      description: undefined,
+      noExport: false,
+      expected: 'export declare namespace Models {\n  export { type Model as Model };\n}\n'
     }
   ]
 

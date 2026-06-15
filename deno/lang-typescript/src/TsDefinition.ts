@@ -1,7 +1,7 @@
 import { DefinitionBase } from '@skmtc/core'
 import invariant from 'npm:tiny-invariant@1.3.3'
 import { withDescription } from './withDescription.ts'
-import { toTsKeyword } from './createIdentifier.ts'
+import { toTsKeyword, isBlockKind } from './createIdentifier.ts'
 import { isTsIdentifier } from './TsIdentifier.ts'
 import type { GeneratedValue, GenerateContextType, IdentifierBase } from '@skmtc/core'
 
@@ -39,13 +39,23 @@ export class TsDefinition<Value extends GeneratedValue = GeneratedValue> extends
       `TsDefinition needs a TsIdentifier to render '${this.identifier.name}', got a foreign identifier`
     )
 
-    const identifier = this.identifier.typeName
-      ? `${this.identifier.name}: ${this.identifier.typeName}`
-      : this.identifier.name
+    const { kind, name, typeName } = this.identifier
+    const exportPrefix = this.noExport ? '' : 'export '
+    const keyword = toTsKeyword(kind)
 
-    return withDescription(
-      `${this.noExport ? '' : 'export '}${toTsKeyword(this.identifier.kind)} ${identifier} = ${this.value};\n`,
-      { description: this.description }
-    )
+    // Block-form declarations (class / interface / declare namespace) take no
+    // `= value` and no trailing `;` — the value carries the heritage and the
+    // braced body.
+    if (isBlockKind(kind)) {
+      return withDescription(`${exportPrefix}${keyword} ${name} ${this.value}\n`, {
+        description: this.description
+      })
+    }
+
+    const identifier = typeName ? `${name}: ${typeName}` : name
+
+    return withDescription(`${exportPrefix}${keyword} ${identifier} = ${this.value};\n`, {
+      description: this.description
+    })
   }
 }

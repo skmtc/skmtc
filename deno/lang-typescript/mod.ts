@@ -77,9 +77,16 @@ export * from './src/sanitizePropertyName.ts'
 export {
   createVariable,
   createType,
+  createClass,
+  createInterface,
+  createNamespace,
   toTsKeyword,
   toTsEntityKind,
+  isTsEntityKind,
+  isBlockKind,
+  isTypeOnlyKind,
   type TsEntityKind,
   type CreateVariableArgs,
-  type CreateTypeArgs
+  type CreateTypeArgs,
+  type CreateDeclarationArgs
 } from './src/createIdentifier.ts'
