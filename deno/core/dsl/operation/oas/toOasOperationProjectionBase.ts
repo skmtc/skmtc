@@ -56,6 +56,16 @@ export type OasOperationProjectionBaseConfig<EnrichmentType = undefined, L exten
    */
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   /**
+   * Optional: compute the DEFAULT enrichment values for an operation from its
+   * schema — the seed the CMS persists and the user then edits (vs
+   * {@link toEnrichments}, which READS already-authored values). Returns the
+   * `{ subject, generator, stack }` umbrella; a generator typically fills only
+   * `subject` (per-operation defaults) and leaves the run-constant `generator` /
+   * `stack` scopes `undefined`. Omitted → the derived static returns
+   * `undefined` (the generator advertises no defaults).
+   */
+  toEnrichmentDefaults?: (args: ToEnrichmentsArgs) => EnrichmentType | undefined
+  /**
    * Family-level applicability predicate. Becomes a static `isSupported`
    * on the returned base class so other projections can probe it via the
    * operation-reference protocol. When omitted, advertises support for
@@ -130,6 +140,14 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined, L exten
 
       return v.parse(config.toEnrichmentSchema(), raw)
     }
+
+    /**
+     * Derive the seed enrichment values for an operation from its schema (the
+     * CMS persists these, then the user edits). Returns `undefined` when the
+     * generator declares no `toEnrichmentDefaults` — the common case.
+     */
+    static toEnrichmentDefaults = (args: ToEnrichmentsArgs): EnrichmentType | undefined =>
+      config.toEnrichmentDefaults?.call(config, args)
 
     settings: ContentSettings<EnrichmentType>
     operation: OasOperation

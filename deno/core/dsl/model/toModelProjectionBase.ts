@@ -73,6 +73,15 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined, L extends Lang
    * passes `emptyEnrichmentSchema`.
    */
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
+  /**
+   * Optional: compute the DEFAULT enrichment values for a model from its schema
+   * — the seed the CMS persists and the user then edits (vs {@link toEnrichments},
+   * which READS already-authored values). Returns the `{ subject, generator,
+   * stack }` umbrella; a generator typically fills only `subject` and leaves the
+   * run-constant `generator` / `stack` scopes `undefined`. Omitted → the derived
+   * static returns `undefined`.
+   */
+  toEnrichmentDefaults?: (args: ToEnrichmentsArgs) => EnrichmentType | undefined
 }
 
 /**
@@ -120,6 +129,15 @@ export const toModelProjectionBase = <EnrichmentType = undefined, L extends Lang
 
       return v.parse(config.toEnrichmentSchema(), raw)
     }
+
+    /**
+     * Derive the seed enrichment values for a model from its schema (the CMS
+     * persists these, then the user edits). Returns `undefined` when the
+     * generator declares no `toEnrichmentDefaults` — the common case.
+     */
+    static toEnrichmentDefaults = (args: ToEnrichmentsArgs): EnrichmentType | undefined =>
+      config.toEnrichmentDefaults?.call(config, args)
+
     static isSupported = () => true
 
     settings: ContentSettings<EnrichmentType>

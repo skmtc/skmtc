@@ -399,3 +399,74 @@ Deno.test('toOasOperationProjectionBase - toEnrichments retrieves from correct n
   // Retrieves the subject from enrichments.{id}.{path}.{method}.{variant}
   assertEquals(enrichments.subject, { customValue: 'found-it', flag: true })
 })
+
+Deno.test('toOasOperationProjectionBase - toEnrichmentDefaults returns undefined when not configured', () => {
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
+    id: 'test-operation',
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  })
+
+  const mockOperation = new OasOperation({
+    path: '/users',
+    method: 'get',
+    pathItem: undefined,
+    operationId: 'getUsers',
+    responses: {}
+  })
+
+  const defaults = OperationClass.toEnrichmentDefaults({
+    operation: mockOperation,
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
+  })
+
+  assertEquals(defaults, undefined)
+})
+
+Deno.test('toOasOperationProjectionBase - toEnrichmentDefaults returns the computed seed when configured', () => {
+  const OperationClass = toOasOperationProjectionBase<{
+    subject?: { title: string }
+    generator?: unknown
+    stack?: unknown
+  }>(TsSnippet, {
+    id: 'forms',
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(v.object({ title: v.string() })),
+        generator: v.optional(v.unknown()),
+        stack: v.optional(v.unknown())
+      }),
+    // Seeds the subject scope from the operation; run-constant scopes stay undefined.
+    toEnrichmentDefaults: ({ operation }) => ({
+      subject: { title: `${operation.method} ${operation.path}` },
+      generator: undefined,
+      stack: undefined
+    })
+  })
+
+  const mockOperation = new OasOperation({
+    path: '/users',
+    method: 'post',
+    pathItem: undefined,
+    operationId: 'createUser',
+    responses: {}
+  })
+
+  const defaults = OperationClass.toEnrichmentDefaults({
+    operation: mockOperation,
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
+  })
+
+  assertEquals(defaults, {
+    subject: { title: 'post /users' },
+    generator: undefined,
+    stack: undefined
+  })
+})

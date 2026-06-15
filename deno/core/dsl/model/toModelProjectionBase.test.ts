@@ -425,3 +425,54 @@ Deno.test('toModelProjectionBase - toEnrichments resolves per-variant payloads i
   })
   assertEquals(coercive.subject, { coerce: true })
 })
+
+Deno.test('toModelProjectionBase - toEnrichmentDefaults returns undefined when not configured', () => {
+  const ModelClass = toModelProjectionBase<Enrichments>(TsSnippet, {
+    id: 'test-model',
+    toIdentifierName: ({ refName }) => refName,
+    toIdentifierType: () => ({ kind: 'type' }),
+    toExportPath: ({ refName }) => `./models/${refName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  })
+
+  const defaults = ModelClass.toEnrichmentDefaults({
+    refName: 'Customer' as RefName,
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
+  })
+
+  assertEquals(defaults, undefined)
+})
+
+Deno.test('toModelProjectionBase - toEnrichmentDefaults returns the computed seed when configured', () => {
+  const ModelClass = toModelProjectionBase<{
+    subject?: { label: string }
+    generator?: unknown
+    stack?: unknown
+  }>(TsSnippet, {
+    id: 'test-model',
+    toIdentifierName: ({ refName }) => refName,
+    toIdentifierType: () => ({ kind: 'type' }),
+    toExportPath: ({ refName }) => `./models/${refName}.ts`,
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(v.object({ label: v.string() })),
+        generator: v.optional(v.unknown()),
+        stack: v.optional(v.unknown())
+      }),
+    // Seeds the subject scope from the refName; run-constant scopes stay undefined.
+    toEnrichmentDefaults: ({ refName }) => ({
+      subject: { label: refName },
+      generator: undefined,
+      stack: undefined
+    })
+  })
+
+  const defaults = ModelClass.toEnrichmentDefaults({
+    refName: 'Customer' as RefName,
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
+  })
+
+  assertEquals(defaults, { subject: { label: 'Customer' }, generator: undefined, stack: undefined })
+})
