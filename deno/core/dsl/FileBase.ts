@@ -23,46 +23,26 @@ export abstract class FileBase {
   /** The file path for this generated file */
   path: string
 
-  /** Map of definition names to their (primary) Definition objects */
+  /** Map of definition names to their Definition objects */
   definitions: Map<string, DefinitionBase>
-
-  /**
-   * Same-name companion definitions — TypeScript declaration merging, e.g. a
-   * `class Foo` and its `export declare namespace Foo`. Kept separately so
-   * the name-keyed {@link definitions} map (and the cross-generator cache
-   * keyed on it) stays one-definition-per-name; rendered after the primaries.
-   */
-  mergedDefinitions: DefinitionBase[]
 
   constructor({ path }: { path: string }) {
     this.path = path
     this.definitions = new Map()
-    this.mergedDefinitions = []
   }
 
   /**
-   * Add a definition. The first definition for a name is the primary (held
-   * in {@link definitions}, and what the cross-generator cache resolves).
-   *
-   * Re-adding the *same* definition object is an idempotent no-op. A
-   * *different* definition that reuses an existing name is a declaration-
-   * merging companion (e.g. a `declare namespace` beside its class), kept in
-   * {@link mergedDefinitions} and rendered after the primaries.
+   * Add a definition, deduplicating by identifier name (first write wins).
    *
    * Neutral: the engine's `register` calls this on the abstract base, so it
-   * works for every language's file.
+   * works for every language's file. Per-language duplication rules (e.g.
+   * TypeScript declaration merging — a class and its `declare namespace`
+   * sharing a name) belong in the language's file subclass, which overrides
+   * this method.
    */
   addDefinition(definition: DefinitionBase): void {
-    const name = definition.identifier.name
-    const existing = this.definitions.get(name)
-
-    if (existing === undefined) {
-      this.definitions.set(name, definition)
-      return
-    }
-
-    if (existing !== definition && !this.mergedDefinitions.includes(definition)) {
-      this.mergedDefinitions.push(definition)
+    if (!this.definitions.has(definition.identifier.name)) {
+      this.definitions.set(definition.identifier.name, definition)
     }
   }
 

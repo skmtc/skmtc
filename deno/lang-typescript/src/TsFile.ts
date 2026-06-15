@@ -1,6 +1,6 @@
 import { CodeFileBase } from '@skmtc/core'
 import { normalizeModuleName } from './normalizeModuleName.ts'
-import type { ClientSettings, ModulePackage } from '@skmtc/core'
+import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 import { TsReExport } from './TsReExport.ts'
 
@@ -30,9 +30,38 @@ export class TsFile extends CodeFileBase {
    */
   banner: string | undefined
 
+  /**
+   * Same-name companion definitions — TypeScript declaration merging, e.g. a
+   * `class Foo` and its `export declare namespace Foo`. Kept apart from the
+   * name-keyed {@link definitions} map (so the cross-generator cache stays
+   * one-definition-per-name) and rendered after the primaries.
+   */
+  mergedDefinitions: DefinitionBase[] = []
+
   constructor({ path, settings }: TsFileArgs) {
     super({ path })
     this.packages = settings?.packages
+  }
+
+  /**
+   * TypeScript's duplication rule. The first definition for a name is the
+   * primary (the cross-generator cache resolves it); re-adding the *same*
+   * object is an idempotent no-op; a *different* definition reusing the name
+   * is a declaration-merging companion (a class + its `declare namespace`),
+   * rendered after the primaries.
+   */
+  override addDefinition(definition: DefinitionBase): void {
+    const name = definition.identifier.name
+    const existing = this.definitions.get(name)
+
+    if (existing === undefined) {
+      this.definitions.set(name, definition)
+      return
+    }
+
+    if (existing !== definition && !this.mergedDefinitions.includes(definition)) {
+      this.mergedDefinitions.push(definition)
+    }
   }
 
   override toString(): string {
