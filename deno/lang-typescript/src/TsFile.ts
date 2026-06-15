@@ -23,6 +23,13 @@ export class TsFile extends CodeFileBase {
   /** Package configuration for cross-package module-name resolution. */
   packages: ModulePackage[] | undefined
 
+  /**
+   * Optional leading banner — a file-level comment (e.g. a codegen header)
+   * rendered above the re-exports/imports/definitions. Set through the
+   * register vocabulary's `banner` field; see {@link register}.
+   */
+  banner: string | undefined
+
   constructor({ path, settings }: TsFileArgs) {
     super({ path })
     this.packages = settings?.packages
@@ -68,9 +75,11 @@ export class TsFile extends CodeFileBase {
 
     const definitions = Array.from(this.definitions.values())
 
-    return [reExports, imports, definitions]
+    const body = [reExports, imports, definitions]
       .filter(section => Boolean(section.length))
       .map(section => section.join('\n'))
       .join('\n\n')
+
+    return this.banner ? `${this.banner}\n\n${body}` : body
   }
 }
