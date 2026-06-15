@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/lang-typescript",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
@@ -10,6 +10,6 @@
     "test": "deno test --allow-all"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@0.11.0"
+    "@skmtc/core": "jsr:@skmtc/core@0.12.0"
   }
 }

@@ -65,7 +65,22 @@ export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): Decom
   return result
 }
 
-const excludedProperties = ['discriminator', 'default']
+// Union-level metadata: kept on the union (via beforeExcluded/afterExcluded)
+// rather than cross-product-merged into each member. Merging metadata *into*
+// a member resolves `$ref` members (to merge the metadata in), losing their
+// names — `toUnion` already captures this metadata on the union itself.
+const excludedProperties = [
+  'discriminator',
+  'default',
+  'description',
+  'title',
+  'nullable',
+  'example',
+  'examples',
+  'readOnly',
+  'writeOnly',
+  'deprecated'
+]
 
 type ExcludeOutput = {
   retained: [string, unknown][]

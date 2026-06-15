@@ -248,3 +248,36 @@ Deno.test("mergeUnion - simple oneOf", () => {
     ],
   });
 });
+
+// Union-level metadata (description/title/…) must stay on the union, not be
+// merged into members — merging it in would resolve the $ref members and lose
+// their names. getRef throws so any resolution attempt fails the test.
+Deno.test("mergeUnion - metadata stays on the union; $ref members preserved", () => {
+  const failingGetRef: GetRefFn = (ref) => {
+    throw new Error(`getRef must not be called — $ref must be preserved: ${ref.$ref}`);
+  };
+
+  const input: SchemaObject = {
+    description: "Where a widget came from.",
+    title: "WidgetSource",
+    anyOf: [
+      { $ref: "#/components/schemas/WidgetUrlSource" },
+      { $ref: "#/components/schemas/WidgetFileSource" },
+    ],
+  };
+
+  const result = mergeUnion({
+    schema: input,
+    getRef: failingGetRef,
+    groupType: "anyOf",
+  });
+
+  assertEquals(result, {
+    description: "Where a widget came from.",
+    title: "WidgetSource",
+    anyOf: [
+      { $ref: "#/components/schemas/WidgetUrlSource" },
+      { $ref: "#/components/schemas/WidgetFileSource" },
+    ],
+  });
+});
