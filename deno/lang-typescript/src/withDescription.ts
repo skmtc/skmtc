@@ -2,127 +2,29 @@ import type { Stringable } from '@skmtc/core'
 import type { Modifiers } from '@skmtc/core'
 
 /**
- * Wraps a value with a JSDoc comment if a description is provided.
- * 
- * This utility function is used throughout the SKMTC code generation system to
- * add JSDoc documentation comments to generated TypeScript code. If a description
- * is provided, it formats it as a single-line JSDoc comment above the value.
- * If no description is provided, the value is returned unchanged.
- * 
- * @param value - The code value to potentially wrap with documentation
- * @param modifiers - Modifiers object containing optional description
- * @param modifiers.description - Optional description text for the JSDoc comment
- * @returns The value with JSDoc comment prepended if description exists, otherwise just the value
- * 
- * @example With description
+ * Prepends a value with a multi-line JSDoc comment when a description is
+ * provided; returns the value unchanged otherwise. Each line of the
+ * description becomes a ` * ` gutter line, so an already-wrapped
+ * description renders as multiple comment lines.
+ *
+ * @example
  * ```typescript
- * import { withDescription } from '@skmtc/lang-typescript';
- * 
- * const result = withDescription(
- *   'export const API_URL = "https://api.example.com";',
- *   { description: 'Base URL for all API requests' }
- * );
- * 
- * console.log(result);
- * // /** Base URL for all API requests *\/
- * // export const API_URL = "https://api.example.com";
- * ```
- * 
- * @example Without description
- * ```typescript
- * const result = withDescription(
- *   'export const API_URL = "https://api.example.com";',
- *   { description: undefined }
- * );
- * 
- * console.log(result);
- * // export const API_URL = "https://api.example.com";
- * ```
- * 
- * @example Using with Definition class
- * ```typescript
- * class ModelGenerator {
- *   generateInterface(name: string, description?: string) {
- *     const interfaceCode = `interface ${name} {
- *   id: string;
- *   name: string;
- * }`;
- * 
- *     return withDescription(interfaceCode, { description });
- *   }
- * }
- * 
- * const generator = new ModelGenerator();
- * const documented = generator.generateInterface('User', 'Represents a user in the system');
- * 
- * console.log(documented);
- * // /** Represents a user in the system *\/
- * // interface User {
- * //   id: string;
- * //   name: string;
- * // }
- * ```
- * 
- * @example Integration with generated definitions
- * ```typescript
- * import { withDescription } from '@skmtc/lang-typescript';
- * 
- * class DocumentedGenerator {
- *   createDefinition(name: string, value: string, docs?: string) {
- *     return new Definition({
- *       context: this.context,
- *       identifier: createVariable(name),
- *       description: docs, // This gets processed by withDescription internally
- *       value: {
- *         generatorKey: 'documented',
- *         content: value
- *       }
- *     });
- *   }
- * }
- * ```
- * 
- * @example Complex documentation
- * ```typescript
- * const complexDoc = withDescription(
- *   `export type Status = 'active' | 'inactive' | 'pending';`,
- *   { 
- *     description: 'User account status - active users can access all features' 
- *   }
- * );
- * 
- * console.log(complexDoc);
- * // /** User account status - active users can access all features *\/
- * // export type Status = 'active' | 'inactive' | 'pending';
- * ```
- * 
- * @example Conditional documentation
- * ```typescript
- * function generateWithOptionalDocs(
- *   code: string, 
- *   includeDescription: boolean
- * ) {
- *   return withDescription(code, {
- *     description: includeDescription 
- *       ? 'This is an auto-generated definition' 
- *       : undefined
- *   });
- * }
- * 
- * const withDocs = generateWithOptionalDocs('export const VALUE = 42;', true);
- * const withoutDocs = generateWithOptionalDocs('export const VALUE = 42;', false);
- * 
- * console.log(withDocs);
- * // /** This is an auto-generated definition *\/
- * // export const VALUE = 42;
- * 
- * console.log(withoutDocs);
- * // export const VALUE = 42;
+ * withDescription('export const API_URL = "...";', { description: 'Base URL' })
+ * // /**
+ * //  * Base URL
+ * //  *\/
+ * // export const API_URL = "...";
  * ```
  */
-export const withDescription = (
-  value: Stringable,
-  { description }: Modifiers
-): string => {
-  return description ? `/** ${description} */\n${value}` : `${value}`
+export const withDescription = (value: Stringable, { description }: Modifiers): string => {
+  if (!description) {
+    return `${value}`
+  }
+
+  const lines = description
+    .split('\n')
+    .map(line => ` * ${line}`)
+    .join('\n')
+
+  return `/**\n${lines}\n */\n${value}`
 }

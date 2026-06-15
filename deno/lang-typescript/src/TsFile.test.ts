@@ -59,7 +59,7 @@ Deno.test('TsDefinition renders the legacy-pinned declarations', async testConte
       content: "'a' | 'b'",
       description: 'Possible status values',
       noExport: false,
-      expected: "/** Possible status values */\nexport type Status = 'a' | 'b';\n"
+      expected: "/**\n * Possible status values\n */\nexport type Status = 'a' | 'b';\n"
     },
     {
       name: 'block-form class (value carries heritage + body, no `=`/`;`)',
@@ -172,7 +172,10 @@ Deno.test('toDefinition falls back to the value description for the JSDoc', () =
     noExport: false
   })
 
-  assertEquals(definition.toString(), '/** The models resource. */\nexport class Models extends APIResource {}\n')
+  assertEquals(
+    definition.toString(),
+    '/**\n * The models resource.\n */\nexport class Models extends APIResource {}\n'
+  )
 })
 
 Deno.test('TsFile renders the legacy-pinned cross-package import normalisation', () => {
