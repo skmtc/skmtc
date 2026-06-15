@@ -32,6 +32,7 @@
     "./lang-typescript",
     "./mcp",
     "./openapi-down-convert",
+    "./openapi-overlays",
     "./swagger2openapi",
     "./server",
     "./worker"
