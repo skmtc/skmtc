@@ -2,7 +2,16 @@ import { CodeFileBase } from '@skmtc/core'
 import { normalizeModuleName } from './normalizeModuleName.ts'
 import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
+import { TsIdentifier } from './TsIdentifier.ts'
+import type { TsEntityKind } from './createIdentifier.ts'
 import { TsReExport } from './TsReExport.ts'
+
+/** A definition's TypeScript declaration kind, read off its identifier — the
+ *  language-neutral `IdentifierBase` carries no `kind`, so narrow to the TS
+ *  subclass. `undefined` for a non-TS identifier (shouldn't occur in a TsFile;
+ *  treated as a kindless declaration). */
+const declarationKind = (definition: DefinitionBase): TsEntityKind | undefined =>
+  definition.identifier instanceof TsIdentifier ? definition.identifier.kind : undefined
 
 /**
  * Constructor arguments for {@link TsFile}.
@@ -44,14 +53,21 @@ export class TsFile extends CodeFileBase {
   }
 
   /**
-   * TypeScript's duplication rule. The first definition for a name is the
-   * primary (the cross-generator cache resolves it); re-adding the *same*
-   * object is an idempotent no-op; a *different* definition reusing the name
-   * is a declaration-merging companion (a class + its `declare namespace`),
-   * rendered after the primaries.
+   * TypeScript's duplication rule, keyed by the definition's *identifier*
+   * (name + kind), not its rendered value. The first definition for a name is
+   * the primary (the cross-generator cache resolves it). A later definition
+   * reusing the name is:
+   *
+   * - the **same declaration** (same kind) → an idempotent no-op. Generators
+   *   legitimately register the same helper from multiple call sites (e.g. a
+   *   `columnHelper` const built once per table column), producing distinct
+   *   objects that are the same `const` — those collapse to one.
+   * - a **different kind** → a declaration-merging companion (a `class` + its
+   *   `declare namespace`), rendered after the primaries.
    */
   override addDefinition(definition: DefinitionBase): void {
     const name = definition.identifier.name
+    const kind = declarationKind(definition)
     const existing = this.definitions.get(name)
 
     if (existing === undefined) {
@@ -59,9 +75,20 @@ export class TsFile extends CodeFileBase {
       return
     }
 
-    if (existing !== definition && !this.mergedDefinitions.includes(definition)) {
-      this.mergedDefinitions.push(definition)
+    // Same name + same kind = the same declaration → collapse.
+    if (declarationKind(existing) === kind) {
+      return
     }
+    // Already captured a companion of this kind for the name.
+    if (
+      this.mergedDefinitions.some(
+        merged => merged.identifier.name === name && declarationKind(merged) === kind
+      )
+    ) {
+      return
+    }
+
+    this.mergedDefinitions.push(definition)
   }
 
   override toString(): string {

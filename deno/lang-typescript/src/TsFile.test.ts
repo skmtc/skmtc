@@ -209,6 +209,46 @@ Deno.test('TsFile renders same-name companions (declaration merging) after prima
   )
 })
 
+Deno.test('TsFile collapses same-name + same-kind definitions (duplicate, not a companion)', () => {
+  const tsFile = new TsFile({ path: '@/tables/models.generated.tsx', settings: undefined })
+
+  // Two distinct objects, same identifier (name + kind) — e.g. a `columnHelper`
+  // const each table column independently registers. They are the same `const`,
+  // so they collapse to one rather than piling up as merge companions.
+  const first = new TsDefinition({
+    context: mockContext,
+    identifier: createVariable('columnHelper'),
+    value: value('createColumnHelper<Row>()')
+  })
+  const second = new TsDefinition({
+    context: mockContext,
+    identifier: createVariable('columnHelper'),
+    value: value('createColumnHelper<Row>()')
+  })
+
+  tsFile.addDefinition(first)
+  tsFile.addDefinition(second)
+
+  assertEquals(tsFile.mergedDefinitions.length, 0)
+  assertEquals(tsFile.toString(), `export const columnHelper = createColumnHelper<Row>();\n`)
+})
+
+Deno.test('TsFile collapses same-name + same-kind even when the value differs (the identifier is the key)', () => {
+  const tsFile = new TsFile({ path: '@/types/models.generated.ts', settings: undefined })
+
+  // Same name + same kind (`type`) — TS cannot redeclare a type alias, so the
+  // first wins and the second is dropped (not merged), regardless of value.
+  tsFile.addDefinition(
+    new TsDefinition({ context: mockContext, identifier: createType('Id'), value: value('string') })
+  )
+  tsFile.addDefinition(
+    new TsDefinition({ context: mockContext, identifier: createType('Id'), value: value('number') })
+  )
+
+  assertEquals(tsFile.mergedDefinitions.length, 0)
+  assertEquals(tsFile.toString(), `export type Id = string;\n`)
+})
+
 Deno.test('TsFile renders the legacy-pinned cross-package import normalisation', () => {
   const settings = { packages: [{ rootPath: 'packages/models/src', moduleName: '@app/models' }] }
   const path = 'packages/client/src/api.generated.ts'
