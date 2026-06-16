@@ -4,6 +4,9 @@ import { OasUnion } from './Union.ts'
 import { toDiscriminatorV3 } from '../discriminator/toDiscriminatorV3.ts'
 import { toSchemaV3 } from '../schema/toSchemasV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
+import { parseNullable } from '../_helpers/parseNullable.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
@@ -22,15 +25,40 @@ export const toUnion = ({
   stackTrail,
   context
 }: ToUnionArgs): OasUnion => {
+  const { nullable, value: valueWithoutNullable } = parseNullable({
+    value,
+    context,
+    stackTrail
+  })
+
   const {
     discriminator,
     title,
     description,
-    nullable,
-    example,
-    default: defaultValue,
+    example: unparsedExample,
+    default: unparsedDefaultValue,
     ...skipped
-  } = value
+  } = valueWithoutNullable
+
+  const example = parseExample({
+    value: unparsedExample,
+    context,
+    parent: value,
+    nullable,
+    check: isPresent,
+    toMessage: item => `Removed invalid example. Expected a non-null value, got: ${item}`,
+    stackTrail
+  })
+
+  const defaultValue = parseDefault({
+    value: unparsedDefaultValue,
+    context,
+    parent: value,
+    nullable,
+    check: isPresent,
+    toMessage: item => `Removed invalid default. Expected a non-null value, got: ${item}`,
+    stackTrail
+  })
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -70,4 +98,11 @@ export const toUnion = ({
       context
     )
   )
+}
+
+// A union (anyOf/oneOf) value may match any of its members, so the most we
+// can validate without resolving members is that a present default/example
+// is not a bare `null` on a non-nullable schema.
+const isPresent = (value: unknown): value is NonNullable<unknown> => {
+  return value !== null && value !== undefined
 }

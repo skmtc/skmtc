@@ -160,7 +160,7 @@ export const oasStringData = v.object({
   type: v.literal('string'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
-  default: v.optional(v.nullable(v.string())),
+  default: v.optional(v.string()),
   maxLength: v.optional(v.number()),
   minLength: v.optional(v.number()),
   pattern: v.optional(v.string()),
@@ -179,7 +179,7 @@ export type OasStringData = {
   /** Detailed description explaining the string's purpose and usage */
   description?: string
   /** Default value used when no explicit value is provided */
-  default?: string | null
+  default?: string
   /** Type identifier (always 'string') */
   type: 'string'
   /** Maximum allowed length in characters */

@@ -164,12 +164,12 @@ Deno.test('parseEnum', async (t) => {
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
         args: [{
-          key: 'default',
+          key: 'enum',
           level: 'warning',
           message: 'Invalid item: null',
           parent,
           stackTrail,
-          type: 'INVALID_DEFAULT',
+          type: 'INVALID_ENUM',
         }],
       })
 
@@ -239,12 +239,12 @@ Deno.test('parseEnum', async (t) => {
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
         args: [{
-          key: 'default',
+          key: 'enum',
           level: 'warning',
           message: 'Expected string, got: number',
           parent,
           stackTrail,
-          type: 'INVALID_DEFAULT',
+          type: 'INVALID_ENUM',
         }],
       })
 
@@ -296,12 +296,12 @@ Deno.test('parseEnum', async (t) => {
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
         args: [{
-          key: 'default',
+          key: 'enum',
           level: 'warning',
           message: 'Custom error for: "invalid"',
           parent,
           stackTrail,
-          type: 'INVALID_DEFAULT',
+          type: 'INVALID_ENUM',
         }],
       })
 

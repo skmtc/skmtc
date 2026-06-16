@@ -29,7 +29,7 @@ export const oasIntegerData = v.object({
   type: v.literal('integer'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
-  default: v.optional(v.nullable(integerSchema)),
+  default: v.optional(integerSchema),
   format: v.optional(integerFormat),
   enum: v.optional(v.array(integerSchema)),
   nullable: v.optional(v.boolean()),
@@ -48,7 +48,7 @@ export type OasIntegerData = {
   type: 'integer'
   title?: string
   description?: string
-  default?: number | null
+  default?: number
   format?: 'int32' | 'int64'
   enum?: number[]
   nullable?: boolean

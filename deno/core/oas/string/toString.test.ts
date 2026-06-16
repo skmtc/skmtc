@@ -260,6 +260,27 @@ Deno.test('toString', async t => {
 
       contextSpy.restore()
     })
+
+    await t.step('should reject null default when not nullable', () => {
+      const stackTrail = new StackTrail(['TEST'])
+      const schema: OpenAPIV3.SchemaObject = {
+        type: 'string',
+        default: null
+      }
+
+      const contextSpy = spy(mockParseContext, 'logIssue')
+
+      const oasString = toString({
+        value: schema,
+        stackTrail,
+        context: mockParseContext as ParseContextType
+      })
+
+      assertEquals(oasString.default, undefined)
+      assertEquals(contextSpy.calls.length >= 1, true)
+
+      contextSpy.restore()
+    })
   })
 
   await t.step('string properties', async t => {

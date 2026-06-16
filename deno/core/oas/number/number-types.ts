@@ -17,7 +17,7 @@ export const oasNumberData = v.object({
   type: v.literal('number'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
-  default: v.optional(v.nullable(v.number())),
+  default: v.optional(v.number()),
   format: v.optional(numberFormat),
   enum: v.optional(v.array(v.number())),
   nullable: v.optional(v.boolean()),
@@ -36,7 +36,7 @@ export type OasNumberData = {
   type: 'number'
   title?: string
   description?: string
-  default?: number | null
+  default?: number
   format?: 'float' | 'double'
   enum?: number[]
   nullable?: boolean

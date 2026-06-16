@@ -325,6 +325,19 @@ Deno.test('toArray', async (t) => {
       assertEquals(oasArray.defaultValue, undefined)
     })
 
+    await t.step('should reject null default when not nullable', () => {
+      const stackTrail = new StackTrail(['TEST'])
+      const schema: OpenAPIV3.ArraySchemaObject = {
+        type: 'array',
+        items: { type: 'string' },
+        default: null as unknown as unknown[],
+      }
+      const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
+
+      // null is only a valid default when nullable: true
+      assertEquals(oasArray.defaultValue, undefined)
+    })
+
     await t.step('should handle undefined default value', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {

@@ -31,12 +31,12 @@ export const parseEnum = ({
       }
 
       context.logIssue({
-        key: 'default',
+        key: 'enum',
         level: 'warning',
         message: toMessage(item),
         parent,
         stackTrail,
-        type: 'INVALID_DEFAULT'
+        type: 'INVALID_ENUM'
       })
 
       return undefined
