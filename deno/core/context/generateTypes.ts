@@ -197,6 +197,7 @@ export type OasIssueType =
   | 'INVALID_OPERATION'
   | 'INVALID_SCHEMA'
   | 'INVALID_PARAMETER'
+  | 'INVALID_SECURITY_SCHEME'
   | 'INVALID_DEPENDENCY_REF'
   | 'EXAMPLE_AND_EXAMPLES_DEFINED'
 
@@ -223,6 +224,7 @@ export const oasIssueType = v.union([
   v.literal('INVALID_OPERATION'),
   v.literal('INVALID_SCHEMA'),
   v.literal('INVALID_PARAMETER'),
+  v.literal('INVALID_SECURITY_SCHEME'),
   v.literal('INVALID_DEPENDENCY_REF'),
   v.literal('EXAMPLE_AND_EXAMPLES_DEFINED')
 ])

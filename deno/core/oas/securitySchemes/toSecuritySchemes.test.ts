@@ -8,6 +8,9 @@ import {
   OasOpenIdSecurityScheme,
 } from './SecurityScheme.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { spy, assertSpyCalls } from '@std/testing/mock'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { OpenAPIV3 } from 'openapi-types'
 
 Deno.test('toSecuritySchemesV3', async (t) => {
   await t.step('input handling', async (t) => {
@@ -148,7 +151,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
       assertExists(result)
       assertEquals(result.digestAuth.type, 'http')
       assertEquals((result.digestAuth as OasHttpSecurityScheme).scheme, 'digest')
-      assertEquals(result.digestAuth.description, 'Digest authentication')
+      assertEquals((result.digestAuth as OasHttpSecurityScheme).description, 'Digest authentication')
     })
 
     await t.step('should handle HTTP scheme with minimal required fields', () => {
@@ -166,7 +169,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
 
       assertExists(result)
       assertEquals((result.http as OasHttpSecurityScheme).scheme, 'bearer')
-      assertEquals(result.http.description, undefined)
+      assertEquals((result.http as OasHttpSecurityScheme).description, undefined)
       assertEquals((result.http as OasHttpSecurityScheme).bearerFormat, undefined)
     })
 
@@ -289,7 +292,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
       })
 
       assertExists(result)
-      assertEquals(result.apiKey.description, 'API key for authentication')
+      assertEquals((result.apiKey as OasApiKeySecurityScheme).description, 'API key for authentication')
     })
 
     await t.step('should handle API key with minimal required fields', () => {
@@ -309,7 +312,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
       assertExists(result)
       assertEquals((result.minimal as OasApiKeySecurityScheme).name, 'key')
       assertEquals((result.minimal as OasApiKeySecurityScheme).location, 'query')
-      assertEquals(result.minimal.description, undefined)
+      assertEquals((result.minimal as OasApiKeySecurityScheme).description, undefined)
     })
   })
 
@@ -573,7 +576,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
 
       assertExists(result)
       assertEquals((result.openId as OasOpenIdSecurityScheme).openIdConnectUrl, 'https://example.com/.well-known/openid-configuration')
-      assertEquals(result.openId.description, 'OpenID Connect authentication')
+      assertEquals((result.openId as OasOpenIdSecurityScheme).description, 'OpenID Connect authentication')
     })
 
     await t.step('should handle OpenID Connect with all fields', () => {
@@ -593,7 +596,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
       assertExists(result)
       assertEquals(result.oidc.type, 'openIdConnect')
       assertEquals((result.oidc as OasOpenIdSecurityScheme).openIdConnectUrl, 'https://auth.example.com/.well-known/openid-configuration')
-      assertEquals(result.oidc.description, 'Enterprise SSO via OpenID Connect')
+      assertEquals((result.oidc as OasOpenIdSecurityScheme).description, 'Enterprise SSO via OpenID Connect')
     })
   })
 
@@ -619,7 +622,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
       assertExists(result)
       assertEquals((result.http as OasHttpSecurityScheme).scheme, 'bearer')
       assertEquals((result.http as OasHttpSecurityScheme).bearerFormat, 'JWT')
-      assertEquals(result.http.description, 'Bearer token')
+      assertEquals((result.http as OasHttpSecurityScheme).description, 'Bearer token')
     })
 
     await t.step('should identify unknown/extra fields as skipped', () => {
@@ -837,6 +840,57 @@ Deno.test('toSecuritySchemesV3', async (t) => {
       // Verify OpenID
       assertEquals(result.OpenID.type, 'openIdConnect')
       assertEquals((result.OpenID as OasOpenIdSecurityScheme).openIdConnectUrl, 'https://auth.example.com/.well-known/openid-configuration')
+    })
+  })
+
+  await t.step('error isolation', async (t) => {
+    await t.step('should skip a scheme with an unknown type and keep the rest', () => {
+      const stackTrail = new StackTrail(['components', 'securitySchemes'])
+      const contextSpy = spy(mockParseContext, 'logIssueNoKey')
+
+      const result = toSecuritySchemesV3({
+        securitySchemes: {
+          good: { type: 'http', scheme: 'basic' },
+          bad: { type: 'telepathy' },
+        } as unknown as Record<string, OpenAPIV3.SecuritySchemeObject>,
+        stackTrail,
+        context: mockParseContext as ParseContextType,
+      })
+
+      assertExists(result)
+      // The bad scheme is dropped; the good one survives.
+      assertEquals(Object.keys(result), ['good'])
+      assertEquals(result.good instanceof OasHttpSecurityScheme, true)
+      // One INVALID_SECURITY_SCHEME error logged for the bad scheme.
+      assertSpyCalls(contextSpy, 1)
+      assertEquals(contextSpy.calls[0].args[0].type, 'INVALID_SECURITY_SCHEME')
+      assertEquals(contextSpy.calls[0].args[0].level, 'error')
+
+      contextSpy.restore()
+    })
+
+    await t.step('should isolate a structurally invalid scheme (missing required field)', () => {
+      const stackTrail = new StackTrail(['components', 'securitySchemes'])
+      const contextSpy = spy(mockParseContext, 'logIssueNoKey')
+
+      const result = toSecuritySchemesV3({
+        // `http` requires `scheme` — omitting it makes v.parse throw, which
+        // must be isolated to this one scheme.
+        securitySchemes: {
+          broken: { type: 'http' },
+          ok: { type: 'apiKey', name: 'X-API-Key', in: 'header' },
+        } as unknown as Record<string, OpenAPIV3.SecuritySchemeObject>,
+        stackTrail,
+        context: mockParseContext as ParseContextType,
+      })
+
+      assertExists(result)
+      assertEquals(Object.keys(result), ['ok'])
+      assertEquals(result.ok instanceof OasApiKeySecurityScheme, true)
+      assertSpyCalls(contextSpy, 1)
+      assertEquals(contextSpy.calls[0].args[0].type, 'INVALID_SECURITY_SCHEME')
+
+      contextSpy.restore()
     })
   })
 })

@@ -19,6 +19,7 @@ import { toRefV31 } from '../ref/toRefV31.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { isRef } from '@/helpers/refFns.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 export type ToSecuritySchemesArgs = {
   securitySchemes:
@@ -33,21 +34,31 @@ export const toSecuritySchemesV3 = ({
   stackTrail,
   context
 }: ToSecuritySchemesArgs): // 'http' | 'apiKey' | 'oauth2' | 'openIdConnect'
-Record<string, OasSecurityScheme> | undefined => {
+Record<string, OasSecurityScheme | OasRef<'securityScheme'>> | undefined => {
   if (!securitySchemes) {
     return undefined
   }
 
-  return Object.fromEntries(
-    Object.entries(securitySchemes).map(([key, value]) => {
-      return [
-        key,
-        stackTrail.trace(key, st =>
-          toSecuritySchemeV3({ securityScheme: value, stackTrail: st, context })
-        )
-      ]
+  const output: Record<string, OasSecurityScheme | OasRef<'securityScheme'>> = {}
+
+  for (const [key, value] of Object.entries(securitySchemes)) {
+    // Isolate per scheme: a single malformed security scheme is logged and
+    // skipped, the rest of the record continues (parity with toSchemasV3).
+    const parsed = tryParseAt({
+      stackTrail,
+      key,
+      context,
+      type: 'INVALID_SECURITY_SCHEME',
+      parent: value,
+      fn: st => toSecuritySchemeV3({ securityScheme: value, stackTrail: st, context })
     })
-  ) as Record<string, OasSecurityScheme>
+
+    if (parsed !== undefined) {
+      output[key] = parsed
+    }
+  }
+
+  return output
 }
 
 export type ToSecuritySchemeV3Args = {
@@ -116,7 +127,7 @@ const toSecuritySchemeV3 = ({
       return new OasApiKeySecurityScheme({
         description,
         name,
-        in: location as 'header' | 'query' | 'cookie'
+        in: location
       });
     }
 
@@ -166,8 +177,12 @@ const toSecuritySchemeV3 = ({
       });
     }
 
-    default:
-      // TODO: skip ref
-      throw new Error(`Unknown security scheme type: ${(securityScheme as any).type}`);
+    default: {
+      // Exhaustive over the discriminated union: a value reaching here has a
+      // `type` outside the OpenAPI set. `tryParseAt` isolates the throw to
+      // this one scheme.
+      const _exhaustiveCheck: never = securityScheme
+      throw new Error(`Unknown security scheme type: ${JSON.stringify(_exhaustiveCheck)}`)
+    }
   }
 }
