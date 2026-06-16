@@ -65,3 +65,5 @@ openapi.json
 deno/cli/tests/.fixtures/
 
 notes/*
+
+todo.txt

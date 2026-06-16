@@ -13,6 +13,12 @@ export type TsDefinitionArgs<Value extends GeneratedValue> = {
   identifier: IdentifierBase
   value: Value
   description?: string
+  /**
+   * A `//` line comment rendered verbatim on its own line directly above the
+   * declaration (and above any JSDoc `description`). Each newline starts a
+   * fresh `// ` line. Use for terse leading notes that aren't JSDoc.
+   */
+  leadingComment?: string
   noExport?: boolean
 }
 
@@ -24,12 +30,14 @@ export type TsDefinitionArgs<Value extends GeneratedValue> = {
  */
 export class TsDefinition<Value extends GeneratedValue = GeneratedValue> extends DefinitionBase<Value> {
   description: string | undefined
+  leadingComment: string | undefined
   noExport: boolean | undefined
 
-  constructor({ context, identifier, value, description, noExport }: TsDefinitionArgs<Value>) {
+  constructor({ context, identifier, value, description, leadingComment, noExport }: TsDefinitionArgs<Value>) {
     super({ context, identifier, value })
 
     this.description = description
+    this.leadingComment = leadingComment
     this.noExport = noExport
   }
 
@@ -43,18 +51,22 @@ export class TsDefinition<Value extends GeneratedValue = GeneratedValue> extends
     const exportPrefix = this.noExport ? '' : 'export '
     const keyword = toTsKeyword(kind)
 
+    const leadingComment = this.leadingComment
+      ? this.leadingComment.split('\n').map(line => `// ${line}\n`).join('')
+      : ''
+
     // Block-form declarations (class / interface / declare namespace) take no
     // `= value` and no trailing `;` — the value carries the heritage and the
     // braced body.
     if (isBlockKind(kind)) {
-      return withDescription(`${exportPrefix}${keyword} ${name} ${this.value}\n`, {
+      return leadingComment + withDescription(`${exportPrefix}${keyword} ${name} ${this.value}\n`, {
         description: this.description
       })
     }
 
     const identifier = typeName ? `${name}: ${typeName}` : name
 
-    return withDescription(`${exportPrefix}${keyword} ${identifier} = ${this.value};\n`, {
+    return leadingComment + withDescription(`${exportPrefix}${keyword} ${identifier} = ${this.value};\n`, {
       description: this.description
     })
   }

@@ -148,6 +148,20 @@ export type OasOperationConfig<EnrichmentType = undefined> = {
   transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
+  /**
+   * Optional: compute the DEFAULT enrichment values for an operation from its
+   * schema — the seed the CMS persists and the user then edits. The pipeline
+   * counterpart of the projection base's static of the same name: a generator
+   * wires this on the entry (typically forwarding `MyProjection.toEnrichmentDefaults`)
+   * so the seeding pass can reach it from the generator-config map without the
+   * projection class. Returns the `{ subject, generator, stack }` umbrella, or
+   * `undefined` when the generator advertises no defaults.
+   */
+  toEnrichmentDefaults?: ({
+    operation,
+    context,
+    variant
+  }: ToOasOperationEnrichmentsArgs) => EnrichmentType | undefined
   toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(

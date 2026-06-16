@@ -12,6 +12,17 @@ Deno.test('toNumber - basic number type', () => {
   assertEquals(oasNumber, new OasNumber())
 })
 
+Deno.test('toNumber - allows default:null on a nullable schema', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  // A nullable number may default to null — the strict validator must not
+  // reject it (regression: previously threw INVALID_SCHEMA "Expected number
+  // but received null").
+  const schema: OpenAPIV3.SchemaObject = { type: 'number', nullable: true, default: null }
+  const oasNumber = toNumber({ value: schema, stackTrail, context: mockParseContext })
+
+  assertEquals(oasNumber, new OasNumber({ nullable: true, default: null }))
+})
+
 Deno.test('toNumber - validation fields', () => {
   const stackTrail = new StackTrail(['TEST'])
   const schema: OpenAPIV3.SchemaObject = {

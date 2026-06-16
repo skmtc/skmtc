@@ -7,6 +7,12 @@ import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
 import type {
+  EnrichmentDefaults,
+  EnrichmentDefaultsLeaf,
+  ModelEnrichmentDefaults,
+  OperationEnrichmentDefaults
+} from '@/types/EnrichmentDefaults.ts'
+import type {
   BuildModelSettingsArgs,
   GenerateContextType,
   GenerateResult,
@@ -238,6 +244,11 @@ const isGqlToOperationSettingsArgs = <V extends GeneratedValue, EnrichmentType>(
 ): args is ToGqlOperationSettingsArgs<V, EnrichmentType> =>
   args.operation.oasType === 'gqlOperation'
 
+/** A non-null object — the subject-scope leaf of an enrichment-defaults umbrella
+ *  (`{ fields, title, … }`). Narrows `unknown` without an `as` cast. */
+const isEnrichmentLeaf = (value: unknown): value is EnrichmentDefaultsLeaf =>
+  typeof value === 'object' && value !== null
+
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, FileBase>
   #previews: Record<string, Preview>
@@ -457,6 +468,118 @@ export class GenerateContext implements GenerateContextType {
     } catch (error) {
       this.logger.error(error)
       return false
+    }
+  }
+
+  /**
+   * The seed enrichment values each configured generator derives from the
+   * document — the *values* counterpart of {@link toSupportedSubjects}. For
+   * every generator that advertises `toEnrichmentDefaults`, calls it over the
+   * subjects the generator supports and keeps the non-`undefined` subject-scope
+   * leaves, keyed by the `client.json#settings.enrichments` routing:
+   * `[id][path][method]['main']` for operations, `[id][refName]['main']` for
+   * models. Seeding targets the `'main'` variant; a generator that advertises
+   * no defaults (or whose every subject returns `undefined`) is omitted.
+   *
+   * Like {@link toSupportedSubjects} it neither transforms nor renders, and is
+   * defensive: a generator whose hook throws contributes nothing rather than
+   * failing the whole pass.
+   */
+  toEnrichmentDefaults(): EnrichmentDefaults {
+    const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
+    const out: EnrichmentDefaults = {}
+
+    generators.forEach(generatorConfig => {
+      switch (generatorConfig.type) {
+        case 'oasOperation': {
+          const toDefaults = generatorConfig.toEnrichmentDefaults
+          if (!toDefaults || this.document.type !== 'oas') break
+
+          const operations: OperationEnrichmentDefaults = {}
+          this.document.value.operations.forEach(operation => {
+            if (
+              !this.#supports(() =>
+                generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
+              )
+            ) {
+              return
+            }
+
+            const leaf = this.#subjectDefaults(() =>
+              toDefaults({ operation, context: this, variant: DEFAULT_VARIANT })
+            )
+            if (leaf === undefined) return
+
+            const methods = (operations[operation.path] ??= {})
+            methods[operation.method] = { [DEFAULT_VARIANT]: leaf }
+          })
+
+          if (Object.keys(operations).length > 0) {
+            out[generatorConfig.id] = operations
+          }
+          break
+        }
+        case 'model': {
+          const toDefaults = generatorConfig.toEnrichmentDefaults
+          if (!toDefaults) break
+
+          // Model entries carry no `isSupported` — the generate pipeline visits
+          // every refName and filters inside the callback. Mirror that here: the
+          // hook itself returns `undefined` for schemas it doesn't seed.
+          const refNames =
+            this.document.type === 'oas'
+              ? (this.document.value.components?.toSchemasRefNames() ?? [])
+              : this.document.value.registry.toSchemasRefNames()
+
+          const models: ModelEnrichmentDefaults = {}
+          for (const refName of refNames) {
+            const leaf = this.#subjectDefaults(() =>
+              toDefaults({ refName, context: this, variant: DEFAULT_VARIANT })
+            )
+            if (leaf === undefined) continue
+
+            models[refName] = { [DEFAULT_VARIANT]: leaf }
+          }
+
+          if (Object.keys(models).length > 0) {
+            out[generatorConfig.id] = models
+          }
+          break
+        }
+        case 'gqlOperation': {
+          // No `toEnrichmentDefaults` on the GraphQL projection base — seeding is
+          // OAS-operation / model only today, so a GQL generator contributes
+          // nothing.
+          break
+        }
+        default: {
+          const _exhaustive: never = generatorConfig
+          throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
+        }
+      }
+    })
+
+    return out
+  }
+
+  /**
+   * Run a generator's `toEnrichmentDefaults` defensively and extract its
+   * subject-scope leaf. A throwing hook contributes nothing; an umbrella with no
+   * `subject` (or a non-object `subject`) is treated as "no default for this
+   * subject". The run-constant `generator` / `stack` scopes are intentionally
+   * ignored — seeding is subject-scope only.
+   */
+  #subjectDefaults(produce: () => unknown): EnrichmentDefaultsLeaf | undefined {
+    try {
+      const umbrella = produce()
+      if (typeof umbrella !== 'object' || umbrella === null || !('subject' in umbrella)) {
+        return undefined
+      }
+      const { subject } = umbrella
+      return isEnrichmentLeaf(subject) ? subject : undefined
+    } catch (error) {
+      this.logger.error(error)
+      return undefined
     }
   }
 

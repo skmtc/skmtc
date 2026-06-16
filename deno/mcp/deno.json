@@ -13,6 +13,6 @@
     "@std/path": "jsr:@std/path@^1.0.9"
   },
   "tasks": {
-    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"
+    "publish": "JSR_URL=https://jsr.skmtc.co.uk/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"
   }
 }

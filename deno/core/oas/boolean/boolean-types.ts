@@ -39,7 +39,7 @@ export const oasBooleanData = v.object({
   type: v.literal('boolean'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
-  default: v.optional(v.boolean()),
+  default: v.optional(v.nullable(v.boolean())),
   enum: v.optional(v.array(v.boolean())),
   readOnly: v.optional(v.boolean()),
   writeOnly: v.optional(v.boolean()),
@@ -103,7 +103,7 @@ export type OasBooleanData = {
   /** Detailed description explaining the boolean's purpose and usage */
   description?: string
   /** Default value used when no explicit value is provided */
-  default?: boolean
+  default?: boolean | null
   /** Array of valid boolean values for enumeration constraints */
   enum?: boolean[]
   readOnly?: boolean

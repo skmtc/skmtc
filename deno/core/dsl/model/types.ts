@@ -144,4 +144,17 @@ export type ModelConfig<EnrichmentType = undefined> = {
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
+  /**
+   * Optional: compute the DEFAULT enrichment values for a model from its schema
+   * — the seed the CMS persists and the user then edits. The pipeline
+   * counterpart of the projection base's static of the same name; a generator
+   * forwards `MyProjection.toEnrichmentDefaults` here so the seeding pass can
+   * reach it via the generator-config map. Returns the `{ subject, generator,
+   * stack }` umbrella, or `undefined` when no defaults are advertised.
+   */
+  toEnrichmentDefaults?: ({
+    refName,
+    context,
+    variant
+  }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
 }

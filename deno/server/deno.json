@@ -1,16 +1,16 @@
 {
   "name": "@skmtc/server",
-  "version": "0.2.32",
+  "version": "0.2.35",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
     "hono": "npm:hono@4.7.2",
-    "@skmtc/core": "jsr:@skmtc/core@0.14.0",
+    "@skmtc/core": "jsr:@skmtc/core@0.16.0",
     "@skmtc/convert": "jsr:@skmtc/convert@0.1.16"
   },
   "tasks": {
-    "publish": "JSR_URL=https://jsr.skmtc.dev/ deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN"
+    "publish": "JSR_URL=https://jsr.skmtc.co.uk/ deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN"
   }
 }

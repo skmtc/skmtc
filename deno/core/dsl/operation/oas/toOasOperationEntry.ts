@@ -5,6 +5,7 @@ import type {
   IsSupportedOasOperationArgs,
   ToOasOperationPreviewModuleArgs,
   ToOasOperationMappingArgs,
+  ToOasOperationEnrichmentsArgs,
   TransformOasOperationArgs
 } from '@/dsl/operation/oas/types.ts'
 import type { IsSupportedOasOperationConfigArgs } from '@/dsl/operation/oas/types.ts'
@@ -33,6 +34,19 @@ export type ToOasOperationConfigArgs<EnrichmentType = undefined> = {
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
+  /**
+   * Optional: compute the DEFAULT enrichment values for an operation from its
+   * schema — the seed the CMS persists and the user then edits. Typically a
+   * thin forward to the projection base's static of the same name
+   * (`toEnrichmentDefaults: MyProjection.toEnrichmentDefaults`) so the logic
+   * has a single home in `base.ts` while the entry exposes it to the seeding
+   * pass (which walks the generator-config map, not projection classes).
+   */
+  toEnrichmentDefaults?: ({
+    operation,
+    context,
+    variant
+  }: ToOasOperationEnrichmentsArgs) => EnrichmentType | undefined
 }
 
 /**
@@ -68,7 +82,8 @@ export const toOasOperationEntry = <EnrichmentType = undefined>({
   isSupported,
   toPreviewModule,
   toMappingModule,
-  toEnrichmentRequest
+  toEnrichmentRequest,
+  toEnrichmentDefaults
 }: ToOasOperationConfigArgs<EnrichmentType>): {
   id: string
   type: 'oasOperation'
@@ -80,6 +95,11 @@ export const toOasOperationEntry = <EnrichmentType = undefined>({
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
+  toEnrichmentDefaults?: ({
+    operation,
+    context,
+    variant
+  }: ToOasOperationEnrichmentsArgs) => EnrichmentType | undefined
 } => {
   return {
     id,
@@ -117,6 +137,7 @@ export const toOasOperationEntry = <EnrichmentType = undefined>({
     },
     toPreviewModule,
     toMappingModule,
-    toEnrichmentRequest
+    toEnrichmentRequest,
+    toEnrichmentDefaults
   }
 }

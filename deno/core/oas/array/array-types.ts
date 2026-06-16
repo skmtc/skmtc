@@ -47,7 +47,7 @@ export const oasArrayDataWithoutItems: v.GenericSchema<OasArrayDataWithoutItems>
   type: v.literal('array'),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
-  default: v.optional(v.array(v.unknown())),
+  default: v.optional(v.nullable(v.array(v.unknown()))),
   maxItems: v.optional(v.number()),
   minItems: v.optional(v.number()),
   uniqueItems: v.optional(v.boolean()),
@@ -110,7 +110,7 @@ export type OasArrayDataWithoutItems = {
   /** Detailed description explaining the array's purpose and contents */
   description?: string
   /** Default value used when no explicit array is provided */
-  default?: unknown[]
+  default?: unknown[] | null
   /** Maximum number of items allowed in the array */
   maxItems?: number
   /** Minimum number of items required in the array */

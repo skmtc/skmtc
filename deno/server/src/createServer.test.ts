@@ -138,6 +138,65 @@ Deno.test('POST /descriptors - returns one descriptor per generator', async () =
   assertEquals(body.descriptors[0].fields[0].kind, 'toggle')
 })
 
+Deno.test('POST /enrichment-defaults - empty generator map returns empty defaults', async () => {
+  const app = mkApp()
+  const res = await app.request('/enrichment-defaults', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ protocol: 'oas', schema: JSON.stringify(minimalOas) })
+  })
+
+  assertEquals(res.status, 200)
+  const body = await res.json()
+  assertEquals(body.enrichmentDefaults, {})
+  assertEquals(body.parseIssues, [])
+})
+
+Deno.test('POST /enrichment-defaults - returns seeded defaults per supported subject', async () => {
+  type Enrichment = { subject?: { note?: string }; generator?: undefined; stack?: undefined }
+  const modelGen: ModelConfig<Enrichment> = {
+    id: 'modelGen',
+    type: 'model',
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(v.object({ note: v.optional(v.string()) })),
+        generator: v.undefined(),
+        stack: v.undefined()
+      }),
+    transform(_args: TransformModelArgs): void {},
+    toEnrichmentDefaults: ({ refName }) => ({
+      subject: { note: `model ${refName}` },
+      generator: undefined,
+      stack: undefined
+    })
+  }
+  const app = createServer({
+    toGeneratorConfigMap: (() => ({ modelGen })) as <
+      EnrichmentType = undefined,
+    >() => GeneratorsMapContainer<EnrichmentType>,
+  })
+
+  const oasWithModel = {
+    openapi: '3.0.0',
+    info: { title: 'Test', version: '1.0.0' },
+    paths: {},
+    components: { schemas: { Widget: { type: 'object' } } }
+  }
+
+  const res = await app.request('/enrichment-defaults', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ protocol: 'oas', schema: JSON.stringify(oasWithModel) })
+  })
+
+  assertEquals(res.status, 200)
+  const body = await res.json()
+  // Keyed by the `enrichments` config routing: `[id][refName]['main']`.
+  assertEquals(body.enrichmentDefaults, {
+    modelGen: { Widget: { main: { note: 'model Widget' } } }
+  })
+})
+
 Deno.test('POST /to-v3-json - converts OpenAPI source to v3 JSON', async () => {
   const app = mkApp()
   const res = await app.request('/to-v3-json', {

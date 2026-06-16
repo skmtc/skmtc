@@ -79,6 +79,10 @@ export type TsDefineAndRegisterArgs<Value extends GeneratedValue> = {
   identifier: TsIdentifier
   value: Value
   destinationPath: string
+  /** JSDoc description rendered above the declaration. */
+  description?: string
+  /** A `//` line comment rendered verbatim above the declaration (see {@link TsDefinition}). */
+  leadingComment?: string
   noExport?: boolean
 }
 
@@ -93,9 +97,9 @@ export type TsDefineAndRegisterArgs<Value extends GeneratedValue> = {
  */
 export const defineAndRegister = <Value extends GeneratedValue>(
   context: GenerateContextType,
-  { identifier, value, destinationPath, noExport }: TsDefineAndRegisterArgs<Value>
+  { identifier, value, destinationPath, description, leadingComment, noExport }: TsDefineAndRegisterArgs<Value>
 ): TsDefinition<Value> => {
-  const definition = new TsDefinition({ context, identifier, value, noExport })
+  const definition = new TsDefinition({ context, identifier, value, description, leadingComment, noExport })
 
   register(context, { definitions: [definition], destinationPath })
 
