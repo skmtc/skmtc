@@ -8,6 +8,7 @@ import {
 import { pushHeadless, type PushHeadlessResult } from "@/lib/push-headless.ts";
 import { resolveHubAuth } from "@/lib/hub-token.ts";
 import { collectBaseFiles } from "@/lib/source-upload.ts";
+import { toAbsoluteRootPath } from "@/lib/to-root-path.ts";
 import { dirname } from "@std/path/dirname";
 import { join } from "@std/path/join";
 
@@ -43,7 +44,9 @@ const collectProjectBaseFiles = async (
   const project = skmtcRoot.findProject(projectName);
   const basePath = project.clientJson.contents?.settings?.basePath ?? ".";
   const appRootRel = dirname(basePath);
-  const appRoot = join(SkmtcRoot.toPath(), appRootRel);
+  // The app root is the dir that CONTAINS `.skmtc/` (toAbsoluteRootPath), not
+  // the `.skmtc` dir itself (toRootPath). basePath is relative to it.
+  const appRoot = join(toAbsoluteRootPath(), appRootRel);
   // Manifest destinations are SKMTC-root-relative; strip the app-root prefix so
   // they line up with the app-root-relative collected paths.
   const prefix = appRootRel === "." ? "" : `${appRootRel}/`;
