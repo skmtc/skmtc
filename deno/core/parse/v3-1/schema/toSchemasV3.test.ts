@@ -882,19 +882,99 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 type arrays', async t => {
     assertEquals(result.nullable, undefined)
   })
 
-  await t.step('multi-member type array still falls through to OasUnknown', () => {
-    // KNOWN GAP (CASE 2): a 3.1 multi-type union `type:["string","integer"]`
-    // degrades to OasUnknown — normalizeTypeArray only handles the
-    // single-non-null-member form. Tracked for the native v3_1 parser
-    // (Phase 3) in notes/openapi-3.1-webhooks-and-parser-architecture.md
-    // (§1.6 CASE 2, §2 divergence map). Asserted here so the gap is explicit.
+  await t.step('a multi-member type array becomes a union (CASE 2 — native 3.1)', () => {
+    // 3.1 `type:["string","integer"]` is a union; v3-1 models it as
+    // OasUnion(string | integer). (v3-0 degrades this to OasUnknown — the
+    // CASE-2 gap; see core/parse/README.md.)
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema = JSON.parse('{"type": ["string", "integer"]}')
 
     const result = toSchemaV3({ schema, stackTrail, context })
 
+    assert(result instanceof OasUnion)
+    assertEquals(result.members.length, 2)
+    assert(result.members[0] instanceof OasString)
+    assert(result.members[1] instanceof OasInteger)
+  })
+
+  await t.step('a multi-member type array with null is a nullable union', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": ["string", "integer", "null"]}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasUnion)
+    assertEquals(result.nullable, true)
+    assertEquals(result.members.length, 2)
+  })
+
+  await t.step('type:["null"] (only null) falls through to OasUnknown (documented gap)', () => {
+    // No first-class OasNull IR node yet — pure null degrades to OasUnknown.
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": ["null"]}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
     assert(result instanceof OasUnknown)
+  })
+})
+
+Deno.test('toSchemaV3 - OpenAPI 3.1 native null members', async t => {
+  // In raw 3.1 (no down-convert) the nullability of a combinator is
+  // expressed by a `{type:'null'}` MEMBER, not a hoisted `nullable` keyword.
+  // v3-1 folds that member into the same `nullable` flag the collapse/union
+  // logic already consumes.
+  await t.step('oneOf:[{type:string},{type:null}] is a nullable string', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.nullable, true)
+    assertEquals(result.minLength, 1)
+  })
+
+  await t.step('anyOf:[{type:string},{type:null}] is a nullable string', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"anyOf": [{"type": "string"}, {"type": "null"}]}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.nullable, true)
+  })
+
+  await t.step('oneOf:[{type:string},{type:integer},{type:null}] is a nullable union', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse(
+      '{"oneOf": [{"type": "string"}, {"type": "integer"}, {"type": "null"}]}'
+    )
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasUnion)
+    assertEquals(result.nullable, true)
+    assertEquals(result.members.length, 2)
+  })
+
+  await t.step('oneOf:[{$ref},{type:null}] stamps nullable on the OasRef', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse(
+      '{"oneOf": [{"$ref": "#/components/schemas/Foo"}, {"type": "null"}]}'
+    )
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasRef)
+    assertEquals(result.nullable, true)
   })
 })
 

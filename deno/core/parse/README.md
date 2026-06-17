@@ -1,0 +1,104 @@
+# `core/parse` — the OpenAPI parsers
+
+SKMTC parses an OpenAPI document into the shared, version-agnostic `Oas*` IR
+(`core/oas`). There is **one complete parser tree per OpenAPI dialect**, and
+the dialect is chosen exactly once, at the top.
+
+```
+core/parse/
+  toOasDialect.ts   the ONLY place an OpenAPI version is examined
+  v3-0/             the OpenAPI 3.0 parser  (toDocument → … → toSchema → leaves)
+  v3-1/             the OpenAPI 3.1 parser  (its own full tree)
+core/oas/           the Oas* IR — the shared target both parsers build
+```
+
+## The one-time dialect split
+
+`ParseContext.parse()` calls `toOasDialect(documentObject.openapi)` once and
+routes the whole document to `v3-0` or `v3-1`. Detection is **explicit and
+fails loud**: an unknown or missing version throws rather than silently
+defaulting to a dialect (a `startsWith('3.1') ? … : …` fallback would route
+every typo / `3.2` / `4.0` / missing field into 3.0 unnoticed). OpenAPI 2.0
+never reaches here — `swagger2openapi` upgrades it to 3.0 upstream.
+
+**Load-bearing invariant:** nothing below the split ever checks a version.
+Every line is either version-specific code living in its own tree (it is
+already in the right one) or a no-branch, dialect-neutral leaf. A 3.0
+document reaching a line of 3.1 logic is therefore *structurally
+impossible* — there is no branch condition to get wrong.
+
+## Why two trees, not one parameterized parser
+
+Duplication is deliberate (Option A). A single dialect-parameterized parser
+spreads each dialect's behavior across leaf + injected strategy + wiring, and
+turns a dialect bug from shallow ("this parser has a stale line" — local,
+testable) into deep ("the shared leaf misbehaves for 3.1 only in some field
+combination" — emergent). Reading one parser top-to-bottom in isolation beats
+DRY at a dialect boundary. Drift between the duplicated trees is caught
+behaviorally by a differential test corpus, not by re-coupling the code.
+
+## Shared vs duplicated
+
+- **Shared** (in `core/oas`, no version branches): the `Oas*` constructors and
+  the dialect-neutral leaf helpers — `_helpers/parseEnum`, `parseExample`,
+  `parseDefault`; `_merge-all-of/`; `discriminator/toDiscriminatorV3`; format
+  enums; sanitization. These take already-resolved inputs and never branch on
+  a version, so they cannot cause spillover.
+- **Duplicated** per tree: the schema dispatcher (`toSchema`), the
+  per-type/leaf parsers, the operation layer, and `parseNullable`. These read
+  version-specific encodings, so each tree owns its copy.
+
+> Naming note: function names still carry the historical `V3` suffix (e.g.
+> `toSchemaV3`) inside both trees; the rename to drop it is deferred. The
+> `Oas*` prefix on the IR is kept — it is "our OpenAPI-family IR", the
+> canonical version-agnostic target, *not* "the v3 model".
+
+## Dialect differences (v3.0 vs v3.1)
+
+How each genuinely-divergent construct is handled in each tree. The shared
+`Oas*` IR is the common output; the parsers differ only in how they read the
+wire form into it.
+
+| Construct | v3.0 (`v3-0`) | v3.1 (`v3-1`) | Status |
+|---|---|---|---|
+| Nullable scalar | `nullable: true` keyword | `type: ['T', 'null']` → IR `nullable` flag | ✅ done |
+| Multi-type union | not expressible | `type: ['T1','T2']` → `OasUnion` (CASE 2) | ✅ done |
+| Nullable union | `nullable` keyword on the combinator | `{type:'null'}` member folded out → IR `nullable` | ✅ done |
+| Nullable `$ref` | `oneOf:[{$ref}], nullable:true` → nullable `OasRef` | `oneOf:[{$ref},{type:'null'}]` → nullable `OasRef` | ✅ done |
+| Pure null (`type:'null'` / `['null']`) | n/a | falls through to `OasUnknown` — no `OasNull` IR node yet | ⏳ gap |
+| Literal (`const`) | single-`enum` | — | ⏳ pending |
+| `exclusiveMin/Max` | boolean (+ `minimum`) | numeric bound | ⏳ pending |
+| Schema `examples` | `example` (singular) | `examples` (array) | ⏳ pending |
+| `paths` requiredness | required | optional (webhooks-only docs) | ⏳ pending |
+| `$ref` siblings (`summary`/`description`) | ignored | ignored (no IR field yet) | ⏳ deferred |
+| Webhooks | via down-convert `retainWebhooks` | native, from the raw doc | ✅ (Phase 1/4) |
+
+### Nullability — the shared mechanism
+
+Both trees represent nullability the same way in the IR: a `nullable` flag the
+leaf parsers read via `parseNullable`. The trees differ only in where that
+flag comes from:
+
+- **v3-0** reads the literal `nullable` keyword, and (for the canonical 3.0
+  nullable-reference idiom) hoists `nullable` from a single-member
+  `oneOf`/`anyOf` wrapper onto the surviving member / `OasRef`.
+- **v3-1** has no `nullable` keyword. `normalizeTypeArray` turns
+  `type: ['T','null']` into `{ type: 'T', nullable: true }`, and
+  `partitionNullMember` folds a `{type:'null'}` member of a `oneOf`/`anyOf`
+  into the same flag. After that folding, v3-1 reuses the same
+  collapse/union/leaf logic.
+
+Multi-type arrays (`type: ['string','number']`) are modelled as a `oneOf` of
+the bare types, so the existing union machinery builds the `OasUnion`. A
+multi-type array carrying type-specific constraints (e.g. `maxLength` next to
+`['string','number']`) keeps the shared annotations on the union and does not
+distribute per-type constraints to the members — a rare case, noted here.
+
+## Known gaps / deferrals
+
+- **No `OasNull` IR node.** Pure null (`type: 'null'` / `['null']`,
+  `oneOf:[{type:'null'}]`) degrades to `OasUnknown`. A first-class `OasNull`
+  is an additive IR enrichment for when a generator needs it.
+- **`$ref` `summary`/`description` siblings** (3.1) are ignored — `OasRef`
+  has no field for them yet.
+- See the table above for constructs still marked ⏳ pending.

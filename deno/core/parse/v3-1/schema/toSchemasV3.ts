@@ -73,13 +73,20 @@ export type ToSchemaV3Args = {
 }
 
 /**
- * OpenAPI 3.1 expresses nullability as a type ARRAY
- * (`type: ['string', 'null']`); this parser's object model is 3.0's
- * `type` + `nullable`. Normalize the single-non-null-member form so
- * 3.1 documents dispatch like their 3.0 equivalents. Multi-member
- * type arrays keep falling through to OasUnknown, and a 3.1 `null`
- * alongside `array` is only normalized when `items` is present
- * (an items-less array schema cannot dispatch as an array).
+ * OpenAPI 3.1 lets a schema's `type` be an ARRAY (e.g. `['string', 'null']`),
+ * which the shared IR — modelling a single `type` plus a `nullable` flag —
+ * does not. Normalize the array form into shapes the rest of the dispatcher
+ * already understands:
+ *
+ *   - `['T', 'null']`   (one non-null type)  → `{ type: 'T', nullable: true }`
+ *   - `['T1', 'T2', …]` (several non-null)   → a `oneOf` of the bare types,
+ *     i.e. the 3.1 multi-type union. 3.0 cannot express this — it is the
+ *     CASE-2 gap where the v3-0 parser degrades to OasUnknown.
+ *   - `['null']`        (only null)          → left unchanged → OasUnknown,
+ *     since there is no first-class OasNull IR node yet (a documented gap).
+ *
+ * The hoisted `nullable` flag is the IR's representation of nullability; the
+ * leaf parsers read it via `parseNullable`. A non-array `type` passes through.
  */
 const normalizeTypeArray = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
   const rawType: unknown = schema.type
@@ -91,10 +98,19 @@ const normalizeTypeArray = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObj
   const members = rawType.filter(member => member !== 'null')
   const nullable = rawType.length !== members.length || schema.nullable
 
-  if (members.length !== 1) {
+  // Only `null` (`type: ['null']`): no OasNull node yet — fall through.
+  if (members.length === 0) {
     return schema
   }
 
+  // Several non-null types: a 3.1 multi-type union. Model it as a `oneOf`
+  // of the bare types and let the oneOf branch build the OasUnion.
+  if (members.length > 1) {
+    const { type: _type, ...rest } = schema
+    return { ...rest, nullable, oneOf: members.map(member => ({ type: member })) }
+  }
+
+  // Exactly one non-null type: dispatch as that type, carrying nullability.
   switch (members[0]) {
     case 'object':
     case 'integer':
@@ -110,17 +126,44 @@ const normalizeTypeArray = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObj
 }
 
 /**
+ * Is this a 3.1 `{ type: 'null' }` schema member? (`'null'` is a 3.1 type
+ * literal the 3.0-typed SchemaObject does not model, so read it loosely.)
+ */
+const isNullTypeSchema = (
+  member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+): boolean => {
+  if (isRef(member)) {
+    return false
+  }
+
+  const type: unknown = member.type
+  return type === 'null'
+}
+
+/**
+ * Split `oneOf`/`anyOf` members into the non-null members plus whether a
+ * `{ type: 'null' }` member was present. In 3.1 that null member is how a
+ * union expresses nullability (3.0 used the hoisted `nullable` keyword);
+ * folding it into a flag lets the collapse/union logic stay unchanged.
+ */
+const partitionNullMember = (
+  members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
+): { members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]; nullable: boolean } => {
+  const nonNull = members.filter(member => !isNullTypeSchema(member))
+  return { members: nonNull, nullable: nonNull.length !== members.length }
+}
+
+/**
  * Collapse a single-member `oneOf`/`anyOf` into its surviving member.
  *
  * The wrapper's sibling keywords must ride into the member rather than
- * being discarded. The critical one is `nullable`: down-convert's
- * `convertNullableOneOfAnyOf` rewrites the 3.1 idiom
- * `oneOf:[{type:'string'},{type:'null'}]` ("string or null") into
- * `oneOf:[{type:'string'}]` + a hoisted `nullable:true` on the wrapper.
- * The old short-circuit re-dispatched `members[0]` alone, dropping the
- * wrapper (`...value`) and silently turning `string | null` back into a
- * non-nullable `string`. `description`/`title`/`readOnly`/... ride along
- * the same way.
+ * being discarded. The critical one is `nullable`: the 3.1 idiom
+ * `oneOf:[{type:'string'},{type:'null'}]` ("string or null") has its
+ * `{type:'null'}` member folded out by `partitionNullMember` above, leaving
+ * `oneOf:[{type:'string'}]` + `nullable:true` on the wrapper. Re-dispatching
+ * `members[0]` alone would drop the wrapper (`...value`) and silently turn
+ * `string | null` back into a non-nullable `string`.
+ * `description`/`title`/`readOnly`/... ride along the same way.
  *
  * Precedence: the member is the more specific schema, so it wins direct
  * conflicts (`{ ...value, ...member }`). `nullable` is the exception — it
@@ -177,8 +220,17 @@ export const toSchemaV3 = ({
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
     return stackTrail.trace('oneOf', st => {
+      // 3.1: a `{ type: 'null' }` member makes the union nullable. Fold it
+      // into a `nullable` flag the collapse/union logic already understands.
+      const { members: oneOfWithoutNull, nullable: hasNullMember } = partitionNullMember(
+        schema.oneOf ?? []
+      )
+      const withoutNull: OpenAPIV3.SchemaObject = hasNullMember
+        ? { ...schema, oneOf: oneOfWithoutNull, nullable: true }
+        : schema
+
       const merged = mergeUnion({
-        schema,
+        schema: withoutNull,
         getRef: toGetRef(context.documentObject),
         groupType: 'oneOf'
       })
@@ -195,14 +247,14 @@ export const toSchemaV3 = ({
 
       if (members.length === 1) {
         const [soleMember] = members
-        // A 3.1 nullable reference `oneOf:[{$ref},{type:null}]` down-converts
-        // to a single `$ref` member + a hoisted `nullable:true`. Nullability
-        // here is a *use-site* property — the same refName may be referenced
-        // nullable at one site and not another — so it rides the OasRef node
-        // itself, NOT the shared referent and NOT a synthetic union.
-        // Generators read `ref.nullable` (`'nullable' in schema ?
-        // schema.nullable`) and render `Foo | null`; `ModelDriver` builds the
-        // un-nullable shared `Foo` from the refName. See
+        // A 3.1 nullable reference `oneOf:[{$ref},{type:'null'}]` becomes a
+        // single `$ref` member + `nullable:true` once the null member above
+        // is folded out. Nullability here is a *use-site* property — the same
+        // refName may be referenced nullable at one site and not another — so
+        // it rides the OasRef node itself, NOT the shared referent and NOT a
+        // synthetic union. Generators read `ref.nullable` and render
+        // `Foo | null`; `ModelDriver` builds the un-nullable shared `Foo` from
+        // the refName. See
         // notes/openapi-3.1-webhooks-and-parser-architecture.md §3.4.
         if (isRef(soleMember) && value.nullable) {
           return toRefV31({
@@ -234,8 +286,17 @@ export const toSchemaV3 = ({
         return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
       }
 
+      // 3.1: a `{ type: 'null' }` member makes the union nullable (mirrors
+      // the oneOf branch above).
+      const { members: anyOfWithoutNull, nullable: hasNullMember } = partitionNullMember(
+        schema.anyOf ?? []
+      )
+      const withoutNull: OpenAPIV3.SchemaObject = hasNullMember
+        ? { ...schema, anyOf: anyOfWithoutNull, nullable: true }
+        : schema
+
       const merged = mergeUnion({
-        schema,
+        schema: withoutNull,
         getRef: toGetRef(context.documentObject),
         groupType: 'anyOf'
       })
