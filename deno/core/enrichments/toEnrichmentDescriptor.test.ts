@@ -139,6 +139,24 @@ Deno.test('toEnrichmentDescriptor — collapses gqlOperation to operation', () =
   assertEquals(descriptor.appliesTo, 'operation')
 })
 
+Deno.test('toEnrichmentDescriptor — collapses webhook to operation (stopgap)', () => {
+  // A webhook generator config (type 'webhook') is operation-shaped; its
+  // descriptor reuses the 'operation' context for now. See the toAppliesTo
+  // stopgap note — a dedicated 'webhook' TargetKind is a deferred,
+  // hub-coordinated change.
+  const entry: EnrichmentSource = {
+    id: '@skmtc/gen-ts-webhook',
+    type: 'webhook',
+    toEnrichmentSchema: () => v.object({
+      subject: v.optional(v.object({ title: v.optional(v.string()) })),
+      generator: v.undefined(),
+      stack: v.undefined()
+    })
+  }
+  const descriptor = toEnrichmentDescriptor(entry)
+  assertEquals(descriptor.appliesTo, 'operation')
+})
+
 Deno.test('toEnrichmentDescriptor — surfaces subject + generator scopes (model entry)', () => {
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-kotlin',
