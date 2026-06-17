@@ -49,6 +49,7 @@ export {
 } from './src/register.ts'
 export { toTsModelProjectionBase } from './src/toTsModelProjectionBase.ts'
 export { toTsOasOperationProjectionBase } from './src/toTsOasOperationProjectionBase.ts'
+export { toTsWebhookProjectionBase } from './src/toTsWebhookProjectionBase.ts'
 export { toTsGqlOperationProjectionBase } from './src/toTsGqlOperationProjectionBase.ts'
 export { ReactRouterPathParams } from './src/ReactRouterPathParams.ts'
 export { TsFile, type TsFileArgs } from './src/TsFile.ts'
