@@ -123,6 +123,31 @@ export const toSchemaV3 = ({
 
   if ('allOf' in schema && Array.isArray(schema.allOf)) {
     return stackTrail.trace('allOf', st => {
+      // A single-member allOf collapses to its sole member — the value must
+      // satisfy exactly that one schema. When the member is a `$ref`, keep it
+      // LAZY (as an OasRef) rather than resolving + merging its target: a
+      // `{ allOf: [{$ref: self}], nullable: true }` (a nullable reference
+      // written as a one-member allOf — common in real specs) is
+      // self-referential, and eagerly resolving it would not terminate. The
+      // ref resolves at use time like every other ref. This mirrors the
+      // single-member oneOf/anyOf handling below.
+      const { allOf, ...value } = schema
+      const members = allOf ?? []
+
+      if (members.length === 1) {
+        const [member] = members
+
+        if (isRef(member) && value.nullable) {
+          return toRefV31({ ref: member, refType: 'schema', nullable: true, stackTrail: st, context })
+        }
+
+        return toSchemaV3({
+          schema: collapseSingleMember(value, member),
+          stackTrail: st,
+          context
+        })
+      }
+
       const merged = mergeIntersection({
         schema,
         getRef: toGetRef(context.documentObject)

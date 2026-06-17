@@ -1094,6 +1094,40 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 content keywords map to string format', asyn
   })
 })
 
+Deno.test('toSchemaV3 - single-member allOf keeps the ref lazy (recursion-safe)', async t => {
+  // A nullable reference written as a one-member allOf is the self-referential
+  // idiom (remote.com's PreOnboardingDocumentRequirement.depends_on_requirement
+  // is `{allOf:[{$ref:self}], nullable:true}`). Eagerly resolving + merging it
+  // would not terminate; the ref must stay lazy, like every other ref.
+  await t.step('allOf:[{$ref}] + nullable collapses to a nullable OasRef', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse(
+      '{"allOf":[{"$ref":"#/components/schemas/Foo"}],"nullable":true,"description":"x"}'
+    )
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasRef)
+    assertEquals(result.nullable, true)
+  })
+
+  await t.step('a self-referential allOf property terminates and the object survives', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse(
+      '{"type":"object","properties":{"next":{"allOf":[{"$ref":"#/components/schemas/Node"}],"nullable":true}}}'
+    )
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasObject)
+    const next = result.properties?.next
+    assert(next instanceof OasRef)
+    assertEquals(next.nullable, true)
+  })
+})
+
 Deno.test('toSchemaV3 - single-member combinator collapse (CASE 1)', async t => {
   // The single-member oneOf/anyOf collapse must carry the wrapper's
   // sibling keywords into the surviving member instead of discarding
