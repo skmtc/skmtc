@@ -1135,7 +1135,7 @@
         "dependencies": [
           "jsr:@cliffy/command@1.1.0",
           "jsr:@skmtc/convert@0.1.16",
-          "jsr:@skmtc/core@0.16.1",
+          "jsr:@skmtc/core@0.16.3",
           "jsr:@skmtc/server@0.2.36",
           "jsr:@skmtc/worker@0.3.24",
           "npm:@inkjs/ui@2",
@@ -1174,7 +1174,7 @@
       },
       "gen-ts-webhook": {
         "dependencies": [
-          "jsr:@skmtc/core@0.16.1",
+          "jsr:@skmtc/core@0.16.3",
           "jsr:@skmtc/lang-typescript@0.10.4",
           "jsr:@std/assert@^1.0.10",
           "jsr:@std/path@^1.0.9"
@@ -1182,32 +1182,32 @@
       },
       "lang-csharp": {
         "dependencies": [
-          "jsr:@skmtc/core@0.16.1"
+          "jsr:@skmtc/core@0.16.3"
         ]
       },
       "lang-go": {
         "dependencies": [
-          "jsr:@skmtc/core@0.16.1"
+          "jsr:@skmtc/core@0.16.3"
         ]
       },
       "lang-kotlin": {
         "dependencies": [
-          "jsr:@skmtc/core@0.16.1"
+          "jsr:@skmtc/core@0.16.3"
         ]
       },
       "lang-php": {
         "dependencies": [
-          "jsr:@skmtc/core@0.16.1"
+          "jsr:@skmtc/core@0.16.3"
         ]
       },
       "lang-rust": {
         "dependencies": [
-          "jsr:@skmtc/core@0.16.1"
+          "jsr:@skmtc/core@0.16.3"
         ]
       },
       "lang-typescript": {
         "dependencies": [
-          "jsr:@skmtc/core@0.16.1"
+          "jsr:@skmtc/core@0.16.3"
         ]
       },
       "mcp": {
@@ -1232,7 +1232,7 @@
       "server": {
         "dependencies": [
           "jsr:@skmtc/convert@0.1.16",
-          "jsr:@skmtc/core@0.16.1",
+          "jsr:@skmtc/core@0.16.3",
           "npm:hono@4.7.2"
         ]
       },
@@ -1248,7 +1248,7 @@
       },
       "worker": {
         "dependencies": [
-          "jsr:@skmtc/core@0.16.1",
+          "jsr:@skmtc/core@0.16.3",
           "npm:openapi-types@^12.1.3"
         ]
       }
