@@ -77,6 +77,7 @@ wire form into it.
 | Literal (`const`) | single-`enum` | `const:X` → `enum:[X]` → leaf | ✅ done |
 | `exclusiveMin/Max` | boolean (+ `minimum`) | numeric bound → boolean + `minimum`/`maximum` | ✅ done |
 | Schema `examples` | `example` (singular) | `examples` array → `examples[0]` as IR `example` | ✅ done |
+| Binary / base64 string | `format: binary`/`byte` | `contentMediaType: application/octet-stream` → `format: binary`; `contentEncoding: base64` → `format: byte` | ✅ done |
 | `paths` requiredness | required | optional (webhooks-only docs) → `operations: []` | ✅ done |
 | `$ref` siblings (`summary`/`description`) | ignored | ignored (no IR field yet) | ⏳ deferred |
 | Webhooks | n/a (3.0 has no webhooks) | native, from the raw doc | ✅ |

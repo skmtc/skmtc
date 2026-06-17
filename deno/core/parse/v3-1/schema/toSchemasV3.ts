@@ -198,14 +198,56 @@ const normalizeExclusiveBounds = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.Sch
 }
 
 /**
+ * OpenAPI 3.1 / JSON Schema 2020-12 expresses a binary string payload with
+ * `contentMediaType: 'application/octet-stream'` and base64 with
+ * `contentEncoding: 'base64'`; the shared IR (and 3.0) carry these as a string
+ * `format` (`binary` / `byte`, both in the format allow-list). Map them so the
+ * format reaches the IR. Mirrors down-convert's
+ * `convertJsonSchemaContentMediaType` / `convertJsonSchemaContentEncoding`:
+ * string schemas only, and a pre-existing (conflicting) `format` wins — the
+ * content keyword is dropped, not overwritten. Without this, retiring
+ * down-convert would silently lose the `format` signal on 3.1 binary uploads.
+ */
+const normalizeContentFormat = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
+  if (schema.type !== 'string') {
+    return schema
+  }
+
+  // `contentMediaType`/`contentEncoding` are 3.1 keywords the 3.0-typed
+  // SchemaObject does not model; read them loosely.
+  const view: OpenAPIV3.SchemaObject & {
+    contentMediaType?: unknown
+    contentEncoding?: unknown
+  } = schema
+
+  const derivedFormat =
+    view.contentMediaType === 'application/octet-stream'
+      ? 'binary'
+      : view.contentEncoding === 'base64'
+        ? 'byte'
+        : undefined
+
+  if (derivedFormat === undefined) {
+    return schema
+  }
+
+  const { contentMediaType: _contentMediaType, contentEncoding: _contentEncoding, ...rest } = view
+
+  return 'format' in rest ? rest : { ...rest, format: derivedFormat }
+}
+
+/**
  * Map the 3.1-only schema-shape encodings onto the shared IR shape before
- * dispatching: type arrays, `const`, `examples[]`, and numeric exclusive
- * bounds. Each step returns its input unchanged when it does not apply, so
- * the composed result is referentially equal to `schema` when nothing
- * matched — letting the dispatcher re-dispatch only when needed.
+ * dispatching: type arrays, `const`, `examples[]`, numeric exclusive bounds,
+ * and binary/base64 content keywords. Each step returns its input unchanged
+ * when it does not apply, so the composed result is referentially equal to
+ * `schema` when nothing matched — letting the dispatcher re-dispatch only when
+ * needed.
  */
 const normalizeSchemaShape = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
-  return normalizeExclusiveBounds(normalizeExamples(normalizeConst(normalizeTypeArray(schema))))
+  return normalizeExclusiveBounds(
+    normalizeExamples(normalizeConst(normalizeContentFormat(normalizeTypeArray(schema))))
+  )
 }
 
 /**

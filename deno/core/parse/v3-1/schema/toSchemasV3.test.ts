@@ -1053,6 +1053,47 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 examples[] and numeric exclusive bounds', as
   })
 })
 
+Deno.test('toSchemaV3 - OpenAPI 3.1 content keywords map to string format', async t => {
+  // 3.1 / JSON-Schema-2020-12 binary payloads use contentMediaType /
+  // contentEncoding; the IR carries them as `format` (binary / byte). This
+  // replaces the mapping down-convert used to supply before it was retired —
+  // without it a 3.1 binary upload loses its format signal.
+  await t.step('contentMediaType application/octet-stream becomes format binary', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": "string", "contentMediaType": "application/octet-stream"}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.format, 'binary')
+  })
+
+  await t.step('contentEncoding base64 becomes format byte', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": "string", "contentEncoding": "base64"}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.format, 'byte')
+  })
+
+  await t.step('a pre-existing format wins; the content keyword is dropped', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse(
+      '{"type": "string", "format": "date-time", "contentMediaType": "application/octet-stream"}'
+    )
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.format, 'date-time')
+  })
+})
+
 Deno.test('toSchemaV3 - single-member combinator collapse (CASE 1)', async t => {
   // The single-member oneOf/anyOf collapse must carry the wrapper's
   // sibling keywords into the surviving member instead of discarding
