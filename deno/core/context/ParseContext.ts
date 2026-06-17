@@ -22,7 +22,7 @@
 
 import type { OpenAPIV3 } from 'openapi-types'
 import { buildSchema, type GraphQLSchema } from 'graphql'
-import { toDocumentFieldsV3 } from '@/parse/v3_0/document/toDocumentFieldsV3.ts'
+import { toDocumentFieldsV3 } from '@/parse/v3-0/document/toDocumentFieldsV3.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'

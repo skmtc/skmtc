@@ -1,6 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { OasArray } from '@/oas/array/Array.ts'
-import { toSchemaV3 } from '@/parse/v3_0/schema/toSchemasV3.ts'
+import { toSchemaV3 } from '@/parse/v3-0/schema/toSchemasV3.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'

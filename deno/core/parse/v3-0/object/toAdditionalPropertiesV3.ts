@@ -1,6 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import { toSchemaV3 } from '@/parse/v3_0/schema/toSchemasV3.ts'
+import { toSchemaV3 } from '@/parse/v3-0/schema/toSchemasV3.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
