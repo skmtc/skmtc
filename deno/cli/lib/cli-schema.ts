@@ -189,6 +189,11 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
         description:
           "Overwrite existing config without the confirmation prompt.",
       },
+      {
+        flag: "--base-files",
+        description:
+          "Also push the app's base files (the hand-authored tree the generated code imports) to the preview.",
+      },
     ],
     agentMode: "full",
   },

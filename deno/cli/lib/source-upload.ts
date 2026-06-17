@@ -181,3 +181,42 @@ export const collectSourceFiles = async (projectRoot: string): Promise<SourceFil
   out.sort((a, b) => a.path.localeCompare(b.path))
   return out
 }
+
+/**
+ * Collect a project's BASE FILES — the hand-authored app tree the preview
+ * container needs to compile + render generated code — for `skmtc push
+ * --base-files`. Walks `appRoot` with the same gitignore-style methodology as
+ * {@link collectSourceFiles} (built-in defaults + the app root's
+ * `.skmtcignore`), additionally excluding `.skmtc/` (the stack workspace,
+ * published separately as a version) and `generatedPaths` (manifest-recorded
+ * output, regenerated in the preview). Returns `{ path: textContent }` keyed by
+ * app-root-relative path — the shape the `/preview/base-files` upload expects.
+ */
+export const collectBaseFiles = async (
+  appRoot: string,
+  generatedPaths: ReadonlySet<string>
+): Promise<Record<string, string>> => {
+  const matcher = ignore().add(DEFAULT_IGNORE).add('.skmtc/')
+  try {
+    matcher.add(await Deno.readTextFile(join(appRoot, SKMTC_IGNORE_FILE)))
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) throw error
+  }
+
+  const out: Record<string, string> = {}
+  const walk = async (dir: string, prefix: string): Promise<void> => {
+    for await (const entry of Deno.readDir(dir)) {
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name
+      const abs = join(dir, entry.name)
+      if (entry.isDirectory) {
+        if (matcher.ignores(`${rel}/`)) continue
+        await walk(abs, rel)
+      } else if (entry.isFile) {
+        if (matcher.ignores(rel) || generatedPaths.has(rel)) continue
+        out[rel] = await Deno.readTextFile(abs)
+      }
+    }
+  }
+  await walk(appRoot, '')
+  return out
+}

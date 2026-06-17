@@ -891,6 +891,11 @@ Key facts:
 - **Never creates a project** — a `404` means "create it in the web
   app first". Authorization is checked against the destination account
   (org writers pass).
+- **`--base-files`** also pushes the app tree (package.json, components,
+  css…) to `/preview/base-files`. Collected from the **app root**
+  (`dirname(basePath)`) via the same `.skmtcignore` methodology as publish,
+  minus `.skmtc/` and the manifest's generated files. Default push is
+  config-only (config changes often, base files rarely).
 - Token + origin resolve exactly like `publish` (`--token` /
   `$SKMTC_HUB_TOKEN` / store; `--origin` / `$SKMTC_ORIGIN` / store host).
 

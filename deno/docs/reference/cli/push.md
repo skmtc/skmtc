@@ -23,7 +23,7 @@ project first".
 ## Synopsis
 
 ```
-skmtc push <project> [--project <@account/slug>] [--origin <url>] [--token <pat>] [--force] [--json] [--no-input]
+skmtc push <project> [--project <@account/slug>] [--origin <url>] [--token <pat>] [--base-files] [--force] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -60,6 +60,18 @@ you; the hub authorizes the write against the **destination** account
 Hub origin (base URL). Defaults to `$SKMTC_ORIGIN`; then — only when
 the token came from the stored `skmtc login` file — the `host` recorded
 there; then `https://api.skmtc.dev`.
+
+### `--base-files`
+
+Also push the project's **base files** — the hand-authored app tree the
+generated code imports (package.json, components, css…) — to
+`/preview/base-files`, replacing the project's stored set. Without this flag
+`push` sends only the config (client.json). Base files are collected from the
+**app root** (`dirname(basePath)`, scoped to this app) via the same
+gitignore-style methodology as `publish` (built-in defaults + the app root's
+`.skmtcignore`), always excluding `.skmtc/` (the stack, published separately)
+and the **manifest-recorded generated files** (regenerated in the preview).
+Curate what's included with `.skmtcignore`.
 
 ### `--force`
 
@@ -117,7 +129,8 @@ already holds config:
   "origin": "https://api.skmtc.dev",
   "enrichmentCount": 12,
   "overwroteExistingConfig": true,
-  "remoteWritten": false
+  "remoteWritten": false,
+  "baseFilesPushed": 24
 }
 ```
 

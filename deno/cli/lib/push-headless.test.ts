@@ -258,3 +258,52 @@ Deno.test("pushHeadless - an explicit --project is written back into client.json
     globalThis.fetch = originalFetch;
   }
 });
+
+Deno.test("pushHeadless - --base-files also PUTs to /preview/base-files", async () => {
+  const calls: { method: string; url: string }[] = [];
+  globalThis.fetch = (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    const url = String(input);
+    const method = init?.method ?? "GET";
+    calls.push({ method, url });
+    if (method === "GET" && url.endsWith("/config")) {
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    }
+    if (method === "PUT" && url.endsWith("/client-config")) {
+      return Promise.resolve(
+        new Response(JSON.stringify({ enrichments: [] }), { status: 200 }),
+      );
+    }
+    if (method === "PUT" && url.endsWith("/preview/base-files")) {
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    }
+    throw new Error(`unexpected fetch ${method} ${url}`);
+  };
+  const { skmtcRoot } = makeRoot({
+    project: "@acme/petstore",
+    settings: { basePath: "src" },
+  });
+
+  try {
+    const result = await pushHeadless({
+      skmtcRoot,
+      projectName: "my-api",
+      token: "pat",
+      origin: "https://hub.test",
+      baseFiles: { "package.json": "{}", "src/app.tsx": "x" },
+    });
+    assertEquals(result.kind, "pushed");
+    if (result.kind !== "pushed") throw new Error("expected pushed");
+    assertEquals(result.baseFilesPushed, 2);
+    assertEquals(
+      calls.some((c) =>
+        c.method === "PUT" && c.url.endsWith("/preview/base-files")
+      ),
+      true,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

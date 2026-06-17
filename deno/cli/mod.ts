@@ -309,8 +309,15 @@ const run = async () => {
       "--force",
       "Overwrite existing config without the confirmation prompt.",
     )
+    .option(
+      "--base-files",
+      "Also push the app's base files (the hand-authored tree the generated code imports) alongside the config.",
+    )
     .action(
-      async ({ json, input, token, origin, project, force }, projectName) => {
+      async (
+        { json, input, token, origin, project, force, baseFiles },
+        projectName,
+      ) => {
         const { renderPush } = await import("@/commands/push.ts");
         await renderPush({
           projectName,
@@ -318,6 +325,7 @@ const run = async () => {
           origin,
           project,
           force,
+          baseFiles,
           jsonFlag: json,
           noInputFlag: input === false,
         });

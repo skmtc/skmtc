@@ -7,6 +7,9 @@ import {
 } from "@/lib/strict-mode.ts";
 import { pushHeadless, type PushHeadlessResult } from "@/lib/push-headless.ts";
 import { resolveHubAuth } from "@/lib/hub-token.ts";
+import { collectBaseFiles } from "@/lib/source-upload.ts";
+import { dirname } from "@std/path/dirname";
+import { join } from "@std/path/join";
 
 export const description =
   "Push this project's client.json (config + enrichments) to its skmtc-hub project. The destination is the `project: \"@account/slug\"` field in client.json (or --project); it overwrites the hub project's config. The project must already exist on the hub.";
@@ -19,11 +22,38 @@ type RenderPushArgs = {
   /** `--project` destination override (`@account/slug`). */
   project: string | undefined;
   force?: boolean;
+  /** `--base-files`: also push the app tree to /preview/base-files. */
+  baseFiles?: boolean;
   jsonFlag?: boolean;
   noInputFlag?: boolean;
 };
 
-const USAGE = "skmtc push <project> [--project @account/slug]";
+const USAGE = "skmtc push <project> [--project @account/slug] [--base-files]";
+
+/**
+ * Collect a project's base files for `--base-files`: the app tree rooted at the
+ * app dir (`dirname(basePath)` — scoped to this app, not sibling apps), with the
+ * manifest's generated output excluded. Delegates the ignore methodology to
+ * {@link collectBaseFiles}.
+ */
+const collectProjectBaseFiles = async (
+  skmtcRoot: SkmtcRoot,
+  projectName: string,
+): Promise<Record<string, string>> => {
+  const project = skmtcRoot.findProject(projectName);
+  const basePath = project.clientJson.contents?.settings?.basePath ?? ".";
+  const appRootRel = dirname(basePath);
+  const appRoot = join(SkmtcRoot.toPath(), appRootRel);
+  // Manifest destinations are SKMTC-root-relative; strip the app-root prefix so
+  // they line up with the app-root-relative collected paths.
+  const prefix = appRootRel === "." ? "" : `${appRootRel}/`;
+  const generated = new Set(
+    Object.keys(project.manifest.contents?.files ?? {}).map((path) =>
+      prefix && path.startsWith(prefix) ? path.slice(prefix.length) : path
+    ),
+  );
+  return collectBaseFiles(appRoot, generated);
+};
 const EXAMPLE = "skmtc push my-api --project @acme-org/petstore-client";
 
 export const renderPush = async ({
@@ -33,6 +63,7 @@ export const renderPush = async ({
   origin,
   project: projectFlag,
   force,
+  baseFiles: baseFilesFlag,
   jsonFlag,
   noInputFlag,
 }: RenderPushArgs) => {
@@ -87,6 +118,10 @@ export const renderPush = async ({
       )
     : undefined;
 
+  const baseFiles = baseFilesFlag
+    ? await collectProjectBaseFiles(skmtcRoot, projectName)
+    : undefined;
+
   const result = await pushHeadless({
     skmtcRoot,
     projectName,
@@ -94,6 +129,7 @@ export const renderPush = async ({
     origin: resolvedOrigin,
     projectFlag,
     confirmOverwrite,
+    baseFiles,
   });
 
   printPushResult(result, { format: resolveOutputFormat({ jsonFlag }) });
@@ -126,6 +162,9 @@ export const printPushResult = (
           }
           if (result.remoteWritten) {
             console.log("  note: recorded destination in client.json#project");
+          }
+          if (result.baseFilesPushed !== undefined) {
+            console.log(`  base files: ${result.baseFilesPushed}`);
           }
           return;
         }

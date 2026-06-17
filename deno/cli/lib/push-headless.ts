@@ -44,6 +44,12 @@ type PushHeadlessArgs = {
   confirmOverwrite?: (
     info: { account: string; slug: string; enrichmentCount: number },
   ) => Promise<boolean>;
+  /**
+   * Collected base files (app-root-relative path -> text content) to also push
+   * to `/preview/base-files`, replacing the project's stored set. Omitted unless
+   * `--base-files` was passed.
+   */
+  baseFiles?: Record<string, string>;
 };
 
 export type PushHeadlessResult =
@@ -58,6 +64,8 @@ export type PushHeadlessResult =
     overwroteExistingConfig: boolean;
     /** Whether an explicit `--project` was written back into client.json. */
     remoteWritten: boolean;
+    /** Number of base files pushed — present only when `--base-files` ran. */
+    baseFilesPushed?: number;
   }
   | {
     kind: "aborted";
@@ -96,6 +104,7 @@ export const pushHeadless = async ({
   origin,
   projectFlag,
   confirmOverwrite,
+  baseFiles,
 }: PushHeadlessArgs): Promise<PushHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName);
   const contents = project.clientJson.contents;
@@ -221,6 +230,49 @@ export const pushHeadless = async ({
     };
   }
 
+  // Optional base-files push (--base-files): replace the project's stored app
+  // tree via the existing endpoint. The config PUT above already landed, so a
+  // failure here is surfaced but flagged as partial.
+  let baseFilesPushed: number | undefined;
+  if (baseFiles && Object.keys(baseFiles).length > 0) {
+    try {
+      const filesResponse = await fetch(
+        `${origin}/v1/projects/${account}/${slug}/preview/base-files`,
+        {
+          method: "PUT",
+          headers: {
+            authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ files: baseFiles }),
+        },
+      );
+      if (!filesResponse.ok) {
+        const text = await filesResponse.text();
+        return {
+          kind: "failed",
+          projectName,
+          reason:
+            `base-files push failed (${filesResponse.status}) — client-config was already updated: ${
+              text.slice(0, 500)
+            }`,
+          stage: "push",
+        };
+      }
+      await filesResponse.text();
+      baseFilesPushed = Object.keys(baseFiles).length;
+    } catch (err) {
+      return {
+        kind: "failed",
+        projectName,
+        reason: `base-files push failed — client-config was already updated: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        stage: "push",
+      };
+    }
+  }
+
   // `-u`: persist an explicit `--project` into client.json so the destination is
   // remembered. Non-fatal — the push already succeeded.
   let remoteWritten = false;
@@ -242,5 +294,6 @@ export const pushHeadless = async ({
     enrichmentCount: toEnrichmentCount(pushedConfig),
     overwroteExistingConfig,
     remoteWritten,
+    baseFilesPushed,
   };
 };
