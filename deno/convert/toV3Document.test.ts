@@ -254,3 +254,26 @@ Deno.test('toV3Document - 3.1 nullable $ref (anyOf) keeps single $ref member + n
   assertEquals(schema.nullable, true)
   assertEquals(schema.anyOf?.length, 1)
 })
+
+Deno.test('toV3Document - 3.1 webhooks are retained on the down-converted 3.0 document', async () => {
+  // Retained-member transport: `toV3Document` passes `retainWebhooks: true`,
+  // so webhooks survive on the returned document for the webhook subject to
+  // parse. (Inner-schema 3.0-normalization is covered by the down-convert
+  // `retainWebhooks` test.) `paths` is optional in 3.1, so a webhooks-only
+  // document is valid input.
+  const doc: OpenAPIV3_1.Document = {
+    openapi: '3.1.0',
+    info: { title: 'T', version: '1' },
+    webhooks: {
+      newPet: {
+        post: { responses: { '200': { description: 'ok' } } }
+      }
+    }
+  }
+
+  const result = await toV3Document(doc)
+  const webhooks = (result as { webhooks?: Record<string, unknown> }).webhooks
+
+  assertEquals(result.openapi.startsWith('3.0'), true)
+  assertEquals(Boolean(webhooks?.newPet), true)
+})

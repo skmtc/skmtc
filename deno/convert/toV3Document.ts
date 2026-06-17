@@ -163,7 +163,11 @@ export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Do
     const options: ConverterOptions = {
       verbose: false,
       deleteExampleWithId: false,
-      allOfTransform: true
+      allOfTransform: true,
+      // Keep the 3.1 `webhooks` object (3.0-normalized by the schema passes)
+      // so SKMTC can parse webhooks as a first-class subject. Other consumers
+      // of @skmtc/openapi-down-convert keep the default (webhooks removed).
+      retainWebhooks: true
     }
 
     const downConverter = new ThreeOneToThreeZeroConverter(

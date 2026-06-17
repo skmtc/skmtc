@@ -455,6 +455,45 @@ Deno.test('Converter - removes the webhooks object', () => {
   assertEquals(converted, expected)
 })
 
+Deno.test('Converter - retains the webhooks object when retainWebhooks is set, 3.0-normalized', () => {
+  const input = {
+    openapi: '3.1.0',
+    webhooks: {
+      newThing: {
+        post: {
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    // 3.1 nullable form — the schema passes run over webhook
+                    // PathItems too (before the delete), so this must be
+                    // normalized to the 3.0 `nullable: true` form.
+                    name: { type: ['string', 'null'] },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Return a 200 status to indicate success' },
+          },
+        },
+      },
+    },
+  }
+
+  const converted = new Converter(input, { retainWebhooks: true }).convert() as any
+
+  assertExists(converted.webhooks?.newThing?.post)
+  assertEquals(converted.openapi, '3.0.3')
+
+  const schema = converted.webhooks.newThing.post.requestBody.content['application/json'].schema
+  assertEquals(schema.properties.name.type, 'string')
+  assertEquals(schema.properties.name.nullable, true)
+})
+
 Deno.test('Converter - renames $comment to x-comment when requested', () => {
   const input = {
     openapi: '3.1.0',
