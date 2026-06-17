@@ -846,56 +846,20 @@ Deno.test('toOptionalSchemaV3', async t => {
   })
 })
 
-Deno.test('toSchemaV3 - OpenAPI 3.1 type arrays', async t => {
-  await t.step('normalizes ["string", "null"] to a nullable string', () => {
-    const context = createTestContext()
-    const stackTrail = new StackTrail(['TEST'])
-    // 3.1 documents arrive through 3.0-typed plumbing; the type array
-    // is a runtime shape the static type does not admit.
-    const schema = JSON.parse('{"type": ["string", "null"], "minLength": 1}')
+Deno.test('toSchemaV3 - 3.1 type arrays are not handled by the 3.0 parser', () => {
+  // OpenAPI 3.0 has no type arrays — they are a 3.1 idiom owned by the v3-1
+  // parser (see core/parse/README.md). v3-0 does not special-case them: a
+  // `type: [...]` array is not a recognized 3.0 type, so it falls through to
+  // OasUnknown. (The hub routes raw 3.1 to v3-1, and down-convert flattens
+  // `[T,'null']` to a nullable scalar before the CLI/worker path reaches
+  // here, so a type array never legitimately arrives at v3-0.)
+  const context = createTestContext()
+  const stackTrail = new StackTrail(['TEST'])
+  const schema = JSON.parse('{"type": ["string", "null"], "minLength": 1}')
 
-    const result = toSchemaV3({ schema, stackTrail, context })
+  const result = toSchemaV3({ schema, stackTrail, context })
 
-    assert(result instanceof OasString)
-    assertEquals(result.nullable, true)
-  })
-
-  await t.step('normalizes ["array", "null"] with items to a nullable array', () => {
-    const context = createTestContext()
-    const stackTrail = new StackTrail(['TEST'])
-    const schema = JSON.parse('{"type": ["array", "null"], "items": {"type": "integer"}}')
-
-    const result = toSchemaV3({ schema, stackTrail, context })
-
-    assert(result instanceof OasArray)
-    assertEquals(result.nullable, true)
-  })
-
-  await t.step('single-member type array stays non-nullable', () => {
-    const context = createTestContext()
-    const stackTrail = new StackTrail(['TEST'])
-    const schema = JSON.parse('{"type": ["boolean"]}')
-
-    const result = toSchemaV3({ schema, stackTrail, context })
-
-    assert(result instanceof OasBoolean)
-    assertEquals(result.nullable, undefined)
-  })
-
-  await t.step('multi-member type array still falls through to OasUnknown', () => {
-    // KNOWN GAP (CASE 2): a 3.1 multi-type union `type:["string","integer"]`
-    // degrades to OasUnknown — normalizeTypeArray only handles the
-    // single-non-null-member form. Tracked for the native v3_1 parser
-    // (Phase 3) in notes/openapi-3.1-webhooks-and-parser-architecture.md
-    // (§1.6 CASE 2, §2 divergence map). Asserted here so the gap is explicit.
-    const context = createTestContext()
-    const stackTrail = new StackTrail(['TEST'])
-    const schema = JSON.parse('{"type": ["string", "integer"]}')
-
-    const result = toSchemaV3({ schema, stackTrail, context })
-
-    assert(result instanceof OasUnknown)
-  })
+  assert(result instanceof OasUnknown)
 })
 
 Deno.test('toSchemaV3 - single-member combinator collapse (CASE 1)', async t => {

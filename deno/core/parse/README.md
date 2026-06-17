@@ -49,7 +49,11 @@ behaviorally by a differential test corpus, not by re-coupling the code.
   version-specific encodings, so each tree owns its copy.
 
 > Naming note: function names still carry the historical `V3` suffix (e.g.
-> `toSchemaV3`) inside both trees; the rename to drop it is deferred. The
+> `toSchemaV3`) inside both trees; the rename to drop it is deferred. In
+> particular `toRefV31` is the **dialect-neutral** ref parser used by *both*
+> trees (the `V31` is a historical misnomer, not 3.1-specific) — it is a
+> public `mod.ts` export, so renaming it to `toRef` is a coordinated breaking
+> change folded into the broader suffix cleanup, not done piecemeal. The
 > `Oas*` prefix on the IR is kept — it is "our OpenAPI-family IR", the
 > canonical version-agnostic target, *not* "the v3 model".
 

@@ -73,43 +73,6 @@ export type ToSchemaV3Args = {
 }
 
 /**
- * OpenAPI 3.1 expresses nullability as a type ARRAY
- * (`type: ['string', 'null']`); this parser's object model is 3.0's
- * `type` + `nullable`. Normalize the single-non-null-member form so
- * 3.1 documents dispatch like their 3.0 equivalents. Multi-member
- * type arrays keep falling through to OasUnknown, and a 3.1 `null`
- * alongside `array` is only normalized when `items` is present
- * (an items-less array schema cannot dispatch as an array).
- */
-const normalizeTypeArray = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
-  const rawType: unknown = schema.type
-
-  if (!Array.isArray(rawType)) {
-    return schema
-  }
-
-  const members = rawType.filter(member => member !== 'null')
-  const nullable = rawType.length !== members.length || schema.nullable
-
-  if (members.length !== 1) {
-    return schema
-  }
-
-  switch (members[0]) {
-    case 'object':
-    case 'integer':
-    case 'number':
-    case 'boolean':
-    case 'string':
-      return { ...schema, type: members[0], nullable }
-    case 'array':
-      return 'items' in schema ? { ...schema, type: members[0], nullable } : schema
-    default:
-      return schema
-  }
-}
-
-/**
  * Collapse a single-member `oneOf`/`anyOf` into its surviving member.
  *
  * The wrapper's sibling keywords must ride into the member rather than
@@ -156,12 +119,6 @@ export const toSchemaV3 = ({
 }: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
   if (isRef(schema)) {
     return toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
-  }
-
-  const normalized = normalizeTypeArray(schema)
-
-  if (normalized !== schema) {
-    return toSchemaV3({ schema: normalized, stackTrail, context })
   }
 
   if ('allOf' in schema && Array.isArray(schema.allOf)) {
