@@ -35,7 +35,9 @@ turns a dialect bug from shallow ("this parser has a stale line" — local,
 testable) into deep ("the shared leaf misbehaves for 3.1 only in some field
 combination" — emergent). Reading one parser top-to-bottom in isolation beats
 DRY at a dialect boundary. Drift between the duplicated trees is caught
-behaviorally by a differential test corpus, not by re-coupling the code.
+behaviorally by a differential test corpus (`dialect-differential.test.ts` —
+a 3.0 fragment and its 3.1 equivalent must parse to the same IR), not by
+re-coupling the code.
 
 ## Shared vs duplicated
 
