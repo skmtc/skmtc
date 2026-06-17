@@ -1016,6 +1016,43 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 const (single-value literal)', async t => {
   })
 })
 
+Deno.test('toSchemaV3 - OpenAPI 3.1 examples[] and numeric exclusive bounds', async t => {
+  await t.step('examples[] adopts the first element as the IR example', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": "string", "examples": ["hello", "world"]}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.example, 'hello')
+  })
+
+  await t.step('a numeric exclusiveMinimum becomes minimum + a boolean flag', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": "number", "exclusiveMinimum": 5}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasNumber)
+    assertEquals(result.minimum, 5)
+    assertEquals(result.exclusiveMinimum, true)
+  })
+
+  await t.step('a numeric exclusiveMaximum becomes maximum + a boolean flag (integer)', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": "integer", "exclusiveMaximum": 10}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasInteger)
+    assertEquals(result.maximum, 10)
+    assertEquals(result.exclusiveMaximum, true)
+  })
+})
+
 Deno.test('toSchemaV3 - single-member combinator collapse (CASE 1)', async t => {
   // The single-member oneOf/anyOf collapse must carry the wrapper's
   // sibling keywords into the surviving member instead of discarding

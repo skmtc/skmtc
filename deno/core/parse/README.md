@@ -67,8 +67,8 @@ wire form into it.
 | Nullable `$ref` | `oneOf:[{$ref}], nullable:true` → nullable `OasRef` | `oneOf:[{$ref},{type:'null'}]` → nullable `OasRef` | ✅ done |
 | Pure null (`type:'null'` / `['null']`) | n/a | falls through to `OasUnknown` — no `OasNull` IR node yet | ⏳ gap |
 | Literal (`const`) | single-`enum` | `const:X` → `enum:[X]` → leaf | ✅ done |
-| `exclusiveMin/Max` | boolean (+ `minimum`) | numeric bound | ⏳ pending |
-| Schema `examples` | `example` (singular) | `examples` (array) | ⏳ pending |
+| `exclusiveMin/Max` | boolean (+ `minimum`) | numeric bound → boolean + `minimum`/`maximum` | ✅ done |
+| Schema `examples` | `example` (singular) | `examples` array → `examples[0]` as IR `example` | ✅ done |
 | `paths` requiredness | required | optional (webhooks-only docs) → `operations: []` | ✅ done |
 | `$ref` siblings (`summary`/`description`) | ignored | ignored (no IR field yet) | ⏳ deferred |
 | Webhooks | via down-convert `retainWebhooks` | native, from the raw doc | ✅ (Phase 1/4) |

@@ -144,6 +144,71 @@ const normalizeConst = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject 
 }
 
 /**
+ * OpenAPI 3.1 schemas carry `examples` (an array, JSON Schema 2020-12); 3.0
+ * and the IR use a single `example`. Adopt the first array element as the IR
+ * `example` when no singular `example` is set, and drop the array. Matches
+ * down-convert's `convertJsonSchemaExamples`.
+ */
+const normalizeExamples = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
+  if ('example' in schema || !('examples' in schema)) {
+    return schema
+  }
+
+  // `examples` is a 3.1 keyword the 3.0-typed SchemaObject does not model.
+  const { examples, ...rest }: OpenAPIV3.SchemaObject & { examples?: unknown } = schema
+
+  if (!Array.isArray(examples) || examples.length === 0) {
+    return rest
+  }
+
+  return { ...rest, example: examples[0] }
+}
+
+/**
+ * OpenAPI 3.1 expresses exclusive bounds as NUMBERS (`exclusiveMinimum: 5`
+ * means "> 5"); the shared IR (and 3.0) model them as a boolean flag paired
+ * with `minimum`/`maximum`. Convert the numeric form so the number/integer
+ * leaves validate. Matches down-convert's `convertExclusiveMinMax`, so a 3.0
+ * `{minimum:5, exclusiveMinimum:true}` and a 3.1 `{exclusiveMinimum:5}` land
+ * on the same IR.
+ */
+const normalizeExclusiveBounds = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
+  // `exclusiveMinimum`/`exclusiveMaximum` are 3.0-typed boolean here; in 3.1
+  // they arrive as numbers, so read them loosely.
+  const exclusiveMinimum: unknown = schema.exclusiveMinimum
+  const exclusiveMaximum: unknown = schema.exclusiveMaximum
+
+  if (typeof exclusiveMinimum !== 'number' && typeof exclusiveMaximum !== 'number') {
+    return schema
+  }
+
+  const next: OpenAPIV3.SchemaObject = { ...schema }
+
+  if (typeof exclusiveMinimum === 'number') {
+    next.minimum = exclusiveMinimum
+    next.exclusiveMinimum = true
+  }
+
+  if (typeof exclusiveMaximum === 'number') {
+    next.maximum = exclusiveMaximum
+    next.exclusiveMaximum = true
+  }
+
+  return next
+}
+
+/**
+ * Map the 3.1-only schema-shape encodings onto the shared IR shape before
+ * dispatching: type arrays, `const`, `examples[]`, and numeric exclusive
+ * bounds. Each step returns its input unchanged when it does not apply, so
+ * the composed result is referentially equal to `schema` when nothing
+ * matched — letting the dispatcher re-dispatch only when needed.
+ */
+const normalizeSchemaShape = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
+  return normalizeExclusiveBounds(normalizeExamples(normalizeConst(normalizeTypeArray(schema))))
+}
+
+/**
  * Is this a 3.1 `{ type: 'null' }` schema member? (`'null'` is a 3.1 type
  * literal the 3.0-typed SchemaObject does not model, so read it loosely.)
  */
@@ -219,16 +284,10 @@ export const toSchemaV3 = ({
     return toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
-  const normalized = normalizeTypeArray(schema)
+  const normalized = normalizeSchemaShape(schema)
 
   if (normalized !== schema) {
     return toSchemaV3({ schema: normalized, stackTrail, context })
-  }
-
-  const withoutConst = normalizeConst(schema)
-
-  if (withoutConst !== schema) {
-    return toSchemaV3({ schema: withoutConst, stackTrail, context })
   }
 
   if ('allOf' in schema && Array.isArray(schema.allOf)) {
