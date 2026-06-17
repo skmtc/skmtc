@@ -24,7 +24,7 @@ version.
 ## Synopsis
 
 ```
-skmtc publish <project> --token <pat> [--version <semver>] [--hub-url <url>] [--json] [--no-input]
+skmtc publish <project> --token <pat> [--version <semver>] [--origin <url>] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -55,9 +55,9 @@ The version to publish. Defaults to the project root
 `deno.json#version`. If neither is present, publish fails fast (before
 any network call) with a recipe-style error.
 
-### `--hub-url <url>`
+### `--origin <url>`
 
-Hub base URL. Defaults to `$SKMTC_HUB_URL`; then — only when the
+Hub origin (base URL). Defaults to `$SKMTC_ORIGIN`; then — only when the
 token came from the stored `skmtc login` file — the `host` recorded
 in that file; then `https://api.skmtc.dev`. The stored-host step
 keeps token and destination coherent: a token minted against a local
@@ -214,7 +214,7 @@ All errors use the uniform `ApiError` envelope (`{ code, message, … }`):
 | Variable | Purpose | Equivalent flag |
 |---|---|---|
 | `SKMTC_HUB_TOKEN` | Default PAT | `--token` |
-| `SKMTC_HUB_URL` | Default hub base URL | `--hub-url` |
+| `SKMTC_ORIGIN` | Default hub origin (base URL) | `--origin` |
 
 CLI flags always win over env vars; env vars win over the stored
 `skmtc login` credential (so CI can override a developer login).

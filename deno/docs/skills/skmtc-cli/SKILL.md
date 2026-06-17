@@ -152,6 +152,7 @@ follow-up command the agent can run to fetch the candidate set. No
 | `clean [project]` | Delete a project's generated files + manifest, pruning emptied dirs | Project required; `--dry-run`, `--verbose`; no Ink variant |
 | `dev <project> [schema]` | Watch + rebundle + regenerate on change | Project required; no `--json` (long-running) |
 | `publish <project>` | Build + publish an immutable stack version to skmtc-hub | Project + a token required — `--token`, `$SKMTC_HUB_TOKEN`, or the `skmtc login` store, in that order; version from `deno.json#version` or `--version` |
+| `push <project>` | Push a project's `client.json` (config + enrichments) to its hub project | Project required; destination from `--project @account/slug` or `client.json#project`; token like `publish` |
 | `login` | Validate + store a hub PAT (paste-a-PAT; `~/.skmtc/auth.json`, 0600) | `--with-token` reads the PAT from stdin; plain `login` with a stored token reports the handle (the `whoami`) |
 | `logout` | Delete the stored hub credential | No args; idempotent, always exit 0 |
 | `doctor` | Diagnose project setup | No args; always strict |
@@ -835,7 +836,7 @@ Key facts:
   `skmtc login` store** (`~/.skmtc/auth.json`). When the token comes
   from the store, the store's `host` is also the default hub URL —
   a token minted against a local dev hub is never silently sent to
-  production. Explicit `--hub-url` / `$SKMTC_HUB_URL` always win.
+  production. Explicit `--origin` / `$SKMTC_ORIGIN` always win.
 - **The stack identity is `<authenticated handle>/<project>`** — the
   PAT picks the account, the project name is the slug. No `--stack`
   flag; org-owned stacks aren't reachable from the CLI today.
@@ -855,6 +856,43 @@ Key facts:
   `deploymentId` or `shortId` anymore.
 
 Full reference: [`reference/cli/publish.md`](../../reference/cli/publish.md).
+
+### Card: Pushing a project's config to skmtc-hub
+
+Use when local `client.json` edits (config + enrichments) should land
+on the project's hub project — the project-level counterpart to
+`publish`. `push` overwrites the hub project's config; it never creates
+a project (create it in the web app first).
+
+```bash
+# Destination is the `project: "@account/slug"` field in client.json.
+skmtc login                                   # once; stores PAT + origin
+skmtc push <project> --json
+# First push to an org project — records the destination for next time:
+skmtc push <project> --project @acme-org/petstore-client --json
+```
+
+Key facts:
+
+- **`<project>` is the LOCAL project** (`.skmtc/<project>/`) — the
+  source. The **hub destination** is `client.json#project` (or
+  `--project @account/slug`), decoupled from your identity like a git
+  remote. The account may be an org; the hub slug can differ from the
+  local dir name.
+- **Destination resolution:** `--project` → `client.json#project` →
+  recipe error (no silent fallback to your handle). An explicit
+  `--project` is written back into client.json (the `git push -u`
+  ergonomic).
+- **Overwrites** the hub project's config. In a TTY it confirms first
+  when config already exists (`--force` skips); in strict/`--json` it
+  overwrites and reports `overwroteExistingConfig`.
+- **Never creates a project** — a `404` means "create it in the web
+  app first". Authorization is checked against the destination account
+  (org writers pass).
+- Token + origin resolve exactly like `publish` (`--token` /
+  `$SKMTC_HUB_TOKEN` / store; `--origin` / `$SKMTC_ORIGIN` / store host).
+
+Full reference: [`reference/cli/push.md`](../../reference/cli/push.md).
 
 ### Card: When to hand off to other skills
 

@@ -24,190 +24,202 @@
  * token's last 4 characters.
  */
 
-import React from 'react'
-import { Box, Text, render, useApp } from 'ink'
-import { useEffect, useState } from 'react'
-import { PasswordInput } from '@inkjs/ui'
-import { Spinner } from '@/components/Spinner.tsx'
-import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
+import React from "react";
+import { Box, render, Text, useApp } from "ink";
+import { useEffect, useState } from "react";
+import { PasswordInput } from "@inkjs/ui";
+import { Spinner } from "@/components/Spinner.tsx";
+import {
+  failWithRecipe,
+  resolveInputMode,
+  resolveOutputFormat,
+} from "@/lib/strict-mode.ts";
 import {
   HUB_TOKEN_SETTINGS_URL,
   maskToken,
   readStoredAuth,
-  resolveHubUrl,
+  resolveOrigin,
   validateHubToken,
-  writeStoredAuth
-} from '@/lib/hub-token.ts'
+  writeStoredAuth,
+} from "@/lib/hub-token.ts";
 
-const USAGE = 'skmtc login [--with-token] [--hub-url <url>]'
-const EXAMPLE = 'echo $SKMTC_HUB_TOKEN | skmtc login --with-token'
-const SCOPE_HINT = `Mint a PAT at ${HUB_TOKEN_SETTINGS_URL} — the write:releases scope is enough for publishing.`
+const USAGE = "skmtc login [--with-token] [--origin <url>]";
+const EXAMPLE = "echo $SKMTC_HUB_TOKEN | skmtc login --with-token";
+const SCOPE_HINT =
+  `Mint a PAT at ${HUB_TOKEN_SETTINGS_URL} — the write:releases scope is enough for publishing.`;
 
 type RenderLoginArgs = {
-  hubUrl: string | undefined
-  withToken: boolean | undefined
-  jsonFlag?: boolean
-  noInputFlag?: boolean
-}
+  origin: string | undefined;
+  withToken: boolean | undefined;
+  jsonFlag?: boolean;
+  noInputFlag?: boolean;
+};
 
 type LoginResult = {
-  kind: 'logged-in'
-  handle: string
-}
+  kind: "logged-in";
+  handle: string;
+};
 
 const printLoginResult = (
   result: LoginResult,
-  { format, tokenLast4 }: { format: 'text' | 'json'; tokenLast4?: string }
+  { format, tokenLast4 }: { format: "text" | "json"; tokenLast4?: string },
 ): void => {
-  if (format === 'json') {
-    console.log(JSON.stringify(result, null, 2))
-    return
+  if (format === "json") {
+    console.log(JSON.stringify(result, null, 2));
+    return;
   }
 
-  const suffix = tokenLast4 ? ` (token ${tokenLast4})` : ''
-  console.log(`Logged in as ${result.handle}${suffix}`)
-}
+  const suffix = tokenLast4 ? ` (token ${tokenLast4})` : "";
+  console.log(`Logged in as ${result.handle}${suffix}`);
+};
 
 const readStdinToEnd = async (): Promise<string> => {
-  return await new Response(Deno.stdin.readable).text()
-}
+  return await new Response(Deno.stdin.readable).text();
+};
 
 export const renderLogin = async ({
-  hubUrl: hubUrlFlag,
+  origin: originFlag,
   withToken,
   jsonFlag,
-  noInputFlag
+  noInputFlag,
 }: RenderLoginArgs): Promise<void> => {
-  const mode = resolveInputMode({ noInputFlag, jsonFlag })
-  const format = resolveOutputFormat({ jsonFlag })
-  const hubUrl = resolveHubUrl(hubUrlFlag)
+  const mode = resolveInputMode({ noInputFlag, jsonFlag });
+  const format = resolveOutputFormat({ jsonFlag });
+  const origin = resolveOrigin(originFlag);
 
   if (withToken) {
-    const token = (await readStdinToEnd()).trim()
+    const token = (await readStdinToEnd()).trim();
 
     if (!token) {
       return failWithRecipe({
-        command: 'login',
-        arg: '--with-token (stdin was empty)',
+        command: "login",
+        arg: "--with-token (stdin was empty)",
         usage: USAGE,
         example: EXAMPLE,
-        discover: SCOPE_HINT
-      })
+        discover: SCOPE_HINT,
+      });
     }
 
     try {
-      const handle = await validateHubToken({ hubUrl, token })
-      writeStoredAuth({ host: hubUrl, token })
-      printLoginResult({ kind: 'logged-in', handle }, { format })
-      Deno.exit(0)
+      const handle = await validateHubToken({ origin, token });
+      writeStoredAuth({ host: origin, token });
+      printLoginResult({ kind: "logged-in", handle }, { format });
+      Deno.exit(0);
     } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
-      Deno.exit(1)
+      console.error(error instanceof Error ? error.message : String(error));
+      Deno.exit(1);
     }
   }
 
   // Already logged in → report status instead of prompting (in both
   // modes). Re-login is `skmtc logout` first, or `--with-token`.
-  const stored = readStoredAuth()
+  const stored = readStoredAuth();
 
   if (stored) {
     try {
-      const handle = await validateHubToken({ hubUrl: stored.host, token: stored.token })
+      const handle = await validateHubToken({
+        origin: stored.host,
+        token: stored.token,
+      });
       printLoginResult(
-        { kind: 'logged-in', handle },
-        { format, tokenLast4: maskToken(stored.token) }
-      )
-      Deno.exit(0)
+        { kind: "logged-in", handle },
+        { format, tokenLast4: maskToken(stored.token) },
+      );
+      Deno.exit(0);
     } catch {
       console.error(
-        'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
-          'Run `skmtc logout`, then log in again with a fresh token.'
-      )
-      Deno.exit(1)
+        "A token is stored in ~/.skmtc/auth.json but the hub rejected it. " +
+          "Run `skmtc logout`, then log in again with a fresh token.",
+      );
+      Deno.exit(1);
     }
   }
 
-  if (mode === 'strict') {
+  if (mode === "strict") {
     return failWithRecipe({
-      command: 'login',
-      arg: '--with-token',
+      command: "login",
+      arg: "--with-token",
       usage: USAGE,
       example: EXAMPLE,
-      discover: SCOPE_HINT
-    })
+      discover: SCOPE_HINT,
+    });
   }
 
-  const outcome: { handle: string | null } = { handle: null }
+  const outcome: { handle: string | null } = { handle: null };
 
-  const instance = render(<LoginPrompt hubUrl={hubUrl} outcome={outcome} />)
+  const instance = render(<LoginPrompt origin={origin} outcome={outcome} />);
 
-  await instance.waitUntilExit()
+  await instance.waitUntilExit();
 
-  Deno.exit(outcome.handle ? 0 : 1)
-}
+  Deno.exit(outcome.handle ? 0 : 1);
+};
 
 type LoginPromptProps = {
-  hubUrl: string
-  outcome: { handle: string | null }
-}
+  origin: string;
+  outcome: { handle: string | null };
+};
 
-const LoginPrompt = ({ hubUrl, outcome }: LoginPromptProps) => {
-  const { exit } = useApp()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [handle, setHandle] = useState<string | null>(null)
+const LoginPrompt = ({ origin, outcome }: LoginPromptProps) => {
+  const { exit } = useApp();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [handle, setHandle] = useState<string | null>(null);
 
   useEffect(() => {
     if (handle) {
-      exit()
+      exit();
     }
-  }, [handle])
+  }, [handle]);
 
   const onSubmit = (value: string) => {
-    const token = value.trim()
+    const token = value.trim();
 
     if (!token) {
-      setError('Token is empty — paste the PAT and press enter.')
-      return
+      setError("Token is empty — paste the PAT and press enter.");
+      return;
     }
 
-    setSubmitting(true)
-    setError(null)
+    setSubmitting(true);
+    setError(null);
 
-    validateHubToken({ hubUrl, token })
-      .then(validatedHandle => {
-        writeStoredAuth({ host: hubUrl, token })
-        outcome.handle = validatedHandle
-        setHandle(validatedHandle)
+    validateHubToken({ origin, token })
+      .then((validatedHandle) => {
+        writeStoredAuth({ host: origin, token });
+        outcome.handle = validatedHandle;
+        setHandle(validatedHandle);
       })
-      .catch(validationError => {
+      .catch((validationError) => {
         setError(
-          validationError instanceof Error ? validationError.message : String(validationError)
-        )
+          validationError instanceof Error
+            ? validationError.message
+            : String(validationError),
+        );
       })
       .finally(() => {
-        setSubmitting(false)
-      })
-  }
+        setSubmitting(false);
+      });
+  };
 
   if (handle) {
-    return <Text>Logged in as {handle}</Text>
+    return <Text>Logged in as {handle}</Text>;
   }
 
   return (
     <Box flexDirection="column">
       <Text>
-        Mint a personal access token at <Text color="cyan">{HUB_TOKEN_SETTINGS_URL}</Text>
+        Mint a personal access token at{" "}
+        <Text color="cyan">{HUB_TOKEN_SETTINGS_URL}</Text>
       </Text>
       <Text dimColor>The write:releases scope is enough for publishing.</Text>
       <Box marginTop={1}>
-        {submitting ? (
-          <Spinner label="Validating token..." />
-        ) : (
-          <PasswordInput placeholder="Paste token and press enter" onSubmit={onSubmit} />
+        {submitting ? <Spinner label="Validating token..." /> : (
+          <PasswordInput
+            placeholder="Paste token and press enter"
+            onSubmit={onSubmit}
+          />
         )}
       </Box>
       {error && <Text color="red">{error}</Text>}
     </Box>
-  )
-}
+  );
+};

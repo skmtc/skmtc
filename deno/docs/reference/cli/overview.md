@@ -45,6 +45,7 @@ The CLI is installed via Deno's `install` mechanism, then invoked as
 | Command | Purpose | Reference |
 |---------|---------|-----------|
 | `publish` | Publish a new immutable stack version to skmtc-hub | [publish](publish.md) |
+| `push` | Push a project's `client.json` (config + enrichments) to its hub project | [push](push.md) |
 | `login` | Validate + store a hub PAT (paste-a-PAT; becomes publish's default credential) | [login](login.md) |
 | `logout` | Delete the stored hub credential (idempotent) | [logout](logout.md) |
 
