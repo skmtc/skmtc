@@ -883,6 +883,11 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 type arrays', async t => {
   })
 
   await t.step('multi-member type array still falls through to OasUnknown', () => {
+    // KNOWN GAP (CASE 2): a 3.1 multi-type union `type:["string","integer"]`
+    // degrades to OasUnknown — normalizeTypeArray only handles the
+    // single-non-null-member form. Tracked for the native v3_1 parser
+    // (Phase 3) in notes/openapi-3.1-webhooks-and-parser-architecture.md
+    // (§1.6 CASE 2, §2 divergence map). Asserted here so the gap is explicit.
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
     const schema = JSON.parse('{"type": ["string", "integer"]}')

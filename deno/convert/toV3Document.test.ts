@@ -177,3 +177,80 @@ Deno.test('toV3Document - missing version field is reported clearly', async () =
   )
   assertStringIncludes(err.message, 'no version field found')
 })
+
+// The down-convert HALF of the nullable-collapse contract. The core parse
+// half (single-member oneOf/anyOf collapse → nullable scalar / nullable
+// OasRef) is pinned in core/oas/schema/toSchemasV3.test.ts; these tests pin
+// the exact shapes those consume, so the two layers meet at a known
+// interface. (`convert` deliberately does not depend on `core`, so this is
+// a two-layer contract rather than one cross-package end-to-end test.)
+Deno.test('toV3Document - 3.1 nullable scalar oneOf collapses to single member + nullable', async () => {
+  const doc: OpenAPIV3_1.Document = {
+    openapi: '3.1.0',
+    info: { title: 'T', version: '1' },
+    paths: {},
+    components: {
+      schemas: {
+        MaybeName: { oneOf: [{ type: 'string' }, { type: 'null' }] }
+      }
+    }
+  }
+
+  const result = await toV3Document(doc)
+  const schema = result.components?.schemas?.MaybeName
+  if (!schema || '$ref' in schema) {
+    throw new Error('Expected inline schema for MaybeName')
+  }
+  assertEquals(schema.nullable, true)
+  assertEquals(schema.oneOf?.length, 1)
+})
+
+Deno.test('toV3Document - 3.1 nullable $ref (oneOf) keeps single $ref member + nullable', async () => {
+  // 3.1 encodes a nullable reference as `oneOf:[{$ref},{type:null}]`. 3.0 has
+  // no null type, so the down-converter keeps `oneOf:[{$ref}]` and marks the
+  // wrapper `nullable:true` ("3.0's encoding for a nullable reference"). Core
+  // stamps that nullable onto the OasRef node.
+  const doc: OpenAPIV3_1.Document = {
+    openapi: '3.1.0',
+    info: { title: 'T', version: '1' },
+    paths: {},
+    components: {
+      schemas: {
+        Foo: { type: 'object', properties: { id: { type: 'string' } } },
+        MaybeFoo: { oneOf: [{ $ref: '#/components/schemas/Foo' }, { type: 'null' }] }
+      }
+    }
+  }
+
+  const result = await toV3Document(doc)
+  const schema = result.components?.schemas?.MaybeFoo
+  if (!schema || '$ref' in schema) {
+    throw new Error('Expected inline (oneOf) schema for MaybeFoo')
+  }
+  assertEquals(schema.nullable, true)
+  assertEquals(schema.oneOf?.length, 1)
+  const member = schema.oneOf?.[0]
+  assertEquals(member && '$ref' in member ? member.$ref : undefined, '#/components/schemas/Foo')
+})
+
+Deno.test('toV3Document - 3.1 nullable $ref (anyOf) keeps single $ref member + nullable', async () => {
+  const doc: OpenAPIV3_1.Document = {
+    openapi: '3.1.0',
+    info: { title: 'T', version: '1' },
+    paths: {},
+    components: {
+      schemas: {
+        Foo: { type: 'object', properties: { id: { type: 'string' } } },
+        MaybeFoo: { anyOf: [{ $ref: '#/components/schemas/Foo' }, { type: 'null' }] }
+      }
+    }
+  }
+
+  const result = await toV3Document(doc)
+  const schema = result.components?.schemas?.MaybeFoo
+  if (!schema || '$ref' in schema) {
+    throw new Error('Expected inline (anyOf) schema for MaybeFoo')
+  }
+  assertEquals(schema.nullable, true)
+  assertEquals(schema.anyOf?.length, 1)
+})
