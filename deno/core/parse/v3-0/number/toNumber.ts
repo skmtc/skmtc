@@ -162,9 +162,12 @@ const parseNumberFormat = ({ format, context, parent, stackTrail }: ParseNumberF
   }
 
   if (!v.is(numberFormat, format)) {
+    // `format` is an open vocabulary; a value the IR's numberFormat can't
+    // hold (e.g. `decimal`) is dropped. Recorded at `debug` — the dropped
+    // hint is informational, not a correctness issue.
     context.logIssue({
       key: 'format',
-      level: 'warning',
+      level: 'debug',
       message: `Invalid format: ${format}`,
       parent,
       stackTrail,

@@ -101,6 +101,13 @@ const parseIssue: v.GenericSchema<ParseIssue> = v.variant('protocol', [
       type: oasIssueType,
       location: v.string(),
       message: v.string()
+    }),
+    v.object({
+      protocol: v.literal('oas'),
+      level: v.literal('debug'),
+      type: oasIssueType,
+      location: v.string(),
+      message: v.string()
     })
   ]),
   v.variant('level', [
@@ -115,6 +122,13 @@ const parseIssue: v.GenericSchema<ParseIssue> = v.variant('protocol', [
     v.object({
       protocol: v.literal('gql'),
       level: v.literal('warning'),
+      type: gqlIssueType,
+      location: v.string(),
+      message: v.string()
+    }),
+    v.object({
+      protocol: v.literal('gql'),
+      level: v.literal('debug'),
       type: gqlIssueType,
       location: v.string(),
       message: v.string()

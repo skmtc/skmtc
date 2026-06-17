@@ -12,6 +12,18 @@ import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { OasUnion } from '@/oas/union/Union.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { ParseContext } from '@/context/ParseContext.ts'
+import * as log from '@std/log'
+
+const realContext = (): ParseContext =>
+  new ParseContext({
+    input: {
+      type: 'oas',
+      value: { openapi: '3.1.0', info: { title: 't', version: '1' }, paths: {} } as OpenAPIV3.Document
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
 
 // Create a testable context with methods that can be spied on
 const createTestContext = (): ParseContextType =>
@@ -1126,6 +1138,21 @@ Deno.test('toSchemaV3 - single-member allOf keeps the ref lazy (recursion-safe)'
     assert(next instanceof OasRef)
     assertEquals(next.nullable, true)
   })
+})
+
+Deno.test('toSchemaV3 - v3-1 type-less object is silent (valid in 3.1)', () => {
+  // In 3.1 `type` is optional, so a schema with `properties` and no `type` is
+  // a normal object schema — inferred silently, with no MISSING_OBJECT_TYPE
+  // issue (the v3-0 parser records one at `debug`).
+  const context = realContext()
+  const result = toSchemaV3({
+    schema: { properties: { x: { type: 'string' } } } as OpenAPIV3.SchemaObject,
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assert(result instanceof OasObject)
+  assertEquals(context.issues.filter(issue => issue.type === 'MISSING_OBJECT_TYPE').length, 0)
 })
 
 Deno.test('toSchemaV3 - single-member combinator collapse (CASE 1)', async t => {

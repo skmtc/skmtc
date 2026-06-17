@@ -477,6 +477,19 @@ export class ParseContext {
         )
         break
       }
+      case 'debug': {
+        this.logIssueAt(
+          {
+            protocol,
+            level: 'debug',
+            type,
+            location,
+            message: issue.message
+          } as unknown as LogIssueAtArgs,
+          parent
+        )
+        break
+      }
       default: {
         const _exhaustive: never = issue
         throw new Error(`Unhandled parse-issue level: ${JSON.stringify(_exhaustive)}`)

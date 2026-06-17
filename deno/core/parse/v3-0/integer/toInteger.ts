@@ -163,9 +163,12 @@ const parseIntegerFormat = ({ format, context, parent, stackTrail }: ParseIntege
   }
 
   if (!v.is(integerFormat, format)) {
+    // `format` is an open vocabulary; a value the IR's integerFormat can't
+    // hold is dropped. Recorded at `debug` — the dropped hint is
+    // informational, not a correctness issue.
     context.logIssue({
       key: 'format',
-      level: 'warning',
+      level: 'debug',
       message: `Invalid format: ${format}`,
       parent,
       stackTrail,

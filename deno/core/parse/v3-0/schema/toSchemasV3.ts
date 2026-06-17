@@ -276,8 +276,13 @@ export const toSchemaV3 = ({
 
   // Otherwise cases
   if (possibleObject(schema)) {
+    // 3.0 requires `type`, so its absence is a real (if benign) deviation —
+    // recorded at `debug` rather than `warning`: `properties` makes the
+    // intent unambiguous and inferring `object` is reliable, so it is noise
+    // in the default view but worth keeping in the record. (The v3-1 parser
+    // is silent here — type-less is valid in 3.1.)
     context.logIssueNoKey({
-      level: 'warning',
+      level: 'debug',
       message: 'Object has "properties" property, but is missing type="object" property',
       parent: schema,
       stackTrail,
