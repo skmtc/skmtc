@@ -69,7 +69,7 @@ wire form into it.
 | Literal (`const`) | single-`enum` | `const:X` → `enum:[X]` → leaf | ✅ done |
 | `exclusiveMin/Max` | boolean (+ `minimum`) | numeric bound | ⏳ pending |
 | Schema `examples` | `example` (singular) | `examples` (array) | ⏳ pending |
-| `paths` requiredness | required | optional (webhooks-only docs) | ⏳ pending |
+| `paths` requiredness | required | optional (webhooks-only docs) → `operations: []` | ✅ done |
 | `$ref` siblings (`summary`/`description`) | ignored | ignored (no IR field yet) | ⏳ deferred |
 | Webhooks | via down-convert `retainWebhooks` | native, from the raw doc | ✅ (Phase 1/4) |
 

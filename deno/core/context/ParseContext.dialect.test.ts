@@ -26,16 +26,12 @@ Deno.test('ParseContext dialect split - a 3.0 document routes to the v3-0 parser
   assertEquals(result.type, 'oas')
 })
 
-Deno.test('ParseContext dialect split - a 3.1 document routes to the v3-1 parser', () => {
-  // A webhooks-bearing 3.1 document parses through the 3.1 tree. The two
-  // trees are byte-identical until the native-3.1 divergence, so this pins
-  // that the 3.1 branch is wired and reachable (webhooks parsed, isolated
-  // from operations). `paths: {}` sidesteps the not-yet-optional-paths
-  // handling, which the divergence addresses.
+Deno.test('ParseContext dialect split - a webhooks-only 3.1 document routes to v3-1 and parses (no paths)', () => {
+  // A webhooks-only 3.1 document (no `paths` — legal in 3.1) parses through
+  // the v3-1 tree end-to-end: webhooks parsed, operations empty, no throw.
   const result = parse({
     openapi: '3.1.0',
     info: { title: 't', version: '0' },
-    paths: {},
     webhooks: {
       newPet: {
         post: { responses: { '200': { description: 'ok' } } }

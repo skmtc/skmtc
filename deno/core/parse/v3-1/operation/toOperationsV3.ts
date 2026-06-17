@@ -108,7 +108,9 @@ export const toOperationV3 = ({
 }
 
 export type ToOperationsV3Args = {
-  paths: OpenAPIV3.PathsObject
+  // OpenAPI 3.1 makes `paths` optional — a webhooks-only or components-only
+  // document is valid — so this is undefined-tolerant.
+  paths: OpenAPIV3.PathsObject | undefined
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -118,6 +120,10 @@ export const toOperationsV3 = ({
   stackTrail,
   context
 }: ToOperationsV3Args): OasOperation[] => {
+  if (!paths) {
+    return []
+  }
+
   return Object.entries(paths).flatMap(([path, pathItem]) => {
     return stackTrail.trace(path, pathStack => {
       if (!pathItem) {

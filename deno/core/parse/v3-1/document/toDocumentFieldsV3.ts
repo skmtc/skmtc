@@ -13,10 +13,15 @@ import { toExternalDocs } from '@/parse/v3-1/externalDocs/toExternalDocs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
 export type ToDocumentV3Args = {
-  // Retained-member transport: 3.1 webhooks ride on the down-converted 3.0
-  // document (see @skmtc/convert `toV3Document` + `retainWebhooks`). The base
-  // 3.0 type has no `webhooks`, so widen it here.
-  documentObject: OpenAPIV3.Document & { webhooks?: WebhooksObject }
+  // Native 3.1 plumbing. The base 3.0 type has no `webhooks` and makes
+  // `paths` required, but 3.1 adds top-level `webhooks` (parsed straight from
+  // the raw document) and makes `paths` optional — a webhooks-only or
+  // components-only document is valid. Widen both so the raw 3.1 document
+  // type-checks.
+  documentObject: Omit<OpenAPIV3.Document, 'paths'> & {
+    paths?: OpenAPIV3.PathsObject
+    webhooks?: WebhooksObject
+  }
   stackTrail: StackTrail
   context: ParseContextType
 }
