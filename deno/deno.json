@@ -22,6 +22,7 @@
     "./cli",
     "./convert",
     "./core",
+    "./gen-ts-webhook",
     "./lang-csharp",
     "./lang-go",
     "./lang-java",
