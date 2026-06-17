@@ -978,6 +978,44 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 native null members', async t => {
   })
 })
 
+Deno.test('toSchemaV3 - OpenAPI 3.1 const (single-value literal)', async t => {
+  // 3.1 `const: X` is the single-value form of `enum`. v3-1 rewrites it to
+  // `enum:[X]` so the enum-aware leaves handle it (matching down-convert, so
+  // a 3.0 `enum:[X]` and a 3.1 `const:X` land on the same IR).
+  await t.step('typed const becomes that leaf with a single enum', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": "string", "const": "active"}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.enums, ['active'])
+  })
+
+  await t.step('a bare string const (no type) resolves to OasString via the enum fallback', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"const": "active"}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.enums, ['active'])
+  })
+
+  await t.step('a typed integer const becomes OasInteger with a single enum', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": "integer", "const": 5}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasInteger)
+    assertEquals(result.enums, [5])
+  })
+})
+
 Deno.test('toSchemaV3 - single-member combinator collapse (CASE 1)', async t => {
   // The single-member oneOf/anyOf collapse must carry the wrapper's
   // sibling keywords into the surviving member instead of discarding

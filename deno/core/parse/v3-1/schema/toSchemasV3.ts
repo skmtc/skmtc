@@ -126,6 +126,24 @@ const normalizeTypeArray = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObj
 }
 
 /**
+ * OpenAPI 3.1 `const: X` is the single-value form of `enum` (3.0 expresses a
+ * literal as a one-element `enum`). Rewrite it so the existing enum-aware leaf
+ * parsers handle it; matches down-convert's `convertConstToEnum`, so a 3.0
+ * `enum:[X]` and a 3.1 `const:X` land on the same IR.
+ */
+const normalizeConst = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
+  if (!('const' in schema)) {
+    return schema
+  }
+
+  // `const` is a 3.1 keyword the 3.0-typed SchemaObject does not model; read
+  // it via an annotated destructure rather than a cast.
+  const { const: constValue, ...rest }: OpenAPIV3.SchemaObject & { const?: unknown } = schema
+
+  return { ...rest, enum: [constValue] }
+}
+
+/**
  * Is this a 3.1 `{ type: 'null' }` schema member? (`'null'` is a 3.1 type
  * literal the 3.0-typed SchemaObject does not model, so read it loosely.)
  */
@@ -205,6 +223,12 @@ export const toSchemaV3 = ({
 
   if (normalized !== schema) {
     return toSchemaV3({ schema: normalized, stackTrail, context })
+  }
+
+  const withoutConst = normalizeConst(schema)
+
+  if (withoutConst !== schema) {
+    return toSchemaV3({ schema: withoutConst, stackTrail, context })
   }
 
   if ('allOf' in schema && Array.isArray(schema.allOf)) {

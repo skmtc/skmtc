@@ -66,7 +66,7 @@ wire form into it.
 | Nullable union | `nullable` keyword on the combinator | `{type:'null'}` member folded out → IR `nullable` | ✅ done |
 | Nullable `$ref` | `oneOf:[{$ref}], nullable:true` → nullable `OasRef` | `oneOf:[{$ref},{type:'null'}]` → nullable `OasRef` | ✅ done |
 | Pure null (`type:'null'` / `['null']`) | n/a | falls through to `OasUnknown` — no `OasNull` IR node yet | ⏳ gap |
-| Literal (`const`) | single-`enum` | — | ⏳ pending |
+| Literal (`const`) | single-`enum` | `const:X` → `enum:[X]` → leaf | ✅ done |
 | `exclusiveMin/Max` | boolean (+ `minimum`) | numeric bound | ⏳ pending |
 | Schema `examples` | `example` (singular) | `examples` (array) | ⏳ pending |
 | `paths` requiredness | required | optional (webhooks-only docs) | ⏳ pending |
