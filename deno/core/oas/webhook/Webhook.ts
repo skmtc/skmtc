@@ -1,6 +1,8 @@
 import type { Method } from '../../types/Method.ts'
 import type { OasPathItem } from '../pathItem/PathItem.ts'
 import type { OasParameter } from '../parameter/Parameter.ts'
+import type { OasParameterLocation } from '../parameter/parameter-types.ts'
+import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRequestBody } from '../requestBody/RequestBody.ts'
 import type { OasResponse } from '../response/Response.ts'
 import type { OasRef } from '../ref/Ref.ts'
@@ -64,9 +66,12 @@ export type WebhookFields = {
  * receive one: webhook code generation is a *receiver/handler* concern,
  * not a client-call concern.
  *
- * This is intentionally a parse-only data class. Webhook-semantic helpers
- * (payload schema, ack response, signature verification) accrue when a
- * webhook generator needs them (Phase 4), not preemptively.
+ * Carries webhook-semantic accessors named for the RECEIVER —
+ * `toPayload`/`toPayloadSchema` (the received payload), `toParams` (inbound
+ * params), `toAckResponse`/`toAckResponseCode` (the ack the handler returns).
+ * These deliberately avoid the client-framed {@link OasOperation} names
+ * (`toRequestBody`, `toSuccessResponse`) so the inversion stays explicit in
+ * generator code. (Signature-verification helpers still accrue on demand.)
  */
 export class OasWebhook extends OasBase {
   /** Type identifier for OAS webhook objects */
@@ -120,6 +125,72 @@ export class OasWebhook extends OasBase {
     this.externalDocs = fields.externalDocs
     this.extensionFields = fields.extensionFields
     this.servers = fields.servers
+  }
+
+  /**
+   * The received-payload body — the request body the API delivers TO the
+   * consumer's handler. Webhook semantics are inverted: this is what the
+   * handler RECEIVES, not what a client sends. A `$ref` body is resolved.
+   */
+  toPayload(): OasRequestBody | undefined {
+    return this.requestBody?.resolve()
+  }
+
+  /**
+   * The schema of the received payload for `mediaType` (default
+   * `application/json`) — the inbound body shape a handler generator emits a
+   * type for. `undefined` when there is no body or no schema for that media
+   * type.
+   */
+  toPayloadSchema(mediaType = 'application/json'): OasSchema | OasRef<'schema'> | undefined {
+    return this.toPayload()?.content[mediaType]?.schema
+  }
+
+  /**
+   * Resolve the inbound parameters (e.g. the signature/headers a handler
+   * receives), optionally filtered by location. Mirrors
+   * {@link OasOperation.toParams}; the parameters carry the same shape, only
+   * their direction is inbound.
+   */
+  toParams(filter?: OasParameterLocation[]): OasParameter[] {
+    return (
+      this.parameters
+        ?.map(param => param.resolve())
+        .filter(param => (filter?.length ? filter.includes(param.location) : true)) ?? []
+    )
+  }
+
+  /**
+   * The status code of the primary acknowledgement response — the lowest 2xx
+   * the handler returns to ack the delivery, falling back to `default`. Named
+   * for the receiver: a webhook's `responses` are what the handler RETURNS,
+   * not what a client receives (cf. {@link OasOperation.toSuccessResponseCode}).
+   */
+  toAckResponseCode(): string | undefined {
+    const ackCode = Object.keys(this.responses)
+      .map(httpCode => parseInt(httpCode))
+      .sort((a, b) => a - b)
+      .find(httpCode => httpCode >= 200 && httpCode < 300)
+
+    if (ackCode) {
+      return ackCode.toString()
+    }
+
+    if (this.responses.default) {
+      return 'default'
+    }
+
+    return undefined
+  }
+
+  /**
+   * The primary acknowledgement response definition (the body/headers the
+   * handler returns), or `undefined` when none is declared.
+   */
+  toAckResponse(): OasResponse | OasRef<'response'> | undefined {
+    const ackCode = this.toAckResponseCode()
+
+    return ackCode ? this.responses[ackCode] : undefined
   }
 
   /**

@@ -30,8 +30,7 @@ const propToTs = (prop: OasSchema | OasRef<'schema'> | CustomValue): string => {
  * `unknown`.
  */
 export const toPayloadType = (webhook: OasWebhook): string => {
-  const requestBody = webhook.requestBody?.resolve()
-  const schemaOrRef = requestBody?.content?.['application/json']?.schema
+  const schemaOrRef = webhook.toPayloadSchema()
   if (!schemaOrRef) {
     return 'unknown'
   }
