@@ -21,3 +21,61 @@ Deno.test('toDocumentFieldsV3 - basic document fields', () => {
   assertEquals(documentFields.info, new OasInfo({ title: 'Test API', version: '1.0.0' }))
   assertEquals(documentFields.operations, [])
 })
+
+Deno.test('toDocumentFieldsV3 - flattens webhooks into OasWebhook[]', () => {
+  const documentObject: OpenAPIV3.Document & {
+    webhooks?: Record<string, OpenAPIV3.PathItemObject>
+  } = {
+    openapi: '3.1.0',
+    info: { title: 'Test API', version: '1.0.0' },
+    paths: {},
+    webhooks: {
+      newPet: { post: { responses: { '200': { description: 'ok' } } } }
+    }
+  }
+  const stackTrail = new StackTrail(['TEST'])
+  const documentFields = toDocumentFieldsV3({ stackTrail, documentObject, context: mockParseContext })
+
+  const webhooks = documentFields.webhooks ?? []
+  assertEquals(documentFields.operations, [])
+  assertEquals(webhooks.length, 1)
+  assertEquals(webhooks[0].name, 'newPet')
+  assertEquals(webhooks[0].method, 'post')
+  assertEquals(webhooks[0].oasType, 'webhook')
+})
+
+Deno.test('toDocumentFieldsV3 - operations and webhooks stay separate; webhooks never leak into operations', () => {
+  const documentObject: OpenAPIV3.Document & {
+    webhooks?: Record<string, OpenAPIV3.PathItemObject>
+  } = {
+    openapi: '3.1.0',
+    info: { title: 'Test API', version: '1.0.0' },
+    paths: {
+      '/pets': { get: { responses: { '200': { description: 'ok' } } } }
+    },
+    webhooks: {
+      newPet: { post: { responses: { '200': { description: 'ok' } } } }
+    }
+  }
+  const stackTrail = new StackTrail(['TEST'])
+  const documentFields = toDocumentFieldsV3({ stackTrail, documentObject, context: mockParseContext })
+  const webhooks = documentFields.webhooks ?? []
+
+  // operations holds only the path operation
+  assertEquals(documentFields.operations.length, 1)
+  assertEquals(documentFields.operations[0].path, '/pets')
+  assertEquals(documentFields.operations[0].method, 'get')
+  assertEquals(documentFields.operations[0].oasType, 'operation')
+
+  // webhooks holds only the webhook — and no webhook leaks into operations
+  // (the inverted-semantics safety net: client/SDK generators iterate
+  // `operations` and must never receive a webhook subject)
+  assertEquals(webhooks.length, 1)
+  assertEquals(webhooks[0].name, 'newPet')
+  assertEquals(webhooks[0].oasType, 'webhook')
+  assertEquals(
+    documentFields.operations.every(op => op.oasType === 'operation'),
+    true,
+    'no webhook leaked into operations'
+  )
+})

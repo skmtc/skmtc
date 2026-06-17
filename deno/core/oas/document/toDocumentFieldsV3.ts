@@ -2,6 +2,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toTagsV3 } from '@/oas/tag/toTagsV3.ts'
 import { toOperationsV3 } from '@/oas/operation/toOperationsV3.ts'
+import { toWebhooksV3, type WebhooksObject } from '@/oas/webhook/toWebhooksV3.ts'
 import { toComponentsV3 } from '@/oas/components/toComponentsV3.ts'
 import { toInfoV3 } from '@/oas/info/toInfoV3.ts'
 import type { DocumentFields } from '@/oas/document/Document.ts'
@@ -12,7 +13,10 @@ import { toExternalDocs } from '@/oas/externalDocs/toExternalDocs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
 export type ToDocumentV3Args = {
-  documentObject: OpenAPIV3.Document
+  // Retained-member transport: 3.1 webhooks ride on the down-converted 3.0
+  // document (see @skmtc/convert `toV3Document` + `retainWebhooks`). The base
+  // 3.0 type has no `webhooks`, so widen it here.
+  documentObject: OpenAPIV3.Document & { webhooks?: WebhooksObject }
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -22,8 +26,18 @@ export const toDocumentFieldsV3 = ({
   stackTrail,
   context
 }: ToDocumentV3Args): DocumentFields => {
-  const { openapi, info, paths, components, tags, servers, security, externalDocs, ...skipped } =
-    documentObject
+  const {
+    openapi,
+    info,
+    paths,
+    components,
+    tags,
+    servers,
+    security,
+    externalDocs,
+    webhooks,
+    ...skipped
+  } = documentObject
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -40,6 +54,9 @@ export const toDocumentFieldsV3 = ({
       toOptionalServersV3({ servers, stackTrail: st, context })
     ),
     operations: stackTrail.trace('paths', st => toOperationsV3({ paths, stackTrail: st, context })),
+    webhooks: stackTrail.trace('webhooks', st =>
+      toWebhooksV3({ webhooks, stackTrail: st, context })
+    ),
     components: stackTrail.trace('components', st =>
       toComponentsV3({ components, stackTrail: st, context })
     ),
