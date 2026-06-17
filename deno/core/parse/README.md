@@ -79,6 +79,7 @@ wire form into it.
 | Schema `examples` | `example` (singular) | `examples` array → `examples[0]` as IR `example` | ✅ done |
 | Binary / base64 string | `format: binary`/`byte` | `contentMediaType: application/octet-stream` → `format: binary`; `contentEncoding: base64` → `format: byte` | ✅ done |
 | `paths` requiredness | required | optional (webhooks-only docs) → `operations: []` | ✅ done |
+| Type-less object (`properties`, no `type`) | infers `object`; records `MISSING_OBJECT_TYPE` at `debug` (3.0 requires `type`) | infers `object` silently (`type` optional in 3.1) | ✅ done |
 | `$ref` siblings (`summary`/`description`) | ignored | ignored (no IR field yet) | ⏳ deferred |
 | Webhooks | n/a (3.0 has no webhooks) | native, from the raw doc | ✅ |
 
@@ -102,6 +103,25 @@ the bare types, so the existing union machinery builds the `OasUnion`. A
 multi-type array carrying type-specific constraints (e.g. `maxLength` next to
 `['string','number']`) keeps the shared annotations on the union and does not
 distribute per-type constraints to the members — a rare case, noted here.
+
+## Diagnostic levels
+
+Parse issues carry one of three severities (`core/context/ParseIssue.ts`):
+
+- **`error`** — the input is broken; the item is dropped and its `$ref`
+  consumers pruned. Drives the run's exit status.
+- **`warning`** — a real deviation that was handled (e.g. `additionalProperties`
+  on a non-object schema).
+- **`debug`** — informational: the parser handled the input gracefully and is
+  recording what it assumed or dropped. Recorded on the manifest but filtered
+  from the default view; never affects exit status.
+
+`debug` keeps the record without the noise. Routed here: the v3-0
+type-less-object inference (above), and a number/integer `format` the IR's
+format enum can't hold (dropped — the lost hint is informational). A custom
+string `format` is spec-legal (open vocabulary) and preserved on the IR, so it
+is not recorded at all; `callbacks` is a deliberate non-goal and dropped
+silently in the operation parser.
 
 ## Known gaps / deferrals
 
