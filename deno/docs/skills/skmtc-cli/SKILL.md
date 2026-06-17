@@ -837,9 +837,11 @@ Key facts:
   from the store, the store's `host` is also the default hub URL —
   a token minted against a local dev hub is never silently sent to
   production. Explicit `--origin` / `$SKMTC_ORIGIN` always win.
-- **The stack identity is `<authenticated handle>/<project>`** — the
-  PAT picks the account, the project name is the slug. No `--stack`
-  flag; org-owned stacks aren't reachable from the CLI today.
+- **The stack identity is the project `deno.json#name`** (`@account/slug`,
+  the JSR-style package name) — the `@account` scope may be a user OR an
+  **org**, so org-owned stacks are reachable: the PAT authenticates, the hub
+  authorizes you as a `writer` on that account/stack. `name` is required —
+  recipe error (stage `identity`) if missing or not a scoped `@account/slug`.
 - **The hub auto-creates the stack on first publish** ("git push
   creates the repo").
 - **Versions are immutable.** Re-publishing an existing semver →

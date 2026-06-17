@@ -2,6 +2,7 @@ import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
 import {
   publishHeadless,
   publishVersion,
+  resolveStackName,
   resolveStackVersion,
 } from "@/lib/publish-headless.ts";
 import type { SkmtcRoot } from "@/lib/skmtc-root.ts";
@@ -232,6 +233,50 @@ Deno.test("publishHeadless - missing version fails before any network call", asy
     assertEquals(fetchCalls, 0);
   } finally {
     globalThis.fetch = originalFetch;
+    await Deno.remove(projectPath, { recursive: true });
+  }
+});
+
+Deno.test("resolveStackName - parses @account/slug from deno.json#name", async () => {
+  const projectPath = await Deno.makeTempDir();
+  try {
+    await Deno.writeTextFile(
+      join(projectPath, "deno.json"),
+      JSON.stringify({ name: "@acme-org/petstore", version: "1.0.0" }),
+    );
+    assertEquals(await resolveStackName(projectPath), {
+      account: "acme-org",
+      slug: "petstore",
+    });
+  } finally {
+    await Deno.remove(projectPath, { recursive: true });
+  }
+});
+
+Deno.test("resolveStackName - throws the recipe when name is missing", async () => {
+  const projectPath = await Deno.makeTempDir();
+  try {
+    await Deno.writeTextFile(
+      join(projectPath, "deno.json"),
+      JSON.stringify({ version: "1.0.0" }),
+    );
+    const error = await assertRejects(() => resolveStackName(projectPath));
+    if (!(error instanceof Error)) throw new Error("expected an Error");
+    assertStringIncludes(error.message, "set `name`");
+  } finally {
+    await Deno.remove(projectPath, { recursive: true });
+  }
+});
+
+Deno.test("resolveStackName - rejects a name that isn't @account/slug", async () => {
+  const projectPath = await Deno.makeTempDir();
+  try {
+    await Deno.writeTextFile(
+      join(projectPath, "deno.json"),
+      JSON.stringify({ name: "petstore" }),
+    );
+    await assertRejects(() => resolveStackName(projectPath));
+  } finally {
     await Deno.remove(projectPath, { recursive: true });
   }
 });

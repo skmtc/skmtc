@@ -10,11 +10,13 @@ version and own all execution — deployments, runs, and the
 `production` alias live on projects and are driven from the web app,
 not the CLI.
 
-A stack's identity on the hub is **`<authenticated user>/<project>`**.
-The PAT picks the account; the project name is the stack slug. There
-is no `--stack` flag: the destination is fully determined by who
-you're authenticated as and which project you're publishing. (Org-
-owned stacks aren't yet reachable from `skmtc publish`.)
+A stack's identity on the hub is its **package name** — the project root
+`deno.json#name`, in `@account/slug` form (a stack is a JSR-style package).
+The `@account` scope may be a **user or an org**, so org-owned stacks are
+reachable: the PAT authenticates you, the hub authorizes you as a `writer` on
+that account/stack (org membership included). The name is **required** —
+publish fails with a recipe if `deno.json#name` is missing or isn't a scoped
+`@account/slug`.
 
 The version comes from the project root `deno.json#version`, or from
 `--version`. Versions are immutable — re-publishing an existing semver
@@ -31,8 +33,9 @@ skmtc publish <project> --token <pat> [--version <semver>] [--origin <url>] [--j
 
 ### `<project>`
 
-The project name under `.skmtc/<project>/`. Required. Doubles as the
-stack slug — the version lands on the stack `<auth-handle>/<project>`.
+The local project name under `.skmtc/<project>/`. Required. The stack
+destination is **not** derived from this — it's the project's
+`deno.json#name` (`@account/slug`).
 
 ## Options
 
@@ -45,9 +48,9 @@ Personal access token. Resolution order:
 3. The token stored by [`skmtc login`](login.md) (`~/.skmtc/auth.json`)
 
 Mint one in the SPA's account settings (`write:releases` alone is
-enough). The PAT also determines the account half of the stack
-identity — the CLI looks up your handle with `GET /v1/user` at
-publish time.
+enough). The PAT authenticates you; the destination account/stack comes
+from `deno.json#name`, and the hub authorizes you as a `writer` on it
+(so org members can publish to org stacks).
 
 ### `--version <semver>`
 
@@ -70,35 +73,31 @@ See the [overview](overview.md#shared-flags).
 ## What publish does
 
 ```
-1. Resolve the version
+1. Resolve the version + stack identity (both pre-network)
      `--version` wins; otherwise the project root deno.json#version.
-     Missing → fail at stage `version` before any network call.
+     Missing → fail at stage `version`. The stack `@account/slug` comes
+     from deno.json#name; missing/unscoped → fail at stage `identity`.
 
-2. GET /v1/user
-     Resolves the PAT to the authenticated user's `handle`. That handle
-     is the `account` half of the stack identity; the project name is
-     the `slug` half.
-
-3. bundleDeploy(project)
+2. bundleDeploy(project)
      → <project>/server.js   (one self-contained bundle: the generator
         composition + createServer + @skmtc/server + @skmtc/core, all
         inlined, nothing external)
 
-4. POST /v1/stacks/{handle}/{project}/versions   (multipart, atomic)
+3. POST /v1/stacks/{account}/{slug}/versions   (multipart, atomic)
      One `version` part (semver) + one `bundle` part (server.js) + N
      `files` parts (one per project source file). The hub writes the
-     bundle + source to R2, reconciles the stack's generator
-     composition from the uploaded deno.json, and returns the complete
-     StackVersion.
+     bundle + source to R2, authorizes you as a `writer` on the
+     account/stack, reconciles the generator composition from the
+     uploaded deno.json, and returns the complete StackVersion.
 ```
 
 There is no metadata-only intermediate state — the publish is atomic
 (version + bundle + source in one request). Each step has its own
 failure stage in the result envelope (below).
 
-The hub auto-creates the stack on first publish under the
-authenticated user's own account — the same "git push creates the
-repo" behavior as before.
+The hub auto-creates the stack on first publish (the "git push creates
+the repo" behavior), under the `@account` from deno.json#name — which may
+be an org you're a member of.
 
 ## Strict mode
 
@@ -149,7 +148,7 @@ Possible `stage` values:
 | Stage | Where the failure happened |
 |---|---|
 | `version` | No version to publish — no `deno.json#version` and no `--version`. Fails before any network call. |
-| `identity` | `GET /v1/user` failed — usually a bad PAT |
+| `identity` | No stack name — `deno.json#name` is missing or not a scoped `@account/slug`. Fails before any network call. |
 | `bundle` | `bundleDeploy` — Deno bundling failed locally, or reading the bundle / walking the source tree failed |
 | `publish` | `POST /v1/stacks/.../versions` failed (commonly: `409` — that version is already published) |
 
@@ -205,7 +204,7 @@ All errors use the uniform `ApiError` envelope (`{ code, message, … }`):
 | Status | Meaning |
 |---|---|
 | `401` | No or invalid token |
-| `403` | Publishing under an account that isn't yours (org publishing unsupported) |
+| `403` | Not a `writer` on the destination account/stack (e.g. not a member of the org in `deno.json#name`) |
 | `409` | That version is already published — versions are immutable. Bump the version and re-publish. |
 | `422` | Validation — missing `version`/`bundle`/root `deno.json`, composition inconsistent with the uploaded tree, size limits |
 

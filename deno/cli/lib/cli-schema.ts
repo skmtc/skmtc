@@ -140,7 +140,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: "publish",
     description:
-      "Build and publish an immutable version of this project to skmtc-hub. The version lands on the stack <authenticated-user>/<project>; versions are addressed by semver and re-publishing an existing version is rejected.",
+      "Build and publish an immutable version of this project to skmtc-hub. The stack is the project deno.json#name (@account/slug, the package name; the scope may be an org); versions are addressed by semver and re-publishing an existing version is rejected.",
     args: ["<project>"],
     flags: [
       ...AGENT_MODE_FLAGS,

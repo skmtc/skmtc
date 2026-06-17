@@ -25,6 +25,7 @@
  */
 
 import type { SkmtcRoot } from "@/lib/skmtc-root.ts";
+import { parseScopedName } from "@/lib/scoped-name.ts";
 
 type PushHeadlessArgs = {
   skmtcRoot: SkmtcRoot;
@@ -73,21 +74,6 @@ export type PushHeadlessResult =
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-/**
- * Parse a `@account/slug` hub destination. Returns `null` for anything that
- * isn't exactly `@<account>/<slug>` (the `@` is required — it marks a hub
- * reference, distinct from a local path or URL).
- *
- * Exported for tests.
- */
-export const parseHubProjectRef = (
-  spec: string,
-): { account: string; slug: string } | null => {
-  const match = /^@([^/\s]+)\/([^/\s]+)$/.exec(spec.trim());
-  if (!match) return null;
-  return { account: match[1], slug: match[2] };
-};
-
 const arrayLength = (payload: Record<string, unknown>, key: string): number => {
   const value = payload[key];
   return Array.isArray(value) ? value.length : 0;
@@ -133,7 +119,7 @@ export const pushHeadless = async ({
       stage: "destination",
     };
   }
-  const dest = parseHubProjectRef(destSpec);
+  const dest = parseScopedName(destSpec);
   if (!dest) {
     return {
       kind: "failed",

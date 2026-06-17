@@ -1,5 +1,6 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
-import { parseHubProjectRef, pushHeadless } from "@/lib/push-headless.ts";
+import { pushHeadless } from "@/lib/push-headless.ts";
+import { parseScopedName } from "@/lib/scoped-name.ts";
 import type { SkmtcRoot } from "@/lib/skmtc-root.ts";
 
 const originalFetch = globalThis.fetch;
@@ -63,22 +64,22 @@ const stubFetch = (
   return calls;
 };
 
-Deno.test("parseHubProjectRef - parses @account/slug", () => {
-  assertEquals(parseHubProjectRef("@acme/petstore"), {
+Deno.test("parseScopedName - parses @account/slug", () => {
+  assertEquals(parseScopedName("@acme/petstore"), {
     account: "acme",
     slug: "petstore",
   });
-  assertEquals(parseHubProjectRef("  @acme/petstore  "), {
+  assertEquals(parseScopedName("  @acme/petstore  "), {
     account: "acme",
     slug: "petstore",
   });
 });
 
-Deno.test("parseHubProjectRef - rejects missing @, missing slug, and extra segments", () => {
-  assertEquals(parseHubProjectRef("acme/petstore"), null);
-  assertEquals(parseHubProjectRef("@acme"), null);
-  assertEquals(parseHubProjectRef("@acme/"), null);
-  assertEquals(parseHubProjectRef("@acme/a/b"), null);
+Deno.test("parseScopedName - rejects missing @, missing slug, and extra segments", () => {
+  assertEquals(parseScopedName("acme/petstore"), null);
+  assertEquals(parseScopedName("@acme"), null);
+  assertEquals(parseScopedName("@acme/"), null);
+  assertEquals(parseScopedName("@acme/a/b"), null);
 });
 
 Deno.test("pushHeadless - fails before any network call when there is no destination", async () => {

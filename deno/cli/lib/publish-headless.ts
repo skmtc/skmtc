@@ -31,6 +31,7 @@ import { join } from "@std/path/join";
 import type { SkmtcRoot } from "@/lib/skmtc-root.ts";
 import { bundleDeploy } from "@/lib/bundle-deploy.ts";
 import { collectSourceFiles, type SourceFile } from "@/lib/source-upload.ts";
+import { parseScopedName } from "@/lib/scoped-name.ts";
 
 type PublishHeadlessArgs = {
   skmtcRoot: SkmtcRoot;
@@ -93,6 +94,25 @@ const readProjectVersion = async (
 };
 
 /**
+ * Read the project root `deno.json#name` (the stack's JSR-style package name),
+ * or `undefined` when the file is missing, unparseable, or has no `name`. The
+ * caller turns `undefined`/unscoped into the recipe-style "set a name" failure.
+ */
+const readProjectName = async (
+  projectPath: string,
+): Promise<string | undefined> => {
+  try {
+    const contents = await Deno.readTextFile(join(projectPath, "deno.json"));
+    const parsed: unknown = JSON.parse(contents);
+    if (!isObject(parsed)) return undefined;
+    const name = parsed["name"];
+    return typeof name === "string" ? name : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
  * Resolve the version to publish: the `--version` flag wins, then the
  * project root `deno.json#version`. Both are trimmed; empty values count
  * as missing. Throws when neither source yields a version — publishing
@@ -117,6 +137,27 @@ export const resolveStackVersion = async ({
   throw new Error(
     "no version to publish — set a `version` in the project's deno.json or pass --version <semver>",
   );
+};
+
+/**
+ * Resolve the stack identity from the project root `deno.json#name` — a stack is
+ * a JSR-style package, so its identity is its package name `@account/slug` (the
+ * `@account` scope may be an org). Throws the recipe when the name is missing or
+ * not a scoped name; publishing never falls back to the authenticated handle.
+ *
+ * Exported for tests.
+ */
+export const resolveStackName = async (
+  projectPath: string,
+): Promise<{ account: string; slug: string }> => {
+  const name = (await readProjectName(projectPath))?.trim();
+  const parsed = name ? parseScopedName(name) : null;
+  if (!parsed) {
+    throw new Error(
+      'no stack name to publish to — set `name` to "@account/slug" in the project deno.json',
+    );
+  }
+  return parsed;
 };
 
 /**
@@ -246,43 +287,6 @@ export const publishVersion = async ({
   };
 };
 
-/**
- * Resolve the authenticated user's handle from the PAT. The hub's
- * `GET /v1/user` returns `AuthenticatedUser` whose `handle` is the
- * `account` segment of every stack URL the user can publish to.
- *
- * `publish` uses this to construct the stack identity from the project
- * name alone — a stack's identity is `<authenticated handle>/<project>`.
- * Org-owned stacks aren't reachable from `skmtc publish` today.
- */
-const resolveAccountHandle = async ({
-  origin,
-  token,
-}: {
-  origin: string;
-  token: string;
-}): Promise<string> => {
-  const response = await fetch(`${origin}/v1/user`, {
-    method: "GET",
-    headers: { "authorization": `Bearer ${token}` },
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `identity lookup failed (${response.status}): ${text.slice(0, 500)}`,
-    );
-  }
-  const payload: unknown = await response.json();
-  if (!isObject(payload)) {
-    throw new Error("hub returned non-object identity payload");
-  }
-  const handle = payload["handle"];
-  if (typeof handle !== "string" || handle.length === 0) {
-    throw new Error("hub identity payload missing `handle`");
-  }
-  return handle;
-};
-
 export const publishHeadless = async ({
   skmtcRoot,
   projectName,
@@ -309,11 +313,14 @@ export const publishHeadless = async ({
     };
   }
 
-  // The stack identity is `<authenticated handle>/<project>`. There is no
-  // account/slug choice: the PAT picks the account, the project name is the slug.
+  // The stack identity is the project deno.json#name (@account/slug) — a stack
+  // is a JSR-style package; the @account scope may be an org.
   let account: string;
+  let slug: string;
   try {
-    account = await resolveAccountHandle({ origin, token });
+    const stack = await resolveStackName(project.toPath());
+    account = stack.account;
+    slug = stack.slug;
   } catch (err) {
     return {
       kind: "failed",
@@ -322,7 +329,6 @@ export const publishHeadless = async ({
       stage: "identity",
     };
   }
-  const slug = projectName;
 
   let bundlePath: string;
   let bundleBuffer: ArrayBuffer;
