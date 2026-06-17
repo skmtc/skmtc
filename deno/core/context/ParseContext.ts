@@ -23,6 +23,8 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { buildSchema, type GraphQLSchema } from 'graphql'
 import { toDocumentFieldsV3 } from '@/parse/v3-0/document/toDocumentFieldsV3.ts'
+import { toDocumentFieldsV3 as toDocumentFieldsV31 } from '@/parse/v3-1/document/toDocumentFieldsV3.ts'
+import { toOasDialect } from '@/parse/toOasDialect.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
@@ -231,11 +233,30 @@ export class ParseContext {
     switch (this.protocol.type) {
       case 'oas': {
         const oasState = this.protocol
-        oasState.oasDocument.fields = toDocumentFieldsV3({
-          documentObject: oasState.documentObject,
-          stackTrail,
-          context: this
-        })
+        // The ONE place the OpenAPI version is examined: pick the dialect's
+        // parser tree. Everything downstream is version-specific code living
+        // in its own tree (v3-0 / v3-1) and never re-checks the version.
+        const dialect = toOasDialect(oasState.documentObject.openapi)
+        switch (dialect) {
+          case '3.0':
+            oasState.oasDocument.fields = toDocumentFieldsV3({
+              documentObject: oasState.documentObject,
+              stackTrail,
+              context: this
+            })
+            break
+          case '3.1':
+            oasState.oasDocument.fields = toDocumentFieldsV31({
+              documentObject: oasState.documentObject,
+              stackTrail,
+              context: this
+            })
+            break
+          default: {
+            const _exhaustive: never = dialect
+            throw new Error(`Unhandled OAS dialect: ${JSON.stringify(_exhaustive)}`)
+          }
+        }
         this.removeErroredItems()
         return { type: 'oas', value: oasState.oasDocument }
       }
