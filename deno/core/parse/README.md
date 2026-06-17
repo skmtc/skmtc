@@ -101,4 +101,12 @@ distribute per-type constraints to the members — a rare case, noted here.
   is an additive IR enrichment for when a generator needs it.
 - **`$ref` `summary`/`description` siblings** (3.1) are ignored — `OasRef`
   has no field for them yet.
-- See the table above for constructs still marked ⏳ pending.
+- **Tuples (`prefixItems`) and closed objects (`unevaluatedProperties`)** are
+  not parsed — they need an additive IR shape, added on demand when a
+  generator can use the extra fidelity.
+- **Conditional schemas (`if`/`then`/`else`, `dependentSchemas`,
+  `patternProperties`)** are not mapped — a deliberate non-goal (rarely
+  codegen-able); they fall through as skipped fields.
+- **Document metadata (`info.summary`, `license.identifier`,
+  `jsonSchemaDialect`, `$self`)** is not mapped to the IR; surfaced as
+  skipped-field warnings. Minor.
