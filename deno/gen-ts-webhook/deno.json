@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "exports": "./mod.ts",
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@0.16.1",
+    "@skmtc/core": "jsr:@skmtc/core@0.16.2",
     "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@0.10.4",
     "@std/path": "jsr:@std/path@^1.0.9",
     "@std/assert": "jsr:@std/assert@^1.0.10"
