@@ -505,14 +505,11 @@ export const toSchemaV3 = ({
 
   // Otherwise cases
   if (possibleObject(schema)) {
-    context.logIssueNoKey({
-      level: 'warning',
-      message: 'Object has "properties" property, but is missing type="object" property',
-      parent: schema,
-      stackTrail,
-      type: 'MISSING_OBJECT_TYPE'
-    })
-
+    // In 3.1 `type` is optional, so a schema with `properties` and no `type`
+    // is a normal, valid object schema — inferring `object` is the expected
+    // reading, not a deviation, so it is silent. (The v3-0 parser keeps the
+    // MISSING_OBJECT_TYPE warning: 3.0 requires `type`, so its absence there
+    // is a real signal.)
     return toObject({
       value: {
         ...schema,

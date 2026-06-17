@@ -53,6 +53,10 @@ export const toOperationV3 = ({
     security,
     externalDocs,
     servers,
+    // Callbacks are a deliberate non-goal (no out-of-band callback codegen).
+    // Pull it out so it is dropped silently instead of warned as an
+    // unexpected property on every operation that declares one.
+    callbacks: _callbacks,
     ...skipped
   } = operation
 

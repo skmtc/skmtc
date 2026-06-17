@@ -432,7 +432,7 @@ Deno.test('toParsedString', async t => {
       })
     })
 
-    await t.step('should log warning for unknown format but preserve it', () => {
+    await t.step('should preserve an unknown format without warning', () => {
       const stackTrail = new StackTrail(['TEST'])
       const contextSpy = spy(mockParseContext, 'logIssue')
 
@@ -449,9 +449,10 @@ Deno.test('toParsedString', async t => {
         }
       })
 
+      // `format` is an open vocabulary: a custom format is preserved as-is and
+      // is NOT warned — it is spec-legal, not a deviation.
       assertEquals(oasString.format, 'custom-format')
-      // Verify logIssue was called for format warning
-      assertEquals(contextSpy.calls.length >= 1, true)
+      assertEquals(contextSpy.calls.length, 0)
 
       contextSpy.restore()
     })

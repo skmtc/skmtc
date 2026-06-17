@@ -2,7 +2,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasString } from '@/oas/string/String.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { oasStringData, stringFormat } from '@/oas/string/string-types.ts'
+import { oasStringData } from '@/oas/string/string-types.ts'
 import * as v from 'valibot'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
@@ -244,16 +244,9 @@ export const toParsedString = <Nullable extends boolean | undefined>({
     parentType: 'schema:string'
   })
 
-  if (format && !v.is(stringFormat, format)) {
-    context.logIssue({
-      key: 'format',
-      level: 'warning',
-      message: `Unexpected format: ${format}`,
-      parent: value,
-      stackTrail,
-      type: 'UNEXPECTED_FORMAT'
-    })
-  }
+  // `format` is an open vocabulary — custom string formats (e.g. `decimal`,
+  // `utc_datetime`) are spec-legal. The value is preserved on the OasString
+  // below, so an unrecognised format is passed through, not warned.
 
   return context.withStackTrail(stackTrail, () =>
     new OasString<Nullable>(
