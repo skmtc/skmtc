@@ -51,6 +51,17 @@ function refTypeToPluralPath(refType: OasRefData['refType']): string {
 export type RefFields<T extends OasRefData['refType']> = {
   refType: T
   $ref: string
+  /**
+   * Use-site nullability. A `$ref` is a per-reference node: the same
+   * refName may be referenced nullable at one site and non-nullable at
+   * another, so nullability rides the reference, not the shared referent.
+   * Set by the single-member `oneOf`/`anyOf` collapse for the 3.1
+   * `oneOf:[{$ref},{type:null}]` idiom; consumed directly by generators
+   * (`'nullable' in schema ? schema.nullable`) to render `Foo | null`,
+   * while `ModelDriver` builds the un-nullable shared model from the
+   * refName.
+   */
+  nullable?: boolean
 }
 
 /**
@@ -281,6 +292,15 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
   get refType(): OasRefData['refType'] {
     return this.#fields.refType
+  }
+
+  /**
+   * Use-site nullability of this reference (see {@link RefFields.nullable}).
+   * The getter exists on the prototype, so `'nullable' in ref` is always
+   * true and the value-function nullable read picks it up uniformly.
+   */
+  get nullable(): boolean | undefined {
+    return this.#fields.nullable
   }
 
   /**

@@ -9,13 +9,20 @@ type ToRefV31Args<T extends OasRefData['refType']> = {
   refType: T
   stackTrail: StackTrail
   context: ParseContextType
+  /**
+   * Use-site nullability to stamp on the OasRef node. Passed explicitly
+   * by the single-member `oneOf`/`anyOf` collapse for a nullable
+   * reference; omitted everywhere else (a plain `$ref` is non-nullable).
+   */
+  nullable?: boolean
 }
 
 export const toRefV31 = <T extends OasRefData['refType']>({
   ref,
   refType,
   stackTrail,
-  context
+  context,
+  nullable
 }: ToRefV31Args<T>): OasRef<T> => {
   const { $ref, ...skipped } = ref
 
@@ -26,6 +33,6 @@ export const toRefV31 = <T extends OasRefData['refType']>({
   context.registerRef(stackTrail.clone(), $ref)
 
   return context.withStackTrail(stackTrail, () =>
-    new OasRef({ refType, $ref }, context)
+    new OasRef({ refType, $ref, nullable }, context)
   )
 }

@@ -109,6 +109,46 @@ const normalizeTypeArray = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObj
   }
 }
 
+/**
+ * Collapse a single-member `oneOf`/`anyOf` into its surviving member.
+ *
+ * The wrapper's sibling keywords must ride into the member rather than
+ * being discarded. The critical one is `nullable`: down-convert's
+ * `convertNullableOneOfAnyOf` rewrites the 3.1 idiom
+ * `oneOf:[{type:'string'},{type:'null'}]` ("string or null") into
+ * `oneOf:[{type:'string'}]` + a hoisted `nullable:true` on the wrapper.
+ * The old short-circuit re-dispatched `members[0]` alone, dropping the
+ * wrapper (`...value`) and silently turning `string | null` back into a
+ * non-nullable `string`. `description`/`title`/`readOnly`/... ride along
+ * the same way.
+ *
+ * Precedence: the member is the more specific schema, so it wins direct
+ * conflicts (`{ ...value, ...member }`). `nullable` is the exception — it
+ * OR-ins, because a nullable wrapper makes the whole schema nullable even
+ * when the member itself is not.
+ *
+ * A ref member only reaches here when the wrapper carries no `nullable`
+ * (the nullable-ref case stamps `nullable` on the OasRef node at the call
+ * site, via `toRefV31`). Any other wrapper siblings on a bare `$ref` are
+ * ignored per 3.0 ref semantics, so the ref is returned untouched.
+ */
+const collapseSingleMember = (
+  value: OpenAPIV3.SchemaObject,
+  member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject => {
+  if (isRef(member)) {
+    return member
+  }
+
+  const merged: OpenAPIV3.SchemaObject = { ...value, ...member }
+
+  if (value.nullable || member.nullable) {
+    merged.nullable = true
+  }
+
+  return merged
+}
+
 export const toSchemaV3 = ({
   schema,
   stackTrail,
@@ -154,7 +194,31 @@ export const toSchemaV3 = ({
       }
 
       if (members.length === 1) {
-        return toSchemaV3({ schema: members[0], stackTrail: st, context })
+        const [soleMember] = members
+        // A 3.1 nullable reference `oneOf:[{$ref},{type:null}]` down-converts
+        // to a single `$ref` member + a hoisted `nullable:true`. Nullability
+        // here is a *use-site* property — the same refName may be referenced
+        // nullable at one site and not another — so it rides the OasRef node
+        // itself, NOT the shared referent and NOT a synthetic union.
+        // Generators read `ref.nullable` (`'nullable' in schema ?
+        // schema.nullable`) and render `Foo | null`; `ModelDriver` builds the
+        // un-nullable shared `Foo` from the refName. See
+        // notes/openapi-3.1-webhooks-and-parser-architecture.md §3.4.
+        if (isRef(soleMember) && value.nullable) {
+          return toRefV31({
+            ref: soleMember,
+            refType: 'schema',
+            nullable: true,
+            stackTrail: st,
+            context
+          })
+        }
+
+        return toSchemaV3({
+          schema: collapseSingleMember(value, soleMember),
+          stackTrail: st,
+          context
+        })
       }
 
       return toUnion({ value, members, parentType: 'oneOf', stackTrail: st, context })
@@ -187,7 +251,24 @@ export const toSchemaV3 = ({
       }
 
       if (members.length === 1) {
-        return toSchemaV3({ schema: members[0], stackTrail: st, context })
+        const [soleMember] = members
+        // See the oneOf branch: a single `$ref` carrying a hoisted `nullable`
+        // sets `nullable` on the OasRef node itself.
+        if (isRef(soleMember) && value.nullable) {
+          return toRefV31({
+            ref: soleMember,
+            refType: 'schema',
+            nullable: true,
+            stackTrail: st,
+            context
+          })
+        }
+
+        return toSchemaV3({
+          schema: collapseSingleMember(value, soleMember),
+          stackTrail: st,
+          context
+        })
       }
 
       return toUnion({ value, members, parentType: 'anyOf', stackTrail: st, context })

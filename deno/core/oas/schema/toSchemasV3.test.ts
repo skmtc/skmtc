@@ -892,3 +892,131 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 type arrays', async t => {
     assert(result instanceof OasUnknown)
   })
 })
+
+Deno.test('toSchemaV3 - single-member combinator collapse (CASE 1)', async t => {
+  // The single-member oneOf/anyOf collapse must carry the wrapper's
+  // sibling keywords into the surviving member instead of discarding
+  // them. The load-bearing case: down-convert's convertNullableOneOfAnyOf
+  // rewrites the 3.1 idiom oneOf:[{type:'string'},{type:'null'}] into
+  // oneOf:[{type:'string'}] + a hoisted nullable:true on the wrapper, so
+  // dropping the wrapper turned `string | null` back into `string`.
+  await t.step('oneOf single member carries the wrapper nullable (string | null)', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      oneOf: [{ type: 'string', minLength: 1 }],
+      nullable: true
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.nullable, true)
+    assertEquals(result.minLength, 1)
+  })
+
+  await t.step('anyOf single member carries the wrapper nullable', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      anyOf: [{ type: 'string' }],
+      nullable: true
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.nullable, true)
+  })
+
+  await t.step('collapse preserves non-nullable wrapper siblings (description)', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      oneOf: [{ type: 'string' }],
+      description: 'A nullable name',
+      nullable: true
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.nullable, true)
+    assertEquals(result.description, 'A nullable name')
+  })
+
+  await t.step('nullable OR-ins even when the member is explicitly non-nullable', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      oneOf: [{ type: 'string', nullable: false }],
+      nullable: true
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.nullable, true)
+  })
+
+  await t.step('single member with no wrapper siblings still collapses to the bare member', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      oneOf: [{ type: 'string' }]
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.nullable, undefined)
+  })
+})
+
+Deno.test('toSchemaV3 - single-member nullable reference collapse', async t => {
+  // 3.1 `oneOf:[{$ref},{type:null}]` down-converts to a single $ref member
+  // + a hoisted nullable:true. Nullability is a use-site property, so it
+  // rides the OasRef node itself — generators read `ref.nullable` and render
+  // `Foo | null`, while the shared referent is generated un-nullable. The
+  // referent (`Foo`) is never mutated.
+  await t.step('oneOf single $ref + nullable sets nullable on the OasRef', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Foo' }],
+      nullable: true
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasRef)
+    assertEquals(result.nullable, true)
+  })
+
+  await t.step('anyOf single $ref + nullable sets nullable on the OasRef', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      anyOf: [{ $ref: '#/components/schemas/Foo' }],
+      nullable: true
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasRef)
+    assertEquals(result.nullable, true)
+  })
+
+  await t.step('single $ref without nullable is a non-nullable ref', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Foo' }]
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasRef)
+    assertEquals(result.nullable, undefined)
+  })
+})
