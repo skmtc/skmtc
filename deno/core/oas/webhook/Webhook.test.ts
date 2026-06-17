@@ -83,6 +83,14 @@ Deno.test('OasWebhook - toAckResponseCode picks the lowest 2xx the handler retur
   assertExists(hook.toAckResponse())
 })
 
+Deno.test('OasWebhook - toAckResponseCode resolves a 2XX range key (the remote.com case)', () => {
+  // remote.com's 108 webhooks all declare only `2XX`; a range key must resolve.
+  const hook = webhook({ post: { responses: { '2XX': { description: 'accepted' } } } })
+
+  assertEquals(hook.toAckResponseCode(), '2XX')
+  assertExists(hook.toAckResponse())
+})
+
 Deno.test('OasWebhook - toAckResponseCode falls back to default, else undefined', () => {
   const withDefault = webhook({ post: { responses: { default: { description: 'ack' } } } })
   assertEquals(withDefault.toAckResponseCode(), 'default')

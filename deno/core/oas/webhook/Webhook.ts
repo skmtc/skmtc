@@ -5,6 +5,7 @@ import type { OasParameterLocation } from '../parameter/parameter-types.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRequestBody } from '../requestBody/RequestBody.ts'
 import type { OasResponse } from '../response/Response.ts'
+import { toPrimaryResponseCode } from '../response/toPrimaryResponseCode.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
 import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
@@ -167,20 +168,7 @@ export class OasWebhook extends OasBase {
    * not what a client receives (cf. {@link OasOperation.toSuccessResponseCode}).
    */
   toAckResponseCode(): string | undefined {
-    const ackCode = Object.keys(this.responses)
-      .map(httpCode => parseInt(httpCode))
-      .sort((a, b) => a - b)
-      .find(httpCode => httpCode >= 200 && httpCode < 300)
-
-    if (ackCode) {
-      return ackCode.toString()
-    }
-
-    if (this.responses.default) {
-      return 'default'
-    }
-
-    return undefined
+    return toPrimaryResponseCode(this.responses)
   }
 
   /**

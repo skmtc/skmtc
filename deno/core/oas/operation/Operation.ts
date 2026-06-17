@@ -7,6 +7,7 @@ import type { OasParameterLocation } from '../parameter/parameter-types.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import { OasObject } from '../object/Object.ts'
+import { toPrimaryResponseCode } from '../response/toPrimaryResponseCode.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
@@ -141,20 +142,7 @@ export class OasOperation extends OasBase {
    * @returns Success status code as string or undefined if none found
    */
   toSuccessResponseCode(): string | undefined {
-    const successCode = Object.keys(this.responses)
-      .map(httpCode => parseInt(httpCode))
-      .sort((a, b) => a - b)
-      .find(httpCode => httpCode >= 200 && httpCode < 300)
-
-    if (successCode) {
-      return successCode.toString()
-    }
-
-    if (this.responses.default) {
-      return 'default'
-    }
-
-    return undefined
+    return toPrimaryResponseCode(this.responses)
   }
 
   /**
