@@ -29,11 +29,18 @@ export type OperationEnrichmentDefaults = Record<
   Record<string, Record<string, EnrichmentDefaultsLeaf>>
 >
 
+/** Webhook generator defaults: `name -> method -> variant -> leaf` (mirrors
+ *  the operation shape with the webhook name in the `path` slot). */
+export type WebhookEnrichmentDefaults = Record<
+  string,
+  Record<string, Record<string, EnrichmentDefaultsLeaf>>
+>
+
 /** Model generator defaults: `refName -> variant -> leaf`. */
 export type ModelEnrichmentDefaults = Record<string, Record<string, EnrichmentDefaultsLeaf>>
 
 /** Generator id → the default enrichment values that generator seeds. */
 export type EnrichmentDefaults = Record<
   string,
-  OperationEnrichmentDefaults | ModelEnrichmentDefaults
+  OperationEnrichmentDefaults | WebhookEnrichmentDefaults | ModelEnrichmentDefaults
 >

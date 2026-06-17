@@ -10,7 +10,8 @@ import type {
   EnrichmentDefaults,
   EnrichmentDefaultsLeaf,
   ModelEnrichmentDefaults,
-  OperationEnrichmentDefaults
+  OperationEnrichmentDefaults,
+  WebhookEnrichmentDefaults
 } from '@/types/EnrichmentDefaults.ts'
 import type {
   BuildModelSettingsArgs,
@@ -22,11 +23,13 @@ import type {
   InsertNormalizedModelOptions,
   InsertNormalizedModelReturn,
   InsertOperationArgs,
+  InsertWebhookArgs,
   PickArgs,
   ContextRegisterArgs,
   RegisterJsonArgs,
   ToGqlOperationSettingsArgs,
-  ToOperationSettingsArgs
+  ToOperationSettingsArgs,
+  ToWebhookSettingsArgs
 } from './generateTypes.ts'
 import type {
   ClientSettings,
@@ -41,10 +44,13 @@ import type {
 } from '@/types/Settings.ts'
 import type { Method } from '@/types/Method.ts'
 import type { OasOperationConfig } from '@/dsl/operation/oas/types.ts'
+import type { WebhookConfig } from '@/dsl/webhook/types.ts'
 import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { ModelConfig, ModelProjection } from '@/dsl/model/types.ts'
 import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
+import { WebhookDriver } from '@/dsl/webhook/WebhookDriver.ts'
 import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
@@ -69,6 +75,7 @@ import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type {
   OasOperationSource,
+  WebhookSource,
   GqlOperationSource,
   ModelSource,
   Preview,
@@ -364,6 +371,20 @@ export class GenerateContext implements GenerateContextType {
               st
             )
             break
+          case 'webhook':
+            if (this.document.type !== 'oas') {
+              // Webhooks are an OAS 3.1 feature; current document is GraphQL —
+              // skip silently.
+              return
+            }
+            this.#runWebhookGenerator(
+              this.document.value,
+              generatorConfig,
+              toIncludePaths(include, generatorConfig.id),
+              toSkipPaths(skip, generatorConfig.id),
+              st
+            )
+            break
           case 'gqlOperation':
             if (this.document.type !== 'gql') {
               // Generator targets GraphQL; current document is OAS — skip silently.
@@ -426,6 +447,18 @@ export class GenerateContext implements GenerateContextType {
                   .map(operation => ({ path: operation.path, method: operation.method }))
               : []
           out[generatorConfig.id] = { type: 'oasOperation', operations }
+          break
+        }
+        case 'webhook': {
+          const webhooks =
+            this.document.type === 'oas'
+              ? this.document.value.webhooks
+                  .filter(webhook =>
+                    this.#supports(() => generatorConfig.isSupported({ webhook, context: this, variant: DEFAULT_VARIANT }))
+                  )
+                  .map(webhook => ({ name: webhook.name, method: webhook.method }))
+              : []
+          out[generatorConfig.id] = { type: 'webhook', webhooks }
           break
         }
         case 'gqlOperation': {
@@ -516,6 +549,34 @@ export class GenerateContext implements GenerateContextType {
 
           if (Object.keys(operations).length > 0) {
             out[generatorConfig.id] = operations
+          }
+          break
+        }
+        case 'webhook': {
+          const toDefaults = generatorConfig.toEnrichmentDefaults
+          if (!toDefaults || this.document.type !== 'oas') break
+
+          const webhooks: WebhookEnrichmentDefaults = {}
+          this.document.value.webhooks.forEach(webhook => {
+            if (
+              !this.#supports(() =>
+                generatorConfig.isSupported({ webhook, context: this, variant: DEFAULT_VARIANT })
+              )
+            ) {
+              return
+            }
+
+            const leaf = this.#subjectDefaults(() =>
+              toDefaults({ webhook, context: this, variant: DEFAULT_VARIANT })
+            )
+            if (leaf === undefined) return
+
+            const methods = (webhooks[webhook.name] ??= {})
+            methods[webhook.method] = { [DEFAULT_VARIANT]: leaf }
+          })
+
+          if (Object.keys(webhooks).length > 0) {
+            out[generatorConfig.id] = webhooks
           }
           break
         }
@@ -663,6 +724,92 @@ export class GenerateContext implements GenerateContextType {
               this.#addMapping(
                 source,
                 generatorConfig.toMappingModule?.({ context: this, operation, variant })
+              )
+
+              this.captureCurrentResult('success', st)
+            } catch (error) {
+              this.logger.error(error)
+
+              this.captureCurrentResult('error', st)
+            }
+          })
+        })
+      })
+    })
+  }
+
+  #runWebhookGenerator(
+    oasDocument: OasDocument,
+    generatorConfig: WebhookConfig,
+    include: IncludePaths | undefined,
+    skip: SkipPaths | undefined,
+    stackTrail: StackTrail
+  ) {
+    oasDocument.webhooks.forEach(webhook => {
+      stackTrail.trace(`webhook:${webhook.name}:${webhook.method}`, webhookTrail => {
+        // Variant fan-out, keyed `[generatorId][name][method][variant]` —
+        // the webhook analogue of the operation routing. `toVariantList`
+        // handles absent / non-object / object enrichment blocks and
+        // enforces the `'main'`-must-be-present rule.
+        const webhookEnrichments: unknown = get(
+          this.settings,
+          ['enrichments', generatorConfig.id, webhook.name, webhook.method]
+        )
+
+        const variants = toVariantList({
+          opEnrichments: webhookEnrichments,
+          generatorId: generatorConfig.id,
+          operationLabel: `webhook '${webhook.name}' (${webhook.method.toUpperCase()})`
+        })
+
+        variants.forEach(variant => {
+          webhookTrail.trace(`variant: ${variant}`, st => {
+            try {
+              if (
+                typeof generatorConfig?.isSupported === 'function' &&
+                !generatorConfig.isSupported({ webhook, context: this, variant })
+              ) {
+                this.captureCurrentResult('notSupported', st)
+                return
+              }
+
+              // Order: isSupported (capability) → include (allow) → skip
+              // (deny). The skip/include shape is structurally identical to
+              // operations (the webhook name occupies the `path` slot), so
+              // `matchesPathFilter` is reused with `path: webhook.name`.
+              if (
+                include !== undefined &&
+                !matchesPathFilter({ paths: include, path: webhook.name, method: webhook.method, variant })
+              ) {
+                this.captureCurrentResult('skipped', st)
+                return
+              }
+
+              if (matchesPathFilter({ paths: skip, path: webhook.name, method: webhook.method, variant })) {
+                this.captureCurrentResult('skipped', st)
+                return
+              }
+
+              generatorConfig.transform({
+                context: this,
+                webhook,
+                variant
+              })
+
+              const source = toWebhookSource({
+                webhook,
+                generatorId: generatorConfig.id,
+                variant
+              })
+
+              this.#addPreview(
+                source,
+                generatorConfig.toPreviewModule?.({ context: this, webhook, variant })
+              )
+
+              this.#addMapping(
+                source,
+                generatorConfig.toMappingModule?.({ context: this, webhook, variant })
               )
 
               this.captureCurrentResult('success', st)
@@ -832,7 +979,7 @@ export class GenerateContext implements GenerateContextType {
   }
 
   #addPreview(
-    source: OasOperationSource | GqlOperationSource | ModelSource,
+    source: OasOperationSource | WebhookSource | GqlOperationSource | ModelSource,
     module: PreviewModule | undefined
   ) {
     if (!module) {
@@ -850,7 +997,7 @@ export class GenerateContext implements GenerateContextType {
   }
 
   #addMapping(
-    source: OasOperationSource | GqlOperationSource | ModelSource,
+    source: OasOperationSource | WebhookSource | GqlOperationSource | ModelSource,
     module: MappingModule | undefined
   ) {
     if (!module) {
@@ -1013,6 +1160,28 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
+   * Insert a webhook's projection. Sibling of {@link insertOperation} for
+   * the OAS 3.1 webhook subject — webhooks are OAS-only, so there is no
+   * protocol discrimination.
+   */
+  insertWebhook<V extends GeneratedValue, EnrichmentType = undefined>(
+    args: InsertWebhookArgs<V, EnrichmentType>
+  ): Inserted<V, EnrichmentType> {
+    const variant = args.variant ?? DEFAULT_VARIANT
+
+    const { settings, definition } = new WebhookDriver({
+      context: this,
+      projection: args.projection,
+      webhook: args.webhook,
+      destinationPath: args.destinationPath,
+      noExport: args.noExport ?? false,
+      variant
+    })
+
+    return new Inserted({ settings, definition })
+  }
+
+  /**
    * Insert a normalized model: dispatch to {@link insertModel} when the schema
    * is a `$ref`, otherwise produce a one-off definition under `fallbackName`.
    */
@@ -1162,6 +1331,40 @@ export class GenerateContext implements GenerateContextType {
       }),
       exportPath: args.projection.toExportPath({
         operation: args.operation,
+        enrichments,
+        variant
+      }),
+      enrichments,
+      variant
+    })
+  }
+
+  /**
+   * Build content settings for a webhook projection. Sibling of
+   * {@link toOperationContentSettings}; webhooks are OAS-only, so there is no
+   * protocol discrimination.
+   */
+  toWebhookContentSettings<V extends GeneratedValue, EnrichmentType>(
+    args: ToWebhookSettingsArgs<V, EnrichmentType>
+  ): ContentSettings<EnrichmentType> {
+    const { variant } = args
+
+    const enrichments = args.projection.toEnrichments({
+      webhook: args.webhook,
+      context: this,
+      variant
+    })
+    return new ContentSettings<EnrichmentType>({
+      identifier: args.projection.lang.toIdentifier({
+        name: args.projection.toIdentifierName({
+          webhook: args.webhook,
+          enrichments,
+          variant
+        }),
+        ...args.projection.toIdentifierType(args.webhook, this)
+      }),
+      exportPath: args.projection.toExportPath({
+        webhook: args.webhook,
         enrichments,
         variant
       }),
@@ -1352,6 +1555,29 @@ export const toOasOperationSource = ({
   generatorId,
   operationPath: operation.path,
   operationMethod: operation.method,
+  variant
+})
+
+type ToWebhookSourceArgs = {
+  webhook: OasWebhook
+  generatorId: string
+  /** Webhook variant the artifact was emitted for (see {@link Variant}) */
+  variant: string
+}
+
+/**
+ * Creates a {@link WebhookSource} from a webhook, generator ID, and variant.
+ * Sibling of {@link toOasOperationSource} for the 3.1 webhook subject.
+ */
+export const toWebhookSource = ({
+  webhook,
+  generatorId,
+  variant
+}: ToWebhookSourceArgs): WebhookSource => ({
+  type: 'webhook',
+  generatorId,
+  webhookName: webhook.name,
+  webhookMethod: webhook.method,
   variant
 })
 

@@ -84,6 +84,17 @@ export type OasOperationSource = {
   variant: string
 }
 
+export type WebhookSource = {
+  type: 'webhook'
+  generatorId: string
+  webhookName: string
+  webhookMethod: Method
+  /**
+   * Webhook variant the artifact was emitted for (see {@link Variant}).
+   */
+  variant: string
+}
+
 export type GqlOperationSource = {
   type: 'gqlOperation'
   generatorId: string
@@ -120,12 +131,12 @@ export type MappingModule = {
 
 export type Preview = {
   module: PreviewModule
-  source: OasOperationSource | GqlOperationSource | ModelSource
+  source: OasOperationSource | WebhookSource | GqlOperationSource | ModelSource
 }
 
 export type Mapping = {
   module: MappingModule
-  source: OasOperationSource | GqlOperationSource | ModelSource
+  source: OasOperationSource | WebhookSource | GqlOperationSource | ModelSource
 }
 
 /**

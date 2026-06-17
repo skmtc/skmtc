@@ -11,12 +11,16 @@
 /** A supported OAS operation. */
 export type SupportedOasOperation = { path: string; method: string }
 
+/** A supported 3.1 webhook. */
+export type SupportedWebhook = { name: string; method: string }
+
 /** A supported GraphQL operation. */
 export type SupportedGqlOperation = { rootKind: string; fieldName: string }
 
 /** What one generator supports, discriminated by its subject kind. */
 export type GeneratorSupport =
   | { type: 'oasOperation'; operations: SupportedOasOperation[] }
+  | { type: 'webhook'; webhooks: SupportedWebhook[] }
   | { type: 'gqlOperation'; operations: SupportedGqlOperation[] }
   | { type: 'model'; models: string[] }
 
