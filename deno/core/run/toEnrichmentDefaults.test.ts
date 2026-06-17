@@ -6,6 +6,8 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
+import { toWebhookEntry } from '@/dsl/webhook/toWebhookEntry.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 
 const doc: OpenAPIV3.Document = {
   openapi: '3.0.0',
@@ -114,5 +116,77 @@ Deno.test('toEnrichmentDefaults', async (t) => {
 
   await t.step('a generator whose hook returns undefined is omitted', () => {
     assertEquals('empty-defaults' in result.enrichmentDefaults, false)
+  })
+})
+
+const webhookSchema = v.object({
+  subject: v.optional(v.object({ label: v.optional(v.string()) })),
+  generator: v.undefined(),
+  stack: v.undefined(),
+})
+type WebhookEnrichment = v.InferOutput<typeof webhookSchema>
+
+// 3.1 webhooks riding the OAS input — the webhook arm seeds defaults keyed by
+// `[name][method].main`, mirroring the operation arm with the webhook name in
+// the `path` slot.
+const webhookDoc: OpenAPIV3.Document & {
+  webhooks?: Record<string, OpenAPIV3.PathItemObject>
+} = {
+  openapi: '3.0.3',
+  info: { title: 'T', version: '1' },
+  paths: {},
+  webhooks: {
+    newPet: { post: { responses: { '200': { description: 'ok' } } } },
+    petUpdated: { put: { responses: { '200': { description: 'ok' } } } },
+  },
+}
+
+const webhookGenerators = <E = undefined>(): GeneratorsMapContainer<E> =>
+  ({
+    // POST-only handler seeds a label from the webhook name.
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+    handlers: toWebhookEntry<WebhookEnrichment>({
+      id: 'handlers',
+      toEnrichmentSchema: () => webhookSchema,
+      isSupported: ({ webhook }) => webhook.method === 'post',
+      transform: () => {},
+      toEnrichmentDefaults: ({ webhook }) => ({
+        subject: { label: `Handle ${webhook.name}` },
+        generator: undefined,
+        stack: undefined,
+      }),
+    }),
+    // Advertises no defaults — must be omitted from the result entirely.
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+    'no-defaults-webhook': toWebhookEntry({
+      id: 'no-defaults-webhook',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
+      transform: () => {},
+    }),
+  })
+
+Deno.test('toEnrichmentDefaults - webhook arm', async (t) => {
+  const result = toEnrichmentDefaults({
+    traceId: 'trace',
+    spanId: 'span',
+    document: { type: 'oas', value: webhookDoc },
+    settings: undefined,
+    toGeneratorConfigMap: webhookGenerators,
+    stackTrail: new StackTrail(['TEST']),
+    silent: true,
+  })
+
+  await t.step('parses without issues', () => {
+    assertEquals(result.parseIssues, [])
+  })
+
+  await t.step('a webhook generator seeds only its isSupported webhooks, keyed [name][method].main', () => {
+    assertEquals(result.enrichmentDefaults['handlers'], {
+      newPet: { post: { main: { label: 'Handle newPet' } } },
+    })
+  })
+
+  await t.step('a webhook generator without toEnrichmentDefaults is omitted', () => {
+    assertEquals('no-defaults-webhook' in result.enrichmentDefaults, false)
   })
 })

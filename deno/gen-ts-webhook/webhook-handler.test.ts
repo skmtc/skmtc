@@ -89,6 +89,95 @@ Deno.test('gen-ts-webhook - emits `unknown` payload when the webhook has no requ
   assertStringIncludes(generated, '(payload: unknown) => void | Promise<void>')
 })
 
+Deno.test('gen-ts-webhook - non-scalar payload properties ($ref, nested object, array) fall back to `unknown`', () => {
+  // The first webhook generator types only scalar leaves precisely;
+  // everything else — a `$ref`, an inline nested object, an array — renders
+  // `unknown`. (`$ref` resolves first, lands on `type: 'object'`, then falls
+  // through to the default.)
+  const doc = {
+    openapi: '3.0.3',
+    info: { title: 'Test', version: '1.0.0' },
+    paths: {},
+    webhooks: {
+      complexHook: {
+        post: {
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    address: { $ref: '#/components/schemas/Address' },
+                    meta: { type: 'object', properties: { key: { type: 'string' } } },
+                    tags: { type: 'array', items: { type: 'string' } }
+                  },
+                  required: ['id']
+                }
+              }
+            }
+          },
+          responses: { '200': { description: 'ok' } }
+        }
+      }
+    },
+    components: {
+      schemas: { Address: { type: 'object', properties: { city: { type: 'string' } } } }
+    }
+  }
+
+  const result = runGenerate(doc)
+  assert(
+    result.parseIssues.every(issue => issue.level !== 'error'),
+    `unexpected parse errors: ${JSON.stringify(result.parseIssues)}`
+  )
+
+  const generated = Object.values(result.artifacts).find(content =>
+    content.includes('ComplexHookWebhookHandler')
+  )
+  assert(generated, 'expected a generated handler for the complex webhook')
+  assertStringIncludes(
+    generated,
+    '(payload: { id: string; address?: unknown; meta?: unknown; tags?: unknown }) => void | Promise<void>'
+  )
+})
+
+Deno.test('gen-ts-webhook - emits one handler file per webhook', () => {
+  const doc = {
+    openapi: '3.0.3',
+    info: { title: 'Test', version: '1.0.0' },
+    paths: {},
+    webhooks: {
+      newPet: { post: { responses: { '200': { description: 'ok' } } } },
+      petUpdated: { put: { responses: { '200': { description: 'ok' } } } }
+    }
+  }
+
+  const result = runGenerate(doc)
+
+  // One file per webhook, each at `@/webhooks/<PascalName>.generated.ts`
+  // (here resolved against basePath `src`).
+  const newPet = result.artifacts['src/webhooks/NewPet.generated.ts']
+  const petUpdated = result.artifacts['src/webhooks/PetUpdated.generated.ts']
+
+  assert(newPet, 'expected a file for the newPet webhook')
+  assert(petUpdated, 'expected a file for the petUpdated webhook')
+  assertStringIncludes(newPet, 'export type NewPetWebhookHandler')
+  assertStringIncludes(petUpdated, 'export type PetUpdatedWebhookHandler')
+})
+
+Deno.test('gen-ts-webhook - identifier and export path follow the <Name>WebhookHandler / @/webhooks convention', () => {
+  const result = runGenerate(webhookDoc)
+
+  // Export path: `@/webhooks/<PascalName>.generated.ts` (basePath `src`).
+  const exportPath = 'src/webhooks/NewPet.generated.ts'
+  const generated = result.artifacts[exportPath]
+  assert(generated, `expected the handler at ${exportPath}, got: ${Object.keys(result.artifacts).join(', ')}`)
+
+  // Identifier: `<PascalName>WebhookHandler`, emitted as `export type`.
+  assertStringIncludes(generated, 'export type NewPetWebhookHandler')
+})
+
 Deno.test('gen-ts-webhook - generates nothing for a document with no webhooks', () => {
   const doc = {
     openapi: '3.0.3',
