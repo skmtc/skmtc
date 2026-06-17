@@ -18,8 +18,10 @@ core/oas/           the Oas* IR — the shared target both parsers build
 routes the whole document to `v3-0` or `v3-1`. Detection is **explicit and
 fails loud**: an unknown or missing version throws rather than silently
 defaulting to a dialect (a `startsWith('3.1') ? … : …` fallback would route
-every typo / `3.2` / `4.0` / missing field into 3.0 unnoticed). OpenAPI 2.0
-never reaches here — `swagger2openapi` upgrades it to 3.0 upstream.
+every typo / `3.2` / `4.0` / missing field into 3.0 unnoticed). OpenAPI 3.1
+is parsed natively and is **no longer down-converted** to 3.0 (`@skmtc/convert`
+passes it through); only Swagger 2.0 is still converted upstream, by
+`swagger2openapi`.
 
 **Load-bearing invariant:** nothing below the split ever checks a version.
 Every line is either version-specific code living in its own tree (it is
@@ -77,7 +79,7 @@ wire form into it.
 | Schema `examples` | `example` (singular) | `examples` array → `examples[0]` as IR `example` | ✅ done |
 | `paths` requiredness | required | optional (webhooks-only docs) → `operations: []` | ✅ done |
 | `$ref` siblings (`summary`/`description`) | ignored | ignored (no IR field yet) | ⏳ deferred |
-| Webhooks | via down-convert `retainWebhooks` | native, from the raw doc | ✅ (Phase 1/4) |
+| Webhooks | n/a (3.0 has no webhooks) | native, from the raw doc | ✅ |
 
 ### Nullability — the shared mechanism
 

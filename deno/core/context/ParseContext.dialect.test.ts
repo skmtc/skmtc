@@ -45,6 +45,49 @@ Deno.test('ParseContext dialect split - a webhooks-only 3.1 document routes to v
   }
 })
 
+Deno.test('ParseContext dialect split - a rich 3.1 document parses natively end-to-end', () => {
+  // The e2e gate for retiring down-convert: a 3.1 document exercising the
+  // native idioms (type-array nullable, const, multi-type union, numeric
+  // exclusive bounds) plus a path operation and a webhook, parsed through the
+  // full ParseContext.parse path with NO down-convert and NO error-level
+  // issues.
+  const context = new ParseContext({
+    input: {
+      type: 'oas',
+      value: {
+        openapi: '3.1.0',
+        info: { title: 't', version: '0' },
+        paths: {
+          '/pets': { get: { responses: { '200': { description: 'ok' } } } }
+        },
+        webhooks: {
+          newPet: { post: { responses: { '200': { description: 'ok' } } } }
+        },
+        components: {
+          schemas: {
+            MaybeName: { type: ['string', 'null'] },
+            Status: { type: 'string', const: 'active' },
+            StringOrInt: { type: ['string', 'integer'] },
+            Positive: { type: 'integer', exclusiveMinimum: 0 }
+          }
+        }
+      } as unknown as OpenAPIV3.Document
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+
+  const result = context.parse(new StackTrail(['TEST']))
+
+  assertEquals(result.type, 'oas')
+  // Every 3.1 idiom handled natively — no error-level parse issues.
+  assertEquals(context.issues.filter(issue => issue.level === 'error').length, 0)
+  if (result.type === 'oas') {
+    assertEquals(result.value.operations.length, 1)
+    assertEquals(result.value.webhooks.length, 1)
+  }
+})
+
 Deno.test('ParseContext dialect split - an unknown OpenAPI version fails loud', () => {
   // No silent default: a 4.0 / 3.2 / missing version must throw, not be
   // quietly parsed as 3.0.
