@@ -81,7 +81,7 @@ The unchecked boxes reflect docs not yet *systematically swept* for novel discre
 
 **Verification command:**
 ```bash
-grep -n "enrichments\." core/dsl/operation/oas/toOasOperationProjectionBase.ts core/dsl/model/toModelProjectionBase.ts core/dsl/operation/gql/toGqlOperationProjectionBase.ts
+grep -n "'enrichments'" core/dsl/operation/oas/toOasOperationProjectionBase.ts core/dsl/model/toModelProjectionBase.ts core/dsl/operation/gql/toGqlOperationProjectionBase.ts
 ```
 
 **Actual (verbatim from source):**
@@ -106,6 +106,8 @@ get(context.settings, `enrichments.${config.id}.${operation.rootKind}.${operatio
 **Fix sketch (NOT YET APPLIED):** rewrite enrichments docs to document three routing shapes (one per projection-base factory). Each `client.json` example must be regenerated using the actual key path. Glossary entries "Projection key" and "Projection kind" should be deleted or rewritten.
 
 **Fix status:** verified-fixed 2026-05-12 — rewrote `reference/settings/enrichments-shape.md`, `concepts/enrichments.md`, `using/how-to/configure-enrichments.md`, `using/tutorials/03-customize-with-enrichments.md`, `extending/how-to/add-enrichment-options.md`, `reference/settings/client-json-schema.md`, `reference/glossary.md` (dropped "Projection key" and "Projection kind"), `reference/api/content-settings.md`, `llms.md`, `skills/skmtc-cli/SKILL.md`, `skills/skmtc-cli/design.md`, `skills/skmtc-generator/SKILL.md`, `reference/stock-generators/gen-shadcn-form.md`, `extending/recipes/design-system-across-many-apis.md`. Also flattened `gen-shadcn-form/src/enrichments.ts` to drop the `form: { ... }` wrap so the schema's root IS the payload directly (consumer reads `this.settings.enrichments?.title` instead of `this.settings.enrichments?.form?.title`).
+
+**Source note (2026-06-18):** the enrichment-defaults refactor changed subject access in these three files from a dotted template string to a key-path array — e.g. `['enrichments', config.id, operation.path, operation.method, variant]` (OAS), `['enrichments', config.id, refName, variant]` (model), `['enrichments', config.id, operation.rootKind, operation.fieldName, variant]` (GQL) — and added the core-owned `variant` level. The routing key path is otherwise unchanged, so DISC-001 stays verified-fixed; the verification command now greps the `'enrichments'` array literal in the same three files (the "Actual (verbatim)" snapshot above is the 2026-05-12 form, kept as the historical record).
 
 ---
 

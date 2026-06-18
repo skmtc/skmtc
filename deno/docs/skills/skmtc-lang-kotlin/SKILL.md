@@ -76,8 +76,8 @@ The boundary rule, worth internalizing first:
 | `KtSupertyped` / `isKtSupertyped` | The protocol (`{ supertypes: Stringable[] }`) by which a Definition's VALUE supplies a supertype clause — `data class Dog(\n…\n) : Animal` (rendered for the `data-class` kind only in v1); same value-carried pattern as `KtAnnotated`; bare names, no import behavior (same-package suppression makes them correct) |
 | `KtDocumented` / `isKtDocumented` | The FOURTH value protocol (0.5.0): `{ description?: string }` on a Definition's VALUE supplies the KDoc block `KtDefinition` renders above the annotations (an explicit constructor `description` wins). The lang renders the KDoc; WHAT the text is (schema `description`, operation `summary`) is generator policy. Gotcha (spec 28): the Driver wraps the PROJECTION, so all value protocols — `annotations`, `supertypes`, `description` — must be MIRRORED as getters on the projection class |
 | `KtImportNameArg` | The concise import-name shape (`'Name'`, `{ name, alias }`) accepted by `register({ imports })` |
-| `createClass` / `createDataClass` / `createEnumClass` / `createInterface` / `createSealedInterface` / `createTypeAlias` / `createValue` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary (`createValue` also takes `typeName` for `val x: T = …`) |
-| `KtEntityKind` / `toKtKeyword` | The seven-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary |
+| `createClass` / `createDataClass` / `createEnumClass` / `createInterface` / `createSealedInterface` / `createTypeAlias` / `createValue` / `createVerbatim` | The identifier factories — build neutral `Identifier`s with this language's `kind` vocabulary (`createValue` also takes `typeName` for `val x: T = …`; `createVerbatim` carries NO declaration shell — its value renders as-is, for content that is already complete Kotlin such as template-file bodies or multi-declaration blocks) |
+| `KtEntityKind` / `toKtKeyword` | The eight-kind vocabulary and its declaration-keyword mapping; throws outside the vocabulary |
 | `sanitizePropertyName` | Kotlin-specific property-name sanitization (§5) |
 | `toPackageName` | `@/`-path → dotted-package derivation + segment validation (Kotlin's `validateDestinationPath`) |
 | `ktHardKeywords` / `isKtIdentifierName` | The pinned hard-keyword set and the plain-identifier syntax check |
@@ -118,7 +118,7 @@ the ref snippet.
 
 ## 2. Entity kinds & identifiers
 
-Kotlin output has seven entity kinds (`KtEntityKind`), created via the
+Kotlin output has eight entity kinds (`KtEntityKind`), created via the
 factories exported by THIS package:
 
 ```ts
@@ -132,6 +132,7 @@ createSealedInterface('Animal')               // → sealed interface Animal
 createTypeAlias('UserList')                   // → typealias UserList = …
 createValue('MAX_RETRIES')                    // → val MAX_RETRIES = …
 createValue('timeout', { typeName: 'Long' })  // → val timeout: Long = …
+createVerbatim('UtilsFileBody')               // → value renders as-is (no declaration shell)
 ```
 
 - The kind drives ONLY the declaration shell (`toKtKeyword` /
