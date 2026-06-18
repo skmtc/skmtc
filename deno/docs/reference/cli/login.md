@@ -19,7 +19,7 @@ only, so spawning `open` would fail).
 ## Synopsis
 
 ```
-skmtc login [--with-token] [--hub-url <url>] [--json] [--no-input]
+skmtc login [--with-token] [--origin <url>] [--json] [--no-input]
 ```
 
 ## Options
@@ -35,13 +35,13 @@ echo $MY_PAT | skmtc login --with-token
 
 An empty stdin fails with a recipe error (exit 2).
 
-### `--hub-url <url>`
+### `--origin <url>`
 
-Hub API base URL to validate against. Defaults to `$SKMTC_HUB_URL`,
+Hub origin (base URL) to validate against. Defaults to `$SKMTC_ORIGIN`,
 then `https://api.skmtc.dev`. The URL is stored alongside the token
-as `host` — `publish` later uses it as its default hub URL whenever
-the token comes from the stored file, so a token minted against a
-local dev hub is never silently sent to production.
+as `host` — `publish` / `push` later use it as the default origin
+whenever the token comes from the stored file, so a token minted
+against a local dev hub is never silently sent to production.
 
 ### `--json` / `--no-input`
 
@@ -71,7 +71,7 @@ Standard agent-mode pair. `--json` emits
 
 ## Token resolution elsewhere
 
-Every hub-token consumer (today: `publish`) resolves the credential
+Every hub-token consumer (`publish`, `push`) resolves the credential
 through one helper with this precedence:
 
 1. `--token` flag (explicit beats ambient)
@@ -79,7 +79,7 @@ through one helper with this precedence:
 3. `~/.skmtc/auth.json` (this command's output)
 
 When the token resolves from the stored file, the file's `host` also
-becomes the default hub URL (explicit `--hub-url` / `$SKMTC_HUB_URL`
+becomes the default origin (explicit `--origin` / `$SKMTC_ORIGIN`
 still win).
 
 ## Exit codes
@@ -100,7 +100,7 @@ skmtc login
 echo $PAT | skmtc login --with-token --json
 
 # Against a local dev hub
-skmtc login --hub-url http://localhost:4812
+skmtc login --origin http://localhost:4812
 
 # Status check ("whoami")
 skmtc login --json

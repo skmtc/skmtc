@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { Identifier } from '@skmtc/core'
+import { RsIdentifier } from './RsIdentifier.ts'
 import type { GenerateContextType } from '@skmtc/core/generate'
 import { RsDefinition } from './RsDefinition.ts'
 import { RsStruct } from './RsStruct.ts'
@@ -12,7 +12,7 @@ const context = {} as unknown as GenerateContextType
 Deno.test('RsDefinition + RsStruct render the User DTO as a pub struct', () => {
   const definition = new RsDefinition({
     context,
-    identifier: new Identifier({ name: 'User', kind: 'struct' }),
+    identifier: new RsIdentifier({ name: 'User', kind: 'struct' }),
     value: new RsStruct([
       { name: 'id', type: 'String' },
       { name: 'name', type: 'String' },
@@ -44,7 +44,7 @@ Deno.test('RsDefinition + RsEnum render a oneOf as a native tagged enum', () => 
   // enum, where TypeScript would emit a union and Go has no sum type.
   const definition = new RsDefinition({
     context,
-    identifier: new Identifier({ name: 'Pet', kind: 'enum' }),
+    identifier: new RsIdentifier({ name: 'Pet', kind: 'enum' }),
     value: new RsEnum([
       { name: 'Cat', payload: 'Cat' },
       { name: 'Dog', payload: 'Dog' }
@@ -60,17 +60,17 @@ Deno.test('declaration keyword follows the opaque Identifier.kind', () => {
   // (deleted under F6) could not tell struct from enum from alias.
   const asStruct = new RsDefinition({
     context,
-    identifier: new Identifier({ name: 'Thing', kind: 'struct' }),
+    identifier: new RsIdentifier({ name: 'Thing', kind: 'struct' }),
     value: new RsStruct([{ name: 'id', type: 'String' }])
   })
   const asEnum = new RsDefinition({
     context,
-    identifier: new Identifier({ name: 'Thing', kind: 'enum' }),
+    identifier: new RsIdentifier({ name: 'Thing', kind: 'enum' }),
     value: new RsEnum([{ name: 'A' }])
   })
   const asAlias = new RsDefinition({
     context,
-    identifier: new Identifier({ name: 'Thing', kind: 'type' }),
+    identifier: new RsIdentifier({ name: 'Thing', kind: 'type' }),
     value: 'String'
   })
 
@@ -85,7 +85,7 @@ Deno.test('exported renders as the `pub` keyword, name untouched (contrast Go ca
   // (Go would capitalize it; Rust does not).
   const exported = new RsDefinition({
     context,
-    identifier: new Identifier({ name: 'user', exported: true, kind: 'struct' }),
+    identifier: new RsIdentifier({ name: 'user', exported: true, kind: 'struct' }),
     value: new RsStruct([{ name: 'id', type: 'String' }])
   })
   assertEquals(exported.toString().startsWith('pub struct user '), true)
@@ -93,7 +93,7 @@ Deno.test('exported renders as the `pub` keyword, name untouched (contrast Go ca
   // Unexported intent → no `pub`, name kept verbatim.
   const private_ = new RsDefinition({
     context,
-    identifier: new Identifier({ name: 'Secret', exported: false, kind: 'struct' }),
+    identifier: new RsIdentifier({ name: 'Secret', exported: false, kind: 'struct' }),
     value: new RsStruct([{ name: 'id', type: 'String' }])
   })
   assertEquals(private_.toString().startsWith('struct Secret '), true)
@@ -112,7 +112,7 @@ Deno.test('RsFile assembles use imports + definitions', () => {
     'User',
     new RsDefinition({
       context,
-      identifier: new Identifier({ name: 'User', kind: 'struct' }),
+      identifier: new RsIdentifier({ name: 'User', kind: 'struct' }),
       value: new RsStruct([{ name: 'id', type: 'String' }])
     })
   )

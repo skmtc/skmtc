@@ -5,6 +5,8 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { oasIntegerData, integerFormat } from './integer-types.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
@@ -24,10 +26,12 @@ export const toInteger = ({ value, stackTrail, context }: ToIntegerArgs): OasInt
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
 
   const example = parseExample({
-    example: unparsedExample,
+    value: unparsedExample,
     context,
     parent: valueWithoutNullable,
     nullable,
+    check: isInteger,
+    toMessage: item => `Removed invalid example. Expected "integer", got: ${item}`,
     stackTrail
   })
 
@@ -38,8 +42,20 @@ export const toInteger = ({ value, stackTrail, context }: ToIntegerArgs): OasInt
     nullable,
     parent: valueWithoutExample,
     context,
-    check: Number.isInteger,
+    check: isInteger,
     toMessage: item => `Removed invalid enum. Expected "integer", got: ${item}`,
+    stackTrail
+  })
+
+  const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
+
+  const defaultValue = parseDefault({
+    value: unparsedDefaultValue,
+    context,
+    parent: valueWithoutEnums,
+    nullable,
+    check: isInteger,
+    toMessage: item => `Removed invalid default. Expected "integer", got: ${item}`,
     stackTrail
   })
 
@@ -48,18 +64,20 @@ export const toInteger = ({ value, stackTrail, context }: ToIntegerArgs): OasInt
     nullable,
     example,
     enums,
-    value: valueWithoutEnums,
+    defaultValue,
+    value: valueWithoutDefault,
     stackTrail
   })
 }
 
 type ToParsedIntegerArgs<Nullable extends boolean | undefined> = {
-  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums' | 'default'>
   stackTrail: StackTrail
   context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? number | null | undefined : number | undefined
   enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
+  defaultValue: Nullable extends true ? number | null | undefined : number | undefined
 }
 
 export const toParsedInteger = <Nullable extends boolean | undefined>({
@@ -67,6 +85,7 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
   nullable,
   example,
   enums,
+  defaultValue,
   value: valueWithoutEnums,
   stackTrail
 }: ToParsedIntegerArgs<Nullable>): OasInteger<Nullable> => {
@@ -87,7 +106,6 @@ export const toParsedInteger = <Nullable extends boolean | undefined>({
     type: _type,
     title,
     description,
-    default: defaultValue,
     multipleOf,
     maximum,
     exclusiveMaximum,
@@ -156,38 +174,6 @@ const parseIntegerFormat = ({ format, context, parent, stackTrail }: ParseIntege
     return undefined
   }
   return format
-}
-
-type ParseExampleArgs = {
-  example: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
-  if (example === undefined) {
-    return undefined
-  }
-
-  if (nullable && example === null) {
-    return example
-  }
-
-  if (!isInteger(example)) {
-    context.logIssue({
-      key: 'example',
-      level: 'warning',
-      message: `Removed invalid example. Expected "integer", got: ${example}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_EXAMPLE'
-    })
-    return undefined
-  }
-
-  return example
 }
 
 const isInteger = (value: unknown): value is number => {

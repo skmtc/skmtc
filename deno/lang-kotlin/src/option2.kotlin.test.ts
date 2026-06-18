@@ -16,8 +16,13 @@
  *    static read — and, Kotlin-specifically, that import is SUPPRESSED
  *    when the destination shares the peer's package.
  */
-import { GenerateContext, OasDocument, SnippetBase } from '@skmtc/core'
-import type { GenerateContextType, ModelProjectionConstructorArgs, RefName } from '@skmtc/core'
+import { GenerateContext, OasDocument, SnippetBase, emptyEnrichmentSchema } from '@skmtc/core'
+import type {
+  GenerateContextType,
+  ModelProjectionConstructorArgs,
+  RefName,
+  Enrichments
+} from '@skmtc/core'
 import * as log from 'jsr:@std/log@0.224/logger'
 import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
@@ -26,7 +31,7 @@ import { assertInstanceOf } from '@std/assert/instance-of'
 import { KtSnippet } from './KtSnippet.ts'
 import { KtFile } from './KtFile.ts'
 import { kotlin } from './ktLang.ts'
-import { toModelProjectionBase } from './toModelProjectionBase.ts'
+import { toKtModelProjectionBase } from './toKtModelProjectionBase.ts'
 import { createValue } from './createIdentifier.ts'
 
 const toGenerateContext = (): GenerateContextType => {
@@ -68,10 +73,12 @@ class SpikeField extends KtSnippet {
   }
 }
 
-const SpikeModelBase = toModelProjectionBase({
+const SpikeModelBase = toKtModelProjectionBase({
   id: '@spike/gen-kotlin-option2',
-  toIdentifier: ({ refName }) => createValue(`${refName}Spike`),
-  toExportPath: () => '@/spike/models/Models.generated.kt'
+  toIdentifierName: ({ refName }) => `${refName}Spike`,
+  toIdentifierType: () => ({ kind: 'val' }),
+  toExportPath: () => '@/spike/models/Models.generated.kt',
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
 class SpikeModel extends SpikeModelBase {
@@ -81,7 +88,7 @@ class SpikeModel extends SpikeModelBase {
 
   field: SpikeField
 
-  constructor(args: ModelProjectionConstructorArgs) {
+  constructor(args: ModelProjectionConstructorArgs<Enrichments<undefined, undefined, undefined>>) {
     super(args)
 
     this.field = new SpikeField({

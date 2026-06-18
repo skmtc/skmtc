@@ -1,18 +1,28 @@
 import type { RefName } from '@/types/RefName.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
-import type { TransformModelArgs, ToModelPreviewModuleArgs, ToModelMappingArgs } from './types.ts'
+import type {
+  TransformModelArgs,
+  ToModelPreviewModuleArgs,
+  ToModelMappingArgs,
+  ToModelEnrichmentsArgs
+} from './types.ts'
 import type * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 
 type ToModelEntryArgs<EnrichmentType = undefined> = {
   id: string
   transform: ({ context, refName, variant }: TransformModelArgs) => void
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
+  toEnrichmentDefaults?: ({
+    refName,
+    context,
+    variant
+  }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
 }
 
 /**
@@ -76,17 +86,23 @@ export const toModelEntry = <EnrichmentType = undefined>({
   toPreviewModule,
   toMappingModule,
   toEnrichmentSchema,
-  toEnrichmentRequest
+  toEnrichmentRequest,
+  toEnrichmentDefaults
 }: ToModelEntryArgs<EnrichmentType>): {
   id: string
   type: 'model'
   transform: ({ context, refName, variant }: TransformModelArgs) => void
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
+  toEnrichmentDefaults?: ({
+    refName,
+    context,
+    variant
+  }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
 } => {
   return {
     id,
@@ -95,6 +111,7 @@ export const toModelEntry = <EnrichmentType = undefined>({
     toPreviewModule,
     toMappingModule,
     toEnrichmentSchema,
-    toEnrichmentRequest
+    toEnrichmentRequest,
+    toEnrichmentDefaults
   }
 }

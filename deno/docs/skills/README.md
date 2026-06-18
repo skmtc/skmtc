@@ -21,11 +21,12 @@ superseded.
 |---|---|---|---|
 | [`skmtc-architecture/`](skmtc-architecture/) | System mental model — what SKMTC is, how the engine works, how to build infrastructure around it | Infrastructure builders | **SKILL.md authored** (v0.1.0) |
 | [`skmtc-cli/`](skmtc-cli/) | Guide CLI usage — install, configure, run, integrate | Users (`using/`) | **SKILL.md authored** (v0.2.0); pulled from legacy + new content |
-| [`skmtc-generator/`](skmtc-generator/) | Guide generator authoring and editing | Authors (`extending/`) | Skeletal SKILL.md (v0.1.0-draft); content TBD |
-| [`skmtc-debug/`](skmtc-debug/) | Diagnose failures — no output, wrong output, errors | Anyone debugging | Skeletal SKILL.md (v0.1.0-draft); content TBD |
+| [`skmtc-generator/`](skmtc-generator/) | Guide generator authoring and editing | Authors (`extending/`) | **SKILL.md authored** (full: operational principles, scaffolds, task cards, variants) |
+| [`skmtc-debug/`](skmtc-debug/) | Diagnose failures — no output, wrong output, errors | Anyone debugging | **SKILL.md authored** (verify-first stance) |
 | [`skmtc-retro/`](skmtc-retro/) | Capture session friction/wins to friction log | Anyone (end of session) | Authored (v0.1.0); includes `/skmtc-retro` slash command |
 | [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS | Generator authors | Authored; the TEMPLATE for `skmtc-lang-<X>` skills |
-| [`skmtc-lang-kotlin/`](skmtc-lang-kotlin/) | The Kotlin target-language layer — the shape of emitted Kotlin | Generator authors | **SKILL.md authored** (v0.1.0, Phase D) |
+| [`skmtc-lang-kotlin/`](skmtc-lang-kotlin/) | The Kotlin target-language layer — the shape of emitted Kotlin | Generator authors | **SKILL.md authored** (v0.2.0; production through the milestone arc — lang-kotlin 0.5.0, gen-kotlin + gen-kotlin-spring) |
+| [`skmtc-lang-csharp/`](skmtc-lang-csharp/) | The C# target-language layer — the shape of emitted C# | Generator authors | **SKILL.md authored** (CS-A; lang-csharp 0.1.0 + gen-csharp 0.0.1) |
 
 All four skills now live in this directory. The retro skill was moved
 here from `skmtc-platform/packages/skmtc-retro-skill/`. The cli skill

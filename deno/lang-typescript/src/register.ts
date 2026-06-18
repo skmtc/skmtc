@@ -2,13 +2,13 @@ import { normalize } from '@std/path/normalize'
 import type {
   DefinitionBase,
   GenerateContextType,
-  GeneratedValue,
-  Identifier
+  GeneratedValue
 } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
 import { TsReExport } from './TsReExport.ts'
 import { TsDefinition } from './TsDefinition.ts'
+import type { TsIdentifier } from './TsIdentifier.ts'
 
 /**
  * TypeScript's concise register vocabulary — the generator-facing form.
@@ -23,9 +23,15 @@ export type TsRegisterArgs = {
   /** Import statements to include, organized by module path. */
   imports?: Record<string, ImportNameArg[]>
   /** Re-export statements to include, organized by source module path. */
-  reExports?: Record<string, Identifier[]>
+  reExports?: Record<string, TsIdentifier[]>
   /** Definition objects to include in the destination file. */
   definitions?: (DefinitionBase | undefined)[]
+  /**
+   * A leading file banner comment (e.g. a codegen header) for the
+   * destination file. Set once on the {@link TsFile}; the last non-`undefined`
+   * write wins.
+   */
+  banner?: string
 }
 
 /**
@@ -44,8 +50,14 @@ export const register = (
 ): void => {
   const destinationPath = normalize(args.destinationPath)
 
-  if (!context.getFile(destinationPath)) {
-    context.addFile(new TsFile({ path: destinationPath, settings: context.settings }))
+  let file = context.getFile(destinationPath)
+  if (!file) {
+    file = new TsFile({ path: destinationPath, settings: context.settings })
+    context.addFile(file)
+  }
+
+  if (args.banner !== undefined && file instanceof TsFile) {
+    file.banner = args.banner
   }
 
   context.register({
@@ -64,9 +76,13 @@ export const register = (
  * Arguments for {@link defineAndRegister}.
  */
 export type TsDefineAndRegisterArgs<Value extends GeneratedValue> = {
-  identifier: Identifier
+  identifier: TsIdentifier
   value: Value
   destinationPath: string
+  /** JSDoc description rendered above the declaration. */
+  description?: string
+  /** A `//` line comment rendered verbatim above the declaration (see {@link TsDefinition}). */
+  leadingComment?: string
   noExport?: boolean
 }
 
@@ -81,9 +97,9 @@ export type TsDefineAndRegisterArgs<Value extends GeneratedValue> = {
  */
 export const defineAndRegister = <Value extends GeneratedValue>(
   context: GenerateContextType,
-  { identifier, value, destinationPath, noExport }: TsDefineAndRegisterArgs<Value>
+  { identifier, value, destinationPath, description, leadingComment, noExport }: TsDefineAndRegisterArgs<Value>
 ): TsDefinition<Value> => {
-  const definition = new TsDefinition({ context, identifier, value, noExport })
+  const definition = new TsDefinition({ context, identifier, value, description, leadingComment, noExport })
 
   register(context, { definitions: [definition], destinationPath })
 

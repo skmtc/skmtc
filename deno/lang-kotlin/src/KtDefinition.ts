@@ -1,6 +1,12 @@
 import { DefinitionBase } from '@skmtc/core'
-import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
+import invariant from 'npm:tiny-invariant@1.3.3'
+import type { GeneratedValue, GenerateContextType, IdentifierBase, Stringable } from '@skmtc/core'
 import { isKtAnnotated } from './KtAnnotation.ts'
+import { isKtConstructed } from './KtConstructed.ts'
+import { isKtDocumented } from './KtDocumented.ts'
+import { isKtSupertyped } from './KtSupertyped.ts'
+import { isKtIdentifier } from './KtIdentifier.ts'
+import type { KtIdentifier } from './KtIdentifier.ts'
 import { withDescription } from './withDescription.ts'
 
 /**
@@ -8,7 +14,7 @@ import { withDescription } from './withDescription.ts'
  */
 export type KtDefinitionArgs<Value extends GeneratedValue> = {
   context: GenerateContextType
-  identifier: Identifier
+  identifier: IdentifierBase
   value: Value
   description?: string
   noExport?: boolean
@@ -22,8 +28,10 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  *
  * | kind | shell |
  * |---|---|
- * | `data-class` | `data class Name(\n…\n)` |
+ * | `class` | `class Name` (+ `(\n…\n)` via the `KtConstructed` protocol; + ` {\n…\n}` when the value renders non-empty) |
+ * | `data-class` | `data class Name(\n…\n)` (+ ` : A, B` via the supertype protocol) |
  * | `enum-class` | `enum class Name {\n…\n}` |
+ * | `interface` | `interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
  * | `sealed-interface` | `sealed interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
  * | `typealias` | `typealias Name = …` |
  * | `val` | `val Name[: Type] = …` (Kotlin's distinctive file-scope value) |
@@ -31,8 +39,10 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  * Class-level annotations ride on the VALUE via the
  * {@link import('./KtAnnotation.ts').KtAnnotated} protocol (the neutral
  * `Lang.toDefinition` signature has no annotations slot) and render one
- * per line above the shell; a `description` renders as a KDoc block above
- * the annotations.
+ * per line above the shell; a supertype clause rides the same way via
+ * {@link import('./KtSupertyped.ts').KtSupertyped} (rendered for the
+ * `data-class` kind only in v1); a `description` renders as a KDoc block
+ * above the annotations.
  *
  * Visibility: Kotlin defaults to `public`, so the neutral `exported`
  * renders as *nothing* when exported and `private ` (file-local) when
@@ -50,26 +60,69 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
   }
 
   override toString(): string {
-    const restricted = this.noExport === true || this.identifier.exported === false
+    // The engine holds the identifier as the neutral `IdentifierBase`;
+    // narrow to `KtIdentifier` cast-free to read the typed `kind`.
+    const identifier = this.identifier
+    invariant(
+      isKtIdentifier(identifier),
+      `KtDefinition needs a KtIdentifier to render '${identifier.name}', got a foreign identifier`
+    )
+
+    if (identifier.kind === 'verbatim') {
+      // The value IS the declaration text (template files, multi-
+      // declaration bodies) — no shell, no visibility, no annotations.
+      return `${this.value}`
+    }
+
+    const restricted = this.noExport === true || identifier.exported === false
     const visibility = restricted ? 'private ' : ''
 
     const annotations = isKtAnnotated(this.value)
       ? this.value.annotations.map(annotation => `${annotation}\n`).join('')
       : ''
 
-    const declaration = `${annotations}${visibility}${this.toShell()}`
+    const declaration = `${annotations}${visibility}${this.toShell(identifier)}`
 
-    return withDescription(declaration, { description: this.description })
+    // Constructor description wins; else the value-carried protocol.
+    const description =
+      this.description ?? (isKtDocumented(this.value) ? this.value.description : undefined)
+
+    return withDescription(declaration, { description })
   }
 
-  private toShell(): string {
-    const { name, kind, typeName } = this.identifier
+  private toShell(identifier: KtIdentifier): string {
+    const { name, kind, typeName } = identifier
 
     switch (kind) {
-      case 'data-class':
-        return `data class ${name}(\n${this.value}\n)`
+      case 'class': {
+        const constructorClause = isKtConstructed(this.value)
+          ? `${toConstructorKeyword(this.value.constructorModifiers)}(\n${this.value.constructorParameters}\n)`
+          : ''
+        const supertypeClause =
+          isKtSupertyped(this.value) && this.value.supertypes.length
+            ? ` : ${this.value.supertypes.join(', ')}`
+            : ''
+        const body = `${this.value}`
+
+        return body.length
+          ? `class ${name}${constructorClause}${supertypeClause} {\n${body}\n}`
+          : `class ${name}${constructorClause}${supertypeClause}`
+      }
+      case 'data-class': {
+        const clause =
+          isKtSupertyped(this.value) && this.value.supertypes.length
+            ? ` : ${this.value.supertypes.join(', ')}`
+            : ''
+
+        return `data class ${name}(\n${this.value}\n)${clause}`
+      }
       case 'enum-class':
         return `enum class ${name} {\n${this.value}\n}`
+      case 'interface': {
+        const body = `${this.value}`
+
+        return body.length ? `interface ${name} {\n${body}\n}` : `interface ${name}`
+      }
       case 'sealed-interface': {
         const body = `${this.value}`
 
@@ -83,4 +136,16 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
         throw new Error(`Unknown Kotlin entity kind: ${kind}`)
     }
   }
+}
+
+/**
+ * Constructor modifiers (annotations / visibility) between the class
+ * name and the parameter list require Kotlin's explicit `constructor`
+ * keyword — the lang owns that rule; the modifiers' content is
+ * generator policy.
+ */
+const toConstructorKeyword = (modifiers: Stringable | undefined): string => {
+  const rendered = modifiers === undefined ? '' : `${modifiers}`
+
+  return rendered.length ? ` ${rendered} constructor` : ''
 }

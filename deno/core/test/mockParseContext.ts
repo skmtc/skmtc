@@ -40,6 +40,10 @@ export const mockParseContext = {
     //do nothing
   },
 
+  logIssueNoKey(): void {
+    //do nothing
+  },
+
   stackTrail: {
     append: () => {},
     remove: () => {},

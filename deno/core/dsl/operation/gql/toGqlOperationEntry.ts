@@ -9,6 +9,7 @@ import type {
   IsSupportedGqlOperationConfigArgs
 } from './types.ts'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
 /**
@@ -22,7 +23,7 @@ import get from 'lodash-es/get'
 export type ToGqlOperationConfigArgs<EnrichmentType = undefined> = {
   id: string
   transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported?: ({
     context,
     operation
@@ -57,7 +58,7 @@ export const toGqlOperationEntry = <EnrichmentType = undefined>({
   id: string
   type: 'gqlOperation'
   transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule
@@ -75,19 +76,23 @@ export const toGqlOperationEntry = <EnrichmentType = undefined>({
         return true
       }
 
-      // Variant-scoped enrichment lookup — see the OAS-side shim for
-      // the rationale.
-      const operationEnrichments = get(
-        context.settings,
-        `enrichments.${id}.${operation.rootKind}.${operation.fieldName}.${variant}`
-      )
-
-      const enrichmentSchema = toEnrichmentSchema?.() ?? v.undefined()
+      // Assemble the `{ subject, generator, stack }` enrichment umbrella and
+      // parse it cast-free — see the OAS-side shim for the rationale. Subject
+      // is variant-scoped (`[id][rootKind][fieldName][variant]`); generator
+      // and stack are run-constants.
+      const raw = {
+        subject: get(
+          context.settings,
+          ['enrichments', id, operation.rootKind, operation.fieldName, variant]
+        ),
+        generator: get(context.settings, ['enrichments', id, GENERATOR_ENRICHMENT_KEY]),
+        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
+      }
 
       return isSupported({
         context,
         operation,
-        enrichments: v.parse(enrichmentSchema, operationEnrichments) as EnrichmentType,
+        enrichments: v.parse(toEnrichmentSchema(), raw),
         variant
       })
     },

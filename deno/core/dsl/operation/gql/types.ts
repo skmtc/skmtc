@@ -2,7 +2,7 @@ import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
@@ -73,13 +73,10 @@ export type ToGqlOperationMappingArgs = {
 }
 
 /**
- * Static structural type of a GraphQL operation projection class.
- *
- * Captures both the instance side (`new(...) => V`) and the static side
- * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`). Passed as a
- * type parameter to `context.insertOperation(...)`.
+ * Arguments for a GraphQL operation projection's `toIdentifierName` — the
+ * pure, cache-key-source half of the old `toIdentifier`.
  */
-export type ToGqlOperationIdentifierArgs<EnrichmentType = undefined> = {
+export type ToGqlOperationIdentifierNameArgs<EnrichmentType = undefined> = {
   operation: GqlOperation
   enrichments: EnrichmentType
   /** Operation variant the identifier should disambiguate (see {@link Variant}) */
@@ -93,6 +90,14 @@ export type ToGqlOperationExportPathArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
+/**
+ * Static structural type of a GraphQL operation projection class.
+ *
+ * Captures both the instance side (`new(...) => V`) and the static side
+ * (`id`, `toIdentifierName`, `toIdentifierType`, `toExportPath`,
+ * `toEnrichments`). Passed as a type parameter to
+ * `context.insertOperation(...)`.
+ */
 export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
   prototype: V
 } & {
@@ -106,11 +111,19 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
   /**
    * The projection's language — the static inherited from the language
    * snippet base the projection class is built on
-   * (`toGqlOperationProjectionBase({ base: TsSnippet, … })`). Drivers read
+   * (`toGqlOperationProjectionBase(TsSnippet, …)`). Drivers read
    * it ephemerally at each use site, pre-construction (cache-hit path).
    */
   lang: Lang
-  toIdentifier: (args: ToGqlOperationIdentifierArgs<EnrichmentType>) => Identifier
+  /** Pure: the cache-key name. */
+  toIdentifierName: (args: ToGqlOperationIdentifierNameArgs<EnrichmentType>) => string
+  /**
+   * Context-aware, overridable: the non-`name` parts of the identifier,
+   * derived from the operation/schema. The engine assembles
+   * `lang.toIdentifier({ name: toIdentifierName(args),
+   * ...toIdentifierType(operation, context) })`.
+   */
+  toIdentifierType: (operation: GqlOperation, context: GenerateContextType) => IdentifierType
   toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToGqlOperationEnrichmentsArgs) => EnrichmentType
   /**
@@ -133,7 +146,7 @@ export type GqlOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'gqlOperation'
   transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule

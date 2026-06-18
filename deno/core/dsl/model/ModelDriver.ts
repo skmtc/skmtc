@@ -3,7 +3,7 @@ import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
@@ -32,7 +32,7 @@ type ApplyArgs = {
 }
 
 type GetDefinitionArgs = {
-  identifier: Identifier
+  identifier: IdentifierBase
   exportPath: string
   noExport?: boolean
 }
@@ -218,7 +218,7 @@ const assertPeerVariantExists = ({
 
   const modelEnrichments: unknown = get(
     context.settings,
-    `enrichments.${generatorId}.${refName}`
+    ['enrichments', generatorId, refName]
   )
 
   if (modelEnrichments === null || modelEnrichments === undefined) {

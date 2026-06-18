@@ -23,7 +23,7 @@
 
 import { dirname, fromFileUrl, join } from '@std/path'
 
-const DEFAULT_JSR_URL = 'https://jsr.skmtc.dev/'
+const DEFAULT_JSR_URL = 'https://jsr.skmtc.co.uk/'
 
 /**
  * Scoped runtime permissions for the installed `skmtc` CLI — replaces a

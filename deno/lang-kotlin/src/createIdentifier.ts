@@ -1,25 +1,42 @@
-import { Identifier } from '@skmtc/core'
+import { KtIdentifier } from './KtIdentifier.ts'
 
 /**
- * Kotlin's declaration-kind vocabulary — the values this package writes
- * into the neutral `Identifier.kind` and the discriminator its renderers
+ * Kotlin's declaration-kind vocabulary — the typed `kind` this package
+ * writes onto its {@link KtIdentifier} and the discriminator its renderers
  * narrow against.
  *
+ * - `'class'` — a concrete `class Name(…) { … }` declaration (the
+ *   generated-controller idiom; constructor properties ride the
+ *   `KtConstructed` value protocol).
  * - `'data-class'` — a `data class Name(…)` DTO container.
  * - `'enum-class'` — an `enum class Name { … }` declaration.
- * - `'sealed-interface'` — a `sealed interface Name` (the `oneOf` idiom;
- *   in the vocabulary now, gen-side mapping is a named follow-up).
+ * - `'interface'` — an `interface Name { … }` declaration (the Spring
+ *   "interfaceOnly" idiom — abstract method signatures the consumer
+ *   implements).
+ * - `'sealed-interface'` — a `sealed interface Name` (the `oneOf` idiom).
  * - `'typealias'` — a `typealias Name = …` declaration.
  * - `'val'` — a top-level `val Name = …` assignment (Kotlin's distinctive
  *   file-scope value, illegal in C#/PHP/Java).
  *
+ * - `'verbatim'` — NO shell: the value renders as-is (multi-declaration
+ *   template files, where the identifier serves cache identity only —
+ *   the gen-kotlin-sdk static-runtime idiom, note `32` §A5).
+ *
  * Unlike TypeScript, the kind does NOT drive import form — every Kotlin
  * import is `import pkg.Name`. It drives only the declaration shell.
- * Deferred kinds (`object`, `fun`, `interface`, `var`) arrive with the
+ * Deferred kinds (`object`, `fun`, `var`, `const-val`) arrive with the
  * milestones that need them; {@link toKtKeyword} throwing on them is the
  * desired behavior until then.
  */
-export type KtEntityKind = 'data-class' | 'enum-class' | 'sealed-interface' | 'typealias' | 'val'
+export type KtEntityKind =
+  | 'class'
+  | 'data-class'
+  | 'enum-class'
+  | 'interface'
+  | 'sealed-interface'
+  | 'typealias'
+  | 'val'
+  | 'verbatim'
 
 /**
  * Options shared by the identifier factories — every field optional, so
@@ -42,6 +59,19 @@ export type CreateValueArgs = {
 }
 
 /**
+ * Creates a concrete `class` identifier.
+ *
+ * @example
+ * ```typescript
+ * const controller = createClass('UsersController')
+ * // KtDefinition renders: class UsersController(…) { … }
+ * ```
+ */
+export const createClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'class' })
+}
+
+/**
  * Creates a `data class` identifier.
  *
  * @example
@@ -50,8 +80,8 @@ export type CreateValueArgs = {
  * // KtDefinition renders: data class User(…)
  * ```
  */
-export const createDataClass = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'data-class' })
+export const createDataClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'data-class' })
 }
 
 /**
@@ -63,8 +93,21 @@ export const createDataClass = (name: string, args: CreateKtIdentifierArgs = {})
  * // KtDefinition renders: enum class Status { … }
  * ```
  */
-export const createEnumClass = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'enum-class' })
+export const createEnumClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'enum-class' })
+}
+
+/**
+ * Creates an `interface` identifier.
+ *
+ * @example
+ * ```typescript
+ * const usersApi = createInterface('UsersApi')
+ * // KtDefinition renders: interface UsersApi { … }
+ * ```
+ */
+export const createInterface = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'interface' })
 }
 
 /**
@@ -79,8 +122,8 @@ export const createEnumClass = (name: string, args: CreateKtIdentifierArgs = {})
 export const createSealedInterface = (
   name: string,
   args: CreateKtIdentifierArgs = {}
-): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'sealed-interface' })
+): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'sealed-interface' })
 }
 
 /**
@@ -92,8 +135,8 @@ export const createSealedInterface = (
  * // KtDefinition renders: typealias UserList = …
  * ```
  */
-export const createTypeAlias = (name: string, args: CreateKtIdentifierArgs = {}): Identifier => {
-  return new Identifier({ name, exported: args.exported, kind: 'typealias' })
+export const createTypeAlias = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
+  return new KtIdentifier({ name, exported: args.exported, kind: 'typealias' })
 }
 
 /**
@@ -112,10 +155,27 @@ export const createTypeAlias = (name: string, args: CreateKtIdentifierArgs = {})
  * // KtDefinition renders: val timeout: Long = …
  * ```
  */
-export const createValue = (name: string, args: CreateValueArgs = {}): Identifier => {
+export const createValue = (name: string, args: CreateValueArgs = {}): KtIdentifier => {
   const { typeName, exported } = args
 
-  return new Identifier({ name, typeName, exported, kind: 'val' })
+  return new KtIdentifier({ name, typeName, exported, kind: 'val' })
+}
+
+/**
+ * Creates a `verbatim` identifier — the value renders as-is with NO
+ * declaration shell, visibility, or annotations. For content whose text
+ * is already complete Kotlin (parameterized template files, bodies with
+ * several top-level declarations); `name` serves cache identity only
+ * and must be unique within the destination file.
+ *
+ * @example
+ * ```typescript
+ * const utils = createVerbatim('UtilsFileBody')
+ * // KtDefinition renders the value's text untouched
+ * ```
+ */
+export const createVerbatim = (name: string): KtIdentifier => {
+  return new KtIdentifier({ name, kind: 'verbatim' })
 }
 
 /**
@@ -126,16 +186,51 @@ export const createValue = (name: string, args: CreateValueArgs = {}): Identifie
  */
 export const toKtKeyword = (kind: string): string => {
   switch (kind) {
+    case 'class':
+      return 'class'
     case 'data-class':
       return 'data class'
     case 'enum-class':
       return 'enum class'
+    case 'interface':
+      return 'interface'
     case 'sealed-interface':
       return 'sealed interface'
     case 'typealias':
       return 'typealias'
     case 'val':
       return 'val'
+    case 'verbatim':
+      return ''
+    default:
+      throw new Error(`Unknown Kotlin entity kind: ${kind}`)
+  }
+}
+
+/**
+ * Narrow the engine's opaque `kind: string` (from `Lang.toIdentifier`'s
+ * neutral args) to this language's {@link KtEntityKind} — cast-free, via a
+ * validating switch. Throws on a kind outside the vocabulary, the same loud
+ * signal {@link toKtKeyword} gives.
+ */
+export const toKtEntityKind = (kind: string): KtEntityKind => {
+  switch (kind) {
+    case 'class':
+      return 'class'
+    case 'data-class':
+      return 'data-class'
+    case 'enum-class':
+      return 'enum-class'
+    case 'interface':
+      return 'interface'
+    case 'sealed-interface':
+      return 'sealed-interface'
+    case 'typealias':
+      return 'typealias'
+    case 'val':
+      return 'val'
+    case 'verbatim':
+      return 'verbatim'
     default:
       throw new Error(`Unknown Kotlin entity kind: ${kind}`)
   }

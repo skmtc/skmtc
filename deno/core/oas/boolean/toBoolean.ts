@@ -5,6 +5,8 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { oasBooleanData } from './boolean-types.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
@@ -81,18 +83,14 @@ export const toBoolean = ({ value, stackTrail, context }: ToBooleanArgs): OasBoo
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
 
   const example = parseExample({
-    example: unparsedExample,
+    value: unparsedExample,
     context,
     parent: valueWithoutNullable,
     nullable,
+    check: isBoolean,
+    toMessage: item => `Removed invalid example. Expected "boolean", got: ${item}`,
     stackTrail
   })
-  // const { enum: enums, value: valueWithoutEnums } = parseEnum({
-  //   value: valueWithoutExample,
-  //   nullable,
-  //   valibotSchema: v.boolean(),
-  //   context
-  // })
 
   const { enum: unparsedEnums, ...valueWithoutEnums } = valueWithoutExample
 
@@ -109,10 +107,12 @@ export const toBoolean = ({ value, stackTrail, context }: ToBooleanArgs): OasBoo
   const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
 
   const defaultValue = parseDefault({
-    defaultValue: unparsedDefaultValue,
+    value: unparsedDefaultValue,
     context,
     parent: valueWithoutEnums,
     nullable,
+    check: isBoolean,
+    toMessage: item => `Removed invalid default. Expected "boolean", got: ${item}`,
     stackTrail
   })
 
@@ -177,76 +177,6 @@ export const toParsedBoolean = <Nullable extends boolean | undefined>({
       context
     )
   )
-}
-
-type ParseExampleArgs = {
-  example: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
-  if (example === undefined) {
-    return undefined
-  }
-
-  if (nullable && example === null) {
-    return example
-  }
-
-  if (typeof example !== 'boolean') {
-    context.logIssue({
-      key: 'example',
-      level: 'warning',
-      message: `Removed invalid example. Expected "boolean", got: ${example}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_EXAMPLE'
-    })
-    return undefined
-  }
-
-  return example
-}
-
-type ParseDefaultArgs = {
-  defaultValue: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseDefault = ({
-  defaultValue,
-  context,
-  parent,
-  nullable,
-  stackTrail
-}: ParseDefaultArgs) => {
-  if (defaultValue === undefined) {
-    return undefined
-  }
-
-  if (nullable && defaultValue === null) {
-    return defaultValue
-  }
-
-  if (typeof defaultValue !== 'boolean') {
-    context.logIssue({
-      key: 'default',
-      level: 'warning',
-      message: `Removed invalid default. Expected "boolean", got: ${defaultValue}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_DEFAULT'
-    })
-    return undefined
-  }
-
-  return defaultValue
 }
 
 const isBoolean = (value: unknown): value is boolean => {

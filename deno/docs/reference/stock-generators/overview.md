@@ -40,6 +40,8 @@ philosophy.
 | `@skmtc/gen-valibot` | Valibot validation schemas | [gen-valibot](gen-valibot.md) |
 | `@skmtc/gen-arktype` | ArkType validation schemas | [gen-arktype](gen-arktype.md) |
 | `@skmtc/gen-kotlin` | Kotlin DTOs (`kotlinx.serialization` data classes) — the first non-TypeScript target | [gen-kotlin](gen-kotlin.md) |
+| `@skmtc/gen-csharp` | C# DTOs (System.Text.Json `sealed partial record`s + enums; zero deps beyond the BCL) — the third language | [gen-csharp](gen-csharp.md) |
+| `@skmtc/gen-csharp-aspnet` | ASP.NET controllers + `I<Tag>Service` seam per tag (C#; consumer implements the interface) | [gen-csharp-aspnet](gen-csharp-aspnet.md) |
 
 ### Client-side (data fetching, mocks)
 
@@ -72,6 +74,7 @@ app/router Projection.
 |-----------|--------|-----------|
 | `@skmtc/gen-express` | Express route registration | [gen-express](gen-express.md) |
 | `@skmtc/gen-supabase-hono` | Hono routes for Supabase Edge Functions | [gen-supabase-hono](gen-supabase-hono.md) |
+| `@skmtc/gen-kotlin-spring` | Spring Boot controllers + service seam per tag (Kotlin; consumer implements `<Tag>Service`) | [gen-kotlin-spring](gen-kotlin-spring.md) |
 
 ### GraphQL (Reapit set)
 

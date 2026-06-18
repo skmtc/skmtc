@@ -276,7 +276,7 @@ The remaining stock GraphQL generator
 
 ```ts
 // gen-reapit-graphql-client/src/base.ts
-export const ReapitGraphqlClientBase = toGqlOperationProjectionBase<EnrichmentSchema>({
+export const ReapitGraphqlClientBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
   toIdentifier({ operation }) {
@@ -315,14 +315,14 @@ used by `gen-reapit-graphql-client`.
 
 If you author a GraphQL operation generator whose output is
 referenced by peer generators (a hypothetical `gen-graphql-shadcn-form`
-analog to the OAS form generator), use
-`toGqlOperationProjectionBase` to declare a Projection class.
-The factory mirrors `toOasOperationProjectionBase`:
+analog to the OAS form generator), use your language package's
+`toTsGqlOperationProjectionBase` veneer to declare a Projection class.
+The factory mirrors `toTsOasOperationProjectionBase`:
 
 ```ts
-import { toGqlOperationProjectionBase } from '@skmtc/core'
+import { toTsGqlOperationProjectionBase } from '@skmtc/lang-typescript'
 
-export const MyGqlFormBase = toGqlOperationProjectionBase<EnrichmentSchema>({
+export const MyGqlFormBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toIdentifier: ({ operation }) => createVariable(
     `${capitalize(operation.fieldName)}Form`

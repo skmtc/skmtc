@@ -6,6 +6,8 @@ import { toAdditionalPropertiesV3 } from './toAdditionalPropertiesV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
 
 import type { StackTrail } from '@/context/StackTrail.ts'
 
@@ -25,10 +27,12 @@ export const toObject = ({ value, context, stackTrail }: ToObjectArgs): OasObjec
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
 
   const example = parseExample({
-    example: unparsedExample,
+    value: unparsedExample,
     context,
     parent: valueWithoutNullable,
     nullable,
+    check: isObject,
+    toMessage: item => `Removed invalid example. Expected "object", got: ${item}`,
     stackTrail
   })
 
@@ -44,18 +48,31 @@ export const toObject = ({ value, context, stackTrail }: ToObjectArgs): OasObjec
     toMessage: item => `Removed invalid enum. Expected "object", got: ${item}`
   })
 
+  const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
+
+  const defaultValue = parseDefault({
+    value: unparsedDefaultValue,
+    context,
+    parent: valueWithoutEnums,
+    nullable,
+    check: isObject,
+    toMessage: item => `Removed invalid default. Expected "object", got: ${item}`,
+    stackTrail
+  })
+
   return toParsedObject({
     context,
     nullable,
     example,
     enums,
-    value: valueWithoutEnums,
+    defaultValue,
+    value: valueWithoutDefault,
     stackTrail
   })
 }
 
 type ToParsedObjectArgs<Nullable extends boolean | undefined> = {
-  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums' | 'default'>
   stackTrail: StackTrail
   context: ParseContextType
   nullable: Nullable
@@ -65,6 +82,9 @@ type ToParsedObjectArgs<Nullable extends boolean | undefined> = {
   enums: Nullable extends true
     ? (Record<string, unknown> | null)[] | undefined
     : Record<string, unknown>[] | undefined
+  defaultValue: Nullable extends true
+    ? Record<string, unknown> | null | undefined
+    : Record<string, unknown> | undefined
 }
 
 const toParsedObject = <Nullable extends boolean | undefined>({
@@ -73,6 +93,7 @@ const toParsedObject = <Nullable extends boolean | undefined>({
   nullable,
   example,
   enums,
+  defaultValue,
   value
 }: ToParsedObjectArgs<Nullable>): OasObject<Nullable> => {
   const {
@@ -85,7 +106,6 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     maxProperties,
     minProperties,
     additionalProperties,
-    default: defaultValue,
     readOnly,
     writeOnly,
     ...skipped
@@ -129,38 +149,6 @@ const toParsedObject = <Nullable extends boolean | undefined>({
       context
     )
   )
-}
-
-type ParseExampleArgs = {
-  example: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
-  if (example === undefined) {
-    return undefined
-  }
-
-  if (nullable && example === null) {
-    return example
-  }
-
-  if (!isObject(example)) {
-    context.logIssue({
-      key: 'example',
-      level: 'warning',
-      message: `Invalid example: ${example}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_EXAMPLE'
-    })
-    return undefined
-  }
-
-  return example as Record<string, unknown>
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> => {

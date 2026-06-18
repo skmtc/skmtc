@@ -1,7 +1,9 @@
 import { ImportBase } from '@skmtc/core'
+import invariant from 'npm:tiny-invariant@1.3.3'
 import { List } from './List.ts'
-import type { Identifier } from '@skmtc/core'
-import type { TsEntityKind } from './createIdentifier.ts'
+import { isTsIdentifier } from './TsIdentifier.ts'
+import type { IdentifierBase } from '@skmtc/core'
+import { isTypeOnlyKind, type TsEntityKind } from './createIdentifier.ts'
 
 /**
  * The concise import form a TypeScript generator passes to `register` —
@@ -80,14 +82,20 @@ export class TsImport extends ImportBase {
   }
 
   /**
-   * Build the import of a single {@link Identifier} from `module` — the
+   * Build the import of a single {@link IdentifierBase} from `module` — the
    * cross-file import a Driver registers when a generator references a
    * peer's Definition. The identifier's `kind` drives `typeOnly`
-   * (so a type identifier emits `import { type X }`).
+   * (so a type identifier emits `import { type X }`), so it must be a
+   * {@link TsIdentifier}; narrowed cast-free via {@link isTsIdentifier}.
    */
-  static fromIdentifier(module: string, identifier: Identifier): TsImport {
+  static fromIdentifier(module: string, identifier: IdentifierBase): TsImport {
+    invariant(
+      isTsIdentifier(identifier),
+      `TsImport needs a TsIdentifier to import '${identifier.name}', got a foreign identifier`
+    )
+
     return new TsImport(module, [
-      { name: identifier.name, typeOnly: identifier.kind === 'type' }
+      { name: identifier.name, typeOnly: isTypeOnlyKind(identifier.kind) }
     ])
   }
 

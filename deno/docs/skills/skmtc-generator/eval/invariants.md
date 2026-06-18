@@ -111,21 +111,21 @@ When composing a Projection from peer types, prefer `insertOperation` / `insertM
 
 When a generator author finds themselves calling `context.register({ definitions: [new TsDefinition(...)] })` directly, that's a strong signal an `insertX` method exists that does the same thing better.
 
-## 12. The language lives on the generator entry — nowhere else (core 0.7.1+)
+## 12. The language lives on the import graph — nowhere else (core 0.8.0+)
 
-The engine is language-blind. `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` take a **required** `lang` field (e.g. `typescript` imported from `@skmtc/lang-typescript`); the engine resolves it by `generatorId` via `GenerateContext.resolveLang` whenever it creates a file or builds a `Definition`.
+The engine is language-blind. Entries (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) are pure pipeline config and take **no** `lang` field — proposing `toOasOperationEntry({ lang, … })` is incorrect. A generator declares its target language by importing its projection-base factory from a lang package (`toTsModelProjectionBase` / `toTsOasOperationProjectionBase` / `toTsGqlOperationProjectionBase` from `@skmtc/lang-typescript`; the Kotlin equivalents `toKtModelProjectionBase` / `toKtOasOperationProjectionBase` from `@skmtc/lang-kotlin`) and, for registering snippets, extending the lang snippet base (`TsSnippet` / `KtSnippet`). The language rides the class hierarchy as the static `lang` on the lang snippet base; the engine's Drivers read it ephemerally off the projection class's inherited static (`projection.lang`) whenever they create a file or build a `Definition`. There is no `resolveLang`, no config-map language resolution, and no `lang` config field anywhere.
 
-- Projection-base factories (`toModelProjectionBase` etc.) take **no** `lang` — proposing `toModelProjectionBase({ lang, … })` is incorrect.
-- Snippets carry no `Lang`.
-- `register` / `defineAndRegister` pass plain data: `generatorId` (a string), never a `Lang` object or a `createFile` closure.
-- A missing `lang` on the entry throws at engine start (`Generator '<id>' declares no 'lang'`). A peer passed to `insertOperation` / `insertModel` whose id is not in the generator config map throws `Cannot resolve language for generator '<id>': not in the generator config map` — the fix is installing/configuring the peer, not catching the error.
+- Projection-base factories come FROM the lang package (the veneers) — proposing a `lang` field on them (or on core's factories) is incorrect.
+- Snippets carry no `Lang`; registering snippets extend the lang snippet base.
+- `register` / `defineAndRegister` pass plain data — never a `Lang` object, a `createFile` closure, or a `generatorId`.
+- Responses describing the interim 0.7.x model (a required `lang` field on the entry, resolution by `generatorId`) are incorrect — that model was unwound in the 0.8.0 convergence (`notes/lang/16-target-architecture.md`).
 - The identifier factories (`createVariable` / `createType`), `sanitizePropertyName`, and the TS syntax helpers (`List`, `FunctionParameter`, `toPathTemplate`, …) import from `@skmtc/lang-typescript` (moved out of core under F5/F6 — `notes/lang/17-naming-layer-and-helpers-move.md`). Core's `Identifier` is neutral data (`name`, opaque `kind`, `exported`, `typeName`); core's `EntityType`, its concrete `Definition`, and the `Identifier.create*` statics no longer exist. A response that tells the user to import the factories or helpers from `@skmtc/core` today is incorrect.
 
 ## 13. Own-file `register` vs explicit `registerInto` — no fallback
 
 Projection `register({ imports, definitions })` writes **only** to the projection's own file (`this.settings.exportPath`); the args take no `destinationPath`. Writing into a different file is a separate, explicit method: `registerInto(destinationPath, args)`. There is deliberately **no** `destinationPath ?? exportPath` fallback — proposing one (or a `destinationPath` option on projection `register`) is incorrect; the two paths are kept separate so a missing path can never silently land content in the wrong file.
 
-Snippet `register({ imports, destinationPath })` requires `destinationPath` (snippets have no exportPath), and — transitionally, until F7 in `notes/lang/checklist.md` lands — the snippet must have been constructed with a `generatorKey` (the parent passes its own); registering without one throws `Cannot register from a snippet that has no generatorKey`. The correct fix for that throw is threading the parent's `generatorKey` through the snippet's constructor — not `try/catch`, not switching to `Deno.writeFileSync`, not hardcoding a `Lang`.
+Snippet `register({ imports, destinationPath })` requires `destinationPath` (snippets have no exportPath) and is **keyless** — `generatorKey` is an optional attribution (gen-maps) input, never a registration requirement (F7 closed by construction in the 0.8.0 convergence). A registering snippet must extend the lang snippet base (`TsSnippet` / `KtSnippet`); a raw `SnippetBase` subclass has no `register` at all — the correct fix for that compile error is extending the lang snippet base, not `try/catch`, not `Deno.writeFileSync`, not hardcoding the import into the template string.
 
 ## 14. `acc` threading is uniform across the three entry factories
 

@@ -1,5 +1,5 @@
 # Manual-dispatch release via the cascade script, against the
-# jsr.skmtc.dev registry (NOT public jsr.io).
+# jsr.skmtc.co.uk registry (NOT public jsr.io).
 #
 # Releases are deliberate: bump the `version` of the package(s) you
 # changed, merge, then trigger this workflow (or run
@@ -9,7 +9,7 @@
 # downstream dependent, so nothing auto-fires on merge to main.
 #
 # Requires the `JSR_AUTH_TOKEN` repository secret (a token for
-# jsr.skmtc.dev). OIDC is NOT used — that only works against public
+# jsr.skmtc.co.uk). OIDC is NOT used — that only works against public
 # jsr.io.
 
 name: Publish
@@ -31,9 +31,9 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Release via cascade to jsr.skmtc.dev
+      - name: Release via cascade to jsr.skmtc.co.uk
         env:
-          JSR_URL: https://jsr.skmtc.dev/
+          JSR_URL: https://jsr.skmtc.co.uk/
           JSR_AUTH_TOKEN: ${{ secrets.JSR_AUTH_TOKEN }}
         working-directory: deno
         run: deno task release

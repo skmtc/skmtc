@@ -13,7 +13,7 @@
     },
     {
       "id": "C3",
-      "check": "Did the response point the generator at the lang package's toModelProjectionBase veneer (imported from '@skmtc/lang-typescript') rather than core's factory, and avoid telling the user to import the `typescript` Lang object into a generator (generators never use it; the import graph declares the language through the veneer / TsSnippet)?"
+      "check": "Did the response point the generator at the lang package's toTsModelProjectionBase veneer (imported from '@skmtc/lang-typescript') rather than core's toModelProjectionBase factory, and avoid telling the user to import the `typescript` Lang object into a generator (generators never use it; the import graph declares the language through the veneer / TsSnippet)?"
     }
   ],
   "scoring": "all_or_nothing",

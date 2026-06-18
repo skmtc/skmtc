@@ -1,5 +1,6 @@
 import { assertEquals } from '@std/assert/equals'
-import { createType, createVariable } from '@skmtc/lang-typescript'
+import { assert } from '@std/assert/assert'
+import { createType, createVariable, isTsIdentifier } from '@skmtc/lang-typescript'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 
 Deno.test('ContentSettings - creates settings with enrichments', () => {
@@ -43,5 +44,8 @@ Deno.test('ContentSettings - stores identifier properties', () => {
 
   assertEquals(settings.identifier.name, 'apiClient')
   assertEquals(settings.identifier.typeName, 'ApiClient')
+  // The engine holds the identifier as the neutral `IdentifierBase`; narrow
+  // to `TsIdentifier` cast-free to read the typed `kind`.
+  assert(isTsIdentifier(settings.identifier))
   assertEquals(settings.identifier.kind, 'variable')
 })

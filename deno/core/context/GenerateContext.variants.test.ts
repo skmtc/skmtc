@@ -412,3 +412,38 @@ Deno.test('variants - a generator with no enrichments configured still receives 
     ['main', 'customer']
   )
 })
+
+// ─── Dotted operation paths: enrichment keys are literal, not lodash paths ──
+
+Deno.test('variants - enrichment resolves for operation paths containing dots', () => {
+  // Real-world shape: OneBusAway-style paths end in `.json`. The lookup
+  // must treat the whole path as ONE key — a dot-joined lodash string
+  // path would split `current-time.json` into nested keys and miss
+  // (the gen-kotlin-sdk arc discovery, note 32).
+  const transform: Spy<undefined, [TransformArgs], unknown> = spy(
+    (_args: TransformArgs) => undefined
+  )
+  const { context, captures } = buildContext({
+    document: makeOasDoc([{ path: '/api/where/current-time.json', method: 'get' }]),
+    settings: {
+      enrichments: {
+        'form-gen': {
+          '/api/where/current-time.json': {
+            get: {
+              main: { title: 'Current Time' },
+              extended: { title: 'Extended' }
+            }
+          }
+        }
+      }
+    },
+    generators: { 'form-gen': makeGen('form-gen', transform) }
+  })
+  context.toArtifacts(new StackTrail(['test']))
+
+  // Both declared variants dispatch — proving the dotted path resolved
+  // to its enrichment block instead of falling back to single-'main'.
+  const results = toVariantResults(captures, 'form-gen')
+  assertEquals(results.map(r => r.variant).sort(), ['extended', 'main'])
+  assertEquals(transform.calls.length, 2)
+})

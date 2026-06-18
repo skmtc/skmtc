@@ -4,17 +4,32 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { TsSnippet, createVariable } from '@skmtc/lang-typescript'
 import type {
-  ToOasOperationIdentifierArgs,
+  ToOasOperationIdentifierNameArgs,
   ToOasOperationExportPathArgs
 } from '@/dsl/operation/oas/types.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
+import type { Enrichments } from '@/types/Enrichments.ts'
 import * as v from 'valibot'
 
+/**
+ * The all-undefined enrichment umbrella a no-enrichment generator's
+ * `toEnrichments` resolves to (parsed through `emptyEnrichmentSchema`).
+ * The pure `toIdentifierName` / `toExportPath` statics receive this when
+ * the projection declares no enrichments.
+ */
+const emptyEnrichments: Enrichments = {
+  subject: undefined,
+  generator: undefined,
+  stack: undefined
+}
+
 Deno.test('toOasOperationProjectionBase - returns a class constructor', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(typeof OperationClass, 'function')
@@ -22,36 +37,39 @@ Deno.test('toOasOperationProjectionBase - returns a class constructor', () => {
 })
 
 Deno.test('toOasOperationProjectionBase - sets static id from config', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'typescript-operations',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(OperationClass.id, 'typescript-operations')
 })
 
 Deno.test('toOasOperationProjectionBase - sets static type to operation', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(OperationClass.type, 'oasOperation')
 })
 
-Deno.test('toOasOperationProjectionBase - sets static toIdentifier from config', () => {
-  const identifierFn = ({ operation }: ToOasOperationIdentifierArgs) =>
-    createVariable(operation.operationId || 'operation')
+Deno.test('toOasOperationProjectionBase - sets static toIdentifierName from config', () => {
+  const identifierNameFn = ({ operation }: ToOasOperationIdentifierNameArgs<Enrichments>) =>
+    operation.operationId || 'operation'
 
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: identifierFn,
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: identifierNameFn,
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const mockOperation = new OasOperation({
@@ -62,21 +80,21 @@ Deno.test('toOasOperationProjectionBase - sets static toIdentifier from config',
     responses: {}
   })
 
-  const identifier = OperationClass.toIdentifier({ operation: mockOperation, enrichments: undefined, variant: 'main' })
-  assertEquals(identifier.name, 'getUsers')
-  // Verify identifier has expected properties
-  assertEquals(typeof identifier.toString, 'function')
+  const name = OperationClass.toIdentifierName({ operation: mockOperation, enrichments: emptyEnrichments, variant: 'main' })
+  assertEquals(name, 'getUsers')
+  assertEquals(OperationClass.toIdentifierType(mockOperation, {} as GenerateContextType).kind, 'variable')
 })
 
 Deno.test('toOasOperationProjectionBase - sets static toExportPath from config', () => {
-  const exportPathFn = ({ operation }: ToOasOperationExportPathArgs) =>
+  const exportPathFn = ({ operation }: ToOasOperationExportPathArgs<Enrichments>) =>
     `./generated/${operation.operationId}.ts`
 
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: exportPathFn
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: exportPathFn,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const mockOperation = new OasOperation({
@@ -87,16 +105,17 @@ Deno.test('toOasOperationProjectionBase - sets static toExportPath from config',
     responses: {}
   })
 
-  const exportPath = OperationClass.toExportPath({ operation: mockOperation, enrichments: undefined, variant: 'main' })
+  const exportPath = OperationClass.toExportPath({ operation: mockOperation, enrichments: emptyEnrichments, variant: 'main' })
   assertEquals(exportPath, './generated/createUser.ts')
 })
 
-Deno.test('toOasOperationProjectionBase - toEnrichments returns undefined when no enrichmentSchema provided', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+Deno.test('toOasOperationProjectionBase - toEnrichments returns an all-undefined umbrella for the empty schema', () => {
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const mockOperation = new OasOperation({
@@ -113,16 +132,16 @@ Deno.test('toOasOperationProjectionBase - toEnrichments returns undefined when n
     variant: 'main'
   })
 
-  assertEquals(enrichments, undefined)
+  assertEquals(enrichments, { subject: undefined, generator: undefined, stack: undefined })
 })
 
-Deno.test('toOasOperationProjectionBase - toEnrichments returns undefined when no enrichments in context', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+Deno.test('toOasOperationProjectionBase - toEnrichments returns an all-undefined umbrella when no enrichments in context', () => {
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
-    // No enrichment schema provided
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const mockOperation = new OasOperation({
@@ -139,16 +158,16 @@ Deno.test('toOasOperationProjectionBase - toEnrichments returns undefined when n
     variant: 'main'
   })
 
-  assertEquals(enrichments, undefined)
+  assertEquals(enrichments, { subject: undefined, generator: undefined, stack: undefined })
 })
 
-Deno.test('toOasOperationProjectionBase - toIdentifier works with different operations', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+Deno.test('toOasOperationProjectionBase - toIdentifierName works with different operations', () => {
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: ({ operation }) =>
-      createVariable(`${operation.method}${operation.operationId}`),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: ({ operation }) => `${operation.method}${operation.operationId}`,
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const getUsersOperation = new OasOperation({
@@ -158,8 +177,8 @@ Deno.test('toOasOperationProjectionBase - toIdentifier works with different oper
     operationId: 'Users',
     responses: {}
   })
-  const getUsersIdentifier = OperationClass.toIdentifier({ operation: getUsersOperation, enrichments: undefined, variant: 'main' })
-  assertEquals(getUsersIdentifier.name, 'getUsers')
+  const getUsersName = OperationClass.toIdentifierName({ operation: getUsersOperation, enrichments: emptyEnrichments, variant: 'main' })
+  assertEquals(getUsersName, 'getUsers')
 
   const createProductOperation = new OasOperation({
     path: '/products',
@@ -168,16 +187,17 @@ Deno.test('toOasOperationProjectionBase - toIdentifier works with different oper
     operationId: 'Product',
     responses: {}
   })
-  const createProductIdentifier = OperationClass.toIdentifier({ operation: createProductOperation, enrichments: undefined, variant: 'main' })
-  assertEquals(createProductIdentifier.name, 'postProduct')
+  const createProductName = OperationClass.toIdentifierName({ operation: createProductOperation, enrichments: emptyEnrichments, variant: 'main' })
+  assertEquals(createProductName, 'postProduct')
 })
 
 Deno.test('toOasOperationProjectionBase - toExportPath works with different operations', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./types/${operation.method}-${operation.operationId}.d.ts`
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./types/${operation.method}-${operation.operationId}.d.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const getUsersOperation = new OasOperation({
@@ -187,7 +207,7 @@ Deno.test('toOasOperationProjectionBase - toExportPath works with different oper
     operationId: 'users',
     responses: {}
   })
-  assertEquals(OperationClass.toExportPath({ operation: getUsersOperation, enrichments: undefined, variant: 'main' }), './types/get-users.d.ts')
+  assertEquals(OperationClass.toExportPath({ operation: getUsersOperation, enrichments: emptyEnrichments, variant: 'main' }), './types/get-users.d.ts')
 
   const createProductOperation = new OasOperation({
     path: '/products',
@@ -196,15 +216,16 @@ Deno.test('toOasOperationProjectionBase - toExportPath works with different oper
     operationId: 'product',
     responses: {}
   })
-  assertEquals(OperationClass.toExportPath({ operation: createProductOperation, enrichments: undefined, variant: 'main' }), './types/post-product.d.ts')
+  assertEquals(OperationClass.toExportPath({ operation: createProductOperation, enrichments: emptyEnrichments, variant: 'main' }), './types/post-product.d.ts')
 })
 
 Deno.test('toOasOperationProjectionBase - constructor creates correct generatorKey', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'api-client',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const mockOperation = new OasOperation({
@@ -233,11 +254,12 @@ Deno.test('toOasOperationProjectionBase - constructor creates correct generatorK
 })
 
 Deno.test('toOasOperationProjectionBase - instance is OasOperationProjectionBase', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-operation',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const mockOperation = new OasOperation({
@@ -265,15 +287,25 @@ Deno.test('toOasOperationProjectionBase - instance is OasOperationProjectionBase
 })
 
 Deno.test('toOasOperationProjectionBase - toEnrichments validates with schema', () => {
-  const OperationClass = toOasOperationProjectionBase<{ enabled: boolean; timeout?: number }>({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<{
+    subject?: { enabled: boolean; timeout?: number }
+    generator?: unknown
+    stack?: unknown
+  }>(TsSnippet, {
     id: 'api-client',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
     toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
     toEnrichmentSchema: () =>
       v.object({
-        enabled: v.boolean(),
-        timeout: v.optional(v.number())
+        subject: v.optional(
+          v.object({
+            enabled: v.boolean(),
+            timeout: v.optional(v.number())
+          })
+        ),
+        generator: v.optional(v.unknown()),
+        stack: v.optional(v.unknown())
       })
   })
 
@@ -308,18 +340,33 @@ Deno.test('toOasOperationProjectionBase - toEnrichments validates with schema', 
     variant: 'main'
   })
 
-  assertEquals(enrichments, {
+  assertEquals(enrichments.subject, {
     enabled: true,
     timeout: 5000
   })
 })
 
 Deno.test('toOasOperationProjectionBase - toEnrichments retrieves from correct nested path', () => {
-  const OperationClass = toOasOperationProjectionBase({
-    base: TsSnippet,
+  const OperationClass = toOasOperationProjectionBase<{
+    subject?: { customValue: string; flag: boolean }
+    generator?: unknown
+    stack?: unknown
+  }>(TsSnippet, {
     id: 'rest-api',
-    toIdentifier: ({ operation }) => createVariable(operation.operationId || 'operation'),
-    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(
+          v.object({
+            customValue: v.string(),
+            flag: v.boolean()
+          })
+        ),
+        generator: v.optional(v.unknown()),
+        stack: v.optional(v.unknown())
+      })
   })
 
   const mockOperation = new OasOperation({
@@ -349,6 +396,77 @@ Deno.test('toOasOperationProjectionBase - toEnrichments retrieves from correct n
     variant: 'main'
   })
 
-  // Retrieves from enrichments.{id}.{path}.{method}.{variant}
-  assertEquals(enrichments, { customValue: 'found-it', flag: true })
+  // Retrieves the subject from enrichments.{id}.{path}.{method}.{variant}
+  assertEquals(enrichments.subject, { customValue: 'found-it', flag: true })
+})
+
+Deno.test('toOasOperationProjectionBase - toEnrichmentDefaults returns undefined when not configured', () => {
+  const OperationClass = toOasOperationProjectionBase<Enrichments>(TsSnippet, {
+    id: 'test-operation',
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  })
+
+  const mockOperation = new OasOperation({
+    path: '/users',
+    method: 'get',
+    pathItem: undefined,
+    operationId: 'getUsers',
+    responses: {}
+  })
+
+  const defaults = OperationClass.toEnrichmentDefaults({
+    operation: mockOperation,
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
+  })
+
+  assertEquals(defaults, undefined)
+})
+
+Deno.test('toOasOperationProjectionBase - toEnrichmentDefaults returns the computed seed when configured', () => {
+  const OperationClass = toOasOperationProjectionBase<{
+    subject?: { title: string }
+    generator?: unknown
+    stack?: unknown
+  }>(TsSnippet, {
+    id: 'forms',
+    toIdentifierName: ({ operation }) => operation.operationId || 'operation',
+    toIdentifierType: () => ({ kind: 'variable' }),
+    toExportPath: ({ operation }) => `./operations/${operation.operationId}.ts`,
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(v.object({ title: v.string() })),
+        generator: v.optional(v.unknown()),
+        stack: v.optional(v.unknown())
+      }),
+    // Seeds the subject scope from the operation; run-constant scopes stay undefined.
+    toEnrichmentDefaults: ({ operation }) => ({
+      subject: { title: `${operation.method} ${operation.path}` },
+      generator: undefined,
+      stack: undefined
+    })
+  })
+
+  const mockOperation = new OasOperation({
+    path: '/users',
+    method: 'post',
+    pathItem: undefined,
+    operationId: 'createUser',
+    responses: {}
+  })
+
+  const defaults = OperationClass.toEnrichmentDefaults({
+    operation: mockOperation,
+    context: { settings: {} } as GenerateContextType,
+    variant: 'main'
+  })
+
+  assertEquals(defaults, {
+    subject: { title: 'post /users' },
+    generator: undefined,
+    stack: undefined
+  })
 })

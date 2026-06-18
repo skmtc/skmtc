@@ -5,6 +5,7 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 
 const doc: OpenAPIV3.Document = {
   openapi: '3.0.0',
@@ -23,20 +24,26 @@ const doc: OpenAPIV3.Document = {
 
 const generators = <E = undefined>(): GeneratorsMapContainer<E> =>
   ({
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
     'gets-only': toOasOperationEntry({
       id: 'gets-only',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
       isSupported: ({ operation }) => operation.method === 'get',
       transform: () => {},
     }),
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
     'all-ops': toOasOperationEntry({
       id: 'all-ops',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
       transform: () => {},
     }),
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
     models: toModelEntry({
       id: 'models',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
       transform: () => {},
     }),
-  }) as GeneratorsMapContainer<E>
+  })
 
 Deno.test('toSupportedSubjects', async (t) => {
   const result = toSupportedSubjects({

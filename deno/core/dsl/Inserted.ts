@@ -1,6 +1,6 @@
 import type { GeneratedDefinition, GeneratedValue } from './GeneratedValue.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 
 /**
  * Constructor arguments for {@link Inserted}.
@@ -108,11 +108,11 @@ export class Inserted<V extends GeneratedValue, EnrichmentType> {
   /**
    * Gets the full identifier of the inserted artifact.
    *
-   * This method returns the complete Identifier object, which includes both
-   * the name and type information. Useful when you need access to entity type
-   * or type annotations.
+   * This method returns the complete `IdentifierBase` object, which carries
+   * the name and (language-neutrally) the type annotation. Useful when you
+   * need access to the type annotation or export flag.
    *
-   * @returns The complete Identifier object
+   * @returns The complete `IdentifierBase` object
    *
    * @example
    * ```typescript
@@ -120,11 +120,11 @@ export class Inserted<V extends GeneratedValue, EnrichmentType> {
    * const identifier = model.toIdentifier();
    *
    * console.log(identifier.name);        // 'User'
-   * console.log(identifier.kind);      // opaque declaration kind
-   * console.log(identifier.typeName);  // optional type annotation
+   * console.log(identifier.typeName);    // optional type annotation
+   * console.log(identifier.exported);    // export flag
    * ```
    */
-  toIdentifier(): Identifier {
+  toIdentifier(): IdentifierBase {
     return this.settings.identifier
   }
 

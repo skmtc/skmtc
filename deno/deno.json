@@ -32,6 +32,7 @@
     "./lang-typescript",
     "./mcp",
     "./openapi-down-convert",
+    "./openapi-overlays",
     "./swagger2openapi",
     "./server",
     "./worker"
@@ -41,6 +42,7 @@
     "test:watch": "deno test --allow-all --watch",
     "test:coverage": "deno test --allow-all --coverage=coverage",
     "coverage:report": "deno coverage coverage --lcov > coverage.lcov",
-    "coverage:html": "deno coverage coverage --html"
+    "coverage:html": "deno coverage coverage --html",
+    "verify-docs": "deno run --allow-read docs/verify-docs.ts && deno run --allow-read --allow-run docs/friction-log/verify-catalog.ts"
   }
 } 

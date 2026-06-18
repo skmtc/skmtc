@@ -14,7 +14,6 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type { ModelProjection } from '@/dsl/model/types.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
@@ -198,6 +197,7 @@ export type OasIssueType =
   | 'INVALID_OPERATION'
   | 'INVALID_SCHEMA'
   | 'INVALID_PARAMETER'
+  | 'INVALID_SECURITY_SCHEME'
   | 'INVALID_DEPENDENCY_REF'
   | 'EXAMPLE_AND_EXAMPLES_DEFINED'
 
@@ -224,6 +224,7 @@ export const oasIssueType = v.union([
   v.literal('INVALID_OPERATION'),
   v.literal('INVALID_SCHEMA'),
   v.literal('INVALID_PARAMETER'),
+  v.literal('INVALID_SECURITY_SCHEME'),
   v.literal('INVALID_DEPENDENCY_REF'),
   v.literal('EXAMPLE_AND_EXAMPLES_DEFINED')
 ])

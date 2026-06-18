@@ -2,7 +2,8 @@ import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
+import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
@@ -62,14 +63,10 @@ export type ToModelMappingArgs = {
 }
 
 /**
- * Static structural type of a model projection class.
- *
- * Captures both the instance side (`new(...) => V`) and the static side
- * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`,
- * `schemaToValueFn`, `createIdentifier`). Passed as a type parameter to
- * `context.insertModel(...)`.
+ * Arguments for a model projection's `toIdentifierName` — the pure,
+ * cache-key-source half of the old `toIdentifier`.
  */
-export type ToModelIdentifierArgs<EnrichmentType = undefined> = {
+export type ToModelIdentifierNameArgs<EnrichmentType = undefined> = {
   refName: RefName
   enrichments: EnrichmentType
   /** Model variant the identifier should disambiguate (see {@link Variant}) */
@@ -83,6 +80,14 @@ export type ToModelExportPathArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
+/**
+ * Static structural type of a model projection class.
+ *
+ * Captures both the instance side (`new(...) => V`) and the static side
+ * (`id`, `toIdentifierName`, `toIdentifierType`, `toExportPath`,
+ * `toEnrichments`, `schemaToValueFn`). Passed as a type parameter to
+ * `context.insertModel(...)`.
+ */
 export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
   prototype: V
 } & {
@@ -98,15 +103,29 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
   /**
    * The projection's language — the static inherited from the language
    * snippet base the projection class is built on
-   * (`toModelProjectionBase({ base: TsSnippet, … })`). Drivers read it
+   * (`toModelProjectionBase(TsSnippet, …)`). Drivers read it
    * pre-construction (cache-hit path). SPIKE (option 2 — see `notes/lang/14`).
    */
   lang: Lang
-  toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
+  /** Pure: the cache-key name. */
+  toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType>) => string
+  /**
+   * Context-aware, overridable: the non-`name` parts of the identifier
+   * (`kind` / `typeName` / `exported`), derived from the schema. The engine
+   * assembles `lang.toIdentifier({ name: toIdentifierName(args),
+   * ...toIdentifierType(refName, context) })`.
+   */
+  toIdentifierType: (refName: RefName, context: GenerateContextType) => IdentifierType
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ refName, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
   schemaToValueFn: SchemaToValueFn
-  createIdentifier: (name: string) => Identifier
+  /**
+   * The inline-schema fallback seam used by `insertNormalizedModel` when a
+   * schema is not a `$ref`: builds the Definition's identifier from a bare
+   * `fallbackName`. A generator static; returns the neutral `IdentifierBase`
+   * (the engine reads only `.name`).
+   */
+  createIdentifier: (name: string) => IdentifierBase
   // deno-lint-ignore ban-types
 } & Function
 
@@ -121,8 +140,21 @@ export type ModelConfig<EnrichmentType = undefined> = {
   transform: ({ context, refName, variant }: TransformModelArgs) => void
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
-  toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
+  /**
+   * Optional: compute the DEFAULT enrichment values for a model from its schema
+   * — the seed the CMS persists and the user then edits. The pipeline
+   * counterpart of the projection base's static of the same name; a generator
+   * forwards `MyProjection.toEnrichmentDefaults` here so the seeding pass can
+   * reach it via the generator-config map. Returns the `{ subject, generator,
+   * stack }` umbrella, or `undefined` when no defaults are advertised.
+   */
+  toEnrichmentDefaults?: ({
+    refName,
+    context,
+    variant
+  }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
 }

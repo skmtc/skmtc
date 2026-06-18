@@ -76,7 +76,7 @@ export type RegularParameter = {
  *
  * @example Named parameter generation
  * ```typescript
- * import { FunctionParameter, Definition, Identifier } from '@skmtc/lang-typescript';
+ * import { FunctionParameter, createVariable } from '@skmtc/lang-typescript';
  *
  * const userIdParam = new FunctionParameter({
  *   name: 'userId',

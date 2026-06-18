@@ -5,6 +5,8 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { oasNumberData, numberFormat } from './number-types.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
 export type ToNumberArgs = {
@@ -23,10 +25,12 @@ export const toNumber = ({ context, value, stackTrail }: ToNumberArgs): OasNumbe
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
 
   const example = parseExample({
-    example: unparsedExample,
+    value: unparsedExample,
     context,
     parent: valueWithoutNullable,
     nullable,
+    check: isNumber,
+    toMessage: item => `Removed invalid example. Expected "number", got: ${item}`,
     stackTrail
   })
 
@@ -42,23 +46,37 @@ export const toNumber = ({ context, value, stackTrail }: ToNumberArgs): OasNumbe
     toMessage: item => `Removed invalid enum. Expected "number", got: ${item}`
   })
 
+  const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
+
+  const defaultValue = parseDefault({
+    value: unparsedDefaultValue,
+    context,
+    parent: valueWithoutEnums,
+    nullable,
+    check: isNumber,
+    toMessage: item => `Removed invalid default. Expected "number", got: ${item}`,
+    stackTrail
+  })
+
   return toParsedNumber({
     context,
     nullable,
     example,
     enums,
-    value: valueWithoutEnums,
+    defaultValue,
+    value: valueWithoutDefault,
     stackTrail
   })
 }
 
 type ToParsedNumberArgs<Nullable extends boolean | undefined> = {
-  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums'>
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums' | 'default'>
   stackTrail: StackTrail
   context: ParseContextType
   nullable: Nullable
   example: Nullable extends true ? number | null | undefined : number | undefined
   enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
+  defaultValue: Nullable extends true ? number | null | undefined : number | undefined
 }
 
 const toParsedNumber = <Nullable extends boolean | undefined>({
@@ -66,6 +84,7 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
   nullable,
   example,
   enums,
+  defaultValue,
   value: valueWithoutEnums,
   stackTrail
 }: ToParsedNumberArgs<Nullable>): OasNumber<Nullable> => {
@@ -91,7 +110,6 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
     exclusiveMaximum,
     minimum,
     exclusiveMinimum,
-    default: defaultValue,
     readOnly,
     writeOnly,
     deprecated,
@@ -156,38 +174,6 @@ const parseNumberFormat = ({ format, context, parent, stackTrail }: ParseNumberF
   }
 
   return format
-}
-
-type ParseExampleArgs = {
-  example: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
-  if (example === undefined) {
-    return undefined
-  }
-
-  if (nullable && example === null) {
-    return example
-  }
-
-  if (!isNumber(example)) {
-    context.logIssue({
-      key: 'example',
-      level: 'warning',
-      message: `Removed invalid example. Expected "number", got: ${example}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_EXAMPLE'
-    })
-    return undefined
-  }
-
-  return example
 }
 
 const isNumber = (value: unknown): value is number => {

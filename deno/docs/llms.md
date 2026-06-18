@@ -57,7 +57,7 @@ If unsure which role applies: read **Read this first** + **Verification protocol
 
 ---
 
-## Read this first: five facts that override default LLM intuitions
+## Read this first: six facts that override default LLM intuitions
 
 These assertions are the ones you would most likely get wrong by extrapolating from other codegen tools (orval, openapi-generator, kubb, graphql-codegen).
 
@@ -69,13 +69,15 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
 
-5. **The engine is language-blind; the import graph declares the language.** A generator imports its projection-base factories and snippet base from its language package (e.g. `toModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — language enters the DSL class hierarchy at the lang package's snippet base, and the engine's Drivers read it off the projection class's inherited static (`projection.lang`) when creating files and building `Definition`s. Entries (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) carry **no `lang` field**; `register` passes plain data (no `Lang`, no `createFile`, no `generatorId`). The lang package also owns the identifier factories (`createVariable` / `createType`), the TS syntax helpers (`List`, `FunctionParameter`, …), and `sanitizePropertyName` (moved from core under F5/F6 — note `17`); core's `Identifier` is neutral data (`name`, opaque `kind`, `exported`, opaque `typeName`) and `EntityType` no longer exists.
+5. **The variant axis fans out at the engine, not the generator.** A single source item can produce N Definitions via named variants under `enrichments[id][path][method]` (OAS), `[id][rootKind][fieldName]` (GQL), or `[id][refName]` (model). `'main'` is always present — the engine throws at start if a consumer wrote variants without it. Variants flow through `ContentSettings.variant`, the `GeneratorKey`'s trailing segment, and the per-call `variant` arg in every projection static method and entry callback. Cross-generator `insertOperation` / `insertModel` defaults to `'main'`; passing a non-`'main'` variant the peer doesn't declare throws at the Driver (`assertPeerVariantExists`). See [concepts/variants.md](concepts/variants.md).
+
+6. **The engine is language-blind; the import graph declares the language.** A generator imports its projection-base factories and snippet base from its language package (e.g. `toModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — language enters the DSL class hierarchy at the lang package's snippet base, and the engine's Drivers read it off the projection class's inherited static (`projection.lang`) when creating files and building `Definition`s. Entries (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) carry **no `lang` field**; `register` passes plain data (no `Lang`, no `createFile`, no `generatorId`). The lang package also owns the identifier factories (`createVariable` / `createType`), the TS syntax helpers (`List`, `FunctionParameter`, …), and `sanitizePropertyName` (moved from core under F5/F6 — note `17`); core's `Identifier` is neutral data (`name`, opaque `kind`, `exported`, opaque `typeName`) and `EntityType` no longer exists. TypeScript and Kotlin (`@skmtc/lang-kotlin`) are the production languages. See [concepts/languages.md](concepts/languages.md).
 
 ---
 
 ## Operational principles for proposing changes
 
-The five facts above are the *highest-priority* overrides. The table below is the broader operational principle list — apply these when proposing solutions for SKMTC code. Each row pairs a *default suggestion an LLM would reach for from generic TypeScript / codegen training data* with *what SKMTC actually requires*.
+The six facts above are the *highest-priority* overrides. The table below is the broader operational principle list — apply these when proposing solutions for SKMTC code. Each row pairs a *default suggestion an LLM would reach for from generic TypeScript / codegen training data* with *what SKMTC actually requires*.
 
 These overrides exist because well-intentioned TS conventions frequently break SKMTC's invariants. If your proposed solution matches the left column, the right column is almost always the correct alternative.
 

@@ -30,3 +30,48 @@ Deno.test('throws when a segment is a hard keyword', () => {
     "segment 'object' is not a valid package name part"
   )
 })
+
+Deno.test('multi-package mode strips the owning rootPath before deriving', () => {
+  const packages = [
+    { rootPath: 'my-sdk-core/src/main/kotlin' },
+    { rootPath: 'my-sdk-client-okhttp/src/main/kotlin' }
+  ]
+
+  assertEquals(
+    toPackageName('my-sdk-core/src/main/kotlin/com/example/core/ClientOptions.kt', packages),
+    'com.example.core'
+  )
+  assertEquals(
+    toPackageName(
+      'my-sdk-client-okhttp/src/main/kotlin/com/example/client/okhttp/OkHttpClient.kt',
+      packages
+    ),
+    'com.example.client.okhttp'
+  )
+})
+
+Deno.test('multi-package mode picks the LONGEST matching rootPath', () => {
+  const packages = [{ rootPath: 'sdk' }, { rootPath: 'sdk/core/src/main/kotlin' }]
+
+  assertEquals(toPackageName('sdk/core/src/main/kotlin/com/example/User.kt', packages), 'com.example')
+})
+
+Deno.test('multi-package mode leaves non-matching and @/ paths on single-package behavior', () => {
+  const packages = [{ rootPath: 'my-sdk-core/src/main/kotlin' }]
+
+  assertEquals(toPackageName('@/com/example/User.kt', packages), 'com.example')
+  assertThrows(
+    () => toPackageName('other-module/src/com/example/User.kt', packages),
+    Error,
+    "segment 'other-module' is not a valid package name part"
+  )
+})
+
+Deno.test('rootPath ./ prefixes and trailing slashes are tolerated', () => {
+  const packages = [{ rootPath: './my-sdk-core/src/main/kotlin/' }]
+
+  assertEquals(
+    toPackageName('my-sdk-core/src/main/kotlin/com/example/User.kt', packages),
+    'com.example'
+  )
+})

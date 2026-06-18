@@ -107,6 +107,19 @@ const unwrap = (schema: ValibotSchemaShape): { inner: ValibotSchemaShape; option
   return { inner: schema, optional: false }
 }
 
+/**
+ * Whether an object member should be omitted from the descriptor. A member
+ * that unwraps to `v.undefined()` carries no payload — it is the canonical
+ * "this scope is absent" marker (e.g. the `v.undefined()` members of
+ * `emptyEnrichmentSchema`). Omitting it keeps a no-enrichment generator's
+ * descriptor empty (the editor hides the section) and lets a partially
+ * populated umbrella surface only the scopes that actually carry fields. The
+ * rule is structural — it names no scope, so it composes with the generic
+ * object walk rather than special-casing `subject` / `generator` / `stack`.
+ */
+const isOmittedMember = (rawSchema: unknown): boolean =>
+  isValibotSchema(rawSchema) && unwrap(rawSchema).inner.type === 'undefined'
+
 const toLabel = (key: string): string => {
   if (key === '') return ''
   const spaced = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ')
@@ -139,7 +152,7 @@ const kindFor = (schema: ValibotSchemaShape): KindShape => {
       const entries = isEntriesRecord(schema.entries) ? schema.entries : {}
       return {
         kind: 'object',
-        fields: Object.keys(entries).map(k => walkField(k, entries[k]))
+        fields: walkEntries(entries)
       }
     }
     case 'array': {
@@ -166,12 +179,30 @@ const walkField = (key: string, rawSchema: v.GenericSchema): EnrichmentField => 
 }
 
 /**
- * Walk a Valibot schema and return the projected list of
- * `EnrichmentField`s. The schema is expected to describe the **leaf**
- * payload that arrives at a generator's routing target (the per-variant
- * inner shape for OAS/GQL operations; the per-refName payload for
- * models). A `v.optional(v.object({...}))` outer wrapper is silently
- * unwrapped; any non-object root yields an empty list.
+ * Walk an object schema's `entries` into descriptor fields, omitting members
+ * that carry no payload (see {@link isOmittedMember}). The single iteration
+ * point shared by the top-level walk ({@link toEnrichmentFields}) and the
+ * nested-object case in {@link kindFor}.
+ */
+const walkEntries = (entries: Record<string, v.GenericSchema>): EnrichmentField[] =>
+  Object.keys(entries)
+    .filter(key => !isOmittedMember(entries[key]))
+    .map(key => walkField(key, entries[key]))
+
+/**
+ * Walk a Valibot object schema and return the projected list of
+ * `EnrichmentField`s. A `v.optional(v.object({...}))` outer wrapper is
+ * silently unwrapped; any non-object root yields an empty list; members that
+ * unwrap to `v.undefined()` are omitted (see {@link isOmittedMember}).
+ *
+ * For a generator entry the schema is the three-scope **umbrella** composite
+ * `v.object({ subject, generator, stack })` that `toEnrichmentSchema` returns,
+ * so the top-level fields are the three scopes — each an `object` field whose
+ * nested `fields` are that scope's own leaf. The walk discovers the scopes
+ * structurally; it never names `subject` / `generator` / `stack`. A scope
+ * declared `v.undefined()` (the no-enrichment marker) drops out, so a
+ * subject-only generator yields just the `subject` scope and a fully empty
+ * umbrella yields `[]`.
  *
  * Generally callers should prefer {@link toEnrichmentDescriptor}, which
  * takes a generator entry and fills in `generator` / `appliesTo`
@@ -182,8 +213,7 @@ export const toEnrichmentFields = (schema: v.GenericSchema | undefined): Enrichm
   if (!isValibotSchema(schema)) return []
   const { inner } = unwrap(schema)
   if (inner.type !== 'object' || !isEntriesRecord(inner.entries)) return []
-  const entries = inner.entries
-  return Object.keys(entries).map(k => walkField(k, entries[k]))
+  return walkEntries(inner.entries)
 }
 
 const toAppliesTo = (entryType: EnrichmentSource['type']): TargetKind => {
@@ -205,14 +235,17 @@ const toAppliesTo = (entryType: EnrichmentSource['type']): TargetKind => {
  * `EnrichmentDescriptor` the CMS can render as a form. The entry's
  * `id` becomes `descriptor.generator`; its `type` discriminator maps
  * to `appliesTo` (`'oasOperation' | 'gqlOperation'` → `'operation'`;
- * `'model'` → `'model'`). If the entry has no `toEnrichmentSchema`,
- * the descriptor has an empty `fields` array — the UI hides the
- * section, matching the engine's "no enrichments" behaviour.
+ * `'model'` → `'model'`). If the entry has no `toEnrichmentSchema`, or
+ * declares the empty umbrella, the descriptor has an empty `fields`
+ * array — the UI hides the section, matching the engine's "no
+ * enrichments" behaviour.
  *
- * The descriptor describes one *variant*'s leaf shape. Variant
- * selection sits above this in the editor UI, since the variant axis
- * is core-owned and the per-variant inner shape is what generators
- * actually declare.
+ * `toEnrichmentSchema` returns the three-scope umbrella composite
+ * `v.object({ subject, generator, stack })`, so the descriptor's
+ * top-level `fields` are the three scopes — each an `object` field whose
+ * nested `fields` are that scope's own leaf (absent scopes drop out). The
+ * `subject` scope describes one *variant*'s leaf shape; variant selection
+ * sits above it in the editor UI, since the variant axis is core-owned.
  */
 export const toEnrichmentDescriptor = (entry: EnrichmentSource): EnrichmentDescriptor => ({
   generator: entry.id,

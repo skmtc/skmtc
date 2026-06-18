@@ -2,12 +2,12 @@ import { normalize } from '@std/path/normalize'
 import type {
   DefinitionBase,
   GenerateContextType,
-  GeneratedValue,
-  Identifier
+  GeneratedValue
 } from '@skmtc/core'
 import { KtFile } from './KtFile.ts'
 import { KtImport, type KtImportNameArg } from './KtImport.ts'
 import { KtDefinition } from './KtDefinition.ts'
+import type { KtIdentifier } from './KtIdentifier.ts'
 
 /**
  * Kotlin's concise register vocabulary — the generator-facing form.
@@ -27,6 +27,13 @@ export type KtRegisterArgs = {
   imports?: Record<string, KtImportNameArg[]>
   /** Definition objects to include in the destination file. */
   definitions?: (DefinitionBase | undefined)[]
+  /**
+   * Optional comment block rendered above the destination file's
+   * `package` directive (e.g. a generated-file attribution line).
+   * First writer wins — Drivers create files without a header, so the
+   * first register carrying one sets it.
+   */
+  fileHeader?: string
 }
 
 /**
@@ -49,6 +56,14 @@ export const register = (
     context.addFile(new KtFile({ path: destinationPath, settings: context.settings }))
   }
 
+  if (args.fileHeader !== undefined) {
+    const file = context.getFile(destinationPath)
+
+    if (file instanceof KtFile) {
+      file.header ??= args.fileHeader
+    }
+  }
+
   context.register({
     imports: Object.entries(args.imports ?? {}).map(([module, names]) =>
       KtImport.fromConcise(module, names)
@@ -62,7 +77,7 @@ export const register = (
  * Arguments for {@link defineAndRegister}.
  */
 export type KtDefineAndRegisterArgs<Value extends GeneratedValue> = {
-  identifier: Identifier
+  identifier: KtIdentifier
   value: Value
   destinationPath: string
   noExport?: boolean

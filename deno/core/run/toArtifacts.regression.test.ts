@@ -19,14 +19,16 @@
 
 import { assertEquals } from '@std/assert'
 import * as log from '@std/log'
+import * as v from 'valibot'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { createVariable, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -40,12 +42,23 @@ const mockLogger: log.Logger = {
   critical: () => {}
 } as unknown as log.Logger
 
+// The form fixture stores a per-variant subject marker (`{}`) at
+// `[id][path][method][variant]`; the composite umbrella parses it as an
+// opaque subject leaf, leaving generator/stack absent.
+const variantEnrichmentSchema = v.object({
+  subject: v.optional(v.unknown()),
+  generator: v.optional(v.unknown()),
+  stack: v.optional(v.unknown())
+})
+
 // ─── Fixture: peer generator (variants-unaware) ────────────────────
 
-const HookBase = toOasOperationProjectionBase({
+const HookBase = toTsOasOperationProjectionBase({
   id: '@test/hook-gen',
-  toIdentifier: () => createVariable('usePatchQuote'),
-  toExportPath: () => '@/hooks/usePatchQuote.generated.ts'
+  toIdentifierName: () => 'usePatchQuote',
+  toIdentifierType: () => ({ kind: 'variable' }),
+  toExportPath: () => '@/hooks/usePatchQuote.generated.ts',
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
 class HookProjection extends HookBase {
@@ -58,12 +71,13 @@ class HookProjection extends HookBase {
 
 // ─── Fixture: form generator (variants-aware) ──────────────────────
 
-const FormBase = toOasOperationProjectionBase({
+const FormBase = toTsOasOperationProjectionBase({
   id: '@test/form-gen',
-  toIdentifier: ({ variant }) =>
-    createVariable(withVariant('PatchQuoteForm', variant)),
+  toIdentifierName: ({ variant }) => withVariant('PatchQuoteForm', variant),
+  toIdentifierType: () => ({ kind: 'variable' }),
   toExportPath: ({ variant }) =>
-    `@/forms/${withVariant('PatchQuoteForm', variant)}.generated.tsx`
+    `@/forms/${withVariant('PatchQuoteForm', variant)}.generated.tsx`,
+  toEnrichmentSchema: () => variantEnrichmentSchema
 })
 
 class FormProjection extends FormBase {
@@ -111,6 +125,7 @@ const runFixture = (variants: Record<string, unknown>) => {
 
   const formEntry = toOasOperationEntry({
     id: '@test/form-gen',
+    toEnrichmentSchema: () => variantEnrichmentSchema,
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
     }
@@ -118,6 +133,7 @@ const runFixture = (variants: Record<string, unknown>) => {
 
   const hookEntry = toOasOperationEntry({
     id: '@test/hook-gen',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     transform: () => {}
   })
 

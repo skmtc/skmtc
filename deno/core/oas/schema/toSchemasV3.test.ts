@@ -845,3 +845,50 @@ Deno.test('toOptionalSchemaV3', async t => {
     assert(result instanceof OasString)
   })
 })
+
+Deno.test('toSchemaV3 - OpenAPI 3.1 type arrays', async t => {
+  await t.step('normalizes ["string", "null"] to a nullable string', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    // 3.1 documents arrive through 3.0-typed plumbing; the type array
+    // is a runtime shape the static type does not admit.
+    const schema = JSON.parse('{"type": ["string", "null"], "minLength": 1}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasString)
+    assertEquals(result.nullable, true)
+  })
+
+  await t.step('normalizes ["array", "null"] with items to a nullable array', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": ["array", "null"], "items": {"type": "integer"}}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasArray)
+    assertEquals(result.nullable, true)
+  })
+
+  await t.step('single-member type array stays non-nullable', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": ["boolean"]}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasBoolean)
+    assertEquals(result.nullable, undefined)
+  })
+
+  await t.step('multi-member type array still falls through to OasUnknown', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema = JSON.parse('{"type": ["string", "integer"]}')
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasUnknown)
+  })
+})

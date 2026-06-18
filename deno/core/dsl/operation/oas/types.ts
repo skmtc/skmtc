@@ -2,7 +2,7 @@ import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type * as v from 'valibot'
@@ -73,13 +73,10 @@ export type ToOasOperationMappingArgs = {
 }
 
 /**
- * Static structural type of an OAS operation projection class.
- *
- * Captures both the instance side (`new(...) => V`) and the static side
- * (`id`, `toIdentifier`, `toExportPath`, `toEnrichments`). Passed as a
- * type parameter to `context.insertOperation(...)`.
+ * Arguments for an OAS operation projection's `toIdentifierName` — the
+ * pure, cache-key-source half of the old `toIdentifier`.
  */
-export type ToOasOperationIdentifierArgs<EnrichmentType = undefined> = {
+export type ToOasOperationIdentifierNameArgs<EnrichmentType = undefined> = {
   operation: OasOperation
   enrichments: EnrichmentType
   /** Operation variant the identifier should disambiguate (see {@link Variant}) */
@@ -93,6 +90,14 @@ export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
+/**
+ * Static structural type of an OAS operation projection class.
+ *
+ * Captures both the instance side (`new(...) => V`) and the static side
+ * (`id`, `toIdentifierName`, `toIdentifierType`, `toExportPath`,
+ * `toEnrichments`). Passed as a type parameter to
+ * `context.insertOperation(...)`.
+ */
 export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
   prototype: V
 } & {
@@ -106,11 +111,19 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
   /**
    * The projection's language — the static inherited from the language
    * snippet base the projection class is built on
-   * (`toOasOperationProjectionBase({ base: TsSnippet, … })`). Drivers read
+   * (`toOasOperationProjectionBase(TsSnippet, …)`). Drivers read
    * it ephemerally at each use site, pre-construction (cache-hit path).
    */
   lang: Lang
-  toIdentifier: (args: ToOasOperationIdentifierArgs<EnrichmentType>) => Identifier
+  /** Pure: the cache-key name. */
+  toIdentifierName: (args: ToOasOperationIdentifierNameArgs<EnrichmentType>) => string
+  /**
+   * Context-aware, overridable: the non-`name` parts of the identifier,
+   * derived from the operation/schema. The engine assembles
+   * `lang.toIdentifier({ name: toIdentifierName(args),
+   * ...toIdentifierType(operation, context) })`.
+   */
+  toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdentifierType
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
   /**
@@ -133,8 +146,22 @@ export type OasOperationConfig<EnrichmentType = undefined> = {
   id: string
   type: 'oasOperation'
   transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
-  toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
+  /**
+   * Optional: compute the DEFAULT enrichment values for an operation from its
+   * schema — the seed the CMS persists and the user then edits. The pipeline
+   * counterpart of the projection base's static of the same name: a generator
+   * wires this on the entry (typically forwarding `MyProjection.toEnrichmentDefaults`)
+   * so the seeding pass can reach it from the generator-config map without the
+   * projection class. Returns the `{ subject, generator, stack }` umbrella, or
+   * `undefined` when the generator advertises no defaults.
+   */
+  toEnrichmentDefaults?: ({
+    operation,
+    context,
+    variant
+  }: ToOasOperationEnrichmentsArgs) => EnrichmentType | undefined
   toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(

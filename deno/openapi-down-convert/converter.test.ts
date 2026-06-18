@@ -553,6 +553,138 @@ Deno.test('Converter - converts a nullable type array to nullable: true', () => 
   assertEquals(converted, expected)
 })
 
+// OpenAPI 3.1 encodes a nullable $ref as a oneOf/anyOf with a `{type: 'null'}`
+// member (3.0's `nullable` does not exist in 3.1, and `type: 'null'` cannot be
+// placed on the $ref itself). 3.0 has no null type, so the down-convert must
+// fold the null member away: remove it and set `nullable: true` on the
+// wrapper. The single-member-group + sibling `nullable` form is the 3.0
+// encoding for "nullable reference" (a sibling directly on a $ref would be
+// ignored).
+Deno.test('Converter - folds a null oneOf member into nullable: true', () => {
+  const input = {
+    components: {
+      schemas: {
+        maybeUser: {
+          oneOf: [{ $ref: '#/components/schemas/user' }, { type: 'null' }],
+        },
+      },
+    },
+  }
+  const expected = {
+    openapi: '3.0.3',
+    components: {
+      schemas: {
+        maybeUser: {
+          oneOf: [{ $ref: '#/components/schemas/user' }],
+          nullable: true,
+        },
+      },
+    },
+  }
+  const converted = new Converter(input, { verbose: true }).convert() as any
+  assertEquals(converted, expected)
+})
+
+Deno.test('Converter - folds a null anyOf member into nullable: true, keeping remaining members', () => {
+  const input = {
+    components: {
+      schemas: {
+        maybeId: {
+          anyOf: [{ $ref: '#/components/schemas/id' }, { type: 'string' }, { type: 'null' }],
+        },
+      },
+    },
+  }
+  const expected = {
+    openapi: '3.0.3',
+    components: {
+      schemas: {
+        maybeId: {
+          anyOf: [{ $ref: '#/components/schemas/id' }, { type: 'string' }],
+          nullable: true,
+        },
+      },
+    },
+  }
+  const converted = new Converter(input, { verbose: true }).convert() as any
+  assertEquals(converted, expected)
+})
+
+Deno.test('Converter - folds an enum-of-null union member into nullable: true', () => {
+  const input = {
+    components: {
+      schemas: {
+        maybeUser: {
+          oneOf: [{ $ref: '#/components/schemas/user' }, { enum: [null] }],
+        },
+      },
+    },
+  }
+  const expected = {
+    openapi: '3.0.3',
+    components: {
+      schemas: {
+        maybeUser: {
+          oneOf: [{ $ref: '#/components/schemas/user' }],
+          nullable: true,
+        },
+      },
+    },
+  }
+  const converted = new Converter(input, { verbose: true }).convert() as any
+  assertEquals(converted, expected)
+})
+
+Deno.test('Converter - folds null union members in nested schemas', () => {
+  const input = {
+    components: {
+      schemas: {
+        account: {
+          type: 'object',
+          properties: {
+            owner: {
+              anyOf: [{ $ref: '#/components/schemas/user' }, { type: 'null' }],
+            },
+          },
+        },
+      },
+    },
+  }
+  const expected = {
+    openapi: '3.0.3',
+    components: {
+      schemas: {
+        account: {
+          type: 'object',
+          properties: {
+            owner: {
+              anyOf: [{ $ref: '#/components/schemas/user' }],
+              nullable: true,
+            },
+          },
+        },
+      },
+    },
+  }
+  const converted = new Converter(input, { verbose: true }).convert() as any
+  assertEquals(converted, expected)
+})
+
+Deno.test('Converter - throws when a union contains only null members', () => {
+  const input = {
+    components: {
+      schemas: {
+        alwaysNull: { oneOf: [{ type: 'null' }] },
+      },
+    },
+  }
+  assertThrows(
+    () => new Converter(input).convert(),
+    Error,
+    'Cannot down convert this OpenAPI definition.',
+  )
+})
+
 Deno.test('Converter - converts const to a single-value enum, including nested schemas', () => {
   const input = {
     components: {

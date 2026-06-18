@@ -1,0 +1,185 @@
+/**
+ * The option-2 fixture suite, ported to C# (CS-A step 3 gate).
+ *
+ * Proves the same load-bearing claims the TypeScript original
+ * (`core/dsl/model/option2.spike.test.ts`) and the Kotlin port
+ * (`lang-kotlin/src/option2.kotlin.test.ts`) prove, on the third language:
+ *
+ * 1. Static-lang inheritance through the chain — `CsSnippet` → factory
+ *    class → generator subclass — so the Driver reads `projection.lang`
+ *    pre-construction with NO config-map resolution (the config map here
+ *    is EMPTY).
+ * 2. End-to-end `insertModel` with an EMPTY config map: the destination
+ *    file is created caller-side through the language (`CsFile`), the
+ *    Definition is the language's own (`CsDefinition`).
+ * 3. A snippet with NO `generatorKey` can register (keyless registers).
+ * 4. Cross-file insertion registers the peer import via the ephemeral
+ *    static read — and, C#-specifically, that using is SUPPRESSED when
+ *    the destination shares the peer's namespace.
+ */
+import { GenerateContext, OasDocument, SnippetBase, emptyEnrichmentSchema } from '@skmtc/core'
+import type {
+  GenerateContextType,
+  ModelProjectionConstructorArgs,
+  RefName,
+  Enrichments
+} from '@skmtc/core'
+import * as log from 'jsr:@std/log@0.224/logger'
+import { assertEquals } from '@std/assert/equals'
+import { assertStringIncludes } from '@std/assert/string-includes'
+import { assertNotMatch } from '@std/assert/not-match'
+import { assertInstanceOf } from '@std/assert/instance-of'
+import { CsSnippet } from './CsSnippet.ts'
+import { CsFile } from './CsFile.ts'
+import { csharp } from './csLang.ts'
+import { toCsModelProjectionBase } from './toCsModelProjectionBase.ts'
+import { createRecord } from './createIdentifier.ts'
+
+const toGenerateContext = (): GenerateContextType => {
+  return new GenerateContext({
+    document: { type: 'oas', value: new OasDocument() },
+    settings: undefined,
+    logger: new log.Logger('test', 'ERROR'),
+    captureCurrentResult: () => {},
+    toGeneratorConfigMap: () => ({})
+  })
+}
+
+type SpikeFieldArgs = {
+  context: GenerateContextType
+  name: string
+  destinationPath: string
+}
+
+/**
+ * A registering snippet constructed WITHOUT a `generatorKey` — keyless
+ * registers must work on the C# base exactly as they do on TsSnippet and
+ * KtSnippet.
+ */
+class SpikeField extends CsSnippet {
+  name: string
+
+  constructor({ context, name, destinationPath }: SpikeFieldArgs) {
+    super({ context })
+
+    this.name = name
+
+    this.register({
+      imports: { 'Acme.Helpers': ['FormatLabel'] },
+      destinationPath
+    })
+  }
+
+  override toString(): string {
+    return `FormatLabel("${this.name}")`
+  }
+}
+
+const SpikeModelBase = toCsModelProjectionBase({
+  id: '@spike/gen-csharp-option2',
+  toIdentifierName: ({ refName }) => `${refName}Spike`,
+  toIdentifierType: () => ({ kind: 'record' }),
+  toExportPath: () => '@/Spike/Models/Models.generated.cs',
+  toEnrichmentSchema: () => emptyEnrichmentSchema
+})
+
+class SpikeModel extends SpikeModelBase {
+  // deno-lint-ignore no-explicit-any
+  static schemaToValueFn: any = () => ({ toString: () => '' })
+  static createIdentifier = createRecord
+
+  field: SpikeField
+
+  constructor(args: ModelProjectionConstructorArgs<Enrichments<undefined, undefined, undefined>>) {
+    super(args)
+
+    this.field = new SpikeField({
+      context: args.context,
+      name: args.refName,
+      destinationPath: this.settings.exportPath
+    })
+
+    this.register({ imports: { 'System.Text.Json': ['JsonSerializer'] } })
+  }
+
+  override toString(): string {
+    return `    public string Label { get; init; } = ${this.field};`
+  }
+}
+
+Deno.test('csharp option2 port - static lang is inherited through the factory chain', () => {
+  // CsSnippet (static lang) -> factory class expression -> generator subclass
+  assertEquals(SpikeModel.lang, csharp)
+})
+
+Deno.test('csharp option2 port - insertModel end-to-end with an EMPTY config map; keyless snippet registers', () => {
+  const context = toGenerateContext()
+
+  const inserted = context.insertModel(SpikeModel, 'User' as RefName)
+
+  assertEquals(inserted.toName(), 'UserSpike')
+
+  // The value is genuinely built on the language base — the hierarchy is
+  // language-bound at its root.
+  assertInstanceOf(inserted.definition.value, CsSnippet)
+  assertInstanceOf(inserted.definition.value, SnippetBase)
+
+  // The destination file was created caller-side through the language —
+  // it is the language's own File class, not a core fallback.
+  const file = context.getFile('@/Spike/Models/Models.generated.cs')
+  assertInstanceOf(file, CsFile)
+
+  // Both registrations landed: the KEYLESS snippet's import and the
+  // projection's own — collapsed to namespace-level usings. The file's
+  // namespace directive is derived from its path; the header pair opens
+  // the file; visibility renders `public` (C# defaults internal, so
+  // exported MUST render a keyword).
+  const rendered = file.toString()
+  assertStringIncludes(rendered, '// <auto-generated/>\n#nullable enable')
+  assertStringIncludes(rendered, 'namespace Spike.Models;')
+  assertStringIncludes(rendered, 'using Acme.Helpers;')
+  assertStringIncludes(rendered, 'using System.Text.Json;')
+  assertStringIncludes(
+    rendered,
+    'public sealed partial record UserSpike\n' +
+      '{\n' +
+      '    public string Label { get; init; } = FormatLabel("User");\n' +
+      '}'
+  )
+})
+
+Deno.test('csharp option2 port - cross-file insertion registers the peer using via the class-carried lang', () => {
+  const context = toGenerateContext()
+
+  // Insert the model from a destination in a DIFFERENT namespace: the
+  // Driver builds the cross-file import through projection.lang (static),
+  // and the CsFile renders it as a namespace-level using.
+  const inserted = context.insertModel(SpikeModel, 'Order' as RefName, {
+    destinationPath: '@/Consumers/Page.generated.cs'
+  })
+
+  assertEquals(inserted.toName(), 'OrderSpike')
+
+  const consumerFile = context.getFile('@/Consumers/Page.generated.cs')
+  assertInstanceOf(consumerFile, CsFile)
+
+  assertStringIncludes(consumerFile.toString(), 'using Spike.Models;')
+})
+
+Deno.test('csharp option2 port - the peer using is suppressed when the destination shares the namespace', () => {
+  const context = toGenerateContext()
+
+  // Same namespace as the peer's export file (Spike.Models) — C# needs
+  // no using for same-namespace symbols, so the Driver-registered import
+  // must vanish at render.
+  context.insertModel(SpikeModel, 'Invoice' as RefName, {
+    destinationPath: '@/Spike/Models/Sibling.generated.cs'
+  })
+
+  const siblingFile = context.getFile('@/Spike/Models/Sibling.generated.cs')
+  assertInstanceOf(siblingFile, CsFile)
+
+  const rendered = siblingFile.toString()
+  assertNotMatch(rendered, /using Spike\.Models;/)
+  assertStringIncludes(rendered, 'namespace Spike.Models;')
+})

@@ -49,9 +49,12 @@
  * @module Settings
  */
 
-import { generatorEnrichments, type GeneratorEnrichments } from './Enrichments.ts'
-import * as v from 'valibot'
-import { method, type Method } from './Method.ts'
+import {
+  type GeneratorEnrichments,
+  generatorEnrichments,
+} from "./Enrichments.ts";
+import * as v from "valibot";
+import { type Method, method } from "./Method.ts";
 
 /**
  * Whether a relative path contains a `..` parent-reference segment.
@@ -59,7 +62,7 @@ import { method, type Method } from './Method.ts'
  * directory name that merely contains dots is not flagged.
  */
 const hasParentSegment = (path: string): boolean =>
-  path.split(/[/\\]/).some(segment => segment === '..')
+  path.split(/[/\\]/).some((segment) => segment === "..");
 
 /**
  * Valibot schema for {@link ModulePackage}.
@@ -73,14 +76,14 @@ export const modulePackage: v.GenericSchema<ModulePackage> = v.object({
   rootPath: v.pipe(
     v.string(),
     v.check(
-      rootPath => !hasParentSegment(rootPath),
+      (rootPath) => !hasParentSegment(rootPath),
       'package rootPath must be a forward path with no ".." segments — ' +
-        'set client.json basePath to a common ancestor of every package ' +
-        'so each rootPath is written forward from it'
-    )
+        "set client.json basePath to a common ancestor of every package " +
+        "so each rootPath is written forward from it",
+    ),
   ),
-  moduleName: v.optional(v.string())
-})
+  moduleName: v.optional(v.string()),
+});
 
 /**
  * Configuration for a module package in the generation output.
@@ -104,10 +107,10 @@ export const modulePackage: v.GenericSchema<ModulePackage> = v.object({
  */
 export type ModulePackage = {
   /** The root file system path for this package */
-  rootPath: string
+  rootPath: string;
   /** Optional module name for package.json or imports */
-  moduleName?: string
-}
+  moduleName?: string;
+};
 
 /**
  * Valibot schema for validating skip paths configuration.
@@ -119,15 +122,18 @@ export type ModulePackage = {
  */
 export const skipPaths: v.GenericSchema<SkipPaths> = v.record(
   v.string(),
-  v.record(method, v.array(v.string()))
-)
+  v.record(method, v.array(v.string())),
+);
 
 /**
  * Valibot schema for validating skip operations configuration.
  *
  * Validates generator-to-skip-paths mappings for skipping operations by generator.
  */
-export const skipOperations: v.GenericSchema<SkipOperations> = v.record(v.string(), skipPaths)
+export const skipOperations: v.GenericSchema<SkipOperations> = v.record(
+  v.string(),
+  skipPaths,
+);
 
 /**
  * Valibot schema for {@link SkipModelRefs}. Structurally identical to
@@ -136,8 +142,8 @@ export const skipOperations: v.GenericSchema<SkipOperations> = v.record(v.string
  */
 export const skipModelRefs: v.GenericSchema<SkipModelRefs> = v.record(
   v.string(),
-  v.array(v.string())
-)
+  v.array(v.string()),
+);
 
 /**
  * Valibot schema for validating skip models configuration.
@@ -145,9 +151,16 @@ export const skipModelRefs: v.GenericSchema<SkipModelRefs> = v.record(
  * Validates generator-to-skip-model-refs mappings for skipping specific
  * models and variants by generator.
  */
-export const skipModels: v.GenericSchema<SkipModels> = v.record(v.string(), skipModelRefs)
+export const skipModels: v.GenericSchema<SkipModels> = v.record(
+  v.string(),
+  skipModelRefs,
+);
 
-const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.string()])
+const skip: v.GenericSchema<Skip> = v.union([
+  skipOperations,
+  skipModels,
+  v.string(),
+]);
 
 /**
  * Valibot schema for {@link IncludePaths}. Structurally identical to
@@ -158,8 +171,8 @@ const skip: v.GenericSchema<Skip> = v.union([skipOperations, skipModels, v.strin
  */
 export const includePaths: v.GenericSchema<IncludePaths> = v.record(
   v.string(),
-  v.record(method, v.array(v.string()))
-)
+  v.record(method, v.array(v.string())),
+);
 
 /**
  * Valibot schema for {@link IncludeOperations}. Maps generator id to
@@ -167,8 +180,8 @@ export const includePaths: v.GenericSchema<IncludePaths> = v.record(
  */
 export const includeOperations: v.GenericSchema<IncludeOperations> = v.record(
   v.string(),
-  includePaths
-)
+  includePaths,
+);
 
 /**
  * Valibot schema for {@link IncludeModelRefs}. Sibling to
@@ -177,8 +190,8 @@ export const includeOperations: v.GenericSchema<IncludeOperations> = v.record(
  */
 export const includeModelRefs: v.GenericSchema<IncludeModelRefs> = v.record(
   v.string(),
-  v.array(v.string())
-)
+  v.array(v.string()),
+);
 
 /**
  * Valibot schema for {@link IncludeModels}. Maps generator id to a
@@ -186,14 +199,14 @@ export const includeModelRefs: v.GenericSchema<IncludeModelRefs> = v.record(
  */
 export const includeModels: v.GenericSchema<IncludeModels> = v.record(
   v.string(),
-  includeModelRefs
-)
+  includeModelRefs,
+);
 
 const include: v.GenericSchema<Include> = v.union([
   includeOperations,
   includeModels,
-  v.string()
-])
+  v.string(),
+]);
 
 /**
  * Valibot schema for validating client settings configuration.
@@ -208,8 +221,8 @@ const include: v.GenericSchema<Include> = v.union([
  */
 export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
   enabled: v.boolean(),
-  out: v.optional(v.string())
-})
+  out: v.optional(v.string()),
+});
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(v.string()),
@@ -218,8 +231,8 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   enrichments: v.optional(generatorEnrichments),
   include: v.optional(v.array(include)),
   skip: v.optional(v.array(skip)),
-  anchors: v.optional(anchorsSettings)
-})
+  anchors: v.optional(anchorsSettings),
+});
 
 /**
  * Configuration for skipping specific HTTP methods + variants on API paths.
@@ -241,7 +254,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
  * };
  * ```
  */
-export type SkipPaths = Record<string, Partial<Record<Method, string[]>>>
+export type SkipPaths = Record<string, Partial<Record<Method, string[]>>>;
 
 /**
  * Configuration for skipping specific model refNames + variants.
@@ -264,7 +277,7 @@ export type SkipPaths = Record<string, Partial<Record<Method, string[]>>>
  * };
  * ```
  */
-export type SkipModelRefs = Record<string, string[]>
+export type SkipModelRefs = Record<string, string[]>;
 
 /**
  * Configuration for skipping model generation by generator type.
@@ -283,7 +296,7 @@ export type SkipModelRefs = Record<string, string[]>
  * };
  * ```
  */
-export type SkipModels = Record<string, SkipModelRefs>
+export type SkipModels = Record<string, SkipModelRefs>;
 
 /**
  * Configuration for skipping operation generation by generator type.
@@ -301,7 +314,7 @@ export type SkipModels = Record<string, SkipModelRefs>
  * };
  * ```
  */
-export type SkipOperations = Record<string, SkipPaths>
+export type SkipOperations = Record<string, SkipPaths>;
 
 /**
  * Union type representing different skip configurations.
@@ -309,7 +322,7 @@ export type SkipOperations = Record<string, SkipPaths>
  * Can be either operation-specific skipping, model-specific skipping,
  * or a simple string pattern for broad exclusions.
  */
-export type Skip = SkipOperations | SkipModels | string
+export type Skip = SkipOperations | SkipModels | string;
 
 /**
  * Allow-list counterpart to {@link SkipPaths}. Same `path → method →
@@ -326,7 +339,7 @@ export type Skip = SkipOperations | SkipModels | string
  * };
  * ```
  */
-export type IncludePaths = Record<string, Partial<Record<Method, string[]>>>
+export type IncludePaths = Record<string, Partial<Record<Method, string[]>>>;
 
 /**
  * Allow-list counterpart to {@link SkipModelRefs}. Same
@@ -343,7 +356,7 @@ export type IncludePaths = Record<string, Partial<Record<Method, string[]>>>
  * };
  * ```
  */
-export type IncludeModelRefs = Record<string, string[]>
+export type IncludeModelRefs = Record<string, string[]>;
 
 /**
  * Allow-list counterpart to {@link SkipModels}. Maps generator id to
@@ -356,7 +369,7 @@ export type IncludeModelRefs = Record<string, string[]>
  * };
  * ```
  */
-export type IncludeModels = Record<string, IncludeModelRefs>
+export type IncludeModels = Record<string, IncludeModelRefs>;
 
 /**
  * Allow-list counterpart to {@link SkipOperations}. Maps generator id
@@ -372,7 +385,7 @@ export type IncludeModels = Record<string, IncludeModelRefs>
  * };
  * ```
  */
-export type IncludeOperations = Record<string, IncludePaths>
+export type IncludeOperations = Record<string, IncludePaths>;
 
 /**
  * Union type representing allow-list filter entries. Mirrors the
@@ -397,7 +410,7 @@ export type IncludeOperations = Record<string, IncludePaths>
  * entry AND a `skip` deny-list entry is skipped. This mirrors
  * `tsconfig.json`'s `include` + `exclude` pair.
  */
-export type Include = IncludeOperations | IncludeModels | string
+export type Include = IncludeOperations | IncludeModels | string;
 
 /**
  * Main configuration object for SKMTC client settings.
@@ -477,40 +490,40 @@ export type AnchorsSettings = {
    * and a project-level generation map. `false` (or omitted) runs
    * generation as if gen-maps didn't exist — zero overhead.
    */
-  enabled: boolean
+  enabled: boolean;
   /**
    * Output directory for sidecars + generation map, relative to
    * `.skmtc/<project>/`. Defaults to `'.maps'` when omitted. The
    * `skmtc init` template gitignores the `.maps` subtree by default
    * since sidecars are build output, not source.
    */
-  out?: string
-}
+  out?: string;
+};
 
 export type ClientSettings = {
   /** Base output path for generated files */
-  basePath?: string
+  basePath?: string;
   /** Array of module package configurations */
-  packages?: ModulePackage[]
+  packages?: ModulePackage[];
   /** Custom enrichments for extending generation */
-  enrichments?: GeneratorEnrichments
+  enrichments?: GeneratorEnrichments;
   /**
    * Allow-list filter applied before {@link skip}. When set and
    * non-empty, only generators / operations / models matching an
    * entry are emitted; everything else is silently filtered out.
    * See {@link Include} for the per-entry shape and precedence rules.
    */
-  include?: Include[]
+  include?: Include[];
   /** Array of skip (deny-list) configurations to exclude content */
-  skip?: Skip[]
+  skip?: Skip[];
   /**
    * Gen-maps (`anchors`) configuration. When `enabled: true`, the CLI
    * emits per-file sidecars and a generation map alongside the
    * generated artifacts. Omitted by default; the feature is opt-in
    * in v1. See {@link AnchorsSettings}.
    */
-  anchors?: AnchorsSettings
-}
+  anchors?: AnchorsSettings;
+};
 
 /**
  * Configuration for SKMTC client with optional project identification.
@@ -520,14 +533,20 @@ export type ClientSettings = {
  */
 export type SkmtcClientConfig = {
   /** Url of the server when running locally */
-  serverUrl?: string
+  serverUrl?: string;
   /** Optional project identifier for organizational contexts */
-  projectKey?: string
+  projectKey?: string;
+  /**
+   * skmtc-hub push destination in `@<account>/<slug>` form (the account may be
+   * a user or an org) — the `skmtc push` target, analogous to a git remote.
+   * Ignored by `skmtc generate`; consumed only by `skmtc push`.
+   */
+  project?: string;
   /** Optional schema path or url for OpenAPI schema */
-  source?: string
+  source?: string;
   /** Client settings for customizing generation behavior */
-  settings: ClientSettings
-}
+  settings: ClientSettings;
+};
 
 /**
  * Valibot schema for validating SKMTC client configuration.
@@ -538,6 +557,7 @@ export type SkmtcClientConfig = {
 export const skmtcClientConfig: v.GenericSchema<SkmtcClientConfig> = v.object({
   serverUrl: v.optional(v.string()),
   projectKey: v.optional(v.string()),
+  project: v.optional(v.string()),
   source: v.optional(v.string()),
-  settings: clientSettings
-})
+  settings: clientSettings,
+});

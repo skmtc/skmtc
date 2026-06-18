@@ -31,9 +31,19 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { createType, createVariable, defineAndRegister, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import * as v from 'valibot'
+import { createType, defineAndRegister, toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
+
+// The form fixtures store a per-variant subject marker (`{}`) at
+// `[id][path][method][variant]`; the composite umbrella parses it as an
+// opaque subject leaf, leaving generator/stack absent.
+const variantEnrichmentSchema = v.object({
+  subject: v.optional(v.unknown()),
+  generator: v.optional(v.unknown()),
+  stack: v.optional(v.unknown())
+})
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -44,11 +54,12 @@ const mockLogger: log.Logger = {
 } as unknown as log.Logger
 
 // Variants-aware form Projection: identifier varies per variant.
-const FormBase = toOasOperationProjectionBase({
+const FormBase = toTsOasOperationProjectionBase({
   id: '@test/form',
-  toIdentifier: ({ variant }) =>
-    createVariable(withVariant('EditQuotesForm', variant)),
-  toExportPath: ({ variant }) => `@/forms/${withVariant('EditQuotesForm', variant)}.tsx`
+  toIdentifierName: ({ variant }) => withVariant('EditQuotesForm', variant),
+  toIdentifierType: () => ({ kind: 'variable' }),
+  toExportPath: ({ variant }) => `@/forms/${withVariant('EditQuotesForm', variant)}.tsx`,
+  toEnrichmentSchema: () => variantEnrichmentSchema
 })
 
 class FormProjection extends FormBase {
@@ -103,6 +114,7 @@ Deno.test('variant-bound fallbackName - each variant produces a distinct body De
 
   const entry = toOasOperationEntry({
     id: '@test/form',
+    toEnrichmentSchema: () => variantEnrichmentSchema,
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
     }

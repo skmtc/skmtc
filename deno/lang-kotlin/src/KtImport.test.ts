@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import { Identifier } from '@skmtc/core'
 import { KtImport } from './KtImport.ts'
+import { createDataClass } from './createIdentifier.ts'
 
 Deno.test('fromConcise renders one statement per symbol (no brace grouping)', () => {
   const ktImport = KtImport.fromConcise('kotlinx.serialization', ['Serializable', 'SerialName'])
@@ -22,7 +22,7 @@ Deno.test('aliases render via `as`', () => {
 Deno.test('fromIdentifier builds the Driver cross-file import; kind is ignored', () => {
   const ktImport = KtImport.fromIdentifier(
     '@/com/example/api/User.generated.kt',
-    new Identifier({ name: 'User', kind: 'data-class' })
+    createDataClass('User')
   )
 
   assertEquals(ktImport.toString(), 'import com.example.api.User')

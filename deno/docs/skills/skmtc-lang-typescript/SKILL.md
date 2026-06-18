@@ -20,9 +20,10 @@ description: |
   from", "sanitizePropertyName", or anything about the *shape of the
   emitted TypeScript* rather than engine behavior. Engine rules
   (Projections, Snippets, cross-generator coordination, variants) live
-  in `skmtc-generator`. This skill is also the TEMPLATE for future
-  `skmtc-lang-<X>` skills (Kotlin, C#, …): a new language skill keeps
-  these section headings and replaces the answers.
+  in `skmtc-generator`. This skill is also the TEMPLATE for
+  `skmtc-lang-<X>` skills — instantiated first by `skmtc-lang-kotlin`
+  (C#, … to follow): a new language skill keeps these section
+  headings and replaces the answers.
 allowed-tools:
   - Bash
   - Read
@@ -46,7 +47,8 @@ piece. The boundary rule, worth internalizing first:
 > generators whose target is TypeScript.
 
 > **Template contract.** This is the first `skmtc-lang-<X>` skill and
-> the template for the rest. A new language skill (Kotlin, C#, …) keeps
+> the template for the rest — `skmtc-lang-kotlin` is the first
+> instantiation. A new language skill (C#, …) keeps
 > the seven section headings below and replaces the answers. Every
 > section now describes symbols owned by THIS package — the naming
 > layer and syntax helpers moved out of `@skmtc/core` under F5/F6
@@ -61,7 +63,7 @@ piece. The boundary rule, worth internalizing first:
 |---|---|
 | `typescript` | The `Lang` object. Three neutral factories the engine's **Drivers** call, reading it ephemerally off the projection class's inherited static (`projection.lang`): `createFile`, `toDefinition`, `toImport`. Generators never call it. |
 | `TsSnippet` | The snippet base — where TypeScript enters the DSL class hierarchy. Carries the static `lang`; its `register` / `defineAndRegister` methods are typed by the concise vocabulary. Registering snippets are **keyless** (`generatorKey` is optional attribution input) |
-| `toModelProjectionBase` / `toOasOperationProjectionBase` / `toGqlOperationProjectionBase` | The projection-base veneers over core's factories — pre-bind `base: TsSnippet` and add own-file `register(args)` + explicit cross-file `registerInto(destinationPath, args)` (+ `Ts*ProjectionBaseConfig` types) |
+| `toTsModelProjectionBase` / `toTsOasOperationProjectionBase` / `toTsGqlOperationProjectionBase` | The projection-base veneers over core's factories — pre-bind `TsSnippet` as the factory's positional first argument (core's factory is `toModelProjectionBase(base, config)`; the veneer calls `toModelProjectionBase(TsSnippet, config)`, so a generator passes only `(config)` and never `base`) and add own-file `register(args)` + explicit cross-file `registerInto(destinationPath, args)`. The config is core's `ModelProjectionBaseConfig<E, TsLang>` (etc.) — generators rarely name it |
 | `register` / `defineAndRegister` | The register **functions** — convert the concise form, ensure the destination file, hand pure data to the neutral `context.register`. Transforms (closures with no class) import `defineAndRegister` directly |
 | `TsRegisterArgs` / `TsDefineAndRegisterArgs` | The concise register vocabulary (`imports` / `reExports` / `definitions`) |
 | `TsFile` | `CodeFileBase` subclass — a TypeScript output file (imports, re-exports, definitions, package-aware module normalization) |
@@ -83,12 +85,14 @@ piece. The boundary rule, worth internalizing first:
 
 ```ts
 // gen-x/src/base.ts — the language enters HERE, through the import
-import { toModelProjectionBase } from '@skmtc/lang-typescript'
+import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 
-export const MyBase = toModelProjectionBase({
+export const MyBase = toTsModelProjectionBase({
   id: denoJson.name,
-  toIdentifier({ refName }) { /* … */ },
-  toExportPath({ refName }) { /* … */ }
+  toIdentifierName({ refName }) { /* … */ },
+  toIdentifierType(refName, context) { /* … */ },
+  toExportPath({ refName }) { /* … */ },
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 ```
 
@@ -106,8 +110,12 @@ export const myEntry = toModelEntry({
 There is no `lang` config field anywhere — not on the entry, not on
 the projection base, not on snippets; `register` calls never pass one.
 A generator declares its language by importing its projection-base
-factory (and, for registering snippets, `TsSnippet`) from this
-package. The language rides the class hierarchy as the static `lang`
+factory (`toTsModelProjectionBase` and friends — and, for registering
+snippets, `TsSnippet`) from this package. These veneers pre-bind
+`TsSnippet` as the positional first argument to core's underlying
+factory (which keeps its name, `toModelProjectionBase`), so the
+generator's config object carries no `base` field. The language rides
+the class hierarchy as the static `lang`
 on `TsSnippet`; the engine's Drivers read it ephemerally off the
 projection class (`projection.lang`) when they need to create a file
 or build a Definition.
@@ -297,3 +305,15 @@ all import from `@skmtc/lang-typescript`. Core's `Identifier` is
 neutral data with a public constructor; core's `EntityType`, its
 concrete `Definition`, and `Identifier.toImport` no longer exist.
 The code boundary now matches the design.
+
+Current release: `@skmtc/lang-typescript` 0.4.0 (against `@skmtc/core`
+0.11.0). The projection-base veneers carry the `Ts` prefix
+(`toTsModelProjectionBase` and friends) and pre-bind `TsSnippet` as
+the positional first argument to core's `toModelProjectionBase(base,
+config)` — core's factory keeps its bare name; the per-veneer config
+alias types (`TsModelProjectionBaseConfig`, …) are gone, and the
+config is core's `ModelProjectionBaseConfig<E, TsLang>`.
+`toEnrichmentSchema` is now a required config field returning the
+three-scope enrichment umbrella `v.object({ subject, generator, stack
+})` (a no-enrichment generator passes `emptyEnrichmentSchema`); the
+deep enrichment treatment lives in `skmtc-generator`.

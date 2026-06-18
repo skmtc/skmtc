@@ -21,6 +21,7 @@ import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
 import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
+import type { EnrichmentDefaults } from '@/types/EnrichmentDefaults.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
 
 /**
@@ -535,6 +536,68 @@ export class CoreContext {
             type: 'INVALID_SCHEMA' as const,
             location: 'toSupportedSubjects',
             message: `Top-level toSupportedSubjects failure: ${message}`,
+            cause: error
+          }
+        ]
+      }
+    }
+  }
+
+  /**
+   * Seed-values sibling of {@link toSupportedSubjects}: parse the document, then
+   * call each generator's `toEnrichmentDefaults` over its supported subjects —
+   * no transform, no render. Returns the default enrichment values keyed by the
+   * `client.json#settings.enrichments` routing, plus parse issues. Fails open
+   * like {@link toArtifacts}: a bad schema surfaces as a `parseIssue` and the
+   * defaults map is returned empty.
+   */
+  toEnrichmentDefaults({
+    document,
+    settings,
+    toGeneratorConfigMap,
+    stackTrail
+  }: Pick<
+    ToArtifactsArgs,
+    'document' | 'settings' | 'toGeneratorConfigMap' | 'stackTrail'
+  >): { enrichmentDefaults: EnrichmentDefaults; parseIssues: ParseIssue[] } {
+    try {
+      const phase = this.#setupParsePhase(document)
+      this.#phase = phase
+      const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
+        phase.context.parse(st)
+      )
+
+      const enrichmentDefaults = stackTrail.trace('generate', () => {
+        // Seeding never renders, so the capture interval never opens — a
+        // throwaway channel satisfies the wiring.
+        const generatePhase = this.#setupGeneratePhase({
+          toGeneratorConfigMap,
+          document: parsedDocument,
+          settings,
+          captureChannel: { sink: undefined }
+        })
+        this.#phase = generatePhase
+
+        return generatePhase.context.toEnrichmentDefaults()
+      })
+
+      return { enrichmentDefaults, parseIssues: phase.context.issues }
+    } catch (error) {
+      this.logger.error(error)
+
+      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      const message = error instanceof Error ? error.message : String(error)
+
+      return {
+        enrichmentDefaults: {},
+        parseIssues: [
+          ...priorIssues,
+          {
+            protocol: 'oas' as const,
+            level: 'error' as const,
+            type: 'INVALID_SCHEMA' as const,
+            location: 'toEnrichmentDefaults',
+            message: `Top-level toEnrichmentDefaults failure: ${message}`,
             cause: error
           }
         ]

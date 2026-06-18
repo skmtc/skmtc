@@ -39,7 +39,7 @@ export const langId = 'typescript' as const
 /** File extensions this language package renders. */
 export const fileExtensions = ['.ts', '.tsx'] as const
 
-export { typescript } from './src/tsLang.ts'
+export { typescript, type TsLang } from './src/tsLang.ts'
 export { TsSnippet } from './src/TsSnippet.ts'
 export {
   register,
@@ -47,24 +47,21 @@ export {
   type TsRegisterArgs,
   type TsDefineAndRegisterArgs
 } from './src/register.ts'
-export {
-  toModelProjectionBase,
-  type TsModelProjectionBaseConfig
-} from './src/toModelProjectionBase.ts'
-export {
-  toOasOperationProjectionBase,
-  type TsOasOperationProjectionBaseConfig
-} from './src/toOasOperationProjectionBase.ts'
-export {
-  toGqlOperationProjectionBase,
-  type TsGqlOperationProjectionBaseConfig
-} from './src/toGqlOperationProjectionBase.ts'
+export { toTsModelProjectionBase } from './src/toTsModelProjectionBase.ts'
+export { toTsOasOperationProjectionBase } from './src/toTsOasOperationProjectionBase.ts'
+export { toTsGqlOperationProjectionBase } from './src/toTsGqlOperationProjectionBase.ts'
 export { ReactRouterPathParams } from './src/ReactRouterPathParams.ts'
 export { TsFile, type TsFileArgs } from './src/TsFile.ts'
 export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'
 export { TsImport, type TsImportSpecifier, type ImportNameArg } from './src/TsImport.ts'
 export { TsReExport } from './src/TsReExport.ts'
 export { TsObject, type TsPropertyArgs } from './src/TsObject.ts'
+export {
+  TsIdentifier,
+  isTsIdentifier,
+  type TsIdentifierType,
+  type TsIdentifierArgs
+} from './src/TsIdentifier.ts'
 
 // TypeScript syntax helpers + naming layer (moved from @skmtc/core — F5/F6)
 export * from './src/List.ts'
@@ -80,8 +77,16 @@ export * from './src/sanitizePropertyName.ts'
 export {
   createVariable,
   createType,
+  createClass,
+  createInterface,
+  createNamespace,
   toTsKeyword,
+  toTsEntityKind,
+  isTsEntityKind,
+  isBlockKind,
+  isTypeOnlyKind,
   type TsEntityKind,
   type CreateVariableArgs,
-  type CreateTypeArgs
+  type CreateTypeArgs,
+  type CreateDeclarationArgs
 } from './src/createIdentifier.ts'

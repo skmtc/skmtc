@@ -18,6 +18,7 @@ import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { GeneratorConfig } from '@/types/GeneratorType.ts'
 import { register } from '@skmtc/lang-typescript'
+import { emptyEnrichmentSchema, type EmptyEnrichments } from '@/types/Enrichments.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -76,9 +77,10 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
 
   // Collect what the model generator sees.
   const modelRefNames: string[] = []
-  const modelGenerator: ModelConfig = {
+  const modelGenerator: ModelConfig<EmptyEnrichments> = {
     id: 'synthetic-model',
     type: 'model',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     transform({ refName }: TransformModelArgs): void {
       modelRefNames.push(refName)
     }
@@ -93,9 +95,10 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     argsRequired: string[] | undefined
     argsKeys: string[]
   }> = []
-  const operationGenerator: GqlOperationConfig = {
+  const operationGenerator: GqlOperationConfig<EmptyEnrichments> = {
     id: 'synthetic-gql-op',
     type: 'gqlOperation',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     isSupported: () => true,
     transform: ({ operation, context }): void => {
       const gqlOp = operation as unknown as GqlOperation
@@ -189,9 +192,10 @@ Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL d
 
   const httpTransform = spy((_args: TransformOasOperationArgs) => undefined)
 
-  const httpGenerator: OasOperationConfig = {
+  const httpGenerator: OasOperationConfig<EmptyEnrichments> = {
     id: 'http-only',
     type: 'oasOperation',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     isSupported: () => true,
     transform: (args: TransformOasOperationArgs): void => {
       httpTransform(args)

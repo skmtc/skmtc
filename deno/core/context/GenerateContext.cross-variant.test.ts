@@ -28,15 +28,17 @@
 
 import { assertEquals, assertExists } from '@std/assert'
 import * as log from '@std/log'
+import * as v from 'valibot'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
-import { TsFile, createVariable } from '@skmtc/lang-typescript'
+import { TsFile } from '@skmtc/lang-typescript'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
 const mockLogger: log.Logger = {
@@ -47,16 +49,27 @@ const mockLogger: log.Logger = {
   critical: () => {}
 } as unknown as log.Logger
 
+// The form fixtures store a per-variant subject marker (`{}`) at
+// `[id][path][method][variant]`; the composite umbrella parses it as an
+// opaque subject leaf, leaving generator/stack absent.
+const variantEnrichmentSchema = v.object({
+  subject: v.optional(v.unknown()),
+  generator: v.optional(v.unknown()),
+  stack: v.optional(v.unknown())
+})
+
 const PATH = '/quotes/{id}'
 const METHOD = 'patch' as const
 
 // Variants-unaware peer — a stand-in for TanstackQuery / TsProjection.
 // Its `toIdentifier` does NOT consult `variant`, so two variants of
 // the form caller hit the same (name, exportPath) cache key.
-const PeerBase = toOasOperationProjectionBase({
+const PeerBase = toTsOasOperationProjectionBase({
   id: '@test/peer-gen',
-  toIdentifier: () => createVariable('usePatchQuote'),
-  toExportPath: () => '@/services/usePatchQuote.ts'
+  toIdentifierName: () => 'usePatchQuote',
+  toIdentifierType: () => ({ kind: 'variable' }),
+  toExportPath: () => '@/services/usePatchQuote.ts',
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
 class PeerProjection extends PeerBase {
@@ -68,11 +81,12 @@ class PeerProjection extends PeerBase {
 // Variants-aware form — its `toIdentifier` uses `withVariant` so the
 // two variants produce distinct (name, exportPath) pairs and each
 // gets its own file.
-const FormBase = toOasOperationProjectionBase({
+const FormBase = toTsOasOperationProjectionBase({
   id: '@test/form-gen',
-  toIdentifier: ({ variant }) =>
-    createVariable(withVariant('EditQuotesForm', variant)),
-  toExportPath: ({ variant }) => `@/forms/${withVariant('EditQuotesForm', variant)}.tsx`
+  toIdentifierName: ({ variant }) => withVariant('EditQuotesForm', variant),
+  toIdentifierType: () => ({ kind: 'variable' }),
+  toExportPath: ({ variant }) => `@/forms/${withVariant('EditQuotesForm', variant)}.tsx`,
+  toEnrichmentSchema: () => variantEnrichmentSchema
 })
 
 class FormProjection extends FormBase {
@@ -107,6 +121,7 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
 
   const formEntry = toOasOperationEntry({
     id: '@test/form-gen',
+    toEnrichmentSchema: () => variantEnrichmentSchema,
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
     }
@@ -114,6 +129,7 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
 
   const peerEntry = toOasOperationEntry({
     id: '@test/peer-gen',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     transform: () => {}
   })
 
@@ -166,6 +182,7 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
 
   const formEntry = toOasOperationEntry({
     id: '@test/form-gen',
+    toEnrichmentSchema: () => variantEnrichmentSchema,
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
     }
@@ -173,6 +190,7 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
 
   const peerEntry = toOasOperationEntry({
     id: '@test/peer-gen',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     transform: () => {}
   })
 

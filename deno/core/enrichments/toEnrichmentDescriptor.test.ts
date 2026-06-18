@@ -7,6 +7,7 @@ import {
   toEnrichmentFields,
   type EnrichmentSource
 } from './toEnrichmentDescriptor.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 
 Deno.test('toEnrichmentFields — undefined input yields no fields', () => {
   assertEquals(toEnrichmentFields(undefined), [])
@@ -89,18 +90,38 @@ Deno.test('toEnrichmentFields — array of objects yields one-element item with 
   ])
 })
 
-Deno.test('toEnrichmentDescriptor — derives generator and appliesTo from an OAS-operation entry', () => {
+Deno.test('toEnrichmentFields — omits object members that unwrap to v.undefined', () => {
+  const schema = v.object({
+    present: v.string(),
+    absent: v.undefined()
+  })
+  assertEquals(toEnrichmentFields(schema), [
+    { key: 'present', label: 'Present', optional: false, kind: 'text' }
+  ])
+})
+
+Deno.test('toEnrichmentDescriptor — surfaces the subject scope of the umbrella (OAS operation)', () => {
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-shadcn-form',
     type: 'oasOperation',
-    toEnrichmentSchema: () => v.optional(
-      v.object({ title: v.optional(v.string()) })
-    )
+    toEnrichmentSchema: () => v.object({
+      subject: v.optional(v.object({ title: v.optional(v.string()) })),
+      generator: v.undefined(),
+      stack: v.undefined()
+    })
   }
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-shadcn-form',
     appliesTo: 'operation',
-    fields: [{ key: 'title', label: 'Title', optional: true, kind: 'text' }]
+    fields: [
+      {
+        key: 'subject',
+        label: 'Subject',
+        optional: true,
+        kind: 'object',
+        fields: [{ key: 'title', label: 'Title', optional: true, kind: 'text' }]
+      }
+    ]
   })
 })
 
@@ -108,27 +129,58 @@ Deno.test('toEnrichmentDescriptor — collapses gqlOperation to operation', () =
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-reapit-form',
     type: 'gqlOperation',
-    toEnrichmentSchema: () => v.object({ title: v.optional(v.string()) })
+    toEnrichmentSchema: () => v.object({
+      subject: v.optional(v.object({ title: v.optional(v.string()) })),
+      generator: v.undefined(),
+      stack: v.undefined()
+    })
   }
   const descriptor = toEnrichmentDescriptor(entry)
   assertEquals(descriptor.appliesTo, 'operation')
 })
 
-Deno.test('toEnrichmentDescriptor — model entry yields appliesTo: model', () => {
+Deno.test('toEnrichmentDescriptor — surfaces subject + generator scopes (model entry)', () => {
   const entry: EnrichmentSource = {
-    id: '@skmtc/gen-zod',
+    id: '@skmtc/gen-kotlin',
     type: 'model',
-    toEnrichmentSchema: () => v.optional(
-      v.object({ description: v.optional(v.string()), strict: v.optional(v.boolean()) })
-    )
+    toEnrichmentSchema: () => v.object({
+      subject: v.optional(v.object({ description: v.optional(v.string()) })),
+      generator: v.object({ basePackage: v.string() }),
+      stack: v.undefined()
+    })
   }
   assertEquals(toEnrichmentDescriptor(entry), {
-    generator: '@skmtc/gen-zod',
+    generator: '@skmtc/gen-kotlin',
     appliesTo: 'model',
     fields: [
-      { key: 'description', label: 'Description', optional: true, kind: 'text' },
-      { key: 'strict', label: 'Strict', optional: true, kind: 'toggle' }
+      {
+        key: 'subject',
+        label: 'Subject',
+        optional: true,
+        kind: 'object',
+        fields: [{ key: 'description', label: 'Description', optional: true, kind: 'text' }]
+      },
+      {
+        key: 'generator',
+        label: 'Generator',
+        optional: false,
+        kind: 'object',
+        fields: [{ key: 'basePackage', label: 'Base Package', optional: false, kind: 'text' }]
+      }
     ]
+  })
+})
+
+Deno.test('toEnrichmentDescriptor — empty umbrella (emptyEnrichmentSchema) yields no fields', () => {
+  const entry: EnrichmentSource = {
+    id: '@skmtc/gen-typescript',
+    type: 'model',
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }
+  assertEquals(toEnrichmentDescriptor(entry), {
+    generator: '@skmtc/gen-typescript',
+    appliesTo: 'model',
+    fields: []
   })
 })
 
@@ -144,7 +196,7 @@ Deno.test('toEnrichmentDescriptor — entry without toEnrichmentSchema yields em
   })
 })
 
-Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic shape', () => {
+Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', () => {
   const formFieldItem = v.object({
     id: v.string(),
     accessorPath: v.optional(accessorPath),
@@ -156,28 +208,39 @@ Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic shape', () => {
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-shadcn-form',
     type: 'oasOperation',
-    toEnrichmentSchema: () => v.optional(
-      v.object({
-        title: v.optional(v.string()),
-        description: v.optional(v.string()),
-        submitLabel: v.optional(v.string()),
-        fields: v.optional(v.array(formFieldItem))
-      })
-    )
+    toEnrichmentSchema: () => v.object({
+      subject: v.optional(
+        v.object({
+          title: v.optional(v.string()),
+          description: v.optional(v.string()),
+          submitLabel: v.optional(v.string()),
+          fields: v.optional(v.array(formFieldItem))
+        })
+      ),
+      generator: v.undefined(),
+      stack: v.undefined()
+    })
   }
   const descriptor = toEnrichmentDescriptor(entry)
 
   assertEquals(descriptor.generator, '@skmtc/gen-shadcn-form')
   assertEquals(descriptor.appliesTo, 'operation')
-  assertEquals(descriptor.fields.length, 4)
-  assertEquals(descriptor.fields[0], {
+  // The umbrella surfaces a single `subject` scope; the form leaf is nested.
+  assertEquals(descriptor.fields.length, 1)
+  const subject = descriptor.fields[0]
+  assertEquals(subject.key, 'subject')
+  assertEquals(subject.kind, 'object')
+
+  const subjectFields = subject.fields ?? []
+  assertEquals(subjectFields.length, 4)
+  assertEquals(subjectFields[0], {
     key: 'title',
     label: 'Title',
     optional: true,
     kind: 'text'
   })
 
-  const fieldsArray = descriptor.fields[3]
+  const fieldsArray = subjectFields[3]
   assertEquals(fieldsArray.kind, 'array')
   assertEquals(fieldsArray.optional, true)
   const itemFields = fieldsArray.item?.[0]?.fields ?? []

@@ -1,8 +1,17 @@
 import { CodeFileBase } from '@skmtc/core'
 import { normalizeModuleName } from './normalizeModuleName.ts'
-import type { ClientSettings, ModulePackage } from '@skmtc/core'
+import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
+import { TsIdentifier } from './TsIdentifier.ts'
+import type { TsEntityKind } from './createIdentifier.ts'
 import { TsReExport } from './TsReExport.ts'
+
+/** A definition's TypeScript declaration kind, read off its identifier — the
+ *  language-neutral `IdentifierBase` carries no `kind`, so narrow to the TS
+ *  subclass. `undefined` for a non-TS identifier (shouldn't occur in a TsFile;
+ *  treated as a kindless declaration). */
+const declarationKind = (definition: DefinitionBase): TsEntityKind | undefined =>
+  definition.identifier instanceof TsIdentifier ? definition.identifier.kind : undefined
 
 /**
  * Constructor arguments for {@link TsFile}.
@@ -23,9 +32,63 @@ export class TsFile extends CodeFileBase {
   /** Package configuration for cross-package module-name resolution. */
   packages: ModulePackage[] | undefined
 
+  /**
+   * Optional leading banner — a file-level comment (e.g. a codegen header)
+   * rendered above the re-exports/imports/definitions. Set through the
+   * register vocabulary's `banner` field; see {@link register}.
+   */
+  banner: string | undefined
+
+  /**
+   * Same-name companion definitions — TypeScript declaration merging, e.g. a
+   * `class Foo` and its `export declare namespace Foo`. Kept apart from the
+   * name-keyed {@link definitions} map (so the cross-generator cache stays
+   * one-definition-per-name) and rendered after the primaries.
+   */
+  mergedDefinitions: DefinitionBase[] = []
+
   constructor({ path, settings }: TsFileArgs) {
     super({ path })
     this.packages = settings?.packages
+  }
+
+  /**
+   * TypeScript's duplication rule, keyed by the definition's *identifier*
+   * (name + kind), not its rendered value. The first definition for a name is
+   * the primary (the cross-generator cache resolves it). A later definition
+   * reusing the name is:
+   *
+   * - the **same declaration** (same kind) → an idempotent no-op. Generators
+   *   legitimately register the same helper from multiple call sites (e.g. a
+   *   `columnHelper` const built once per table column), producing distinct
+   *   objects that are the same `const` — those collapse to one.
+   * - a **different kind** → a declaration-merging companion (a `class` + its
+   *   `declare namespace`), rendered after the primaries.
+   */
+  override addDefinition(definition: DefinitionBase): void {
+    const name = definition.identifier.name
+    const kind = declarationKind(definition)
+    const existing = this.definitions.get(name)
+
+    if (existing === undefined) {
+      this.definitions.set(name, definition)
+      return
+    }
+
+    // Same name + same kind = the same declaration → collapse.
+    if (declarationKind(existing) === kind) {
+      return
+    }
+    // Already captured a companion of this kind for the name.
+    if (
+      this.mergedDefinitions.some(
+        merged => merged.identifier.name === name && declarationKind(merged) === kind
+      )
+    ) {
+      return
+    }
+
+    this.mergedDefinitions.push(definition)
   }
 
   override toString(): string {
@@ -66,11 +129,13 @@ export class TsFile extends CodeFileBase {
       return new TsImport(updatedModuleName, importEntry.specifiers).toString()
     })
 
-    const definitions = Array.from(this.definitions.values())
+    const definitions = [...this.definitions.values(), ...this.mergedDefinitions]
 
-    return [reExports, imports, definitions]
+    const body = [reExports, imports, definitions]
       .filter(section => Boolean(section.length))
       .map(section => section.join('\n'))
       .join('\n\n')
+
+    return this.banner ? `${this.banner}\n\n${body}` : body
   }
 }

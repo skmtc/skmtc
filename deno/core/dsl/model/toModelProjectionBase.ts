@@ -7,8 +7,8 @@ import type {
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { Lang, LangSnippetConstructor } from '@/dsl/Lang.ts'
+import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
@@ -16,11 +16,12 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type {
   ModelProjection,
-  ToModelIdentifierArgs,
+  ToModelIdentifierNameArgs,
   ToModelExportPathArgs
 } from '@/dsl/model/types.ts'
 import * as v from 'valibot'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
 
@@ -45,31 +46,54 @@ type ToEnrichmentsArgs = {
 
 /**
  * Configuration for {@link toModelProjectionBase}.
+ *
+ * Generic over the language `L`: a language veneer parameterizes this config
+ * (`ModelProjectionBaseConfig<E, KtLang>`) so `toIdentifierType`'s return
+ * tightens to that language's `IdentifierType<L>` — no recast. A bare
+ * config (`L = Lang`) keeps the loose `kind: string` boundary.
  */
-export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
-  /**
-   * The language snippet base the projection class is built on — a
-   * `@skmtc/lang-*` package's snippet base (e.g. `TsSnippet`). This is where
-   * language enters the class hierarchy: the base carries the static `lang`,
-   * read by Drivers pre-construction and inherited by every class built on
-   * it. Language packages pre-bind it in their projection-base veneers.
-   */
-  base: LangSnippetConstructor
+export type ModelProjectionBaseConfig<EnrichmentType = undefined, L extends Lang = Lang> = {
   id: string
-  toIdentifier: (args: ToModelIdentifierArgs<EnrichmentType>) => Identifier
+  /** Pure: the cache-key name (the cache-check path runs this). */
+  toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType>) => string
+  /**
+   * Context-aware, overridable: the non-`name` parts of the identifier
+   * (`kind` / `typeName` / `exported`), derived from the schema. Runs only
+   * on cache-miss. Returns this language's `IdentifierType<L>` — the `kind`
+   * is bound to `L`'s `EntityKind` vocabulary (the loose `string` when
+   * `L = Lang`). The tightening rides the type argument, replacing the old
+   * veneer recast.
+   */
+  toIdentifierType: (refName: RefName, context: GenerateContextType) => IdentifierType<L>
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
-  toEnrichmentSchema?: () => v.BaseSchema<EnrichmentType, EnrichmentType, v.BaseIssue<unknown>>
+  /**
+   * Required composite schema for the `{ subject, generator, stack }`
+   * enrichment umbrella. Required (not optional) is load-bearing: it is what
+   * lets `static toEnrichments` parse cast-free. A no-enrichment generator
+   * passes `emptyEnrichmentSchema`.
+   */
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
+  /**
+   * Optional: compute the DEFAULT enrichment values for a model from its schema
+   * — the seed the CMS persists and the user then edits (vs {@link toEnrichments},
+   * which READS already-authored values). Returns the `{ subject, generator,
+   * stack }` umbrella; a generator typically fills only `subject` and leaves the
+   * run-constant `generator` / `stack` scopes `undefined`. Omitted → the derived
+   * static returns `undefined`.
+   */
+  toEnrichmentDefaults?: (args: ToEnrichmentsArgs) => EnrichmentType | undefined
 }
 
 /**
  * Build a model projection base class from a per-generator config.
  *
- * The returned class extends `config.base` — the generator's language
+ * The returned class extends `base` — the generator's language
  * snippet base — so the projection hierarchy is language-bound at its root
  * while core stays language-blind (the base arrives as an opaque
  * constructor; core never names a concrete language class). The class
- * exposes the generator's `id`, `toIdentifier`, `toExportPath`, and
- * `toEnrichments` statics, inherits the static `lang` from the base, and
+ * exposes the generator's `id`, `toIdentifierName`, `toIdentifierType`,
+ * `toExportPath`, and `toEnrichments` statics, inherits the static `lang`
+ * from the base, and
  * injects `generatorKey` so subclasses don't have to.
  *
  * Defines NO `register` / `registerInto` — register ergonomics are typed by
@@ -79,33 +103,41 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined> = {
  * The projection machinery previously hosted on `ModelProjectionBase` lives
  * here now, because the base class is no longer statically known.
  */
-export const toModelProjectionBase = <EnrichmentType = undefined>(
-  config: ModelProjectionBaseConfig<EnrichmentType>
+export const toModelProjectionBase = <EnrichmentType = undefined, L extends Lang = Lang>(
+  base: LangSnippetConstructor<L>,
+  config: ModelProjectionBaseConfig<EnrichmentType, L>
 ) => {
-  return class extends config.base {
+  return class extends base {
     static id = config.id
     static type = 'model' as const
 
-    static toIdentifier = config.toIdentifier.bind(config)
+    static toIdentifierName = config.toIdentifierName.bind(config)
+    static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
     static toEnrichments = ({ refName, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
-      // The variant axis is owned by core: consumer enrichments are keyed
-      // `[generatorId][refName][variant]`, and the generator's own schema
-      // describes the per-variant inner value. The engine has already
-      // enumerated valid variants and asserted `'main'` exists, so the
-      // lookup here either hits a declared variant or — for the synthetic
-      // single-`'main'` pass when no enrichments are configured — returns
-      // `undefined`, which the Valibot schema accepts via its
-      // `v.optional(...)` envelope.
-      const modelEnrichments = get(
-        context.settings,
-        `enrichments.${config.id}.${refName}.${variant}`
-      )
+      // The three enrichment scopes assembled into the umbrella a generator
+      // reads off `this.settings.enrichments`. Subject is per-item
+      // (`[id][refName][variant]`) — the variant axis is core-owned, and the
+      // engine has already asserted `'main'` exists; generator and stack are
+      // run-constants (`[id][_generator]`, `[_stack]`). The required composite
+      // schema parses the raw umbrella once — typed, cast-free.
+      const raw = {
+        subject: get(context.settings, ['enrichments', config.id, refName, variant]),
+        generator: get(context.settings, ['enrichments', config.id, GENERATOR_ENRICHMENT_KEY]),
+        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
+      }
 
-      const enrichmentSchema = config.toEnrichmentSchema?.() ?? v.optional(v.unknown())
-
-      return v.parse(enrichmentSchema, modelEnrichments) as EnrichmentType
+      return v.parse(config.toEnrichmentSchema(), raw)
     }
+
+    /**
+     * Derive the seed enrichment values for a model from its schema (the CMS
+     * persists these, then the user edits). Returns `undefined` when the
+     * generator declares no `toEnrichmentDefaults` — the common case.
+     */
+    static toEnrichmentDefaults = (args: ToEnrichmentsArgs): EnrichmentType | undefined =>
+      config.toEnrichmentDefaults?.call(config, args)
+
     static isSupported = () => true
 
     settings: ContentSettings<EnrichmentType>

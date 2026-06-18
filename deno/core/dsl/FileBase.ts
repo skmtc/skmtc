@@ -34,9 +34,11 @@ export abstract class FileBase {
   /**
    * Add a definition, deduplicating by identifier name (first write wins).
    *
-   * Neutral: the engine's `register` calls this on the abstract base, so
-   * it works for every language's file. The dedup-by-name rule is the
-   * cross-generator cache's contract, not a language concern.
+   * Neutral: the engine's `register` calls this on the abstract base, so it
+   * works for every language's file. Per-language duplication rules (e.g.
+   * TypeScript declaration merging — a class and its `declare namespace`
+   * sharing a name) belong in the language's file subclass, which overrides
+   * this method.
    */
   addDefinition(definition: DefinitionBase): void {
     if (!this.definitions.has(definition.identifier.name)) {

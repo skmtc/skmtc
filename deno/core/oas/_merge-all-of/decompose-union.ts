@@ -20,8 +20,6 @@ type DecomposeUnionReturn = {
 // Convert a schema object into an array of schemas that can be merged iteratively into a new schema
 export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): DecomposeUnionReturn => {
   if (!schema[groupType]) {
-    console.log('NO GROUP TYPE', JSON.stringify(schema, null, 2))
-
     return {
       beforeExcluded: {},
       decomposed: [schema],
@@ -65,7 +63,25 @@ export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): Decom
   return result
 }
 
-const excludedProperties = ['discriminator', 'default']
+// Union-level keys: kept on the union (via beforeExcluded/afterExcluded)
+// rather than cross-product-merged into each member. Merging a metadata key
+// *into* a member would resolve `$ref` members (to merge it in), losing their
+// names — `toUnion` already captures these on the union itself.
+// (`not` is deliberately NOT excluded here — it has no faithful TypeScript
+// representation, so a schema using it is refused upstream in `toSchemaV3`
+// rather than silently dropped from the union.)
+const excludedProperties = [
+  'discriminator',
+  'default',
+  'description',
+  'title',
+  'nullable',
+  'example',
+  'examples',
+  'readOnly',
+  'writeOnly',
+  'deprecated'
+]
 
 type ExcludeOutput = {
   retained: [string, unknown][]

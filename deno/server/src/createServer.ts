@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import {
   clientSettings as settingsSchema,
   toArtifacts,
+  toEnrichmentDefaults,
   toEnrichmentDescriptor,
   toSupportedSubjects
 } from '@skmtc/core'
@@ -200,6 +201,51 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
     })
 
     return c.json({ subjects, parseIssues }, 200)
+  })
+
+  // Seed-values introspection: the DEFAULT enrichment values each configured
+  // generator derives from this schema — the "Generate fields from schema"
+  // payload the CMS persists, then the user edits. Runs Parse + each generator's
+  // `toEnrichmentDefaults` over its supported subjects — no transform, no render.
+  // Same request body as `/subjects` (the OAS branch is normalized v2/3.1 → 3.0
+  // first). The result mirrors the `client.json#settings.enrichments` subtree
+  // (subject scope only), keyed `[id][path][method]['main']` for operations and
+  // `[id][refName]['main']` for models.
+  app.post('/enrichment-defaults', async c => {
+    const body = v.parse(postArtifactsBody, await c.req.json())
+
+    const startAt = Date.now()
+    const traceId = `trace-${startAt}`
+    const spanId = `span-${startAt}`
+    const stackTrail = new StackTrail([traceId, spanId])
+
+    let document: SkmtcDocumentInput
+    switch (body.protocol) {
+      case 'oas': {
+        document = { type: 'oas', value: await toV3Document(stringToSchema(body.schema)) }
+        break
+      }
+      case 'gql': {
+        document = { type: 'gql', value: body.schema }
+        break
+      }
+      default: {
+        const _exhaustive: never = body
+        throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`)
+      }
+    }
+
+    const { enrichmentDefaults, parseIssues } = toEnrichmentDefaults({
+      traceId,
+      spanId,
+      document,
+      settings: body.clientSettings,
+      toGeneratorConfigMap,
+      stackTrail,
+      silent: true
+    })
+
+    return c.json({ enrichmentDefaults, parseIssues }, 200)
   })
 
   app.get('/generators', c => {

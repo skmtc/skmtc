@@ -6,6 +6,8 @@ import { oasStringData, stringFormat } from './string-types.ts'
 import * as v from 'valibot'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
 /**
@@ -93,10 +95,12 @@ export const toString = ({ context, value, stackTrail }: ToStringArgs): OasStrin
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
 
   const example = parseExample({
-    example: unparsedExample,
+    value: unparsedExample,
     context,
     parent: valueWithoutNullable,
     nullable,
+    check: isString,
+    toMessage: item => `Removed invalid example. Expected "string", got: ${item}`,
     stackTrail
   })
 
@@ -115,10 +119,12 @@ export const toString = ({ context, value, stackTrail }: ToStringArgs): OasStrin
   const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
 
   const defaultValue = parseDefault({
-    defaultValue: unparsedDefaultValue,
+    value: unparsedDefaultValue,
     context,
     parent: valueWithoutEnums,
     nullable,
+    check: isString,
+    toMessage: item => `Removed invalid default. Expected "string", got: ${item}`,
     stackTrail
   })
 
@@ -274,74 +280,4 @@ export const toParsedString = <Nullable extends boolean | undefined>({
 
 const isString = (value: unknown): value is string => {
   return typeof value === 'string'
-}
-
-type ParseExampleArgs = {
-  example: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
-  if (example === undefined) {
-    return undefined
-  }
-
-  if (nullable && example === null) {
-    return example
-  }
-
-  if (!isString(example)) {
-    context.logIssue({
-      key: 'example',
-      level: 'warning',
-      message: `Removed invalid example. Expected "string", got: ${example}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_EXAMPLE'
-    })
-    return undefined
-  }
-
-  return example
-}
-
-type ParseDefaultArgs = {
-  defaultValue: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseDefault = ({
-  defaultValue,
-  context,
-  parent,
-  nullable,
-  stackTrail
-}: ParseDefaultArgs) => {
-  if (defaultValue === undefined) {
-    return undefined
-  }
-
-  if (nullable && defaultValue === null) {
-    return defaultValue
-  }
-
-  if (!isString(defaultValue)) {
-    context.logIssue({
-      key: 'default',
-      level: 'warning',
-      message: `Removed invalid default. Expected "string", got: ${defaultValue}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_DEFAULT'
-    })
-    return undefined
-  }
-
-  return defaultValue
 }

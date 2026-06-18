@@ -13,7 +13,7 @@
  *      `"Registered definition mismatch"`.
  */
 
-import { createVariable, toModelProjectionBase } from '@skmtc/lang-typescript'
+import { createVariable, toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import { assertEquals, assertThrows } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
@@ -23,7 +23,19 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasComponents } from '@/oas/components/Components.ts'
 import { OasString } from '@/oas/string/String.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { RefName } from '@/types/RefName.ts'
+import * as v from 'valibot'
+
+// A composite umbrella schema that accepts the empty `{}` subject blocks the
+// variant-collision tests declare per variant. The subject value is never
+// asserted here — these tests pin the peer-variant guard and the
+// `generatorKey` collision check, so an empty-object subject is enough.
+const variantPlaceholderEnrichmentSchema = v.object({
+  subject: v.optional(v.object({})),
+  generator: v.optional(v.unknown()),
+  stack: v.optional(v.unknown())
+})
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -62,11 +74,12 @@ const makeContext = (args: { document: OasDocument; settings: unknown }) => {
 Deno.test(
   'ModelDriver - insertModel with non-main variant for unconfigured peer throws',
   () => {
-    const ZodVariants = class extends toModelProjectionBase({
+    const ZodVariants = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod-variants',
-      toIdentifier: ({ refName, variant }) =>
-        createVariable(withVariant(refName, variant)),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
+      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+      toIdentifierType: () => ({ kind: 'variable' }),
+      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+      toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -92,11 +105,12 @@ Deno.test(
 Deno.test(
   'ModelDriver - insertModel with non-main variant absent from peer enrichments throws',
   () => {
-    const ZodVariants = class extends toModelProjectionBase({
+    const ZodVariants = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod-variants',
-      toIdentifier: ({ refName, variant }) =>
-        createVariable(withVariant(refName, variant)),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
+      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+      toIdentifierType: () => ({ kind: 'variable' }),
+      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+      toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -132,10 +146,12 @@ Deno.test(
   () => {
     // `'main'` is universally safe — it's the canonical default and
     // always permitted regardless of the peer's enrichment shape.
-    const ZodGen = class extends toModelProjectionBase({
+    const ZodGen = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod',
-      toIdentifier: ({ refName }) => createVariable(refName),
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
+      toIdentifierName: ({ refName }) => refName,
+      toIdentifierType: () => ({ kind: 'variable' }),
+      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
+      toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -167,10 +183,12 @@ Deno.test(
     // into the key). On the second insertion, `findDefinition` hits
     // the cached entry for variant 'main' but the new generatorKey
     // doesn't match — integrity check throws.
-    const BrokenZod = class extends toModelProjectionBase({
+    const BrokenZod = class extends toTsModelProjectionBase({
       id: '@scope/gen-broken-zod',
-      toIdentifier: ({ refName }) => createVariable(refName), // ← ignores variant
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`          // ← ignores variant
+      toIdentifierName: ({ refName }) => refName, // ← ignores variant
+      toIdentifierType: () => ({ kind: 'variable' }),
+      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,         // ← ignores variant
+      toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -215,11 +233,12 @@ Deno.test(
     // `withVariant`, and toExportPath inherits the variant suffix.
     // Two variants of the same refName produce distinct (name,
     // exportPath) cache keys and therefore distinct Definitions.
-    const CorrectZod = class extends toModelProjectionBase({
+    const CorrectZod = class extends toTsModelProjectionBase({
       id: '@scope/gen-correct-zod',
-      toIdentifier: ({ refName, variant }) =>
-        createVariable(withVariant(refName, variant)),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`
+      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+      toIdentifierType: () => ({ kind: 'variable' }),
+      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+      toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })
@@ -260,10 +279,12 @@ Deno.test(
 Deno.test(
   'ModelDriver - same variant twice on a correct Projection hits the cache',
   () => {
-    const Zod = class extends toModelProjectionBase({
+    const Zod = class extends toTsModelProjectionBase({
       id: '@scope/gen-cache-zod',
-      toIdentifier: ({ refName }) => createVariable(refName),
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`
+      toIdentifierName: ({ refName }) => refName,
+      toIdentifierType: () => ({ kind: 'variable' }),
+      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
+      toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
       // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
       static schemaToValueFn: any = () => ({ toString: () => '' })

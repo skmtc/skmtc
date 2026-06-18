@@ -19,7 +19,7 @@ jobs:
       # Workspace `jsr:@skmtc/*` pins (and @std/*) resolve against the
       # skmtc registry, not public jsr.io — the @skmtc versions only
       # exist there. Deno honors JSR_URL for `jsr:` import resolution.
-      JSR_URL: https://jsr.skmtc.dev/
+      JSR_URL: https://jsr.skmtc.co.uk/
 
     steps:
     - name: Checkout repository
@@ -29,6 +29,10 @@ jobs:
       uses: denoland/setup-deno@v2
       with:
         deno-version: v2.x
+
+    - name: Verify docs sync (skill chain + discrepancy catalog)
+      working-directory: deno
+      run: deno task verify-docs
 
     - name: Run tests with coverage
       working-directory: deno

@@ -5,9 +5,10 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
 import * as v from 'valibot'
 import { oasArrayDataWithoutItems } from './array-types.ts'
-import { tracer } from '../../helpers/tracer.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
 export type ToArrayArgs = {
@@ -85,10 +86,12 @@ export const toArray = ({ value, context, stackTrail }: ToArrayArgs): OasArray =
   const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
 
   const example = parseExample({
-    example: unparsedExample,
+    value: unparsedExample,
     context,
     parent: valueWithoutNullable,
     nullable,
+    check: isArray,
+    toMessage: item => `Removed invalid example. Expected "array", got: ${item}`,
     stackTrail
   })
 
@@ -107,10 +110,12 @@ export const toArray = ({ value, context, stackTrail }: ToArrayArgs): OasArray =
   const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
 
   const defaultValue = parseDefault({
-    defaultValue: unparsedDefaultValue,
+    value: unparsedDefaultValue,
     context,
     parent: valueWithoutEnums,
     nullable,
+    check: isArray,
+    toMessage: item => `Removed invalid default. Expected "array", got: ${item}`,
     stackTrail
   })
 
@@ -176,11 +181,6 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
     parentType: 'schema:array'
   })
 
-  // if (!items) {
-  //   console.log(JSON.stringify(value, null, 2))
-  //   throw new Error('No items')
-  // }
-
   return context.withStackTrail(stackTrail, () =>
     new OasArray(
       {
@@ -188,9 +188,25 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
         description,
         nullable,
         defaultValue,
-        items: stackTrail.trace('items', st =>
-          toSchemaV3({ schema: items, stackTrail: st, context })
-        ),
+        items: stackTrail.trace('items', st => {
+          // An array schema with no `items` is invalid OAS but must not
+          // kill the run (fail open): log the issue and treat the items
+          // as unknown — `{}` falls through toSchemaV3 to OasUnknown.
+          if (items === undefined) {
+            context.logIssue({
+              key: 'items',
+              level: 'warning',
+              message: 'Array schema has no "items" — treating as an array of unknown values',
+              parent: value,
+              stackTrail: st,
+              type: 'INVALID_SCHEMA'
+            })
+
+            return toSchemaV3({ schema: {}, stackTrail: st, context })
+          }
+
+          return toSchemaV3({ schema: items, stackTrail: st, context })
+        }),
         extensionFields,
         example,
         uniqueItems,
@@ -206,72 +222,6 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
   )
 }
 
-type ParseExampleArgs = {
-  example: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseExample = ({ example, context, parent, nullable, stackTrail }: ParseExampleArgs) => {
-  if (example === undefined) {
-    return undefined
-  }
-
-  if (nullable && example === null) {
-    return example
-  }
-
-  if (!Array.isArray(example)) {
-    context.logIssue({
-      key: 'example',
-      level: 'warning',
-      message: `Removed invalid example. Expected "array", got: ${example}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_EXAMPLE'
-    })
-    return undefined
-  }
-
-  return example
-}
-
-type ParseDefaultArgs = {
-  defaultValue: unknown
-  context: ParseContextType
-  parent: unknown
-  nullable: boolean | undefined
-  stackTrail: StackTrail
-}
-
-const parseDefault = ({
-  defaultValue,
-  context,
-  parent,
-  nullable,
-  stackTrail
-}: ParseDefaultArgs) => {
-  if (defaultValue === undefined) {
-    return undefined
-  }
-
-  if (nullable && defaultValue === null) {
-    return defaultValue
-  }
-
-  if (!Array.isArray(defaultValue)) {
-    context.logIssue({
-      key: 'default',
-      level: 'warning',
-      message: `Invalid default: ${defaultValue}`,
-      parent,
-      stackTrail,
-      type: 'INVALID_DEFAULT'
-    })
-    return undefined
-  }
-
-  return defaultValue
+const isArray = (value: unknown): value is unknown[] => {
+  return Array.isArray(value)
 }

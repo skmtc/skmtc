@@ -30,5 +30,6 @@ export const fileExtensions = ['.rs'] as const
 
 export { RsFile, type RsFileArgs } from './src/RsFile.ts'
 export { RsDefinition } from './src/RsDefinition.ts'
+export { RsIdentifier, isRsIdentifier, type RsEntityKind } from './src/RsIdentifier.ts'
 export { RsStruct, type RsFieldArgs } from './src/RsStruct.ts'
 export { RsEnum, type RsVariantArgs } from './src/RsEnum.ts'

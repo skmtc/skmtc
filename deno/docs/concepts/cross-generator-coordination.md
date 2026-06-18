@@ -70,7 +70,7 @@ the cache.
 From `gen-shadcn-form/src/base.ts`:
 
 ```ts
-export const ShadcnFormBase = toOasOperationProjectionBase<EnrichmentSchema>({
+export const ShadcnFormBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
 
   toIdentifier({ operation }): Identifier {
@@ -294,7 +294,7 @@ at the consumer app's compile time, which is what
 
 ```ts
 // In base.ts
-const MyBase = toOasOperationProjectionBase<EnrichmentSchema>({ id, toIdentifier, toExportPath })
+const MyBase = toTsOasOperationProjectionBase<EnrichmentSchema>({ id, toIdentifier, toExportPath })
 
 // In MyProjection.ts
 class MyProjection extends MyBase {

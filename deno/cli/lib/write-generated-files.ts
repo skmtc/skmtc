@@ -134,6 +134,17 @@ export const writeGeneratedFiles = ({
     const content = String(artifactContent)
     const absolutePath = join(skmtcRootPath, '..', artifactPath)
 
+    // Changed-only write: skip files already byte-identical on disk. Render
+    // output is deterministic, so most files are unchanged between runs;
+    // rewriting them all churns mtimes and makes file-watch consumers
+    // (Vite HMR under the preview harness, `skmtc dev`) re-process every file on
+    // every regenerate. existsSync + read is cheap next to a needless write and
+    // the downstream rebuild it triggers. (Stale files are still deleted above
+    // by deletePreviousArtifacts — this only suppresses no-op rewrites.)
+    if (existsSync(absolutePath) && Deno.readTextFileSync(absolutePath) === content) {
+      return
+    }
+
     const { dir } = parse(absolutePath)
 
     ensureDirSync(dir)

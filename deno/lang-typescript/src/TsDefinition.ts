@@ -1,16 +1,24 @@
 import { DefinitionBase } from '@skmtc/core'
+import invariant from 'npm:tiny-invariant@1.3.3'
 import { withDescription } from './withDescription.ts'
-import { toTsKeyword } from './createIdentifier.ts'
-import type { GeneratedValue, GenerateContextType, Identifier } from '@skmtc/core'
+import { toTsKeyword, isBlockKind } from './createIdentifier.ts'
+import { isTsIdentifier } from './TsIdentifier.ts'
+import type { GeneratedValue, GenerateContextType, IdentifierBase } from '@skmtc/core'
 
 /**
  * Constructor arguments for {@link TsDefinition}.
  */
 export type TsDefinitionArgs<Value extends GeneratedValue> = {
   context: GenerateContextType
-  identifier: Identifier
+  identifier: IdentifierBase
   value: Value
   description?: string
+  /**
+   * A `//` line comment rendered verbatim on its own line directly above the
+   * declaration (and above any JSDoc `description`). Each newline starts a
+   * fresh `// ` line. Use for terse leading notes that aren't JSDoc.
+   */
+  leadingComment?: string
   noExport?: boolean
 }
 
@@ -22,23 +30,44 @@ export type TsDefinitionArgs<Value extends GeneratedValue> = {
  */
 export class TsDefinition<Value extends GeneratedValue = GeneratedValue> extends DefinitionBase<Value> {
   description: string | undefined
+  leadingComment: string | undefined
   noExport: boolean | undefined
 
-  constructor({ context, identifier, value, description, noExport }: TsDefinitionArgs<Value>) {
+  constructor({ context, identifier, value, description, leadingComment, noExport }: TsDefinitionArgs<Value>) {
     super({ context, identifier, value })
 
     this.description = description
+    this.leadingComment = leadingComment
     this.noExport = noExport
   }
 
   override toString(): string {
-    const identifier = this.identifier.typeName
-      ? `${this.identifier.name}: ${this.identifier.typeName}`
-      : this.identifier.name
-
-    return withDescription(
-      `${this.noExport ? '' : 'export '}${toTsKeyword(this.identifier.kind)} ${identifier} = ${this.value};\n`,
-      { description: this.description }
+    invariant(
+      isTsIdentifier(this.identifier),
+      `TsDefinition needs a TsIdentifier to render '${this.identifier.name}', got a foreign identifier`
     )
+
+    const { kind, name, typeName } = this.identifier
+    const exportPrefix = this.noExport ? '' : 'export '
+    const keyword = toTsKeyword(kind)
+
+    const leadingComment = this.leadingComment
+      ? this.leadingComment.split('\n').map(line => `// ${line}\n`).join('')
+      : ''
+
+    // Block-form declarations (class / interface / declare namespace) take no
+    // `= value` and no trailing `;` — the value carries the heritage and the
+    // braced body.
+    if (isBlockKind(kind)) {
+      return leadingComment + withDescription(`${exportPrefix}${keyword} ${name} ${this.value}\n`, {
+        description: this.description
+      })
+    }
+
+    const identifier = typeName ? `${name}: ${typeName}` : name
+
+    return leadingComment + withDescription(`${exportPrefix}${keyword} ${identifier} = ${this.value};\n`, {
+      description: this.description
+    })
   }
 }

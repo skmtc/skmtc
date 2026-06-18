@@ -3,6 +3,7 @@ import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { OasString } from '@/oas/string/String.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 
 const createMockGqlOperation = () =>
   new GqlOperation({
@@ -15,7 +16,8 @@ const createMockGqlOperation = () =>
 Deno.test('toGqlOperationEntry - returns object with id and type operation', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.id, 'test-operation')
@@ -29,7 +31,8 @@ Deno.test('toGqlOperationEntry - includes provided transform function', () => {
   }
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    transform: transformFn
+    transform: transformFn,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.transform, transformFn)
@@ -45,7 +48,8 @@ Deno.test('toGqlOperationEntry - includes provided transform function', () => {
 Deno.test('toGqlOperationEntry - isSupported defaults to true when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   const mockOperation = createMockGqlOperation()
@@ -62,7 +66,8 @@ Deno.test('toGqlOperationEntry - isSupported defaults to true when not provided'
 Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.toPreviewModule, undefined)
@@ -71,25 +76,29 @@ Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided'
 Deno.test('toGqlOperationEntry - toMappingModule is undefined when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.toMappingModule, undefined)
 })
 
-Deno.test('toGqlOperationEntry - toEnrichmentSchema is undefined when not provided', () => {
+Deno.test('toGqlOperationEntry - toEnrichmentSchema is passed through from config', () => {
+  const enrichmentSchemaFn = () => emptyEnrichmentSchema
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: enrichmentSchemaFn
   })
 
-  assertEquals(entry.toEnrichmentSchema, undefined)
+  assertEquals(entry.toEnrichmentSchema, enrichmentSchemaFn)
 })
 
 Deno.test('toGqlOperationEntry - toEnrichmentRequest is undefined when not provided', () => {
   const entry = toGqlOperationEntry({
     id: 'test-operation',
-    transform: () => {}
+    transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
   assertEquals(entry.toEnrichmentRequest, undefined)
@@ -107,6 +116,7 @@ Deno.test('toGqlOperationEntry - includes toPreviewModule when provided', () => 
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     toPreviewModule: previewFn
   })
 
@@ -126,6 +136,7 @@ Deno.test('toGqlOperationEntry - includes toMappingModule when provided', () => 
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     transform: () => {},
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     toMappingModule: mappingFn
   })
 
@@ -155,6 +166,7 @@ Deno.test('toGqlOperationEntry - includes all optional functions when provided',
   const entry = toGqlOperationEntry({
     id: 'test-operation',
     transform: transformFn,
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
     toPreviewModule: previewFn,
     toMappingModule: mappingFn,
     isSupported: isSupportedFn,

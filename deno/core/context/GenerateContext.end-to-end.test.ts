@@ -16,15 +16,25 @@
 
 import { assertEquals, assertExists } from '@std/assert'
 import * as log from '@std/log'
+import * as v from 'valibot'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { createVariable, toOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
+
+// The form fixtures store a per-variant subject marker (`{}`) at
+// `[id][path][method][variant]`; the composite umbrella parses it as an
+// opaque subject leaf, leaving generator/stack absent.
+const variantEnrichmentSchema = v.object({
+  subject: v.optional(v.unknown()),
+  generator: v.optional(v.unknown()),
+  stack: v.optional(v.unknown())
+})
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -34,12 +44,13 @@ const mockLogger: log.Logger = {
   critical: () => {}
 } as unknown as log.Logger
 
-const FormBase = toOasOperationProjectionBase({
+const FormBase = toTsOasOperationProjectionBase({
   id: '@test/e2e-form',
-  toIdentifier: ({ variant }) =>
-    createVariable(withVariant('PatchQuoteForm', variant)),
+  toIdentifierName: ({ variant }) => withVariant('PatchQuoteForm', variant),
+  toIdentifierType: () => ({ kind: 'variable' }),
   toExportPath: ({ variant }) =>
-    `@/forms/${withVariant('PatchQuoteForm', variant)}.tsx`
+    `@/forms/${withVariant('PatchQuoteForm', variant)}.tsx`,
+  toEnrichmentSchema: () => variantEnrichmentSchema
 })
 
 class FormProjection extends FormBase {
@@ -72,6 +83,7 @@ const buildContext = (variants: Record<string, unknown>) => {
 
   const entry = toOasOperationEntry({
     id: '@test/e2e-form',
+    toEnrichmentSchema: () => variantEnrichmentSchema,
     transform: ({ context, operation, variant }) => {
       context.insertOperation({ projection: FormProjection, operation, variant })
     }

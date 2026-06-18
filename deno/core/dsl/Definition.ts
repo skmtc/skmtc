@@ -1,5 +1,5 @@
 import type { GenerateContextType } from '../context/generateTypes.ts'
-import type { Identifier } from '@/dsl/Identifier.ts'
+import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { GeneratedValue } from './GeneratedValue.ts'
 
@@ -12,7 +12,7 @@ type DefinitionBaseArgs<V extends GeneratedValue> = {
   /** The generation context providing pipeline access */
   context: GenerateContextType
   /** The identifier for this definition */
-  identifier: Identifier
+  identifier: IdentifierBase
   /** The generated value content */
   value: V
 }
@@ -36,7 +36,7 @@ export abstract class DefinitionBase<
   V extends GeneratedValue = GeneratedValue
 > extends SnippetBase {
   /** The identifier for this definition */
-  identifier: Identifier
+  identifier: IdentifierBase
 
   /** The generated value content */
   value: V
@@ -57,7 +57,7 @@ export abstract class DefinitionBase<
  */
 export type ToDefinitionArgs = {
   /** The identifier the definition is registered under. */
-  identifier: Identifier
+  identifier: IdentifierBase
   /** Whether to omit the export keyword. */
   noExport?: boolean
 }

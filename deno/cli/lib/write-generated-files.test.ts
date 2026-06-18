@@ -1,5 +1,7 @@
 import { assertEquals } from '@std/assert'
-import { deletePreviousArtifacts } from '@/lib/write-generated-files.ts'
+import { deletePreviousArtifacts, writeGeneratedFiles } from '@/lib/write-generated-files.ts'
+import { manifestContent } from '@skmtc/core/Manifest'
+import * as v from 'valibot'
 import { join } from '@std/path/join'
 
 // Helper to create a valid manifest structure
@@ -332,3 +334,68 @@ Deno.test(
     }
   }
 )
+
+// --- writeGeneratedFiles: changed-only writes ------------------------------
+// Render output is deterministic, so most files are unchanged between runs.
+// writeGeneratedFiles must skip rewriting byte-identical files so file-watch
+// consumers (Vite HMR under the preview harness, `skmtc dev`) don't re-process
+// every file on every regenerate. We prove "did not rewrite" by stamping the
+// file's mtime into the past and asserting it survives an identical regenerate.
+//
+// writeGeneratedFiles resolves its output root from toRootPath(), which — outside
+// $HOME (a temp dir) — falls back to `<cwd>/.skmtc`, so artifacts land at
+// `<cwd>/<path>`. chdir into the temp dir to control that root.
+const PAST = new Date('2000-01-01T00:00:00Z')
+
+const manifestFor = (path: string) =>
+  v.parse(
+    manifestContent,
+    createManifest({ [path]: { lines: 1, characters: 1, destinationPath: path } })
+  )
+
+Deno.test('writeGeneratedFiles - skips rewriting a file whose content is unchanged', async () => {
+  const tempDir = await Deno.makeTempDir()
+  const originalCwd = Deno.cwd()
+  try {
+    Deno.chdir(tempDir)
+    const manifestPath = join(tempDir, 'manifest.json')
+    const artifactPath = join(tempDir, 'out.ts')
+    const manifest = manifestFor('out.ts')
+    const content = 'export const a = 1\n'
+
+    writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': content }, manifest })
+    assertEquals(Deno.readTextFileSync(artifactPath), content)
+
+    // Stamp mtime into the past; an identical regenerate must NOT touch the file.
+    Deno.utimeSync(artifactPath, PAST, PAST)
+    writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': content }, manifest })
+
+    assertEquals(Deno.statSync(artifactPath).mtime?.getTime(), PAST.getTime())
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
+
+Deno.test('writeGeneratedFiles - rewrites a file whose content changed', async () => {
+  const tempDir = await Deno.makeTempDir()
+  const originalCwd = Deno.cwd()
+  try {
+    Deno.chdir(tempDir)
+    const manifestPath = join(tempDir, 'manifest.json')
+    const artifactPath = join(tempDir, 'out.ts')
+    const manifest = manifestFor('out.ts')
+
+    writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': 'export const a = 1\n' }, manifest })
+    Deno.utimeSync(artifactPath, PAST, PAST)
+
+    // Different content → the file is rewritten (content updates, mtime advances).
+    writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': 'export const a = 2\n' }, manifest })
+
+    assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 2\n')
+    assertEquals(Deno.statSync(artifactPath).mtime?.getTime() === PAST.getTime(), false)
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})

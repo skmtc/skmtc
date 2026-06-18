@@ -43,21 +43,26 @@ export const ${mainModule}Entry = toOasOperationEntry({
   }
 
   toOasOperationProjectionBase(mainModule: string) {
-    return `import { camelCase, capitalize, Identifier, toMethodVerb, toOasOperationProjectionBase } from '@skmtc/core'
+    return `import { camelCase, capitalize, toMethodVerb } from '@skmtc/core'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path/join'
 
-export const ${mainModule}Base = toOasOperationProjectionBase({
+export const ${mainModule}Base = toTsOasOperationProjectionBase({
   id: '${this.generator.toModuleName()}',
 
-  toIdentifier({ operation }): Identifier {
+  toIdentifierName({ operation }): string {
     const verb = capitalize(toMethodVerb(operation.method))
-    const name = \`\${verb}\${camelCase(operation.path, { upperFirst: true })}\`
 
-    return Identifier.createVariable(name)
+    return \`\${verb}\${camelCase(operation.path, { upperFirst: true })}\`
   },
 
-  toExportPath({ operation, enrichments }): string {
-    const { name } = this.toIdentifier({ operation, enrichments })
+  toIdentifierType(): TsIdentifierType {
+    return { kind: 'variable' }
+  },
+
+  toExportPath({ operation, enrichments, variant }): string {
+    const name = this.toIdentifierName({ operation, enrichments, variant })
 
     return join('@', \`\${name}.generated.tsx\`)
   }
