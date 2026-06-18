@@ -20,8 +20,6 @@ type DecomposeUnionReturn = {
 // Convert a schema object into an array of schemas that can be merged iteratively into a new schema
 export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): DecomposeUnionReturn => {
   if (!schema[groupType]) {
-    console.log('NO GROUP TYPE', JSON.stringify(schema, null, 2))
-
     return {
       beforeExcluded: {},
       decomposed: [schema],
@@ -65,15 +63,13 @@ export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): Decom
   return result
 }
 
-// Kept on the union (via beforeExcluded/afterExcluded) rather than
-// cross-product-merged into each member. Two reasons a key lands here:
-//   - Union-level metadata: merging it *into* a member resolves `$ref`
-//     members (to merge the metadata in), losing their names — `toUnion`
-//     already captures this metadata on the union itself.
-//   - Non-distributable constraints (`not`): they have no per-member meaning
-//     and `mergeSchemasOrRefs` cannot merge them, so distributing them throws
-//     for every member and collapses the union to an empty array. TypeScript
-//     can't model `not` anyway, so it rides the union wrapper, ignored.
+// Union-level keys: kept on the union (via beforeExcluded/afterExcluded)
+// rather than cross-product-merged into each member. Merging a metadata key
+// *into* a member would resolve `$ref` members (to merge it in), losing their
+// names — `toUnion` already captures these on the union itself.
+// (`not` is deliberately NOT excluded here — it has no faithful TypeScript
+// representation, so a schema using it is refused upstream in `toSchemaV3`
+// rather than silently dropped from the union.)
 const excludedProperties = [
   'discriminator',
   'default',
@@ -84,8 +80,7 @@ const excludedProperties = [
   'examples',
   'readOnly',
   'writeOnly',
-  'deprecated',
-  'not'
+  'deprecated'
 ]
 
 type ExcludeOutput = {

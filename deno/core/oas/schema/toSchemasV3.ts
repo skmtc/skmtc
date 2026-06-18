@@ -118,6 +118,15 @@ export const toSchemaV3 = ({
     return toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
+  // OpenAPI `not` has no faithful TypeScript representation: a generated type
+  // that ignored it would *widen* the contract (accepting shapes the schema
+  // forbids). Refuse the schema rather than emit a type that lies. The throw
+  // is isolated by `tryParseAt` into an `INVALID_SCHEMA` issue, and consumers
+  // of this schema are pruned via `removeErroredItems` (INVALID_DEPENDENCY_REF).
+  if ('not' in schema) {
+    throw new Error('Schema uses unsupported "not" keyword')
+  }
+
   const normalized = normalizeTypeArray(schema)
 
   if (normalized !== schema) {

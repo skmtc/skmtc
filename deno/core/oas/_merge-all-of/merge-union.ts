@@ -72,15 +72,6 @@ export const mergeCrossProduct = ({
     })
     .filter(item => item !== undefined)
 
-  // Defensive floor: when both groups are non-empty the cross product is
-  // non-empty, so an empty `mergedGroup` means every merge *failed* (an
-  // unmergeable constraint in `secondGroup`). Keep the un-merged `firstGroup`
-  // rather than collapsing to an empty union. A genuinely empty input union
-  // (`anyOf: []` → empty group) is left empty so `toSchemasV3` still throws.
-  if (mergedGroup.length === 0 && firstGroup.length > 0 && secondGroup.length > 0) {
-    return { [groupType]: firstGroup }
-  }
-
   return {
     [groupType]: mergedGroup.flatMap(item => {
       if (!isRef(item) && Array.isArray(item[groupType])) {

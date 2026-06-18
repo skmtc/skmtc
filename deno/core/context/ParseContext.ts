@@ -265,6 +265,22 @@ export class ParseContext {
    * the parsed document. Symmetric across protocols: OAS prunes via
    * `OasDocument.removeItem`, GQL via `GqlDocument.removeItem`. Each
    * pruned consumer yields an `INVALID_DEPENDENCY_REF` issue.
+   *
+   * Pruning is deliberately **single-level** — only the direct
+   * consumers of a parse-errored schema are removed. Anything those
+   * removals leave with a dangling reference is left in place: if a
+   * generator never resolves it, it is harmless; if one does, that
+   * single artifact fails at generate time and is isolated there. We
+   * do not cascade transitively.
+   *
+   * Known coarseness, intentionally left as-is for now: a `paths:P:M:…`
+   * consumer trail resolves to the *whole operation*, so an operation
+   * that references a broken schema is pruned even when the reference
+   * is only through a response it does not generate from. A finer
+   * design — don't prune operations for response-position refs and let
+   * generate-time isolation handle the dangling ref — is deferred; the
+   * single-level + generate-time-isolation contract above keeps the
+   * dangling ref safe in the meantime.
    */
   removeErroredItems(): void {
     switch (this.protocol.type) {
