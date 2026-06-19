@@ -406,9 +406,9 @@ export class GenerateContext implements GenerateContextType {
    * Evaluate each generator's `isSupported` over the parsed document's subjects
    * and report the subjects each generator supports — capability only, no
    * transform and no render. Operation generators report the operations their
-   * `isSupported` accepts; model generators report every model (the generate
-   * pipeline applies no model-level `isSupported`). A generator targeting the
-   * other protocol reports nothing.
+   * `isSupported` accepts; model generators report the models theirs accepts
+   * (a generator that declares no `isSupported` defaults to every subject). A
+   * generator targeting the other protocol reports nothing.
    */
   toSupportedSubjects(): SupportedSubjects {
     const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
@@ -448,7 +448,12 @@ export class GenerateContext implements GenerateContextType {
             this.document.type === 'oas'
               ? (this.document.value.components?.toSchemasRefNames() ?? [])
               : this.document.value.registry.toSchemasRefNames()
-          out[generatorConfig.id] = { type: 'model', models: [...refNames] }
+          const models = [...refNames].filter(refName =>
+            this.#supports(() =>
+              generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
+            )
+          )
+          out[generatorConfig.id] = { type: 'model', models }
           break
         }
         default: {
@@ -523,9 +528,10 @@ export class GenerateContext implements GenerateContextType {
           const toDefaults = generatorConfig.toEnrichmentDefaults
           if (!toDefaults) break
 
-          // Model entries carry no `isSupported` — the generate pipeline visits
-          // every refName and filters inside the callback. Mirror that here: the
-          // hook itself returns `undefined` for schemas it doesn't seed.
+          // Seed only the models the generator supports — mirrors the
+          // operation arm. A generator that declares no `isSupported`
+          // defaults to every model; the hook itself still returns
+          // `undefined` for schemas it doesn't seed.
           const refNames =
             this.document.type === 'oas'
               ? (this.document.value.components?.toSchemasRefNames() ?? [])
@@ -533,6 +539,14 @@ export class GenerateContext implements GenerateContextType {
 
           const models: ModelEnrichmentDefaults = {}
           for (const refName of refNames) {
+            if (
+              !this.#supports(() =>
+                generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
+              )
+            ) {
+              continue
+            }
+
             const leaf = this.#subjectDefaults(() =>
               toDefaults({ refName, context: this, variant: DEFAULT_VARIANT })
             )
@@ -780,11 +794,18 @@ export class GenerateContext implements GenerateContextType {
         variants.forEach(variant => {
           refTrail.trace(`variant: ${variant}`, st => {
             try {
-              // Order: include (allow) → skip (deny). Match is now on
-              // `(refName, variant)`. An empty variant array on a
-              // refName means "every variant of this refName"; a
-              // populated array names the variants the entry applies
-              // to.
+              if (
+                typeof generatorConfig.isSupported === 'function' &&
+                !generatorConfig.isSupported({ refName, context: this, variant })
+              ) {
+                this.captureCurrentResult('notSupported', st)
+                return
+              }
+
+              // Order: isSupported (capability) → include (allow) → skip
+              // (deny). Match is on `(refName, variant)`. An empty variant
+              // array on a refName means "every variant of this refName"; a
+              // populated array names the variants the entry applies to.
               if (
                 include !== undefined &&
                 !matchesRefFilter({ refs: include, refName, variant })
