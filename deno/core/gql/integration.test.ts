@@ -81,6 +81,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     id: 'synthetic-model',
     type: 'model',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
+    isSupported: () => true,
     transform({ refName }: TransformModelArgs): void {
       modelRefNames.push(refName)
     }

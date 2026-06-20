@@ -231,17 +231,20 @@ with variants-unaware peers like `gen-typescript` / `gen-zod`. Full
 treatment: §10 "Authoring a variants-aware generator"; test:
 `core/context/GenerateContext.cross-variant.test.ts`.
 
-### `insertOperation` enforces the peer's `isSupported`
+### `insertOperation` / `insertModel` enforce the peer's `isSupported`
 
-Cross-generator `insertOperation` deliberately **bypasses the peer's
-`skip` / `include`** config (dependency edges are filter-blind) but
-**does** enforce the peer's static `isSupported`: an unsupported
-operation throws at the Driver (`assertPeerSupported`), the calling
-generator's item is recorded as `error`, and the run continues — loud,
-isolated failure beats a silently-broken Definition. The static the
-Driver probes is the one on the peer's **projection base** (`base.ts`
-config field); a peer without one is treated as supporting everything.
-Test: `OasOperationDriver.test.ts` → "Peer support validation".
+Cross-generator `insertOperation` (and the model-side `insertModel`)
+deliberately **bypasses the peer's `skip` / `include`** config
+(dependency edges are filter-blind) but **does** enforce the peer's
+static `isSupported`: an unsupported operation/model throws at the
+Driver (`assertPeerSupported`), the calling generator's item is
+recorded as `error`, and the run continues — loud, isolated failure
+beats a silently-broken Definition. The static the Driver probes is the
+one on the peer's **projection base** (`base.ts` config field); a peer
+without one is treated as supporting everything. The operation static
+gets `{ operation, context }`; the model static gets `{ refName,
+context }`. Tests: `OasOperationDriver.test.ts` /
+`ModelDriver.test.ts` → "Peer support validation".
 
 ## 3.5. The operation-reference protocol
 
@@ -662,14 +665,20 @@ export const MyModelEntry = toModelEntry<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
 
-  // ⬇ NO `isSupported` for model entries — `transform` runs for every
-  //   refName per variant. Filter inside the callback if needed.
-  //   Thread `variant` into `insertModel` so the Driver builds
+  // ⬇ Optional capability gate (symmetric with operation entries). A
+  //   model whose predicate returns false is recorded `notSupported`
+  //   and its `transform` is skipped; omit it to support every model.
+  //   The predicate gets `refName` (no schema) — resolve it yourself
+  //   when needed, mirroring `transform`. Declare *capability* only;
+  //   gate user intent via client.json `include`/`skip`, not here.
+  isSupported({ context, refName }) {
+    const schema = context.resolveSchemaRefOnce(refName, MyGen.id)
+    return !schema.isRef() && schema.type === 'object'
+  },
+
+  // ⬇ Thread `variant` into `insertModel` so the Driver builds
   //   per-variant ContentSettings.
   transform({ context, refName, variant }) {
-    const schema = context.resolveSchemaRefOnce(refName, MyGen.id)
-    if (schema.isRef() || schema.type !== 'object') return
-
     context.insertModel(MyGen, refName, { variant })
   },
 
@@ -693,10 +702,15 @@ export default MyModelEntry
 
 Three model-specific things to remember:
 
-1. **No `isSupported` field.** The engine visits every refName
-   in the document and calls `transform` once per declared variant.
-   Filter unwanted schemas inside the callback
-   (`if (schema.type !== 'object') return`), not by gating the Entry.
+1. **`isSupported` is optional and symmetric with operations.** When
+   declared, the engine evaluates it per (refName, variant) before
+   `include`/`skip`; a `false` result records `notSupported` and skips
+   `transform`. When omitted it defaults to `() => true` (every refName
+   runs). Declare *capability* only — gate user intent via client.json
+   `include`/`skip`, never on enrichment presence. The predicate
+   receives `refName` (no schema); resolve via
+   `context.resolveSchemaRefOnce(refName, baseId)` when you need it. The
+   static is also probed by `insertModel` (peer-capability — §3.5).
 2. **`transform` receives `refName`, not a schema.** Resolve via
    `context.resolveSchemaRefOnce(refName, baseId)` when you need the
    schema. The Driver also passes the schema down to your
@@ -715,7 +729,7 @@ operational details — committing this table to memory saves time:
 |---|---|---|---|
 | `transform` arg | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
 | `transform` return | `void` — the `acc` accumulator is removed (F11) | same | same |
-| `isSupported` field | optional, default `() => true` | optional, default `() => true` | **absent** — filter in `transform` |
+| `isSupported` field | optional, default `() => true` | optional, default `() => true` | optional, default `() => true` (predicate gets `refName`, no schema) |
 | Enrichment routing | `enrichments.<id>.<path>.<method>.<variant>` | `enrichments.<id>.<rootKind>.<fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
 | Compose with | `context.insertOperation(P, op, { variant? })` | `context.insertOperation(P, op, { variant? })` | `context.insertModel(P, refName, { variant? })` |
 | Companion base factory (from `@skmtc/lang-typescript`) | `toTsOasOperationProjectionBase` | `toTsGqlOperationProjectionBase` | `toTsModelProjectionBase` |

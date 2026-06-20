@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert/equals'
 import { join } from 'jsr:@std/path@^1'
-import { collectSourceFiles } from './source-upload.ts'
+import { collectBaseFiles, collectSourceFiles } from './source-upload.ts'
 
 /** Write a file at `root/rel`, creating parent dirs. */
 const write = async (root: string, rel: string, content = '') => {
@@ -72,6 +72,26 @@ Deno.test('collectSourceFiles - .skmtcignore can re-include a default-excluded p
 
     const files = await collectSourceFiles(root)
     assertEquals(files.map((file) => file.path), ['.skmtcignore', 'deno.json', 'diagram.png'])
+  } finally {
+    await Deno.remove(root, { recursive: true })
+  }
+})
+
+Deno.test('collectBaseFiles - keeps hand-written; drops .skmtc/, deps, generated, ignored', async () => {
+  const root = await Deno.makeTempDir()
+  try {
+    await write(root, 'package.json', '{}')
+    await write(root, 'src/app.tsx', 'export const App = () => null')
+    await write(root, 'src/types/User.generated.ts', '// generated')
+    await write(root, '.skmtc/proj/mod.ts', '// stack workspace')
+    await write(root, 'node_modules/dep/index.js', '// dep')
+    await write(root, 'dist/out.js', '// build output')
+    await write(root, '.skmtcignore', 'dist/\n/.skmtcignore\n')
+
+    const files = await collectBaseFiles(root, new Set(['src/types/User.generated.ts']))
+
+    assertEquals(Object.keys(files).sort(), ['package.json', 'src/app.tsx'])
+    assertEquals(files['package.json'], '{}')
   } finally {
     await Deno.remove(root, { recursive: true })
   }

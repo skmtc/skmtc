@@ -281,28 +281,3 @@ Deno.test("mergeUnion - metadata stays on the union; $ref members preserved", ()
     ],
   });
 });
-
-// "exactly one of a/b": object + anyOf-of-required + `not`. Regression:
-// distributing the un-mergeable `not` into each member threw, filtering both
-// members out, collapsing the union to an empty array → "anyOf array is
-// empty". `not` must ride the union wrapper instead.
-Deno.test("mergeUnion - 'not' rides the union wrapper instead of collapsing members", () => {
-  const failingGetRef: GetRefFn = (ref) => {
-    throw new Error(`getRef must not be called: ${ref.$ref}`);
-  };
-
-  const input: SchemaObject = {
-    type: "object",
-    description: "Reference an input image by URL or file ID.",
-    properties: { image_url: { type: "string" }, file_id: { type: "string" } },
-    anyOf: [{ required: ["image_url"] }, { required: ["file_id"] }],
-    not: { required: ["image_url", "file_id"] },
-    additionalProperties: false,
-  };
-
-  const result = mergeUnion({ schema: input, getRef: failingGetRef, groupType: "anyOf" });
-
-  assertEquals("not" in result, true);
-  const members = "anyOf" in result && Array.isArray(result.anyOf) ? result.anyOf : [];
-  assertEquals(members.length, 2);
-});

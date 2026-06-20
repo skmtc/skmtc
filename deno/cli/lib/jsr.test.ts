@@ -59,6 +59,12 @@ const createMockVersionMetaResponse = (): JsrPkgVersionInfo => ({
 Deno.test('Jsr.getLatestMeta - fetches and parses metadata successfully', async () => {
   const mockMeta = createMockMetaResponse()
 
+  // Pin the registry host to the default so the asserted URL is deterministic
+  // regardless of the ambient JSR_URL (CI sets it to the .co.uk mirror for
+  // `jsr:` import resolution). Mirrors jsr-registry.test.ts's JSR_URL handling.
+  const previousJsrUrl = Deno.env.get('JSR_URL')
+  Deno.env.delete('JSR_URL')
+
   // Mock fetch to return successful response
   globalThis.fetch = async (url: string | URL | Request) => {
     assertEquals(url, 'https://jsr.skmtc.dev/@skmtc/gen-typescript/meta.json')
@@ -81,6 +87,11 @@ Deno.test('Jsr.getLatestMeta - fetches and parses metadata successfully', async 
     assertEquals(Object.keys(result.versions).length, 5)
   } finally {
     globalThis.fetch = originalFetch
+    if (previousJsrUrl === undefined) {
+      Deno.env.delete('JSR_URL')
+    } else {
+      Deno.env.set('JSR_URL', previousJsrUrl)
+    }
   }
 })
 

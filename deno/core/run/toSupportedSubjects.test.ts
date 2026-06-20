@@ -44,6 +44,13 @@ const generators = <E = undefined>(): GeneratorsMapContainer<E> =>
       toEnrichmentSchema: () => emptyEnrichmentSchema,
       transform: () => {},
     }),
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+    'pet-only-models': toModelEntry({
+      id: 'pet-only-models',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
+      isSupported: ({ refName }) => refName === 'Pet',
+      transform: () => {},
+    }),
   })
 
 Deno.test('toSupportedSubjects', async (t) => {
@@ -82,11 +89,19 @@ Deno.test('toSupportedSubjects', async (t) => {
     }
   })
 
-  await t.step('a model generator reports every model', () => {
+  await t.step('a model generator without isSupported reports every model', () => {
     const gen = result.subjects['models']
     assertEquals(gen.type, 'model')
     if (gen.type === 'model') {
       assertEquals(gen.models.toSorted(), ['Owner', 'Pet'])
+    }
+  })
+
+  await t.step('a model generator reports only the models its isSupported accepts', () => {
+    const gen = result.subjects['pet-only-models']
+    assertEquals(gen.type, 'model')
+    if (gen.type === 'model') {
+      assertEquals(gen.models.toSorted(), ['Pet'])
     }
   })
 })

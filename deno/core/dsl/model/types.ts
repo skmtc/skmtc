@@ -48,6 +48,35 @@ export type TransformModelArgs = {
   variant: string
 }
 
+/**
+ * Arguments a model generator's `isSupported` predicate receives at the
+ * entry/dispatch boundary. The capability counterpart of
+ * {@link TransformModelArgs}: it carries the resolved enrichment umbrella so
+ * the predicate can gate on user config, but no schema — the predicate
+ * resolves the schema itself (`context.resolveSchemaRefOnce(refName, id)`)
+ * when it needs it, mirroring how `transform` works.
+ */
+export type IsSupportedModelConfigArgs<EnrichmentType = undefined> = {
+  context: GenerateContextType
+  refName: RefName
+  enrichments: EnrichmentType
+  /** Model variant being probed (see {@link Variant}) */
+  variant: string
+}
+
+/**
+ * Arguments the engine passes to the wrapped `isSupported` on a built
+ * {@link ModelConfig} — the enrichment-free outer shape (the
+ * {@link toModelEntry} wrapper assembles the umbrella before calling the
+ * user's predicate).
+ */
+export type IsSupportedModelArgs = {
+  context: GenerateContextType
+  refName: RefName
+  /** Model variant being probed (see {@link Variant}) */
+  variant: string
+}
+
 export type ToModelPreviewModuleArgs = {
   context: GenerateContextType
   refName: RefName
@@ -118,6 +147,14 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
   toIdentifierType: (refName: RefName, context: GenerateContextType) => IdentifierType
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   toEnrichments: ({ refName, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
+  /**
+   * Family-level capability predicate, surfaced as a static by
+   * `toModelProjectionBase` (default `() => true`). The Driver probes it on
+   * every `insertModel` so a peer is never handed a model it has declared
+   * unsupported. Optional: a hand-rolled projection may omit it, in which
+   * case it is treated as supporting every model.
+   */
+  isSupported?: (args: { refName: RefName; context: GenerateContextType }) => boolean
   schemaToValueFn: SchemaToValueFn
   /**
    * The inline-schema fallback seam used by `insertNormalizedModel` when a
@@ -138,6 +175,14 @@ export type ModelConfig<EnrichmentType = undefined> = {
   id: string
   type: 'model'
   transform: ({ context, refName, variant }: TransformModelArgs) => void
+  /**
+   * Optional capability gate, evaluated by the engine before `include` /
+   * `skip`. A model whose predicate returns `false` is recorded `notSupported`
+   * and its `transform` is skipped. Absent → treated as `() => true` (every
+   * model supported). {@link toModelEntry} still defaults it for built configs,
+   * but a hand-constructed config may omit it.
+   */
+  isSupported?: ({ context, refName }: IsSupportedModelArgs) => boolean
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>

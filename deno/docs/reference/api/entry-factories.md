@@ -36,9 +36,9 @@ Type files:
 | **`type` discriminator** | `'oasOperation'` | `'gqlOperation'` | `'model'` |
 | **`transform` second arg** | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
 | **`acc` semantics** | Threaded but typically ignored; safe to omit `return acc` | Threaded and **must be returned** | Threaded but typically ignored |
-| **`isSupported`** | Optional; default `() => true` | Optional; default `() => true` | **Not supported** |
+| **`isSupported`** | Optional; default `() => true` | Optional; default `() => true` | Optional; default `() => true` (predicate gets `refName`, no `operation`) |
 | **Enrichment routing path** | `enrichments.<id>.<operation.path>.<operation.method>.<variant>` | `enrichments.<id>.<operation.rootKind>.<operation.fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
-| **`isSupported` enrichments pre-resolved** | Yes, via Valibot parse | Yes, via Valibot parse | n/a |
+| **`isSupported` enrichments pre-resolved** | Yes, via Valibot parse | Yes, via Valibot parse | Yes, via Valibot parse |
 | **Companion projection-base factory** | `toOasOperationProjectionBase` | `toGqlOperationProjectionBase` | `toModelProjectionBase` |
 
 The three factories share the same backbone; the differences are
@@ -138,7 +138,7 @@ schema" and the enrichment service can respond. Most generators
 don't use this. See
 [enrichments concept](../../concepts/enrichments.md#ai-driven-enrichment-requests).
 
-## OAS-only and GQL-only: `isSupported`
+## All three factories: `isSupported`
 
 ```ts
 isSupported?: ({
@@ -150,7 +150,8 @@ isSupported?: ({
 
 The capability gate. Returns `true` for operations this generator can
 handle, `false` otherwise. Omitting it advertises support for every
-operation.
+operation. The model factory's shape differs only in the subject — see
+the model note at the end of this section.
 
 ```ts
 isSupported({ operation }) {
@@ -175,15 +176,19 @@ Three rules:
    generator handle this operation?" — the foundation of the
    [operation-reference protocol](../../concepts/cross-generator-coordination.md#operation-reference-protocol).
 
-**Model entries have no `isSupported`.** Every refName in the
-document is dispatched to every registered model generator.
-Filter inside `transform` if you need to skip particular schemas:
+**Model entries have an optional `isSupported`, symmetric with
+operations.** The three rules above all apply, with one shape
+difference: the model predicate receives `{ context, refName,
+enrichments, variant }` (no `operation`) — resolve the schema yourself
+when the gate needs it. When omitted it defaults to `() => true`, so
+every refName is dispatched. The user's predicate is re-exposed as
+`MyProjection.isSupported` and probed by `insertModel` (peer
+capability), exactly as the operation static is by `insertOperation`.
 
 ```ts
-transform({ context, refName }) {
+isSupported({ context, refName }) {
   const schema = context.resolveSchemaRefOnce(refName, MyBase.id)
-  if (schema.isRef() || schema.type !== 'object') return
-  context.insertModel(MyProjection, refName)
+  return !schema.isRef() && schema.type === 'object'
 }
 ```
 
@@ -223,8 +228,8 @@ config you handed in, plus:
 - `type: 'oasOperation' | 'gqlOperation' | 'model'` — the
   discriminator the dispatcher reads to route to the right
   per-protocol loop.
-- `isSupported` — for OAS/GQL, wrapped to pre-parse enrichments. For
-  model entries this field is absent.
+- `isSupported` — all three factories wrap it to pre-parse enrichments;
+  on a built config it is always present (defaulted to `() => true`).
 
 The returned shape (from the source types):
 
@@ -252,7 +257,7 @@ type ModelConfig<E = undefined> = {
   toPreviewModule?: (args: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: (args: ToModelMappingArgs) => MappingModule
   toEnrichmentRequest?: <R extends E>(refName: RefName) => EnrichmentRequest<R> | undefined
-  // note: no isSupported
+  isSupported: (args: IsSupportedModelArgs) => boolean   // subject is refName, not operation
 }
 ```
 
@@ -330,8 +335,14 @@ const metaEntry = toModelEntry<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
 
-  // No `isSupported` — model entries process every refName.
-  // Filter inside `transform` if needed.
+  // Optional capability gate (symmetric with operations). The predicate
+  // gets `refName`, not a schema — resolve it yourself. Omit to support
+  // every refName.
+  isSupported({ context, refName }) {
+    const schema = context.resolveSchemaRefOnce(refName, MetaProjection.id)
+    return !schema.isRef() && schema.type === 'object'
+  },
+
   transform({ context, refName }) {
     const schema = context.resolveSchemaRefOnce(refName, MetaProjection.id)
     if (schema.isRef() || schema.type !== 'object') return
@@ -381,7 +392,7 @@ are two different factory calls with overlapping config:
 |---|---|---|
 | `id` | yes | yes (must match) |
 | `transform` | yes | — |
-| `isSupported` | yes (OAS/GQL only) | yes (OAS/GQL only) |
+| `isSupported` | yes (all three) | yes (all three) |
 | `toEnrichmentSchema` | yes | yes (must match) |
 | `toIdentifier` | — | yes |
 | `toExportPath` | — | yes |
