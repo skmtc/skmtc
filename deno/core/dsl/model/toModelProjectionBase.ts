@@ -82,6 +82,13 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined, L extends Lang
    * static returns `undefined`.
    */
   toEnrichmentDefaults?: (args: ToEnrichmentsArgs) => EnrichmentType | undefined
+  /**
+   * Family-level applicability predicate. Becomes a static `isSupported`
+   * on the returned base class so other projections can probe it before
+   * `insertModel` (the model counterpart of the operation-reference
+   * protocol). When omitted, advertises support for every model.
+   */
+  isSupported?: (args: { refName: RefName; context: GenerateContextType }) => boolean
 }
 
 /**
@@ -92,8 +99,8 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined, L extends Lang
  * while core stays language-blind (the base arrives as an opaque
  * constructor; core never names a concrete language class). The class
  * exposes the generator's `id`, `toIdentifierName`, `toIdentifierType`,
- * `toExportPath`, and `toEnrichments` statics, inherits the static `lang`
- * from the base, and
+ * `toExportPath`, `toEnrichments`, and `isSupported` statics, inherits the
+ * static `lang` from the base, and
  * injects `generatorKey` so subclasses don't have to.
  *
  * Defines NO `register` / `registerInto` — register ergonomics are typed by
@@ -138,7 +145,7 @@ export const toModelProjectionBase = <EnrichmentType = undefined, L extends Lang
     static toEnrichmentDefaults = (args: ToEnrichmentsArgs): EnrichmentType | undefined =>
       config.toEnrichmentDefaults?.call(config, args)
 
-    static isSupported = () => true
+    static isSupported = config.isSupported ?? (() => true)
 
     settings: ContentSettings<EnrichmentType>
     refName: RefName

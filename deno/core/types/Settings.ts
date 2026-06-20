@@ -232,6 +232,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   include: v.optional(v.array(include)),
   skip: v.optional(v.array(skip)),
   anchors: v.optional(anchorsSettings),
+  inputDirs: v.optional(v.array(v.string())),
 });
 
 /**
@@ -523,6 +524,13 @@ export type ClientSettings = {
    * in v1. See {@link AnchorsSettings}.
    */
   anchors?: AnchorsSettings;
+  /**
+   * Preview input-matcher discovery directories (project-root relative, e.g.
+   * `src/fields`, `src/inputs`). A preview/hub concern: the generation engine
+   * ignores it. Declared here so the CLI preserves it when reading `client.json`
+   * and carries it through `skmtc push` to the hub.
+   */
+  inputDirs?: string[];
 };
 
 /**

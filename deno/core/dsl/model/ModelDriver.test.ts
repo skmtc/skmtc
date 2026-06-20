@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals, assertExists, assertThrows } from '@std/assert'
 import { spy, stub, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { ModelDriver } from './ModelDriver.ts'
 import type { ModelProjection } from './types.ts'
@@ -84,6 +84,18 @@ const customDefLang: Lang = {
 class MockProjectionWithCustomDef extends MockProjection {
   static override id = 'MockProjectionWithCustomDef'
   static override lang: Lang = customDefLang
+}
+
+// Peers carrying an explicit capability static — the Driver probes
+// `projection.isSupported({ refName, context })` before composing.
+class MockProjectionSupported extends MockProjection {
+  static override id = 'supporting-peer'
+  static isSupported = () => true
+}
+
+class MockProjectionUnsupported extends MockProjection {
+  static override id = 'unsupporting-peer'
+  static isSupported = () => false
 }
 
 const createMockContext = (): GenerateContextType => {
@@ -1077,5 +1089,66 @@ Deno.test('ModelDriver', async (t) => {
 
       assertEquals(driver.definition.value instanceof MockProjection, true)
     })
+  })
+
+  await t.step('Peer support validation', async t => {
+    await t.step('insertion succeeds when the peer supports the model', () => {
+      const context = createMockContext()
+      const projection =
+        MockProjectionSupported as unknown as ModelProjection<MockGeneratedValue, any>
+
+      const driver = new ModelDriver({
+        context,
+        projection,
+        refName: 'User' as RefName,
+        variant: 'main'
+      })
+
+      assertExists(driver.definition)
+    })
+
+    await t.step('insertion throws when the peer does not support the model', () => {
+      // `insertModel` against a peer whose `isSupported` returns false must
+      // throw. Capability is not a filter — unlike skip / include, which the
+      // dependency path intentionally bypasses, a peer that has declared a
+      // model unsupported cannot produce a valid Definition for it. The throw
+      // unwinds into GenerateContext's per-item try/catch, so the *calling*
+      // generator is recorded as `error` and the run continues.
+      const context = createMockContext()
+      const projection =
+        MockProjectionUnsupported as unknown as ModelProjection<MockGeneratedValue, any>
+
+      assertThrows(
+        () =>
+          new ModelDriver({
+            context,
+            projection,
+            refName: 'User' as RefName,
+            variant: 'main'
+          }),
+        Error,
+        'does not support this model'
+      )
+    })
+
+    await t.step(
+      'a peer with no isSupported static is treated as supporting every model',
+      () => {
+        // A hand-rolled projection may omit the static entirely. Absence must
+        // not false-negative — the Driver treats "no isSupported" as "supports
+        // everything" (the projection-base factory default is `() => true`).
+        const context = createMockContext()
+        const projection = createMockProjection()
+
+        const driver = new ModelDriver({
+          context,
+          projection,
+          refName: 'User' as RefName,
+          variant: 'main'
+        })
+
+        assertExists(driver.definition)
+      }
+    )
   })
 })

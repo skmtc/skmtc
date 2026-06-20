@@ -78,6 +78,20 @@ const generators = <E = undefined>(): GeneratorsMapContainer<E> =>
         stack: undefined,
       }),
     }),
+    // A model generator that supports only `Pet` — seeds only its
+    // isSupported subjects.
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+    'pet-only-models': toModelEntry<ModelEnrichment>({
+      id: 'pet-only-models',
+      toEnrichmentSchema: () => modelSchema,
+      isSupported: ({ refName }) => refName === 'Pet',
+      transform: () => {},
+      toEnrichmentDefaults: ({ refName }) => ({
+        subject: { note: `model ${refName}` },
+        generator: undefined,
+        stack: undefined,
+      }),
+    }),
   })
 
 Deno.test('toEnrichmentDefaults', async (t) => {
@@ -105,6 +119,12 @@ Deno.test('toEnrichmentDefaults', async (t) => {
     assertEquals(result.enrichmentDefaults['models'], {
       Pet: { main: { note: 'model Pet' } },
       Owner: { main: { note: 'model Owner' } },
+    })
+  })
+
+  await t.step('a model generator seeds only its isSupported subjects', () => {
+    assertEquals(result.enrichmentDefaults['pet-only-models'], {
+      Pet: { main: { note: 'model Pet' } },
     })
   })
 

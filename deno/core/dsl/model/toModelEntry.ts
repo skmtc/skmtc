@@ -4,15 +4,21 @@ import type {
   TransformModelArgs,
   ToModelPreviewModuleArgs,
   ToModelMappingArgs,
-  ToModelEnrichmentsArgs
+  ToModelEnrichmentsArgs,
+  IsSupportedModelArgs,
+  IsSupportedModelConfigArgs
 } from './types.ts'
-import type * as v from 'valibot'
+import * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
+// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
+import get from 'lodash-es/get'
 
 type ToModelEntryArgs<EnrichmentType = undefined> = {
   id: string
   transform: ({ context, refName, variant }: TransformModelArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
+  isSupported?: ({ context, refName }: IsSupportedModelConfigArgs<EnrichmentType>) => boolean
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
@@ -39,6 +45,10 @@ type ToModelEntryArgs<EnrichmentType = undefined> = {
  * @param args - Configuration for the model entry
  * @param args.id - Unique identifier for this model entry
  * @param args.transform - Function to transform schemas into artifacts
+ * @param args.isSupported - Optional capability gate; a model whose predicate
+ *   returns `false` is recorded `notSupported` and its `transform` is skipped.
+ *   Resolve the schema inside the predicate when needed
+ *   (`context.resolveSchemaRefOnce(refName, id)`). Defaults to supporting every model.
  * @param args.toPreviewModule - Optional function to generate preview modules
  * @param args.toMappingModule - Optional function to generate mapping modules
  * @param args.toEnrichmentSchema - Optional function to provide enrichment validation
@@ -83,6 +93,7 @@ type ToModelEntryArgs<EnrichmentType = undefined> = {
 export const toModelEntry = <EnrichmentType = undefined>({
   id,
   transform,
+  isSupported,
   toPreviewModule,
   toMappingModule,
   toEnrichmentSchema,
@@ -92,6 +103,7 @@ export const toModelEntry = <EnrichmentType = undefined>({
   id: string
   type: 'model'
   transform: ({ context, refName, variant }: TransformModelArgs) => void
+  isSupported: ({ context, refName }: IsSupportedModelArgs) => boolean
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
@@ -108,6 +120,29 @@ export const toModelEntry = <EnrichmentType = undefined>({
     id,
     type: 'model',
     transform,
+    isSupported: ({ context, refName, variant }: IsSupportedModelArgs) => {
+      if (!isSupported) {
+        return true
+      }
+
+      // Assemble the three-scope umbrella — mirrors
+      // `ModelProjectionBase.toEnrichments` so the shim and the
+      // projection-base resolve to the same value. Subject is per-item
+      // (`[id][refName][variant]`); generator and stack are run-constants.
+      // The required composite schema parses cast-free.
+      const raw = {
+        subject: get(context.settings, ['enrichments', id, refName, variant]),
+        generator: get(context.settings, ['enrichments', id, GENERATOR_ENRICHMENT_KEY]),
+        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
+      }
+
+      return isSupported({
+        context,
+        refName,
+        enrichments: v.parse(toEnrichmentSchema(), raw),
+        variant
+      })
+    },
     toPreviewModule,
     toMappingModule,
     toEnrichmentSchema,

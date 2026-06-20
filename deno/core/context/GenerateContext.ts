@@ -406,9 +406,9 @@ export class GenerateContext implements GenerateContextType {
    * Evaluate each generator's `isSupported` over the parsed document's subjects
    * and report the subjects each generator supports — capability only, no
    * transform and no render. Operation generators report the operations their
-   * `isSupported` accepts; model generators report every model (the generate
-   * pipeline applies no model-level `isSupported`). A generator targeting the
-   * other protocol reports nothing.
+   * `isSupported` accepts; model generators report the models theirs accepts
+   * (a generator that declares no `isSupported` defaults to every subject). A
+   * generator targeting the other protocol reports nothing.
    */
   toSupportedSubjects(): SupportedSubjects {
     const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
@@ -420,8 +420,10 @@ export class GenerateContext implements GenerateContextType {
           const operations =
             this.document.type === 'oas'
               ? this.document.value.operations
-                  .filter(operation =>
-                    this.#supports(() => generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT }))
+                  .filter(
+                    operation =>
+                      typeof generatorConfig.isSupported !== 'function' ||
+                      generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
                   )
                   .map(operation => ({ path: operation.path, method: operation.method }))
               : []
@@ -432,8 +434,10 @@ export class GenerateContext implements GenerateContextType {
           const operations =
             this.document.type === 'gql'
               ? this.document.value.operations
-                  .filter(operation =>
-                    this.#supports(() => generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT }))
+                  .filter(
+                    operation =>
+                      typeof generatorConfig.isSupported !== 'function' ||
+                      generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
                   )
                   .map(operation => ({
                     rootKind: operation.rootKind,
@@ -444,11 +448,12 @@ export class GenerateContext implements GenerateContextType {
           break
         }
         case 'model': {
-          const refNames =
-            this.document.type === 'oas'
-              ? (this.document.value.components?.toSchemasRefNames() ?? [])
-              : this.document.value.registry.toSchemasRefNames()
-          out[generatorConfig.id] = { type: 'model', models: [...refNames] }
+          const models = this.#schemaRefNames().filter(
+            refName =>
+              typeof generatorConfig.isSupported !== 'function' ||
+              generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
+          )
+          out[generatorConfig.id] = { type: 'model', models }
           break
         }
         default: {
@@ -461,13 +466,21 @@ export class GenerateContext implements GenerateContextType {
     return out
   }
 
-  /** Run an `isSupported` probe defensively — a throwing predicate excludes the subject. */
-  #supports(probe: () => boolean): boolean {
-    try {
-      return probe()
-    } catch (error) {
-      this.logger.error(error)
-      return false
+  /**
+   * Every component / registry schema refName in the document, as a flat array.
+   * Exhaustive over the document protocol — a new schema type is a compile error
+   * here rather than silently falling into the wrong branch.
+   */
+  #schemaRefNames(): RefName[] {
+    switch (this.document.type) {
+      case 'oas':
+        return [...(this.document.value.components?.toSchemasRefNames() ?? [])]
+      case 'gql':
+        return [...this.document.value.registry.toSchemasRefNames()]
+      default: {
+        const _exhaustive: never = this.document
+        throw new Error(`Unhandled document type: ${JSON.stringify(_exhaustive)}`)
+      }
     }
   }
 
@@ -498,9 +511,8 @@ export class GenerateContext implements GenerateContextType {
           const operations: OperationEnrichmentDefaults = {}
           this.document.value.operations.forEach(operation => {
             if (
-              !this.#supports(() =>
-                generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
-              )
+              typeof generatorConfig.isSupported === 'function' &&
+              !generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
             ) {
               return
             }
@@ -523,16 +535,19 @@ export class GenerateContext implements GenerateContextType {
           const toDefaults = generatorConfig.toEnrichmentDefaults
           if (!toDefaults) break
 
-          // Model entries carry no `isSupported` — the generate pipeline visits
-          // every refName and filters inside the callback. Mirror that here: the
-          // hook itself returns `undefined` for schemas it doesn't seed.
-          const refNames =
-            this.document.type === 'oas'
-              ? (this.document.value.components?.toSchemasRefNames() ?? [])
-              : this.document.value.registry.toSchemasRefNames()
-
+          // Seed only the models the generator supports — mirrors the
+          // operation arm. A generator that declares no `isSupported`
+          // defaults to every model; the hook itself still returns
+          // `undefined` for schemas it doesn't seed.
           const models: ModelEnrichmentDefaults = {}
-          for (const refName of refNames) {
+          for (const refName of this.#schemaRefNames()) {
+            if (
+              typeof generatorConfig.isSupported === 'function' &&
+              !generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
+            ) {
+              continue
+            }
+
             const leaf = this.#subjectDefaults(() =>
               toDefaults({ refName, context: this, variant: DEFAULT_VARIANT })
             )
@@ -780,11 +795,18 @@ export class GenerateContext implements GenerateContextType {
         variants.forEach(variant => {
           refTrail.trace(`variant: ${variant}`, st => {
             try {
-              // Order: include (allow) → skip (deny). Match is now on
-              // `(refName, variant)`. An empty variant array on a
-              // refName means "every variant of this refName"; a
-              // populated array names the variants the entry applies
-              // to.
+              if (
+                typeof generatorConfig.isSupported === 'function' &&
+                !generatorConfig.isSupported({ refName, context: this, variant })
+              ) {
+                this.captureCurrentResult('notSupported', st)
+                return
+              }
+
+              // Order: isSupported (capability) → include (allow) → skip
+              // (deny). Match is on `(refName, variant)`. An empty variant
+              // array on a refName means "every variant of this refName"; a
+              // populated array names the variants the entry applies to.
               if (
                 include !== undefined &&
                 !matchesRefFilter({ refs: include, refName, variant })

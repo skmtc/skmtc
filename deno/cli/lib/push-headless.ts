@@ -188,6 +188,7 @@ export const pushHeadless = async ({
       include: settings.include,
       skip: settings.skip,
       enrichments: settings.enrichments,
+      inputDirs: settings.inputDirs,
     },
   };
 

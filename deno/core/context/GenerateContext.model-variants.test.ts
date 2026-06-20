@@ -348,3 +348,61 @@ Deno.test('model variants - include + skip on same variant: skip wins', () => {
   assertEquals(results.find(r => r.variant === 'main')?.result, 'success')
   assertEquals(results.find(r => r.variant === 'coercive')?.result, 'skipped')
 })
+
+// ─── isSupported capability gate (symmetric with the operation arm) ──
+
+Deno.test('model variants - isSupported gates which refNames dispatch', () => {
+  // The generator supports only `Customer`. `Order` must emit
+  // `notSupported` and its `transform` must not run.
+  const transform: Spy<undefined, [TransformArgs], unknown> = spy(
+    (_args: TransformArgs) => undefined
+  )
+  const { context, captures } = buildContext({
+    document: makeOasDoc(['Customer', 'Order']),
+    settings: { skip: [] },
+    generators: {
+      'zod-gen': {
+        id: 'zod-gen',
+        type: 'model' as const,
+        transform,
+        isSupported: ({ refName }: { refName: RefName }) => refName === 'Customer'
+      }
+    }
+  })
+  context.toArtifacts(new StackTrail(['test']))
+
+  const results = toVariantResults(captures, 'zod-gen')
+  assertEquals(results.find(r => r.refName === 'Customer')?.result, 'success')
+  assertEquals(results.find(r => r.refName === 'Order')?.result, 'notSupported')
+
+  // transform ran for Customer only.
+  assertEquals(transform.calls.length, 1)
+  assertEquals(transform.calls[0].args[0].refName, 'Customer')
+})
+
+Deno.test('model variants - isSupported runs before include; unsupported emits notSupported even if included', () => {
+  // The refName is in the include allow-list, but `isSupported` returns
+  // false. We must see `notSupported`, NOT `skipped` — include must not
+  // mask capability rejection. Mirrors the operation-arm ordering test.
+  const transform: Spy<undefined, [TransformArgs], unknown> = spy(
+    (_args: TransformArgs) => undefined
+  )
+  const { context, captures } = buildContext({
+    document: makeOasDoc(['Customer']),
+    settings: { include: [{ 'zod-gen': { Customer: [] } }] },
+    generators: {
+      'zod-gen': {
+        id: 'zod-gen',
+        type: 'model' as const,
+        transform,
+        isSupported: () => false
+      }
+    }
+  })
+  context.toArtifacts(new StackTrail(['test']))
+
+  const results = toVariantResults(captures, 'zod-gen')
+  assertEquals(results.length, 1)
+  assertEquals(results[0].result, 'notSupported')
+  assertEquals(transform.calls.length, 0)
+})

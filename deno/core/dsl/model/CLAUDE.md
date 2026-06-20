@@ -20,7 +20,13 @@ The model half of the projection machinery, symmetric with
   `lang` — the import graph declares the language). `transform`
   (`({ context, refName, variant }) => void` — no accumulator),
   `toPreviewModule`, and `toMappingModule` all receive `variant`.
-  No `isSupported` field; model entries filter inside `transform`.
+  Optional `isSupported` (symmetric with the operation entries):
+  wrapped to pre-parse the `{ subject, generator, stack }` enrichment
+  umbrella, then exposed on the built config (defaulted to
+  `() => true`). The predicate gets `{ context, refName, enrichments,
+  variant }` — no schema; resolve it via `context.resolveSchemaRefOnce`
+  when the gate needs it. The engine evaluates it per (refName, variant)
+  before `include`/`skip` and records `notSupported` on a `false`.
 - `ModelDriver.ts` — the insertion lifecycle (compose
   `ContentSettings`, look up via `findDefinition`, integrity-check
   via `affirmDefinition`, register the Definition, register the
@@ -30,6 +36,11 @@ The model half of the projection machinery, symmetric with
   - `assertPeerVariantExists` runs before `toModelContentSettings`
     — throws if the caller asked for a non-`'main'` variant the peer
     doesn't declare.
+  - `assertPeerSupported` runs next — probes the peer projection's
+    static `isSupported({ refName, context })` and throws if it
+    returns `false` (the model counterpart of the OAS-operation
+    peer-capability guard; a peer with no static is treated as
+    supporting everything).
   - `affirmDefinition` builds the call's `generatorKey` with variant
     in the 3rd segment; the cache-key uniqueness invariant is
     enforced here.
@@ -55,10 +66,14 @@ variant in its enrichment block.
 
 Tests pinning model-variant invariants:
 - `core/context/GenerateContext.model-variants.test.ts` — engine
-  fan-out, missing-`main` throw, per-variant skip/include matching.
+  fan-out, missing-`main` throw, per-variant skip/include matching,
+  and the `isSupported` capability gate (per-refName gating;
+  `isSupported` runs before `include`).
 - `ModelDriver.variants.test.ts` — Driver-level peer-variant guard
   and the `generatorKey` collision check for variants-aware model
   Projections.
+- `ModelDriver.test.ts` → "Peer support validation" — Driver probes
+  the peer's `isSupported` on `insertModel`.
 
 Concept doc: `docs/concepts/variants.md`. Skill:
 `docs/skills/skmtc-generator/SKILL.md`.

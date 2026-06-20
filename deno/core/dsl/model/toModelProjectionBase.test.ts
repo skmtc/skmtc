@@ -145,7 +145,7 @@ Deno.test('toModelProjectionBase - toEnrichments returns the empty umbrella when
   assertEquals(enrichments, { subject: undefined, generator: undefined, stack: undefined })
 })
 
-Deno.test('toModelProjectionBase - sets static isSupported that returns true', () => {
+Deno.test('toModelProjectionBase - static isSupported defaults to true when not configured', () => {
   const ModelClass = toModelProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-model',
     toIdentifierName: ({ refName }) => refName,
@@ -154,7 +154,29 @@ Deno.test('toModelProjectionBase - sets static isSupported that returns true', (
     toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
-  assertEquals(ModelClass.isSupported(), true)
+  assertEquals(
+    ModelClass.isSupported({
+      refName: 'User' as RefName,
+      context: { settings: {} } as GenerateContextType
+    }),
+    true
+  )
+})
+
+Deno.test('toModelProjectionBase - static isSupported reflects the configured predicate', () => {
+  const ModelClass = toModelProjectionBase<Enrichments>(TsSnippet, {
+    id: 'test-model',
+    toIdentifierName: ({ refName }) => refName,
+    toIdentifierType: () => ({ kind: 'type' }),
+    toExportPath: ({ refName }) => `./models/${refName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    // Only object-named models supported in this fixture.
+    isSupported: ({ refName }) => refName === 'User'
+  })
+
+  const context = { settings: {} } as GenerateContextType
+  assertEquals(ModelClass.isSupported({ refName: 'User' as RefName, context }), true)
+  assertEquals(ModelClass.isSupported({ refName: 'Order' as RefName, context }), false)
 })
 
 Deno.test('toModelProjectionBase - toIdentifierName works with different refNames', () => {

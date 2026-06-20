@@ -182,22 +182,26 @@ Two things to internalize:
    that's what triggers the Driver to construct your Projection (if
    not already cached), wrap the result in a `Definition`, and
    register it in the file map.
-2. **Model entries have no `isSupported`** — every refName in the
-   document is dispatched. If you want to skip particular schemas
-   (e.g., non-object types for this generator), filter *inside*
-   `transform`:
+2. **Model entries have an optional `isSupported`** — declare it to
+   gate which refNames the engine dispatches (a `false` result records
+   `notSupported` and skips `transform`); omit it and every refName is
+   dispatched. The predicate receives `{ context, refName, enrichments,
+   variant }` — no schema, so resolve it yourself. Use `isSupported`
+   for a *capability* claim (the schema shapes this generator can
+   handle); for user opt-in/out, prefer client.json `include`/`skip`:
 
 ```ts
-transform({ context, refName }) {
+isSupported({ context, refName }) {
   const schema = context.resolveSchemaRefOnce(refName, SchemaMetaBase.id)
-  if (schema.isRef() || schema.type !== 'object') return
-  context.insertModel(SchemaMetaProjection, refName)
+  return !schema.isRef() && schema.type === 'object'
 }
 ```
 
-That's the model contrast with operation entries (tutorial 03's
-Step 2 implements `isSupported` on the Entry config; here, the
-filter lives in `transform`).
+This is now symmetric with operation entries (tutorial 03's Step 2
+implements `isSupported` on the Entry config too). You can equally
+filter inside `transform` — but `isSupported` makes the capability
+explicit, surfaces the refName as `notSupported` rather than a silent
+no-op, and lets peers probe it via `insertModel`.
 
 If you later need user-facing options, add `toEnrichmentSchema` to
 the Entry config and pass the typed enrichment through. The full

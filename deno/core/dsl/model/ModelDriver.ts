@@ -83,6 +83,8 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       variant
     })
 
+    assertPeerSupported({ context, projection, refName })
+
     this.settings = this.context.toModelContentSettings({ refName, projection, variant })
     this.definition = this.apply({ destinationPath })
 
@@ -240,6 +242,47 @@ const assertPeerVariantExists = ({
     throw new Error(
       `[${generatorId}] Cannot insert variant '${variant}' for '${refName}'. ` +
         `Available variants: ${available}.`
+    )
+  }
+}
+
+type AssertPeerSupportedArgs = {
+  context: GenerateContextType
+  projection: {
+    id: string
+    isSupported?: (args: { refName: RefName; context: GenerateContextType }) => boolean
+  }
+  refName: RefName
+}
+
+/**
+ * Guard the peer-capability invariant for model insertions.
+ *
+ * `insertModel` materialises a peer's Definition regardless of the peer's
+ * `skip` / `include` configuration — dependency edges are intentionally
+ * filter-blind. Capability is different: a peer's `isSupported` declares
+ * which models it can serve *at all*. Handing a peer a model it has declared
+ * unsupported would build a broken Definition or crash inside the peer's
+ * constructor.
+ *
+ * The Driver throws here instead. The throw unwinds into `GenerateContext`'s
+ * per-item `try/catch`, so the *calling* generator's item is recorded as
+ * `error` and the run continues — loud, isolated failure rather than silent
+ * broken output.
+ *
+ * A peer that exposes no static `isSupported` is treated as supporting every
+ * model: `toModelProjectionBase` defaults it to `() => true`, and a
+ * hand-rolled projection may omit it.
+ */
+const assertPeerSupported = ({ context, projection, refName }: AssertPeerSupportedArgs): void => {
+  if (typeof projection.isSupported !== 'function') {
+    return
+  }
+
+  if (!projection.isSupported({ refName, context })) {
+    throw new Error(
+      `[${projection.id}] Cannot insert '${refName}' — peer generator ` +
+        `does not support this model (isSupported returned false).`
     )
   }
 }
