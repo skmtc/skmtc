@@ -147,7 +147,12 @@ export type OasOperationConfig<EnrichmentType = undefined> = {
   type: 'oasOperation'
   transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
+  /**
+   * Optional capability gate, evaluated before `include` / `skip`. Absent →
+   * treated as `() => true` (every operation supported). `toOasOperationEntry`
+   * defaults it for built configs; a hand-constructed config may omit it.
+   */
+  isSupported?: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
   /**
    * Optional: compute the DEFAULT enrichment values for an operation from its
    * schema — the seed the CMS persists and the user then edits. The pipeline

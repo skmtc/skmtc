@@ -176,13 +176,13 @@ export type ModelConfig<EnrichmentType = undefined> = {
   type: 'model'
   transform: ({ context, refName, variant }: TransformModelArgs) => void
   /**
-   * Capability gate, evaluated by the engine before `include` / `skip`. A
-   * model whose predicate returns `false` is recorded `notSupported` and its
-   * `transform` is skipped. Always present on a built config —
-   * {@link toModelEntry} defaults it to `() => true` when the generator
-   * declares none — so the dispatcher can call it unconditionally.
+   * Optional capability gate, evaluated by the engine before `include` /
+   * `skip`. A model whose predicate returns `false` is recorded `notSupported`
+   * and its `transform` is skipped. Absent → treated as `() => true` (every
+   * model supported). {@link toModelEntry} still defaults it for built configs,
+   * but a hand-constructed config may omit it.
    */
-  isSupported: ({ context, refName }: IsSupportedModelArgs) => boolean
+  isSupported?: ({ context, refName }: IsSupportedModelArgs) => boolean
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>

@@ -147,7 +147,12 @@ export type GqlOperationConfig<EnrichmentType = undefined> = {
   type: 'gqlOperation'
   transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
+  /**
+   * Optional capability gate, evaluated before `include` / `skip`. Absent →
+   * treated as `() => true` (every operation supported). `toGqlOperationEntry`
+   * defaults it for built configs; a hand-constructed config may omit it.
+   */
+  isSupported?: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(

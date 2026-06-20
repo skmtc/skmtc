@@ -420,8 +420,10 @@ export class GenerateContext implements GenerateContextType {
           const operations =
             this.document.type === 'oas'
               ? this.document.value.operations
-                  .filter(operation =>
-                    this.#supports(() => generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT }))
+                  .filter(
+                    operation =>
+                      typeof generatorConfig.isSupported !== 'function' ||
+                      generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
                   )
                   .map(operation => ({ path: operation.path, method: operation.method }))
               : []
@@ -432,8 +434,10 @@ export class GenerateContext implements GenerateContextType {
           const operations =
             this.document.type === 'gql'
               ? this.document.value.operations
-                  .filter(operation =>
-                    this.#supports(() => generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT }))
+                  .filter(
+                    operation =>
+                      typeof generatorConfig.isSupported !== 'function' ||
+                      generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
                   )
                   .map(operation => ({
                     rootKind: operation.rootKind,
@@ -444,14 +448,10 @@ export class GenerateContext implements GenerateContextType {
           break
         }
         case 'model': {
-          const refNames =
-            this.document.type === 'oas'
-              ? (this.document.value.components?.toSchemasRefNames() ?? [])
-              : this.document.value.registry.toSchemasRefNames()
-          const models = [...refNames].filter(refName =>
-            this.#supports(() =>
+          const models = this.#schemaRefNames().filter(
+            refName =>
+              typeof generatorConfig.isSupported !== 'function' ||
               generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
-            )
           )
           out[generatorConfig.id] = { type: 'model', models }
           break
@@ -466,13 +466,21 @@ export class GenerateContext implements GenerateContextType {
     return out
   }
 
-  /** Run an `isSupported` probe defensively — a throwing predicate excludes the subject. */
-  #supports(probe: () => boolean): boolean {
-    try {
-      return probe()
-    } catch (error) {
-      this.logger.error(error)
-      return false
+  /**
+   * Every component / registry schema refName in the document, as a flat array.
+   * Exhaustive over the document protocol — a new schema type is a compile error
+   * here rather than silently falling into the wrong branch.
+   */
+  #schemaRefNames(): RefName[] {
+    switch (this.document.type) {
+      case 'oas':
+        return [...(this.document.value.components?.toSchemasRefNames() ?? [])]
+      case 'gql':
+        return [...this.document.value.registry.toSchemasRefNames()]
+      default: {
+        const _exhaustive: never = this.document
+        throw new Error(`Unhandled document type: ${JSON.stringify(_exhaustive)}`)
+      }
     }
   }
 
@@ -503,9 +511,8 @@ export class GenerateContext implements GenerateContextType {
           const operations: OperationEnrichmentDefaults = {}
           this.document.value.operations.forEach(operation => {
             if (
-              !this.#supports(() =>
-                generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
-              )
+              typeof generatorConfig.isSupported === 'function' &&
+              !generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
             ) {
               return
             }
@@ -532,17 +539,11 @@ export class GenerateContext implements GenerateContextType {
           // operation arm. A generator that declares no `isSupported`
           // defaults to every model; the hook itself still returns
           // `undefined` for schemas it doesn't seed.
-          const refNames =
-            this.document.type === 'oas'
-              ? (this.document.value.components?.toSchemasRefNames() ?? [])
-              : this.document.value.registry.toSchemasRefNames()
-
           const models: ModelEnrichmentDefaults = {}
-          for (const refName of refNames) {
+          for (const refName of this.#schemaRefNames()) {
             if (
-              !this.#supports(() =>
-                generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
-              )
+              typeof generatorConfig.isSupported === 'function' &&
+              !generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
             ) {
               continue
             }
