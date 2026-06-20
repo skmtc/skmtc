@@ -1,9 +1,11 @@
 import {
   toOasOperationGeneratorKey,
+  toWebhookGeneratorKey,
   toGqlOperationGeneratorKey,
   toModelGeneratorKey,
   toGeneratorOnlyKey,
   isOasOperationGeneratorKey,
+  isWebhookGeneratorKey,
   isModelGeneratorKey,
   isGeneratorKey,
   toGeneratorId,
@@ -12,6 +14,88 @@ import {
 import { assertEquals } from '@std/assert/equals'
 import type { RefName } from '@/types/RefName.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
+import { OasWebhook } from '@/oas/webhook/Webhook.ts'
+
+// Webhook generator key tests
+
+Deno.test('toWebhookGeneratorKey - creates key with name, method and variant', () => {
+  const key = toWebhookGeneratorKey({
+    generatorId: 'webhook-handlers',
+    name: 'newPet',
+    method: 'post',
+    variant: 'main'
+  })
+
+  assertEquals(key, 'webhook-handlers|webhook|newPet|post|main')
+})
+
+Deno.test('toWebhookGeneratorKey - extracts name and method from an OasWebhook', () => {
+  const webhook = new OasWebhook({
+    name: 'newPet',
+    method: 'post',
+    pathItem: undefined,
+    responses: {}
+  })
+
+  const key = toWebhookGeneratorKey({
+    generatorId: 'webhook-handlers',
+    webhook,
+    variant: 'main'
+  })
+
+  assertEquals(key, 'webhook-handlers|webhook|newPet|post|main')
+})
+
+Deno.test('fromGeneratorKey - parses webhook key into object', () => {
+  const key = toWebhookGeneratorKey({
+    generatorId: 'webhook-handlers',
+    name: 'newPet',
+    method: 'post',
+    variant: 'main'
+  })
+
+  const parsed = fromGeneratorKey(key)
+
+  assertEquals(parsed, {
+    type: 'webhook',
+    generatorId: 'webhook-handlers',
+    name: 'newPet',
+    method: 'post',
+    variant: 'main'
+  })
+})
+
+Deno.test('Webhook key is collision-free vs a same-named operation path', () => {
+  // A webhook named `users` and a path `/users` must produce distinct,
+  // non-overlapping keys — the literal `webhook` segment + 5-segment shape
+  // keeps them disjoint so they can never share a (name, exportPath) cache
+  // slot or be mistaken for one another.
+  const webhookKey = toWebhookGeneratorKey({
+    generatorId: 'gen',
+    name: 'users',
+    method: 'get',
+    variant: 'main'
+  })
+  const operationKey = toOasOperationGeneratorKey({
+    generatorId: 'gen',
+    path: '/users',
+    method: 'get',
+    variant: 'main'
+  })
+
+  // distinct strings
+  assertEquals(webhookKey === (operationKey as string), false)
+
+  // each guard accepts only its own kind
+  assertEquals(isWebhookGeneratorKey(webhookKey), true)
+  assertEquals(isOasOperationGeneratorKey(webhookKey), false)
+  assertEquals(isOasOperationGeneratorKey(operationKey), true)
+  assertEquals(isWebhookGeneratorKey(operationKey), false)
+
+  // both are valid generator keys, and the generator id round-trips
+  assertEquals(isGeneratorKey(webhookKey), true)
+  assertEquals(toGeneratorId(webhookKey), 'gen')
+})
 
 // Factory Functions Tests
 

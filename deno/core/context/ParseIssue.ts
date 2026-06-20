@@ -3,10 +3,18 @@
  * GraphQL parsing. Each variant stands on its own — no shared base —
  * so TypeScript narrows cleanly on `protocol` and `level`.
  *
- * `cause?: unknown` is only present on the error variants. Warnings are
- * synthesized by the parser with all the information needed for the
- * `message`; errors usually wrap a thrown `Error`, which we keep in
- * `cause` for debugging without forcing renderers to know about it.
+ * `cause?: unknown` is only present on the error variants. Warnings and
+ * `debug` issues are synthesized by the parser with all the information
+ * needed for the `message`; errors usually wrap a thrown `Error`, which
+ * we keep in `cause` for debugging without forcing renderers to know
+ * about it.
+ *
+ * Three severities: `error` (broken — drives exit status), `warning` (a
+ * real deviation that was handled, e.g. a 3.0 schema missing `type`), and
+ * `debug` (informational — the parser handled the input gracefully and
+ * recorded what it assumed or dropped; spec-legal-but-lossy or
+ * dialect-benign cases live here). All three are recorded on the manifest;
+ * consumers filter `debug` out of the default view.
  *
  * `location` is the schema-level address of the issue: for OAS it's the
  * stringified stack trail (e.g. `components.schemas.User.properties.email`);
@@ -89,6 +97,13 @@ export type ParseIssue =
       message: string
     }
   | {
+      protocol: 'oas'
+      level: 'debug'
+      type: OasIssueType
+      location: string
+      message: string
+    }
+  | {
       protocol: 'gql'
       level: 'error'
       type: GqlIssueType
@@ -99,6 +114,13 @@ export type ParseIssue =
   | {
       protocol: 'gql'
       level: 'warning'
+      type: GqlIssueType
+      location: string
+      message: string
+    }
+  | {
+      protocol: 'gql'
+      level: 'debug'
       type: GqlIssueType
       location: string
       message: string

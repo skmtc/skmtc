@@ -71,6 +71,8 @@ const schemaPointerFromKey = (parsed: GeneratorKeyObject | undefined): string =>
   switch (parsed.type) {
     case 'oasOperation':
       return `#/paths/${escapeJsonPointer(parsed.path)}/${parsed.method}`
+    case 'webhook':
+      return `#/webhooks/${escapeJsonPointer(parsed.name)}/${parsed.method}`
     case 'gqlOperation':
       return `${parsed.rootKind}.${parsed.fieldName}`
     case 'model':

@@ -67,7 +67,7 @@ export type EnrichmentDescriptor = {
  */
 export type EnrichmentSource = {
   readonly id: string
-  readonly type: 'oasOperation' | 'gqlOperation' | 'model'
+  readonly type: 'oasOperation' | 'gqlOperation' | 'model' | 'webhook'
   readonly toEnrichmentSchema?: () => v.GenericSchema
 }
 
@@ -222,6 +222,14 @@ const toAppliesTo = (entryType: EnrichmentSource['type']): TargetKind => {
       return 'model'
     case 'oasOperation':
     case 'gqlOperation':
+      return 'operation'
+    // STOPGAP: a webhook is operation-shaped (method + responses), so its
+    // enrichment editor reuses the 'operation' context for now. A dedicated
+    // 'webhook' TargetKind would be more truthful but ripples into the
+    // skmtc-hub TypeSpec contract that TargetKind/appliesTo mirror — deferred
+    // to a coordinated change. (Was an uncovered gap: WebhookConfig joined the
+    // GeneratorConfig union without a toAppliesTo arm.)
+    case 'webhook':
       return 'operation'
     default: {
       const _exhaustive: never = entryType

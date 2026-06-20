@@ -9,6 +9,8 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
+import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
+import type { WebhookProjection } from '@/dsl/webhook/types.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -105,6 +107,27 @@ export type InsertGqlOperationArgs<V extends GeneratedValue, EnrichmentType = un
 export type InsertOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> =
   | InsertOasOperationArgs<V, EnrichmentType>
   | InsertGqlOperationArgs<V, EnrichmentType>
+
+/**
+ * Arguments for `GenerateContext.insertWebhook`. Webhooks are OAS-only (no
+ * GraphQL counterpart), so this is a single shape rather than a union.
+ */
+export type InsertWebhookArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+  /** The webhook projection to insert */
+  projection: WebhookProjection<V, EnrichmentType>
+  /** The OpenAPI 3.1 webhook to process */
+  webhook: OasWebhook
+  /** Custom destination path for the webhook */
+  destinationPath?: string
+  /** Whether to exclude this webhook from exports */
+  noExport?: boolean
+  /**
+   * Target variant of the peer projection. Omit for the canonical `'main'`
+   * variant; pass explicitly only when the peer declares this variant — the
+   * Driver throws if it isn't declared in the peer's enrichments.
+   */
+  variant?: string
+}
 
 /**
  * Type representing the three phases of the SKMTC pipeline.
@@ -406,6 +429,22 @@ export type ToOperationSettingsArgs<V extends GeneratedValue, EnrichmentType = u
   | ToGqlOperationSettingsArgs<V, EnrichmentType>
 
 /**
+ * Arguments accepted by `GenerateContext.toWebhookContentSettings`.
+ * Webhooks are OAS-only, so this is a single shape (no protocol union).
+ */
+export type ToWebhookSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+  webhook: OasWebhook
+  projection: WebhookProjection<V, EnrichmentType>
+  /**
+   * Webhook variant whose enrichment / identifier / export path should be
+   * resolved (see {@link Variant}). Threaded from the Driver into the
+   * projection's static methods and the {@link ContentSettings} built for
+   * this insertion.
+   */
+  variant: string
+}
+
+/**
  * Return type for inserting a normalized model.
  *
  * Provides type-safe return values based on the schema type being processed.
@@ -472,6 +511,14 @@ export type GenerateContextType = {
     operation,
     projection
   }: ToOperationSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
+  insertWebhook: <V extends GeneratedValue, EnrichmentType = undefined>(
+    args: InsertWebhookArgs<V, EnrichmentType>
+  ) => Inserted<V, EnrichmentType>
+  toWebhookContentSettings: <V extends GeneratedValue, EnrichmentType>({
+    webhook,
+    projection,
+    variant
+  }: ToWebhookSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   toModelContentSettings: <V extends GeneratedValue, EnrichmentType>({
     refName,
     projection,

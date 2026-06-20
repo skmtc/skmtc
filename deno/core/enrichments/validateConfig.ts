@@ -98,6 +98,16 @@ const collectSubjectLeaves = (type: EnrichmentSource['type'], slot: Record<strin
         }
         break
       }
+      case 'webhook': {
+        // name → { method: { variant: values } }
+        for (const [method, variants] of Object.entries(subjectValue)) {
+          if (!isRecord(variants)) continue
+          for (const [variant, values] of Object.entries(variants)) {
+            leaves.push({ subject: subjectKey, method, variant, values })
+          }
+        }
+        break
+      }
       case 'gqlOperation': {
         // rootKind → { fieldName: { variant: values } }
         for (const [fieldName, variants] of Object.entries(subjectValue)) {

@@ -288,9 +288,10 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
 
     const { schema } = v.parse(v.object({ schema: v.string() }), body)
 
-    const oas30Document = await toV3Document(stringToSchema(schema))
+    // 3.0/3.1 pass through unchanged; only Swagger 2.0 is converted to 3.0.
+    const normalizedDocument = await toV3Document(stringToSchema(schema))
 
-    return c.json({ schema: oas30Document })
+    return c.json({ schema: normalizedDocument })
   })
 
   return app

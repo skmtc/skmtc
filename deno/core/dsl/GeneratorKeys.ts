@@ -65,6 +65,7 @@
  */
 
 import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { GqlOperation, GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import type { Brand } from '@/types/Brand.ts'
 import type { RefName } from '@/types/RefName.ts'
@@ -114,6 +115,19 @@ export type NakedGqlOperationGeneratorKey = `${string}|${GqlRootKind}|${string}|
 export type NakedModelGeneratorKey = `${string}|${string}|${string}`
 
 /**
+ * Template literal type for webhook generator keys before branding.
+ * Format: `generatorId|webhook|name|method|variant`
+ * (e.g., 'webhook-handlers|webhook|newPet|post|main').
+ *
+ * The literal `webhook` segment in position 2 distinguishes webhook keys
+ * (5 segments) from operation keys (`generatorId|path|method|variant`, 4
+ * segments), so a webhook named `users` never collides with a path
+ * `/users` in the key space or the `(name, exportPath)` cache. The
+ * trailing `variant` segment carries the variant axis (see {@link Variant}).
+ */
+export type NakedWebhookGeneratorKey = `${string}|webhook|${string}|${Method}|${string}`
+
+/**
  * Branded type for OAS operation generator keys.
  *
  * Uniquely identifies a generator processing a specific OpenAPI operation —
@@ -142,6 +156,16 @@ export type GqlOperationGeneratorKey = Brand<
  * the schema reference name.
  */
 export type ModelGeneratorKey = Brand<NakedModelGeneratorKey, 'ModelGeneratorKey'>
+
+/**
+ * Branded type for webhook generator keys.
+ *
+ * Sibling to {@link OasOperationGeneratorKey} for the OpenAPI 3.1 webhook
+ * subject. The literal `webhook` discriminator segment keeps it from
+ * colliding with operation keys in the `(name, exportPath)` cache and the
+ * key space.
+ */
+export type WebhookGeneratorKey = Brand<NakedWebhookGeneratorKey, 'WebhookGeneratorKey'>
 
 /**
  * Branded type for generator-only keys.
@@ -190,6 +214,7 @@ export type GeneratorOnlyKey = Brand<string, 'GeneratorOnlyKey'>
  */
 export type GeneratorKey =
   | OasOperationGeneratorKey
+  | WebhookGeneratorKey
   | GqlOperationGeneratorKey
   | ModelGeneratorKey
   | GeneratorOnlyKey
@@ -267,6 +292,53 @@ export const toOasOperationGeneratorKey = ({
   const nakedKey: NakedOasOperationGeneratorKey = `${generatorId}|${path}|${method}|${variant}`
 
   return nakedKey as OasOperationGeneratorKey
+}
+
+/**
+ * Arguments for {@link toWebhookGeneratorKey}.
+ *
+ * Can specify webhook details directly or provide an {@link OasWebhook}
+ * object from which the name and method will be extracted. The `variant`
+ * segment is always required so the resulting key disambiguates
+ * per-variant Definitions (see {@link Variant}).
+ */
+type ToWebhookGeneratorKeyArgs =
+  | {
+      /** Unique identifier for the generator */
+      generatorId: string
+      /** Webhook name (the `webhooks` map key — NOT a URL path) */
+      name: string
+      /** HTTP method */
+      method: Method
+      /** Webhook variant name (use `'main'` for variants-unaware generators) */
+      variant: string
+    }
+  | {
+      /** Unique identifier for the generator */
+      generatorId: string
+      /** OpenAPI webhook object containing name and method */
+      webhook: OasWebhook
+      /** Webhook variant name (use `'main'` for variants-unaware generators) */
+      variant: string
+    }
+
+/**
+ * Creates a webhook generator key from generator ID and webhook details.
+ *
+ * Sibling to {@link toOasOperationGeneratorKey} for the 3.1 webhook subject.
+ * Format: `generatorId|webhook|name|method|variant`. The literal `webhook`
+ * segment keeps webhook keys from colliding with operation keys.
+ */
+export const toWebhookGeneratorKey = ({
+  generatorId,
+  variant,
+  ...rest
+}: ToWebhookGeneratorKeyArgs): WebhookGeneratorKey => {
+  const { name, method } = 'webhook' in rest ? rest.webhook : rest
+
+  const nakedKey: NakedWebhookGeneratorKey = `${generatorId}|webhook|${name}|${method}|${variant}`
+
+  return nakedKey as WebhookGeneratorKey
 }
 
 /**
@@ -431,6 +503,7 @@ export const isGeneratorKey = (arg: unknown): arg is GeneratorKey => {
   return (
     isModelGeneratorKey(arg) ||
     isOasOperationGeneratorKey(arg) ||
+    isWebhookGeneratorKey(arg) ||
     isGqlOperationGeneratorKey(arg) ||
     isGeneratorOnlyKey(arg)
   )
@@ -478,6 +551,51 @@ export const isOasOperationGeneratorKey = (arg: unknown): arg is OasOperationGen
   }
 
   if (typeof path !== 'string' || !path.length) {
+    return false
+  }
+
+  if (!isMethod(method)) {
+    return false
+  }
+
+  if (typeof variant !== 'string' || !variant.length) {
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Type guard to check if a value is a valid {@link WebhookGeneratorKey}.
+ *
+ * Validates the format `generatorId|webhook|name|method|variant`: five
+ * pipe-delimited segments with a literal `webhook` discriminator in
+ * position 2, a valid HTTP method, and non-empty `generatorId` / `name` /
+ * `variant`. The 5-segment shape (and the `webhook` literal) is what keeps
+ * it disjoint from the 4-segment operation key.
+ */
+export const isWebhookGeneratorKey = (arg: unknown): arg is WebhookGeneratorKey => {
+  if (typeof arg !== 'string') {
+    return false
+  }
+
+  const keyTokens = arg.split('|')
+
+  if (keyTokens.length !== 5) {
+    return false
+  }
+
+  const [generatorId, discriminator, name, method, variant] = keyTokens
+
+  if (typeof generatorId !== 'string' || !generatorId.length) {
+    return false
+  }
+
+  if (discriminator !== 'webhook') {
+    return false
+  }
+
+  if (typeof name !== 'string' || !name.length) {
     return false
   }
 
@@ -649,6 +767,10 @@ export const toGeneratorId = (generatorKey: GeneratorKey): string => {
     return generatorKey.split('|')[0]
   }
 
+  if (isWebhookGeneratorKey(generatorKey)) {
+    return generatorKey.split('|')[0]
+  }
+
   if (isGqlOperationGeneratorKey(generatorKey)) {
     return generatorKey.split('|')[0]
   }
@@ -678,6 +800,18 @@ export type GeneratorKeyObject =
       /** HTTP method */
       method: Method
       /** Operation variant name */
+      variant: string
+    }
+  | {
+      /** Discriminator for webhook generator keys */
+      type: 'webhook'
+      /** Generator identifier */
+      generatorId: string
+      /** Webhook name (the `webhooks` map key — NOT a URL path) */
+      name: string
+      /** HTTP method */
+      method: Method
+      /** Webhook variant name */
       variant: string
     }
   | {
@@ -757,6 +891,11 @@ export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject
   if (isOasOperationGeneratorKey(generatorKey)) {
     const [generatorId, path, method, variant] = generatorKey.split('|')
     return { type: 'oasOperation', generatorId, path, method: method as Method, variant }
+  }
+
+  if (isWebhookGeneratorKey(generatorKey)) {
+    const [generatorId, _webhook, name, method, variant] = generatorKey.split('|')
+    return { type: 'webhook', generatorId, name, method: method as Method, variant }
   }
 
   if (isGqlOperationGeneratorKey(generatorKey)) {

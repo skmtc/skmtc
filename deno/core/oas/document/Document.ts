@@ -1,6 +1,7 @@
 import type { OasTag } from '@/oas/tag/Tag.ts'
 import type { OasComponents } from '@/oas/components/Components.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
+import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { OasInfo } from '@/oas/info/Info.ts'
 import type { OasServer } from '@/oas/server/Server.ts'
 import type { OasSecurityRequirement } from '@/oas/securityRequirement/SecurityRequirement.ts'
@@ -26,6 +27,17 @@ export type DocumentFields = {
   servers?: OasServer[] | undefined
   /** Flattened array of all operations from all paths */
   operations: OasOperation[]
+  /**
+   * Flattened array of all 3.1 webhooks. Kept SEPARATE from `operations`
+   * so existing client/SDK generators (which iterate `operations`) never
+   * receive a webhook — webhook semantics are inverted (handler/receiver,
+   * not client call).
+   *
+   * Optional in the type (the `webhooks` getter defaults to `[]` when
+   * unset): most construction sites — 3.0 documents, GQL, test fixtures —
+   * have none, and the OAS parser (`toDocumentFieldsV3`) always sets it.
+   */
+  webhooks?: OasWebhook[]
   /** Container for reusable components (schemas, responses, etc.) */
   components?: OasComponents | undefined
   /** List of tags used by operations with additional metadata */
@@ -187,7 +199,9 @@ export class OasDocument {
    * const removedSchema = document.removeItem(new StackTrail(['components', 'schemas', 'User']));
    * ```
    */
-  removeItem(stackTrail: StackTrail): OasOperation | OasSchema | OasRef<'schema'> | undefined {
+  removeItem(
+    stackTrail: StackTrail
+  ): OasOperation | OasWebhook | OasSchema | OasRef<'schema'> | undefined {
     const [first, second, third] = stackTrail.stackTrail
 
     switch (first) {
@@ -201,6 +215,26 @@ export class OasDocument {
         }
 
         const [removed] = this.#fields!.operations.splice(index, 1)
+
+        return removed;
+      }
+
+      case 'webhooks': {
+        const webhooks = this.#fields!.webhooks
+
+        if (!webhooks) {
+          return undefined
+        }
+
+        const index = webhooks.findIndex(
+          ({ name, method }) => name === second && method === third
+        )
+
+        if (index === -1) {
+          return undefined
+        }
+
+        const [removed] = webhooks.splice(index, 1)
 
         return removed;
       }
@@ -277,6 +311,15 @@ export class OasDocument {
     return this.#fields.operations
   }
 
+  /** List of all 3.1 webhooks for the API (kept separate from operations) */
+  get webhooks(): OasWebhook[] {
+    if (!this.#fields) {
+      throw new Error(`Accessing 'webhooks' before fields are set`)
+    }
+
+    return this.#fields.webhooks ?? []
+  }
+
   /** Container object for re-usable schema items within the API */
   get components(): OasComponents | undefined {
     if (!this.#fields) {
@@ -348,6 +391,7 @@ export class OasDocument {
       info: this.info,
       servers: this.servers,
       operations: this.operations,
+      webhooks: this.webhooks,
       components: this.components,
       tags: this.tags,
       security: this.security,

@@ -53,7 +53,18 @@ export type ParseWarningInput = {
   message: string
 }
 
-export type ParseIssueInput = ParseErrorInput | ParseWarningInput
+/**
+ * Informational diagnostic — the parser handled the input gracefully and
+ * is recording what it assumed or dropped (a spec-legal-but-lossy or
+ * dialect-benign case). Recorded on the manifest but filtered out of the
+ * default view; never affects exit status.
+ */
+export type ParseDebugInput = {
+  level: 'debug'
+  message: string
+}
+
+export type ParseIssueInput = ParseErrorInput | ParseWarningInput | ParseDebugInput
 
 /**
  * Arguments accepted by `ParseContext.logIssue` (StackTrail-based
@@ -163,6 +174,13 @@ export type LogIssueAtArgs =
       message: string
     }
   | {
+      protocol: 'oas'
+      level: 'debug'
+      type: OasIssueType
+      location: string
+      message: string
+    }
+  | {
       protocol: 'gql'
       level: 'error'
       type: GqlIssueType
@@ -173,6 +191,13 @@ export type LogIssueAtArgs =
   | {
       protocol: 'gql'
       level: 'warning'
+      type: GqlIssueType
+      location: string
+      message: string
+    }
+  | {
+      protocol: 'gql'
+      level: 'debug'
       type: GqlIssueType
       location: string
       message: string

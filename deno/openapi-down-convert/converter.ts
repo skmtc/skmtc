@@ -51,6 +51,15 @@ export interface ConverterOptions {
    * option to preserve the conversion and not delete comments.
    */
   convertSchemaComments?: boolean
+  /**
+   * If `true`, keep the top-level `webhooks` object instead of deleting it.
+   * Webhooks are a 3.1-only feature with no 3.0 equivalent, so they are
+   * removed by default. The webhook PathItems are still walked by the schema
+   * passes (nullable/const/examples normalization), so a retained `webhooks`
+   * object is fully 3.0-normalized — consumers that understand webhooks (e.g.
+   * SKMTC's webhook subject) can parse them from the down-converted document.
+   */
+  retainWebhooks?: boolean
 }
 
 /** Converts an OpenAPI 3.1 document to OpenAPI 3.0. */
@@ -63,6 +72,7 @@ export class Converter {
   private tokenUrl: string
   private scopeDescriptions: JsonObject = {}
   private convertSchemaComments = false
+  private retainWebhooks = false
   private returnCode = 0
   private convertOpenIdConnectToOAuth2: boolean
 
@@ -110,6 +120,7 @@ export class Converter {
       this.scopeDescriptions = options.scopeDescriptions
     }
     this.convertSchemaComments = Boolean(options?.convertSchemaComments)
+    this.retainWebhooks = Boolean(options?.retainWebhooks)
   }
 
   /** Log a message to the `console.warn` stream if verbose is true. */
@@ -383,6 +394,11 @@ export class Converter {
   }
 
   removeWebhooksObject(): void {
+    if (this.retainWebhooks) {
+      this.log(`Retained webhooks object`)
+      return
+    }
+
     if (Object.hasOwn(this.openapi30, 'webhooks')) {
       this.log(`Deleted webhooks object`)
       delete this.openapi30['webhooks']

@@ -14,153 +14,50 @@ Deno.test('toV3Document - 3.0 input is returned unchanged', async () => {
   assertEquals(result, doc)
 })
 
-Deno.test('toV3Document - 3.1 input is down-converted to 3.0', async () => {
-  // `type: [..., "null"]` is the canonical 3.1-only nullability form
-  // and the down-converter is expected to rewrite it to `nullable: true`.
+Deno.test('toV3Document - 3.1 input is passed through unchanged (no down-convert)', async () => {
+  // SKMTC parses OpenAPI 3.1 natively (core/parse/v3-1), so toV3Document no
+  // longer down-converts it. The document is returned exactly as given, with
+  // every 3.1-only idiom intact for the native parser to handle. (The
+  // down-conversion that used to happen here — type-array → nullable, const →
+  // enum, numeric exclusiveMinimum → boolean, oneOf null-member collapse — now
+  // lives in the v3-1 parser; the @skmtc/openapi-down-convert Converter's own
+  // behavior is still covered by openapi-down-convert/converter.test.ts.)
   const doc: OpenAPIV3_1.Document = {
     openapi: '3.1.0',
     info: { title: 'T', version: '1' },
-    paths: {},
+    webhooks: {
+      newPet: { post: { responses: { '200': { description: 'ok' } } } }
+    },
     components: {
       schemas: {
-        Maybe: {
-          type: ['string', 'null']
-        }
+        Foo: { type: 'object', properties: { id: { type: 'string' } } },
+        Maybe: { type: ['string', 'null'] },
+        Status: { const: 'active' },
+        Positive: { type: 'integer', exclusiveMinimum: 0 },
+        MaybeFoo: { oneOf: [{ $ref: '#/components/schemas/Foo' }, { type: 'null' }] }
       }
     }
   }
 
   const result = await toV3Document(doc)
 
-  assertEquals(result.openapi.startsWith('3.0'), true, 'openapi version must be 3.0.x')
+  // Same document back — version unchanged, every 3.1 idiom preserved.
+  assertEquals(result.openapi, '3.1.0')
 
-  const schema = result.components?.schemas?.Maybe
-  if (!schema || '$ref' in schema) {
-    throw new Error('Expected inline schema for Maybe')
+  const read = (name: string): Record<string, unknown> => {
+    const schema = result.components?.schemas?.[name]
+    if (!schema || '$ref' in schema) throw new Error(`Expected inline schema for ${name}`)
+    return schema as unknown as Record<string, unknown>
   }
-  assertEquals(schema.type, 'string')
-  assertEquals(schema.nullable, true)
+
+  assertEquals(read('Maybe').type, ['string', 'null']) // not flattened to nullable
+  assertEquals(read('Status').const, 'active') // not rewritten to enum
+  assertEquals(read('Positive').exclusiveMinimum, 0) // still numeric, not boolean
+  assertEquals((read('MaybeFoo').oneOf as unknown[]).length, 2) // null member not collapsed
+
+  const webhooks = (result as { webhooks?: Record<string, unknown> }).webhooks
+  assertEquals(Boolean(webhooks?.newPet), true) // webhooks present, not removed
 })
-
-Deno.test(
-  'toV3Document - 3.1 numeric exclusiveMinimum is rewritten to 3.0 boolean form (friction #12)',
-  async () => {
-    // OpenAPI 3.1 (JSON Schema 2020-12) allows `exclusiveMinimum: N`.
-    // OpenAPI 3.0 needs `{minimum: N, exclusiveMinimum: true}`. Without
-    // the rewrite, SKMTC's integer parser sees a non-boolean
-    // exclusiveMinimum and throws a ValiError.
-    const doc: OpenAPIV3_1.Document = {
-      openapi: '3.1.0',
-      info: { title: 'T', version: '1' },
-      paths: {},
-      components: {
-        schemas: {
-          PositiveInt: {
-            type: 'integer',
-            exclusiveMinimum: 0
-          },
-          CappedInt: {
-            type: 'integer',
-            exclusiveMaximum: 100
-          }
-        }
-      }
-    }
-
-    const result = await toV3Document(doc)
-    const positive = result.components?.schemas?.PositiveInt
-    const capped = result.components?.schemas?.CappedInt
-    if (!positive || '$ref' in positive || !capped || '$ref' in capped) {
-      throw new Error('Expected inline schemas')
-    }
-    assertEquals(positive.minimum, 0)
-    assertEquals(positive.exclusiveMinimum, true)
-    assertEquals(capped.maximum, 100)
-    assertEquals(capped.exclusiveMaximum, true)
-  }
-)
-
-Deno.test(
-  'toV3Document - existing `minimum` is preserved when stricter than `exclusiveMinimum`',
-  async () => {
-    // 3.1 lets `minimum` and `exclusiveMinimum` coexist as separate
-    // constraints. We must merge to the stricter bound rather than
-    // producing the (3.0-illegal) coexistence.
-    //
-    // `{minimum: 10, exclusiveMinimum: 5}`: inclusive 10 is stricter
-    // than exclusive 5 (value >= 10 already excludes 5). Drop
-    // exclusiveMinimum, keep minimum.
-    const doc: OpenAPIV3_1.Document = {
-      openapi: '3.1.0',
-      info: { title: 'T', version: '1' },
-      paths: {},
-      components: {
-        schemas: {
-          M: { type: 'integer', minimum: 10, exclusiveMinimum: 5 }
-        }
-      }
-    }
-    const result = await toV3Document(doc)
-    const m = result.components?.schemas?.M
-    if (!m || '$ref' in m) throw new Error('Expected inline schema')
-    assertEquals(m.minimum, 10)
-    // exclusiveMinimum should NOT be present at all — the merge dropped it.
-    assertEquals(m.exclusiveMinimum, undefined)
-  }
-)
-
-Deno.test(
-  'toV3Document - `exclusiveMinimum: number` wins when stricter than `minimum`',
-  async () => {
-    // `{minimum: 5, exclusiveMinimum: 10}`: exclusive 10 is stricter
-    // (value > 10 vs value >= 5). Convert to {minimum: 10,
-    // exclusiveMinimum: true}.
-    const doc: OpenAPIV3_1.Document = {
-      openapi: '3.1.0',
-      info: { title: 'T', version: '1' },
-      paths: {},
-      components: {
-        schemas: {
-          M: { type: 'integer', minimum: 5, exclusiveMinimum: 10 }
-        }
-      }
-    }
-    const result = await toV3Document(doc)
-    const m = result.components?.schemas?.M
-    if (!m || '$ref' in m) throw new Error('Expected inline schema')
-    assertEquals(m.minimum, 10)
-    assertEquals(m.exclusiveMinimum, true)
-  }
-)
-
-Deno.test(
-  'toV3Document - boolean `exclusiveMinimum` is left alone (already 3.0 shape)',
-  async () => {
-    // A 3.0-style schema that comes through the 3.1 codepath
-    // (rare but possible if the openapi version field is set to 3.1
-    // but the schemas are pre-3.0-shaped). The converter shouldn't
-    // touch already-boolean exclusiveMinimum.
-    // Deliberately 3.0-shaped (`exclusiveMinimum: true`) under a 3.1
-    // openapi field — exercises the "leave alone" branch in the
-    // converter. Casts to OpenAPIV3_1.Document because the shape is
-    // intentionally malformed for the spec version it claims to be.
-    const doc = {
-      openapi: '3.1.0',
-      info: { title: 'T', version: '1' },
-      paths: {},
-      components: {
-        schemas: {
-          M: { type: 'integer', minimum: 5, exclusiveMinimum: true }
-        }
-      }
-    } as unknown as OpenAPIV3_1.Document
-    const result = await toV3Document(doc)
-    const m = result.components?.schemas?.M
-    if (!m || '$ref' in m) throw new Error('Expected inline schema')
-    assertEquals(m.minimum, 5)
-    assertEquals(m.exclusiveMinimum, true)
-  }
-)
 
 Deno.test('toV3Document - unrecognized version includes version field in error', async () => {
   await assertRejects(

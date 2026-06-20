@@ -53,12 +53,8 @@
  * @module toV3Document
  */
 
-import type { OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
+import type { OpenAPIV3 } from 'openapi-types'
 import { parse as parseYaml } from '@std/yaml/parse'
-import {
-  Converter as ThreeOneToThreeZeroConverter,
-  type ConverterOptions
-} from '@skmtc/openapi-down-convert'
 import type { JsonValue } from '@skmtc/swagger2openapi/converter'
 import type { AnyOasDocument } from './types.ts'
 
@@ -108,26 +104,25 @@ export const stringToSchema = (schema: string): AnyOasDocument => {
 }
 
 /**
- * Converts any OpenAPI document version to OpenAPI 3.0 format.
+ * Normalize an OpenAPI document to a version SKMTC can parse directly.
  *
- * SKMTC processes all documents using OpenAPI 3.0 as the internal format.
- * This function handles version detection and conversion from:
+ * SKMTC parses OpenAPI 3.0 and 3.1 natively (`core/parse/v3-0`,
+ * `core/parse/v3-1`), so only Swagger 2.0 is converted:
  * - OpenAPI 3.0.x (returned as-is)
- * - OpenAPI 3.1.x (downgraded to 3.0 with allOf transformations)
+ * - OpenAPI 3.1.x (returned as-is — parsed natively, no down-convert)
  * - Swagger 2.0 (upgraded to OpenAPI 3.0)
  *
- * @param schema - The OpenAPI document to convert
- * @returns Promise resolving to an OpenAPI 3.0 document
+ * @param schema - The OpenAPI / Swagger document to normalize
+ * @returns Promise resolving to a 3.0 or 3.1 document (2.0 is converted to 3.0)
  *
- * @example Converting OpenAPI 3.1 to 3.0
+ * @example OpenAPI 3.1 passthrough
  * ```typescript
  * const openapi31Doc = {
  *   openapi: "3.1.0",
- *   info: { title: "My API", version: "1.0.0" },
- *   paths: {}
+ *   info: { title: "My API", version: "1.0.0" }
  * };
- * const v3Doc = await toV3Document(openapi31Doc);
- * console.log(v3Doc.openapi); // "3.0.3" (converted)
+ * const doc = await toV3Document(openapi31Doc);
+ * console.log(doc.openapi); // "3.1.0" (unchanged — parsed natively)
  * ```
  *
  * @example Converting Swagger 2.0 to OpenAPI 3.0
@@ -160,18 +155,12 @@ export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Do
   }
 
   if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.1')) {
-    const options: ConverterOptions = {
-      verbose: false,
-      deleteExampleWithId: false,
-      allOfTransform: true
-    }
-
-    const downConverter = new ThreeOneToThreeZeroConverter(
-      schema as OpenAPIV3_1.Document,
-      options
-    )
-
-    return downConverter.convert() as OpenAPIV3.Document
+    // SKMTC parses OpenAPI 3.1 natively (core/parse/v3-1), so 3.1 documents
+    // pass through unchanged — no down-convert. The native parser reads the
+    // 3.1 idioms directly (type arrays, const, {type:'null'}, numeric
+    // exclusive bounds, examples[], webhooks). Only Swagger 2.0 (below) still
+    // needs an upstream conversion.
+    return schema as OpenAPIV3.Document
   }
 
   if ('swagger' in schema && typeof schema.swagger === 'string' && schema.swagger.startsWith('2.0')) {

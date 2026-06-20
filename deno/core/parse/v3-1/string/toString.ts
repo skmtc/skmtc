@@ -1,0 +1,276 @@
+import type { OpenAPIV3 } from 'openapi-types'
+import type { ParseContextType } from '@/context/parseTypes.ts'
+import { OasString } from '@/oas/string/String.ts'
+import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
+import { oasStringData } from '@/oas/string/string-types.ts'
+import * as v from 'valibot'
+import { parseNullable } from '../_helpers/parseNullable.ts'
+import { parseEnum } from '../_helpers/parseEnum.ts'
+import { parseExample } from '../_helpers/parseExample.ts'
+import { parseDefault } from '../_helpers/parseDefault.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
+
+/**
+ * Arguments for transforming an OpenAPI string schema into OAS representation.
+ */
+export type ToStringArgs = {
+  /** The OpenAPI v3 schema object to transform (must be type 'string') */
+  value: OpenAPIV3.SchemaObject
+  /** The stack trail for tracing */
+  stackTrail: StackTrail
+  /** Parse context providing utilities and tracing capabilities */
+  context: ParseContextType
+}
+
+/**
+ * Transforms an OpenAPI v3 string schema object into an internal OAS string representation.
+ *
+ * This function processes OpenAPI string schemas by extracting and parsing nullable values,
+ * examples, enumerations, and default values. It handles the complete transformation from
+ * raw OpenAPI JSON to the SKMTC internal string representation with proper validation
+ * of string formats and constraints.
+ *
+ * The transformation follows a pipeline approach:
+ * 1. Parse nullable flag and extract base value
+ * 2. Parse example values with nullable support
+ * 3. Parse enumeration constraints
+ * 4. Parse default values
+ * 5. Create final OasString instance with format validation
+ *
+ * @param args - Transformation arguments
+ * @param args.context - Parse context providing utilities and tracing
+ * @param args.value - The OpenAPI v3 string schema object to transform
+ * @returns Transformed OAS string object with parsed properties
+ *
+ * @example Basic string transformation
+ * ```typescript
+ * import { toString } from '@skmtc/core';
+ *
+ * const openApiString = {
+ *   type: 'string',
+ *   format: 'email',
+ *   maxLength: 255,
+ *   pattern: '^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$'
+ * };
+ *
+ * const oasString = toString({
+ *   context: parseContext,
+ *   value: openApiString
+ * });
+ *
+ * console.log(oasString.format); // 'email'
+ * console.log(oasString.maxLength); // 255
+ * ```
+ *
+ * @example String with nullable and enums
+ * ```typescript
+ * const statusString = {
+ *   type: 'string',
+ *   nullable: true,
+ *   enum: ['active', 'inactive', 'pending', null],
+ *   default: 'active',
+ *   example: 'pending'
+ * };
+ *
+ * const oasString = toString({
+ *   context: parseContext,
+ *   value: statusString
+ * });
+ *
+ * console.log(oasString.nullable); // true
+ * console.log(oasString.enums); // ['active', 'inactive', 'pending', null]
+ * ```
+ */
+export const toString = ({ context, value, stackTrail }: ToStringArgs): OasString => {
+  if (value.type === 'string' && Object.keys(value).length === 1) {
+    return context.withStackTrail(stackTrail, () => new OasString({}, context))
+  }
+
+  const { nullable, value: valueWithoutNullable } = parseNullable({
+    value,
+    context,
+    stackTrail
+  })
+
+  const { example: unparsedExample, ...valueWithoutExample } = valueWithoutNullable
+
+  const example = parseExample({
+    value: unparsedExample,
+    context,
+    parent: valueWithoutNullable,
+    nullable,
+    check: isString,
+    toMessage: item => `Removed invalid example. Expected "string", got: ${item}`,
+    stackTrail
+  })
+
+  const { enum: unparsedEnums, ...valueWithoutEnums } = valueWithoutExample
+
+  const enums = parseEnum({
+    value: unparsedEnums,
+    nullable,
+    parent: valueWithoutExample,
+    context,
+    check: isString,
+    toMessage: item => `Removed invalid enum. Expected "string", got: ${item}`,
+    stackTrail
+  })
+
+  const { default: unparsedDefaultValue, ...valueWithoutDefault } = valueWithoutEnums
+
+  const defaultValue = parseDefault({
+    value: unparsedDefaultValue,
+    context,
+    parent: valueWithoutEnums,
+    nullable,
+    check: isString,
+    toMessage: item => `Removed invalid default. Expected "string", got: ${item}`,
+    stackTrail
+  })
+
+  return toParsedString({
+    context,
+    nullable,
+    example,
+    enums,
+    defaultValue,
+    value: valueWithoutDefault,
+    stackTrail
+  })
+}
+
+type ToParsedStringArgs<Nullable extends boolean | undefined> = {
+  value: Omit<OpenAPIV3.SchemaObject, 'nullable' | 'example' | 'enums' | 'default'>
+  context: ParseContextType
+  nullable: Nullable
+  example: Nullable extends true ? string | null | undefined : string | undefined
+  enums: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
+  defaultValue: Nullable extends true ? string | null | undefined : string | undefined
+  stackTrail: StackTrail
+}
+
+/**
+ * Creates an OAS string instance from pre-parsed string schema components.
+ *
+ * This function is the final step in the string transformation pipeline, taking
+ * already-parsed nullable, example, enum, and default values and combining them
+ * with the remaining string properties to create the complete OasString instance.
+ *
+ * The function handles format validation against known OpenAPI string formats,
+ * length constraints parsing, pattern validation, and specification extension
+ * processing. It logs warnings for unrecognized formats while still preserving
+ * them in the output.
+ *
+ * @template Nullable - Boolean type indicating if the string can be null
+ * @param args - Pre-parsed string components
+ * @param args.context - Parse context for tracing and issue logging
+ * @param args.nullable - Parsed nullable flag
+ * @param args.example - Parsed example value (type-safe with nullable)
+ * @param args.enums - Parsed enumeration constraints (type-safe with nullable)
+ * @param args.defaultValue - Parsed default value (type-safe with nullable)
+ * @param args.value - OpenAPI string object without parsed fields
+ * @returns Complete OAS string instance with all properties and validation
+ *
+ * @example Date-time string with validation
+ * ```typescript
+ * const dateTimeString = toParsedString({
+ *   context: parseContext,
+ *   nullable: false,
+ *   example: '2023-12-25T10:00:00Z',
+ *   enums: undefined,
+ *   defaultValue: undefined,
+ *   value: {
+ *     type: 'string',
+ *     format: 'date-time',
+ *     title: 'Event Date',
+ *     description: 'When the event occurs'
+ *   }
+ * });
+ *
+ * console.log(dateTimeString.format); // 'date-time'
+ * ```
+ *
+ * @example String with custom format (generates warning)
+ * ```typescript
+ * const customFormatString = toParsedString({
+ *   context: parseContext,
+ *   nullable: false,
+ *   example: 'ABC123',
+ *   enums: undefined,
+ *   defaultValue: undefined,
+ *   value: {
+ *     type: 'string',
+ *     format: 'custom-id', // Unknown format, will log warning
+ *     pattern: '^[A-Z]{3}[0-9]{3}$'
+ *   }
+ * });
+ *
+ * // Logs: "Unexpected format: custom-id"
+ * console.log(customFormatString.format); // 'custom-id' (still preserved)
+ * ```
+ */
+export const toParsedString = <Nullable extends boolean | undefined>({
+  context,
+  nullable,
+  example,
+  enums,
+  defaultValue,
+  value,
+  stackTrail
+}: ToParsedStringArgs<Nullable>): OasString<Nullable> => {
+  if (!v.is(oasStringData, value)) {
+    v.parse(oasStringData, value)
+  }
+
+  const {
+    type: _type,
+    title,
+    description,
+    format,
+    maxLength,
+    minLength,
+    pattern,
+    readOnly,
+    writeOnly,
+    deprecated,
+    ...skipped
+  } = value
+
+  const extensionFields = toSpecificationExtensionsV3({
+    skipped,
+    parent: value,
+    context,
+    stackTrail,
+    parentType: 'schema:string'
+  })
+
+  // `format` is an open vocabulary — custom string formats (e.g. `decimal`,
+  // `utc_datetime`) are spec-legal. The value is preserved on the OasString
+  // below, so an unrecognised format is passed through, not warned.
+
+  return context.withStackTrail(stackTrail, () =>
+    new OasString<Nullable>(
+      {
+        title,
+        description,
+        enums,
+        nullable,
+        example,
+        format,
+        maxLength,
+        minLength,
+        pattern,
+        readOnly,
+        writeOnly,
+        default: defaultValue,
+        extensionFields,
+        deprecated
+      },
+      context
+    )
+  )
+}
+
+const isString = (value: unknown): value is string => {
+  return typeof value === 'string'
+}
