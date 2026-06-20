@@ -5,7 +5,8 @@ import {
   toArtifacts,
   toEnrichmentDefaults,
   toEnrichmentDescriptor,
-  toSupportedSubjects
+  toSupportedSubjects,
+  validateConfig
 } from '@skmtc/core'
 import type { GeneratorsMapContainer, SkmtcDocumentInput } from '@skmtc/core'
 import type { ManifestContent } from '@skmtc/core/Manifest'
@@ -260,6 +261,26 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
   app.post('/descriptors', c => {
     const descriptors = Object.values(toGeneratorConfigMap()).map(toEnrichmentDescriptor)
     return c.json({ descriptors })
+  })
+
+  // Enrichment validation: the authoritative verdict on whether the supplied
+  // `clientSettings.enrichments` values satisfy each generator's Valibot
+  // enrichment schema. Documentless — no schema, no parse, no render — so it
+  // mirrors `/descriptors` (a pure function of the bundled generators + the
+  // posted enrichments). The host calls this to gate persists, CLI pushes,
+  // schema-drift migration, and Publish.
+  app.post('/validate', async c => {
+    const { clientSettings } = v.parse(
+      v.object({ clientSettings: v.optional(settingsSchema) }),
+      await c.req.json()
+    )
+
+    const issues = validateConfig(
+      clientSettings?.enrichments,
+      Object.values(toGeneratorConfigMap())
+    )
+
+    return c.json({ issues })
   })
 
   app.post('/to-v3-json', async c => {
