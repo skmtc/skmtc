@@ -1,24 +1,18 @@
 /**
- * Headless `project fork` / `project rm` — ephemeral, per-branch hub projects.
+ * Headless `project create` / `project rm` — manage a hub project built from the
+ * local setup.
  *
- * The model: a long-lived **base** project (`client.json#project`, e.g.
- * `@acme/petstore-client`) is the canonical anchor; each git branch forks it
- * into a short-lived project that carries that branch's enrichment edits. Edit
- * in the fork's rail → `skmtc pull` → commit → PR → merge → `project rm`. Git is
- * the source of truth; the fork is a transient editing surface (the per-PR
- * preview-environment pattern).
+ * `create <name>` is **create-only** (never updates an existing project — that's
+ * `push`, which confirms before overwriting). It composes existing hub endpoints:
+ *   1. Stack  — `deno.json#name` (must already be published via `skmtc publish`).
+ *   2. API    — `client.json#api` if set; else register `client.json#source`
+ *               (`/v1/apis/upload` for a file, `/v1/apis/import` for a URL) and
+ *               write the resulting `@account/slug` back into `client.json#api`.
+ *   3. Project — `POST /v1/projects` binding the two. A 409 means it already
+ *               exists → we STOP (no silent overwrite).
+ *   4. Seed    — `PUT …/client-config` (+ `…/preview/base-files` with --base-files).
  *
- * `fork` composes existing hub endpoints — it does NOT invent a new one:
- *   1. resolve the base (`client.json#project`) and the ephemeral slug
- *      (`--as`, else `<base-slug>-<git-branch>`);
- *   2. `GET /projects/{base}` to inherit its stack + API bindings (so a fork is
- *      near-zero-config — you don't re-specify the generators or the schema);
- *   3. `POST /projects` with those bindings (the fork);
- *   4. `PUT …/client-config` to seed the fork from the branch's local config;
- *   5. optionally `PUT …/preview/base-files`.
- *
- * `rm` deletes the ephemeral project (`DELETE /projects/{ephemeral}`), which the
- * hub gates behind the `admin:resource` scope — see the reference doc.
+ * `rm <name>` deletes the project (`admin:resource` scope).
  */
 
 import { join } from "@std/path/join";
@@ -29,168 +23,220 @@ import { toAbsoluteRootPath } from "@/lib/to-root-path.ts";
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** Read the current git branch from `.git/HEAD` (no `git` spawn — the CLI's
- *  permission set forbids it). Returns undefined on detached HEAD or no repo. */
-async function readGitBranch(): Promise<string | undefined> {
+const arrayLen = (
+  value: unknown,
+): number => (Array.isArray(value) ? value.length : 0);
+
+type Scoped = { account: string; slug: string };
+
+/** Read the project root `deno.json#name` (the stack's package name). */
+async function readStackName(projectPath: string): Promise<string | undefined> {
   try {
-    const head = await Deno.readTextFile(join(toAbsoluteRootPath(), ".git", "HEAD"));
-    const match = head.match(/^ref:\s*refs\/heads\/(.+?)\s*$/);
-    return match ? match[1] : undefined;
+    const parsed: unknown = JSON.parse(
+      await Deno.readTextFile(join(projectPath, "deno.json")),
+    );
+    return isObject(parsed) && typeof parsed.name === "string"
+      ? parsed.name
+      : undefined;
   } catch {
     return undefined;
   }
 }
 
-/** `feat/Applicants_Form` -> `feat-applicants-form` (slug-safe). */
-const sanitizeBranch = (branch: string): string =>
-  branch.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-
-type Scoped = { account: string; slug: string };
-
-/** Resolve the ephemeral `@account/slug`: `--as` wins, else `<base>-<branch>`. */
-async function resolveEphemeral(
-  base: Scoped,
-  asFlag: string | undefined,
-): Promise<{ ephemeral: Scoped; branch?: string } | { error: string }> {
-  const explicit = asFlag?.trim();
-  if (explicit) {
-    const parsed = parseScopedName(explicit);
-    return parsed ? { ephemeral: parsed } : { error: `invalid --as "${explicit}" — expected @account/slug` };
-  }
-  const branch = await readGitBranch();
-  if (!branch) {
-    return {
-      error:
-        "no git branch to derive a slug from (detached HEAD or not a repo) — pass --as @account/slug",
-    };
-  }
-  return { ephemeral: { account: base.account, slug: `${base.slug}-${sanitizeBranch(branch)}` }, branch };
+/**
+ * Resolve the new project's `@account/slug` from the `<name>` arg: a bare slug
+ * inherits the stack's account, a scoped `@account/slug` is used verbatim.
+ */
+function resolveNewProject(
+  name: string,
+  stackAccount: string,
+): Scoped | undefined {
+  if (name.includes("/")) return parseScopedName(name) ?? undefined;
+  const slug = name.trim();
+  return slug ? { account: stackAccount, slug } : undefined;
 }
 
-type ForkArgs = {
+type CreateArgs = {
   skmtcRoot: SkmtcRoot;
   projectName: string;
+  name: string;
   token: string;
   origin: string;
-  /** Ephemeral destination override (`@account/slug`); else `<base>-<branch>`. */
-  asFlag?: string;
+  /** Exact stack version to pin; defaults to `latest`. */
+  stackVersion?: string;
   visibility?: "public" | "private";
-  /** Collected base files to also seed (app-root-relative path -> content). */
   baseFiles?: Record<string, string>;
 };
 
-export type ForkResult =
+export type CreateResult =
   | {
-    kind: "forked";
+    kind: "created";
     projectName: string;
-    base: Scoped;
-    ephemeral: Scoped;
+    project: Scoped;
     origin: string;
-    branch?: string;
-    /** Whether the project was newly created (false = it already existed, re-seeded). */
-    created: boolean;
+    stack: string;
+    api: Scoped;
+    /** Whether the API was registered now (vs taken from client.json#api). */
+    apiRegistered: boolean;
     enrichmentCount: number;
     baseFilesPushed?: number;
-    /** Project page URL, when the hub returns one. */
+    /** Whether `api`/`project` were written back into client.json. */
+    remoteWritten: boolean;
     url?: string;
   }
   | {
     kind: "failed";
     projectName: string;
     reason: string;
-    stage: "read" | "base" | "create" | "seed";
+    stage: "read" | "stack" | "api" | "create" | "seed";
   };
 
-const arrayLen = (value: unknown): number => (Array.isArray(value) ? value.length : 0);
+const fail = (
+  projectName: string,
+  reason: string,
+  stage: "read" | "stack" | "api" | "create" | "seed",
+): CreateResult => ({ kind: "failed", projectName, reason, stage });
 
-export const forkHeadless = async ({
+/** Register `client.json#source` as a hub API; returns its `@account/slug`. */
+async function registerSchema(
+  source: string,
+  owner: string,
+  origin: string,
+  token: string,
+): Promise<{ api: Scoped } | { error: string }> {
+  const headers = { authorization: `Bearer ${token}` };
+  const isUrl = /^https?:\/\//i.test(source);
+  let res: Response;
+  if (isUrl) {
+    res = await fetch(`${origin}/v1/apis/import`, {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ url: source, owner }),
+    });
+  } else {
+    const path = join(toAbsoluteRootPath(), source);
+    let bytes: Uint8Array;
+    try {
+      bytes = await Deno.readFile(path);
+    } catch {
+      return { error: `cannot read schema source "${source}" (${path})` };
+    }
+    const filename = source.split("/").pop() ?? "schema.json";
+    const query = `?owner=${encodeURIComponent(owner)}&filename=${
+      encodeURIComponent(filename)
+    }`;
+    res = await fetch(`${origin}/v1/apis/upload${query}`, {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/octet-stream" },
+      body: bytes,
+    });
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    return {
+      error: `schema register failed (${res.status}): ${text.slice(0, 300)}`,
+    };
+  }
+  const body: unknown = await res.json();
+  const api = isObject(body) ? body.api : undefined;
+  const ownerHandle = isObject(api) && isObject(api.owner)
+    ? api.owner.handle
+    : undefined;
+  const slug = isObject(api) ? api.slug : undefined;
+  if (typeof ownerHandle !== "string" || typeof slug !== "string") {
+    return {
+      error: "schema registered but the response had no api owner/slug",
+    };
+  }
+  return { api: { account: ownerHandle, slug } };
+}
+
+export const createHeadless = async ({
   skmtcRoot,
   projectName,
+  name,
   token,
   origin,
-  asFlag,
+  stackVersion,
   visibility = "private",
   baseFiles,
-}: ForkArgs): Promise<ForkResult> => {
+}: CreateArgs): Promise<CreateResult> => {
   const project = skmtcRoot.findProject(projectName);
   const contents = project.clientJson.contents;
   if (!contents) {
-    return {
-      kind: "failed",
-      projectName,
-      reason: `no client.json for "${projectName}" (.skmtc/${projectName}/.settings/client.json)`,
-      stage: "read",
-    };
-  }
-  const baseSpec = contents.project?.trim();
-  if (!baseSpec) {
-    return {
-      kind: "failed",
-      projectName,
-      reason:
-        'no base project to fork — set `project: "@account/slug"` in client.json (the canonical project this branch forks)',
-      stage: "read",
-    };
-  }
-  const base = parseScopedName(baseSpec);
-  if (!base) {
-    return { kind: "failed", projectName, reason: `invalid base "${baseSpec}" — expected @account/slug`, stage: "read" };
+    return fail(projectName, `no client.json for "${projectName}"`, "read");
   }
 
-  const resolved = await resolveEphemeral(base, asFlag);
-  if ("error" in resolved) {
-    return { kind: "failed", projectName, reason: resolved.error, stage: "read" };
+  // 1. Stack — from deno.json#name.
+  const stackName = await readStackName(project.toPath());
+  const stack = stackName ? parseScopedName(stackName) : undefined;
+  if (!stack) {
+    return fail(
+      projectName,
+      `no stack — set a scoped \`name\` (@account/slug) in ${projectName}/deno.json and publish it (skmtc publish)`,
+      "stack",
+    );
   }
-  const { ephemeral, branch } = resolved;
+
+  const dest = resolveNewProject(name, stack.account);
+  if (!dest) {
+    return fail(
+      projectName,
+      `invalid project name "${name}" — expected a slug or @account/slug`,
+      "read",
+    );
+  }
 
   const headers = { authorization: `Bearer ${token}` };
 
-  // Inherit the base project's stack + API bindings.
-  let baseProject: Record<string, unknown>;
-  try {
-    const res = await fetch(`${origin}/v1/projects/${base.account}/${base.slug}`, { headers });
-    if (res.status === 404) {
-      return {
-        kind: "failed",
+  // 2. API — use client.json#api, else register the schema and remember it.
+  let apiRegistered = false;
+  let api: Scoped | undefined;
+  if (contents.api?.trim()) {
+    api = parseScopedName(contents.api.trim()) ?? undefined;
+    if (!api) {
+      return fail(
         projectName,
-        reason: `base project ${base.account}/${base.slug} not found at ${origin} — create it first`,
-        stage: "base",
-      };
+        `invalid client.json#api "${contents.api}"`,
+        "api",
+      );
     }
-    if (!res.ok) {
-      const text = await res.text();
-      return { kind: "failed", projectName, reason: `reading base failed (${res.status}): ${text.slice(0, 300)}`, stage: "base" };
+  } else {
+    if (!contents.source?.trim()) {
+      return fail(
+        projectName,
+        "no schema to bind — set `source` in client.json (a file or URL)",
+        "api",
+      );
     }
-    const body: unknown = await res.json();
-    if (!isObject(body) || !isObject(body.stack) || !isObject(body.api)) {
-      return { kind: "failed", projectName, reason: "base project missing stack/api bindings", stage: "base" };
+    const registered = await registerSchema(
+      contents.source.trim(),
+      dest.account,
+      origin,
+      token,
+    );
+    if ("error" in registered) {
+      return fail(projectName, registered.error, "api");
     }
-    baseProject = body;
-  } catch (err) {
-    return { kind: "failed", projectName, reason: err instanceof Error ? err.message : String(err), stage: "base" };
+    api = registered.api;
+    apiRegistered = true;
   }
 
-  const stack = baseProject.stack;
-  const api = baseProject.api;
-  if (
-    !isObject(stack) || typeof stack.account !== "string" || typeof stack.slug !== "string" ||
-    !isObject(api) || typeof api.account !== "string" || typeof api.slug !== "string"
-  ) {
-    return { kind: "failed", projectName, reason: "base project missing stack/api account or slug", stage: "base" };
-  }
+  // 3. Project — create-only. A 409 means it exists; STOP (no overwrite).
+  const stackPin = stackVersion?.trim()
+    ? { mode: "exact", version: stackVersion.trim() }
+    : { mode: "latest" };
   const createBody = {
-    owner: ephemeral.account,
-    slug: ephemeral.slug,
+    owner: dest.account,
+    slug: dest.slug,
     visibility,
-    description: `branch fork of ${base.account}/${base.slug}${branch ? ` (${branch})` : ""}`,
+    description:
+      `Generated from ${projectName} (stack ${stack.account}/${stack.slug})`,
     stack: `${stack.account}/${stack.slug}`,
-    stackPin: baseProject.stackPin,
+    stackPin,
     api: `${api.account}/${api.slug}`,
-    apiPin: baseProject.apiPin,
+    apiPin: { mode: "latest" },
   };
-
-  // Create the fork. 409 = it already exists → re-seed (idempotent).
-  let created = true;
   let projectUrl: string | undefined;
   try {
     const res = await fetch(`${origin}/v1/projects`, {
@@ -199,25 +245,42 @@ export const forkHeadless = async ({
       body: JSON.stringify(createBody),
     });
     if (res.status === 409) {
-      created = false;
-      await res.text();
-    } else if (!res.ok) {
+      return fail(
+        projectName,
+        `project ${dest.account}/${dest.slug} already exists — use \`skmtc push\` to update it, or pick another name`,
+        "create",
+      );
+    }
+    if (!res.ok) {
       const text = await res.text();
-      const hint = res.status === 403 ? ` — not authorized to create under ${ephemeral.account}` : "";
-      return { kind: "failed", projectName, reason: `create failed (${res.status})${hint}: ${text.slice(0, 300)}`, stage: "create" };
-    } else {
-      const body: unknown = await res.json();
-      if (isObject(body) && typeof body.htmlUrl === "string") projectUrl = body.htmlUrl;
+      const hint = res.status === 403
+        ? ` — not authorized to create under ${dest.account}`
+        : res.status === 422
+        ? ` — check the stack ${stack.account}/${stack.slug} is published`
+        : "";
+      return fail(
+        projectName,
+        `create failed (${res.status})${hint}: ${text.slice(0, 300)}`,
+        "create",
+      );
+    }
+    const body: unknown = await res.json();
+    if (isObject(body) && typeof body.htmlUrl === "string") {
+      projectUrl = body.htmlUrl;
     }
   } catch (err) {
-    return { kind: "failed", projectName, reason: err instanceof Error ? err.message : String(err), stage: "create" };
+    return fail(
+      projectName,
+      err instanceof Error ? err.message : String(err),
+      "create",
+    );
   }
 
-  // Seed config from the branch's local client.json.
+  // 4. Seed config (+ base files).
   let enrichmentCount = 0;
   try {
     const settings = contents.settings;
-    const seedBody = {
+    const body = {
       source: contents.source,
       settings: {
         basePath: settings.basePath ?? ".",
@@ -228,51 +291,99 @@ export const forkHeadless = async ({
         inputDirs: settings.inputDirs,
       },
     };
-    const res = await fetch(`${origin}/v1/projects/${ephemeral.account}/${ephemeral.slug}/client-config`, {
-      method: "PUT",
-      headers: { ...headers, "content-type": "application/json" },
-      body: JSON.stringify(seedBody),
-    });
+    const res = await fetch(
+      `${origin}/v1/projects/${dest.account}/${dest.slug}/client-config`,
+      {
+        method: "PUT",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
     if (!res.ok) {
       const text = await res.text();
-      return { kind: "failed", projectName, reason: `config seed failed (${res.status}) — fork created: ${text.slice(0, 300)}`, stage: "seed" };
+      return fail(
+        projectName,
+        `config seed failed (${res.status}) — project created: ${
+          text.slice(0, 300)
+        }`,
+        "seed",
+      );
     }
-    const seedResult: unknown = await res.json();
-    enrichmentCount = isObject(seedResult) ? arrayLen(seedResult.enrichments) : 0;
+    const seeded: unknown = await res.json();
+    enrichmentCount = isObject(seeded) ? arrayLen(seeded.enrichments) : 0;
   } catch (err) {
-    return { kind: "failed", projectName, reason: err instanceof Error ? err.message : String(err), stage: "seed" };
+    return fail(
+      projectName,
+      err instanceof Error ? err.message : String(err),
+      "seed",
+    );
   }
 
-  // Optional base-files seed (for the live preview container).
   let baseFilesPushed: number | undefined;
   if (baseFiles && Object.keys(baseFiles).length > 0) {
     try {
-      const res = await fetch(`${origin}/v1/projects/${ephemeral.account}/${ephemeral.slug}/preview/base-files`, {
-        method: "PUT",
-        headers: { ...headers, "content-type": "application/json" },
-        body: JSON.stringify({ files: baseFiles }),
-      });
+      const res = await fetch(
+        `${origin}/v1/projects/${dest.account}/${dest.slug}/preview/base-files`,
+        {
+          method: "PUT",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({ files: baseFiles }),
+        },
+      );
       if (!res.ok) {
         const text = await res.text();
-        return { kind: "failed", projectName, reason: `base-files seed failed (${res.status}) — config already seeded: ${text.slice(0, 300)}`, stage: "seed" };
+        return fail(
+          projectName,
+          `base-files seed failed (${res.status}): ${text.slice(0, 300)}`,
+          "seed",
+        );
       }
       await res.text();
       baseFilesPushed = Object.keys(baseFiles).length;
     } catch (err) {
-      return { kind: "failed", projectName, reason: err instanceof Error ? err.message : String(err), stage: "seed" };
+      return fail(
+        projectName,
+        err instanceof Error ? err.message : String(err),
+        "seed",
+      );
+    }
+  }
+
+  // 5. Record the remotes — but only FILL absent fields; never overwrite an
+  //    existing `project`/`api` ref (that's the user's, and clobbering it would
+  //    silently re-point push/pull). A fresh setup gets both recorded.
+  let remoteWritten = false;
+  const nextProject = contents.project?.trim()
+    ? contents.project
+    : `@${dest.account}/${dest.slug}`;
+  const nextApi = contents.api?.trim()
+    ? contents.api
+    : `@${api.account}/${api.slug}`;
+  if (nextProject !== contents.project || nextApi !== contents.api) {
+    try {
+      project.clientJson.contents = {
+        ...contents,
+        project: nextProject,
+        api: nextApi,
+      };
+      await project.clientJson.write();
+      remoteWritten = true;
+    } catch {
+      // The project was created; the write-back is a convenience.
     }
   }
 
   return {
-    kind: "forked",
+    kind: "created",
     projectName,
-    base,
-    ephemeral,
+    project: dest,
     origin,
-    branch,
-    created,
+    stack: `${stack.account}/${stack.slug}`,
+    api,
+    apiRegistered,
     enrichmentCount,
     baseFilesPushed,
+    remoteWritten,
     url: projectUrl,
   };
 };
@@ -280,59 +391,95 @@ export const forkHeadless = async ({
 type RmArgs = {
   skmtcRoot: SkmtcRoot;
   projectName: string;
+  name: string;
   token: string;
   origin: string;
-  asFlag?: string;
 };
 
 export type RmResult =
-  | { kind: "removed"; projectName: string; ephemeral: Scoped; origin: string; existed: boolean }
-  | { kind: "failed"; projectName: string; reason: string; stage: "read" | "delete" };
+  | {
+    kind: "removed";
+    projectName: string;
+    project: Scoped;
+    origin: string;
+    existed: boolean;
+  }
+  | {
+    kind: "failed";
+    projectName: string;
+    reason: string;
+    stage: "read" | "delete";
+  };
 
 export const rmHeadless = async ({
   skmtcRoot,
   projectName,
+  name,
   token,
   origin,
-  asFlag,
 }: RmArgs): Promise<RmResult> => {
   const project = skmtcRoot.findProject(projectName);
   const contents = project.clientJson.contents;
-  if (!contents) {
-    return { kind: "failed", projectName, reason: `no client.json for "${projectName}"`, stage: "read" };
+  const stackName = await readStackName(project.toPath());
+  const stack = stackName ? parseScopedName(stackName) : undefined;
+  const dest = resolveNewProject(
+    name,
+    stack?.account ??
+      (contents?.project
+        ? parseScopedName(contents.project)?.account ?? ""
+        : ""),
+  );
+  if (!dest || !dest.account) {
+    return {
+      kind: "failed",
+      projectName,
+      reason: `invalid project name "${name}" — expected @account/slug`,
+      stage: "read",
+    };
   }
-  const baseSpec = contents.project?.trim();
-  if (!baseSpec) {
-    return { kind: "failed", projectName, reason: "no base project in client.json to derive the ephemeral slug — pass --as", stage: "read" };
-  }
-  const base = parseScopedName(baseSpec);
-  if (!base) {
-    return { kind: "failed", projectName, reason: `invalid base "${baseSpec}"`, stage: "read" };
-  }
-  const resolved = await resolveEphemeral(base, asFlag);
-  if ("error" in resolved) {
-    return { kind: "failed", projectName, reason: resolved.error, stage: "read" };
-  }
-  const { ephemeral } = resolved;
-
   try {
-    const res = await fetch(`${origin}/v1/projects/${ephemeral.account}/${ephemeral.slug}`, {
-      method: "DELETE",
-      headers: { authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `${origin}/v1/projects/${dest.account}/${dest.slug}`,
+      {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${token}` },
+      },
+    );
     if (res.status === 404) {
-      return { kind: "removed", projectName, ephemeral, origin, existed: false };
+      return {
+        kind: "removed",
+        projectName,
+        project: dest,
+        origin,
+        existed: false,
+      };
     }
     if (!res.ok) {
       const text = await res.text();
       const hint = res.status === 403
-        ? ` — deleting a project needs the 'admin:resource' scope (your token lacks it)`
+        ? ` — deleting needs the 'admin:resource' scope (your token lacks it)`
         : "";
-      return { kind: "failed", projectName, reason: `delete failed (${res.status})${hint}: ${text.slice(0, 300)}`, stage: "delete" };
+      return {
+        kind: "failed",
+        projectName,
+        reason: `delete failed (${res.status})${hint}: ${text.slice(0, 300)}`,
+        stage: "delete",
+      };
     }
     await res.text();
-    return { kind: "removed", projectName, ephemeral, origin, existed: true };
+    return {
+      kind: "removed",
+      projectName,
+      project: dest,
+      origin,
+      existed: true,
+    };
   } catch (err) {
-    return { kind: "failed", projectName, reason: err instanceof Error ? err.message : String(err), stage: "delete" };
+    return {
+      kind: "failed",
+      projectName,
+      reason: err instanceof Error ? err.message : String(err),
+      stage: "delete",
+    };
   }
 };

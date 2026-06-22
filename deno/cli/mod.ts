@@ -416,11 +416,11 @@ const run = async () => {
       renderAgentContext({ jsonFlag: json });
     });
 
-  const projectForkCommand = new Command()
+  const projectCreateCommand = new Command()
     .description(
-      "Fork the base project (client.json#project) into an ephemeral per-branch project, seeded from the branch's client.json. Inherits the base's stack + API bindings.",
+      "Create a new hub project named <name> from the local setup: stack from deno.json#name, API from client.json#api (or register client.json#source), config from client.json. Create-only — a name clash fails (use `push` to update an existing project).",
     )
-    .arguments("<project:string>")
+    .arguments("<name:string>")
     .option("--no-input", NO_INPUT_DESC)
     .option("--json", JSON_DESC)
     .option(
@@ -432,8 +432,12 @@ const run = async () => {
       "Hub origin (base URL). Defaults to $SKMTC_ORIGIN or https://api.skmtc.dev.",
     )
     .option(
-      "--as <ref:string>",
-      "Ephemeral destination as @account/slug. Defaults to <base-slug>-<git-branch>.",
+      "--from <project:string>",
+      "Local project (.skmtc/<project>) to build from. Defaults to the only project when there is one.",
+    )
+    .option(
+      "--stack-version <version:string>",
+      "Pin the stack to an exact published version. Defaults to `latest`.",
     )
     .option(
       "--visibility <vis:string>",
@@ -443,25 +447,40 @@ const run = async () => {
       "--base-files",
       "Also seed the app's base files (needed for the live preview container).",
     )
-    .action(async ({ json, input, token, origin, as, visibility, baseFiles }, projectName) => {
-      const { renderProjectFork } = await import("@/commands/project.ts");
-      await renderProjectFork({
-        projectName,
-        token,
-        origin,
-        as,
-        visibility,
-        baseFiles,
-        jsonFlag: json,
-        noInputFlag: input === false,
-      });
-    });
+    .action(
+      async (
+        {
+          json,
+          input,
+          token,
+          origin,
+          from,
+          stackVersion,
+          visibility,
+          baseFiles,
+        },
+        name,
+      ) => {
+        const { renderProjectCreate } = await import("@/commands/project.ts");
+        await renderProjectCreate({
+          name,
+          from,
+          token,
+          origin,
+          stackVersion,
+          visibility,
+          baseFiles,
+          jsonFlag: json,
+          noInputFlag: input === false,
+        });
+      },
+    );
 
   const projectRmCommand = new Command()
     .description(
-      "Delete an ephemeral per-branch project. Targets <base-slug>-<git-branch> (or --as). Deleting needs the admin:resource scope.",
+      "Delete a hub project named <name>. Deleting needs the admin:resource scope.",
     )
-    .arguments("<project:string>")
+    .arguments("<name:string>")
     .option("--no-input", NO_INPUT_DESC)
     .option("--json", JSON_DESC)
     .option(
@@ -473,31 +492,35 @@ const run = async () => {
       "Hub origin (base URL). Defaults to $SKMTC_ORIGIN or https://api.skmtc.dev.",
     )
     .option(
-      "--as <ref:string>",
-      "Ephemeral target as @account/slug. Defaults to <base-slug>-<git-branch>.",
+      "--from <project:string>",
+      "Local project whose account scopes a bare <name>. Defaults to the only project.",
     )
-    .action(async ({ json, input, token, origin, as }, projectName) => {
+    .action(async ({ json, input, token, origin, from }, name) => {
       const { renderProjectRm } = await import("@/commands/project.ts");
       await renderProjectRm({
-        projectName,
+        name,
+        from,
         token,
         origin,
-        as,
         jsonFlag: json,
         noInputFlag: input === false,
       });
     });
 
   const projectCommand = new Command()
-    .description("Manage ephemeral, per-branch hub projects (fork / rm).")
+    .description(
+      "Manage a hub project built from the local setup (create / rm).",
+    )
     .action(() => {
       console.error("Usage: skmtc project <subcommand>");
       console.error("Subcommands:");
-      console.error("  fork <project>   Fork the base project for the current branch.");
-      console.error("  rm <project>     Delete the ephemeral per-branch project.");
+      console.error(
+        "  create <name>   Create a new hub project from the local setup.",
+      );
+      console.error("  rm <name>       Delete a hub project.");
       Deno.exit(2);
     })
-    .command("fork", projectForkCommand)
+    .command("create", projectCreateCommand)
     .command("rm", projectRmCommand);
 
   const migrateVariantsCommand = new Command()

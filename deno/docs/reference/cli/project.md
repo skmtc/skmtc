@@ -1,104 +1,107 @@
 # skmtc project
 
-> Manage **ephemeral, per-branch** hub projects: `fork` a base project for the
-> current branch, `rm` it when the branch merges.
+> Manage a hub project built from the local setup: `create` a new project, `rm`
+> it.
 
-The model is the per-PR preview-environment pattern. A long-lived **base**
-project (`client.json#project`, e.g. `@acme/petstore-client`) is the canonical
-anchor; each git branch forks it into a short-lived project that carries that
-branch's enrichment edits:
+## `skmtc project create <name>`
 
-```
-git checkout -b enrich/foo
-skmtc project fork my-api            # fork base → @acme/petstore-client-enrich-foo
-  …edit enrichments in the fork's rail…
-skmtc pull my-api                    # pull the edits into the branch's client.json
-git commit && open PR
-  …PR merges…
-skmtc project rm my-api              # tear the fork down
-```
-
-Git is the source of truth; the fork is a transient editing surface.
-
-## `skmtc project fork <project>`
-
-Forks the base project (`client.json#project`) into an ephemeral per-branch
-project, **inheriting the base's stack + API bindings** (so a fork is near
-zero-config — you don't re-specify the generators or the schema) and **seeding
-the fork from the branch's local `client.json`**.
+Creates a **new** hub project named `<name>` from the local project — binding
+its stack + API and seeding its config. It is **create-only**: a name clash
+fails (use [`push`](push.md) to update an existing project — `push` confirms
+before it overwrites). It composes existing hub endpoints; it never silently
+updates.
 
 ```
-skmtc project fork <project> [--as @account/slug] [--visibility private|public] [--base-files] [--origin <url>] [--token <pat>] [--json] [--no-input]
+skmtc project create <name> [--from <project>] [--stack-version <v>] [--visibility public|private] [--base-files] [--origin <url>] [--token <pat>] [--json] [--no-input]
 ```
 
 What it does:
 
 ```
-1. Resolve the base       client.json#project (the canonical project). Missing → fail.
-2. Resolve the ephemeral  --as @account/slug, else <base-slug>-<git-branch>
-                          (branch read from .git/HEAD; sanitized).
-3. GET /projects/{base}    inherit stack + stackPin + api + apiPin.
-4. POST /projects          create the fork with those bindings (409 = exists → re-seed).
-5. PUT …/client-config     seed config (enrichments + filters) from the branch.
-6. PUT …/preview/base-files  (only with --base-files — needed for the live preview container).
+1. Stack    deno.json#name — the local stack, which must already be published
+            (skmtc publish). Pinned to `latest`, or --stack-version <v>.
+2. API      client.json#api if set; else register client.json#source —
+            /v1/apis/upload (a file) or /v1/apis/import (a URL) — and write the
+            resulting @account/slug back into client.json#api.
+3. Project  POST /v1/projects binding the two. A 409 (already exists) STOPS the
+            command — nothing is overwritten.
+4. Seed     PUT …/client-config (config) + …/preview/base-files (--base-files).
+5. Record   fills client.json#project + #api when absent (never overwrites an
+            existing ref — that's yours).
 ```
 
-The fork is editable as soon as it exists: descriptors come from the inherited
-stack version's shared cache (no per-fork re-deploy), so time-to-editable is
-effectively instant. The live preview container is lazy (spun up on demand).
+### Arguments
+
+|          |                                                                                               |
+| -------- | --------------------------------------------------------------------------------------------- |
+| `<name>` | The **new hub project's** slug, or `@account/slug`. A bare slug inherits the stack's account. |
 
 ### Options
 
-| Option | Meaning |
-|---|---|
-| `--as <@account/slug>` | Ephemeral destination. Default: `<base-slug>-<git-branch>`. |
-| `--visibility <v>` | `private` (default) or `public`. |
-| `--base-files` | Also seed the app tree (only needed for the live preview iframe). |
-| `--token` / `--origin` | As for [`push`](push.md) / [`pull`](pull.md). |
+| Option                 | Meaning                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `--from <project>`     | Local project under `.skmtc/<project>/` to build from. Defaults to the only project when there's exactly one. |
+| `--stack-version <v>`  | Pin the stack to an exact published version. Default: `latest`.                                               |
+| `--visibility <v>`     | `private` (default) or `public`.                                                                              |
+| `--base-files`         | Also seed the app tree (needed for the live preview iframe).                                                  |
+| `--token` / `--origin` | As for [`push`](push.md) / [`pull`](pull.md).                                                                 |
 
 ### JSON output
 
 ```jsonc
-{ "kind": "forked", "base": { "account": "acme", "slug": "petstore-client" },
-  "ephemeral": { "account": "acme", "slug": "petstore-client-enrich-foo" },
-  "branch": "enrich/foo", "created": true, "enrichmentCount": 19,
-  "url": "https://…/acme/projects/petstore-client-enrich-foo" }
+{
+  "kind": "created",
+  "project": { "account": "acme", "slug": "petstore-sandbox" },
+  "stack": "acme/petstore-stack",
+  "api": { "account": "acme", "slug": "petstore" },
+  "apiRegistered": false,
+  "enrichmentCount": 19,
+  "remoteWritten": true,
+  "url": "https://…/acme/projects/petstore-sandbox"
+}
 ```
 
-`failed` carries a `stage` of `read` (no base / no branch / can't read config),
-`base` (base project missing / unreadable), `create`, or `seed`.
+`failed` carries a `stage`: `read` (no client.json / bad name), `stack` (no
+scoped `deno.json#name`), `api` (no schema / register failed), `create` (**409 →
+already exists**, or 422 → stack not published), or `seed`.
 
-## `skmtc project rm <project>`
+## `skmtc project rm <name>`
 
-Deletes the ephemeral project (same slug `fork` derives — `<base-slug>-<git-branch>`
-or `--as`).
+Deletes a hub project.
 
 ```
-skmtc project rm <project> [--as @account/slug] [--origin <url>] [--token <pat>] [--json] [--no-input]
+skmtc project rm <name> [--from <project>] [--origin <url>] [--token <pat>] [--json] [--no-input]
 ```
 
-> **Scope:** deleting a project needs the **`admin:resource`** scope (creating
-> only needs `write:catalog`). A token that lacks it gets a `403` with that hint.
-> For automation, prefer a typed-ephemeral + TTL/GC story over handing a broad
-> delete token to the loop.
+> **Scope:** deleting needs the **`admin:resource`** scope (creating only needs
+> `write:catalog`). A token that lacks it gets a `403` with that hint.
 
-```jsonc
-{ "kind": "removed", "ephemeral": { "account": "acme", "slug": "petstore-client-enrich-foo" },
-  "existed": true }
-```
+`existed: false` means it was already gone (idempotent). `--from` scopes the
+account when `<name>` is a bare slug.
 
-`existed: false` means it was already gone (idempotent). `failed` carries a
-`stage` of `read` or `delete`.
+## How identity & create-vs-update work
+
+- **Stack** — identity is the explicit `deno.json#name`. The hub creates the
+  stack on first `publish`, appends a version after; you bump
+  `deno.json#version`.
+- **API** — uploads don't self-identify (the hub can't match a local file to an
+  existing API). So `create` records the registered `@account/slug` in
+  **`client.json#api`** (like `client.json#project` is the project remote) — a
+  re-run reuses it instead of registering a duplicate.
+- **Project** — `create` is create-only; **`push` is update** (and asks before
+  overwriting). They never share a path, so you can't accidentally clobber a
+  project's config by re-running `create`.
 
 ## Gotcha — `--token` and `--origin` together
 
-`--origin` only inherits the `skmtc login` store host when the **token came from
-the store**. If you pass `--token` explicitly (e.g. an `admin:resource` PAT for
-`rm`) against a non-default hub (local / staging), **also pass `--origin`** —
-otherwise it defaults to `https://api.skmtc.dev`.
+`--origin` only inherits the `skmtc login` store host when the token came from
+the store. Passing `--token` explicitly (e.g. an `admin:resource` PAT for `rm`)
+against a non-default hub (local / staging) → **also pass `--origin`**, else it
+defaults to `https://api.skmtc.dev`.
 
 ## See also
 
-- [`pull`](pull.md) — pull the fork's edits back into the branch
-- [`push`](push.md) — push config to an existing project
+- [`pull`](pull.md) — pull a project's config back into client.json
+- [`push`](push.md) — push config to an existing project (the _update_ path)
+- [`publish`](publish.md) — publish the stack the project binds
 - [overview](overview.md) — shared flags
