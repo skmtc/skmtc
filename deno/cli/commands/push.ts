@@ -37,7 +37,7 @@ const USAGE = "skmtc push <project> [--project @account/slug] [--base-files]";
  * manifest's generated output excluded. Delegates the ignore methodology to
  * {@link collectBaseFiles}.
  */
-const collectProjectBaseFiles = async (
+export const collectProjectBaseFiles = async (
   skmtcRoot: SkmtcRoot,
   projectName: string,
 ): Promise<Record<string, string>> => {
