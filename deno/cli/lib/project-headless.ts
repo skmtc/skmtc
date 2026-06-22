@@ -151,6 +151,43 @@ async function registerSchema(
   return { api: { account: ownerHandle, slug } };
 }
 
+/**
+ * Append the local schema to an existing hub API as a version, so the new project
+ * binds the current local schema. Content-addressed on the hub, so an unchanged
+ * schema is a no-op (`deduped`). File sources only — a URL-sourced API re-versions
+ * through its source refresh, not an upload.
+ */
+async function uploadSchemaVersion(
+  source: string,
+  api: Scoped,
+  origin: string,
+  token: string,
+): Promise<{ ok: true } | { error: string }> {
+  if (/^https?:\/\//i.test(source)) return { ok: true };
+  const path = join(toAbsoluteRootPath(), source);
+  let bytes: Uint8Array;
+  try {
+    bytes = await Deno.readFile(path);
+  } catch {
+    return { error: `cannot read schema source "${source}" (${path})` };
+  }
+  const filename = source.split("/").pop() ?? "schema.json";
+  const res = await fetch(
+    `${origin}/v1/apis/${api.account}/${api.slug}/versions?filename=${encodeURIComponent(filename)}`,
+    {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/octet-stream" },
+      body: bytes,
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    return { error: `schema version upload failed (${res.status}): ${text.slice(0, 300)}` };
+  }
+  await res.text();
+  return { ok: true };
+}
+
 export const createHeadless = async ({
   skmtcRoot,
   projectName,
@@ -200,6 +237,11 @@ export const createHeadless = async ({
         `invalid client.json#api "${contents.api}"`,
         "api",
       );
+    }
+    // Append the current local schema so the project binds it (no-op if unchanged).
+    if (contents.source?.trim()) {
+      const versioned = await uploadSchemaVersion(contents.source.trim(), api, origin, token);
+      if ("error" in versioned) return fail(projectName, versioned.error, "api");
     }
   } else {
     if (!contents.source?.trim()) {
