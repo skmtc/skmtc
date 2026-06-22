@@ -44,8 +44,8 @@ export type EnrichmentField = {
   fields?: EnrichmentField[]
 }
 
-/** What a generator targets — operations or models. */
-export type TargetKind = 'operation' | 'model'
+/** Which subject kind a generator enriches — operations, webhooks, or models. */
+export type SubjectKind = 'operation' | 'model' | 'webhook'
 
 /**
  * A generator's enrichment schema, projected for the CMS. The same
@@ -54,7 +54,7 @@ export type TargetKind = 'operation' | 'model'
  */
 export type EnrichmentDescriptor = {
   generator: string
-  appliesTo: TargetKind
+  subjectKind: SubjectKind
   fields: EnrichmentField[]
 }
 
@@ -205,7 +205,7 @@ const walkEntries = (entries: Record<string, v.GenericSchema>): EnrichmentField[
  * umbrella yields `[]`.
  *
  * Generally callers should prefer {@link toEnrichmentDescriptor}, which
- * takes a generator entry and fills in `generator` / `appliesTo`
+ * takes a generator entry and fills in `generator` / `subjectKind`
  * automatically. This lower-level entry point is useful in tests and
  * when only the field shape is needed.
  */
@@ -216,21 +216,19 @@ export const toEnrichmentFields = (schema: v.GenericSchema | undefined): Enrichm
   return walkEntries(inner.entries)
 }
 
-const toAppliesTo = (entryType: EnrichmentSource['type']): TargetKind => {
+const toSubjectKind = (entryType: EnrichmentSource['type']): SubjectKind => {
   switch (entryType) {
     case 'model':
       return 'model'
     case 'oasOperation':
     case 'gqlOperation':
       return 'operation'
-    // STOPGAP: a webhook is operation-shaped (method + responses), so its
-    // enrichment editor reuses the 'operation' context for now. A dedicated
-    // 'webhook' TargetKind would be more truthful but ripples into the
-    // skmtc-hub TypeSpec contract that TargetKind/appliesTo mirror — deferred
-    // to a coordinated change. (Was an uncovered gap: WebhookConfig joined the
-    // GeneratorConfig union without a toAppliesTo arm.)
+    // A webhook resembles an operation (a path-item keyed by HTTP method) but
+    // is a DISTINCT subject: it is addressed by webhook name, not request path,
+    // and has no request URL. It is its own SubjectKind so the editor and the
+    // hub treat it truthfully rather than conflating it with an operation.
     case 'webhook':
-      return 'operation'
+      return 'webhook'
     default: {
       const _exhaustive: never = entryType
       throw new Error(`Unhandled generator entry type: ${String(_exhaustive)}`)
@@ -242,8 +240,9 @@ const toAppliesTo = (entryType: EnrichmentSource['type']): TargetKind => {
  * Project a generator entry's enrichment schema into a serialisable
  * `EnrichmentDescriptor` the CMS can render as a form. The entry's
  * `id` becomes `descriptor.generator`; its `type` discriminator maps
- * to `appliesTo` (`'oasOperation' | 'gqlOperation'` → `'operation'`;
- * `'model'` → `'model'`). If the entry has no `toEnrichmentSchema`, or
+ * to `subjectKind` (`'oasOperation' | 'gqlOperation'` → `'operation'`;
+ * `'webhook'` → `'webhook'`; `'model'` → `'model'`). If the entry has no
+ * `toEnrichmentSchema`, or
  * declares the empty umbrella, the descriptor has an empty `fields`
  * array — the UI hides the section, matching the engine's "no
  * enrichments" behaviour.
@@ -257,6 +256,6 @@ const toAppliesTo = (entryType: EnrichmentSource['type']): TargetKind => {
  */
 export const toEnrichmentDescriptor = (entry: EnrichmentSource): EnrichmentDescriptor => ({
   generator: entry.id,
-  appliesTo: toAppliesTo(entry.type),
+  subjectKind: toSubjectKind(entry.type),
   fields: toEnrichmentFields(entry.toEnrichmentSchema?.())
 })

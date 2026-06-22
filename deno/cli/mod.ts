@@ -22,8 +22,9 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   // the JSR registry.
   "login",
   "logout",
-  // push uploads client.json to the hub; it never touches JSR.
+  // push/pull move client.json to/from the hub; neither touches JSR.
   "push",
+  "pull",
 ]);
 
 const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
@@ -332,6 +333,42 @@ const run = async () => {
       },
     );
 
+  const pullCommand = new Command()
+    .description(getCommandDescriptor("pull").description)
+    .arguments("<project:string>")
+    .option("--no-input", NO_INPUT_DESC)
+    .option("--json", JSON_DESC)
+    .option(
+      "--token <token:string>",
+      "Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.",
+    )
+    .option(
+      "--origin <url:string>",
+      "Hub origin (base URL). Defaults to $SKMTC_ORIGIN or https://api.skmtc.dev.",
+    )
+    .option(
+      "--project <ref:string>",
+      "Hub destination as @account/slug. Defaults to the `project` field in client.json.",
+    )
+    .option(
+      "--force",
+      "Overwrite the local config without the confirmation prompt.",
+    )
+    .action(
+      async ({ json, input, token, origin, project, force }, projectName) => {
+        const { renderPull } = await import("@/commands/pull.ts");
+        await renderPull({
+          projectName,
+          token,
+          origin,
+          project,
+          force,
+          jsonFlag: json,
+          noInputFlag: input === false,
+        });
+      },
+    );
+
   const loginCommand = new Command()
     .description(getCommandDescriptor("login").description)
     .option("--no-input", NO_INPUT_DESC)
@@ -423,6 +460,7 @@ const run = async () => {
     .command("clean", cleanCommand)
     .command("publish", publishCommand)
     .command("push", pushCommand)
+    .command("pull", pullCommand)
     .command("login", loginCommand)
     .command("logout", logoutCommand)
     .command("dev", devCommand)

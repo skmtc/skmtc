@@ -63,23 +63,39 @@ export type ModelEnrichments = Record<string, EnrichmentLeaf>
 export const modelEnrichments: v.GenericSchema<ModelEnrichments> = v.record(v.string(), v.unknown())
 
 /**
- * OAS method enrichments: HTTP method (`get`, `post`, ...) → leaf payload.
+ * OAS operation enrichments: HTTP method (`get`, `post`, ...) → leaf payload.
+ * One entry per operation defined at a path; the leaf is opaque to core.
  */
-export type OasMethodEnrichments = Record<string, EnrichmentLeaf>
+export type OasOperationEnrichments = Record<string, EnrichmentLeaf>
 
-export const oasMethodEnrichments: v.GenericSchema<OasMethodEnrichments> = v.record(
+export const oasOperationEnrichments: v.GenericSchema<OasOperationEnrichments> = v.record(
   v.string(),
   v.unknown()
 )
 
 /**
- * OAS path enrichments: path template → method enrichments.
+ * OAS webhook enrichments: HTTP method (`get`, `post`, ...) → leaf payload.
+ * Structurally identical to {@link OasOperationEnrichments} — an OpenAPI 3.1
+ * webhook is a path-item keyed by method, the same shape as an operation — but
+ * named distinctly so a webhook generator's slot reads as webhook-scoped (the
+ * `webhook` subject kind) rather than operation-scoped. The leaf is opaque to
+ * core.
  */
-export type OasPathEnrichments = Record<string, OasMethodEnrichments>
+export type OasWebhookEnrichments = Record<string, EnrichmentLeaf>
+
+export const oasWebhookEnrichments: v.GenericSchema<OasWebhookEnrichments> = v.record(
+  v.string(),
+  v.unknown()
+)
+
+/**
+ * OAS path enrichments: path template → operation enrichments.
+ */
+export type OasPathEnrichments = Record<string, OasOperationEnrichments>
 
 export const oasPathEnrichments: v.GenericSchema<OasPathEnrichments> = v.record(
   v.string(),
-  oasMethodEnrichments
+  oasOperationEnrichments
 )
 
 /**

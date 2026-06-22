@@ -198,6 +198,36 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: "full",
   },
   {
+    name: "pull",
+    description:
+      "Pull this project's config (enrichments + filters) from its skmtc-hub project into the local client.json — the hub→local counterpart to push. The destination is the `project: \"@account/slug\"` field in client.json (or --project). Replaces the local enrichments/include/skip; preserves local basePath/packages/source. The project must already exist on the hub.",
+    args: ["<project>"],
+    flags: [
+      ...AGENT_MODE_FLAGS,
+      {
+        flag: "--token <pat>",
+        description:
+          "Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.",
+      },
+      {
+        flag: "--origin <url>",
+        description:
+          "Hub origin (base URL). Defaults to $SKMTC_ORIGIN or https://api.skmtc.dev.",
+      },
+      {
+        flag: "--project <ref>",
+        description:
+          "Hub destination as @account/slug. Defaults to the `project` field in client.json.",
+      },
+      {
+        flag: "--force",
+        description:
+          "Overwrite the local config without the confirmation prompt.",
+      },
+    ],
+    agentMode: "full",
+  },
+  {
     name: "login",
     description:
       "Validate and store a skmtc-hub personal access token (paste-a-PAT login). When a token is already stored, reports the logged-in handle instead of prompting.",
