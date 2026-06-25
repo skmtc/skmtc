@@ -1,4 +1,4 @@
-import * as v from 'valibot'
+import type * as v from 'valibot'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type {
@@ -8,11 +8,8 @@ import type {
   ToOasOperationEnrichmentsArgs,
   TransformOasOperationArgs
 } from '@/dsl/operation/oas/types.ts'
-import type { IsSupportedOasOperationConfigArgs } from '@/dsl/operation/oas/types.ts'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
-import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
-// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
-import get from 'lodash-es/get'
+
 /**
  * Configuration arguments for creating operation generator entries.
  *
@@ -25,10 +22,12 @@ export type ToOasOperationConfigArgs<EnrichmentType = undefined> = {
   id: string
   transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  isSupported?: ({
-    context,
-    operation
-  }: IsSupportedOasOperationConfigArgs<EnrichmentType>) => boolean
+  isSupported?: (args: IsSupportedOasOperationArgs) => boolean
+  /**
+   * Optional: whether this generator entry supports variants. Defaults to a
+   * function returning `false` when omitted.
+   */
+  supportsVariant?: () => boolean
   toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
@@ -42,6 +41,25 @@ export type ToOasOperationConfigArgs<EnrichmentType = undefined> = {
    * has a single home in `base.ts` while the entry exposes it to the seeding
    * pass (which walks the generator-config map, not projection classes).
    */
+  toEnrichmentDefaults?: ({
+    operation,
+    context,
+    variant
+  }: ToOasOperationEnrichmentsArgs) => EnrichmentType | undefined
+}
+
+export type OasOperationEntry<EnrichmentType = undefined> = {
+  id: string
+  type: 'oasOperation'
+  transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
+  isSupported: (args: IsSupportedOasOperationArgs) => boolean
+  supportsVariant: () => boolean
+  toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
+  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
+    operation: OasOperation
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichmentDefaults?: ({
     operation,
     context,
@@ -80,61 +98,19 @@ export const toOasOperationEntry = <EnrichmentType = undefined>({
   transform,
   toEnrichmentSchema,
   isSupported,
+  supportsVariant,
   toPreviewModule,
   toMappingModule,
   toEnrichmentRequest,
   toEnrichmentDefaults
-}: ToOasOperationConfigArgs<EnrichmentType>): {
-  id: string
-  type: 'oasOperation'
-  transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
-  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
-  toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    operation: OasOperation
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
-  toEnrichmentDefaults?: ({
-    operation,
-    context,
-    variant
-  }: ToOasOperationEnrichmentsArgs) => EnrichmentType | undefined
-} => {
+}: ToOasOperationConfigArgs<EnrichmentType>): OasOperationEntry<EnrichmentType> => {
   return {
     id,
     type: 'oasOperation',
     transform,
     toEnrichmentSchema,
-    isSupported: ({ context, operation, variant }: IsSupportedOasOperationArgs) => {
-      if (!isSupported) {
-        return true
-      }
-
-      // Assemble the three-scope umbrella — mirrors
-      // `OasOperationProjectionBase.toEnrichments` so the shim and the
-      // projection-base resolve to the same value. Subject is per-item
-      // (`[id][path][method][variant]`); generator and stack are
-      // run-constants. The required composite schema parses cast-free.
-      const raw = {
-        subject: get(context.settings, [
-          'enrichments',
-          id,
-          operation.path,
-          operation.method,
-          variant
-        ]),
-        generator: get(context.settings, ['enrichments', id, GENERATOR_ENRICHMENT_KEY]),
-        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
-      }
-
-      return isSupported({
-        context,
-        operation,
-        enrichments: v.parse(toEnrichmentSchema(), raw),
-        variant
-      })
-    },
+    isSupported: isSupported ?? (() => true),
+    supportsVariant: supportsVariant ?? (() => false),
     toPreviewModule,
     toMappingModule,
     toEnrichmentRequest,

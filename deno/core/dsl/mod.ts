@@ -9,41 +9,38 @@ export * from './GeneratedValue.ts'
 export * from './GeneratorKeys.ts'
 export { ContentSettings } from './ContentSettings.ts'
 export { toModelProjectionBase } from './model/toModelProjectionBase.ts'
-export { toModelEntry } from './model/toModelEntry.ts'
+export { toModelEntry, type ModelEntry } from './model/toModelEntry.ts'
 export { ModelDriver } from './model/ModelDriver.ts'
 export type {
   ModelProjectionConstructorArgs,
+  IsSupportedModelArgs,
   WithTransformModel,
   ToModelEnrichmentsArgs,
   TransformModelArgs,
   ToModelPreviewModuleArgs,
   ToModelMappingArgs,
-  ModelProjection,
-  ModelConfig
+  ModelProjection
 } from './model/types.ts'
 export { OasOperationDriver } from './operation/oas/OasOperationDriver.ts'
 export { toOasOperationProjectionBase } from './operation/oas/toOasOperationProjectionBase.ts'
-export { toOasOperationEntry } from './operation/oas/toOasOperationEntry.ts'
+export { toOasOperationEntry, type OasOperationEntry } from './operation/oas/toOasOperationEntry.ts'
 export type {
   OasOperationProjectionConstructorArgs,
-  IsSupportedOasOperationConfigArgs,
+  IsSupportedOasOperationArgs,
   TransformOasOperationArgs,
   ToOasOperationPreviewModuleArgs,
   ToOasOperationMappingArgs,
-  OasOperationConfig,
-  OasOperationProjection,
-  IsSupportedOasOperationArgs
+  OasOperationProjection
 } from './operation/oas/types.ts'
 export { GqlOperationDriver } from './operation/gql/GqlOperationDriver.ts'
 export { toGqlOperationProjectionBase } from './operation/gql/toGqlOperationProjectionBase.ts'
-export { toGqlOperationEntry } from './operation/gql/toGqlOperationEntry.ts'
+export { toGqlOperationEntry, type GqlOperationEntry } from './operation/gql/toGqlOperationEntry.ts'
 export type {
   GqlOperationProjectionConstructorArgs,
-  IsSupportedGqlOperationConfigArgs,
+  IsSupportedGqlOperationArgs,
   TransformGqlOperationArgs,
   ToGqlOperationPreviewModuleArgs,
   ToGqlOperationMappingArgs,
-  GqlOperationConfig,
   GqlOperationProjection
 } from './operation/gql/types.ts'
 export { FileBase } from './FileBase.ts'

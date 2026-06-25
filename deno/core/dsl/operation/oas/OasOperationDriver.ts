@@ -77,7 +77,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       variant
     })
 
-    assertPeerSupported({ context, projection, operation })
+    assertPeerSupported({ context, projection, operation, variant })
 
     this.settings = this.context.toOperationContentSettings({
       operation,
@@ -215,10 +215,12 @@ const assertPeerVariantExists = ({
     return
   }
 
-  const opEnrichments: unknown = get(
-    context.settings,
-    ['enrichments', generatorId, operation.path, operation.method]
-  )
+  const opEnrichments: unknown = get(context.settings, [
+    'enrichments',
+    generatorId,
+    operation.path,
+    operation.method
+  ])
 
   const operationLabel = `${operation.method.toUpperCase()} ${operation.path}`
 
@@ -245,13 +247,11 @@ const assertPeerVariantExists = ({
   }
 }
 
-type AssertPeerSupportedArgs = {
+type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
-  projection: {
-    id: string
-    isSupported?: (args: { operation: OasOperation; context: GenerateContextType }) => boolean
-  }
+  projection: OasOperationProjection<V, EnrichmentType>
   operation: OasOperation
+  variant: string
 }
 
 /**
@@ -275,16 +275,13 @@ type AssertPeerSupportedArgs = {
  * supporting every operation: `toOasOperationProjectionBase` defaults
  * it to `() => true`, and a hand-rolled projection may omit it.
  */
-const assertPeerSupported = ({
+const assertPeerSupported = <V extends GeneratedValue, EnrichmentType = undefined>({
   context,
   projection,
-  operation
-}: AssertPeerSupportedArgs): void => {
-  if (typeof projection.isSupported !== 'function') {
-    return
-  }
-
-  if (!projection.isSupported({ operation, context })) {
+  operation,
+  variant
+}: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
+  if (!projection.isSupported({ operation, context, variant })) {
     const operationLabel = `${operation.method.toUpperCase()} ${operation.path}`
     throw new Error(
       `[${projection.id}] Cannot insert '${operationLabel}' — peer generator ` +

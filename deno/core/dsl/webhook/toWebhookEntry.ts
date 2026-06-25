@@ -1,4 +1,4 @@
-import * as v from 'valibot'
+import type * as v from 'valibot'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type {
@@ -6,13 +6,9 @@ import type {
   ToWebhookPreviewModuleArgs,
   ToWebhookMappingArgs,
   ToWebhookEnrichmentsArgs,
-  TransformWebhookArgs,
-  IsSupportedWebhookConfigArgs
+  TransformWebhookArgs
 } from '@/dsl/webhook/types.ts'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
-import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
-// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
-import get from 'lodash-es/get'
 
 /**
  * Configuration arguments for creating webhook generator entries.
@@ -27,10 +23,25 @@ export type ToWebhookConfigArgs<EnrichmentType = undefined> = {
   id: string
   transform: ({ context, webhook, variant }: TransformWebhookArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  isSupported?: ({
+  isSupported?: (args: IsSupportedWebhookArgs) => boolean
+  toPreviewModule?: ({ context, webhook }: ToWebhookPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, webhook }: ToWebhookMappingArgs) => MappingModule
+  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
+    webhook: OasWebhook
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined
+  toEnrichmentDefaults?: ({
+    webhook,
     context,
-    webhook
-  }: IsSupportedWebhookConfigArgs<EnrichmentType>) => boolean
+    variant
+  }: ToWebhookEnrichmentsArgs) => EnrichmentType | undefined
+}
+
+export type WebhookEntry<EnrichmentType = undefined> = {
+  id: string
+  type: 'webhook'
+  transform: ({ context, webhook, variant }: TransformWebhookArgs) => void
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
+  isSupported: (args: IsSupportedWebhookArgs) => boolean
   toPreviewModule?: ({ context, webhook }: ToWebhookPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, webhook }: ToWebhookMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
@@ -74,57 +85,13 @@ export const toWebhookEntry = <EnrichmentType = undefined>({
   toMappingModule,
   toEnrichmentRequest,
   toEnrichmentDefaults
-}: ToWebhookConfigArgs<EnrichmentType>): {
-  id: string
-  type: 'webhook'
-  transform: ({ context, webhook, variant }: TransformWebhookArgs) => void
-  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, webhook }: IsSupportedWebhookArgs) => boolean
-  toPreviewModule?: ({ context, webhook }: ToWebhookPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, webhook }: ToWebhookMappingArgs) => MappingModule
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    webhook: OasWebhook
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
-  toEnrichmentDefaults?: ({
-    webhook,
-    context,
-    variant
-  }: ToWebhookEnrichmentsArgs) => EnrichmentType | undefined
-} => {
+}: ToWebhookConfigArgs<EnrichmentType>): WebhookEntry<EnrichmentType> => {
   return {
     id,
     type: 'webhook',
     transform,
     toEnrichmentSchema,
-    isSupported: ({ context, webhook, variant }: IsSupportedWebhookArgs) => {
-      if (!isSupported) {
-        return true
-      }
-
-      // Assemble the three-scope umbrella — mirrors
-      // `WebhookProjectionBase.toEnrichments` so the shim and the
-      // projection-base resolve to the same value. Subject is per-item
-      // (`[id][name][method][variant]`); generator and stack are
-      // run-constants. The required composite schema parses cast-free.
-      const raw = {
-        subject: get(context.settings, [
-          'enrichments',
-          id,
-          webhook.name,
-          webhook.method,
-          variant
-        ]),
-        generator: get(context.settings, ['enrichments', id, GENERATOR_ENRICHMENT_KEY]),
-        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
-      }
-
-      return isSupported({
-        context,
-        webhook,
-        enrichments: v.parse(toEnrichmentSchema(), raw),
-        variant
-      })
-    },
+    isSupported: isSupported ?? (() => true),
     toPreviewModule,
     toMappingModule,
     toEnrichmentRequest,

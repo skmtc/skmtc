@@ -94,7 +94,7 @@ const createMockProjection = (options?: {
     // The static the Driver reads (`this.projection.lang`) — stands in for
     // the static a real projection inherits from its lang snippet base.
     static lang = typescript
-    static isSupported = options?.isSupported
+    static isSupported = options?.isSupported ?? (() => true)
 
     static toIdentifierName({ operation }: ToOasOperationIdentifierNameArgs): string {
       return operation.operationId ?? 'operation'
@@ -534,6 +534,7 @@ Deno.test('OasOperationDriver', async t => {
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
+        static isSupported = () => true
 
         constructor(args: {
           context: GenerateContextType
@@ -689,6 +690,7 @@ Deno.test('OasOperationDriver', async t => {
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
+        static isSupported = () => true
 
         constructor(args: {
           context: GenerateContextType
@@ -719,7 +721,7 @@ Deno.test('OasOperationDriver', async t => {
           identifier: createVariable('cached'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -755,7 +757,7 @@ Deno.test('OasOperationDriver', async t => {
           generatorKey: toOasOperationGeneratorKey({
             generatorId: 'MockProjection',
             operation: createMockOperation(),
-      variant: 'main'
+            variant: 'main'
           }),
           toString: () => 'cached'
         } as any
@@ -811,7 +813,7 @@ Deno.test('OasOperationDriver', async t => {
           identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -851,7 +853,7 @@ Deno.test('OasOperationDriver', async t => {
           identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -894,7 +896,7 @@ Deno.test('OasOperationDriver', async t => {
             generatorId: 'DifferentGenerator',
             operation,
             variant: 'main'
-            }),
+          }),
           toString: () => 'cached'
         } as any
       })
@@ -924,7 +926,7 @@ Deno.test('OasOperationDriver', async t => {
         generatorId: 'CachedGenerator',
         operation,
         variant: 'main'
-        })
+      })
       const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: createVariable('test'),
@@ -1041,7 +1043,7 @@ Deno.test('OasOperationDriver', async t => {
           identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -1073,7 +1075,7 @@ Deno.test('OasOperationDriver', async t => {
         generatorId: 'DifferentGenerator',
         operation,
         variant: 'main'
-        })
+      })
       const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: createVariable('test'),
@@ -1178,7 +1180,7 @@ Deno.test('OasOperationDriver', async t => {
           identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -1207,8 +1209,18 @@ Deno.test('OasOperationDriver', async t => {
       const operation1 = createMockOperation({ operationId: 'op1', path: '/path1', method: 'get' })
       const operation2 = createMockOperation({ operationId: 'op2', path: '/path2', method: 'post' })
 
-      const driver1 = new OasOperationDriver({ context, projection, operation: operation1, variant: 'main' })
-      const driver2 = new OasOperationDriver({ context, projection, operation: operation2, variant: 'main' })
+      const driver1 = new OasOperationDriver({
+        context,
+        projection,
+        operation: operation1,
+        variant: 'main'
+      })
+      const driver2 = new OasOperationDriver({
+        context,
+        projection,
+        operation: operation2,
+        variant: 'main'
+      })
 
       // Should have different definitions
       assert(driver1.definition !== driver2.definition)
@@ -1389,7 +1401,7 @@ Deno.test('OasOperationDriver', async t => {
         generatorId: 'WrongGenerator',
         operation,
         variant: 'main'
-        })
+      })
       const cachedDef = new TsDefinition({
         context: {} as any,
         identifier: createVariable('test'),

@@ -96,7 +96,7 @@ const createMockProjection = (options?: {
     // the static a real projection inherits from its lang snippet base.
     static lang = typescript
     static type = 'gqlOperation' as const
-    static isSupported = options?.isSupported
+    static isSupported = options?.isSupported ?? (() => true)
 
     static toIdentifierName({ operation }: ToGqlOperationIdentifierNameArgs): string {
       return operation.fieldName
@@ -521,7 +521,7 @@ Deno.test('GqlOperationDriver', async t => {
         static toExportPath = (_args: ToGqlOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
-
+        static isSupported = () => true
         constructor(args: {
           context: GenerateContextType
           settings: ContentSettings<undefined>
@@ -668,7 +668,7 @@ Deno.test('GqlOperationDriver', async t => {
         static toExportPath = (_args: ToGqlOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
-
+        static isSupported = () => true
         constructor(args: {
           context: GenerateContextType
           settings: ContentSettings<undefined>
@@ -692,7 +692,7 @@ Deno.test('GqlOperationDriver', async t => {
           identifier: createVariable('cached'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -776,7 +776,7 @@ Deno.test('GqlOperationDriver', async t => {
           identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -813,7 +813,7 @@ Deno.test('GqlOperationDriver', async t => {
           identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -989,7 +989,7 @@ Deno.test('GqlOperationDriver', async t => {
           identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })
@@ -1096,7 +1096,7 @@ Deno.test('GqlOperationDriver', async t => {
           identifier: createVariable('test'),
           exportPath: './test.ts',
           enrichments: undefined,
-        variant: 'main'
+          variant: 'main'
         }),
         operation
       })

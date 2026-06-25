@@ -77,7 +77,7 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       variant
     })
 
-    assertPeerSupported({ context, projection, operation })
+    assertPeerSupported({ context, projection, operation, variant })
 
     this.settings = this.context.toOperationContentSettings({
       operation,
@@ -208,10 +208,12 @@ const assertPeerVariantExists = ({
     return
   }
 
-  const opEnrichments: unknown = get(
-    context.settings,
-    ['enrichments', generatorId, operation.rootKind, operation.fieldName]
-  )
+  const opEnrichments: unknown = get(context.settings, [
+    'enrichments',
+    generatorId,
+    operation.rootKind,
+    operation.fieldName
+  ])
 
   const operationLabel = `${operation.rootKind} ${operation.fieldName}`
 
@@ -238,13 +240,11 @@ const assertPeerVariantExists = ({
   }
 }
 
-type AssertPeerSupportedArgs = {
+type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
-  projection: {
-    id: string
-    isSupported?: (args: { operation: GqlOperation; context: GenerateContextType }) => boolean
-  }
+  projection: GqlOperationProjection<V, EnrichmentType>
   operation: GqlOperation
+  variant: string
 }
 
 /**
@@ -258,16 +258,13 @@ type AssertPeerSupportedArgs = {
  * `GenerateContext`'s per-item `try/catch`. A peer with no static
  * `isSupported` is treated as supporting every operation.
  */
-const assertPeerSupported = ({
+const assertPeerSupported = <V extends GeneratedValue, EnrichmentType = undefined>({
   context,
   projection,
-  operation
-}: AssertPeerSupportedArgs): void => {
-  if (typeof projection.isSupported !== 'function') {
-    return
-  }
-
-  if (!projection.isSupported({ operation, context })) {
+  operation,
+  variant
+}: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
+  if (!projection.isSupported({ operation, context, variant })) {
     const operationLabel = `${operation.rootKind} ${operation.fieldName}`
     throw new Error(
       `[${projection.id}] Cannot insert '${operationLabel}' — peer generator ` +

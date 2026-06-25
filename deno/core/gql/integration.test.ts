@@ -4,8 +4,8 @@ import * as log from '@std/log'
 
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import type { OasOperationConfig, TransformOasOperationArgs } from '@/dsl/operation/oas/types.ts'
-import type { ModelConfig, TransformModelArgs } from '@/dsl/model/types.ts'
+import type { TransformOasOperationArgs } from '@/dsl/operation/oas/types.ts'
+import type { TransformModelArgs } from '@/dsl/model/types.ts'
 import type { ResultType } from '@/types/Results.ts'
 import { TsDefinition, createType } from '@skmtc/lang-typescript'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
@@ -14,11 +14,13 @@ import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { synthesizeArgsObject } from '@/gql/operation/synthesizeArgsObject.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasObject } from '@/oas/object/Object.ts'
-import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
+import type { TransformGqlOperationArgs } from '@/dsl/operation/gql/types.ts'
 import type { RefName } from '@/types/RefName.ts'
-import { GeneratorConfig } from '@/types/GeneratorType.ts'
 import { register } from '@skmtc/lang-typescript'
 import { emptyEnrichmentSchema, type EmptyEnrichments } from '@/types/Enrichments.ts'
+import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
+import type { GqlOperationEntry } from '@/dsl/operation/gql/toGqlOperationEntry.ts'
+import type { OasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -77,10 +79,11 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
 
   // Collect what the model generator sees.
   const modelRefNames: string[] = []
-  const modelGenerator: ModelConfig<EmptyEnrichments> = {
+  const modelGenerator: ModelEntry<EmptyEnrichments> = {
     id: 'synthetic-model',
     type: 'model',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
+    supportsVariant: () => false,
     isSupported: () => true,
     transform({ refName }: TransformModelArgs): void {
       modelRefNames.push(refName)
@@ -96,12 +99,13 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     argsRequired: string[] | undefined
     argsKeys: string[]
   }> = []
-  const operationGenerator: GqlOperationConfig<EmptyEnrichments> = {
+  const operationGenerator: GqlOperationEntry<EmptyEnrichments> = {
     id: 'synthetic-gql-op',
     type: 'gqlOperation',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
     isSupported: () => true,
-    transform: ({ operation, context }): void => {
+    supportsVariant: () => false,
+    transform: ({ operation, context }: TransformGqlOperationArgs): void => {
       const gqlOp = operation as unknown as GqlOperation
 
       const args = synthesizeArgsObject(gqlOp)
@@ -144,7 +148,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
       ({
         'synthetic-model': modelGenerator,
         'synthetic-gql-op': operationGenerator
-      }) as any
+      } as any)
   })
 
   const result = context.toArtifacts(new StackTrail(['integration']))
@@ -193,11 +197,12 @@ Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL d
 
   const httpTransform = spy((_args: TransformOasOperationArgs) => undefined)
 
-  const httpGenerator: OasOperationConfig<EmptyEnrichments> = {
+  const httpGenerator: OasOperationEntry<EmptyEnrichments> = {
     id: 'http-only',
     type: 'oasOperation',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
     isSupported: () => true,
+    supportsVariant: () => false,
     transform: (args: TransformOasOperationArgs): void => {
       httpTransform(args)
     }

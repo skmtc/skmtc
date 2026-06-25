@@ -5,9 +5,6 @@ import type { RefName } from '@/types/RefName.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
-import type * as v from 'valibot'
-import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
 
 /**
@@ -55,20 +52,6 @@ export type TransformModelArgs = {
  * the predicate can gate on user config, but no schema — the predicate
  * resolves the schema itself (`context.resolveSchemaRefOnce(refName, id)`)
  * when it needs it, mirroring how `transform` works.
- */
-export type IsSupportedModelConfigArgs<EnrichmentType = undefined> = {
-  context: GenerateContextType
-  refName: RefName
-  enrichments: EnrichmentType
-  /** Model variant being probed (see {@link Variant}) */
-  variant: string
-}
-
-/**
- * Arguments the engine passes to the wrapped `isSupported` on a built
- * {@link ModelConfig} — the enrichment-free outer shape (the
- * {@link toModelEntry} wrapper assembles the umbrella before calling the
- * user's predicate).
  */
 export type IsSupportedModelArgs = {
   context: GenerateContextType
@@ -154,7 +137,7 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
    * unsupported. Optional: a hand-rolled projection may omit it, in which
    * case it is treated as supporting every model.
    */
-  isSupported?: (args: { refName: RefName; context: GenerateContextType }) => boolean
+  isSupported: (args: IsSupportedModelArgs) => boolean
   schemaToValueFn: SchemaToValueFn
   /**
    * The inline-schema fallback seam used by `insertNormalizedModel` when a
@@ -165,41 +148,3 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
   createIdentifier: (name: string) => IdentifierBase
   // deno-lint-ignore ban-types
 } & Function
-
-/**
- * Pipeline-side configuration for a model projection (built by
- * `toModelEntry`). Carries the iteration callback (`transform`) and
- * optional preview/mapping/enrichment hooks.
- */
-export type ModelConfig<EnrichmentType = undefined> = {
-  id: string
-  type: 'model'
-  transform: ({ context, refName, variant }: TransformModelArgs) => void
-  /**
-   * Optional capability gate, evaluated by the engine before `include` /
-   * `skip`. A model whose predicate returns `false` is recorded `notSupported`
-   * and its `transform` is skipped. Absent → treated as `() => true` (every
-   * model supported). {@link toModelEntry} still defaults it for built configs,
-   * but a hand-constructed config may omit it.
-   */
-  isSupported?: ({ context, refName }: IsSupportedModelArgs) => boolean
-  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
-  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    refName: RefName
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
-  /**
-   * Optional: compute the DEFAULT enrichment values for a model from its schema
-   * — the seed the CMS persists and the user then edits. The pipeline
-   * counterpart of the projection base's static of the same name; a generator
-   * forwards `MyProjection.toEnrichmentDefaults` here so the seeding pass can
-   * reach it via the generator-config map. Returns the `{ subject, generator,
-   * stack }` umbrella, or `undefined` when no defaults are advertised.
-   */
-  toEnrichmentDefaults?: ({
-    refName,
-    context,
-    variant
-  }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
-}
