@@ -113,6 +113,7 @@ Deno.test('toEnrichmentDescriptor — surfaces the subject scope of the umbrella
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-shadcn-form',
     subjectKind: 'operation',
+    supportsVariant: false,
     fields: [
       {
         key: 'subject',
@@ -169,6 +170,7 @@ Deno.test('toEnrichmentDescriptor — surfaces subject + generator scopes (model
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-kotlin',
     subjectKind: 'model',
+    supportsVariant: false,
     fields: [
       {
         key: 'subject',
@@ -197,6 +199,7 @@ Deno.test('toEnrichmentDescriptor — empty umbrella (emptyEnrichmentSchema) yie
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-typescript',
     subjectKind: 'model',
+    supportsVariant: false,
     fields: []
   })
 })
@@ -209,8 +212,27 @@ Deno.test('toEnrichmentDescriptor — entry without toEnrichmentSchema yields em
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-bare',
     subjectKind: 'operation',
+    supportsVariant: false,
     fields: []
   })
+})
+
+Deno.test('toEnrichmentDescriptor — surfaces an entry that declares variant support', () => {
+  const entry: EnrichmentSource = {
+    id: '@reapit/gen-elemental-form',
+    type: 'oasOperation',
+    supportsVariant: () => true,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }
+  assertEquals(toEnrichmentDescriptor(entry).supportsVariant, true)
+})
+
+Deno.test('toEnrichmentDescriptor — defaults supportsVariant to false when the entry omits it', () => {
+  const entry: EnrichmentSource = {
+    id: '@skmtc/gen-typescript',
+    type: 'model'
+  }
+  assertEquals(toEnrichmentDescriptor(entry).supportsVariant, false)
 })
 
 Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', () => {
