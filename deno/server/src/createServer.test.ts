@@ -1,6 +1,11 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert@^1.0.10'
 import * as v from 'valibot'
-import type { Enrichments, GeneratorsMapContainer, ModelConfig, TransformModelArgs } from '@skmtc/core'
+import type {
+  Enrichments,
+  GeneratorsMapContainer,
+  ModelEntry,
+  TransformModelArgs
+} from '@skmtc/core'
 import { emptyEnrichmentSchema } from '@skmtc/core'
 import { createServer } from './createServer.ts'
 
@@ -95,16 +100,18 @@ Deno.test('POST /artifacts - rejects body with invalid protocol', async () => {
 })
 
 Deno.test('GET /generators - lists configured generator IDs', async () => {
-  const modelGen: ModelConfig<Enrichments> = {
+  const modelGen: ModelEntry<Enrichments> = {
     id: 'modelGen',
     type: 'model',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
+    isSupported: () => true,
+    supportsVariant: () => false,
     transform(_args: TransformModelArgs): void {}
   }
   const app = createServer({
     toGeneratorConfigMap: (() => ({ modelGen })) as <
-      EnrichmentType = undefined,
-    >() => GeneratorsMapContainer<EnrichmentType>,
+      EnrichmentType = undefined
+    >() => GeneratorsMapContainer<EnrichmentType>
   })
 
   const res = await app.request('/generators')
@@ -115,16 +122,18 @@ Deno.test('GET /generators - lists configured generator IDs', async () => {
 
 Deno.test('POST /descriptors - returns one descriptor per generator', async () => {
   type Enrichment = { coerce?: boolean }
-  const modelGen: ModelConfig<Enrichment> = {
+  const modelGen: ModelEntry<Enrichment> = {
     id: 'modelGen',
     type: 'model',
+    isSupported: () => true,
+    supportsVariant: () => false,
     toEnrichmentSchema: () => v.object({ coerce: v.optional(v.boolean()) }),
     transform(_args: TransformModelArgs): void {}
   }
   const app = createServer({
     toGeneratorConfigMap: (() => ({ modelGen })) as <
-      EnrichmentType = undefined,
-    >() => GeneratorsMapContainer<EnrichmentType>,
+      EnrichmentType = undefined
+    >() => GeneratorsMapContainer<EnrichmentType>
   })
 
   const res = await app.request('/descriptors', { method: 'POST' })
@@ -154,9 +163,11 @@ Deno.test('POST /enrichment-defaults - empty generator map returns empty default
 
 Deno.test('POST /enrichment-defaults - returns seeded defaults per supported subject', async () => {
   type Enrichment = { subject?: { note?: string }; generator?: undefined; stack?: undefined }
-  const modelGen: ModelConfig<Enrichment> = {
+  const modelGen: ModelEntry<Enrichment> = {
     id: 'modelGen',
     type: 'model',
+    isSupported: () => true,
+    supportsVariant: () => false,
     toEnrichmentSchema: () =>
       v.object({
         subject: v.optional(v.object({ note: v.optional(v.string()) })),
@@ -172,8 +183,8 @@ Deno.test('POST /enrichment-defaults - returns seeded defaults per supported sub
   }
   const app = createServer({
     toGeneratorConfigMap: (() => ({ modelGen })) as <
-      EnrichmentType = undefined,
-    >() => GeneratorsMapContainer<EnrichmentType>,
+      EnrichmentType = undefined
+    >() => GeneratorsMapContainer<EnrichmentType>
   })
 
   const oasWithModel = {
