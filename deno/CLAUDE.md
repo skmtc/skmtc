@@ -181,6 +181,7 @@ The CLI uses Cliffy framework with these patterns:
 ## Instructions
 
 - Always run a type check using `deno check ./**/*.ts ./**/*.tsx` at the end of session to verify results
+- `deno task check` runs the full CI suite locally (doc-sync + workspace type-check & tests). A version-controlled `pre-push` hook (`<repo>/.githooks/pre-push`) runs it before every push so failures surface locally, not in GitHub Actions. Enable it per-clone with `git config core.hooksPath .githooks`; bypass a single push with `git push --no-verify`.
 - Use absolute import paths prefixed with `@/`, not of relative path imports
 
 Use US English spelling in code, prose and documentation
