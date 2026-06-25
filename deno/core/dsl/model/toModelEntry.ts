@@ -5,22 +5,42 @@ import type {
   ToModelPreviewModuleArgs,
   ToModelMappingArgs,
   ToModelEnrichmentsArgs,
-  IsSupportedModelArgs,
-  IsSupportedModelConfigArgs
+  IsSupportedModelArgs
 } from './types.ts'
-import * as v from 'valibot'
 import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
-import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
-// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
-import get from 'lodash-es/get'
+import type * as v from 'valibot'
 
 type ToModelEntryArgs<EnrichmentType = undefined> = {
   id: string
   transform: ({ context, refName, variant }: TransformModelArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  isSupported?: ({ context, refName }: IsSupportedModelConfigArgs<EnrichmentType>) => boolean
+  isSupported?: (args: IsSupportedModelArgs) => boolean
+  /**
+   * Optional: whether this generator entry supports variants. Defaults to a
+   * function returning `false` when omitted.
+   */
+  supportsVariant?: () => boolean
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
+  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
+    refName: RefName
+  ) => EnrichmentRequest<RequestedEnrichment> | undefined
+  toEnrichmentDefaults?: ({
+    refName,
+    context,
+    variant
+  }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
+}
+
+export type ModelEntry<EnrichmentType = undefined> = {
+  id: string
+  type: 'model'
+  transform: ({ context, refName, variant }: TransformModelArgs) => void
+  isSupported: (args: IsSupportedModelArgs) => boolean
+  supportsVariant: () => boolean
+  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
+  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
+  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -94,55 +114,19 @@ export const toModelEntry = <EnrichmentType = undefined>({
   id,
   transform,
   isSupported,
+  supportsVariant,
   toPreviewModule,
   toMappingModule,
   toEnrichmentSchema,
   toEnrichmentRequest,
   toEnrichmentDefaults
-}: ToModelEntryArgs<EnrichmentType>): {
-  id: string
-  type: 'model'
-  transform: ({ context, refName, variant }: TransformModelArgs) => void
-  isSupported: ({ context, refName }: IsSupportedModelArgs) => boolean
-  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
-  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    refName: RefName
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
-  toEnrichmentDefaults?: ({
-    refName,
-    context,
-    variant
-  }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
-} => {
+}: ToModelEntryArgs<EnrichmentType>): ModelEntry<EnrichmentType> => {
   return {
     id,
     type: 'model',
     transform,
-    isSupported: ({ context, refName, variant }: IsSupportedModelArgs) => {
-      if (!isSupported) {
-        return true
-      }
-
-      // Assemble the three-scope umbrella — mirrors
-      // `ModelProjectionBase.toEnrichments` so the shim and the
-      // projection-base resolve to the same value. Subject is per-item
-      // (`[id][refName][variant]`); generator and stack are run-constants.
-      // The required composite schema parses cast-free.
-      const raw = {
-        subject: get(context.settings, ['enrichments', id, refName, variant]),
-        generator: get(context.settings, ['enrichments', id, GENERATOR_ENRICHMENT_KEY]),
-        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
-      }
-
-      return isSupported({
-        context,
-        refName,
-        enrichments: v.parse(toEnrichmentSchema(), raw),
-        variant
-      })
-    },
+    isSupported: isSupported ?? (() => true),
+    supportsVariant: supportsVariant ?? (() => false),
     toPreviewModule,
     toMappingModule,
     toEnrichmentSchema,

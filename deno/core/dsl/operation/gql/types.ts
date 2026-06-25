@@ -4,9 +4,6 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
-import type * as v from 'valibot'
-import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 
 /**
  * External constructor signature for a GraphQL operation projection class.
@@ -34,14 +31,6 @@ export type TransformGqlOperationArgs = {
 
 export type WithTransformGqlOperation = {
   transformOperation: (operation: GqlOperation) => void
-}
-
-export type IsSupportedGqlOperationConfigArgs<EnrichmentType = undefined> = {
-  context: GenerateContextType
-  operation: GqlOperation
-  enrichments: EnrichmentType
-  /** Operation variant being probed (see {@link Variant}) */
-  variant: string
 }
 
 export type IsSupportedGqlOperationArgs = {
@@ -101,11 +90,7 @@ export type ToGqlOperationExportPathArgs<EnrichmentType = undefined> = {
 export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
   prototype: V
 } & {
-  new ({
-    context,
-    settings,
-    operation
-  }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V
+  new ({ context, settings, operation }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'gqlOperation'
   /**
@@ -134,28 +119,6 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
    * projection may omit it, in which case it is treated as supporting
    * every operation.
    */
-  isSupported?: (args: { operation: GqlOperation; context: GenerateContextType }) => boolean
+  isSupported: (args: IsSupportedGqlOperationArgs) => boolean
   // deno-lint-ignore ban-types
 } & Function
-
-/**
- * Pipeline-side configuration for a GraphQL operation projection (built by
- * `toGqlOperationEntry`).
- */
-export type GqlOperationConfig<EnrichmentType = undefined> = {
-  id: string
-  type: 'gqlOperation'
-  transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
-  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  /**
-   * Optional capability gate, evaluated before `include` / `skip`. Absent →
-   * treated as `() => true` (every operation supported). `toGqlOperationEntry`
-   * defaults it for built configs; a hand-constructed config may omit it.
-   */
-  isSupported?: ({ context, operation }: IsSupportedGqlOperationArgs) => boolean
-  toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    operation: GqlOperation
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
-}

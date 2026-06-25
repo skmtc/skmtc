@@ -1,13 +1,12 @@
 # CLI overview
 
-> The `skmtc` CLI's command surface, conventions, and shared flags.
-> Quick navigation to every command, plus the conventions every
-> command obeys.
+> The `skmtc` CLI's command surface, conventions, and shared flags. Quick
+> navigation to every command, plus the conventions every command obeys.
 
 The CLI is the orchestration layer around the [engine](../api/to-artifacts.md).
-It bootstraps projects, manages generator installation, runs the
-worker, and reports diagnostics. Every command writes structured
-JSON output behind `--json` so agents can consume it programmatically.
+It bootstraps projects, manages generator installation, runs the worker, and
+reports diagnostics. Every command writes structured JSON output behind `--json`
+so agents can consume it programmatically.
 
 ## Synopsis
 
@@ -15,67 +14,67 @@ JSON output behind `--json` so agents can consume it programmatically.
 skmtc <command> [args...] [--json] [--no-input]
 ```
 
-The CLI is installed via Deno's `install` mechanism, then invoked as
-`skmtc` from any shell. The entry point is `skmtc/deno/cli/mod.ts`.
+The CLI is installed via Deno's `install` mechanism, then invoked as `skmtc`
+from any shell. The entry point is `skmtc/deno/cli/mod.ts`.
 
 ## Command list
 
 ### Project lifecycle
 
-| Command | Purpose | Reference |
-|---------|---------|-----------|
-| `init` | Initialize a new SKMTC workspace | [init](init.md) |
-| `create` | Scaffold a new local generator from scratch | [create](create.md) |
-| `clone` | Fork an existing JSR generator into the project | [clone](clone.md) |
-| `install` | Add a JSR-hosted generator to the project | [install](install.md) |
-| `list` | Show installed generators in a project | [list](list.md) |
-| `remove` | Remove a generator from a project | [remove](remove.md) |
+| Command   | Purpose                                         | Reference             |
+| --------- | ----------------------------------------------- | --------------------- |
+| `init`    | Initialize a new SKMTC workspace                | [init](init.md)       |
+| `create`  | Scaffold a new local generator from scratch     | [create](create.md)   |
+| `clone`   | Fork an existing JSR generator into the project | [clone](clone.md)     |
+| `install` | Add a JSR-hosted generator to the project       | [install](install.md) |
+| `list`    | Show installed generators in a project          | [list](list.md)       |
+| `remove`  | Remove a generator from a project               | [remove](remove.md)   |
 
 ### Generation
 
-| Command | Purpose | Reference |
-|---------|---------|-----------|
-| `generate` | Run the engine end-to-end on a project's spec | [generate](generate.md) |
-| `bundle` | Rebuild the project's `bundle.js` (worker payload) | [bundle](bundle.md) |
-| `clean` | Delete a project's generated files + manifest, pruning emptied dirs | [clean](clean.md) |
-| `dev` | Watch mode for iterative generator development | [dev](dev.md) |
+| Command    | Purpose                                                             | Reference               |
+| ---------- | ------------------------------------------------------------------- | ----------------------- |
+| `generate` | Run the engine end-to-end on a project's spec                       | [generate](generate.md) |
+| `bundle`   | Rebuild the project's `bundle.js` (worker payload)                  | [bundle](bundle.md)     |
+| `clean`    | Delete a project's generated files + manifest, pruning emptied dirs | [clean](clean.md)       |
+| `dev`      | Watch mode for iterative generator development                      | [dev](dev.md)           |
 
 ### Publish
 
-| Command | Purpose | Reference |
-|---------|---------|-----------|
-| `publish` | Publish a new immutable stack version to skmtc-hub | [publish](publish.md) |
-| `push` | Push a project's `client.json` (config + enrichments) to its hub project | [push](push.md) |
-| `login` | Validate + store a hub PAT (paste-a-PAT; becomes publish's default credential) | [login](login.md) |
-| `logout` | Delete the stored hub credential (idempotent) | [logout](logout.md) |
+| Command   | Purpose                                                                                           | Reference             |
+| --------- | ------------------------------------------------------------------------------------------------- | --------------------- |
+| `publish` | Publish a new immutable stack version to skmtc-hub                                                | [publish](publish.md) |
+| `push`    | Push a project's `client.json` (config + enrichments) to its hub project                          | [push](push.md)       |
+| `pull`    | Pull a project's config (enrichments + filters) from its hub project into the local `client.json` | [pull](pull.md)       |
+| `project` | Manage a hub project built from the local setup: `create` a new project, `rm` it                  | [project](project.md) |
+| `login`   | Validate + store a hub PAT (paste-a-PAT; becomes publish's default credential)                    | [login](login.md)     |
+| `logout`  | Delete the stored hub credential (idempotent)                                                     | [logout](logout.md)   |
 
 ### Diagnostics
 
-| Command | Purpose | Reference |
-|---------|---------|-----------|
-| `doctor` | Diagnose project setup issues | [doctor](doctor.md) |
+| Command         | Purpose                                             | Reference                         |
+| --------------- | --------------------------------------------------- | --------------------------------- |
+| `doctor`        | Diagnose project setup issues                       | [doctor](doctor.md)               |
 | `agent-context` | Write a structured project state dump for AI agents | [agent-context](agent-context.md) |
 
 ## Shared flags
 
 ### `--no-input`
 
-Disables interactive prompts. Commands that prompt for missing
-arguments (e.g., "which project?", "which generator?") will exit
-with code 2 instead.
+Disables interactive prompts. Commands that prompt for missing arguments (e.g.,
+"which project?", "which generator?") will exit with code 2 instead.
 
-Use in scripts, CI, and agent workflows where TTY-style interaction
-isn't possible or desirable.
+Use in scripts, CI, and agent workflows where TTY-style interaction isn't
+possible or desirable.
 
 ### `--json`
 
 Writes structured JSON to stdout instead of human-readable text.
 
-**Implies `--no-input`** — JSON output is incompatible with
-interactive prompting (a prompt would corrupt the JSON stream).
+**Implies `--no-input`** — JSON output is incompatible with interactive
+prompting (a prompt would corrupt the JSON stream).
 
-The exact JSON shape is documented per-command. Common fields across
-commands:
+The exact JSON shape is documented per-command. Common fields across commands:
 
 ```jsonc
 {
@@ -86,20 +85,17 @@ commands:
 }
 ```
 
-Many commands include a `verifyWith` field — a follow-up shell
-command an agent can run to confirm the operation landed. This is a
-key affordance for agentic workflows where the CLI is one tool among
-many.
+Many commands include a `verifyWith` field — a follow-up shell command an agent
+can run to confirm the operation landed. This is a key affordance for agentic
+workflows where the CLI is one tool among many.
 
 ## Strict mode
 
-When `--no-input` (or `--json`) is set, the CLI runs in **strict
-mode**:
+When `--no-input` (or `--json`) is set, the CLI runs in **strict mode**:
 
-- Required arguments not provided on the command line cause exit
-  code 2 (rather than prompting)
-- No interactive disambiguation (e.g., "we found multiple matches,
-  pick one")
+- Required arguments not provided on the command line cause exit code 2 (rather
+  than prompting)
+- No interactive disambiguation (e.g., "we found multiple matches, pick one")
 - Errors are reported as structured JSON when `--json` is set
 
 This makes the CLI's behavior fully deterministic and scriptable.
@@ -108,15 +104,14 @@ This makes the CLI's behavior fully deterministic and scriptable.
 
 The CLI uses a consistent exit-code convention across commands:
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | Operational failure (network, filesystem, validation) |
-| `2` | Invalid invocation (missing args, unknown flags) |
+| Code | Meaning                                               |
+| ---- | ----------------------------------------------------- |
+| `0`  | Success                                               |
+| `1`  | Operational failure (network, filesystem, validation) |
+| `2`  | Invalid invocation (missing args, unknown flags)      |
 
-`doctor` collapses "internal failure" and "a check ran at error
-severity" onto exit `1` — it does not use a distinct exit code
-for diagnostics failures.
+`doctor` collapses "internal failure" and "a check ran at error severity" onto
+exit `1` — it does not use a distinct exit code for diagnostics failures.
 
 Per-command pages document which codes apply.
 
@@ -139,32 +134,33 @@ workspace-root/
 └── (your application code)
 ```
 
-The `.skmtc/` directory is the CLI's working area. Each subdirectory
-is a separate "project" — a logical bundle of generators applied to
-one spec. Most workspaces have one project; multi-project workspaces
-exist when one repo produces multiple sets of artifacts.
+The `.skmtc/` directory is the CLI's working area. Each subdirectory is a
+separate "project" — a logical bundle of generators applied to one spec. Most
+workspaces have one project; multi-project workspaces exist when one repo
+produces multiple sets of artifacts.
 
 ## Configuration files
 
 The CLI reads (and sometimes writes) these files:
 
-| File | Purpose |
-|------|---------|
-| `deno.json` (workspace root) | Workspace-level configuration |
-| `.skmtc/<project>/deno.json` | Per-project generator imports |
-| `.skmtc/<project>/.settings/client.json` | Per-project generation settings (source, basePath, enrichments) |
-| `.skmtc/<project>/.settings/manifest.json` | Last-run manifest |
-| `<generator>/deno.json` | Per-generator package metadata |
+| File                                       | Purpose                                                         |
+| ------------------------------------------ | --------------------------------------------------------------- |
+| `deno.json` (workspace root)               | Workspace-level configuration                                   |
+| `.skmtc/<project>/deno.json`               | Per-project generator imports                                   |
+| `.skmtc/<project>/.settings/client.json`   | Per-project generation settings (source, basePath, enrichments) |
+| `.skmtc/<project>/.settings/manifest.json` | Last-run manifest                                               |
+| `<generator>/deno.json`                    | Per-generator package metadata                                  |
 
-See [reference/settings/client-json-schema.md](../settings/client-json-schema.md)
+See
+[reference/settings/client-json-schema.md](../settings/client-json-schema.md)
 for the `client.json` schema.
 
 ## Command conventions
 
 ### Project argument
 
-Most commands take `[project]` as an optional positional argument.
-Resolution order:
+Most commands take `[project]` as an optional positional argument. Resolution
+order:
 
 1. Explicit `[project]` argument
 2. Single-project workspace: the project name is inferred
@@ -197,11 +193,11 @@ The CLI normalizes all three forms.
 
 ## See also
 
-- [skmtc-cli skill](../../skills/skmtc-cli/SKILL.md) — operational
-  digest covering the common workflows
-- [Reference: client.json schema](../settings/client-json-schema.md)
-  — the per-project settings file
-- [The three phases concept](../../concepts/the-three-phases.md) —
-  what `generate` orchestrates
-- [Clone vs install concept](../../concepts/clone-vs-install.md) —
-  when to use `clone` vs `install` vs `create`
+- [skmtc-cli skill](../../skills/skmtc-cli/SKILL.md) — operational digest
+  covering the common workflows
+- [Reference: client.json schema](../settings/client-json-schema.md) — the
+  per-project settings file
+- [The three phases concept](../../concepts/the-three-phases.md) — what
+  `generate` orchestrates
+- [Clone vs install concept](../../concepts/clone-vs-install.md) — when to use
+  `clone` vs `install` vs `create`

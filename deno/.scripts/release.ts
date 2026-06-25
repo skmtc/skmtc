@@ -75,7 +75,7 @@ export const toWorkspaceDep = (
 }
 
 /** Rewrite the version in a `jsr:@scope/name@x[/sub]` import value. */
-const rewriteDepVersion = (importValue: string, newVersion: string): string =>
+export const rewriteDepVersion = (importValue: string, newVersion: string): string =>
   importValue.replace(
     /^(jsr:@[^@/\s]+\/[^@/\s]+)@[^/\s]+(\/.*)?$/,
     `$1@${newVersion}$2`
@@ -220,6 +220,27 @@ export const discoverWorkspace = async (
       ]
     }
   })
+}
+
+/**
+ * Write each package's planned version + cascaded import pins back to its
+ * `deno.json`, preserving every other field. Shared by the release cascade
+ * (which then publishes) and the `bump` task (which stops here and leaves the
+ * publish to CI), so both produce byte-identical edits.
+ */
+export const applyPlan = async (
+  order: readonly WorkspacePackage[],
+  plan: ReadonlyMap<string, PlannedRelease>
+): Promise<void> => {
+  for (const pkg of order) {
+    const planned = plan.get(pkg.name)
+    if (!planned) continue
+    const path = join(pkg.dir, 'deno.json')
+    const cfg = await readDenoJson(path)
+    cfg.version = planned.version
+    cfg.imports = planned.imports
+    await Deno.writeTextFile(path, JSON.stringify(cfg, null, 2) + '\n')
+  }
 }
 
 /** Whether `name@version` is already published on the registry. */
@@ -411,14 +432,7 @@ export const release = async (): Promise<void> => {
   }
 
   console.log('\nApplying version + import updates...')
-  for (const pkg of order) {
-    const planned = plan.get(pkg.name) as PlannedRelease
-    const path = join(pkg.dir, 'deno.json')
-    const cfg = await readDenoJson(path)
-    cfg.version = planned.version
-    cfg.imports = planned.imports
-    await Deno.writeTextFile(path, JSON.stringify(cfg, null, 2) + '\n')
-  }
+  await applyPlan(order, plan)
 
   console.log('\nPublishing...')
   for (const pkg of order) {

@@ -77,7 +77,7 @@ export class WebhookDriver<V extends GeneratedValue, EnrichmentType = undefined>
       variant
     })
 
-    assertPeerSupported({ context, projection, webhook })
+    assertPeerSupported({ context, projection, webhook, variant })
 
     this.settings = this.context.toWebhookContentSettings({
       webhook,
@@ -199,10 +199,12 @@ const assertPeerVariantExists = ({
     return
   }
 
-  const webhookEnrichments: unknown = get(
-    context.settings,
-    ['enrichments', generatorId, webhook.name, webhook.method]
-  )
+  const webhookEnrichments: unknown = get(context.settings, [
+    'enrichments',
+    generatorId,
+    webhook.name,
+    webhook.method
+  ])
 
   const webhookLabel = `webhook '${webhook.name}' (${webhook.method.toUpperCase()})`
 
@@ -229,13 +231,11 @@ const assertPeerVariantExists = ({
   }
 }
 
-type AssertPeerSupportedArgs = {
+type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
-  projection: {
-    id: string
-    isSupported?: (args: { webhook: OasWebhook; context: GenerateContextType }) => boolean
-  }
+  projection: WebhookProjection<V, EnrichmentType>
   webhook: OasWebhook
+  variant: string
 }
 
 /**
@@ -245,16 +245,13 @@ type AssertPeerSupportedArgs = {
  * generator's item as `error` while the run continues. A peer with no static
  * `isSupported` supports every webhook.
  */
-const assertPeerSupported = ({
+const assertPeerSupported = <V extends GeneratedValue, EnrichmentType = undefined>({
   context,
   projection,
-  webhook
-}: AssertPeerSupportedArgs): void => {
-  if (typeof projection.isSupported !== 'function') {
-    return
-  }
-
-  if (!projection.isSupported({ webhook, context })) {
+  webhook,
+  variant
+}: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
+  if (!projection.isSupported({ webhook, context, variant })) {
     const webhookLabel = `webhook '${webhook.name}' (${webhook.method.toUpperCase()})`
     throw new Error(
       `[${projection.id}] Cannot insert ${webhookLabel} — peer generator ` +

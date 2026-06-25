@@ -14,52 +14,52 @@
  * per-host map later.
  */
 
-import { join } from "@std/path/join";
-import { dirname } from "@std/path/dirname";
+import { join } from '@std/path/join'
+import { dirname } from '@std/path/dirname'
 
-export const DEFAULT_ORIGIN = "https://api.skmtc.dev";
+export const DEFAULT_ORIGIN = 'https://api.skmtc.dev'
 
 /** Where users mint PATs in the hub UI. */
-export const HUB_TOKEN_SETTINGS_URL = "https://skmtc.dev/settings/tokens";
+export const HUB_TOKEN_SETTINGS_URL = 'https://skmtc.dev/settings/tokens'
 
 export type StoredAuth = {
   /** Hub API base URL the token was validated against. */
-  host: string;
-  token: string;
-};
+  host: string
+  token: string
+}
 
 /**
  * Resolve the hub origin (base URL). Precedence: `--origin` flag →
- * `$SKMTC_ORIGIN` → the production default.
+ * `$SKMTC_API_ORIGIN` → the production default.
  */
 export const resolveOrigin = (originFlag?: string): string => {
-  const fromFlag = originFlag?.trim();
-  if (fromFlag) return fromFlag;
+  const fromFlag = originFlag?.trim()
+  if (fromFlag) return fromFlag
 
-  const fromOrigin = Deno.env.get("SKMTC_ORIGIN")?.trim();
-  if (fromOrigin) return fromOrigin;
+  const fromOrigin = Deno.env.get('SKMTC_API_ORIGIN')?.trim()
+  if (fromOrigin) return fromOrigin
 
-  return DEFAULT_ORIGIN;
-};
+  return DEFAULT_ORIGIN
+}
 
 export const toAuthFilePath = (): string => {
-  const home = Deno.env.get("HOME");
+  const home = Deno.env.get('HOME')
 
   if (!home) {
-    throw new Error("HOME env var is not set");
+    throw new Error('HOME env var is not set')
   }
 
-  return join(home, ".skmtc", "auth.json");
-};
+  return join(home, '.skmtc', 'auth.json')
+}
 
 const isStoredAuth = (value: unknown): value is StoredAuth =>
-  typeof value === "object" &&
+  typeof value === 'object' &&
   value !== null &&
-  "host" in value &&
-  typeof value.host === "string" &&
-  "token" in value &&
-  typeof value.token === "string" &&
-  value.token.length > 0;
+  'host' in value &&
+  typeof value.host === 'string' &&
+  'token' in value &&
+  typeof value.token === 'string' &&
+  value.token.length > 0
 
 /**
  * Read `~/.skmtc/auth.json`. Returns `null` when the file is missing,
@@ -68,14 +68,14 @@ const isStoredAuth = (value: unknown): value is StoredAuth =>
  */
 export const readStoredAuth = (): StoredAuth | null => {
   try {
-    const contents = Deno.readTextFileSync(toAuthFilePath());
-    const parsed: unknown = JSON.parse(contents);
+    const contents = Deno.readTextFileSync(toAuthFilePath())
+    const parsed: unknown = JSON.parse(contents)
 
-    return isStoredAuth(parsed) ? parsed : null;
+    return isStoredAuth(parsed) ? parsed : null
   } catch {
-    return null;
+    return null
   }
-};
+}
 
 /**
  * Write `~/.skmtc/auth.json` with mode 0600, creating `~/.skmtc` if
@@ -84,94 +84,86 @@ export const readStoredAuth = (): StoredAuth | null => {
  * option only applies on create).
  */
 export const writeStoredAuth = ({ host, token }: StoredAuth): string => {
-  const filePath = toAuthFilePath();
+  const filePath = toAuthFilePath()
 
-  Deno.mkdirSync(dirname(filePath), { recursive: true });
-  Deno.writeTextFileSync(
-    filePath,
-    `${JSON.stringify({ host, token }, null, 2)}\n`,
-    {
-      mode: 0o600,
-    },
-  );
-  Deno.chmodSync(filePath, 0o600);
+  Deno.mkdirSync(dirname(filePath), { recursive: true })
+  Deno.writeTextFileSync(filePath, `${JSON.stringify({ host, token }, null, 2)}\n`, {
+    mode: 0o600
+  })
+  Deno.chmodSync(filePath, 0o600)
 
-  return filePath;
-};
+  return filePath
+}
 
 /** Delete the stored credential. Returns whether a file was removed. */
 export const deleteStoredAuth = (): boolean => {
   try {
-    Deno.removeSync(toAuthFilePath());
-    return true;
+    Deno.removeSync(toAuthFilePath())
+    return true
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
-      return false;
+      return false
     }
-    throw error;
+    throw error
   }
-};
+}
 
 type ResolveHubTokenArgs = {
-  tokenFlag?: string;
-};
+  tokenFlag?: string
+}
 
 /** Resolve a hub token: `--token` flag → `$SKMTC_HUB_TOKEN` → `~/.skmtc/auth.json`. */
-export const resolveHubToken = (
-  { tokenFlag }: ResolveHubTokenArgs = {},
-): string | undefined => {
-  const fromFlag = tokenFlag?.trim();
-  if (fromFlag) return fromFlag;
+export const resolveHubToken = ({ tokenFlag }: ResolveHubTokenArgs = {}): string | undefined => {
+  const fromFlag = tokenFlag?.trim()
+  if (fromFlag) return fromFlag
 
-  const fromEnv = Deno.env.get("SKMTC_HUB_TOKEN")?.trim();
-  if (fromEnv) return fromEnv;
+  const fromEnv = Deno.env.get('SKMTC_HUB_TOKEN')?.trim()
+  if (fromEnv) return fromEnv
 
-  return readStoredAuth()?.token;
-};
+  return readStoredAuth()?.token
+}
 
 type ResolveHubAuthArgs = {
-  tokenFlag?: string;
+  tokenFlag?: string
   /** `--origin` flag — the hub base URL. */
-  originFlag?: string;
-};
+  originFlag?: string
+}
 
 export type ResolvedHubAuth = {
-  token: string | undefined;
-  origin: string;
-};
+  token: string | undefined
+  origin: string
+}
 
 /**
  * Resolve token AND hub origin together so they stay coherent. The token
  * follows the standard precedence (flag → env → stored file). The origin is
- * `--origin` → `$SKMTC_ORIGIN` → — only when the token came from the stored
+ * `--origin` → `$SKMTC_API_ORIGIN` → — only when the token came from the stored
  * file — the file's `host` → the production default. Without the stored-host
  * step, a `skmtc login --origin <local hub>` token would silently be sent to
  * the production host on the next request.
  */
 export const resolveHubAuth = ({
   tokenFlag,
-  originFlag,
+  originFlag
 }: ResolveHubAuthArgs = {}): ResolvedHubAuth => {
-  const flagToken = tokenFlag?.trim();
-  const envToken = Deno.env.get("SKMTC_HUB_TOKEN")?.trim();
-  const stored = readStoredAuth();
+  const flagToken = tokenFlag?.trim()
+  const envToken = Deno.env.get('SKMTC_HUB_TOKEN')?.trim()
+  const stored = readStoredAuth()
 
-  const token = flagToken || envToken || stored?.token;
+  const token = flagToken || envToken || stored?.token
 
-  const explicitOrigin = originFlag?.trim() ||
-    Deno.env.get("SKMTC_ORIGIN")?.trim();
-  const tokenFromStore = !flagToken && !envToken && stored !== null;
-  const origin = explicitOrigin ??
-    (tokenFromStore ? stored.host : DEFAULT_ORIGIN);
+  const explicitOrigin = originFlag?.trim() || Deno.env.get('SKMTC_API_ORIGIN')?.trim()
+  const tokenFromStore = !flagToken && !envToken && stored !== null
+  const origin = explicitOrigin ?? (tokenFromStore ? stored.host : DEFAULT_ORIGIN)
 
-  return { token, origin };
-};
+  return { token, origin }
+}
 
 /** Last-4 display form — never echo more of a token than this. */
-export const maskToken = (token: string): string => `…${token.slice(-4)}`;
+export const maskToken = (token: string): string => `…${token.slice(-4)}`
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+  typeof value === 'object' && value !== null
 
 /**
  * Validate a PAT against the hub and return the account handle. Uses
@@ -181,34 +173,32 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
  */
 export const validateHubToken = async ({
   origin,
-  token,
+  token
 }: {
-  origin: string;
-  token: string;
+  origin: string
+  token: string
 }): Promise<string> => {
   const response = await fetch(`${origin}/v1/user`, {
-    method: "GET",
-    headers: { authorization: `Bearer ${token}` },
-  });
+    method: 'GET',
+    headers: { authorization: `Bearer ${token}` }
+  })
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `token validation failed (${response.status}): ${text.slice(0, 200)}`,
-    );
+    const text = await response.text()
+    throw new Error(`token validation failed (${response.status}): ${text.slice(0, 200)}`)
   }
 
-  const payload: unknown = await response.json();
+  const payload: unknown = await response.json()
 
   if (!isObject(payload)) {
-    throw new Error("hub returned non-object identity payload");
+    throw new Error('hub returned non-object identity payload')
   }
 
-  const handle = payload["handle"];
+  const handle = payload['handle']
 
-  if (typeof handle !== "string" || handle.length === 0) {
-    throw new Error("hub identity payload missing `handle`");
+  if (typeof handle !== 'string' || handle.length === 0) {
+    throw new Error('hub identity payload missing `handle`')
   }
 
-  return handle;
-};
+  return handle
+}

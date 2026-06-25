@@ -43,12 +43,8 @@ import type {
   SkipPaths
 } from '@/types/Settings.ts'
 import type { Method } from '@/types/Method.ts'
-import type { OasOperationConfig } from '@/dsl/operation/oas/types.ts'
-import type { WebhookConfig } from '@/dsl/webhook/types.ts'
-import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
-import type { ModelConfig, ModelProjection } from '@/dsl/model/types.ts'
 import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
 import { WebhookDriver } from '@/dsl/webhook/WebhookDriver.ts'
 import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
@@ -85,6 +81,11 @@ import type {
 } from '@/types/Preview.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
+import type { WebhookEntry } from '@/dsl/webhook/toWebhookEntry.ts'
+import type { OasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
+import type { GqlOperationEntry } from '@/dsl/operation/gql/toGqlOperationEntry.ts'
+import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
+import type { ModelProjection } from '@/dsl/model/types.ts'
 
 type ConstructorArgs = {
   /**
@@ -350,12 +351,11 @@ export class GenerateContext implements GenerateContextType {
         // "everything from this generator is included", which is
         // semantically equivalent to "no per-op filter" once the
         // whole-generator gate above has admitted us).
-        const include: IncludeOperations | IncludeModels | undefined =
-          this.settings?.include?.find(
-            (entry): entry is IncludeOperations | IncludeModels => {
-              return typeof entry === 'object' && Boolean(entry[generatorConfig.id])
-            }
-          )
+        const include: IncludeOperations | IncludeModels | undefined = this.settings?.include?.find(
+          (entry): entry is IncludeOperations | IncludeModels => {
+            return typeof entry === 'object' && Boolean(entry[generatorConfig.id])
+          }
+        )
 
         switch (generatorConfig.type) {
           case 'oasOperation':
@@ -441,10 +441,12 @@ export class GenerateContext implements GenerateContextType {
           const operations =
             this.document.type === 'oas'
               ? this.document.value.operations
-                  .filter(
-                    operation =>
-                      typeof generatorConfig.isSupported !== 'function' ||
-                      generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
+                  .filter(operation =>
+                    generatorConfig.isSupported({
+                      operation,
+                      context: this,
+                      variant: DEFAULT_VARIANT
+                    })
                   )
                   .map(operation => ({ path: operation.path, method: operation.method }))
               : []
@@ -455,10 +457,12 @@ export class GenerateContext implements GenerateContextType {
           const webhooks =
             this.document.type === 'oas'
               ? this.document.value.webhooks
-                  .filter(
-                    webhook =>
-                      typeof generatorConfig.isSupported !== 'function' ||
-                      generatorConfig.isSupported({ webhook, context: this, variant: DEFAULT_VARIANT })
+                  .filter(webhook =>
+                    generatorConfig.isSupported({
+                      webhook,
+                      context: this,
+                      variant: DEFAULT_VARIANT
+                    })
                   )
                   .map(webhook => ({ name: webhook.name, method: webhook.method }))
               : []
@@ -469,10 +473,12 @@ export class GenerateContext implements GenerateContextType {
           const operations =
             this.document.type === 'gql'
               ? this.document.value.operations
-                  .filter(
-                    operation =>
-                      typeof generatorConfig.isSupported !== 'function' ||
-                      generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
+                  .filter(operation =>
+                    generatorConfig.isSupported({
+                      operation,
+                      context: this,
+                      variant: DEFAULT_VARIANT
+                    })
                   )
                   .map(operation => ({
                     rootKind: operation.rootKind,
@@ -483,10 +489,8 @@ export class GenerateContext implements GenerateContextType {
           break
         }
         case 'model': {
-          const models = this.#schemaRefNames().filter(
-            refName =>
-              typeof generatorConfig.isSupported !== 'function' ||
-              generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
+          const models = this.#schemaRefNames().filter(refName =>
+            generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
           )
           out[generatorConfig.id] = { type: 'model', models }
           break
@@ -546,7 +550,6 @@ export class GenerateContext implements GenerateContextType {
           const operations: OperationEnrichmentDefaults = {}
           this.document.value.operations.forEach(operation => {
             if (
-              typeof generatorConfig.isSupported === 'function' &&
               !generatorConfig.isSupported({ operation, context: this, variant: DEFAULT_VARIANT })
             ) {
               return
@@ -573,7 +576,6 @@ export class GenerateContext implements GenerateContextType {
           const webhooks: WebhookEnrichmentDefaults = {}
           this.document.value.webhooks.forEach(webhook => {
             if (
-              typeof generatorConfig.isSupported === 'function' &&
               !generatorConfig.isSupported({ webhook, context: this, variant: DEFAULT_VARIANT })
             ) {
               return
@@ -604,7 +606,6 @@ export class GenerateContext implements GenerateContextType {
           const models: ModelEnrichmentDefaults = {}
           for (const refName of this.#schemaRefNames()) {
             if (
-              typeof generatorConfig.isSupported === 'function' &&
               !generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
             ) {
               continue
@@ -662,7 +663,7 @@ export class GenerateContext implements GenerateContextType {
 
   #runOasOperationGenerator(
     oasDocument: OasDocument,
-    generatorConfig: OasOperationConfig,
+    generatorConfig: OasOperationEntry,
     include: IncludePaths | undefined,
     skip: SkipPaths | undefined,
     stackTrail: StackTrail
@@ -680,10 +681,12 @@ export class GenerateContext implements GenerateContextType {
         //     at config-load time once it lands)
         //   - present, object → enumerate keys; 'main' must be among
         //     them or we throw (loud beats silent zero-output)
-        const opEnrichments: unknown = get(
-          this.settings,
-          ['enrichments', generatorConfig.id, operation.path, operation.method]
-        )
+        const opEnrichments: unknown = get(this.settings, [
+          'enrichments',
+          generatorConfig.id,
+          operation.path,
+          operation.method
+        ])
 
         const variants = toVariantList({
           opEnrichments,
@@ -709,13 +712,25 @@ export class GenerateContext implements GenerateContextType {
               // entry applies to.
               if (
                 include !== undefined &&
-                !matchesPathFilter({ paths: include, path: operation.path, method: operation.method, variant })
+                !matchesPathFilter({
+                  paths: include,
+                  path: operation.path,
+                  method: operation.method,
+                  variant
+                })
               ) {
                 this.captureCurrentResult('skipped', st)
                 return
               }
 
-              if (matchesPathFilter({ paths: skip, path: operation.path, method: operation.method, variant })) {
+              if (
+                matchesPathFilter({
+                  paths: skip,
+                  path: operation.path,
+                  method: operation.method,
+                  variant
+                })
+              ) {
                 this.captureCurrentResult('skipped', st)
                 return
               }
@@ -756,7 +771,7 @@ export class GenerateContext implements GenerateContextType {
 
   #runWebhookGenerator(
     oasDocument: OasDocument,
-    generatorConfig: WebhookConfig,
+    generatorConfig: WebhookEntry,
     include: IncludePaths | undefined,
     skip: SkipPaths | undefined,
     stackTrail: StackTrail
@@ -767,10 +782,12 @@ export class GenerateContext implements GenerateContextType {
         // the webhook analogue of the operation routing. `toVariantList`
         // handles absent / non-object / object enrichment blocks and
         // enforces the `'main'`-must-be-present rule.
-        const webhookEnrichments: unknown = get(
-          this.settings,
-          ['enrichments', generatorConfig.id, webhook.name, webhook.method]
-        )
+        const webhookEnrichments: unknown = get(this.settings, [
+          'enrichments',
+          generatorConfig.id,
+          webhook.name,
+          webhook.method
+        ])
 
         const variants = toVariantList({
           opEnrichments: webhookEnrichments,
@@ -795,13 +812,25 @@ export class GenerateContext implements GenerateContextType {
               // `matchesPathFilter` is reused with `path: webhook.name`.
               if (
                 include !== undefined &&
-                !matchesPathFilter({ paths: include, path: webhook.name, method: webhook.method, variant })
+                !matchesPathFilter({
+                  paths: include,
+                  path: webhook.name,
+                  method: webhook.method,
+                  variant
+                })
               ) {
                 this.captureCurrentResult('skipped', st)
                 return
               }
 
-              if (matchesPathFilter({ paths: skip, path: webhook.name, method: webhook.method, variant })) {
+              if (
+                matchesPathFilter({
+                  paths: skip,
+                  path: webhook.name,
+                  method: webhook.method,
+                  variant
+                })
+              ) {
                 this.captureCurrentResult('skipped', st)
                 return
               }
@@ -842,17 +871,19 @@ export class GenerateContext implements GenerateContextType {
 
   #runGqlOperationGenerator(
     gqlDocument: GqlDocument,
-    generatorConfig: GqlOperationConfig,
+    generatorConfig: GqlOperationEntry,
     stackTrail: StackTrail
   ) {
     gqlDocument.operations.forEach(operation => {
       stackTrail.trace(operation.identifier, opTrail => {
         // GraphQL enrichment routing key is
         // `[generatorId][rootKind][fieldName][variant]`.
-        const opEnrichments: unknown = get(
-          this.settings,
-          ['enrichments', generatorConfig.id, operation.rootKind, operation.fieldName]
-        )
+        const opEnrichments: unknown = get(this.settings, [
+          'enrichments',
+          generatorConfig.id,
+          operation.rootKind,
+          operation.fieldName
+        ])
 
         const variants = toVariantList({
           opEnrichments,
@@ -906,14 +937,14 @@ export class GenerateContext implements GenerateContextType {
 
   #runModelGenerator(
     document: SkmtcParsedDocument,
-    generatorConfig: ModelConfig,
+    generatorConfig: ModelEntry,
     include: IncludeModelRefs | undefined,
     skip: SkipModelRefs | undefined,
     stackTrail: StackTrail
   ) {
     const refNames =
       document.type === 'oas'
-        ? (document.value.components?.toSchemasRefNames() ?? [])
+        ? document.value.components?.toSchemasRefNames() ?? []
         : document.value.registry.toSchemasRefNames()
 
     refNames.forEach(refName => {
@@ -929,10 +960,11 @@ export class GenerateContext implements GenerateContextType {
         //     at config-load time once it lands)
         //   - present, object → enumerate keys; 'main' must be among
         //     them or we throw (loud beats silent zero-output)
-        const modelEnrichments: unknown = get(
-          this.settings,
-          ['enrichments', generatorConfig.id, refName]
-        )
+        const modelEnrichments: unknown = get(this.settings, [
+          'enrichments',
+          generatorConfig.id,
+          refName
+        ])
 
         const variants = toVariantList({
           opEnrichments: modelEnrichments,
@@ -955,10 +987,7 @@ export class GenerateContext implements GenerateContextType {
               // (deny). Match is on `(refName, variant)`. An empty variant
               // array on a refName means "every variant of this refName"; a
               // populated array names the variants the entry applies to.
-              if (
-                include !== undefined &&
-                !matchesRefFilter({ refs: include, refName, variant })
-              ) {
+              if (include !== undefined && !matchesRefFilter({ refs: include, refName, variant })) {
                 this.captureCurrentResult('skipped', st)
                 return
               }
@@ -1484,12 +1513,7 @@ type MatchesPathFilterArgs = {
  * - the method's variant array is empty (matches every variant)
  * - the method's variant array contains `variant`
  */
-const matchesPathFilter = ({
-  paths,
-  path,
-  method,
-  variant
-}: MatchesPathFilterArgs): boolean => {
+const matchesPathFilter = ({ paths, path, method, variant }: MatchesPathFilterArgs): boolean => {
   if (!paths) {
     return false
   }
@@ -1531,11 +1555,7 @@ type MatchesRefFilterArgs = {
  * - the refName's variant array is empty (matches every variant)
  * - the refName's variant array contains `variant`
  */
-const matchesRefFilter = ({
-  refs,
-  refName,
-  variant
-}: MatchesRefFilterArgs): boolean => {
+const matchesRefFilter = ({ refs, refName, variant }: MatchesRefFilterArgs): boolean => {
   if (!refs) {
     return false
   }
@@ -1551,7 +1571,6 @@ const matchesRefFilter = ({
 
   return variants.includes(variant)
 }
-
 
 type ToOasOperationSourceArgs = {
   operation: OasOperation

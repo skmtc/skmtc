@@ -1,7 +1,7 @@
-import type { OasOperationConfig } from '@/dsl/operation/oas/types.ts'
-import type { WebhookConfig } from '@/dsl/webhook/types.ts'
-import type { GqlOperationConfig } from '@/dsl/operation/gql/types.ts'
-import type { ModelConfig } from '@/dsl/model/types.ts'
+import type { OasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
+import type { WebhookEntry } from '@/dsl/webhook/toWebhookEntry.ts'
+import type { GqlOperationEntry } from '@/dsl/operation/gql/toGqlOperationEntry.ts'
+import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
 
 /**
  * Discriminated union of every generator configuration the dispatcher
@@ -50,10 +50,10 @@ import type { ModelConfig } from '@/dsl/model/types.ts'
  * ```
  */
 export type GeneratorConfig<EnrichmentType = undefined> =
-  | OasOperationConfig<EnrichmentType>
-  | WebhookConfig<EnrichmentType>
-  | GqlOperationConfig<EnrichmentType>
-  | ModelConfig<EnrichmentType>
+  | OasOperationEntry<EnrichmentType>
+  | WebhookEntry<EnrichmentType>
+  | GqlOperationEntry<EnrichmentType>
+  | ModelEntry<EnrichmentType>
 
 /**
  * A name → generator-config map. Keys are arbitrary generator

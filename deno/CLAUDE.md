@@ -52,6 +52,16 @@ Flags: `--reinstall-cli=none|local-compile|jsr-install` controls whether the
 local `skmtc` binary is rebuilt when `@skmtc/cli` is part of the release
 (default `none`, which just prints the install command).
 
+**Bump without publishing (`deno task bump`):** when CI does the publish (the
+`Publish` workflow runs the cascade), do step 1 with `deno task bump <package>
+[--minor|--major] [--dry-run]` instead of hand-editing `deno.json`. It performs
+the **same cascade as release** — bumps the named package(s) and rewrites every
+downstream `@skmtc/*` pin + patch-bumps each dependent across `deno/` — but only
+edits the `deno.json` files; it never queries the registry or publishes. Commit
+and merge the result; CI then sees the bumped versions as unpublished and ships
+them. A package may be named by its directory (`core`) or full name
+(`@skmtc/core`).
+
 **Cascade trigger caveat:** the cascade fires only for dependents of packages
 that are *pending* on the registry. If you publish a dependency manually, that
 trigger is spent — re-running `release` will report "nothing to publish" while

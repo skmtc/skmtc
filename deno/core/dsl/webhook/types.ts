@@ -4,9 +4,6 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
-import type * as v from 'valibot'
-import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 
 /**
  * External constructor signature for a webhook projection class.
@@ -33,14 +30,6 @@ export type TransformWebhookArgs = {
    * consumer's `enrichments[id][name][method]` block (or just `'main'`
    * when no enrichments are configured). See {@link Variant}.
    */
-  variant: string
-}
-
-export type IsSupportedWebhookConfigArgs<EnrichmentType = undefined> = {
-  context: GenerateContextType
-  webhook: OasWebhook
-  enrichments: EnrichmentType
-  /** Webhook variant being probed (see {@link Variant}) */
   variant: string
 }
 
@@ -101,11 +90,7 @@ export type ToWebhookExportPathArgs<EnrichmentType = undefined> = {
 export type WebhookProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
   prototype: V
 } & {
-  new ({
-    context,
-    settings,
-    webhook
-  }: WebhookProjectionConstructorArgs<EnrichmentType>): V
+  new ({ context, settings, webhook }: WebhookProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'webhook'
   /**
@@ -133,35 +118,6 @@ export type WebhookProjection<V extends GeneratedValue, EnrichmentType = undefin
    * declared unsupported. Optional: a hand-rolled projection may omit it,
    * in which case it is treated as supporting every webhook.
    */
-  isSupported?: (args: { webhook: OasWebhook; context: GenerateContextType }) => boolean
+  isSupported: (args: IsSupportedWebhookArgs) => boolean
   // deno-lint-ignore ban-types
 } & Function
-
-/**
- * Pipeline-side configuration for a webhook projection (built by
- * `toWebhookEntry`).
- */
-export type WebhookConfig<EnrichmentType = undefined> = {
-  id: string
-  type: 'webhook'
-  transform: ({ context, webhook, variant }: TransformWebhookArgs) => void
-  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  isSupported: ({ context, webhook }: IsSupportedWebhookArgs) => boolean
-  /**
-   * Optional: compute the DEFAULT enrichment values for a webhook from its
-   * schema — the seed the CMS persists and the user then edits. The pipeline
-   * counterpart of the projection base's static of the same name. Returns the
-   * `{ subject, generator, stack }` umbrella, or `undefined` when the
-   * generator advertises no defaults.
-   */
-  toEnrichmentDefaults?: ({
-    webhook,
-    context,
-    variant
-  }: ToWebhookEnrichmentsArgs) => EnrichmentType | undefined
-  toPreviewModule?: ({ context, webhook }: ToWebhookPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, webhook }: ToWebhookMappingArgs) => MappingModule
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    webhook: OasWebhook
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
-}

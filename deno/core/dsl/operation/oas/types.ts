@@ -4,9 +4,6 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
-import type * as v from 'valibot'
-import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
 
 /**
  * External constructor signature for an OAS operation projection class.
@@ -34,14 +31,6 @@ export type TransformOasOperationArgs = {
 
 export type WithTransformOasOperation = {
   transformOperation: (operation: OasOperation) => void
-}
-
-export type IsSupportedOasOperationConfigArgs<EnrichmentType = undefined> = {
-  context: GenerateContextType
-  operation: OasOperation
-  enrichments: EnrichmentType
-  /** Operation variant being probed (see {@link Variant}) */
-  variant: string
 }
 
 export type IsSupportedOasOperationArgs = {
@@ -101,11 +90,7 @@ export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
 export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
   prototype: V
 } & {
-  new ({
-    context,
-    settings,
-    operation
-  }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
+  new ({ context, settings, operation }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
   id: string
   type: 'oasOperation'
   /**
@@ -134,42 +119,6 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
    * projection may omit it, in which case it is treated as supporting
    * every operation.
    */
-  isSupported?: (args: { operation: OasOperation; context: GenerateContextType }) => boolean
+  isSupported: (args: IsSupportedOasOperationArgs) => boolean
   // deno-lint-ignore ban-types
 } & Function
-
-/**
- * Pipeline-side configuration for an OAS operation projection (built by
- * `toOasOperationEntry`).
- */
-export type OasOperationConfig<EnrichmentType = undefined> = {
-  id: string
-  type: 'oasOperation'
-  transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
-  toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
-  /**
-   * Optional capability gate, evaluated before `include` / `skip`. Absent →
-   * treated as `() => true` (every operation supported). `toOasOperationEntry`
-   * defaults it for built configs; a hand-constructed config may omit it.
-   */
-  isSupported?: ({ context, operation }: IsSupportedOasOperationArgs) => boolean
-  /**
-   * Optional: compute the DEFAULT enrichment values for an operation from its
-   * schema — the seed the CMS persists and the user then edits. The pipeline
-   * counterpart of the projection base's static of the same name: a generator
-   * wires this on the entry (typically forwarding `MyProjection.toEnrichmentDefaults`)
-   * so the seeding pass can reach it from the generator-config map without the
-   * projection class. Returns the `{ subject, generator, stack }` umbrella, or
-   * `undefined` when the generator advertises no defaults.
-   */
-  toEnrichmentDefaults?: ({
-    operation,
-    context,
-    variant
-  }: ToOasOperationEnrichmentsArgs) => EnrichmentType | undefined
-  toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
-  toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    operation: OasOperation
-  ) => EnrichmentRequest<RequestedEnrichment> | undefined
-}

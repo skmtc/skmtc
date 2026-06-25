@@ -108,10 +108,12 @@ const createMockProjection = (options?: {
     static id = options?.id ?? 'MockWebhookGen'
     static type = 'webhook' as const
     static lang = typescript
-    static isSupported = options?.isSupported
+    static isSupported = options?.isSupported ?? (() => true)
 
     static toIdentifierName({ webhook, variant }: ToWebhookIdentifierNameArgs): string {
-      return options?.variantAware && variant !== 'main' ? `${webhook.name}_${variant}` : webhook.name
+      return options?.variantAware && variant !== 'main'
+        ? `${webhook.name}_${variant}`
+        : webhook.name
     }
 
     static toIdentifierType(): IdentifierType {
@@ -360,6 +362,7 @@ Deno.test('WebhookDriver', async t => {
         static toExportPath = (_args: ToWebhookExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
+        static isSupported = () => true
 
         constructor(args: {
           context: GenerateContextType
@@ -434,6 +437,7 @@ Deno.test('WebhookDriver', async t => {
         static toIdentifierType = (): IdentifierType => ({ kind: 'type' })
         static toExportPath = (_args: ToWebhookExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
+        static isSupported = () => true
 
         constructor(args: {
           context: GenerateContextType
@@ -482,7 +486,12 @@ Deno.test('WebhookDriver', async t => {
       const { context } = createMockContext({ findDefinition: cachedDef })
 
       // deno-lint-ignore no-explicit-any
-      new WebhookDriver({ context, projection: TrackingProjection as any, webhook, variant: 'main' })
+      new WebhookDriver({
+        context,
+        projection: TrackingProjection as any,
+        webhook,
+        variant: 'main'
+      })
 
       assertEquals(instantiated, false)
     })

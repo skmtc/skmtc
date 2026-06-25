@@ -66,41 +66,6 @@ Deno.test('toModelEntry - includes provided isSupported and gates on refName', (
   assertEquals(entry.isSupported({ context, refName: 'Order' as RefName, variant: 'main' }), false)
 })
 
-Deno.test('toModelEntry - isSupported receives the resolved enrichment umbrella', () => {
-  const schema = v.object({
-    subject: v.optional(v.object({ note: v.optional(v.string()) })),
-    generator: v.undefined(),
-    stack: v.undefined()
-  })
-
-  let seen: unknown
-  const entry = toModelEntry({
-    id: 'test-model',
-    transform: () => {},
-    toEnrichmentSchema: () => schema,
-    isSupported: ({ enrichments }) => {
-      seen = enrichments
-      return enrichments.subject?.note === 'keep'
-    }
-  })
-
-  // Subject enrichment routes at [id][refName][variant].
-  const context = {
-    settings: {
-      enrichments: {
-        'test-model': {
-          User: { main: { note: 'keep' } },
-          Order: { main: { note: 'drop' } }
-        }
-      }
-    }
-  } as unknown as GenerateContextType
-
-  assertEquals(entry.isSupported({ context, refName: 'User' as RefName, variant: 'main' }), true)
-  assertEquals(seen, { subject: { note: 'keep' }, generator: undefined, stack: undefined })
-  assertEquals(entry.isSupported({ context, refName: 'Order' as RefName, variant: 'main' }), false)
-})
-
 Deno.test('toModelEntry - toPreviewModule is undefined when not provided', () => {
   const entry = toModelEntry({
     id: 'test-model',

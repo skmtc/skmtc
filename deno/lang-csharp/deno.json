@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/lang-csharp",
-  "version": "0.5.12",
+  "version": "0.5.15",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
@@ -10,6 +10,6 @@
     "test": "deno test --allow-all"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@0.18.1"
+    "@skmtc/core": "jsr:@skmtc/core@0.20.1"
   }
 }

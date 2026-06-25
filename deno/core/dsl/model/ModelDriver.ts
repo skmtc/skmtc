@@ -83,7 +83,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       variant
     })
 
-    assertPeerSupported({ context, projection, refName })
+    assertPeerSupported({ context, projection, refName, variant })
 
     this.settings = this.context.toModelContentSettings({ refName, projection, variant })
     this.definition = this.apply({ destinationPath })
@@ -218,10 +218,7 @@ const assertPeerVariantExists = ({
     return
   }
 
-  const modelEnrichments: unknown = get(
-    context.settings,
-    ['enrichments', generatorId, refName]
-  )
+  const modelEnrichments: unknown = get(context.settings, ['enrichments', generatorId, refName])
 
   if (modelEnrichments === null || modelEnrichments === undefined) {
     throw new Error(
@@ -246,13 +243,11 @@ const assertPeerVariantExists = ({
   }
 }
 
-type AssertPeerSupportedArgs = {
+type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType> = {
   context: GenerateContextType
-  projection: {
-    id: string
-    isSupported?: (args: { refName: RefName; context: GenerateContextType }) => boolean
-  }
+  projection: ModelProjection<V, EnrichmentType>
   refName: RefName
+  variant: string
 }
 
 /**
@@ -274,12 +269,13 @@ type AssertPeerSupportedArgs = {
  * model: `toModelProjectionBase` defaults it to `() => true`, and a
  * hand-rolled projection may omit it.
  */
-const assertPeerSupported = ({ context, projection, refName }: AssertPeerSupportedArgs): void => {
-  if (typeof projection.isSupported !== 'function') {
-    return
-  }
-
-  if (!projection.isSupported({ refName, context })) {
+const assertPeerSupported = <V extends GeneratedValue, EnrichmentType>({
+  context,
+  projection,
+  refName,
+  variant
+}: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
+  if (!projection.isSupported({ refName, context, variant })) {
     throw new Error(
       `[${projection.id}] Cannot insert '${refName}' — peer generator ` +
         `does not support this model (isSupported returned false).`

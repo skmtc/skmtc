@@ -47,9 +47,17 @@ type PushHeadlessArgs = {
   /**
    * Collected base files (app-root-relative path -> text content) to also push
    * to `/preview/base-files`, replacing the project's stored set. Omitted unless
-   * `--base-files` was passed.
+   * `--base-files` (or `--base-files-only`) was passed.
    */
   baseFiles?: Record<string, string>;
+  /**
+   * Push ONLY the base files, leaving the hub project's client.json config
+   * untouched — skips the client-config PUT entirely (`--base-files-only`).
+   * Paired with `baseFiles`. With this set, `overwroteExistingConfig` is always
+   * false and `enrichmentCount` reports the EXISTING hub config (from the
+   * pre-check GET) rather than a freshly-pushed one.
+   */
+  baseFilesOnly?: boolean;
 };
 
 export type PushHeadlessResult =
@@ -105,6 +113,7 @@ export const pushHeadless = async ({
   projectFlag,
   confirmOverwrite,
   baseFiles,
+  baseFilesOnly,
 }: PushHeadlessArgs): Promise<PushHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName);
   const contents = project.clientJson.contents;
@@ -167,7 +176,9 @@ export const pushHeadless = async ({
     // A failed pre-check shouldn't block the push; the PUT is authoritative.
   }
 
-  const overwroteExistingConfig = hasConfigData(existing);
+  // `--base-files-only` leaves the hub config untouched, so there's nothing to
+  // overwrite or confirm.
+  const overwroteExistingConfig = !baseFilesOnly && hasConfigData(existing);
   if (overwroteExistingConfig && confirmOverwrite) {
     const proceed = await confirmOverwrite({
       account,
@@ -179,56 +190,60 @@ export const pushHeadless = async ({
     }
   }
 
-  const settings = contents.settings;
-  const body = {
-    source: contents.source,
-    settings: {
-      basePath: settings.basePath ?? ".",
-      packages: settings.packages,
-      include: settings.include,
-      skip: settings.skip,
-      enrichments: settings.enrichments,
-      inputDirs: settings.inputDirs,
-    },
-  };
-
-  let pushedConfig: unknown;
-  try {
-    const putResponse = await fetch(
-      `${origin}/v1/projects/${account}/${slug}/client-config`,
-      {
-        method: "PUT",
-        headers: {
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(body),
+  // The client-config PUT is skipped under `--base-files-only`; the reported
+  // enrichmentCount then reflects the EXISTING hub config from the pre-check GET.
+  let pushedConfig: unknown = existing;
+  if (!baseFilesOnly) {
+    const settings = contents.settings;
+    const body = {
+      source: contents.source,
+      settings: {
+        basePath: settings.basePath ?? ".",
+        packages: settings.packages,
+        include: settings.include,
+        skip: settings.skip,
+        enrichments: settings.enrichments,
+        inputDirs: settings.inputDirs,
       },
-    );
-    if (!putResponse.ok) {
-      const text = await putResponse.text();
-      const hint = putResponse.status === 403
-        ? ` — not authorized to write to ${account}/${slug}`
-        : putResponse.status === 404
-        ? ` — project ${account}/${slug} not found`
-        : "";
+    };
+
+    try {
+      const putResponse = await fetch(
+        `${origin}/v1/projects/${account}/${slug}/client-config`,
+        {
+          method: "PUT",
+          headers: {
+            authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(body),
+        },
+      );
+      if (!putResponse.ok) {
+        const text = await putResponse.text();
+        const hint = putResponse.status === 403
+          ? ` — not authorized to write to ${account}/${slug}`
+          : putResponse.status === 404
+          ? ` — project ${account}/${slug} not found`
+          : "";
+        return {
+          kind: "failed",
+          projectName,
+          reason: `client-config push failed (${putResponse.status})${hint}: ${
+            text.slice(0, 500)
+          }`,
+          stage: "push",
+        };
+      }
+      pushedConfig = await putResponse.json();
+    } catch (err) {
       return {
         kind: "failed",
         projectName,
-        reason: `client-config push failed (${putResponse.status})${hint}: ${
-          text.slice(0, 500)
-        }`,
+        reason: err instanceof Error ? err.message : String(err),
         stage: "push",
       };
     }
-    pushedConfig = await putResponse.json();
-  } catch (err) {
-    return {
-      kind: "failed",
-      projectName,
-      reason: err instanceof Error ? err.message : String(err),
-      stage: "push",
-    };
   }
 
   // Optional base-files push (--base-files): replace the project's stored app
@@ -248,13 +263,17 @@ export const pushHeadless = async ({
           body: JSON.stringify({ files: baseFiles }),
         },
       );
+      // Under `--base-files-only` the config PUT never ran, so don't claim it did.
+      const configNote = baseFilesOnly
+        ? ""
+        : " — client-config was already updated";
       if (!filesResponse.ok) {
         const text = await filesResponse.text();
         return {
           kind: "failed",
           projectName,
           reason:
-            `base-files push failed (${filesResponse.status}) — client-config was already updated: ${
+            `base-files push failed (${filesResponse.status})${configNote}: ${
               text.slice(0, 500)
             }`,
           stage: "push",
@@ -263,10 +282,13 @@ export const pushHeadless = async ({
       await filesResponse.text();
       baseFilesPushed = Object.keys(baseFiles).length;
     } catch (err) {
+      const configNote = baseFilesOnly
+        ? ""
+        : " — client-config was already updated";
       return {
         kind: "failed",
         projectName,
-        reason: `base-files push failed — client-config was already updated: ${
+        reason: `base-files push failed${configNote}: ${
           err instanceof Error ? err.message : String(err)
         }`,
         stage: "push",

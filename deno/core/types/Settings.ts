@@ -550,6 +550,14 @@ export type SkmtcClientConfig = {
    * Ignored by `skmtc generate`; consumed only by `skmtc push`.
    */
   project?: string;
+  /**
+   * skmtc-hub API binding in `@<account>/<slug>` form — the registered schema
+   * this project's `source` maps to on the hub, analogous to a git remote.
+   * Recorded by `skmtc project create` (the schema-register write-back) so a
+   * re-run versions the same API instead of creating a duplicate. Ignored by
+   * `skmtc generate`.
+   */
+  api?: string;
   /** Optional schema path or url for OpenAPI schema */
   source?: string;
   /** Client settings for customizing generation behavior */
@@ -566,6 +574,7 @@ export const skmtcClientConfig: v.GenericSchema<SkmtcClientConfig> = v.object({
   serverUrl: v.optional(v.string()),
   projectKey: v.optional(v.string()),
   project: v.optional(v.string()),
+  api: v.optional(v.string()),
   source: v.optional(v.string()),
   settings: clientSettings,
 });
