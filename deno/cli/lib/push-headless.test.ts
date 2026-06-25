@@ -259,6 +259,69 @@ Deno.test("pushHeadless - an explicit --project is written back into client.json
   }
 });
 
+Deno.test("pushHeadless - --base-files-only pushes base files without the client-config PUT", async () => {
+  const calls: { method: string; url: string }[] = [];
+  globalThis.fetch = (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    const url = String(input);
+    const method = init?.method ?? "GET";
+    calls.push({ method, url });
+    if (method === "GET" && url.endsWith("/config")) {
+      // The hub already holds config; base-files-only must NOT overwrite it.
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            enrichments: [{ scope: "stack", variant: "main", values: {} }],
+          }),
+          { status: 200 },
+        ),
+      );
+    }
+    if (method === "PUT" && url.endsWith("/preview/base-files")) {
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    }
+    throw new Error(`unexpected fetch ${method} ${url}`);
+  };
+  const { skmtcRoot } = makeRoot({
+    project: "@acme/petstore",
+    settings: { basePath: "src" },
+  });
+
+  try {
+    const result = await pushHeadless({
+      skmtcRoot,
+      projectName: "my-api",
+      token: "pat",
+      origin: "https://hub.test",
+      baseFiles: { "package.json": "{}", "src/app.tsx": "x" },
+      baseFilesOnly: true,
+    });
+
+    assertEquals(result.kind, "pushed");
+    if (result.kind !== "pushed") throw new Error("expected pushed");
+    assertEquals(result.baseFilesPushed, 2);
+    // Config was left untouched.
+    assertEquals(result.overwroteExistingConfig, false);
+    // enrichmentCount reflects the EXISTING hub config from the pre-check GET.
+    assertEquals(result.enrichmentCount, 1);
+    // The client-config endpoint was never PUT.
+    assertEquals(
+      calls.some((c) => c.method === "PUT" && c.url.endsWith("/client-config")),
+      false,
+    );
+    assertEquals(
+      calls.some((c) =>
+        c.method === "PUT" && c.url.endsWith("/preview/base-files")
+      ),
+      true,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("pushHeadless - --base-files also PUTs to /preview/base-files", async () => {
   const calls: { method: string; url: string }[] = [];
   globalThis.fetch = (
