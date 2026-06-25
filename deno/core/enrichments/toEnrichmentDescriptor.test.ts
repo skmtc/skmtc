@@ -104,6 +104,7 @@ Deno.test('toEnrichmentDescriptor — surfaces the subject scope of the umbrella
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-shadcn-form',
     type: 'oasOperation',
+    supportsVariant: () => false,
     toEnrichmentSchema: () => v.object({
       subject: v.optional(v.object({ title: v.optional(v.string()) })),
       generator: v.undefined(),
@@ -130,6 +131,7 @@ Deno.test('toEnrichmentDescriptor — collapses gqlOperation to operation', () =
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-reapit-form',
     type: 'gqlOperation',
+    supportsVariant: () => false,
     toEnrichmentSchema: () => v.object({
       subject: v.optional(v.object({ title: v.optional(v.string()) })),
       generator: v.undefined(),
@@ -147,6 +149,7 @@ Deno.test('toEnrichmentDescriptor — maps webhook to its own subject kind', () 
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-ts-webhook',
     type: 'webhook',
+    supportsVariant: () => false,
     toEnrichmentSchema: () => v.object({
       subject: v.optional(v.object({ title: v.optional(v.string()) })),
       generator: v.undefined(),
@@ -161,6 +164,7 @@ Deno.test('toEnrichmentDescriptor — surfaces subject + generator scopes (model
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-kotlin',
     type: 'model',
+    supportsVariant: () => false,
     toEnrichmentSchema: () => v.object({
       subject: v.optional(v.object({ description: v.optional(v.string()) })),
       generator: v.object({ basePackage: v.string() }),
@@ -194,6 +198,7 @@ Deno.test('toEnrichmentDescriptor — empty umbrella (emptyEnrichmentSchema) yie
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-typescript',
     type: 'model',
+    supportsVariant: () => false,
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }
   assertEquals(toEnrichmentDescriptor(entry), {
@@ -207,7 +212,8 @@ Deno.test('toEnrichmentDescriptor — empty umbrella (emptyEnrichmentSchema) yie
 Deno.test('toEnrichmentDescriptor — entry without toEnrichmentSchema yields empty fields', () => {
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-bare',
-    type: 'oasOperation'
+    type: 'oasOperation',
+    supportsVariant: () => false
   }
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-bare',
@@ -227,14 +233,6 @@ Deno.test('toEnrichmentDescriptor — surfaces an entry that declares variant su
   assertEquals(toEnrichmentDescriptor(entry).supportsVariant, true)
 })
 
-Deno.test('toEnrichmentDescriptor — defaults supportsVariant to false when the entry omits it', () => {
-  const entry: EnrichmentSource = {
-    id: '@skmtc/gen-typescript',
-    type: 'model'
-  }
-  assertEquals(toEnrichmentDescriptor(entry).supportsVariant, false)
-})
-
 Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', () => {
   const formFieldItem = v.object({
     id: v.string(),
@@ -247,6 +245,7 @@ Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', (
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-shadcn-form',
     type: 'oasOperation',
+    supportsVariant: () => false,
     toEnrichmentSchema: () => v.object({
       subject: v.optional(
         v.object({

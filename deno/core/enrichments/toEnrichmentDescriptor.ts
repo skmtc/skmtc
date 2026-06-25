@@ -77,12 +77,13 @@ export type EnrichmentSource = {
   readonly type: 'oasOperation' | 'gqlOperation' | 'model' | 'webhook'
   readonly toEnrichmentSchema?: () => v.GenericSchema
   /**
-   * Whether the entry supports the variant axis. Every entry built by
-   * `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` provides
-   * this (defaulting to `() => false`); optional here so hand-authored or test
-   * entry-likes can omit it — a missing function reads as `false`.
+   * Whether the entry supports the variant axis. Required: every entry built by
+   * `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` has it,
+   * because the factory inserts a `() => false` default when the author omits
+   * it — so by the time an entry reaches the descriptor the function always
+   * exists.
    */
-  readonly supportsVariant?: () => boolean
+  readonly supportsVariant: () => boolean
 }
 
 /**
@@ -271,6 +272,6 @@ const toSubjectKind = (entryType: EnrichmentSource['type']): SubjectKind => {
 export const toEnrichmentDescriptor = (entry: EnrichmentSource): EnrichmentDescriptor => ({
   generator: entry.id,
   subjectKind: toSubjectKind(entry.type),
-  supportsVariant: entry.supportsVariant?.() ?? false,
+  supportsVariant: entry.supportsVariant(),
   fields: toEnrichmentFields(entry.toEnrichmentSchema?.())
 })
