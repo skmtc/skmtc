@@ -24,6 +24,11 @@ export type ToWebhookConfigArgs<EnrichmentType = undefined> = {
   transform: ({ context, webhook, variant }: TransformWebhookArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported?: (args: IsSupportedWebhookArgs) => boolean
+  /**
+   * Optional: whether this generator entry supports variants. Defaults to a
+   * function returning `false` when omitted.
+   */
+  supportsVariant?: () => boolean
   toPreviewModule?: ({ context, webhook }: ToWebhookPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, webhook }: ToWebhookMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
@@ -42,6 +47,7 @@ export type WebhookEntry<EnrichmentType = undefined> = {
   transform: ({ context, webhook, variant }: TransformWebhookArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: (args: IsSupportedWebhookArgs) => boolean
+  supportsVariant: () => boolean
   toPreviewModule?: ({ context, webhook }: ToWebhookPreviewModuleArgs) => PreviewModule
   toMappingModule?: ({ context, webhook }: ToWebhookMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
@@ -81,6 +87,7 @@ export const toWebhookEntry = <EnrichmentType = undefined>({
   transform,
   toEnrichmentSchema,
   isSupported,
+  supportsVariant,
   toPreviewModule,
   toMappingModule,
   toEnrichmentRequest,
@@ -92,6 +99,7 @@ export const toWebhookEntry = <EnrichmentType = undefined>({
     transform,
     toEnrichmentSchema,
     isSupported: isSupported ?? (() => true),
+    supportsVariant: supportsVariant ?? (() => false),
     toPreviewModule,
     toMappingModule,
     toEnrichmentRequest,

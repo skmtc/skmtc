@@ -7,6 +7,7 @@ import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 const formSource: EnrichmentSource = {
   id: 'gen-form',
   type: 'oasOperation',
+  supportsVariant: () => false,
   toEnrichmentSchema: () =>
     v.object({
       subject: v.optional(
@@ -23,6 +24,7 @@ const formSource: EnrichmentSource = {
 const modelSource: EnrichmentSource = {
   id: 'gen-zod',
   type: 'model',
+  supportsVariant: () => false,
   toEnrichmentSchema: () =>
     v.object({
       subject: v.optional(v.object({ coerce: v.optional(v.boolean()) })),
@@ -100,6 +102,7 @@ Deno.test('validateConfig — a no-enrichment generator receiving a value fails 
   const emptySource: EnrichmentSource = {
     id: 'gen-ts',
     type: 'model',
+    supportsVariant: () => false,
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }
   const enrichments = {
@@ -115,6 +118,7 @@ Deno.test('validateConfig — generator run-constant (_generator) value is valid
   const genScopeSource: EnrichmentSource = {
     id: 'gen-zod',
     type: 'model',
+    supportsVariant: () => false,
     toEnrichmentSchema: () =>
       v.object({
         subject: v.optional(v.unknown()),
@@ -135,6 +139,7 @@ Deno.test('validateConfig — gql operation routing tags fieldName + rootKind', 
   const gqlSource: EnrichmentSource = {
     id: 'gen-gql',
     type: 'gqlOperation',
+    supportsVariant: () => false,
     toEnrichmentSchema: () =>
       v.object({
         subject: v.optional(v.object({ label: v.optional(v.string()) })),

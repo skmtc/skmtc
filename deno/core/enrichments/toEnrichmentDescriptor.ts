@@ -55,6 +55,13 @@ export type SubjectKind = 'operation' | 'model' | 'webhook'
 export type EnrichmentDescriptor = {
   generator: string
   subjectKind: SubjectKind
+  /**
+   * Whether this generator's entry declares variant support
+   * (`supportsVariant: () => true`). The CMS reads it to decide whether to
+   * offer the per-subject variant axis (add / rename / delete variants) above
+   * the subject scope; `false` when the entry omits it.
+   */
+  supportsVariant: boolean
   fields: EnrichmentField[]
 }
 
@@ -69,6 +76,14 @@ export type EnrichmentSource = {
   readonly id: string
   readonly type: 'oasOperation' | 'gqlOperation' | 'model' | 'webhook'
   readonly toEnrichmentSchema?: () => v.GenericSchema
+  /**
+   * Whether the entry supports the variant axis. Required: every entry built by
+   * `toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry` has it,
+   * because the factory inserts a `() => false` default when the author omits
+   * it — so by the time an entry reaches the descriptor the function always
+   * exists.
+   */
+  readonly supportsVariant: () => boolean
 }
 
 /**
@@ -257,5 +272,6 @@ const toSubjectKind = (entryType: EnrichmentSource['type']): SubjectKind => {
 export const toEnrichmentDescriptor = (entry: EnrichmentSource): EnrichmentDescriptor => ({
   generator: entry.id,
   subjectKind: toSubjectKind(entry.type),
+  supportsVariant: entry.supportsVariant(),
   fields: toEnrichmentFields(entry.toEnrichmentSchema?.())
 })
