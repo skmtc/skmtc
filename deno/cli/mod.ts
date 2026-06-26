@@ -15,6 +15,9 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'doctor',
   'agent-context',
   'clean',
+  // describe runs the project's local bundle to read generator
+  // capabilities; it never touches JSR.
+  'describe',
   // login/logout talk to the hub (or just the local filesystem), not
   // the JSR registry.
   'login',
@@ -240,6 +243,21 @@ const run = async () => {
         jsonFlag: json,
         dryRunFlag: dryRun,
         verboseFlag: verbose
+      })
+    })
+
+  const describeCommand = new Command()
+    .description(getCommandDescriptor('describe').description)
+    // Optional project arg routes a missing value to the recipe error
+    // (with the `ls .skmtc/` discovery hint), matching `clean` / `list`.
+    .arguments('[project:string] [schema:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }, projectName, schemaSourceString) => {
+      const { renderDescribe } = await import('@/commands/describe.ts')
+      await renderDescribe({
+        projectName,
+        schemaSourceString,
+        jsonFlag: json
       })
     })
 
@@ -523,6 +541,7 @@ const run = async () => {
     .command('generate', generateCommand)
     .command('bundle', bundleCommand)
     .command('clean', cleanCommand)
+    .command('describe', describeCommand)
     .command('publish', publishCommand)
     .command('push', pushCommand)
     .command('pull', pullCommand)

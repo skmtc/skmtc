@@ -1,5 +1,11 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
-import type { SkmtcDocumentInput } from '@skmtc/core'
+import type {
+  EnrichmentDefaults,
+  EnrichmentDescriptor,
+  ParseIssue,
+  SkmtcDocumentInput,
+  SupportedSubjects
+} from '@skmtc/core'
 import type { RegistryEntry, Sidecar, GenerationMapEntry } from '@skmtc/core/Anchors'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 
@@ -67,13 +73,27 @@ export type GeneratePayload = {
 }
 
 /**
- * Top-level message shape posted to the worker. Currently only one
- * type (`GENERATE`) is defined; future commands would add variants.
+ * Wire shape of the `DESCRIBE` message payload posted by the host.
+ *
+ * Read-only capability introspection — the subset of `GeneratePayload`
+ * the metadata pass needs. `document` is the same `SkmtcDocumentInput`
+ * union built host-side; `clientSettings` scopes `isSupported` and the
+ * default-derivation. No `attribution` (nothing is rendered) and no
+ * `silent` (the worker forces silent for DESCRIBE).
  */
-export type WorkerMessage = {
-  type: 'GENERATE'
-  payload: GeneratePayload
+export type DescribePayload = {
+  clientSettings?: ClientSettings
+  document: SkmtcDocumentInput
 }
+
+/**
+ * Top-level message shape posted to the worker — a discriminated union
+ * over `type`. `GENERATE` runs the full pipeline; `DESCRIBE` runs the
+ * read-only metadata pass (subjects + descriptors + defaults).
+ */
+export type WorkerMessage =
+  | { type: 'GENERATE'; payload: GeneratePayload }
+  | { type: 'DESCRIBE'; payload: DescribePayload }
 
 /**
  * Wire shape of the worker's RESULT message back to the host. Mirrors
@@ -86,4 +106,21 @@ export type WorkerResult = {
   manifest: ManifestContent
   sidecars?: Record<string, Sidecar>
   generationMap?: GenerationMapEntry[]
+}
+
+/**
+ * Wire shape of the worker's RESULT message for a `DESCRIBE` request.
+ * Mirrors the three engine calls (`toSupportedSubjects`,
+ * `toEnrichmentDescriptor`, `toEnrichmentDefaults`) the bundle's
+ * `server.js` exposes at `/subjects`, `/descriptors`,
+ * `/enrichment-defaults` — so a local `skmtc describe` produces the same
+ * shapes the hub runner does. `parseIssues` are the union of the
+ * subjects + defaults passes (descriptors are documentless).
+ */
+export type WorkerDescribeResult = {
+  type: 'RESULT'
+  subjects: SupportedSubjects
+  descriptors: EnrichmentDescriptor[]
+  enrichmentDefaults: EnrichmentDefaults
+  parseIssues: ParseIssue[]
 }
