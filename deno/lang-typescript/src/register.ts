@@ -2,7 +2,8 @@ import { normalize } from '@std/path/normalize'
 import type {
   DefinitionBase,
   GenerateContextType,
-  GeneratedValue
+  GeneratedValue,
+  Stringable
 } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
@@ -27,11 +28,12 @@ export type TsRegisterArgs = {
   /** Definition objects to include in the destination file. */
   definitions?: (DefinitionBase | undefined)[]
   /**
-   * A leading file banner comment (e.g. a codegen header) for the
-   * destination file. Set once on the {@link TsFile}; the last non-`undefined`
-   * write wins.
+   * Free-form content for the destination file's neutral `custom` slot
+   * ({@link FileBase.custom}) — typically a leading file banner comment (e.g.
+   * a codegen header). Forwarded to `context.register`; the last
+   * non-`undefined` write wins.
    */
-  banner?: string
+  custom?: Stringable
 }
 
 /**
@@ -50,14 +52,8 @@ export const register = (
 ): void => {
   const destinationPath = normalize(args.destinationPath)
 
-  let file = context.getFile(destinationPath)
-  if (!file) {
-    file = new TsFile({ path: destinationPath, settings: context.settings })
-    context.addFile(file)
-  }
-
-  if (args.banner !== undefined && file instanceof TsFile) {
-    file.banner = args.banner
+  if (!context.getFile(destinationPath)) {
+    context.addFile(new TsFile({ path: destinationPath, settings: context.settings }))
   }
 
   context.register({
@@ -68,6 +64,7 @@ export const register = (
       .filter(([, identifiers]) => identifiers.length > 0)
       .map(([module, identifiers]) => TsReExport.fromConcise(module, identifiers)),
     definitions: args.definitions,
+    custom: args.custom,
     destinationPath
   })
 }

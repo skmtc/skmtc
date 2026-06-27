@@ -1,13 +1,13 @@
 {
   "name": "@skmtc/worker",
-  "version": "0.3.34",
+  "version": "0.3.35",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts",
     "./types": "./types.ts"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@0.20.2",
+    "@skmtc/core": "jsr:@skmtc/core@0.21.0",
     "openapi-types": "npm:openapi-types@^12.1.3"
   },
   "compilerOptions": {

@@ -26,15 +26,15 @@
  * Definition and the consumer ships a doubled symbol.
  */
 
-import { assertEquals, assertExists } from '@std/assert'
-import * as log from '@std/log'
+import { assertEquals, assertExists, assertInstanceOf, assertStringIncludes } from '@std/assert'
+import type * as log from '@std/log'
 import * as v from 'valibot'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
-import { TsFile } from '@skmtc/lang-typescript'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
 import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
@@ -163,14 +163,17 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
 
   // Peer Definition registered exactly once — both form variants
   // hit the same cache key.
-  if ('definitions' in peerFile) {
-    assertEquals(
-      peerFile.definitions.size,
-      1,
-      `Peer file should have exactly one Definition, got: ${[...peerFile.definitions.keys()].join(', ')}`
-    )
-    assertEquals([...peerFile.definitions.keys()][0], 'usePatchQuote')
-  }
+  assertInstanceOf(peerFile, CodeFileBase)
+  const peerDefinitions = peerFile.findDefinitions()
+  assertExists(peerDefinitions)
+  assertEquals(
+    peerDefinitions.length,
+    1,
+    `Peer file should have exactly one Definition, got: ${peerDefinitions
+      .map(definition => definition.identifier.name)
+      .join(', ')}`
+  )
+  assertEquals(peerDefinitions[0].identifier.name, 'usePatchQuote')
 })
 
 Deno.test('cross-variant - both form variants import from the shared peer file', () => {
@@ -221,15 +224,17 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
   // Each form-variant file has an import of `usePatchQuote` from the
   // peer file. The Driver auto-registers this import whenever the
   // peer's exportPath differs from the caller's destinationPath.
-  if (mainFile instanceof TsFile) {
-    const mainImport = mainFile.imports.get('@/services/usePatchQuote.ts')
-    assertExists(mainImport, 'main-variant file should import from peer file')
-    assertEquals(mainImport.toString(), `import {usePatchQuote} from '@/services/usePatchQuote.ts'`)
-  }
+  assertInstanceOf(mainFile, CodeFileBase)
+  assertStringIncludes(
+    mainFile.toString(),
+    `import {usePatchQuote} from '@/services/usePatchQuote.ts'`,
+    'main-variant file should import from peer file'
+  )
 
-  if (customerFile instanceof TsFile) {
-    const customerImport = customerFile.imports.get('@/services/usePatchQuote.ts')
-    assertExists(customerImport, 'customer-variant file should import from peer file')
-    assertEquals(customerImport.toString(), `import {usePatchQuote} from '@/services/usePatchQuote.ts'`)
-  }
+  assertInstanceOf(customerFile, CodeFileBase)
+  assertStringIncludes(
+    customerFile.toString(),
+    `import {usePatchQuote} from '@/services/usePatchQuote.ts'`,
+    'customer-variant file should import from peer file'
+  )
 })

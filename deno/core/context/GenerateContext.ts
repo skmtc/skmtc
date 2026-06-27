@@ -1129,7 +1129,7 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  register({ imports = [], reExports = [], definitions, destinationPath }: ContextRegisterArgs) {
+  register({ imports = [], reExports = [], definitions, custom, destinationPath }: ContextRegisterArgs) {
     const normalizedPath = normalize(destinationPath)
 
     const currentFile = this.getFile(normalizedPath)
@@ -1145,24 +1145,30 @@ export class GenerateContext implements GenerateContextType {
         `Pre-create it through your lang (its register function does this).`
     )
 
-    // Definitions merge is language-neutral — `addDefinition` lives on
-    // `FileBase`, so this works for any language's file.
-    definitions?.forEach(definition => {
-      if (definition) {
-        currentFile.addDefinition(definition)
-      }
-    })
-
-    // Imports and re-exports are standardised `ImportBase` /
-    // `ReExportBase` objects; the neutral merges (keyed by `mergeKey`)
-    // live on `CodeFileBase`. `JsonFile` has neither, so the guard skips
-    // it.
-    if (imports.length > 0 && currentFile instanceof CodeFileBase) {
-      currentFile.addImports(imports)
+    // `custom` is language-neutral — it lives on `FileBase`, so any file
+    // (code or not, e.g. a JSON/Markdown file) can receive it. Last
+    // non-`undefined` write wins.
+    if (custom !== undefined) {
+      currentFile.custom = custom
     }
 
-    if (reExports.length > 0 && currentFile instanceof CodeFileBase) {
-      currentFile.addReExports(reExports)
+    // Definitions, imports, and re-exports — and their duplication/merge
+    // policy — are code-file concerns owned by the language subclass.
+    // `JsonFile` (no definitions/imports) is skipped by the guard.
+    if (currentFile instanceof CodeFileBase) {
+      definitions?.forEach(definition => {
+        if (definition) {
+          currentFile.addDefinition(definition)
+        }
+      })
+
+      if (imports.length > 0) {
+        currentFile.addImports(imports)
+      }
+
+      if (reExports.length > 0) {
+        currentFile.addReExports(reExports)
+      }
     }
   }
 
@@ -1485,9 +1491,11 @@ export class GenerateContext implements GenerateContextType {
    * @returns Matching definition if found or `undefined` otherwise
    */
   findDefinition({ name, exportPath }: PickArgs): DefinitionBase | undefined {
-    // Pure lookup — no file is created on a miss. `definitions` lives on
-    // `FileBase`, so this reads any language's file without narrowing.
-    return this.getFile(exportPath)?.definitions.get(name)
+    // Pure lookup — no file is created on a miss. Definitions live on the
+    // code-file subclass, so narrow; a non-code file (`JsonFile`) has none.
+    // The cache wants the single primary for the name → first match.
+    const file = this.getFile(exportPath)
+    return file instanceof CodeFileBase ? file.findDefinitions({ name })?.[0] : undefined
   }
 }
 

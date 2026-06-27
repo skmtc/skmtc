@@ -23,8 +23,8 @@
  * variant suffix.
  */
 
-import { assertEquals, assertExists } from '@std/assert'
-import * as log from '@std/log'
+import { assertEquals, assertExists, assertInstanceOf } from '@std/assert'
+import type * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
@@ -32,6 +32,7 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
 import * as v from 'valibot'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import { createType, defineAndRegister, toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -144,17 +145,18 @@ Deno.test('variant-bound fallbackName - each variant produces a distinct body De
   assertExists(mainFile, 'main-variant file should exist')
   assertExists(customerFile, 'customer-variant file should exist')
 
-  if ('definitions' in mainFile && 'definitions' in customerFile) {
-    // main file: form + body Definitions, both variant-bound.
-    assertEquals(mainFile.definitions.has('EditQuotesForm'), true)
-    assertEquals(mainFile.definitions.has('EditQuotesFormBody'), true)
-    // The 'customer' variant's body must NOT appear in the main file.
-    assertEquals(mainFile.definitions.has('EditQuotesFormCustomerBody'), false)
+  assertInstanceOf(mainFile, CodeFileBase)
+  assertInstanceOf(customerFile, CodeFileBase)
 
-    // customer file: form + body Definitions, both variant-bound.
-    assertEquals(customerFile.definitions.has('EditQuotesFormCustomer'), true)
-    assertEquals(customerFile.definitions.has('EditQuotesFormCustomerBody'), true)
-    // The 'main' variant's body must NOT appear in the customer file.
-    assertEquals(customerFile.definitions.has('EditQuotesFormBody'), false)
-  }
+  // main file: form + body Definitions, both variant-bound.
+  assertExists(mainFile.findDefinitions({ name: 'EditQuotesForm' }))
+  assertExists(mainFile.findDefinitions({ name: 'EditQuotesFormBody' }))
+  // The 'customer' variant's body must NOT appear in the main file.
+  assertEquals(mainFile.findDefinitions({ name: 'EditQuotesFormCustomerBody' }), undefined)
+
+  // customer file: form + body Definitions, both variant-bound.
+  assertExists(customerFile.findDefinitions({ name: 'EditQuotesFormCustomer' }))
+  assertExists(customerFile.findDefinitions({ name: 'EditQuotesFormCustomerBody' }))
+  // The 'main' variant's body must NOT appear in the customer file.
+  assertEquals(customerFile.findDefinitions({ name: 'EditQuotesFormBody' }), undefined)
 })

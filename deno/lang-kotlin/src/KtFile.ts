@@ -1,6 +1,14 @@
-import { CodeFileBase } from '@skmtc/core'
-import type { ClientSettings } from '@skmtc/core'
+import { CodeFileBase, matchDefinitions } from '@skmtc/core'
+import type {
+  ClientSettings,
+  DefinitionBase,
+  ImportBase,
+  ReExportBase,
+  FindDefinitionsQuery
+} from '@skmtc/core'
 import { KtImport } from './KtImport.ts'
+import { KtIdentifier } from './KtIdentifier.ts'
+import type { KtLang } from './ktLang.ts'
 import { toPackageName } from './toPackageName.ts'
 
 /**
@@ -21,8 +29,9 @@ export type KtFileArgs = {
 }
 
 /**
- * Kotlin's concrete code file. Inherits the neutral import collection +
- * merge from {@link CodeFileBase} and adds the Kotlin-specific pieces:
+ * Kotlin's concrete code file. Owns the definition + import collections and
+ * their merge policy (the neutral {@link CodeFileBase} declares the
+ * contract) and adds the Kotlin-specific pieces:
  *
  * - the `package` directive, DERIVED from the file's own path via
  *   {@link toPackageName} — the export path encodes the package
@@ -43,7 +52,7 @@ export type KtFileArgs = {
  * vocabulary has no `reExports` field and the Driver never registers
  * them — so rendering ignores the (always empty) neutral map.
  */
-export class KtFile extends CodeFileBase {
+export class KtFile extends CodeFileBase<KtLang> {
   /**
    * The `package` this file declares — derived from `path`, with the
    * owning package's `rootPath` stripped first in multi-package mode
@@ -55,11 +64,52 @@ export class KtFile extends CodeFileBase {
   /** Comment block rendered above the `package` directive, if set. */
   header: string | undefined
 
+  /** Definitions keyed by identifier name (first write wins; Kotlin has no declaration merging). */
+  definitions: Map<string, DefinitionBase> = new Map()
+
+  /** Imports keyed by {@link ImportBase.mergeKey}. */
+  imports: Map<string, ImportBase> = new Map()
+
+  /** Re-exports keyed by {@link ReExportBase.mergeKey} — Kotlin registers none; kept for the neutral contract. */
+  reExports: Map<string, ReExportBase> = new Map()
+
   constructor({ path, settings, header }: KtFileArgs) {
     super({ path })
     this.packageName = toPackageName(path, settings?.packages)
     this.settings = settings
     this.header = header
+  }
+
+  override addDefinition(definition: DefinitionBase): void {
+    if (!this.definitions.has(definition.identifier.name)) {
+      this.definitions.set(definition.identifier.name, definition)
+    }
+  }
+
+  override addImports(incoming: ImportBase[]): void {
+    for (const importEntry of incoming) {
+      const key = importEntry.mergeKey()
+      const existing = this.imports.get(key)
+      this.imports.set(key, existing ? existing.merge(importEntry) : importEntry)
+    }
+  }
+
+  override addReExports(incoming: ReExportBase[]): void {
+    for (const reExportEntry of incoming) {
+      const key = reExportEntry.mergeKey()
+      const existing = this.reExports.get(key)
+      this.reExports.set(key, existing ? existing.merge(reExportEntry) : reExportEntry)
+    }
+  }
+
+  override findDefinitions(
+    query?: FindDefinitionsQuery<KtLang>
+  ): DefinitionBase[] | undefined {
+    return matchDefinitions(
+      [...this.definitions.values()],
+      query,
+      identifier => (identifier instanceof KtIdentifier ? identifier.kind : undefined)
+    )
   }
 
   override toString(): string {

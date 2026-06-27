@@ -1,7 +1,7 @@
 import { assertEquals, assertStrictEquals, assertThrows } from '@std/assert'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
-import { TsDefinition, createVariable } from '@skmtc/lang-typescript'
-import { TsFile } from '@skmtc/lang-typescript'
+import { MockDefinition, MockFile } from '@/test/MockFile.ts'
+import { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import { CaptureSink, type CaptureChannel } from './CaptureSink.ts'
 import type { Span } from './types.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -33,8 +33,8 @@ class FakeSnippet extends SnippetBase {
   }
 }
 
-const makeFile = (defs: TsDefinition[]): TsFile => {
-  const file = new TsFile({ path: 'out.ts', settings: undefined })
+const makeFile = (defs: MockDefinition[]): MockFile => {
+  const file = new MockFile({ path: 'out.ts' })
   for (const def of defs) {
     file.definitions.set(def.identifier.name, def)
   }
@@ -46,7 +46,7 @@ const makeFile = (defs: TsDefinition[]): TsFile => {
  * the duration — the production capture path in miniature: publish the
  * sink on the shared channel, render, clear in `finally`.
  */
-const capture = (channel: CaptureChannel, file: TsFile): { text: string; spans: Span[] } => {
+const capture = (channel: CaptureChannel, file: MockFile): { text: string; spans: Span[] } => {
   const sink = new CaptureSink()
   channel.sink = sink
   try {
@@ -59,9 +59,9 @@ const capture = (channel: CaptureChannel, file: TsFile): { text: string; spans: 
 Deno.test('CaptureSink - top-level Definition spans match file slice', () => {
   const { context: ctx, channel } = makeCaptureContext()
   const value = new FakeSnippet(ctx, () => "'hello'")
-  const def = new TsDefinition({
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('GREETING'),
+    identifier: new IdentifierBase({ name: 'GREETING' }),
     value
   })
   const { text, spans } = capture(channel, makeFile([def]))
@@ -84,9 +84,9 @@ Deno.test('CaptureSink - identical sibling text attributed in document order', (
   const a = new FakeSnippet(ctx, () => 'x')
   const b = new FakeSnippet(ctx, () => 'x')
   const value = new FakeSnippet(ctx, () => `${a}_${b}`)
-  const def = new TsDefinition({
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('PAIR'),
+    identifier: new IdentifierBase({ name: 'PAIR' }),
     value
   })
   const { text, spans } = capture(channel, makeFile([def]))
@@ -111,9 +111,9 @@ Deno.test('CaptureSink - child whose text is not in parent is skipped', () => {
     const _ = child.toString()
     return 'UPPERCASE'
   })
-  const def = new TsDefinition({
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('CASED'),
+    identifier: new IdentifierBase({ name: 'CASED' }),
     value
   })
   const { spans } = capture(channel, makeFile([def]))
@@ -133,9 +133,9 @@ Deno.test('CaptureSink - zero-length child is filtered out', () => {
   const { context: ctx, channel } = makeCaptureContext()
   const empty = new FakeSnippet(ctx, () => '')
   const value = new FakeSnippet(ctx, () => `before${empty}after`)
-  const def = new TsDefinition({
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('EMPTY'),
+    identifier: new IdentifierBase({ name: 'EMPTY' }),
     value
   })
   const { spans } = capture(channel, makeFile([def]))
@@ -148,14 +148,14 @@ Deno.test('CaptureSink - zero-length child is filtered out', () => {
 
 Deno.test('CaptureSink - multiple Definitions appear in document order', () => {
   const { context: ctx, channel } = makeCaptureContext()
-  const first = new TsDefinition({
+  const first = new MockDefinition({
     context: ctx,
-    identifier: createVariable('FIRST'),
+    identifier: new IdentifierBase({ name: 'FIRST' }),
     value: new FakeSnippet(ctx, () => '1')
   })
-  const second = new TsDefinition({
+  const second = new MockDefinition({
     context: ctx,
-    identifier: createVariable('SECOND'),
+    identifier: new IdentifierBase({ name: 'SECOND' }),
     value: new FakeSnippet(ctx, () => '2')
   })
   const { spans } = capture(channel, makeFile([first, second]))
@@ -172,9 +172,9 @@ Deno.test('CaptureSink - property: every span.slice equals producer output', () 
   const inner = new FakeSnippet(ctx, () => 'inner')
   const middle = new FakeSnippet(ctx, () => `<${inner}/>`)
   const outer = new FakeSnippet(ctx, () => `[ ${middle} ]`)
-  const def = new TsDefinition({
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('NESTED'),
+    identifier: new IdentifierBase({ name: 'NESTED' }),
     value: outer
   })
   const { text, spans } = capture(channel, makeFile([def]))
@@ -192,7 +192,7 @@ Deno.test('CaptureSink - property: every span.slice equals producer output', () 
 
 Deno.test('CaptureSink - returns empty spans when the file has no Definitions', () => {
   const { channel } = makeCaptureContext()
-  const file = new TsFile({ path: 'empty.ts', settings: undefined })
+  const file = new MockFile({ path: 'empty.ts' })
   const { spans } = capture(channel, file)
   assertStrictEquals(spans.length, 0)
 })
@@ -200,12 +200,10 @@ Deno.test('CaptureSink - returns empty spans when the file has no Definitions', 
 Deno.test('CaptureSink - cycle detection throws rather than infinite-recurse', () => {
   const { context: ctx, channel } = makeCaptureContext()
   // A snippet whose body re-renders itself — a composition cycle.
-  let self: FakeSnippet
-  // deno-lint-ignore prefer-const
-  self = new FakeSnippet(ctx, () => `wrap(${self})`)
-  const def = new TsDefinition({
+  const self: FakeSnippet = new FakeSnippet(ctx, () => `wrap(${self})`)
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('CYCLE'),
+    identifier: new IdentifierBase({ name: 'CYCLE' }),
     value: self
   })
 
@@ -219,9 +217,9 @@ Deno.test('CaptureSink - pure pass-through after the capture interval closes', (
     calls++
     return 'v'
   })
-  const def = new TsDefinition({
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('PURE'),
+    identifier: new IdentifierBase({ name: 'PURE' }),
     value: s
   })
   capture(channel, makeFile([def]))
@@ -241,9 +239,9 @@ Deno.test('CaptureSink - keyless snippet constructed mid-render is captured', ()
   // snippet's toString still gets its own span.
   const { context: ctx, channel } = makeCaptureContext()
   const value = new FakeSnippet(ctx, () => `pre ${new FakeSnippet(ctx, () => 'midborn')} post`)
-  const def = new TsDefinition({
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('MID'),
+    identifier: new IdentifierBase({ name: 'MID' }),
     value
   })
   const { text, spans } = capture(channel, makeFile([def]))

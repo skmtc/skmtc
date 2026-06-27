@@ -1,9 +1,17 @@
-import { CodeFileBase } from '@skmtc/core'
+import { CodeFileBase, matchDefinitions } from '@skmtc/core'
 import { normalizeModuleName } from './normalizeModuleName.ts'
-import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
+import type {
+  ClientSettings,
+  ModulePackage,
+  DefinitionBase,
+  ImportBase,
+  ReExportBase,
+  FindDefinitionsQuery
+} from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 import { TsIdentifier } from './TsIdentifier.ts'
 import type { TsEntityKind } from './createIdentifier.ts'
+import type { TsLang } from './tsLang.ts'
 import { TsReExport } from './TsReExport.ts'
 
 /** A definition's TypeScript declaration kind, read off its identifier — the
@@ -22,22 +30,28 @@ export type TsFileArgs = {
 }
 
 /**
- * TypeScript's concrete code file. Inherits the neutral import collection +
- * merge from {@link CodeFileBase} and adds the TypeScript-specific pieces:
- * re-exports, package-aware module-name normalisation, and the rendering
- * arrangement (re-exports, then imports, then definitions). Owns what the
- * engine's `File` rendered, byte-for-byte.
+ * TypeScript's concrete code file. Owns the storage AND the dedup/merge
+ * policy that the neutral {@link CodeFileBase} only declares: the name-keyed
+ * definition map (with declaration-merging companions), the per-module import
+ * and re-export merges, package-aware module-name normalisation, and the
+ * rendering arrangement (re-exports, then imports, then definitions). Owns
+ * what the engine's `File` rendered, byte-for-byte.
  */
-export class TsFile extends CodeFileBase {
+export class TsFile extends CodeFileBase<TsLang> {
   /** Package configuration for cross-package module-name resolution. */
   packages: ModulePackage[] | undefined
 
   /**
-   * Optional leading banner — a file-level comment (e.g. a codegen header)
-   * rendered above the re-exports/imports/definitions. Set through the
-   * register vocabulary's `banner` field; see {@link register}.
+   * Definitions keyed by identifier name — the cross-generator cache's
+   * one-definition-per-name surface, read through {@link findDefinition}.
    */
-  banner: string | undefined
+  definitions: Map<string, DefinitionBase> = new Map()
+
+  /** Imports keyed by {@link ImportBase.mergeKey} (the module path). */
+  imports: Map<string, ImportBase> = new Map()
+
+  /** Re-exports keyed by {@link ReExportBase.mergeKey} (the module path). */
+  reExports: Map<string, ReExportBase> = new Map()
 
   /**
    * Same-name companion definitions — TypeScript declaration merging, e.g. a
@@ -91,6 +105,47 @@ export class TsFile extends CodeFileBase {
     this.mergedDefinitions.push(definition)
   }
 
+  /**
+   * Merge imports in, collapsing any that share a `mergeKey()` (the module)
+   * with an existing entry via {@link ImportBase.merge}. The neutral
+   * `register` calls this; the keying + merge are TypeScript's own policy.
+   */
+  override addImports(incoming: ImportBase[]): void {
+    for (const importEntry of incoming) {
+      const key = importEntry.mergeKey()
+      const existing = this.imports.get(key)
+
+      this.imports.set(key, existing ? existing.merge(importEntry) : importEntry)
+    }
+  }
+
+  /**
+   * Merge re-exports in, collapsing any that share a `mergeKey()` (the module)
+   * with an existing entry via {@link ReExportBase.merge}.
+   */
+  override addReExports(incoming: ReExportBase[]): void {
+    for (const reExportEntry of incoming) {
+      const key = reExportEntry.mergeKey()
+      const existing = this.reExports.get(key)
+
+      this.reExports.set(key, existing ? existing.merge(reExportEntry) : reExportEntry)
+    }
+  }
+
+  /**
+   * Query definitions by `name` and/or declaration `kind`. No query → all
+   * (primaries + declaration-merging companions). The engine's read seam
+   * (`findDefinitions({ name })?.[0]`) plus the generator/test inspection
+   * surface (`findDefinitions({ type: 'class' })`).
+   */
+  override findDefinitions(query?: FindDefinitionsQuery<TsLang>): DefinitionBase[] | undefined {
+    return matchDefinitions(
+      [...this.definitions.values(), ...this.mergedDefinitions],
+      query,
+      identifier => (identifier instanceof TsIdentifier ? identifier.kind : undefined)
+    )
+  }
+
   override toString(): string {
     const reExports = Array.from(this.reExports.values()).map(reExportEntry => {
       // Re-exports land here as the neutral `ReExportBase`; in a
@@ -136,6 +191,8 @@ export class TsFile extends CodeFileBase {
       .map(section => section.join('\n'))
       .join('\n\n')
 
-    return this.banner ? `${this.banner}\n\n${body}` : body
+    // `custom` is the neutral leading-content slot (formerly `banner`),
+    // inherited from `FileBase`; render it above the body when set.
+    return this.custom ? `${this.custom}\n\n${body}` : body
   }
 }

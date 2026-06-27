@@ -14,8 +14,8 @@
  * escape Driver-level unit tests but get caught here.
  */
 
-import { assertEquals, assertExists } from '@std/assert'
-import * as log from '@std/log'
+import { assertEquals, assertExists, assertInstanceOf } from '@std/assert'
+import type * as log from '@std/log'
 import * as v from 'valibot'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
@@ -23,6 +23,7 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -113,12 +114,11 @@ Deno.test('end-to-end - main-only variant: generatorKey carries `main`, output l
   const file = files.get('@/forms/PatchQuoteForm.tsx')
   assertExists(file)
 
-  if ('definitions' in file) {
-    const def = file.definitions.get('PatchQuoteForm')
-    assertExists(def)
-    // 4-segment OAS GeneratorKey: id|path|method|variant
-    assertEquals(def.generatorKey, '@test/e2e-form|/quotes/{id}|patch|main')
-  }
+  assertInstanceOf(file, CodeFileBase)
+  const def = file.findDefinitions({ name: 'PatchQuoteForm' })?.[0]
+  assertExists(def)
+  // 4-segment OAS GeneratorKey: id|path|method|variant
+  assertEquals(def.generatorKey, '@test/e2e-form|/quotes/{id}|patch|main')
 })
 
 Deno.test('end-to-end - multi-variant: each Definition carries the right variant in its generatorKey', () => {
@@ -133,24 +133,21 @@ Deno.test('end-to-end - multi-variant: each Definition carries the right variant
   assertExists(customerFile)
   assertExists(locationFile)
 
-  if (
-    'definitions' in mainFile &&
-    'definitions' in customerFile &&
-    'definitions' in locationFile
-  ) {
-    assertEquals(
-      mainFile.definitions.get('PatchQuoteForm')?.generatorKey,
-      '@test/e2e-form|/quotes/{id}|patch|main'
-    )
-    assertEquals(
-      customerFile.definitions.get('PatchQuoteFormCustomer')?.generatorKey,
-      '@test/e2e-form|/quotes/{id}|patch|customer'
-    )
-    assertEquals(
-      locationFile.definitions.get('PatchQuoteFormLocation')?.generatorKey,
-      '@test/e2e-form|/quotes/{id}|patch|location'
-    )
-  }
+  assertInstanceOf(mainFile, CodeFileBase)
+  assertInstanceOf(customerFile, CodeFileBase)
+  assertInstanceOf(locationFile, CodeFileBase)
+  assertEquals(
+    mainFile.findDefinitions({ name: 'PatchQuoteForm' })?.[0]?.generatorKey,
+    '@test/e2e-form|/quotes/{id}|patch|main'
+  )
+  assertEquals(
+    customerFile.findDefinitions({ name: 'PatchQuoteFormCustomer' })?.[0]?.generatorKey,
+    '@test/e2e-form|/quotes/{id}|patch|customer'
+  )
+  assertEquals(
+    locationFile.findDefinitions({ name: 'PatchQuoteFormLocation' })?.[0]?.generatorKey,
+    '@test/e2e-form|/quotes/{id}|patch|location'
+  )
 })
 
 Deno.test('end-to-end - kebab-case variant flows through to generatorKey untouched', () => {
@@ -164,10 +161,9 @@ Deno.test('end-to-end - kebab-case variant flows through to generatorKey untouch
   const lineItemsFile = files.get('@/forms/PatchQuoteFormLineItems.tsx')
   assertExists(lineItemsFile)
 
-  if ('definitions' in lineItemsFile) {
-    assertEquals(
-      lineItemsFile.definitions.get('PatchQuoteFormLineItems')?.generatorKey,
-      '@test/e2e-form|/quotes/{id}|patch|line-items'
-    )
-  }
+  assertInstanceOf(lineItemsFile, CodeFileBase)
+  assertEquals(
+    lineItemsFile.findDefinitions({ name: 'PatchQuoteFormLineItems' })?.[0]?.generatorKey,
+    '@test/e2e-form|/quotes/{id}|patch|line-items'
+  )
 })

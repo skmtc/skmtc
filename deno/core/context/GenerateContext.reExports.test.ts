@@ -9,10 +9,10 @@
  * now against the step-5 shape: concise form converts in the lang
  * package, `context.register` speaks `ReExportBase[]` pure data.
  */
-import { TsFile, createType, createVariable, register } from '@skmtc/lang-typescript'
+import { createType, createVariable, register } from '@skmtc/lang-typescript'
 import { toGenerateContext } from '../test/toGenerateContext.ts'
 import { assertEquals } from '@std/assert/equals'
-import { assertInstanceOf } from '@std/assert/instance-of'
+import { assertExists } from '@std/assert/exists'
 
 Deno.test('barrel pattern - re-exports register and merge through the lang register function', () => {
   const context = toGenerateContext()
@@ -35,7 +35,7 @@ Deno.test('barrel pattern - re-exports register and merge through the lang regis
   })
 
   const file = context.getFile(barrelPath)
-  assertInstanceOf(file, TsFile)
+  assertExists(file)
 
   // One entry per source module after the merge; the entity-type split
   // picks `export { … }` vs `export type { … }` per line (the doubled
@@ -62,7 +62,7 @@ Deno.test('barrel pattern - duplicate re-exported names dedup within an entry', 
   })
 
   const file = context.getFile(barrelPath)
-  assertInstanceOf(file, TsFile)
+  assertExists(file)
   assertEquals(file.toString(), `export  { User } from '@/models/User.generated.ts'`)
 })
 
@@ -76,6 +76,6 @@ Deno.test('barrel pattern - empty re-export lists register nothing', () => {
   })
 
   const file = context.getFile(barrelPath)
-  assertInstanceOf(file, TsFile)
+  assertExists(file)
   assertEquals(file.toString(), '')
 })
