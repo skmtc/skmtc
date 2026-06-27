@@ -1083,9 +1083,9 @@
         "dependencies": [
           "jsr:@cliffy/command@1.1.0",
           "jsr:@skmtc/convert@0.1.16",
-          "jsr:@skmtc/core@0.20.0",
-          "jsr:@skmtc/server@0.2.43",
-          "jsr:@skmtc/worker@0.3.31",
+          "jsr:@skmtc/core@0.20.2",
+          "jsr:@skmtc/server@0.2.45",
+          "jsr:@skmtc/worker@0.3.34",
           "npm:@inkjs/ui@2",
           "npm:@types/react@19",
           "npm:chokidar@^4.0.3",
@@ -1122,32 +1122,32 @@
       },
       "lang-csharp": {
         "dependencies": [
-          "jsr:@skmtc/core@0.20.0"
+          "jsr:@skmtc/core@0.20.2"
         ]
       },
       "lang-go": {
         "dependencies": [
-          "jsr:@skmtc/core@0.20.0"
+          "jsr:@skmtc/core@0.20.2"
         ]
       },
       "lang-kotlin": {
         "dependencies": [
-          "jsr:@skmtc/core@0.20.0"
+          "jsr:@skmtc/core@0.20.2"
         ]
       },
       "lang-php": {
         "dependencies": [
-          "jsr:@skmtc/core@0.20.0"
+          "jsr:@skmtc/core@0.20.2"
         ]
       },
       "lang-rust": {
         "dependencies": [
-          "jsr:@skmtc/core@0.20.0"
+          "jsr:@skmtc/core@0.20.2"
         ]
       },
       "lang-typescript": {
         "dependencies": [
-          "jsr:@skmtc/core@0.20.0"
+          "jsr:@skmtc/core@0.20.2"
         ]
       },
       "mcp": {
@@ -1172,7 +1172,7 @@
       "server": {
         "dependencies": [
           "jsr:@skmtc/convert@0.1.16",
-          "jsr:@skmtc/core@0.20.0",
+          "jsr:@skmtc/core@0.20.2",
           "npm:hono@4.7.2"
         ]
       },
@@ -1188,7 +1188,7 @@
       },
       "worker": {
         "dependencies": [
-          "jsr:@skmtc/core@0.20.0",
+          "jsr:@skmtc/core@0.20.2",
           "npm:openapi-types@^12.1.3"
         ]
       }

@@ -1,14 +1,16 @@
 import { type GeneratorsMapContainer, toArtifacts } from '@skmtc/core'
-import { StackTrail } from '@skmtc/core'
+import { StackTrail, toEnrichmentDefaults, toEnrichmentDescriptor, toSupportedSubjects } from '@skmtc/core'
 import type { AttributionState } from '@skmtc/core/AttributionState'
-import type { GeneratePayload, SerializableAttribution } from './types.ts'
+import type { SerializableAttribution, WorkerMessage } from './types.ts'
 
 // Re-export for hosts that want both the runtime entry and the
 // payload types from the same module path.
 export type {
+  DescribePayload,
   GeneratePayload,
   WorkerMessage,
   WorkerResult,
+  WorkerDescribeResult,
   SerializableAttribution
 } from './types.ts'
 
@@ -76,14 +78,17 @@ const toWorker = (
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 ) => {
   self.onmessage = async (e: MessageEvent) => {
-    const { type, payload } = e.data as {
-      type: string
-      payload: GeneratePayload
-    }
+    // Boundary cast of the structured-clone payload, as elsewhere in
+    // this handler. `message` is the discriminated union; `rawType` is
+    // captured separately so the malformed-message `default` can report
+    // the offending value without narrowing `message` to `never`.
+    const rawType = (e.data as { type?: unknown }).type
+    const message = e.data as WorkerMessage
 
     try {
-      switch (type) {
+      switch (message.type) {
         case 'GENERATE': {
+          const { payload } = message
           const startAt = Date.now()
           const traceId = `trace-${startAt}`
           const spanId = `span-${startAt}`
@@ -117,10 +122,54 @@ const toWorker = (
           })
           break
         }
+        case 'DESCRIBE': {
+          const { payload } = message
+          const startAt = Date.now()
+          const traceId = `trace-${startAt}`
+          const spanId = `span-${startAt}`
+
+          // The three read-only engine calls the bundle's `server.js`
+          // exposes at /subjects, /descriptors, /enrichment-defaults.
+          // Calling them here (rather than via a server bundle) keeps
+          // local `skmtc describe` shape-identical to the hub runner.
+          // Each pass gets its own StackTrail (the parse phase mutates
+          // it). Descriptors are documentless — a pure map over the
+          // bundled generators.
+          const { subjects, parseIssues: subjectIssues } = toSupportedSubjects({
+            traceId,
+            spanId,
+            document: payload.document,
+            settings: payload.clientSettings,
+            toGeneratorConfigMap,
+            stackTrail: new StackTrail([traceId, spanId]),
+            silent: true
+          })
+
+          const { enrichmentDefaults, parseIssues: defaultIssues } = toEnrichmentDefaults({
+            traceId,
+            spanId,
+            document: payload.document,
+            settings: payload.clientSettings,
+            toGeneratorConfigMap,
+            stackTrail: new StackTrail([traceId, spanId]),
+            silent: true
+          })
+
+          const descriptors = Object.values(toGeneratorConfigMap()).map(toEnrichmentDescriptor)
+
+          self.postMessage({
+            type: 'RESULT',
+            subjects,
+            descriptors,
+            enrichmentDefaults,
+            parseIssues: [...subjectIssues, ...defaultIssues]
+          })
+          break
+        }
         default: {
           self.postMessage({
             type: 'ERROR',
-            error: `Unknown message type: ${type}`
+            error: `Unknown message type: ${String(rawType)}`
           })
           break
         }

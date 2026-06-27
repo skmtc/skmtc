@@ -136,6 +136,14 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
+    name: 'describe',
+    description:
+      "Report a project's preview metadata by running its bundle read-only: supported subjects (operations / models) per generator, the form-renderable enrichment descriptors, and the schema-derived enrichment defaults.",
+    args: ['<project>', '[schema]'],
+    flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
+    agentMode: 'json-only'
+  },
+  {
     name: 'publish',
     description:
       'Build and publish an immutable version of this project to skmtc-hub. The stack is the project deno.json#name (@account/slug, the package name; the scope may be an org); versions are addressed by semver and re-publishing an existing version is rejected.',
