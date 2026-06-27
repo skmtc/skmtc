@@ -1,19 +1,19 @@
 import * as v from 'valibot'
 import { moduleExport } from '@/types/ModuleExport.ts'
-import { accessorPath } from '@/types/AccessorPath.ts'
+import { schemaPath } from '@/types/SchemaPath.ts'
 
 /**
- * Widget kind for one enrichment field — the rendered control in the
- * enrichment-editor UI. Mirrors the `EnrichmentFieldKind` enum in the
+ * Widget type for one enrichment field — the rendered control in the
+ * enrichment-editor UI. Mirrors the `EnrichmentFieldType` enum in the
  * skmtc-hub TypeSpec contract.
  */
-export type EnrichmentFieldKind =
+export type EnrichmentFieldType =
   | 'text'
   | 'textarea'
   | 'toggle'
   | 'select'
   | 'module'
-  | 'accessorPath'
+  | 'schemaPath'
   | 'array'
   | 'object'
 
@@ -29,18 +29,18 @@ export type EnrichmentField = {
   description?: string
   /** Whether the schema marks this field optional. */
   optional: boolean
-  kind: EnrichmentFieldKind
+  type: EnrichmentFieldType
   /** Choices for a `select` field. */
   options?: string[]
   /**
-   * For `kind: 'array'` — a one-element list describing the item shape.
+   * For `type: 'array'` — a one-element list describing the item shape.
    * If the item is an object, the synthesised field carries the nested
    * `fields`; if it is a primitive, the synthesised field carries the
    * appropriate primitive kind. The single-element convention matches
    * the contract's `EnrichmentField[]` shape.
    */
   item?: EnrichmentField[]
-  /** For `kind: 'object'` — the nested object's fields. */
+  /** For `type: 'object'` — the nested object's fields. */
   fields?: EnrichmentField[]
 }
 
@@ -141,54 +141,54 @@ const toLabel = (key: string): string => {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
-type KindShape = Pick<EnrichmentField, 'kind'> &
+type FieldTypeShape = Pick<EnrichmentField, 'type'> &
   Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields'>>
 
-const kindFor = (schema: ValibotSchemaShape): KindShape => {
+const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
   if (isValibotSchema(moduleExport) && schema === moduleExport) {
-    return { kind: 'module' }
+    return { type: 'module' }
   }
-  if (isValibotSchema(accessorPath) && schema === accessorPath) {
-    return { kind: 'accessorPath' }
+  if (isValibotSchema(schemaPath) && schema === schemaPath) {
+    return { type: 'schemaPath' }
   }
 
   switch (schema.type) {
     case 'string':
-      return { kind: 'text' }
+      return { type: 'text' }
     case 'boolean':
-      return { kind: 'toggle' }
+      return { type: 'toggle' }
     case 'number':
-      return { kind: 'text' }
+      return { type: 'text' }
     case 'picklist': {
       const opts = isOptionsArray(schema.options) ? schema.options.map(o => String(o)) : []
-      return { kind: 'select', options: opts }
+      return { type: 'select', options: opts }
     }
     case 'object': {
       const entries = isEntriesRecord(schema.entries) ? schema.entries : {}
       return {
-        kind: 'object',
+        type: 'object',
         fields: walkEntries(entries)
       }
     }
     case 'array': {
       if (isValibotSchema(schema.item)) {
-        return { kind: 'array', item: [walkFromShape('', schema.item)] }
+        return { type: 'array', item: [walkFromShape('', schema.item)] }
       }
-      return { kind: 'array', item: [] }
+      return { type: 'array', item: [] }
     }
     default:
-      return { kind: 'text' }
+      return { type: 'text' }
   }
 }
 
 const walkFromShape = (key: string, rawSchema: ValibotSchemaShape): EnrichmentField => {
   const { inner, optional } = unwrap(rawSchema)
-  return { key, label: toLabel(key), optional, ...kindFor(inner) }
+  return { key, label: toLabel(key), optional, ...typeFor(inner) }
 }
 
 const walkField = (key: string, rawSchema: v.GenericSchema): EnrichmentField => {
   if (!isValibotSchema(rawSchema)) {
-    return { key, label: toLabel(key), optional: false, kind: 'text' }
+    return { key, label: toLabel(key), optional: false, type: 'text' }
   }
   return walkFromShape(key, rawSchema)
 }
@@ -197,7 +197,7 @@ const walkField = (key: string, rawSchema: v.GenericSchema): EnrichmentField => 
  * Walk an object schema's `entries` into descriptor fields, omitting members
  * that carry no payload (see {@link isOmittedMember}). The single iteration
  * point shared by the top-level walk ({@link toEnrichmentFields}) and the
- * nested-object case in {@link kindFor}.
+ * nested-object case in {@link typeFor}.
  */
 const walkEntries = (entries: Record<string, v.GenericSchema>): EnrichmentField[] =>
   Object.keys(entries)

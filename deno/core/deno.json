@@ -26,7 +26,7 @@
     "./Method": "./types/Method.ts",
     "./Modifiers": "./types/Modifiers.ts",
     "./ModuleExport": "./types/ModuleExport.ts",
-    "./AccessorPath": "./types/AccessorPath.ts",
+    "./SchemaPath": "./types/SchemaPath.ts",
     "./EnrichmentDescriptor": "./enrichments/toEnrichmentDescriptor.ts",
     "./Preview": "./types/Preview.ts",
     "./RefName": "./types/RefName.ts",

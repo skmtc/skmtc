@@ -1,3 +1,5 @@
+import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRefData } from './ref-types.ts'
 import { toRefName } from '../../helpers/refFns.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
@@ -284,6 +286,38 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
   toRefName(): RefName {
     return toRefName(this.#fields.$ref)
+  }
+
+  /**
+   * Narrows this reference to a schema reference.
+   *
+   * @returns True when this reference points at a schema component.
+   */
+  isSchemaRef(): this is OasRef<'schema'> {
+    return this.refType === 'schema'
+  }
+
+  /**
+   * Navigate an {@link SchemaPath} starting from this reference, resolving it
+   * to descend through. See {@link traverseSchema}.
+   *
+   * Available on every `OasRef` so `.traverse()` works on the common
+   * `OasSchema | OasRef<'schema'>` value (an object property, array `items`).
+   * Schema paths only describe schemas for now, so it throws for non-schema
+   * refs (response/parameter/…); {@link isSchemaRef} narrows `this`, keeping the
+   * delegation cast-free.
+   *
+   * @returns The schema at the path (may be an unresolved `$ref`).
+   * @throws Error when called on a non-schema ref.
+   */
+  traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {
+    if (!this.isSchemaRef()) {
+      throw new Error(
+        `Schema path traversal is not yet supported for "${this.refType}" refs (only schema refs)`
+      )
+    }
+
+    return traverseSchema(this, path)
   }
 
   get $ref(): string {

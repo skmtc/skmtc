@@ -76,7 +76,7 @@ const baseResult: DescribeResult = {
       generator: '@scope/gen-x',
       subjectKind: 'model',
       supportsVariant: false,
-      fields: [{ key: 'title', label: 'Title', optional: false, kind: 'text' }]
+      fields: [{ key: 'title', label: 'Title', optional: false, type: 'text' }]
     }
   ],
   enrichmentDefaults: { '@scope/gen-x': { User: { main: {} } } },

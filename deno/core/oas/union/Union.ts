@@ -1,3 +1,5 @@
+import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasDiscriminator } from '../discriminator/Discriminator.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
@@ -196,6 +198,10 @@ export class OasUnion extends OasBase {
 
   isRef(): this is OasRef<'schema'> {
     return false
+  }
+
+  traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {
+    return traverseSchema(this, path)
   }
 
   resolve(): OasUnion {

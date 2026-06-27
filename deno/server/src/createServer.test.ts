@@ -144,7 +144,7 @@ Deno.test('POST /descriptors - returns one descriptor per generator', async () =
   assertEquals(body.descriptors[0].subjectKind, 'model')
   // The `coerce` boolean maps to a `toggle` field.
   assertEquals(body.descriptors[0].fields[0].key, 'coerce')
-  assertEquals(body.descriptors[0].fields[0].kind, 'toggle')
+  assertEquals(body.descriptors[0].fields[0].type, 'toggle')
 })
 
 Deno.test('POST /enrichment-defaults - empty generator map returns empty defaults', async () => {

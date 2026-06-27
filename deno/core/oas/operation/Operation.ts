@@ -1,3 +1,5 @@
+import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { Method } from '../../types/Method.ts'
 import type { OasPathItem } from '../pathItem/PathItem.ts'
 import type { OasParameter } from '../parameter/Parameter.ts'
@@ -160,6 +162,46 @@ export class OasOperation extends OasBase {
     const schema = requestBody?.content[mediaType]?.schema
 
     return schema ? map({ schema, requestBody }) : undefined
+  }
+
+  /**
+   * Navigate into this operation's response or request body schema along an
+   * {@link SchemaPath}. The first segment selects the entry point —
+   * `'SuccessResponse'` (the 2xx response body schema) or `'RequestBody'` (the
+   * request body schema) — and the rest descend through object properties,
+   * array `items`, and union members, resolving `$ref`s on the way. See
+   * {@link traverseSchema}.
+   *
+   * @param path - Schema path; `path[0]` must be `'SuccessResponse'` or `'RequestBody'`.
+   * @param mediaType - Media type the body schema is read from (default `application/json`).
+   * @returns The schema at the path (may be an unresolved `$ref`).
+   * @throws Error on an unknown root, a missing response/request body, or a non-navigable segment.
+   */
+  traverse(path: SchemaPath, mediaType: string = 'application/json'): OasSchema | OasRef<'schema'> {
+    const [root, ...rest] = path
+
+    let rootSchema: OasSchema | OasRef<'schema'> | undefined
+    switch (root) {
+      case 'SuccessResponse':
+        rootSchema = this.toSuccessResponse()?.resolve().toSchema(mediaType)
+        break
+      case 'RequestBody':
+        rootSchema = this.toRequestBody(({ schema }) => schema, mediaType)
+        break
+      default:
+        throw new Error(
+          `Operation schema path must start with "SuccessResponse" or "RequestBody", got "${root}"`
+        )
+    }
+
+    if (!rootSchema) {
+      const label = root === 'SuccessResponse' ? 'success response' : 'request body'
+      throw new Error(
+        `Operation "${this.method} ${this.path}" has no ${label} schema for media type "${mediaType}"`
+      )
+    }
+
+    return traverseSchema(rootSchema, rest)
   }
 
   /**
