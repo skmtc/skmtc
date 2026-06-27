@@ -1,6 +1,7 @@
 import { assertEquals } from '@std/assert'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
-import { TsDefinition, createVariable } from '@skmtc/lang-typescript'
+import { MockDefinition } from '@/test/MockFile.ts'
+import { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import {
   toOasOperationGeneratorKey,
   toGqlOperationGeneratorKey,
@@ -125,9 +126,9 @@ Deno.test('attribute - explicit srcPtr field overrides key-derived pointer', () 
 Deno.test('attribute - Definition producer populates defName from identifier', () => {
   const ctx = stubContext()
   const value = new TestProducer(undefined)
-  const def = new TsDefinition({
+  const def = new MockDefinition({
     context: ctx,
-    identifier: createVariable('GREETING'),
+    identifier: new IdentifierBase({ name: 'GREETING' }),
     value
   })
 
