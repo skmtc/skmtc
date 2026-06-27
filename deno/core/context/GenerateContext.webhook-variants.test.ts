@@ -15,8 +15,8 @@
  * spy-based dispatch invariants live in GenerateContext.webhooks.test.ts).
  */
 
-import { assertEquals, assertExists } from '@std/assert'
-import * as log from '@std/log'
+import { assertEquals, assertExists, assertInstanceOf, assertStringIncludes } from '@std/assert'
+import type * as log from '@std/log'
 import * as v from 'valibot'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
@@ -24,7 +24,8 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
-import { TsFile, toTsWebhookProjectionBase } from '@skmtc/lang-typescript'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
+import { toTsWebhookProjectionBase } from '@skmtc/lang-typescript'
 import { toWebhookEntry } from '@/dsl/webhook/toWebhookEntry.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -112,13 +113,13 @@ Deno.test('webhook variants - variants-aware handler emits a distinct file per d
   assertExists(mainFile, 'main-variant file should exist')
   assertExists(customerFile, 'customer-variant file should exist')
 
-  if ('definitions' in mainFile && 'definitions' in customerFile) {
-    assertEquals(mainFile.definitions.has('NewPetHandler'), true)
-    assertEquals(mainFile.definitions.has('NewPetHandlerCustomer'), false)
+  assertInstanceOf(mainFile, CodeFileBase)
+  assertInstanceOf(customerFile, CodeFileBase)
+  assertExists(mainFile.findDefinitions({ name: 'NewPetHandler' }))
+  assertEquals(mainFile.findDefinitions({ name: 'NewPetHandlerCustomer' }), undefined)
 
-    assertEquals(customerFile.definitions.has('NewPetHandlerCustomer'), true)
-    assertEquals(customerFile.definitions.has('NewPetHandler'), false)
-  }
+  assertExists(customerFile.findDefinitions({ name: 'NewPetHandlerCustomer' }))
+  assertEquals(customerFile.findDefinitions({ name: 'NewPetHandler' }), undefined)
 })
 
 // ============================================================================
@@ -217,31 +218,30 @@ Deno.test('webhook variants - inserted peer webhook is deduped and imported into
 
   // Peer Definition registered exactly once — both caller variants hit the
   // same (name, exportPath) cache key.
-  if ('definitions' in peerFile) {
-    assertEquals(
-      peerFile.definitions.size,
-      1,
-      `peer file should have exactly one Definition, got: ${[...peerFile.definitions.keys()].join(', ')}`
-    )
-    assertEquals([...peerFile.definitions.keys()][0], 'NewPetAck')
-  }
+  assertInstanceOf(peerFile, CodeFileBase)
+  const peerDefinitions = peerFile.findDefinitions()
+  assertExists(peerDefinitions)
+  assertEquals(
+    peerDefinitions.length,
+    1,
+    `peer file should have exactly one Definition, got: ${peerDefinitions
+      .map(definition => definition.identifier.name)
+      .join(', ')}`
+  )
+  assertEquals(peerDefinitions[0].identifier.name, 'NewPetAck')
 
   // Each caller-variant file imports `NewPetAck` from the peer file.
-  if (mainFile instanceof TsFile) {
-    const mainImport = mainFile.imports.get('@/webhooks/shared/NewPetAck.ts')
-    assertExists(mainImport, 'main-variant file should import the peer webhook')
-    assertEquals(
-      mainImport.toString(),
-      `import type {NewPetAck} from '@/webhooks/shared/NewPetAck.ts'`
-    )
-  }
+  assertInstanceOf(mainFile, CodeFileBase)
+  assertStringIncludes(
+    mainFile.toString(),
+    `import type {NewPetAck} from '@/webhooks/shared/NewPetAck.ts'`,
+    'main-variant file should import the peer webhook'
+  )
 
-  if (customerFile instanceof TsFile) {
-    const customerImport = customerFile.imports.get('@/webhooks/shared/NewPetAck.ts')
-    assertExists(customerImport, 'customer-variant file should import the peer webhook')
-    assertEquals(
-      customerImport.toString(),
-      `import type {NewPetAck} from '@/webhooks/shared/NewPetAck.ts'`
-    )
-  }
+  assertInstanceOf(customerFile, CodeFileBase)
+  assertStringIncludes(
+    customerFile.toString(),
+    `import type {NewPetAck} from '@/webhooks/shared/NewPetAck.ts'`,
+    'customer-variant file should import the peer webhook'
+  )
 })

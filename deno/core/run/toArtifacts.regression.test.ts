@@ -17,8 +17,8 @@
  * formatter subprocess can run.
  */
 
-import { assertEquals } from '@std/assert'
-import * as log from '@std/log'
+import { assertEquals, assertInstanceOf } from '@std/assert'
+import type * as log from '@std/log'
 import * as v from 'valibot'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
@@ -30,6 +30,7 @@ import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import { FileBase } from '@/dsl/FileBase.ts'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { formatTs } from '@/test/formatTs.ts'
@@ -241,7 +242,6 @@ Deno.test('regression - variants-unaware peer Definition is shared across varian
   const { files } = runFixture({ main: {}, customer: {} })
   const hookFile = files.get('@/hooks/usePatchQuote.generated.ts')
 
-  if (hookFile && 'definitions' in hookFile) {
-    assertEquals(hookFile.definitions.size, 1)
-  }
+  assertInstanceOf(hookFile, CodeFileBase)
+  assertEquals(hookFile.findDefinitions()?.length, 1)
 })

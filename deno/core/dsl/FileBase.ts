@@ -1,49 +1,39 @@
-import type { DefinitionBase } from '@/dsl/Definition.ts'
+import type { Stringable } from '@/dsl/Stringable.ts'
 
 /**
  * The language-neutral coordination surface shared by the engine and
  * every `@skmtc/lang-*` package's concrete file subclass.
  *
- * The engine (`GenerateContext` and the cross-generator cache) only ever
- * reads this surface — the file's `path` and its `definitions` map. It
- * never reads a file's language-specific output state (imports,
- * re-exports) or its rendered string, which is what keeps the engine
- * language-blind. A language package subclasses `FileBase`, adds its own
- * output state, and implements `toString()` to render itself.
+ * `FileBase` carries only what is common to *every* file — code or not:
+ * its `path`, an optional free-form `custom` content slot, and the
+ * `toString()` contract. It holds NO definitions, imports, or dedup
+ * policy — those are code-file concerns that live on {@link CodeFileBase}
+ * and the language subclass, which is what keeps the engine
+ * language-blind.
  *
- * `JsonFile` extends this too — a JSON file is a `FileBase` whose
- * `definitions` map stays empty and whose `toString()` serialises its
- * content. (See notes/lang: "JSON is a degenerate language".)
+ * `JsonFile` extends this directly — a JSON file has a `path`, serialises
+ * its content in `toString()`, and never touches definitions. (See
+ * notes/lang: "JSON is a degenerate language".)
  *
- * Lives in its own leaf module (only a type-only `DefinitionBase` import)
- * so that `File` and `JsonFile` — which both `extends FileBase` — can
- * import it without forming a value-level import cycle through `File.ts`.
+ * Lives in its own leaf module (only a type-only `Stringable` import) so
+ * that the file subclasses can import it without forming a value-level
+ * import cycle.
  */
 export abstract class FileBase {
   /** The file path for this generated file */
   path: string
 
-  /** Map of definition names to their Definition objects */
-  definitions: Map<string, DefinitionBase>
+  /**
+   * Optional free-form content. On a code file this is the leading banner
+   * (e.g. a codegen header); on an ad-hoc non-code file (Markdown, plain
+   * text) it can carry the body. Inert until a concrete subclass renders
+   * it in `toString()`. Set through the neutral `register` vocabulary's
+   * `custom` field (last write wins).
+   */
+  custom: Stringable | undefined
 
   constructor({ path }: { path: string }) {
     this.path = path
-    this.definitions = new Map()
-  }
-
-  /**
-   * Add a definition, deduplicating by identifier name (first write wins).
-   *
-   * Neutral: the engine's `register` calls this on the abstract base, so it
-   * works for every language's file. Per-language duplication rules (e.g.
-   * TypeScript declaration merging — a class and its `declare namespace`
-   * sharing a name) belong in the language's file subclass, which overrides
-   * this method.
-   */
-  addDefinition(definition: DefinitionBase): void {
-    if (!this.definitions.has(definition.identifier.name)) {
-      this.definitions.set(definition.identifier.name, definition)
-    }
   }
 
   /** Renders the file's complete contents. Implemented by the subclass. */

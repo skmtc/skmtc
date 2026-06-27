@@ -4,7 +4,6 @@ import type { ParseIssue } from '@/context/ParseIssue.ts'
 import type { Mapping, Preview } from '@/types/Preview.ts'
 import type { ResultsItem } from '@/types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
-import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
@@ -22,6 +21,7 @@ import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
 import type { ReExportBase } from '@/dsl/ReExportBase.ts'
+import type { Stringable } from '@/dsl/Stringable.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { StackTrail } from './StackTrail.ts'
 import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
@@ -294,6 +294,12 @@ export type ContextRegisterArgs = {
   reExports?: ReExportBase[]
   /** Definition objects to include in the destination file. */
   definitions?: (DefinitionBase | undefined)[]
+  /**
+   * Free-form content set on the destination file's neutral `custom` slot
+   * ({@link FileBase.custom}) — a codegen banner on a code file, or the
+   * body of an ad-hoc non-code file. Last non-`undefined` write wins.
+   */
+  custom?: Stringable
   /** The destination file path. */
   destinationPath: string
 }

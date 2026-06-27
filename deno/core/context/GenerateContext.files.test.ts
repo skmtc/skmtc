@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import * as log from '@std/log'
+import type * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
@@ -74,13 +74,12 @@ Deno.test('addFile throws on a duplicate path', () => {
   )
 })
 
-Deno.test('JsonFile is a FileBase with an empty definitions map', () => {
+Deno.test('JsonFile is a FileBase that round-trips through the neutral primitives', () => {
   const json = new JsonFile({ path: 'config.json', content: { a: 1 } })
 
   assertEquals(json instanceof FileBase, true)
-  assertEquals(json.definitions.size, 0)
 
-  // And it round-trips through the neutral primitives like any FileBase.
+  // It round-trips through the neutral primitives like any FileBase.
   const context = createContext()
   context.addFile(json)
   assertEquals(context.getFile('config.json'), json)

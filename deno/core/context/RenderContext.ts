@@ -419,7 +419,7 @@ export class RenderContext {
 
     invariant(file instanceof CodeFileBase, `File at "${exportPath}" is not a code file`)
 
-    return file.definitions.get(name)
+    return file.findDefinitions({ name })?.[0]
   }
 }
 

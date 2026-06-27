@@ -1,4 +1,6 @@
-import { FileBase } from '@skmtc/core'
+import { CodeFileBase, matchDefinitions } from '@skmtc/core'
+import type { DefinitionBase, ImportBase, ReExportBase, Lang, FindDefinitionsQuery } from '@skmtc/core'
+import { GoIdentifier } from './GoIdentifier.ts'
 
 /** Constructor arguments for {@link GoFile}. */
 export type GoFileArgs = {
@@ -8,19 +10,51 @@ export type GoFileArgs = {
 }
 
 /**
- * Go rendering of a {@link FileBase}.
+ * Go rendering of a {@link CodeFileBase}.
  *
  * Unlike TypeScript, every Go file opens with a `package <name>`
  * directive — a structural difference the file shell owns. Proves the
- * abstract `FileBase` accommodates a language whose file header differs
- * from TS's bare top-level declarations.
+ * abstract {@link CodeFileBase} accommodates a language whose file header
+ * differs from TS's bare top-level declarations.
+ *
+ * Spike scope: owns a name-keyed definition map (first-write-wins); the
+ * structured import/re-export seams are declared by {@link CodeFileBase}
+ * but not yet wired (no Go generator registers imports). `use`-style
+ * imports land as the seam matures.
  */
-export class GoFile extends FileBase {
+export class GoFile extends CodeFileBase<Lang<GoIdentifier>> {
   packageName: string
+
+  /** Definitions keyed by identifier name (first write wins). */
+  definitions: Map<string, DefinitionBase> = new Map()
 
   constructor({ path, packageName }: GoFileArgs) {
     super({ path })
     this.packageName = packageName
+  }
+
+  override addDefinition(definition: DefinitionBase): void {
+    if (!this.definitions.has(definition.identifier.name)) {
+      this.definitions.set(definition.identifier.name, definition)
+    }
+  }
+
+  override addImports(_imports: ImportBase[]): void {
+    throw new Error('GoFile does not support structured imports yet (spike).')
+  }
+
+  override addReExports(_reExports: ReExportBase[]): void {
+    throw new Error('GoFile does not support re-exports.')
+  }
+
+  override findDefinitions(
+    query?: FindDefinitionsQuery<Lang<GoIdentifier>>
+  ): DefinitionBase[] | undefined {
+    return matchDefinitions(
+      [...this.definitions.values()],
+      query,
+      identifier => (identifier instanceof GoIdentifier ? identifier.kind : undefined)
+    )
   }
 
   override toString(): string {

@@ -1,4 +1,6 @@
-import { FileBase } from '@skmtc/core'
+import { CodeFileBase, matchDefinitions } from '@skmtc/core'
+import type { DefinitionBase, ImportBase, ReExportBase, Lang, FindDefinitionsQuery } from '@skmtc/core'
+import { PhpIdentifier } from './PhpIdentifier.ts'
 
 /** Constructor arguments for {@link PhpFile}. */
 export type PhpFileArgs = {
@@ -8,21 +10,52 @@ export type PhpFileArgs = {
 }
 
 /**
- * PHP rendering of a {@link FileBase}.
+ * PHP rendering of a {@link CodeFileBase}.
  *
  * A fourth point on the file-header spectrum (after TS's bare top-level,
  * Go's `package`, and Rust's headerless module): every PHP file opens with
  * `<?php` and a `namespace …;` declaration. The namespace mirrors the
  * directory tree under PSR-4 — for the spike it is supplied as a string;
- * deriving it from `path` is a later concern. Confirms the abstract
- * `FileBase` accommodates yet another file-opening convention.
+ * deriving it from `path` is a later concern.
+ *
+ * Spike scope: owns a name-keyed definition map (first-write-wins); the
+ * structured import (`use`) / re-export seams declared by
+ * {@link CodeFileBase} are not yet wired (no PHP generator registers
+ * imports).
  */
-export class PhpFile extends FileBase {
+export class PhpFile extends CodeFileBase<Lang<PhpIdentifier>> {
   namespace: string
+
+  /** Definitions keyed by identifier name (first write wins). */
+  definitions: Map<string, DefinitionBase> = new Map()
 
   constructor({ path, namespace }: PhpFileArgs) {
     super({ path })
     this.namespace = namespace
+  }
+
+  override addDefinition(definition: DefinitionBase): void {
+    if (!this.definitions.has(definition.identifier.name)) {
+      this.definitions.set(definition.identifier.name, definition)
+    }
+  }
+
+  override addImports(_imports: ImportBase[]): void {
+    throw new Error('PhpFile does not support structured imports yet (spike).')
+  }
+
+  override addReExports(_reExports: ReExportBase[]): void {
+    throw new Error('PhpFile does not support re-exports.')
+  }
+
+  override findDefinitions(
+    query?: FindDefinitionsQuery<Lang<PhpIdentifier>>
+  ): DefinitionBase[] | undefined {
+    return matchDefinitions(
+      [...this.definitions.values()],
+      query,
+      identifier => (identifier instanceof PhpIdentifier ? identifier.kind : undefined)
+    )
   }
 
   override toString(): string {
