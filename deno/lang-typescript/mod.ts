@@ -56,7 +56,18 @@ export { TsFile, type TsFileArgs } from './src/TsFile.ts'
 export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'
 export { TsImport, type TsImportSpecifier, type ImportNameArg } from './src/TsImport.ts'
 export { TsReExport } from './src/TsReExport.ts'
-export { TsObject, type TsPropertyArgs } from './src/TsObject.ts'
+export {
+  TsClass,
+  TsProperty,
+  TsMethod,
+  TsConstructor,
+  type TsClassArgs,
+  type TsClassPropertyArgs,
+  type TsMethodArgs,
+  type TsConstructorArgs,
+  type TsAccessibility
+} from './src/TsClass.ts'
+export { TsHeritage, type TsHeritageArgs, type TsHeritageSymbol } from './src/TsHeritage.ts'
 export { TsIdentifier, type TsIdentifierType, type TsIdentifierArgs } from './src/TsIdentifier.ts'
 
 // TypeScript syntax helpers + naming layer (moved from @skmtc/core — F5/F6)
