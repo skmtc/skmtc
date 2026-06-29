@@ -1,7 +1,7 @@
 import { assertEquals } from '@std/assert'
 import * as v from 'valibot'
 import { moduleExport } from '@/types/ModuleExport.ts'
-import { accessorPath } from '@/types/AccessorPath.ts'
+import { schemaPath } from '@/types/SchemaPath.ts'
 import {
   toEnrichmentDescriptor,
   toEnrichmentFields,
@@ -28,9 +28,9 @@ Deno.test('toEnrichmentFields — primitive kinds and optional flag', () => {
     description: v.optional(v.string())
   })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'title', label: 'Title', optional: true, kind: 'text' },
-    { key: 'strict', label: 'Strict', optional: false, kind: 'toggle' },
-    { key: 'description', label: 'Description', optional: true, kind: 'text' }
+    { key: 'title', label: 'Title', optional: true, type: 'text' },
+    { key: 'strict', label: 'Strict', optional: false, type: 'toggle' },
+    { key: 'description', label: 'Description', optional: true, type: 'text' }
   ])
 })
 
@@ -39,21 +39,21 @@ Deno.test('toEnrichmentFields — picklist becomes select with options', () => {
     layout: v.picklist(['stacked', 'inline'])
   })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'layout', label: 'Layout', optional: false, kind: 'select', options: ['stacked', 'inline'] }
+    { key: 'layout', label: 'Layout', optional: false, type: 'select', options: ['stacked', 'inline'] }
   ])
 })
 
 Deno.test('toEnrichmentFields — moduleExport identity-matches to module kind', () => {
   const schema = v.object({ input: v.optional(moduleExport) })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'input', label: 'Input', optional: true, kind: 'module' }
+    { key: 'input', label: 'Input', optional: true, type: 'module' }
   ])
 })
 
-Deno.test('toEnrichmentFields — accessorPath identity-matches to accessorPath kind', () => {
-  const schema = v.object({ accessorPath: v.optional(accessorPath) })
+Deno.test('toEnrichmentFields — schemaPath identity-matches to schemaPath type', () => {
+  const schema = v.object({ schemaPath: v.optional(schemaPath) })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'accessorPath', label: 'Accessor Path', optional: true, kind: 'accessorPath' }
+    { key: 'schemaPath', label: 'Schema Path', optional: true, type: 'schemaPath' }
   ])
 })
 
@@ -73,16 +73,16 @@ Deno.test('toEnrichmentFields — array of objects yields one-element item with 
       key: 'fields',
       label: 'Fields',
       optional: true,
-      kind: 'array',
+      type: 'array',
       item: [
         {
           key: '',
           label: '',
           optional: false,
-          kind: 'object',
+          type: 'object',
           fields: [
-            { key: 'id', label: 'Id', optional: false, kind: 'text' },
-            { key: 'label', label: 'Label', optional: true, kind: 'text' }
+            { key: 'id', label: 'Id', optional: false, type: 'text' },
+            { key: 'label', label: 'Label', optional: true, type: 'text' }
           ]
         }
       ]
@@ -96,7 +96,7 @@ Deno.test('toEnrichmentFields — omits object members that unwrap to v.undefine
     absent: v.undefined()
   })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'present', label: 'Present', optional: false, kind: 'text' }
+    { key: 'present', label: 'Present', optional: false, type: 'text' }
   ])
 })
 
@@ -120,8 +120,8 @@ Deno.test('toEnrichmentDescriptor — surfaces the subject scope of the umbrella
         key: 'subject',
         label: 'Subject',
         optional: true,
-        kind: 'object',
-        fields: [{ key: 'title', label: 'Title', optional: true, kind: 'text' }]
+        type: 'object',
+        fields: [{ key: 'title', label: 'Title', optional: true, type: 'text' }]
       }
     ]
   })
@@ -180,15 +180,15 @@ Deno.test('toEnrichmentDescriptor — surfaces subject + generator scopes (model
         key: 'subject',
         label: 'Subject',
         optional: true,
-        kind: 'object',
-        fields: [{ key: 'description', label: 'Description', optional: true, kind: 'text' }]
+        type: 'object',
+        fields: [{ key: 'description', label: 'Description', optional: true, type: 'text' }]
       },
       {
         key: 'generator',
         label: 'Generator',
         optional: false,
-        kind: 'object',
-        fields: [{ key: 'basePackage', label: 'Base Package', optional: false, kind: 'text' }]
+        type: 'object',
+        fields: [{ key: 'basePackage', label: 'Base Package', optional: false, type: 'text' }]
       }
     ]
   })
@@ -236,7 +236,7 @@ Deno.test('toEnrichmentDescriptor — surfaces an entry that declares variant su
 Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', () => {
   const formFieldItem = v.object({
     id: v.string(),
-    accessorPath: v.optional(accessorPath),
+    schemaPath: v.optional(schemaPath),
     input: v.optional(moduleExport),
     label: v.optional(v.string()),
     placeholder: v.optional(v.string()),
@@ -267,7 +267,7 @@ Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', (
   assertEquals(descriptor.fields.length, 1)
   const subject = descriptor.fields[0]
   assertEquals(subject.key, 'subject')
-  assertEquals(subject.kind, 'object')
+  assertEquals(subject.type, 'object')
 
   const subjectFields = subject.fields ?? []
   assertEquals(subjectFields.length, 4)
@@ -275,17 +275,17 @@ Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', (
     key: 'title',
     label: 'Title',
     optional: true,
-    kind: 'text'
+    type: 'text'
   })
 
   const fieldsArray = subjectFields[3]
-  assertEquals(fieldsArray.kind, 'array')
+  assertEquals(fieldsArray.type, 'array')
   assertEquals(fieldsArray.optional, true)
   const itemFields = fieldsArray.item?.[0]?.fields ?? []
-  const byKey = Object.fromEntries(itemFields.map(f => [f.key, f.kind]))
+  const byKey = Object.fromEntries(itemFields.map(f => [f.key, f.type]))
   assertEquals(byKey, {
     id: 'text',
-    accessorPath: 'accessorPath',
+    schemaPath: 'schemaPath',
     input: 'module',
     label: 'text',
     placeholder: 'text',

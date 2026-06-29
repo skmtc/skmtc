@@ -1,6 +1,8 @@
+import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
+import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
@@ -138,6 +140,10 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
 
   isRef(): this is OasRef<'schema'> {
     return false
+  }
+
+  traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {
+    return traverseSchema(this, path)
   }
 
   resolve(): OasNumber<Nullable> {
