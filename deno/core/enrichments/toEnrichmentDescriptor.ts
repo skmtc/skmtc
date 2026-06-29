@@ -36,7 +36,7 @@ export type EnrichmentField = {
    * For `type: 'array'` — a one-element list describing the item shape.
    * If the item is an object, the synthesised field carries the nested
    * `fields`; if it is a primitive, the synthesised field carries the
-   * appropriate primitive kind. The single-element convention matches
+   * appropriate primitive type. The single-element convention matches
    * the contract's `EnrichmentField[]` shape.
    */
   item?: EnrichmentField[]
@@ -44,8 +44,8 @@ export type EnrichmentField = {
   fields?: EnrichmentField[]
 }
 
-/** Which subject kind a generator enriches — operations, webhooks, or models. */
-export type SubjectKind = 'operation' | 'model' | 'webhook'
+/** Which subject type a generator enriches — operations, webhooks, or models. */
+export type SubjectType = 'operation' | 'model' | 'webhook'
 
 /**
  * A generator's enrichment schema, projected for the CMS. The same
@@ -54,7 +54,7 @@ export type SubjectKind = 'operation' | 'model' | 'webhook'
  */
 export type EnrichmentDescriptor = {
   generator: string
-  subjectKind: SubjectKind
+  subjectType: SubjectType
   /**
    * Whether this generator's entry declares variant support
    * (`supportsVariant: () => true`). The CMS reads it to decide whether to
@@ -220,7 +220,7 @@ const walkEntries = (entries: Record<string, v.GenericSchema>): EnrichmentField[
  * umbrella yields `[]`.
  *
  * Generally callers should prefer {@link toEnrichmentDescriptor}, which
- * takes a generator entry and fills in `generator` / `subjectKind`
+ * takes a generator entry and fills in `generator` / `subjectType`
  * automatically. This lower-level entry point is useful in tests and
  * when only the field shape is needed.
  */
@@ -231,7 +231,7 @@ export const toEnrichmentFields = (schema: v.GenericSchema | undefined): Enrichm
   return walkEntries(inner.entries)
 }
 
-const toSubjectKind = (entryType: EnrichmentSource['type']): SubjectKind => {
+const toSubjectType = (entryType: EnrichmentSource['type']): SubjectType => {
   switch (entryType) {
     case 'model':
       return 'model'
@@ -240,7 +240,7 @@ const toSubjectKind = (entryType: EnrichmentSource['type']): SubjectKind => {
       return 'operation'
     // A webhook resembles an operation (a path-item keyed by HTTP method) but
     // is a DISTINCT subject: it is addressed by webhook name, not request path,
-    // and has no request URL. It is its own SubjectKind so the editor and the
+    // and has no request URL. It is its own SubjectType so the editor and the
     // hub treat it truthfully rather than conflating it with an operation.
     case 'webhook':
       return 'webhook'
@@ -255,7 +255,7 @@ const toSubjectKind = (entryType: EnrichmentSource['type']): SubjectKind => {
  * Project a generator entry's enrichment schema into a serialisable
  * `EnrichmentDescriptor` the CMS can render as a form. The entry's
  * `id` becomes `descriptor.generator`; its `type` discriminator maps
- * to `subjectKind` (`'oasOperation' | 'gqlOperation'` → `'operation'`;
+ * to `subjectType` (`'oasOperation' | 'gqlOperation'` → `'operation'`;
  * `'webhook'` → `'webhook'`; `'model'` → `'model'`). If the entry has no
  * `toEnrichmentSchema`, or
  * declares the empty umbrella, the descriptor has an empty `fields`
@@ -271,7 +271,7 @@ const toSubjectKind = (entryType: EnrichmentSource['type']): SubjectKind => {
  */
 export const toEnrichmentDescriptor = (entry: EnrichmentSource): EnrichmentDescriptor => ({
   generator: entry.id,
-  subjectKind: toSubjectKind(entry.type),
+  subjectType: toSubjectType(entry.type),
   supportsVariant: entry.supportsVariant(),
   fields: toEnrichmentFields(entry.toEnrichmentSchema?.())
 })

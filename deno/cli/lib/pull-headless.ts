@@ -50,7 +50,7 @@ type PullHeadlessArgs = {
 
 export type PullHeadlessResult =
   | {
-    kind: "pulled";
+    type: "pulled";
     projectName: string;
     project: { account: string; slug: string };
     origin: string;
@@ -64,12 +64,12 @@ export type PullHeadlessResult =
     remoteWritten: boolean;
   }
   | {
-    kind: "aborted";
+    type: "aborted";
     projectName: string;
     project: { account: string; slug: string };
   }
   | {
-    kind: "failed";
+    type: "failed";
     projectName: string;
     reason: string;
     stage: "read" | "destination" | "pull";
@@ -126,7 +126,7 @@ export const pullHeadless = async ({
   const contents = project.clientJson.contents;
   if (!contents) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason:
         `no client.json for "${projectName}" (.skmtc/${projectName}/.settings/client.json)`,
@@ -137,7 +137,7 @@ export const pullHeadless = async ({
   const destSpec = projectFlag?.trim() || contents.project?.trim();
   if (!destSpec) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason:
         'no hub destination — set `project: "@account/slug"` in client.json or pass --project @account/slug',
@@ -147,7 +147,7 @@ export const pullHeadless = async ({
   const dest = parseScopedName(destSpec);
   if (!dest) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: `invalid hub destination "${destSpec}" — expected @account/slug`,
       stage: "destination",
@@ -165,7 +165,7 @@ export const pullHeadless = async ({
     );
     if (getResponse.status === 404) {
       return {
-        kind: "failed",
+        type: "failed",
         projectName,
         reason:
           `project ${account}/${slug} not found at ${origin} — create it in the web app first ` +
@@ -179,7 +179,7 @@ export const pullHeadless = async ({
         ? ` — not authorized to read ${account}/${slug}`
         : "";
       return {
-        kind: "failed",
+        type: "failed",
         projectName,
         reason: `client-config pull failed (${getResponse.status})${hint}: ${
           text.slice(0, 500)
@@ -190,7 +190,7 @@ export const pullHeadless = async ({
     hubBody = await getResponse.json();
   } catch (err) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: err instanceof Error ? err.message : String(err),
       stage: "pull",
@@ -199,7 +199,7 @@ export const pullHeadless = async ({
 
   if (!isObject(hubBody) || !isObject(hubBody.settings)) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: `unexpected response from ${origin} — missing settings object`,
       stage: "pull",
@@ -230,7 +230,7 @@ export const pullHeadless = async ({
     );
   } catch (err) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: `pulled config failed validation: ${
         err instanceof Error ? err.message : String(err)
@@ -244,7 +244,7 @@ export const pullHeadless = async ({
 
   if (!changed) {
     return {
-      kind: "pulled",
+      type: "pulled",
       projectName,
       project: { account, slug },
       origin,
@@ -258,7 +258,7 @@ export const pullHeadless = async ({
   if (confirmOverwrite) {
     const proceed = await confirmOverwrite({ account, slug, enrichmentGenerators });
     if (!proceed) {
-      return { kind: "aborted", projectName, project: { account, slug } };
+      return { type: "aborted", projectName, project: { account, slug } };
     }
   }
 
@@ -269,7 +269,7 @@ export const pullHeadless = async ({
     contents.project?.trim() !== destSpec;
 
   return {
-    kind: "pulled",
+    type: "pulled",
     projectName,
     project: { account, slug },
     origin,

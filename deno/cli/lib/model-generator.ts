@@ -53,7 +53,7 @@ export const ${mainModule}Base = toTsModelProjectionBase({
   },
 
   toIdentifierType(): TsIdentifierType {
-    return { kind: 'variable' }
+    return { type: 'variable' }
   },
 
   toExportPath({ refName, enrichments, variant }): string {

@@ -60,9 +60,9 @@ const input: SchemaObject = {
         },
         {
           type: "object",
-          required: ["kind"],
+          required: ["type"],
           properties: {
-            kind: {
+            type: {
               type: "string",
               enum: ["file"],
             },
@@ -77,9 +77,9 @@ const input: SchemaObject = {
         },
         {
           type: "object",
-          required: ["kind"],
+          required: ["type"],
           properties: {
-            kind: {
+            type: {
               type: "string",
               enum: ["symlink"],
             },
@@ -89,7 +89,7 @@ const input: SchemaObject = {
     },
   ],
   discriminator: {
-    propertyName: "kind",
+    propertyName: "type",
   },
 };
 
@@ -97,7 +97,7 @@ const expected: SchemaObject = {
   oneOf: [
     {
       type: "object",
-      required: ["content", "kind"],
+      required: ["content", "type"],
       properties: {
         content: {
           type: "string",
@@ -105,7 +105,7 @@ const expected: SchemaObject = {
         encoding: {
           $ref: "#/components/schemas/Encoding",
         },
-        kind: {
+        type: {
           type: "string",
           enum: ["file"],
         },
@@ -113,12 +113,12 @@ const expected: SchemaObject = {
     },
     {
       type: "object",
-      required: ["gitSha1", "kind"],
+      required: ["gitSha1", "type"],
       properties: {
         gitSha1: {
           type: "string",
         },
-        kind: {
+        type: {
           type: "string",
           enum: ["file"],
         },
@@ -126,12 +126,12 @@ const expected: SchemaObject = {
     },
     {
       type: "object",
-      required: ["target", "kind"],
+      required: ["target", "type"],
       properties: {
         target: {
           type: "string",
         },
-        kind: {
+        type: {
           type: "string",
           enum: ["symlink"],
         },
@@ -140,7 +140,7 @@ const expected: SchemaObject = {
     },
   ],
   discriminator: {
-    propertyName: "kind",
+    propertyName: "type",
   },
 };
 

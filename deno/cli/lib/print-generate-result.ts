@@ -40,7 +40,7 @@ export const printGenerateResult = ({
   switch (format) {
     case 'json': {
       const payload = {
-        kind: 'generated' as const,
+        type: 'generated' as const,
         projectName,
         basePath: basePath ?? null,
         manifestPath,
@@ -95,7 +95,7 @@ export const printGenerateResult = ({
 }
 
 const printTypecheckText = (typecheck: TypecheckResult): void => {
-  switch (typecheck.kind) {
+  switch (typecheck.type) {
     case 'skipped':
       // Skipped is verbose-only — keep the default output quiet.
       return
@@ -122,7 +122,7 @@ const printTypecheckText = (typecheck: TypecheckResult): void => {
       return
     default: {
       const _exhaustive: never = typecheck
-      throw new Error(`Unhandled typecheck kind: ${JSON.stringify(_exhaustive)}`)
+      throw new Error(`Unhandled typecheck type: ${JSON.stringify(_exhaustive)}`)
     }
   }
 }

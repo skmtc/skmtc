@@ -50,7 +50,7 @@ const buildAttributionState = (
         ? (genId: string) =>
             generatorMeta[genId] ?? {
               version: '',
-              registry: { host: 'jsr.io', kind: 'jsr' as const }
+              registry: { host: 'jsr.io', type: 'jsr' as const }
             }
         : undefined
     }

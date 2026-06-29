@@ -48,7 +48,7 @@ const createMockDescribeResult = () => ({
   descriptors: [
     {
       generator: '@scope/gen-x',
-      subjectKind: 'model' as const,
+      subjectType: 'model' as const,
       supportsVariant: false,
       fields: []
     }

@@ -9,7 +9,7 @@ import type { BundleHeadlessResult } from '@/lib/bundle-headless.ts'
  */
 const stubBundleFn = ({ projectName }: { projectName: string }): Promise<BundleHeadlessResult> =>
   Promise.resolve({
-    kind: 'bundled',
+    type: 'bundled',
     projectName,
     bundlePath: `.skmtc/${projectName}/bundle.js`
   })

@@ -63,7 +63,7 @@ Deno.test('printGenerateResult - json format includes file list and manifest pat
   })
   assertEquals(logs.length, 1)
   const parsed = JSON.parse(logs[0])
-  assertEquals(parsed.kind, 'generated')
+  assertEquals(parsed.type, 'generated')
   assertEquals(parsed.projectName, 'my-api')
   assertEquals(parsed.basePath, './src')
   assertEquals(parsed.manifestPath, '.skmtc/my-api/.settings/manifest.json')

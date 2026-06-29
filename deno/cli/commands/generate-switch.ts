@@ -93,9 +93,9 @@ export const generateSwitch = async ({
     // output and can recover; agents need the upfront refusal.
     if (mode === 'strict') {
       const freshness = checkBundleFreshness({ projectName })
-      if (freshness.kind === 'stale' || freshness.kind === 'missing-worker') {
+      if (freshness.type === 'stale' || freshness.type === 'missing-worker') {
         console.error(`Error: ${freshness.message}\n`)
-        if (freshness.kind === 'stale') {
+        if (freshness.type === 'stale') {
           console.error(`${freshness.hint}\n`)
         }
         Deno.exit(2)
@@ -136,7 +136,7 @@ export const generateSwitch = async ({
     })
 
     // If any parseIssue came back at `error` level, the run isn't a
-    // success even when the JSON payload has `kind: "generated"`.
+    // success even when the JSON payload has `type: "generated"`.
     // Core's CoreContext catches top-level failures and synthesizes
     // an INVALID_SCHEMA error so this branch can detect them — see
     // `core/context/CoreContext.ts` around the toArtifacts catch.
@@ -155,7 +155,7 @@ export const generateSwitch = async ({
     // (the convention `parseIssues` already uses for "ran but found
     // problems"). The generated files stay on disk so the operator
     // can fix the generator and rerun.
-    const typecheckFailed = typecheckResult?.kind === 'failed'
+    const typecheckFailed = typecheckResult?.type === 'failed'
     Deno.exit(fatalParseIssue || typecheckFailed ? 1 : 0)
   }
 

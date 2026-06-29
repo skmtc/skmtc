@@ -46,7 +46,7 @@ export type WebhookProjectionBaseConfig<EnrichmentType = undefined, IdType exten
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the webhook. Runs only on cache-miss. Returns this
-   * language's `XxIdentifierType` (`IdType`; the loose `kind: string` by default).
+   * language's `XxIdentifierType` (`IdType`; the loose `type: string` by default).
    */
   toIdentifierType: (webhook: OasWebhook, context: GenerateContextType) => IdType
   toExportPath: (args: ToWebhookExportPathArgs<EnrichmentType>) => string

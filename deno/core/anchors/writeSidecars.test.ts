@@ -10,7 +10,7 @@ const baseSidecar = (overrides: Partial<Sidecar> = {}): Sidecar => ({
   f: 'out.ts',
   src: 'openapi.json',
   parser: 'tsc@5.6.3',
-  R: [{ host: 'jsr.io', kind: 'jsr' }],
+  R: [{ host: 'jsr.io', type: 'jsr' }],
   G: [{ name: '@scope/gen', version: '0.0.1', r: 0 }],
   S: ['oas:#/components/schemas/X'],
   V: ['main'],

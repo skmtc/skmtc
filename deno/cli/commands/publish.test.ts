@@ -6,7 +6,7 @@ import { getCommandDescriptor } from '@/lib/cli-schema.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
 
 const publishedResult: PublishHeadlessResult = {
-  kind: 'published',
+  type: 'published',
   projectName: 'my-api',
   bundlePath: '/root/.skmtc/my-api/server.js',
   bundleBytes: 57344,
@@ -48,7 +48,7 @@ Deno.test('printPublishResult - failed result reports the stage and reason', asy
   try {
     printPublishResult(
       {
-        kind: 'failed',
+        type: 'failed',
         projectName: 'my-api',
         reason: 'version 3.0.1 is already published for acme/my-api',
         stage: 'publish'

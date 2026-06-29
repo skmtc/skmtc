@@ -25,7 +25,7 @@ type BundleHeadlessArgs = {
 }
 
 export type BundleHeadlessResult = {
-  kind: 'bundled'
+  type: 'bundled'
   projectName: string
   bundlePath: string
 }
@@ -54,7 +54,7 @@ export const bundleHeadless = async ({
   }
 
   return {
-    kind: 'bundled',
+    type: 'bundled',
     projectName,
     bundlePath
   }

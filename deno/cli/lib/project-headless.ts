@@ -70,7 +70,7 @@ type CreateArgs = {
 
 export type CreateResult =
   | {
-    kind: "created";
+    type: "created";
     projectName: string;
     project: Scoped;
     origin: string;
@@ -85,7 +85,7 @@ export type CreateResult =
     url?: string;
   }
   | {
-    kind: "failed";
+    type: "failed";
     projectName: string;
     reason: string;
     stage: "read" | "stack" | "api" | "create" | "seed";
@@ -95,7 +95,7 @@ const fail = (
   projectName: string,
   reason: string,
   stage: "read" | "stack" | "api" | "create" | "seed",
-): CreateResult => ({ kind: "failed", projectName, reason, stage });
+): CreateResult => ({ type: "failed", projectName, reason, stage });
 
 /** Register `client.json#source` as a hub API; returns its `@account/slug`. */
 async function registerSchema(
@@ -416,7 +416,7 @@ export const createHeadless = async ({
   }
 
   return {
-    kind: "created",
+    type: "created",
     projectName,
     project: dest,
     origin,
@@ -440,14 +440,14 @@ type RmArgs = {
 
 export type RmResult =
   | {
-    kind: "removed";
+    type: "removed";
     projectName: string;
     project: Scoped;
     origin: string;
     existed: boolean;
   }
   | {
-    kind: "failed";
+    type: "failed";
     projectName: string;
     reason: string;
     stage: "read" | "delete";
@@ -473,7 +473,7 @@ export const rmHeadless = async ({
   );
   if (!dest || !dest.account) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: `invalid project name "${name}" — expected @account/slug`,
       stage: "read",
@@ -489,7 +489,7 @@ export const rmHeadless = async ({
     );
     if (res.status === 404) {
       return {
-        kind: "removed",
+        type: "removed",
         projectName,
         project: dest,
         origin,
@@ -502,7 +502,7 @@ export const rmHeadless = async ({
         ? ` — deleting needs the 'admin:resource' scope (your token lacks it)`
         : "";
       return {
-        kind: "failed",
+        type: "failed",
         projectName,
         reason: `delete failed (${res.status})${hint}: ${text.slice(0, 300)}`,
         stage: "delete",
@@ -510,7 +510,7 @@ export const rmHeadless = async ({
     }
     await res.text();
     return {
-      kind: "removed",
+      type: "removed",
       projectName,
       project: dest,
       origin,
@@ -518,7 +518,7 @@ export const rmHeadless = async ({
     };
   } catch (err) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: err instanceof Error ? err.message : String(err),
       stage: "delete",

@@ -27,8 +27,8 @@ Deno.test('runTypecheck - skips with reason no-files when filePaths empty', asyn
     basePathAbs: undefined
   })
 
-  assertEquals(result.kind, 'skipped')
-  if (result.kind === 'skipped') {
+  assertEquals(result.type, 'skipped')
+  if (result.type === 'skipped') {
     assertEquals(result.reason, 'no-files')
   }
 })
@@ -48,7 +48,7 @@ Deno.test(
         basePathAbs: subdir
       })
 
-      assertEquals(result.kind, 'no-tsconfig')
+      assertEquals(result.type, 'no-tsconfig')
     })
   }
 )
@@ -82,7 +82,7 @@ Deno.test(
         basePathAbs: join(tempRoot, 'src')
       })
 
-      assertEquals(result.kind, 'passed')
+      assertEquals(result.type, 'passed')
     })
   }
 )
@@ -125,8 +125,8 @@ Deno.test(
         basePathAbs: join(tempRoot, 'src')
       })
 
-      assertEquals(result.kind, 'failed')
-      if (result.kind === 'failed') {
+      assertEquals(result.type, 'failed')
+      if (result.type === 'failed') {
         // Every diagnostic should be in mine.ts; theirs.ts is filtered out.
         for (const d of result.diagnostics) {
           assertEquals(d.file.endsWith('mine.ts'), true)
@@ -152,7 +152,7 @@ Deno.test(
  *     looking for"`), which exits non-zero and prints its message to
  *     stdout — no "Version" line.
  *
- * The probe must run from the same kind of bare directory the test
+ * The probe must run from the same type of bare directory the test
  * uses. We create a throwaway temp dir under `homedir()` and probe
  * `npx tsc --version` from there.
  */

@@ -26,8 +26,8 @@ type InitHeadlessArgs = {
 }
 
 export type InitHeadlessResult =
-  | { kind: 'created'; projectName: string; basePath: string }
-  | { kind: 'existed'; projectName: string }
+  | { type: 'created'; projectName: string; basePath: string }
+  | { type: 'existed'; projectName: string }
 
 export class InvalidBasePathError extends Error {
   constructor(public readonly basePath: string, message: string) {
@@ -66,7 +66,7 @@ export const initHeadless = async ({
 
   const existing = skmtcRoot.projects.find(p => p.name === projectName)
   if (existing) {
-    return { kind: 'existed', projectName }
+    return { type: 'existed', projectName }
   }
 
   await skmtcRoot.createProject({
@@ -76,5 +76,5 @@ export const initHeadless = async ({
     availableGenerators: []
   })
 
-  return { kind: 'created', projectName, basePath }
+  return { type: 'created', projectName, basePath }
 }

@@ -70,15 +70,15 @@ Deno.test('decomposeUnion - discriminator and default are excluded onto the wrap
   const result = decomposeUnion({
     schema: {
       oneOf: [{ $ref: '#/components/schemas/Dog' }, { $ref: '#/components/schemas/Cat' }],
-      discriminator: { propertyName: 'kind' },
-      default: { kind: 'dog' }
+      discriminator: { propertyName: 'type' },
+      default: { type: 'dog' }
     },
     groupType: 'oneOf'
   })
 
   assertEquals(result.afterExcluded, {
-    discriminator: { propertyName: 'kind' },
-    default: { kind: 'dog' }
+    discriminator: { propertyName: 'type' },
+    default: { type: 'dog' }
   })
   assertEquals(result.decomposed, [
     { oneOf: [{ $ref: '#/components/schemas/Dog' }, { $ref: '#/components/schemas/Cat' }] }

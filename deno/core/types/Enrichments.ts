@@ -7,7 +7,7 @@
  *   - **Models** are keyed by name (component schema name in OAS;
  *     registry-named type in GraphQL).
  *   - **OAS operations** are keyed by HTTP path → method.
- *   - **GraphQL operations** are keyed by root kind → field name.
+ *   - **GraphQL operations** are keyed by root type → field name.
  *
  * The leaf at the bottom of each hierarchy is opaque to core — its
  * shape is owned by the generator that consumes it. Each generator
@@ -78,7 +78,7 @@ export const oasOperationEnrichments: v.GenericSchema<OasOperationEnrichments> =
  * Structurally identical to {@link OasOperationEnrichments} — an OpenAPI 3.1
  * webhook is a path-item keyed by method, the same shape as an operation — but
  * named distinctly so a webhook generator's slot reads as webhook-scoped (the
- * `webhook` subject kind) rather than operation-scoped. The leaf is opaque to
+ * `webhook` subject type) rather than operation-scoped. The leaf is opaque to
  * core.
  */
 export type OasWebhookEnrichments = Record<string, EnrichmentLeaf>
@@ -109,7 +109,7 @@ export const gqlFieldEnrichments: v.GenericSchema<GqlFieldEnrichments> = v.recor
 )
 
 /**
- * GraphQL root-kind enrichments: `query` / `mutation` / `subscription`
+ * GraphQL root-type enrichments: `query` / `mutation` / `subscription`
  * → field enrichments.
  */
 export type GqlRootKindEnrichments = Record<string, GqlFieldEnrichments>
@@ -150,7 +150,7 @@ export const isReservedEnrichmentKey = (key: string): boolean => key.startsWith(
  * Top-level enrichments: generator id → hierarchy, plus the reserved
  * `_stack` key (stack-scoped leaf). Each generator's slot is one of
  * three structurally-distinct hierarchies depending on the generator's
- * entry kind:
+ * entry type:
  *  - `ModelEnrichments` for `toModelEntry`
  *  - `OasPathEnrichments` for `toOasOperationEntry`
  *  - `GqlRootKindEnrichments` for `toGqlOperationEntry`

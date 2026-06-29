@@ -312,7 +312,7 @@ Deno.test('CoreContext - toArtifacts() includes results tree', () => {
 Deno.test(
   'CoreContext - toArtifacts() synthesizes an error parseIssue when parsing throws',
   () => {
-    // The CLI's `generate --json` previously reported `kind:
+    // The CLI's `generate --json` previously reported `type:
     // "generated"` with 0 files when the worker's `toArtifacts`
     // caught a top-level failure — there was no signal in the
     // returned shape that anything had gone wrong. The catch now

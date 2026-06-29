@@ -7,7 +7,7 @@ const baseSidecar = (overrides: Partial<Sidecar> = {}): Sidecar => ({
   f: 'src/types/User.generated.ts',
   src: 'openapi.json',
   parser: 'tsc@5.6.3',
-  R: [{ host: 'jsr.io', kind: 'jsr' }],
+  R: [{ host: 'jsr.io', type: 'jsr' }],
   G: [{ name: '@skmtc/gen-typescript', version: '0.0.55', r: 0 }],
   S: ['oas:#/components/schemas/User'],
   V: ['main'],

@@ -23,7 +23,7 @@ export type IdentifierBaseArgs = {
  *
  * It completes the neutral `*Base` family
  * (`CodeFileBase` / `DefinitionBase` / `ImportBase`): the concrete,
- * kind-carrying subclasses (`TsIdentifier`, `KtIdentifier`) live in the
+ * type-carrying subclasses (`TsIdentifier`, `KtIdentifier`) live in the
  * `@skmtc/lang-*` packages and **extend** this base. Construction goes
  * through a language package's factories (`createVariable` / `createType`
  * for TypeScript; `createDataClass` / `createEnumClass` / … for Kotlin) or

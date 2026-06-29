@@ -65,7 +65,7 @@ Deno.test('printCloneResult - text format reports cloned ids@version + verify hi
           { moduleName: '@skmtc/gen-zod', version: '0.0.55' }
         ],
         bundle: {
-          kind: 'bundled',
+          type: 'bundled',
           projectName: 'my-api',
           bundlePath: '.skmtc/my-api/bundle.js'
         }
@@ -99,7 +99,7 @@ Deno.test('printCloneResult - json format emits a parseable object with verifyWi
         projectName: 'my-api',
         cloned: [{ moduleName: '@skmtc/gen-typescript', version: '0.0.55' }],
         bundle: {
-          kind: 'bundled',
+          type: 'bundled',
           projectName: 'my-api',
           bundlePath: '.skmtc/my-api/bundle.js'
         }
@@ -118,7 +118,7 @@ Deno.test('printCloneResult - json format emits a parseable object with verifyWi
   // The bundle field is part of the contract — agents read it to
   // confirm the post-clone rebundle landed.
   assertEquals(parsed.bundle, {
-    kind: 'bundled',
+    type: 'bundled',
     projectName: 'my-api',
     bundlePath: '.skmtc/my-api/bundle.js'
   })

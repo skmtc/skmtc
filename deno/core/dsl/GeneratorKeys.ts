@@ -140,7 +140,7 @@ export type OasOperationGeneratorKey = Brand<NakedOasOperationGeneratorKey, 'Oas
  * Branded type for GraphQL operation generator keys.
  *
  * Sibling to {@link OasOperationGeneratorKey} for the GraphQL protocol. The key
- * encodes the generator ID, the root kind (`query` / `mutation` /
+ * encodes the generator ID, the root type (`query` / `mutation` /
  * `subscription`), and the root field name.
  */
 export type GqlOperationGeneratorKey = Brand<
@@ -345,14 +345,14 @@ export const toWebhookGeneratorKey = ({
  * Arguments for {@link toGqlOperationGeneratorKey}.
  *
  * Can specify operation details directly or provide a {@link GqlOperation}
- * object from which the root kind and field name will be extracted. The
+ * object from which the root type and field name will be extracted. The
  * `variant` segment is always required (see {@link Variant}).
  */
 type ToGqlOperationGeneratorKeyArgs =
   | {
       /** Unique identifier for the generator */
       generatorId: string
-      /** GraphQL root kind */
+      /** GraphQL root type */
       rootKind: GqlRootKind
       /** Root field name */
       fieldName: string
@@ -615,7 +615,7 @@ export const isWebhookGeneratorKey = (arg: unknown): arg is WebhookGeneratorKey 
  *
  * Validates that the argument is a string with the format
  * `generatorId|rootKind|fieldName`, with `rootKind` constrained to a
- * GraphQL root operation kind (`query` / `mutation` / `subscription`).
+ * GraphQL root operation type (`query` / `mutation` / `subscription`).
  */
 export const isGqlOperationGeneratorKey = (arg: unknown): arg is GqlOperationGeneratorKey => {
   if (typeof arg !== 'string') {
@@ -819,7 +819,7 @@ export type GeneratorKeyObject =
       type: 'gqlOperation'
       /** Generator identifier */
       generatorId: string
-      /** GraphQL root kind */
+      /** GraphQL root type */
       rootKind: GqlRootKind
       /** Root field name */
       fieldName: string

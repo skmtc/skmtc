@@ -49,7 +49,7 @@ type PublishHeadlessArgs = {
 
 export type PublishHeadlessResult =
   | {
-    kind: "published";
+    type: "published";
     projectName: string;
     bundlePath: string;
     bundleBytes: number;
@@ -63,7 +63,7 @@ export type PublishHeadlessResult =
     sourceTotalBytes: number;
   }
   | {
-    kind: "failed";
+    type: "failed";
     projectName: string;
     reason: string;
     stage: "version" | "identity" | "bundle" | "publish";
@@ -306,7 +306,7 @@ export const publishHeadless = async ({
     });
   } catch (err) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: err instanceof Error ? err.message : String(err),
       stage: "version",
@@ -323,7 +323,7 @@ export const publishHeadless = async ({
     slug = stack.slug;
   } catch (err) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: err instanceof Error ? err.message : String(err),
       stage: "identity",
@@ -340,7 +340,7 @@ export const publishHeadless = async ({
     files = await collectSourceFiles(project.toPath());
   } catch (err) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: err instanceof Error ? err.message : String(err),
       stage: "bundle",
@@ -360,7 +360,7 @@ export const publishHeadless = async ({
     });
   } catch (err) {
     return {
-      kind: "failed",
+      type: "failed",
       projectName,
       reason: err instanceof Error ? err.message : String(err),
       stage: "publish",
@@ -368,7 +368,7 @@ export const publishHeadless = async ({
   }
 
   return {
-    kind: "published",
+    type: "published",
     projectName,
     bundlePath,
     bundleBytes: published.bundleBytes,

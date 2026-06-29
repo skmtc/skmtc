@@ -97,8 +97,8 @@ Deno.test("pushHeadless - fails before any network call when there is no destina
       token: "pat",
       origin: "https://hub.test",
     });
-    assertEquals(result.kind, "failed");
-    if (result.kind !== "failed") throw new Error("expected failed");
+    assertEquals(result.type, "failed");
+    if (result.type !== "failed") throw new Error("expected failed");
     assertEquals(result.stage, "destination");
     assertEquals(fetchCalls, 0);
   } finally {
@@ -148,8 +148,8 @@ Deno.test("pushHeadless - PUTs the client.json settings to the resolved destinat
       origin: "https://hub.test",
     });
 
-    assertEquals(result.kind, "pushed");
-    if (result.kind !== "pushed") throw new Error("expected pushed");
+    assertEquals(result.type, "pushed");
+    if (result.type !== "pushed") throw new Error("expected pushed");
     assertEquals(result.project, { account: "acme", slug: "petstore" });
     assertEquals(result.enrichmentCount, 1);
     assertEquals(result.overwroteExistingConfig, false);
@@ -184,8 +184,8 @@ Deno.test('pushHeadless - a 404 on the destination is a clear "create it first" 
       token: "pat",
       origin: "https://hub.test",
     });
-    assertEquals(result.kind, "failed");
-    if (result.kind !== "failed") throw new Error("expected failed");
+    assertEquals(result.type, "failed");
+    if (result.type !== "failed") throw new Error("expected failed");
     assertEquals(result.stage, "push");
     assertStringIncludes(result.reason, "create it in the web app first");
   } finally {
@@ -227,7 +227,7 @@ Deno.test("pushHeadless - aborts when the overwrite confirm declines", async () 
       origin: "https://hub.test",
       confirmOverwrite: () => Promise.resolve(false),
     });
-    assertEquals(result.kind, "aborted");
+    assertEquals(result.type, "aborted");
     assertEquals(putCalled, false);
   } finally {
     globalThis.fetch = originalFetch;
@@ -248,8 +248,8 @@ Deno.test("pushHeadless - an explicit --project is written back into client.json
       origin: "https://hub.test",
       projectFlag: "@org/x",
     });
-    assertEquals(result.kind, "pushed");
-    if (result.kind !== "pushed") throw new Error("expected pushed");
+    assertEquals(result.type, "pushed");
+    if (result.type !== "pushed") throw new Error("expected pushed");
     assertEquals(result.project, { account: "org", slug: "x" });
     assertEquals(result.remoteWritten, true);
     assertEquals(wrote(), true);
@@ -299,8 +299,8 @@ Deno.test("pushHeadless - --base-files-only pushes base files without the client
       baseFilesOnly: true,
     });
 
-    assertEquals(result.kind, "pushed");
-    if (result.kind !== "pushed") throw new Error("expected pushed");
+    assertEquals(result.type, "pushed");
+    if (result.type !== "pushed") throw new Error("expected pushed");
     assertEquals(result.baseFilesPushed, 2);
     // Config was left untouched.
     assertEquals(result.overwroteExistingConfig, false);
@@ -357,8 +357,8 @@ Deno.test("pushHeadless - --base-files also PUTs to /preview/base-files", async 
       origin: "https://hub.test",
       baseFiles: { "package.json": "{}", "src/app.tsx": "x" },
     });
-    assertEquals(result.kind, "pushed");
-    if (result.kind !== "pushed") throw new Error("expected pushed");
+    assertEquals(result.type, "pushed");
+    if (result.type !== "pushed") throw new Error("expected pushed");
     assertEquals(result.baseFilesPushed, 2);
     assertEquals(
       calls.some((c) =>

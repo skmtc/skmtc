@@ -21,7 +21,7 @@ export type EnrichmentValidationScope = 'subject' | 'generator' | 'stack'
  *
  *  - **operation subject** — `subject` = path, `method` = HTTP method
  *  - **model subject** — `subject` = refName (no `method`)
- *  - **gql operation subject** — `subject` = field name, `method` = root kind
+ *  - **gql operation subject** — `subject` = field name, `method` = root type
  *  - **generator** run-constant — `scope: 'generator'` (no subject routing)
  *  - **stack** run-constant — `scope: 'stack'` (no subject routing)
  *
@@ -54,7 +54,7 @@ const fieldPath = (
         .join('.')
     : undefined
 
-/** Routing identity for one subject leaf, derived from the generator kind. */
+/** Routing identity for one subject leaf, derived from the generator type. */
 type SubjectLeaf = {
   subject: string
   method?: string
@@ -64,10 +64,10 @@ type SubjectLeaf = {
 
 /**
  * Collect every `{ subject, method?, variant, values }` leaf from a
- * generator's enrichment slot, walking the routing depth its **kind**
+ * generator's enrichment slot, walking the routing depth its **type**
  * dictates — model (`refName → variant`), oas operation
  * (`path → method → variant`), gql operation
- * (`rootKind → fieldName → variant`). Because the kind is read from the
+ * (`rootKind → fieldName → variant`). Because the type is read from the
  * generator entry, operation-vs-model is known authoritatively — there is
  * no `'main' in value` shape-guessing. Reserved keys (`_generator`) are
  * skipped; malformed nodes are skipped (they surface elsewhere, never here

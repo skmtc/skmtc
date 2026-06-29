@@ -86,7 +86,7 @@ Deno.test('Webhook key is collision-free vs a same-named operation path', () => 
   // distinct strings
   assertEquals(webhookKey === (operationKey as string), false)
 
-  // each guard accepts only its own kind
+  // each guard accepts only its own type
   assertEquals(isWebhookGeneratorKey(webhookKey), true)
   assertEquals(isOasOperationGeneratorKey(webhookKey), false)
   assertEquals(isOasOperationGeneratorKey(operationKey), true)

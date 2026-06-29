@@ -62,7 +62,7 @@ export const toGqlParsedDocument = (value: GqlDocument): SkmtcParsedDocument => 
 /**
  * Discriminated union representing a *raw* source document accepted by
  * `CoreContext.toArtifacts`. This is the public input shape — callers
- * supply the schema as the protocol-specific source kind, and the
+ * supply the schema as the protocol-specific source type, and the
  * pipeline runs the protocol-appropriate parser before handing the
  * post-parse {@link SkmtcParsedDocument} to the generate phase.
  *

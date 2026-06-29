@@ -44,7 +44,7 @@ export type OasOperationProjectionBaseConfig<EnrichmentType = undefined, IdType 
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the operation/schema. Runs only on cache-miss. Returns this
-   * language's `XxIdentifierType` (`IdType`; the loose `kind: string` by
+   * language's `XxIdentifierType` (`IdType`; the loose `type: string` by
    * default); the tightening rides the type argument.
    */
   toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdType

@@ -12,8 +12,8 @@ import {
 // stderr; silence it so the test run stays readable.
 console.error = () => {}
 
-function fixture(kind: 'openapi' | 'overlays' | 'expected', name: string): JsonValue {
-  const url = new URL(`./fixtures/${kind}/${name}.yaml`, import.meta.url)
+function fixture(type: 'openapi' | 'overlays' | 'expected', name: string): JsonValue {
+  const url = new URL(`./fixtures/${type}/${name}.yaml`, import.meta.url)
   return parseYaml(Deno.readTextFileSync(url)) as JsonValue
 }
 

@@ -15,7 +15,7 @@
  *                                  instead of prompting (the `whoami`).
  *   - `skmtc login --with-token`   reads the PAT from stdin (the `gh`
  *                                  pattern) — works in strict mode.
- *   - `--json`                     `{ "kind": "logged-in", "handle": ... }`
+ *   - `--json`                     `{ "type": "logged-in", "handle": ... }`
  *                                  on success; recipe error (exit 2) on
  *                                  missing input.
  *
@@ -56,7 +56,7 @@ type RenderLoginArgs = {
 };
 
 type LoginResult = {
-  kind: "logged-in";
+  type: "logged-in";
   handle: string;
 };
 
@@ -103,7 +103,7 @@ export const renderLogin = async ({
     try {
       const handle = await validateHubToken({ origin, token });
       writeStoredAuth({ host: origin, token });
-      printLoginResult({ kind: "logged-in", handle }, { format });
+      printLoginResult({ type: "logged-in", handle }, { format });
       Deno.exit(0);
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
@@ -122,7 +122,7 @@ export const renderLogin = async ({
         token: stored.token,
       });
       printLoginResult(
-        { kind: "logged-in", handle },
+        { type: "logged-in", handle },
         { format, tokenLast4: maskToken(stored.token) },
       );
       Deno.exit(0);

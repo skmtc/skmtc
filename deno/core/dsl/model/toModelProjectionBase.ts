@@ -51,7 +51,7 @@ type ToEnrichmentsArgs = {
  * parameterizes this config with its own `XxIdentifierType`
  * (`ModelProjectionBaseConfig<E, KtIdentifierType>`) so `toIdentifierType`'s
  * return tightens to that language's `type` vocabulary — no recast. The
- * default keeps the loose `kind: string` boundary.
+ * default keeps the loose `type: string` boundary.
  */
 export type ModelProjectionBaseConfig<
   EnrichmentType = undefined,

@@ -75,8 +75,8 @@ type PrintBundleResultOptions = {
  * path. Every project (remote-only included) builds a local bundle,
  * so there is no no-op outcome.
  *
- * JSON shape keeps the `kind` discriminator — readable for `jq -e
- * '.kind == "bundled"'` style scripting.
+ * JSON shape keeps the `type` discriminator — readable for `jq -e
+ * '.type == "bundled"'` style scripting.
  */
 export const printBundleResult = (
   result: BundleHeadlessResult,

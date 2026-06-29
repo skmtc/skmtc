@@ -24,7 +24,7 @@ export class MockDefinition<V extends GeneratedValue = GeneratedValue> extends D
  * A neutral {@link CodeFileBase} for core tests — a stand-in for a
  * `@skmtc/lang-*` package's file so core tests exercise engine, render, and
  * capture behavior WITHOUT naming a concrete lang File class. Bound to the
- * bare {@link Lang} (opaque-`string` kind), since the mock has no declaration
+ * bare {@link Lang} (opaque-`string` type), since the mock has no declaration
  * vocabulary; tests filter by name or list all, never by `type`.
  *
  * Lang-specific dedup/merge/render policy is tested in each lang package; this

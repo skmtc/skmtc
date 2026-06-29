@@ -21,7 +21,7 @@ import { buildSidecar, type ResolvedAnchor } from './buildSidecar.ts'
  * Lookup contract for per-generator metadata. Phase D's CLI builds
  * this once from the project's lockfile + `deno.json` import map and
  * passes it in. Generators not in the map fall back to `version: ''`
- * + `registry: { host: 'jsr.io', kind: 'jsr' }` — the sidecar still
+ * + `registry: { host: 'jsr.io', type: 'jsr' }` — the sidecar still
  * builds, just with degraded provenance.
  */
 export type GeneratorMetaLookup = (generatorId: string) => {
@@ -31,7 +31,7 @@ export type GeneratorMetaLookup = (generatorId: string) => {
 
 const defaultLookup: GeneratorMetaLookup = () => ({
   version: '',
-  registry: { host: 'jsr.io', kind: 'jsr' }
+  registry: { host: 'jsr.io', type: 'jsr' }
 })
 
 export type PostPassArgs = {

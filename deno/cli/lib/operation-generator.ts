@@ -58,7 +58,7 @@ export const ${mainModule}Base = toTsOasOperationProjectionBase({
   },
 
   toIdentifierType(): TsIdentifierType {
-    return { kind: 'variable' }
+    return { type: 'variable' }
   },
 
   toExportPath({ operation, enrichments, variant }): string {

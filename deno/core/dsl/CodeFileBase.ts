@@ -17,7 +17,7 @@ export type FindDefinitionsQuery = {
 }
 
 /**
- * The neutral name/kind filter every language's `findDefinitions` shares. The
+ * The neutral name/type filter every language's `findDefinitions` shares. The
  * language passes its definition list and a `typeOf` extractor — the one
  * lang-specific bit, which narrows to the language's Identifier subclass to
  * read the typed `type` (returned here as the opaque `string`).

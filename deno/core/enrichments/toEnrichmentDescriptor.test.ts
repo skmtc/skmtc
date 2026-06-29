@@ -43,7 +43,7 @@ Deno.test('toEnrichmentFields — picklist becomes select with options', () => {
   ])
 })
 
-Deno.test('toEnrichmentFields — moduleExport identity-matches to module kind', () => {
+Deno.test('toEnrichmentFields — moduleExport identity-matches to module type', () => {
   const schema = v.object({ input: v.optional(moduleExport) })
   assertEquals(toEnrichmentFields(schema), [
     { key: 'input', label: 'Input', optional: true, type: 'module' }
@@ -113,7 +113,7 @@ Deno.test('toEnrichmentDescriptor — surfaces the subject scope of the umbrella
   }
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-shadcn-form',
-    subjectKind: 'operation',
+    subjectType: 'operation',
     supportsVariant: false,
     fields: [
       {
@@ -139,13 +139,13 @@ Deno.test('toEnrichmentDescriptor — collapses gqlOperation to operation', () =
     })
   }
   const descriptor = toEnrichmentDescriptor(entry)
-  assertEquals(descriptor.subjectKind, 'operation')
+  assertEquals(descriptor.subjectType, 'operation')
 })
 
-Deno.test('toEnrichmentDescriptor — maps webhook to its own subject kind', () => {
+Deno.test('toEnrichmentDescriptor — maps webhook to its own subject type', () => {
   // A webhook generator (type 'webhook') resembles an operation but is a
   // distinct subject (addressed by webhook name, not request path), so its
-  // descriptor's subjectKind is 'webhook', not 'operation'.
+  // descriptor's subjectType is 'webhook', not 'operation'.
   const entry: EnrichmentSource = {
     id: '@skmtc/gen-ts-webhook',
     type: 'webhook',
@@ -157,7 +157,7 @@ Deno.test('toEnrichmentDescriptor — maps webhook to its own subject kind', () 
     })
   }
   const descriptor = toEnrichmentDescriptor(entry)
-  assertEquals(descriptor.subjectKind, 'webhook')
+  assertEquals(descriptor.subjectType, 'webhook')
 })
 
 Deno.test('toEnrichmentDescriptor — surfaces subject + generator scopes (model entry)', () => {
@@ -173,7 +173,7 @@ Deno.test('toEnrichmentDescriptor — surfaces subject + generator scopes (model
   }
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-kotlin',
-    subjectKind: 'model',
+    subjectType: 'model',
     supportsVariant: false,
     fields: [
       {
@@ -203,7 +203,7 @@ Deno.test('toEnrichmentDescriptor — empty umbrella (emptyEnrichmentSchema) yie
   }
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-typescript',
-    subjectKind: 'model',
+    subjectType: 'model',
     supportsVariant: false,
     fields: []
   })
@@ -217,7 +217,7 @@ Deno.test('toEnrichmentDescriptor — entry without toEnrichmentSchema yields em
   }
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-bare',
-    subjectKind: 'operation',
+    subjectType: 'operation',
     supportsVariant: false,
     fields: []
   })
@@ -262,7 +262,7 @@ Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', (
   const descriptor = toEnrichmentDescriptor(entry)
 
   assertEquals(descriptor.generator, '@skmtc/gen-shadcn-form')
-  assertEquals(descriptor.subjectKind, 'operation')
+  assertEquals(descriptor.subjectType, 'operation')
   // The umbrella surfaces a single `subject` scope; the form leaf is nested.
   assertEquals(descriptor.fields.length, 1)
   const subject = descriptor.fields[0]

@@ -13,7 +13,7 @@
  *   2. When the *target* fails to parse, `registerRefError(error, refKey)`
  *      records the failure against that key. For OAS this happens
  *      automatically inside `logIssueNoKey` when the current stack trail
- *      is at a `components.<kind>.<name>` position.
+ *      is at a `components.<type>.<name>` position.
  *   3. After parse finishes, `removeErroredItems` walks every errored
  *      ref key, looks up its consumers, prunes them from the parsed
  *      document, and emits an `INVALID_DEPENDENCY_REF` issue per pruned

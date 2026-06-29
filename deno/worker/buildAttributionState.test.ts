@@ -37,7 +37,7 @@ Deno.test('buildAttributionState - generatorMeta map becomes a lookup function',
       generatorMeta: {
         '@scope/gen-zod': {
           version: '1.2.3',
-          registry: { host: 'jsr.io', kind: 'jsr' }
+          registry: { host: 'jsr.io', type: 'jsr' }
         }
       }
     }
@@ -48,7 +48,7 @@ Deno.test('buildAttributionState - generatorMeta map becomes a lookup function',
 
   const hit = lookup?.('@scope/gen-zod')
   assertEquals(hit?.version, '1.2.3')
-  assertEquals(hit?.registry, { host: 'jsr.io', kind: 'jsr' })
+  assertEquals(hit?.registry, { host: 'jsr.io', type: 'jsr' })
 })
 
 Deno.test('buildAttributionState - unknown genId falls back to default registry', () => {
@@ -58,7 +58,7 @@ Deno.test('buildAttributionState - unknown genId falls back to default registry'
       generatorMeta: {
         '@scope/gen-zod': {
           version: '1.2.3',
-          registry: { host: 'jsr.skmtc.dev', kind: 'jsr-private' }
+          registry: { host: 'jsr.skmtc.dev', type: 'jsr-private' }
         }
       }
     }
@@ -67,7 +67,7 @@ Deno.test('buildAttributionState - unknown genId falls back to default registry'
   const lookup = result?.postPass?.generatorMeta
   const miss = lookup?.('@unknown/gen-other')
   assertEquals(miss?.version, '')
-  assertEquals(miss?.registry, { host: 'jsr.io', kind: 'jsr' })
+  assertEquals(miss?.registry, { host: 'jsr.io', type: 'jsr' })
 })
 
 Deno.test('buildAttributionState - omitted generatorMeta leaves lookup undefined', () => {
@@ -88,7 +88,7 @@ Deno.test('buildAttributionState - payload round-trips through structured clone'
       generatorMeta: {
         '@scope/gen-zod': {
           version: '0.0.55',
-          registry: { host: 'jsr.io', kind: 'jsr' as const }
+          registry: { host: 'jsr.io', type: 'jsr' as const }
         }
       }
     }
