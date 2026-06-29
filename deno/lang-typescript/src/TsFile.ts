@@ -113,6 +113,32 @@ export class TsFile extends CodeFileBase {
     )
   }
 
+  /**
+   * Definitions in render order: primaries first (insertion order), then
+   * same-name companions. A companion is a definition whose name an earlier
+   * definition already claimed under a different declaration kind — e.g. a
+   * `declare namespace Foo` companion of `class Foo`. TypeScript declaration
+   * merging lays the companion *after* the primary (Stainless: `class … } …
+   * declare namespace Foo`), so it's deferred to the end no matter when it was
+   * registered. The first definition seen for a name is the primary.
+   */
+  #orderedDefinitions(): TsDefinition[] {
+    const seenNames = new Set<string>()
+    const primaries: TsDefinition[] = []
+    const companions: TsDefinition[] = []
+
+    for (const definition of this.definitions.values()) {
+      if (seenNames.has(definition.identifier.name)) {
+        companions.push(definition)
+      } else {
+        seenNames.add(definition.identifier.name)
+        primaries.push(definition)
+      }
+    }
+
+    return [...primaries, ...companions]
+  }
+
   override toString(): string {
     const reExports = Array.from(this.reExports.values()).map(reExportEntry => {
       // Re-key to the package-normalised module at render time — the same
@@ -140,9 +166,9 @@ export class TsFile extends CodeFileBase {
       return new TsImport(updatedModuleName, importEntry.specifiers).toString()
     })
 
-    const definitions = [...this.definitions.values()]
+    const definitions = this.#orderedDefinitions()
 
-    const body = [reExports, imports, definitions]
+    const body = [reExports, imports, definitions.map(definition => definition.toString())]
       .filter(section => Boolean(section.length))
       .map(section => section.join('\n'))
       .join('\n\n')

@@ -209,6 +209,38 @@ Deno.test('TsFile renders declaration-merging slots — class + same-name namesp
   )
 })
 
+Deno.test('TsFile defers a same-name companion (declare namespace) after primaries, whatever the registration order', () => {
+  const tsFile = new TsFile({ path: '@/resources/models.generated.ts', settings: undefined })
+
+  const classDef = new TsDefinition({
+    context: mockContext,
+    identifier: createClass('Models'),
+    value: value('extends APIResource {}')
+  })
+  const namespaceDef = new TsDefinition({
+    context: mockContext,
+    identifier: createNamespace('Models'),
+    value: value('{ export { type Model as Model } }')
+  })
+  const interfaceDef = new TsDefinition({
+    context: mockContext,
+    identifier: createInterface('Model'),
+    value: value('{ id: string }')
+  })
+
+  // The namespace is registered BEFORE the `Model` interface primary — but it
+  // is a companion of `class Models` (same name, different kind), so it must
+  // still render last (TS declaration-merge layout; Stainless's resource files).
+  tsFile.addDefinition(classDef)
+  tsFile.addDefinition(namespaceDef)
+  tsFile.addDefinition(interfaceDef)
+
+  assertEquals(
+    tsFile.toString(),
+    `export class Models extends APIResource {}\n\nexport interface Model { id: string }\n\nexport declare namespace Models { export { type Model as Model } }\n`
+  )
+})
+
 Deno.test('TsFile collapses same-name + same-type definitions into one slot', () => {
   const tsFile = new TsFile({ path: '@/tables/models.generated.tsx', settings: undefined })
 
