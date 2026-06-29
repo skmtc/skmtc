@@ -170,14 +170,15 @@ Deno.test('TsClass arranges members properties → constructor → methods, newl
   tsClass.addMethod(new TsMethod({ name: 'go', body: 'run();' }))
   tsClass.addProperty(new TsProperty({ name: 'ready', type: 'boolean', value: 'false' }))
 
-  // Members are placed (declaration order) and newline-joined — no indentation
-  // anywhere (not the members, not the bodies) and no inter-member blank lines;
-  // the consumer's formatter handles all of it.
+  // Members placed in declaration order, no indentation. Properties flush; the
+  // constructor and each method are blank-line separated (note 42 Finding 1).
   assertEquals(
     tsClass.toString(),
     'extends Base implements Closeable {\n' +
       'ready: boolean = false;\n' +
+      '\n' +
       'constructor() {super();}\n' +
+      '\n' +
       'go() {run();}\n' +
       '}'
   )
@@ -296,9 +297,10 @@ Deno.test('OpenAI: the Models resource class is byte-exact (resources/models.ts)
     description: 'List and describe the various models available in the API.'
   })
 
-  // Unformatted: no indentation (members or bodies) and no inter-member blank
-  // lines — the consumer's formatter (Prettier) normalises it to match
-  // openai-node. JSDoc gutters are comment syntax, not nesting.
+  // Unformatted: no indentation (members or bodies). Methods ARE blank-line
+  // separated (Prettier won't insert those, so we must — note 42 Finding 1).
+  // The consumer's formatter normalises the rest to match openai-node; JSDoc
+  // gutters are comment syntax, not nesting.
   const expected = [
     '/**',
     ' * List and describe the various models available in the API.',
@@ -309,11 +311,13 @@ Deno.test('OpenAI: the Models resource class is byte-exact (resources/models.ts)
     ' * the owner and permissioning.',
     ' */',
     'retrieve(model: string, options?: RequestOptions): APIPromise<Model> {return this._client.get(path`/models/${model}`, { ...options, __security: { bearerAuth: true } });}',
+    '',
     '/**',
     ' * Lists the currently available models, and provides basic information about each',
     ' * one such as the owner and availability.',
     ' */',
     "list(options?: RequestOptions): PagePromise<ModelsPage, Model> {return this._client.getAPIList('/models', Page<Model>, { ...options, __security: { bearerAuth: true } });}",
+    '',
     '/**',
     ' * Delete a fine-tuned model. You must have the Owner role in your organization to',
     ' * delete a model.',

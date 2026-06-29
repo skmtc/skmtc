@@ -237,20 +237,24 @@ export class TsClass {
   }
 
   toString(): string {
-    // Members in declaration order: properties, then the constructor, then
-    // methods. `List.toLines` newline-joins them and drops the absent
-    // constructor (it filters `undefined`) — inter-member spacing and
-    // indentation are the consumer's formatter's job (the SKMTC "render
-    // unformatted" principle). An empty class renders `{\n\n}` — valid TS the
-    // formatter collapses to `{}`.
-    const members = List.toLines([
-      ...this.properties.values(),
-      this.classConstructor,
-      ...this.methods.values()
-    ])
+    // Properties render as one flush block (no blank line between sub-resource
+    // fields); the constructor and each method are blank-line-separated. That
+    // separation is NOT formatting the consumer's formatter can restore —
+    // Prettier preserves but never *inserts* blank lines between class members
+    // — so it's emitted here (verified end-to-end: dropping it left methods
+    // flush, the only diff from byte-exact openai-node; see note 42). A method
+    // body's *internal* whitespace stays the formatter's job (`{return x;}`
+    // renders inline). An empty class renders `{\n\n}`.
+    const propertyBlock = this.properties.size
+      ? List.toLines([...this.properties.values()])
+      : undefined
+
+    const body = new List([propertyBlock, this.classConstructor, ...this.methods.values()], {
+      separator: '\n\n'
+    })
 
     // `this.heritage` renders the `extends … implements …` clause (with its
     // trailing space); a missing one contributes nothing.
-    return `${this.heritage ?? ''}{\n${members}\n}`
+    return `${this.heritage ?? ''}{\n${body}\n}`
   }
 }
