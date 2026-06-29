@@ -26,9 +26,9 @@ export class TsReExport extends ReExportBase {
   static fromConcise(module: string, identifiers: TsIdentifier[]): TsReExport {
     const groups: Record<string, Set<string>> = {}
     for (const identifier of identifiers) {
-      const kind = identifier.kind
-      groups[kind] ??= new Set()
-      groups[kind].add(identifier.name)
+      const type = identifier.type
+      groups[type] ??= new Set()
+      groups[type].add(identifier.name)
     }
     return new TsReExport(module, groups)
   }
@@ -37,7 +37,7 @@ export class TsReExport extends ReExportBase {
     return this.module
   }
 
-  override merge(other: ReExportBase): ReExportBase {
+  override merge(other: ReExportBase): TsReExport {
     if (!(other instanceof TsReExport)) {
       throw new Error(`Cannot merge a TsReExport with a ${other.constructor.name}`)
     }

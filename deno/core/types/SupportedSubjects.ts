@@ -17,7 +17,7 @@ export type SupportedWebhook = { name: string; method: string }
 /** A supported GraphQL operation. */
 export type SupportedGqlOperation = { rootKind: string; fieldName: string }
 
-/** What one generator supports, discriminated by its subject kind. */
+/** What one generator supports, discriminated by its subject type. */
 export type GeneratorSupport =
   | { type: 'oasOperation'; operations: SupportedOasOperation[] }
   | { type: 'webhook'; webhooks: SupportedWebhook[] }

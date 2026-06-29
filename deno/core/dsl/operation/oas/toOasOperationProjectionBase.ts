@@ -8,7 +8,7 @@ import type {
 } from '@/context/generateTypes.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { Lang, LangSnippetConstructor } from '@/dsl/Lang.ts'
+import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -33,20 +33,21 @@ import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichme
  * Configuration for {@link toOasOperationProjectionBase}.
  *
  * Generic over the language `L`: a language veneer parameterizes this config
- * (`OasOperationProjectionBaseConfig<E, KtLang>`) so `toIdentifierType`'s
- * return tightens to that language's `IdentifierType<L>` — no recast.
+ * (`OasOperationProjectionBaseConfig<E, KtIdentifierType>`) so
+ * `toIdentifierType`'s return tightens to that language's `type` vocabulary —
+ * no recast.
  */
-export type OasOperationProjectionBaseConfig<EnrichmentType = undefined, L extends Lang = Lang> = {
+export type OasOperationProjectionBaseConfig<EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType> = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
   toIdentifierName: (args: ToOasOperationIdentifierNameArgs<EnrichmentType>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the operation/schema. Runs only on cache-miss. Returns this
-   * language's `IdentifierType<L>` (the loose `kind: string` when `L = Lang`);
-   * the tightening rides the type argument, replacing the old veneer recast.
+   * language's `XxIdentifierType` (`IdType`; the loose `type: string` by
+   * default); the tightening rides the type argument.
    */
-  toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdentifierType<L>
+  toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdType
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
@@ -101,9 +102,9 @@ type ToEnrichmentsArgs = {
  * `OasOperationProjectionBase` lives here now, because the base class is no
  * longer statically known.
  */
-export const toOasOperationProjectionBase = <EnrichmentType = undefined, L extends Lang = Lang>(
-  base: LangSnippetConstructor<L>,
-  config: OasOperationProjectionBaseConfig<EnrichmentType, L>
+export const toOasOperationProjectionBase = <EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType>(
+  base: LangSnippetConstructor,
+  config: OasOperationProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
   return class extends base {
     static id = config.id

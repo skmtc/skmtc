@@ -60,9 +60,9 @@ Deno.test("mergeAllOf - complex oneOf", () => {
       },
       {
         type: "object",
-        required: ["kind"],
+        required: ["type"],
         properties: {
-          kind: {
+          type: {
             type: "string",
             enum: ["file"],
           },
@@ -75,9 +75,9 @@ Deno.test("mergeAllOf - complex oneOf", () => {
     oneOf: [
       {
         type: "object",
-        required: ["content", "kind"],
+        required: ["content", "type"],
         properties: {
-          kind: {
+          type: {
             type: "string",
             enum: ["file"],
           },
@@ -91,9 +91,9 @@ Deno.test("mergeAllOf - complex oneOf", () => {
       },
       {
         type: "object",
-        required: ["gitSha1", "kind"],
+        required: ["gitSha1", "type"],
         properties: {
-          kind: {
+          type: {
             type: "string",
             enum: ["file"],
           },
@@ -120,9 +120,9 @@ Deno.test("mergeAllOf - even more complex oneOf", () => {
           },
           {
             type: "object",
-            required: ["kind"],
+            required: ["type"],
             properties: {
-              kind: {
+              type: {
                 type: "string",
                 enum: ["file"],
               },
@@ -137,9 +137,9 @@ Deno.test("mergeAllOf - even more complex oneOf", () => {
           },
           {
             type: "object",
-            required: ["kind"],
+            required: ["type"],
             properties: {
-              kind: {
+              type: {
                 type: "string",
                 enum: ["symlink"],
               },
@@ -149,7 +149,7 @@ Deno.test("mergeAllOf - even more complex oneOf", () => {
       },
     ],
     discriminator: {
-      propertyName: "kind",
+      propertyName: "type",
     },
   };
 
@@ -157,7 +157,7 @@ Deno.test("mergeAllOf - even more complex oneOf", () => {
     oneOf: [
       {
         type: "object",
-        required: ["content", "kind"],
+        required: ["content", "type"],
         properties: {
           content: {
             type: "string",
@@ -165,7 +165,7 @@ Deno.test("mergeAllOf - even more complex oneOf", () => {
           encoding: {
             $ref: "#/components/schemas/Encoding",
           },
-          kind: {
+          type: {
             type: "string",
             enum: ["file"],
           },
@@ -173,12 +173,12 @@ Deno.test("mergeAllOf - even more complex oneOf", () => {
       },
       {
         type: "object",
-        required: ["gitSha1", "kind"],
+        required: ["gitSha1", "type"],
         properties: {
           gitSha1: {
             type: "string",
           },
-          kind: {
+          type: {
             type: "string",
             enum: ["file"],
           },
@@ -186,12 +186,12 @@ Deno.test("mergeAllOf - even more complex oneOf", () => {
       },
       {
         type: "object",
-        required: ["target", "kind"],
+        required: ["target", "type"],
         properties: {
           target: {
             type: "string",
           },
-          kind: {
+          type: {
             type: "string",
             enum: ["symlink"],
           },
@@ -200,7 +200,7 @@ Deno.test("mergeAllOf - even more complex oneOf", () => {
       },
     ],
     discriminator: {
-      propertyName: "kind",
+      propertyName: "type",
     },
   };
 

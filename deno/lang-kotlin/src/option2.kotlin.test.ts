@@ -76,7 +76,7 @@ class SpikeField extends KtSnippet {
 const SpikeModelBase = toKtModelProjectionBase({
   id: '@spike/gen-kotlin-option2',
   toIdentifierName: ({ refName }) => `${refName}Spike`,
-  toIdentifierType: () => ({ kind: 'val' }),
+  toIdentifierType: () => ({ type: 'val' }),
   toExportPath: () => '@/spike/models/Models.generated.kt',
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })

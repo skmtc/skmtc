@@ -131,7 +131,7 @@ export const printDescribeResult = (
       for (const descriptor of result.descriptors) {
         const variants = descriptor.supportsVariant ? ', variants' : ''
         console.log(
-          `  ${descriptor.generator} (${descriptor.subjectKind}${variants}) — ${descriptor.fields.length} field(s)`
+          `  ${descriptor.generator} (${descriptor.subjectType}${variants}) — ${descriptor.fields.length} field(s)`
         )
       }
 

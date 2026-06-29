@@ -46,7 +46,7 @@ export type CloneHeadlessResult = {
   /**
    * Result of the post-clone rebundle. Clone always introduces at
    * least one local generator (the cloned one), so this is always
-   * `kind: 'bundled'` — but we keep the discriminated union for
+   * `type: 'bundled'` — but we keep the discriminated union for
    * symmetry with {@link installHeadless} (which can be `noop` for
    * remote-only projects).
    *

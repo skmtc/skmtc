@@ -140,7 +140,7 @@ export const renderPush = async ({
   })
 
   printPushResult(result, { format: resolveOutputFormat({ jsonFlag }) })
-  Deno.exit(result.kind === 'failed' ? 1 : 0)
+  Deno.exit(result.type === 'failed' ? 1 : 0)
 }
 
 type PrintPushResultOptions = {
@@ -157,7 +157,7 @@ export const printPushResult = (
       return
     }
     case 'text': {
-      switch (result.kind) {
+      switch (result.type) {
         case 'pushed': {
           console.log(
             `Pushed "${result.projectName}" → ${result.project.account}/${result.project.slug}`

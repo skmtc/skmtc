@@ -33,7 +33,7 @@ import type { OasIssueType } from '@/context/generateTypes.ts'
  *
  * - `NESTED_LIST_LOSSY` — `[[T]]` collapsed to `OasUnknown`.
  * - `UNKNOWN_TYPE_KIND` — defensive fallback for an unrecognized
- *   GraphQL type kind. Should never fire in practice.
+ *   GraphQL type type. Should never fire in practice.
  * - `DROPPED_DIRECTIVE` — applied directive ignored during mapping
  *   (other than `@deprecated`, whose `reason` we capture).
  * - `SKIPPED_FIELD_ARGUMENTS` — non-root object/interface field

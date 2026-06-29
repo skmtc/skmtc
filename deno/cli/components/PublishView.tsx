@@ -17,10 +17,10 @@ type PublishViewProps = {
 };
 
 type Stage =
-  | { kind: "validating" }
-  | { kind: "running" }
-  | { kind: "done"; result: PublishHeadlessResult }
-  | { kind: "misconfigured"; missing: string[] };
+  | { type: "validating" }
+  | { type: "running" }
+  | { type: "done"; result: PublishHeadlessResult }
+  | { type: "misconfigured"; missing: string[] };
 
 /**
  * Interactive Ink path for `skmtc publish`. Strict / `--json` /
@@ -36,7 +36,7 @@ type Stage =
  */
 export const PublishView = ({ project, view }: PublishViewProps) => {
   const { state, dispatch, dispatchMessage, exit } = useSkmtc();
-  const [stage, setStage] = useState<Stage>({ kind: "validating" });
+  const [stage, setStage] = useState<Stage>({ type: "validating" });
 
   useEffect(() => {
     const { token, origin } = resolveHubAuth({
@@ -46,7 +46,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
 
     if (!token) {
       setStage({
-        kind: "misconfigured",
+        type: "misconfigured",
         missing: ["--token <pat> (or $SKMTC_HUB_TOKEN, or `skmtc login`)"],
       });
       dispatchMessage({ error: "Publish is missing required arguments" });
@@ -54,7 +54,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
       return;
     }
 
-    setStage({ kind: "running" });
+    setStage({ type: "running" });
     const run = async () => {
       const result = await publishHeadless({
         skmtcRoot: state.skmtcRoot,
@@ -64,9 +64,9 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
         version: view.version,
       });
 
-      setStage({ kind: "done", result });
+      setStage({ type: "done", result });
 
-      if (result.kind === "published") {
+      if (result.type === "published") {
         dispatchMessage({
           success:
             `Published ${result.stack.account}/${result.stack.slug}@${result.version}`,
@@ -90,7 +90,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
     run();
   }, []);
 
-  switch (stage.kind) {
+  switch (stage.type) {
     case "validating":
       return (
         <TaskBox active>
@@ -115,7 +115,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
       );
     case "done": {
       const result = stage.result;
-      if (result.kind === "published") {
+      if (result.type === "published") {
         return (
           <Box flexDirection="column">
             <Text color="green">

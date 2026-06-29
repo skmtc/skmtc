@@ -21,28 +21,28 @@ import { existsSync } from '@std/fs/exists'
 
 export type TypecheckResult =
   | {
-      kind: 'skipped'
+      type: 'skipped'
       reason: 'flag-not-set' | 'no-files'
       message: string
     }
   | {
-      kind: 'no-tsconfig'
+      type: 'no-tsconfig'
       message: string
       hint: string
     }
   | {
-      kind: 'passed'
+      type: 'passed'
       tsconfig: string
       filesChecked: number
     }
   | {
-      kind: 'failed'
+      type: 'failed'
       tsconfig: string
       filesChecked: number
       diagnostics: TypecheckDiagnostic[]
     }
   | {
-      kind: 'tsc-error'
+      type: 'tsc-error'
       message: string
       hint: string
     }
@@ -144,7 +144,7 @@ export const runTypecheck = async ({
 }: RunTypecheckArgs): Promise<TypecheckResult> => {
   if (filePaths.length === 0) {
     return {
-      kind: 'skipped',
+      type: 'skipped',
       reason: 'no-files',
       message: 'No files emitted; skipping type-check.'
     }
@@ -158,7 +158,7 @@ export const runTypecheck = async ({
     : findTsconfig(searchStart)
   if (tsconfig === null) {
     return {
-      kind: 'no-tsconfig',
+      type: 'no-tsconfig',
       message: `No tsconfig.json found walking up from ${searchStart}.`,
       hint:
         'Either run `skmtc generate` from inside the consumer app, ' +
@@ -181,7 +181,7 @@ export const runTypecheck = async ({
     output = await cmd.output()
   } catch (error) {
     return {
-      kind: 'tsc-error',
+      type: 'tsc-error',
       message: `Failed to run \`${tscCmd}\`: ${error instanceof Error ? error.message : String(error)}`,
       hint:
         'Make sure `tsc` is installed in the consumer project (or globally) ' +
@@ -214,13 +214,13 @@ export const runTypecheck = async ({
 
   if (ownDiagnostics.length === 0) {
     return {
-      kind: 'passed',
+      type: 'passed',
       tsconfig,
       filesChecked: filePaths.length
     }
   }
   return {
-    kind: 'failed',
+    type: 'failed',
     tsconfig,
     filesChecked: filePaths.length,
     diagnostics: ownDiagnostics

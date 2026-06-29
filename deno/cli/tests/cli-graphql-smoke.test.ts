@@ -74,7 +74,7 @@ import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 const ModelBase = toTsModelProjectionBase({
   id: '@fake/gen-minimal',
   toIdentifierName: ({ refName }) => refName,
-  toIdentifierType: () => ({ kind: 'type' }),
+  toIdentifierType: () => ({ type: 'type' }),
   toExportPath: ({ refName }) => '@/types/' + refName + '.generated.ts'
 })
 

@@ -3,16 +3,7 @@ import { KtFile } from './KtFile.ts'
 import { KtDefinition } from './KtDefinition.ts'
 import { KtImport } from './KtImport.ts'
 import { KtIdentifier } from './KtIdentifier.ts'
-import { toKtEntityKind } from './createIdentifier.ts'
-
-/**
- * The Kotlin {@link Lang}, specialized to this language's concrete
- * {@link KtIdentifier}. Threaded as the `L` type argument through the
- * projection-base veneers so core's config tightens `toIdentifierType`'s
- * return to {@link import('./KtIdentifier.ts').KtIdentifierType} (the `kind`
- * bound to `KtEntityKind`) with no recast.
- */
-export type KtLang = Lang<KtIdentifier>
+import { toKtEntityType } from './createIdentifier.ts'
 
 /**
  * The Kotlin {@link Lang} — carried as the static `lang` on
@@ -22,7 +13,7 @@ export type KtLang = Lang<KtIdentifier>
  * site. The engine reaches Kotlin only through these neutral factories;
  * it never names `KtFile` / `KtDefinition` / `KtImport` itself.
  */
-export const kotlin: KtLang = {
+export const kotlin: Lang = {
   createFile: ({ path, settings }) => new KtFile({ path, settings }),
 
   toDefinition: ({ context, identifier, value, noExport, description }) =>
@@ -34,8 +25,8 @@ export const kotlin: KtLang = {
   toImport: ({ identifier, module }) => KtImport.fromIdentifier(module, identifier),
 
   // The engine's identifier-assembly seam: `name` from `toIdentifierName`,
-  // the rest spread from `toIdentifierType`. Narrows the opaque `kind`
-  // string to this language's typed `KtEntityKind`.
-  toIdentifier: ({ name, kind, typeName, exported }) =>
-    new KtIdentifier({ name, typeName, exported, kind: toKtEntityKind(kind) })
+  // the rest spread from `toIdentifierType`. Narrows the opaque `type`
+  // string to this language's typed `KtEntityType`.
+  toIdentifier: ({ name, type, typeName, exported }) =>
+    new KtIdentifier({ name, typeName, exported, type: toKtEntityType(type) })
 }

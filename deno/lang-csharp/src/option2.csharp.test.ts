@@ -78,7 +78,7 @@ class SpikeField extends CsSnippet {
 const SpikeModelBase = toCsModelProjectionBase({
   id: '@spike/gen-csharp-option2',
   toIdentifierName: ({ refName }) => `${refName}Spike`,
-  toIdentifierType: () => ({ kind: 'record' }),
+  toIdentifierType: () => ({ type: 'record' }),
   toExportPath: () => '@/Spike/Models/Models.generated.cs',
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })

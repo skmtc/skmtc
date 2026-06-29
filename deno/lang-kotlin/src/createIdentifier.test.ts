@@ -9,47 +9,47 @@ import {
   toKtKeyword
 } from './createIdentifier.ts'
 
-Deno.test('createDataClass writes the data-class kind', () => {
+Deno.test('createDataClass writes the data-class type', () => {
   const identifier = createDataClass('User')
 
   assertEquals(identifier.name, 'User')
-  assertEquals(identifier.kind, 'data-class')
+  assertEquals(identifier.type, 'data-class')
   assertEquals(identifier.exported, true)
 })
 
-Deno.test('createEnumClass writes the enum-class kind', () => {
+Deno.test('createEnumClass writes the enum-class type', () => {
   const identifier = createEnumClass('Status')
 
   assertEquals(identifier.name, 'Status')
-  assertEquals(identifier.kind, 'enum-class')
+  assertEquals(identifier.type, 'enum-class')
 })
 
-Deno.test('createInterface writes the interface kind', () => {
+Deno.test('createInterface writes the interface type', () => {
   const identifier = createInterface('UsersApi')
 
   assertEquals(identifier.name, 'UsersApi')
-  assertEquals(identifier.kind, 'interface')
+  assertEquals(identifier.type, 'interface')
 })
 
-Deno.test('createSealedInterface writes the sealed-interface kind', () => {
+Deno.test('createSealedInterface writes the sealed-interface type', () => {
   const identifier = createSealedInterface('Animal')
 
   assertEquals(identifier.name, 'Animal')
-  assertEquals(identifier.kind, 'sealed-interface')
+  assertEquals(identifier.type, 'sealed-interface')
 })
 
-Deno.test('createTypeAlias writes the typealias kind', () => {
+Deno.test('createTypeAlias writes the typealias type', () => {
   const identifier = createTypeAlias('UserList')
 
   assertEquals(identifier.name, 'UserList')
-  assertEquals(identifier.kind, 'typealias')
+  assertEquals(identifier.type, 'typealias')
 })
 
-Deno.test('createValue writes the val kind and carries an optional typeName', () => {
+Deno.test('createValue writes the val type and carries an optional typeName', () => {
   const untyped = createValue('MAX_RETRIES')
   const typed = createValue('timeout', { typeName: 'Long' })
 
-  assertEquals(untyped.kind, 'val')
+  assertEquals(untyped.type, 'val')
   assertEquals(untyped.typeName, undefined)
   assertEquals(typed.typeName, 'Long')
 })
@@ -70,6 +70,6 @@ Deno.test('toKtKeyword maps the full vocabulary', () => {
 })
 
 Deno.test('toKtKeyword throws outside the vocabulary (foreign-language identifier)', () => {
-  assertThrows(() => toKtKeyword('variable'), Error, 'Unknown Kotlin entity kind: variable')
-  assertThrows(() => toKtKeyword('type'), Error, 'Unknown Kotlin entity kind: type')
+  assertThrows(() => toKtKeyword('variable'), Error, 'Unknown Kotlin entity type: variable')
+  assertThrows(() => toKtKeyword('type'), Error, 'Unknown Kotlin entity type: type')
 })

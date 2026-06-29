@@ -1,5 +1,5 @@
-import { SnippetBase, type GeneratedValue } from '@skmtc/core'
-import { typescript, type TsLang } from './tsLang.ts'
+import { SnippetBase, type GeneratedValue, type Lang } from '@skmtc/core'
+import { typescript } from './tsLang.ts'
 import {
   register,
   defineAndRegister,
@@ -29,12 +29,11 @@ import type { TsDefinition } from './TsDefinition.ts'
  */
 export class TsSnippet extends SnippetBase {
   /**
-   * The language every class built on this base renders into. Typed
-   * {@link TsLang} (not the loose `Lang`) so a projection-base veneer
-   * inferring `L` from `base: TsSnippet` lands on `TsLang` — the tightening
-   * that lets `toIdentifierType` return `IdentifierType<TsLang>`.
+   * The language every class built on this base renders into. The neutral
+   * {@link Lang} — the engine reads it language-blind; TypeScript's fixed
+   * `type` vocabulary lives on this package's concrete types, not here.
    */
-  static lang: TsLang = typescript
+  static lang: Lang = typescript
 
   /**
    * Register imports / definitions into the file at `destinationPath`,

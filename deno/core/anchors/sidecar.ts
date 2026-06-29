@@ -18,7 +18,7 @@ import * as v from 'valibot'
  */
 export const registryEntry = v.object({
   host: v.string(),
-  kind: v.union([v.literal('jsr'), v.literal('jsr-private')])
+  type: v.union([v.literal('jsr'), v.literal('jsr-private')])
 })
 
 /**

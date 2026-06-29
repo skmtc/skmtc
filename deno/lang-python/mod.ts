@@ -10,7 +10,7 @@
  *     subclasses of the abstract bases in `@skmtc/core` — each renders
  *     itself in its own `toString()`
  *   - the `register` family (`register`, `defineAndRegister`)
- *   - this language's `EntityKind` vocabulary
+ *   - this language's `EntityType` vocabulary
  *   - `sanitizePropertyName` + identifier/casing/visibility rules
  *   - syntax helpers
  *

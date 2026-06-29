@@ -16,10 +16,10 @@
  *      `declares no 'lang'`) are banned across the doc surfaces; a
  *      mention is allowed only on a line that marks it as historical
  *      ("no longer", "deleted", "superseded", …).
- *   3. LANG-KOTLIN SOURCE↔SKILL SYNC — the kind vocabulary count, the
+ *   3. LANG-KOTLIN SOURCE↔SKILL SYNC — the type vocabulary count, the
  *      identifier-factory names, and the value-protocol exports in
  *      `lang-kotlin` source must all appear in the skmtc-lang-kotlin
- *      skill (catches "six-kind" wording and missing-protocol drift).
+ *      skill (catches "six-type" wording and missing-protocol drift).
  *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
@@ -221,7 +221,7 @@ for (const { packageDirectory, skillName, guardPrefix } of languageSyncTargets) 
         `(${packageDirectory} exports ${factoryNames.length} identifier factories: ${factoryNames.join(', ')})`
     )
   } else {
-    pass(`${packageDirectory} kind vocabulary: skill says "${kindWord} entity kinds" matching ${factoryNames.length} factories`)
+    pass(`${packageDirectory} type vocabulary: skill says "${kindWord} entity kinds" matching ${factoryNames.length} factories`)
   }
 
   for (const factory of factoryNames) {

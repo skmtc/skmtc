@@ -23,7 +23,7 @@ export type InstallHeadlessResult = {
   projectName: string
   installed: string[]
   /**
-   * Result of the post-install rebundle. Always `kind: 'bundled'` —
+   * Result of the post-install rebundle. Always `type: 'bundled'` —
    * every project (remote-only included) generates from its local
    * `bundle.js`, so install rebuilds it to pick up the newly
    * installed generator.

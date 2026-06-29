@@ -223,8 +223,8 @@ Deno.test("publishHeadless - missing version fails before any network call", asy
       token: "pat-123",
     });
 
-    assertEquals(result.kind, "failed");
-    if (result.kind !== "failed") throw new Error("expected a failed result");
+    assertEquals(result.type, "failed");
+    if (result.type !== "failed") throw new Error("expected a failed result");
     assertEquals(result.stage, "version");
     assertStringIncludes(
       result.reason,

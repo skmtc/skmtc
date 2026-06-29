@@ -2,7 +2,7 @@ import { toOasOperationProjectionBase } from '@skmtc/core'
 import type { OasOperationProjectionBaseConfig } from '@skmtc/core'
 import { KtSnippet } from './KtSnippet.ts'
 import { register, type KtRegisterArgs } from './register.ts'
-import type { KtLang } from './ktLang.ts'
+import type { KtIdentifierType } from './KtIdentifier.ts'
 
 /**
  * Build a Kotlin OAS operation projection base class — the first
@@ -25,11 +25,12 @@ import type { KtLang } from './ktLang.ts'
  * result).
  *
  * The config is core's `OasOperationProjectionBaseConfig` parameterized over
- * {@link KtLang} (so `toIdentifierType` returns `IdentifierType<KtLang>`). The
- * base is the factory's first argument, not a config field.
+ * {@link KtIdentifierType} (so `toIdentifierType` returns the `type` bound to
+ * `KtEntityType`). The base is the factory's first argument, not a config
+ * field.
  */
 export const toKtOasOperationProjectionBase = <EnrichmentType = undefined>(
-  config: OasOperationProjectionBaseConfig<EnrichmentType, KtLang>
+  config: OasOperationProjectionBaseConfig<EnrichmentType, KtIdentifierType>
 ) => {
   return class extends toOasOperationProjectionBase(KtSnippet, config) {
     /**

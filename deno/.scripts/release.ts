@@ -425,10 +425,10 @@ export const release = async (): Promise<void> => {
   console.log('\nRelease plan (dependency order):')
   for (const pkg of order) {
     const planned = plan.get(pkg.name) as PlannedRelease
-    const kind = pkg.version === planned.version
+    const type = pkg.version === planned.version
       ? 'direct'
       : `cascade ${pkg.version} -> ${planned.version}`
-    console.log(`  ${pkg.name}@${planned.version}  (${kind})`)
+    console.log(`  ${pkg.name}@${planned.version}  (${type})`)
   }
 
   console.log('\nApplying version + import updates...')

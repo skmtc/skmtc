@@ -60,7 +60,7 @@ class SpikeField extends TsSnippet {
 const SpikeModelBase = toTsModelProjectionBase({
   id: '@spike/gen-option2',
   toIdentifierName: ({ refName }) => `${refName}Spike`,
-  toIdentifierType: () => ({ kind: 'variable' }),
+  toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: () => '@/spike/models.generated.ts',
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })

@@ -74,7 +74,7 @@ Deno.test('validateConfig — model routing tags refName + variant, no method', 
 
 Deno.test('validateConfig — a model whose only variant is non-main is NOT mis-walked as an operation', () => {
   // The retired `'main' in value` heuristic would misclassify this (no `main`
-  // key) as an operation and drop it. With kind-driven routing it validates
+  // key) as an operation and drop it. With type-driven routing it validates
   // correctly as a model subject.
   const enrichments = {
     'gen-zod': { Customer: { coercive: { coerce: 'nope' } } }

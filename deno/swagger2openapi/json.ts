@@ -80,11 +80,11 @@ export const toJson = (value: unknown): JsonValue => {
   }
 }
 
-/** Reads a member from either container kind using a string key. */
+/** Reads a member from either container type using a string key. */
 export const getMember = (container: JsonContainer, key: string): JsonValue =>
   isJsonArray(container) ? container[Number(key)] : container[key]
 
-/** Writes a member to either container kind using a string key. */
+/** Writes a member to either container type using a string key. */
 export const setMember = (container: JsonContainer, key: string, value: JsonValue): void => {
   if (isJsonArray(container)) {
     container[Number(key)] = value

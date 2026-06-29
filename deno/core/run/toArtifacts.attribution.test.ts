@@ -20,7 +20,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 const ModelBase = toTsModelProjectionBase({
   id: '@test/gen-model',
   toIdentifierName: ({ refName }) => refName,
-  toIdentifierType: () => ({ kind: 'type' }),
+  toIdentifierType: () => ({ type: 'type' }),
   toExportPath: ({ refName }) => `@/types/${refName}.generated.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
@@ -179,7 +179,7 @@ Deno.test('toArtifacts - generatorMeta lookup flows through to sidecar entries',
         schemaSrc: 'openapi.json',
         generatorMeta: (genId) => ({
           version: genId === '@test/gen-model' ? '1.2.3' : '',
-          registry: { host: 'jsr.skmtc.dev', kind: 'jsr-private' }
+          registry: { host: 'jsr.skmtc.dev', type: 'jsr-private' }
         })
       }
     }
@@ -191,5 +191,5 @@ Deno.test('toArtifacts - generatorMeta lookup flows through to sidecar entries',
   const ourGen = sidecar.G.find(g => g.name === '@test/gen-model')
   assert(ourGen !== undefined)
   assertEquals(ourGen!.version, '1.2.3')
-  assertEquals(sidecar.R[ourGen!.r], { host: 'jsr.skmtc.dev', kind: 'jsr-private' })
+  assertEquals(sidecar.R[ourGen!.r], { host: 'jsr.skmtc.dev', type: 'jsr-private' })
 })

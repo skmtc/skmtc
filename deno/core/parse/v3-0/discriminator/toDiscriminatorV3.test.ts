@@ -124,7 +124,7 @@ Deno.test('toDiscriminatorV3', async (t) => {
         'typeB': '#/components/schemas/TypeB',
       }
       const discriminator: OpenAPIV3.DiscriminatorObject = {
-        propertyName: 'kind',
+        propertyName: 'type',
         mapping,
       }
       const result = toDiscriminatorV3({
@@ -249,7 +249,7 @@ Deno.test('toDiscriminatorV3', async (t) => {
   await t.step('field preservation', async (t) => {
     await t.step('should correctly extract propertyName field', () => {
       const stackTrail = new StackTrail(['TEST'])
-      const propertyNames = ['type', 'kind', 'discriminatorField', '@type', 'object_type']
+      const propertyNames = ['type', 'type', 'discriminatorField', '@type', 'object_type']
 
       propertyNames.forEach((name) => {
         const discriminator: OpenAPIV3.DiscriminatorObject = {

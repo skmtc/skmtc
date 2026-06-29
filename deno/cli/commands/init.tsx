@@ -110,7 +110,7 @@ export const printInitResult = (
       const payload = {
         ...result,
         nextStep:
-          result.kind === 'created'
+          result.type === 'created'
             ? `skmtc install <generators...> ${result.projectName}`
             : null
       }
@@ -118,7 +118,7 @@ export const printInitResult = (
       return
     }
     case 'text': {
-      switch (result.kind) {
+      switch (result.type) {
         case 'created': {
           console.log(`Initialized project "${result.projectName}" at .skmtc/${result.projectName}/`)
           console.log(`  basePath: ${result.basePath}`)

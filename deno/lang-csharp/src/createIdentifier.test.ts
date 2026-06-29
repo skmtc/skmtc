@@ -6,26 +6,26 @@ import {
   toCsKeyword
 } from './createIdentifier.ts'
 
-Deno.test('createRecord writes the record kind', () => {
+Deno.test('createRecord writes the record type', () => {
   const identifier = createRecord('User')
 
   assertEquals(identifier.name, 'User')
-  assertEquals(identifier.kind, 'record')
+  assertEquals(identifier.type, 'record')
   assertEquals(identifier.exported, true)
 })
 
-Deno.test('createAbstractRecord writes the abstract-record kind', () => {
+Deno.test('createAbstractRecord writes the abstract-record type', () => {
   const identifier = createAbstractRecord('Animal')
 
   assertEquals(identifier.name, 'Animal')
-  assertEquals(identifier.kind, 'abstract-record')
+  assertEquals(identifier.type, 'abstract-record')
 })
 
-Deno.test('createEnum writes the enum kind', () => {
+Deno.test('createEnum writes the enum type', () => {
   const identifier = createEnum('Status')
 
   assertEquals(identifier.name, 'Status')
-  assertEquals(identifier.kind, 'enum')
+  assertEquals(identifier.type, 'enum')
 })
 
 Deno.test('factories honor exported: false (renders internal downstream)', () => {
@@ -34,7 +34,7 @@ Deno.test('factories honor exported: false (renders internal downstream)', () =>
   assertEquals(identifier.exported, false)
 })
 
-Deno.test('toCsKeyword maps the vocabulary with the D3/D14/CC3 modifiers riding the kind', () => {
+Deno.test('toCsKeyword maps the vocabulary with the D3/D14/CC3 modifiers riding the type', () => {
   assertEquals(toCsKeyword('record'), 'sealed partial record')
   assertEquals(toCsKeyword('abstract-record'), 'abstract partial record')
   assertEquals(toCsKeyword('enum'), 'enum')
@@ -43,13 +43,13 @@ Deno.test('toCsKeyword maps the vocabulary with the D3/D14/CC3 modifiers riding 
 })
 
 Deno.test('toCsKeyword throws outside the vocabulary (foreign-language identifier; no alias/val kinds — the distinctive constraint)', () => {
-  assertThrows(() => toCsKeyword('variable'), Error, 'Unknown C# entity kind: variable')
-  assertThrows(() => toCsKeyword('data-class'), Error, 'Unknown C# entity kind: data-class')
-  assertThrows(() => toCsKeyword('typealias'), Error, 'Unknown C# entity kind')
-  assertThrows(() => toCsKeyword('val'), Error, 'Unknown C# entity kind')
+  assertThrows(() => toCsKeyword('variable'), Error, 'Unknown C# entity type: variable')
+  assertThrows(() => toCsKeyword('data-class'), Error, 'Unknown C# entity type: data-class')
+  assertThrows(() => toCsKeyword('typealias'), Error, 'Unknown C# entity type')
+  assertThrows(() => toCsKeyword('val'), Error, 'Unknown C# entity type')
 })
 
-Deno.test('toCsKeyword has no alias kind and no file-scope-value kind (the distinctive constraint)', () => {
-  assertThrows(() => toCsKeyword('typealias'), Error, 'Unknown C# entity kind')
-  assertThrows(() => toCsKeyword('val'), Error, 'Unknown C# entity kind')
+Deno.test('toCsKeyword has no alias type and no file-scope-value type (the distinctive constraint)', () => {
+  assertThrows(() => toCsKeyword('typealias'), Error, 'Unknown C# entity type')
+  assertThrows(() => toCsKeyword('val'), Error, 'Unknown C# entity type')
 })

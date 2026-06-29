@@ -16,7 +16,7 @@ import type { Stringable } from '@skmtc/core'
  * need no import, and cross-package supertypes are the caller's import
  * to register.
  *
- * Rendered for the `data-class` kind only in v1 (enum conformance and
+ * Rendered for the `data-class` type only in v1 (enum conformance and
  * sealed-extends-sealed arrive with a milestone that needs them).
  * Scratch-proved cast-free per the note-19 `KtAnnotated` precedent
  * (spec: `notes/lang/22-kotlin-sealed-oneof-architecture.md`).

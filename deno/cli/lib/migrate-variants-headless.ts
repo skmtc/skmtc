@@ -62,7 +62,7 @@ const wrapOperationEnrichments = (
     for (const [routingKey, byInner] of Object.entries(byPath as Record<string, unknown>)) {
       // Routing key shape decides whether this is an operation-keyed
       // entry. OAS uses a path starting with `/`; GraphQL uses a
-      // root-kind name (`query` / `mutation` / `subscription`).
+      // root-type name (`query` / `mutation` / `subscription`).
       const isOasPath = routingKey.startsWith('/')
       const isGqlRoot = GQL_ROOT_KINDS.has(routingKey)
       if (!isOasPath && !isGqlRoot) continue

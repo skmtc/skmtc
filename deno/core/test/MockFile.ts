@@ -3,7 +3,6 @@ import { DefinitionBase } from '@/dsl/Definition.ts'
 import type { FindDefinitionsQuery } from '@/dsl/CodeFileBase.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
-import type { Lang } from '@/dsl/Lang.ts'
 import type { ReExportBase } from '@/dsl/ReExportBase.ts'
 
 /**
@@ -25,14 +24,14 @@ export class MockDefinition<V extends GeneratedValue = GeneratedValue> extends D
  * A neutral {@link CodeFileBase} for core tests — a stand-in for a
  * `@skmtc/lang-*` package's file so core tests exercise engine, render, and
  * capture behavior WITHOUT naming a concrete lang File class. Bound to the
- * bare {@link Lang} (opaque-`string` kind), since the mock has no declaration
+ * bare {@link Lang} (opaque-`string` type), since the mock has no declaration
  * vocabulary; tests filter by name or list all, never by `type`.
  *
  * Lang-specific dedup/merge/render policy is tested in each lang package; this
  * mock keeps the simplest neutral behavior (name-keyed definitions, per-module
  * import/re-export merge, definitions joined by blank lines).
  */
-export class MockFile extends CodeFileBase<Lang> {
+export class MockFile extends CodeFileBase {
   definitions: Map<string, DefinitionBase> = new Map()
   imports: Map<string, ImportBase> = new Map()
   reExports: Map<string, ReExportBase> = new Map()
@@ -63,7 +62,7 @@ export class MockFile extends CodeFileBase<Lang> {
     }
   }
 
-  override findDefinitions(query?: FindDefinitionsQuery<Lang>): DefinitionBase[] | undefined {
+  override findDefinitions(query?: FindDefinitionsQuery): DefinitionBase[] | undefined {
     return matchDefinitions([...this.definitions.values()], query, () => undefined)
   }
 

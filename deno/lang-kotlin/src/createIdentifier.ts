@@ -1,7 +1,7 @@
 import { KtIdentifier } from './KtIdentifier.ts'
 
 /**
- * Kotlin's declaration-kind vocabulary — the typed `kind` this package
+ * Kotlin's declaration-type vocabulary — the typed `type` this package
  * writes onto its {@link KtIdentifier} and the discriminator its renderers
  * narrow against.
  *
@@ -22,13 +22,13 @@ import { KtIdentifier } from './KtIdentifier.ts'
  *   template files, where the identifier serves cache identity only —
  *   the gen-kotlin-sdk static-runtime idiom, note `32` §A5).
  *
- * Unlike TypeScript, the kind does NOT drive import form — every Kotlin
+ * Unlike TypeScript, the type does NOT drive import form — every Kotlin
  * import is `import pkg.Name`. It drives only the declaration shell.
  * Deferred kinds (`object`, `fun`, `var`, `const-val`) arrive with the
  * milestones that need them; {@link toKtKeyword} throwing on them is the
  * desired behavior until then.
  */
-export type KtEntityKind =
+export type KtEntityType =
   | 'class'
   | 'data-class'
   | 'enum-class'
@@ -68,7 +68,7 @@ export type CreateValueArgs = {
  * ```
  */
 export const createClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
-  return new KtIdentifier({ name, exported: args.exported, kind: 'class' })
+  return new KtIdentifier({ name, exported: args.exported, type: 'class' })
 }
 
 /**
@@ -81,7 +81,7 @@ export const createClass = (name: string, args: CreateKtIdentifierArgs = {}): Kt
  * ```
  */
 export const createDataClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
-  return new KtIdentifier({ name, exported: args.exported, kind: 'data-class' })
+  return new KtIdentifier({ name, exported: args.exported, type: 'data-class' })
 }
 
 /**
@@ -94,7 +94,7 @@ export const createDataClass = (name: string, args: CreateKtIdentifierArgs = {})
  * ```
  */
 export const createEnumClass = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
-  return new KtIdentifier({ name, exported: args.exported, kind: 'enum-class' })
+  return new KtIdentifier({ name, exported: args.exported, type: 'enum-class' })
 }
 
 /**
@@ -107,7 +107,7 @@ export const createEnumClass = (name: string, args: CreateKtIdentifierArgs = {})
  * ```
  */
 export const createInterface = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
-  return new KtIdentifier({ name, exported: args.exported, kind: 'interface' })
+  return new KtIdentifier({ name, exported: args.exported, type: 'interface' })
 }
 
 /**
@@ -123,7 +123,7 @@ export const createSealedInterface = (
   name: string,
   args: CreateKtIdentifierArgs = {}
 ): KtIdentifier => {
-  return new KtIdentifier({ name, exported: args.exported, kind: 'sealed-interface' })
+  return new KtIdentifier({ name, exported: args.exported, type: 'sealed-interface' })
 }
 
 /**
@@ -136,7 +136,7 @@ export const createSealedInterface = (
  * ```
  */
 export const createTypeAlias = (name: string, args: CreateKtIdentifierArgs = {}): KtIdentifier => {
-  return new KtIdentifier({ name, exported: args.exported, kind: 'typealias' })
+  return new KtIdentifier({ name, exported: args.exported, type: 'typealias' })
 }
 
 /**
@@ -158,7 +158,7 @@ export const createTypeAlias = (name: string, args: CreateKtIdentifierArgs = {})
 export const createValue = (name: string, args: CreateValueArgs = {}): KtIdentifier => {
   const { typeName, exported } = args
 
-  return new KtIdentifier({ name, typeName, exported, kind: 'val' })
+  return new KtIdentifier({ name, typeName, exported, type: 'val' })
 }
 
 /**
@@ -175,17 +175,17 @@ export const createValue = (name: string, args: CreateValueArgs = {}): KtIdentif
  * ```
  */
 export const createVerbatim = (name: string): KtIdentifier => {
-  return new KtIdentifier({ name, kind: 'verbatim' })
+  return new KtIdentifier({ name, type: 'verbatim' })
 }
 
 /**
- * Maps an identifier's opaque `kind` to its Kotlin declaration keyword.
- * Throws on a kind outside this language's vocabulary — a loud signal
- * that an identifier built for another language (or with a typo'd kind)
+ * Maps an identifier's opaque `type` to its Kotlin declaration keyword.
+ * Throws on a type outside this language's vocabulary — a loud signal
+ * that an identifier built for another language (or with a typo'd type)
  * reached the Kotlin renderer.
  */
-export const toKtKeyword = (kind: string): string => {
-  switch (kind) {
+export const toKtKeyword = (type: string): string => {
+  switch (type) {
     case 'class':
       return 'class'
     case 'data-class':
@@ -203,18 +203,18 @@ export const toKtKeyword = (kind: string): string => {
     case 'verbatim':
       return ''
     default:
-      throw new Error(`Unknown Kotlin entity kind: ${kind}`)
+      throw new Error(`Unknown Kotlin entity type: ${type}`)
   }
 }
 
 /**
- * Narrow the engine's opaque `kind: string` (from `Lang.toIdentifier`'s
- * neutral args) to this language's {@link KtEntityKind} — cast-free, via a
- * validating switch. Throws on a kind outside the vocabulary, the same loud
+ * Narrow the engine's opaque `type: string` (from `Lang.toIdentifier`'s
+ * neutral args) to this language's {@link KtEntityType} — cast-free, via a
+ * validating switch. Throws on a type outside the vocabulary, the same loud
  * signal {@link toKtKeyword} gives.
  */
-export const toKtEntityKind = (kind: string): KtEntityKind => {
-  switch (kind) {
+export const toKtEntityType = (type: string): KtEntityType => {
+  switch (type) {
     case 'class':
       return 'class'
     case 'data-class':
@@ -232,6 +232,6 @@ export const toKtEntityKind = (kind: string): KtEntityKind => {
     case 'verbatim':
       return 'verbatim'
     default:
-      throw new Error(`Unknown Kotlin entity kind: ${kind}`)
+      throw new Error(`Unknown Kotlin entity type: ${type}`)
   }
 }

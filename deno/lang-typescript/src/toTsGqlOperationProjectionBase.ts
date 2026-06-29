@@ -2,7 +2,7 @@ import { toGqlOperationProjectionBase } from '@skmtc/core'
 import type { GqlOperationProjectionBaseConfig } from '@skmtc/core'
 import { TsSnippet } from './TsSnippet.ts'
 import { register, type TsRegisterArgs } from './register.ts'
-import type { TsLang } from './tsLang.ts'
+import type { TsIdentifierType } from './TsIdentifier.ts'
 
 /**
  * Build a TypeScript GraphQL operation projection base class.
@@ -22,11 +22,12 @@ import type { TsLang } from './tsLang.ts'
  * result).
  *
  * The config is core's `GqlOperationProjectionBaseConfig` parameterized over
- * {@link TsLang} (so `toIdentifierType` returns `IdentifierType<TsLang>`). The
- * base is the factory's first argument, not a config field.
+ * {@link TsIdentifierType} (so `toIdentifierType`'s return tightens to the
+ * `type` bound to `TsEntityType`). The base is the factory's first argument,
+ * not a config field.
  */
 export const toTsGqlOperationProjectionBase = <EnrichmentType = undefined>(
-  config: GqlOperationProjectionBaseConfig<EnrichmentType, TsLang>
+  config: GqlOperationProjectionBaseConfig<EnrichmentType, TsIdentifierType>
 ) => {
   return class extends toGqlOperationProjectionBase(TsSnippet, config) {
     /**

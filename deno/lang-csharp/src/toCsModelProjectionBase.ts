@@ -2,7 +2,7 @@ import { toModelProjectionBase } from '@skmtc/core'
 import type { ModelProjectionBaseConfig } from '@skmtc/core'
 import { CsSnippet } from './CsSnippet.ts'
 import { register, type CsRegisterArgs } from './register.ts'
-import type { CsLang } from './csLang.ts'
+import type { CsIdentifierType } from './CsIdentifier.ts'
 
 /**
  * Build a C# model projection base class.
@@ -22,8 +22,8 @@ import type { CsLang } from './csLang.ts'
  * result).
  *
  * The config is core's `ModelProjectionBaseConfig` parameterized over
- * {@link CsLang} (so `toIdentifierType` returns `IdentifierType<CsLang>` — the
- * `kind` bound to `CsEntityKind`). The base is the factory's first argument,
+ * {@link CsIdentifierType} (so `toIdentifierType`'s return tightens to the
+ * `type` bound to `CsEntityType`). The base is the factory's first argument,
  * not a config field.
  *
  * Operation veneers (`toOasOperationProjectionBase`,
@@ -32,7 +32,7 @@ import type { CsLang } from './csLang.ts'
  * the Kotlin precedent.
  */
 export const toCsModelProjectionBase = <EnrichmentType = undefined>(
-  config: ModelProjectionBaseConfig<EnrichmentType, CsLang>
+  config: ModelProjectionBaseConfig<EnrichmentType, CsIdentifierType>
 ) => {
   return class extends toModelProjectionBase(CsSnippet, config) {
     /**

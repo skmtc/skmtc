@@ -6,17 +6,17 @@ import { isRsIdentifier } from './RsIdentifier.ts'
  * Rust rendering of a {@link DefinitionBase} — a `pub struct X { … }`,
  * `pub enum X { … }`, or `pub type X = …;` declaration.
  *
- * The forcing case for the per-language `RsIdentifier` `kind`. TypeScript's
+ * The forcing case for the per-language `RsIdentifier` `type`. TypeScript's
  * binary `entityType` (`const`/`type`) and Go's uniform `type` keyword both
  * let the `Definition` pick its keyword without extra metadata. Rust cannot:
  * `struct`, `enum`, and `type` alias are all *type* entities, so the
  * keyword is recoverable only from a per-language discriminant the
- * engine never interprets — `RsIdentifier.kind`.
+ * engine never interprets — `RsIdentifier.type`.
  *
  * Visibility comes from the neutral `exported` fact, rendered as Rust's
  * `pub` keyword (leaving the name untouched — unlike Go's casing).
  *
- * `kind` is a fixed {@link import('./RsIdentifier.ts').RsEntityKind} union,
+ * `type` is a fixed {@link import('./RsIdentifier.ts').RsEntityType} union,
  * so the switch has a real `default` (the `type`-alias fallback) rather
  * than a `never` exhaustiveness guard: the language package, not core, owns
  * the keyword vocabulary.
@@ -32,7 +32,7 @@ export class RsDefinition extends DefinitionBase {
     const vis = identifier.exported ? 'pub ' : ''
     const name = identifier.name
 
-    switch (identifier.kind) {
+    switch (identifier.type) {
       case 'struct':
         return `${vis}struct ${name} ${this.value}`
       case 'enum':

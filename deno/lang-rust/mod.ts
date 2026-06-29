@@ -10,14 +10,14 @@
  *     subclasses of the abstract bases in `@skmtc/core` — each renders
  *     itself in its own `toString()`
  *   - the `register` family (`register`, `defineAndRegister`)
- *   - this language's `EntityKind` vocabulary
+ *   - this language's `EntityType` vocabulary
  *   - `sanitizePropertyName` + identifier/casing/visibility rules
  *   - syntax helpers
  *
  * Status: **early spike.** `RsFile`/`RsDefinition`/`RsStruct`/`RsEnum`
  * prove the core `FileBase`/`DefinitionBase` seam reaches a language whose
  * declaration vocabulary (`struct`/`enum`/`type`) outgrows the binary
- * `EntityType` — the forcing case for the opaque `Identifier.kind`. Native
+ * `EntityType` — the forcing case for the opaque `Identifier.type`. Native
  * tagged enums exercise the `oneOf` distinctive constraint. Not yet wired
  * into the engine.
  */
@@ -30,6 +30,6 @@ export const fileExtensions = ['.rs'] as const
 
 export { RsFile, type RsFileArgs } from './src/RsFile.ts'
 export { RsDefinition } from './src/RsDefinition.ts'
-export { RsIdentifier, isRsIdentifier, type RsEntityKind } from './src/RsIdentifier.ts'
+export { RsIdentifier, isRsIdentifier, type RsEntityType } from './src/RsIdentifier.ts'
 export { RsStruct, type RsFieldArgs } from './src/RsStruct.ts'
 export { RsEnum, type RsVariantArgs } from './src/RsEnum.ts'

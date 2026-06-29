@@ -15,7 +15,7 @@ import type { Stringable } from '@skmtc/core'
  * Grammar only: the lang renders the clause; WHAT is injected is
  * generator policy.
  *
- * Read for the `class` kind only in v1 (`data-class` keeps its
+ * Read for the `class` type only in v1 (`data-class` keeps its
  * value-IS-the-parameter-list shape).
  */
 export type KtConstructed = {

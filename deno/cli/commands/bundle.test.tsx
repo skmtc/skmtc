@@ -55,7 +55,7 @@ Deno.test('printBundleResult - text format for bundled outcome', () => {
   console.log = (msg: string) => logs.push(msg)
   try {
     printBundleResult(
-      { kind: 'bundled', projectName: 'my-api', bundlePath: '/path/to/bundle.js' },
+      { type: 'bundled', projectName: 'my-api', bundlePath: '/path/to/bundle.js' },
       { format: 'text' }
     )
   } finally {
@@ -70,7 +70,7 @@ Deno.test('printBundleResult - json format emits the discriminated result', () =
   console.log = (msg: string) => logs.push(msg)
   try {
     printBundleResult(
-      { kind: 'bundled', projectName: 'my-api', bundlePath: '/path/to/bundle.js' },
+      { type: 'bundled', projectName: 'my-api', bundlePath: '/path/to/bundle.js' },
       { format: 'json' }
     )
   } finally {
@@ -78,7 +78,7 @@ Deno.test('printBundleResult - json format emits the discriminated result', () =
   }
   assertEquals(logs.length, 1)
   const parsed = JSON.parse(logs[0])
-  assertEquals(parsed.kind, 'bundled')
+  assertEquals(parsed.type, 'bundled')
   assertEquals(parsed.bundlePath, '/path/to/bundle.js')
   assertEquals(parsed.projectName, 'my-api')
 })

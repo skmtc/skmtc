@@ -48,7 +48,7 @@ const mockLogger: log.Logger = {
 const FormBase = toTsOasOperationProjectionBase({
   id: '@test/e2e-form',
   toIdentifierName: ({ variant }) => withVariant('PatchQuoteForm', variant),
-  toIdentifierType: () => ({ kind: 'variable' }),
+  toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: ({ variant }) =>
     `@/forms/${withVariant('PatchQuoteForm', variant)}.tsx`,
   toEnrichmentSchema: () => variantEnrichmentSchema

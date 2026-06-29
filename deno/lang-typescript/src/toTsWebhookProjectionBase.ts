@@ -2,7 +2,7 @@ import { toWebhookProjectionBase } from '@skmtc/core'
 import type { WebhookProjectionBaseConfig } from '@skmtc/core'
 import { TsSnippet } from './TsSnippet.ts'
 import { register, type TsRegisterArgs } from './register.ts'
-import type { TsLang } from './tsLang.ts'
+import type { TsIdentifierType } from './TsIdentifier.ts'
 
 /**
  * Build a TypeScript webhook projection base class.
@@ -23,11 +23,12 @@ import type { TsLang } from './tsLang.ts'
  * result).
  *
  * The config is core's `WebhookProjectionBaseConfig` parameterized over
- * {@link TsLang} (so `toIdentifierType` returns `IdentifierType<TsLang>`).
+ * {@link TsIdentifierType} (so `toIdentifierType`'s return tightens to the
+ * `type` bound to `TsEntityType`).
  * The base is the factory's first argument, not a config field.
  */
 export const toTsWebhookProjectionBase = <EnrichmentType = undefined>(
-  config: WebhookProjectionBaseConfig<EnrichmentType, TsLang>
+  config: WebhookProjectionBaseConfig<EnrichmentType, TsIdentifierType>
 ) => {
   return class extends toWebhookProjectionBase(TsSnippet, config) {
     /**

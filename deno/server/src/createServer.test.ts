@@ -141,7 +141,7 @@ Deno.test('POST /descriptors - returns one descriptor per generator', async () =
   const body = await res.json()
   assertEquals(body.descriptors.length, 1)
   assertEquals(body.descriptors[0].generator, 'modelGen')
-  assertEquals(body.descriptors[0].subjectKind, 'model')
+  assertEquals(body.descriptors[0].subjectType, 'model')
   // The `coerce` boolean maps to a `toggle` field.
   assertEquals(body.descriptors[0].fields[0].key, 'coerce')
   assertEquals(body.descriptors[0].fields[0].type, 'toggle')

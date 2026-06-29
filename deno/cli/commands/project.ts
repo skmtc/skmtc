@@ -114,7 +114,7 @@ export const renderProjectCreate = async ({
   });
 
   printCreateResult(result, { format: resolveOutputFormat({ jsonFlag }) });
-  Deno.exit(result.kind === "failed" ? 1 : 0);
+  Deno.exit(result.type === "failed" ? 1 : 0);
 };
 
 export const printCreateResult = (
@@ -125,7 +125,7 @@ export const printCreateResult = (
     console.log(JSON.stringify(result, null, 2));
     return;
   }
-  switch (result.kind) {
+  switch (result.type) {
     case "created": {
       console.log(`Created ${result.project.account}/${result.project.slug}`);
       console.log(`  origin: ${result.origin}`);
@@ -225,7 +225,7 @@ export const renderProjectRm = async ({
   });
 
   printRmResult(result, { format: resolveOutputFormat({ jsonFlag }) });
-  Deno.exit(result.kind === "failed" ? 1 : 0);
+  Deno.exit(result.type === "failed" ? 1 : 0);
 };
 
 export const printRmResult = (
@@ -236,7 +236,7 @@ export const printRmResult = (
     console.log(JSON.stringify(result, null, 2));
     return;
   }
-  switch (result.kind) {
+  switch (result.type) {
     case "removed": {
       console.log(
         result.existed

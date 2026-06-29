@@ -1,5 +1,5 @@
-import { SnippetBase, type GeneratedValue } from '@skmtc/core'
-import { csharp, type CsLang } from './csLang.ts'
+import { SnippetBase, type GeneratedValue, type Lang } from '@skmtc/core'
+import { csharp } from './csLang.ts'
 import {
   register,
   defineAndRegister,
@@ -29,12 +29,11 @@ import type { CsDefinition } from './CsDefinition.ts'
  */
 export class CsSnippet extends SnippetBase {
   /**
-   * The language every class built on this base renders into. Typed
-   * {@link CsLang} (not the loose `Lang`) so a projection-base veneer
-   * inferring `L` from `base: CsSnippet` lands on `CsLang` — the tightening
-   * that lets `toIdentifierType` return `IdentifierType<CsLang>`.
+   * The language every class built on this base renders into. The neutral
+   * {@link Lang} — the engine reads it language-blind; C#'s fixed `type`
+   * vocabulary lives on this package's concrete types, not here.
    */
-  static lang: CsLang = csharp
+  static lang: Lang = csharp
 
   /**
    * Register imports / definitions into the file at `destinationPath`,

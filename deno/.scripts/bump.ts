@@ -178,8 +178,8 @@ export const bump = async (): Promise<void> => {
   console.log(`Bump (${level}) + cascade:\n`)
   for (const pkg of order) {
     const planned = plan.get(pkg.name) as PlannedRelease
-    const kind = targets.has(pkg.name) ? level : 'cascade patch'
-    console.log(`  ${pkg.name}  ${pkg.version} -> ${planned.version}  (${kind})`)
+    const type = targets.has(pkg.name) ? level : 'cascade patch'
+    console.log(`  ${pkg.name}  ${pkg.version} -> ${planned.version}  (${type})`)
   }
 
   if (dryRun) {

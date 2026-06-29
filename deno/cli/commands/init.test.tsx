@@ -78,7 +78,7 @@ Deno.test('printInitResult - text format for created project', () => {
   console.log = (msg: string) => logs.push(msg)
   try {
     printInitResult(
-      { kind: 'created', projectName: 'my-api', basePath: './src' },
+      { type: 'created', projectName: 'my-api', basePath: './src' },
       { format: 'text' }
     )
   } finally {
@@ -94,7 +94,7 @@ Deno.test('printInitResult - text format for existing project (no-op)', () => {
   const original = console.log
   console.log = (msg: string) => logs.push(msg)
   try {
-    printInitResult({ kind: 'existed', projectName: 'my-api' }, { format: 'text' })
+    printInitResult({ type: 'existed', projectName: 'my-api' }, { format: 'text' })
   } finally {
     console.log = original
   }
@@ -111,7 +111,7 @@ Deno.test(
     console.log = (msg: string) => logs.push(msg)
     try {
       printInitResult(
-        { kind: 'created', projectName: 'my-api', basePath: './src' },
+        { type: 'created', projectName: 'my-api', basePath: './src' },
         { format: 'json' }
       )
     } finally {
@@ -119,7 +119,7 @@ Deno.test(
     }
     assertEquals(logs.length, 1)
     const parsed = JSON.parse(logs[0])
-    assertEquals(parsed.kind, 'created')
+    assertEquals(parsed.type, 'created')
     assertEquals(parsed.basePath, './src')
     assertEquals(parsed.nextStep, 'skmtc install <generators...> my-api')
   }
@@ -133,14 +133,14 @@ Deno.test(
     console.log = (msg: string) => logs.push(msg)
     try {
       printInitResult(
-        { kind: 'existed', projectName: 'my-api' },
+        { type: 'existed', projectName: 'my-api' },
         { format: 'json' }
       )
     } finally {
       console.log = original
     }
     const parsed = JSON.parse(logs[0])
-    assertEquals(parsed.kind, 'existed')
+    assertEquals(parsed.type, 'existed')
     assertEquals(parsed.nextStep, null)
   }
 )

@@ -9,7 +9,7 @@ import type {
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { Lang, LangSnippetConstructor } from '@/dsl/Lang.ts'
+import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -34,20 +34,21 @@ import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichme
  * Configuration for {@link toWebhookProjectionBase}.
  *
  * Sibling of `OasOperationProjectionBaseConfig` for the webhook subject.
- * Generic over the language `L`: a language veneer parameterizes this config
- * (`WebhookProjectionBaseConfig<E, KtLang>`) so `toIdentifierType`'s return
- * tightens to that language's `IdentifierType<L>` — no recast.
+ * Generic over the identifier-type shape `IdType`: a language veneer
+ * parameterizes this config with its own `XxIdentifierType`
+ * (`WebhookProjectionBaseConfig<E, KtIdentifierType>`) so `toIdentifierType`'s
+ * return tightens to that language's `type` vocabulary — no recast.
  */
-export type WebhookProjectionBaseConfig<EnrichmentType = undefined, L extends Lang = Lang> = {
+export type WebhookProjectionBaseConfig<EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType> = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
   toIdentifierName: (args: ToWebhookIdentifierNameArgs<EnrichmentType>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the webhook. Runs only on cache-miss. Returns this
-   * language's `IdentifierType<L>` (the loose `kind: string` when `L = Lang`).
+   * language's `XxIdentifierType` (`IdType`; the loose `type: string` by default).
    */
-  toIdentifierType: (webhook: OasWebhook, context: GenerateContextType) => IdentifierType<L>
+  toIdentifierType: (webhook: OasWebhook, context: GenerateContextType) => IdType
   toExportPath: (args: ToWebhookExportPathArgs<EnrichmentType>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
@@ -91,9 +92,9 @@ type ToEnrichmentsArgs = {
  * Defines NO `register` / `registerInto` — those live in the language
  * package's projection-base veneer over this factory.
  */
-export const toWebhookProjectionBase = <EnrichmentType = undefined, L extends Lang = Lang>(
-  base: LangSnippetConstructor<L>,
-  config: WebhookProjectionBaseConfig<EnrichmentType, L>
+export const toWebhookProjectionBase = <EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType>(
+  base: LangSnippetConstructor,
+  config: WebhookProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
   return class extends base {
     static id = config.id

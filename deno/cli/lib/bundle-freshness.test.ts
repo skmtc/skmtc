@@ -68,12 +68,12 @@ Deno.test('checkBundleFreshness - remote-only projects are checked like any othe
     })
 
     const beforeBundle = checkBundleFreshness({ projectName })
-    assertEquals(beforeBundle.kind, 'missing-worker')
+    assertEquals(beforeBundle.type, 'missing-worker')
 
     writeWorker(['@skmtc/gen-typescript', '@skmtc/gen-zod'])
 
     const afterBundle = checkBundleFreshness({ projectName })
-    assertEquals(afterBundle.kind, 'fresh')
+    assertEquals(afterBundle.type, 'fresh')
   })
 })
 
@@ -86,7 +86,7 @@ Deno.test('checkBundleFreshness - returns fresh when deno.json and worker.ts agr
     writeWorker(['@skmtc/gen-typescript', '@skmtc/gen-zod'])
 
     const result = checkBundleFreshness({ projectName })
-    assertEquals(result.kind, 'fresh')
+    assertEquals(result.type, 'fresh')
   })
 })
 
@@ -98,7 +98,7 @@ Deno.test('checkBundleFreshness - returns missing-worker when worker.ts absent',
     // No writeWorker call — confirms the missing-worker outcome.
 
     const result = checkBundleFreshness({ projectName })
-    assertEquals(result.kind, 'missing-worker')
+    assertEquals(result.type, 'missing-worker')
   })
 })
 
@@ -112,8 +112,8 @@ Deno.test('checkBundleFreshness - returns stale when deno.json adds a generator'
     writeWorker(['@skmtc/gen-typescript'])
 
     const result = checkBundleFreshness({ projectName })
-    assertEquals(result.kind, 'stale')
-    if (result.kind === 'stale') {
+    assertEquals(result.type, 'stale')
+    if (result.type === 'stale') {
       assertEquals(result.added, ['@skmtc/gen-shadcn-form'])
       assertEquals(result.removed, [])
     }
@@ -129,8 +129,8 @@ Deno.test('checkBundleFreshness - returns stale when deno.json removes a generat
     writeWorker(['@skmtc/gen-typescript', '@skmtc/gen-old'])
 
     const result = checkBundleFreshness({ projectName })
-    assertEquals(result.kind, 'stale')
-    if (result.kind === 'stale') {
+    assertEquals(result.type, 'stale')
+    if (result.type === 'stale') {
       assertEquals(result.added, [])
       assertEquals(result.removed, ['@skmtc/gen-old'])
     }
@@ -152,7 +152,7 @@ Deno.test(
       writeWorker(['@skmtc/gen-typescript'])
 
       const result = checkBundleFreshness({ projectName })
-      assertEquals(result.kind, 'fresh')
+      assertEquals(result.type, 'fresh')
     })
   }
 )

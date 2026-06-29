@@ -84,7 +84,7 @@ export const renderPublish = async ({
       version,
     });
     printPublishResult(result, { format: resolveOutputFormat({ jsonFlag }) });
-    Deno.exit(result.kind === "published" ? 0 : 1);
+    Deno.exit(result.type === "published" ? 0 : 1);
   }
 
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()));
@@ -123,7 +123,7 @@ export const printPublishResult = (
       return;
     }
     case "text": {
-      switch (result.kind) {
+      switch (result.type) {
         case "published": {
           console.log(
             `Published "${result.projectName}" → ${result.stack.account}/${result.stack.slug}@${result.version}`,

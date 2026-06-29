@@ -134,11 +134,11 @@ Deno.test('sealed-interface shell renders bodyless when the value is empty', () 
   const withBody = new KtDefinition({
     context,
     identifier: createSealedInterface('Animal'),
-    value: '    val kind: String'
+    value: '    val type: String'
   })
 
   assertEquals(bodyless.toString(), 'sealed interface Animal')
-  assertEquals(withBody.toString(), 'sealed interface Animal {\n    val kind: String\n}')
+  assertEquals(withBody.toString(), 'sealed interface Animal {\n    val type: String\n}')
 })
 
 Deno.test('typealias shell renders the assignment form', () => {
@@ -364,7 +364,7 @@ Deno.test('KtDocumented value supplies the KDoc; constructor description wins', 
   )
 })
 
-Deno.test('verbatim kind renders the value as-is — no shell, visibility, or annotations', () => {
+Deno.test('verbatim type renders the value as-is — no shell, visibility, or annotations', () => {
   const body =
     'internal fun add(a: Int, b: Int): Int = a + b\n\ninternal fun sub(a: Int, b: Int): Int = a - b'
 

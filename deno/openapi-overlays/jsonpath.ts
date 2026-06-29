@@ -30,10 +30,10 @@ export type PathMatch = {
 }
 
 type Selector =
-  | { kind: 'name'; name: string }
-  | { kind: 'wildcard' }
-  | { kind: 'union'; keys: Array<string | number> }
-  | { kind: 'filter'; predicate: (node: JsonValue) => boolean }
+  | { type: 'name'; name: string }
+  | { type: 'wildcard' }
+  | { type: 'union'; keys: Array<string | number> }
+  | { type: 'filter'; predicate: (node: JsonValue) => boolean }
 
 type Step = { descendant: boolean; selector: Selector }
 
@@ -47,7 +47,7 @@ function isObject(value: JsonValue): value is JsonObject {
 function applySelector(value: JsonValue, selector: Selector): PathMatch[] {
   const matches: PathMatch[] = []
 
-  switch (selector.kind) {
+  switch (selector.type) {
     case 'name': {
       if (isObject(value) && Object.prototype.hasOwnProperty.call(value, selector.name)) {
         matches.push({ value: value[selector.name], parent: value, parentProperty: selector.name })
@@ -163,7 +163,7 @@ function parsePath(expression: string): Step[] {
       steps.push({ descendant, selector: parseBracket(source.slice(i + 1, end)) })
       i = end + 1
     } else if (source[i] === '*') {
-      steps.push({ descendant, selector: { kind: 'wildcard' } })
+      steps.push({ descendant, selector: { type: 'wildcard' } })
       i += 1
     } else {
       const start = i
@@ -172,7 +172,7 @@ function parsePath(expression: string): Step[] {
       if (name === '') throw new Error(`Empty JSONPath segment in: ${expression}`)
       steps.push({
         descendant,
-        selector: name === '*' ? { kind: 'wildcard' } : { kind: 'name', name },
+        selector: name === '*' ? { type: 'wildcard' } : { type: 'name', name },
       })
     }
   }
@@ -203,18 +203,18 @@ function findBracketEnd(source: string, start: number): number {
 function parseBracket(inner: string): Selector {
   const trimmed = inner.trim()
 
-  if (trimmed === '*') return { kind: 'wildcard' }
+  if (trimmed === '*') return { type: 'wildcard' }
 
   if (trimmed.startsWith('?')) {
     const open = trimmed.indexOf('(')
     const close = trimmed.lastIndexOf(')')
     if (open === -1 || close <= open) throw new Error(`Malformed filter: ${inner}`)
-    return { kind: 'filter', predicate: compileFilter(trimmed.slice(open + 1, close)) }
+    return { type: 'filter', predicate: compileFilter(trimmed.slice(open + 1, close)) }
   }
 
   const keys = splitUnion(trimmed).map(parseKey)
   if (keys.length === 0) throw new Error(`Empty bracket selector: ${inner}`)
-  return { kind: 'union', keys }
+  return { type: 'union', keys }
 }
 
 /** Split a union body on commas that sit outside quotes. */

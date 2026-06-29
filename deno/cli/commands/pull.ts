@@ -98,7 +98,7 @@ export const renderPull = async ({
   });
 
   printPullResult(result, { format: resolveOutputFormat({ jsonFlag }) });
-  Deno.exit(result.kind === "failed" ? 1 : 0);
+  Deno.exit(result.type === "failed" ? 1 : 0);
 };
 
 type PrintPullResultOptions = {
@@ -115,7 +115,7 @@ export const printPullResult = (
       return;
     }
     case "text": {
-      switch (result.kind) {
+      switch (result.type) {
         case "pulled": {
           if (!result.changed) {
             console.log(

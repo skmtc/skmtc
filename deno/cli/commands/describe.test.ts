@@ -74,7 +74,7 @@ const baseResult: DescribeResult = {
   descriptors: [
     {
       generator: '@scope/gen-x',
-      subjectKind: 'model',
+      subjectType: 'model',
       supportsVariant: false,
       fields: [{ key: 'title', label: 'Title', optional: false, type: 'text' }]
     }
@@ -97,7 +97,7 @@ Deno.test('printDescribeResult - text appends ", variants" only when the entry s
   const withVariant: DescribeResult = {
     ...baseResult,
     descriptors: [
-      { generator: '@scope/gen-x', subjectKind: 'operation', supportsVariant: true, fields: [] }
+      { generator: '@scope/gen-x', subjectType: 'operation', supportsVariant: true, fields: [] }
     ]
   }
   const variantLogs = captureLogs(() => printDescribeResult(withVariant, { format: 'text' }))

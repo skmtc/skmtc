@@ -101,7 +101,7 @@ const createMockProjection = (options?: {
     }
 
     static toIdentifierType(): IdentifierType {
-      return { kind: 'variable' }
+      return { type: 'variable' }
     }
 
     static toExportPath({ operation }: ToOasOperationExportPathArgs): string {
@@ -530,7 +530,7 @@ Deno.test('OasOperationDriver', async t => {
         static lang = typescript
         static toIdentifierName = ({ operation }: ToOasOperationIdentifierNameArgs) =>
           operation.operationId ?? 'op'
-        static toIdentifierType = (): IdentifierType => ({ kind: 'variable' })
+        static toIdentifierType = (): IdentifierType => ({ type: 'variable' })
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
@@ -686,7 +686,7 @@ Deno.test('OasOperationDriver', async t => {
         static lang = typescript
         static toIdentifierName = ({ operation }: ToOasOperationIdentifierNameArgs) =>
           operation.operationId ?? 'op'
-        static toIdentifierType = (): IdentifierType => ({ kind: 'variable' })
+        static toIdentifierType = (): IdentifierType => ({ type: 'variable' })
         static toExportPath = (_args: ToOasOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)

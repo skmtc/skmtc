@@ -84,7 +84,7 @@ export const buildSidecar = ({
   const internRegistry = (() => {
     const cache = new Map<string, number>()
     return (entry: RegistryEntry): number => {
-      const key = `${entry.kind}|${entry.host}`
+      const key = `${entry.type}|${entry.host}`
       const hit = cache.get(key)
       if (hit !== undefined) return hit
       const idx = sidecar.R.length

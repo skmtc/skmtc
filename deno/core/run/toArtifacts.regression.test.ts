@@ -57,7 +57,7 @@ const variantEnrichmentSchema = v.object({
 const HookBase = toTsOasOperationProjectionBase({
   id: '@test/hook-gen',
   toIdentifierName: () => 'usePatchQuote',
-  toIdentifierType: () => ({ kind: 'variable' }),
+  toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: () => '@/hooks/usePatchQuote.generated.ts',
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
@@ -75,7 +75,7 @@ class HookProjection extends HookBase {
 const FormBase = toTsOasOperationProjectionBase({
   id: '@test/form-gen',
   toIdentifierName: ({ variant }) => withVariant('PatchQuoteForm', variant),
-  toIdentifierType: () => ({ kind: 'variable' }),
+  toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: ({ variant }) =>
     `@/forms/${withVariant('PatchQuoteForm', variant)}.generated.tsx`,
   toEnrichmentSchema: () => variantEnrichmentSchema

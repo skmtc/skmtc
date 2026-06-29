@@ -66,7 +66,7 @@ Deno.test('printInstallResult - text format reports installed ids + verify hint'
         // Remote-only projects rebundle like any other: generate
         // loads the project-local bundle.js.
         bundle: {
-          kind: 'bundled',
+          type: 'bundled',
           projectName: 'my-api',
           bundlePath: '.skmtc/my-api/bundle.js'
         }
@@ -97,7 +97,7 @@ Deno.test('printInstallResult - text format reports rebundle when project has a 
         // Hybrid project (had a clone, now adding a remote): the post-
         // install rebundle picks up the new cross-generator import.
         bundle: {
-          kind: 'bundled',
+          type: 'bundled',
           projectName: 'my-api',
           bundlePath: '.skmtc/my-api/bundle.js'
         }
@@ -125,7 +125,7 @@ Deno.test('printInstallResult - json format emits a parseable object with verify
         projectName: 'my-api',
         installed: ['@skmtc/gen-zod'],
         bundle: {
-          kind: 'bundled',
+          type: 'bundled',
           projectName: 'my-api',
           bundlePath: '.skmtc/my-api/bundle.js'
         }
@@ -139,7 +139,7 @@ Deno.test('printInstallResult - json format emits a parseable object with verify
   const parsed: InstallHeadlessResult & { verifyWith: string } = JSON.parse(logs[0])
   assertEquals(parsed.projectName, 'my-api')
   assertEquals(parsed.installed, ['@skmtc/gen-zod'])
-  assertEquals(parsed.bundle.kind, 'bundled')
+  assertEquals(parsed.bundle.type, 'bundled')
   assertEquals(parsed.verifyWith, 'cat .skmtc/my-api/deno.json')
 })
 

@@ -1,10 +1,9 @@
 import { assertEquals } from '@std/assert/equals'
-import { assert } from '@std/assert/assert'
-import { createType, createVariable, isTsIdentifier } from '@skmtc/lang-typescript'
+import { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 
 Deno.test('ContentSettings - creates settings with enrichments', () => {
-  const identifier = createType('User')
+  const identifier = new IdentifierBase({ name: 'User' })
   const enrichments = { validateRequired: true, generateComments: false }
 
   const settings = new ContentSettings({
@@ -20,7 +19,7 @@ Deno.test('ContentSettings - creates settings with enrichments', () => {
 })
 
 Deno.test('ContentSettings.empty - creates settings without enrichments', () => {
-  const identifier = createType('Product')
+  const identifier = new IdentifierBase({ name: 'Product' })
 
   const settings = ContentSettings.empty({
     identifier,
@@ -33,7 +32,7 @@ Deno.test('ContentSettings.empty - creates settings without enrichments', () => 
 })
 
 Deno.test('ContentSettings - stores identifier properties', () => {
-  const identifier = createVariable('apiClient', { typeName: 'ApiClient' })
+  const identifier = new IdentifierBase({ name: 'apiClient', typeName: 'ApiClient' })
 
   const settings = new ContentSettings({
     identifier,
@@ -42,10 +41,8 @@ Deno.test('ContentSettings - stores identifier properties', () => {
     variant: 'main'
   })
 
+  // Only the neutral identifier facts belong in a core test; the typed `type`
+  // is a lang concern, exercised in each `@skmtc/lang-*` package's own tests.
   assertEquals(settings.identifier.name, 'apiClient')
   assertEquals(settings.identifier.typeName, 'ApiClient')
-  // The engine holds the identifier as the neutral `IdentifierBase`; narrow
-  // to `TsIdentifier` cast-free to read the typed `kind`.
-  assert(isTsIdentifier(settings.identifier))
-  assertEquals(settings.identifier.kind, 'variable')
 })

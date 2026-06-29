@@ -6,10 +6,10 @@ import {
   createInterface,
   createNamespace,
   toTsKeyword,
-  toTsEntityKind,
-  isTsEntityKind,
-  isBlockKind,
-  isTypeOnlyKind
+  toTsEntityType,
+  isTsEntityType,
+  isBlockType,
+  isTypeOnly
 } from './createIdentifier.ts'
 
 Deno.test('createVariable - creates untyped variable', () => {
@@ -17,7 +17,7 @@ Deno.test('createVariable - creates untyped variable', () => {
 
   assertEquals(identifier.name, 'userName')
   assertEquals(identifier.typeName, undefined)
-  assertEquals(identifier.kind, 'variable')
+  assertEquals(identifier.type, 'variable')
   assertEquals(identifier.exported, true)
   assertEquals(identifier.toString(), 'userName')
 })
@@ -26,7 +26,7 @@ Deno.test('createVariable - creates typed variable', () => {
   const identifier = createVariable('userId', { typeName: 'string' })
 
   assertEquals(identifier.typeName, 'string')
-  assertEquals(identifier.kind, 'variable')
+  assertEquals(identifier.type, 'variable')
 })
 
 Deno.test('createVariable - exported can be switched off', () => {
@@ -40,7 +40,7 @@ Deno.test('createType - creates type identifier', () => {
 
   assertEquals(identifier.name, 'User')
   assertEquals(identifier.typeName, undefined)
-  assertEquals(identifier.kind, 'type')
+  assertEquals(identifier.type, 'type')
   assertEquals(identifier.toString(), 'User')
 })
 
@@ -48,7 +48,7 @@ Deno.test('createClass - creates class identifier', () => {
   const identifier = createClass('Models')
 
   assertEquals(identifier.name, 'Models')
-  assertEquals(identifier.kind, 'class')
+  assertEquals(identifier.type, 'class')
   assertEquals(identifier.exported, true)
   assertEquals(identifier.toString(), 'Models')
 })
@@ -57,17 +57,17 @@ Deno.test('createInterface - creates interface identifier', () => {
   const identifier = createInterface('Model')
 
   assertEquals(identifier.name, 'Model')
-  assertEquals(identifier.kind, 'interface')
+  assertEquals(identifier.type, 'interface')
 })
 
 Deno.test('createNamespace - creates namespace identifier', () => {
   const identifier = createNamespace('Models')
 
   assertEquals(identifier.name, 'Models')
-  assertEquals(identifier.kind, 'namespace')
+  assertEquals(identifier.type, 'namespace')
 })
 
-Deno.test('toTsKeyword - maps the TypeScript kind vocabulary', () => {
+Deno.test('toTsKeyword - maps the TypeScript type vocabulary', () => {
   assertEquals(toTsKeyword('variable'), 'const')
   assertEquals(toTsKeyword('type'), 'type')
   assertEquals(toTsKeyword('class'), 'class')
@@ -75,37 +75,37 @@ Deno.test('toTsKeyword - maps the TypeScript kind vocabulary', () => {
   assertEquals(toTsKeyword('namespace'), 'declare namespace')
 })
 
-Deno.test('toTsKeyword - throws on a kind outside the vocabulary', () => {
-  assertThrows(() => toTsKeyword('struct'), Error, 'Unknown TypeScript entity kind')
+Deno.test('toTsKeyword - throws on a type outside the vocabulary', () => {
+  assertThrows(() => toTsKeyword('struct'), Error, 'Unknown TypeScript entity type')
 })
 
-Deno.test('isTsEntityKind - guards the TypeScript kind vocabulary', () => {
-  assertEquals(isTsEntityKind('class'), true)
-  assertEquals(isTsEntityKind('namespace'), true)
-  assertEquals(isTsEntityKind('struct'), false)
+Deno.test('isTsEntityType - guards the TypeScript type vocabulary', () => {
+  assertEquals(isTsEntityType('class'), true)
+  assertEquals(isTsEntityType('namespace'), true)
+  assertEquals(isTsEntityType('struct'), false)
 })
 
-Deno.test('toTsEntityKind - narrows every TypeScript kind', () => {
-  assertEquals(toTsEntityKind('variable'), 'variable')
-  assertEquals(toTsEntityKind('type'), 'type')
-  assertEquals(toTsEntityKind('class'), 'class')
-  assertEquals(toTsEntityKind('interface'), 'interface')
-  assertEquals(toTsEntityKind('namespace'), 'namespace')
-  assertThrows(() => toTsEntityKind('struct'), Error, 'Unknown TypeScript entity kind')
+Deno.test('toTsEntityType - narrows every TypeScript type', () => {
+  assertEquals(toTsEntityType('variable'), 'variable')
+  assertEquals(toTsEntityType('type'), 'type')
+  assertEquals(toTsEntityType('class'), 'class')
+  assertEquals(toTsEntityType('interface'), 'interface')
+  assertEquals(toTsEntityType('namespace'), 'namespace')
+  assertThrows(() => toTsEntityType('struct'), Error, 'Unknown TypeScript entity type')
 })
 
-Deno.test('isBlockKind - class / interface / namespace render block-form', () => {
-  assertEquals(isBlockKind('class'), true)
-  assertEquals(isBlockKind('interface'), true)
-  assertEquals(isBlockKind('namespace'), true)
-  assertEquals(isBlockKind('variable'), false)
-  assertEquals(isBlockKind('type'), false)
+Deno.test('isBlockType - class / interface / namespace render block-form', () => {
+  assertEquals(isBlockType('class'), true)
+  assertEquals(isBlockType('interface'), true)
+  assertEquals(isBlockType('namespace'), true)
+  assertEquals(isBlockType('variable'), false)
+  assertEquals(isBlockType('type'), false)
 })
 
-Deno.test('isTypeOnlyKind - type and interface import type-only', () => {
-  assertEquals(isTypeOnlyKind('type'), true)
-  assertEquals(isTypeOnlyKind('interface'), true)
-  assertEquals(isTypeOnlyKind('variable'), false)
-  assertEquals(isTypeOnlyKind('class'), false)
-  assertEquals(isTypeOnlyKind('namespace'), false)
+Deno.test('isTypeOnly - type and interface import type-only', () => {
+  assertEquals(isTypeOnly('type'), true)
+  assertEquals(isTypeOnly('interface'), true)
+  assertEquals(isTypeOnly('variable'), false)
+  assertEquals(isTypeOnly('class'), false)
+  assertEquals(isTypeOnly('namespace'), false)
 })

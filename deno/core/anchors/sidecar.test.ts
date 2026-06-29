@@ -22,7 +22,7 @@ const anchor = (overrides: Partial<ResolvedAnchor> = {}): ResolvedAnchor => ({
   landmark: 'User',
   path: [0],
   generatorVersion: '0.0.55',
-  registry: { host: 'jsr.io', kind: 'jsr' },
+  registry: { host: 'jsr.io', type: 'jsr' },
   ...overrides
 })
 
@@ -83,12 +83,12 @@ Deno.test('buildSidecar - repeat string values reuse pool indices', () => {
 Deno.test('buildSidecar - distinct registries pool independently and gi references ri', () => {
   const a1 = anchor({
     landmark: 'A',
-    registry: { host: 'jsr.io', kind: 'jsr' },
+    registry: { host: 'jsr.io', type: 'jsr' },
     attribution: { generatorId: '@public/gen', schemaPointer: 'oas:#/components/schemas/A', variant: 'main', definitionName: 'A', producerName: 'GenA' }
   })
   const a2 = anchor({
     landmark: 'B',
-    registry: { host: 'jsr.skmtc.dev', kind: 'jsr-private' },
+    registry: { host: 'jsr.skmtc.dev', type: 'jsr-private' },
     attribution: { generatorId: '@private/gen', schemaPointer: 'oas:#/components/schemas/B', variant: 'main', definitionName: 'B', producerName: 'GenB' }
   })
 

@@ -78,7 +78,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should handle discriminator for tagged unions', () => {
       const discriminator = new OasDiscriminator({
-        propertyName: 'kind',
+        propertyName: 'type',
         mapping: {
           'typeA': '#/components/schemas/TypeA',
           'typeB': '#/components/schemas/TypeB',
@@ -91,7 +91,7 @@ Deno.test('OasUnion', async (t) => {
       })
 
       assertEquals(union.discriminator, discriminator)
-      assertEquals(union.discriminator?.propertyName, 'kind')
+      assertEquals(union.discriminator?.propertyName, 'type')
       assertEquals(union.discriminator?.mapping?.['typeA'], '#/components/schemas/TypeA')
     })
 
@@ -195,7 +195,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should maintain all properties after resolve', () => {
       const discriminator = new OasDiscriminator({
-        propertyName: 'kind',
+        propertyName: 'type',
         mapping: { 'a': '#/a', 'b': '#/b' },
       })
 
@@ -505,7 +505,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should handle discriminator with mapping', () => {
       const discriminator = new OasDiscriminator({
-        propertyName: 'kind',
+        propertyName: 'type',
         mapping: {
           'user': '#/components/schemas/User',
           'admin': '#/components/schemas/Admin',
@@ -518,7 +518,7 @@ Deno.test('OasUnion', async (t) => {
         members: [new OasObject(), new OasObject(), new OasObject()],
       })
 
-      assertEquals(union.discriminator?.propertyName, 'kind')
+      assertEquals(union.discriminator?.propertyName, 'type')
       assertEquals(union.discriminator?.mapping?.['user'], '#/components/schemas/User')
       assertEquals(union.discriminator?.mapping?.['admin'], '#/components/schemas/Admin')
       assertEquals(union.discriminator?.mapping?.['guest'], '#/components/schemas/Guest')

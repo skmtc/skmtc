@@ -7,7 +7,7 @@ import type {
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { Lang, LangSnippetConstructor } from '@/dsl/Lang.ts'
+import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -47,24 +47,27 @@ type ToEnrichmentsArgs = {
 /**
  * Configuration for {@link toModelProjectionBase}.
  *
- * Generic over the language `L`: a language veneer parameterizes this config
- * (`ModelProjectionBaseConfig<E, KtLang>`) so `toIdentifierType`'s return
- * tightens to that language's `IdentifierType<L>` — no recast. A bare
- * config (`L = Lang`) keeps the loose `kind: string` boundary.
+ * Generic over the identifier-type shape `IdType`: a language veneer
+ * parameterizes this config with its own `XxIdentifierType`
+ * (`ModelProjectionBaseConfig<E, KtIdentifierType>`) so `toIdentifierType`'s
+ * return tightens to that language's `type` vocabulary — no recast. The
+ * default keeps the loose `type: string` boundary.
  */
-export type ModelProjectionBaseConfig<EnrichmentType = undefined, L extends Lang = Lang> = {
+export type ModelProjectionBaseConfig<
+  EnrichmentType = undefined,
+  IdType extends IdentifierType = IdentifierType
+> = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
   toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier
-   * (`kind` / `typeName` / `exported`), derived from the schema. Runs only
-   * on cache-miss. Returns this language's `IdentifierType<L>` — the `kind`
-   * is bound to `L`'s `EntityKind` vocabulary (the loose `string` when
-   * `L = Lang`). The tightening rides the type argument, replacing the old
-   * veneer recast.
+   * (`type` / `typeName` / `exported`), derived from the schema. Runs only
+   * on cache-miss. Returns `IdType` — the veneer's `XxIdentifierType`, whose
+   * `type` is bound to that language's `EntityType` vocabulary (the loose
+   * `string` by default). The tightening rides the type argument.
    */
-  toIdentifierType: (refName: RefName, context: GenerateContextType) => IdentifierType<L>
+  toIdentifierType: (refName: RefName, context: GenerateContextType) => IdType
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
@@ -110,9 +113,12 @@ export type ModelProjectionBaseConfig<EnrichmentType = undefined, L extends Lang
  * The projection machinery previously hosted on `ModelProjectionBase` lives
  * here now, because the base class is no longer statically known.
  */
-export const toModelProjectionBase = <EnrichmentType = undefined, L extends Lang = Lang>(
-  base: LangSnippetConstructor<L>,
-  config: ModelProjectionBaseConfig<EnrichmentType, L>
+export const toModelProjectionBase = <
+  EnrichmentType = undefined,
+  IdType extends IdentifierType = IdentifierType
+>(
+  base: LangSnippetConstructor,
+  config: ModelProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
   return class extends base {
     static id = config.id

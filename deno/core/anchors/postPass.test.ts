@@ -167,12 +167,12 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
     parser: oxcAdapter,
     generatorMeta: generatorId => ({
       version: generatorId === '@scope/gen-zod' ? '1.2.3' : '',
-      registry: { host: 'jsr.skmtc.dev', kind: 'jsr-private' }
+      registry: { host: 'jsr.skmtc.dev', type: 'jsr-private' }
     })
   })
 
   assert(sidecar.G.some(g => g.name === '@scope/gen-zod' && g.version === '1.2.3'))
-  assert(sidecar.R.some(r => r.host === 'jsr.skmtc.dev' && r.kind === 'jsr-private'))
+  assert(sidecar.R.some(r => r.host === 'jsr.skmtc.dev' && r.type === 'jsr-private'))
 })
 
 Deno.test('postPass - anchor bytes survive a slice through the rendered source', () => {

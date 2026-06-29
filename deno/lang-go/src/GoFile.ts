@@ -1,6 +1,7 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import type { DefinitionBase, ImportBase, ReExportBase, Lang, FindDefinitionsQuery } from '@skmtc/core'
+import type { DefinitionBase, ImportBase, ReExportBase } from '@skmtc/core'
 import { GoIdentifier } from './GoIdentifier.ts'
+import type { GoEntityType } from './GoIdentifier.ts'
 
 /** Constructor arguments for {@link GoFile}. */
 export type GoFileArgs = {
@@ -22,7 +23,7 @@ export type GoFileArgs = {
  * but not yet wired (no Go generator registers imports). `use`-style
  * imports land as the seam matures.
  */
-export class GoFile extends CodeFileBase<Lang<GoIdentifier>> {
+export class GoFile extends CodeFileBase {
   packageName: string
 
   /** Definitions keyed by identifier name (first write wins). */
@@ -48,12 +49,12 @@ export class GoFile extends CodeFileBase<Lang<GoIdentifier>> {
   }
 
   override findDefinitions(
-    query?: FindDefinitionsQuery<Lang<GoIdentifier>>
+    query?: { name?: string; type?: GoEntityType }
   ): DefinitionBase[] | undefined {
     return matchDefinitions(
       [...this.definitions.values()],
       query,
-      identifier => (identifier instanceof GoIdentifier ? identifier.kind : undefined)
+      identifier => (identifier instanceof GoIdentifier ? identifier.type : undefined)
     )
   }
 

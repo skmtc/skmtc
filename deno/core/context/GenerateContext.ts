@@ -1434,7 +1434,7 @@ export class GenerateContext implements GenerateContextType {
   /**
    * Build content settings for a model projection by calling its statics
    * `toIdentifierName` (pure, for the name) + `toIdentifierType`
-   * (context-aware, for kind/typeName/exported), `toExportPath`, and
+   * (context-aware, for type/typeName/exported), `toExportPath`, and
    * `toEnrichments` against the given `refName` and `variant`. The full
    * identifier is assembled through the projection's language
    * (`lang.toIdentifier`).

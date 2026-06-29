@@ -1,7 +1,7 @@
 import { TsIdentifier } from './TsIdentifier.ts'
 
 /**
- * TypeScript's declaration-kind vocabulary — the typed `kind` this package
+ * TypeScript's declaration-type vocabulary — the typed `type` this package
  * writes onto its {@link TsIdentifier} and the discriminator its renderers
  * narrow against.
  *
@@ -13,7 +13,7 @@ import { TsIdentifier } from './TsIdentifier.ts'
  *
  * **Block-form** kinds render `export <kw> Name <value>` — the value carries
  * any heritage and the braced body, with no `= …` and no trailing `;` (see
- * {@link isBlockKind}):
+ * {@link isBlockType}):
  * - `'class'` — value entity declared with `class`; plain import.
  * - `'interface'` — type-level entity declared with `interface`; type-only
  *   import (like `'type'`).
@@ -22,10 +22,10 @@ import { TsIdentifier } from './TsIdentifier.ts'
  *   Stainless-style SDK layout emits.
  *
  * (Formerly core's `EntityTypeValue` — moved here under F5/F6: each
- * language package owns its kind vocabulary; core's `IdentifierBase` no
- * longer carries a `kind` at all.)
+ * language package owns its type vocabulary; core's `IdentifierBase` no
+ * longer carries a `type` at all.)
  */
-export type TsEntityKind = 'variable' | 'type' | 'class' | 'interface' | 'namespace'
+export type TsEntityType = 'variable' | 'type' | 'class' | 'interface' | 'namespace'
 
 /**
  * Options for {@link createVariable} — every field optional, so the
@@ -55,7 +55,7 @@ export type CreateTypeArgs = {
  * ```typescript
  * const count = createVariable('count');
  * console.log(count.name); // 'count'
- * console.log(count.kind); // 'variable'
+ * console.log(count.type); // 'variable'
  * ```
  *
  * @example Typed variable
@@ -67,7 +67,7 @@ export type CreateTypeArgs = {
 export const createVariable = (name: string, args: CreateVariableArgs = {}): TsIdentifier => {
   const { typeName, exported } = args
 
-  return new TsIdentifier({ name, typeName, exported, kind: 'variable' })
+  return new TsIdentifier({ name, typeName, exported, type: 'variable' })
 }
 
 /**
@@ -83,7 +83,7 @@ export const createVariable = (name: string, args: CreateVariableArgs = {}): TsI
 export const createType = (name: string, args: CreateTypeArgs = {}): TsIdentifier => {
   const { exported } = args
 
-  return new TsIdentifier({ name, exported, kind: 'type' })
+  return new TsIdentifier({ name, exported, type: 'type' })
 }
 
 /**
@@ -111,7 +111,7 @@ export type CreateDeclarationArgs = {
 export const createClass = (name: string, args: CreateDeclarationArgs = {}): TsIdentifier => {
   const { exported } = args
 
-  return new TsIdentifier({ name, exported, kind: 'class' })
+  return new TsIdentifier({ name, exported, type: 'class' })
 }
 
 /**
@@ -128,7 +128,7 @@ export const createClass = (name: string, args: CreateDeclarationArgs = {}): TsI
 export const createInterface = (name: string, args: CreateDeclarationArgs = {}): TsIdentifier => {
   const { exported } = args
 
-  return new TsIdentifier({ name, exported, kind: 'interface' })
+  return new TsIdentifier({ name, exported, type: 'interface' })
 }
 
 /**
@@ -146,14 +146,14 @@ export const createInterface = (name: string, args: CreateDeclarationArgs = {}):
 export const createNamespace = (name: string, args: CreateDeclarationArgs = {}): TsIdentifier => {
   const { exported } = args
 
-  return new TsIdentifier({ name, exported, kind: 'namespace' })
+  return new TsIdentifier({ name, exported, type: 'namespace' })
 }
 
 /**
  * Single source of truth for the TypeScript declaration vocabulary — each
- * {@link TsEntityKind} mapped to the keyword it renders with. `satisfies`
- * makes coverage exhaustive at compile time: a kind added to
- * {@link TsEntityKind} without a keyword here is a type error, not a
+ * {@link TsEntityType} mapped to the keyword it renders with. `satisfies`
+ * makes coverage exhaustive at compile time: a type added to
+ * {@link TsEntityType} without a keyword here is a type error, not a
  * runtime surprise.
  */
 const tsDeclarationKeywords = {
@@ -162,50 +162,50 @@ const tsDeclarationKeywords = {
   class: 'class',
   interface: 'interface',
   namespace: 'declare namespace'
-} as const satisfies Record<TsEntityKind, string>
+} as const satisfies Record<TsEntityType, string>
 
 /**
- * Type guard — whether an opaque `kind` string is one this language knows.
+ * Type guard — whether an opaque `type` string is one this language knows.
  */
-export const isTsEntityKind = (kind: string): kind is TsEntityKind =>
-  Object.hasOwn(tsDeclarationKeywords, kind)
+export const isTsEntityType = (type: string): type is TsEntityType =>
+  Object.hasOwn(tsDeclarationKeywords, type)
 
 /**
- * Narrow the engine's opaque `kind: string` (from `Lang.toIdentifier`'s
- * neutral args) to this language's {@link TsEntityKind} — cast-free, via
- * {@link isTsEntityKind}. Throws on a kind outside the vocabulary, a loud
+ * Narrow the engine's opaque `type: string` (from `Lang.toIdentifier`'s
+ * neutral args) to this language's {@link TsEntityType} — cast-free, via
+ * {@link isTsEntityType}. Throws on a type outside the vocabulary, a loud
  * signal that an identifier built for another language (or with a typo'd
- * kind) reached the TypeScript renderer.
+ * type) reached the TypeScript renderer.
  */
-export const toTsEntityKind = (kind: string): TsEntityKind => {
-  if (!isTsEntityKind(kind)) {
-    throw new Error(`Unknown TypeScript entity kind: ${kind}`)
+export const toTsEntityType = (type: string): TsEntityType => {
+  if (!isTsEntityType(type)) {
+    throw new Error(`Unknown TypeScript entity type: ${type}`)
   }
 
-  return kind
+  return type
 }
 
 /**
- * Maps an identifier's opaque `kind` to its TypeScript declaration keyword
+ * Maps an identifier's opaque `type` to its TypeScript declaration keyword
  * (`'variable'` → `const`, `'namespace'` → `declare namespace`, …) via the
  * single {@link tsDeclarationKeywords} map. Throws (through
- * {@link toTsEntityKind}) on a kind outside this language's vocabulary.
+ * {@link toTsEntityType}) on a type outside this language's vocabulary.
  */
-export const toTsKeyword = (kind: string): string => tsDeclarationKeywords[toTsEntityKind(kind)]
+export const toTsKeyword = (type: string): string => tsDeclarationKeywords[toTsEntityType(type)]
 
 /**
- * Whether a kind renders in *block* form — `export <kw> Name <value>`, where
+ * Whether a type renders in *block* form — `export <kw> Name <value>`, where
  * the value carries any heritage and the braced body, with no `= …` and no
  * trailing `;`. `class` / `interface` / `namespace` are block-form;
  * `variable` / `type` are assignment-form (`export <kw> Name = value;`).
  */
-export const isBlockKind = (kind: TsEntityKind): boolean =>
-  kind === 'class' || kind === 'interface' || kind === 'namespace'
+export const isBlockType = (type: TsEntityType): boolean =>
+  type === 'class' || type === 'interface' || type === 'namespace'
 
 /**
- * Whether a kind imports type-only under `verbatimModuleSyntax` — the
+ * Whether a type imports type-only under `verbatimModuleSyntax` — the
  * type-level kinds `type` and `interface`. (`class` is a value; `namespace`
  * imports as a value for its `.Member` access.)
  */
-export const isTypeOnlyKind = (kind: TsEntityKind): boolean =>
-  kind === 'type' || kind === 'interface'
+export const isTypeOnly = (type: TsEntityType): boolean =>
+  type === 'type' || type === 'interface'

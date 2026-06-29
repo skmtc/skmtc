@@ -68,7 +68,7 @@ const makeDoc = () =>
 const FanoutBase = toTsWebhookProjectionBase({
   id: '@test/fanout-webhook',
   toIdentifierName: ({ webhook, variant }) => withVariant(`${cap(webhook.name)}Handler`, variant),
-  toIdentifierType: () => ({ kind: 'type' }),
+  toIdentifierType: () => ({ type: 'type' }),
   toExportPath: ({ webhook, variant }) =>
     `@/webhooks/${withVariant(`${cap(webhook.name)}Handler`, variant)}.ts`,
   toEnrichmentSchema: () => variantEnrichmentSchema
@@ -131,7 +131,7 @@ Deno.test('webhook variants - variants-aware handler emits a distinct file per d
 const PeerBase = toTsWebhookProjectionBase({
   id: '@test/peer-webhook',
   toIdentifierName: ({ webhook }) => `${cap(webhook.name)}Ack`,
-  toIdentifierType: () => ({ kind: 'type' }),
+  toIdentifierType: () => ({ type: 'type' }),
   toExportPath: ({ webhook }) => `@/webhooks/shared/${cap(webhook.name)}Ack.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
@@ -147,7 +147,7 @@ class PeerHandler extends PeerBase {
 const CallerBase = toTsWebhookProjectionBase({
   id: '@test/caller-webhook',
   toIdentifierName: ({ webhook, variant }) => withVariant(`${cap(webhook.name)}Handler`, variant),
-  toIdentifierType: () => ({ kind: 'type' }),
+  toIdentifierType: () => ({ type: 'type' }),
   toExportPath: ({ webhook, variant }) =>
     `@/webhooks/${withVariant(`${cap(webhook.name)}Handler`, variant)}.ts`,
   toEnrichmentSchema: () => variantEnrichmentSchema

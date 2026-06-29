@@ -3,12 +3,11 @@ import type {
   ClientSettings,
   DefinitionBase,
   ImportBase,
-  ReExportBase,
-  FindDefinitionsQuery
+  ReExportBase
 } from '@skmtc/core'
 import { CsImport } from './CsImport.ts'
 import { CsIdentifier } from './CsIdentifier.ts'
-import type { CsLang } from './csLang.ts'
+import type { CsEntityType } from './createIdentifier.ts'
 import { toNamespaceName } from './toNamespaceName.ts'
 
 /**
@@ -52,7 +51,7 @@ export type CsFileArgs = {
  * and the Driver never registers them — so rendering ignores the
  * (always empty) neutral map.
  */
-export class CsFile extends CodeFileBase<CsLang> {
+export class CsFile extends CodeFileBase {
   /** The namespace this file declares — derived from `path`; `''` is the global namespace (no directive rendered). */
   namespaceName: string
   /** Held for the multi-package (`settings.packages`) story; unused in v1. */
@@ -96,12 +95,12 @@ export class CsFile extends CodeFileBase<CsLang> {
   }
 
   override findDefinitions(
-    query?: FindDefinitionsQuery<CsLang>
+    query?: { name?: string; type?: CsEntityType }
   ): DefinitionBase[] | undefined {
     return matchDefinitions(
       [...this.definitions.values()],
       query,
-      identifier => (identifier instanceof CsIdentifier ? identifier.kind : undefined)
+      identifier => (identifier instanceof CsIdentifier ? identifier.type : undefined)
     )
   }
 

@@ -2,7 +2,7 @@ import { toModelProjectionBase } from '@skmtc/core'
 import type { ModelProjectionBaseConfig } from '@skmtc/core'
 import { KtSnippet } from './KtSnippet.ts'
 import { register, type KtRegisterArgs } from './register.ts'
-import type { KtLang } from './ktLang.ts'
+import type { KtIdentifierType } from './KtIdentifier.ts'
 
 /**
  * Build a Kotlin model projection base class.
@@ -22,16 +22,16 @@ import type { KtLang } from './ktLang.ts'
  * result).
  *
  * The config is core's `ModelProjectionBaseConfig` parameterized over
- * {@link KtLang} (so `toIdentifierType` returns `IdentifierType<KtLang>` — the
- * `kind` bound to `KtEntityKind`). The base is the factory's first argument,
- * not a config field.
+ * {@link KtIdentifierType} (so `toIdentifierType` returns the `type` bound to
+ * `KtEntityType`). The base is the factory's first argument, not a config
+ * field.
  *
  * The companion operation veneer {@link toKtOasOperationProjectionBase} has
  * arrived (the OAS veneer now exists, driven by gen-kotlin-sdk's Response
  * models).
  */
 export const toKtModelProjectionBase = <EnrichmentType = undefined>(
-  config: ModelProjectionBaseConfig<EnrichmentType, KtLang>
+  config: ModelProjectionBaseConfig<EnrichmentType, KtIdentifierType>
 ) => {
   return class extends toModelProjectionBase(KtSnippet, config) {
     /**

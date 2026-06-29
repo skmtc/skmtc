@@ -24,17 +24,17 @@ import { parseModuleName } from '@skmtc/core/parseModuleName'
 
 export type BundleFreshness =
   | {
-      kind: 'fresh'
+      type: 'fresh'
       message: string
     }
   | {
-      kind: 'missing-worker'
+      type: 'missing-worker'
       /** Path the worker was expected at. */
       workerPath: string
       message: string
     }
   | {
-      kind: 'stale'
+      type: 'stale'
       /** Generator IDs declared in `deno.json#imports` today. */
       currentIds: string[]
       /** Generator IDs the on-disk `worker.ts` was built against. */
@@ -108,7 +108,7 @@ export const checkBundleFreshness = ({
   const workerPath = join(projectPath, 'worker.ts')
   if (!existsSync(workerPath)) {
     return {
-      kind: 'missing-worker',
+      type: 'missing-worker',
       workerPath,
       message:
         `Expected ${workerPath} to exist but it does not. Run \`skmtc bundle ${projectName}\` to build it.`
@@ -125,7 +125,7 @@ export const checkBundleFreshness = ({
 
   if (added.length === 0 && removed.length === 0) {
     return {
-      kind: 'fresh',
+      type: 'fresh',
       message: `bundle.js matches deno.json (${currentIds.length} generator(s)).`
     }
   }
@@ -135,7 +135,7 @@ export const checkBundleFreshness = ({
   const removedHint =
     removed.length > 0 ? `remove: ${removed.join(', ')}` : ''
   return {
-    kind: 'stale',
+    type: 'stale',
     currentIds,
     bundleIds,
     added,

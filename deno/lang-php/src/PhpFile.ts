@@ -1,6 +1,7 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import type { DefinitionBase, ImportBase, ReExportBase, Lang, FindDefinitionsQuery } from '@skmtc/core'
+import type { DefinitionBase, ImportBase, ReExportBase } from '@skmtc/core'
 import { PhpIdentifier } from './PhpIdentifier.ts'
+import type { PhpEntityType } from './PhpIdentifier.ts'
 
 /** Constructor arguments for {@link PhpFile}. */
 export type PhpFileArgs = {
@@ -23,7 +24,7 @@ export type PhpFileArgs = {
  * {@link CodeFileBase} are not yet wired (no PHP generator registers
  * imports).
  */
-export class PhpFile extends CodeFileBase<Lang<PhpIdentifier>> {
+export class PhpFile extends CodeFileBase {
   namespace: string
 
   /** Definitions keyed by identifier name (first write wins). */
@@ -49,12 +50,12 @@ export class PhpFile extends CodeFileBase<Lang<PhpIdentifier>> {
   }
 
   override findDefinitions(
-    query?: FindDefinitionsQuery<Lang<PhpIdentifier>>
+    query?: { name?: string; type?: PhpEntityType }
   ): DefinitionBase[] | undefined {
     return matchDefinitions(
       [...this.definitions.values()],
       query,
-      identifier => (identifier instanceof PhpIdentifier ? identifier.kind : undefined)
+      identifier => (identifier instanceof PhpIdentifier ? identifier.type : undefined)
     )
   }
 

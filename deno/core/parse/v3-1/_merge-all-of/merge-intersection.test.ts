@@ -918,9 +918,9 @@ Deno.test("mergeAllOf - simpler allOf", () => {
       },
       {
         type: "object",
-        required: ["kind"],
+        required: ["type"],
         properties: {
-          kind: {
+          type: {
             type: "string",
             enum: ["symlink"],
           },
@@ -931,9 +931,9 @@ Deno.test("mergeAllOf - simpler allOf", () => {
 
   const expected: SchemaObject = {
     type: "object",
-    required: ["target", "kind"],
+    required: ["target", "type"],
     properties: {
-      kind: {
+      type: {
         type: "string",
         enum: ["symlink"],
       },

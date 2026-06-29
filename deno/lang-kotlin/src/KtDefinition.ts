@@ -23,10 +23,10 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
 /**
  * Kotlin's concrete {@link DefinitionBase}: assembles the declaration
  * shell around the generated value, dispatching on the identifier's
- * opaque `kind` — exhaustive over this language's vocabulary, throwing
+ * opaque `type` — exhaustive over this language's vocabulary, throwing
  * outside it (no silent fallback).
  *
- * | kind | shell |
+ * | type | shell |
  * |---|---|
  * | `class` | `class Name` (+ `(\n…\n)` via the `KtConstructed` protocol; + ` {\n…\n}` when the value renders non-empty) |
  * | `data-class` | `data class Name(\n…\n)` (+ ` : A, B` via the supertype protocol) |
@@ -41,7 +41,7 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  * `Lang.toDefinition` signature has no annotations slot) and render one
  * per line above the shell; a supertype clause rides the same way via
  * {@link import('./KtSupertyped.ts').KtSupertyped} (rendered for the
- * `data-class` kind only in v1); a `description` renders as a KDoc block
+ * `data-class` type only in v1); a `description` renders as a KDoc block
  * above the annotations.
  *
  * Visibility: Kotlin defaults to `public`, so the neutral `exported`
@@ -61,14 +61,14 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
 
   override toString(): string {
     // The engine holds the identifier as the neutral `IdentifierBase`;
-    // narrow to `KtIdentifier` cast-free to read the typed `kind`.
+    // narrow to `KtIdentifier` cast-free to read the typed `type`.
     const identifier = this.identifier
     invariant(
       isKtIdentifier(identifier),
       `KtDefinition needs a KtIdentifier to render '${identifier.name}', got a foreign identifier`
     )
 
-    if (identifier.kind === 'verbatim') {
+    if (identifier.type === 'verbatim') {
       // The value IS the declaration text (template files, multi-
       // declaration bodies) — no shell, no visibility, no annotations.
       return `${this.value}`
@@ -91,9 +91,9 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
   }
 
   private toShell(identifier: KtIdentifier): string {
-    const { name, kind, typeName } = identifier
+    const { name, type, typeName } = identifier
 
-    switch (kind) {
+    switch (type) {
       case 'class': {
         const constructorClause = isKtConstructed(this.value)
           ? `${toConstructorKeyword(this.value.constructorModifiers)}(\n${this.value.constructorParameters}\n)`
@@ -133,7 +133,7 @@ export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends
       case 'val':
         return `val ${name}${typeName ? `: ${typeName}` : ''} = ${this.value}`
       default:
-        throw new Error(`Unknown Kotlin entity kind: ${kind}`)
+        throw new Error(`Unknown Kotlin entity type: ${type}`)
     }
   }
 }

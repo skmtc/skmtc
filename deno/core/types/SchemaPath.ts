@@ -12,7 +12,7 @@ export type SchemaPath = string[]
  * Canonical Valibot schema for an `SchemaPath`. Generators should
  * import this rather than write `v.array(v.string())` inline — the
  * descriptor walker identity-matches the exported value and emits a
- * schema-aware path-picker widget (`kind: "schemaPath"`) instead of
+ * schema-aware path-picker widget (`type: "schemaPath"`) instead of
  * a generic array of strings.
  */
 export const schemaPath: v.GenericSchema<SchemaPath> = v.array(v.string())

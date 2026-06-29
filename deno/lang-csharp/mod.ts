@@ -6,7 +6,7 @@
  *
  * Contents (arc spec: ../../notes/lang/31-csharp-kickoff.md → CS-A
  * binding spec):
- *   - the naming layer: `CsEntityKind` (`record` / `enum` at CS-A) with
+ *   - the naming layer: `CsEntityType` (`record` / `enum` at CS-A) with
  *     spelled-out identifier factories, `sanitizePropertyName` (the `@`
  *     verbatim-identifier escape), `toNamespaceName` (export path →
  *     dotted namespace), enum member naming with full-set dedup
@@ -47,9 +47,9 @@ export {
   createInterface,
   createRecord,
   toCsKeyword,
-  toCsEntityKind,
+  toCsEntityType,
   type CreateCsIdentifierArgs,
-  type CsEntityKind
+  type CsEntityType
 } from './src/createIdentifier.ts'
 export {
   CsIdentifier,
@@ -87,7 +87,7 @@ export { isCsDocumented, type CsDocumented } from './src/CsDocumented.ts'
 export { isCsBased, type CsBased } from './src/CsBased.ts'
 export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
 
-export { csharp, type CsLang } from './src/csLang.ts'
+export { csharp } from './src/csLang.ts'
 export { CsSnippet } from './src/CsSnippet.ts'
 export {
   register,
