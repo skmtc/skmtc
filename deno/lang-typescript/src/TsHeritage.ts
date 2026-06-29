@@ -7,8 +7,9 @@ export type TsHeritageSymbol = {
   name: string
   /** The path `name` is exported from (the import source — `normalizeModuleName`'s
    *  `exportPath`). **Required** — a heritage symbol always declares where it
-   *  lives; whether it needs importing is decided centrally, by comparing this
-   *  to the class's own file (see {@link TsHeritage}). */
+   *  lives; whether it actually needs importing is decided centrally during
+   *  registration (`register` drops a symbol whose source is the class's own
+   *  file — it is already in scope). */
   exportPath: string
 }
 
@@ -35,12 +36,11 @@ export type TsHeritageArgs = {
  * clause — owning both its rendering and the imports of the symbols it names.
  * A {@link TsSnippet} (a *leaf* entity): it registers the superclass as a
  * **value** import and each interface as a **type-only** import into
- * `destinationPath` (the class's file) — **except** a symbol that is already in
- * that same file (its `exportPath` equals `destinationPath`), which is in scope
- * and needs none. That same-file check is done here, once, rather than asked of
- * every caller — the rule the Driver applies for peer imports. {@link TsClass}
- * holds one of these and renders it straight onto the `{`; the trailing space is
- * built in.
+ * `destinationPath` (the class's file). It registers unconditionally — the
+ * same-file case (a symbol whose `exportPath` is `destinationPath`, already in
+ * scope) is dropped centrally by `register`, so this entity needs no such check.
+ * {@link TsClass} holds one of these and renders it straight onto the `{`; the
+ * trailing space is built in.
  */
 export class TsHeritage extends TsSnippet {
   superclass: TsHeritageSymbol | undefined
@@ -54,18 +54,16 @@ export class TsHeritage extends TsSnippet {
     this.superclass = args.extends
     this.interfaces = args.implements ?? []
 
-    // Import each heritage symbol that lives in a *different* file — the
-    // superclass as a value import, each interface as type-only. A symbol whose
-    // `exportPath` is the class's own file is already in scope, no import. One
-    // register per symbol; `TsFile.addImports` merges any that share a module.
-    if (this.superclass !== undefined && this.superclass.exportPath !== destinationPath) {
+    // Register each heritage symbol — the superclass as a value import, each
+    // interface as type-only. `register` drops any whose source is this same
+    // file (already in scope), so no same-file check here. One register per
+    // symbol; `TsFile.addImports` merges any that share a module.
+    if (this.superclass !== undefined) {
       this.register({ imports: { [this.superclass.exportPath]: [this.superclass.name] }, destinationPath })
     }
 
     for (const { name, exportPath } of this.interfaces) {
-      if (exportPath !== destinationPath) {
-        this.register({ imports: { [exportPath]: [{ name, type: 'type' }] }, destinationPath })
-      }
+      this.register({ imports: { [exportPath]: [{ name, type: 'type' }] }, destinationPath })
     }
   }
 
