@@ -20,7 +20,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 const ModelBase = toTsModelProjectionBase({
   id: '@test/gen-model',
   toIdentifierName: ({ refName }) => refName,
-  toIdentifierType: () => ({ kind: 'type' }),
+  toIdentifierType: () => ({ type: 'type' }),
   toExportPath: ({ refName }) => `@/types/${refName}.generated.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })

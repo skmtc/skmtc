@@ -1,7 +1,7 @@
 import { CsIdentifier } from './CsIdentifier.ts'
 
 /**
- * C#'s declaration-kind vocabulary — the typed `kind` this package writes
+ * C#'s declaration-type vocabulary — the typed `type` this package writes
  * onto its {@link CsIdentifier} and the discriminator its renderers
  * narrow against.
  *
@@ -19,15 +19,15 @@ import { CsIdentifier } from './CsIdentifier.ts'
  * - `'interface'` — an `interface IName { … }` declaration (CS-C: the
  *   service seam the consumer implements).
  *
- * Deliberately NO alias kind (C# has no exported type alias — `using X
- * = …` is file-scoped, D6) and NO `val`-analog kind: C#'s distinctive
+ * Deliberately NO alias type (C# has no exported type alias — `using X
+ * = …` is file-scoped, D6) and NO `val`-analog type: C#'s distinctive
  * constraint is *types only at namespace scope*. {@link toCsKeyword}
  * throwing on anything else is that constraint's test.
  *
- * Unlike TypeScript, the kind does NOT drive import form — every C#
+ * Unlike TypeScript, the type does NOT drive import form — every C#
  * using is namespace-level. It drives only the declaration shell.
  */
-export type CsEntityKind = 'record' | 'abstract-record' | 'enum' | 'class' | 'interface'
+export type CsEntityType = 'record' | 'abstract-record' | 'enum' | 'class' | 'interface'
 
 /**
  * Options shared by the identifier factories — every field optional, so
@@ -48,7 +48,7 @@ export type CreateCsIdentifierArgs = {
  * ```
  */
 export const createRecord = (name: string, args: CreateCsIdentifierArgs = {}): CsIdentifier => {
-  return new CsIdentifier({ name, exported: args.exported, kind: 'record' })
+  return new CsIdentifier({ name, exported: args.exported, type: 'record' })
 }
 
 /**
@@ -64,7 +64,7 @@ export const createAbstractRecord = (
   name: string,
   args: CreateCsIdentifierArgs = {}
 ): CsIdentifier => {
-  return new CsIdentifier({ name, exported: args.exported, kind: 'abstract-record' })
+  return new CsIdentifier({ name, exported: args.exported, type: 'abstract-record' })
 }
 
 /**
@@ -77,7 +77,7 @@ export const createAbstractRecord = (
  * ```
  */
 export const createEnum = (name: string, args: CreateCsIdentifierArgs = {}): CsIdentifier => {
-  return new CsIdentifier({ name, exported: args.exported, kind: 'enum' })
+  return new CsIdentifier({ name, exported: args.exported, type: 'enum' })
 }
 
 /**
@@ -90,7 +90,7 @@ export const createEnum = (name: string, args: CreateCsIdentifierArgs = {}): CsI
  * ```
  */
 export const createClass = (name: string, args: CreateCsIdentifierArgs = {}): CsIdentifier => {
-  return new CsIdentifier({ name, exported: args.exported, kind: 'class' })
+  return new CsIdentifier({ name, exported: args.exported, type: 'class' })
 }
 
 /**
@@ -103,24 +103,24 @@ export const createClass = (name: string, args: CreateCsIdentifierArgs = {}): Cs
  * ```
  */
 export const createInterface = (name: string, args: CreateCsIdentifierArgs = {}): CsIdentifier => {
-  return new CsIdentifier({ name, exported: args.exported, kind: 'interface' })
+  return new CsIdentifier({ name, exported: args.exported, type: 'interface' })
 }
 
 /**
- * Maps an identifier's opaque `kind` to its C# declaration keyword
+ * Maps an identifier's opaque `type` to its C# declaration keyword
  * chain. The D3 modifiers ride the mapping — `'record'` renders `sealed
  * partial record`, so "sealed by default, partial always" is a property
- * of the kind, not a flag (the CS-B `abstract-record` becomes a distinct
- * kind rendering `abstract partial record`, not a toggle).
+ * of the type, not a flag (the CS-B `abstract-record` becomes a distinct
+ * type rendering `abstract partial record`, not a toggle).
  *
- * Throws on a kind outside this language's vocabulary — a loud signal
- * that an identifier built for another language (or with a typo'd kind)
+ * Throws on a type outside this language's vocabulary — a loud signal
+ * that an identifier built for another language (or with a typo'd type)
  * reached the C# renderer. This throw is also the
  * types-only-at-namespace-scope distinctive-constraint test: there is no
- * alias kind and no file-scope-value kind to map.
+ * alias type and no file-scope-value type to map.
  */
-export const toCsKeyword = (kind: string): string => {
-  switch (kind) {
+export const toCsKeyword = (type: string): string => {
+  switch (type) {
     case 'record':
       return 'sealed partial record'
     case 'abstract-record':
@@ -132,18 +132,18 @@ export const toCsKeyword = (kind: string): string => {
     case 'interface':
       return 'interface'
     default:
-      throw new Error(`Unknown C# entity kind: ${kind}`)
+      throw new Error(`Unknown C# entity type: ${type}`)
   }
 }
 
 /**
- * Narrow the engine's opaque `kind: string` (from `Lang.toIdentifier`'s
- * neutral args) to this language's {@link CsEntityKind} — cast-free, via a
- * validating switch. Throws on a kind outside the vocabulary, the same loud
+ * Narrow the engine's opaque `type: string` (from `Lang.toIdentifier`'s
+ * neutral args) to this language's {@link CsEntityType} — cast-free, via a
+ * validating switch. Throws on a type outside the vocabulary, the same loud
  * signal {@link toCsKeyword} gives.
  */
-export const toCsEntityKind = (kind: string): CsEntityKind => {
-  switch (kind) {
+export const toCsEntityType = (type: string): CsEntityType => {
+  switch (type) {
     case 'record':
       return 'record'
     case 'abstract-record':
@@ -155,6 +155,6 @@ export const toCsEntityKind = (kind: string): CsEntityKind => {
     case 'interface':
       return 'interface'
     default:
-      throw new Error(`Unknown C# entity kind: ${kind}`)
+      throw new Error(`Unknown C# entity type: ${type}`)
   }
 }

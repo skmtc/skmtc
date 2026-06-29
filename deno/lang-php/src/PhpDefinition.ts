@@ -16,7 +16,7 @@ import { isPhpIdentifier } from './PhpIdentifier.ts'
  *    (`pub struct X …`) already use — the shell was never universally
  *    `<kw> X = value`, so PHP fits the pattern rather than breaking it.
  *
- * 2. **The per-language `PhpIdentifier.kind` picks the keyword** (`class` /
+ * 2. **The per-language `PhpIdentifier.type` picks the keyword** (`class` /
  *    `interface` / `enum` / `trait`), exactly as Rust's does — a second
  *    independent consumer of the discriminant.
  *
@@ -36,7 +36,7 @@ export class PhpDefinition extends DefinitionBase {
     )
 
     let keyword: string
-    switch (identifier.kind) {
+    switch (identifier.type) {
       case 'interface':
         keyword = 'interface'
         break

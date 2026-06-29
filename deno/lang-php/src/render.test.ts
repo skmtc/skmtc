@@ -11,7 +11,7 @@ const context = {} as unknown as GenerateContextType
 Deno.test('PhpDefinition + PhpClass render the User DTO as a class container', () => {
   const definition = new PhpDefinition({
     context,
-    identifier: new PhpIdentifier({ name: 'User', kind: 'class' }),
+    identifier: new PhpIdentifier({ name: 'User', type: 'class' }),
     value: new PhpClass([
       { name: 'id', type: 'string' },
       { name: 'name', type: 'string' },
@@ -47,17 +47,17 @@ Deno.test('PhpClass renders private members for unexported properties', () => {
   )
 })
 
-Deno.test('declaration keyword follows opaque Identifier.kind', () => {
-  // Same value, different `kind` → different container keyword. PHP is a
+Deno.test('declaration keyword follows opaque Identifier.type', () => {
+  // Same value, different `type` → different container keyword. PHP is a
   // second consumer of the opaque discriminant (after Rust).
   const asInterface = new PhpDefinition({
     context,
-    identifier: new PhpIdentifier({ name: 'Named', kind: 'interface' }),
+    identifier: new PhpIdentifier({ name: 'Named', type: 'interface' }),
     value: new PhpClass([{ name: 'id', type: 'string' }])
   })
   const asClass = new PhpDefinition({
     context,
-    identifier: new PhpIdentifier({ name: 'Named', kind: 'class' }),
+    identifier: new PhpIdentifier({ name: 'Named', type: 'class' }),
     value: new PhpClass([{ name: 'id', type: 'string' }])
   })
 
@@ -70,12 +70,12 @@ Deno.test('exported is ignored at the class level (no file-private class in PHP)
   // top-level visibility keyword on a class — `exported` is a no-op here.
   const exported = new PhpDefinition({
     context,
-    identifier: new PhpIdentifier({ name: 'A', exported: true, kind: 'class' }),
+    identifier: new PhpIdentifier({ name: 'A', exported: true, type: 'class' }),
     value: new PhpClass([{ name: 'id', type: 'string' }])
   })
   const unexported = new PhpDefinition({
     context,
-    identifier: new PhpIdentifier({ name: 'A', exported: false, kind: 'class' }),
+    identifier: new PhpIdentifier({ name: 'A', exported: false, type: 'class' }),
     value: new PhpClass([{ name: 'id', type: 'string' }])
   })
 
@@ -89,7 +89,7 @@ Deno.test('PhpFile renders the <?php + namespace header', () => {
     'User',
     new PhpDefinition({
       context,
-      identifier: new PhpIdentifier({ name: 'User', kind: 'class' }),
+      identifier: new PhpIdentifier({ name: 'User', type: 'class' }),
       value: new PhpClass([{ name: 'id', type: 'string' }])
     })
   )

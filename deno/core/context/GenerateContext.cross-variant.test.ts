@@ -67,7 +67,7 @@ const METHOD = 'patch' as const
 const PeerBase = toTsOasOperationProjectionBase({
   id: '@test/peer-gen',
   toIdentifierName: () => 'usePatchQuote',
-  toIdentifierType: () => ({ kind: 'variable' }),
+  toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: () => '@/services/usePatchQuote.ts',
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
@@ -84,7 +84,7 @@ class PeerProjection extends PeerBase {
 const FormBase = toTsOasOperationProjectionBase({
   id: '@test/form-gen',
   toIdentifierName: ({ variant }) => withVariant('EditQuotesForm', variant),
-  toIdentifierType: () => ({ kind: 'variable' }),
+  toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: ({ variant }) => `@/forms/${withVariant('EditQuotesForm', variant)}.tsx`,
   toEnrichmentSchema: () => variantEnrichmentSchema
 })

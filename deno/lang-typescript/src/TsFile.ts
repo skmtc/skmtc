@@ -1,25 +1,11 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
 import { normalizeModuleName } from './normalizeModuleName.ts'
-import type {
-  ClientSettings,
-  ModulePackage,
-  DefinitionBase,
-  ImportBase,
-  ReExportBase,
-  FindDefinitionsQuery
-} from '@skmtc/core'
+import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
+import type { TsDefinition } from './TsDefinition.ts'
 import { TsIdentifier } from './TsIdentifier.ts'
-import type { TsEntityKind } from './createIdentifier.ts'
-import type { TsLang } from './tsLang.ts'
+import type { TsEntityType } from './createIdentifier.ts'
 import { TsReExport } from './TsReExport.ts'
-
-/** A definition's TypeScript declaration kind, read off its identifier — the
- *  language-neutral `IdentifierBase` carries no `kind`, so narrow to the TS
- *  subclass. `undefined` for a non-TS identifier (shouldn't occur in a TsFile;
- *  treated as a kindless declaration). */
-const declarationKind = (definition: DefinitionBase): TsEntityKind | undefined =>
-  definition.identifier instanceof TsIdentifier ? definition.identifier.kind : undefined
 
 /**
  * Constructor arguments for {@link TsFile}.
@@ -31,35 +17,34 @@ export type TsFileArgs = {
 
 /**
  * TypeScript's concrete code file. Owns the storage AND the dedup/merge
- * policy that the neutral {@link CodeFileBase} only declares: the name-keyed
- * definition map (with declaration-merging companions), the per-module import
- * and re-export merges, package-aware module-name normalisation, and the
- * rendering arrangement (re-exports, then imports, then definitions). Owns
- * what the engine's `File` rendered, byte-for-byte.
+ * policy that the neutral {@link CodeFileBase} only declares: the definition
+ * map keyed by each identifier's declaration slot
+ * ({@link TsIdentifier.declarationKey}, so a `class Foo` and a `declare
+ * namespace Foo` co-exist), the per-module import and re-export merges,
+ * package-aware module-name normalisation, and the rendering arrangement
+ * (re-exports, then imports, then definitions). Owns what the engine's `File`
+ * rendered, byte-for-byte.
  */
-export class TsFile extends CodeFileBase<TsLang> {
+export class TsFile extends CodeFileBase {
   /** Package configuration for cross-package module-name resolution. */
   packages: ModulePackage[] | undefined
 
   /**
-   * Definitions keyed by identifier name — the cross-generator cache's
-   * one-definition-per-name surface, read through {@link findDefinition}.
+   * Definitions keyed by each identifier's declaration slot
+   * ({@link TsIdentifier.declarationKey} — `(type, name)`). A later definition
+   * for a slot already taken collapses into the first; distinct slots that
+   * share a name (a `class Foo` and a `declare namespace Foo`) both live here
+   * — that is how TypeScript declaration merging is represented, no separate
+   * collection needed. The cross-generator cache resolves a name to its
+   * first-registered definition through {@link findDefinitions}.
    */
-  definitions: Map<string, DefinitionBase> = new Map()
+  definitions: Map<string, TsDefinition> = new Map()
 
-  /** Imports keyed by {@link ImportBase.mergeKey} (the module path). */
-  imports: Map<string, ImportBase> = new Map()
+  /** Imports keyed by {@link TsImport.mergeKey} (the module path). */
+  imports: Map<string, TsImport> = new Map()
 
-  /** Re-exports keyed by {@link ReExportBase.mergeKey} (the module path). */
-  reExports: Map<string, ReExportBase> = new Map()
-
-  /**
-   * Same-name companion definitions — TypeScript declaration merging, e.g. a
-   * `class Foo` and its `export declare namespace Foo`. Kept apart from the
-   * name-keyed {@link definitions} map (so the cross-generator cache stays
-   * one-definition-per-name) and rendered after the primaries.
-   */
-  mergedDefinitions: DefinitionBase[] = []
+  /** Re-exports keyed by {@link TsReExport.mergeKey} (the module path). */
+  reExports: Map<string, TsReExport> = new Map()
 
   constructor({ path, settings }: TsFileArgs) {
     super({ path })
@@ -67,50 +52,31 @@ export class TsFile extends CodeFileBase<TsLang> {
   }
 
   /**
-   * TypeScript's duplication rule, keyed by the definition's *identifier*
-   * (name + kind), not its rendered value. The first definition for a name is
-   * the primary (the cross-generator cache resolves it). A later definition
-   * reusing the name is:
-   *
-   * - the **same declaration** (same kind) → an idempotent no-op. Generators
-   *   legitimately register the same helper from multiple call sites (e.g. a
-   *   `columnHelper` const built once per table column), producing distinct
-   *   objects that are the same `const` — those collapse to one.
-   * - a **different kind** → a declaration-merging companion (a `class` + its
-   *   `declare namespace`), rendered after the primaries.
+   * TypeScript's duplication rule, keyed by the identifier's declaration slot
+   * ({@link TsIdentifier.declarationKey} — `(type, name)`), not its rendered
+   * value. The first definition for a slot wins; a later definition for the
+   * same slot is the same declaration and collapses to a no-op — e.g. a
+   * `columnHelper` const independently registered per table column (distinct
+   * objects, same `const`), or a type alias re-registered with a different
+   * value (the identifier, not the value, is the key). Definitions that share
+   * a name but differ in type occupy *different* slots and both render — that
+   * is TypeScript declaration merging (a `class Foo` and its `declare
+   * namespace Foo`).
    */
-  override addDefinition(definition: DefinitionBase): void {
-    const name = definition.identifier.name
-    const kind = declarationKind(definition)
-    const existing = this.definitions.get(name)
+  override addDefinition(definition: TsDefinition): void {
+    const key = definition.identifier.declarationKey()
 
-    if (existing === undefined) {
-      this.definitions.set(name, definition)
-      return
+    if (!this.definitions.has(key)) {
+      this.definitions.set(key, definition)
     }
-
-    // Same name + same kind = the same declaration → collapse.
-    if (declarationKind(existing) === kind) {
-      return
-    }
-    // Already captured a companion of this kind for the name.
-    if (
-      this.mergedDefinitions.some(
-        merged => merged.identifier.name === name && declarationKind(merged) === kind
-      )
-    ) {
-      return
-    }
-
-    this.mergedDefinitions.push(definition)
   }
 
   /**
    * Merge imports in, collapsing any that share a `mergeKey()` (the module)
-   * with an existing entry via {@link ImportBase.merge}. The neutral
+   * with an existing entry via {@link TsImport.merge}. The neutral
    * `register` calls this; the keying + merge are TypeScript's own policy.
    */
-  override addImports(incoming: ImportBase[]): void {
+  override addImports(incoming: TsImport[]): void {
     for (const importEntry of incoming) {
       const key = importEntry.mergeKey()
       const existing = this.imports.get(key)
@@ -121,9 +87,9 @@ export class TsFile extends CodeFileBase<TsLang> {
 
   /**
    * Merge re-exports in, collapsing any that share a `mergeKey()` (the module)
-   * with an existing entry via {@link ReExportBase.merge}.
+   * with an existing entry via {@link TsReExport.merge}.
    */
-  override addReExports(incoming: ReExportBase[]): void {
+  override addReExports(incoming: TsReExport[]): void {
     for (const reExportEntry of incoming) {
       const key = reExportEntry.mergeKey()
       const existing = this.reExports.get(key)
@@ -133,29 +99,24 @@ export class TsFile extends CodeFileBase<TsLang> {
   }
 
   /**
-   * Query definitions by `name` and/or declaration `kind`. No query → all
-   * (primaries + declaration-merging companions). The engine's read seam
-   * (`findDefinitions({ name })?.[0]`) plus the generator/test inspection
-   * surface (`findDefinitions({ type: 'class' })`).
+   * Query definitions by `name` and/or declaration `type`. No query → every
+   * definition. The cross-generator cache's read seam
+   * (`findDefinitions({ name })?.[0]` → the first-registered definition for a
+   * name) plus the generator/test inspection surface
+   * (`findDefinitions({ type: 'class' })`).
    */
-  override findDefinitions(query?: FindDefinitionsQuery<TsLang>): DefinitionBase[] | undefined {
+  override findDefinitions(query?: { name?: string; type?: TsEntityType }): DefinitionBase[] | undefined {
     return matchDefinitions(
-      [...this.definitions.values(), ...this.mergedDefinitions],
+      [...this.definitions.values()],
       query,
-      identifier => (identifier instanceof TsIdentifier ? identifier.kind : undefined)
+      identifier => (identifier instanceof TsIdentifier ? identifier.type : undefined)
     )
   }
 
   override toString(): string {
     const reExports = Array.from(this.reExports.values()).map(reExportEntry => {
-      // Re-exports land here as the neutral `ReExportBase`; in a
-      // TypeScript file they are always `TsReExport`s. Re-key to the
-      // package-normalised module at render time — the same arrangement
-      // step the import section gets.
-      if (!(reExportEntry instanceof TsReExport)) {
-        return reExportEntry.toString()
-      }
-
+      // Re-key to the package-normalised module at render time — the same
+      // arrangement step the import section gets.
       const updatedModuleName = normalizeModuleName({
         destinationPath: this.path,
         exportPath: reExportEntry.module,
@@ -166,13 +127,8 @@ export class TsFile extends CodeFileBase<TsLang> {
     })
 
     const imports = Array.from(this.imports.values()).map(importEntry => {
-      // Imports land here as the neutral `ImportBase`; in a TypeScript file
-      // they are always `TsImport`s. Re-key to the package-normalised module
-      // at render time (the engine normalised per-import in `File.toString`).
-      if (!(importEntry instanceof TsImport)) {
-        return importEntry.toString()
-      }
-
+      // Re-key to the package-normalised module at render time (the engine
+      // normalised per-import in `File.toString`).
       const updatedModuleName = this.packages
         ? normalizeModuleName({
             destinationPath: this.path,
@@ -184,7 +140,7 @@ export class TsFile extends CodeFileBase<TsLang> {
       return new TsImport(updatedModuleName, importEntry.specifiers).toString()
     })
 
-    const definitions = [...this.definitions.values(), ...this.mergedDefinitions]
+    const definitions = [...this.definitions.values()]
 
     const body = [reExports, imports, definitions]
       .filter(section => Boolean(section.length))

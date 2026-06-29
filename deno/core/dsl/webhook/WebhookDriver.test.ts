@@ -117,7 +117,7 @@ const createMockProjection = (options?: {
     }
 
     static toIdentifierType(): IdentifierType {
-      return { kind: 'type' }
+      return { type: 'type' }
     }
 
     static toExportPath({ webhook }: ToWebhookExportPathArgs): string {
@@ -266,7 +266,7 @@ Deno.test('WebhookDriver', async t => {
       const importCall = registerSpy.calls.find(call => call.args[0].imports !== undefined)
       assertExists(importCall)
       assertEquals(importCall.args[0].imports[0].mergeKey(), './webhooks/newPet.ts')
-      // The handler identifier is `kind: 'type'`, so the import collapses to
+      // The handler identifier is `type: 'type'`, so the import collapses to
       // a statement-level `import type { … }` (the representative form for a
       // generator emitting `export type`).
       assertEquals(
@@ -358,7 +358,7 @@ Deno.test('WebhookDriver', async t => {
         static type = 'webhook' as const
         static lang = typescript
         static toIdentifierName = ({ webhook }: ToWebhookIdentifierNameArgs) => webhook.name
-        static toIdentifierType = (): IdentifierType => ({ kind: 'type' })
+        static toIdentifierType = (): IdentifierType => ({ type: 'type' })
         static toExportPath = (_args: ToWebhookExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
@@ -434,7 +434,7 @@ Deno.test('WebhookDriver', async t => {
         static type = 'webhook' as const
         static lang = typescript
         static toIdentifierName = ({ webhook }: ToWebhookIdentifierNameArgs) => webhook.name
-        static toIdentifierType = (): IdentifierType => ({ kind: 'type' })
+        static toIdentifierType = (): IdentifierType => ({ type: 'type' })
         static toExportPath = (_args: ToWebhookExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static isSupported = () => true

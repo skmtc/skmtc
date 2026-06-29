@@ -11,7 +11,7 @@
  * `reExports` field), the model projection-base veneer, `KtFile`
  * (path-derived `package` directive, sorted imports, same-package
  * suppression), `KtImport` (symbol-level, `as` aliases), `KtDefinition`
- * (exhaustive seven-kind shells; the `KtAnnotated` / `KtSupertyped` /
+ * (exhaustive seven-type shells; the `KtAnnotated` / `KtSupertyped` /
  * `KtConstructed` / `KtDocumented` value protocols), the
  * function-signature grammar (`KtFunctionSignature` /
  * `KtFunctionParameter` — interface/class methods incl. KDoc,
@@ -62,15 +62,15 @@ export {
   createValue,
   createVerbatim,
   toKtKeyword,
-  toKtEntityKind,
-  type KtEntityKind,
+  toKtEntityType,
+  type KtEntityType,
   type CreateKtIdentifierArgs,
   type CreateValueArgs
 } from './src/createIdentifier.ts'
 export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
 export { toPackageName } from './src/toPackageName.ts'
 export { ktHardKeywords, isKtIdentifierName } from './src/hardKeywords.ts'
-export { kotlin, type KtLang } from './src/ktLang.ts'
+export { kotlin } from './src/ktLang.ts'
 export { KtSnippet } from './src/KtSnippet.ts'
 export {
   register,

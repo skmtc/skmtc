@@ -103,7 +103,7 @@ const createMockProjection = (options?: {
     }
 
     static toIdentifierType(): IdentifierType {
-      return { kind: 'variable' }
+      return { type: 'variable' }
     }
 
     static toExportPath({ operation }: ToGqlOperationExportPathArgs): string {
@@ -517,7 +517,7 @@ Deno.test('GqlOperationDriver', async t => {
         static type = 'gqlOperation' as const
         static toIdentifierName = ({ operation }: ToGqlOperationIdentifierNameArgs) =>
           operation.fieldName
-        static toIdentifierType = (): IdentifierType => ({ kind: 'variable' })
+        static toIdentifierType = (): IdentifierType => ({ type: 'variable' })
         static toExportPath = (_args: ToGqlOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)
@@ -664,7 +664,7 @@ Deno.test('GqlOperationDriver', async t => {
         static type = 'gqlOperation' as const
         static toIdentifierName = ({ operation }: ToGqlOperationIdentifierNameArgs) =>
           operation.fieldName
-        static toIdentifierType = (): IdentifierType => ({ kind: 'variable' })
+        static toIdentifierType = (): IdentifierType => ({ type: 'variable' })
         static toExportPath = (_args: ToGqlOperationExportPathArgs) => './test.ts'
         static toEnrichments = () => undefined
         static createIdentifier = (name: string) => createVariable(name)

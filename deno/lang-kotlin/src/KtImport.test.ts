@@ -19,7 +19,7 @@ Deno.test('aliases render via `as`', () => {
   assertEquals(ktImport.toString(), 'import com.example.models.User as UserModel')
 })
 
-Deno.test('fromIdentifier builds the Driver cross-file import; kind is ignored', () => {
+Deno.test('fromIdentifier builds the Driver cross-file import; type is ignored', () => {
   const ktImport = KtImport.fromIdentifier(
     '@/com/example/api/User.generated.kt',
     createDataClass('User')

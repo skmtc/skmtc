@@ -7,7 +7,7 @@ import type {
 } from '@/context/generateTypes.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { Lang, LangSnippetConstructor } from '@/dsl/Lang.ts'
+import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
@@ -33,20 +33,21 @@ import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichme
  * Configuration for {@link toGqlOperationProjectionBase}.
  *
  * Generic over the language `L`: a language veneer parameterizes this config
- * (`GqlOperationProjectionBaseConfig<E, KtLang>`) so `toIdentifierType`'s
- * return tightens to that language's `IdentifierType<L>` — no recast.
+ * (`GqlOperationProjectionBaseConfig<E, KtIdentifierType>`) so
+ * `toIdentifierType`'s return tightens to that language's `type` vocabulary —
+ * no recast.
  */
-export type GqlOperationProjectionBaseConfig<EnrichmentType = undefined, L extends Lang = Lang> = {
+export type GqlOperationProjectionBaseConfig<EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType> = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
   toIdentifierName: (args: ToGqlOperationIdentifierNameArgs<EnrichmentType>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the operation/schema. Runs only on cache-miss. Returns this
-   * language's `IdentifierType<L>` (the loose `kind: string` when `L = Lang`);
-   * the tightening rides the type argument, replacing the old veneer recast.
+   * language's `XxIdentifierType` (`IdType`; the loose `kind: string` by
+   * default); the tightening rides the type argument.
    */
-  toIdentifierType: (operation: GqlOperation, context: GenerateContextType) => IdentifierType<L>
+  toIdentifierType: (operation: GqlOperation, context: GenerateContextType) => IdType
   toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
@@ -92,9 +93,9 @@ type ToEnrichmentsArgs = {
  * `GqlOperationProjectionBase` lives here now, because the base class is no
  * longer statically known.
  */
-export const toGqlOperationProjectionBase = <EnrichmentType = undefined, L extends Lang = Lang>(
-  base: LangSnippetConstructor<L>,
-  config: GqlOperationProjectionBaseConfig<EnrichmentType, L>
+export const toGqlOperationProjectionBase = <EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType>(
+  base: LangSnippetConstructor,
+  config: GqlOperationProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
   return class extends base {
     static id = config.id

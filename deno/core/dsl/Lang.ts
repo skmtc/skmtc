@@ -11,13 +11,9 @@ import type { SnippetBase, SnippetBaseArgs } from '@/dsl/SnippetBase.ts'
  * Arguments for {@link Lang.toDefinition} — everything the language needs
  * to wrap a generated `value` in its own `Definition` subclass.
  *
- * `identifier` stays the neutral {@link IdentifierBase}: the engine holds
- * identifiers as the base and passes that to the factory (which narrows via
- * its own `instanceof` guard). Keeping it neutral is also what lets a typed
- * `Lang` (e.g. `KtLang`) satisfy the bare `Lang` constraint — `identifier`
- * is a contravariant parameter, so a narrower type here would break the
- * subtype relation. The typed identifier surfaces only on `toIdentifier`'s
- * RETURN (a covariant position).
+ * `identifier` is the neutral {@link IdentifierBase}: the engine holds
+ * identifiers as the base and passes that to the factory, which narrows to
+ * its own concrete subclass via `instanceof`.
  */
 export type LangToDefinitionArgs<V extends GeneratedValue = GeneratedValue> = {
   context: GenerateContextType
@@ -43,12 +39,12 @@ export type LangToImportArgs = {
  * seam. `name` comes from the projection's pure `toIdentifierName`; the
  * remaining fields come from the context-aware `toIdentifierType`
  * (spread in). The language builds its concrete `IdentifierBase` subclass
- * (`TsIdentifier` / `KtIdentifier`), reading the opaque `kind` into its
- * typed `EntityKind` slot.
+ * (`TsIdentifier` / `KtIdentifier`), reading the opaque `type` into its
+ * typed `EntityType` slot.
  */
 export type LangToIdentifierArgs = {
   name: string
-  kind: string
+  type: string
   typeName?: string
   exported?: boolean
 }
@@ -76,7 +72,7 @@ export type LangToIdentifierArgs = {
  * vocabulary is intra-lang-package (each language's register function
  * converts its own form), so the neutral interface never names one.
  */
-export type Lang<IdentifierT extends IdentifierBase = IdentifierBase> = {
+export type Lang = {
   /** Construct the language's file for `path`. */
   createFile: (args: { path: string; settings: ClientSettings | undefined }) => FileBase
   /** Wrap a generated `value` in this language's `Definition` subclass. */
@@ -85,31 +81,14 @@ export type Lang<IdentifierT extends IdentifierBase = IdentifierBase> = {
   toImport: (args: LangToImportArgs) => ImportBase
   /**
    * Assemble this language's `IdentifierBase` subclass from name +
-   * kind/type/exported. `kind` arrives as the opaque-boundary `string` (the
-   * engine never narrows it); the language reads it into its typed
-   * `EntityKind` slot. The returned `IdentifierT` is the language's concrete
-   * subclass — its typed `kind` is the ONLY place `IdentifierT` appears (a
-   * covariant return position), which is what lets {@link IdentifierType}
-   * recover the vocabulary to tighten the projection config while a typed
-   * `Lang` still satisfies the bare `Lang` constraint.
+   * type/typeName/exported. `type` arrives as the opaque-boundary `string` — the
+   * engine never narrows it; the language reads it into its own typed
+   * `EntityType` slot. The engine holds the result as the neutral
+   * `IdentifierBase`; the declaration-type vocabulary is a fixed fact of each
+   * language package, never modelled or recovered here.
    */
-  toIdentifier: (args: LangToIdentifierArgs) => IdentifierT
+  toIdentifier: (args: LangToIdentifierArgs) => IdentifierBase
 }
-
-/**
- * The language's declaration-kind vocabulary, recovered from the typed
- * `kind` on the {@link IdentifierBase} subclass a `Lang` produces.
- *
- * `KtIdentifier` carries `kind: KtEntityKind`, `TsIdentifier` carries
- * `kind: TsEntityKind`, … The neutral `IdentifierBase` has no `kind`, so a
- * bare `Lang` falls back to the loose `string` — the opaque-kind boundary
- * the engine speaks.
- */
-export type LangKind<L extends Lang> = ReturnType<L['toIdentifier']> extends {
-  kind: infer Kind extends string
-}
-  ? Kind
-  : string
 
 /**
  * The constructor contract a language's snippet base class must satisfy to
@@ -129,12 +108,10 @@ export type LangKind<L extends Lang> = ReturnType<L['toIdentifier']> extends {
  * generic over the base's *instance* type cannot type-safely extend it
  * (TS2415/TS2545 — see the scratch in `notes/lang/14`), and the price would
  * be that language-specific instance members are type-erased on projection
- * classes. Only the STATIC `lang` is parameterized — over the neutral `Lang`
- * by default, narrowed to a language's typed `Lang` (e.g. `KtLang`) when a
- * veneer threads `L` through. Narrowing a covariant static intersection does
- * not reawaken TS2415; the `extends config.base` in the factories stays well
- * typed because the instance side is unchanged.
+ * classes. The static `lang` is the neutral {@link Lang} — the engine reads
+ * it language-blind; each lang package's concrete declaration-type vocabulary
+ * is a fixed fact of that package, never recovered through this type.
  */
-export type LangSnippetConstructor<L extends Lang = Lang> = (new (
+export type LangSnippetConstructor = (new (
   args: SnippetBaseArgs
-) => SnippetBase) & { lang: L }
+) => SnippetBase) & { lang: Lang }

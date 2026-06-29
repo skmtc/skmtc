@@ -10,7 +10,7 @@
  *     subclasses of the abstract bases in `@skmtc/core` — each renders
  *     itself in its own `toString()`
  *   - the `register` family (`register`, `defineAndRegister`)
- *   - this language's `EntityKind` vocabulary
+ *   - this language's `EntityType` vocabulary
  *   - `sanitizePropertyName` + identifier/casing/visibility rules
  *   - syntax helpers
  *
@@ -20,7 +20,7 @@
  * the sharp test for the "Definition assembly" question. Outcome:
  * Definition assembles the *shell*, the value renders the *body* (the
  * same split Go/Rust already use). PHP is a second consumer of the opaque
- * `Identifier.kind` and a fourth `exported` behaviour (ignored at class
+ * `Identifier.type` and a fourth `exported` behaviour (ignored at class
  * level). Not yet wired into the engine.
  */
 
@@ -32,5 +32,5 @@ export const fileExtensions = ['.php'] as const
 
 export { PhpFile, type PhpFileArgs } from './src/PhpFile.ts'
 export { PhpDefinition } from './src/PhpDefinition.ts'
-export { PhpIdentifier, isPhpIdentifier, type PhpEntityKind } from './src/PhpIdentifier.ts'
+export { PhpIdentifier, isPhpIdentifier, type PhpEntityType } from './src/PhpIdentifier.ts'
 export { PhpClass, type PhpPropertyArgs } from './src/PhpClass.ts'

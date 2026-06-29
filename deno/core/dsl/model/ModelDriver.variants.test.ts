@@ -77,7 +77,7 @@ Deno.test(
     const ZodVariants = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod-variants',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
-      toIdentifierType: () => ({ kind: 'variable' }),
+      toIdentifierType: () => ({ type: 'variable' }),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
       toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
@@ -108,7 +108,7 @@ Deno.test(
     const ZodVariants = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod-variants',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
-      toIdentifierType: () => ({ kind: 'variable' }),
+      toIdentifierType: () => ({ type: 'variable' }),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
       toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
@@ -149,7 +149,7 @@ Deno.test(
     const ZodGen = class extends toTsModelProjectionBase({
       id: '@scope/gen-zod',
       toIdentifierName: ({ refName }) => refName,
-      toIdentifierType: () => ({ kind: 'variable' }),
+      toIdentifierType: () => ({ type: 'variable' }),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
       toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {
@@ -186,7 +186,7 @@ Deno.test(
     const BrokenZod = class extends toTsModelProjectionBase({
       id: '@scope/gen-broken-zod',
       toIdentifierName: ({ refName }) => refName, // ← ignores variant
-      toIdentifierType: () => ({ kind: 'variable' }),
+      toIdentifierType: () => ({ type: 'variable' }),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,         // ← ignores variant
       toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
     }) {
@@ -236,7 +236,7 @@ Deno.test(
     const CorrectZod = class extends toTsModelProjectionBase({
       id: '@scope/gen-correct-zod',
       toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
-      toIdentifierType: () => ({ kind: 'variable' }),
+      toIdentifierType: () => ({ type: 'variable' }),
       toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
       toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
     }) {
@@ -282,7 +282,7 @@ Deno.test(
     const Zod = class extends toTsModelProjectionBase({
       id: '@scope/gen-cache-zod',
       toIdentifierName: ({ refName }) => refName,
-      toIdentifierType: () => ({ kind: 'variable' }),
+      toIdentifierType: () => ({ type: 'variable' }),
       toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
       toEnrichmentSchema: () => emptyEnrichmentSchema
     }) {

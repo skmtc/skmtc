@@ -1,6 +1,7 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import type { DefinitionBase, ImportBase, ReExportBase, Lang, FindDefinitionsQuery } from '@skmtc/core'
+import type { DefinitionBase, ImportBase, ReExportBase } from '@skmtc/core'
 import { RsIdentifier } from './RsIdentifier.ts'
+import type { RsEntityType } from './RsIdentifier.ts'
 
 /** Constructor arguments for {@link RsFile}. */
 export type RsFileArgs = {
@@ -21,7 +22,7 @@ export type RsFileArgs = {
  * (no Rust generator registers imports). Structured imports + `pub use`
  * re-exports land as the seam matures.
  */
-export class RsFile extends CodeFileBase<Lang<RsIdentifier>> {
+export class RsFile extends CodeFileBase {
   uses: string[] = []
 
   /** Definitions keyed by identifier name (first write wins). */
@@ -50,12 +51,12 @@ export class RsFile extends CodeFileBase<Lang<RsIdentifier>> {
   }
 
   override findDefinitions(
-    query?: FindDefinitionsQuery<Lang<RsIdentifier>>
+    query?: { name?: string; type?: RsEntityType }
   ): DefinitionBase[] | undefined {
     return matchDefinitions(
       [...this.definitions.values()],
       query,
-      identifier => (identifier instanceof RsIdentifier ? identifier.kind : undefined)
+      identifier => (identifier instanceof RsIdentifier ? identifier.type : undefined)
     )
   }
 

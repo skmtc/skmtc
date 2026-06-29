@@ -3,12 +3,11 @@ import type {
   ClientSettings,
   DefinitionBase,
   ImportBase,
-  ReExportBase,
-  FindDefinitionsQuery
+  ReExportBase
 } from '@skmtc/core'
 import { KtImport } from './KtImport.ts'
 import { KtIdentifier } from './KtIdentifier.ts'
-import type { KtLang } from './ktLang.ts'
+import type { KtEntityType } from './createIdentifier.ts'
 import { toPackageName } from './toPackageName.ts'
 
 /**
@@ -52,7 +51,7 @@ export type KtFileArgs = {
  * vocabulary has no `reExports` field and the Driver never registers
  * them — so rendering ignores the (always empty) neutral map.
  */
-export class KtFile extends CodeFileBase<KtLang> {
+export class KtFile extends CodeFileBase {
   /**
    * The `package` this file declares — derived from `path`, with the
    * owning package's `rootPath` stripped first in multi-package mode
@@ -103,12 +102,12 @@ export class KtFile extends CodeFileBase<KtLang> {
   }
 
   override findDefinitions(
-    query?: FindDefinitionsQuery<KtLang>
+    query?: { name?: string; type?: KtEntityType }
   ): DefinitionBase[] | undefined {
     return matchDefinitions(
       [...this.definitions.values()],
       query,
-      identifier => (identifier instanceof KtIdentifier ? identifier.kind : undefined)
+      identifier => (identifier instanceof KtIdentifier ? identifier.type : undefined)
     )
   }
 

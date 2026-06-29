@@ -2,36 +2,36 @@ import { IdentifierBase } from '@skmtc/core'
 import type { IdentifierBaseArgs } from '@skmtc/core'
 
 /**
- * Go's declaration-kind vocabulary. Go declares every named type with the
+ * Go's declaration-type vocabulary. Go declares every named type with the
  * uniform `type` keyword, so the vocabulary is a single member — but
  * {@link GoIdentifier} still carries it for symmetry with the other
  * languages (and {@link GoDefinition} reads only the neutral base fields,
- * never `kind`).
+ * never `type`).
  */
-export type GoEntityKind = 'type'
+export type GoEntityType = 'type'
 
 /**
  * Constructor arguments for {@link GoIdentifier} — the neutral
- * {@link IdentifierBaseArgs} plus this language's typed `kind`.
+ * {@link IdentifierBaseArgs} plus this language's typed `type`.
  */
 export type GoIdentifierArgs = IdentifierBaseArgs & {
-  kind: GoEntityKind
+  type: GoEntityType
 }
 
 /**
- * Go's concrete {@link IdentifierBase}: carries the typed `kind`
- * ({@link GoEntityKind}) for symmetry with the other language subclasses.
+ * Go's concrete {@link IdentifierBase}: carries the typed `type`
+ * ({@link GoEntityType}) for symmetry with the other language subclasses.
  * {@link GoDefinition} reads only the neutral `.name`/`.exported` fields —
- * Go's uniform `type` keyword needs no discriminant — so `kind` is here for
+ * Go's uniform `type` keyword needs no discriminant — so `type` is here for
  * shape parity, not for rendering.
  */
 export class GoIdentifier extends IdentifierBase {
-  /** Per-language declaration kind — uniform `type` for Go. */
-  kind: GoEntityKind
+  /** Per-language declaration type — uniform `type` for Go. */
+  type: GoEntityType
 
-  constructor({ name, typeName, exported, kind }: GoIdentifierArgs) {
+  constructor({ name, typeName, exported, type }: GoIdentifierArgs) {
     super({ name, typeName, exported })
-    this.kind = kind
+    this.type = type
   }
 }
 

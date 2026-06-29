@@ -10,7 +10,7 @@
  *     subclasses of the abstract bases in `@skmtc/core` — each renders
  *     itself in its own `toString()`
  *   - the `register` family (`register`, `defineAndRegister`)
- *   - this language's `EntityKind` vocabulary
+ *   - this language's `EntityType` vocabulary
  *   - `sanitizePropertyName` + identifier/casing/visibility rules
  *   - syntax helpers
  *
@@ -27,5 +27,5 @@ export const fileExtensions = ['.go'] as const
 
 export { GoFile, type GoFileArgs } from './src/GoFile.ts'
 export { GoDefinition } from './src/GoDefinition.ts'
-export { GoIdentifier, isGoIdentifier, type GoEntityKind } from './src/GoIdentifier.ts'
+export { GoIdentifier, isGoIdentifier, type GoEntityType } from './src/GoIdentifier.ts'
 export { GoStruct, type GoFieldArgs } from './src/GoStruct.ts'

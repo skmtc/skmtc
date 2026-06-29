@@ -1,49 +1,47 @@
 import { IdentifierBase } from '@skmtc/core'
 import type { IdentifierBaseArgs, IdentifierType } from '@skmtc/core'
-import type { TsEntityKind } from './createIdentifier.ts'
-import type { TsLang } from './tsLang.ts'
+import { toTsKeyword, type TsEntityType } from './createIdentifier.ts'
 
 /**
- * The non-`name` parts of a TypeScript identifier — the tightened
- * `IdentifierType` a TS projection's `toIdentifierType` returns. Core's
- * `IdentifierType<TsLang>` recovers the `kind` from {@link TsLang}'s
- * identifier ({@link TsEntityKind}); this alias is the named form generators
- * annotate with. The engine spreads it into
+ * The non-`name` parts of a TypeScript identifier — core's neutral
+ * {@link IdentifierType} with its `type` narrowed to TypeScript's fixed
+ * {@link TsEntityType} vocabulary. This is the named form generators annotate
+ * `toIdentifierType` with; a projection-base veneer threads it as the config's
+ * `IdType` so the return tightens with no recast. The engine spreads it into
  * `lang.toIdentifier({ name, ...identifierType })`.
  */
-export type TsIdentifierType = IdentifierType<TsLang>
+export type TsIdentifierType = IdentifierType & { type: TsEntityType }
 
 /**
  * Constructor arguments for {@link TsIdentifier} — the neutral
- * {@link IdentifierBaseArgs} plus this language's typed `kind`.
+ * {@link IdentifierBaseArgs} plus this language's typed `type`.
  */
 export type TsIdentifierArgs = IdentifierBaseArgs & {
-  kind: TsEntityKind
+  type: TsEntityType
 }
 
 /**
- * TypeScript's concrete {@link IdentifierBase}: adds the typed `kind`
- * ({@link TsEntityKind}) the renderer reads to pick its declaration keyword
+ * TypeScript's concrete {@link IdentifierBase}: adds the typed `type`
+ * ({@link TsEntityType}) the renderer reads to pick its declaration keyword
  * (`const` / `type`) and its import form (plain / type-only).
- *
- * The engine holds it as the neutral `IdentifierBase` (reading only
- * `.name`); `TsDefinition` / `TsImport` narrow back to `TsIdentifier` via
- * {@link isTsIdentifier} to read `kind`.
  */
 export class TsIdentifier extends IdentifierBase {
-  /** Per-language declaration kind — `const` / `type` and import form. */
-  kind: TsEntityKind
+  /** Per-language declaration type — `const` / `type` and import form. */
+  type: TsEntityType
 
-  constructor({ name, typeName, exported, kind }: TsIdentifierArgs) {
+  constructor({ name, typeName, exported, type }: TsIdentifierArgs) {
     super({ name, typeName, exported })
-    this.kind = kind
+    this.type = type
   }
-}
 
-/**
- * Type guard narrowing a neutral {@link IdentifierBase} to a
- * {@link TsIdentifier} — the cast-free way the renderers read `kind`.
- */
-export const isTsIdentifier = (identifier: IdentifierBase): identifier is TsIdentifier => {
-  return identifier instanceof TsIdentifier
+  /**
+   * TypeScript's declaration slot is the declaration header `<keyword> <name>`
+   * (`const thing`, `class Thing`, `declare namespace Thing`) — exactly how
+   * the declaration opens. A `class Foo` and a `declare namespace Foo` are
+   * separate declarations the compiler merges, so the differing keyword keeps
+   * their keys distinct while exact repeats still collapse.
+   */
+  override declarationKey(): string {
+    return `${toTsKeyword(this.type)} ${this.name}`
+  }
 }

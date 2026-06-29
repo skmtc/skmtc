@@ -71,7 +71,7 @@ export class CsImport extends ImportBase {
   /**
    * Build the import of a single {@link IdentifierBase} from `module` — the
    * cross-file import a Driver registers when a generator references a
-   * peer's Definition. The identifier's `kind` is ignored: every C#
+   * peer's Definition. The identifier's `type` is ignored: every C#
    * using has the same form, so the neutral `IdentifierBase` (which the
    * engine holds) is all that's needed — no narrowing.
    */

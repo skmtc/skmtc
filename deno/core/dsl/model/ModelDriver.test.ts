@@ -5,7 +5,8 @@ import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { DefinitionBase } from '@/dsl/Definition.ts'
-import { TsDefinition, createType } from '@skmtc/lang-typescript'
+import { TsDefinition, TsIdentifier, createType } from '@skmtc/lang-typescript'
+import invariant from 'tiny-invariant'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
@@ -21,8 +22,12 @@ import { typescript } from '@skmtc/lang-typescript'
 // which Definition subclass flows through.
 const coreDefLang: Lang = {
   ...typescript,
-  toDefinition: ({ context, identifier, value, noExport }) =>
-    new TsDefinition({ context, identifier, value, noExport })
+  toDefinition: ({ context, identifier, value, noExport }) => {
+    // The engine holds the identifier neutrally; TsDefinition needs the
+    // concrete TsIdentifier — narrow exactly as the real `typescript` lang does.
+    invariant(identifier instanceof TsIdentifier, 'expected a TsIdentifier')
+    return new TsDefinition({ context, identifier, value, noExport })
+  }
 }
 
 class MockGeneratedValue implements GeneratedValue {

@@ -24,11 +24,11 @@ export type CsDefinitionArgs<Value extends GeneratedValue> = {
 /**
  * C#'s concrete {@link DefinitionBase}: assembles the declaration shell
  * around the generated value, dispatching on the identifier's opaque
- * `kind` — exhaustive over this language's vocabulary, throwing outside
+ * `type` — exhaustive over this language's vocabulary, throwing outside
  * it (no silent fallback; {@link toCsKeyword} is the single source for
  * both the throw and the keyword chain).
  *
- * | kind | shell |
+ * | type | shell |
  * |---|---|
  * | `record` | `sealed partial record Name[ : A, B]\n{\n…\n}` (bodyless collapse to `…Name[ : A, B];` when the value renders empty) |
  * | `abstract-record` | `abstract partial record Name[ : A, B]\n{\n…\n}` (same bodyless collapse — the polymorphic parent is normally bodyless) |
@@ -64,7 +64,7 @@ export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends
 
   override toString(): string {
     // The engine holds the identifier as the neutral `IdentifierBase`;
-    // narrow to `CsIdentifier` cast-free to read the typed `kind`.
+    // narrow to `CsIdentifier` cast-free to read the typed `type`.
     const identifier = this.identifier
     invariant(
       isCsIdentifier(identifier),
@@ -88,17 +88,17 @@ export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends
   }
 
   private toShell(identifier: CsIdentifier): string {
-    const { name, kind } = identifier
+    const { name, type } = identifier
 
-    const keyword = toCsKeyword(kind)
+    const keyword = toCsKeyword(type)
 
-    switch (kind) {
+    switch (type) {
       case 'record':
       case 'abstract-record':
       case 'class':
       case 'interface': {
         const constructorClause =
-          kind === 'class' && isCsConstructed(this.value)
+          type === 'class' && isCsConstructed(this.value)
             ? `(${this.value.constructorParameters})`
             : ''
         const clause =
@@ -114,7 +114,7 @@ export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends
       case 'enum':
         return `${keyword} ${name}\n{\n${this.value}\n}`
       default:
-        throw new Error(`Unknown C# entity kind: ${kind}`)
+        throw new Error(`Unknown C# entity type: ${type}`)
     }
   }
 }

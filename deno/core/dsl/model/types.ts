@@ -123,7 +123,7 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
   toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier
-   * (`kind` / `typeName` / `exported`), derived from the schema. The engine
+   * (`type` / `typeName` / `exported`), derived from the schema. The engine
    * assembles `lang.toIdentifier({ name: toIdentifierName(args),
    * ...toIdentifierType(refName, context) })`.
    */

@@ -178,7 +178,7 @@ Deno.test('toDefinition falls back to the value description for the JSDoc', () =
   )
 })
 
-Deno.test('TsFile renders same-name companions (declaration merging) after primaries', () => {
+Deno.test('TsFile renders declaration-merging slots — class + same-name namespace co-exist', () => {
   const tsFile = new TsFile({ path: '@/resources/models.generated.ts', settings: undefined })
 
   const classDef = new TsDefinition({
@@ -199,22 +199,22 @@ Deno.test('TsFile renders same-name companions (declaration merging) after prima
 
   tsFile.addDefinition(classDef)
   tsFile.addDefinition(interfaceDef)
-  tsFile.addDefinition(namespaceDef) // same name as the class → companion
+  tsFile.addDefinition(namespaceDef) // same name, different type → its own declaration slot
   tsFile.addDefinition(classDef) // exact re-add → idempotent no-op
 
-  assertEquals(tsFile.mergedDefinitions.length, 1)
+  assertEquals(tsFile.definitions.size, 3) // 'class Models', 'interface Model', 'declare namespace Models' — one map, no overflow lane
   assertEquals(
     tsFile.toString(),
     `export class Models extends APIResource {}\n\nexport interface Model { id: string }\n\nexport declare namespace Models { export { type Model as Model } }\n`
   )
 })
 
-Deno.test('TsFile collapses same-name + same-kind definitions (duplicate, not a companion)', () => {
+Deno.test('TsFile collapses same-name + same-type definitions into one slot', () => {
   const tsFile = new TsFile({ path: '@/tables/models.generated.tsx', settings: undefined })
 
-  // Two distinct objects, same identifier (name + kind) — e.g. a `columnHelper`
+  // Two distinct objects, same identifier (name + type) — e.g. a `columnHelper`
   // const each table column independently registers. They are the same `const`,
-  // so they collapse to one rather than piling up as merge companions.
+  // so they share one declaration slot and collapse to one.
   const first = new TsDefinition({
     context: mockContext,
     identifier: createVariable('columnHelper'),
@@ -229,14 +229,14 @@ Deno.test('TsFile collapses same-name + same-kind definitions (duplicate, not a 
   tsFile.addDefinition(first)
   tsFile.addDefinition(second)
 
-  assertEquals(tsFile.mergedDefinitions.length, 0)
+  assertEquals(tsFile.definitions.size, 1)
   assertEquals(tsFile.toString(), `export const columnHelper = createColumnHelper<Row>();\n`)
 })
 
-Deno.test('TsFile collapses same-name + same-kind even when the value differs (the identifier is the key)', () => {
+Deno.test('TsFile collapses same-name + same-type even when the value differs (the identifier is the key)', () => {
   const tsFile = new TsFile({ path: '@/types/models.generated.ts', settings: undefined })
 
-  // Same name + same kind (`type`) — TS cannot redeclare a type alias, so the
+  // Same name + same type (`type`) — TS cannot redeclare a type alias, so the
   // first wins and the second is dropped (not merged), regardless of value.
   tsFile.addDefinition(
     new TsDefinition({ context: mockContext, identifier: createType('Id'), value: value('string') })
@@ -245,7 +245,7 @@ Deno.test('TsFile collapses same-name + same-kind even when the value differs (t
     new TsDefinition({ context: mockContext, identifier: createType('Id'), value: value('number') })
   )
 
-  assertEquals(tsFile.mergedDefinitions.length, 0)
+  assertEquals(tsFile.definitions.size, 1)
   assertEquals(tsFile.toString(), `export type Id = string;\n`)
 })
 

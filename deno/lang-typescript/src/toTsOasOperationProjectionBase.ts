@@ -2,7 +2,7 @@ import { toOasOperationProjectionBase } from '@skmtc/core'
 import type { OasOperationProjectionBaseConfig } from '@skmtc/core'
 import { TsSnippet } from './TsSnippet.ts'
 import { register, type TsRegisterArgs } from './register.ts'
-import type { TsLang } from './tsLang.ts'
+import type { TsIdentifierType } from './TsIdentifier.ts'
 
 /**
  * Build a TypeScript OAS operation projection base class.
@@ -22,11 +22,12 @@ import type { TsLang } from './tsLang.ts'
  * result).
  *
  * The config is core's `OasOperationProjectionBaseConfig` parameterized over
- * {@link TsLang} (so `toIdentifierType` returns `IdentifierType<TsLang>`). The
- * base is the factory's first argument, not a config field.
+ * {@link TsIdentifierType} (so `toIdentifierType`'s return tightens to the
+ * `type` bound to `TsEntityType`). The base is the factory's first argument,
+ * not a config field.
  */
 export const toTsOasOperationProjectionBase = <EnrichmentType = undefined>(
-  config: OasOperationProjectionBaseConfig<EnrichmentType, TsLang>
+  config: OasOperationProjectionBaseConfig<EnrichmentType, TsIdentifierType>
 ) => {
   return class extends toOasOperationProjectionBase(TsSnippet, config) {
     /**
