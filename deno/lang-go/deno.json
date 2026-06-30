@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/lang-go",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
@@ -9,6 +9,6 @@
     "publish": "JSR_URL=https://jsr.skmtc.co.uk/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@0.22.0"
+    "@skmtc/core": "jsr:@skmtc/core@0.22.1"
   }
 }

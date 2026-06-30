@@ -494,6 +494,8 @@ export type GenerateContextType = {
   register: (args: ContextRegisterArgs) => void
   /** Look up an existing file by path (no creation); the neutral read primitive. */
   getFile: (filePath: string) => FileBase | undefined
+  /** Read-only view of every file generated so far — an inspection/tooling seam (not coordination). */
+  inspectedFiles: ReadonlyMap<string, FileBase>
   /** Store a language-constructed file; the neutral write primitive. */
   addFile: (file: FileBase) => void
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(

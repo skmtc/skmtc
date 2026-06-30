@@ -1079,6 +1079,20 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
+   * Read-only view of every file generated so far, keyed by (normalized)
+   * export path. An **inspection / tooling** seam — NOT a coordination
+   * surface: generators must still register via `register` / `insert*`, and
+   * the storage stays `#`-private so nothing outside can mutate or re-bind it.
+   *
+   * Unlike {@link getFile} (which needs a path) this lets tooling *enumerate*
+   * the files map — e.g. a debugger visualiser snapshotting the in-progress
+   * state at a breakpoint. The `ReadonlyMap` type signals look-don't-touch.
+   */
+  get inspectedFiles(): ReadonlyMap<string, FileBase> {
+    return this.#files
+  }
+
+  /**
    * Store a language-constructed file. The engine never constructs a
    * concrete (language) `File`; the language's `register` builds its own
    * `FileBase` subclass and hands it in here. Throws if a file already
