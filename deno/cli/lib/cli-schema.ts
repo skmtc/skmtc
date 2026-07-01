@@ -152,8 +152,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '--auto',
         description: 'Run generation immediately without waiting for a debugger to attach.'
-      },
-      { flag: '--port <port>', description: 'Inspector port for the worker host (default 9345).' }
+      }
     ],
     agentMode: 'none'
   },

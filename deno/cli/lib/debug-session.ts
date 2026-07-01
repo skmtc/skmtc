@@ -9,8 +9,6 @@ type RunDebugSessionArgs = {
   generateMessage: { type: 'GENERATE'; payload: unknown }
   /** Post `GENERATE` immediately without waiting for an attach (smoke test). */
   auto: boolean
-  /** Inspector port for the worker host. */
-  port: number
 }
 
 /**
@@ -127,8 +125,7 @@ export const runDebugSession = async ({
   projectPath,
   workerHref,
   generateMessage,
-  auto,
-  port
+  auto
 }: RunDebugSessionArgs): Promise<number> => {
   const harnessPath = await Deno.makeTempFile({ prefix: 'skmtc-debug-', suffix: '.ts' })
   await Deno.writeTextFile(harnessPath, DEBUG_HARNESS_SOURCE)
@@ -142,7 +139,10 @@ export const runDebugSession = async ({
       'run',
       '--config',
       join(projectPath, 'deno.json'),
-      `--inspect=127.0.0.1:${port}`,
+      // No --inspect: the worker's own inspector.open(0) opens a dedicated,
+      // worker-only port (relayed via the INSPECTOR message), so a debugger
+      // attaches to the worker isolate cleanly — not the harness main isolate on
+      // a shared port.
       '--unstable-worker-options',
       '--allow-read',
       '--allow-env',
@@ -200,11 +200,10 @@ export const runDebugSession = async ({
   ) => {
     switch (message.type) {
       case 'INSPECTOR': {
-        console.log(`\nWorker inspector ready — attach a debugger to:\n  ${message.url}\n`)
         if (auto) {
-          console.log('--auto: running generation now (no debugger attached).')
           await sendGenerate()
         } else {
+          console.log(`\nWorker inspector ready — attach a debugger to:\n  ${message.url}\n`)
           console.log(
             'Set breakpoints in your generator .ts files, then press Enter here to run generation…'
           )

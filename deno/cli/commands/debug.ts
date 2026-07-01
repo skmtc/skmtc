@@ -10,7 +10,6 @@ type RenderDebugArgs = {
   projectName: string | undefined
   schemaSourceString?: string | undefined
   autoFlag?: boolean
-  port?: number
   // Optional dependency for testing.
   skmtcRoot?: SkmtcRoot
 }
@@ -32,7 +31,6 @@ export const renderDebug = async ({
   projectName,
   schemaSourceString,
   autoFlag,
-  port,
   skmtcRoot: providedSkmtcRoot
 }: RenderDebugArgs) => {
   if (projectName === undefined) {
@@ -93,8 +91,7 @@ export const renderDebug = async ({
         attribution: { postPass: { schemaSrc: source } }
       }
     },
-    auto: autoFlag ?? false,
-    port: port ?? 9345
+    auto: autoFlag ?? false
   })
 
   await skmtcRoot.manager.cleanup()

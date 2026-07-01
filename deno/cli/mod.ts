@@ -268,14 +268,12 @@ const run = async () => {
     .description(getCommandDescriptor('debug').description)
     .arguments('[project:string] [schema:string]')
     .option('--auto', 'Run generation immediately without waiting for a debugger to attach.')
-    .option('--port <port:number>', 'Inspector port for the worker host (default 9345).')
-    .action(async ({ auto, port }, projectName, schemaSourceString) => {
+    .action(async ({ auto }, projectName, schemaSourceString) => {
       const { renderDebug } = await import('@/commands/debug.ts')
       await renderDebug({
         projectName,
         schemaSourceString,
-        autoFlag: auto,
-        port
+        autoFlag: auto
       })
     })
 
