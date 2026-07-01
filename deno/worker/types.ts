@@ -70,6 +70,13 @@ export type GeneratePayload = {
    * always on in core; this only controls emission.)
    */
   attribution?: SerializableAttribution
+  /**
+   * When `true`, the RESULT carries an `inspection` snapshot — a cycle-safe,
+   * depth-bounded JSON serialization of the live `inspectedFiles` graph
+   * (`toArtifacts({ inspect })`). For `skmtc inspect` + the VS Code debugger
+   * views; off by default, generation is otherwise unaffected.
+   */
+  inspect?: boolean
 }
 
 /**
@@ -106,6 +113,11 @@ export type WorkerResult = {
   manifest: ManifestContent
   sidecars?: Record<string, Sidecar>
   generationMap?: GenerationMapEntry[]
+  /**
+   * Serialized `inspectedFiles` snapshot — present only when the payload's
+   * `inspect` was set. Plain JSON (structured-clone-safe over `postMessage`).
+   */
+  inspection?: unknown
 }
 
 /**

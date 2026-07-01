@@ -124,7 +124,7 @@ const toWorker = (
           // descent.
           const attribution = buildAttributionState(payload.attribution)
 
-          const { artifacts, manifest, sidecars, generationMap } = toArtifacts({
+          const { artifacts, manifest, sidecars, generationMap, inspection } = toArtifacts({
             traceId,
             spanId,
             startAt,
@@ -134,7 +134,8 @@ const toWorker = (
             toGeneratorConfigMap,
             logsPath: undefined,
             silent: payload.silent ?? false,
-            attribution
+            attribution,
+            inspect: payload.inspect
           })
 
           self.postMessage({
@@ -142,7 +143,8 @@ const toWorker = (
             artifacts,
             manifest,
             sidecars,
-            generationMap
+            generationMap,
+            inspection
           })
           break
         }
