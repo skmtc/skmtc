@@ -57,6 +57,12 @@ type TransformArgs = {
    * alongside the standard artifacts. See {@link AttributionState}.
    */
   attribution?: AttributionState
+  /**
+   * When `true`, the result carries an `inspection` snapshot — a cycle-safe,
+   * depth-bounded JSON serialization of the live `inspectedFiles` graph. Opt-in;
+   * the generate/render pipeline is unaffected.
+   */
+  inspect?: boolean
 }
 
 /**
@@ -137,12 +143,14 @@ export const toArtifacts = ({
   startAt,
   silent,
   stackTrail,
-  attribution
+  attribution,
+  inspect
 }: TransformArgs): {
   artifacts: Record<string, string>
   manifest: ManifestContent
   sidecars?: Record<string, Sidecar>
   generationMap?: GenerationMapEntry[]
+  inspection?: unknown
 } => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
@@ -154,14 +162,16 @@ export const toArtifacts = ({
     mappings,
     parseIssues,
     sidecars,
-    generationMap
+    generationMap,
+    inspection
   } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
     document,
     stackTrail,
     silent,
-    attribution
+    attribution,
+    inspect
   })
 
   const manifest: ManifestContent = {
@@ -178,5 +188,5 @@ export const toArtifacts = ({
     endAt: Date.now()
   }
 
-  return { artifacts, manifest, sidecars, generationMap }
+  return { artifacts, manifest, sidecars, generationMap, inspection }
 }

@@ -190,6 +190,14 @@ export type ToArtifactsResult = RenderResult & {
    * X?"). Populated only when `attribution.postPass` was configured.
    */
   generationMap?: GenerationMapEntry[]
+  /**
+   * Cycle-safe, depth-bounded JSON serialization of the live
+   * `inspectedFiles` graph (the real `Definition` / `Snippet` object tree,
+   * not the rendered text). Populated only when `inspect: true` was set on
+   * `ToArtifactsArgs`; otherwise omitted. Consumed by `skmtc inspect` and
+   * the VS Code debugger views.
+   */
+  inspection?: unknown
 }
 
 /**
