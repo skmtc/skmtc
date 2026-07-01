@@ -77,6 +77,30 @@ const buildAttributionState = (
 const toWorker = (
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 ) => {
+  // Debug: when `SKMTC_DEBUG_INSPECTOR` is set, self-register the worker isolate
+  // with the V8 inspector and relay its debugger URL. Deno does not auto-expose
+  // worker isolates as debug targets, but a worker that calls `inspector.open()`
+  // becomes an attachable CDP target — so a debugger can breakpoint generator
+  // code running in the sandboxed Worker (see the CLI debugger plan). Gated by the
+  // env var + a dynamic import so production / hosted runs are untouched.
+  const debugInspector = (() => {
+    try {
+      return Boolean(Deno.env.get('SKMTC_DEBUG_INSPECTOR'))
+    } catch {
+      return false
+    }
+  })()
+  if (debugInspector) {
+    import('node:inspector')
+      .then(inspector => {
+        inspector.open(0, '127.0.0.1', false)
+        self.postMessage({ type: 'INSPECTOR', url: inspector.url() })
+      })
+      .catch((error: unknown) => {
+        self.postMessage({ type: 'ERROR', error: `inspector.open failed: ${String(error)}` })
+      })
+  }
+
   self.onmessage = async (e: MessageEvent) => {
     // Boundary cast of the structured-clone payload, as elsewhere in
     // this handler. `message` is the discriminated union; `rawType` is

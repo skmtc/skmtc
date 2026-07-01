@@ -109,6 +109,17 @@ export type WorkerResult = {
 }
 
 /**
+ * Debug-only message posted at worker startup when `SKMTC_DEBUG_INSPECTOR` is
+ * set: the worker has self-registered with `node:inspector` and this is the
+ * debugger URL to attach to (so a debugger can breakpoint generator code inside
+ * the sandboxed Worker). Never posted in normal runs.
+ */
+export type WorkerInspectorMessage = {
+  type: 'INSPECTOR'
+  url: string | undefined
+}
+
+/**
  * Wire shape of the worker's RESULT message for a `DESCRIBE` request.
  * Mirrors the three engine calls (`toSupportedSubjects`,
  * `toEnrichmentDescriptor`, `toEnrichmentDefaults`) the bundle's
