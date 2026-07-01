@@ -278,6 +278,19 @@ export type RegisterJsonArgs = {
 }
 
 /**
+ * Arguments for {@link GenerateContextType.registerMarkdown}.
+ *
+ * Used to register a Markdown document — operation docs, a README — that should
+ * be included in the generated output artifacts.
+ */
+export type RegisterMarkdownArgs = {
+  /** The destination file path where the Markdown should be written */
+  destinationPath: string
+  /** The Markdown content to write to the file */
+  markdown: Stringable
+}
+
+/**
  * The neutral arguments the engine's `context.register` speaks — **pure
  * data**, already standardised into language objects. `imports` are
  * {@link ImportBase} (each language's register function converted its own
@@ -491,6 +504,7 @@ export type GenerateContextType = {
   captureSink: CaptureSink | undefined
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
+  registerMarkdown: ({ destinationPath, markdown }: RegisterMarkdownArgs) => void
   register: (args: ContextRegisterArgs) => void
   /** Look up an existing file by path (no creation); the neutral read primitive. */
   getFile: (filePath: string) => FileBase | undefined

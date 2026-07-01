@@ -175,6 +175,21 @@
             "npm:zod@^3.24.1"
           ]
         }
+      },
+      "packages/core": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@deno/shim-deno@~0.19.2",
+            "npm:@types/lodash-es@4.17.12",
+            "npm:@types/node@^20.9.0",
+            "npm:graphql@^16.9.0",
+            "npm:lodash-es@4.17.21",
+            "npm:openapi-types@12.1.3",
+            "npm:openapi-types@^12.1.3",
+            "npm:tiny-invariant@1.3.3",
+            "npm:valibot@1.1.0"
+          ]
+        }
       }
     }
   }

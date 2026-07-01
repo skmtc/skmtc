@@ -27,6 +27,7 @@ import type {
   PickArgs,
   ContextRegisterArgs,
   RegisterJsonArgs,
+  RegisterMarkdownArgs,
   ToGqlOperationSettingsArgs,
   ToOperationSettingsArgs,
   ToWebhookSettingsArgs
@@ -67,6 +68,7 @@ import type { CaptureChannel, CaptureSink } from '@/anchors/CaptureSink.ts'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
+import { MarkdownFile } from '@/dsl/MarkdownFile.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type {
@@ -1130,6 +1132,33 @@ export class GenerateContext implements GenerateContextType {
     )
 
     currentFile.content = json
+  }
+
+  /**
+   * Registers Markdown content for output to a file.
+   *
+   * The Markdown counterpart of {@link registerJson} — create-or-replace, last
+   * write wins. The `markdown` is any {@link Stringable} (typically a composed
+   * snippet tree), rendered verbatim into a {@link MarkdownFile}.
+   *
+   * @experimental This method is experimental and may change in future versions
+   */
+  registerMarkdown({ destinationPath, markdown }: RegisterMarkdownArgs) {
+    const normalizedPath = normalize(destinationPath)
+
+    let currentFile = this.getFile(normalizedPath)
+
+    if (!currentFile) {
+      currentFile = new MarkdownFile({ path: normalizedPath, content: '' })
+      this.addFile(currentFile)
+    }
+
+    invariant(
+      currentFile instanceof MarkdownFile,
+      `File at "${destinationPath}" is not a "MarkdownFile" type`
+    )
+
+    currentFile.content = markdown
   }
 
   /**
