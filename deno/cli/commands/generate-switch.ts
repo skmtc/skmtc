@@ -90,8 +90,10 @@ export const generateSwitch = async ({
     // generators — friction #4's defensive net.
     //
     // Only gates strict mode (agents). Interactive users see realtime
-    // output and can recover; agents need the upfront refusal.
-    if (mode === 'strict') {
+    // output and can recover; agents need the upfront refusal. Skipped
+    // entirely for a REMOTE generate (`client.json#serverUrl` set) — there
+    // is no local bundle to be fresh, generation runs on the stack server.
+    if (mode === 'strict' && !generateLocalArgs.stackUrl) {
       const freshness = checkBundleFreshness({ projectName })
       if (freshness.type === 'stale' || freshness.type === 'missing-worker') {
         console.error(`Error: ${freshness.message}\n`)
