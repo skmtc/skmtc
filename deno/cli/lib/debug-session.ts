@@ -143,10 +143,8 @@ export const runDebugSession = async ({
   const writer = child.stdin.getWriter()
   const encoder = new TextEncoder()
 
-  let generateSent = false
+  // Called exactly once — either the `auto` branch or the stdin handshake, never both.
   const sendGenerate = async () => {
-    if (generateSent) return
-    generateSent = true
     try {
       await writer.write(encoder.encode(`${JSON.stringify(generateMessage)}\n`))
       await writer.close()

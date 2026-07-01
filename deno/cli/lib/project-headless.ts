@@ -115,10 +115,8 @@ async function registerSchema(
     });
   } else {
     const path = join(toAbsoluteRootPath(), source);
-    let bytes: Uint8Array;
-    try {
-      bytes = await Deno.readFile(path);
-    } catch {
+    const bytes = await Deno.readFile(path).catch(() => null);
+    if (bytes === null) {
       return { error: `cannot read schema source "${source}" (${path})` };
     }
     const filename = source.split("/").pop() ?? "schema.json";
@@ -165,10 +163,8 @@ async function uploadSchemaVersion(
 ): Promise<{ ok: true } | { error: string }> {
   if (/^https?:\/\//i.test(source)) return { ok: true };
   const path = join(toAbsoluteRootPath(), source);
-  let bytes: Uint8Array;
-  try {
-    bytes = await Deno.readFile(path);
-  } catch {
+  const bytes = await Deno.readFile(path).catch(() => null);
+  if (bytes === null) {
     return { error: `cannot read schema source "${source}" (${path})` };
   }
   const filename = source.split("/").pop() ?? "schema.json";

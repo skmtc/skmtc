@@ -95,7 +95,7 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
 
   log(`watching ${projectPath}`)
 
-  let debounceTimer: number | undefined
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
   const watcher: FSWatcher = chokidar.watch(projectPath, {
     ignored: (path: string) => shouldIgnore(path),
