@@ -18,6 +18,9 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   // describe runs the project's local bundle to read generator
   // capabilities; it never touches JSR.
   'describe',
+  // debug runs the project's local worker.ts source under the inspector;
+  // it never touches JSR.
+  'debug',
   // login/logout talk to the hub (or just the local filesystem), not
   // the JSR registry.
   'login',
@@ -258,6 +261,21 @@ const run = async () => {
         projectName,
         schemaSourceString,
         jsonFlag: json
+      })
+    })
+
+  const debugCommand = new Command()
+    .description(getCommandDescriptor('debug').description)
+    .arguments('[project:string] [schema:string]')
+    .option('--auto', 'Run generation immediately without waiting for a debugger to attach.')
+    .option('--port <port:number>', 'Inspector port for the worker host (default 9345).')
+    .action(async ({ auto, port }, projectName, schemaSourceString) => {
+      const { renderDebug } = await import('@/commands/debug.ts')
+      await renderDebug({
+        projectName,
+        schemaSourceString,
+        autoFlag: auto,
+        port
       })
     })
 
@@ -542,6 +560,7 @@ const run = async () => {
     .command('bundle', bundleCommand)
     .command('clean', cleanCommand)
     .command('describe', describeCommand)
+    .command('debug', debugCommand)
     .command('publish', publishCommand)
     .command('push', pushCommand)
     .command('pull', pullCommand)
