@@ -69,7 +69,12 @@ worker.onmessage = (event) => {
       const inspectionPath = Deno.env.get('SKMTC_DEBUG_INSPECTION')
       const hasInspection = Boolean(inspectionPath) && data.inspection !== undefined && data.inspection !== null
       if (hasInspection) {
-        Deno.writeTextFileSync(inspectionPath, JSON.stringify(data.inspection))
+        // Combined snapshot the extension reads: rendered text (artifacts) + the
+        // serialized object graph (inspection), keyed by path.
+        Deno.writeTextFileSync(
+          inspectionPath,
+          JSON.stringify({ artifacts: data.artifacts ?? {}, inspection: data.inspection })
+        )
       }
       const inspectionFiles = hasInspection
         ? Object.keys(data.inspection).filter(key => key !== '__class').length
