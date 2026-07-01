@@ -3,7 +3,6 @@ import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe } from '@/lib/strict-mode.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { toDocumentInput } from '@/lib/document-input.ts'
-import { toWorkerPath } from '@/lib/to-worker-path.ts'
 import { runDebugSession } from '@/lib/debug-session.ts'
 
 type RenderDebugArgs = {
@@ -15,17 +14,18 @@ type RenderDebugArgs = {
 }
 
 /**
- * `debug` runs a project's `worker.ts` **source** under the V8 inspector so a
- * debugger can set breakpoints in generator code and step through a real run.
+ * `generate --debug` runs the generators **in a plain `deno --inspect-wait`
+ * subprocess** so a debugger can set breakpoints in generator code and inspect the
+ * live files map at each pause — the standard `node --inspect-brk` flow, no bespoke
+ * handshake.
  *
- * Unlike `describe` / `generate` (which run the compiled `bundle.js` in-process),
- * `debug` spawns a `deno run --config <project>/deno.json` subprocess that runs
- * `worker.ts` source: the project import map resolves core + the local `gen-*`
- * clones, and each generator `.ts` loads as its own module so breakpoints bind
- * 1:1 with no bundle and no source maps. The worker self-registers with the
- * inspector (`@skmtc/worker`'s `SKMTC_DEBUG_INSPECTOR` hook) and relays its URL;
- * we post `GENERATE` only after the debugger attaches (or immediately with
- * `--auto`).
+ * Unlike normal `generate` (which runs the compiled `bundle.js` in a sandboxed
+ * Worker), `--debug` spawns `deno run --config <project>/deno.json --inspect-wait`:
+ * the project import map resolves core + the local `gen-*` clones, the harness
+ * reconstructs the generator set and runs `toArtifacts` **in that isolate**, so
+ * each generator `.ts` loads as its own module and breakpoints bind 1:1 with no
+ * bundle and no source maps. Deno waits for the debugger to attach, then runs
+ * (immediately with `--auto`).
  */
 export const renderDebug = async ({
   projectName,
@@ -69,28 +69,16 @@ export const renderDebug = async ({
     })
   }
 
-  // Build the GENERATE payload host-side exactly as `generate` does — load the
-  // schema and normalize Swagger 2 / OAS 3.1 → 3.0 so the worker receives a
-  // clone-safe document.
+  // Build the schema document host-side exactly as `generate` does — load the
+  // schema and normalize Swagger 2 / OAS 3.1 → 3.0 to a clone-safe document.
   const schemaContents = await toSchemaContents(source)
   const document = await toDocumentInput(schemaContents.contents, schemaContents.fileType)
   const clientSettings = project.clientJson.contents?.settings
 
   const exitCode = await runDebugSession({
     projectPath: project.toPath(),
-    workerHref: toWorkerPath(project.toPath()),
-    generateMessage: {
-      type: 'GENERATE',
-      payload: {
-        document,
-        clientSettings,
-        inspect: true,
-        // Emit per-file gen-maps sidecars so the extension can show per-byte schema
-        // provenance. Worker-side post-pass (no oxc): landmarks come from Definition
-        // identifiers; byte ranges + schema pointers are exact.
-        attribution: { postPass: { schemaSrc: source } }
-      }
-    },
+    document,
+    clientSettings,
     auto: autoFlag ?? false
   })
 

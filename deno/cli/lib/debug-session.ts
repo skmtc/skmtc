@@ -3,248 +3,134 @@ import { join } from '@std/path/join'
 type RunDebugSessionArgs = {
   /** Absolute path to the project dir (`.skmtc/<project>`). */
   projectPath: string
-  /** `file://` URL of the project's `worker.ts` source. */
-  workerHref: string
-  /** The `GENERATE` message posted to the worker after the debugger attaches. */
-  generateMessage: { type: 'GENERATE'; payload: unknown }
-  /** Post `GENERATE` immediately without waiting for an attach (smoke test). */
+  /** The parsed, clone-safe schema document (`{ type: 'oas' | 'gql', value }`). */
+  document: unknown
+  /** The project's `client.json#settings`. */
+  clientSettings: unknown
+  /** Run to completion immediately, without waiting for a debugger to attach. */
   auto: boolean
 }
 
 /**
- * The debug harness — the program the `deno run --config <project>/deno.json`
- * subprocess runs.
+ * The debug harness — the program `deno run --config <project>/deno.json` runs.
  *
- * It exists because the `skmtc` binary carries the CLI's own import map, but the
- * worker must resolve the PROJECT's map (core, the local `gen-*` clones). A
- * subprocess launched with `--config <project>/deno.json` gets that map, and any
- * `new Worker(...)` it spawns inherits it — so `worker.ts` **source** loads with
- * the project's dependencies and generator `.ts` files parse as their own modules
- * (source breakpoints bind 1:1, no bundle, no source maps).
+ * Unlike normal `generate` (which runs the compiled `bundle.js` inside a sandboxed
+ * Worker), `--debug` runs the generators **in this isolate**. That is the whole
+ * point: with `--config <project>/deno.json` the harness resolves the project's own
+ * import map, so `@skmtc/core` and each `@skmtc/gen-*` clone load as their own
+ * source modules and breakpoints in generator `.ts` files bind 1:1 — no worker, no
+ * bundle, no source maps, and a plain `--inspect-wait` gives the standard
+ * "wait for the debugger, then run" flow (no bespoke handshake).
  *
- * The harness has NO `@skmtc` imports — pure Deno APIs — so `--config` only shapes
- * the worker it spawns, never the harness itself. It relays worker messages to
- * stdout as JSON lines and forwards the `GENERATE` payload that arrives on stdin
- * (the go handshake) to the worker. The worker self-registers with the inspector
- * because the parent sets `SKMTC_DEBUG_INSPECTOR` (see `@skmtc/worker`'s `toWorker`).
+ * It reconstructs the generator set the same way `worker.ts` does — the
+ * `@skmtc/gen-*` entries in the project's import map, each default-exporting its
+ * generator keyed by `id` — then calls `toArtifacts` with `inspect: true` so a
+ * paused debugger can read the live `context.inspectedFiles` map.
+ *
+ * `--debug` is **non-destructive**: it generates in memory and writes only the
+ * inspection snapshot, never the output tree (repeated debug runs must not churn
+ * the repo). Use plain `skmtc generate` to write files.
  */
 const DEBUG_HARNESS_SOURCE = `
-const workerHref = Deno.env.get('SKMTC_DEBUG_WORKER')
-if (!workerHref) {
-  console.error('SKMTC_DEBUG_WORKER not set')
-  Deno.exit(1)
+import { StackTrail, toArtifacts } from '@skmtc/core'
+
+const [payloadPath, inspectionPath] = Deno.args
+const payload = JSON.parse(Deno.readTextFileSync(payloadPath))
+const { document, clientSettings, projectPath } = payload
+
+// Reconstruct the generator set from the project's import map (same set worker.ts
+// builds). Running them in THIS isolate is what makes breakpoints bind directly.
+const denoJson = JSON.parse(Deno.readTextFileSync(projectPath + '/deno.json'))
+const genKeys = Object.keys(denoJson.imports ?? {}).filter(key => /^@skmtc\\/gen-/.test(key))
+const gens = []
+for (const key of genKeys) {
+  const mod = await import(key)
+  if (mod.default) gens.push(mod.default)
 }
+console.error('Debugging ' + gens.length + ' generator(s): ' + gens.map(g => g.id).join(', '))
 
-const emit = (obj) => console.log(JSON.stringify(obj))
-
-// net is scoped to localhost and sys to 'inspector' so \`inspector.open()\` can bind
-// its debug server; generators still cannot reach the internet (no external hosts).
-const worker = new Worker(workerHref, {
-  type: 'module',
-  deno: {
-    permissions: {
-      read: true,
-      write: false,
-      env: true,
-      net: ['127.0.0.1'],
-      sys: ['inspector'],
-      run: false
-    }
-  }
+const result = toArtifacts({
+  traceId: 'debug',
+  spanId: 'debug',
+  startAt: Date.now(),
+  document,
+  settings: clientSettings,
+  stackTrail: new StackTrail(['debug', 'debug']),
+  toGeneratorConfigMap: () => Object.fromEntries(gens.map(g => [g.id, g])),
+  silent: true,
+  inspect: true
 })
 
-worker.onmessage = (event) => {
-  const data = event.data
-  switch (data && data.type) {
-    case 'INSPECTOR':
-      emit({ type: 'INSPECTOR', url: data.url })
-      break
-    case 'READY':
-      emit({ type: 'READY' })
-      break
-    case 'RESULT': {
-      const artifacts = data.artifacts ?? {}
-      const inspectionPath = Deno.env.get('SKMTC_DEBUG_INSPECTION')
-      const hasInspection = Boolean(inspectionPath) && data.inspection !== undefined && data.inspection !== null
-      if (hasInspection) {
-        // Combined snapshot the extension reads: rendered text (artifacts) + the
-        // serialized object graph (inspection), keyed by path.
-        Deno.writeTextFileSync(
-          inspectionPath,
-          JSON.stringify({
-            artifacts: data.artifacts ?? {},
-            inspection: data.inspection,
-            sidecars: data.sidecars ?? {}
-          })
-        )
-      }
-      const inspectionFiles = hasInspection
-        ? Object.keys(data.inspection).filter(key => key !== '__class').length
-        : 0
-      emit({ type: 'RESULT', fileCount: Object.keys(artifacts).length, inspectionFiles })
-      worker.terminate()
-      Deno.exit(0)
-      break
-    }
-    case 'ERROR':
-      emit({ type: 'ERROR', error: data.error ?? String(data) })
-      worker.terminate()
-      Deno.exit(1)
-      break
-  }
+const artifacts = result.artifacts ?? {}
+
+// Non-destructive: write only the inspection snapshot (rendered text + the live
+// object graph, keyed by path) — never the output tree.
+if (inspectionPath) {
+  Deno.writeTextFileSync(
+    inspectionPath,
+    JSON.stringify({ artifacts, inspection: result.inspection, sidecars: {} })
+  )
 }
 
-worker.onerror = (error) => {
-  emit({ type: 'ERROR', error: String(error.message ?? error) })
-  Deno.exit(1)
-}
-
-// The GENERATE payload arrives as one JSON line on stdin — receiving it IS the go
-// handshake. Parse and forward to the worker, then let the worker keep the process
-// alive until it posts RESULT (or ERROR).
-const decoder = new TextDecoder()
-let buffer = ''
-for await (const chunk of Deno.stdin.readable) {
-  buffer += decoder.decode(chunk)
-  const newlineIndex = buffer.indexOf('\\n')
-  if (newlineIndex !== -1) {
-    worker.postMessage(JSON.parse(buffer.slice(0, newlineIndex)))
-    break
-  }
+const inspectionFiles = result.inspection
+  ? Object.keys(result.inspection).filter(key => key !== '__class').length
+  : 0
+console.error('Generation complete — ' + Object.keys(artifacts).length + ' file(s) generated (in memory).')
+if (inspectionPath) {
+  console.error('Inspection snapshot: ' + inspectionFiles + ' file(s) -> ' + inspectionPath)
 }
 `
 
 /**
- * Run a live debug session against a project's real worker.
+ * Run a debuggable generation.
  *
- * Spawns the harness subprocess, prints the worker's inspector URL, waits for the
- * debugger to attach + set breakpoints (Enter on stdin, or immediately with
- * `auto`), then triggers generation. Resolves with the subprocess exit code.
+ * Writes the harness + the schema payload to temp files and runs
+ * `deno run --config <project>/deno.json [--inspect-wait] <harness> <payload>`.
+ * With `auto`, it runs straight through; otherwise Deno waits for a debugger to
+ * attach (the URL is printed on stderr, standard `--inspect-wait` behaviour) and
+ * runs on attach. Resolves with the subprocess exit code.
  */
 export const runDebugSession = async ({
   projectPath,
-  workerHref,
-  generateMessage,
+  document,
+  clientSettings,
   auto
 }: RunDebugSessionArgs): Promise<number> => {
   const harnessPath = await Deno.makeTempFile({ prefix: 'skmtc-debug-', suffix: '.ts' })
   await Deno.writeTextFile(harnessPath, DEBUG_HARNESS_SOURCE)
 
-  // The harness writes the serialized inspectedFiles snapshot here (scoped write);
-  // the extension / caller reads it back for the debugger views.
+  const payloadPath = await Deno.makeTempFile({ prefix: 'skmtc-payload-', suffix: '.json' })
+  await Deno.writeTextFile(payloadPath, JSON.stringify({ document, clientSettings, projectPath }))
+
   const inspectionPath = await Deno.makeTempFile({ prefix: 'skmtc-inspection-', suffix: '.json' })
 
+  const args = ['run', '--config', join(projectPath, 'deno.json'), '-A']
+  if (!auto) {
+    // Standard "pause until a debugger connects, then run" — the same flow as
+    // `node --inspect-brk`. Deno prints the ws:// URL on stderr; on attach the
+    // generators run and breakpoints in generator .ts files hit.
+    args.push('--inspect-wait=127.0.0.1:0')
+  }
+  args.push(harnessPath, payloadPath, inspectionPath)
+
+  if (!auto) {
+    console.log(
+      '\nGenerating under the debugger — Deno will wait for a debugger to attach, then run.'
+    )
+    console.log('Set breakpoints in your generator .ts files; generation starts on attach.\n')
+  }
+
   const command = new Deno.Command('deno', {
-    args: [
-      'run',
-      '--config',
-      join(projectPath, 'deno.json'),
-      // No --inspect: the worker's own inspector.open(0) opens a dedicated,
-      // worker-only port (relayed via the INSPECTOR message), so a debugger
-      // attaches to the worker isolate cleanly — not the harness main isolate on
-      // a shared port.
-      '--unstable-worker-options',
-      '--allow-read',
-      '--allow-env',
-      '--allow-net',
-      '--allow-sys',
-      `--allow-write=${inspectionPath}`,
-      harnessPath
-    ],
-    env: {
-      ...Deno.env.toObject(),
-      SKMTC_DEBUG_INSPECTOR: '1',
-      SKMTC_DEBUG_WORKER: workerHref,
-      SKMTC_DEBUG_INSPECTION: inspectionPath
-    },
-    stdin: 'piped',
-    stdout: 'piped',
+    args,
+    env: { ...Deno.env.toObject() },
+    stdout: 'inherit',
     stderr: 'inherit'
   })
 
   const child = command.spawn()
-  const writer = child.stdin.getWriter()
-  const encoder = new TextEncoder()
-
-  // Called exactly once — either the `auto` branch or the stdin handshake, never both.
-  const sendGenerate = async () => {
-    try {
-      await writer.write(encoder.encode(`${JSON.stringify(generateMessage)}\n`))
-      await writer.close()
-    } catch {
-      // The child may have already exited (error path) — nothing to send to.
-    }
-  }
-
-  // A single line on the CLI's own stdin (the user pressing Enter, or a client
-  // writing to `skmtc debug`'s stdin) is the "go" trigger once breakpoints are set.
-  const waitForGo = async () => {
-    try {
-      for await (const _chunk of Deno.stdin.readable) {
-        break
-      }
-    } catch {
-      // stdin closed — fall through to generate.
-    }
-    await sendGenerate()
-  }
-
-  const handleMessage = async (
-    message: {
-      type: string
-      url?: string
-      fileCount?: number
-      error?: string
-      inspectionFiles?: number
-    }
-  ) => {
-    switch (message.type) {
-      case 'INSPECTOR': {
-        if (auto) {
-          await sendGenerate()
-        } else {
-          console.log(`\nWorker inspector ready — attach a debugger to:\n  ${message.url}\n`)
-          console.log(
-            'Set breakpoints in your generator .ts files, then press Enter here to run generation…'
-          )
-          waitForGo()
-        }
-        break
-      }
-      case 'READY':
-        break
-      case 'RESULT':
-        console.log(`\nGeneration complete — ${message.fileCount} file(s).`)
-        if (message.inspectionFiles) {
-          console.log(`Inspection snapshot: ${message.inspectionFiles} file(s) → ${inspectionPath}`)
-        }
-        break
-      case 'ERROR':
-        console.error(`\nWorker error: ${message.error}`)
-        break
-    }
-  }
-
-  // Drain the harness's JSON-line protocol from stdout.
-  const reader = child.stdout.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value)
-    let newlineIndex = buffer.indexOf('\n')
-    while (newlineIndex !== -1) {
-      const line = buffer.slice(0, newlineIndex).trim()
-      buffer = buffer.slice(newlineIndex + 1)
-      if (line.length > 0) {
-        await handleMessage(JSON.parse(line))
-      }
-      newlineIndex = buffer.indexOf('\n')
-    }
-  }
-
   const status = await child.status
+
   await Deno.remove(harnessPath).catch(() => {})
+  await Deno.remove(payloadPath).catch(() => {})
   return status.code
 }
