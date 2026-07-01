@@ -144,19 +144,6 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
-    name: 'debug',
-    description:
-      "Run a project's worker.ts source under the V8 inspector so a debugger can set breakpoints in generator code and step through a real run. Spawns the real sandboxed Worker with the project's import map, relays the inspector URL, and posts GENERATE only after the debugger attaches — so breakpoints in generator .ts files bind and hit.",
-    args: ['<project>', '[schema]'],
-    flags: [
-      {
-        flag: '--auto',
-        description: 'Run generation immediately without waiting for a debugger to attach.'
-      }
-    ],
-    agentMode: 'none'
-  },
-  {
     name: 'publish',
     description:
       'Build and publish an immutable version of this project to skmtc-hub. The stack is the project deno.json#name (@account/slug, the package name; the scope may be an org); versions are addressed by semver and re-publishing an existing version is rejected.',
@@ -284,6 +271,15 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '-w, --watch',
         description: 'Watch schema for changes (incompatible with --json).'
+      },
+      {
+        flag: '--debug',
+        description:
+          'Run under the V8 inspector in source mode so a debugger can pause on breakpoints in generator code and inspect the live files map at each stop.'
+      },
+      {
+        flag: '--auto',
+        description: 'With --debug, run immediately instead of waiting for a debugger to attach.'
       }
     ],
     agentMode: 'full'

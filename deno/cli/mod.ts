@@ -16,11 +16,9 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'agent-context',
   'clean',
   // describe runs the project's local bundle to read generator
-  // capabilities; it never touches JSR.
+  // capabilities; it never touches JSR. (generate --debug is covered by
+  // 'generate' above — it runs the local worker.ts source.)
   'describe',
-  // debug runs the project's local worker.ts source under the inspector;
-  // it never touches JSR.
-  'debug',
   // login/logout talk to the hub (or just the local filesystem), not
   // the JSR registry.
   'login',
@@ -190,12 +188,27 @@ const run = async () => {
         'generation map under `.skmtc/<project>/.maps/`.'
     )
     .option('--no-anchors', 'Force gen-maps (attribution) output OFF, regardless of config.')
+    .option(
+      '--debug',
+      'Run generation under the V8 inspector in source mode (not the bundle) so a ' +
+        'debugger can pause on breakpoints in generator code and inspect the live files ' +
+        'map at each stop. Pairs with the SKMTC Debug VS Code extension.'
+    )
+    .option(
+      '--auto',
+      'With --debug, run generation immediately instead of waiting for a debugger to attach.'
+    )
     .action(
       async (
-        { watch, json, input, typecheck, tsconfig, tscCmd, anchors },
+        { watch, json, input, typecheck, tsconfig, tscCmd, anchors, debug, auto },
         projectName,
         schemaSourceString
       ) => {
+        if (debug) {
+          const { renderDebug } = await import('@/commands/debug.ts')
+          await renderDebug({ projectName, schemaSourceString, autoFlag: auto })
+          return
+        }
         const { generateSwitch } = await import('@/commands/generate-switch.ts')
         await generateSwitch({
           projectName,
@@ -261,19 +274,6 @@ const run = async () => {
         projectName,
         schemaSourceString,
         jsonFlag: json
-      })
-    })
-
-  const debugCommand = new Command()
-    .description(getCommandDescriptor('debug').description)
-    .arguments('[project:string] [schema:string]')
-    .option('--auto', 'Run generation immediately without waiting for a debugger to attach.')
-    .action(async ({ auto }, projectName, schemaSourceString) => {
-      const { renderDebug } = await import('@/commands/debug.ts')
-      await renderDebug({
-        projectName,
-        schemaSourceString,
-        autoFlag: auto
       })
     })
 
@@ -558,7 +558,6 @@ const run = async () => {
     .command('bundle', bundleCommand)
     .command('clean', cleanCommand)
     .command('describe', describeCommand)
-    .command('debug', debugCommand)
     .command('publish', publishCommand)
     .command('push', pushCommand)
     .command('pull', pullCommand)

@@ -35,10 +35,10 @@ export const renderDebug = async ({
 }: RenderDebugArgs) => {
   if (projectName === undefined) {
     return failWithRecipe({
-      command: 'debug',
+      command: 'generate',
       arg: '<project>',
-      usage: 'skmtc debug <project>',
-      example: 'skmtc debug my-api',
+      usage: 'skmtc generate --debug <project>',
+      example: 'skmtc generate --debug my-api',
       discover: 'ls .skmtc/  (list existing projects)'
     })
   }
@@ -49,10 +49,10 @@ export const renderDebug = async ({
 
   if (project === undefined) {
     return failWithRecipe({
-      command: 'debug',
+      command: 'generate',
       arg: '<project>',
-      usage: 'skmtc debug <project>',
-      example: 'skmtc debug my-api',
+      usage: 'skmtc generate --debug <project>',
+      example: 'skmtc generate --debug my-api',
       discover: 'ls .skmtc/  (list existing projects)'
     })
   }
@@ -61,10 +61,10 @@ export const renderDebug = async ({
 
   if (typeof source !== 'string' || source.length === 0) {
     return failWithRecipe({
-      command: 'debug',
+      command: 'generate',
       arg: '[schema]',
-      usage: 'skmtc debug <project> [schema]',
-      example: 'skmtc debug my-api ./openapi.json',
+      usage: 'skmtc generate --debug <project> [schema]',
+      example: 'skmtc generate --debug my-api ./openapi.json',
       discover: 'set client.json#source, or pass the schema path/URL as the second arg'
     })
   }
