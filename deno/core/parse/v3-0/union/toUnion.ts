@@ -7,6 +7,7 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseExample } from '../_helpers/parseExample.ts'
 import { parseDefault } from '../_helpers/parseDefault.ts'
+import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
@@ -35,6 +36,7 @@ export const toUnion = ({
     discriminator,
     title,
     description,
+    externalDocs,
     example: unparsedExample,
     default: unparsedDefaultValue,
     ...skipped
@@ -88,6 +90,9 @@ export const toUnion = ({
       {
         title,
         description,
+        externalDocs: stackTrail.trace('externalDocs', st =>
+          toExternalDocs({ externalDocs, stackTrail: st, context })
+        ),
         nullable,
         default: defaultValue,
         discriminator: discriminatorParsed,

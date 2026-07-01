@@ -8,6 +8,7 @@ import type { OasParameter } from '../parameter/Parameter.ts'
 import type { OasExample } from '../example/Example.ts'
 import type { OasRequestBody } from '../requestBody/RequestBody.ts'
 import type { OasHeader } from '../header/Header.ts'
+import type { OasLink } from '../link/Link.ts'
 import type { OasDocument } from '../document/Document.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
@@ -38,6 +39,8 @@ function refTypeToPluralPath(refType: OasRefData['refType']): string {
       return 'headers';
     case 'securityScheme':
       return 'securitySchemes';
+    case 'link':
+      return 'links';
     default: {
       const _exhaustive: never = refType;
       throw new Error(`Unhandled ref type: ${_exhaustive}`);
@@ -261,6 +264,8 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
         return c?.headers?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
       case 'securityScheme':
         return c?.securitySchemes?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
+      case 'link':
+        return c?.links?.[refName] as ResolvedRef<T> | OasRef<T> | undefined
       default: {
         const _exhaustive: never = refType
         throw new Error(`Unhandled ref type: ${_exhaustive}`)
@@ -392,6 +397,7 @@ export type OasComponentType =
   | OasRequestBody
   | OasHeader
   | OasSecurityScheme
+  | OasLink
 
 /**
  * Type representing a resolved reference to a specific component type.

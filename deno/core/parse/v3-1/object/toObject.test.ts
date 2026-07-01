@@ -3,6 +3,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { toObject } from './toObject.ts'
 import { assertEquals } from '@std/assert/equals'
 import { OasObject } from '@/oas/object/Object.ts'
+import { OasExternalDocs } from '@/oas/externalDocs/ExternalDocs.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { spy, assertSpyCalls } from '@std/testing/mock'
 Deno.test('toObject - basic object type', () => {
@@ -11,6 +12,22 @@ Deno.test('toObject - basic object type', () => {
   const oasObject = toObject({ value: schema, stackTrail, context: mockParseContext })
 
   assertEquals(oasObject, new OasObject())
+})
+
+Deno.test('toObject - parses externalDocs', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  const schema: OpenAPIV3.SchemaObject = {
+    type: 'object',
+    externalDocs: { url: 'https://docs.example.com', description: 'More' }
+  }
+  const oasObject = toObject({ value: schema, stackTrail, context: mockParseContext })
+
+  assertEquals(
+    oasObject,
+    new OasObject({
+      externalDocs: new OasExternalDocs({ url: 'https://docs.example.com', description: 'More' })
+    })
+  )
 })
 
 Deno.test('toObject - allows default:null on a nullable schema', () => {

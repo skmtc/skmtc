@@ -1,4 +1,5 @@
 import type { OasHeader } from '../header/Header.ts'
+import type { OasLink } from '../link/Link.ts'
 import type { OasMediaType } from '../mediaType/MediaType.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema } from '../schema/Schema.ts'
@@ -15,6 +16,8 @@ export type ResponseFields = {
   description?: string | undefined
   /** Response headers that can be sent */
   headers?: Record<string, OasHeader | OasRef<'header'>> | undefined
+  /** Design-time links from this response to other operations */
+  links?: Record<string, OasLink | OasRef<'link'>> | undefined
   /** Response content for different media types */
   content?: Record<string, OasMediaType> | undefined
   /** Custom extension fields (x-* properties) */
@@ -208,12 +211,14 @@ export class OasResponse extends OasBase {
   oasType: 'response' = 'response'
   description: string | undefined
   headers: Record<string, OasHeader | OasRef<'header'>> | undefined
+  links: Record<string, OasLink | OasRef<'link'>> | undefined
   content: Record<string, OasMediaType> | undefined
   extensionFields: Record<string, unknown> | undefined
   constructor(fields: ResponseFields, context?: ParseContextType) {
     super(context)
     this.description = fields.description
     this.headers = fields.headers
+    this.links = fields.links
     this.content = fields.content
     this.extensionFields = fields.extensionFields
   }

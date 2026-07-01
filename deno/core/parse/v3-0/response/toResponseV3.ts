@@ -1,5 +1,6 @@
 import { toRefV31 } from '../ref/toRefV31.ts'
 import { toHeadersV3 } from '../header/toHeadersV3.ts'
+import { toLinksV3 } from '../link/toLinksV3.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isRef } from '@/helpers/refFns.ts'
 import type { OpenAPIV3 } from 'openapi-types'
@@ -73,7 +74,7 @@ export const toResponseV3 = ({
     return toRefV31({ ref: response, refType: 'response', stackTrail, context })
   }
 
-  const { description, headers, content, ...skipped } = response
+  const { description, headers, links, content, ...skipped } = response
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -86,6 +87,9 @@ export const toResponseV3 = ({
   const parsedHeaders = stackTrail.trace('headers', st =>
     toHeadersV3({ headers, stackTrail: st, context })
   )
+  const parsedLinks = stackTrail.trace('links', st =>
+    toLinksV3({ links, stackTrail: st, context })
+  )
   const parsedContent = stackTrail.trace('content', st =>
     toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
   )
@@ -95,6 +99,7 @@ export const toResponseV3 = ({
       {
         description,
         headers: parsedHeaders,
+        links: parsedLinks,
         content: parsedContent,
         extensionFields
       },
