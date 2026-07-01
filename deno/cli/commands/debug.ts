@@ -81,7 +81,7 @@ export const renderDebug = async ({
   const exitCode = await runDebugSession({
     projectPath: project.toPath(),
     workerHref: toWorkerPath(project.toPath()),
-    generateMessage: { type: 'GENERATE', payload: { document, clientSettings } },
+    generateMessage: { type: 'GENERATE', payload: { document, clientSettings, inspect: true } },
     auto: autoFlag ?? false,
     port: port ?? 9345
   })

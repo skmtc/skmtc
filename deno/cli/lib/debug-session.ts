@@ -66,7 +66,15 @@ worker.onmessage = (event) => {
       break
     case 'RESULT': {
       const artifacts = data.artifacts ?? {}
-      emit({ type: 'RESULT', fileCount: Object.keys(artifacts).length })
+      const inspectionPath = Deno.env.get('SKMTC_DEBUG_INSPECTION')
+      const hasInspection = Boolean(inspectionPath) && data.inspection !== undefined && data.inspection !== null
+      if (hasInspection) {
+        Deno.writeTextFileSync(inspectionPath, JSON.stringify(data.inspection))
+      }
+      const inspectionFiles = hasInspection
+        ? Object.keys(data.inspection).filter(key => key !== '__class').length
+        : 0
+      emit({ type: 'RESULT', fileCount: Object.keys(artifacts).length, inspectionFiles })
       worker.terminate()
       Deno.exit(0)
       break
@@ -116,6 +124,10 @@ export const runDebugSession = async ({
   const harnessPath = await Deno.makeTempFile({ prefix: 'skmtc-debug-', suffix: '.ts' })
   await Deno.writeTextFile(harnessPath, DEBUG_HARNESS_SOURCE)
 
+  // The harness writes the serialized inspectedFiles snapshot here (scoped write);
+  // the extension / caller reads it back for the debugger views.
+  const inspectionPath = await Deno.makeTempFile({ prefix: 'skmtc-inspection-', suffix: '.json' })
+
   const command = new Deno.Command('deno', {
     args: [
       'run',
@@ -127,12 +139,14 @@ export const runDebugSession = async ({
       '--allow-env',
       '--allow-net',
       '--allow-sys',
+      `--allow-write=${inspectionPath}`,
       harnessPath
     ],
     env: {
       ...Deno.env.toObject(),
       SKMTC_DEBUG_INSPECTOR: '1',
-      SKMTC_DEBUG_WORKER: workerHref
+      SKMTC_DEBUG_WORKER: workerHref,
+      SKMTC_DEBUG_INSPECTION: inspectionPath
     },
     stdin: 'piped',
     stdout: 'piped',
@@ -166,7 +180,15 @@ export const runDebugSession = async ({
     await sendGenerate()
   }
 
-  const handleMessage = async (message: { type: string; url?: string; fileCount?: number; error?: string }) => {
+  const handleMessage = async (
+    message: {
+      type: string
+      url?: string
+      fileCount?: number
+      error?: string
+      inspectionFiles?: number
+    }
+  ) => {
     switch (message.type) {
       case 'INSPECTOR': {
         console.log(`\nWorker inspector ready — attach a debugger to:\n  ${message.url}\n`)
@@ -185,6 +207,9 @@ export const runDebugSession = async ({
         break
       case 'RESULT':
         console.log(`\nGeneration complete — ${message.fileCount} file(s).`)
+        if (message.inspectionFiles) {
+          console.log(`Inspection snapshot: ${message.inspectionFiles} file(s) → ${inspectionPath}`)
+        }
         break
       case 'ERROR':
         console.error(`\nWorker error: ${message.error}`)
