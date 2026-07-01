@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/lang-kotlin",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
@@ -10,6 +10,6 @@
     "test": "deno test --allow-all"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@0.23.0"
+    "@skmtc/core": "jsr:@skmtc/core@0.23.1"
   }
 }
