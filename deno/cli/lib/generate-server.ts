@@ -37,7 +37,12 @@ export const generateWithServer = async ({
   fileType,
   clientSettings
 }: GenerateWithServerArgs): Promise<GenerateResponse> => {
-  const endpoint = `${stackUrl.replace(/\/+$/, '')}/artifacts`
+  // Append `/artifacts` to the PATH while preserving any query string on
+  // `serverUrl` (e.g. `?preview=true`, set by the hub's preview seed to mark the
+  // run ephemeral) — a plain string concat would corrupt `…/servers/1.0?preview=true`.
+  const endpointUrl = new URL(stackUrl)
+  endpointUrl.pathname = `${endpointUrl.pathname.replace(/\/+$/, '')}/artifacts`
+  const endpoint = endpointUrl.toString()
   const protocol = fileTypeToProtocol(fileType)
 
   const headers: Record<string, string> = { 'content-type': 'application/json' }

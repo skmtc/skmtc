@@ -67,6 +67,28 @@ Deno.test('generateWithServer maps graphql fileType to the gql protocol', async 
   }
 })
 
+Deno.test('generateWithServer preserves a query string (e.g. ?preview=true) on the endpoint', async () => {
+  let capturedUrl = ''
+  globalThis.fetch = (input: RequestInfo | URL): Promise<Response> => {
+    capturedUrl = String(input)
+    return Promise.resolve(okJson({ artifacts: {}, manifest: { files: {} } }))
+  }
+  try {
+    await generateWithServer({
+      stackUrl: 'https://api.test/v1/stacks/ada/s/servers/1.0.0?preview=true',
+      schemaContents: '{}',
+      fileType: 'json',
+      clientSettings: undefined
+    })
+    assertEquals(
+      capturedUrl,
+      'https://api.test/v1/stacks/ada/s/servers/1.0.0/artifacts?preview=true'
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 Deno.test('generateWithServer throws on a non-2xx response', async () => {
   globalThis.fetch = (): Promise<Response> =>
     Promise.resolve(new Response('boom', { status: 404 }))
