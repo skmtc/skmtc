@@ -17,6 +17,11 @@ type GenerateLocalArgs = {
    */
   fileType: FileType
   clientSettings: ClientSettings | undefined
+  /**
+   * When set (from `client.json#serverUrl`), generate against this deployed
+   * stack server over HTTP instead of the local `bundle.js`.
+   */
+  stackUrl?: string
   manifestPath: string
   /**
    * Filesystem path of the project — `.skmtc/<project>/`. Used to
@@ -81,6 +86,7 @@ export const generateLocal = async ({
   schemaContents,
   fileType,
   clientSettings,
+  stackUrl,
   manifestPath,
   projectPath,
   schemaSource,
@@ -99,7 +105,8 @@ export const generateLocal = async ({
         schemaContents,
         fileType,
         clientSettings,
-        attribution
+        attribution,
+        stackUrl
       })
 
     writeGeneratedFiles({
