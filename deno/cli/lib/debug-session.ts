@@ -73,7 +73,11 @@ worker.onmessage = (event) => {
         // serialized object graph (inspection), keyed by path.
         Deno.writeTextFileSync(
           inspectionPath,
-          JSON.stringify({ artifacts: data.artifacts ?? {}, inspection: data.inspection })
+          JSON.stringify({
+            artifacts: data.artifacts ?? {},
+            inspection: data.inspection,
+            sidecars: data.sidecars ?? {}
+          })
         )
       }
       const inspectionFiles = hasInspection

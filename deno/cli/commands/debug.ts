@@ -81,7 +81,18 @@ export const renderDebug = async ({
   const exitCode = await runDebugSession({
     projectPath: project.toPath(),
     workerHref: toWorkerPath(project.toPath()),
-    generateMessage: { type: 'GENERATE', payload: { document, clientSettings, inspect: true } },
+    generateMessage: {
+      type: 'GENERATE',
+      payload: {
+        document,
+        clientSettings,
+        inspect: true,
+        // Emit per-file gen-maps sidecars so the extension can show per-byte schema
+        // provenance. Worker-side post-pass (no oxc): landmarks come from Definition
+        // identifiers; byte ranges + schema pointers are exact.
+        attribution: { postPass: { schemaSrc: source } }
+      }
+    },
     auto: autoFlag ?? false,
     port: port ?? 9345
   })
