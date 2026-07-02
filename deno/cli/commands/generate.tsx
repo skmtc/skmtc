@@ -49,7 +49,8 @@ export const renderGenerate = async ({
       skmtcRoot,
       schemaContents: schemaContents.contents,
       fileType: schemaContents.fileType,
-      clientSettings: project.clientJson.contents?.settings
+      clientSettings: project.clientJson.contents?.settings,
+      stackUrl: project.clientJson.contents?.serverUrl
     })
 
     Deno.exit(0)

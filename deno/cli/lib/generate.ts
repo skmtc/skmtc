@@ -17,6 +17,11 @@ type GenerateArgs = {
    */
   fileType: FileType
   clientSettings: ClientSettings | undefined
+  /**
+   * When set (from `client.json#serverUrl`), generate against this deployed
+   * stack server over HTTP instead of the local `bundle.js`.
+   */
+  stackUrl?: string
 }
 
 export const generate = async ({
@@ -25,14 +30,16 @@ export const generate = async ({
   skmtcRoot,
   schemaContents,
   fileType,
-  clientSettings
+  clientSettings,
+  stackUrl
 }: GenerateArgs) => {
   try {
     const { artifacts, manifest } = await GenerateArtifacts.generateWithWorker({
       bundlePath,
       schemaContents,
       fileType,
-      clientSettings
+      clientSettings,
+      stackUrl
     })
 
     const manifestPath = project.toManifestPath()

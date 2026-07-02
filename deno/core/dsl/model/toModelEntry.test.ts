@@ -3,7 +3,6 @@ import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
-import * as v from 'valibot'
 
 Deno.test('toModelEntry - returns object with id and type model', () => {
   const entry = toModelEntry({

@@ -1,4 +1,5 @@
 import { GenerateContext } from '@/context/GenerateContext.ts'
+import { toInspection } from '@/run/toInspection.ts'
 import { RenderContext } from '@/context/RenderContext.ts'
 import { ParseContext } from '@/context/ParseContext.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
@@ -130,6 +131,12 @@ export type ToArtifactsArgs = {
    * {@link AttributionState}.
    */
   attribution?: AttributionState
+  /**
+   * When `true`, serialize the live `inspectedFiles` graph into the result's
+   * `inspection` field (see {@link toInspection}). Off by default; the pipeline
+   * is otherwise untouched.
+   */
+  inspect?: boolean
 }
 
 type SetupLoggerArgs = {
@@ -384,7 +391,8 @@ export class CoreContext {
     settings,
     toGeneratorConfigMap,
     stackTrail,
-    attribution
+    attribution,
+    inspect
   }: ToArtifactsArgs): ToArtifactsResult {
     try {
       // Parse phase: one unified ParseContext handles both protocols
@@ -402,15 +410,23 @@ export class CoreContext {
       // render. One object per run wires the two phases together.
       const captureChannel: CaptureChannel = { sink: undefined }
 
-      const { files, previews, mappings } = stackTrail.trace('generate', st => {
-        this.#phase = this.#setupGeneratePhase({
+      const { files, previews, mappings, inspection } = stackTrail.trace('generate', st => {
+        const generatePhase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           document: parsedDocument,
           settings,
           captureChannel
         })
+        this.#phase = generatePhase
 
-        return this.#phase.context.toArtifacts(st)
+        const generated = generatePhase.context.toArtifacts(st)
+
+        // Opt-in snapshot of the live files graph, taken after generate populates
+        // it and before render replaces the phase. Off unless `inspect` is set.
+        return {
+          ...generated,
+          inspection: inspect ? toInspection(generatePhase.context.inspectedFiles) : undefined
+        }
       })
 
       // Render is a single capture pass: it renders each File once and,
@@ -435,7 +451,8 @@ export class CoreContext {
       return {
         ...renderOutput,
         results: this.#results.toTree(),
-        parseIssues: phase.context.issues
+        parseIssues: phase.context.issues,
+        inspection
       }
     } catch (error) {
       console.error(error)

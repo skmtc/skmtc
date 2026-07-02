@@ -53,6 +53,18 @@ Deno.test('addFile stores a non-core FileBase that getFile returns', () => {
   assertEquals(context.getFile('@/models/User.ts'), file)
 })
 
+Deno.test('inspectedFiles enumerates every registered file', () => {
+  const context = createContext()
+  context.addFile(new LangFile({ path: '@/models/User.ts' }))
+  context.addFile(new LangFile({ path: '@/models/Pet.ts' }))
+
+  const files = context.inspectedFiles
+
+  assertEquals(files.size, 2)
+  assertEquals([...files.keys()].sort(), ['@/models/Pet.ts', '@/models/User.ts'])
+  assertEquals(files.get('@/models/User.ts')?.toString(), 'lang-file @/models/User.ts')
+})
+
 Deno.test('getFile normalizes the lookup path', () => {
   const context = createContext()
   const file = new LangFile({ path: 'models/User.ts' })

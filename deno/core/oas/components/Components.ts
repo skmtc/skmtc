@@ -3,6 +3,7 @@ import type { OasParameter } from '../parameter/Parameter.ts'
 import type { OasExample } from '../example/Example.ts'
 import type { OasRequestBody } from '../requestBody/RequestBody.ts'
 import type { OasHeader } from '../header/Header.ts'
+import type { OasLink } from '../link/Link.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { RefName } from '../../types/RefName.ts'
@@ -18,7 +19,8 @@ export const componentsKeys = [
   'examples',
   'requestBodies',
   'headers',
-  'securitySchemes'
+  'securitySchemes',
+  'links'
 ]
 
 /**
@@ -39,6 +41,8 @@ export type ComponentsFields = {
   headers?: Record<RefName, OasHeader | OasRef<'header'>>
   /** Reusable security scheme components */
   securitySchemes?: Record<string, OasSecurityScheme | OasRef<'securityScheme'>>
+  /** Reusable link components */
+  links?: Record<RefName, OasLink | OasRef<'link'>>
   /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
 }
@@ -338,6 +342,11 @@ export class OasComponents {
   /** Record holding re-usable {@link OasSecurityScheme} objects or Refs  */
   get securitySchemes(): Record<string, OasSecurityScheme | OasRef<'securityScheme'>> | undefined {
     return this.#fields.securitySchemes
+  }
+
+  /** Record holding re-usable {@link OasLink} objects or Refs  */
+  get links(): Record<RefName, OasLink | OasRef<'link'>> | undefined {
+    return this.#fields.links
   }
 
   /** Specification Extension fields */

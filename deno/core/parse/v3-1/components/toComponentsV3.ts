@@ -1,5 +1,6 @@
 import { toOptionalResponsesV3 } from '../response/toResponseV3.ts'
 import { toHeadersV3 } from '../header/toHeadersV3.ts'
+import { toLinksV3 } from '../link/toLinksV3.ts'
 import { toOptionalSchemasV3 } from '../schema/toSchemasV3.ts'
 import { toOptionalParametersV3 } from '../parameter/toParameterV3.ts'
 import type { OpenAPIV3 } from 'openapi-types'
@@ -35,6 +36,7 @@ export const toComponentsV3 = ({
     requestBodies,
     headers,
     securitySchemes,
+    links,
     ...skipped
   } = components
 
@@ -70,6 +72,7 @@ export const toComponentsV3 = ({
     securitySchemes: stackTrail.trace('securitySchemes', st =>
       toSecuritySchemesV3({ securitySchemes, stackTrail: st, context })
     ),
+    links: stackTrail.trace('links', st => toLinksV3({ links, stackTrail: st, context })),
     extensionFields
   }
 

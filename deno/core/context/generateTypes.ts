@@ -190,6 +190,14 @@ export type ToArtifactsResult = RenderResult & {
    * X?"). Populated only when `attribution.postPass` was configured.
    */
   generationMap?: GenerationMapEntry[]
+  /**
+   * Cycle-safe, depth-bounded JSON serialization of the live
+   * `inspectedFiles` graph (the real `Definition` / `Snippet` object tree,
+   * not the rendered text). Populated only when `inspect: true` was set on
+   * `ToArtifactsArgs`; otherwise omitted. Consumed by `skmtc inspect` and
+   * the VS Code debugger views.
+   */
+  inspection?: unknown
 }
 
 /**
@@ -275,6 +283,19 @@ export type RegisterJsonArgs = {
   destinationPath: string
   /** The JSON object to write to the file */
   json: Record<string, unknown>
+}
+
+/**
+ * Arguments for {@link GenerateContextType.registerMarkdown}.
+ *
+ * Used to register a Markdown document — operation docs, a README — that should
+ * be included in the generated output artifacts.
+ */
+export type RegisterMarkdownArgs = {
+  /** The destination file path where the Markdown should be written */
+  destinationPath: string
+  /** The Markdown content to write to the file */
+  markdown: Stringable
 }
 
 /**
@@ -491,9 +512,12 @@ export type GenerateContextType = {
   captureSink: CaptureSink | undefined
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
+  registerMarkdown: ({ destinationPath, markdown }: RegisterMarkdownArgs) => void
   register: (args: ContextRegisterArgs) => void
   /** Look up an existing file by path (no creation); the neutral read primitive. */
   getFile: (filePath: string) => FileBase | undefined
+  /** Read-only view of every file generated so far — an inspection/tooling seam (not coordination). */
+  inspectedFiles: ReadonlyMap<string, FileBase>
   /** Store a language-constructed file; the neutral write primitive. */
   addFile: (file: FileBase) => void
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(

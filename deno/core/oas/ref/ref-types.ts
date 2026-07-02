@@ -186,6 +186,31 @@ export const oasSecuritySchemeRefData: v.GenericSchema<OasSecuritySchemeRefData>
   $ref: v.string()
 })
 
+/**
+ * Data type for OpenAPI link reference objects.
+ *
+ * Represents $ref references to link objects in OpenAPI documents,
+ * allowing link definitions to be reused across responses.
+ */
+export type OasLinkRefData = {
+  oasType: 'ref'
+  refType: 'link'
+  $ref: string
+  summary?: string
+  description?: string
+}
+
+/**
+ * Valibot schema for validating link reference data.
+ */
+export const oasLinkRefData: v.GenericSchema<OasLinkRefData> = v.object({
+  oasType: v.literal('ref'),
+  refType: v.literal('link'),
+  $ref: v.string(),
+  summary: v.optional(v.string()),
+  description: v.optional(markdown)
+})
+
 // export const oasPathItemRefData = z.object({
 //   oasType: z.literal('ref'),
 //   refType: z.enum(['pathItem']),
@@ -208,6 +233,7 @@ export type OasRefData =
   | OasRequestBodyRefData
   | OasHeaderRefData
   | OasSecuritySchemeRefData
+  | OasLinkRefData
 // OasPathItemRefData
 
 /**
@@ -223,6 +249,7 @@ export const oasRefData: v.GenericSchema<OasRefData> = v.union([
   oasExampleRefData,
   oasRequestBodyRefData,
   oasHeaderRefData,
-  oasSecuritySchemeRefData
+  oasSecuritySchemeRefData,
+  oasLinkRefData
   // oasPathItemRefData
 ])

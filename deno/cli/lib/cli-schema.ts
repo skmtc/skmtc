@@ -271,6 +271,15 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '-w, --watch',
         description: 'Watch schema for changes (incompatible with --json).'
+      },
+      {
+        flag: '--debug',
+        description:
+          'Run under the V8 inspector in source mode so a debugger can pause on breakpoints in generator code and inspect the live files map at each stop.'
+      },
+      {
+        flag: '--auto',
+        description: 'With --debug, run immediately instead of waiting for a debugger to attach.'
       }
     ],
     agentMode: 'full'

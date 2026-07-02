@@ -57,9 +57,13 @@ export const register = (
   }
 
   context.register({
-    imports: Object.entries(args.imports ?? {}).map(([module, names]) =>
-      TsImport.fromConcise(module, names)
-    ),
+    // Drop self-imports: a symbol exported from the destination file itself is
+    // already in scope, so it is never imported. Centralising the same-file
+    // check here means callers register against an export path without
+    // pre-checking it (compared normalised, since `destinationPath` is too).
+    imports: Object.entries(args.imports ?? {})
+      .filter(([module]) => normalize(module) !== destinationPath)
+      .map(([module, names]) => TsImport.fromConcise(module, names)),
     reExports: Object.entries(args.reExports ?? {})
       .filter(([, identifiers]) => identifiers.length > 0)
       .map(([module, identifiers]) => TsReExport.fromConcise(module, identifiers)),

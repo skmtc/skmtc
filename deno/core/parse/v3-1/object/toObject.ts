@@ -8,6 +8,7 @@ import { parseNullable } from '../_helpers/parseNullable.ts'
 import { parseEnum } from '../_helpers/parseEnum.ts'
 import { parseExample } from '../_helpers/parseExample.ts'
 import { parseDefault } from '../_helpers/parseDefault.ts'
+import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 
 import type { StackTrail } from '@/context/StackTrail.ts'
 
@@ -100,6 +101,7 @@ const toParsedObject = <Nullable extends boolean | undefined>({
     type: _type,
     title,
     description,
+    externalDocs,
     deprecated,
     properties,
     required,
@@ -124,6 +126,9 @@ const toParsedObject = <Nullable extends boolean | undefined>({
       {
         title,
         description,
+        externalDocs: stackTrail.trace('externalDocs', st =>
+          toExternalDocs({ externalDocs, stackTrail: st, context })
+        ),
         nullable,
         example,
         enums,

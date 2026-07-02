@@ -28,6 +28,7 @@ export const toGenerateLocalArgs = async ({
       schemaContents: schemaContents.contents,
       fileType: schemaContents.fileType,
       clientSettings: clientJsonContents?.settings,
+      stackUrl: clientJsonContents?.serverUrl,
       schemaSource: schemaSourceString
     }
   }
@@ -49,6 +50,7 @@ export const toGenerateLocalArgs = async ({
     schemaContents: schemaContents.contents,
     fileType: schemaContents.fileType,
     clientSettings: clientJsonContents.settings,
+    stackUrl: clientJsonContents.serverUrl,
     schemaSource: clientJsonContents.source
   }
 }

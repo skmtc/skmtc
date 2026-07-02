@@ -1,6 +1,7 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
+import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { CustomValue } from '../../dsl/CustomValue.ts'
 import type { OpenAPIV3 } from 'openapi-types'
@@ -17,6 +18,8 @@ export type OasObjectFields<Nullable extends boolean | undefined> = {
   title?: string
   /** A description of the object */
   description?: string
+  /** External documentation for the object */
+  externalDocs?: OasExternalDocs | undefined
   /** Record mapping property names to their schemas */
   properties?: Record<string, OasSchema | OasRef<'schema'> | CustomValue> | undefined
   /** Array of required property names */
@@ -167,6 +170,10 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
    */
   description: string | undefined
   /**
+   * External documentation for the object.
+   */
+  externalDocs: OasExternalDocs | undefined
+  /**
    * Indicates whether value can be null.
    */
   nullable: Nullable | undefined
@@ -237,6 +244,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
     super(context)
     this.title = fields.title
     this.description = fields.description
+    this.externalDocs = fields.externalDocs
     this.properties = fields.properties
     this.required = fields.required
     this.additionalProperties = fields.additionalProperties

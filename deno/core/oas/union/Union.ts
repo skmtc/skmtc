@@ -1,6 +1,7 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasDiscriminator } from '../discriminator/Discriminator.ts'
+import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
@@ -16,6 +17,8 @@ export type UnionFields = {
   title?: string
   /** A description of the union type */
   description?: string
+  /** External documentation for the union type */
+  externalDocs?: OasExternalDocs | undefined
   /** Whether the union value can be null */
   nullable?: boolean
   /** Discriminator object for creating tagged unions */
@@ -161,6 +164,10 @@ export class OasUnion extends OasBase {
    */
   description: string | undefined
   /**
+   * External documentation for the union.
+   */
+  externalDocs: OasExternalDocs | undefined
+  /**
    * Indicates whether value can be null.
    */
   nullable: boolean | undefined
@@ -188,6 +195,7 @@ export class OasUnion extends OasBase {
     super(context)
     this.title = fields.title
     this.description = fields.description
+    this.externalDocs = fields.externalDocs
     this.nullable = fields.nullable
     this.discriminator = fields.discriminator
     this.members = fields.members
