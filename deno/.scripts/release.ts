@@ -438,11 +438,15 @@ export const release = async (): Promise<void> => {
   await applyPlan(order, plan)
 
   console.log('\nPublishing...')
+  // With a JSR_AUTH_TOKEN (e.g. the local mirror's shared secret) the
+  // token is passed explicitly; without one, `deno publish` falls back
+  // to OIDC in GitHub Actions or interactive auth locally.
+  const publishToken = Deno.env.get('JSR_AUTH_TOKEN')
   for (const pkg of order) {
     const planned = plan.get(pkg.name) as PlannedRelease
     console.log(`\n--- ${pkg.name}@${planned.version} ---`)
     const result = await new Deno.Command('deno', {
-      args: ['task', 'publish'],
+      args: ['task', 'publish', ...(publishToken ? [`--token=${publishToken}`] : [])],
       cwd: pkg.dir,
       stdout: 'inherit',
       stderr: 'inherit'

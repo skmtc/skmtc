@@ -21,7 +21,7 @@
     "overlay": "deno run --allow-read cli.ts",
     "test": "deno test --allow-read",
     "test:watch": "deno test --allow-read --watch",
-    "publish": "deno publish --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish": "deno publish --allow-dirty",
     "publish:dry": "deno publish --dry-run --allow-dirty"
   },
   "publish": {

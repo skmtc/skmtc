@@ -11,6 +11,6 @@
     "@skmtc/convert": "jsr:@skmtc/convert@0.1.16"
   },
   "tasks": {
-    "publish": "deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN"
+    "publish": "deno publish --allow-slow-types --allow-dirty --no-check"
   }
 }
