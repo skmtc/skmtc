@@ -58,7 +58,7 @@ interactive login and no stored session.
 ### Generator System
 
 The CLI supports multiple code generators:
-- **Remote Generators** - Fetched from the JSR registry (`JSR_URL`, defaults to `https://jsr.skmtc.dev/`)
+- **Remote Generators** - Fetched from the JSR registry (`JSR_URL`, defaults to `https://jsr.io/`)
 - **Local Projects** - Created and managed locally within the SKMTC root directory
 
 Key generator operations:

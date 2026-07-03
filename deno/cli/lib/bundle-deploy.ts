@@ -47,7 +47,7 @@ const runDenoBundle = async ({
     stderr: 'piped',
     env: {
       ...Deno.env.toObject(),
-      JSR_URL: Deno.env.get('JSR_URL') ?? 'https://jsr.skmtc.dev/'
+      JSR_URL: Deno.env.get('JSR_URL') ?? 'https://jsr.io/'
     }
   })
 

@@ -1,13 +1,11 @@
 /**
  * JSR registry URL resolution + reachability check.
  *
- * The CLI is pinned to a local JSR mirror (`https://jsr.skmtc.dev/` by
- * default) so generator installs and downloads resolve against a known
- * registry rather than upstream `jsr.io`. The `JSR_URL` environment
- * variable overrides the default for local development against a
- * different mirror. The Deno runtime honors the same variable for
- * `jsr:` import resolution, so setting it once keeps both paths in
- * agreement.
+ * The CLI resolves generator installs and downloads against upstream
+ * `jsr.io` by default. The `JSR_URL` environment variable overrides the
+ * default for local development against a mirror. The Deno runtime
+ * honors the same variable for `jsr:` import resolution, so setting it
+ * once keeps both paths in agreement.
  *
  * `assertJsrReachable` runs once at CLI start-up and throws with an
  * actionable error if the registry is unreachable — we'd rather fail
@@ -15,7 +13,7 @@
  * a worker bundle.
  */
 
-const DEFAULT_JSR_URL = 'https://jsr.skmtc.dev/'
+const DEFAULT_JSR_URL = 'https://jsr.io/'
 
 const stripTrailingSlash = (url: string): string => url.replace(/\/+$/, '')
 
@@ -39,10 +37,10 @@ export class JsrRegistryUnreachableError extends Error {
       [
         `JSR registry at ${baseUrl} is unreachable (${reason}).`,
         '',
-        'skmtc is pinned to a local JSR mirror. Start the registry or set',
-        'JSR_URL to a reachable mirror before running the CLI:',
+        'Check your network connection, or set JSR_URL to a reachable',
+        'mirror before running the CLI:',
         '',
-        '  JSR_URL=https://jsr.skmtc.dev/ skmtc <command>',
+        '  JSR_URL=https://jsr.io/ skmtc <command>',
         '',
         'If you are intentionally working offline, the only commands that do',
         'not touch JSR are `skmtc generate` (when bundle.js is already built)',

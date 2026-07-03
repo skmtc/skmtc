@@ -26,9 +26,9 @@ const withJsrUrl = async <T>(value: string | undefined, fn: () => Promise<T> | T
 
 const originalFetch = globalThis.fetch
 
-Deno.test('getJsrBaseUrl - defaults to local skmtc mirror', async () => {
+Deno.test('getJsrBaseUrl - defaults to upstream jsr.io', async () => {
   await withJsrUrl(undefined, () => {
-    assertEquals(getJsrBaseUrl(), 'https://jsr.skmtc.dev')
+    assertEquals(getJsrBaseUrl(), 'https://jsr.io')
   })
 })
 
@@ -40,14 +40,8 @@ Deno.test('getJsrBaseUrl - honors JSR_URL env override', async () => {
 
 Deno.test('toJsrUrl - composes path against the resolved base, normalizing slashes', async () => {
   await withJsrUrl(undefined, () => {
-    assertEquals(
-      toJsrUrl('@skmtc/gen-zod/meta.json'),
-      'https://jsr.skmtc.dev/@skmtc/gen-zod/meta.json'
-    )
-    assertEquals(
-      toJsrUrl('/@skmtc/gen-zod/meta.json'),
-      'https://jsr.skmtc.dev/@skmtc/gen-zod/meta.json'
-    )
+    assertEquals(toJsrUrl('@skmtc/gen-zod/meta.json'), 'https://jsr.io/@skmtc/gen-zod/meta.json')
+    assertEquals(toJsrUrl('/@skmtc/gen-zod/meta.json'), 'https://jsr.io/@skmtc/gen-zod/meta.json')
   })
 })
 
