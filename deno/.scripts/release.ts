@@ -48,6 +48,8 @@ export type WorkspacePackage = {
   imports: Record<string, string>
   /** Names of other workspace packages this one depends on. */
   deps: string[]
+  /** `"private": true` in deno.json — cascade-bumped but never published. */
+  private?: boolean
 }
 
 /** Patch-bump a `x.y.z` version: `0.6.2` → `0.6.3`. */
@@ -154,7 +156,9 @@ export const planRelease = (
       }
     }
 
-    const directBump = !publishedVersions.has(`${pkg.name}@${pkg.version}`)
+    // Private packages are never on the registry, so absence there must
+    // not direct-release them; they enter the plan only via the cascade.
+    const directBump = !pkg.private && !publishedVersions.has(`${pkg.name}@${pkg.version}`)
 
     if (directBump) {
       // You bumped it — publish at your version, with cascaded pins.
@@ -173,6 +177,7 @@ export const planRelease = (
 type DenoJson = {
   name?: string
   version?: string
+  private?: boolean
   imports?: Record<string, string>
   workspace?: string[]
   [key: string]: unknown
@@ -180,6 +185,24 @@ type DenoJson = {
 
 const readDenoJson = async (path: string): Promise<DenoJson> =>
   JSON.parse(await Deno.readTextFile(path)) as DenoJson
+
+/**
+ * A publishable package must never pin a private one — the pin would
+ * resolve nowhere on the registry. Throws on the first violation.
+ */
+export const assertNoPrivateDeps = (packages: WorkspacePackage[]): void => {
+  const privateNames = new Set(packages.filter(p => p.private).map(p => p.name))
+  for (const pkg of packages) {
+    if (pkg.private) continue
+    const dep = pkg.deps.find(name => privateNames.has(name))
+    if (dep) {
+      throw new Error(
+        `${pkg.name} is publishable but depends on private package ${dep}. ` +
+          `Either drop "private": true from ${dep} or mark ${pkg.name} private too.`
+      )
+    }
+  }
+}
 
 /** Discover every named + versioned workspace package and its intra-workspace deps. */
 export const discoverWorkspace = async (
@@ -207,6 +230,7 @@ export const discoverWorkspace = async (
     return {
       name: cfg.name as string,
       version: cfg.version as string,
+      private: cfg.private === true,
       dir,
       imports,
       deps: [
@@ -409,9 +433,14 @@ export const release = async (): Promise<void> => {
 
   console.log(`Registry: ${jsrUrl}\n`)
   const packages = await discoverWorkspace(rootDir)
+  assertNoPrivateDeps(packages)
 
   const published = new Set<string>()
   for (const pkg of packages) {
+    if (pkg.private) {
+      console.log(`  private    ${pkg.name}@${pkg.version}`)
+      continue
+    }
     const isUp = await isPublished(jsrUrl, pkg.name, pkg.version)
     console.log(`  ${isUp ? 'published' : 'PENDING  '}  ${pkg.name}@${pkg.version}`)
     if (isUp) published.add(`${pkg.name}@${pkg.version}`)
@@ -431,7 +460,8 @@ export const release = async (): Promise<void> => {
     const type = pkg.version === planned.version
       ? 'direct'
       : `cascade ${pkg.version} -> ${planned.version}`
-    console.log(`  ${pkg.name}@${planned.version}  (${type})`)
+    const suffix = pkg.private ? ', private — bump only' : ''
+    console.log(`  ${pkg.name}@${planned.version}  (${type}${suffix})`)
   }
 
   console.log('\nApplying version + import updates...')
@@ -444,6 +474,10 @@ export const release = async (): Promise<void> => {
   const publishToken = Deno.env.get('JSR_AUTH_TOKEN')
   for (const pkg of order) {
     const planned = plan.get(pkg.name) as PlannedRelease
+    if (pkg.private) {
+      console.log(`\n--- ${pkg.name}@${planned.version} — private, bumped but not published ---`)
+      continue
+    }
     console.log(`\n--- ${pkg.name}@${planned.version} ---`)
     const result = await new Deno.Command('deno', {
       args: ['task', 'publish', ...(publishToken ? [`--token=${publishToken}`] : [])],
@@ -460,9 +494,16 @@ export const release = async (): Promise<void> => {
     }
   }
 
-  console.log(
-    `\nReleased: ${order.map(p => `${p.name}@${(plan.get(p.name) as PlannedRelease).version}`).join(', ')}`
-  )
+  const toNameAtVersion = (p: WorkspacePackage): string =>
+    `${p.name}@${(plan.get(p.name) as PlannedRelease).version}`
+  const releasedPackages = order.filter(p => !p.private)
+  const bumpedPrivate = order.filter(p => p.private)
+  console.log(`\nReleased: ${releasedPackages.map(toNameAtVersion).join(', ')}`)
+  if (bumpedPrivate.length > 0) {
+    console.log(
+      `Bumped but private (publish manually if needed): ${bumpedPrivate.map(toNameAtVersion).join(', ')}`
+    )
+  }
 
   // If @skmtc/cli was in the release order, the locally-installed
   // `skmtc` binary is now behind. Offer to bring it up to date.
