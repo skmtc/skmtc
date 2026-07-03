@@ -1,16 +1,17 @@
-# Manual-dispatch release via the cascade script, against the
-# jsr.skmtc.co.uk registry (NOT public jsr.io).
+# Manual-dispatch release via the cascade script, publishing to public
+# jsr.io authenticated with GitHub OIDC (no registry token).
 #
 # Releases are deliberate: bump the `version` of the package(s) you
-# changed, merge, then trigger this workflow (or run
-# `cd deno && deno task release` locally — same script, same registry).
-# The cascade publishes any workspace package whose deno.json version
-# isn't yet on the registry and cascades pins + patch bumps to every
-# downstream dependent, so nothing auto-fires on merge to main.
+# changed (`deno task bump`), merge, then trigger this workflow (or run
+# `cd deno && deno task release` locally — same script; locally the
+# ambient JSR_URL / JSR_AUTH_TOKEN from direnv target the local mirror
+# instead). The cascade publishes any workspace package whose deno.json
+# version isn't yet on the registry and cascades pins + patch bumps to
+# every downstream dependent, so nothing auto-fires on merge to main.
 #
-# Requires the `JSR_AUTH_TOKEN` repository secret (a token for
-# jsr.skmtc.co.uk). OIDC is NOT used — that only works against public
-# jsr.io.
+# OIDC requires the `id-token: write` permission below AND each
+# published @skmtc/* package on jsr.io to be linked to this GitHub
+# repository in its package settings.
 
 name: Publish
 
@@ -22,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -31,9 +33,6 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Release via cascade to jsr.skmtc.co.uk
-        env:
-          JSR_URL: https://jsr.skmtc.co.uk/
-          JSR_AUTH_TOKEN: ${{ secrets.JSR_AUTH_TOKEN }}
+      - name: Release via cascade to jsr.io
         working-directory: deno
         run: deno task release

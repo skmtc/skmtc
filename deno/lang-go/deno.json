@@ -6,7 +6,7 @@
     ".": "./mod.ts"
   },
   "tasks": {
-    "publish": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN"
+    "publish": "deno publish --allow-slow-types --allow-dirty"
   },
   "imports": {
     "@skmtc/core": "jsr:@skmtc/core@0.23.1"
