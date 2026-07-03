@@ -35,9 +35,13 @@ leaves downstream `@skmtc/*` consumers pinned to the old version.
 
 The canonical flow:
 
-1. Bump the `version` in `deno.json` of **only** the package(s) whose source
-   you directly changed. Leave downstream consumers alone.
-2. From `skmtc/deno/`, run `deno task release`.
+1. Bump the `version` of **only** the package(s) whose source you directly
+   changed, with `deno task bump <package>` (cascades pins + dependent
+   versions). Leave downstream consumers alone.
+2. Commit and merge to main — the `Publish` workflow runs `deno task release`
+   automatically on every merge (no-op when nothing is pending). Running
+   `deno task release` locally from `skmtc/deno/` does the same against the
+   ambient `JSR_URL` registry.
 
 The script then, against the JSR registry as the source of truth:
 - treats any package whose `deno.json` version is **not yet published** as a

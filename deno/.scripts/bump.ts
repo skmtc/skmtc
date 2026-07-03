@@ -190,7 +190,7 @@ export const bump = async (): Promise<void> => {
   await applyPlan(order, plan)
   console.log(
     `\nUpdated ${order.length} package${order.length === 1 ? '' : 's'}. ` +
-      `Commit, merge, then trigger the Publish workflow (CI runs the cascade).`
+      `Commit and merge — the Publish workflow releases automatically on merge to main.`
   )
 }
 
