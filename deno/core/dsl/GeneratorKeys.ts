@@ -70,6 +70,7 @@ import type { GqlOperation, GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import type { Brand } from '@/types/Brand.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { type Method, isMethod } from '@/types/Method.ts'
+import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
 const GQL_ROOT_KINDS: readonly GqlRootKind[] = ['query', 'mutation', 'subscription']
 
@@ -235,16 +236,16 @@ type ToOasOperationGeneratorKeyArgs =
       path: string
       /** HTTP method */
       method: Method
-      /** Operation variant name (use `'main'` for variants-unaware generators) */
-      variant: string
+      /** Operation variant name — omitted means `'main'` */
+      variant?: string
     }
   | {
       /** Unique identifier for the generator */
       generatorId: string
       /** OpenAPI operation object containing path and method */
       operation: OasOperation
-      /** Operation variant name (use `'main'` for variants-unaware generators) */
-      variant: string
+      /** Operation variant name — omitted means `'main'` */
+      variant?: string
     }
 
 /**
@@ -284,7 +285,7 @@ type ToOasOperationGeneratorKeyArgs =
  */
 export const toOasOperationGeneratorKey = ({
   generatorId,
-  variant,
+  variant = DEFAULT_VARIANT,
   ...rest
 }: ToOasOperationGeneratorKeyArgs): OasOperationGeneratorKey => {
   const { path, method } = 'operation' in rest ? rest.operation : rest
@@ -310,16 +311,16 @@ type ToWebhookGeneratorKeyArgs =
       name: string
       /** HTTP method */
       method: Method
-      /** Webhook variant name (use `'main'` for variants-unaware generators) */
-      variant: string
+      /** Webhook variant name — omitted means `'main'` */
+      variant?: string
     }
   | {
       /** Unique identifier for the generator */
       generatorId: string
       /** OpenAPI webhook object containing name and method */
       webhook: OasWebhook
-      /** Webhook variant name (use `'main'` for variants-unaware generators) */
-      variant: string
+      /** Webhook variant name — omitted means `'main'` */
+      variant?: string
     }
 
 /**
@@ -331,7 +332,7 @@ type ToWebhookGeneratorKeyArgs =
  */
 export const toWebhookGeneratorKey = ({
   generatorId,
-  variant,
+  variant = DEFAULT_VARIANT,
   ...rest
 }: ToWebhookGeneratorKeyArgs): WebhookGeneratorKey => {
   const { name, method } = 'webhook' in rest ? rest.webhook : rest
@@ -356,16 +357,16 @@ type ToGqlOperationGeneratorKeyArgs =
       rootKind: GqlRootKind
       /** Root field name */
       fieldName: string
-      /** Operation variant name (use `'main'` for variants-unaware generators) */
-      variant: string
+      /** Operation variant name — omitted means `'main'` */
+      variant?: string
     }
   | {
       /** Unique identifier for the generator */
       generatorId: string
       /** GraphQL operation object */
       operation: GqlOperation
-      /** Operation variant name (use `'main'` for variants-unaware generators) */
-      variant: string
+      /** Operation variant name — omitted means `'main'` */
+      variant?: string
     }
 
 /**
@@ -376,7 +377,7 @@ type ToGqlOperationGeneratorKeyArgs =
  */
 export const toGqlOperationGeneratorKey = ({
   generatorId,
-  variant,
+  variant = DEFAULT_VARIANT,
   ...rest
 }: ToGqlOperationGeneratorKeyArgs): GqlOperationGeneratorKey => {
   const { rootKind, fieldName } =
@@ -400,8 +401,8 @@ type ToModelGeneratorKeyArgs = {
   generatorId: string
   /** Reference name of the schema model */
   refName: RefName
-  /** Model variant name (use `'main'` for variants-unaware generators) */
-  variant: string
+  /** Model variant name — omitted means `'main'` */
+  variant?: string
 }
 
 /**
@@ -435,7 +436,7 @@ type ToModelGeneratorKeyArgs = {
 export const toModelGeneratorKey = ({
   generatorId,
   refName,
-  variant
+  variant = DEFAULT_VARIANT
 }: ToModelGeneratorKeyArgs): ModelGeneratorKey => {
   const nakedKey: NakedModelGeneratorKey = `${generatorId}|${refName}|${variant}`
 

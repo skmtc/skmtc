@@ -119,6 +119,6 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
    * projection may omit it, in which case it is treated as supporting
    * every operation.
    */
-  isSupported: (args: IsSupportedGqlOperationArgs) => boolean
+  isSupported?: (args: IsSupportedGqlOperationArgs) => boolean
   // deno-lint-ignore ban-types
 } & Function
