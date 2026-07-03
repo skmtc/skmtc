@@ -23,8 +23,6 @@
 
 import { dirname, fromFileUrl, join } from '@std/path'
 
-const DEFAULT_JSR_URL = 'https://jsr.skmtc.co.uk/'
-
 /**
  * Scoped runtime permissions for the installed `skmtc` CLI — replaces a
  * blanket `-A`/`--allow-all`. skmtc reads/writes project files, fetches
@@ -378,7 +376,12 @@ const reinstallCliFromJsr = async (jsrUrl: string, version: string): Promise<voi
   }
 }
 
-const printReinstallHint = (mode: ReinstallCliMode, cliDir: string, version: string): void => {
+const printReinstallHint = (
+  mode: ReinstallCliMode,
+  cliDir: string,
+  version: string,
+  jsrUrl: string
+): void => {
   // The "none" mode lands here always; the other modes land here only on
   // error paths so the operator can recover manually.
   console.error('\nTo reinstall the local `skmtc` binary, choose one:')
@@ -390,7 +393,7 @@ const printReinstallHint = (mode: ReinstallCliMode, cliDir: string, version: str
   console.error(`    ${join(cliDir, 'mod.ts')}`)
   console.error('  # From JSR (downstream consumers):')
   console.error(
-    `  JSR_URL=${DEFAULT_JSR_URL} deno install ${SKMTC_PERMS_STR} -g --unstable-worker-options -n skmtc -f jsr:@skmtc/cli@${version}`
+    `  JSR_URL=${jsrUrl} deno install ${SKMTC_PERMS_STR} -g --unstable-worker-options -n skmtc -f jsr:@skmtc/cli@${version}`
   )
   if (mode !== 'none') {
     console.error(
@@ -402,7 +405,7 @@ const printReinstallHint = (mode: ReinstallCliMode, cliDir: string, version: str
 export const release = async (): Promise<void> => {
   const reinstallMode = parseReinstallMode(Deno.args)
   const rootDir = join(dirname(fromFileUrl(import.meta.url)), '..')
-  const jsrUrl = (Deno.env.get('JSR_URL') ?? DEFAULT_JSR_URL).replace(/\/*$/, '/')
+  const jsrUrl = (Deno.env.get('JSR_URL') ?? 'https://jsr.io/').replace(/\/*$/, '/')
 
   console.log(`Registry: ${jsrUrl}\n`)
   const packages = await discoverWorkspace(rootDir)
@@ -466,7 +469,7 @@ export const release = async (): Promise<void> => {
   const cliDir = cliPackage.dir
 
   if (reinstallMode === 'none') {
-    printReinstallHint('none', cliDir, cliVersion)
+    printReinstallHint('none', cliDir, cliVersion, jsrUrl)
     return
   }
 
@@ -479,7 +482,7 @@ export const release = async (): Promise<void> => {
     console.log(`\nLocal \`skmtc\` binary now at ${cliVersion} (${reinstallMode}).`)
   } catch (err) {
     console.error(`\nReinstall failed: ${err instanceof Error ? err.message : String(err)}`)
-    printReinstallHint(reinstallMode, cliDir, cliVersion)
+    printReinstallHint(reinstallMode, cliDir, cliVersion, jsrUrl)
     // Don't exit non-zero — the publish itself succeeded; the reinstall
     // is a convenience.
   }

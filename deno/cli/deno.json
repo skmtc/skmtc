@@ -48,7 +48,7 @@
   },
   "tasks": {
     "publish": "deno task publish:deno",
-    "publish:deno": "JSR_URL=https://jsr.skmtc.co.uk/ deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN",
+    "publish:deno": "deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN",
     "test": "deno test --allow-all",
     "test:watch": "deno test --allow-all --watch",
     "test:coverage": "deno test --allow-all --coverage=coverage",

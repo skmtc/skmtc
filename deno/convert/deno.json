@@ -12,7 +12,7 @@
     ".": "./mod.ts"
   },
   "tasks": {
-    "publish": "JSR_URL=https://jsr.skmtc.co.uk/ deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN",
+    "publish": "deno publish --allow-slow-types --allow-dirty --no-check --token=$JSR_AUTH_TOKEN",
     "test": "deno test --allow-all --no-check",
     "test:watch": "deno test --allow-all --no-check --watch"
   },

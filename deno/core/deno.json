@@ -53,7 +53,7 @@
     "publish": "deno task publish:deno",
     "build": "deno run -A .scripts/build-node.ts",
     "publish:npm": "cd ../../packages/core && npm publish",
-    "publish:deno": "JSR_URL=https://jsr.skmtc.co.uk/ deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
+    "publish:deno": "deno publish --allow-slow-types --allow-dirty --token=$JSR_AUTH_TOKEN",
     "docs": "deno doc --html --name=\"My library\" ./mod.ts",
     "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > ../docs/src/docs.json",
     "test": "deno test --allow-all",
