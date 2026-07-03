@@ -24,8 +24,10 @@ type CreateModelArgs<V extends GeneratedValue, EnrichmentType> = {
    * peer's enrichment for this variant, asserts the variant exists
    * (or is the default `'main'` which is always permitted), and
    * threads it into the projection's `ContentSettings`.
+   * Optional — omitting it means `'main'`, so variants-unaware
+   * callers keep working unchanged.
    */
-  variant: string
+  variant?: string
 }
 type ApplyArgs = {
   destinationPath?: string
@@ -64,7 +66,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     destinationPath,
     rootRef,
     noExport,
-    variant
+    variant = DEFAULT_VARIANT
   }: CreateModelArgs<V, EnrichmentType>) {
     this.context = context
     this.projection = projection
@@ -275,7 +277,9 @@ const assertPeerSupported = <V extends GeneratedValue, EnrichmentType>({
   refName,
   variant
 }: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
-  if (!projection.isSupported({ refName, context, variant })) {
+  const isSupported = projection.isSupported ?? (() => true)
+
+  if (!isSupported({ refName, context, variant })) {
     throw new Error(
       `[${projection.id}] Cannot insert '${refName}' — peer generator ` +
         `does not support this model (isSupported returned false).`

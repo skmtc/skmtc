@@ -137,7 +137,7 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
    * unsupported. Optional: a hand-rolled projection may omit it, in which
    * case it is treated as supporting every model.
    */
-  isSupported: (args: IsSupportedModelArgs) => boolean
+  isSupported?: (args: IsSupportedModelArgs) => boolean
   schemaToValueFn: SchemaToValueFn
   /**
    * The inline-schema fallback seam used by `insertNormalizedModel` when a

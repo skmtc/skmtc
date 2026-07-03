@@ -17,6 +17,8 @@ import { createVariable, toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import { assertEquals, assertThrows } from '@std/assert'
 import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
+import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
+import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
@@ -305,3 +307,85 @@ Deno.test(
     assertEquals(first.definition === second.definition, true)
   }
 )
+
+// ─── variants-unaware callers (pre-variants generators) ──────────
+
+Deno.test('ModelDriver - constructed without a variant defaults to main', () => {
+  // Pre-variants generator clones construct the Driver directly with no
+  // `variant` — the Driver must treat that as `'main'`, not throw
+  // "Cannot insert variant 'undefined'".
+  const ZodGen = class extends toTsModelProjectionBase({
+    id: '@scope/gen-zod',
+    toIdentifierName: ({ refName }) => refName,
+    toIdentifierType: () => ({ type: 'variable' }),
+    toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }) {
+    // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
+    static schemaToValueFn: any = () => ({ toString: () => '' })
+    static createIdentifier = createVariable
+    override toString() {
+      return `z.object({})`
+    }
+  }
+
+  const context = makeContext({
+    document: makeDoc(['Customer']),
+    settings: {} // No enrichments at all
+  })
+
+  const driver = new ModelDriver({
+    context,
+    projection: ZodGen,
+    refName: 'Customer' as RefName
+  })
+
+  assertEquals(driver.variant, 'main')
+  assertEquals(driver.settings.variant, 'main')
+  assertEquals(driver.settings.identifier.name, 'Customer')
+})
+
+Deno.test('ModelDriver - projection without isSupported is treated as supporting all', () => {
+  const ZodGen = class extends toTsModelProjectionBase({
+    id: '@scope/gen-zod',
+    toIdentifierName: ({ refName }) => refName,
+    toIdentifierType: () => ({ type: 'variable' }),
+    toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }) {
+    // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
+    static schemaToValueFn: any = () => ({ toString: () => '' })
+    static createIdentifier = createVariable
+    override toString() {
+      return `z.object({})`
+    }
+  }
+
+  // Shadow the factory-injected default with `undefined` to simulate a
+  // hand-rolled / pre-capability projection that never defined the static.
+  Object.defineProperty(ZodGen, 'isSupported', { value: undefined })
+
+  const context = makeContext({
+    document: makeDoc(['Customer']),
+    settings: {}
+  })
+
+  const driver = new ModelDriver({
+    context,
+    projection: ZodGen,
+    refName: 'Customer' as RefName
+  })
+
+  assertEquals(driver.settings.identifier.name, 'Customer')
+})
+
+Deno.test('toModelGeneratorKey - omitted variant defaults to main', () => {
+  assertEquals(
+    toModelGeneratorKey({ generatorId: '@scope/gen-zod', refName: 'Customer' as RefName }),
+    toModelGeneratorKey({
+      generatorId: '@scope/gen-zod',
+      refName: 'Customer' as RefName,
+      variant: 'main'
+    })
+  )
+})

@@ -23,8 +23,10 @@ type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> =
    * peer's enrichment for this variant, asserts the variant exists
    * (or is the default `'main'` which is always permitted), and
    * threads it into the projection's `ContentSettings`.
+   * Optional — omitting it means `'main'`, so variants-unaware
+   * callers keep working unchanged.
    */
-  variant: string
+  variant?: string
 }
 
 type ApplyArgs = {
@@ -61,7 +63,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     operation,
     destinationPath,
     noExport,
-    variant
+    variant = DEFAULT_VARIANT
   }: CreateOperationArgs<V, EnrichmentType>) {
     this.context = context
     this.projection = projection
@@ -281,7 +283,9 @@ const assertPeerSupported = <V extends GeneratedValue, EnrichmentType = undefine
   operation,
   variant
 }: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
-  if (!projection.isSupported({ operation, context, variant })) {
+  const isSupported = projection.isSupported ?? (() => true)
+
+  if (!isSupported({ operation, context, variant })) {
     const operationLabel = `${operation.method.toUpperCase()} ${operation.path}`
     throw new Error(
       `[${projection.id}] Cannot insert '${operationLabel}' — peer generator ` +

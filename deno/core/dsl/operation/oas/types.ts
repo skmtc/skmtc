@@ -119,6 +119,6 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
    * projection may omit it, in which case it is treated as supporting
    * every operation.
    */
-  isSupported: (args: IsSupportedOasOperationArgs) => boolean
+  isSupported?: (args: IsSupportedOasOperationArgs) => boolean
   // deno-lint-ignore ban-types
 } & Function

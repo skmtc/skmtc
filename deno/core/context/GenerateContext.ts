@@ -1389,7 +1389,7 @@ export class GenerateContext implements GenerateContextType {
   toOperationContentSettings<V extends GeneratedValue, EnrichmentType>(
     args: ToOperationSettingsArgs<V, EnrichmentType>
   ): ContentSettings<EnrichmentType> {
-    const { variant } = args
+    const variant = args.variant ?? DEFAULT_VARIANT
 
     if (isGqlToOperationSettingsArgs(args)) {
       const enrichments = args.projection.toEnrichments({
@@ -1448,7 +1448,7 @@ export class GenerateContext implements GenerateContextType {
   toWebhookContentSettings<V extends GeneratedValue, EnrichmentType>(
     args: ToWebhookSettingsArgs<V, EnrichmentType>
   ): ContentSettings<EnrichmentType> {
-    const { variant } = args
+    const variant = args.variant ?? DEFAULT_VARIANT
 
     const enrichments = args.projection.toEnrichments({
       webhook: args.webhook,
@@ -1485,7 +1485,7 @@ export class GenerateContext implements GenerateContextType {
   toModelContentSettings<V extends GeneratedValue, EnrichmentType>({
     refName,
     projection,
-    variant
+    variant = DEFAULT_VARIANT
   }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
     const enrichments = projection.toEnrichments({ refName, context: this, variant })
     return new ContentSettings<EnrichmentType>({

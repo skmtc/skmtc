@@ -23,8 +23,10 @@ type CreateWebhookArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
    * enrichment for this variant, asserts the variant exists (or is the
    * default `'main'` which is always permitted), and threads it into the
    * projection's `ContentSettings`.
+   * Optional — omitting it means `'main'`, so variants-unaware
+   * callers keep working unchanged.
    */
-  variant: string
+  variant?: string
 }
 
 type ApplyArgs = {
@@ -61,7 +63,7 @@ export class WebhookDriver<V extends GeneratedValue, EnrichmentType = undefined>
     webhook,
     destinationPath,
     noExport,
-    variant
+    variant = DEFAULT_VARIANT
   }: CreateWebhookArgs<V, EnrichmentType>) {
     this.context = context
     this.projection = projection
@@ -251,7 +253,9 @@ const assertPeerSupported = <V extends GeneratedValue, EnrichmentType = undefine
   webhook,
   variant
 }: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
-  if (!projection.isSupported({ webhook, context, variant })) {
+  const isSupported = projection.isSupported ?? (() => true)
+
+  if (!isSupported({ webhook, context, variant })) {
     const webhookLabel = `webhook '${webhook.name}' (${webhook.method.toUpperCase()})`
     throw new Error(
       `[${projection.id}] Cannot insert ${webhookLabel} — peer generator ` +

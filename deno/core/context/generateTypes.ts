@@ -406,7 +406,7 @@ export type BuildModelSettingsArgs<V extends GeneratedValue, EnrichmentType = un
    * Driver into the projection's static methods and the
    * {@link ContentSettings} built for this insertion.
    */
-  variant: string
+  variant?: string
 }
 
 /**
@@ -424,7 +424,7 @@ export type ToOasOperationSettingsArgs<V extends GeneratedValue, EnrichmentType 
    * Driver into the projection's static methods and the
    * {@link ContentSettings} built for this insertion.
    */
-  variant: string
+  variant?: string
 }
 
 /**
@@ -440,7 +440,7 @@ export type ToGqlOperationSettingsArgs<V extends GeneratedValue, EnrichmentType 
    * Operation variant whose enrichment / identifier / export path
    * should be resolved (see {@link Variant}).
    */
-  variant: string
+  variant?: string
 }
 
 /**
@@ -468,7 +468,7 @@ export type ToWebhookSettingsArgs<V extends GeneratedValue, EnrichmentType = und
    * projection's static methods and the {@link ContentSettings} built for
    * this insertion.
    */
-  variant: string
+  variant?: string
 }
 
 /**

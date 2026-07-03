@@ -118,6 +118,6 @@ export type WebhookProjection<V extends GeneratedValue, EnrichmentType = undefin
    * declared unsupported. Optional: a hand-rolled projection may omit it,
    * in which case it is treated as supporting every webhook.
    */
-  isSupported: (args: IsSupportedWebhookArgs) => boolean
+  isSupported?: (args: IsSupportedWebhookArgs) => boolean
   // deno-lint-ignore ban-types
 } & Function

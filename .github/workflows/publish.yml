@@ -1,13 +1,17 @@
-# Manual-dispatch release via the cascade script, publishing to public
-# jsr.io authenticated with GitHub OIDC (no registry token).
+# Release via the cascade script, publishing to public jsr.io
+# authenticated with GitHub OIDC (no registry token).
 #
-# Releases are deliberate: bump the `version` of the package(s) you
-# changed (`deno task bump`), merge, then trigger this workflow (or run
-# `cd deno && deno task release` locally — same script; locally the
-# ambient JSR_URL / JSR_AUTH_TOKEN from direnv target the local mirror
-# instead). The cascade publishes any workspace package whose deno.json
-# version isn't yet on the registry and cascades pins + patch bumps to
-# every downstream dependent, so nothing auto-fires on merge to main.
+# Runs automatically on every merge to main: the cascade publishes any
+# workspace package whose deno.json version isn't yet on the registry
+# and skips everything already published, so merges with no version
+# bumps are a no-op ("nothing to publish"). Bump versions with
+# `deno task bump <package>` and merge — that IS the release. The
+# workflow_dispatch trigger remains for manual re-runs (e.g. after a
+# partial failure; already-published packages are skipped on re-run).
+#
+# Private packages (`"private": true` in deno.json) are bumped by the
+# cascade but never published — publish those manually to the local
+# mirror when needed.
 #
 # OIDC requires the `id-token: write` permission below AND each
 # published @skmtc/* package on jsr.io to be linked to this GitHub
@@ -16,7 +20,13 @@
 name: Publish
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 jobs:
   publish:
