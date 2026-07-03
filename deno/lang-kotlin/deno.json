@@ -1,6 +1,7 @@
 {
   "name": "@skmtc/lang-kotlin",
   "version": "0.9.5",
+  "private": true,
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"

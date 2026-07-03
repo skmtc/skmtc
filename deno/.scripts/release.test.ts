@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import {
+  assertNoPrivateDeps,
   incrementPatch,
   planRelease,
   toDependencyOrder,
@@ -119,4 +120,44 @@ Deno.test('planRelease - a directly-bumped dependent keeps its own version', () 
 
   assertEquals(plan.get('@skmtc/cli')?.version, '0.4.0')
   assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
+})
+
+Deno.test('assertNoPrivateDeps - a private package may depend on publishable ones', () => {
+  assertNoPrivateDeps([
+    wp('@skmtc/core', '1.0.0'),
+    { ...wp('@skmtc/lang-java', '0.0.1', { '@skmtc/core': 'jsr:@skmtc/core@1.0.0' }), private: true }
+  ])
+})
+
+Deno.test('assertNoPrivateDeps - throws when a publishable package pins a private one', () => {
+  assertThrows(
+    () =>
+      assertNoPrivateDeps([
+        { ...wp('@skmtc/swagger2openapi', '0.1.2'), private: true },
+        wp('@skmtc/convert', '0.1.16', {
+          '@skmtc/swagger2openapi': 'jsr:@skmtc/swagger2openapi@0.1.2'
+        })
+      ]),
+    Error,
+    'private'
+  )
+})
+
+Deno.test('planRelease - a private package is never direct-released from registry absence', () => {
+  const packages = [{ ...wp('@skmtc/lang-java', '0.0.1'), private: true }]
+  assertEquals(planRelease(packages, new Set()).size, 0)
+})
+
+Deno.test('planRelease - a private package still cascade-bumps when a dependency moves', () => {
+  const packages = [
+    wp('@skmtc/core', '0.6.3'),
+    {
+      ...wp('@skmtc/lang-java', '0.0.1', { '@skmtc/core': 'jsr:@skmtc/core@0.6.2' }),
+      private: true
+    }
+  ]
+  const plan = planRelease(packages, new Set())
+
+  assertEquals(plan.get('@skmtc/lang-java')?.version, '0.0.2')
+  assertEquals(plan.get('@skmtc/lang-java')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
 })

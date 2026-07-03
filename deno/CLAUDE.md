@@ -52,6 +52,18 @@ Flags: `--reinstall-cli=none|local-compile|jsr-install` controls whether the
 local `skmtc` binary is rebuilt when `@skmtc/cli` is part of the release
 (default `none`, which just prints the install command).
 
+**Private packages:** a workspace member with `"private": true` in its
+`deno.json` (npm semantics) still participates in the cascade — its
+`@skmtc/*` pins are rewritten and its version patch-bumped like any other
+dependent, and `deno task bump` works on it — but `release` never
+registry-checks or publishes it. Used for packages that don't exist on
+public jsr.io (the stub `lang-*` veneers, `mcp`, `openapi-overlays`);
+publish those manually to the local/private JSR mirror when needed. The
+release fails fast if a publishable package pins a private one. To start
+publishing a private package on jsr.io: create it
+(`https://jsr.io/new?scope=skmtc`), link this GitHub repo in its package
+settings (OIDC), then drop the flag.
+
 **Bump without publishing (`deno task bump`):** when CI does the publish (the
 `Publish` workflow runs the cascade), do step 1 with `deno task bump <package>
 [--minor|--major] [--dry-run]` instead of hand-editing `deno.json`. It performs
