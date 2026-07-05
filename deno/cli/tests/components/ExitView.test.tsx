@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library'
 import { assertExists } from '@std/assert'
 import { ExitView } from '@/components/ExitView.tsx'
-import { SkmtcProvider, SkmtcState } from '@/components/SkmtcContext.tsx'
+import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { assertEquals } from '@std/assert/equals'
 

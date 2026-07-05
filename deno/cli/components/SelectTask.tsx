@@ -1,4 +1,3 @@
-import React from 'react'
 import { Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useState } from 'react'

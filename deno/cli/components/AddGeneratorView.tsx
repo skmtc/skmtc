@@ -1,7 +1,6 @@
-import React from 'react'
 import { type ViewStateAddGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import type { Project } from '@/lib/project.ts'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { SelectTask } from './SelectTask.tsx'
 import { TaskListView } from './TaskListView.tsx'
 import { TaskProvider, useTask } from './TaskContext.tsx'

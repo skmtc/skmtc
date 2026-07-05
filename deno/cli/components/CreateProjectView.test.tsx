@@ -1,4 +1,3 @@
-import React from 'react'
 import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { CreateProjectView } from './CreateProjectView.tsx'

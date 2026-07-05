@@ -1,5 +1,5 @@
 import { assertEquals, assertInstanceOf } from '@std/assert'
-import { OasObject } from '@/oas/object/Object.ts'
+import type { OasObject } from '@/oas/object/Object.ts'
 import { OasArray } from '@/oas/array/Array.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
 import { OasUnion } from '@/oas/union/Union.ts'

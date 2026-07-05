@@ -1,6 +1,5 @@
 import { Command } from '@cliffy/command'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import React from 'react'
 
 export const description = 'Run project server locally'
 

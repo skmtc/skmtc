@@ -10,7 +10,7 @@ import {
 } from 'graphql'
 import type { GqlDocumentFields } from '@/gql/document/GqlDocument.ts'
 import type { GqlRootTypes } from '@/gql/rootType/GqlRootTypes.ts'
-import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
+import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { toObjectType } from '@/gql/object/toObjectType.ts'
 import { toInputType } from '@/gql/input/toInputType.ts'
 import { toEnumType } from '@/gql/enum/toEnumType.ts'

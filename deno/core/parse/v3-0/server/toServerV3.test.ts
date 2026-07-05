@@ -2,7 +2,7 @@ import { mockParseContext } from '@/test/mockParseContext.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toServerV3, toServersV3, toOptionalServersV3 } from './toServerV3.ts'
 import { assertEquals } from '@std/assert/equals'
-import { OasServer } from '@/oas/server/Server.ts'
+import type { OasServer } from '@/oas/server/Server.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 
 Deno.test('toServerV3 - basic server with only url', () => {

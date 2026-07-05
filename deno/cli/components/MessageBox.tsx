@@ -1,4 +1,3 @@
-import React from 'react'
 import { useSkmtc } from './SkmtcContext.tsx'
 import { Box } from 'ink'
 import { StatusMessage } from '@inkjs/ui'

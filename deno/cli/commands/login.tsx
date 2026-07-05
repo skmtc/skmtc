@@ -24,7 +24,6 @@
  * token's last 4 characters.
  */
 
-import React from "react";
 import { Box, render, Text, useApp } from "ink";
 import { useEffect, useState } from "react";
 import { PasswordInput } from "@inkjs/ui";

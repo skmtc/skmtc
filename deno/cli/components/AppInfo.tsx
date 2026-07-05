@@ -1,4 +1,3 @@
-import React from 'react'
 import { Box, Text } from 'ink'
 import { toRelativeRootPath } from '@/lib/to-root-path.ts'
 import denoJson from '../deno.json' with { type: 'json' }

@@ -1,4 +1,3 @@
-import React from 'react'
 import { createContext, type ReactNode, useContext, useReducer } from 'react'
 import type { Project } from '@/lib/project.ts'
 

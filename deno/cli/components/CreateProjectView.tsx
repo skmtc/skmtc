@@ -1,4 +1,3 @@
-import React from 'react'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { TaskProvider } from './TaskContext.tsx'
 import { TaskListView } from './TaskListView.tsx'

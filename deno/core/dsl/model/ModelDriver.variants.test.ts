@@ -15,11 +15,11 @@
 
 import { createVariable, toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import { assertEquals, assertThrows } from '@std/assert'
-import * as log from '@std/log'
+import type * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import { StackTrail } from '@/context/StackTrail.ts'
+import type { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasComponents } from '@/oas/components/Components.ts'

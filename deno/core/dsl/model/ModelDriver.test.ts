@@ -1,5 +1,5 @@
 import { assertEquals, assertExists, assertThrows } from '@std/assert'
-import { spy, stub, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
+import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { ModelDriver } from './ModelDriver.ts'
 import type { ModelProjection } from './types.ts'
 import type { GenerateContextType } from '../../context/generateTypes.ts'

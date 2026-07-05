@@ -1,4 +1,3 @@
-import React from 'react'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import type { Project } from '@/lib/project.ts'

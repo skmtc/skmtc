@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { render } from 'ink-testing-library'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { AppInfo } from '@/components/AppInfo.tsx'

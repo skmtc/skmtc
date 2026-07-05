@@ -19,7 +19,7 @@
 
 import { assertEquals, assertExists, assertThrows } from '@std/assert'
 import { spy, type Spy } from '@std/testing/mock'
-import * as log from '@std/log'
+import type * as log from '@std/log'
 import { GenerateContext } from './GenerateContext.ts'
 import { StackTrail } from './StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'

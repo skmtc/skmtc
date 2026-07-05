@@ -1,4 +1,3 @@
-import React from 'react'
 import { render } from 'ink-testing-library'
 import { assertExists, assertStringIncludes, assertEquals } from '@std/assert'
 import { TaskListView } from '@/components/TaskListView.tsx'
