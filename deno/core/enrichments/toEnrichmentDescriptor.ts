@@ -1,20 +1,22 @@
 import * as v from 'valibot'
-import { moduleExport } from '@/types/ModuleExport.ts'
-import { schemaPath } from '@/types/SchemaPath.ts'
 import { moduleSelectConfigOf } from '@/types/ModuleSelect.ts'
 
 /**
  * Widget type for one enrichment field — the rendered control in the
  * enrichment-editor UI. Mirrors the `EnrichmentFieldType` enum in the
  * skmtc-hub TypeSpec contract.
+ *
+ * There are deliberately NO standalone `module` / `schemaPath` widget
+ * types: a component reference is only meaningful WITH the path that gives
+ * it a type, so the pair is declared as one `moduleSelect` field. A
+ * generator that uses the raw `moduleExport` / `schemaPath` schemas
+ * standalone degrades to the generic object/array widgets.
  */
 export type EnrichmentFieldType =
   | 'text'
   | 'textarea'
   | 'toggle'
   | 'select'
-  | 'module'
-  | 'schemaPath'
   | 'moduleSelect'
   | 'array'
   | 'object'
@@ -45,10 +47,11 @@ export type EnrichmentField = {
   /** For `type: 'object'` — the nested object's fields. */
   fields?: EnrichmentField[]
   /**
-   * For `type: 'moduleSelect'` — the TS source of the generator's CUSTOM
-   * binding contract (a single `export type X<F> = …` the editor's matcher
-   * checks candidates against). Absent for the built-in lens/input default,
-   * which is owned by the editor tooling.
+   * For `type: 'moduleSelect'` — the TS source of the field's binding
+   * contract (a single `export type X<F> = …` the editor's matcher checks
+   * candidates against). Always present on a moduleSelect field: the
+   * contract is explicit in the declaration (`lensInputSlot` for the
+   * common lens/input case), never an editor-side default.
    */
   slot?: string
 }
@@ -134,10 +137,10 @@ const unwrap = (schema: ValibotSchemaShape): { inner: ValibotSchemaShape; option
 
 /**
  * A `v.pipe(base, …actions)` schema spreads `base` and adds a `pipe` array
- * whose first element IS the original base schema. Identity checks
- * (`moduleExport`, `schemaPath`, the `moduleSelect` registry) must therefore
- * also compare against the pipe's base, or piping a canonical schema through
- * metadata (`v.title(…)`) would silently demote it to a generic widget.
+ * whose first element IS the original base schema. The `moduleSelect`
+ * registry lookup must therefore also check the pipe's base, or piping a
+ * moduleSelect through metadata (`v.title(…)`) would silently demote it to
+ * a generic object widget.
  */
 const baseOf = (schema: ValibotSchemaShape): ValibotSchemaShape =>
   Array.isArray(schema.pipe) && isValibotSchema(schema.pipe[0]) ? schema.pipe[0] : schema
@@ -183,18 +186,9 @@ type FieldTypeShape = Pick<EnrichmentField, 'type'> &
   Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields' | 'slot'>>
 
 const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
-  const base = baseOf(schema)
-  if (isValibotSchema(moduleExport) && (schema === moduleExport || base === moduleExport)) {
-    return { type: 'module' }
-  }
-  if (isValibotSchema(schemaPath) && (schema === schemaPath || base === schemaPath)) {
-    return { type: 'schemaPath' }
-  }
-  const moduleSelectConfig = moduleSelectConfigOf(schema) ?? moduleSelectConfigOf(base)
+  const moduleSelectConfig = moduleSelectConfigOf(schema) ?? moduleSelectConfigOf(baseOf(schema))
   if (moduleSelectConfig) {
-    return moduleSelectConfig.slot === undefined
-      ? { type: 'moduleSelect' }
-      : { type: 'moduleSelect', slot: moduleSelectConfig.slot }
+    return { type: 'moduleSelect', slot: moduleSelectConfig.slot }
   }
 
   switch (schema.type) {

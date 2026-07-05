@@ -1,7 +1,7 @@
 import { assertEquals } from '@std/assert'
 import * as v from 'valibot'
 import { moduleExport } from '@/types/ModuleExport.ts'
-import { moduleSelect } from '@/types/ModuleSelect.ts'
+import { lensInputSlot, moduleSelect } from '@/types/ModuleSelect.ts'
 import { schemaPath } from '@/types/SchemaPath.ts'
 import {
   toEnrichmentDescriptor,
@@ -44,17 +44,34 @@ Deno.test('toEnrichmentFields — picklist becomes select with options', () => {
   ])
 })
 
-Deno.test('toEnrichmentFields — moduleExport identity-matches to module type', () => {
+Deno.test('toEnrichmentFields — standalone moduleExport degrades to a generic object widget', () => {
+  // There is no standalone `module` widget: a component reference is only
+  // meaningful WITH the path that gives it a type (declare a moduleSelect).
   const schema = v.object({ input: v.optional(moduleExport) })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'input', label: 'Input', optional: true, type: 'module' }
+    {
+      key: 'input',
+      label: 'Input',
+      optional: true,
+      type: 'object',
+      fields: [
+        { key: 'exportName', label: 'Export Name', optional: false, type: 'text' },
+        { key: 'exportPath', label: 'Export Path', optional: false, type: 'text' }
+      ]
+    }
   ])
 })
 
-Deno.test('toEnrichmentFields — schemaPath identity-matches to schemaPath type', () => {
+Deno.test('toEnrichmentFields — standalone schemaPath degrades to a generic array widget', () => {
   const schema = v.object({ schemaPath: v.optional(schemaPath) })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'schemaPath', label: 'Schema Path', optional: true, type: 'schemaPath' }
+    {
+      key: 'schemaPath',
+      label: 'Schema Path',
+      optional: true,
+      type: 'array',
+      item: [{ key: '', label: '', optional: false, type: 'text' }]
+    }
   ])
 })
 
@@ -234,14 +251,20 @@ Deno.test('toEnrichmentDescriptor — surfaces an entry that declares variant su
   assertEquals(toEnrichmentDescriptor(entry).supportsVariant, true)
 })
 
-Deno.test('toEnrichmentFields — moduleSelect registers as moduleSelect type (no slot by default)', () => {
-  const schema = v.object({ moduleSelect: v.optional(moduleSelect()) })
+Deno.test('toEnrichmentFields — moduleSelect registers with its declared slot (lensInputSlot)', () => {
+  const schema = v.object({ moduleSelect: v.optional(moduleSelect({ slot: lensInputSlot })) })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'moduleSelect', label: 'Module Select', optional: true, type: 'moduleSelect' }
+    {
+      key: 'moduleSelect',
+      label: 'Module Select',
+      optional: true,
+      type: 'moduleSelect',
+      slot: lensInputSlot
+    }
   ])
 })
 
-Deno.test('toEnrichmentFields — moduleSelect carries a declared custom slot', () => {
+Deno.test('toEnrichmentFields — moduleSelect carries a custom slot', () => {
   const slot = `export type CellSlot<F> = (props: { value: F }) => unknown`
   const schema = v.object({ moduleSelect: moduleSelect({ slot }) })
   assertEquals(toEnrichmentFields(schema), [
@@ -249,12 +272,18 @@ Deno.test('toEnrichmentFields — moduleSelect carries a declared custom slot', 
   ])
 })
 
-Deno.test('toEnrichmentFields — v.title on a piped moduleSelect becomes the label', () => {
+Deno.test('toEnrichmentFields — v.title on a piped moduleSelect becomes the label, identity kept', () => {
   const schema = v.object({
-    moduleSelect: v.optional(v.pipe(moduleSelect(), v.title('Input')))
+    moduleSelect: v.optional(v.pipe(moduleSelect({ slot: lensInputSlot }), v.title('Input')))
   })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'moduleSelect', label: 'Input', optional: true, type: 'moduleSelect' }
+    {
+      key: 'moduleSelect',
+      label: 'Input',
+      optional: true,
+      type: 'moduleSelect',
+      slot: lensInputSlot
+    }
   ])
 })
 
@@ -265,16 +294,9 @@ Deno.test('toEnrichmentFields — v.title labels a plain field', () => {
   ])
 })
 
-Deno.test('toEnrichmentFields — piping a canonical schema keeps its identity (schemaPath)', () => {
-  const schema = v.object({ path: v.optional(v.pipe(schemaPath, v.title('Field path'))) })
-  assertEquals(toEnrichmentFields(schema), [
-    { key: 'path', label: 'Field path', optional: true, type: 'schemaPath' }
-  ])
-})
-
 Deno.test('toEnrichmentDescriptor — moduleSelect-era form leaf (no id, no sibling path/input)', () => {
   const formFieldItem = v.object({
-    moduleSelect: v.optional(v.pipe(moduleSelect(), v.title('Input'))),
+    moduleSelect: v.optional(v.pipe(moduleSelect({ slot: lensInputSlot }), v.title('Input'))),
     label: v.optional(v.string()),
     placeholder: v.optional(v.string())
   })
@@ -297,13 +319,22 @@ Deno.test('toEnrichmentDescriptor — moduleSelect-era form leaf (no id, no sibl
   const subjectFields = descriptor.fields[0]?.fields ?? []
   const itemFields = subjectFields[1]?.item?.[0]?.fields ?? []
   assertEquals(itemFields, [
-    { key: 'moduleSelect', label: 'Input', optional: true, type: 'moduleSelect' },
+    {
+      key: 'moduleSelect',
+      label: 'Input',
+      optional: true,
+      type: 'moduleSelect',
+      slot: lensInputSlot
+    },
     { key: 'label', label: 'Label', optional: true, type: 'text' },
     { key: 'placeholder', label: 'Placeholder', optional: true, type: 'text' }
   ])
 })
 
-Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', () => {
+Deno.test('toEnrichmentDescriptor — legacy sibling-key leaf degrades to generic widgets', () => {
+  // The pre-moduleSelect shape: id + sibling schemaPath/input keys. With the
+  // standalone widgets removed, the raw schemas degrade to array/object —
+  // usable, but visibly signalling the generator should declare moduleSelect.
   const formFieldItem = v.object({
     id: v.string(),
     schemaPath: v.optional(schemaPath),
@@ -355,8 +386,8 @@ Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', (
   const byKey = Object.fromEntries(itemFields.map(f => [f.key, f.type]))
   assertEquals(byKey, {
     id: 'text',
-    schemaPath: 'schemaPath',
-    input: 'module',
+    schemaPath: 'array',
+    input: 'object',
     label: 'text',
     placeholder: 'text',
     references: 'text'
