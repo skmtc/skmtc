@@ -12,7 +12,6 @@
  * @module
  */
 
-import { match } from 'ts-pattern'
 import { parse as parseYaml } from '@std/yaml'
 import {
   isBoolean,
@@ -74,6 +73,13 @@ const throwOrWarn = (message: string, container: JsonObject, options: ConvertOpt
 
 const asStr = (value: JsonValue | undefined): string | undefined =>
   isString(value) ? value : undefined
+
+const collectionFormats = ['csv', 'ssv', 'tsv', 'pipes', 'multi'] as const
+
+type CollectionFormat = (typeof collectionFormats)[number]
+
+const asCollectionFormat = (value: JsonValue | undefined): CollectionFormat | undefined =>
+  collectionFormats.find((format) => format === asStr(value))
 
 const childVal = (value: JsonValue | undefined, key: string): JsonValue | undefined =>
   isJsonObject(value) ? value[key] : undefined
@@ -266,6 +272,17 @@ const processSecurity = (securityObject: JsonValue | undefined): void => {
   }
 }
 
+const toOAuth2FlowName = (flow: string): string => {
+  switch (flow) {
+    case 'application':
+      return 'clientCredentials'
+    case 'accessCode':
+      return 'authorizationCode'
+    default:
+      return flow
+  }
+}
+
 const processSecurityScheme = (scheme: JsonObject, options: ConvertOptions): void => {
   if (scheme.type === 'basic') {
     scheme.type = 'http'
@@ -274,10 +291,7 @@ const processSecurityScheme = (scheme: JsonObject, options: ConvertOptions): voi
   if (scheme.type === 'oauth2') {
     const flow: JsonObject = {}
     const flowSource = isString(scheme.flow) ? scheme.flow : ''
-    const flowName = match(flowSource)
-      .with('application', () => 'clientCredentials')
-      .with('accessCode', () => 'authorizationCode')
-      .otherwise((value) => value)
+    const flowName = toOAuth2FlowName(flowSource)
     if (isString(scheme.authorizationUrl)) {
       flow.authorizationUrl = scheme.authorizationUrl.split('?')[0].trim() || '/'
     }
@@ -333,24 +347,29 @@ const processHeader = (header: JsonObject, options: ConvertOptions): void => {
       if (options.patch) delete header.collectionFormat
       else throwError('(Patchable) collectionFormat is only applicable to header.type array')
     }
-    match(asStr(header.collectionFormat))
-      .with('csv', () => {
-        header.style = 'simple'
-      })
-      .with('ssv', () => {
-        throwOrWarn('collectionFormat:ssv is no longer supported for headers', header, options)
-      })
-      .with('pipes', () => {
-        throwOrWarn('collectionFormat:pipes is no longer supported for headers', header, options)
-      })
-      .with('multi', () => {
-        header.explode = true
-      })
-      .with('tsv', () => {
-        throwOrWarn('collectionFormat:tsv is no longer supported', header, options)
-        header['x-collectionFormat'] = 'tsv'
-      })
-      .otherwise(() => {})
+    const format = asCollectionFormat(header.collectionFormat)
+    if (format !== undefined) {
+      switch (format) {
+        case 'csv':
+          header.style = 'simple'
+          break
+        case 'ssv':
+          throwOrWarn('collectionFormat:ssv is no longer supported for headers', header, options)
+          break
+        case 'pipes':
+          throwOrWarn('collectionFormat:pipes is no longer supported for headers', header, options)
+          break
+        case 'multi':
+          header.explode = true
+          break
+        case 'tsv':
+          throwOrWarn('collectionFormat:tsv is no longer supported', header, options)
+          header['x-collectionFormat'] = 'tsv'
+          break
+        default:
+          format satisfies never
+      }
+    }
     delete header.collectionFormat
   }
 
@@ -384,22 +403,15 @@ const collectionFormatToStyle = (
   param: JsonObject,
   options: ConvertOptions,
 ): void => {
-  const value = asStr(param.collectionFormat)
+  const value = asCollectionFormat(param.collectionFormat)
   const location = asStr(param.in)
-  match({ value, location })
-    .with({ value: 'csv', location: 'query' }, () => {
-      param.style = 'form'
-    })
-    .with({ value: 'csv', location: 'cookie' }, () => {
-      param.style = 'form'
-    })
-    .with({ value: 'csv', location: 'path' }, () => {
-      param.style = 'simple'
-    })
-    .with({ value: 'csv', location: 'header' }, () => {
-      param.style = 'simple'
-    })
-    .with({ value: 'ssv' }, () => {
+  if (value === undefined) return
+  switch (value) {
+    case 'csv':
+      if (location === 'query' || location === 'cookie') param.style = 'form'
+      else if (location === 'path' || location === 'header') param.style = 'simple'
+      break
+    case 'ssv':
       if (location === 'query') param.style = 'spaceDelimited'
       else {
         throwOrWarn(
@@ -408,8 +420,8 @@ const collectionFormatToStyle = (
           options,
         )
       }
-    })
-    .with({ value: 'pipes' }, () => {
+      break
+    case 'pipes':
       if (location === 'query') param.style = 'pipeDelimited'
       else {
         throwOrWarn(
@@ -418,15 +430,17 @@ const collectionFormatToStyle = (
           options,
         )
       }
-    })
-    .with({ value: 'multi' }, () => {
+      break
+    case 'multi':
       param.explode = true
-    })
-    .with({ value: 'tsv' }, () => {
+      break
+    case 'tsv':
       throwOrWarn('collectionFormat:tsv is no longer supported', param, options)
       param['x-collectionFormat'] = 'tsv'
-    })
-    .otherwise(() => {})
+      break
+    default:
+      value satisfies never
+  }
 }
 
 /** Processes a single parameter, returning a requestBody fragment when one is produced. */

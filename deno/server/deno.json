@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/server",
-  "version": "0.2.54",
+  "version": "0.2.55",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
@@ -8,7 +8,7 @@
   "imports": {
     "hono": "npm:hono@4.7.2",
     "@skmtc/core": "jsr:@skmtc/core@0.24.0",
-    "@skmtc/convert": "jsr:@skmtc/convert@0.1.16"
+    "@skmtc/convert": "jsr:@skmtc/convert@0.1.17"
   },
   "tasks": {
     "publish": "deno publish --allow-slow-types --allow-dirty --no-check"
