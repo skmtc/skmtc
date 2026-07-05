@@ -1,6 +1,7 @@
 import * as v from 'valibot'
 import { moduleExport } from '@/types/ModuleExport.ts'
 import { schemaPath } from '@/types/SchemaPath.ts'
+import { moduleSelectConfigOf } from '@/types/ModuleSelect.ts'
 
 /**
  * Widget type for one enrichment field — the rendered control in the
@@ -14,6 +15,7 @@ export type EnrichmentFieldType =
   | 'select'
   | 'module'
   | 'schemaPath'
+  | 'moduleSelect'
   | 'array'
   | 'object'
 
@@ -42,6 +44,13 @@ export type EnrichmentField = {
   item?: EnrichmentField[]
   /** For `type: 'object'` — the nested object's fields. */
   fields?: EnrichmentField[]
+  /**
+   * For `type: 'moduleSelect'` — the TS source of the generator's CUSTOM
+   * binding contract (a single `export type X<F> = …` the editor's matcher
+   * checks candidates against). Absent for the built-in lens/input default,
+   * which is owned by the editor tooling.
+   */
+  slot?: string
 }
 
 /** Which subject type a generator enriches — operations, webhooks, or models. */
@@ -100,6 +109,7 @@ type ValibotSchemaShape = {
   readonly entries?: unknown
   readonly item?: unknown
   readonly options?: unknown
+  readonly pipe?: unknown
 }
 
 const isValibotSchema = (input: unknown): input is ValibotSchemaShape =>
@@ -123,6 +133,34 @@ const unwrap = (schema: ValibotSchemaShape): { inner: ValibotSchemaShape; option
 }
 
 /**
+ * A `v.pipe(base, …actions)` schema spreads `base` and adds a `pipe` array
+ * whose first element IS the original base schema. Identity checks
+ * (`moduleExport`, `schemaPath`, the `moduleSelect` registry) must therefore
+ * also compare against the pipe's base, or piping a canonical schema through
+ * metadata (`v.title(…)`) would silently demote it to a generic widget.
+ */
+const baseOf = (schema: ValibotSchemaShape): ValibotSchemaShape =>
+  Array.isArray(schema.pipe) && isValibotSchema(schema.pipe[0]) ? schema.pipe[0] : schema
+
+/** The `v.title(…)` metadata riding a piped schema, if any — the field label. */
+const titleOf = (schema: ValibotSchemaShape): string | undefined => {
+  if (!Array.isArray(schema.pipe)) return undefined
+  for (const action of schema.pipe) {
+    if (
+      typeof action === 'object' &&
+      action !== null &&
+      'type' in action &&
+      action.type === 'title' &&
+      'title' in action &&
+      typeof action.title === 'string'
+    ) {
+      return action.title
+    }
+  }
+  return undefined
+}
+
+/**
  * Whether an object member should be omitted from the descriptor. A member
  * that unwraps to `v.undefined()` carries no payload — it is the canonical
  * "this scope is absent" marker (e.g. the `v.undefined()` members of
@@ -142,14 +180,21 @@ const toLabel = (key: string): string => {
 }
 
 type FieldTypeShape = Pick<EnrichmentField, 'type'> &
-  Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields'>>
+  Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields' | 'slot'>>
 
 const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
-  if (isValibotSchema(moduleExport) && schema === moduleExport) {
+  const base = baseOf(schema)
+  if (isValibotSchema(moduleExport) && (schema === moduleExport || base === moduleExport)) {
     return { type: 'module' }
   }
-  if (isValibotSchema(schemaPath) && schema === schemaPath) {
+  if (isValibotSchema(schemaPath) && (schema === schemaPath || base === schemaPath)) {
     return { type: 'schemaPath' }
+  }
+  const moduleSelectConfig = moduleSelectConfigOf(schema) ?? moduleSelectConfigOf(base)
+  if (moduleSelectConfig) {
+    return moduleSelectConfig.slot === undefined
+      ? { type: 'moduleSelect' }
+      : { type: 'moduleSelect', slot: moduleSelectConfig.slot }
   }
 
   switch (schema.type) {
@@ -183,7 +228,10 @@ const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
 
 const walkFromShape = (key: string, rawSchema: ValibotSchemaShape): EnrichmentField => {
   const { inner, optional } = unwrap(rawSchema)
-  return { key, label: toLabel(key), optional, ...typeFor(inner) }
+  // A `v.title(…)` label wins over the key-derived one; the title may ride
+  // the schema itself or sit inside an optional wrapper.
+  const label = titleOf(inner) ?? titleOf(rawSchema) ?? toLabel(key)
+  return { key, label, optional, ...typeFor(inner) }
 }
 
 const walkField = (key: string, rawSchema: v.GenericSchema): EnrichmentField => {

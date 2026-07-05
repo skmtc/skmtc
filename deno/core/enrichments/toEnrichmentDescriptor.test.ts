@@ -1,6 +1,7 @@
 import { assertEquals } from '@std/assert'
 import * as v from 'valibot'
 import { moduleExport } from '@/types/ModuleExport.ts'
+import { moduleSelect } from '@/types/ModuleSelect.ts'
 import { schemaPath } from '@/types/SchemaPath.ts'
 import {
   toEnrichmentDescriptor,
@@ -231,6 +232,75 @@ Deno.test('toEnrichmentDescriptor — surfaces an entry that declares variant su
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }
   assertEquals(toEnrichmentDescriptor(entry).supportsVariant, true)
+})
+
+Deno.test('toEnrichmentFields — moduleSelect registers as moduleSelect type (no slot by default)', () => {
+  const schema = v.object({ moduleSelect: v.optional(moduleSelect()) })
+  assertEquals(toEnrichmentFields(schema), [
+    { key: 'moduleSelect', label: 'Module Select', optional: true, type: 'moduleSelect' }
+  ])
+})
+
+Deno.test('toEnrichmentFields — moduleSelect carries a declared custom slot', () => {
+  const slot = `export type CellSlot<F> = (props: { value: F }) => unknown`
+  const schema = v.object({ moduleSelect: moduleSelect({ slot }) })
+  assertEquals(toEnrichmentFields(schema), [
+    { key: 'moduleSelect', label: 'Module Select', optional: false, type: 'moduleSelect', slot }
+  ])
+})
+
+Deno.test('toEnrichmentFields — v.title on a piped moduleSelect becomes the label', () => {
+  const schema = v.object({
+    moduleSelect: v.optional(v.pipe(moduleSelect(), v.title('Input')))
+  })
+  assertEquals(toEnrichmentFields(schema), [
+    { key: 'moduleSelect', label: 'Input', optional: true, type: 'moduleSelect' }
+  ])
+})
+
+Deno.test('toEnrichmentFields — v.title labels a plain field', () => {
+  const schema = v.object({ submitLabel: v.optional(v.pipe(v.string(), v.title('Submit button'))) })
+  assertEquals(toEnrichmentFields(schema), [
+    { key: 'submitLabel', label: 'Submit button', optional: true, type: 'text' }
+  ])
+})
+
+Deno.test('toEnrichmentFields — piping a canonical schema keeps its identity (schemaPath)', () => {
+  const schema = v.object({ path: v.optional(v.pipe(schemaPath, v.title('Field path'))) })
+  assertEquals(toEnrichmentFields(schema), [
+    { key: 'path', label: 'Field path', optional: true, type: 'schemaPath' }
+  ])
+})
+
+Deno.test('toEnrichmentDescriptor — moduleSelect-era form leaf (no id, no sibling path/input)', () => {
+  const formFieldItem = v.object({
+    moduleSelect: v.optional(v.pipe(moduleSelect(), v.title('Input'))),
+    label: v.optional(v.string()),
+    placeholder: v.optional(v.string())
+  })
+  const entry: EnrichmentSource = {
+    id: '@skmtc/gen-shadcn-form',
+    type: 'oasOperation',
+    supportsVariant: () => true,
+    toEnrichmentSchema: () => v.object({
+      subject: v.optional(
+        v.object({
+          title: v.optional(v.string()),
+          fields: v.optional(v.array(formFieldItem))
+        })
+      ),
+      generator: v.undefined(),
+      stack: v.undefined()
+    })
+  }
+  const descriptor = toEnrichmentDescriptor(entry)
+  const subjectFields = descriptor.fields[0]?.fields ?? []
+  const itemFields = subjectFields[1]?.item?.[0]?.fields ?? []
+  assertEquals(itemFields, [
+    { key: 'moduleSelect', label: 'Input', optional: true, type: 'moduleSelect' },
+    { key: 'label', label: 'Label', optional: true, type: 'text' },
+    { key: 'placeholder', label: 'Placeholder', optional: true, type: 'text' }
+  ])
 })
 
 Deno.test('toEnrichmentDescriptor — gen-shadcn-form realistic subject leaf', () => {
