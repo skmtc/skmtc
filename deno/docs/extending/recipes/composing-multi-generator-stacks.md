@@ -438,7 +438,7 @@ Three options:
 - `toModelProjectionBase` — one artifact per schema. Used by
   `gen-typescript`, `gen-zod`, etc.
 - `toGqlOperationProjectionBase` — one artifact per root field.
-  Used by `gen-reapit-graphql-client`.
+  Used by GraphQL-side generators.
 
 Your `base.ts` declares `id`, `toIdentifier`, `toExportPath`,
 `toEnrichmentSchema` and exports the resulting base class.
@@ -506,9 +506,7 @@ they produced output — verify the `files` map).
   shapes are model-shaped on both sides.
 - **GraphQL stack.** Replace `toOasOperationEntry` with
   `toGqlOperationEntry`, replace HTTP-flavored peers with the
-  GraphQL counterpart (`gen-reapit-graphql-client` is the
-  surviving stock example). The coordination pattern is
-  identical.
+  GraphQL counterpart. The coordination pattern is identical.
 
 ## Common questions
 

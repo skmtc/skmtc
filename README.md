@@ -55,10 +55,6 @@ skmtc
 | | DaisyUI Form | [@skmtc/gen-daisyui-form](https://github.com/skmtc/skmtc-generators/tree/main/gen-daisyui-form) | 🚀 Now |
 | | GraphQL Operation | [@skmtc/gen-graphql-operation](https://github.com/skmtc/skmtc-generators/tree/main/gen-graphql-operation) | 🚀 Now |
 | | GraphQL Typed Document Node | [@skmtc/gen-graphql-typed-document-node](https://github.com/skmtc/skmtc-generators/tree/main/gen-graphql-typed-document-node) | 🚀 Now |
-| | Reapit Form | [@skmtc/gen-reapit-form](https://github.com/skmtc/skmtc-generators/tree/main/gen-reapit-form) | 🚀 Now |
-| | Reapit GraphQL Client | [@skmtc/gen-reapit-graphql-client](https://github.com/skmtc/skmtc-generators/tree/main/gen-reapit-graphql-client) | 🚀 Now |
-| | Reapit Multi-Select | [@skmtc/gen-reapit-multi-select](https://github.com/skmtc/skmtc-generators/tree/main/gen-reapit-multi-select) | 🚀 Now |
-| | Reapit Searchable Dropdown | [@skmtc/gen-reapit-searchable-dropdown](https://github.com/skmtc/skmtc-generators/tree/main/gen-reapit-searchable-dropdown) | 🚀 Now |
 
 ## Performance vs other code generators
 

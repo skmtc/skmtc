@@ -76,21 +76,6 @@ app/router Projection.
 | `@skmtc/gen-supabase-hono` | Hono routes for Supabase Edge Functions | [gen-supabase-hono](gen-supabase-hono.md) |
 | `@skmtc/gen-kotlin-spring` | Spring Boot controllers + service seam per tag (Kotlin; consumer implements `<Tag>Service`) | [gen-kotlin-spring](gen-kotlin-spring.md) |
 
-### GraphQL (Reapit set)
-
-A coordinated four-package set that produces a complete GraphQL
-form + data-fetch stack against Reapit's API conventions. The form
-generator dispatches the select / multi-select / dropdown
-generators via the operation-reference protocol (`references` +
-`referenceKind` enrichments).
-
-| Generator | Output | Reference |
-|-----------|--------|-----------|
-| `@skmtc/gen-reapit-form` | React form per GraphQL Mutation (`@reapit/elements` + `react-hook-form` + `@hookform/lenses`) | [gen-reapit-form](gen-reapit-form.md) |
-| `@skmtc/gen-reapit-graphql-client` | React Query hook per Query/Mutation via `graphql-request` | [gen-reapit-graphql-client](gen-reapit-graphql-client.md) |
-| `@skmtc/gen-reapit-multi-select` | `<XMultiSelectField>` for paged-result Queries (small option sets) | [gen-reapit-multi-select](gen-reapit-multi-select.md) |
-| `@skmtc/gen-reapit-searchable-dropdown` | Search-driven dropdown for paged-result Queries with `name:` filter | [gen-reapit-searchable-dropdown](gen-reapit-searchable-dropdown.md) |
-
 ## Typical combinations
 
 ### Full-stack TypeScript app (REST)

@@ -154,7 +154,6 @@ Pick the tree that matches your role; the shared layers work for both.
 | `@skmtc/gen-daisyui-form` | React forms (DaisyUI) | gen-zod |
 | `@skmtc/gen-express` | Express route handlers | gen-typescript, gen-zod |
 | `@skmtc/gen-supabase-hono` | Hono routes for Supabase | gen-typescript, gen-zod |
-| `@skmtc/gen-reapit-graphql-client` | GraphQL query/mutation hooks | (GraphQL projects) |
 
 Per-generator reference: [`reference/stock-generators/`](reference/stock-generators/).
 

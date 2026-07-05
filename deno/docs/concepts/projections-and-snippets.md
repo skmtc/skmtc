@@ -74,7 +74,7 @@ it addressable in the cache.
 |---|---|---|
 | `ModelProjectionBase` | An OAS schema component (a `refName`) | Generators that produce one file per type/schema |
 | `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that produce one file per endpoint |
-| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (`gen-reapit-graphql-client`) |
+| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators |
 
 Each base provides the `insertOperation` / `insertModel` /
 `insertNormalizedModel` methods with `destinationPath` auto-filled
