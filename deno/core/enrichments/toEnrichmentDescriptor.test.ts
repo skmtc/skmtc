@@ -6,9 +6,18 @@ import { schemaPath } from '@/types/SchemaPath.ts'
 import {
   toEnrichmentDescriptor,
   toEnrichmentFields,
+  type EnrichmentField,
   type EnrichmentSource
 } from './toEnrichmentDescriptor.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
+
+/** Narrow to an array field's item shape, for assertions. */
+const itemOf = (field: EnrichmentField | undefined): EnrichmentField | undefined =>
+  field?.type === 'array' ? field.item : undefined
+
+/** Narrow to an object field's nested fields, for assertions. */
+const fieldsOf = (field: EnrichmentField | undefined): EnrichmentField[] =>
+  field?.type === 'object' ? field.fields : []
 
 Deno.test('toEnrichmentFields — undefined input yields no fields', () => {
   assertEquals(toEnrichmentFields(undefined), [])
@@ -70,12 +79,12 @@ Deno.test('toEnrichmentFields — standalone schemaPath degrades to a generic ar
       label: 'Schema Path',
       optional: true,
       type: 'array',
-      item: [{ key: '', label: '', optional: false, type: 'text' }]
+      item: { key: '', label: '', optional: false, type: 'text' }
     }
   ])
 })
 
-Deno.test('toEnrichmentFields — array of objects yields one-element item with nested fields', () => {
+Deno.test('toEnrichmentFields — array of objects yields an object item with nested fields', () => {
   const schema = v.object({
     fields: v.optional(
       v.array(
@@ -92,18 +101,29 @@ Deno.test('toEnrichmentFields — array of objects yields one-element item with 
       label: 'Fields',
       optional: true,
       type: 'array',
-      item: [
-        {
-          key: '',
-          label: '',
-          optional: false,
-          type: 'object',
-          fields: [
-            { key: 'id', label: 'Id', optional: false, type: 'text' },
-            { key: 'label', label: 'Label', optional: true, type: 'text' }
-          ]
-        }
-      ]
+      item: {
+        key: '',
+        label: '',
+        optional: false,
+        type: 'object',
+        fields: [
+          { key: 'id', label: 'Id', optional: false, type: 'text' },
+          { key: 'label', label: 'Label', optional: true, type: 'text' }
+        ]
+      }
+    }
+  ])
+})
+
+Deno.test('toEnrichmentFields — array of picklist yields a select item with options', () => {
+  const schema = v.object({ tags: v.optional(v.array(v.picklist(['billing', 'crm']))) })
+  assertEquals(toEnrichmentFields(schema), [
+    {
+      key: 'tags',
+      label: 'Tags',
+      optional: true,
+      type: 'array',
+      item: { key: '', label: '', optional: false, type: 'select', options: ['billing', 'crm'] }
     }
   ])
 })
@@ -316,8 +336,8 @@ Deno.test('toEnrichmentDescriptor — moduleSelect-era form leaf (no id, no sibl
     })
   }
   const descriptor = toEnrichmentDescriptor(entry)
-  const subjectFields = descriptor.fields[0]?.fields ?? []
-  const itemFields = subjectFields[1]?.item?.[0]?.fields ?? []
+  const subjectFields = fieldsOf(descriptor.fields[0])
+  const itemFields = fieldsOf(itemOf(subjectFields[1]))
   assertEquals(itemFields, [
     {
       key: 'moduleSelect',
@@ -370,7 +390,7 @@ Deno.test('toEnrichmentDescriptor — legacy sibling-key leaf degrades to generi
   assertEquals(subject.key, 'subject')
   assertEquals(subject.type, 'object')
 
-  const subjectFields = subject.fields ?? []
+  const subjectFields = fieldsOf(subject)
   assertEquals(subjectFields.length, 4)
   assertEquals(subjectFields[0], {
     key: 'title',
@@ -382,7 +402,7 @@ Deno.test('toEnrichmentDescriptor — legacy sibling-key leaf degrades to generi
   const fieldsArray = subjectFields[3]
   assertEquals(fieldsArray.type, 'array')
   assertEquals(fieldsArray.optional, true)
-  const itemFields = fieldsArray.item?.[0]?.fields ?? []
+  const itemFields = fieldsOf(itemOf(fieldsArray))
   const byKey = Object.fromEntries(itemFields.map(f => [f.key, f.type]))
   assertEquals(byKey, {
     id: 'text',
