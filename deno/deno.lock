@@ -1185,16 +1185,15 @@
       "npm:ignore@7.0.5",
       "npm:openapi-types@^12.1.3",
       "npm:tiny-invariant@1.3.3",
-      "npm:valibot@1.1.0",
-      "npm:zod@^4.0.14"
+      "npm:valibot@1.1.0"
     ],
     "members": {
       "cli": {
         "dependencies": [
           "jsr:@cliffy/command@1.1.0",
-          "jsr:@skmtc/convert@0.1.16",
+          "jsr:@skmtc/convert@0.1.17",
           "jsr:@skmtc/core@0.24.0",
-          "jsr:@skmtc/server@0.2.54",
+          "jsr:@skmtc/server@0.2.55",
           "jsr:@skmtc/worker@0.3.44",
           "npm:@inkjs/ui@2",
           "npm:@types/react@19",
@@ -1211,7 +1210,7 @@
       "convert": {
         "dependencies": [
           "jsr:@skmtc/openapi-down-convert@0.14.8",
-          "jsr:@skmtc/swagger2openapi@0.1.2",
+          "jsr:@skmtc/swagger2openapi@0.1.3",
           "jsr:@std/yaml@^1.0.5",
           "npm:openapi-types@^12.1.3"
         ]
@@ -1281,7 +1280,7 @@
       },
       "server": {
         "dependencies": [
-          "jsr:@skmtc/convert@0.1.16",
+          "jsr:@skmtc/convert@0.1.17",
           "jsr:@skmtc/core@0.24.0",
           "npm:hono@4.7.2"
         ]

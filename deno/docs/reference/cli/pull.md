@@ -121,7 +121,7 @@ plan); for now, a `pull` overwrites local enrichments with the hub's.
 
 ```jsonc
 {
-  "kind": "pulled",
+  "type": "pulled",
   "projectName": "my-api",
   "project": { "account": "acme-org", "slug": "petstore-client" },
   "origin": "https://api.skmtc.dev",
@@ -135,7 +135,7 @@ plan); for now, a `pull` overwrites local enrichments with the hub's.
 ### Success (no-op — already in sync)
 
 ```jsonc
-{ "kind": "pulled", "projectName": "my-api", "project": { "account": "acme-org", "slug": "petstore-client" },
+{ "type": "pulled", "projectName": "my-api", "project": { "account": "acme-org", "slug": "petstore-client" },
   "origin": "https://api.skmtc.dev", "changed": false, "wrote": null, "enrichmentGenerators": 3, "remoteWritten": false }
 ```
 
@@ -145,13 +145,13 @@ plan); for now, a `pull` overwrites local enrichments with the hub's.
 ### Aborted (overwrite declined)
 
 ```jsonc
-{ "kind": "aborted", "projectName": "my-api", "project": { "account": "acme-org", "slug": "petstore-client" } }
+{ "type": "aborted", "projectName": "my-api", "project": { "account": "acme-org", "slug": "petstore-client" } }
 ```
 
 ### Failure
 
 ```jsonc
-{ "kind": "failed", "projectName": "my-api", "reason": "...", "stage": "pull" }
+{ "type": "failed", "projectName": "my-api", "reason": "...", "stage": "pull" }
 ```
 
 Possible `stage` values:

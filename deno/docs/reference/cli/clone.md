@@ -132,7 +132,7 @@ source. The rebundle is reported in the JSON output:
 ```jsonc
 {
   "bundle": {
-    "kind": "bundled",
+    "type": "bundled",
     "projectName": "my-api",
     "bundlePath": ".skmtc/my-api/bundle.js"
   }
@@ -154,7 +154,7 @@ debugging traps.
     { "moduleName": "@skmtc/gen-zod", "version": "0.0.55" }
   ],
   "bundle": {
-    "kind": "bundled",
+    "type": "bundled",
     "projectName": "my-api",
     "bundlePath": ".skmtc/my-api/bundle.js"
   },

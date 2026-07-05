@@ -50,7 +50,7 @@ What it does:
 
 ```jsonc
 {
-  "kind": "created",
+  "type": "created",
   "project": { "account": "acme", "slug": "petstore-sandbox" },
   "stack": "acme/petstore-stack",
   "api": { "account": "acme", "slug": "petstore" },

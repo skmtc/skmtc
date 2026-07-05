@@ -90,7 +90,7 @@ error.
   "projectName": "my-api",
   "installed": ["@skmtc/gen-zod"],
   "bundle": {
-    "kind": "bundled",
+    "type": "bundled",
     "projectName": "my-api",
     "bundlePath": ".skmtc/my-api/bundle.js"
   },
@@ -102,7 +102,7 @@ error.
 
 - **`projectName`**: echoed from the argument.
 - **`installed`**: array of generator IDs added in this invocation.
-- **`bundle.kind`**: always `"bundled"` — the post-install rebundle
+- **`bundle.type`**: always `"bundled"` — the post-install rebundle
   runs for every project. (The former `"noop"` remote-only outcome
   was removed along with the remote-only special case.)
 - **`verifyWith`**: a follow-up command the agent can run to confirm

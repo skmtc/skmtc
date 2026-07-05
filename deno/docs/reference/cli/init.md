@@ -97,7 +97,7 @@ schema, or pass the schema positionally to `generate`.
 Re-running `init` with an existing project name is a no-op:
 
 ```jsonc
-{ "kind": "existed", "projectName": "my-api", "nextStep": null }
+{ "type": "existed", "projectName": "my-api", "nextStep": null }
 ```
 
 No files are overwritten; the existing config is preserved.
@@ -126,7 +126,7 @@ machines or CI environments.
 
 ```jsonc
 {
-  "kind": "created",
+  "type": "created",
   "projectName": "my-api",
   "basePath": "./src",
   "nextStep": "skmtc install <generators...> my-api"
@@ -137,7 +137,7 @@ machines or CI environments.
 
 ```jsonc
 {
-  "kind": "existed",
+  "type": "existed",
   "projectName": "my-api",
   "nextStep": null
 }

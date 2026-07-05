@@ -46,7 +46,7 @@ against a local dev hub is never silently sent to production.
 ### `--json` / `--no-input`
 
 Standard agent-mode pair. `--json` emits
-`{ "kind": "logged-in", "handle": "<handle>" }` on success.
+`{ "type": "logged-in", "handle": "<handle>" }` on success.
 
 ## Behavior
 

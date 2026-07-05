@@ -22,8 +22,8 @@ exits 0. It touches only the stored file — `--token` flags and
 ## JSON output
 
 ```jsonc
-{ "kind": "logged-out", "removed": true }   // a credential was deleted
-{ "kind": "logged-out", "removed": false }  // nothing was stored — still exit 0
+{ "type": "logged-out", "removed": true }   // a credential was deleted
+{ "type": "logged-out", "removed": false }  // nothing was stored — still exit 0
 ```
 
 ## Exit codes

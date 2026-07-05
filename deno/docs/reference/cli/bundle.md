@@ -101,7 +101,7 @@ run.
 
 ```jsonc
 {
-  "kind": "bundled",
+  "type": "bundled",
   "projectName": "my-api",
   "bundlePath": ".skmtc/my-api/bundle.js"
 }

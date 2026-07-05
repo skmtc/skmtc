@@ -14,8 +14,7 @@
     "ignore": "npm:ignore@7.0.5",
     "openapi-types": "npm:openapi-types@^12.1.3",
     "tiny-invariant": "npm:tiny-invariant@1.3.3",
-    "valibot": "npm:valibot@1.1.0",
-    "zod": "npm:zod@^4.0.14"
+    "valibot": "npm:valibot@1.1.0"
   },
   "unstable": [
     "kv",
