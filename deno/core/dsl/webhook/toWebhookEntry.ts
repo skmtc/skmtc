@@ -8,7 +8,7 @@ import type {
   ToWebhookEnrichmentsArgs,
   TransformWebhookArgs
 } from '@/dsl/webhook/types.ts'
-import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import type { PreviewModule } from '@/types/Preview.ts'
 
 /**
  * Configuration arguments for creating webhook generator entries.
@@ -30,7 +30,6 @@ export type ToWebhookConfigArgs<EnrichmentType = undefined> = {
    */
   supportsVariant?: () => boolean
   toPreviewModule?: ({ context, webhook }: ToWebhookPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, webhook }: ToWebhookMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     webhook: OasWebhook
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -49,7 +48,6 @@ export type WebhookEntry<EnrichmentType = undefined> = {
   isSupported: (args: IsSupportedWebhookArgs) => boolean
   supportsVariant: () => boolean
   toPreviewModule?: ({ context, webhook }: ToWebhookPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, webhook }: ToWebhookMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     webhook: OasWebhook
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -89,7 +87,6 @@ export const toWebhookEntry = <EnrichmentType = undefined>({
   isSupported,
   supportsVariant,
   toPreviewModule,
-  toMappingModule,
   toEnrichmentRequest,
   toEnrichmentDefaults
 }: ToWebhookConfigArgs<EnrichmentType>): WebhookEntry<EnrichmentType> => {
@@ -101,7 +98,6 @@ export const toWebhookEntry = <EnrichmentType = undefined>({
     isSupported: isSupported ?? (() => true),
     supportsVariant: supportsVariant ?? (() => false),
     toPreviewModule,
-    toMappingModule,
     toEnrichmentRequest,
     toEnrichmentDefaults
   }

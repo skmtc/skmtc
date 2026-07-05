@@ -14,7 +14,7 @@ import type { FileBase } from '@/dsl/FileBase.ts'
 import type { CaptureChannel } from '@/anchors/CaptureSink.ts'
 import { join } from '@std/path/join'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
-import type { Mapping, Preview } from '@/types/Preview.ts'
+import type { Preview } from '@/types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { ToArtifactsResult } from './generateTypes.ts'
@@ -89,7 +89,6 @@ type CoreContextArgs = {
 type RenderArgs = {
   files: Map<string, FileBase>
   previews: Record<string, Preview>
-  mappings: Record<string, Mapping>
   basePath: string | undefined
   attribution: AttributionState | undefined
   captureChannel: CaptureChannel
@@ -410,7 +409,7 @@ export class CoreContext {
       // render. One object per run wires the two phases together.
       const captureChannel: CaptureChannel = { sink: undefined }
 
-      const { files, previews, mappings, inspection } = stackTrail.trace('generate', st => {
+      const { files, previews, inspection } = stackTrail.trace('generate', st => {
         const generatePhase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           document: parsedDocument,
@@ -439,7 +438,6 @@ export class CoreContext {
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
-          mappings,
           basePath: settings?.basePath,
           attribution,
           captureChannel
@@ -488,7 +486,6 @@ export class CoreContext {
         artifacts: {},
         files: {},
         previews: {},
-        mappings: {},
         results: this.#results.toTree(),
         parseIssues: [...priorIssues, fatalIssue]
       }
@@ -685,7 +682,6 @@ export class CoreContext {
   #setupRenderPhase({
     files,
     previews,
-    mappings,
     basePath,
     attribution,
     captureChannel
@@ -693,7 +689,6 @@ export class CoreContext {
     const renderContext = new RenderContext({
       files,
       previews,
-      mappings,
       basePath,
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),

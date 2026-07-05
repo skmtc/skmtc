@@ -9,7 +9,7 @@ import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
-import type { Preview, Mapping } from '@/types/Preview.ts'
+import type { Preview } from '@/types/Preview.ts'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
 import type { StackTrail } from './StackTrail.ts'
 import { CaptureSink, type CaptureChannel } from '@/anchors/CaptureSink.ts'
@@ -51,8 +51,6 @@ type ConstructorArgs = {
   files: Map<string, FileBase>
   /** Preview data for generated content */
   previews: Record<string, Preview>
-  /** Mapping data for file relationships */
-  mappings: Record<string, Mapping>
   /** Base path for resolving file paths */
   basePath: string | undefined
   /** Logger instance for debug information */
@@ -115,8 +113,6 @@ export class RenderContext {
   files: Map<string, FileBase>
   /** Preview data for generated content */
   previews: Record<string, Preview>
-  /** Mapping data for file relationships */
-  mappings: Record<string, Mapping>
   /** Base path for resolving file paths */
   basePath: string | undefined
   /** Logger instance for debug information */
@@ -157,7 +153,6 @@ export class RenderContext {
   constructor({
     files,
     previews,
-    mappings,
     basePath,
     logger,
     captureCurrentResult,
@@ -166,7 +161,6 @@ export class RenderContext {
   }: ConstructorArgs) {
     this.files = files
     this.previews = previews
-    this.mappings = mappings
     this.basePath = basePath
     this.logger = logger
     this.captureCurrentResult = captureCurrentResult
@@ -214,8 +208,7 @@ export class RenderContext {
       return {
         artifacts: result.artifacts,
         files: result.files,
-        previews: this.previews,
-        mappings: this.mappings
+        previews: this.previews
       }
     }
 
@@ -264,7 +257,6 @@ export class RenderContext {
       artifacts: result.artifacts,
       files: result.files,
       previews: this.previews,
-      mappings: this.mappings,
       sidecars,
       generationMap
     }

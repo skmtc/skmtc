@@ -159,7 +159,6 @@ export const toArtifacts = ({
     files,
     previews,
     results,
-    mappings,
     parseIssues,
     sidecars,
     generationMap,
@@ -177,7 +176,6 @@ export const toArtifacts = ({
   const manifest: ManifestContent = {
     files,
     previews,
-    mappings,
     traceId,
     spanId,
     results,

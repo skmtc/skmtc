@@ -1,19 +1,23 @@
 import * as v from 'valibot'
-import { moduleExport } from '@/types/ModuleExport.ts'
-import { schemaPath } from '@/types/SchemaPath.ts'
+import { moduleTypeOf } from '@/types/ModuleSelect.ts'
 
 /**
  * Widget type for one enrichment field — the rendered control in the
  * enrichment-editor UI. Mirrors the `EnrichmentFieldType` enum in the
  * skmtc-hub TypeSpec contract.
+ *
+ * There are deliberately NO standalone `module` / `schemaPath` widget
+ * types: a component reference is only meaningful WITH the path that gives
+ * it a type, so the pair is declared as one `moduleSelect` field. A
+ * generator that uses the raw `moduleExport` / `schemaPath` schemas
+ * standalone degrades to the generic object/array widgets.
  */
 export type EnrichmentFieldType =
   | 'text'
   | 'textarea'
   | 'toggle'
   | 'select'
-  | 'module'
-  | 'schemaPath'
+  | 'moduleSelect'
   | 'array'
   | 'object'
 
@@ -42,6 +46,15 @@ export type EnrichmentField = {
   item?: EnrichmentField[]
   /** For `type: 'object'` — the nested object's fields. */
   fields?: EnrichmentField[]
+  /**
+   * For `type: 'moduleSelect'` — the TS source of the contract a chosen
+   * module must satisfy for this field (a single `export type XModule<F> = …`
+   * the editor's matcher checks candidates against). Always present on a
+   * moduleSelect field: the module type is explicit in the declaration
+   * (`lensInputModuleType` for the common lens/input case), never an
+   * editor-side default.
+   */
+  moduleType?: string
 }
 
 /** Which subject type a generator enriches — operations, webhooks, or models. */
@@ -100,6 +113,7 @@ type ValibotSchemaShape = {
   readonly entries?: unknown
   readonly item?: unknown
   readonly options?: unknown
+  readonly pipe?: unknown
 }
 
 const isValibotSchema = (input: unknown): input is ValibotSchemaShape =>
@@ -123,6 +137,34 @@ const unwrap = (schema: ValibotSchemaShape): { inner: ValibotSchemaShape; option
 }
 
 /**
+ * A `v.pipe(base, …actions)` schema spreads `base` and adds a `pipe` array
+ * whose first element IS the original base schema. The `moduleSelect`
+ * registry lookup must therefore also check the pipe's base, or piping a
+ * moduleSelect through metadata (`v.title(…)`) would silently demote it to
+ * a generic object widget.
+ */
+const baseOf = (schema: ValibotSchemaShape): ValibotSchemaShape =>
+  Array.isArray(schema.pipe) && isValibotSchema(schema.pipe[0]) ? schema.pipe[0] : schema
+
+/** The `v.title(…)` metadata riding a piped schema, if any — the field label. */
+const titleOf = (schema: ValibotSchemaShape): string | undefined => {
+  if (!Array.isArray(schema.pipe)) return undefined
+  for (const action of schema.pipe) {
+    if (
+      typeof action === 'object' &&
+      action !== null &&
+      'type' in action &&
+      action.type === 'title' &&
+      'title' in action &&
+      typeof action.title === 'string'
+    ) {
+      return action.title
+    }
+  }
+  return undefined
+}
+
+/**
  * Whether an object member should be omitted from the descriptor. A member
  * that unwraps to `v.undefined()` carries no payload — it is the canonical
  * "this scope is absent" marker (e.g. the `v.undefined()` members of
@@ -142,14 +184,12 @@ const toLabel = (key: string): string => {
 }
 
 type FieldTypeShape = Pick<EnrichmentField, 'type'> &
-  Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields'>>
+  Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields' | 'moduleType'>>
 
 const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
-  if (isValibotSchema(moduleExport) && schema === moduleExport) {
-    return { type: 'module' }
-  }
-  if (isValibotSchema(schemaPath) && schema === schemaPath) {
-    return { type: 'schemaPath' }
+  const moduleType = moduleTypeOf(schema) ?? moduleTypeOf(baseOf(schema))
+  if (moduleType !== undefined) {
+    return { type: 'moduleSelect', moduleType }
   }
 
   switch (schema.type) {
@@ -183,7 +223,10 @@ const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
 
 const walkFromShape = (key: string, rawSchema: ValibotSchemaShape): EnrichmentField => {
   const { inner, optional } = unwrap(rawSchema)
-  return { key, label: toLabel(key), optional, ...typeFor(inner) }
+  // A `v.title(…)` label wins over the key-derived one; the title may ride
+  // the schema itself or sit inside an optional wrapper.
+  const label = titleOf(inner) ?? titleOf(rawSchema) ?? toLabel(key)
+  return { key, label, optional, ...typeFor(inner) }
 }
 
 const walkField = (key: string, rawSchema: v.GenericSchema): EnrichmentField => {

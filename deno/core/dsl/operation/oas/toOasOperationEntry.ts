@@ -8,7 +8,7 @@ import type {
   ToOasOperationEnrichmentsArgs,
   TransformOasOperationArgs
 } from '@/dsl/operation/oas/types.ts'
-import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import type { PreviewModule } from '@/types/Preview.ts'
 
 /**
  * Configuration arguments for creating operation generator entries.
@@ -29,7 +29,6 @@ export type ToOasOperationConfigArgs<EnrichmentType = undefined> = {
    */
   supportsVariant?: () => boolean
   toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -56,7 +55,6 @@ export type OasOperationEntry<EnrichmentType = undefined> = {
   isSupported: (args: IsSupportedOasOperationArgs) => boolean
   supportsVariant: () => boolean
   toPreviewModule?: ({ context, operation }: ToOasOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: OasOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -100,7 +98,6 @@ export const toOasOperationEntry = <EnrichmentType = undefined>({
   isSupported,
   supportsVariant,
   toPreviewModule,
-  toMappingModule,
   toEnrichmentRequest,
   toEnrichmentDefaults
 }: ToOasOperationConfigArgs<EnrichmentType>): OasOperationEntry<EnrichmentType> => {
@@ -112,7 +109,6 @@ export const toOasOperationEntry = <EnrichmentType = undefined>({
     isSupported: isSupported ?? (() => true),
     supportsVariant: supportsVariant ?? (() => false),
     toPreviewModule,
-    toMappingModule,
     toEnrichmentRequest,
     toEnrichmentDefaults
   }

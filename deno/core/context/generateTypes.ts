@@ -1,7 +1,7 @@
 import * as v from 'valibot'
 import type { ManifestEntry } from '@/types/Manifest.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
-import type { Mapping, Preview } from '@/types/Preview.ts'
+import type { Preview } from '@/types/Preview.ts'
 import type { ResultsItem } from '@/types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
@@ -162,8 +162,6 @@ export type RenderResult = {
   files: Record<string, ManifestEntry>
   /** Preview data for generated content */
   previews: Record<string, Preview>
-  /** Mapping data for file relationships */
-  mappings: Record<string, Mapping>
   /** Hierarchical results tracking */
   results: ResultsItem
 }
@@ -269,7 +267,6 @@ void _oasIssueTypeDriftCheck
 export type GenerateResult = {
   files: Map<string, FileBase>
   previews: Record<string, Preview>
-  mappings: Record<string, Mapping>
 }
 
 /**

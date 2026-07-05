@@ -7,7 +7,7 @@ import type {
   ToModelEnrichmentsArgs,
   IsSupportedModelArgs
 } from './types.ts'
-import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import type { PreviewModule } from '@/types/Preview.ts'
 import type * as v from 'valibot'
 
 type ToModelEntryArgs<EnrichmentType = undefined> = {
@@ -21,7 +21,6 @@ type ToModelEntryArgs<EnrichmentType = undefined> = {
    */
   supportsVariant?: () => boolean
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -39,7 +38,6 @@ export type ModelEntry<EnrichmentType = undefined> = {
   isSupported: (args: IsSupportedModelArgs) => boolean
   supportsVariant: () => boolean
   toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, refName, variant }: ToModelMappingArgs) => MappingModule
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     refName: RefName
@@ -70,7 +68,6 @@ export type ModelEntry<EnrichmentType = undefined> = {
  *   Resolve the schema inside the predicate when needed
  *   (`context.resolveSchemaRefOnce(refName, id)`). Defaults to supporting every model.
  * @param args.toPreviewModule - Optional function to generate preview modules
- * @param args.toMappingModule - Optional function to generate mapping modules
  * @param args.toEnrichmentSchema - Optional function to provide enrichment validation
  * @param args.toEnrichmentRequest - Optional function to request enrichments
  * @returns Model entry object for use in the generation pipeline
@@ -116,7 +113,6 @@ export const toModelEntry = <EnrichmentType = undefined>({
   isSupported,
   supportsVariant,
   toPreviewModule,
-  toMappingModule,
   toEnrichmentSchema,
   toEnrichmentRequest,
   toEnrichmentDefaults
@@ -128,7 +124,6 @@ export const toModelEntry = <EnrichmentType = undefined>({
     isSupported: isSupported ?? (() => true),
     supportsVariant: supportsVariant ?? (() => false),
     toPreviewModule,
-    toMappingModule,
     toEnrichmentSchema,
     toEnrichmentRequest,
     toEnrichmentDefaults

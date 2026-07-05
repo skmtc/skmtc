@@ -1,10 +1,9 @@
 /**
- * @fileoverview Preview and Mapping System for SKMTC Core
+ * @fileoverview Preview System for SKMTC Core
  *
- * Types and Valibot schemas for the preview and mapping systems. Generators
- * may emit a {@link PreviewModule} and/or a {@link MappingModule} per
- * operation or model; the dispatcher pairs each module with a `*Source`
- * descriptor so tooling can trace generated code back to its origin in the
+ * Types and Valibot schemas for the preview system. Generators may emit a
+ * {@link PreviewModule} per operation or model; the dispatcher pairs each
+ * module with a `*Source` descriptor so tooling can trace generated code back to its origin in the
  * source schema.
  *
  * ## Source descriptors
@@ -123,19 +122,8 @@ export type PreviewModule = {
   exportPath: string
 }
 
-export type MappingModule = {
-  name: string
-  exportPath: string
-  schema: string
-}
-
 export type Preview = {
   module: PreviewModule
-  source: OasOperationSource | WebhookSource | GqlOperationSource | ModelSource
-}
-
-export type Mapping = {
-  module: MappingModule
   source: OasOperationSource | WebhookSource | GqlOperationSource | ModelSource
 }
 
@@ -229,18 +217,6 @@ export const previewModule: v.GenericSchema<PreviewModule> = v.object({
   exportPath: v.string()
 })
 
-/**
- * Valibot schema for validating mapping module objects.
- *
- * Validates mapping module structures: name, export path, group, item type
- * (`'input'` | `'formatter'`), and schema reference.
- */
-export const mappingModule: v.GenericSchema<MappingModule> = v.object({
-  name: v.string(),
-  exportPath: v.string(),
-  schema: v.string()
-})
-
 const source: v.VariantSchema<
   'type',
   [typeof oasOperationSource, typeof gqlOperationSource, typeof modelSource],
@@ -257,12 +233,3 @@ export const preview: v.GenericSchema<Preview> = v.object({
   source: source
 })
 
-/**
- * Valibot schema for validating mapping objects.
- *
- * Validates complete mapping structures including module and source information.
- */
-export const mapping: v.GenericSchema<Mapping> = v.object({
-  module: mappingModule,
-  source: source
-})
